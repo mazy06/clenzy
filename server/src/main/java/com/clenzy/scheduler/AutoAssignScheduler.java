@@ -8,6 +8,7 @@ import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.clenzy.service.agent.supervision.SupervisionActionType;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
@@ -32,15 +33,18 @@ public class AutoAssignScheduler {
     private final WorkflowSettingsRepository workflowSettingsRepository;
     private final ServiceRequestService serviceRequestService;
     private final SupervisionActivityService supervisionActivityService;
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService suggestionService;
 
     public AutoAssignScheduler(ServiceRequestRepository serviceRequestRepository,
                                WorkflowSettingsRepository workflowSettingsRepository,
                                ServiceRequestService serviceRequestService,
-                               SupervisionActivityService supervisionActivityService) {
+                               SupervisionActivityService supervisionActivityService,
+                               com.clenzy.service.agent.supervision.SupervisionSuggestionService suggestionService) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.workflowSettingsRepository = workflowSettingsRepository;
         this.serviceRequestService = serviceRequestService;
         this.supervisionActivityService = supervisionActivityService;
+        this.suggestionService = suggestionService;
     }
 
     /**
@@ -113,6 +117,17 @@ public class AutoAssignScheduler {
             String label = sr.getTitle() != null && !sr.getTitle().isBlank() ? sr.getTitle() : "intervention";
             supervisionActivityService.recordModuleAct(orgId, propertyId, "ops", "intervention_assigned",
                 "Intervenant assigne automatiquement a l'intervention « " + label + " » sur ce logement");
+            // Le journal defile ; une carte reste. L'assignation automatique
+            // reussissait en silence : seul le destinataire de la mission
+            // l'apprenait, et cote gestion rien ne distinguait une mission
+            // confiee d'une mission oubliee.
+            suggestionService.recordActionable(orgId, propertyId, "ops",
+                "Mission confiee (demande #" + sr.getId() + ")",
+                "« " + label + " » a trouve preneur automatiquement. Ouvrir pour voir a qui,"
+                    + " et pour quelle date.",
+                SupervisionActionType.ASSIGNMENT_RECAP,
+                "{\"serviceRequestId\":" + sr.getId() + "}",
+                null, "info");
         } catch (Exception e) {
             log.debug("AutoAssignScheduler: activite constellation non enregistree (SR {}): {}",
                 sr.getId(), e.getMessage());

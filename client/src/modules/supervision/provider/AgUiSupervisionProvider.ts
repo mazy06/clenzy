@@ -27,10 +27,11 @@
    repos (tous les agents en veille).
    ============================================================ */
 
+import { toast } from 'sonner';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
 import { applyAutonomy, fetchAutonomy } from './supervisionConfigApi';
-import type { AgentId, AutonomyLevel, FeedEntry, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
+import type { AgentId, AutonomyLevel, FeedEntry, OrchestratorSnapshot, PendingAction, PendingAgentAction, ApplyChoice, StreamEvent } from '../types';
 import type { SupervisionProvider } from './SupervisionProvider';
 import { buildPropertySnapshot } from './mockData';
 import { mapSpecialistToAgent } from './specialistMapping';
@@ -157,6 +158,28 @@ const AGENT_NAME = 'clenzy-supervisor';
  * sans recharger la page. Suspendu pendant un run SSE (le flux gère alors l'état).
  */
 const POLL_INTERVAL_MS = 30_000;
+
+/**
+ * Traduit un échec d'application en phrase lisible.
+ *
+ * <p>Le serveur explique lui-même les refus métier (« Une intervention batterie
+ * est déjà ouverte… ») : les taire pour un message générique ferait perdre la
+ * seule information utile. En revanche un 500 porte une trace technique — on
+ * dit qu'on ne sait pas, plutôt que d'exhiber une exception Java.</p>
+ */
+async function describeApplyFailure(response: Response): Promise<string> {
+  if (response.status >= 500) {
+    return "Action impossible : le serveur a rencontré une erreur. Elle a été journalisée.";
+  }
+  try {
+    const body = (await response.json()) as { message?: string; error?: string };
+    const detail = body.message ?? body.error;
+    if (detail && detail.trim()) return detail.trim();
+  } catch {
+    /* corps vide ou non-JSON : on retombe sur le message générique */
+  }
+  return "Action impossible : cette carte n'est plus applicable.";
+}
 
 export class AgUiSupervisionProvider implements SupervisionProvider<OrchestratorSnapshot> {
   private readonly listeners = new Set<Listener>();
@@ -586,16 +609,27 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * réseau/serveur, la carte reste (l'opérateur pourra réessayer) — pas de retrait
    * optimiste (l'action a un effet métier réel, on ne fait pas « comme si »).
    */
-  private async applySuggestion(id: string): Promise<void> {
+  private async applySuggestion(id: string, plan?: ApplyChoice): Promise<void> {
     try {
       const token = getAccessToken();
       const response = await fetch(buildApiUrl(`/ai/supervision/suggestions/${id}/apply`), {
         method: 'POST',
         credentials: 'include',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(plan ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(plan ? { body: JSON.stringify(plan) } : {}),
       });
-      if (!response.ok) return; // 400/409 → la carte reste
+      if (!response.ok) {
+        // Un échec MUET se lit comme un bouton mort : l'opérateur recommence le
+        // même geste sans jamais apprendre qu'il a échoué. C'est exactement ce
+        // qui a masqué le 500 de `start_time`.
+        toast.error(await describeApplyFailure(response));
+        return; // la carte reste : l'action a un effet métier réel
+      }
     } catch {
+      toast.error("Action impossible : le serveur n'a pas répondu.");
       return; // réseau → la carte reste, réessai possible
     }
     this.applicableSuggestionIds.delete(id);
@@ -1034,7 +1068,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   //  - « payout-reminder-… » : « Info reçue » = ack, « Ne plus afficher » = opt-out ;
   //  - sinon (suggestion de scan) : validate/edit = dismiss.
 
-  async validatePending(actionId: string): Promise<void> {
+  async validatePending(actionId: string, plan?: ApplyChoice): Promise<void> {
     if (actionId.startsWith(SERVICE_REQUEST_PREFIX)) {
       await this.settleServiceRequest(actionId);
       return;
@@ -1052,7 +1086,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }
     // Suggestion actionnable → applique l'action serveur (au lieu de rejeter).
     if (this.applicableSuggestionIds.has(actionId)) {
-      await this.applySuggestion(actionId);
+      await this.applySuggestion(actionId, plan);
       return;
     }
     await this.dismissSuggestion(actionId, 'validated');

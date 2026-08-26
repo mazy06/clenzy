@@ -13,7 +13,7 @@
    la boucle, pas spectateur.
    ============================================================ */
 
-import type { AgentId, AutonomyLevel, StreamEvent, SupervisionSnapshot } from '../types';
+import type { AgentId, AutonomyLevel, ApplyChoice, StreamEvent, SupervisionSnapshot } from '../types';
 
 export interface SupervisionProvider<TSnapshot extends SupervisionSnapshot = SupervisionSnapshot> {
   /**
@@ -29,8 +29,14 @@ export interface SupervisionProvider<TSnapshot extends SupervisionSnapshot = Sup
    */
   subscribe(listener: (event: StreamEvent) => void): () => void;
 
-  /** Valide une action de la file → reprend le graphe ; l'agent passe wait → act. */
-  validatePending(actionId: string): Promise<void>;
+  /**
+   * Valide une action de la file → reprend le graphe ; l'agent passe wait → act.
+   *
+   * @param plan pour une carte « Planifier » : date et intervenant retenus dans
+   *             la modale. Absent partout ailleurs — et sur le chemin
+   *             automatique, où personne ne choisit.
+   */
+  validatePending(actionId: string, plan?: ApplyChoice): Promise<void>;
 
   /** Modifie une action → ouvre l'éditeur métier concerné (résolu hors seam). */
   editPending(actionId: string): Promise<void>;

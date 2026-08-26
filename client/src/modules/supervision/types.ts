@@ -110,6 +110,37 @@ export interface PendingAction {
   opensGuestCard?: boolean;
 }
 
+/**
+ * Choix humain d'une carte « Planifier » : quand, et par qui.
+ *
+ * <p>Ces cartes créaient l'intervention séance tenante — lendemain 10 h, sans
+ * personne dessus. La date et l'intervenant se décidaient donc APRÈS coup, dans
+ * un autre écran. La modale les demande avant.</p>
+ */
+export interface SchedulingChoice {
+  /** Date et heure retenues, au format ISO local (`2026-08-25T09:00:00`). */
+  scheduledAt: string;
+  /** Intervenant à qui la mission est proposée. `null` = personne pour l'instant. */
+  assigneeId: number | null;
+}
+
+/**
+ * Ce qu'une modale rapporte au moment d'appliquer une carte.
+ *
+ * <p>Tout est facultatif : le chemin automatique applique les mêmes cartes sans
+ * personne pour choisir, et les confirmations n'ont rien à rapporter — elles
+ * n'ajoutent qu'un temps d'arrêt.</p>
+ */
+export interface ApplyChoice {
+  scheduledAt?: string;
+  assigneeId?: number | null;
+  /**
+   * Paramètres revus par l'opérateur, qui PRIMENT sur ceux de la carte. L'agent
+   * les avait devinés au moment du scan ; la modale les a montrés.
+   */
+  params?: Record<string, number | string | boolean>;
+}
+
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────
 // Quand un agent veut exécuter une action sensible, le moteur met le run en
 // PAUSE (RUN_FINISHED outcome=interrupt). Le front affiche une carte

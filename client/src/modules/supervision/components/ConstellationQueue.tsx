@@ -24,6 +24,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';
 import { useCountdown, type Countdown } from '../core/useCountdown';
+import { familyOf, opensModal } from './actionRegistry';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
 type AnyAction = PendingAction | PortfolioPendingAction;
@@ -94,12 +95,16 @@ interface QueueBlockProps {
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  /** Cartes « Planifier » : ouvre la modale (date + intervenant) au lieu d'agir. */
+  onSchedule?: (action: AnyAction) => void;
+  /** Cartes dont l'action engage sans rien à choisir : ouvre la confirmation. */
+  onOpenActionModal?: (action: AnyAction) => void;
   /** Carte d'avis : « Répondre » ouvre la modale de réponse (brouillon IA
    *  insérable OU réponse libre) au lieu de publier le brouillon à l'aveugle. */
   onOpenReview?: (payload: OpenReviewPayload) => void;
 }
 
-function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }: QueueBlockProps) {
+function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview }: QueueBlockProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -111,6 +116,12 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
   const isApply = !isPayment && !isReminder && Boolean(action.applyActionType);
   const isPriceAdjust = isApply && action.applyActionType === 'PRICE_DROP'
     && Boolean(action.actionParams) && Boolean(onAdjustPrice);
+  // « Planifier » : la date et l'intervenant se choisissent avant la création.
+  const isSchedule = isApply && familyOf(action.applyActionType) === 'schedule' && Boolean(onSchedule);
+  // Le CTA ouvre une modale : confirmation quand l'effet engage sans rien à
+  // choisir, saisie quand l'action porte des paramètres devinés par l'agent.
+  const isConfirm = isApply && !isSchedule
+    && Boolean(onOpenActionModal) && opensModal(action.applyActionType);
   // Un rappel/paiement/action applicable ne « périme » pas (cf. carte historique).
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const urgent = !isPayment && !isReminder && !expired && cd.hours < 1;
@@ -232,11 +243,15 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
                     })
                 : isPriceAdjust
                   ? () => onAdjustPrice!(action)
-                  : validate
+                  : isSchedule
+                    ? () => onSchedule!(action)
+                    : isConfirm
+                      ? () => onOpenActionModal!(action)
+                      : validate
             }
           >
             {resolving ? (
-              <Spinner className="size-[13px]" />
+              <Spinner className="size-[13px]" aria-hidden aria-label={undefined} role={undefined} />
             ) : reviewId != null ? (
               <Edit size={15} />
             ) : isPayment ? (
@@ -318,9 +333,13 @@ export interface ConstellationQueueProps {
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  /** Cartes « Planifier » : ouvre la modale (date + intervenant) au lieu d'agir. */
+  onSchedule?: (action: AnyAction) => void;
+  /** Cartes dont l'action engage sans rien à choisir : ouvre la confirmation. */
+  onOpenActionModal?: (action: AnyAction) => void;
 }
 
-export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjustPrice }: ConstellationQueueProps) {
+export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal }: ConstellationQueueProps) {
   const { t } = useTranslation();
 
   // Modale de réponse à un avis (composant du dashboard, réutilisé tel quel).
@@ -352,6 +371,8 @@ export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjus
           onValidate={onValidate}
           onEdit={onEdit}
           onAdjustPrice={onAdjustPrice}
+          onSchedule={onSchedule}
+          onOpenActionModal={onOpenActionModal}
           onOpenReview={setOpenReview}
         />
       ))}

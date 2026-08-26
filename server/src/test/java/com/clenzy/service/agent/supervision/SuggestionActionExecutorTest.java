@@ -171,6 +171,11 @@ class SuggestionActionExecutorTest {
 
     // ── hasExternalEffect : routage transactionnel ────────────────────────────
 
+    /** Application sans choix humain — le cas de tous les tests de dispatch. */
+    private void apply(com.clenzy.model.SupervisionSuggestion suggestion) {
+        executor.execute(suggestion, null);
+    }
+
     @Test
     @DisplayName("hasExternalEffect : vrai pour les actions Stripe caution, faux pour les actions DB")
     void externalEffectRouting() {
@@ -188,7 +193,7 @@ class SuggestionActionExecutorTest {
         when(securityDepositRepository.findByOrganizationIdAndReservationId(ORG_ID, RESERVATION_ID))
                 .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD)));
 
-        executor.execute(suggestion(SupervisionActionType.DEPOSIT_REFUND, null));
+        apply(suggestion(SupervisionActionType.DEPOSIT_REFUND, null));
 
         // Le montant/etat vient du rechargement, jamais de la suggestion ; l'effet
         // Stripe passe par releaseHold (clé idempotente deposit-release-<id> + CAS).
@@ -201,7 +206,7 @@ class SuggestionActionExecutorTest {
         when(securityDepositRepository.findByOrganizationIdAndReservationId(ORG_ID, RESERVATION_ID))
                 .thenReturn(Optional.of(deposit(SecurityDepositStatus.RELEASED)));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.DEPOSIT_RELEASE, null)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("RELEASED");
@@ -214,7 +219,7 @@ class SuggestionActionExecutorTest {
         when(securityDepositRepository.findByOrganizationIdAndReservationId(ORG_ID, RESERVATION_ID))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.DEPOSIT_REFUND, null)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Aucune caution");
@@ -230,7 +235,7 @@ class SuggestionActionExecutorTest {
         when(securityDepositRepository.findByOrganizationIdAndReservationId(ORG_ID, RESERVATION_ID))
                 .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD)));
 
-        executor.execute(s);
+        apply(s);
 
         verify(securityDepositPaymentService).releaseHold(ORG_ID, DEPOSIT_ID);
     }
@@ -240,7 +245,51 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("blocage calendrier : plage [aujourd'hui, +days) via CalendarEngine.block (source SUPERVISION)")
     void calendarBlock_blocksRequestedRange() {
-        executor.execute(suggestion(SupervisionActionType.CALENDAR_BLOCK, "{\"days\":10}"));
+        apply(suggestion(SupervisionActionType.CALENDAR_BLOCK, "{\"days\":10}"));
+
+        LocalDate today = LocalDate.now(clock);
+        verify(calendarEngine).block(eq(PROPERTY_ID), eq(today), eq(today.plusDays(10)),
+                eq(ORG_ID), eq("SUPERVISION"), anyString(), eq("system:supervisor"));
+    }
+
+    // ── Parametres revus par l'operateur (modale de saisie) ───────────────────
+
+    @Test
+    @DisplayName("les parametres de la modale priment sur ceux devines par l'agent")
+    void humanParams_overrideCardParams() {
+        executor.execute(
+                suggestion(SupervisionActionType.CALENDAR_BLOCK, "{\"days\":10}"),
+                new com.clenzy.dto.ApplySuggestionRequest(null, null, java.util.Map.of("days", 3)));
+
+        LocalDate today = LocalDate.now(clock);
+        verify(calendarEngine).block(eq(PROPERTY_ID), eq(today), eq(today.plusDays(3)),
+                eq(ORG_ID), eq("SUPERVISION"), anyString(), eq("system:supervisor"));
+    }
+
+    @Test
+    @DisplayName("superposition et non remplacement : les cles non montrees par la modale survivent")
+    void humanParams_keepUntouchedKeys() {
+        // Une modale ne montre qu'une partie des parametres — un pourcentage, une
+        // fenetre. Le reste designe la CIBLE (reservationId, depositId). Remplacer
+        // au lieu de fusionner priverait l'action de son sujet, et l'echec ne se
+        // verrait qu'a l'execution.
+        var card = suggestion(SupervisionActionType.CALENDAR_BLOCK,
+                "{\"days\":10,\"reservationId\":" + RESERVATION_ID + "}");
+
+        executor.execute(card,
+                new com.clenzy.dto.ApplySuggestionRequest(null, null, java.util.Map.of("days", 3)));
+
+        assertThat(card.getActionParams())
+                .contains("\"days\":3")
+                .contains("\"reservationId\":" + RESERVATION_ID);
+    }
+
+    @Test
+    @DisplayName("sans parametres humains, la carte garde exactement les siens")
+    void humanParams_absentLeavesCardUntouched() {
+        executor.execute(
+                suggestion(SupervisionActionType.CALENDAR_BLOCK, "{\"days\":10}"),
+                new com.clenzy.dto.ApplySuggestionRequest(null, null, java.util.Map.of()));
 
         LocalDate today = LocalDate.now(clock);
         verify(calendarEngine).block(eq(PROPERTY_ID), eq(today), eq(today.plusDays(10)),
@@ -250,7 +299,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("blocage calendrier : 7 jours par defaut sans params")
     void calendarBlock_defaultsToSevenDays() {
-        executor.execute(suggestion(SupervisionActionType.CALENDAR_BLOCK, null));
+        apply(suggestion(SupervisionActionType.CALENDAR_BLOCK, null));
 
         LocalDate today = LocalDate.now(clock);
         verify(calendarEngine).block(eq(PROPERTY_ID), eq(today), eq(today.plusDays(7)),
@@ -260,7 +309,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("blocage calendrier : duree hors bornes refusee (garde-fou)")
     void calendarBlock_rejectsOutOfBoundsDuration() {
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.CALENDAR_BLOCK, "{\"days\":90}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("bornes");
@@ -270,7 +319,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("type d'action inconnu -> refus explicite")
     void unknownActionType_throws() {
-        assertThatThrownBy(() -> executor.execute(suggestion("UNKNOWN_TYPE", null)))
+        assertThatThrownBy(() -> apply(suggestion("UNKNOWN_TYPE", null)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("non supporté");
     }
@@ -283,7 +332,7 @@ class SuggestionActionExecutorTest {
                 eq(LocalDate.parse("2026-07-05")), eq(RESERVATION_ID)))
                 .thenReturn(new ServiceRequestService.AutoCleaningOutcome(mock(ServiceRequest.class), null));
 
-        executor.execute(suggestion(SupervisionActionType.CLEANING_REQUEST,
+        apply(suggestion(SupervisionActionType.CLEANING_REQUEST,
                 "{\"reservationId\":100,\"checkIn\":\"2026-07-01\",\"checkOut\":\"2026-07-05\"}"));
 
         verify(serviceRequestService).createAutomaticCleaningRequest(
@@ -297,7 +346,7 @@ class SuggestionActionExecutorTest {
                 .thenReturn(new ServiceRequestService.AutoCleaningOutcome(null, "demande deja existante (cle X)"));
 
         // Ne lève pas : l'objectif (un ménage existe) est atteint.
-        executor.execute(suggestion(SupervisionActionType.CLEANING_REQUEST,
+        apply(suggestion(SupervisionActionType.CLEANING_REQUEST,
                 "{\"reservationId\":100,\"checkOut\":\"2026-07-05\"}"));
     }
 
@@ -307,7 +356,7 @@ class SuggestionActionExecutorTest {
         when(serviceRequestService.createAutomaticCleaningRequest(anyLong(), anyLong(), any(), any(), any()))
                 .thenReturn(new ServiceRequestService.AutoCleaningOutcome(null, "propriete sans proprietaire"));
 
-        assertThatThrownBy(() -> executor.execute(suggestion(SupervisionActionType.CLEANING_REQUEST,
+        assertThatThrownBy(() -> apply(suggestion(SupervisionActionType.CLEANING_REQUEST,
                 "{\"checkOut\":\"2026-07-05\"}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("non planifiable");
@@ -325,7 +374,7 @@ class SuggestionActionExecutorTest {
         when(bookingBalanceService.createBalanceCheckoutUrl(ORG_ID, "ABC123"))
                 .thenReturn("https://checkout.stripe/abc");
 
-        executor.execute(suggestion(SupervisionActionType.PAYMENT_REMINDER, "{\"reservationId\":100}"));
+        apply(suggestion(SupervisionActionType.PAYMENT_REMINDER, "{\"reservationId\":100}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("guest@example.com"), anyString(),
                 contains("https://checkout.stripe/abc"));
@@ -334,14 +383,14 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("brouillon de reponse avis : delegue au service LLM (effet externe, brouillon-seul)")
     void reviewDraftReply_delegatesToDraftService() {
-        executor.execute(suggestion(SupervisionActionType.REVIEW_DRAFT_REPLY, "{\"reviewId\":77}"));
+        apply(suggestion(SupervisionActionType.REVIEW_DRAFT_REPLY, "{\"reviewId\":77}"));
         verify(reviewReplyDraftService).generateDraft(ORG_ID, 77L);
     }
 
     @Test
     @DisplayName("brouillon de reponse avis : reviewId manquant -> echec explicite")
     void reviewDraftReply_throwsWithoutReviewId() {
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.REVIEW_DRAFT_REPLY, "{}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("reviewId");
@@ -357,7 +406,7 @@ class SuggestionActionExecutorTest {
         when(reservation.getGuest()).thenReturn(null);
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.PAYMENT_REMINDER, "{\"reservationId\":100}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("email de paiement");
@@ -367,14 +416,14 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("relance iCal : delegue a ICalImportService avec l'org de la suggestion")
     void icalRetry_delegatesWithSuggestionOrg() {
-        executor.execute(suggestion(SupervisionActionType.ICAL_RETRY, "{\"feedId\":42}"));
+        apply(suggestion(SupervisionActionType.ICAL_RETRY, "{\"feedId\":42}"));
         verify(icalImportService).retryFeedForSupervision(42L, ORG_ID);
     }
 
     @Test
     @DisplayName("relance iCal : feedId manquant -> echec explicite (rien de relance)")
     void icalRetry_throwsWithoutFeedId() {
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.ICAL_RETRY, "{}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("feedId");
@@ -388,7 +437,7 @@ class SuggestionActionExecutorTest {
                 .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
                         .ChannexSyncResult(true, "ok", 0, 12));
 
-        executor.execute(suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}"));
+        apply(suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}"));
 
         LocalDate today = LocalDate.now(clock);
         verify(channexSyncService).pushProperty(PROPERTY_ID, ORG_ID, today, today.plusDays(30));
@@ -401,7 +450,7 @@ class SuggestionActionExecutorTest {
                 .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
                         .ChannexSyncResult(false, "mapping disabled", 0, 0));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Republication Channex");
@@ -417,7 +466,7 @@ class SuggestionActionExecutorTest {
                 new com.clenzy.service.NoiseAlertNotificationService.GuestWarningOutcome(
                         true, "whatsapp", null));
 
-        executor.execute(suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}"));
+        apply(suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}"));
 
         verify(noiseAlertNotificationService).sendGuestWarning(alert);
     }
@@ -429,7 +478,7 @@ class SuggestionActionExecutorTest {
         alert.setOrganizationId(999L);
         when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("organisation");
@@ -446,7 +495,7 @@ class SuggestionActionExecutorTest {
                 new com.clenzy.service.NoiseAlertNotificationService.GuestWarningOutcome(
                         false, null, "deja averti sous 24 h"));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("deja averti");
@@ -455,7 +504,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("relance panier : delegue au scheduler avec l'org de la suggestion")
     void cartRecoverySend_delegatesWithSuggestionOrg() {
-        executor.execute(suggestion(SupervisionActionType.CART_RECOVERY_SEND,
+        apply(suggestion(SupervisionActionType.CART_RECOVERY_SEND,
                 "{\"abandonedBookingId\":31}"));
         verify(cartRecoveryScheduler).sendRecoveryForSupervision(31L, ORG_ID);
     }
@@ -479,7 +528,7 @@ class SuggestionActionExecutorTest {
         when(welcomeGuideService.linkForReservation(reservation))
                 .thenReturn(Optional.of("https://app/guide/tok-1"));
 
-        executor.execute(suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}"));
+        apply(suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
                 contains("https://app/guide/tok-1"));
@@ -491,7 +540,7 @@ class SuggestionActionExecutorTest {
         Reservation reservation = guestReservation("amina@example.com");
         when(welcomeGuideService.linkForReservation(reservation)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("livret");
@@ -505,7 +554,7 @@ class SuggestionActionExecutorTest {
         when(welcomeGuideService.reviewLinkForReservation(reservation))
                 .thenReturn(Optional.of("https://app/guide/tok-review"));
 
-        executor.execute(suggestion(SupervisionActionType.REVIEW_REQUEST_SEND,
+        apply(suggestion(SupervisionActionType.REVIEW_REQUEST_SEND,
                 "{\"reservationId\":100}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
@@ -515,7 +564,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("versement menage : delegue a retryPayout (re-gate complet cote service)")
     void cleaningPayout_delegatesToRetryPayout() {
-        executor.execute(suggestion(SupervisionActionType.CLEANING_PAYOUT, "{\"recordId\":12}"));
+        apply(suggestion(SupervisionActionType.CLEANING_PAYOUT, "{\"recordId\":12}"));
         verify(housekeeperPayoutService).retryPayout(12L, ORG_ID);
     }
 
@@ -528,7 +577,7 @@ class SuggestionActionExecutorTest {
         when(reservation.getId()).thenReturn(RESERVATION_ID);
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
-        executor.execute(suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}"));
+        apply(suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}"));
 
         verify(reservationService).cancel(RESERVATION_ID);
     }
@@ -541,7 +590,7 @@ class SuggestionActionExecutorTest {
         when(reservation.getStatus()).thenReturn("confirmed");
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("fiche réservation");
@@ -556,7 +605,7 @@ class SuggestionActionExecutorTest {
         when(reservation.getId()).thenReturn(RESERVATION_ID);
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
-        executor.execute(suggestion(SupervisionActionType.POLICE_DECLARE, "{\"reservationId\":100}"));
+        apply(suggestion(SupervisionActionType.POLICE_DECLARE, "{\"reservationId\":100}"));
 
         verify(complianceSubmissionService).submitForReservation(RESERVATION_ID, ORG_ID);
     }
@@ -570,7 +619,7 @@ class SuggestionActionExecutorTest {
                 .thenReturn(Optional.of(contract));
         when(userRepository.findById(9L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.MANDATE_SIGN_SEND, "{\"contractId\":5}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("email");
@@ -582,7 +631,7 @@ class SuggestionActionExecutorTest {
     void ownerStatementSend_delegatesWithPeriod() {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.empty());
 
-        executor.execute(suggestion(SupervisionActionType.OWNER_STATEMENT_SEND,
+        apply(suggestion(SupervisionActionType.OWNER_STATEMENT_SEND,
                 "{\"ownerId\":9,\"from\":\"2026-07-01\",\"to\":\"2026-07-31\"}"));
 
         verify(ownerStatementService).sendStatement(9L, ORG_ID,
@@ -604,7 +653,7 @@ class SuggestionActionExecutorTest {
         when(minNightsOverrideRepository.findByPropertyIdAndDate(
                 PROPERTY_ID, LocalDate.parse("2026-07-03"), ORG_ID)).thenReturn(Optional.of(manual));
 
-        executor.execute(suggestion(SupervisionActionType.MIN_STAY_RESTRICTION,
+        apply(suggestion(SupervisionActionType.MIN_STAY_RESTRICTION,
                 "{\"from\":\"2026-07-03\",\"to\":\"2026-07-10\",\"minNights\":2,\"weekendsOnly\":true}"));
 
         // Fenêtre 03→10 : ven 03 (MANUAL, sauté), sam 04, ven 10 exclu → 1 seule écriture (04).
@@ -619,7 +668,7 @@ class SuggestionActionExecutorTest {
         org.springframework.test.util.ReflectionTestUtils.setField(plan, "organizationId", ORG_ID);
         when(ratePlanRepository.findById(4L)).thenReturn(Optional.of(plan));
 
-        executor.execute(suggestion(SupervisionActionType.PROMO_DEACTIVATE, "{\"ratePlanId\":4}"));
+        apply(suggestion(SupervisionActionType.PROMO_DEACTIVATE, "{\"ratePlanId\":4}"));
 
         verify(ratePlanRepository).save(plan);
         assertThat(plan.getIsActive()).isFalse();
@@ -638,7 +687,7 @@ class SuggestionActionExecutorTest {
         when(welcomeGuideService.linkForReservation(reservation))
                 .thenReturn(Optional.of("https://app/guide/tok-upsell"));
 
-        executor.execute(suggestion(SupervisionActionType.UPSELL_OFFER,
+        apply(suggestion(SupervisionActionType.UPSELL_OFFER,
                 "{\"reservationId\":100,\"offerId\":8}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
@@ -656,7 +705,7 @@ class SuggestionActionExecutorTest {
         when(upsellOfferRepository.findByIdAndOrganizationId(8L, ORG_ID))
                 .thenReturn(Optional.of(offer));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.UPSELL_OFFER,
                         "{\"reservationId\":100,\"offerId\":8}")))
                 .isInstanceOf(IllegalStateException.class)
@@ -667,12 +716,12 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("batterie serrure : delegue au chemin F7a partage ; episode couvert -> echec explicite")
     void lockBatteryReplace_delegatesAndSurfacesCoveredEpisode() {
-        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID)).thenReturn(true);
-        executor.execute(suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}"));
-        verify(maintenanceInterventionExecutor).createForLockBattery(3L, ORG_ID);
+        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID, null)).thenReturn(true);
+        apply(suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}"));
+        verify(maintenanceInterventionExecutor).createForLockBattery(3L, ORG_ID, null);
 
-        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID)).thenReturn(false);
-        assertThatThrownBy(() -> executor.execute(
+        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID, null)).thenReturn(false);
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("déjà ouverte");
@@ -681,9 +730,9 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("entretien preventif : cree la tournee sur le logement de la carte")
     void preventiveMaintenance_createsForCardProperty() {
-        when(maintenanceInterventionExecutor.createPreventive(PROPERTY_ID, ORG_ID)).thenReturn(true);
-        executor.execute(suggestion(SupervisionActionType.PREVENTIVE_MAINTENANCE, "{}"));
-        verify(maintenanceInterventionExecutor).createPreventive(PROPERTY_ID, ORG_ID);
+        when(maintenanceInterventionExecutor.createPreventive(PROPERTY_ID, ORG_ID, null)).thenReturn(true);
+        apply(suggestion(SupervisionActionType.PREVENTIVE_MAINTENANCE, "{}"));
+        verify(maintenanceInterventionExecutor).createPreventive(PROPERTY_ID, ORG_ID, null);
     }
 
     @Test
@@ -698,7 +747,7 @@ class SuggestionActionExecutorTest {
         damage.setEstimatedCost(new BigDecimal("450.00"));
         when(interventionRepository.findById(77L)).thenReturn(Optional.of(damage));
 
-        executor.execute(suggestion(SupervisionActionType.DEPOSIT_WITHHOLD,
+        apply(suggestion(SupervisionActionType.DEPOSIT_WITHHOLD,
                 "{\"depositId\":9,\"interventionId\":77}"));
 
         // 450 € de dégât mais 120 € de caution → capture bornée à 120 €.
@@ -715,7 +764,7 @@ class SuggestionActionExecutorTest {
         when(reservation.getTotalPrice()).thenReturn(new BigDecimal("300.00"));
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
-        executor.execute(suggestion(SupervisionActionType.GOODWILL_REFUND,
+        apply(suggestion(SupervisionActionType.GOODWILL_REFUND,
                 "{\"reservationId\":100,\"percent\":15}"));
 
         // 15 % de 300 € = 45 € = 4500 cents, motif GESTURE.
@@ -726,7 +775,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("reversement proprietaire : delegue a approvePayout (jamais de transfert direct)")
     void ownerPayout_delegatesToApprove() {
-        executor.execute(suggestion(SupervisionActionType.OWNER_PAYOUT, "{\"payoutId\":21}"));
+        apply(suggestion(SupervisionActionType.OWNER_PAYOUT, "{\"payoutId\":21}"));
         verify(accountingService).approvePayout(21L, ORG_ID);
     }
 
@@ -746,7 +795,7 @@ class SuggestionActionExecutorTest {
         works.setEstimatedCost(new BigDecimal("780.00"));
         when(interventionRepository.findById(55L)).thenReturn(Optional.of(works));
 
-        executor.execute(suggestion(SupervisionActionType.OWNER_WORKS_APPROVAL,
+        apply(suggestion(SupervisionActionType.OWNER_WORKS_APPROVAL,
                 "{\"interventionId\":55}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
@@ -770,7 +819,7 @@ class SuggestionActionExecutorTest {
                 .thenReturn(com.clenzy.booking.dto.AutoTranslateResultDto.forPages(
                         List.of(mock(com.clenzy.booking.dto.SitePageDto.class)), List.of()));
 
-        executor.execute(suggestion(SupervisionActionType.SITE_TRANSLATION_DRAFT,
+        apply(suggestion(SupervisionActionType.SITE_TRANSLATION_DRAFT,
                 "{\"siteId\":6,\"targetLocale\":\"ar\"}"));
 
         verify(contentTranslationService).autoTranslatePage(ORG_ID, 6L, 40L, List.of("ar"));
@@ -789,7 +838,7 @@ class SuggestionActionExecutorTest {
         when(reservationRepository.findById(200L)).thenReturn(Optional.of(keep));
         when(reservationRepository.findById(201L)).thenReturn(Optional.of(cancel));
 
-        executor.execute(suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
+        apply(suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
                 "{\"cancelReservationId\":201,\"keepReservationId\":200}"));
 
         verify(reservationService).cancel(201L);
@@ -806,7 +855,7 @@ class SuggestionActionExecutorTest {
         when(reservationRepository.findById(200L)).thenReturn(Optional.of(keep));
         when(reservationRepository.findById(201L)).thenReturn(Optional.of(cancel));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
                         "{\"cancelReservationId\":201,\"keepReservationId\":200}")))
                 .isInstanceOf(IllegalStateException.class)
@@ -824,7 +873,7 @@ class SuggestionActionExecutorTest {
         SupervisionSuggestion s = suggestion(SupervisionActionType.CONVERSATION_TAKEOVER,
                 "{\"conversationId\":14}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-123");
-        executor.execute(s);
+        apply(s);
 
         assertThat(conversation.getAssignedToKeycloakId()).isEqualTo("kc-123");
         verify(conversationRepository).save(conversation);
@@ -842,7 +891,7 @@ class SuggestionActionExecutorTest {
                 "{\"conversationId\":14}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-123");
 
-        assertThatThrownBy(() -> executor.execute(s))
+        assertThatThrownBy(() -> apply(s))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("autre opérateur");
     }
@@ -865,7 +914,7 @@ class SuggestionActionExecutorTest {
                 PROPERTY_ID, ORG_ID, LocalDate.parse("2025-06-01"), LocalDate.parse("2025-07-01")))
                 .thenReturn(new BigDecimal("2340.00"));
 
-        executor.execute(suggestion(SupervisionActionType.OWNER_REVENUE_NOTE,
+        apply(suggestion(SupervisionActionType.OWNER_REVENUE_NOTE,
                 "{\"month\":\"2026-06\"}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
@@ -875,8 +924,29 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("taxe declaree : delegue au registre (transition CAS DUE -> FILED cote service)")
     void taxMarkFiled_delegatesToRegistry() {
-        executor.execute(suggestion(SupervisionActionType.TAX_MARK_FILED, "{\"filingId\":3}"));
-        verify(taxFilingService).markFiled(3L, ORG_ID, null);
+        apply(suggestion(SupervisionActionType.TAX_MARK_FILED, "{\"filingId\":3}"));
+        verify(taxFilingService).markFiled(3L, ORG_ID, null, null);
+    }
+
+    @Test
+    @DisplayName("taxe declaree : la date de depot REELLE arrive jusqu'au registre")
+    void taxMarkFiled_carriesRealDepositDate() {
+        // On depose le mardi et on saisit le jeudi : sans cette date, le registre
+        // porterait l'horodatage de saisie et perdrait sa valeur probante.
+        apply(suggestion(SupervisionActionType.TAX_MARK_FILED,
+                "{\"filingId\":3,\"depositedOn\":\"2026-08-18\",\"reference\":\"DEP-42\"}"));
+
+        verify(taxFilingService).markFiled(
+                3L, ORG_ID, LocalDate.parse("2026-08-18"), "DEP-42");
+    }
+
+    @Test
+    @DisplayName("taxe declaree : une date illisible ne bloque pas l'enregistrement")
+    void taxMarkFiled_ignoresUnreadableDate() {
+        apply(suggestion(SupervisionActionType.TAX_MARK_FILED,
+                "{\"filingId\":3,\"depositedOn\":\"pas-une-date\"}"));
+
+        verify(taxFilingService).markFiled(3L, ORG_ID, null, null);
     }
 
     @Test
@@ -894,7 +964,7 @@ class SuggestionActionExecutorTest {
         SupervisionSuggestion s = suggestion(SupervisionActionType.RELODGE_TRANSFER,
                 "{\"reservationId\":100,\"targetPropertyId\":2}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
-        executor.execute(s);
+        apply(s);
 
         verify(stayTransferServiceMock).propose(ORG_ID, RESERVATION_ID, 2L, "motif",
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
@@ -909,7 +979,7 @@ class SuggestionActionExecutorTest {
         when(reservation.getOrganizationId()).thenReturn(999L);
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.RELODGE_TRANSFER,
                         "{\"reservationId\":100,\"targetPropertyId\":2}")))
                 .isInstanceOf(IllegalStateException.class)
@@ -930,7 +1000,7 @@ class SuggestionActionExecutorTest {
         SupervisionSuggestion s = suggestion(SupervisionActionType.NOSHOW_MARK,
                 "{\"reservationId\":100}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-1");
-        executor.execute(s);
+        apply(s);
 
         assertThat(reservation.isNoShow()).isTrue();
         verify(reservationRepository).save(reservation);
@@ -938,14 +1008,14 @@ class SuggestionActionExecutorTest {
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-1");
 
         // Deja marque : aucun nouvel effet.
-        executor.execute(s);
+        apply(s);
         verify(calendarEngine, org.mockito.Mockito.times(1)).cancel(anyLong(), anyLong(), anyString());
     }
 
     @Test
     @DisplayName("litige : delegue au dossier de preuves avec l'org de la suggestion")
     void chargebackSubmit_delegatesToEvidenceService() {
-        executor.execute(suggestion(SupervisionActionType.CHARGEBACK_SUBMIT, "{\"disputeId\":17}"));
+        apply(suggestion(SupervisionActionType.CHARGEBACK_SUBMIT, "{\"disputeId\":17}"));
         verify(disputeEvidenceService).submitEvidence(17L, ORG_ID);
     }
 
@@ -954,7 +1024,7 @@ class SuggestionActionExecutorTest {
     void quoteApproval_delegatesWithAppliedBy() {
         SupervisionSuggestion s = suggestion(SupervisionActionType.QUOTE_APPROVAL, "{\"quoteId\":23}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
-        executor.execute(s);
+        apply(s);
         verify(serviceQuoteService).approveFromSupervision(23L, ORG_ID,
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
     }
@@ -977,7 +1047,7 @@ class SuggestionActionExecutorTest {
         property.setName("Riad Yasmine");
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
-        executor.execute(suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}"));
+        apply(suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}"));
 
         verify(emailService).sendSimpleHtmlEmail(eq("supplier@example.com"), anyString(),
                 contains("Parure de lit"));
@@ -992,7 +1062,7 @@ class SuggestionActionExecutorTest {
         when(propertyStockItemRepository.findByIdAndOrganizationId(6L, ORG_ID))
                 .thenReturn(Optional.of(item));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("seuil");
@@ -1029,7 +1099,7 @@ class SuggestionActionExecutorTest {
                 PROPERTY_ID, LocalDate.parse("2026-07-05"), LocalDate.parse("2026-07-05"), ORG_ID))
                 .thenReturn(List.of());
 
-        executor.execute(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+        apply(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
                 "{\"conversationId\":14,\"reservationId\":100,\"requestedTime\":\"14:00\"}"));
 
         verify(conversationService).sendAutonomousMessage(eq(conversation), contains("14:00"));
@@ -1052,7 +1122,7 @@ class SuggestionActionExecutorTest {
                 PROPERTY_ID, LocalDate.parse("2026-07-05"), LocalDate.parse("2026-07-05"), ORG_ID))
                 .thenReturn(List.of(busy));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
                         "{\"conversationId\":14,\"reservationId\":100}")))
                 .isInstanceOf(IllegalStateException.class)
@@ -1067,7 +1137,7 @@ class SuggestionActionExecutorTest {
         Reservation reservation = stayReservation(LocalDate.parse("2026-07-05"));
         reservation.setNotes(SuggestionActionExecutor.LATE_CHECKOUT_NOTE_MARKER + " le 2026-07-01.");
 
-        executor.execute(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+        apply(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
                 "{\"conversationId\":14,\"reservationId\":100}"));
 
         verifyNoInteractions(conversationService);
@@ -1086,7 +1156,7 @@ class SuggestionActionExecutorTest {
                 eq(LocalDate.parse("2026-07-06")), eq(LocalDate.parse("2026-07-09")), any()))
                 .thenReturn(modification);
 
-        executor.execute(suggestion(SupervisionActionType.STAY_MODIFICATION,
+        apply(suggestion(SupervisionActionType.STAY_MODIFICATION,
                 "{\"conversationId\":14,\"reservationId\":100,"
                         + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}"));
 
@@ -1104,7 +1174,7 @@ class SuggestionActionExecutorTest {
         when(stayModificationServiceMock.propose(any(), any(), any(), any(), any()))
                 .thenThrow(new IllegalStateException("Les dates ne sont pas disponibles"));
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.STAY_MODIFICATION,
                         "{\"conversationId\":14,\"reservationId\":100,"
                                 + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}")))
@@ -1127,7 +1197,7 @@ class SuggestionActionExecutorTest {
                 .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
                         .ChannexSyncResult(true, "ok", 500, 500));
 
-        executor.execute(suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}"));
+        apply(suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}"));
 
         verify(channexConnectServiceMock).resync(PROPERTY_ID, ORG_ID, 0);
         verify(channexContentPushServiceMock).pushContent(PROPERTY_ID, ORG_ID);
@@ -1139,7 +1209,7 @@ class SuggestionActionExecutorTest {
         when(channexMappingRepositoryMock.findByClenzyPropertyId(PROPERTY_ID, ORG_ID))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Intégrations");
@@ -1155,7 +1225,7 @@ class SuggestionActionExecutorTest {
         SupervisionSuggestion s = suggestion(SupervisionActionType.GDPR_ERASE,
                 "{\"requestId\":31}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
-        executor.execute(s);
+        apply(s);
 
         verify(privacyRequestServiceMock).executeErasure(31L, ORG_ID,
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
@@ -1164,7 +1234,7 @@ class SuggestionActionExecutorTest {
     @Test
     @DisplayName("effacement RGPD : pas d'operateur humain identifie -> refus, rien d'efface")
     void gdprErase_refusesWithoutHumanOperator() {
-        assertThatThrownBy(() -> executor.execute(
+        assertThatThrownBy(() -> apply(
                 suggestion(SupervisionActionType.GDPR_ERASE, "{\"requestId\":31}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("humain");

@@ -363,6 +363,47 @@
       "accept": "Accepter",
       "erase": "Effacer",
       "publish": "Publier"
+    },
+    "schedule": {
+      "title": "Planifier l’intervention",
+      "time": "Heure",
+      "assignee": "Intervenant",
+      "matchingRoles": "Métier correspondant",
+      "otherRoles": "Autres intervenants",
+      "noWorker": "Aucun intervenant dans cette organisation. La mission sera créée sans attributaire.",
+      "unassignedHint": "Sans intervenant, la mission reste à assigner.",
+      "proposalHint": "La mission lui sera proposée : il peut l’accepter ou la refuser."
+    },
+    "confirm": {
+      "amount": "Montant",
+      "amountEstimate": "Montant estimé",
+      "recomputedNote": "Le montant exact est recalculé au moment de l’exécution : il peut différer de cette estimation.",
+      "irreversible": "Cette action ne peut pas être annulée.",
+      "typeToConfirm": "Saisissez {{word}} pour continuer"
+    },
+    "params": {
+      "range": "Entre {{min}} et {{max}}",
+      "from": "Du",
+      "to": "Au (exclu)",
+      "simulate": "Simuler"
+    },
+    "review": {
+      "title": "Avant l’envoi",
+      "recipients": "Destinataire",
+      "subject": "Objet",
+      "noRecipient": "Aucun destinataire résolu.",
+      "send": "Envoyer",
+      "previewFailed": "L’aperçu n’a pas pu être chargé. L’action reste possible : le destinataire et le contenu seront résolus à l’envoi.",
+      "bodyNotRendered": "Le message est composé au moment de l’envoi : son texte exact n’est pas affichable ici."
+    },
+    "choice": {
+      "title": "Votre décision",
+      "suggested": "Proposé par l’agent",
+      "apply": "Valider ce choix",
+      "noOptions": "Les candidats n’ont pas pu être chargés. La situation a peut-être changé depuis que la carte a été émise."
+    },
+    "recap": {
+      "unavailable": "Le détail n’a pas pu être chargé. La mission a bien été confiée : la fiche de la demande en garde la trace."
     }
   },
   "channexGuided": {
@@ -971,6 +1012,7 @@
     "previous": "Précédent",
     "submit": "Envoyer",
     "actions": "Actions",
+    "filters": "Filtres",
     "status": "Statut",
     "date": "Date",
     "name": "Nom",

@@ -65,8 +65,14 @@ public class TaxFilingService {
 
     /** Dépôt déclaré (manuel pour l'instant). Échec explicite si déjà FILED/PAID. */
     @Transactional
-    public void markFiled(Long id, Long orgId, String reference) {
-        if (repository.markFiled(id, orgId, clock.instant(), blankToNull(reference)) == 0) {
+    /**
+     * @param depositedOn date du dépôt EFFECTIF déclarée par l'opérateur.
+     *                    {@code null} = inconnue ; l'horodatage de saisie
+     *                    ({@code filedAt}) est posé dans tous les cas et reste
+     *                    la trace d'audit.
+     */
+    public void markFiled(Long id, Long orgId, java.time.LocalDate depositedOn, String reference) {
+        if (repository.markFiled(id, orgId, clock.instant(), depositedOn, blankToNull(reference)) == 0) {
             throw new IllegalStateException("Déclaration introuvable ou déjà déposée");
         }
     }

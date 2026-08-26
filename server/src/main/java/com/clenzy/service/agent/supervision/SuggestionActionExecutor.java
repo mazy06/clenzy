@@ -274,12 +274,22 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.CHANNEL_PUBLISH.equals(actionType);
     }
 
-    /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
-    public void execute(SupervisionSuggestion suggestion) {
+    /**
+     * Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu
+     * ou les params invalides.
+     *
+     * @param plan choix humain de la modale, {@code null} sur le chemin automatique
+     *             (personne pour choisir). La date et l'intervenant ne concernent
+     *             que les cartes « Planifier » ; les {@code params}, eux, sont
+     *             superposés à ceux de la carte pour TOUS les types.
+     */
+    public void execute(SupervisionSuggestion suggestion,
+                        com.clenzy.dto.ApplySuggestionRequest plan) {
         final String type = suggestion.getActionType();
         if (type == null) {
             throw new IllegalStateException("Suggestion non actionnable (actionType absent)");
         }
+        overlayHumanParams(suggestion, plan);
         switch (type) {
             case SupervisionActionType.PRICE_DROP -> applyPriceDrop(suggestion);
             case SupervisionActionType.DEPOSIT_REFUND, SupervisionActionType.DEPOSIT_RELEASE ->
@@ -304,8 +314,13 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.MIN_STAY_RESTRICTION -> applyMinStayRestriction(suggestion);
             case SupervisionActionType.PROMO_DEACTIVATE -> applyPromoDeactivate(suggestion);
             case SupervisionActionType.UPSELL_OFFER -> applyUpsellOffer(suggestion);
-            case SupervisionActionType.LOCK_BATTERY_REPLACE -> applyLockBatteryReplace(suggestion);
-            case SupervisionActionType.PREVENTIVE_MAINTENANCE -> applyPreventiveMaintenance(suggestion);
+            // Récapitulatif : la carte rend compte d'une assignation DÉJÀ faite.
+            // L'appliquer ne fait que la retirer de la file — c'est voulu, et
+            // c'est dit ici plutôt que de laisser le dispatch lever « type inconnu ».
+            case SupervisionActionType.ASSIGNMENT_RECAP -> { }
+            case SupervisionActionType.REASSIGN_MANUAL -> applyReassignManual(suggestion);
+            case SupervisionActionType.LOCK_BATTERY_REPLACE -> applyLockBatteryReplace(suggestion, plan);
+            case SupervisionActionType.PREVENTIVE_MAINTENANCE -> applyPreventiveMaintenance(suggestion, plan);
             case SupervisionActionType.DEPOSIT_WITHHOLD -> applyDepositWithhold(suggestion);
             case SupervisionActionType.GOODWILL_REFUND -> applyGoodwillRefund(suggestion);
             case SupervisionActionType.OWNER_PAYOUT -> applyOwnerPayoutApprove(suggestion);
@@ -572,6 +587,19 @@ public class SuggestionActionExecutor {
         }
     }
 
+    /** Date facultative — absente, illisible ou vide rend {@code null}. */
+    private java.time.LocalDate optionalDateParam(SupervisionSuggestion suggestion, String field) {
+        final String raw = optionalStringParam(suggestion, field);
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return java.time.LocalDate.parse(raw);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private java.time.LocalDate requiredDateParam(SupervisionSuggestion suggestion, String field) {
         final String value = optionalStringParam(suggestion, field);
         if (value == null) {
@@ -644,14 +672,23 @@ public class SuggestionActionExecutor {
      * La référence de dépôt se complète ensuite dans Rapports. Écriture DB pure.
      */
     private void applyTaxMarkFiled(SupervisionSuggestion suggestion) {
+        // La référence du dépôt vient de l'opérateur : lui seul l'a, puisque c'est
+        // lui qui a déposé. Le service l'accepte depuis toujours ; elle était
+        // passée à null, et le champ restait vide en base sans que rien le dise.
+        final String reference = optionalStringParam(suggestion, "reference");
+        // Date du dépôt RÉEL : on dépose le mardi, on saisit le jeudi. Sans elle,
+        // le registre portait la date de saisie et perdait sa valeur probante.
+        final java.time.LocalDate depositedOn = optionalDateParam(suggestion, "depositedOn");
         final java.util.List<Long> filingIds = longListParam(suggestion, "filingIds");
         if (filingIds.isEmpty()) {
             taxFilingService.getObject().markFiled(
-                    requiredLongParam(suggestion, "filingId"), suggestion.getOrganizationId(), null);
+                    requiredLongParam(suggestion, "filingId"), suggestion.getOrganizationId(),
+                    depositedOn, reference);
             return;
         }
         for (Long filingId : filingIds) {
-            taxFilingService.getObject().markFiled(filingId, suggestion.getOrganizationId(), null);
+            taxFilingService.getObject().markFiled(
+                    filingId, suggestion.getOrganizationId(), depositedOn, reference);
         }
     }
 
@@ -931,19 +968,39 @@ public class SuggestionActionExecutor {
      * Épisode déjà couvert → échec explicite (l'opérateur sait qu'une intervention
      * ouverte existe, la carte se rejette).
      */
-    private void applyLockBatteryReplace(SupervisionSuggestion suggestion) {
+    /**
+     * REASSIGN_MANUAL — l'opérateur désigne lui-même l'intervenant.
+     *
+     * <p>Passe par {@code manualAssign}, le chemin canonique de l'écran des
+     * demandes : mêmes vérifications d'organisation et de statut, même
+     * réévaluation tarifaire. Écrire une seconde politique ici aurait fait
+     * diverger deux façons d'assigner la même chose.</p>
+     *
+     * <p>Le métier n'est pas contrôlé : l'automatique a déjà appliqué ses
+     * critères sans trouver personne, les répéter au rattrapage n'offrirait
+     * aucune issue.</p>
+     */
+    private void applyReassignManual(SupervisionSuggestion suggestion) {
+        final long serviceRequestId = requiredLongParam(suggestion, "serviceRequestId");
+        final long assigneeId = requiredLongParam(suggestion, "assigneeId");
+        serviceRequestService.manualAssign(serviceRequestId, assigneeId, "user");
+    }
+
+    private void applyLockBatteryReplace(SupervisionSuggestion suggestion,
+                                         com.clenzy.dto.ApplySuggestionRequest plan) {
         final long deviceId = requiredLongParam(suggestion, "deviceId");
         if (!maintenanceInterventionExecutor.getObject()
-                .createForLockBattery(deviceId, suggestion.getOrganizationId())) {
+                .createForLockBattery(deviceId, suggestion.getOrganizationId(), plan)) {
             throw new IllegalStateException(
                     "Une intervention batterie est déjà ouverte pour cette serrure");
         }
     }
 
     /** PREVENTIVE_MAINTENANCE — crée la tournée d'entretien préventif du logement de la carte. */
-    private void applyPreventiveMaintenance(SupervisionSuggestion suggestion) {
+    private void applyPreventiveMaintenance(SupervisionSuggestion suggestion,
+                                            com.clenzy.dto.ApplySuggestionRequest plan) {
         if (!maintenanceInterventionExecutor.getObject()
-                .createPreventive(suggestion.getPropertyId(), suggestion.getOrganizationId())) {
+                .createPreventive(suggestion.getPropertyId(), suggestion.getOrganizationId(), plan)) {
             throw new IllegalStateException(
                     "Une tournée d'entretien préventif est déjà ouverte pour ce logement");
         }
@@ -1273,6 +1330,46 @@ public class SuggestionActionExecutor {
         if (result == null || !result.success()) {
             throw new IllegalStateException("Republication Channex échouée : "
                     + (result != null ? result.message() : "aucun résultat"));
+        }
+    }
+
+    /**
+     * Superpose les paramètres revus par l'opérateur à ceux de la carte.
+     *
+     * <p>Un seul point d'entrée plutôt qu'un argument porté jusqu'aux quarante
+     * branches : tous les lecteurs passent déjà par {@code getActionParams()},
+     * il suffit que cette chaîne porte le choix humain.</p>
+     *
+     * <p><b>Superposition, pas remplacement</b> : la modale n'affiche qu'une
+     * partie des paramètres (un pourcentage, une fenêtre), le reste identifie la
+     * cible ({@code reservationId}, {@code depositId}). Écraser la carte ferait
+     * disparaître ces clés et l'action perdrait son sujet.</p>
+     *
+     * <p>La mutation est en mémoire. Sur le chemin sans effet externe, l'entité
+     * est encore gérée : le choix appliqué se retrouve donc persisté sur la
+     * carte, ce qui en garde la trace. Sur le chemin externe, l'exécution a lieu
+     * après commit et la mutation reste locale à l'appel.</p>
+     */
+    private void overlayHumanParams(SupervisionSuggestion suggestion,
+                                    com.clenzy.dto.ApplySuggestionRequest plan) {
+        if (plan == null || plan.safeParams().isEmpty()) {
+            return;
+        }
+        try {
+            final String raw = suggestion.getActionParams();
+            final com.fasterxml.jackson.databind.node.ObjectNode merged =
+                    raw == null || raw.isBlank()
+                            ? objectMapper.createObjectNode()
+                            : (com.fasterxml.jackson.databind.node.ObjectNode) objectMapper.readTree(raw);
+            plan.safeParams().forEach((key, value) ->
+                    merged.set(key, objectMapper.valueToTree(value)));
+            suggestion.setActionParams(objectMapper.writeValueAsString(merged));
+        } catch (Exception e) {
+            // Les params de la carte sont illisibles ou ne sont pas un objet : on
+            // ne les remplace pas en douce, l'action échouera avec son propre
+            // message plutôt qu'avec un sujet fantôme.
+            log.warn("Params humains ignorés (carte {} illisible) : {}",
+                    suggestion.getId(), e.getMessage());
         }
     }
 

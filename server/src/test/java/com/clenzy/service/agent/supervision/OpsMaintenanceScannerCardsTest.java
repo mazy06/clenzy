@@ -27,15 +27,18 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Deux cartes Operations de la constellation :
+ * Les cartes Operations de la constellation :
  * « mission a confirmer » (assignee, sans reponse de l'intervenant) et
- * « acompte a regler » (devis approuve, acompte non encaisse).
+ * « acompte a regler » (devis approuve, acompte non encaisse), et « demande sans
+ * prestataire » — cette derniere etant une PROJECTION du signal deja porte par la
+ * liste d'actions du tableau de bord, sur le logement concerne.
  *
  * <p>Le piege que ces tests verrouillent : {@code assignmentResponse} est une
  * ENUMERATION. Une comparaison a la chaine {@code "PENDING".equals(...)} compile
@@ -44,7 +47,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class OpsMaintenanceScannerConfirmDepositTest {
+class OpsMaintenanceScannerCardsTest {
 
     private static final Long ORG = 1L;
     private static final Long PROP = 3L;
@@ -55,6 +58,7 @@ class OpsMaintenanceScannerConfirmDepositTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ServiceQuoteRepository serviceQuoteRepository;
     @Mock private PropertyStockItemRepository propertyStockItemRepository;
+    @Mock private com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     @Mock private SupervisionSuggestionService suggestionService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-08-22T10:00:00Z"), ZoneOffset.UTC);
@@ -62,7 +66,7 @@ class OpsMaintenanceScannerConfirmDepositTest {
     private OpsMaintenanceScanner scanner() {
         return new OpsMaintenanceScanner(smartLockDeviceRepository, interventionRepository,
                 propertyRepository, serviceQuoteRepository, propertyStockItemRepository,
-                suggestionService, clock);
+                serviceRequestRepository, suggestionService, clock);
     }
 
     private Intervention intervention(InterventionStatus status,
@@ -206,5 +210,62 @@ class OpsMaintenanceScannerConfirmDepositTest {
 
         verify(suggestionService, never()).record(anyLong(), anyLong(), any(),
                 eq("deposit_to_collect"), any(), any());
+    }
+
+    // --- Demande sans prestataire -------------------------------------------
+
+    private com.clenzy.model.ServiceRequest serviceRequest(Long propertyId, String desiredDate) {
+        com.clenzy.model.Property p = new com.clenzy.model.Property();
+        p.setId(propertyId);
+        com.clenzy.model.ServiceRequest sr = new com.clenzy.model.ServiceRequest();
+        sr.setId(142L);
+        sr.setTitle("Fuite salle de bain");
+        sr.setProperty(p);
+        if (desiredDate != null) {
+            sr.setDesiredDate(LocalDateTime.parse(desiredDate));
+        }
+        return sr;
+    }
+
+    private void givenStuck(com.clenzy.model.ServiceRequest... requests) {
+        when(serviceRequestRepository.findStuckUnassignedForOrg(eq(ORG), any(LocalDateTime.class)))
+                .thenReturn(List.of(requests));
+    }
+
+    @Test
+    void whenServiceRequestStuckOnScannedProperty_thenCardRecorded() {
+        givenStuck(serviceRequest(PROP, "2026-09-01T10:00:00"));
+
+        scanner().scanProperty(ORG, PROP);
+
+        // Actionnable : la carte porte la reprise en main, pas seulement le constat.
+        verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("ops"),
+                contains("#142"), contains("assigner a la main"),
+                eq(SupervisionActionType.REASSIGN_MANUAL), contains("\"serviceRequestId\":142"),
+                isNull(), eq("warning"));
+    }
+
+    @Test
+    void whenDesiredDateAlreadyPassed_thenCardSaysItIsTooLate() {
+        // Horloge figee au 2026-08-22 : la date souhaitee est derriere nous.
+        givenStuck(serviceRequest(PROP, "2026-08-01T10:00:00"));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("ops"),
+                any(), contains("n'aura pas lieu"),
+                eq(SupervisionActionType.REASSIGN_MANUAL), any(), isNull(), eq("critical"));
+    }
+
+    @Test
+    void whenStuckRequestBelongsToAnotherProperty_thenNoCard() {
+        // La requete partagee est org-scopee : sans ce filtre, la carte se poserait
+        // sur le logement en cours de scan alors qu'elle concerne le voisin.
+        givenStuck(serviceRequest(999L, "2026-09-01T10:00:00"));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verify(suggestionService, never()).recordActionable(anyLong(), anyLong(), any(),
+                any(), any(), eq(SupervisionActionType.REASSIGN_MANUAL), any(), any(), any());
     }
 }

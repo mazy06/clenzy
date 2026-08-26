@@ -26,11 +26,14 @@ public interface TaxFilingRepository extends JpaRepository<TaxFiling, Long> {
     /** Transition CAS DUE → FILED (jamais de check-then-act — règle audit n°8). */
     @Modifying
     @Query("UPDATE TaxFiling f SET f.status = com.clenzy.model.TaxFiling.Status.FILED, "
-            + "f.filedAt = :at, f.paymentReference = COALESCE(:reference, f.paymentReference) "
+            + "f.filedAt = :at, f.depositedOn = COALESCE(:depositedOn, f.depositedOn), "
+            + "f.paymentReference = COALESCE(:reference, f.paymentReference) "
             + "WHERE f.id = :id AND f.organizationId = :orgId "
             + "AND f.status = com.clenzy.model.TaxFiling.Status.DUE")
     int markFiled(@Param("id") Long id, @Param("orgId") Long orgId,
-                  @Param("at") Instant at, @Param("reference") String reference);
+                  @Param("at") Instant at,
+                  @Param("depositedOn") java.time.LocalDate depositedOn,
+                  @Param("reference") String reference);
 
     /** Transition CAS FILED → PAID. */
     @Modifying

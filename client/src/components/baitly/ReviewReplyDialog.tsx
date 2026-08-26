@@ -22,6 +22,7 @@ import { reviewsApi } from '../../services/api/reviewsApi';
 import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAiKeyStatus } from '../../hooks/useAi';
+import { consequencesOf } from '../../modules/supervision/components/actionRegistry';
 
 /**
  * Baitly — réponse rapide à un avis, sans quitter l'écran d'où l'on vient.
@@ -317,6 +318,21 @@ export default function ReviewReplyDialog({
               )}
             />
 
+            {/* Ce que « Publier » va produire. L'écran montrait le brouillon et
+                le champ, jamais la portée : une réponse d'avis est publique et
+                ne se retire pas. */}
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {consequencesOf('REVIEW_DRAFT_REPLY').map((line) => (
+                <li key={line.key} className="flex gap-2.5 text-sm text-[var(--bui-foreground)]">
+                  <span
+                    className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
+                    aria-hidden
+                  />
+                  <span className="text-pretty">{t(line.key, line.fallback)}</span>
+                </li>
+              ))}
+            </ul>
+
             {publish.isError && (
               <p className="m-0 text-xs text-destructive">
                 {t('dashboard.actionItems.replyFailed', 'La publication a échoué. Réessayez.')}
@@ -326,7 +342,7 @@ export default function ReviewReplyDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" disabled={busy} onClick={onClose}>
+          <Button variant="ghost" disabled={busy} onClick={onClose}>
             {t('common.cancel', 'Annuler')}
           </Button>
           <Button disabled={!text.trim() || busy} onClick={() => publish.mutate(text.trim())}>

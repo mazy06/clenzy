@@ -26,6 +26,9 @@ import java.util.Set;
  *       {@value #PREVENTIVE_MONTHS} mois (logement assez ancien pour que ce soit un
  *       signal, pas un reproche) et aucune tournée ouverte → carte
  *       {@code PREVENTIVE_MAINTENANCE} « Planifier ».</li>
+ *   <li><b>Demande sans prestataire</b> : projection sur le logement du signal
+ *       déjà porté par la liste d'actions du tableau de bord — même requête,
+ *       même seuil, aucune divergence possible.</li>
  * </ul>
  *
  * <p>Zéro coût token. Dédup par intitulé + marqueurs d'épisode. Best-effort.</p>
@@ -45,6 +48,7 @@ public class OpsMaintenanceScanner {
     private final PropertyRepository propertyRepository;
     private final com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     private final com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
+    private final com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
@@ -53,6 +57,7 @@ public class OpsMaintenanceScanner {
                                  PropertyRepository propertyRepository,
                                  com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository,
                                  com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository,
+                                 com.clenzy.repository.ServiceRequestRepository serviceRequestRepository,
                                  SupervisionSuggestionService suggestionService,
                                  Clock clock) {
         this.smartLockDeviceRepository = smartLockDeviceRepository;
@@ -60,6 +65,7 @@ public class OpsMaintenanceScanner {
         this.propertyRepository = propertyRepository;
         this.serviceQuoteRepository = serviceQuoteRepository;
         this.propertyStockItemRepository = propertyStockItemRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -97,6 +103,12 @@ public class OpsMaintenanceScanner {
             scanMissionsToConfirm(orgId, propertyId);
         } catch (Exception e) {
             log.debug("mission confirmation scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanUnassignedServiceRequests(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("unassigned service request scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
         try {
@@ -171,6 +183,51 @@ public class OpsMaintenanceScanner {
                                     + quote.getDepositAmount() + " " + quote.getCurrency()
                                     + " d'acompte restent a verser. "
                                     + "L'intervenant bloque sa date des reception."));
+        }
+    }
+
+    /**
+     * Demande de service que personne n'a prise.
+     *
+     * <p><b>Projection, pas second détecteur.</b> Le signal existe déjà sur la
+     * liste d'actions du tableau de bord ({@code ServiceRequestActionSource}) ;
+     * on réutilise ici SA requête et SON seuil, pour le poser sur le logement,
+     * là où vit la constellation. Deux surfaces, une seule vérité : elles ne
+     * peuvent pas diverger.</p>
+     *
+     * <p>Le critère est volontairement {@code createdAt} et non
+     * {@code autoAssignStatus = 'exhausted'} : filtrer sur l'épuisement laisse
+     * passer le cas le plus courant — une recherche « en cours » depuis des
+     * jours, qui n'escalade jamais et que rien ne signale.</p>
+     */
+    private void scanUnassignedServiceRequests(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime staleBefore = java.time.LocalDateTime.now(clock)
+                .minusMinutes(com.clenzy.service.dashboard.ServiceRequestActionSource
+                        .ASSIGNMENT_GRACE_MINUTES);
+        for (com.clenzy.model.ServiceRequest request
+                : serviceRequestRepository.findStuckUnassignedForOrg(orgId, staleBefore)) {
+            if (request.getProperty() == null
+                    || !propertyId.equals(request.getProperty().getId())) {
+                continue;
+            }
+            // Une date déjà passée ne se rattrape pas : le dire, plutôt que de
+            // laisser croire qu'un geste suffit encore.
+            final boolean overdue = request.getDesiredDate() != null
+                    && request.getDesiredDate().isBefore(java.time.LocalDateTime.now(clock));
+            // ACTIONNABLE : la carte ne se contente plus de signaler, elle ouvre
+            // la reprise en main. L'automatique a eu sa chance et a echoue —
+            // constater sans pouvoir agir laissait la demande orpheline.
+            suggestionService.recordActionable(
+                    orgId, propertyId, MODULE_OPS,
+                    "Demande sans prestataire (demande #" + request.getId() + ")",
+                    "« " + request.getTitle() + " » n'a toujours personne. "
+                            + (overdue
+                                ? "La date souhaitee est passee : la prestation n'aura pas lieu."
+                                : "La recherche automatique a eu sa chance ; il faut assigner a la main."),
+                    com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_MANUAL,
+                    "{\"serviceRequestId\":" + request.getId() + "}",
+                    null,
+                    overdue ? "critical" : "warning");
         }
     }
 

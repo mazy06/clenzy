@@ -217,11 +217,11 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
                 disabled={sending || sentTo != null}
                 onClick={handleSendLink}
               >
-                {sending && <Spinner className="size-3.5" />}
+                {sending && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
                 {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
               </Button>
               <Button disabled={paying} onClick={handlePay}>
-                {paying && <Spinner className="size-3.5" />}
+                {paying && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
                 {t('supervision.invoiceModal.pay', 'Payer')}
               </Button>
             </>

@@ -3834,3 +3834,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0411__service_quote_deposit_paid.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0412-tax-filing-deposited-on"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0412__tax_filing_deposited_on.sql
+        relativeToChangelogFile: true

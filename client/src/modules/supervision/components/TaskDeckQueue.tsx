@@ -29,6 +29,7 @@ import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
 import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
 import { verbFor } from './actionVerbs';
+import { familyOf, opensModal } from './actionRegistry';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
 type AnyAction = PendingAction | PortfolioPendingAction;
@@ -42,6 +43,10 @@ export interface TaskDeckQueueProps {
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  /** Cartes « Planifier » : ouvre la modale (date + intervenant) au lieu d'agir. */
+  onSchedule?: (action: AnyAction) => void;
+  /** Cartes dont l'action engage sans rien à choisir : ouvre la confirmation. */
+  onOpenActionModal?: (action: AnyAction) => void;
   variant?: 'floating' | 'panel';
 }
 
@@ -60,12 +65,16 @@ function remainingLabel(cd: Countdown, t: (k: string, o?: Record<string, unknown
 // ─── Carte individuelle restylée ──────────────────────────────────────────────
 
 function TaskCard({
-  action, onValidate, onEdit, onAdjustPrice, onOpenReview, behind,
+  action, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview, behind,
 }: {
   action: AnyAction;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  /** Cartes « Planifier » : ouvre la modale (date + intervenant) au lieu d'agir. */
+  onSchedule?: (action: AnyAction) => void;
+  /** Cartes dont l'action engage sans rien à choisir : ouvre la confirmation. */
+  onOpenActionModal?: (action: AnyAction) => void;
   /** Carte d'avis : « Répondre » ouvre la modale de réponse (brouillon IA
    *  insérable OU réponse libre) au lieu de publier le brouillon à l'aveugle. */
   onOpenReview?: (payload: OpenReviewPayload) => void;
@@ -82,6 +91,12 @@ function TaskCard({
   // Baisse tarifaire multi-segment : « Ajuster » ouvre une modale (édition + prévision + apply).
   const priceAdjust = apply && action.applyActionType === 'PRICE_DROP'
     && Boolean(action.actionParams) && Boolean(onAdjustPrice);
+  // « Planifier » : la date et l'intervenant se choisissent avant la création.
+  const schedule = apply && familyOf(action.applyActionType) === 'schedule' && Boolean(onSchedule);
+  // Le CTA ouvre une modale : confirmation quand l'effet engage sans rien à
+  // choisir, saisie quand l'action porte des paramètres devinés par l'agent.
+  const confirm = apply && !schedule
+    && Boolean(onOpenActionModal) && opensModal(action.applyActionType);
   // Réponse à un avis : jamais de publication à l'aveugle du brouillon IA —
   // « Répondre » ouvre la modale du dashboard (brouillon insérable + saisie).
   const reviewId = apply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
@@ -156,7 +171,11 @@ function TaskCard({
                 }
               : priceAdjust
                 ? () => onAdjustPrice!(action)
-                : () => onValidate(action.id)
+                : schedule
+                  ? () => onSchedule!(action)
+                  : confirm
+                    ? () => onOpenActionModal!(action)
+                    : () => onValidate(action.id)
           }
         >
           {reviewId != null ? <Edit size={14} />
@@ -215,7 +234,7 @@ function TaskCard({
 // ─── Une pile (un type) ───────────────────────────────────────────────────────
 
 function TaskStack({
-  type, actions, open, dimmed, sort, onToggleSort, onOpen, onClose, onValidate, onEdit, onAdjustPrice, onOpenReview, onBulk,
+  type, actions, open, dimmed, sort, onToggleSort, onOpen, onClose, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview, onBulk,
 }: {
   type: AgentId;
   actions: AnyAction[];
@@ -228,6 +247,10 @@ function TaskStack({
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  /** Cartes « Planifier » : ouvre la modale (date + intervenant) au lieu d'agir. */
+  onSchedule?: (action: AnyAction) => void;
+  /** Cartes dont l'action engage sans rien à choisir : ouvre la confirmation. */
+  onOpenActionModal?: (action: AnyAction) => void;
   onOpenReview?: (payload: OpenReviewPayload) => void;
   onBulk: () => void;
 }) {
@@ -265,7 +288,7 @@ function TaskStack({
         <div className="flex flex-col gap-2">
           {actions.map((a, i) => (
             <div key={a.id} style={{ animation: 'deckCascadeIn .42s var(--ease-out, cubic-bezier(.16,1,.3,1)) both', animationDelay: `${i * 0.05}s` }}>
-              <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={onOpenReview} />
+              <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onSchedule={onSchedule} onOpenActionModal={onOpenActionModal} onOpenReview={onOpenReview} />
             </div>
           ))}
         </div>
@@ -278,7 +301,7 @@ function TaskStack({
   if (n === 1) {
     return (
       <div className={cn(dimmed ? 'opacity-45' : 'opacity-100')} style={{ filter: dimmed ? 'blur(4px)' : 'none', transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s' }}>
-        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={onOpenReview} />
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onSchedule={onSchedule} onOpenActionModal={onOpenActionModal} onOpenReview={onOpenReview} />
       </div>
     );
   }
@@ -310,7 +333,7 @@ function TaskStack({
       })}
       {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
       <div className="relative z-[5]">
-        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={onOpenReview} />
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onSchedule={onSchedule} onOpenActionModal={onOpenActionModal} onOpenReview={onOpenReview} />
       </div>
       {/* Pastille de comptage */}
       {n > 1 && (
@@ -328,7 +351,7 @@ function TaskStack({
 // changent — pas à chaque re-render du panneau (report, toasts, events feed).
 export const TaskDeckQueue = memo(TaskDeckQueueInner);
 
-function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: TaskDeckQueueProps) {
+function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, variant = 'floating' }: TaskDeckQueueProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [openType, setOpenType] = useState<AgentId | null>(null);
@@ -434,6 +457,8 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
           onValidate={onValidate}
           onEdit={onEdit}
           onAdjustPrice={onAdjustPrice}
+          onSchedule={onSchedule}
+          onOpenActionModal={onOpenActionModal}
           onOpenReview={setOpenReview}
           onBulk={() => bulk(list.map((a) => a.id), t('supervision.deck.undoBulk', { count: list.length }))}
         />

@@ -52,6 +52,7 @@ public class SupervisionController {
     private final SupervisionActivityService activityService;
     private final SupervisionScanService scanService;
     private final SupervisionSuggestionService suggestionService;
+    private final com.clenzy.service.agent.supervision.SuggestionPreviewService previewService;
     private final SupervisionPortfolioService portfolioService;
     private final SupervisionReportService reportService;
     private final SupervisionConversationService conversationService;
@@ -71,6 +72,7 @@ public class SupervisionController {
                                  PayoutReminderService payoutReminderService,
                                  UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                  PriceSuggestionService priceSuggestionService,
+                                 com.clenzy.service.agent.supervision.SuggestionPreviewService previewService,
                                  TenantContext tenantContext) {
         this.activityService = activityService;
         this.scanService = scanService;
@@ -82,6 +84,7 @@ public class SupervisionController {
         this.payoutReminderService = payoutReminderService;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.priceSuggestionService = priceSuggestionService;
+        this.previewService = previewService;
         this.tenantContext = tenantContext;
     }
 
@@ -198,12 +201,47 @@ public class SupervisionController {
      * POST /api/ai/supervision/suggestions/{id}/apply — applique l'action portée
      * par une suggestion actionnable (ex. baisse de prix). Org-scopé, idempotent
      * (CAS PENDING→APPLIED côté service). 400 si non actionnable / déjà traitée.
+     *
+     * <p>Corps FACULTATIF : les cartes « Planifier » y portent la date et
+     * l'intervenant choisis dans la modale. Absent = defauts de l'executeur,
+     * ce qu'emprunte le chemin automatique (aucun humain pour choisir).</p>
      */
-    @PostMapping("/suggestions/{id}/apply")
-    public ResponseEntity<Void> applySuggestion(@PathVariable Long id,
-                                                @AuthenticationPrincipal Jwt jwt) {
+    /**
+     * GET /api/ai/supervision/suggestions/{id}/preview — ce que la carte va
+     * envoyer : destinataire résolu MAINTENANT, canal, et les faits déterminants.
+     *
+     * <p>Lecture seule, org-scopée. Un aperçu impossible n'est pas une erreur :
+     * il rend sa raison, et la modale se rabat sur une confirmation.</p>
+     */
+    @GetMapping("/suggestions/{id}/preview")
+    public ResponseEntity<com.clenzy.dto.SuggestionPreviewDto> previewSuggestion(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        suggestionService.apply(orgId, id, appliedBy(jwt));
+        return ResponseEntity.ok(previewService.preview(orgId, id, null));
+    }
+
+    /**
+     * POST /api/ai/supervision/suggestions/{id}/preview — même aperçu, mais avec
+     * les paramètres que l'opérateur est en train de régler.
+     *
+     * <p>C'est le « Simuler » de l'éditeur tarifaire, rendu générique : voir
+     * l'effet des valeurs saisies AVANT de s'engager. Lecture seule — aucun
+     * effet, malgré le POST, que le corps de requête impose.</p>
+     */
+    @PostMapping("/suggestions/{id}/preview")
+    public ResponseEntity<com.clenzy.dto.SuggestionPreviewDto> simulateSuggestion(
+            @PathVariable Long id,
+            @RequestBody(required = false) com.clenzy.dto.ApplySuggestionRequest request) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(previewService.preview(orgId, id, request));
+    }
+
+    @PostMapping("/suggestions/{id}/apply")
+    public ResponseEntity<Void> applySuggestion(
+            @PathVariable Long id,
+            @RequestBody(required = false) com.clenzy.dto.ApplySuggestionRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        suggestionService.apply(orgId, id, appliedBy(jwt), request);
         return ResponseEntity.noContent().build();
     }
 

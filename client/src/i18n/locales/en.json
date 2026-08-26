@@ -363,6 +363,47 @@
       "accept": "Accept",
       "erase": "Erase",
       "publish": "Publish"
+    },
+    "schedule": {
+      "title": "Schedule the job",
+      "time": "Time",
+      "assignee": "Assignee",
+      "matchingRoles": "Matching trade",
+      "otherRoles": "Other workers",
+      "noWorker": "No worker in this organisation. The job will be created unassigned.",
+      "unassignedHint": "With no assignee, the job stays to be assigned.",
+      "proposalHint": "The job will be offered to them: they can accept or decline."
+    },
+    "confirm": {
+      "amount": "Amount",
+      "amountEstimate": "Estimated amount",
+      "recomputedNote": "The exact amount is recalculated when the action runs: it may differ from this estimate.",
+      "irreversible": "This action cannot be undone.",
+      "typeToConfirm": "Type {{word}} to continue"
+    },
+    "params": {
+      "range": "Between {{min}} and {{max}}",
+      "from": "From",
+      "to": "To (exclusive)",
+      "simulate": "Preview"
+    },
+    "review": {
+      "title": "Before sending",
+      "recipients": "Recipient",
+      "subject": "Subject",
+      "noRecipient": "No recipient resolved.",
+      "send": "Send",
+      "previewFailed": "The preview could not be loaded. The action is still possible: recipient and content are resolved when it runs.",
+      "bodyNotRendered": "The message is composed when it is sent: its exact wording cannot be shown here."
+    },
+    "choice": {
+      "title": "Your decision",
+      "suggested": "Agent’s proposal",
+      "apply": "Confirm this choice",
+      "noOptions": "The candidates could not be loaded. The situation may have changed since the card was raised."
+    },
+    "recap": {
+      "unavailable": "The details could not be loaded. The job was assigned: the request record keeps the trace."
     }
   },
   "channexGuided": {
@@ -971,6 +1012,7 @@
     "previous": "Previous",
     "submit": "Submit",
     "actions": "Actions",
+    "filters": "Filters",
     "status": "Status",
     "date": "Date",
     "name": "Name",

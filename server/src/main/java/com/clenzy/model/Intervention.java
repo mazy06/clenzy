@@ -67,7 +67,13 @@ public class Intervention {
     @Column(name = "assignment_decline_reason", columnDefinition = "TEXT")
     private String assignmentDeclineReason;
 
-    @Column(name = "start_time")
+    /**
+     * Debut planifie. <b>{@code NOT NULL} en base</b> : la colonne l'a toujours ete,
+     * mais le mapping ne le disait pas — le schema genere par Hibernate pour les
+     * tests l'acceptait donc nul, et une omission ne se voyait qu'a l'insertion
+     * reelle (500). Declare ici pour que le defaut redevienne visible en test.
+     */
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
     @Column(name = "end_time")

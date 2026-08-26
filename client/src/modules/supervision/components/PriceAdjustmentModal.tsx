@@ -29,6 +29,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { Money } from '../../../components/Money';
 import { pricingApi, type PriceSegment, type PricingSimulation } from '../pricingApi';
+import { consequencesOf } from './actionRegistry';
 
 type Mode = 'percent' | 'targetPrice' | 'fixedAmount';
 
@@ -399,6 +400,21 @@ export function PriceAdjustmentModal({
           </div>
         )}
 
+        {/* Ce que « Appliquer » va produire. L'écran montrait la prévision de
+            revenu, jamais la portée de l'acte : quelles nuits changent, ce qui
+            ne bouge pas, et par où revenir en arrière. */}
+        <ul className="mt-1.5 flex flex-col gap-2">
+          {consequencesOf('PRICE_DROP').map((line) => (
+            <li key={line.key} className="flex gap-2.5 text-sm text-[var(--bui-foreground)]">
+              <span
+                className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
+                aria-hidden
+              />
+              <span className="text-pretty">{t(line.key, line.fallback)}</span>
+            </li>
+          ))}
+        </ul>
+
         {error && (
           <Alert variant="destructive" className="mt-1.5">
             <TriangleAlert />
@@ -415,14 +431,14 @@ export function PriceAdjustmentModal({
             onClick={runSimulate}
             disabled={simulating || applying || segments.length === 0}
           >
-            {simulating && <Spinner className="size-3.5" />}
+            {simulating && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {t('supervision.price.simulate', 'Simuler')}
           </Button>
           <Button
             onClick={runApply}
             disabled={applying || segments.length === 0}
           >
-            {applying && <Spinner className="size-3.5" />}
+            {applying && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {t('supervision.price.apply', 'Appliquer les tarifs')}
           </Button>
         </DialogFooter>

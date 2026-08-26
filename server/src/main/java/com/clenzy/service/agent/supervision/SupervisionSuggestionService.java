@@ -264,10 +264,24 @@ public class SupervisionSuggestionService {
                     "Suggestion actionnable incomplete (org/logement/module/titre requis)");
         }
         String safeTitle = truncate(title.strip(), TITLE_MAX);
-        boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
-                organizationId, propertyId, moduleKey, safeTitle,
-                SupervisionSuggestion.STATUS_PENDING, clock.instant());
-        if (dup) {
+        final java.util.Optional<SupervisionSuggestion> pending = repository
+                .findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                        organizationId, propertyId, moduleKey, safeTitle,
+                        SupervisionSuggestion.STATUS_PENDING, clock.instant());
+        if (pending.isPresent()) {
+            final SupervisionSuggestion existing = pending.get();
+            // PROMOTION : un scanner qui se met à proposer une action voyait sa
+            // propre carte informative lui barrer la route — la dédup se fait par
+            // intitulé, et l'intitulé n'a pas changé. Le constat serait resté sans
+            // issue jusqu'à son expiration. On lui greffe l'action.
+            if (existing.getActionType() == null && actionType != null) {
+                existing.setActionType(actionType);
+                existing.setActionParams(actionParams);
+                existing.setEstimatedImpactCents(estimatedImpactCents);
+                existing.setSeverity(severity);
+                repository.save(existing);
+                return java.util.Optional.of(existing);
+            }
             return java.util.Optional.empty();
         }
         // Cooldown : une carte identique récemment IGNORÉE ne réapparaît pas au scan suivant
@@ -415,6 +429,15 @@ public class SupervisionSuggestionService {
      *                  de l'exécuteur (protections renforcées en mode auto).
      */
     public void apply(Long organizationId, Long suggestionId, String appliedBy) {
+        apply(organizationId, suggestionId, appliedBy, null);
+    }
+
+    /**
+     * Même application, avec le choix humain de la modale de planification (date
+     * et intervenant). {@code request} nul ou vide = defauts de l'executeur.
+     */
+    public void apply(Long organizationId, Long suggestionId, String appliedBy,
+                      com.clenzy.dto.ApplySuggestionRequest request) {
         SupervisionSuggestion suggestion = transactionTemplate.execute(status -> {
             SupervisionSuggestion s = repository.findByIdAndOrganizationId(suggestionId, organizationId)
                     .orElseThrow(() -> new NotFoundException("Suggestion introuvable : " + suggestionId));
@@ -429,13 +452,13 @@ public class SupervisionSuggestionService {
             // l'exécuteur s'en sert pour durcir les protections du chemin auto.
             s.setAppliedBy(appliedBy);
             if (!actionExecutor.hasExternalEffect(s.getActionType())) {
-                actionExecutor.execute(s);
+                actionExecutor.execute(s, request);
             }
             return s;
         });
         if (actionExecutor.hasExternalEffect(suggestion.getActionType())) {
             try {
-                actionExecutor.execute(suggestion);
+                actionExecutor.execute(suggestion, request);
             } catch (RuntimeException e) {
                 // Compensation : l'effet externe n'a pas eu lieu (ou a échoué avant la
                 // transition d'état métier) → la suggestion redevient actionnable.
