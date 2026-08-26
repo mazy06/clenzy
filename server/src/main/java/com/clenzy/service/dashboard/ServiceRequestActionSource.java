@@ -27,8 +27,12 @@ public class ServiceRequestActionSource implements ActionItemSource {
      *
      * <p>Un cycle du planificateur d'assignation ({@code AutoAssignScheduler},
      * toutes les 15 min) : au-delà, la recherche automatique a eu sa chance.</p>
+     *
+     * <p>Partagé avec la carte de constellation « demande sans prestataire »
+     * ({@code OpsMaintenanceScanner}) : les deux surfaces montrent le MÊME
+     * signal, elles ne peuvent donc pas diverger sur le seuil.</p>
      */
-    private static final int ASSIGNMENT_GRACE_MINUTES = 15;
+    public static final int ASSIGNMENT_GRACE_MINUTES = 15;
 
     private final ServiceRequestRepository serviceRequestRepository;
 
