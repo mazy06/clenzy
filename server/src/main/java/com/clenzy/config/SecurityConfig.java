@@ -240,6 +240,15 @@ public class SecurityConfig {
         config.addAllowedOrigin("http://localhost:5173"); // Landing page (Vite dev — port par défaut Vite)
         config.addAllowedOrigin("http://localhost:5174"); // Landing page (Vite dev — autoPort fallback)
         config.addAllowedOrigin("http://localhost:4173"); // Landing page (Vite preview)
+        // Reseau local : l'app dev est aussi ouverte depuis un telephone du meme
+        // LAN (http://192.168.x.y:3000), ou "localhost" designe le telephone.
+        // L'adresse change au gre du bail DHCP, d'ou des motifs plutot que des
+        // origines figees. Dev uniquement — SecurityConfigProd garde sa liste
+        // stricte d'origines. allowCredentials(true) interdit "*" mais autorise
+        // les motifs (allowedOriginPatterns).
+        config.addAllowedOriginPattern("http://192.168.*.*:*");
+        config.addAllowedOriginPattern("http://10.*.*.*:*");
+        config.addAllowedOriginPattern("http://172.*.*.*:*");
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
