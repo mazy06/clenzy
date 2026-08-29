@@ -496,6 +496,124 @@ public class InterventionLifecycleService {
         return interventionMapper.convertToResponse(intervention);
     }
 
+    /**
+     * L'intervenant SOUMET son travail au contrôle.
+     *
+     * <p>Il ne pouvait que clore lui-même ({@code IN_PROGRESS → COMPLETED}), ce
+     * qui court-circuitait toute vérification : ni photos examinées, ni durée
+     * confrontée à l'estimation, ni retard constaté. Le solde devenait dû sans
+     * que personne n'ait rien regardé.</p>
+     *
+     * <p>Réservé à l'intervenant assigné : soumettre le travail d'un autre n'a
+     * pas de sens, et l'ouvrir à tous ferait de ce contrôle une formalité.</p>
+     */
+    @Transactional
+    public InterventionResponse submitForValidation(Long id, Integer actualDurationMinutes, Jwt jwt) {
+        final Intervention intervention = interventionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+        accessPolicy.assertCanAccess(intervention, jwt);
+        // Couvre l'intervenant ET les membres de l'equipe assignee : une mission
+        // confiee a une equipe se soumet par n'importe lequel de ses membres.
+        if (!JwtRoleExtractor.extractUserRole(jwt).isPlatformStaff()) {
+            accessPolicy.requireAssignee(intervention, jwt);
+        }
+
+        intervention.getStatus().assertCanTransitionTo(InterventionStatus.AWAITING_VALIDATION);
+        if (actualDurationMinutes != null && actualDurationMinutes > 0) {
+            intervention.setActualDurationMinutes(actualDurationMinutes);
+        }
+        intervention.setCompletedAt(java.time.LocalDateTime.now());
+        intervention.setStatus(InterventionStatus.AWAITING_VALIDATION);
+        final Intervention saved = interventionRepository.save(intervention);
+
+        try {
+            notificationService.notifyAdminsAndManagersByOrgId(
+                    intervention.getOrganizationId(),
+                    NotificationKey.INTERVENTION_COMPLETED,
+                    "Travail a controler",
+                    "« " + intervention.getTitle() + " » est termine et attend votre controle :"
+                            + " photos, duree reelle, respect du creneau.",
+                    "/interventions/" + intervention.getId());
+        } catch (Exception e) {
+            log.warn("Notification soumission intervention {}: {}", id, e.getMessage());
+        }
+        return interventionMapper.convertToResponse(saved);
+    }
+
+    /**
+     * Le gestionnaire REFUSE le travail rendu : reprise.
+     *
+     * <p>Retour en {@code IN_PROGRESS} — le travail est à reprendre, pas à
+     * recommencer depuis rien. Le motif est tracé dans les notes : sans lui,
+     * l'intervenant apprend qu'on refuse sans savoir quoi corriger.</p>
+     */
+    @Transactional
+    public InterventionResponse rejectWork(Long id, String reason, Jwt jwt) {
+        final Intervention intervention = interventionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+        accessPolicy.assertCanAccess(intervention, jwt);
+
+        if (!JwtRoleExtractor.extractUserRole(jwt).isPlatformStaff()) {
+            throw new UnauthorizedException(
+                    "Seuls les administrateurs et managers peuvent refuser un travail");
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Un motif est requis : l'intervenant doit savoir quoi reprendre");
+        }
+        intervention.getStatus().assertCanTransitionTo(InterventionStatus.IN_PROGRESS);
+        intervention.setStatus(InterventionStatus.IN_PROGRESS);
+        intervention.setCompletedAt(null);
+        intervention.setFollowUpNotes(reason.strip());
+        intervention.setRequiresFollowUp(true);
+        final Intervention saved = interventionRepository.save(intervention);
+
+        try {
+            if (intervention.getAssignedUser() != null
+                    && intervention.getAssignedUser().getKeycloakId() != null) {
+                notificationService.notify(intervention.getAssignedUser().getKeycloakId(),
+                        NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+                        "Travail a reprendre",
+                        "« " + intervention.getTitle() + " » : " + reason.strip(),
+                        "/interventions/" + intervention.getId());
+            }
+        } catch (Exception e) {
+            log.warn("Notification refus intervention {}: {}", id, e.getMessage());
+        }
+        return interventionMapper.convertToResponse(saved);
+    }
+
+    /**
+     * Validation depuis la constellation (carte « Travail à contrôler »).
+     *
+     * <p>Méthode distincte, et non un {@code jwt} nul qui vaudrait passe-droit :
+     * ce chemin n'a pas de porteur, sa légitimité vient de la carte qu'un humain
+     * a appliquée après avoir vu les photos et la durée.</p>
+     *
+     * <p>Le coût n'est pas ressaisi : c'est celui déjà porté par l'intervention,
+     * issu du devis approuvé. Le redemander ici inviterait à le modifier sans
+     * que le prestataire en sache rien.</p>
+     */
+    @Transactional
+    public void validateFromSupervision(Long id, Long orgId) {
+        final Intervention intervention = interventionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Intervention non trouvee : " + id));
+        if (intervention.getOrganizationId() == null
+                || !intervention.getOrganizationId().equals(orgId)) {
+            throw new IllegalStateException("Intervention hors de l'organisation " + orgId);
+        }
+        intervention.getStatus().assertCanTransitionTo(InterventionStatus.AWAITING_PAYMENT);
+        intervention.setStatus(InterventionStatus.AWAITING_PAYMENT);
+        interventionRepository.save(intervention);
+
+        // La demande de service suit : c'est elle qui porte la carte de paiement,
+        // et son statut est ce qui rend le solde exigible.
+        if (intervention.getServiceRequest() != null) {
+            intervention.getServiceRequest().setStatus(
+                    com.clenzy.model.RequestStatus.AWAITING_PAYMENT);
+        }
+    }
+
     public InterventionResponse validateIntervention(Long id, java.math.BigDecimal estimatedCost, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));

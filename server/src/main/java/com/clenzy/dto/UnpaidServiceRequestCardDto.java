@@ -20,12 +20,32 @@ import java.math.BigDecimal;
  * @param title            titre brut de la demande (donnée, non traduite)
  * @param category         famille : {@code "cleaning"} ou {@code "maintenance"} (pour le préfixe i18n front)
  * @param amount           montant dû (estimatedCost)
+ * @param depositAmount    acompte exigible sur le devis approuvé, {@code null}
+ *                         s'il n'y en a pas. Il fait PARTIE de {@code amount} —
+ *                         ce n'est pas une somme qui s'ajoute.
+ * @param depositPaid      {@code true} si cet acompte est déjà encaissé
+ * @param stage            échéance appelée par cette carte : {@code "deposit"}
+ *                         (l'acompte, avant travaux) ou {@code "balance"} (le
+ *                         reste, une fois la prestation facturable). Une carte,
+ *                         deux moments — jamais deux cartes concurrentes.
+ * @param interventionId   chantier concerné, requis pour régler un acompte
+ *                         ({@code POST /payments/create-session}). {@code null}
+ *                         sur une échéance de solde, qui passe par la demande.
  */
 public record UnpaidServiceRequestCardDto(
         String id,
         Long serviceRequestId,
         String title,
         String category,
-        BigDecimal amount
+        BigDecimal amount,
+        BigDecimal depositAmount,
+        boolean depositPaid,
+        String stage,
+        Long interventionId
 ) {
+    /** Échéance « acompte » : dû avant travaux, réglé via l'intervention. */
+    public static final String STAGE_DEPOSIT = "deposit";
+
+    /** Échéance « solde » : le reste, une fois la prestation facturable. */
+    public static final String STAGE_BALANCE = "balance";
 }

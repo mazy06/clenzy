@@ -29,6 +29,16 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 const hoistedMocks = vi.hoisted(() => {
   const fetchMock = vi.fn();
+  // UNE seule instance, comme le vrai singleton. AuthContext appelle
+  // `getInstance()` a chaque rendu et met le resultat dans les dependances de
+  // son effet : un objet neuf a chaque appel rend l'effet instable, il se
+  // rejoue a chaque rendu et rappelle /api/me — 324 fois dans ce test. La
+  // tempete venait du mock, pas du code qu'il observe.
+  const permissionSyncMock = {
+    initialize: vi.fn(),
+    syncNow: vi.fn(() => Promise.resolve()),
+    shutdown: vi.fn(),
+  };
   const keycloakMock = {
     authenticated: false,
     token: undefined as string | undefined,
@@ -39,16 +49,28 @@ const hoistedMocks = vi.hoisted(() => {
     onAuthLogout: undefined as (() => void) | undefined,
     updateToken: vi.fn(() => Promise.resolve(true)),
   };
-  return { fetchMock, keycloakMock };
+  return { fetchMock, keycloakMock, permissionSyncMock };
 });
 
 const fetchMock = hoistedMocks.fetchMock;
 const keycloakMock = hoistedMocks.keycloakMock;
 const originalFetch = global.fetch;
 
+// Le module keycloak a gagne DEUX exports que ce mock ne suivait pas :
+// `keycloakInitPromise` (AuthContext l'attend avant de lire `authenticated`)
+// et `eagerMePromise` (le /me anticipe lance en parallele du check-sso).
+// Sans eux, `await eagerMePromise.catch(...)` levait un TypeError sur
+// `undefined` et `loadUserFromKeycloak` sortait AVANT le fetch — d'ou huit
+// tests rouges qui n'accusaient aucun bug du code de production.
+//
+// `eagerMePromise` resout a `null` : c'est le cas « pas de session anticipee »,
+// celui qui fait retomber AuthContext sur le fetch /api/me normal — le chemin
+// meme que ces tests observent.
 vi.mock('../../keycloak', () => ({
   default: hoistedMocks.keycloakMock,
   syncAuthCookie: vi.fn(() => Promise.resolve()),
+  keycloakInitPromise: Promise.resolve(false),
+  eagerMePromise: Promise.resolve(null),
 }));
 
 vi.mock('../../services/apiClient', () => ({
@@ -66,13 +88,7 @@ vi.mock('../../services/indexedDbCache', () => ({
 }));
 
 vi.mock('../../services/PermissionSyncService', () => ({
-  default: {
-    getInstance: vi.fn(() => ({
-      initialize: vi.fn(),
-      syncNow: vi.fn(() => Promise.resolve()),
-      shutdown: vi.fn(),
-    })),
-  },
+  default: { getInstance: vi.fn(() => hoistedMocks.permissionSyncMock) },
 }));
 
 vi.mock('../../services/RedisCacheService', () => ({

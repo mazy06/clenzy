@@ -308,6 +308,15 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     boolean existsByServiceRequestId(Long serviceRequestId);
 
     /**
+     * Id de l'intervention nee d'une demande, ou {@code null}.
+     *
+     * <p>Seul l'ID est charge : la carte de paiement n'a besoin que de remonter
+     * jusqu'au devis, pas de l'intervention entiere.</p>
+     */
+    @Query("SELECT i.id FROM Intervention i WHERE i.serviceRequest.id = :serviceRequestId")
+    Long findIdByServiceRequestId(@Param("serviceRequestId") Long serviceRequestId);
+
+    /**
      * Trouver une intervention par son ID de session Stripe
      * EntityGraph pour charger property, property.owner et requestor (nécessaire pour les notifications et le DTO)
      */

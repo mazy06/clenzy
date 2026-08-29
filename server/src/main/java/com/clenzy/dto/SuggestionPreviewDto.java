@@ -24,6 +24,12 @@ import java.util.List;
  * @param blocked      raison pour laquelle l'envoi echouerait s'il partait
  *                     maintenant ({@code null} si rien ne s'y oppose). La carte
  *                     peut dater : le dire ici evite un refus a la validation.
+ * @param options      candidats entre lesquels trancher, vide s'il n'y a rien a
+ *                     choisir
+ * @param photos       pieces a EXAMINER, pretes a afficher. Un controle qui ne
+ *                     montre pas les pieces n'est pas un controle : le resume
+ *                     annoncait « 3 photos jointes » et renvoyait vers un autre
+ *                     ecran pour les voir — personne ne clique.
  */
 public record SuggestionPreviewDto(String channel,
                                    List<String> recipients,
@@ -32,7 +38,9 @@ public record SuggestionPreviewDto(String channel,
                                    boolean bodyRendered,
                                    List<String> facts,
                                    String blocked,
-                                   List<PreviewOption> options) {
+                                   List<PreviewOption> options,
+                                   List<String> photos) {
+
 
     /**
      * Candidat entre lesquels l'operateur doit trancher.
@@ -58,7 +66,14 @@ public record SuggestionPreviewDto(String channel,
     public SuggestionPreviewDto(String channel, List<String> recipients, String subject,
                                 String body, boolean bodyRendered, List<String> facts,
                                 String blocked) {
-        this(channel, recipients, subject, body, bodyRendered, facts, blocked, List.of());
+        this(channel, recipients, subject, body, bodyRendered, facts, blocked, List.of(), List.of());
+    }
+
+    /** Apercu avec candidats a trancher — la famille « choix ». */
+    public SuggestionPreviewDto(String channel, List<String> recipients, String subject,
+                                String body, boolean bodyRendered, List<String> facts,
+                                String blocked, List<PreviewOption> options) {
+        this(channel, recipients, subject, body, bodyRendered, facts, blocked, options, List.of());
     }
 
     /**
@@ -69,6 +84,7 @@ public record SuggestionPreviewDto(String channel,
      * echouera. Confondre les deux interdirait une action parfaitement legitime.</p>
      */
     public static SuggestionPreviewDto unavailable(String reason) {
-        return new SuggestionPreviewDto(null, List.of(), null, null, false, List.of(reason), null);
+        return new SuggestionPreviewDto(null, List.of(), null, null, false, List.of(reason),
+                null, List.of(), List.of());
     }
 }

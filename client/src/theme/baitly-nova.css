@@ -403,20 +403,43 @@
   @apply rounded-xl!;
 }
 
+/* ── Recherche d'une liste filtrable ──────────────────────────────────────
+   Le champ etait un rectangle arrondi POSE dans le rectangle arrondi de la
+   liste : deux cadres concentriques, dont l'interieur n'apportait qu'un
+   contour de plus. Il est desormais l'EN-TETE de la liste — une rangee pleine
+   largeur, separee par un filet. C'est ce que fait toute palette de commandes,
+   et cela rend au champ la largeur que le retrait lui prenait.
+   Modifier ces quatre classes suffit : `CommandInput` n'a pas de style propre,
+   tous ses appelants suivent.                                              */
+
 .cn-command-input-wrapper {
-  @apply p-1 pb-0;
+  /* Marges negatives : le filet doit TRAVERSER, or `.cn-command` retrait de
+     4 px. Sans elles, la ligne s'arreterait a 4 px de chaque bord. */
+  @apply border-border -mx-1 -mt-1 mb-1 border-b px-3;
 }
 
 .cn-command-input-group {
-  @apply bg-input/30 border-input/30 h-8! rounded-lg! shadow-none! *:data-[slot=input-group-addon]:ps-2!;
+  /* Plus de cadre a soi : la rangee EST le champ. Hauteur portee de 32 a
+     44 px — une zone de saisie de 32 px se vise, elle ne s'offre pas. */
+  @apply h-11! rounded-none! border-0! bg-transparent! shadow-none! ring-0!
+         *:data-[slot=input-group-addon]:ps-0!
+         has-[>[data-align=inline-start]]:[&>input]:ps-2.5!;
 }
 
 .cn-command-input-icon {
-  @apply size-4 shrink-0 opacity-50;
+  /* `opacity-50` delavait une couleur heritee, sans garantie de contraste.
+     `muted-foreground` est mesure : 4,80:1 dans les deux themes. */
+  @apply text-muted-foreground size-4 shrink-0;
 }
 
 .cn-command-input {
-  @apply w-full text-sm;
+  @apply placeholder:text-muted-foreground w-full text-sm;
+}
+
+/* Le seul retour visuel de la saisie. Sans cadre, il ne reste que le filet
+   pour dire ou va la frappe — il prend donc la teinte de marque. */
+.cn-command-input-wrapper:focus-within {
+  @apply border-primary/45;
 }
 
 .cn-command-list {

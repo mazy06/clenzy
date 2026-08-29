@@ -107,6 +107,20 @@ export function ActionConfirmModal({ action, onClose, onConfirm }: ActionConfirm
               </span>
             </div>
           )}
+          {/* L'acompte est une ÉTAPE de ce montant, pas une seconde demande. */}
+          {action.depositEur != null && action.amountEur != null && (
+            <div className="-mt-2 flex items-baseline justify-between gap-3 px-3.5 text-xs">
+              <span className="text-[var(--bui-muted-foreground)]">
+                {action.depositPaid
+                  ? t('supervision.payment.depositPaid', 'Acompte déjà versé')
+                  : t('supervision.payment.depositDue', 'Dont acompte à verser')}
+              </span>
+              <span className={action.depositPaid ? 'tabular-nums line-through opacity-60' : 'tabular-nums'}>
+                <Money value={action.depositEur} from="EUR" />
+              </span>
+            </div>
+          )}
+
           {action.amountEur != null && copy.amountIsRecomputed && (
             <p className="-mt-2 text-xs text-[var(--bui-muted-foreground)]">
               {t(

@@ -23,13 +23,22 @@ describe('<SupervisionView> — bascule de portée', () => {
     await waitFor(() => expect(container.querySelector('[data-supervision-constellation]')).toBeTruthy());
     await waitFor(() => expect(container.querySelectorAll('[data-pending-action]').length).toBe(1));
 
-    // → Vue d'ensemble : file multi-logements (plusieurs cartes à valider).
+    // → Vue d'ensemble. Elle ne déverse PLUS toutes les cartes du parc côte à
+    // côte : elle liste les logements et ouvre le premier. Compter les cartes
+    // ne distingue donc plus les deux portées — c'est la liste qui le fait.
     // Libellés icône-seule → sélection par aria-label.
     fireEvent.click(screen.getByRole('button', { name: "Vue d'ensemble" }));
-    await waitFor(() => expect(container.querySelectorAll('[data-pending-action]').length).toBeGreaterThan(1));
+    // `getAllByRole` recalcule le rôle de CHAQUE nœud de l'arbre à chaque
+    // sondage : sur cette vue, la boucle d'attente dépassait les 5 s de
+    // délai quand la suite tourne en parallèle. L'attribut se lit directement.
+    await waitFor(() => expect(container.querySelectorAll('[aria-current]').length).toBeGreaterThan(1));
+    // Chaque carte porte le logement dont elle vient : hors du parc, ce serait
+    // une information de trop.
+    expect(screen.getAllByText(/Duplex Marais/).length).toBeGreaterThan(0);
 
-    // → retour Par logement : de nouveau une seule carte.
+    // → retour Par logement : plus de liste de logements, une seule carte.
     fireEvent.click(screen.getByRole('button', { name: 'Par logement' }));
     await waitFor(() => expect(container.querySelectorAll('[data-pending-action]').length).toBe(1));
+    expect(container.querySelectorAll('[aria-current]')).toHaveLength(0);
   });
 });

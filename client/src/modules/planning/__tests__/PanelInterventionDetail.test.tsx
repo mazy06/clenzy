@@ -137,7 +137,22 @@ describe('PanelInterventionDetail', () => {
       expect(screen.getByText('2h')).toBeInTheDocument();
     });
 
-    it('should display cost chip', () => {
+    it('should display the real cost, not a fabricated estimate', () => {
+      // Le panneau fabriquait un montant quand l'intervention n'en portait
+      // pas : ce test attendait ce « 50 € » invente, sur une donnee qui n'a
+      // aucun cout. Le montant vient desormais du devis ou des travaux.
+      render(
+        <PanelInterventionDetail
+          interventionId={5}
+          event={makeEvent()}
+          allEvents={[makeEvent()]}
+          interventions={[makeIntervention({ estimatedCost: 50 })]}
+        />,
+      );
+      expect(screen.getByLabelText('Modifier le montant')).toHaveTextContent('50');
+    });
+
+    it('should show zero rather than invent an amount when none is known', () => {
       render(
         <PanelInterventionDetail
           interventionId={5}
@@ -146,7 +161,7 @@ describe('PanelInterventionDetail', () => {
           interventions={[makeIntervention()]}
         />,
       );
-      expect(screen.getByText('50 €')).toBeInTheDocument();
+      expect(screen.getByLabelText('Modifier le montant')).toHaveTextContent('0');
     });
   });
 

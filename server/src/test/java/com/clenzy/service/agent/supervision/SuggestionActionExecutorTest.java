@@ -88,6 +88,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.OwnerStatementService ownerStatementService;
     @Mock private com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
     @Mock private com.clenzy.repository.RatePlanRepository ratePlanRepository;
+    @Mock private com.clenzy.service.InterventionLifecycleService interventionLifecycleService;
     @Mock private com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
     @Mock private com.clenzy.service.automation.CreateMaintenanceInterventionExecutor maintenanceInterventionExecutor;
     @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
@@ -134,7 +135,8 @@ class SuggestionActionExecutorTest {
                 provider(complianceSubmissionService), managementContractRepository,
                 provider(contractSignatureService), provider(userRepository),
                 provider(organizationRepository), provider(ownerStatementService),
-                minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
+                minNightsOverrideRepository, ratePlanRepository,
+                provider(interventionLifecycleService), upsellOfferRepository,
                 provider(maintenanceInterventionExecutor),
                 provider(interventionRepository), provider(reservationRefundService),
                 provider(accountingService), provider(contentTranslationService),

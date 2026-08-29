@@ -423,17 +423,17 @@ describe('PlanningRow', () => {
 
   describe('Cursor zone overlay', () => {
     it('renders the cursor zone with pointer-events: none', () => {
+      // `cursor` et `pointer-events` sont passes du style en ligne aux classes
+      // Tailwind. jsdom ne charge aucune feuille : `getComputedStyle` renvoie
+      // du vide pour une classe, et ce test ne pouvait plus rien voir. Ce sont
+      // les classes qui portent le comportement — c'est donc elles qu'on lit.
       const { container } = renderRow();
-      // The overlay is the second absolutely positioned child with cursor: cell
-      const overlays = container.querySelectorAll('[style*="pointer-events"]');
-      // Find the one with cursor: cell
-      const cursorZone = Array.from(container.querySelectorAll('div')).find(
-        (el) => {
-          const style = window.getComputedStyle(el);
-          return style.cursor === 'cell' && style.pointerEvents === 'none';
-        },
-      );
+
+      const cursorZone = container.querySelector('.cursor-cell');
       expect(cursorZone).toBeTruthy();
+      // La zone laisse passer le pointeur : c'est la ligne parente qui traite
+      // le mouseDown pour ouvrir une selection.
+      expect(cursorZone).toHaveClass('pointer-events-none');
     });
   });
 });

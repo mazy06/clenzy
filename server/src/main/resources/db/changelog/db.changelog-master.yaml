@@ -3841,3 +3841,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0412__tax_filing_deposited_on.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0413-intervention-without-service-request"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0413__intervention_without_service_request.sql
+        relativeToChangelogFile: true

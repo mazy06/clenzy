@@ -114,18 +114,61 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
                                                    @Param("staleBefore") LocalDateTime staleBefore);
 
     /**
-     * Demandes de service NON RÉGLÉES d'un logement : coût &gt; 0, statut de paiement dû
-     * (null / PENDING / PARTIALLY_PAID / FAILED) et non annulée/refusée. Sert à la carte
-     * déterministe « demande de service impayée » du Superviseur.
+     * Demandes de service RÉELLEMENT PAYABLES d'un logement : coût &gt; 0, statut de
+     * paiement dû (null / PENDING / PARTIALLY_PAID / FAILED) et demande en
+     * {@code AWAITING_PAYMENT}. Sert à la carte « demande de service impayée ».
+     *
+     * <p><b>Le statut de la demande compte autant que celui du paiement.</b> Le
+     * critère portait seulement sur « pas annulée, pas refusée » : une demande
+     * encore en {@code PENDING} — travail non commencé, donc rien à payer —
+     * produisait une carte « Régler ». Le clic partait vers
+     * {@code create-payment-session}, qui exige {@code AWAITING_PAYMENT} et
+     * refusait par 400. La carte ne pouvait qu'échouer.</p>
      */
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property WHERE sr.property.id = :propertyId " +
            "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 AND sr.organizationId = :orgId " +
            "AND (sr.paymentStatus IS NULL OR sr.paymentStatus IN (" +
            "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +
            "com.clenzy.model.PaymentStatus.FAILED)) " +
-           "AND sr.status NOT IN (com.clenzy.model.RequestStatus.CANCELLED, com.clenzy.model.RequestStatus.REJECTED) " +
+           "AND sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
            "ORDER BY sr.desiredDate")
     List<ServiceRequest> findUnpaidByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    /**
+     * Demandes dont l'ACOMPTE est exigible : chantier pas encore commence, devis
+     * approuve portant un acompte, acompte non encaisse.
+     *
+     * <p>Un acompte se regle AVANT le travail — c'est sa raison d'etre :
+     * l'intervenant bloque sa date des reception. Il est donc du precisement
+     * quand la demande est en {@code PENDING}, moment ou {@link
+     * #findUnpaidByProperty} ne rend rien (rien a facturer encore). Sans cette
+     * requete, l'acompte n'apparaitrait nulle part.</p>
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property "
+           + "WHERE sr.property.id = :propertyId AND sr.organizationId = :orgId "
+           + "AND sr.status = com.clenzy.model.RequestStatus.PENDING "
+           + "AND EXISTS (SELECT 1 FROM Intervention i, ServiceQuote q "
+           + "            WHERE i.serviceRequest = sr AND q.interventionId = i.id "
+           + "              AND q.organizationId = :orgId "
+           + "              AND q.status = com.clenzy.model.ServiceQuote$Status.APPROVED "
+           + "              AND q.depositAmount IS NOT NULL AND q.depositAmount > 0 "
+           + "              AND q.depositPaidAt IS NULL) "
+           + "ORDER BY sr.desiredDate")
+    List<ServiceRequest> findDepositDueByProperty(@Param("propertyId") Long propertyId,
+                                                  @Param("orgId") Long orgId);
+
+    /** Memes criteres que {@link #findDepositDueByProperty}, agreges par logement. */
+    @Query("SELECT sr.property.id, COUNT(sr) FROM ServiceRequest sr "
+           + "WHERE sr.organizationId = :orgId "
+           + "AND sr.status = com.clenzy.model.RequestStatus.PENDING "
+           + "AND EXISTS (SELECT 1 FROM Intervention i, ServiceQuote q "
+           + "            WHERE i.serviceRequest = sr AND q.interventionId = i.id "
+           + "              AND q.organizationId = :orgId "
+           + "              AND q.status = com.clenzy.model.ServiceQuote$Status.APPROVED "
+           + "              AND q.depositAmount IS NOT NULL AND q.depositAmount > 0 "
+           + "              AND q.depositPaidAt IS NULL) "
+           + "GROUP BY sr.property.id")
+    List<Object[]> countDepositDueByPropertyForOrg(@Param("orgId") Long orgId);
 
     /**
      * Nb de demandes de service impayées PAR logement pour toute l'org (pastilles
@@ -137,7 +180,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
            "AND (sr.paymentStatus IS NULL OR sr.paymentStatus IN (" +
            "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +
            "com.clenzy.model.PaymentStatus.FAILED)) " +
-           "AND sr.status NOT IN (com.clenzy.model.RequestStatus.CANCELLED, com.clenzy.model.RequestStatus.REJECTED) " +
+           "AND sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
            "GROUP BY sr.property.id")
     List<Object[]> countUnpaidByPropertyForOrg(@Param("orgId") Long orgId);
 

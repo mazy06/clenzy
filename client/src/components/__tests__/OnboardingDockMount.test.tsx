@@ -75,8 +75,22 @@ describe('OnboardingDockMount', () => {
     expect(screen.getByText('Masquer')).toBeInTheDocument();
   });
 
-  it('whenOnDashboard_thenHidden_becauseFullChecklistLivesThere', () => {
+  it('whenOnDashboard_thenVisible_becauseTheDockIsNowTheOnlyGuide', () => {
+    // La checklist du tableau de bord a ete supprimee — c'etait un doublon du
+    // dock. `/dashboard` a donc quitte les prefixes masques : le dock y est
+    // desormais la SEULE surface du guide, le cacher la reviendrait a le
+    // rendre introuvable depuis l'ecran d'arrivee.
     mockPathname = '/dashboard';
+
+    render(<OnboardingDockMount />);
+
+    expect(screen.getByText('Guide de démarrage')).toBeInTheDocument();
+  });
+
+  it('whenOnFullBleedEditor_thenHidden', () => {
+    // Le studio prend tout l'ecran : un dock flottant s'y poserait par-dessus
+    // le canevas.
+    mockPathname = '/booking-engine/studio/42';
 
     const { container } = render(<OnboardingDockMount />);
 

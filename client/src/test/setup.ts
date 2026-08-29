@@ -62,3 +62,11 @@ beforeEach(async () => {
     // localStorage indisponible en certains envs jsdom — ignore
   }
 });
+
+// jsdom n'implemente pas `scrollIntoView`. Les listes filtrables (cmdk, sur
+// lequel repose le primitive Command) l'appellent a chaque changement de
+// selection : sans ce shim, tout test qui monte une de ces listes echoue sur
+// « scrollIntoView is not a function », alors que le composant fonctionne.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}

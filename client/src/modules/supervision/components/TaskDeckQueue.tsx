@@ -95,7 +95,9 @@ function TaskCard({
   const schedule = apply && familyOf(action.applyActionType) === 'schedule' && Boolean(onSchedule);
   // Le CTA ouvre une modale : confirmation quand l'effet engage sans rien à
   // choisir, saisie quand l'action porte des paramètres devinés par l'agent.
-  const confirm = apply && !schedule
+  // Les cartes de paiement y ont droit aussi : elles étaient les seules à partir
+  // au clic — vers une fenêtre Stripe, sans rien annoncer au préalable.
+  const confirm = (apply || payment) && !schedule
     && Boolean(onOpenActionModal) && opensModal(action.applyActionType);
   // Réponse à un avis : jamais de publication à l'aveugle du brouillon IA —
   // « Répondre » ouvre la modale du dashboard (brouillon insérable + saisie).

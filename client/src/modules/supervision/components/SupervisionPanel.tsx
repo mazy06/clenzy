@@ -11,6 +11,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Spinner,
   ToggleGroup,
   ToggleGroupItem,
@@ -18,9 +21,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { WifiOff, Replay, Radar, GridView, Orbit, ViewList } from '../../../icons';
+import { WifiOff, Replay, Radar, GridView, Orbit, ViewList, Info } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useSupervision } from '../core/useSupervision';
 import { useSupervisionReport } from '../core/useSupervisionReport';
 import { useResolutionToasts } from '../core/useResolutionToasts';
@@ -45,9 +49,117 @@ import { ActionParamsModal } from './ActionParamsModal';
 import { ActionReviewModal } from './ActionReviewModal';
 import { ActionChoiceModal } from './ActionChoiceModal';
 import { ActionRecapModal } from './ActionRecapModal';
+import { ActionInspectionModal } from './ActionInspectionModal';
+import { toast } from 'sonner';
+import { buildApiUrl } from '../../../config/api';
+import { getAccessToken } from '../../../keycloak';
 import { familyOf } from './actionRegistry';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
 import type { AgentId, PendingAction, PortfolioPendingAction, SchedulingChoice } from '../types';
+
+/* ------------------------------------------------------------------
+   <ReportSummary> — le bilan, replié dans l'en-tête
+
+   Il occupait une rangée pleine SOUS la constellation : quatre boutons de
+   période et trois chiffres, permanents, alors qu'on les consulte de loin en
+   loin. Ils poussaient le diagramme vers le haut sans jamais être le sujet de
+   l'écran.
+
+   Deux primitives sont écartées, chacune pour une raison :
+
+   - `Tooltip` se referme dès que le pointeur le quitte, et le sélecteur de
+     période est fait de BOUTONS — ils deviendraient inatteignables.
+   - `HoverCard` ne s'ouvre qu'au survol. Or l'affichage large commence à
+     840 px : une tablette tactile en paysage l'atteint, et là il n'y a PAS de
+     survol. L'icône serait morte, sans que rien ne le dise.
+
+   Donc un `Popover` piloté : il s'ouvre à l'appui partout, et EN PLUS au
+   survol quand l'appareil sait survoler.
+   ------------------------------------------------------------------ */
+interface ReportSummaryProps {
+  report: { autoActions: number; acceptanceRate: number; estimatedTimeSaved: string };
+  window: number;
+  onWindowChange: (days: number) => void;
+}
+
+function ReportSummary({ report, window: activeWindow, onWindowChange }: ReportSummaryProps) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  // `(hover: hover)` distingue un vrai pointeur d'un écran tactile — bien
+  // mieux qu'une largeur : une tablette de 1024 px n'a pas de survol.
+  const canHover = useMediaQuery('(hover: hover) and (pointer: fine)');
+  const label = t('supervision.report.titleBase', 'Bilan');
+
+  const hoverProps = canHover
+    ? { onPointerEnter: () => setOpen(true), onPointerLeave: () => setOpen(false) }
+    : {};
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        {/* Un vrai bouton, pas une icône décorative : le clavier doit pouvoir
+            l'atteindre, sinon le bilan devient inaccessible sans souris. */}
+        <button
+          type="button"
+          aria-label={label}
+          {...hoverProps}
+          className="inline-flex size-6 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring min-[900px]:size-5"
+        >
+          <Info size={14} strokeWidth={1.75} />
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        // Le survol de la carte elle-même la maintient ouverte : sans cela,
+        // sortir du bouton pour aller cliquer « Mois » la referme en route.
+        {...hoverProps}
+        className="w-64 p-3"
+      >
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-foreground">{label}</span>
+            <span className="flex gap-0.5" role="group" aria-label={label}>
+              {REPORT_WINDOWS.map((option) => {
+                const active = activeWindow === option.days;
+                return (
+                  <button
+                    key={option.days}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => onWindowChange(option.days)}
+                    className={
+                      active
+                        ? 'cursor-pointer rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary'
+                        : 'cursor-pointer rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground transition-colors duration-200 hover:bg-muted'
+                    }
+                  >
+                    {t(option.key, option.fallback)}
+                  </button>
+                );
+              })}
+            </span>
+          </div>
+
+          {/* Les trois chiffres l'un sous l'autre : en rangée, ils se lisaient
+              comme une phrase et le regard ne savait où s'arrêter. */}
+          <dl className="m-0 flex flex-col gap-1.5">
+            {[
+              { value: report.estimatedTimeSaved, term: t('supervision.report.timeSaved', 'Temps gagné') },
+              { value: String(report.autoActions), term: t('supervision.report.autoActions', 'Actions auto') },
+              { value: `${Math.round(report.acceptanceRate * 100)} %`, term: t('supervision.report.acceptance', 'Acceptation') },
+            ].map((row) => (
+              <div key={row.term} className="flex items-baseline justify-between gap-3">
+                <dt className="m-0 text-xs text-muted-foreground">{row.term}</dt>
+                <dd className="m-0 text-xs font-semibold text-foreground tabular-nums">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export interface SupervisionPanelProps {
   /** Fabrique du provider (mock ou CopilotKit). Recréé quand `deps` change. */
@@ -212,6 +324,50 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   // choisir, mais la conséquence se dit avant de la produire.
   const [confirmAction, setConfirmAction] = useState<PendingAction | PortfolioPendingAction | null>(null);
   const handleOpenActionModal = useCallback((a: PendingAction | PortfolioPendingAction) => setConfirmAction(a), []);
+  /**
+   * Refus d'un travail rendu : renvoi en reprise, avec motif.
+   *
+   * <p>Ne passe pas par l'application de la carte : appliquer ne peut signifier
+   * que « d'accord ». Le refus a son propre geste, son propre endpoint, et son
+   * motif obligatoire.</p>
+   */
+  const handleRejectWork = useCallback(
+    async (card: PendingAction | PortfolioPendingAction, reason: string) => {
+      const interventionId = (() => {
+        try {
+          const parsed = JSON.parse(card.actionParams ?? '{}') as { interventionId?: unknown };
+          return typeof parsed.interventionId === 'number' ? parsed.interventionId : null;
+        } catch {
+          return null;
+        }
+      })();
+      if (interventionId == null) return;
+      try {
+        const token = getAccessToken();
+        const response = await fetch(
+          buildApiUrl(`/interventions/${interventionId}/reject-work?reason=${encodeURIComponent(reason)}`),
+          {
+            method: 'POST',
+            credentials: 'include',
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          },
+        );
+        if (!response.ok) {
+          toast.error('Refus impossible : le serveur a rejeté la demande.');
+          return;
+        }
+        // La carte disparaît : le travail n'attend plus de contrôle, il est
+        // reparti en reprise. Elle reviendra à la prochaine soumission.
+        markInFlight(card.id);
+        void actions.editPending(card.id);
+        setConfirmAction(null);
+      } catch {
+        toast.error("Refus impossible : le serveur n'a pas répondu.");
+      }
+    },
+    [actions, markInFlight],
+  );
+
   const handleConfirmed = useCallback(() => {
     if (!confirmAction) return;
     markInFlight(confirmAction.id);
@@ -437,9 +593,20 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   </span>
                 )}
               </h2>
-              <p className="m-0 text-xs text-muted-foreground">
-                {normalized?.hud.agentsCount} {t('supervision.hud.agents')} · {normalized?.hud.actingCount} {t('supervision.hud.acting')} ·{' '}
-                {status === 'live' ? t('supervision.hud.active') : t('supervision.states.offline')}
+              <p className="m-0 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span>
+                  {normalized?.hud.agentsCount} {t('supervision.hud.agents')} · {normalized?.hud.actingCount} {t('supervision.hud.acting')} ·{' '}
+                  {status === 'live' ? t('supervision.hud.active') : t('supervision.states.offline')}
+                </span>
+                {/* Le bilan vit ici, replié : il tenait une rangée entière sous
+                    la constellation pour des chiffres qu'on consulte rarement. */}
+                {hudReport && (
+                  <ReportSummary
+                    report={hudReport}
+                    window={reportWindow}
+                    onWindowChange={handleReportWindowChange}
+                  />
+                )}
               </p>
             </div>
             {/* Segmenté cartes/constellation sur rail teinté (projection) +
@@ -494,8 +661,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                positionnée l'interceptait et décalait tout le dessin. */
             <div className="mt-4 grid flex-1 min-h-0 grid-cols-[minmax(0,1fr)_minmax(300px,1fr)] items-stretch gap-x-8 gap-y-6">
               {/* Colonne du diagramme : le carré prend toute la hauteur
-                  restante (sans plafond), le bilan se cale sous lui, au ras du
-                  bas de l'accordéon. */}
+                  restante, sans plafond. Le bilan tenait une rangée sous lui ;
+                  il est passé dans l'en-tête, replié derrière une icône. */}
               <div className="flex min-h-0 flex-col">
                 <OrbitDiagram
                   agents={normalized?.agents ?? []}
@@ -506,35 +673,6 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   pendingItems={snapshot.pending}
                   className="min-h-0 flex-1"
                 />
-                {/* Bilan de valeur — pied de colonne, fenêtre pilotable. */}
-                {hudReport && (
-                  <div className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{t('supervision.report.titleBase', 'Bilan')}</span>
-                    <span className="flex gap-0.5" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
-                      {REPORT_WINDOWS.map((option) => {
-                        const active = reportWindow === option.days;
-                        return (
-                          <button
-                            key={option.days}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => handleReportWindowChange(option.days)}
-                            className={
-                              active
-                                ? 'cursor-pointer rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary'
-                                : 'cursor-pointer rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-muted'
-                            }
-                          >
-                            {t(option.key, option.fallback)}
-                          </button>
-                        );
-                      })}
-                    </span>
-                    <span><b className="font-semibold text-foreground tabular-nums">{hudReport.estimatedTimeSaved}</b> {t('supervision.report.timeSaved', 'Temps gagné').toLowerCase()}</span>
-                    <span><b className="font-semibold text-foreground tabular-nums">{hudReport.autoActions}</b> {t('supervision.report.autoActions', 'Actions auto').toLowerCase()}</span>
-                    <span><b className="font-semibold text-foreground tabular-nums">{Math.round(hudReport.acceptanceRate * 100)} %</b> {t('supervision.report.acceptance', 'Acceptation').toLowerCase()}</span>
-                  </div>
-                )}
               </div>
 
                 {/* File — la SEULE colonne qui défile : les cartes HITL
@@ -710,6 +848,18 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         const close = () => setConfirmAction(null);
         // Le registre a déjà tranché la famille : ici on ne fait que rendre.
         switch (familyOf(confirmAction.applyActionType)) {
+          case 'inspection':
+            // Deux issues : valider rend le solde exigible, refuser renvoie le
+            // travail en reprise — par un endpoint distinct, car le motif y est
+            // obligatoire et l'application d'une carte ne dit que « d'accord ».
+            return (
+              <ActionInspectionModal
+                action={confirmAction}
+                onClose={close}
+                onApprove={handleConfirmed}
+                onReject={(reason) => handleRejectWork(confirmAction, reason)}
+              />
+            );
           case 'informative':
             // Rendre compte, pas proposer : « J'ai vu » retire la carte sans
             // déclencher d'action serveur — l'assignation est déjà faite.

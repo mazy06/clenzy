@@ -203,6 +203,13 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.ts'],
+    // Les ecrans de supervision montent framer-motion, un fournisseur simule et
+    // un arbre de plusieurs centaines de noeuds. Seuls, ils rendent en ~1 s ;
+    // quand la suite tourne en parallele, les memes attentes depassaient les
+    // 5 s par defaut, sans qu'aucune assertion soit fausse. Un test rouge une
+    // fois sur deux ne se lit plus : on cesse de le croire, y compris le jour
+    // ou il a raison.
+    testTimeout: 20_000,
   },
 })
 

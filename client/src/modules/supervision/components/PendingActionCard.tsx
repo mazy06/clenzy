@@ -85,7 +85,9 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
   const isSchedule = isApply && familyOf(action.applyActionType) === 'schedule' && Boolean(onSchedule);
   // Le CTA ouvre une modale : confirmation quand l'effet engage sans rien à
   // choisir, saisie quand l'action porte des paramètres devinés par l'agent.
-  const isConfirm = isApply && !isSchedule
+  // Les cartes de paiement y ont droit aussi : elles étaient les seules à partir
+  // au clic — vers une fenêtre Stripe, sans rien annoncer au préalable.
+  const isConfirm = (isApply || isPayment) && !isSchedule
     && Boolean(onOpenActionModal) && opensModal(action.applyActionType);
   // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
   const verb = verbFor(action.applyActionType);
@@ -264,6 +266,24 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
           >
             <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </Button>
+        </div>
+      )}
+
+      {/* Échéancier : l'acompte est une ÉTAPE de ce montant, pas une seconde
+          demande. Il avait sa propre carte sur un autre agent, et rien ne disait
+          que les deux sommes portaient sur le même chantier. */}
+      {isPayment && action.depositEur != null && action.amountEur != null && (
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted px-2.5 py-1.5 text-2xs">
+          <span className="text-muted-foreground">
+            {action.paymentStage === 'deposit'
+              ? t('supervision.payment.depositStage', 'Acompte, avant le début des travaux')
+              : action.depositPaid
+                ? t('supervision.payment.depositPaid', 'Acompte déjà versé')
+                : t('supervision.payment.depositDue', 'Dont acompte à verser')}
+          </span>
+          <span className={cn('tabular-nums font-medium', action.depositPaid && 'line-through opacity-60')}>
+            <Money value={action.depositEur} from="EUR" />
+          </span>
         </div>
       )}
 

@@ -106,15 +106,24 @@ public class OpsMaintenanceScanner {
                     orgId, propertyId, e.getMessage());
         }
         try {
+            scanWorkAwaitingReview(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("work review scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
             scanUnassignedServiceRequests(orgId, propertyId);
         } catch (Exception e) {
             log.debug("unassigned service request scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
         try {
-            scanDepositsToCollect(orgId, propertyId);
+            // L'acompte ne fait plus l'objet d'une carte : il est devenu une
+            // étape de l'échéancier de la carte de paiement, sur l'agent Finance.
+            // Ici on ne fait que retirer celles déjà sorties.
+            withdrawDepositCards(orgId, propertyId);
         } catch (Exception e) {
-            log.debug("deposit scan failed org={} property={}: {}",
+            log.debug("deposit card withdrawal failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
     }
@@ -153,36 +162,52 @@ public class OpsMaintenanceScanner {
     }
 
     /**
-     * Acomptes exigibles, non encaisses.
+     * Travail soumis, qui attend son contrôle.
      *
-     * <p>L'intervenant bloque sa date des l'acompte regle : tant qu'il ne l'est
-     * pas, le chantier n'avance pas et rien ne le signalait cote gestion.</p>
+     * <p>L'intervenant a rendu : photos, durée réelle, horodatage de fin. Tant
+     * que personne n'a regardé, le chantier est fini pour lui mais le solde ne
+     * peut pas devenir exigible — et rien ne le signalait côté gestion.</p>
      */
-    private void scanDepositsToCollect(Long orgId, Long propertyId) {
+    private void scanWorkAwaitingReview(Long orgId, Long propertyId) {
         final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
         for (com.clenzy.model.Intervention intervention : interventionRepository
                 .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
-            if (!com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
-                    .openStatuses().contains(intervention.getStatus())) {
+            if (intervention.getStatus() != com.clenzy.model.InterventionStatus.AWAITING_VALIDATION) {
                 continue;
             }
-            serviceQuoteRepository
-                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), orgId)
-                    .stream()
-                    .filter(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
-                    .filter(q -> q.getDepositAmount() != null
-                            && q.getDepositAmount().compareTo(java.math.BigDecimal.ZERO) > 0)
-                    // Deja encaisse : la carte n'aurait plus d'objet.
-                    .filter(q -> q.getDepositPaidAt() == null)
-                    .findFirst()
-                    .ifPresent(quote -> suggestionService.record(
-                            orgId, propertyId, MODULE_OPS,
-                            "deposit_to_collect",
-                            "Acompte a regler (intervention #" + intervention.getId() + ")",
-                            "Le devis de " + quote.getProviderName() + " est approuve : "
-                                    + quote.getDepositAmount() + " " + quote.getCurrency()
-                                    + " d'acompte restent a verser. "
-                                    + "L'intervenant bloque sa date des reception."));
+            final String intervenant = intervention.getAssignedUser() != null
+                    ? intervention.getAssignedUser().getFullName() : null;
+            suggestionService.recordActionable(
+                    orgId, propertyId, MODULE_OPS,
+                    "Travail a controler (intervention #" + intervention.getId() + ")",
+                    "« " + intervention.getTitle() + " » a ete rendu"
+                            + (intervenant != null ? " par " + intervenant : "")
+                            + ". Examiner les photos, la duree reelle et le respect du creneau"
+                            + " avant de rendre le solde exigible.",
+                    SupervisionActionType.WORK_REVIEW,
+                    "{\"interventionId\":" + intervention.getId() + "}",
+                    null, "warning");
+        }
+    }
+
+    /**
+     * Retire les cartes d'acompte, devenues redondantes.
+     *
+     * <p>L'acompte avait sa propre carte, sur l'agent Operations. L'exploitant
+     * voyait donc « Regler 220 EUR » cote Finance et « Acompte a regler 40 EUR »
+     * cote Operations pour LE MEME chantier, sans que rien ne dise que les 40
+     * font partie des 220 — et regler l'un laissait l'autre en place.</p>
+     *
+     * <p>L'acompte est desormais une etape de l'echeancier porte par la carte de
+     * paiement. Cesser d'emettre ne suffit pas : les cartes deja sorties
+     * resteraient des jours a reclamer une somme deja demandee ailleurs.</p>
+     */
+    private void withdrawDepositCards(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        for (com.clenzy.model.Intervention intervention : interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
+            suggestionService.dismissObsolete(orgId, propertyId, MODULE_OPS,
+                    "Acompte a regler (intervention #" + intervention.getId() + ")");
         }
     }
 
@@ -279,9 +304,24 @@ public class OpsMaintenanceScanner {
                     .openStatuses().contains(intervention.getStatus())) {
                 continue;
             }
-            final var quotes = serviceQuoteRepository
-                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(
-                            intervention.getId(), orgId).stream()
+            final var allQuotes = serviceQuoteRepository
+                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), orgId);
+            // Un devis DEJA approuve clot la decision. Le prestataire peut
+            // continuer d'en resoumettre — l'intervention 97 en portait quatre
+            // apres coup — mais proposer d'approuver serait promettre un geste
+            // que `ServiceQuoteService.approve` refuse : il exige une
+            // intervention encore sans approbation. La carte ne pouvait
+            // qu'echouer, et rien ne le disait avant le clic.
+            final boolean dejaApprouve = allQuotes.stream()
+                    .anyMatch(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED);
+            if (dejaApprouve) {
+                // Cesser d'emettre ne suffit pas : une carte deja sortie reste
+                // des jours a proposer un geste voue au refus. On la retire.
+                suggestionService.dismissObsolete(orgId, propertyId, MODULE_OPS,
+                        "Devis à approuver (intervention #" + intervention.getId() + ")");
+                continue;
+            }
+            final var quotes = allQuotes.stream()
                     .filter(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.RECEIVED)
                     .toList();
             if (quotes.isEmpty()) {

@@ -173,6 +173,35 @@ public class InterventionController {
         return interventionService.assign(id, userId, teamId, jwt);
     }
 
+    /**
+     * L'intervenant soumet son travail au controle.
+     *
+     * <p>Il ne pouvait que clore lui-meme, ce qui court-circuitait toute
+     * verification : ni photos examinees, ni duree confrontee a l'estimation.</p>
+     */
+    @PostMapping("/{id}/submit-for-validation")
+    @Operation(summary = "Soumettre le travail termine au controle du gestionnaire")
+    public InterventionResponse submitForValidation(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer actualDurationMinutes,
+            @AuthenticationPrincipal Jwt jwt) {
+        return lifecycleService.submitForValidation(id, actualDurationMinutes, jwt);
+    }
+
+    /**
+     * Le gestionnaire refuse le travail rendu : retour en cours, pour reprise.
+     *
+     * <p>Le motif est obligatoire — sans lui, l'intervenant apprend qu'on refuse
+     * sans savoir quoi corriger.</p>
+     */
+    @PostMapping("/{id}/reject-work")
+    @Operation(summary = "Refuser le travail rendu et le renvoyer en reprise (Manager uniquement)")
+    public InterventionResponse rejectWork(@PathVariable Long id,
+                                           @RequestParam String reason,
+                                           @AuthenticationPrincipal Jwt jwt) {
+        return lifecycleService.rejectWork(id, reason, jwt);
+    }
+
     @PostMapping("/{id}/validate")
     @Operation(summary = "Valider une intervention et definir le cout estime (Manager uniquement)")
     public InterventionResponse validate(@PathVariable Long id,
