@@ -100,7 +100,7 @@ function channelLabel(source: string | null, sourceName: string | null): string 
 
 // ─── Coquille de carte, commune aux blocs ───────────────────────────────────
 
-function BlockCard({
+export function BlockCard({
   icon,
   title,
   count,
@@ -132,7 +132,7 @@ function BlockCard({
 }
 
 /** Vide de carte : une phrase, pas une carte creuse. */
-function BlockEmpty({ children }: { children: React.ReactNode }) {
+export function BlockEmpty({ children }: { children: React.ReactNode }) {
   return <p className="m-0 py-2 text-sm text-muted-foreground">{children}</p>;
 }
 

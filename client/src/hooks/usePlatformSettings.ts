@@ -62,3 +62,14 @@ export function useSetConciergeSettings() {
     },
   });
 }
+
+/** Taux d'acompte des devis de maintenance — réglage plateforme. */
+export function useSetMaintenanceDepositPercent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (percent: number) => platformSettingsApi.setMaintenanceDepositPercent(percent),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY });
+    },
+  });
+}

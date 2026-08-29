@@ -39,8 +39,15 @@ import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { SupervisionPendingAction } from './SupervisionPendingAction';
 import { PriceAdjustmentModal } from './PriceAdjustmentModal';
+import { SchedulingModal } from './SchedulingModal';
+import { ActionConfirmModal } from './ActionConfirmModal';
+import { ActionParamsModal } from './ActionParamsModal';
+import { ActionReviewModal } from './ActionReviewModal';
+import { ActionChoiceModal } from './ActionChoiceModal';
+import { ActionRecapModal } from './ActionRecapModal';
+import { familyOf } from './actionRegistry';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
+import type { AgentId, PendingAction, PortfolioPendingAction, SchedulingChoice } from '../types';
 
 export interface SupervisionPanelProps {
   /** Fabrique du provider (mock ou CopilotKit). Recréé quand `deps` change. */
@@ -186,6 +193,43 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   const [priceAction, setPriceAction] = useState<PendingAction | PortfolioPendingAction | null>(null);
   const handleAdjustPrice = useCallback((a: PendingAction | PortfolioPendingAction) => setPriceAction(a), []);
 
+  // Modale de planification (cartes « Planifier » : batterie serrure, entretien
+  // préventif). Le geste direct créait la mission au lendemain 10 h sans
+  // personne dessus — la date et l'intervenant se choisissent désormais avant.
+  const [scheduleAction, setScheduleAction] = useState<PendingAction | PortfolioPendingAction | null>(null);
+  const handleSchedule = useCallback((a: PendingAction | PortfolioPendingAction) => setScheduleAction(a), []);
+  const handleScheduleConfirm = useCallback(
+    (plan: SchedulingChoice) => {
+      if (!scheduleAction) return;
+      markInFlight(scheduleAction.id);
+      void actions.validatePending(scheduleAction.id, plan);
+      setScheduleAction(null);
+    },
+    [actions, markInFlight, scheduleAction],
+  );
+
+  // Confirmation (argent, annulation, effacement, envoi vers un tiers) : rien à
+  // choisir, mais la conséquence se dit avant de la produire.
+  const [confirmAction, setConfirmAction] = useState<PendingAction | PortfolioPendingAction | null>(null);
+  const handleOpenActionModal = useCallback((a: PendingAction | PortfolioPendingAction) => setConfirmAction(a), []);
+  const handleConfirmed = useCallback(() => {
+    if (!confirmAction) return;
+    markInFlight(confirmAction.id);
+    void actions.validatePending(confirmAction.id);
+    setConfirmAction(null);
+  }, [actions, markInFlight, confirmAction]);
+  // Paramètres revus dans la modale de saisie : ils PRIMENT sur ceux de la carte,
+  // que l'agent avait devinés au moment du scan.
+  const handleParamsConfirmed = useCallback(
+    (params: Record<string, number | string | boolean>) => {
+      if (!confirmAction) return;
+      markInFlight(confirmAction.id);
+      void actions.validatePending(confirmAction.id, { params });
+      setConfirmAction(null);
+    },
+    [actions, markInFlight, confirmAction],
+  );
+
   const handleSelect = useCallback(
     (id: AgentId) => {
       setSelected(id);
@@ -263,7 +307,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 aria-label={t('supervision.scan.button', 'Scanner')}
                 className="size-[26px] text-primary hover:bg-primary-soft hover:text-primary"
               >
-                {scanning ? <Spinner className="size-3.5" /> : <Radar size={16} />}
+                {scanning ? <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} /> : <Radar size={16} />}
               </Button>
             </span>
           </TooltipTrigger>
@@ -325,6 +369,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               onValidate={handleValidate}
               onEdit={handleEdit}
               onAdjustPrice={handleAdjustPrice}
+              onSchedule={handleSchedule}
+              onOpenActionModal={handleOpenActionModal}
               variant="panel"
             />
           )}
@@ -338,6 +384,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           onValidate={handleValidate}
           onEdit={handleEdit}
           onAdjustPrice={handleAdjustPrice}
+          onSchedule={handleSchedule}
+          onOpenActionModal={handleOpenActionModal}
           variant="panel"
         />
       );
@@ -508,6 +556,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                     onValidate={handleValidate}
                     onEdit={handleEdit}
                     onAdjustPrice={handleAdjustPrice}
+                    onSchedule={handleSchedule}
+                    onOpenActionModal={handleOpenActionModal}
                   />
                 </div>
 
@@ -551,6 +601,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   onValidate={handleValidate}
                   onEdit={handleEdit}
                   onAdjustPrice={handleAdjustPrice}
+                  onSchedule={handleSchedule}
+                  onOpenActionModal={handleOpenActionModal}
                 />
               </div>
             </div>
@@ -621,6 +673,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               onValidate={handleValidate}
               onEdit={handleEdit}
               onAdjustPrice={handleAdjustPrice}
+              onSchedule={handleSchedule}
+              onOpenActionModal={handleOpenActionModal}
             />
           ) : undefined
         }
@@ -640,6 +694,46 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           }}
         />
       )}
+
+      {scheduleAction && (
+        <SchedulingModal
+          action={scheduleAction}
+          onClose={() => setScheduleAction(null)}
+          onConfirm={handleScheduleConfirm}
+        />
+      )}
+
+      {/* Un même geste, quatre corps selon ce qu'il y a à faire : trancher entre
+          des candidats, régler des paramètres, relire ce qui part, ou seulement
+          mesurer la conséquence. La confirmation est le cas par défaut. */}
+      {confirmAction && (() => {
+        const close = () => setConfirmAction(null);
+        // Le registre a déjà tranché la famille : ici on ne fait que rendre.
+        switch (familyOf(confirmAction.applyActionType)) {
+          case 'informative':
+            // Rendre compte, pas proposer : « J'ai vu » retire la carte sans
+            // déclencher d'action serveur — l'assignation est déjà faite.
+            return (
+              <ActionRecapModal
+                action={confirmAction}
+                onClose={close}
+                onAcknowledge={() => {
+                  markInFlight(confirmAction.id);
+                  void actions.editPending(confirmAction.id);
+                  setConfirmAction(null);
+                }}
+              />
+            );
+          case 'choice':
+            return <ActionChoiceModal action={confirmAction} onClose={close} onConfirm={handleParamsConfirmed} />;
+          case 'params':
+            return <ActionParamsModal action={confirmAction} onClose={close} onConfirm={handleParamsConfirmed} />;
+          case 'review':
+            return <ActionReviewModal action={confirmAction} onClose={close} onConfirm={handleConfirmed} />;
+          default:
+            return <ActionConfirmModal action={confirmAction} onClose={close} onConfirm={handleConfirmed} />;
+        }
+      })()}
     </div>
   );
 }

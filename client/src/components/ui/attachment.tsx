@@ -162,18 +162,22 @@ function AttachmentAction({
   )
 }
 
-function AttachmentTrigger({
-  className,
-  asChild = false,
-  type,
-  ...props
-}: React.ComponentProps<"button"> & {
-  asChild?: boolean
-}) {
+/**
+ * `forwardRef` ajoute localement pour React 18 — cf. la note dans `button.tsx`.
+ *
+ * Sans lui, un `<DialogTrigger asChild>` autour de ce declencheur avertissait
+ * « Function components cannot be given refs » et perdait la ref : le dialogue
+ * ne pouvait plus rendre le focus a l'element qui l'avait ouvert.
+ */
+const AttachmentTrigger = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<"button"> & { asChild?: boolean }
+>(function AttachmentTrigger({ className, asChild = false, type, ...props }, ref) {
   const Comp = asChild ? Slot.Root : "button"
 
   return (
     <Comp
+      ref={ref}
       data-slot="attachment-trigger"
       type={asChild ? undefined : (type ?? "button")}
       className={cn(
@@ -183,7 +187,7 @@ function AttachmentTrigger({
       {...props}
     />
   )
-}
+})
 
 function AttachmentGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (

@@ -45,6 +45,7 @@ public class PropertyTeamService {
     private final PropertyRepository propertyRepository;
     private final OrganizationRepository organizationRepository;
     private final TenantContext tenantContext;
+    private final ProviderAvailabilityService availabilityService;
 
     public PropertyTeamService(PropertyTeamRepository propertyTeamRepository,
                                InterventionRepository interventionRepository,
@@ -52,7 +53,8 @@ public class PropertyTeamService {
                                TeamCoverageZoneRepository teamCoverageZoneRepository,
                                PropertyRepository propertyRepository,
                                OrganizationRepository organizationRepository,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               ProviderAvailabilityService availabilityService) {
         this.propertyTeamRepository = propertyTeamRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
@@ -60,6 +62,7 @@ public class PropertyTeamService {
         this.propertyRepository = propertyRepository;
         this.organizationRepository = organizationRepository;
         this.tenantContext = tenantContext;
+        this.availabilityService = availabilityService;
     }
 
     /**
@@ -257,7 +260,12 @@ public class PropertyTeamService {
 
         final long conflicts = interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
                 teamId, ACTIVE_STATUSES, rangeStart, rangeEnd);
-        found.add(new AssignableTeam(teamId, team.getName(), origin, conflicts == 0, conflicts));
+        // Hors creneaux declares : le prestataire reste PROPOSE, marque
+        // indisponible. Le masquer laisserait croire qu'il n'existe pas, alors
+        // qu'un operateur peut vouloir le solliciter quand meme.
+        final boolean withinDeclared = availabilityService.isAvailable(teamId, rangeStart, rangeEnd);
+        found.add(new AssignableTeam(teamId, team.getName(), origin,
+                conflicts == 0 && withinDeclared, conflicts));
     }
 
     /** Équipes dont une zone de couverture contient le logement. */
@@ -371,6 +379,13 @@ public class PropertyTeamService {
             return Optional.empty();
         }
 
+        // « Libre » ne suffit pas : encore faut-il que le prestataire travaille
+        // a ce moment-la. Sans declaration, il reste disponible par defaut.
+        if (!availabilityService.isAvailable(defaultTeamId, rangeStart, rangeEnd)) {
+            log.debug("Equipe par defaut {} (org={}) hors de ses disponibilites declarees", defaultTeamId, searchOrgId);
+            return Optional.empty();
+        }
+
         log.debug("Auto-assignation: equipe par defaut {} (org={}, type OK, disponible)", defaultTeamId, searchOrgId);
         return Optional.of(defaultTeamId);
     }
@@ -434,7 +449,7 @@ public class PropertyTeamService {
             long conflictCount = interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
                 candidateId, ACTIVE_STATUSES, rangeStart, rangeEnd
             );
-            if (conflictCount == 0) {
+            if (conflictCount == 0 && availabilityService.isAvailable(candidateId, rangeStart, rangeEnd)) {
                 log.debug("Auto-assignation geo: equipe {} (org={}, country={}, type OK, disponible)",
                     candidateId, searchOrgId, countryCode);
                 return Optional.of(candidateId);

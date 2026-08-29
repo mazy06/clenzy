@@ -10,22 +10,20 @@ describe('resolveTabHeader', () => {
   const TABS = ['Général', 'Notifications', 'Commodités OTA'];
 
   // ─── Title ──────────────────────────────────────────────────────────────────
-  // Le CHEMIN est porte par le fil d'Ariane (PageBreadcrumb) : le titre ne
-  // porte plus que la page courante, jamais "Racine › Onglet".
+  // Le titre ne porte que le nom de l'ecran : l'onglet actif lui est accole par
+  // PageTitle (« Parametres │ Notifications »), a partir de ce que PageTabs
+  // publie. Le renvoyer ici l'afficherait deux fois.
 
-  it('returns root title alone when active tab is index 0 (root)', () => {
+  it('returns the root title on the first tab', () => {
     const result = resolveTabHeader('Paramètres', 'Default subtitle', TABS, 0, META);
     expect(result.title).toBe('Paramètres');
   });
 
-  it('returns the active tab label alone when active tab > 0', () => {
-    const result = resolveTabHeader('Paramètres', 'Default subtitle', TABS, 1, META);
-    expect(result.title).toBe('Notifications');
-  });
-
-  it('handles the last tab correctly', () => {
-    const result = resolveTabHeader('Paramètres', 'Default subtitle', TABS, 2, META);
-    expect(result.title).toBe('Commodités OTA');
+  it('keeps the root title on any other tab', () => {
+    expect(resolveTabHeader('Paramètres', 'Default subtitle', TABS, 1, META).title)
+      .toBe('Paramètres');
+    expect(resolveTabHeader('Paramètres', 'Default subtitle', TABS, 2, META).title)
+      .toBe('Paramètres');
   });
 
   // ─── Subtitle ───────────────────────────────────────────────────────────────
@@ -66,9 +64,10 @@ describe('resolveTabHeader', () => {
     expect(result.subtitle).toBe('Default subtitle');
   });
 
-  it('never bakes a path separator into the title (le fil d\'Ariane s\'en charge)', () => {
+  it('never bakes a path separator into the title (PageTitle accole l\'onglet)', () => {
     const result = resolveTabHeader('Paramètres', 'Default', TABS, 1, META);
     expect(result.title).not.toContain('›');
+    expect(result.title).not.toContain('│');
     expect(result.title).not.toContain(' > ');
   });
 });

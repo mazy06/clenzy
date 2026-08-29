@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { CLEANING_ROLES, FIELD_ROLES, TRADE_ROLES } from '../utils/fieldRoles';
+
+/**
+ * Seuls onglets de hub ouverts aux roles de terrain.
+ *
+ * <p>`/contact` en fait partie : le hub de messagerie ne porte pas que les
+ * conversations voyageurs, il porte aussi les fils INTERNES — c'est par la
+ * qu'un intervenant echange avec son gestionnaire. Le retirer coupait la seule
+ * voie de discussion dont il dispose.</p>
+ *
+ * <p>`/directory` reste dehors : l'annuaire des utilisateurs, equipes et
+ * portefeuilles de l'organisation est une surface de gestionnaire.</p>
+ */
+const FIELD_HUB_TABS = new Set(['/interventions', '/contact']);
 import { useTranslation } from './useTranslation';
 import {
   Dashboard,
@@ -9,6 +23,7 @@ import {
   Assessment,
   Security,
   Euro,
+  AccessTime,
   Description,
   AdminPanelSettings,
   Hub,
@@ -31,6 +46,7 @@ import { useCanSuperviseAgents } from '../modules/supervision/useCanSuperviseAge
 import { useSupervisionConfig } from '../modules/supervision/useSupervisionConfig';
 import { useSupervisionPendingCounts } from '../modules/supervision/useSupervisionPendingCounts';
 import { useDocumentsFailedCount } from '../modules/documents/useDocumentsFailedCount';
+import { useContactUnreadCount } from './useContactUnreadCount';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -171,15 +187,39 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       group: 'admin',
     },
   },
+  // ── Ecrans de l'intervenant ──
+  // Tarifs et disponibilites sont des gestes du QUOTIDIEN : ils meritent leur
+  // entree, pas une carte au fond de « Mon compte ». Reserves aux executants —
+  // un gestionnaire gere le catalogue de l'organisation, pas SES tarifs.
+  {
+    kind: 'item',
+    item: {
+      icon: <Euro />,
+      path: '/mes-tarifs',
+      roles: [...CLEANING_ROLES],
+      translationKey: 'navigation.myRates',
+      group: 'main',
+    },
+  },
+  {
+    kind: 'item',
+    item: {
+      icon: <AccessTime />,
+      path: '/mes-disponibilites',
+      roles: [...FIELD_ROLES],
+      translationKey: 'navigation.myAvailability',
+      group: 'main',
+    },
+  },
   {
     kind: 'item',
     item: {
       icon: <Build />,
       path: '/mes-tarifs-travaux',
-      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'TECHNICIAN', 'EXTERIOR_TECH'],
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', ...TRADE_ROLES],
       permission: 'technician-prestations:manage',
       translationKey: 'navigation.technicianPrestations',
-      group: 'management',
+      group: 'main',
     },
   },
   {
@@ -229,7 +269,7 @@ export function groupMenuItems(items: MenuItem[]): Record<NavGroup, MenuItem[]> 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const useNavigationMenu = (): UseNavigationMenuReturn => {
-  const { isAdmin, isManager, user } = useAuth();
+  const { isAdmin, isManager, hasAnyRole, user } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,6 +288,28 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       if (item.permission) {
         const hasPermission = user?.permissions?.includes(item.permission) || false;
         if (!hasPermission) return false;
+      }
+
+      // Le champ `roles` de chaque entrée n'était évalué NULLE PART : seule la
+      // permission gardait la porte, et les rôles déclarés servaient de
+      // documentation. Un technicien à qui `settings:view` avait été accordée
+      // voyait donc « Paramètres », pourtant annoncé SUPER_ADMIN / SUPER_MANAGER.
+      // Les deux conditions se cumulent désormais ; `'all'` reste l'échappatoire
+      // explicite des entrées ouvertes à tous.
+      if (item.roles && item.roles.length > 0 && !item.roles.includes('all')) {
+        if (!hasAnyRole(item.roles)) return false;
+      }
+
+      // Tarifs et disponibilites PERSONNELS : seuls les executants en ont.
+      // `roles` n'est pas evalue ici — le filtrage passe par `permission`, que
+      // ces ecrans n'ont pas (ce sont les donnees propres de l'utilisateur).
+      // Forfaits par logement et score qualite sont propres au MENAGE : le
+      // moteur qui les calcule ne connait que les types de nettoyage.
+      if (item.path === '/mes-tarifs') {
+        return hasAnyRole([...CLEANING_ROLES]);
+      }
+      if (item.path === '/mes-disponibilites') {
+        return hasAnyRole([...FIELD_ROLES]);
       }
 
       // Surcouche perso « Mes tarifs travaux » : réservée aux exécutants. Les
@@ -274,7 +336,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     } catch (err) {
       return false;
     }
-  }, [user?.permissions, isAdmin, isManager]);
+  }, [user?.permissions, isAdmin, isManager, hasAnyRole]);
 
   /**
    * Construit l'item sidebar d'un hub : visible si au moins un onglet est
@@ -287,7 +349,17 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       isAdmin: isAdmin(),
       isManager: isManager(),
     };
-    const tabs = accessibleHubTabs(hub, access);
+    let tabs = accessibleHubTabs(hub, access);
+
+    // Un intervenant reste sur SES interventions. Ce compte technicien portait
+    // `properties:view` — une permission accordee a la main, absente du role par
+    // defaut — et voyait donc l'inventaire des logements, qui est l'ecran de
+    // gestion du parc. Le detail d'un logement lui reste accessible depuis sa
+    // mission, la ou il en a besoin.
+    if (hasAnyRole([...FIELD_ROLES])) {
+      tabs = tabs.filter((tab) => FIELD_HUB_TABS.has(tab.path));
+    }
+
     if (tabs.length === 0) return null;
 
     return {
@@ -307,7 +379,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
         matchPaths: tabRoutePrefixes(tab),
       })),
     };
-  }, [user?.permissions, isAdmin, isManager, t]);
+  }, [user?.permissions, isAdmin, isManager, hasAnyRole, t]);
 
   // Fonction pour construire le menu (synchronisée)
   const buildMenuItems = useCallback((): MenuItem[] => {
@@ -319,8 +391,18 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     try {
       const accessibleItems: MenuItem[] = [];
 
+      // Un intervenant de terrain n'a qu'un hub a voir : celui qui porte ses
+      // interventions. `contact:view` et `teams:view` lui ouvraient la
+      // messagerie voyageurs et l'annuaire de l'organisation — deux surfaces de
+      // gestionnaire. Le filtrage se fait ICI plutot qu'en retirant les
+      // permissions : elles gardent des usages cote API (nom de l'equipe sur une
+      // intervention, par exemple) que la navigation n'a pas a arbitrer.
+      const fieldOnlyHubs = new Set(['exploitation', 'contacts']);
+      const isFieldWorker = hasAnyRole([...FIELD_ROLES]);
+
       for (const entry of MENU_ENTRIES) {
         if (entry.kind === 'hub') {
+          if (isFieldWorker && !fieldOnlyHubs.has(entry.hubId)) continue;
           const hub = NAVIGATION_HUBS.find((h) => h.id === entry.hubId);
           if (!hub) continue;
           const hubItem = buildHubItem(hub, entry.icon);
@@ -385,10 +467,14 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
   const documentsHubVisible = menuItems.some((item) => item.id === 'hub:documents');
   const documentsFailedCount = useDocumentsFailedCount(documentsHubVisible);
 
+  // Pastille « non lus » du hub Contacts : messages un-a-un + fils de groupe.
+  const contactsHubVisible = menuItems.some((item) => item.id === 'hub:contacts');
+  const contactsUnreadCount = useContactUnreadCount(contactsHubVisible);
+
   // Mémoriser le résultat + superposer les pastilles dynamiques (« en attente »
   // sur Planning, « échecs récents » sur Documents), hors du flux de construction.
   const memoizedMenuItems = useMemo(() => {
-    if (pendingTotal <= 0 && documentsFailedCount <= 0) return menuItems;
+    if (pendingTotal <= 0 && documentsFailedCount <= 0 && contactsUnreadCount <= 0) return menuItems;
     return menuItems.map((item) => {
       if (item.path === '/planning' && pendingTotal > 0) {
         return { ...item, badge: pendingTotal, badgeColor: 'warning' as const };
@@ -396,9 +482,12 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       if (item.id === 'hub:documents' && documentsFailedCount > 0) {
         return { ...item, badge: documentsFailedCount, badgeColor: 'error' as const };
       }
+      if (item.id === 'hub:contacts' && contactsUnreadCount > 0) {
+        return { ...item, badge: contactsUnreadCount, badgeColor: 'error' as const };
+      }
       return item;
     });
-  }, [menuItems, pendingTotal, documentsFailedCount]);
+  }, [menuItems, pendingTotal, documentsFailedCount, contactsUnreadCount]);
 
   return {
     menuItems: memoizedMenuItems,

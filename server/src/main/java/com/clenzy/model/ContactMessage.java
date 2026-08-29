@@ -35,16 +35,23 @@ public class ContactMessage {
     @Column(name = "sender_email", nullable = false, length = 255)
     private String senderEmail;
 
-    @Column(name = "recipient_keycloak_id", nullable = false, length = 100)
+    /**
+     * Fil de groupe auquel appartient le message. NULL = echange un-a-un, ou la
+     * visibilite tient aux colonnes {@code recipient_*}.
+     */
+    @Column(name = "thread_id")
+    private Long threadId;
+
+    @Column(name = "recipient_keycloak_id", length = 100)
     private String recipientKeycloakId;
 
-    @Column(name = "recipient_first_name", nullable = false, length = 100)
+    @Column(name = "recipient_first_name", length = 100)
     private String recipientFirstName;
 
-    @Column(name = "recipient_last_name", nullable = false, length = 100)
+    @Column(name = "recipient_last_name", length = 100)
     private String recipientLastName;
 
-    @Column(name = "recipient_email", nullable = false, length = 255)
+    @Column(name = "recipient_email", length = 255)
     private String recipientEmail;
 
     @Column(nullable = false, length = 255)
@@ -87,6 +94,13 @@ public class ContactMessage {
     @Column(name = "attachments", nullable = false, columnDefinition = "jsonb")
     private String attachments = "[]";
 
+    /**
+     * Contenu structure rendu sous le message (carte d'intervention, devis,
+     * gestes). JSON libre — l'ecran decide de ce qu'il sait afficher.
+     */
+    @Column(name = "payload", columnDefinition = "TEXT")
+    private String payload;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -96,6 +110,12 @@ public class ContactMessage {
     private LocalDateTime updatedAt;
 
     public Long getId() { return id; }
+
+    public String getPayload() { return payload; }
+    public void setPayload(String payload) { this.payload = payload; }
+
+    public Long getThreadId() { return threadId; }
+    public void setThreadId(Long threadId) { this.threadId = threadId; }
     public void setId(Long id) { this.id = id; }
 
     public Long getOrganizationId() { return organizationId; }

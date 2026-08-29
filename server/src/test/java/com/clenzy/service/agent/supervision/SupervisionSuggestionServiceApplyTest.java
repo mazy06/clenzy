@@ -74,7 +74,7 @@ class SupervisionSuggestionServiceApplyTest {
 
         assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(NotFoundException.class);
-        verify(actionExecutor, never()).execute(any());
+        verify(actionExecutor, never()).execute(any(), any());
         verify(repository, never()).markApplied(any(), any(), any(), any());
     }
 
@@ -100,7 +100,7 @@ class SupervisionSuggestionServiceApplyTest {
         assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("déjà traitée");
-        verify(actionExecutor, never()).execute(any());
+        verify(actionExecutor, never()).execute(any(), any());
     }
 
     @Test
@@ -113,7 +113,7 @@ class SupervisionSuggestionServiceApplyTest {
 
         service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY);
 
-        verify(actionExecutor).execute(s);
+        verify(actionExecutor).execute(s, null);
         verify(repository, never()).revertApplied(any(), any());
     }
 
@@ -127,7 +127,7 @@ class SupervisionSuggestionServiceApplyTest {
 
         service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY);
 
-        verify(actionExecutor).execute(s);
+        verify(actionExecutor).execute(s, null);
         // Le CAS a ete committe (transaction 1) avant l'appel Stripe : succes -> pas de compensation.
         verify(transactionManager).commit(any());
         verify(repository, never()).revertApplied(any(), any());
@@ -140,7 +140,7 @@ class SupervisionSuggestionServiceApplyTest {
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID)).thenReturn(Optional.of(s));
         when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class), eq(APPLIED_BY))).thenReturn(1);
         when(actionExecutor.hasExternalEffect(SupervisionActionType.DEPOSIT_RELEASE)).thenReturn(true);
-        doThrow(new IllegalStateException("Stripe indisponible")).when(actionExecutor).execute(s);
+        doThrow(new IllegalStateException("Stripe indisponible")).when(actionExecutor).execute(s, null);
 
         assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(IllegalStateException.class)
@@ -163,15 +163,15 @@ class SupervisionSuggestionServiceApplyTest {
 
         // L'auteur est reflete sur l'instance passee a l'executeur (protections auto).
         assertThat(s.getAppliedBy()).isEqualTo(SupervisionSuggestion.APPLIED_BY_AUTO);
-        verify(actionExecutor).execute(s);
+        verify(actionExecutor).execute(s, null);
         verify(repository, never()).revertApplied(any(), any());
     }
 
     @Test
     @DisplayName("recordActionableForAutoApply : memes garanties, mais AUCUNE notification « en attente »")
     void recordActionableForAutoApply_doesNotNotifyPending() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
-                any(), any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 any(), any(), any(), any(), any(), any())).thenReturn(false);
 
@@ -187,8 +187,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("recordActionableForAutoApply : cooldown dismiss respecte (pas de re-creation)")
     void recordActionableForAutoApply_respectsDismissCooldown() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
-                any(), any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 any(), any(), any(), any(), any(), any())).thenReturn(true);
 
@@ -202,9 +202,13 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("recordActionableStrict : dedup par intitule en attente -> false, sinon persiste true")
     void recordActionableStrict_dedupes() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+        final SupervisionSuggestion dejaEnAttente = new SupervisionSuggestion(
+                ORG_ID, 7L, "fin", null, "titre", "motif", java.time.Instant.now().plusSeconds(3600));
+        dejaEnAttente.setActionType(SupervisionActionType.DEPOSIT_REFUND);
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
                 eq(ORG_ID), eq(7L), eq("fin"), eq("titre"), eq(SupervisionSuggestion.STATUS_PENDING), any()))
-                .thenReturn(true).thenReturn(false);
+                .thenReturn(java.util.Optional.of(dejaEnAttente))
+                .thenReturn(java.util.Optional.empty());
 
         boolean first = service.recordActionableStrict(ORG_ID, 7L, "fin", 100L,
                 "titre", "motif", SupervisionActionType.DEPOSIT_REFUND, "{}", 1000L, "warning");
@@ -219,8 +223,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte actionnable warning -> notification hors-ecran (B2)")
     void recordActionableWarning_notifiesOffScreen() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
-                any(), any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
 
         service.recordActionableStrict(ORG_ID, 10L, "fin", null, "Solde echoue", "motif",
                 SupervisionActionType.PAYMENT_REMINDER, "{}", null, "warning");
@@ -232,6 +236,9 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte informationnelle -> pas de notification (anti-spam)")
     void recordInformational_doesNotNotify() {
+        // Le chemin informatif garde son test d'existence : la PROMOTION ne
+        // concerne que les cartes actionnables, qui seules ont une action à
+        // greffer sur un constat déjà en attente.
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
                 any(), any(), any(), any(), any(), any())).thenReturn(false);
 
@@ -244,8 +251,9 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte récemment IGNORÉE -> pas re-suggérée (cooldown)")
     void recordActionable_suppressedWhenRecentlyDismissed() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
-                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("PENDING"), any())).thenReturn(false);
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("PENDING"), any()))
+                .thenReturn(java.util.Optional.empty());
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
                 .thenReturn(true);
@@ -260,8 +268,9 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte non récemment ignorée -> créée normalement")
     void recordActionable_createsWhenNotRecentlyDismissed() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
-                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("PENDING"), any())).thenReturn(false);
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("PENDING"), any()))
+                .thenReturn(java.util.Optional.empty());
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
                 .thenReturn(false);

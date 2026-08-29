@@ -94,14 +94,21 @@ public class ContactMessageService {
 
         Page<ContactMessage> page = switch (normalizedBox) {
             case "inbox" -> contactMessageRepository
-                    .findByRecipientKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(userId, pageable);
+                    .findByRecipientKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(userId, pageable);
             case "sent" -> contactMessageRepository
-                    .findBySenderKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(userId, pageable);
+                    .findBySenderKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(userId, pageable);
             case "archived" -> contactMessageRepository.findArchivedForUser(userId, pageable, tenantContext.getRequiredOrganizationId());
             default -> throw new IllegalArgumentException("Boite de messages invalide: " + box);
         };
 
         return page.map(ContactMessageDto::fromEntity);
+    }
+
+    /** Messages un-a-un non lus de l'appelant (pastille du menu). */
+    @Transactional(readOnly = true)
+    public long countUnreadDirect(Jwt jwt) {
+        return contactMessageRepository.countUnreadDirect(
+                requireUserId(jwt), tenantContext.getRequiredOrganizationId());
     }
 
     @Transactional(readOnly = true)
@@ -661,7 +668,7 @@ public class ContactMessageService {
                 }
             }
 
-            threads.add(new ContactThreadSummaryDto(
+            threads.add(ContactThreadSummaryDto.oneToOne(
                     counterpartId,
                     counterpartUserId,
                     firstName != null ? firstName : "Utilisateur",

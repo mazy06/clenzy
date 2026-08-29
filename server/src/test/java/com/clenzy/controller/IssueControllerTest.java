@@ -53,7 +53,7 @@ class IssueControllerTest {
     private static IssueDto dto(IssueStatus status) {
         return new IssueDto(55L, 3L, "P3", null, 9L, "Jane Doe", "Fuite", null,
                 "PLUMBING_REPAIR", IssueSeverity.HIGH, status,
-                null, null, null, null, null);
+                null, null, null, java.util.List.of(), null, null);
     }
 
     @Test

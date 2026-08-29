@@ -53,7 +53,27 @@ public class Intervention {
     @Column(name = "team_id")
     private Long teamId;
 
-    @Column(name = "start_time")
+    /**
+     * Reponse de l'intervenant a l'assignation. {@code null} = aucune reponse
+     * attendue (interventions anterieures a la fonctionnalite).
+     */
+    @Column(name = "assignment_response", length = 20)
+    @Enumerated(EnumType.STRING)
+    private InterventionAssignmentResponse assignmentResponse;
+
+    @Column(name = "assignment_responded_at")
+    private LocalDateTime assignmentRespondedAt;
+
+    @Column(name = "assignment_decline_reason", columnDefinition = "TEXT")
+    private String assignmentDeclineReason;
+
+    /**
+     * Debut planifie. <b>{@code NOT NULL} en base</b> : la colonne l'a toujours ete,
+     * mais le mapping ne le disait pas — le schema genere par Hibernate pour les
+     * tests l'acceptait donc nul, et une omission ne se voyait qu'a l'insertion
+     * reelle (500). Declare ici pour que le defaut redevienne visible en test.
+     */
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
     @Column(name = "end_time")
@@ -487,6 +507,30 @@ public class Intervention {
 
     public void setTeamId(Long teamId) {
         this.teamId = teamId;
+    }
+
+    public InterventionAssignmentResponse getAssignmentResponse() {
+        return assignmentResponse;
+    }
+
+    public void setAssignmentResponse(InterventionAssignmentResponse assignmentResponse) {
+        this.assignmentResponse = assignmentResponse;
+    }
+
+    public LocalDateTime getAssignmentRespondedAt() {
+        return assignmentRespondedAt;
+    }
+
+    public void setAssignmentRespondedAt(LocalDateTime assignmentRespondedAt) {
+        this.assignmentRespondedAt = assignmentRespondedAt;
+    }
+
+    public String getAssignmentDeclineReason() {
+        return assignmentDeclineReason;
+    }
+
+    public void setAssignmentDeclineReason(String assignmentDeclineReason) {
+        this.assignmentDeclineReason = assignmentDeclineReason;
     }
 
     public LocalDateTime getStartTime() {

@@ -31,7 +31,6 @@ const ROUTE_IMPORTS: Record<string, () => Promise<unknown>> = {
   '/booking-engine': () => import('./guest-experience/GuestExperiencePage'),
   '/shop': () => import('./shop/ShopPage'),
   '/channels': () => import('./channels/ChannelsPage'),
-  '/calendar': () => import('./calendar/CalendarPage'),
   '/reports': () => import('./reports/Reports'),
   '/settings': () => import('./settings/Settings'),
   '/automation-rules': () => import('./automation/AutomationRulesPage'),

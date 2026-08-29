@@ -20,7 +20,9 @@ import { useTranslation } from '../hooks/useTranslation';
 
 /** Écrans où le dock ne doit PAS apparaître. */
 const HIDDEN_PREFIXES = [
-  '/dashboard', // la checklist complète y vit déjà
+  // `/dashboard` figurait ici tant que le tableau de bord portait sa propre
+  // checklist. Elle a ete supprimee (doublon) : le dock est desormais la seule
+  // surface du guide, il doit donc s'y afficher aussi.
   '/booking-engine/studio/', // éditeur full-bleed
 ];
 
@@ -61,6 +63,15 @@ export default function OnboardingDockMount() {
               : undefined,
             onSkip: actionable && step.skippable ? () => completeStep(step.key) : undefined,
             skipLabel: t('onboarding.skip'),
+            // Jalons internes declares dans `onboardingConfig` (ex. creation du
+            // compte Stripe puis validation KYC sous « Configurer mes
+            // versements »). Ils suivent l'etat de leur etape tant que le
+            // serveur ne les suit pas individuellement.
+            substeps: step.substeps?.map((sub) => ({
+              key: sub.key,
+              title: t(sub.labelKey),
+              state: step.completed ? ('done' as const) : ('todo' as const),
+            })),
           };
         }),
       },
@@ -81,7 +92,10 @@ export default function OnboardingDockMount() {
       dismissLabel={t('dashboard.onboarding.dismiss', 'Masquer')}
       // Affordance desktop : sur mobile le dock couvrirait le contenu
       // (le parcours reste accessible via la checklist du dashboard).
-      className="hidden min-[900px]:flex"
+      // Visible aussi sur telephone : le dock etait masque sous 900px alors
+      // qu'il est desormais la SEULE surface du guide — un intervenant, qui
+      // travaille justement sur mobile, n'en voyait plus aucune trace.
+      className="flex"
     />
   );
 }

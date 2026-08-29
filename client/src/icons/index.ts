@@ -561,6 +561,29 @@ export {
 } from 'lucide-react';
 
 // LinkedIn — pas dans Lucide → Iconify
+/**
+ * Types de logement (`PROPERTY_TYPES` de `utils/statusUtils.ts`) — une forme
+ * par type, pour les surfaces ou le libelle ne tient pas : colonne logements
+ * repliee du planning, listes tres denses. Le mapping valeur -> icone vit dans
+ * `utils/propertyTypeIcon.ts`.
+ */
+export {
+  Building2 as PropertyApartment,
+  House as PropertyHouse,
+  TreePalm as PropertyVilla,
+  BedSingle as PropertyStudio,
+  Warehouse as PropertyLoft,
+  Layers2 as PropertyDuplex,
+  Building as PropertyTownhouse,
+  TentTree as PropertyBungalow,
+  Landmark as PropertyRiad,
+  MountainSnow as PropertyChalet,
+  TreePine as PropertyCottage,
+  BedDouble as PropertyGuestRoom,
+  Sailboat as PropertyBoat,
+  KeyRound as PropertyOther,
+} from 'lucide-react';
+
 export const LinkedIn: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, buildIconifyProps('mdi:linkedin', props));
 

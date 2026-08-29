@@ -363,6 +363,47 @@
       "accept": "Accept",
       "erase": "Erase",
       "publish": "Publish"
+    },
+    "schedule": {
+      "title": "Schedule the job",
+      "time": "Time",
+      "assignee": "Assignee",
+      "matchingRoles": "Matching trade",
+      "otherRoles": "Other workers",
+      "noWorker": "No worker in this organisation. The job will be created unassigned.",
+      "unassignedHint": "With no assignee, the job stays to be assigned.",
+      "proposalHint": "The job will be offered to them: they can accept or decline."
+    },
+    "confirm": {
+      "amount": "Amount",
+      "amountEstimate": "Estimated amount",
+      "recomputedNote": "The exact amount is recalculated when the action runs: it may differ from this estimate.",
+      "irreversible": "This action cannot be undone.",
+      "typeToConfirm": "Type {{word}} to continue"
+    },
+    "params": {
+      "range": "Between {{min}} and {{max}}",
+      "from": "From",
+      "to": "To (exclusive)",
+      "simulate": "Preview"
+    },
+    "review": {
+      "title": "Before sending",
+      "recipients": "Recipient",
+      "subject": "Subject",
+      "noRecipient": "No recipient resolved.",
+      "send": "Send",
+      "previewFailed": "The preview could not be loaded. The action is still possible: recipient and content are resolved when it runs.",
+      "bodyNotRendered": "The message is composed when it is sent: its exact wording cannot be shown here."
+    },
+    "choice": {
+      "title": "Your decision",
+      "suggested": "Agent’s proposal",
+      "apply": "Confirm this choice",
+      "noOptions": "The candidates could not be loaded. The situation may have changed since the card was raised."
+    },
+    "recap": {
+      "unavailable": "The details could not be loaded. The job was assigned: the request record keeps the trace."
     }
   },
   "channexGuided": {
@@ -971,6 +1012,7 @@
     "previous": "Previous",
     "submit": "Submit",
     "actions": "Actions",
+    "filters": "Filters",
     "status": "Status",
     "date": "Date",
     "name": "Name",
@@ -1081,7 +1123,10 @@
     "distribution": "Distribution",
     "platformTools": "Platform tools",
     "automationRules": "Automations",
-    "screens": "Screens"
+    "screens": "Screens",
+    "myRates": "My rates",
+    "myAvailability": "My availability",
+    "technicianPrestations": "My rates"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1114,7 +1159,17 @@
       "pending": "pending",
       "next7days": "Next 7 days",
       "nextPayout": "Next payout",
-      "upcomingInterventions": "Upcoming"
+      "upcomingInterventions": "Upcoming",
+      "qualityScore": "Quality score",
+      "qualityHint": "{{count}} jobs · {{proof}} % with photo proof",
+      "paidThisMonth": "Paid this month",
+      "next7daysShort": "over 7 days",
+      "payoutAccountMissing": "payout account to set up",
+      "pendingQuotes": "Pending quotes",
+      "pendingQuotesHint": "awaiting an answer",
+      "noPendingQuotes": "no open quote",
+      "approvedQuotes": "Accepted quotes",
+      "approvedQuotesHint": "{{count}} quotes won"
     },
     "recentActivities": "Recent Activities",
     "viewAllActivities": "View all activities",
@@ -1854,7 +1909,13 @@
       "upcomingArrivals": "Upcoming arrivals",
       "revenueSplit": "Monthly revenue",
       "revenueByChannel": "Revenue by channel",
-      "occupancyByProperty": "Occupancy by property"
+      "occupancyByProperty": "Occupancy by property",
+      "compliance": "File",
+      "nextMission": "My next job",
+      "proposals": "Jobs to confirm",
+      "myWeek": "My week",
+      "followUps": "Follow-ups",
+      "myQuotes": "My quotes"
     },
     "agentCard": {
       "fallback": "Decision to approve",
@@ -2378,7 +2439,16 @@
       "guestCheckin": "Guest check-in",
       "approvalDevis": "Approval & estimate",
       "approvedBy": "Approved by",
-      "devisAcceptedBy": "Estimate accepted by"
+      "devisAcceptedBy": "Estimate accepted by",
+      "directions": "Directions",
+      "tasks": "Requested services",
+      "accessSection": "Property access",
+      "accessCode": "Code",
+      "accessParking": "Parking",
+      "accessArrival": "Arrival",
+      "sourceIssue": "Originating report",
+      "reportedBy": "Reported by {{name}}",
+      "issuePhotoAlt": "Report photo {{index}}"
     },
     "search": "Search for a request...",
     "allTypes": "All types",
@@ -2534,7 +2604,8 @@
       "cleaning": "Cleaning",
       "maintenance": "Maintenance",
       "other": "Other"
-    }
+    },
+    "createdAtLabel": "Created on"
   },
   "interventions": {
     "due": {
@@ -2708,7 +2779,22 @@
       "start": "Start",
       "end": "End",
       "notes": "Notes",
-      "beforePhotosStandalone": "Before intervention photos"
+      "beforePhotosStandalone": "Before intervention photos",
+      "scheduledFor": "Can start on",
+      "openRunScreen": "Open tracking",
+      "toConfirm": "This job is offered to you — it awaits your answer.",
+      "accepted": "Mission accepted",
+      "assignmentLabel": "Your answer",
+      "assignment": {
+        "PENDING": "Pending",
+        "ACCEPTED": "Accepted",
+        "DECLINED": "Declined",
+        "QUOTE_SUBMITTED": "Quote submitted",
+        "QUOTE_APPROVED": "Quote accepted"
+      },
+      "acceptedHint": "You are committed to this job. Start it once you are on site.",
+      "acceptedRunning": "Job under way — remember the before/after photos.",
+      "quoteSubmittedHint": "Your quote is submitted: the owner or the agency still has to approve it."
     },
     "progressSteps": {
       "inspection": "Inspection",
@@ -2746,7 +2832,8 @@
       "docGenerated": "Generated",
       "emailFailed": "Email failed",
       "viewPdf": "View",
-      "download": "Download"
+      "download": "Download",
+      "nextStep": "Next step"
     },
     "roomNames": {
       "bedroom": "Bedroom",
@@ -2799,6 +2886,42 @@
       "photosBeforeHelper": "These photos will serve as reference for the general inspection.",
       "photosAfterHelper": "These photos will confirm that the intervention is complete.",
       "uploading": "Uploading..."
+    },
+    "run": {
+      "exit": "Back to details",
+      "elapsedLabel": "Elapsed time"
+    },
+    "quotes": {
+      "emptyClosed": "No quote recorded. The intervention is no longer open, so a quote entered here will not reach the Operations agent.",
+      "emptyTooOld": "No quote recorded. The intervention is more than 60 days old; beyond that the Operations agent stops scanning it.",
+      "noticeClosed": "The intervention is no longer open: these quotes no longer reach the Operations agent. Approval remains possible here.",
+      "noticeTooOld": "The intervention is more than 60 days old: the Operations agent no longer scans it. Approval remains possible here.",
+      "submitMine": "Price this job",
+      "submitMineTitle": "Price this job",
+      "fromDate": "available from {{date}}",
+      "untilDate": "valid until {{date}}",
+      "openPreview": "Open preview",
+      "download": "Download the quote",
+      "preview": "Quote preview",
+      "previewFailed": "The document could not be loaded.",
+      "fileName": "quote-{{provider}}",
+      "openInTab": "Open in a new tab",
+      "documentLabel": "Document",
+      "leadApproved": "One quote is retained: its amount becomes the intervention’s estimated cost, and its PDF is the document sent to the owner.",
+      "leadCompare": "{{count}} competing quotes. Approve the one you keep: the others are set aside and the retained quote’s PDF is generated.",
+      "leadSingle": "Quote awaiting a decision. On approval, its amount becomes the estimated cost and its PDF is generated.",
+      "pickTypes": "Your pricing",
+      "total": "Quote total",
+      "otherDomain": "Other",
+      "noRates": "No maintenance rates configured. You can still add a service below.",
+      "demandTitle": "What is being asked",
+      "demandLines": "Points to address",
+      "demandEmpty": "No detail came with the request.",
+      "customDomain": "Added",
+      "addLine": "Other service",
+      "addLinePlaceholder": "e.g. plaster patching",
+      "quantity": "Quantity",
+      "unitPrice": "Unit price"
     }
   },
   "reservations": {
@@ -3726,7 +3849,7 @@
     "myProPayouts": {
       "tabLabel": "My mission payouts",
       "accountSection": "Payout account",
-      "accountHint": "Your cleaning mission payouts are sent to your Stripe account. Setup happens here, without leaving Baitly.",
+      "accountHint": "Your job payouts are sent to your Stripe account. Set it up here, without leaving Baitly.",
       "statusNotStarted": "not set up",
       "statusInProgress": "in progress",
       "statusComplete": "set up",
@@ -4075,7 +4198,8 @@
     "tabs": {
       "serviceRequests": "Service Requests",
       "interventions": "Interventions",
-      "issues": "Issues"
+      "issues": "Issues",
+      "calendar": "Calendar"
     },
     "recommended": {
       "scale": "Recommended scale",
@@ -4141,7 +4265,8 @@
       "noCategory": "No category",
       "submit": "Report",
       "success": "Issue reported",
-      "error": "Creation failed — check the fields."
+      "error": "Creation failed — check the fields.",
+      "photosFailed": "Issue reported, but the photos could not be sent."
     },
     "categories": {
       "damage": "Damage found",
@@ -4150,6 +4275,24 @@
       "equipment": "Faulty equipment",
       "safety": "Safety risk",
       "other": "Other"
+    },
+    "report": {
+      "title": "Report an issue",
+      "ctaRoom": "Report an issue — {{room}}",
+      "help": "The report goes to the property manager's Issues tab, where it is qualified and turned into a maintenance request if needed.",
+      "roomField": "Where?",
+      "roomUnset": "Property (no specific room)",
+      "titleField": "What is happening?",
+      "titlePlaceholder": "E.g. leak under the kitchen sink",
+      "descriptionField": "Details (optional)",
+      "severityField": "Severity",
+      "submit": "Report",
+      "roomAction": "Issue",
+      "roomAriaLabel": "Report an issue in {{room}}",
+      "photosField": "Photos (optional)",
+      "photosHelp": "A photo beats a description: it lets the job be priced without a second visit.",
+      "addPhoto": "Add",
+      "removePhoto": "Remove photo"
     }
   },
   "propertiesPage": {
@@ -6227,6 +6370,30 @@
       "createTeam": {
         "label": "Create a team",
         "description": "Set up your first team and assign members."
+      },
+      "setupPayoutAccount": {
+        "label": "Set up my payouts",
+        "description": "Connect your Stripe account to get paid for your jobs, and check your rates."
+      },
+      "setupRates": {
+        "label": "Set my services and rates",
+        "description": "List the services you provide and their price — your jobs are quoted and paid on this basis."
+      },
+      "acceptProviderTerms": {
+        "label": "Accept the provider terms",
+        "description": "Rules for your jobs, commission and payment of your fees. Your agreement is required to get paid."
+      },
+      "uploadProviderDocuments": {
+        "label": "Upload my documents",
+        "description": "Company registration, URSSAF certificate and liability insurance — your property manager must keep them on file to assign you jobs."
+      },
+      "setupCoverageZone": {
+        "label": "Declare my working area",
+        "description": "The areas you travel to. Without it, jobs are not offered to you automatically."
+      },
+      "setupAvailability": {
+        "label": "Set my availability",
+        "description": "Your working days and hours. Without them you stay available at any time — including Sunday at 6 am."
       }
     },
     "skip": "Skip",
@@ -6234,7 +6401,14 @@
       "title": "Getting started guide",
       "continue": "Continue"
     },
-    "completionMessage": "Complete the initial setup to access the full dashboard"
+    "completionMessage": "Complete the initial setup to access the full dashboard",
+    "substeps": {
+      "stripeAccount": "Stripe account created",
+      "stripeKyc": "Identity and bank details verified by Stripe",
+      "docCompany": "Company registration",
+      "docUrssaf": "URSSAF certificate",
+      "docInsurance": "Liability insurance"
+    }
   },
   "tabHeaders": {
     "designSystem": {
@@ -7234,6 +7408,266 @@
     "noMessages": "No message in this conversation",
     "internalNote": "Internal note (hidden from the guest)",
     "internalNotePlaceholder": "Note for the team…",
-    "internalNoteBadge": "Internal note"
+    "internalNoteBadge": "Internal note",
+    "groupThread": "Group discussion",
+    "quote": {
+      "accept": "Accept the quote",
+      "reject": "Decline",
+      "approved": "Quote approved",
+      "rejected": "Quote set aside",
+      "decisionFailed": "The action failed, try again.",
+      "awaitingDecision": "Awaiting the owner’s or the agency’s decision.",
+      "deposit": "Deposit of {{amount}} on approval ({{percent}} % of the quote)."
+    },
+    "deposit": {
+      "title": "Deposit due",
+      "pay": "Pay the deposit",
+      "detail": "{{percent}} % of the {{total}} quote",
+      "failed": "The payment could not be opened.",
+      "awaiting": "Awaiting payment by the owner or the agency.",
+      "alreadyOpen": "A payment is already under way for this deposit. Wait a moment before trying again."
+    }
+  },
+  "account": {
+    "title": "My account",
+    "tabs": {
+      "profile": "Profile",
+      "notifications": "Notifications",
+      "documents": "Documents",
+      "coverage": "Coverage area",
+      "payouts": "Payouts"
+    },
+    "identity": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "username": "Username",
+      "email": "Email"
+    },
+    "savePreferences": "Save my preferences",
+    "terms": {
+      "title": "Provider terms",
+      "upToDate": "Accepted",
+      "pending": "To accept",
+      "body": "They set the rules for your jobs: rates, photo evidence, the commission withheld by the property manager and the payment of your fees. Your agreement is required to get paid.",
+      "acceptedOn": "Accepted on",
+      "version": "version",
+      "newVersion": "The terms have been updated since you last accepted them.",
+      "accept": "I accept the provider terms",
+      "accepted": "Terms accepted",
+      "loadError": "Could not load your terms.",
+      "acceptError": "Saving failed, please try again."
+    },
+    "subtitles": {
+      "profile": "Your identity and account security.",
+      "notifications": "What you want to be told about, and through which channel.",
+      "documents": "Your service terms and the paperwork your property manager must keep on file.",
+      "coverage": "The areas you travel to — they decide which jobs you are offered.",
+      "payouts": "The account that receives your pay, and the history of what has been paid out."
+    }
+  },
+  "providerDocuments": {
+    "title": "Professional documents",
+    "complete": "File complete",
+    "missing": "{{count}} document(s) missing",
+    "help": "Your property manager must keep these documents on file to assign you jobs. Accepted formats: PDF, JPEG, PNG, HEIC, WEBP (10 MB max).",
+    "none": "No document uploaded",
+    "required": "· required",
+    "until": "valid until",
+    "expiresAt": "Valid until",
+    "upload": "Upload",
+    "replace": "Replace",
+    "view": "View",
+    "remove": "Remove",
+    "uploaded": "Document uploaded",
+    "loadError": "Could not load your documents.",
+    "uploadError": "Upload failed — PDF, JPEG, PNG, HEIC or WEBP, 10 MB max.",
+    "removeError": "Cannot remove — an approved document is replaced by a new upload.",
+    "types": {
+      "COMPANY_REGISTRATION": "Company registration",
+      "URSSAF_VIGILANCE": "URSSAF certificate",
+      "LIABILITY_INSURANCE": "Professional liability insurance",
+      "IDENTITY": "Identity document",
+      "OTHER": "Other document"
+    },
+    "status": {
+      "PENDING": "Under review",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    }
+  },
+  "coverageZone": {
+    "title": "My working area",
+    "declared": "{{count}} area(s)",
+    "none": "Not declared",
+    "help": "Without a declared area, jobs are not offered to you automatically — a manager has to assign you by hand.",
+    "country": "Country",
+    "department": "Department",
+    "arrondissement": "District (optional)",
+    "city": "City",
+    "add": "Add an area",
+    "remove": "Remove this area",
+    "save": "Save my area",
+    "saved": "Area saved",
+    "loadError": "Could not load your area.",
+    "saveError": "Saving failed, please try again."
+  },
+  "availability": {
+    "title": "My availability",
+    "declaredDays": "{{count}} working day(s)",
+    "alwaysAvailable": "Always available",
+    "help": "Without a declared slot you stay available at any time. As soon as you tick one, jobs are only offered within your hours.",
+    "from": "From",
+    "to": "to",
+    "save": "Save my hours",
+    "saved": "Availability saved",
+    "absences": "Time off",
+    "absenceFrom": "From",
+    "absenceTo": "To (inclusive)",
+    "absenceReason": "Reason (optional)",
+    "addAbsence": "Add",
+    "removeAbsence": "Remove this absence",
+    "loadError": "Could not load your availability.",
+    "saveError": "Saving failed, please try again.",
+    "absenceError": "Could not save this absence.",
+    "days": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "subtitle": "Your working days and time off — what jobs are offered against.",
+    "weekTitle": "Typical week",
+    "workingDays": "Working days",
+    "limited": "Hours set",
+    "alwaysAvailableLong": "No slot declared — you stay available at any time.",
+    "variableHours": "varying hours",
+    "perDay": "Different hours per day",
+    "sameHours": "Same hours every day",
+    "confirmAbsence": "Save",
+    "absencesHelp": "Time off and one-off unavailability — no job will be offered on these dates.",
+    "noAbsence": "No time off declared",
+    "noAbsenceHelp": "Declare your time off in advance: jobs will stop being offered on those dates."
+  },
+  "myRates": {
+    "title": "My rates",
+    "subtitle": "Your hourly rate and per-property packages — the basis for pricing your jobs."
+  },
+  "field": {
+    "nextMission": {
+      "title": "My next job",
+      "running": "Job in progress",
+      "none": "No job scheduled",
+      "noneHelp": "Check your coverage area and your availability: without them, jobs are not offered to you automatically.",
+      "inProgress": "In progress",
+      "toConfirm": "To confirm",
+      "directions": "Directions",
+      "resume": "Resume",
+      "open": "Open the job",
+      "lateTitle": "Overdue jobs",
+      "late": "Overdue",
+      "showMore": "See the other {{count}} jobs",
+      "allTitle": "All my jobs",
+      "todayTitle": "Today's jobs",
+      "todayAndLateTitle": "Today's and overdue jobs"
+    },
+    "proposals": {
+      "title": "Jobs to confirm",
+      "accept": "Accept",
+      "decline": "Decline",
+      "confirmDecline": "Confirm decline",
+      "reasonPlaceholder": "Reason (optional)",
+      "accepted": "Job accepted",
+      "declined": "Job declined",
+      "error": "That did not go through, try again.",
+      "counterOffer": "Propose my rate",
+      "counterTitle": "Propose my rate",
+      "counterHelp": "Your amount is sent as a quote to the manager, who approves it or not. The job stays pending meanwhile.",
+      "amount": "My rate (€)",
+      "note": "Detail (optional)",
+      "notePlaceholder": "e.g. larger surface than expected",
+      "sendQuote": "Send",
+      "quoteSent": "Rate proposed — the manager has been notified",
+      "mine": "me",
+      "myRateHint": "Your rate for this service",
+      "wholeMission": "Service",
+      "gap": "Your total: {{mine}} € against {{asked}} € offered",
+      "agreed": "Rate already agreed for this property",
+      "asked": "Offered",
+      "myRate": "My rate",
+      "noRate": "No rate configured",
+      "total": "Total",
+      "proposeMine": "Propose {{amount}} €",
+      "carriedOver": "including {{amount}} € carried over at the offered price",
+      "sameAsAsked": "same"
+    },
+    "compliance": {
+      "title": "Your file is incomplete.",
+      "fix": "Complete it",
+      "missing": "missing document: {{type}}",
+      "rejected": "rejected document: {{type}}",
+      "expiring": "{{type}} expires in {{days}} days"
+    },
+    "week": {
+      "title": "My week",
+      "today": "today",
+      "free": "free",
+      "mission": "job",
+      "missions": "jobs",
+      "absentTomorrow": "I am unavailable tomorrow",
+      "manage": "Manage my availability",
+      "absenceReason": "Unavailable",
+      "absenceSaved": "Unavailability saved for tomorrow",
+      "absenceError": "Saving failed.",
+      "lateCount": "{{count}} overdue job(s)",
+      "freeDay": "Free day."
+    },
+    "issues": {
+      "title": "My reports",
+      "none": "No issue reported yet."
+    },
+    "expenses": {
+      "title": "My out-of-pocket costs",
+      "none": "Nothing awaiting reimbursement."
+    },
+    "quotes": {
+      "title": "My quotes",
+      "none": "No quote submitted",
+      "noneHelp": "Open a job and price it: the manager receives your quote and approves it from the job record.",
+      "untitled": "Job #{{id}}",
+      "validUntil": "valid until {{date}}",
+      "noValidity": "no validity date",
+      "status": {
+        "RECEIVED": "Pending",
+        "APPROVED": "Accepted",
+        "REJECTED": "Declined",
+        "EXPIRED": "Expired"
+      },
+      "paid": "Paid",
+      "depositPaid": "Deposit received",
+      "awaitingDeposit": "Deposit pending",
+      "awaitingPayment": "Payment pending",
+      "seeAll": "See my {{count}} quotes",
+      "allTitle": "My quotes"
+    }
+  },
+  "company": {
+    "title": "My company",
+    "help": "This appears on the quotes, invoices and job sheets Baitly generates.",
+    "name": "Company name",
+    "namePlaceholder": "e.g. Mazy Renovation",
+    "save": "Save",
+    "saved": "Company saved",
+    "saveError": "Saving failed, try again.",
+    "logo": "Logo",
+    "logoAlt": "My company logo",
+    "noLogo": "No logo uploaded",
+    "uploadLogo": "Upload a logo",
+    "replaceLogo": "Replace",
+    "removeLogo": "Remove the logo",
+    "logoSaved": "Logo saved",
+    "logoError": "Upload failed: JPEG, PNG, WEBP or GIF, 5 MB maximum."
   }
 }

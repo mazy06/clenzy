@@ -30,7 +30,9 @@ public record ContactMessageDto(
         LocalDateTime readAt,
         LocalDateTime repliedAt,
         LocalDateTime archivedAt,
-        boolean archived
+        boolean archived,
+        /** Carte structuree rendue sous le message (devis, intervention). */
+        com.fasterxml.jackson.databind.JsonNode payload
 ) {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -63,8 +65,19 @@ public record ContactMessageDto(
                 m.getReadAt(),
                 m.getRepliedAt(),
                 m.getArchivedAt(),
-                m.isArchived()
+                m.isArchived(),
+                parsePayload(m.getPayload())
         );
+    }
+
+    /** Un payload illisible n'empeche pas de lire le message. */
+    private static com.fasterxml.jackson.databind.JsonNode parsePayload(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return MAPPER.readTree(json);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static List<ContactAttachmentDto> parseAttachments(String json) {

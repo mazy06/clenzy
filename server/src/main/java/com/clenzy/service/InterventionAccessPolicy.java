@@ -100,4 +100,48 @@ public class InterventionAccessPolicy {
 
         throw new UnauthorizedException("Acces non autorise a cette intervention");
     }
+
+    /**
+     * Verifie que l'appelant est bien l'intervenant DESIGNE, et renvoie son
+     * utilisateur.
+     *
+     * <p>{@link #assertCanAccess} est plus large : un gestionnaire y passe, un
+     * proprietaire aussi. Accepter ou refuser une mission est en revanche un
+     * geste strictement personnel — personne ne repond a la place de celui qui
+     * se deplacera.</p>
+     */
+    public User requireAssignee(Intervention intervention, Jwt jwt) {
+        User currentUser = resolveUser(jwt);
+
+        if (intervention.getAssignedUser() != null
+                && intervention.getAssignedUser().getId().equals(currentUser.getId())) {
+            return currentUser;
+        }
+        if (intervention.getTeamId() != null) {
+            Team team = teamRepository.findById(intervention.getTeamId()).orElse(null);
+            if (team != null && team.getMembers().stream()
+                    .anyMatch(member -> member.getUser().getId().equals(currentUser.getId()))) {
+                return currentUser;
+            }
+        }
+        throw new UnauthorizedException("Cette mission ne vous est pas assignee");
+    }
+
+    /** Utilisateur du JWT — par keycloakId, a defaut par empreinte d'email. */
+    private User resolveUser(Jwt jwt) {
+        String keycloakId = jwt != null ? jwt.getSubject() : null;
+        String email = jwt != null ? jwt.getClaimAsString("email") : null;
+
+        User currentUser = null;
+        if (keycloakId != null) {
+            currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
+        }
+        if (currentUser == null && email != null) {
+            currentUser = userRepository.findByEmailHash(StringUtils.computeEmailHash(email)).orElse(null);
+        }
+        if (currentUser == null) {
+            throw new UnauthorizedException("Impossible d'identifier l'utilisateur depuis le JWT");
+        }
+        return currentUser;
+    }
 }

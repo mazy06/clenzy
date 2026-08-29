@@ -79,8 +79,24 @@ export interface HostOption {
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const paymentsApi = {
-  createSession(data: { interventionIds: number[]; totalAmount: number }) {
+  createSession(data: {
+    interventionId: number;
+    amount: number;
+    /** `DEPOSIT` = acompte du devis approuvé ; absent = prestation entière. */
+    purpose?: 'DEPOSIT' | 'FULL';
+    /** Écran d'où part le paiement — Stripe y revient, succès comme abandon. */
+    returnUrl?: string;
+  }) {
     return apiClient.post<PaymentSession>('/payments/create-session', data);
+  },
+
+  /** Règle plusieurs interventions en une session — le serveur recalcule le total. */
+  createBatchSession(data: {
+    interventionIds: number[];
+    totalAmount: number;
+    returnUrl?: string;
+  }) {
+    return apiClient.post<PaymentSession>('/payments/create-batch-session', data);
   },
 
   /** Cree une session Stripe en mode embedded (inline dans l'interface) */

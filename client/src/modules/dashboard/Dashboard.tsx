@@ -54,7 +54,13 @@ const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; 
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
+  /**
+   * Roles terrain : le tableau de bord leur sert une variante, et l'en-tete
+   * doit suivre. Un compteur de parc, un filtre de periode et un bouton de
+   * creation de reservation sont des outils de gestionnaire.
+   */
+  const isFieldWorker = hasAnyRole(['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH']);
   const { t } = useTranslation();
 
   const [period, setPeriod] = useState<DashboardPeriod>('month');
@@ -115,7 +121,7 @@ const Dashboard: React.FC = () => {
   // Les deux hooks sont déjà montés par DashboardOverview : React Query
   // dédoublonne par clé de requête, il n'y a donc aucun appel supplémentaire.
   const { stats: headerStats } = useDashboardOverview({ period, t });
-  const { data: headerActionItems } = useDashboardActionItems(activeTabKey === 'overview');
+  const { data: headerActionItems } = useDashboardActionItems(activeTabKey === 'overview' && !isFieldWorker);
   const actionItemsCount = countActionItems(headerActionItems);
 
   /** « Mercredi 23 juillet · 4 logements actifs » — contexte du jour. */
@@ -126,10 +132,11 @@ const Dashboard: React.FC = () => {
       month: 'long',
     });
     const dateLabel = today.charAt(0).toUpperCase() + today.slice(1);
+    if (isFieldWorker) return dateLabel;
     const active = headerStats?.properties.active;
     if (active === undefined) return dateLabel;
     return `${dateLabel} · ${active} ${t('dashboard.activePropertiesShort', 'logements actifs')}`;
-  }, [headerStats?.properties.active, t]);
+  }, [headerStats?.properties.active, isFieldWorker, t]);
 
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const dashboardTabMeta: Record<string, TabHeaderMeta> = {
@@ -149,7 +156,7 @@ const Dashboard: React.FC = () => {
   );
 
   // ─── Filtre de période — la vue d'ensemble est le seul onglet restant.
-  const showDateFilter = activeTabKey === 'overview';
+  const showDateFilter = activeTabKey === 'overview' && !isFieldWorker;
   const dateFilterElement = useMemo(() => {
     if (!showDateFilter) return null;
     return (
@@ -181,14 +188,18 @@ const Dashboard: React.FC = () => {
               <div className="flex items-center gap-1">
                 {headerActionsPortal}
                 {dateFilterElement}
-                {/* Action primaire de la projection : créer une réservation. */}
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/reservations/new')}
-                >
-                  <PlusIcon className="size-4" />
-                  {t('dashboard.newReservation', 'Réservation')}
-                </Button>
+                {/* Action primaire de la projection : créer une réservation.
+                    Réservée à qui a le droit d'en créer — elle menait sinon à
+                    une route inexistante depuis un compte terrain. */}
+                {!isFieldWorker && (
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/reservations/new')}
+                  >
+                    <PlusIcon className="size-4" />
+                    {t('dashboard.newReservation', 'Réservation')}
+                  </Button>
+                )}
               </div>
             }
           />

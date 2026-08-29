@@ -14,12 +14,12 @@ import java.util.Optional;
 @Repository
 public interface ContactMessageRepository extends JpaRepository<ContactMessage, Long> {
 
-    Page<ContactMessage> findByRecipientKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(
+    Page<ContactMessage> findByRecipientKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(
             String recipientKeycloakId,
             Pageable pageable
     );
 
-    Page<ContactMessage> findBySenderKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(
+    Page<ContactMessage> findBySenderKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(
             String senderKeycloakId,
             Pageable pageable
     );
@@ -28,6 +28,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m
             FROM ContactMessage m
             WHERE m.archived = true
+              AND m.threadId IS NULL
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
               AND m.organizationId = :orgId
             ORDER BY m.createdAt DESC
@@ -38,6 +39,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m
             FROM ContactMessage m
             WHERE m.id = :id
+              AND m.threadId IS NULL
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
             """)
     Optional<ContactMessage> findByIdForUser(@Param("id") Long id, @Param("userId") String userId);
@@ -46,6 +48,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m
             FROM ContactMessage m
             WHERE m.id IN :ids
+              AND m.threadId IS NULL
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
             """)
     List<ContactMessage> findByIdsForUser(@Param("ids") List<Long> ids, @Param("userId") String userId);
@@ -60,6 +63,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m FROM ContactMessage m
             WHERE m.organizationId = :orgId
               AND m.archived = false
+              AND m.threadId IS NULL
               AND ((m.senderKeycloakId = :userId AND m.recipientKeycloakId = :otherUserId)
                 OR (m.senderKeycloakId = :otherUserId AND m.recipientKeycloakId = :userId))
             ORDER BY m.createdAt ASC
@@ -77,6 +81,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m FROM ContactMessage m
             WHERE m.organizationId = :orgId
               AND m.archived = false
+              AND m.threadId IS NULL
               AND m.recipientKeycloakId = :userId
               AND m.senderKeycloakId = :counterpartId
               AND m.status IN (com.clenzy.model.ContactMessageStatus.SENT, com.clenzy.model.ContactMessageStatus.DELIVERED)
@@ -94,6 +99,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m FROM ContactMessage m
             WHERE m.organizationId = :orgId
               AND m.archived = false
+              AND m.threadId IS NULL
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
             ORDER BY m.createdAt DESC
             """)
@@ -110,6 +116,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m FROM ContactMessage m
             WHERE m.organizationId = :orgId
               AND m.archived = true
+              AND m.threadId IS NULL
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
             ORDER BY m.createdAt DESC
             """)
@@ -125,6 +132,7 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             SELECT m FROM ContactMessage m
             WHERE m.organizationId = :orgId
               AND m.archived = true
+              AND m.threadId IS NULL
               AND ((m.senderKeycloakId = :userId AND m.recipientKeycloakId = :otherUserId)
                 OR (m.senderKeycloakId = :otherUserId AND m.recipientKeycloakId = :userId))
             ORDER BY m.createdAt ASC
@@ -133,4 +141,43 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             @Param("userId") String userId,
             @Param("otherUserId") String otherUserId,
             @Param("orgId") Long orgId);
+
+    // ── Fils de groupe ──────────────────────────────────────────────────────
+
+    List<ContactMessage> findByThreadIdOrderByCreatedAtAsc(Long threadId);
+
+    /**
+     * Messages d'un fil qu'un participant n'a pas encore lus.
+     *
+     * <p>Pas de {@code :lastReadAt IS NULL} ici : PostgreSQL ne sait pas
+     * inferer le type d'un parametre timestamp utilise nu dans un test de
+     * nullite (« could not determine data type of parameter »). L'appelant
+     * passe une date plancher quand rien n'a encore ete lu.</p>
+     */
+    @Query("""
+            SELECT COUNT(m) FROM ContactMessage m
+            WHERE m.threadId = :threadId
+              AND m.senderKeycloakId <> :userId
+              AND m.createdAt > :lastReadAt
+            """)
+    long countUnreadInThread(@Param("threadId") Long threadId,
+                             @Param("userId") String userId,
+                             @Param("lastReadAt") java.time.LocalDateTime lastReadAt);
+
+    /**
+     * Messages un-a-un non lus adresses a l'utilisateur.
+     *
+     * <p>{@code threadId IS NULL} : les fils de groupe se comptent par
+     * participation, pas par destinataire — ils n'en ont pas.</p>
+     */
+    @Query("""
+            SELECT COUNT(m) FROM ContactMessage m
+            WHERE m.organizationId = :orgId
+              AND m.archived = false
+              AND m.threadId IS NULL
+              AND m.recipientKeycloakId = :userId
+              AND m.status IN (com.clenzy.model.ContactMessageStatus.SENT,
+                               com.clenzy.model.ContactMessageStatus.DELIVERED)
+            """)
+    long countUnreadDirect(@Param("userId") String userId, @Param("orgId") Long orgId);
 }

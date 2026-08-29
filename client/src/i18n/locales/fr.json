@@ -363,6 +363,47 @@
       "accept": "Accepter",
       "erase": "Effacer",
       "publish": "Publier"
+    },
+    "schedule": {
+      "title": "Planifier l’intervention",
+      "time": "Heure",
+      "assignee": "Intervenant",
+      "matchingRoles": "Métier correspondant",
+      "otherRoles": "Autres intervenants",
+      "noWorker": "Aucun intervenant dans cette organisation. La mission sera créée sans attributaire.",
+      "unassignedHint": "Sans intervenant, la mission reste à assigner.",
+      "proposalHint": "La mission lui sera proposée : il peut l’accepter ou la refuser."
+    },
+    "confirm": {
+      "amount": "Montant",
+      "amountEstimate": "Montant estimé",
+      "recomputedNote": "Le montant exact est recalculé au moment de l’exécution : il peut différer de cette estimation.",
+      "irreversible": "Cette action ne peut pas être annulée.",
+      "typeToConfirm": "Saisissez {{word}} pour continuer"
+    },
+    "params": {
+      "range": "Entre {{min}} et {{max}}",
+      "from": "Du",
+      "to": "Au (exclu)",
+      "simulate": "Simuler"
+    },
+    "review": {
+      "title": "Avant l’envoi",
+      "recipients": "Destinataire",
+      "subject": "Objet",
+      "noRecipient": "Aucun destinataire résolu.",
+      "send": "Envoyer",
+      "previewFailed": "L’aperçu n’a pas pu être chargé. L’action reste possible : le destinataire et le contenu seront résolus à l’envoi.",
+      "bodyNotRendered": "Le message est composé au moment de l’envoi : son texte exact n’est pas affichable ici."
+    },
+    "choice": {
+      "title": "Votre décision",
+      "suggested": "Proposé par l’agent",
+      "apply": "Valider ce choix",
+      "noOptions": "Les candidats n’ont pas pu être chargés. La situation a peut-être changé depuis que la carte a été émise."
+    },
+    "recap": {
+      "unavailable": "Le détail n’a pas pu être chargé. La mission a bien été confiée : la fiche de la demande en garde la trace."
     }
   },
   "channexGuided": {
@@ -971,6 +1012,7 @@
     "previous": "Précédent",
     "submit": "Envoyer",
     "actions": "Actions",
+    "filters": "Filtres",
     "status": "Statut",
     "date": "Date",
     "name": "Nom",
@@ -1081,8 +1123,10 @@
     "distribution": "Distribution",
     "platformTools": "Outils plateforme",
     "automationRules": "Automatisations",
-    "technicianPrestations": "Mes tarifs travaux",
-    "screens": "Écrans"
+    "technicianPrestations": "Mes tarifs",
+    "screens": "Écrans",
+    "myRates": "Mes tarifs",
+    "myAvailability": "Mes disponibilités"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -1123,7 +1167,17 @@
       "noPayoutPending": "Aucun reversement en attente",
       "workTime": "Temps de travail",
       "team": "Équipe",
-      "pending": "en attente"
+      "pending": "en attente",
+      "qualityScore": "Score qualité",
+      "qualityHint": "{{count}} missions · {{proof}} % avec preuve photo",
+      "paidThisMonth": "Versé ce mois",
+      "next7daysShort": "sur 7 jours",
+      "payoutAccountMissing": "compte de versement à configurer",
+      "pendingQuotes": "Devis en attente",
+      "pendingQuotesHint": "en attente de réponse",
+      "noPendingQuotes": "aucun devis ouvert",
+      "approvedQuotes": "Devis acceptés",
+      "approvedQuotesHint": "{{count}} devis retenus"
     },
     "recentActivities": "Activités récentes",
     "viewAllActivities": "Voir toutes les activités",
@@ -1874,7 +1928,13 @@
       "upcomingArrivals": "Prochaines arrivées",
       "revenueSplit": "Revenus mensuels",
       "revenueByChannel": "Revenus par canal",
-      "occupancyByProperty": "Occupation par logement"
+      "occupancyByProperty": "Occupation par logement",
+      "compliance": "Dossier",
+      "nextMission": "Ma prochaine mission",
+      "proposals": "Missions à confirmer",
+      "myWeek": "Ma semaine",
+      "followUps": "Mes suites",
+      "myQuotes": "Mes devis"
     },
     "agentCard": {
       "fallback": "Décision à valider",
@@ -2400,7 +2460,16 @@
       "guestCheckin": "Arrivée voyageur",
       "approvalDevis": "Approbation et devis",
       "approvedBy": "Approuvé par",
-      "devisAcceptedBy": "Devis accepté par"
+      "devisAcceptedBy": "Devis accepté par",
+      "directions": "Itinéraire",
+      "tasks": "Prestations demandées",
+      "accessSection": "Accès au logement",
+      "accessCode": "Code",
+      "accessParking": "Stationnement",
+      "accessArrival": "Arrivée",
+      "sourceIssue": "Signalement à l’origine",
+      "reportedBy": "Signalé par {{name}}",
+      "issuePhotoAlt": "Photo du signalement {{index}}"
     },
     "search": "Rechercher une demande...",
     "allTypes": "Tous les types",
@@ -2556,7 +2625,8 @@
       "cleaning": "Ménage",
       "maintenance": "Maintenance",
       "other": "Autre"
-    }
+    },
+    "createdAtLabel": "Créée le"
   },
   "interventions": {
     "due": {
@@ -2730,7 +2800,22 @@
       "start": "Début",
       "end": "Fin",
       "notes": "Notes",
-      "beforePhotosStandalone": "Photos avant intervention"
+      "beforePhotosStandalone": "Photos avant intervention",
+      "scheduledFor": "Démarrage possible le",
+      "openRunScreen": "Ouvrir le suivi",
+      "toConfirm": "Cette mission vous est proposée — elle attend votre réponse.",
+      "accepted": "Mission acceptée",
+      "assignmentLabel": "Votre réponse",
+      "assignment": {
+        "PENDING": "En attente",
+        "ACCEPTED": "Acceptée",
+        "DECLINED": "Refusée",
+        "QUOTE_SUBMITTED": "Devis soumis",
+        "QUOTE_APPROVED": "Devis accepté"
+      },
+      "acceptedHint": "Vous êtes engagé sur cette intervention. Démarrez-la une fois sur place.",
+      "acceptedRunning": "Intervention en cours — pensez aux photos avant/après.",
+      "quoteSubmittedHint": "Votre devis est soumis : le propriétaire ou la conciergerie doit encore l’approuver."
     },
     "progressSteps": {
       "inspection": "Inspection",
@@ -2768,7 +2853,8 @@
       "docGenerated": "Généré",
       "emailFailed": "Email échoué",
       "viewPdf": "Voir",
-      "download": "Télécharger"
+      "download": "Télécharger",
+      "nextStep": "Étape suivante"
     },
     "roomNames": {
       "bedroom": "Chambre",
@@ -2821,6 +2907,42 @@
       "photosBeforeHelper": "Ces photos serviront de référence pour l'inspection générale.",
       "photosAfterHelper": "Ces photos confirmeront que l'intervention est terminée.",
       "uploading": "Upload..."
+    },
+    "run": {
+      "exit": "Revenir à la fiche",
+      "elapsedLabel": "Temps écoulé"
+    },
+    "quotes": {
+      "emptyClosed": "Aucun devis saisi. L'intervention n'étant plus ouverte, un devis enregistré ici ne remontera pas à l'agent Opérations.",
+      "emptyTooOld": "Aucun devis saisi. L'intervention date de plus de 60 jours : au-delà, l'agent Opérations ne la scanne plus.",
+      "noticeClosed": "L'intervention n'est plus ouverte : ces devis ne remontent plus à l'agent Opérations. L'approbation reste possible ici.",
+      "noticeTooOld": "L'intervention date de plus de 60 jours : l'agent Opérations ne la scanne plus. L'approbation reste possible ici.",
+      "submitMine": "Chiffrer cette intervention",
+      "submitMineTitle": "Chiffrer cette intervention",
+      "fromDate": "dispo. dès le {{date}}",
+      "untilDate": "valable jusqu’au {{date}}",
+      "openPreview": "Ouvrir l’aperçu",
+      "download": "Télécharger le devis",
+      "preview": "Aperçu du devis",
+      "previewFailed": "Le document n’a pas pu être chargé.",
+      "fileName": "devis-{{provider}}",
+      "openInTab": "Ouvrir dans un nouvel onglet",
+      "documentLabel": "Document",
+      "leadApproved": "Un devis est retenu : son montant devient le coût estimé de l’intervention, et son PDF est le document transmis au propriétaire.",
+      "leadCompare": "{{count}} devis en concurrence. Approuvez celui que vous retenez : les autres sont écartés et le PDF du devis retenu est généré.",
+      "leadSingle": "Devis en attente de décision. À l’approbation, son montant devient le coût estimé et son PDF est généré.",
+      "pickTypes": "Votre chiffrage",
+      "total": "Total du devis",
+      "otherDomain": "Autres",
+      "noRates": "Aucun tarif travaux configuré. Vous pouvez tout de même ajouter une prestation ci-dessous.",
+      "demandTitle": "Ce qu’on vous demande",
+      "demandLines": "Points à traiter",
+      "demandEmpty": "Aucun détail fourni avec la demande.",
+      "customDomain": "Ajoutées",
+      "addLine": "Autre prestation",
+      "addLinePlaceholder": "Ex. : reprise d’enduit",
+      "quantity": "Quantité",
+      "unitPrice": "Prix unitaire"
     }
   },
   "reservations": {
@@ -3748,7 +3870,7 @@
     "myProPayouts": {
       "tabLabel": "Mes versements de missions",
       "accountSection": "Compte de versement",
-      "accountHint": "Vos versements de missions ménage sont envoyés sur votre compte Stripe. La configuration se fait ici, sans quitter Baitly.",
+      "accountHint": "Vos versements de missions sont envoyés sur votre compte Stripe. La configuration se fait ici, sans quitter Baitly.",
       "statusNotStarted": "non configuré",
       "statusInProgress": "en cours",
       "statusComplete": "configuré",
@@ -4097,7 +4219,8 @@
     "tabs": {
       "serviceRequests": "Demandes de service",
       "interventions": "Interventions",
-      "issues": "Anomalies"
+      "issues": "Anomalies",
+      "calendar": "Calendrier"
     },
     "recommended": {
       "scale": "Barème conseillé",
@@ -4163,7 +4286,8 @@
       "noCategory": "Sans catégorie",
       "submit": "Signaler",
       "success": "Anomalie signalée",
-      "error": "Création impossible — vérifiez les champs."
+      "error": "Création impossible — vérifiez les champs.",
+      "photosFailed": "Anomalie signalée, mais les photos n’ont pas pu être envoyées."
     },
     "categories": {
       "damage": "Dommage constaté",
@@ -4172,6 +4296,24 @@
       "equipment": "Équipement défaillant",
       "safety": "Risque sécurité",
       "other": "Autre"
+    },
+    "report": {
+      "title": "Signaler une anomalie",
+      "ctaRoom": "Signaler une anomalie — {{room}}",
+      "help": "Le signalement part vers l'onglet Anomalies de la conciergerie, qui le qualifie et le convertit si besoin en demande de maintenance.",
+      "roomField": "Où ?",
+      "roomUnset": "Logement (hors pièce précise)",
+      "titleField": "Que se passe-t-il ?",
+      "titlePlaceholder": "Ex. : fuite sous l’évier de la cuisine",
+      "descriptionField": "Détails (optionnel)",
+      "severityField": "Gravité",
+      "submit": "Signaler",
+      "roomAction": "Anomalie",
+      "roomAriaLabel": "Signaler une anomalie dans {{room}}",
+      "photosField": "Photos (optionnel)",
+      "photosHelp": "Une photo vaut mieux qu’une description : elle permet de chiffrer sans revenir sur place.",
+      "addPhoto": "Ajouter",
+      "removePhoto": "Retirer la photo"
     }
   },
   "propertiesPage": {
@@ -6184,6 +6326,30 @@
       "createTeam": {
         "label": "Créer une équipe",
         "description": "Constituez votre première équipe de techniciens ou housekeepers pour gérer les interventions."
+      },
+      "setupPayoutAccount": {
+        "label": "Configurer mes versements",
+        "description": "Connectez votre compte Stripe pour être payé de vos missions, et vérifiez vos tarifs."
+      },
+      "setupRates": {
+        "label": "Définir mes prestations et mes tarifs",
+        "description": "Renseignez les services que vous proposez et leur prix : c'est sur cette base que vos missions sont chiffrées et payées."
+      },
+      "acceptProviderTerms": {
+        "label": "Accepter les conditions de prestation",
+        "description": "Règles de vos missions, commission et versement de votre rémunération. Votre accord est nécessaire pour être payé."
+      },
+      "uploadProviderDocuments": {
+        "label": "Déposer mes justificatifs",
+        "description": "Kbis, attestation de vigilance URSSAF et assurance RC pro : votre conciergerie doit les conserver pour vous confier des missions."
+      },
+      "setupCoverageZone": {
+        "label": "Déclarer ma zone d'intervention",
+        "description": "Les secteurs où vous vous déplacez. Sans zone, les missions ne vous sont pas proposées automatiquement."
+      },
+      "setupAvailability": {
+        "label": "Indiquer mes disponibilités",
+        "description": "Vos jours et horaires de travail. Sans eux, vous restez disponible à tout moment — y compris le dimanche à 6 h."
       }
     },
     "skip": "Passer",
@@ -6191,7 +6357,14 @@
       "title": "Guide de démarrage",
       "continue": "Continuer"
     },
-    "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet"
+    "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet",
+    "substeps": {
+      "stripeAccount": "Compte Stripe créé",
+      "stripeKyc": "Identité et IBAN validés par Stripe",
+      "docCompany": "Kbis ou avis SIRENE",
+      "docUrssaf": "Attestation de vigilance URSSAF",
+      "docInsurance": "Assurance RC professionnelle"
+    }
   },
   "shop": {
     "title": "Boutique Hardware",
@@ -7258,6 +7431,266 @@
     "noMessages": "Aucun message dans cette conversation",
     "internalNote": "Note interne (invisible pour le voyageur)",
     "internalNotePlaceholder": "Note pour l'équipe…",
-    "internalNoteBadge": "Note interne"
+    "internalNoteBadge": "Note interne",
+    "groupThread": "Discussion de groupe",
+    "quote": {
+      "accept": "Accepter le devis",
+      "reject": "Refuser",
+      "approved": "Devis approuvé",
+      "rejected": "Devis écarté",
+      "decisionFailed": "L’action a échoué, réessayez.",
+      "awaitingDecision": "En attente de la décision du propriétaire ou de la conciergerie.",
+      "deposit": "Acompte de {{amount}} à la validation ({{percent}} % du devis)."
+    },
+    "deposit": {
+      "title": "Acompte à régler",
+      "pay": "Payer l’acompte",
+      "detail": "{{percent}} % du devis de {{total}}",
+      "failed": "Le paiement n’a pas pu être ouvert.",
+      "awaiting": "En attente du règlement par le propriétaire ou la conciergerie.",
+      "alreadyOpen": "Un paiement est déjà en cours pour cet acompte. Patientez quelques instants avant de réessayer."
+    }
+  },
+  "account": {
+    "title": "Mon compte",
+    "tabs": {
+      "profile": "Profil",
+      "notifications": "Notifications",
+      "documents": "Documents",
+      "coverage": "Zone d'intervention",
+      "payouts": "Versements"
+    },
+    "identity": {
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "username": "Nom d'utilisateur",
+      "email": "Email"
+    },
+    "savePreferences": "Enregistrer mes préférences",
+    "terms": {
+      "title": "Conditions de prestation",
+      "upToDate": "Acceptées",
+      "pending": "À accepter",
+      "body": "Elles fixent les règles de vos missions : tarifs appliqués, preuve photo, commission retenue par la conciergerie et versement de votre rémunération. Votre accord est nécessaire pour être payé.",
+      "acceptedOn": "Acceptées le",
+      "version": "version",
+      "newVersion": "Les conditions ont été mises à jour depuis votre dernière acceptation.",
+      "accept": "J'accepte les conditions de prestation",
+      "accepted": "Conditions acceptées",
+      "loadError": "Impossible de charger vos conditions.",
+      "acceptError": "L'enregistrement a échoué, réessayez."
+    },
+    "subtitles": {
+      "profile": "Votre identité et la sécurité de votre compte.",
+      "notifications": "Ce dont vous voulez être averti, et par quel canal.",
+      "documents": "Vos conditions de prestation et les justificatifs que votre conciergerie doit conserver.",
+      "coverage": "Les secteurs où vous vous déplacez — ils décident des missions qui vous sont proposées.",
+      "payouts": "Le compte qui reçoit votre rémunération, et l’historique de ce qui vous a été versé."
+    }
+  },
+  "providerDocuments": {
+    "title": "Justificatifs professionnels",
+    "complete": "Dossier complet",
+    "missing": "{{count}} pièce(s) manquante(s)",
+    "help": "Votre conciergerie doit conserver ces pièces pour vous confier des missions. Formats acceptés : PDF, JPEG, PNG, HEIC, WEBP (10 Mo maximum).",
+    "none": "Aucune pièce déposée",
+    "required": "· obligatoire",
+    "until": "valable jusqu'au",
+    "expiresAt": "Valable jusqu’au",
+    "upload": "Déposer",
+    "replace": "Remplacer",
+    "view": "Consulter",
+    "remove": "Retirer",
+    "uploaded": "Justificatif déposé",
+    "loadError": "Impossible de charger vos justificatifs.",
+    "uploadError": "Dépôt impossible — PDF, JPEG, PNG, HEIC ou WEBP, 10 Mo maximum.",
+    "removeError": "Retrait impossible — une pièce déjà validée se remplace par un nouveau dépôt.",
+    "types": {
+      "COMPANY_REGISTRATION": "Kbis ou avis SIRENE",
+      "URSSAF_VIGILANCE": "Attestation de vigilance URSSAF",
+      "LIABILITY_INSURANCE": "Assurance responsabilité civile pro",
+      "IDENTITY": "Pièce d'identité",
+      "OTHER": "Autre document"
+    },
+    "status": {
+      "PENDING": "En cours de validation",
+      "APPROVED": "Validé",
+      "REJECTED": "Refusé"
+    }
+  },
+  "coverageZone": {
+    "title": "Ma zone d'intervention",
+    "declared": "{{count}} secteur(s)",
+    "none": "Non déclarée",
+    "help": "Sans zone déclarée, les missions ne vous sont pas proposées automatiquement — un gestionnaire doit vous désigner à la main.",
+    "country": "Pays",
+    "department": "Département",
+    "arrondissement": "Arrondissement (optionnel)",
+    "city": "Ville",
+    "add": "Ajouter un secteur",
+    "remove": "Retirer ce secteur",
+    "save": "Enregistrer ma zone",
+    "saved": "Zone enregistrée",
+    "loadError": "Impossible de charger votre zone.",
+    "saveError": "L'enregistrement a échoué, réessayez."
+  },
+  "availability": {
+    "title": "Mes disponibilités",
+    "declaredDays": "{{count}} jour(s) travaillé(s)",
+    "alwaysAvailable": "Toujours disponible",
+    "help": "Sans créneau déclaré, vous restez disponible à tout moment. Dès que vous en cochez un, les missions ne vous sont proposées que sur vos horaires.",
+    "from": "De",
+    "to": "à",
+    "save": "Enregistrer mes horaires",
+    "saved": "Disponibilités enregistrées",
+    "absences": "Absences",
+    "absenceFrom": "Du",
+    "absenceTo": "Au (inclus)",
+    "absenceReason": "Motif (optionnel)",
+    "addAbsence": "Ajouter",
+    "removeAbsence": "Retirer cette absence",
+    "loadError": "Impossible de charger vos disponibilités.",
+    "saveError": "L'enregistrement a échoué, réessayez.",
+    "absenceError": "Impossible d'enregistrer cette absence.",
+    "days": {
+      "1": "Lundi",
+      "2": "Mardi",
+      "3": "Mercredi",
+      "4": "Jeudi",
+      "5": "Vendredi",
+      "6": "Samedi",
+      "7": "Dimanche"
+    },
+    "subtitle": "Vos jours travaillés et vos absences — ce sur quoi les missions vous sont proposées.",
+    "weekTitle": "Semaine type",
+    "workingDays": "Jours travaillés",
+    "limited": "Horaires définis",
+    "alwaysAvailableLong": "Aucun créneau déclaré — vous restez disponible à tout moment.",
+    "variableHours": "horaires variables",
+    "perDay": "Horaires différents selon les jours",
+    "sameHours": "Mêmes horaires tous les jours",
+    "confirmAbsence": "Enregistrer",
+    "absencesHelp": "Congés et indisponibilités ponctuelles — aucune mission ne vous sera proposée sur ces dates.",
+    "noAbsence": "Aucune absence déclarée",
+    "noAbsenceHelp": "Déclarez vos congés à l’avance : les missions cesseront de vous être proposées sur ces dates."
+  },
+  "myRates": {
+    "title": "Mes tarifs",
+    "subtitle": "Votre taux horaire et vos forfaits par logement — la base du calcul de vos missions."
+  },
+  "field": {
+    "nextMission": {
+      "title": "Ma prochaine mission",
+      "running": "Mission en cours",
+      "none": "Aucune mission planifiée",
+      "noneHelp": "Vérifiez votre zone d’intervention et vos disponibilités : sans elles, les missions ne vous sont pas proposées automatiquement.",
+      "inProgress": "En cours",
+      "toConfirm": "À confirmer",
+      "directions": "Itinéraire",
+      "resume": "Reprendre",
+      "open": "Ouvrir la mission",
+      "lateTitle": "Missions en retard",
+      "late": "En retard",
+      "showMore": "Voir les {{count}} autres missions",
+      "allTitle": "Toutes mes missions",
+      "todayTitle": "Missions du jour",
+      "todayAndLateTitle": "Missions du jour et en retard"
+    },
+    "proposals": {
+      "title": "Missions à confirmer",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "confirmDecline": "Confirmer le refus",
+      "reasonPlaceholder": "Motif (facultatif)",
+      "accepted": "Mission acceptée",
+      "declined": "Mission refusée",
+      "error": "L’action a échoué, réessayez.",
+      "counterOffer": "Proposer mon tarif",
+      "counterTitle": "Proposer mon tarif",
+      "counterHelp": "Votre montant part en devis au gestionnaire, qui l’approuve ou non. La mission reste à confirmer en attendant.",
+      "amount": "Mon tarif (€)",
+      "note": "Précision (facultatif)",
+      "notePlaceholder": "Ex. surface plus grande que prévu",
+      "sendQuote": "Envoyer",
+      "quoteSent": "Tarif proposé — le gestionnaire est prévenu",
+      "mine": "moi",
+      "myRateHint": "Votre tarif pour cette prestation",
+      "wholeMission": "Prestation",
+      "gap": "Votre tarif total : {{mine}} € contre {{asked}} € proposés",
+      "agreed": "Tarif déjà convenu pour ce logement",
+      "asked": "Proposé",
+      "myRate": "Mon tarif",
+      "noRate": "Aucun tarif configuré",
+      "total": "Total",
+      "proposeMine": "Proposer {{amount}} €",
+      "carriedOver": "dont {{amount}} € repris au prix proposé",
+      "sameAsAsked": "idem"
+    },
+    "compliance": {
+      "title": "Votre dossier est incomplet.",
+      "fix": "Compléter",
+      "missing": "pièce manquante : {{type}}",
+      "rejected": "pièce refusée : {{type}}",
+      "expiring": "{{type}} expire dans {{days}} j"
+    },
+    "week": {
+      "title": "Ma semaine",
+      "today": "aujourd’hui",
+      "free": "libre",
+      "mission": "mission",
+      "missions": "missions",
+      "absentTomorrow": "Je suis indisponible demain",
+      "manage": "Gérer mes disponibilités",
+      "absenceReason": "Indisponible",
+      "absenceSaved": "Indisponibilité enregistrée pour demain",
+      "absenceError": "L’enregistrement a échoué.",
+      "lateCount": "{{count}} mission(s) en retard",
+      "freeDay": "Journée libre."
+    },
+    "issues": {
+      "title": "Mes signalements",
+      "none": "Aucune anomalie signalée pour le moment."
+    },
+    "expenses": {
+      "title": "Mes frais avancés",
+      "none": "Aucun frais en attente de remboursement."
+    },
+    "quotes": {
+      "title": "Mes devis",
+      "none": "Aucun devis soumis",
+      "noneHelp": "Ouvrez une intervention et chiffrez-la : le gestionnaire reçoit votre devis et le valide depuis sa fiche.",
+      "untitled": "Intervention #{{id}}",
+      "validUntil": "valable jusqu’au {{date}}",
+      "noValidity": "sans date de validité",
+      "status": {
+        "RECEIVED": "En attente",
+        "APPROVED": "Accepté",
+        "REJECTED": "Écarté",
+        "EXPIRED": "Expiré"
+      },
+      "paid": "Réglé",
+      "depositPaid": "Acompte reçu",
+      "awaitingDeposit": "Acompte attendu",
+      "awaitingPayment": "Règlement attendu",
+      "seeAll": "Voir mes {{count}} devis",
+      "allTitle": "Mes devis"
+    }
+  },
+  "company": {
+    "title": "Mon entreprise",
+    "help": "Ces informations apparaissent sur les devis, factures et bons d’intervention générés par Baitly.",
+    "name": "Raison sociale",
+    "namePlaceholder": "Ex. Mazy Rénovation",
+    "save": "Enregistrer",
+    "saved": "Entreprise enregistrée",
+    "saveError": "L'enregistrement a échoué, réessayez.",
+    "logo": "Logo",
+    "logoAlt": "Logo de mon entreprise",
+    "noLogo": "Aucun logo déposé",
+    "uploadLogo": "Déposer un logo",
+    "replaceLogo": "Remplacer",
+    "removeLogo": "Retirer le logo",
+    "logoSaved": "Logo enregistré",
+    "logoError": "Le dépôt a échoué : formats JPEG, PNG, WEBP ou GIF, 5 Mo maximum."
   }
 }

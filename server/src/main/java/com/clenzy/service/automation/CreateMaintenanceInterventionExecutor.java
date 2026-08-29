@@ -74,15 +74,21 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
     private final InterventionRepository interventionRepository;
     private final PropertyRepository propertyRepository;
     private final NoiseAlertRepository noiseAlertRepository;
+    private final com.clenzy.repository.UserRepository userRepository;
+    private final com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository;
 
     public CreateMaintenanceInterventionExecutor(SmartLockDeviceRepository deviceRepository,
                                                  InterventionRepository interventionRepository,
                                                  PropertyRepository propertyRepository,
-                                                 NoiseAlertRepository noiseAlertRepository) {
+                                                 NoiseAlertRepository noiseAlertRepository,
+                                                 com.clenzy.repository.UserRepository userRepository,
+                                                 com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository) {
         this.deviceRepository = deviceRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
         this.noiseAlertRepository = noiseAlertRepository;
+        this.userRepository = userRepository;
+        this.organizationMemberRepository = organizationMemberRepository;
     }
 
     /** Marqueur d'idempotence batterie (F7a) pose dans specialInstructions. */
@@ -113,7 +119,8 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
      * @return {@code true} si l'intervention est créée, {@code false} si un épisode
      *         batterie est déjà couvert par une intervention ouverte
      */
-    public boolean createForLockBattery(Long deviceId, Long orgId) {
+    public boolean createForLockBattery(Long deviceId, Long orgId,
+                                        com.clenzy.dto.ApplySuggestionRequest plan) {
         SmartLockDevice device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalStateException("Serrure introuvable : " + deviceId));
         if (device.getOrganizationId() == null || !device.getOrganizationId().equals(orgId)) {
@@ -141,7 +148,8 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                         + " Remplacer les piles avant la panne pour ne pas bloquer les acces guests."
                         + (device.getBatteryLevel() != null
                             ? " Niveau releve : " + device.getBatteryLevel() + "%." : ""),
-                marker + " Intervention validée depuis la constellation (batterie serrure).");
+                marker + " Intervention validée depuis la constellation (batterie serrure).",
+                plan);
         interventionRepository.save(intervention);
         return true;
     }
@@ -152,7 +160,8 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
      *
      * @return {@code true} si créée, {@code false} si une tournée est déjà ouverte
      */
-    public boolean createPreventive(Long propertyId, Long orgId) {
+    public boolean createPreventive(Long propertyId, Long orgId,
+                                    com.clenzy.dto.ApplySuggestionRequest plan) {
         String marker = preventiveMarker(propertyId);
         if (interventionRepository.existsOpenByPropertyAndMarker(
                 propertyId, orgId, OPEN_STATUSES, marker)) {
@@ -168,7 +177,8 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 "Aucune maintenance terminée depuis plus de 11 mois sur « " + property.getName()
                         + " ». Tournée d'entretien préventif (climatisation, plomberie, équipements) "
                         + "à planifier avant qu'une panne ne tombe en plein séjour.",
-                marker + " Intervention validée depuis la constellation (entretien préventif).");
+                marker + " Intervention validée depuis la constellation (entretien préventif).",
+                plan);
         intervention.setType("PREVENTIVE_MAINTENANCE");
         intervention.setPriority("MEDIUM");
         interventionRepository.save(intervention);
@@ -234,7 +244,8 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                         + " (" + property.getName() + ") signale une batterie critique."
                         + " Remplacer les piles avant la panne pour ne pas bloquer les acces guests."
                         + (batteryLevel != null ? " Niveau releve : " + batteryLevel + "%." : ""),
-                marker + " Intervention generee automatiquement (batterie critique serrure connectee).");
+                marker + " Intervention generee automatiquement (batterie critique serrure connectee).",
+                null); // chemin automatique : aucun humain pour choisir
 
         interventionRepository.save(intervention);
         log.info("Batterie critique serrure {} : intervention preventive #{} creee (propriete {}, prevue {})",
@@ -283,7 +294,8 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                         + (alertsLast24h != null ? " (" + alertsLast24h + " alertes sur 24 h)" : "")
                         + (measuredDb != null ? ", dernier releve " + measuredDb + " dB" : "")
                         + ". Passer verifier sur place l'origine du bruit et l'etat du logement.",
-                marker + " Intervention generee automatiquement (escalade alertes bruit).");
+                marker + " Intervention generee automatiquement (escalade alertes bruit).",
+                null); // chemin automatique : aucun humain pour choisir
 
         interventionRepository.save(intervention);
         log.info("Escalade bruit propriete {} : intervention de verification #{} creee (prevue {})",
@@ -305,11 +317,22 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
     }
 
     /** Intervention MAINTENANCE PENDING planifiee au lendemain 10:00, fuseau du logement (audit n°9). */
+    /**
+     * Fabrique commune, avec le choix humain quand il y en a un.
+     *
+     * <p>Sans choix, on garde les defauts du chemin automatique : lendemain 10 h,
+     * personne d'assigne. Avec choix, la date retenue et l'intervenant a qui la
+     * mission est PROPOSEE — {@code assignmentResponse} a {@code PENDING}, comme
+     * toute assignation : c'est une proposition, pas un ordre.</p>
+     */
     private Intervention newPendingIntervention(Long orgId, Property property,
                                                 String title, String description,
-                                                String specialInstructions) {
+                                                String specialInstructions,
+                                                com.clenzy.dto.ApplySuggestionRequest plan) {
         ZoneId zone = StayTimes.zoneOf(property);
-        LocalDateTime scheduledDate = LocalDate.now(zone).plusDays(1).atTime(SCHEDULED_TIME);
+        LocalDateTime scheduledDate = plan != null && plan.scheduledAt() != null
+                ? plan.scheduledAt()
+                : LocalDate.now(zone).plusDays(1).atTime(SCHEDULED_TIME);
 
         Intervention intervention = new Intervention();
         intervention.setOrganizationId(orgId);
@@ -321,8 +344,48 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
         intervention.setStatus(InterventionStatus.PENDING);
         intervention.setPriority("HIGH");
         intervention.setScheduledDate(scheduledDate);
+        // start_time est NOT NULL en base — omission = 500 a l'insertion, invisible
+        // en test (le schema Hibernate, lui, l'accepte nul). Meme valeur que la date
+        // planifiee, comme le fait deja la creation depuis une demande de service.
+        intervention.setStartTime(scheduledDate);
         intervention.setEstimatedDurationHours(1);
         intervention.setSpecialInstructions(specialInstructions);
+        assignIfChosen(intervention, orgId, plan);
         return intervention;
+    }
+
+    /**
+     * Pose l'intervenant choisi, apres l'avoir re-valide cote serveur.
+     *
+     * <p>L'appartenance a l'organisation est verifiee ici et pas seulement dans
+     * l'ecran : un identifiant venu du client ne prouve rien (regle d'audit n°3 —
+     * {@code findById} contourne le filtre Hibernate).</p>
+     *
+     * <p>Le metier, lui, n'est PAS impose : la modale trie les intervenants par
+     * correspondance mais laisse choisir librement, et refuser ici contredirait
+     * l'ecran. Un metier qui ne correspond pas est journalise, pas rejete.</p>
+     */
+    private void assignIfChosen(Intervention intervention, Long orgId,
+                                com.clenzy.dto.ApplySuggestionRequest plan) {
+        if (plan == null || plan.assigneeId() == null) {
+            return;
+        }
+        final com.clenzy.model.User assignee = userRepository.findById(plan.assigneeId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Intervenant introuvable : " + plan.assigneeId()));
+        final boolean sameOrg = orgId.equals(assignee.getOrganizationId())
+                || organizationMemberRepository.existsByOrganizationIdAndUserId(orgId, assignee.getId());
+        if (!sameOrg) {
+            throw new IllegalStateException(
+                    "Intervenant " + plan.assigneeId() + " hors de l'organisation " + orgId);
+        }
+        if (!com.clenzy.model.InterventionRoleFit.accepts(
+                assignee.getRole(), intervention.getType())) {
+            log.info("Assignation hors metier assumee : {} sur une intervention {}",
+                    assignee.getRole(), intervention.getType());
+        }
+        intervention.setAssignedUser(assignee);
+        intervention.setAssignmentResponse(
+                com.clenzy.model.InterventionAssignmentResponse.PENDING);
     }
 }

@@ -14,12 +14,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { applyStreamEvent } from './applyStreamEvent';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId, AutonomyLevel, PendingOutcome, StreamEvent, SupervisionSnapshot } from '../types';
+import type { AgentId, AutonomyLevel, PendingOutcome, ApplyChoice, StreamEvent, SupervisionSnapshot } from '../types';
 
 export type SupervisionStatus = 'loading' | 'live' | 'offline';
 
 export interface SupervisionActions {
-  validatePending: (actionId: string) => Promise<void>;
+  validatePending: (actionId: string, plan?: ApplyChoice) => Promise<void>;
   editPending: (actionId: string) => Promise<void>;
   setGlobalAutonomy: (level: AutonomyLevel) => Promise<void>;
   setAgentAutonomy: (agentId: AgentId, level: AutonomyLevel) => Promise<void>;
@@ -145,7 +145,7 @@ export function useSupervision(
     canKickoff,
     retry: () => reloadRef.current(),
     actions: {
-      validatePending: (id) => providerRef.current?.validatePending(id) ?? noopAsync(),
+      validatePending: (id, plan) => providerRef.current?.validatePending(id, plan) ?? noopAsync(),
       editPending: (id) => providerRef.current?.editPending(id) ?? noopAsync(),
       setGlobalAutonomy: (level) => providerRef.current?.setGlobalAutonomy(level) ?? noopAsync(),
       setAgentAutonomy: (agentId, level) => providerRef.current?.setAgentAutonomy(agentId, level) ?? noopAsync(),

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render, screen, waitFor, act, fireEvent } from '../../../test/renderWithProviders';
 import { SupervisionPanel } from '../components/SupervisionPanel';
 import { MockSupervisionProvider } from '../provider/MockSupervisionProvider';
 import { MOCK_RESERVATION_LEA_MARCHAND } from '../provider/mockData';

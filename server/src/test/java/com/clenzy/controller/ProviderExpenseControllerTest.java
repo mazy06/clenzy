@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -79,7 +80,7 @@ class ProviderExpenseControllerTest {
             ProviderExpense e = buildExpense(1L, ExpenseStatus.DRAFT);
             when(expenseService.getAll(ORG_ID)).thenReturn(List.of(e));
 
-            List<ProviderExpenseDto> result = controller.getAll(null, null, null);
+            List<ProviderExpenseDto> result = controller.getAll(null, null, null, false, null);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).id()).isEqualTo(1L);
@@ -91,10 +92,23 @@ class ProviderExpenseControllerTest {
             ProviderExpense e = buildExpense(1L, ExpenseStatus.DRAFT);
             when(expenseService.getByProviderId(5L, ORG_ID)).thenReturn(List.of(e));
 
-            List<ProviderExpenseDto> result = controller.getAll(5L, null, null);
+            List<ProviderExpenseDto> result = controller.getAll(5L, null, null, false, null);
 
             assertThat(result).hasSize(1);
             verify(expenseService).getByProviderId(5L, ORG_ID);
+        }
+
+        @Test
+        void whenMine_thenResolvesProviderFromJwt() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
+            Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject("kc-42").build();
+            ProviderExpense e = buildExpense(1L, ExpenseStatus.DRAFT);
+            when(expenseService.getMine("kc-42", ORG_ID)).thenReturn(List.of(e));
+
+            List<ProviderExpenseDto> result = controller.getAll(null, null, null, true, jwt);
+
+            assertThat(result).hasSize(1);
+            verify(expenseService).getMine("kc-42", ORG_ID);
         }
 
         @Test
@@ -104,7 +118,7 @@ class ProviderExpenseControllerTest {
             when(expenseService.getByStatus(ExpenseStatus.APPROVED, ORG_ID))
                 .thenReturn(List.of(e));
 
-            List<ProviderExpenseDto> result = controller.getAll(null, null, ExpenseStatus.APPROVED);
+            List<ProviderExpenseDto> result = controller.getAll(null, null, ExpenseStatus.APPROVED, false, null);
 
             assertThat(result).hasSize(1);
             verify(expenseService).getByStatus(ExpenseStatus.APPROVED, ORG_ID);

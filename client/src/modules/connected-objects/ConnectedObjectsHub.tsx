@@ -19,6 +19,7 @@ import DeviceCard from './components/DeviceCard';
 import AddDeviceWizard from './components/AddDeviceWizard';
 import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
@@ -119,7 +120,7 @@ export default function ConnectedObjectsHub({
           actions={headerAction}
         />
       )}
-      {embedded && actionsContainer ? createPortal(headerAction, actionsContainer) : null}
+      {embedded && actionsContainer ? createPortal(compactHeaderActions(headerAction), actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
       <Card className="gap-0 py-0 p-1.5 mb-2 border-border flex items-center gap-1.5 flex-wrap">

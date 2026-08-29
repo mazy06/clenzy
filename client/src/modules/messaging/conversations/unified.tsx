@@ -125,14 +125,20 @@ function fromChannelConversation(conv: ConversationDto): UnifiedConversation {
 }
 
 function fromInternalThread(thread: ContactThreadSummary): UnifiedConversation {
-  const name =
-    `${thread.counterpartFirstName ?? ''} ${thread.counterpartLastName ?? ''}`.trim() ||
-    thread.counterpartEmail;
+  // Un fil de GROUPE n'a pas d'interlocuteur : sans son intitulé, la liste
+  // n'affichait qu'un « ? ».
+  const isGroup = thread.threadId != null;
+  const name = isGroup
+    ? (thread.title ?? 'Discussion de groupe')
+    : `${thread.counterpartFirstName ?? ''} ${thread.counterpartLastName ?? ''}`.trim()
+      || thread.counterpartEmail;
   return {
     key: `in-${thread.counterpartKeycloakId}`,
     kind: 'internal',
     name,
-    context: 'Chat interne',
+    context: isGroup
+      ? (thread.participantNames ?? []).join(', ') || 'Discussion de groupe'
+      : 'Chat interne',
     channel: 'INTERNAL',
     preview: thread.lastMessagePreview || '—',
     lastAt: thread.lastMessageAt,
@@ -278,4 +284,9 @@ export interface ThreadMessage {
   attachments?: string[];
   /** true = note d'équipe, consignée dans le fil sans avoir été transmise. */
   internalNote?: boolean;
+  /**
+   * Contenu riche rendu SOUS le texte : carte d'intervention, devis, gestes.
+   * Le fil reste générique — c'est l'appelant qui sait quoi afficher.
+   */
+  card?: React.ReactNode;
 }

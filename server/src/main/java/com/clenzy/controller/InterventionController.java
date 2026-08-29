@@ -189,6 +189,20 @@ public class InterventionController {
         return lifecycleService.updateAmount(id, request.mode(), request.value(), jwt);
     }
 
+    @PutMapping("/{id}/accept")
+    @Operation(summary = "Accepter une mission proposee (intervenant assigne uniquement)")
+    public InterventionResponse acceptAssignment(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return lifecycleService.acceptAssignment(id, jwt);
+    }
+
+    @PutMapping("/{id}/decline")
+    @Operation(summary = "Refuser une mission proposee — elle repart au gestionnaire")
+    public InterventionResponse declineAssignment(@PathVariable Long id,
+                                            @RequestBody(required = false) com.clenzy.dto.InterventionDeclineRequest request,
+                                            @AuthenticationPrincipal Jwt jwt) {
+        return lifecycleService.declineAssignment(id, request != null ? request.reason() : null, jwt);
+    }
+
     @PutMapping("/{id}/start")
     @Operation(summary = "Demarrer une intervention (TECHNICIAN, HOUSEKEEPER, SUPERVISOR)")
     public InterventionResponse startIntervention(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {

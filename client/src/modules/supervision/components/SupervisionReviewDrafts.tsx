@@ -108,7 +108,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
               disabled={publishing === review.id || !(edited[review.id] ?? '').trim()}
             >
               {publishing === review.id ? (
-                <Spinner className="size-[13px]" />
+                <Spinner className="size-[13px]" aria-hidden aria-label={undefined} role={undefined} />
               ) : (
                 t('supervision.reviewDrafts.publish', 'Publier')
               )}

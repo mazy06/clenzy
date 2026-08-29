@@ -76,6 +76,12 @@ export default function MessagingHubPage() {
     );
   }, [searchParams, setSearchParams, isAdminOrManager]);
 
+  // Deep-link conversation (?thread=<cle>) : un retour de paiement Stripe, une
+  // notification. La conversation ouverte vit dans l'etat React, donc rien ne
+  // la retrouvait au retour — on atterrissait sur la liste, sans contexte.
+  const threadParam = searchParams.get('thread');
+  const threadApplied = useRef(false);
+
   const isArchivedView = filter === 'archived';
   const inbox = useUnifiedInbox(canAccessChannels, isAdminOrManager);
   const archived = useArchivedInbox(isArchivedView, isAdminOrManager);
@@ -87,6 +93,24 @@ export default function MessagingHubPage() {
     () => source.items.find((item) => item.key === selectedKey) ?? null,
     [source.items, selectedKey],
   );
+
+  // Applique une seule fois, et seulement quand la liste porte la conversation :
+  // elle arrive apres le premier rendu.
+  useEffect(() => {
+    if (!threadParam || threadApplied.current) return;
+    const match = source.items.find((item) => item.key === `in-${threadParam}`);
+    if (!match) return;
+    threadApplied.current = true;
+    setSelectedKey(match.key);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('thread');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [threadParam, source.items, setSearchParams]);
 
   const markAsReadMutation = useMarkAsRead();
   const markThreadAsReadMutation = useMarkThreadAsRead();

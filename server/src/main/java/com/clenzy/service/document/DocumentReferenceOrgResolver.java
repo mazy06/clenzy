@@ -5,6 +5,7 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ManagementContractRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
+import com.clenzy.repository.ServiceQuoteRepository;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
@@ -48,6 +49,7 @@ public class DocumentReferenceOrgResolver {
     private final UserRepository userRepository;
     private final ReservationRepository reservationRepository;
     private final ProviderExpenseRepository providerExpenseRepository;
+    private final ServiceQuoteRepository serviceQuoteRepository;
     private final ReceivedFormRepository receivedFormRepository;
     private final ManagementContractRepository managementContractRepository;
 
@@ -58,7 +60,8 @@ public class DocumentReferenceOrgResolver {
                                         ReservationRepository reservationRepository,
                                         ProviderExpenseRepository providerExpenseRepository,
                                         ReceivedFormRepository receivedFormRepository,
-                                        ManagementContractRepository managementContractRepository) {
+                                        ManagementContractRepository managementContractRepository,
+                                        ServiceQuoteRepository serviceQuoteRepository) {
         this.interventionRepository = interventionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.propertyRepository = propertyRepository;
@@ -67,6 +70,7 @@ public class DocumentReferenceOrgResolver {
         this.providerExpenseRepository = providerExpenseRepository;
         this.receivedFormRepository = receivedFormRepository;
         this.managementContractRepository = managementContractRepository;
+        this.serviceQuoteRepository = serviceQuoteRepository;
     }
 
     /**
@@ -91,6 +95,8 @@ public class DocumentReferenceOrgResolver {
             case RESERVATION -> reservationRepository.findById(referenceId)
                     .map(e -> e.getOrganizationId());
             case PROVIDER_EXPENSE -> providerExpenseRepository.findById(referenceId)
+                    .map(e -> e.getOrganizationId());
+            case SERVICE_QUOTE -> serviceQuoteRepository.findById(referenceId)
                     .map(e -> e.getOrganizationId());
             case RECEIVED_FORM -> receivedFormRepository.findById(referenceId)
                     .map(e -> e.getOrganizationId());

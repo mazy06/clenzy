@@ -52,6 +52,19 @@ public class ProviderExpenseService {
         return expenseRepository.findByProviderIdAndOrgId(providerId, orgId);
     }
 
+    /**
+     * Mes frais — l'intervenant lit les SIENS.
+     *
+     * <p>Le fournisseur est resolu depuis le JWT et jamais depuis un parametre :
+     * passer un {@code providerId} en requete laisserait n'importe quel compte
+     * authentifie lire les frais d'un autre.</p>
+     */
+    public List<ProviderExpense> getMine(String keycloakId, Long orgId) {
+        User me = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        return expenseRepository.findByProviderIdAndOrgId(me.getId(), orgId);
+    }
+
     public List<ProviderExpense> getByPropertyIdAndStatuses(Long propertyId, List<ExpenseStatus> statuses, Long orgId) {
         return expenseRepository.findByPropertyIdAndStatusIn(propertyId, statuses, orgId);
     }

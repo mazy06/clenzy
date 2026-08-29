@@ -5,11 +5,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
+import compactHeaderActions from './compactHeaderActions';
+import { headerActionIcon } from './headerActionIcons';
 
 /**
  * Conteneur des actions du PageHeader (slot droit).
@@ -19,9 +24,13 @@ import { useTranslation } from '../hooks/useTranslation';
  * filtres et leurs actions comme d'habitude et héritent du comportement.</p>
  *
  * Comportement :
- *   - Au-dessus du seuil : filtres et actions sont rendus tels quels, en ligne.
- *   - En dessous : ils sont TOUS repliés dans un unique bouton ⋯ ouvrant un menu
- *     où ils réapparaissent empilés, pleine largeur, libellé visible.
+ *   - Au-dessus du seuil : les actions sont réduites à leur icône (cf.
+ *     `compactHeaderActions`) et alignées ; les filtres passent derrière un
+ *     unique déclencheur « Filtres » qui les déplie sans les amputer — un
+ *     sélecteur réduit à une icône n'annoncerait plus sur quoi il porte.
+ *   - En dessous : filtres et actions sont TOUS repliés dans un unique bouton ⋯
+ *     ouvrant un menu où ils réapparaissent empilés, pleine largeur, libellé
+ *     visible (le libellé revient de l'`aria-label`, cf. MENU_LAYOUT_CLASS).
  *
  * <p>La recherche de l'écran n'entre JAMAIS ici : `GlobalSearchField` est un
  * frère de ce composant dans `PageHeader` et reste visible à toute largeur.
@@ -109,24 +118,54 @@ interface PageHeaderActionsProps {
 export default function PageHeaderActions({ filters, actions, narrow }: PageHeaderActionsProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Pas d'actions → rien (évite un bouton overflow vide sur les pages sans action).
   if (!filters && !actions) return null;
 
+  // La barre de titre n'admet qu'une forme de bouton : icone + infobulle.
+  // Repli comme deploiement partent du meme arbre reduit — le menu ⋯ redonne
+  // le libelle via `aria-label` (cf. MENU_LAYOUT_CLASS).
+  const compactActions = compactHeaderActions(actions);
+  const filtersLabel = t('common.filters', 'Filtres');
+
   if (!narrow) {
-    // gap: 1 MUI = 6 px (theme.spacing vaut 6).
     return (
       <div className="flex items-center gap-1.5">
-        {filters}
-        {actions}
+        {filters && (
+          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={filtersLabel}
+                      aria-expanded={filtersOpen}
+                    >
+                      {headerActionIcon('filter')}
+                    </Button>
+                  </span>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{filtersLabel}</TooltipContent>
+            </Tooltip>
+            {/* Les filtres gardent leurs libelles : un selecteur reduit a une
+                icone cesse d'annoncer sur quoi il porte. C'est le DECLENCHEUR
+                qui est reduit, pas son contenu. */}
+            <PopoverContent
+              align="end"
+              className={`max-h-[70dvh] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto p-2 ${MENU_LAYOUT_CLASS}`}
+            >
+              {filters}
+            </PopoverContent>
+          </Popover>
+        )}
+        {compactActions}
       </div>
     );
   }
 
-  // Le <span> hôte est indispensable : le trigger du menu ET celui de l'infobulle
-  // y posent leur ref d'ancrage, qu'un composant fonction React 18 (le Button du
-  // kit) ne peut pas recevoir. Les attributs aria restent doublés sur le bouton
-  // pour qu'il s'annonce lui-même comme ouvrant un menu.
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <Tooltip>
@@ -134,7 +173,7 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
           <DropdownMenuTrigger asChild>
             <span className="inline-flex">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 aria-label={t('common.actions', 'Actions')}
                 aria-haspopup="menu"
@@ -147,34 +186,21 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
         </TooltipTrigger>
         <TooltipContent>{t('common.actions', 'Actions')}</TooltipContent>
       </Tooltip>
-      {/* `w-auto` annule le calage sur la largeur du déclencheur que pose le
-          primitif : le déclencheur est un carré de 32 px, le menu doit respirer.
-          `w-[min(20rem,calc(100vw-1.5rem))]` : le panneau de filtres s'affiche
-          ici EN LIGNE, il lui faut une vraie largeur — bornée à l'écran pour ne
-          pas déborder sur mobile. */}
       <DropdownMenuContent
         align="end"
         className="max-h-[70dvh] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto p-1.5"
       >
-        {/* Le contenu n'est pas fait de DropdownMenuItem (ce sont les contrôles
-            arbitraires des écrans) : la fermeture au clic est donc portée ici. */}
           <div
             className={`flex flex-col items-stretch gap-1 ${MENU_LAYOUT_CLASS}`}
             onClick={(e) => {
-              // Les contrôles du panneau de filtres (listes déroulantes,
-              // bascules d'affichage) vivent MAINTENANT dans ce menu : un clic
-              // dessus ne doit pas le refermer, sinon on ne peut rien régler.
-              // Seules les vraies actions — exporter, créer — le referment.
               const el = e.target as HTMLElement;
               if (el.closest('[data-inline-panel]') || el.closest('[aria-haspopup]')) return;
               setOpen(false);
             }}
           >
             {filters}
-            {/* Un filet quand les deux slots sont remplis : « ce qui filtre » et
-                « ce qui agit » ne se lisent pas de la même façon. */}
             {filters && actions && <div className="my-0.5 h-px shrink-0 bg-border" />}
-            {actions}
+            {compactActions}
           </div>
       </DropdownMenuContent>
     </DropdownMenu>

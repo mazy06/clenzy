@@ -28,13 +28,15 @@ class AutoAssignSchedulerTest {
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private SupervisionActivityService supervisionActivityService;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService suggestionService;
 
     private AutoAssignScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         scheduler = new AutoAssignScheduler(serviceRequestRepository,
-                workflowSettingsRepository, serviceRequestService, supervisionActivityService);
+                workflowSettingsRepository, serviceRequestService, supervisionActivityService,
+                suggestionService);
     }
 
     @Test

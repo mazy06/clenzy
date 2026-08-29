@@ -54,8 +54,19 @@ public class TaxFiling {
     @Column(nullable = false, length = 20)
     private Status status = Status.DUE;
 
+    /** Horodatage de la SAISIE dans Baitly — trace d'audit. */
     @Column(name = "filed_at")
     private Instant filedAt;
+
+    /**
+     * Date du dépôt EFFECTIF auprès de l'administration, déclarée par l'opérateur.
+     *
+     * <p>Distincte de {@link #filedAt} : on dépose le mardi et on saisit le jeudi.
+     * Confondre les deux faisait porter au registre une date fausse — pour un
+     * registre de conformité, c'est ce qui lui retire sa valeur probante.</p>
+     */
+    @Column(name = "deposited_on")
+    private java.time.LocalDate depositedOn;
 
     @Column(name = "paid_at")
     private Instant paidAt;
@@ -93,6 +104,9 @@ public class TaxFiling {
     public void setStatus(Status status) { this.status = status; }
     public Instant getFiledAt() { return filedAt; }
     public void setFiledAt(Instant filedAt) { this.filedAt = filedAt; }
+
+    public java.time.LocalDate getDepositedOn() { return depositedOn; }
+    public void setDepositedOn(java.time.LocalDate depositedOn) { this.depositedOn = depositedOn; }
     public Instant getPaidAt() { return paidAt; }
     public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
     public String getPaymentReference() { return paymentReference; }

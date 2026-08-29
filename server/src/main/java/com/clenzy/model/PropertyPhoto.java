@@ -136,7 +136,18 @@ public class PropertyPhoto {
         if (externalUrl != null && !externalUrl.isBlank()) {
             return externalUrl;
         }
-        if (storageKey != null && property != null) {
+        // Une photo PERSISTEE est toujours servie par cet endpoint, quel que
+        // soit son support : `PropertyPhotoService.getPhotoData` lit le stockage
+        // objet quand `storageKey` existe, et le BYTEA sinon.
+        //
+        // La condition portait sur `storageKey != null` — or l'upload le laisse
+        // NULL par conception (les octets vivent dans `data` jusqu'a migration).
+        // Toutes les photos deposees a la main n'avaient donc aucune URL, et
+        // `coverPhotoUrl` restait vide dans toute l'application.
+        //
+        // On ne teste PAS `data` : le champ est @Basic(LAZY), le lire chargerait
+        // le binaire de chaque photo pour repondre a une question d'adressage.
+        if (id != null && property != null) {
             return "/api/properties/" + property.getId() + "/photos/" + id + "/data";
         }
         return null;

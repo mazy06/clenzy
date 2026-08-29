@@ -47,6 +47,7 @@ import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
 import ServiceRequestsMapView from './ServiceRequestsMapView';
 import ServiceRequestsGridView from './ServiceRequestsGridView';
 import ServiceRequestsTableView from './ServiceRequestsTableView';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 interface ServiceRequestsListProps {
   embedded?: boolean;
@@ -408,7 +409,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {/* Portal filters into parent's PageHeader when embedded */}
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}

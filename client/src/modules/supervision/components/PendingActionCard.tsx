@@ -26,6 +26,7 @@ import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
 import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
 import { verbFor } from './actionVerbs';
+import { familyOf, opensModal } from './actionRegistry';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 function formatRemaining(cd: Countdown, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -44,9 +45,22 @@ export interface PendingActionCardProps {
   /** Carte d'avis : « Répondre » ouvre la modale de réponse (brouillon IA
    *  insérable OU réponse libre) au lieu de publier le brouillon à l'aveugle. */
   onOpenReview?: (payload: OpenReviewPayload) => void;
+  /**
+   * Cartes « Planifier » : ouvre la modale de planification au lieu de créer
+   * l'intervention séance tenante. Sans elle, la date (lendemain 10 h) et
+   * l'absence d'intervenant se corrigeaient APRÈS coup, dans un autre écran.
+   */
+  onSchedule?: (action: PendingAction | PortfolioPendingAction) => void;
+  /**
+   * Cartes dont l'action n'a rien à choisir mais engage (argent, annulation,
+   * effacement, envoi vers un tiers) : ouvre la confirmation, qui nomme la
+   * conséquence. Sans elle, le libellé du bouton était tout ce que l'opérateur
+   * avait pour juger.
+   */
+  onOpenActionModal?: (action: PendingAction | PortfolioPendingAction) => void;
 }
 
-export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }: PendingActionCardProps) {
+export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, onOpenReview, onSchedule, onOpenActionModal }: PendingActionCardProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -66,6 +80,13 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
   const reviewId = isApply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
     ? parseReviewId(action.actionParams)
     : null;
+  // « Planifier » : la date et l'intervenant se choisissent AVANT de créer la
+  // mission, pas après. Même parti que l'ajustement tarifaire ci-dessus.
+  const isSchedule = isApply && familyOf(action.applyActionType) === 'schedule' && Boolean(onSchedule);
+  // Le CTA ouvre une modale : confirmation quand l'effet engage sans rien à
+  // choisir, saisie quand l'action porte des paramètres devinés par l'agent.
+  const isConfirm = isApply && !isSchedule
+    && Boolean(onOpenActionModal) && opensModal(action.applyActionType);
   // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
   const verb = verbFor(action.applyActionType);
   // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
@@ -168,11 +189,15 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
                   }
                 : isPriceAdjust
                   ? () => onAdjustPrice!(action)
-                  : validate
+                  : isConfirm
+                    ? () => onOpenActionModal!(action)
+                    : isSchedule
+                    ? () => onSchedule!(action)
+                    : validate
             }
           >
             {resolving ? (
-              <Spinner className="size-[13px]" />
+              <Spinner className="size-[13px]" aria-hidden aria-label={undefined} role={undefined} />
             ) : reviewId != null ? (
               <Edit size={15} />
             ) : isPayment ? (

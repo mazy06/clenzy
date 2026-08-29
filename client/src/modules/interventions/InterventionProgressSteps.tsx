@@ -22,6 +22,8 @@ import {
   Comment as CommentIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   Room as RoomIcon,
+  ChevronRight as ChevronRightIcon,
+  ReportProblem as ReportProblemIcon,
   Done as DoneIcon,
   Summarize as SummarizeIcon,
   Lock as LockIcon,
@@ -91,6 +93,12 @@ interface InterventionProgressStepsProps {
   completing: boolean;
   canStartIntervention: boolean;
   canStartOrUpdateIntervention: boolean;
+  /**
+   * Signalement d'anomalie DANS une piece. Fourni par l'ecran terrain
+   * uniquement : c'est en validant les pieces, une par une, que l'intervenant
+   * constate ce qui cloche.
+   */
+  onReportIssue?: (roomName: string) => void;
   isBeforeScheduledDate: boolean;
 }
 
@@ -195,6 +203,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   canStartIntervention,
   canStartOrUpdateIntervention,
   isBeforeScheduledDate,
+  onReportIssue,
 }) => {
   // Destructure grouped props for internal usage
   const { beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen } = photos;
@@ -282,13 +291,23 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const totalRooms = showRoomData ? getTotalRooms() : 0;
   const roomNames = showRoomData ? getRoomNames() : [];
 
+  /**
+   * Etat REEL des coches, et non `allRoomsValidated` : ce drapeau est calcule au
+   * CHARGEMENT de la fiche (useInterventionState, depuis le champ persiste) et
+   * ne suit pas les validations faites dans la foulee. Sur une intervention
+   * rouverte, les pieces s'affichaient cochees alors que le drapeau restait
+   * faux : les etapes Photos et Recap paraissaient verrouillees a jamais.
+   */
+  const allRoomsChecked = allRoomsValidated
+    || (roomNames.length > 0 && roomNames.every((_, index) => validatedRooms.has(index)));
+
   // Recap is accessible once inspection + rooms are done (after_photos not required to VIEW recap)
-  const canAccessRecap = inspectionComplete && allRoomsValidated;
+  const canAccessRecap = inspectionComplete && allRoomsChecked;
 
   const steps: StepDef[] = [
     { id: 0, label: t('interventions.progressSteps.inspection'), completed: inspectionComplete, active: !inspectionComplete, locked: false },
-    { id: 1, label: t('interventions.progressSteps.rooms'), completed: allRoomsValidated, active: inspectionComplete && !allRoomsValidated, locked: !inspectionComplete },
-    { id: 2, label: t('interventions.progressSteps.photos'), completed: completedSteps.has('after_photos'), active: allRoomsValidated && !completedSteps.has('after_photos'), locked: !allRoomsValidated },
+    { id: 1, label: t('interventions.progressSteps.rooms'), completed: allRoomsChecked, active: inspectionComplete && !allRoomsChecked, locked: !inspectionComplete },
+    { id: 2, label: t('interventions.progressSteps.photos'), completed: completedSteps.has('after_photos'), active: allRoomsChecked && !completedSteps.has('after_photos'), locked: !allRoomsChecked },
     { id: 3, label: t('interventions.progressSteps.recap'), completed: isComplete, active: false, locked: !canAccessRecap },
   ];
 
@@ -383,26 +402,46 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {t('interventions.progressSteps.roomValidationDesc')}
       </p>
 
-      <div className="flex flex-wrap gap-1 mb-3">
+      {/* Une rangee par piece : la coche a gauche, le signalement a droite.
+          C'est au moment de valider une piece qu'on sait si quelque chose y
+          cloche — l'action doit etre la, pas dans un en-tete d'ecran. Le bouton
+          n'apparait qu'avec `onReportIssue`, c'est-a-dire sur l'ecran terrain,
+          intervention en cours. */}
+      <div className="mb-3 flex flex-col gap-1">
         {roomNames.map((name, idx) => {
           const validated = validatedRooms.has(idx);
           return (
-            <StatusChip
-              key={name}
-              tone="ok"
-              // La piece se COCHE : puce de selection (bordure au repos, teinte
-              // une fois validee), et non un statut subi.
-              outlined
-              selected={validated}
-              pressed={validated}
-              icon={validated
-                ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
-                : <RoomIcon size={18} strokeWidth={1.75} />}
-              label={name}
-              pill
-              onClick={() => handleRoomValidation(idx)}
-              className={roomChipClass}
-            />
+            <div key={name} className="flex items-center gap-2">
+              <StatusChip
+                tone="ok"
+                // La piece se COCHE : puce de selection (bordure au repos, teinte
+                // une fois validee), et non un statut subi.
+                outlined
+                selected={validated}
+                pressed={validated}
+                icon={validated
+                  ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
+                  : <RoomIcon size={18} strokeWidth={1.75} />}
+                label={name}
+                pill
+                onClick={() => handleRoomValidation(idx)}
+                className={cn(roomChipClass, 'flex-1 justify-start')}
+              />
+              {onReportIssue && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t('issues.report.roomAriaLabel', 'Signaler une anomalie dans {{room}}', { room: name })}
+                  className="min-h-[44px] min-w-[44px] shrink-0 text-muted-foreground hover:text-warning-ink hover:bg-warning-soft"
+                  onClick={() => onReportIssue(name)}
+                >
+                  <ReportProblemIcon size={16} strokeWidth={1.75} />
+                  <span className="hidden min-[420px]:inline">
+                    {t('issues.report.roomAction', 'Anomalie')}
+                  </span>
+                </Button>
+              )}
+            </div>
           );
         })}
       </div>
@@ -641,6 +680,26 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
           <div className="p-3.5 rounded-xl border border-border bg-card min-h-[120px]">
             {renderStepContent()}
+
+            {/* Passage a l'etape suivante. L'inspection a deja son propre
+                « Valider », mais les pieces et les photos n'avaient RIEN : on
+                n'avancait que par le recalcul automatique declenche a la
+                derniere validation. Une intervention ROUVERTE, dont tout est
+                deja coche, ne declenche plus rien — l'ecran restait bloque, la
+                seule issue etant de deviner qu'on peut cliquer le rond du
+                stepper. */}
+            {activeStep > 0 && activeStep < 3 && !steps[activeStep + 1].locked && (
+              <div className="mt-3 flex justify-end border-t border-solid border-border pt-3">
+                <Button
+                  size="sm"
+                  className="min-h-[44px]"
+                  onClick={() => setActiveStep((activeStep + 1) as StepId)}
+                >
+                  {t('interventions.progressSteps.nextStep', 'Étape suivante')} : {steps[activeStep + 1].label}
+                  <ChevronRightIcon size={18} strokeWidth={1.75} />
+                </Button>
+              </div>
+            )}
           </div>
         </>
       )}

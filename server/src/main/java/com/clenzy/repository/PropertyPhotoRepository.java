@@ -18,6 +18,13 @@ public interface PropertyPhotoRepository extends JpaRepository<PropertyPhoto, Lo
     /** Chargement batch pour le mapping des listes de logements (évite le N+1 du toDto). */
     List<PropertyPhoto> findByPropertyIdIn(List<Long> propertyIds);
 
+    /**
+     * Variante ORDONNEE du chargement batch : sortOrder puis id, la meme regle
+     * que {@code PropertyService} pour designer la photo de couverture. Sans
+     * tri, « la premiere rencontree » depend du plan d'execution.
+     */
+    List<PropertyPhoto> findByPropertyIdInOrderBySortOrderAscIdAsc(List<Long> propertyIds);
+
     int countByPropertyId(Long propertyId);
 
     @Modifying

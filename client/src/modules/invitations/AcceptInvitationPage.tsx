@@ -286,7 +286,7 @@ export default function AcceptInvitationPage() {
 
       setState('accepted');
       setTimeout(() => {
-        window.location.href = '/planning';
+        window.location.href = '/';
       }, 1500);
     } catch (err) {
       const apiErr = err as ApiError;
@@ -302,13 +302,13 @@ export default function AcceptInvitationPage() {
       await apiClient.patch('/users/me/profile', { phoneNumber: phoneNumber.trim() || undefined });
       setState('accepted');
       setTimeout(() => {
-        navigate('/planning', { replace: true });
+        navigate('/', { replace: true });
       }, 2000);
     } catch {
       // Meme si la mise a jour echoue, on redirige
       setState('accepted');
       setTimeout(() => {
-        navigate('/planning', { replace: true });
+        navigate('/', { replace: true });
       }, 2000);
     } finally {
       setSavingProfile(false);

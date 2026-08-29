@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render, screen, waitFor, fireEvent } from '../../../test/renderWithProviders';
 import { SupervisionView } from '../components/SupervisionView';
 import { MockSupervisionProvider, MockPortfolioProvider } from '../provider/MockSupervisionProvider';
 

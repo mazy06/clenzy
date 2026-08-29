@@ -3736,3 +3736,108 @@ databaseChangeLog:
       sqlFile:
         path: changes/0397__channex_organization_groups.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0398-user-provider-terms-acceptance"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0398__user_provider_terms_acceptance.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0399-provider-documents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0399__provider_documents.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0400-personal-teams"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0400__personal_teams.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0401-provider-availability"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0401__provider_availability.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0402-intervention-assignment-response"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0402__intervention_assignment_response.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0403-service-quote-provider-user"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0403__service_quote_provider_user.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0404-user-company-logo"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0404__user_company_logo.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0405-provider-agreed-rates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0405__provider_agreed_rates.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0406-issue-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0406__issue_photos.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0407-service-quote-lines"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0407__service_quote_lines.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0408-contact-group-threads"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0408__contact_group_threads.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0409-contact-message-payload"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0409__contact_message_payload.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0410-maintenance-deposit"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0410__maintenance_deposit.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0411-service-quote-deposit-paid"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0411__service_quote_deposit_paid.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0412-tax-filing-deposited-on"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0412__tax_filing_deposited_on.sql
+        relativeToChangelogFile: true

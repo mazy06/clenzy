@@ -4,6 +4,8 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useNotification } from '../../hooks/useNotification';
+import { useAuth } from '../../hooks/useAuth';
+import { OPERATIONAL_ROLES } from '../../constants/roles';
 import {
   Accordion,
   AccordionContent,
@@ -53,6 +55,44 @@ interface CategoryGroup {
   color: string;
   keys: NotificationKeyInfo[];
 }
+
+/**
+ * Ce qu'un INTERVENANT (menage, maintenance, blanchisserie, exterieurs) a besoin
+ * de regler.
+ *
+ * Les 86 types de notification etaient servis a l'identique a tous les roles :
+ * une gouvernante se voyait proposer ses alertes RGPD, permissions,
+ * portefeuilles, paiements et assistant. Neuf categories entieres ne la
+ * concernent pas, et dans « Interventions » la moitie des evenements relevent du
+ * pilotage (creee, progression, validee, en attente de paiement, supprimee…),
+ * pas de l'execution.
+ *
+ * On FILTRE l'affichage, on ne touche pas aux preferences stockees : celles des
+ * types masques gardent leur valeur, elles cessent seulement d'encombrer un
+ * ecran qu'on consulte sur un telephone.
+ *
+ * `null` = toute la categorie ; une liste = ces types-la seulement.
+ */
+const FIELD_ROLE_ALLOWLIST: Record<string, string[] | null> = {
+  intervention: [
+    'INTERVENTION_ASSIGNED_TO_USER',
+    'INTERVENTION_ASSIGNED_TO_TEAM',
+    'INTERVENTION_REMINDER',
+    'INTERVENTION_OVERDUE',
+    'INTERVENTION_CANCELLED',
+    'INTERVENTION_REOPENED',
+  ],
+  service_request: ['SERVICE_REQUEST_ASSIGNED', 'SERVICE_REQUEST_URGENT'],
+  team: null,
+  contact: null,
+};
+
+/**
+ * Roles dont le quotidien est l'execution sur le terrain. Repris de
+ * `OPERATIONAL_ROLES` MOINS le superviseur : lui pilote des equipes, il a besoin
+ * des evenements de suivi que l'executant n'a pas a lire.
+ */
+const FIELD_ROLES = OPERATIONAL_ROLES.filter((role) => role !== 'SUPERVISOR');
 
 const CATEGORIES: CategoryGroup[] = [
   {
@@ -271,6 +311,22 @@ interface NotificationPreferencesCardProps {
 }
 
 const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, NotificationPreferencesCardProps>(function NotificationPreferencesCard({ onChangeState }, ref) {
+  const { hasAnyRole } = useAuth();
+  const isFieldUser = hasAnyRole(FIELD_ROLES);
+
+  const visibleCategories = React.useMemo(() => {
+    if (!isFieldUser) return CATEGORIES;
+    return CATEGORIES
+      .filter((category) => category.id in FIELD_ROLE_ALLOWLIST)
+      .map((category) => {
+        const allowed = FIELD_ROLE_ALLOWLIST[category.id];
+        return allowed === null
+          ? category
+          : { ...category, keys: category.keys.filter((entry) => allowed.includes(entry.key)) };
+      })
+      .filter((category) => category.keys.length > 0);
+  }, [isFieldUser]);
+
   const [preferences, setPreferences] = useState<NotificationPreferencesMap>({});
   const [originalPrefs, setOriginalPrefs] = useState<NotificationPreferencesMap>({});
   const [loading, setLoading] = useState(true);
@@ -392,7 +448,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       {/* Categories Accordions — grille 2 colonnes */}
       {/* md MUI = 900px (breakpoints non configures) et gap: 1 = 6px (spacing 6). */}
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-1.5 items-start">
-        {CATEGORIES.map((category) => {
+        {visibleCategories.map((category) => {
           const stats = getCategoryStats(category);
           const allEnabled = stats.enabled === stats.total;
           const noneEnabled = stats.enabled === 0;

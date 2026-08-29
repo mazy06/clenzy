@@ -86,14 +86,16 @@ public class MoroccoComplianceStrategy implements CountryComplianceStrategy {
 
     @Override
     public boolean requiresLegalNumber(DocumentType type) {
-        return type == DocumentType.FACTURE || type == DocumentType.DEVIS;
+        return type == DocumentType.FACTURE
+                || type == DocumentType.DEVIS
+                || type == DocumentType.DEVIS_PRESTATAIRE;
     }
 
     @Override
     public String getDefaultPrefix(DocumentType type) {
         return switch (type) {
             case FACTURE -> "FAC";
-            case DEVIS -> "DEV";
+            case DEVIS, DEVIS_PRESTATAIRE -> "DEV";
             default -> null;
         };
     }

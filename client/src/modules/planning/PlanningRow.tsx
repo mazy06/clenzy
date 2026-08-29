@@ -474,8 +474,13 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         const weekend = isWeekend(day);
         const today = isToday(day);
         if (!weekend && !today) return null;
+        // `inset-y-0` et non `height: effectiveRowHeight` : en box-sizing
+        // border-box cette hauteur inclut le filet du bas de la ligne, que le
+        // fond recouvrait — les cellules week-end et celle du jour perdaient
+        // leur bordure horizontale. Un absolu se cale sur le padding box, donc
+        // s'arrête juste avant le filet.
         return (
-          <div className="absolute top-0 pointer-events-none" style={{ left: idx * dayWidth, width: dayWidth, height: effectiveRowHeight, backgroundColor: today
+          <div className="absolute inset-y-0 pointer-events-none" style={{ left: idx * dayWidth, width: dayWidth, backgroundColor: today
                 ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
                   ? WEEKEND_CELL_BG

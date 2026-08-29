@@ -10,6 +10,15 @@ import { useAuth } from '../hooks/useAuth';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredPermission?: string;
+  /**
+   * Roles a qui la route reste fermee MEME s'ils portent la permission.
+   *
+   * <p>Les permissions sont accordees compte par compte : un technicien
+   * s'etait vu attribuer `settings:view` a la main, ce qui lui ouvrait les
+   * reglages de l'ORGANISATION. Certains ecrans ne relevent pas du metier,
+   * quelle que soit la permission — c'est ce que ce garde-fou exprime.</p>
+   */
+  deniedRoles?: string[];
   fallbackPath?: string;
   fallbackMessage?: string;
 }
@@ -17,21 +26,34 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredPermission,
+  deniedRoles,
   fallbackPath = '/',
   fallbackMessage
 }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  const isDenied = useMemo(() => {
+    if (!deniedRoles || deniedRoles.length === 0 || !user) return false;
+    const userRoles = new Set(user.roles ?? []);
+    return deniedRoles.some((role) => userRoles.has(role));
+  }, [deniedRoles, user]);
+
   // Vérification synchrone — pas de useEffect, pas de state intermédiaire
   const hasAccess = useMemo(() => {
+    if (isDenied) return false;
     if (!requiredPermission) return true;
     if (!user) return false;
     return user.permissions?.includes(requiredPermission) || false;
-  }, [requiredPermission, user]);
+  }, [isDenied, requiredPermission, user]);
 
-  // Si aucune permission n'est requise, afficher directement
-  if (!requiredPermission) {
+  // Si l'auth charge encore, ne rien afficher (évite le flash d'accès refusé).
+  if (loading) {
+    return null;
+  }
+
+  // Aucune restriction déclarée → afficher directement.
+  if (!requiredPermission && !isDenied) {
     return <>{children}</>;
   }
 
@@ -75,6 +97,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         'reports:view': 'consulter les rapports'
       };
       
+      if (!requiredPermission) return 'accéder à cette fonctionnalité';
       return permissionMap[requiredPermission] || 'accéder à cette fonctionnalité';
     };
 

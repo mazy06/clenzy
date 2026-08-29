@@ -107,6 +107,15 @@ export function useInterventionState(id: string | undefined) {
       return {
         bedroomCount: rawProperty.bedroomCount,
         bathroomCount: rawProperty.bathroomCount,
+        // Consignes d'acces : code de porte, stationnement, arrivee. La requete
+        // les rapportait deja, le mapping les jetait.
+        checkInInstructions: rawProperty.checkInInstructions
+          ? {
+            accessCode: rawProperty.checkInInstructions.accessCode,
+            parkingInfo: rawProperty.checkInInstructions.parkingInfo,
+            arrivalInstructions: rawProperty.checkInInstructions.arrivalInstructions,
+          }
+          : undefined,
       };
     },
     retry: 1,
@@ -125,6 +134,7 @@ export function useInterventionState(id: string | undefined) {
     return {
       bedroomCount: propertyQuery.data.bedroomCount,
       bathroomCount: propertyQuery.data.bathroomCount,
+      checkInInstructions: propertyQuery.data.checkInInstructions,
     };
   }, [propertyQuery.data?.bedroomCount, propertyQuery.data?.bathroomCount]);
 

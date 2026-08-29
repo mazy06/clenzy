@@ -51,13 +51,16 @@ class CreateMaintenanceInterventionExecutorTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private NoiseAlertRepository noiseAlertRepository;
+    @Mock private com.clenzy.repository.UserRepository userRepository;
+    @Mock private com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository;
 
     private CreateMaintenanceInterventionExecutor executor;
 
     @BeforeEach
     void setUp() {
         executor = new CreateMaintenanceInterventionExecutor(
-                deviceRepository, interventionRepository, propertyRepository, noiseAlertRepository);
+                deviceRepository, interventionRepository, propertyRepository, noiseAlertRepository,
+                userRepository, organizationMemberRepository);
     }
 
     private static AutomationRule rule() {

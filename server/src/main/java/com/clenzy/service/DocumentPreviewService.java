@@ -198,6 +198,9 @@ public class DocumentPreviewService {
             case MANDAT_GESTION, AUTORISATION_TRAVAUX -> List.of("property", "intervention");
             // Devis ménage (3A) : toujours référencé sur un logement.
             case DEVIS_MENAGE -> List.of("property");
+            // Devis prestataire : référencé sur le devis lui-même, dont le
+            // résolveur remonte l'intervention et le logement.
+            case DEVIS_PRESTATAIRE -> List.of("service_quote");
             case BON_COMMANDE -> List.of("provider_expense", "intervention");
         };
     }

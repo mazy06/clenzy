@@ -661,12 +661,12 @@ export default function Settings() {
   const settingsRootTitle = t('tabHeaders.settings.title', 'Paramètres');
   const settingsDefaultSubtitle = t('tabHeaders.settings.default', 'Configurez votre application selon vos préférences');
 
-  // Titre = page courante SEULE : le chemin ("Paramètres › <label>") est porte
-  // par le fil d'Ariane du PageHeader, ne pas le repeter dans le h1.
+  // Titre = nom de l'ecran SEUL : l'onglet actif lui est accole par PageTitle
+  // (« Parametres │ Notifications »), on ne le recompose pas ici.
   // On indexe par label car tabValue est le visible-index (filtree par role).
   const activeTabLabel = visibleSettingsTabs[tabValue]?.label;
   const activeTabMeta = activeTabLabel ? settingsTabMeta[activeTabLabel] : undefined;
-  const headerTitle = activeTabLabel && tabValue > 0 ? activeTabLabel : settingsRootTitle;
+  const headerTitle = settingsRootTitle;
   const headerSubtitle = activeTabMeta?.subtitle ?? settingsDefaultSubtitle;
 
   // Actions : un tab a-t-il deja inline son bouton via headerActions (tab 1/4/8)

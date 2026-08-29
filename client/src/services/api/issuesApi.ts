@@ -22,6 +22,8 @@ export interface Issue {
   suggestedCost: number | null;
   convertedServiceRequestId: number | null;
   dismissReason: string | null;
+  /** Adresses relatives des photos jointes — à absolutiser via `toApiMediaUrl`. */
+  photoUrls: string[] | null;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -42,10 +44,12 @@ export interface QualifyIssuePayload {
 }
 
 export const issuesApi = {
-  list(params?: { status?: IssueStatus; propertyId?: number }): Promise<Issue[]> {
+  list(params?: { status?: IssueStatus; propertyId?: number; mine?: boolean }): Promise<Issue[]> {
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
     if (params?.propertyId != null) query.set('propertyId', String(params.propertyId));
+    // « mine » restreint aux anomalies signalees PAR l'appelant (resolu du JWT).
+    if (params?.mine) query.set('mine', 'true');
     const qs = query.toString();
     return apiClient.get<Issue[]>(`/issues${qs ? `?${qs}` : ''}`);
   },
@@ -56,6 +60,13 @@ export const issuesApi = {
 
   create(payload: CreateIssuePayload): Promise<Issue> {
     return apiClient.post<Issue>('/issues', payload);
+  },
+
+  /** Photos du constat — jusqu'à 6, 5 Mo chacune (validé côté serveur). */
+  uploadPhotos(id: number, files: File[]): Promise<Issue> {
+    const form = new FormData();
+    files.forEach((file) => form.append('photos', file));
+    return apiClient.upload<Issue>(`/issues/${id}/photos`, form);
   },
 
   qualify(id: number, payload: QualifyIssuePayload): Promise<Issue> {

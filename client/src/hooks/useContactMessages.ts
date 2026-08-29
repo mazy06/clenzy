@@ -172,6 +172,23 @@ export function useReplyMessage() {
   });
 }
 
+/**
+ * Répondre dans une discussion de GROUPE.
+ *
+ * Distinct de `useReplyMessage` : répondre à un message s'adresse à son
+ * expéditeur, ce qui aurait ouvert un échange un-à-un en marge du fil.
+ */
+export function useReplyInThread() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ threadKey, message }: { threadKey: string; message: string }) =>
+      contactApi.replyInThread(threadKey, message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+    },
+  });
+}
+
 export function useBulkUpdateStatus() {
   const queryClient = useQueryClient();
   return useMutation({

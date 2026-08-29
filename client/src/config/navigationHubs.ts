@@ -56,14 +56,13 @@ export const NAVIGATION_HUBS: HubDef[] = [
       },
       {
         path: '/reservations',
-        matchPrefixes: ['/calendar'],
         translationKey: 'navigation.reservations',
         fallbackLabel: 'Réservations',
         isAccessible: (a) => has(a, 'reservations:view'),
       },
       {
         path: '/interventions',
-        matchPrefixes: ['/service-requests'],
+        matchPrefixes: ['/service-requests', '/calendar'],
         translationKey: 'navigation.interventions',
         fallbackLabel: 'Interventions',
         isAccessible: (a) => has(a, 'interventions:view') || has(a, 'service-requests:view'),
@@ -151,8 +150,11 @@ export const NAVIGATION_HUBS: HubDef[] = [
         path: '/shop',
         translationKey: 'navigation.shop',
         fallbackLabel: 'Boutique',
-        // Historique : /shop n'a jamais été gaté par permission dans hasMenuAccess.
-        isAccessible: () => true,
+        // `() => true` faisait apparaitre le hub Distribution en entier pour
+        // TOUT compte authentifie — un intervenant de terrain se voyait offrir
+        // le catalogue d'upsells vendus aux voyageurs. La boutique se gere avec
+        // les logements, comme ses deux voisines.
+        isAccessible: (a) => has(a, 'properties:view'),
       },
       {
         path: '/channels',

@@ -16,6 +16,7 @@ import {
 import { exportToCSV, type ExportColumn } from '../utils/exportUtils';
 import { useTranslation } from '../hooks/useTranslation';
 import { useNotification } from '../hooks/useNotification';
+import { useHeaderCompact } from './compactHeaderActions';
 
 interface ExportButtonProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,6 +40,10 @@ export default function ExportButton({
 }: ExportButtonProps) {
   const { t } = useTranslation();
   const { notify } = useNotification();
+  // Dans la barre de titre, tout se présente en icône : ce composant rend ses
+  // boutons lui-même, la réduction ne peut pas l'atteindre — il s'y range seul.
+  const compact = useHeaderCompact();
+  const effectiveVariant = compact && variant === 'button' ? 'icon' : variant;
 
   const isDataEmpty = !data || data.length === 0;
   const isDisabled = disabled || isDataEmpty;
@@ -51,7 +56,7 @@ export default function ExportButton({
 
   const tooltipTitle = isDataEmpty ? t('export.noData') : '';
 
-  if (variant === 'icon') {
+  if (effectiveVariant === 'icon') {
     const iconLabel = isDataEmpty ? t('export.noData') : t('export.button');
     return (
       <Tooltip>
@@ -61,11 +66,14 @@ export default function ExportButton({
           <span className="inline-flex">
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon"
               onClick={handleExportCSV}
               disabled={isDisabled}
               aria-label={iconLabel}
-              className="rounded-md border border-solid border-border text-muted-foreground hover:bg-muted hover:border-faint hover:text-foreground disabled:opacity-45"
+              // Dans la barre de titre, aucun bouton n'a de contour : ce serait
+              // le seul encadre de la rangee. Ailleurs, l'encadre le detache du
+              // contenu qui l'entoure.
+              className={compact ? 'disabled:opacity-45' : 'rounded-md border border-solid border-border text-muted-foreground hover:bg-muted hover:border-faint hover:text-foreground disabled:opacity-45'}
             >
               <DownloadIcon size={16} strokeWidth={1.75} />
             </Button>
@@ -76,7 +84,7 @@ export default function ExportButton({
     );
   }
 
-  if (variant === 'menu') {
+  if (effectiveVariant === 'menu') {
     const trigger = (
       <DropdownMenuTrigger asChild>
         <Button

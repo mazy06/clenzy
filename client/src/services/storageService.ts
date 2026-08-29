@@ -48,6 +48,10 @@ export const STORAGE_KEYS = {
   // (cf. TokenService.notifyOtherTabs — pas un "stockage" de pref)
   TOKEN_UPDATE: 'clenzy_token_update',
 
+  // Position du guide de demarrage flottant (per-device : elle depend de la
+  // taille d'ecran, une position d'ordinateur n'a pas de sens sur telephone)
+  ONBOARDING_DOCK_POSITION: 'clenzy_onboarding_dock_position',
+
   // Contract CTA banner dismissed (per-device)
   CONTRACT_CTA_DISMISSED: 'clenzy_contract_cta_dismissed',
 
@@ -206,14 +210,21 @@ function getTokenRemainingSeconds(accessToken: string): number {
   }
 }
 
+/** Adresse IPv4 litterale (dev sur le reseau local : http://192.168.x.y:3000). */
+const IPV4_HOSTNAME = /^\d{1,3}(\.\d{1,3}){3}$/;
+
 /**
  * Retourne le domaine racine pour le cookie.
- * - localhost → pas de domain (partagé entre tous les ports)
+ * - localhost, ou une IP → pas de domain (partagé entre tous les ports)
  * - app.clenzy.fr → .clenzy.fr (partagé entre tous les sous-domaines)
+ *
+ * Une IP n'a pas de domaine racine : ses « sous-domaines » n'en sont pas.
+ * Découper 192.168.1.118 donnait `; domain=.1.118`, que le navigateur
+ * rejette — le cookie disparaissait sans un mot, en dev depuis un téléphone.
  */
 function getCookieDomain(): string {
   const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+  if (hostname === 'localhost' || IPV4_HOSTNAME.test(hostname)) {
     return '';
   }
   // Extraire le domaine racine (ex: app.clenzy.fr → .clenzy.fr)

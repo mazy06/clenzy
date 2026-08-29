@@ -29,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +39,7 @@ class InterventionServiceTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private UserRepository userRepository;
     @Mock private TeamRepository teamRepository;
+    @Mock private com.clenzy.repository.PropertyPhotoRepository propertyPhotoRepository;
     @Mock private NotificationService notificationService;
     @Mock private TenantContext tenantContext;
     @Mock private InterventionPhotoService photoService;
@@ -44,6 +47,7 @@ class InterventionServiceTest {
     @Mock private InterventionAccessPolicy accessPolicy;
     @Mock private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
     @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
     private InterventionService service;
 
@@ -57,7 +61,8 @@ class InterventionServiceTest {
                 interventionRepository, userRepository, teamRepository,
                 notificationService, tenantContext,
                 photoService, interventionMapper, accessPolicy,
-                cleaningPricingEngine, missionAssignmentEmailComposer);
+                cleaningPricingEngine, missionAssignmentEmailComposer, propertyPhotoRepository,
+                supervisionTriggerService);
 
         owner = new User();
         owner.setId(10L);
@@ -238,7 +243,7 @@ class InterventionServiceTest {
             InterventionResponse resultResponse = buildResultResponse(1L, "PENDING", "Test Intervention");
 
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
-            when(interventionMapper.convertToResponse(intervention)).thenReturn(resultResponse);
+            when(interventionMapper.convertToResponse(eq(intervention), isNull(), anyMap())).thenReturn(resultResponse);
 
             InterventionResponse result = service.getById(1L, jwt);
 

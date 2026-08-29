@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.config.KafkaConfig;
+import java.time.LocalDateTime;
 import com.clenzy.dto.UserDto;
 import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.KeycloakUserDto;
@@ -311,7 +312,71 @@ public class UserService {
         if (updates.containsKey("phoneNumber")) {
             user.setPhoneNumber(updates.get("phoneNumber"));
         }
+        // Raison sociale du prestataire : elle sort deja dans les documents via
+        // le tag `${client.societe}`, mais rien ne permettait de la saisir.
+        if (updates.containsKey("companyName")) {
+            String value = updates.get("companyName");
+            user.setCompanyName(value != null && !value.isBlank() ? value.trim() : null);
+        }
         userRepository.save(user);
+    }
+
+    // ── Logo d'entreprise ──────────────────────────────────────────────────
+
+    /**
+     * Depose ou remplace le logo d'entreprise.
+     *
+     * <p>Reutilise le stockage des avatars : meme validation (types image,
+     * 5 Mo) et meme convention de cle, {@code users/{id}/{uuid}.{ext}} — l'UUID
+     * garantit qu'un logo et une photo de profil ne se marchent pas dessus.</p>
+     */
+    public String uploadCompanyLogo(String keycloakId, MultipartFile file) {
+        User user = requireByKeycloakId(keycloakId);
+        String previousPath = user.getCompanyLogoPath();
+        String newPath = avatarStorage.store(user.getId(), file);
+        user.setCompanyLogoPath(newPath);
+        userRepository.save(user);
+
+        if (previousPath != null && !previousPath.equals(newPath)) {
+            avatarStorage.delete(previousPath);
+        }
+        return newPath;
+    }
+
+    public void deleteCompanyLogo(String keycloakId) {
+        User user = requireByKeycloakId(keycloakId);
+        String previousPath = user.getCompanyLogoPath();
+        if (previousPath != null) {
+            avatarStorage.delete(previousPath);
+        }
+        user.setCompanyLogoPath(null);
+        userRepository.save(user);
+    }
+
+    /** @return [Resource, contentType] ou null si aucun logo. */
+    @Transactional(readOnly = true)
+    public Object[] streamCompanyLogo(String keycloakId) {
+        User user = requireByKeycloakId(keycloakId);
+        String path = user.getCompanyLogoPath();
+        if (path == null || path.isBlank() || !avatarStorage.exists(path)) {
+            return null;
+        }
+        return new Object[] { avatarStorage.load(path), avatarStorage.contentTypeFor(path) };
+    }
+
+    /** Bytes du logo pour l'injection dans un document. {@code null} si absent. */
+    @Transactional(readOnly = true)
+    public byte[] companyLogoBytes(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return null;
+        String path = user.getCompanyLogoPath();
+        if (path == null || path.isBlank() || !avatarStorage.exists(path)) return null;
+        try {
+            return avatarStorage.load(path).getInputStream().readAllBytes();
+        } catch (java.io.IOException e) {
+            log.warn("Lecture du logo impossible pour l'utilisateur {} : {}", userId, e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -337,6 +402,58 @@ public class UserService {
         userRepository.save(user);
         return user.isNewsletterOptIn();
     }
+
+    // ── CGU prestataire ────────────────────────────────────────────────────
+
+    /**
+     * Version courante des CGU prestataire. Constante et non configuration : la
+     * publier suppose de mettre a jour le DOCUMENT en meme temps, donc un
+     * deploiement — une valeur en base pourrait deriver du texte affiche.
+     */
+    public static final String PROVIDER_TERMS_VERSION = "2026-08";
+
+    /** Acceptation courante de l'utilisateur, ou {@code null} s'il n'a jamais accepte. */
+    public ProviderTermsStatus getProviderTermsStatus(String keycloakId) {
+        User user = requireByKeycloakId(keycloakId);
+        return new ProviderTermsStatus(
+                PROVIDER_TERMS_VERSION,
+                user.getProviderTermsVersion(),
+                user.getProviderTermsAcceptedAt(),
+                PROVIDER_TERMS_VERSION.equals(user.getProviderTermsVersion()));
+    }
+
+    /**
+     * Enregistre l'acceptation des CGU prestataire dans leur version courante.
+     *
+     * <p>L'IP est une PREUVE : elle vient de {@code TrustedClientIpResolver} et
+     * jamais du premier maillon de {@code X-Forwarded-For}, qu'un client peut
+     * forger.</p>
+     *
+     * <p>Ré-accepter une version deja acceptee est sans effet : l'horodatage
+     * d'origine fait foi, l'ecraser detruirait la preuve la plus ancienne.</p>
+     */
+    @Transactional
+    public ProviderTermsStatus acceptProviderTerms(String keycloakId, String clientIp) {
+        User user = requireByKeycloakId(keycloakId);
+        if (!PROVIDER_TERMS_VERSION.equals(user.getProviderTermsVersion())) {
+            user.setProviderTermsVersion(PROVIDER_TERMS_VERSION);
+            user.setProviderTermsAcceptedAt(LocalDateTime.now());
+            user.setProviderTermsAcceptedIp(clientIp);
+            userRepository.save(user);
+        }
+        return new ProviderTermsStatus(
+                PROVIDER_TERMS_VERSION,
+                user.getProviderTermsVersion(),
+                user.getProviderTermsAcceptedAt(),
+                true);
+    }
+
+    /** Etat d'acceptation expose au client. L'IP reste cote serveur : c'est une preuve, pas une info d'ecran. */
+    public record ProviderTermsStatus(
+            String currentVersion,
+            String acceptedVersion,
+            LocalDateTime acceptedAt,
+            boolean upToDate) {}
 
     private User requireByKeycloakId(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)

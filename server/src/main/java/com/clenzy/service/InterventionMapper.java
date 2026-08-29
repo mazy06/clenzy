@@ -2,6 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.dto.CreateInterventionRequest;
 import com.clenzy.dto.InterventionResponse;
+import java.util.List;
+import com.clenzy.dto.QuoteLineDto;
 import com.clenzy.dto.UpdateInterventionRequest;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
@@ -10,7 +12,10 @@ import com.clenzy.model.Team;
 import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.repository.IssuePhotoRepository;
+import com.clenzy.repository.IssueRepository;
 import com.clenzy.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,6 +36,9 @@ public class InterventionMapper {
     private static final Logger log = LoggerFactory.getLogger(InterventionMapper.class);
 
     private final PropertyRepository propertyRepository;
+    private final ObjectMapper objectMapper;
+    private final IssueRepository issueRepository;
+    private final IssuePhotoRepository issuePhotoRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final InterventionPhotoService photoService;
@@ -38,8 +46,14 @@ public class InterventionMapper {
     public InterventionMapper(PropertyRepository propertyRepository,
                               UserRepository userRepository,
                               TeamRepository teamRepository,
-                              InterventionPhotoService photoService) {
+                              InterventionPhotoService photoService,
+                              ObjectMapper objectMapper,
+                              IssueRepository issueRepository,
+                              IssuePhotoRepository issuePhotoRepository) {
         this.propertyRepository = propertyRepository;
+        this.objectMapper = objectMapper;
+        this.issueRepository = issueRepository;
+        this.issuePhotoRepository = issuePhotoRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.photoService = photoService;
@@ -101,6 +115,28 @@ public class InterventionMapper {
     }
 
     /**
+     * Variante complete (photos d'intervention chargees) enrichie de la photo de
+     * couverture du logement — c'est le chemin de la FICHE.
+     */
+    public InterventionResponse convertToResponse(Intervention intervention,
+                                                  Map<Long, String> teamNameMap,
+                                                  Map<Long, String> propertyPhotoMap) {
+        return convertToResponseInternal(intervention, teamNameMap, true, propertyPhotoMap);
+    }
+
+    /**
+     * Variante de liste enrichie de la photo de couverture des logements.
+     *
+     * <p>La carte {@code propertyPhotoMap} est construite en UNE requete pour
+     * toute la page — la resoudre par intervention ferait un N+1.</p>
+     */
+    public InterventionResponse convertToListResponse(Intervention intervention,
+                                                      Map<Long, String> teamNameMap,
+                                                      Map<Long, String> propertyPhotoMap) {
+        return convertToResponseInternal(intervention, teamNameMap, false, propertyPhotoMap);
+    }
+
+    /**
      * Convert an entity to its response representation.
      */
     public InterventionResponse convertToResponse(Intervention intervention) {
@@ -112,14 +148,15 @@ public class InterventionMapper {
      * Identical to convertToResponseInternal but SKIPS photo loading to avoid N+1 BYTEA loads.
      */
     public InterventionResponse convertToListResponse(Intervention intervention, Map<Long, String> teamNameMap) {
-        return convertToResponseInternal(intervention, teamNameMap, false);
+        return convertToResponseInternal(intervention, teamNameMap, false, null);
     }
 
     private InterventionResponse convertToResponseInternal(Intervention intervention, Map<Long, String> teamNameMap) {
-        return convertToResponseInternal(intervention, teamNameMap, true);
+        return convertToResponseInternal(intervention, teamNameMap, true, null);
     }
 
-    private InterventionResponse convertToResponseInternal(Intervention intervention, Map<Long, String> teamNameMap, boolean loadPhotos) {
+    private InterventionResponse convertToResponseInternal(Intervention intervention, Map<Long, String> teamNameMap,
+                                                           boolean loadPhotos, Map<Long, String> propertyPhotoMap) {
         InterventionResponse.Builder builder = InterventionResponse.builder();
 
         // Basic properties
@@ -172,6 +209,52 @@ public class InterventionMapper {
             }
             builder.propertyLatitude(prop.getLatitude() != null ? prop.getLatitude().doubleValue() : null)
                    .propertyLongitude(prop.getLongitude() != null ? prop.getLongitude().doubleValue() : null);
+            // Le proprietaire est deja charge par l'EntityGraph des requetes de
+            // liste : le lire ici ne coute aucune requete supplementaire.
+            if (prop.getOwner() != null) {
+                builder.propertyOwnerName(prop.getOwner().getFullName());
+            }
+            // La photo vient d'une carte pre-chargee en UNE requete par page :
+            // la resoudre logement par logement ferait un N+1 sur une liste.
+            if (propertyPhotoMap != null) {
+                builder.propertyCoverPhotoUrl(propertyPhotoMap.get(prop.getId()));
+            }
+        }
+
+        // Signalement a l'origine : l'anomalie porte le lien vers la demande, pas
+        // l'inverse. On remonte donc depuis l'identifiant de demande. Absent
+        // pour une intervention creee directement — le cas courant.
+        if (intervention.getServiceRequest() != null && issueRepository != null) {
+            issueRepository.findByConvertedServiceRequestIdAndOrganizationId(
+                    intervention.getServiceRequest().getId(), intervention.getOrganizationId())
+                .ifPresent(issue -> builder.sourceIssue(new InterventionResponse.SourceIssueDto(
+                        issue.getId(), issue.getTitle(), issue.getDescription(),
+                        issue.getSeverity() != null ? issue.getSeverity().name() : null,
+                        issue.getReportedBy() != null
+                                ? userRepository.findById(issue.getReportedBy())
+                                    .map(User::getFullName).orElse(null)
+                                : null,
+                        issue.getCreatedAt(),
+                        issuePhotoRepository == null ? List.of()
+                                : issuePhotoRepository.findIdsByIssueId(issue.getId()).stream()
+                                    .map(photoId -> "/api/issues/" + issue.getId()
+                                            + "/photos/" + photoId + "/data")
+                                    .toList())));
+        }
+
+        // Taches chiffrees de la demande d'origine. Le JSON est stocke tel quel
+        // sur la demande ; un contenu illisible ne doit pas faire echouer toute
+        // la liste — on rend alors une liste vide.
+        if (intervention.getServiceRequest() != null
+                && intervention.getServiceRequest().getQuoteLines() != null) {
+            try {
+                builder.quoteLines(objectMapper.readValue(
+                        intervention.getServiceRequest().getQuoteLines(),
+                        new com.fasterxml.jackson.core.type.TypeReference<List<QuoteLineDto>>() {}));
+            } catch (Exception e) {
+                log.debug("Lignes de devis illisibles sur l'intervention {} : {}",
+                        intervention.getId(), e.getMessage());
+            }
         }
 
         if (intervention.getRequestor() != null) {
@@ -213,7 +296,11 @@ public class InterventionMapper {
         builder.stripePaymentIntentId(intervention.getStripePaymentIntentId())
                .stripeSessionId(intervention.getStripeSessionId())
                .paidAt(intervention.getPaidAt())
-               .preferredTimeSlot(intervention.getPreferredTimeSlot());
+               .preferredTimeSlot(intervention.getPreferredTimeSlot())
+               .assignmentResponse(intervention.getAssignmentResponse() != null
+                       ? intervention.getAssignmentResponse().name() : null)
+               .assignmentRespondedAt(intervention.getAssignmentRespondedAt())
+               .assignmentDeclineReason(intervention.getAssignmentDeclineReason());
 
         return builder.build();
     }

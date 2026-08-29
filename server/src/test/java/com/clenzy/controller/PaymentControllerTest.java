@@ -56,6 +56,7 @@ import static org.mockito.Mockito.*;
 class PaymentControllerTest {
 
     @Mock private StripeService stripeService;
+    @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private InterventionRepository interventionRepository;
     @Mock private ReservationRepository reservationRepository;
@@ -77,7 +78,8 @@ class PaymentControllerTest {
         InterventionPaymentService interventionPaymentService = new InterventionPaymentService(
                 interventionRepository, orchestrationService, stripeService,
                 paymentTransactionService, tenantContext,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
+                serviceQuoteRepository);
         controller = new PaymentController(interventionPaymentService, paymentQueryService, paymentTransactionService);
 
         jwt = Jwt.withTokenValue("token")

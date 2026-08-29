@@ -42,6 +42,7 @@ public class PlatformSettingsController {
         body.put("conciergeDraftEnabled", s.isConciergeDraftEnabled());
         body.put("conciergeAutosendEnabled", s.isConciergeAutosendEnabled());
         body.put("conciergeAutosendMinForfait", s.getConciergeAutosendMinForfait());
+        body.put("maintenanceDepositPercent", s.getMaintenanceDepositPercent());
         body.put("updatedAt", s.getUpdatedAt());
         body.put("updatedBy", s.getUpdatedBy());
         return ResponseEntity.ok(body);
@@ -68,6 +69,17 @@ public class PlatformSettingsController {
      * copie devis, waitlist, maintenance). L'expéditeur reste toujours info@clenzy.fr.
      * Rejette une saisie sans aucune adresse valide (évite de couper toute notif).
      */
+    public record DepositPercentRequest(java.math.BigDecimal percent) {}
+
+    @PutMapping("/maintenance-deposit-percent")
+    public ResponseEntity<Map<String, Object>> updateMaintenanceDepositPercent(
+            @RequestBody DepositPercentRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        service.updateMaintenanceDepositPercent(
+                request.percent(), jwt != null ? jwt.getSubject() : "system");
+        return get();
+    }
+
     @PutMapping("/internal-notification-emails")
     public ResponseEntity<Map<String, Object>> setInternalNotificationEmails(
             @RequestBody List<String> emails,
@@ -121,6 +133,7 @@ public class PlatformSettingsController {
         body.put("conciergeDraftEnabled", s.isConciergeDraftEnabled());
         body.put("conciergeAutosendEnabled", s.isConciergeAutosendEnabled());
         body.put("conciergeAutosendMinForfait", s.getConciergeAutosendMinForfait());
+        body.put("maintenanceDepositPercent", s.getMaintenanceDepositPercent());
         return ResponseEntity.ok(body);
     }
 

@@ -15,10 +15,13 @@ import {
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
+  Bubble,
+  BubbleContent,
   Message,
   MessageAvatar,
   MessageContent,
   MessageFooter,
+  MessageHeader,
   MessageGroup,
   Spinner,
   Switch,
@@ -274,6 +277,15 @@ export default function ThreadView({
                       </MessageAvatar>
                     )}
                     <MessageContent>
+                      {/* Qui parle. Indispensable des qu'un fil reunit plus de
+                          deux personnes : le prenom ne se deduit plus du cote
+                          de la bulle. */}
+                      {!msg.out && msg.sender && (
+                        <MessageHeader className="mb-0.5 text-2xs font-semibold text-muted-foreground">
+                          {msg.sender}
+                        </MessageHeader>
+                      )}
+
                       {/* Une note interne DOIT se distinguer d'un message envoyé :
                           l'opérateur qui relit le fil doit voir d'un coup d'œil ce
                           que le voyageur a reçu et ce qu'il n'a pas reçu. */}
@@ -284,16 +296,32 @@ export default function ThreadView({
                         </Badge>
                       )}
 
+                      {/* La BULLE, que ce fil n'utilisait pas : le texte se
+                          rendait a plat, sur toute la largeur, et rien ne
+                          rattachait visuellement un contenu a son auteur.
+                          `.cn-bubble` borne a 80 % et se colle au bon cote. */}
                       {msg.text && (
-                        <span
-                          className={cn(
-                            'whitespace-pre-wrap break-words',
-                            msg.internalNote &&
-                              'rounded-lg border border-warning/40 bg-warning-soft/30 px-2.5 py-1.5',
-                          )}
+                        <Bubble
+                          variant={msg.internalNote ? 'outline' : msg.out ? 'default' : 'muted'}
+                          align={msg.out ? 'end' : 'start'}
                         >
-                          {msg.text}
-                        </span>
+                          <BubbleContent
+                            className={cn(
+                              'whitespace-pre-wrap',
+                              msg.internalNote && 'border-warning/40 bg-warning-soft/30',
+                            )}
+                          >
+                            {msg.text}
+                          </BubbleContent>
+                        </Bubble>
+                      )}
+
+                      {/* Une carte est un contenu de message : meme colonne,
+                          meme cote, meme largeur bornee. */}
+                      {msg.card && (
+                        <Bubble variant="outline" align={msg.out ? 'end' : 'start'} className="mt-1">
+                          <BubbleContent className="p-0">{msg.card}</BubbleContent>
+                        </Bubble>
                       )}
 
                       {msg.attachments && msg.attachments.length > 0 && (

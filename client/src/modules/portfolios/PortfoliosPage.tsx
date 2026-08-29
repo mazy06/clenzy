@@ -42,6 +42,7 @@ import PortfolioStatsTab from './PortfolioStatsTab';
 import { ReassignmentDialog } from './PortfoliosDialogs';
 import { usePortfoliosPage } from './usePortfoliosPage';
 import PageTabs from '../../components/PageTabs';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // ─── Helper components ───────────────────────────────────────────────────────
 
@@ -195,7 +196,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
   return (
     <div>
       {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {!embedded && (
         <PageHeader

@@ -782,7 +782,7 @@ class ContactMessageServiceTest {
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             Page<ContactMessage> page = new PageImpl<>(List.of(msg));
 
-            when(contactMessageRepository.findByRecipientKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(
+            when(contactMessageRepository.findByRecipientKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(
                     RECIPIENT_KC_ID, pageable)).thenReturn(page);
 
             // Act
@@ -799,7 +799,7 @@ class ContactMessageServiceTest {
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             Page<ContactMessage> page = new PageImpl<>(List.of(msg));
 
-            when(contactMessageRepository.findBySenderKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(
+            when(contactMessageRepository.findBySenderKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(
                     SENDER_KC_ID, pageable)).thenReturn(page);
 
             // Act
@@ -843,14 +843,14 @@ class ContactMessageServiceTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<ContactMessage> page = new PageImpl<>(List.of());
 
-            when(contactMessageRepository.findByRecipientKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(
+            when(contactMessageRepository.findByRecipientKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(
                     SENDER_KC_ID, pageable)).thenReturn(page);
 
             // Act
             service.listMessages(null, pageable, senderJwt);
 
             // Assert
-            verify(contactMessageRepository).findByRecipientKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(
+            verify(contactMessageRepository).findByRecipientKeycloakIdAndThreadIdIsNullAndArchivedFalseOrderByCreatedAtDesc(
                     SENDER_KC_ID, pageable);
         }
 

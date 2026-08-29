@@ -34,6 +34,8 @@ class InterventionMapperTest {
 
     @Mock
     private PropertyRepository propertyRepository;
+    @Mock private com.clenzy.repository.IssueRepository issueRepository;
+    @Mock private com.clenzy.repository.IssuePhotoRepository issuePhotoRepository;
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -45,7 +47,7 @@ class InterventionMapperTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService);
+        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService, new com.fasterxml.jackson.databind.ObjectMapper(), issueRepository, issuePhotoRepository);
     }
 
     private Intervention createIntervention() {

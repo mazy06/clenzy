@@ -6,9 +6,12 @@ import com.clenzy.model.DocumentTemplate;
 import com.clenzy.model.DocumentTemplateTag;
 import com.clenzy.model.TagType;
 import fr.opensagres.xdocreport.document.IXDocReport;
+import fr.opensagres.xdocreport.document.images.ByteArrayImageProvider;
+import fr.opensagres.xdocreport.document.images.IImageProvider;
 import fr.opensagres.xdocreport.document.registry.XDocReportRegistry;
 import fr.opensagres.xdocreport.template.IContext;
 import fr.opensagres.xdocreport.template.TemplateEngineKind;
+import fr.opensagres.xdocreport.template.formatter.FieldsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -54,10 +57,33 @@ public class DocumentTemplateRenderer {
         throw new DocumentStorageException("No content for template: " + template.getId());
     }
 
+    /**
+     * Remplit un template.
+     *
+     * <p><b>Images.</b> {@link TagType#IMAGE} existait dans le modele et
+     * {@code TemplateParserService} detectait deja les tags nommes {@code logo},
+     * {@code signature}, {@code photo} ou {@code cachet} — mais rien ne les
+     * rendait : ce remplissage se contentait d'un {@code context.put}, sans
+     * {@code FieldsMetadata} ni {@code IImageProvider}, les deux que XDocReport
+     * exige. Un tag image sortait donc vide.</p>
+     *
+     * <p>Convention : toute valeur de type {@code byte[]} dans le contexte est
+     * traitee comme une image. Le type porte l'intention, il n'y a pas de
+     * registre parallele a tenir a jour.</p>
+     */
     public byte[] fillTemplate(byte[] templateContent, Map<String, Object> contextMap) throws Exception {
         try (InputStream is = new ByteArrayInputStream(templateContent)) {
             IXDocReport report = XDocReportRegistry.getRegistry().loadReport(
                     is, TemplateEngineKind.Freemarker);
+
+            // Les champs image se declarent AVANT le remplissage : XDocReport en a
+            // besoin pour remplacer le placeholder par un vrai objet dessin.
+            FieldsMetadata metadata = report.createFieldsMetadata();
+            for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
+                if (entry.getValue() instanceof byte[]) {
+                    metadata.addFieldAsImage(entry.getKey());
+                }
+            }
 
             IContext context = report.createContext();
 
@@ -73,7 +99,16 @@ public class DocumentTemplateRenderer {
             }
 
             for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
-                context.put(entry.getKey(), entry.getValue());
+                if (entry.getValue() instanceof byte[] imageBytes) {
+                    // `setUseImageSize` : le dessin prend la taille du
+                    // placeholder du template, pas celle du fichier source —
+                    // sans quoi un logo en pleine resolution deborde la page.
+                    IImageProvider image = new ByteArrayImageProvider(imageBytes);
+                    image.setUseImageSize(false);
+                    context.put(entry.getKey(), image);
+                } else {
+                    context.put(entry.getKey(), entry.getValue());
+                }
             }
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();

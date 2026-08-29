@@ -41,8 +41,9 @@ import java.util.Set;
  * comportement premium — chaque scan passe par
  * {@link AutonomyRunScope#runPremium} (comportement
  * {@code supervision_scan} activé + plafond de cycle). Au plafond en
- * NOTIFY_ONLY : mode dégradé déterministe (0 LLM, scénario S4 D-105) ;
- * PAUSE ou comportement désactivé : rien.</p>
+ * NOTIFY_ONLY, <b>comme lorsque l'autonomie n'a jamais été activée</b> : mode
+ * dégradé déterministe (0 LLM, scénario S4 D-105) — le réglage borne la dépense,
+ * pas l'observation. PAUSE seul ne fait rien : c'est une suspension demandée.</p>
  */
 @Component
 public class SupervisionAutonomousScanner {
@@ -120,13 +121,18 @@ public class SupervisionAutonomousScanner {
                         () -> scanService.autonomousScan(orgId, propertyId));
                 switch (decision.outcome()) {
                     case ALLOWED -> scanned++;
-                    case CAPPED_NOTIFY_ONLY ->
-                        // Plafond atteint, mode notifier : heuristiques déterministes
-                        // seules (0 LLM, 0 crédit) — les suggestions continuent d'arriver.
+                    // Plafond atteint en mode notifier, ou autonomie jamais activée :
+                    // dans les deux cas les heuristiques déterministes tournent (0 LLM,
+                    // 0 crédit). Le réglage d'autonomie porte sur la DÉPENSE, pas sur le
+                    // droit d'observer : une org qui n'a pas ouvert le panneau ne renonce
+                    // pas pour autant à savoir qu'une mission attend confirmation. Le
+                    // plafond atteint était d'ailleurs mieux traité que le plafond jamais
+                    // configuré — DISABLED ne faisait rien tout en drainant le logement de
+                    // la file, donc en perdant le signal.
+                    case CAPPED_NOTIFY_ONLY, DISABLED ->
                         scanService.deterministicScanOnly(orgId, propertyId);
-                    case CAPPED_PAUSE, DISABLED -> {
-                        // PAUSE : autonomie suspendue jusqu'au cycle suivant.
-                        // DISABLED : comportement non activé (panneau autonomie) ou plafond 0.
+                    case CAPPED_PAUSE -> {
+                        // Suspension DEMANDÉE : ici le silence est le réglage choisi.
                     }
                 }
             } catch (Exception e) {

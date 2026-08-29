@@ -59,6 +59,8 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     private static final List<TemplateSeed> SEEDS = List.of(
             new TemplateSeed(DocumentType.DEVIS, "seed/document-templates/devis-clenzy.odt",
                     "Devis Clenzy", "Devis Clenzy.odt"),
+            new TemplateSeed(DocumentType.DEVIS_PRESTATAIRE, "seed/document-templates/devis-prestataire-clenzy.odt",
+                    "Devis Prestataire Baitly", "Devis Prestataire Baitly.odt"),
             new TemplateSeed(DocumentType.DEVIS_MENAGE, "seed/document-templates/devis-menage-clenzy.odt",
                     "Devis Menage Clenzy", "Devis Menage Clenzy.odt"),
             new TemplateSeed(DocumentType.FACTURE, "seed/document-templates/facture-clenzy.odt",
@@ -121,9 +123,10 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
         if (content == null) {
             return;
         }
-        Organization org = organizationRepository.findByName(orgName).orElse(null);
+        Organization org = resolveSeedOrganization();
         if (org == null) {
-            log.warn("Organisation '{}' introuvable : seed du template {} ignore.", orgName, seed.type());
+            log.warn("Organisation '{}' introuvable et aucune org ne porte de template : "
+                    + "seed du template {} ignore.", orgName, seed.type());
             return;
         }
         // Z1-BUGS-07 : le seeder tourne au boot SANS filtre Hibernate (pas de
@@ -151,6 +154,29 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
      * Filtre en memoire sur la liste par type (volumetrie boot negligeable) car
      * le repository n'expose pas de finder org-scope et est hors perimetre.
      */
+    /**
+     * L'organisation qui recoit les modeles semes.
+     *
+     * <p>Le nom configure d'abord ({@code clenzy.seed.default-org-name}), puis
+     * un repli sur celle qui PORTE deja des modeles. Le nom seul etait un pari :
+     * apres le renommage Clenzy -> Baitly, plus aucune organisation ne
+     * s'appelait « Clenzy » et le seeder devenait inerte en silence — un
+     * nouveau type de document n'etait jamais cree, et sa premiere generation
+     * echouait sur « Aucun template actif ».</p>
+     */
+    private Organization resolveSeedOrganization() {
+        Organization named = organizationRepository.findByName(orgName).orElse(null);
+        if (named != null) {
+            return named;
+        }
+        return templateRepository.findAll().stream()
+                .map(DocumentTemplate::getOrganizationId)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .flatMap(organizationRepository::findById)
+                .orElse(null);
+    }
+
     private DocumentTemplate findActiveTemplateForOrg(DocumentType type, Long organizationId) {
         return templateRepository.findByDocumentTypeOrderByVersionDesc(type).stream()
                 .filter(DocumentTemplate::isActive)

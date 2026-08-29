@@ -26,6 +26,9 @@ import java.util.Set;
  *       {@value #PREVENTIVE_MONTHS} mois (logement assez ancien pour que ce soit un
  *       signal, pas un reproche) et aucune tournée ouverte → carte
  *       {@code PREVENTIVE_MAINTENANCE} « Planifier ».</li>
+ *   <li><b>Demande sans prestataire</b> : projection sur le logement du signal
+ *       déjà porté par la liste d'actions du tableau de bord — même requête,
+ *       même seuil, aucune divergence possible.</li>
  * </ul>
  *
  * <p>Zéro coût token. Dédup par intitulé + marqueurs d'épisode. Best-effort.</p>
@@ -45,6 +48,7 @@ public class OpsMaintenanceScanner {
     private final PropertyRepository propertyRepository;
     private final com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     private final com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
+    private final com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
@@ -53,6 +57,7 @@ public class OpsMaintenanceScanner {
                                  PropertyRepository propertyRepository,
                                  com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository,
                                  com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository,
+                                 com.clenzy.repository.ServiceRequestRepository serviceRequestRepository,
                                  SupervisionSuggestionService suggestionService,
                                  Clock clock) {
         this.smartLockDeviceRepository = smartLockDeviceRepository;
@@ -60,6 +65,7 @@ public class OpsMaintenanceScanner {
         this.propertyRepository = propertyRepository;
         this.serviceQuoteRepository = serviceQuoteRepository;
         this.propertyStockItemRepository = propertyStockItemRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -92,6 +98,136 @@ public class OpsMaintenanceScanner {
         } catch (Exception e) {
             log.debug("stock scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanMissionsToConfirm(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("mission confirmation scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanUnassignedServiceRequests(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("unassigned service request scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanDepositsToCollect(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("deposit scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Missions proposees qui attendent la reponse de l'intervenant.
+     *
+     * <p>Une intervention assignee mais non confirmee ne se voit que sur le
+     * tableau de bord de CELUI a qui elle est proposee. Cote gestion, elle
+     * ressemble a une mission planifiee — jusqu'au jour ou personne ne vient.
+     * La carte la remonte tant qu'elle reste sans reponse.</p>
+     */
+    private void scanMissionsToConfirm(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        for (com.clenzy.model.Intervention intervention : interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
+            if (!com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
+                    .openStatuses().contains(intervention.getStatus())) {
+                continue;
+            }
+            if (intervention.getAssignedUser() == null
+                    || intervention.getAssignmentResponse()
+                        != com.clenzy.model.InterventionAssignmentResponse.PENDING) {
+                continue;
+            }
+            final String intervenant = intervention.getAssignedUser().getFullName();
+            suggestionService.record(
+                    orgId, propertyId, MODULE_OPS,
+                    "mission_to_confirm",
+                    "Mission a confirmer (intervention #" + intervention.getId() + ")",
+                    "« " + intervention.getTitle() + " » est proposee a "
+                            + (intervenant != null ? intervenant : "un intervenant")
+                            + " et attend sa reponse. Tant qu'elle n'est pas acceptee, "
+                            + "aucune date n'est tenue.");
+        }
+    }
+
+    /**
+     * Acomptes exigibles, non encaisses.
+     *
+     * <p>L'intervenant bloque sa date des l'acompte regle : tant qu'il ne l'est
+     * pas, le chantier n'avance pas et rien ne le signalait cote gestion.</p>
+     */
+    private void scanDepositsToCollect(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        for (com.clenzy.model.Intervention intervention : interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
+            if (!com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
+                    .openStatuses().contains(intervention.getStatus())) {
+                continue;
+            }
+            serviceQuoteRepository
+                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), orgId)
+                    .stream()
+                    .filter(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
+                    .filter(q -> q.getDepositAmount() != null
+                            && q.getDepositAmount().compareTo(java.math.BigDecimal.ZERO) > 0)
+                    // Deja encaisse : la carte n'aurait plus d'objet.
+                    .filter(q -> q.getDepositPaidAt() == null)
+                    .findFirst()
+                    .ifPresent(quote -> suggestionService.record(
+                            orgId, propertyId, MODULE_OPS,
+                            "deposit_to_collect",
+                            "Acompte a regler (intervention #" + intervention.getId() + ")",
+                            "Le devis de " + quote.getProviderName() + " est approuve : "
+                                    + quote.getDepositAmount() + " " + quote.getCurrency()
+                                    + " d'acompte restent a verser. "
+                                    + "L'intervenant bloque sa date des reception."));
+        }
+    }
+
+    /**
+     * Demande de service que personne n'a prise.
+     *
+     * <p><b>Projection, pas second détecteur.</b> Le signal existe déjà sur la
+     * liste d'actions du tableau de bord ({@code ServiceRequestActionSource}) ;
+     * on réutilise ici SA requête et SON seuil, pour le poser sur le logement,
+     * là où vit la constellation. Deux surfaces, une seule vérité : elles ne
+     * peuvent pas diverger.</p>
+     *
+     * <p>Le critère est volontairement {@code createdAt} et non
+     * {@code autoAssignStatus = 'exhausted'} : filtrer sur l'épuisement laisse
+     * passer le cas le plus courant — une recherche « en cours » depuis des
+     * jours, qui n'escalade jamais et que rien ne signale.</p>
+     */
+    private void scanUnassignedServiceRequests(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime staleBefore = java.time.LocalDateTime.now(clock)
+                .minusMinutes(com.clenzy.service.dashboard.ServiceRequestActionSource
+                        .ASSIGNMENT_GRACE_MINUTES);
+        for (com.clenzy.model.ServiceRequest request
+                : serviceRequestRepository.findStuckUnassignedForOrg(orgId, staleBefore)) {
+            if (request.getProperty() == null
+                    || !propertyId.equals(request.getProperty().getId())) {
+                continue;
+            }
+            // Une date déjà passée ne se rattrape pas : le dire, plutôt que de
+            // laisser croire qu'un geste suffit encore.
+            final boolean overdue = request.getDesiredDate() != null
+                    && request.getDesiredDate().isBefore(java.time.LocalDateTime.now(clock));
+            // ACTIONNABLE : la carte ne se contente plus de signaler, elle ouvre
+            // la reprise en main. L'automatique a eu sa chance et a echoue —
+            // constater sans pouvoir agir laissait la demande orpheline.
+            suggestionService.recordActionable(
+                    orgId, propertyId, MODULE_OPS,
+                    "Demande sans prestataire (demande #" + request.getId() + ")",
+                    "« " + request.getTitle() + " » n'a toujours personne. "
+                            + (overdue
+                                ? "La date souhaitee est passee : la prestation n'aura pas lieu."
+                                : "La recherche automatique a eu sa chance ; il faut assigner a la main."),
+                    com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_MANUAL,
+                    "{\"serviceRequestId\":" + request.getId() + "}",
+                    null,
+                    overdue ? "critical" : "warning");
         }
     }
 

@@ -487,6 +487,12 @@ public class AuthController {
                 claims.put("createdAt", user.getCreatedAt());
                 claims.put("updatedAt", user.getUpdatedAt());
                 claims.put("forfait", user.getForfait());
+                // Raison sociale : l'ecran « Mon compte » l'edite, et elle sort
+                // sur les documents. Le payload /me la portait pas, la carte
+                // s'ouvrait donc toujours vide.
+                claims.put("companyName", user.getCompanyName());
+                claims.put("hasCompanyLogo", user.getCompanyLogoPath() != null
+                        && !user.getCompanyLogoPath().isBlank());
 
                 RolePermissionsDto rolePermissions = permissionService.getRolePermissions(user.getRole().name());
                 List<String> permissions = rolePermissions.getPermissions();

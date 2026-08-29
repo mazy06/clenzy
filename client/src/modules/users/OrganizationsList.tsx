@@ -48,6 +48,7 @@ import MembersList from '../organization/MembersList';
 
 import type { ChipColor } from '../../types';
 import type { LucideIcon } from 'lucide-react';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // ─── Types d'organisation ─────────────────────────────────────────────────────
 
@@ -264,7 +265,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
   return (
     <div>
       {/* Portal des actions dans le header parent */}
-      {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && actionButtons && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {/* Header standalone (hors Annuaire multi-tabs) */}
       {!embedded && (

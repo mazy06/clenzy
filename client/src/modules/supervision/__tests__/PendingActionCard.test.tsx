@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render, screen, fireEvent } from '../../../test/renderWithProviders';
 import { PendingActionCard } from '../components/PendingActionCard';
 import type { PendingAction } from '../types';
 

@@ -11,12 +11,14 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.Issue;
 import com.clenzy.model.Issue.IssueSeverity;
 import com.clenzy.model.Issue.IssueStatus;
+import com.clenzy.model.IssuePhoto;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.Priority;
 import com.clenzy.model.Property;
 import com.clenzy.model.ServiceType;
 import com.clenzy.model.User;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.IssuePhotoRepository;
 import com.clenzy.repository.IssueRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
@@ -25,6 +27,7 @@ import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -35,7 +38,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +60,7 @@ public class IssueService {
     private static final Logger log = LoggerFactory.getLogger(IssueService.class);
 
     private final IssueRepository issueRepository;
+    private final IssuePhotoRepository issuePhotoRepository;
     private final InterventionRepository interventionRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
@@ -65,6 +71,7 @@ public class IssueService {
     private final TenantContext tenantContext;
 
     public IssueService(IssueRepository issueRepository,
+                        IssuePhotoRepository issuePhotoRepository,
                         InterventionRepository interventionRepository,
                         PropertyRepository propertyRepository,
                         UserRepository userRepository,
@@ -74,6 +81,7 @@ public class IssueService {
                         OrganizationAccessGuard accessGuard,
                         TenantContext tenantContext) {
         this.issueRepository = issueRepository;
+        this.issuePhotoRepository = issuePhotoRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
@@ -109,7 +117,7 @@ public class IssueService {
         issue = issueRepository.save(issue);
 
         notifyReported(issue, property);
-        return toDto(issue, property.getName(), reporter.getFullName());
+        return toDto(issue, property.getName(), reporter.getFullName(), List.of());
     }
 
     private Property resolveProperty(CreateIssueRequest request) {
@@ -128,6 +136,78 @@ public class IssueService {
         }
         return propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new NotFoundException("Logement non trouvé"));
+    }
+
+    // ── Photos ───────────────────────────────────────────────────────────────
+
+    /** Au-dela, le signalement documente moins qu'il n'encombre. */
+    private static final int MAX_PHOTOS_PER_ISSUE = 6;
+    private static final long MAX_PHOTO_BYTES = 5L * 1024 * 1024;
+    private static final Set<String> ALLOWED_PHOTO_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
+
+    /**
+     * Joint des photos a un signalement. Le terrain photographie l'anomalie au
+     * moment ou il la constate — c'est la seule occasion.
+     */
+    public IssueDto addPhotos(Long issueId, List<MultipartFile> files, String uploaderKeycloakId) {
+        Issue issue = requireIssue(issueId);
+        User uploader = requireUser(uploaderKeycloakId);
+
+        long existing = issuePhotoRepository.countByIssueId(issueId);
+        if (existing + files.size() > MAX_PHOTOS_PER_ISSUE) {
+            throw new IllegalArgumentException(
+                    "Maximum " + MAX_PHOTOS_PER_ISSUE + " photos par signalement (deja " + existing + ").");
+        }
+
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;
+            }
+            if (file.getSize() > MAX_PHOTO_BYTES) {
+                throw new IllegalArgumentException("Chaque photo doit peser moins de 5 Mo.");
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !ALLOWED_PHOTO_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+                throw new IllegalArgumentException("Formats acceptes : JPEG, PNG, WEBP, GIF.");
+            }
+            IssuePhoto photo = new IssuePhoto();
+            photo.setIssueId(issue.getId());
+            photo.setOrganizationId(issue.getOrganizationId());
+            photo.setOriginalFilename(file.getOriginalFilename());
+            photo.setContentType(contentType);
+            photo.setFileSize(file.getSize());
+            photo.setUploadedById(uploader.getId());
+            try {
+                photo.setData(file.getBytes());
+            } catch (java.io.IOException e) {
+                throw new IllegalArgumentException("Lecture du fichier impossible : " + e.getMessage(), e);
+            }
+            issuePhotoRepository.save(photo);
+        }
+
+        return toDtoWithLookups(issue);
+    }
+
+    /**
+     * Binaire d'une photo. Le signalement porte l'organisation : la photo est
+     * chargee par identifiant, donc l'appartenance est verifiee explicitement
+     * (regle audit n°3).
+     *
+     * @return [octets, contentType]
+     */
+    @Transactional(readOnly = true)
+    public Object[] streamPhoto(Long issueId, Long photoId) {
+        IssuePhoto photo = issuePhotoRepository.findById(photoId)
+                .orElseThrow(() -> new NotFoundException("Photo non trouvee"));
+        if (!Objects.equals(photo.getIssueId(), issueId)) {
+            throw new NotFoundException("Photo non trouvee");
+        }
+        accessGuard.requireSameOrganization(photo.getOrganizationId(), "Photo " + photoId);
+        if (photo.getData() == null) {
+            return null;
+        }
+        return new Object[] { photo.getData(), photo.getContentType() };
     }
 
     // ── Lecture ──────────────────────────────────────────────────────────────
@@ -154,10 +234,14 @@ public class IssueService {
                         issues.stream().map(Issue::getReportedBy).filter(Objects::nonNull).distinct().toList())
                 .stream().collect(Collectors.toMap(User::getId, User::getFullName));
 
+        Map<Long, List<String>> photosByIssue = photoUrlsByIssue(
+                issues.stream().map(Issue::getId).toList());
+
         return issues.stream()
                 .map(issue -> toDto(issue,
                         propertyNames.get(issue.getPropertyId()),
-                        reporterNames.get(issue.getReportedBy())))
+                        reporterNames.get(issue.getReportedBy()),
+                        photosByIssue.getOrDefault(issue.getId(), List.of())))
                 .toList();
     }
 
@@ -389,10 +473,33 @@ public class IssueService {
         String reporterName = issue.getReportedBy() != null
                 ? userRepository.findById(issue.getReportedBy()).map(User::getFullName).orElse(null)
                 : null;
-        return toDto(issue, propertyName, reporterName);
+        return toDto(issue, propertyName, reporterName, photoUrls(issue.getId()));
     }
 
-    private static IssueDto toDto(Issue issue, String propertyName, String reporterName) {
+    /** Idem en lot, pour ne pas requeter une fois par signalement. */
+    private Map<Long, List<String>> photoUrlsByIssue(List<Long> issueIds) {
+        if (issueIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<String>> byIssue = new java.util.HashMap<>();
+        for (Object[] pair : issuePhotoRepository.findIdPairsByIssueIds(issueIds)) {
+            Long issueId = (Long) pair[0];
+            Long photoId = (Long) pair[1];
+            byIssue.computeIfAbsent(issueId, key -> new ArrayList<>())
+                    .add("/api/issues/" + issueId + "/photos/" + photoId + "/data");
+        }
+        return byIssue;
+    }
+
+    /** Adresses de lecture des photos — jamais leur binaire. */
+    private List<String> photoUrls(Long issueId) {
+        return issuePhotoRepository.findIdsByIssueId(issueId).stream()
+                .map(photoId -> "/api/issues/" + issueId + "/photos/" + photoId + "/data")
+                .collect(Collectors.toList());
+    }
+
+    private static IssueDto toDto(Issue issue, String propertyName, String reporterName,
+                                  List<String> photoUrls) {
         return new IssueDto(
                 issue.getId(),
                 issue.getPropertyId(),
@@ -408,6 +515,7 @@ public class IssueService {
                 issue.getSuggestedCost(),
                 issue.getConvertedServiceRequestId(),
                 issue.getDismissReason(),
+                photoUrls,
                 issue.getCreatedAt(),
                 issue.getUpdatedAt());
     }

@@ -3,7 +3,12 @@ package com.clenzy.service;
 import com.clenzy.dto.CreateInterventionRequest;
 import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.UpdateInterventionRequest;
+import com.clenzy.model.PropertyPhoto;
+import com.clenzy.repository.PropertyPhotoRepository;
+import com.clenzy.model.Property;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.InterventionRoleFit;
+import com.clenzy.model.InterventionAssignmentResponse;
 import com.clenzy.model.Team;
 import com.clenzy.model.User;
 import com.clenzy.repository.InterventionRepository;
@@ -40,6 +45,7 @@ public class InterventionService {
     private static final int MAX_PHOTOS_PER_INTERVENTION = 20;
 
     private final InterventionRepository interventionRepository;
+    private final PropertyPhotoRepository propertyPhotoRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
@@ -49,6 +55,7 @@ public class InterventionService {
     private final InterventionAccessPolicy accessPolicy;
     private final com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
     private final com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
+    private final com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
     public InterventionService(InterventionRepository interventionRepository,
                                UserRepository userRepository,
@@ -59,8 +66,11 @@ public class InterventionService {
                                InterventionMapper interventionMapper,
                                InterventionAccessPolicy accessPolicy,
                                com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine,
-                               com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer) {
+                               com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer,
+                               PropertyPhotoRepository propertyPhotoRepository,
+                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService) {
         this.interventionRepository = interventionRepository;
+        this.propertyPhotoRepository = propertyPhotoRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
@@ -70,6 +80,7 @@ public class InterventionService {
         this.accessPolicy = accessPolicy;
         this.cleaningPricingEngine = cleaningPricingEngine;
         this.missionAssignmentEmailComposer = missionAssignmentEmailComposer;
+        this.supervisionTriggerService = supervisionTriggerService;
     }
 
     public InterventionResponse create(CreateInterventionRequest request, Jwt jwt) {
@@ -163,7 +174,11 @@ public class InterventionService {
 
             accessPolicy.assertCanAccess(intervention, jwt);
 
-            return interventionMapper.convertToResponse(intervention);
+            // La photo de couverture passait par la carte pre-chargee du chemin de
+            // LISTE ; la lecture unitaire la laissait vide, et la fiche restait
+            // sans vignette. Le meme helper la resout pour une seule ligne.
+            return interventionMapper.convertToResponse(
+                    intervention, null, coverPhotosFor(List.of(intervention)));
         } catch (NotFoundException e) {
             log.error("getById - not found: {}", e.getMessage());
             throw e;
@@ -252,12 +267,47 @@ public class InterventionService {
 
             log.debug("listWithRoleBasedAccess - total elements: {}", interventionPage.getTotalElements());
 
-            return interventionPage.map(interventionMapper::convertToResponse);
+            // Photo de couverture par logement, en UNE requete pour toute la page :
+            // c'est le repere visuel des cartes « mission » du tableau de bord.
+            Map<Long, String> photoByProperty = coverPhotosFor(interventionPage.getContent());
+            return interventionPage.map(i -> interventionMapper.convertToListResponse(i, null, photoByProperty));
 
         } catch (Exception e) {
             log.error("listWithRoleBasedAccess - error", e);
             throw e;
         }
+    }
+
+    /**
+     * Premiere photo de chaque logement cite, par ordre d'affichage.
+     *
+     * <p>Une seule requete pour toute la page. Resoudre la photo intervention
+     * par intervention ferait autant de requetes que de lignes.</p>
+     */
+    private Map<Long, String> coverPhotosFor(List<Intervention> interventions) {
+        List<Long> propertyIds = interventions.stream()
+                .map(Intervention::getProperty)
+                .filter(java.util.Objects::nonNull)
+                .map(Property::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (propertyIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> covers = new java.util.HashMap<>();
+        for (PropertyPhoto photo : propertyPhotoRepository.findByPropertyIdInOrderBySortOrderAscIdAsc(propertyIds)) {
+            String url = photo.getUrl();
+            // `getUrl()` rend null quand la photo n'a ni URL externe ni binaire
+            // local — et `HashMap.merge` refuse une valeur nulle par un NPE.
+            if (url == null || photo.getPropertyId() == null) {
+                continue;
+            }
+            // `putIfAbsent` garde la premiere rencontree : le repository trie par
+            // sortOrder, donc c'est la photo de couverture.
+            covers.putIfAbsent(photo.getPropertyId(), url);
+        }
+        return covers;
     }
 
     public void delete(Long id, Jwt jwt) {
@@ -296,6 +346,14 @@ public class InterventionService {
         if (userId != null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException("Utilisateur non trouve"));
+            // Le metier de la CIBLE doit correspondre au travail. Ce controle
+            // n'existait que sur l'assignation automatique : a la main, un menage
+            // pouvait atterrir sur un technicien — sans tarif applicable, hors du
+            // score qualite, et sans jamais declencher de versement.
+            if (!InterventionRoleFit.accepts(user.getRole(), intervention.getType())) {
+                throw new IllegalArgumentException(
+                        InterventionRoleFit.rejectionMessage(user.getRole(), intervention.getType()));
+            }
             intervention.setAssignedUser(user);
             intervention.setTeamId(null);
             applyHousekeeperRateIfSafe(intervention, userId);
@@ -306,7 +364,25 @@ public class InterventionService {
             intervention.setAssignedUser(null);
         }
 
+        // Une assignation est desormais une PROPOSITION : l'intervenant peut
+        // repondre. On repart d'une ardoise vierge a chaque reassignation, sinon
+        // un refus precedent condamnerait la mission pour le suivant.
+        if (userId != null || teamId != null) {
+            intervention.setAssignmentResponse(InterventionAssignmentResponse.PENDING);
+            intervention.setAssignmentRespondedAt(null);
+            intervention.setAssignmentDeclineReason(null);
+        }
+
         intervention = interventionRepository.save(intervention);
+
+        // Une mission proposee et sans reponse n'est visible que du destinataire :
+        // cote gestion elle ressemble a une mission planifiee, jusqu'au jour ou
+        // personne ne vient. On reveille la boucle de supervision sur ce logement
+        // pour que la carte « mission a confirmer » remonte au prochain cycle.
+        if (intervention.getProperty() != null) {
+            supervisionTriggerService.markDirtyAfterCommit(
+                    intervention.getOrganizationId(), intervention.getProperty().getId());
+        }
 
         try {
             String actionUrl = "/interventions/" + intervention.getId();

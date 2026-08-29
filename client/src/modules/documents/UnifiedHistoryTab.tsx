@@ -4,6 +4,10 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import {
+  Item, ItemActions, ItemContent, ItemDescription, ItemGroup,
+  ItemMedia, ItemSeparator, ItemTitle,
+} from '../../components/ui';
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -27,6 +31,9 @@ import {
   Edit as EditIcon,
   Replay,
   Warning as AlertTriangleIcon,
+  Visibility as EyeIcon,
+  Description as FileTextIcon,
+  Send as SendIcon,
   ArrowForward as ArrowRightIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -147,12 +154,71 @@ const hasRecipient = (log: GuestMessageLog): boolean => {
   return true;
 };
 
+/**
+ * Date d'historique, ecrite comme on la dirait.
+ *
+ * <p>Trois registres selon l'anciennete : « il y a 3 h » tant qu'on est dans la
+ * journee, « hier a 14h30 », puis « Lundi 23 janvier a 15h28 ». Un horodatage
+ * `14/08/2026 13:22` demandait un calcul mental pour repondre a la seule
+ * question qu'on se pose devant un historique : c'etait quand ?</p>
+ */
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const now = new Date();
+  const startOfDay = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  const dayDiff = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+  const time = `${String(date.getHours()).padStart(2, '0')}h${String(date.getMinutes()).padStart(2, '0')}`;
+
+  if (dayDiff === 0) {
+    const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000);
+    // Une date a venir (horloge desynchronisee) ne doit pas donner « il y a -2 h ».
+    if (minutes < 1) return "a l'instant";
+    if (minutes < 60) return `il y a ${minutes} min`;
+    return `il y a ${Math.floor(minutes / 60)} h`;
+  }
+  if (dayDiff === 1) return `hier à ${time}`;
+
+  const weekday = date.toLocaleDateString('fr-FR', { weekday: 'long' });
+  const dayMonth = date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    // L'annee n'apparait que si elle differe : la repeter alourdit sans informer.
+    ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
   });
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${dayMonth} à ${time}`;
+};
+
+/**
+ * Raison d'echec, en trois mots.
+ *
+ * <p>La pastille disait « Echoue » et rien d'autre : il fallait survoler chaque
+ * ligne pour savoir si le probleme venait du destinataire, du modele ou du
+ * serveur. Le message brut, lui, est technique — « freemarker.core.
+ * InvalidReferenceException » ne se lit pas dans une liste.</p>
+ *
+ * <p>Les motifs viennent des erreurs REELLEMENT presentes en base ; tout ce qui
+ * n'est pas reconnu garde « Echec » seul, plutot qu'une categorie inventee qui
+ * induirait en erreur. Le detail complet reste dans l'infobulle.</p>
+ */
+const FAILURE_REASONS: Array<{ match: RegExp; label: string }> = [
+  { match: /pas de destinataire|no recipient/i, label: 'destinataire manquant' },
+  { match: /adresse rejet|rejected|invalid.*(address|email)|mailbox/i, label: 'adresse rejetée' },
+  { match: /bo[iî]te pleine|quota|mailbox full/i, label: 'boîte pleine' },
+  { match: /num[eé]ro invalide|invalid number|not a valid phone/i, label: 'numéro invalide' },
+  { match: /tags? non resolus|tags manquants/i, label: 'tags non résolus' },
+  { match: /InvalidReferenceException|evaluated to null or missing/i, label: 'variable absente du modèle' },
+  { match: /aucun template actif|template.*introuvable|no template/i, label: 'modèle introuvable' },
+  { match: /transaction/i, label: 'erreur technique' },
+  { match: /timeout|timed out/i, label: 'délai dépassé' },
+];
+
+const failureReason = (errorMessage?: string): string | null => {
+  if (!errorMessage) return null;
+  return FAILURE_REASONS.find((reason) => reason.match.test(errorMessage))?.label ?? null;
 };
 
 const formatFileSize = (bytes?: number) => {
@@ -440,17 +506,31 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         />
       ) : (
         <>
-          {/* ── Lignes .fr-doc : pastille type + nom fw600 + méta muted + statut -soft + actions ── */}
-          <div className="flex flex-col gap-2">
-            {unifiedRows.map((row) => {
+          {/* Liste dense, pas une pile de cartes : chaque entree encadree, arrondie
+              et espacee donnait six boites pour six lignes, et l'oeil butait sur
+              les contours au lieu de balayer la colonne. `ItemGroup` du kit tient
+              la liste, un filet separe les lignes. */}
+          {/* Patron repris de la projection « Documents & Communications » de la
+              galerie : ItemGroup + ItemMedia/ItemTitle/ItemDescription, filet
+              entre les lignes. La liste empilait des cartes encadrees et
+              arrondies — six boites pour six lignes. */}
+          <ItemGroup className="gap-0 rounded-xl border border-solid border-border bg-card">
+            {unifiedRows.map((row, rowIndex) => {
               const isFailed = row.statusTone === TONES.err && (row.status === 'Echoue' || row.status === 'Rebondi');
               const pastille = row.kind === 'document'
                 ? { bg: 'var(--bui-destructive)', icon: null }
                 : CHANNEL_PASTILLE[(row.messageLog?.channel ?? 'EMAIL')] ?? CHANNEL_PASTILLE.EMAIL;
+              // Ce qu'on cherche dans un historique, dans cet ordre : QUOI, pour
+              // QUI, puis par quel canal, sous quelle reference, et quand.
+              const title = row.recipient && row.recipient !== '—'
+                ? `${row.name} → ${row.recipient}`
+                : row.name;
+              const reason = isFailed ? failureReason(row.errorMessage) : null;
+              const statusLabel = reason ? `${row.status} · ${reason}` : row.status;
               const meta = [
-                formatDate(row.dateStr),
-                row.recipient !== '—' ? row.recipient : '',
                 row.channel,
+                row.legalNumber,
+                formatDate(row.dateStr),
                 row.fileSize ? formatFileSize(row.fileSize) : '',
               ].filter(Boolean).join(' · ');
 
@@ -460,25 +540,34 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 : String(row.messageLog?.id ?? '');
 
               return (
-                <div
-                  key={row.id}
+                <React.Fragment key={row.id}>
+                {rowIndex > 0 && <ItemSeparator className="my-0" />}
+                <Item
                   data-highlight-id={rawId || undefined}
+                  size="sm"
                   className={cn(
-                    'flex items-center gap-3 rounded-[12px] border border-solid px-[15px] py-[13px]',
-                    '[transition:border-color_.14s,box-shadow_.14s] motion-reduce:transition-none',
-                    isFailed
-                      ? 'border-destructive bg-destructive-soft'
-                      : 'border-border bg-card hover:border-primary hover:shadow-[0_8px_22px_-16px_var(--bui-primary)]',
+                    // `cn-item` enveloppe : avec cinq actions, elles passaient a
+                    // la ligne.
+                    'flex-nowrap',
+                    // Survol : une teinte legere, pas un aplat plein — sur une
+                    // liste dense, le contraste deplacait le regard sans rien
+                    // designer d'utile.
+                    'transition-colors duration-150 hover:bg-muted/60',
                   )}
                 >
                   {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
+                  {/* Icone de type, pas une pastille pleine : le carre colore
+                      de 34 px pesait autant que le titre qu'il annonce. */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="w-[34px] h-[34px] rounded-[9px] text-primary-foreground flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--bui-destructive)' : pastille.bg }}>
+                      <ItemMedia
+                        variant="icon"
+                        className={cn('shrink-0', isFailed && 'text-destructive-ink')}
+                      >
                         {isFailed
-                          ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
-                          : row.kind === 'document' ? 'PDF' : pastille.icon}
-                      </div>
+                          ? <AlertTriangleIcon />
+                          : row.kind === 'document' ? <FileTextIcon /> : <SendIcon />}
+                      </ItemMedia>
                     </TooltipTrigger>
                     <TooltipContent>
                       {row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')}
@@ -486,27 +575,35 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   </Tooltip>
 
                   {/* Nom + méta */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <p className={cn('truncate text-[13px] font-semibold', isFailed ? 'text-destructive-ink' : 'text-foreground')}>
-                        {row.name}
-                      </p>
-                      {row.legalNumber && (
-                        <StatusChip
-                          tone={row.locked ? 'warn' : 'neutral'}
-                          icon={row.locked ? <Lock size={12} strokeWidth={1.75} /> : undefined}
-                          label={row.legalNumber}
-                          className="font-mono"
-                        />
+                  <ItemContent className="min-w-0 flex-1 gap-0">
+                    {/* Le numero legal passait sous le nom : deux lignes la ou
+                        une suffit. */}
+                    <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+                      <ItemTitle className={cn('truncate', isFailed && 'text-destructive-ink')}>
+                        {title}
+                      </ItemTitle>
+                      {/* Le scellement NF reste une information, mais il tient
+                          dans une icone : le numero, lui, a rejoint la meta. */}
+                      {row.locked && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex shrink-0 text-warning-ink">
+                              <Lock size={12} strokeWidth={1.75} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('documents.history.locked', 'Document scellé')}</TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
-                    <p className="truncate text-[11.5px] text-muted-foreground mt-px">
-                      {isFailed && row.errorMessage ? `${row.errorMessage} · ${meta}` : meta}
-                    </p>
-                  </div>
+                    <ItemDescription className="truncate">
+                      {/* L'erreur brute encombrait la ligne : elle est resumee
+                          dans la pastille, entiere dans l'infobulle. */}
+                      {meta}
+                    </ItemDescription>
+                  </ItemContent>
 
                   {/* Statut -soft + actions */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  <ItemActions className="shrink-0 gap-1">
                     {/* Sans message d'erreur, aucune infobulle : le Tooltip du kit
                         afficherait une bulle vide la ou MUI n'en montrait aucune. */}
                     {row.errorMessage ? (
@@ -515,13 +612,13 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           {/* Le span porte la ref que TooltipTrigger pose sur son enfant :
                               StatusChip est une fonction et n'en transmet pas. */}
                           <span className="inline-flex">
-                            <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                            <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={statusLabel} className="font-normal" />
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>{row.errorMessage}</TooltipContent>
                       </Tooltip>
                     ) : (
-                      <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                      <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={statusLabel} className="font-normal" />
                     )}
 
                     {/* ── Message : « Aperçu → » accent + actions d'échec ── */}
@@ -534,7 +631,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                               <span className="inline-flex">
                                 <BuiButton
                                   variant="ghost"
-                                  size="icon-sm"
+                                  size="icon-xs"
                                   onClick={() => {
                                     setEditEmailLog(row.messageLog!);
                                     setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
@@ -542,7 +639,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   aria-label="Modifier l'email"
                                   className="text-muted-foreground hover:bg-warning-soft hover:text-warning-ink"
                                 >
-                                  <EditIcon size={16} strokeWidth={1.75} />
+                                  <EditIcon size={14} strokeWidth={1.75} />
                                 </BuiButton>
                               </span>
                             </TooltipTrigger>
@@ -553,8 +650,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="inline-flex">
-                                <BuiButton variant="ghost" size="icon-sm" disabled aria-label="Modifier l'email">
-                                  <EditIcon size={16} strokeWidth={1.75} />
+                                <BuiButton variant="ghost" size="icon-xs" disabled aria-label="Modifier l'email">
+                                  <EditIcon size={14} strokeWidth={1.75} />
                                 </BuiButton>
                               </span>
                             </TooltipTrigger>
@@ -575,7 +672,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                 <span className="inline-flex">
                                   <BuiButton
                                     variant="ghost"
-                                    size="icon-sm"
+                                    size="icon-xs"
                                     disabled={!canResend || resendingId === row.messageLog!.id}
                                     onClick={() => canResend && handleResend(row.messageLog!)}
                                     aria-label="Renvoyer"
@@ -587,7 +684,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   >
                                     {resendingId === row.messageLog!.id
                                       ? <Spinner className="size-4" />
-                                      : <Replay size={16} strokeWidth={1.75} />}
+                                      : <Replay size={14} strokeWidth={1.75} />}
                                   </BuiButton>
                                 </span>
                               </TooltipTrigger>
@@ -595,15 +692,25 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                             </Tooltip>
                           );
                         })()}
-                        <button
-                          type="button"
-                          onClick={() => setDetailLog(row.messageLog!)}
-                          aria-label="Voir les details"
-                          className={INLINE_LINK_BTN_CLS}
-                        >
-                          Aperçu
-                          <ArrowRightIcon size={14} strokeWidth={1.75} />
-                        </button>
+                        {/* Un oeil, comme dans la projection : « Aperçu → » en
+                            toutes lettres pesait autant que le statut, sur
+                            chaque ligne de la liste. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-xs"
+                                onClick={() => setDetailLog(row.messageLog!)}
+                                aria-label={t('documents.history.preview', 'Aperçu')}
+                                className="text-muted-foreground"
+                              >
+                                <EyeIcon size={14} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('documents.history.preview', 'Aperçu')}</TooltipContent>
+                        </Tooltip>
                       </>
                     )}
 
@@ -616,12 +723,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                               <span className="inline-flex">
                                 <BuiButton
                                   variant="ghost"
-                                  size="icon-sm"
+                                  size="icon-xs"
                                   onClick={() => handleVerify(row.documentGeneration!)}
                                   aria-label="Verifier l'integrite"
                                   className="text-muted-foreground hover:bg-info-soft hover:text-info-ink"
                                 >
-                                  <Fingerprint size={16} strokeWidth={1.75} />
+                                  <Fingerprint size={14} strokeWidth={1.75} />
                                 </BuiButton>
                               </span>
                             </TooltipTrigger>
@@ -631,7 +738,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         {row.correctsId && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex text-muted-foreground"><VerifiedUser size={16} strokeWidth={1.75} /></span>
+                              <span className="inline-flex text-muted-foreground"><VerifiedUser size={14} strokeWidth={1.75} /></span>
                             </TooltipTrigger>
                             <TooltipContent>{`Correction du document #${row.correctsId}`}</TooltipContent>
                           </Tooltip>
@@ -649,11 +756,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         )}
                       </>
                     )}
-                  </div>
-                </div>
+                  </ItemActions>
+                </Item>
+                </React.Fragment>
               );
             })}
-          </div>
+          </ItemGroup>
 
           {/* Pagination only for documents view */}
           {filter !== 'messages' && docTotalElements > docSize && (
@@ -825,7 +933,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 </p>
                 <BuiButton asChild>
                   <a href={pdfUrl} download="document.pdf">
-                    <Download size={16} strokeWidth={1.75} />
+                    <Download size={14} strokeWidth={1.75} />
                     {t('common.download', 'Telecharger')}
                   </a>
                 </BuiButton>

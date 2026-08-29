@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.time.LocalDateTime;
 
 @Repository
@@ -24,6 +25,16 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
                                      @Param("status") Issue.IssueStatus status,
                                      @Param("propertyId") Long propertyId,
                                      @Param("reportedBy") Long reportedBy);
+
+    /**
+     * L'anomalie a l'origine d'une demande de service.
+     *
+     * <p>La conversion stampe {@code converted_service_request_id} sur
+     * l'anomalie ; c'est le seul lien entre les deux. Le remonter permet
+     * d'afficher le signalement sur l'intervention qui en decoule.</p>
+     */
+    Optional<Issue> findByConvertedServiceRequestIdAndOrganizationId(
+            Long convertedServiceRequestId, Long organizationId);
 
     /**
      * Transition de statut conditionnelle (UPDATE conditionnel — règle audit n°8 :

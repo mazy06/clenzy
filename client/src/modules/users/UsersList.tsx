@@ -65,6 +65,7 @@ import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import type { ExportColumn } from '../../utils/exportUtils';
 import type { ChipColor } from '../../types';
 import type { LucideIcon } from 'lucide-react';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 interface User {
   id: number;
@@ -420,7 +421,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   return (
     <div>
       {/* Portal des actions dans le header parent */}
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {/* Header standalone (hors Annuaire multi-tabs) */}
       {!embedded && (

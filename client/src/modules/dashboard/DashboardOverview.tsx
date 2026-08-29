@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   BanknoteIcon,
   CalendarCheckIcon,
+  FileTextIcon,
   ClipboardCheckIcon,
   EuroIcon,
   PercentIcon,
@@ -14,6 +16,7 @@ import { GridView } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
+import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { useMyPendingPayout } from '../../hooks/usePendingPayouts';
 import { useDashboardReady } from '../../hooks/useDashboardReady';
@@ -29,12 +32,22 @@ import { cn } from '../../utils/cn';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardWidgetGrid, { type DashboardWidgetEntry } from './DashboardWidgetGrid';
 import MissingContractsDashboardAlert from './MissingContractsDashboardAlert';
-import OnboardingChecklist from './OnboardingChecklist';
 import {
   ActionItemsCard,
   TodayOperationsSection,
   UpcomingArrivalsCard,
 } from './blocks/DashboardOperationsBlocks';
+import {
+  MissionProposalsCard,
+  MyFollowUpsSection,
+  MyNextMissionCard,
+  MyQuotesCard,
+  MyWeekCard,
+  ProviderComplianceAlert,
+  useMyEarnings,
+  useMyQuoteTotals,
+} from './blocks/FieldWorkerBlocks';
+import { CLEANING_ROLES, FIELD_ROLES, TRADE_ROLES } from '../../utils/fieldRoles';
 import {
   MonthlyRevenueSplitCard,
   OccupancyByPropertyCard,
@@ -115,25 +128,42 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const { data: myPayoutData } = useMyPendingPayout();
   // Déjà chargé par « Prochaines arrivées » : React Query dédoublonne, aucun
   // appel supplémentaire.
-  const { data: upcomingArrivals } = useDashboardUpcomingArrivals(7);
-  const upcomingCount = upcomingArrivals?.length ?? 0;
-
-  const {
-    isAllCompleted: onboardingComplete,
-    isDismissed: onboardingDismissed,
-    totalCount: onboardingTotal,
-    isLoading: onboardingLoading,
-  } = useOnboarding();
-  const showOnboardingOverlay =
-    !onboardingLoading && onboardingTotal > 0 && !onboardingComplete && !onboardingDismissed;
-
   // ─── Périmètre par rôle ─────────────────────────────────────────────────
+  // Résolu AVANT les requêtes : les arrivées à venir n'alimentent qu'une tuile
+  // de la vue gestionnaire, et les charger pour un intervenant est un appel
+  // pour rien.
   const roles = useMemo(() => user?.roles ?? [], [user?.roles]);
-  const isOperational = ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].some((role) =>
-    roles.includes(role),
-  );
+  const isOperational = FIELD_ROLES.some((role) => roles.includes(role));
+  /**
+   * Metiers de travaux : leurs indicateurs sont les devis, pas le score et les
+   * versements du circuit menage — qui restent structurellement a zero pour
+   * eux, cf. `utils/fieldRoles`.
+   */
+  const isTradeWorker = TRADE_ROLES.some((role) => roles.includes(role))
+    && !CLEANING_ROLES.some((role) => roles.includes(role));
   /** La projection décrit la vue gestionnaire : elle ne s'applique qu'à ces rôles. */
   const showManagementView = !isOperational;
+
+  const { data: upcomingArrivals } = useDashboardUpcomingArrivals(7, showManagementView);
+  const upcomingCount = upcomingArrivals?.length ?? 0;
+
+  // Remuneration et score : deux lectures propres aux roles terrain. Les hooks
+  // sont appeles inconditionnellement (regles des hooks) mais ne servent que la
+  // branche terrain — leurs requetes sont peu couteuses et mises en cache.
+  const earnings = useMyEarnings();
+  const quotes = useMyQuoteTotals();
+  const { data: myRates } = useQuery({
+    queryKey: ['field', 'rates'],
+    queryFn: () => housekeeperRatesApi.getMy(),
+    staleTime: 300_000,
+  });
+  const qualityScore = myRates?.score ?? null;
+
+  // Le guide de demarrage vit dans le dock flottant : le tableau de bord n'a
+  // plus besoin que du chargement de son statut pour se declarer pret. Il ne
+  // FLOUTE plus ses tuiles tant que la configuration n'est pas finie — le guide
+  // porte deja le message, rendre l'ecran illisible n'aidait personne.
+  const { isLoading: onboardingLoading } = useOnboarding();
 
   // ─── Prêt à afficher ────────────────────────────────────────────────────
   const readyKeys = useMemo(() => ['kpis', 'onboarding'], []);
@@ -145,7 +175,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       markReady('kpis');
     }
   }, [loading, markReady]);
-  const onOnboardingReady = useCallback(() => markReady('onboarding'), [markReady]);
+  // Le guide de demarrage vit desormais dans le dock flottant global
+  // (`OnboardingDockMount`), plus dans le tableau de bord : c'est donc le
+  // chargement du statut qui libere l'affichage, et non plus un composant local.
+  useEffect(() => {
+    if (!onboardingLoading) markReady('onboarding');
+  }, [onboardingLoading, markReady]);
 
   // ─── Registre des tuiles ────────────────────────────────────────────────
   // ⚠️ Les identifiants sont persistés dans les préférences utilisateur : les
@@ -290,8 +325,36 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       ),
     });
   } else {
-    // Vue terrain : la projection ne la décrit pas, mais un intervenant doit
-    // garder ses repères. Même kit, contenu adapté.
+    // Vue terrain. La projection de galerie ne la decrit pas — elle ne parle
+    // que du gestionnaire. Un intervenant a d'autres questions : ou vais-je,
+    // qu'est-ce qu'on me propose, qu'est-ce qui me bloque, combien j'ai gagne.
+    widgets.push({
+      id: 'field-compliance',
+      label: t('dashboard.widgets.compliance', 'Dossier'),
+      node: (
+        <DashboardErrorBoundary widgetName="ProviderCompliance">
+          <ProviderComplianceAlert />
+        </DashboardErrorBoundary>
+      ),
+    });
+    widgets.push({
+      id: 'field-next-mission',
+      label: t('dashboard.widgets.nextMission', 'Ma prochaine mission'),
+      node: (
+        <DashboardErrorBoundary widgetName="NextMission">
+          <MyNextMissionCard />
+        </DashboardErrorBoundary>
+      ),
+    });
+    widgets.push({
+      id: 'field-proposals',
+      label: t('dashboard.widgets.proposals', 'Missions a confirmer'),
+      node: (
+        <DashboardErrorBoundary widgetName="MissionProposals">
+          <MissionProposalsCard />
+        </DashboardErrorBoundary>
+      ),
+    });
     widgets.push({
       id: 'operational-kpis',
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
@@ -299,49 +362,119 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <DashboardErrorBoundary widgetName="OperationalKPIs">
           <StatTileRow columns={4}>
             <StatTile
-              icon={<WrenchIcon />}
-              label={t('dashboard.stats.upcomingInterventions', 'Interventions à venir')}
-              value={stats ? stats.interventions.upcoming : '—'}
-              loading={loading}
-              hint={t('dashboard.stats.next7days', '7 prochains jours')}
-            />
-            <StatTile
-              icon={<ClipboardCheckIcon />}
-              label={t('dashboard.stats.completedInterventions', 'Terminées')}
-              value={stats ? stats.interventions.completed : '—'}
-              iconClassName="text-success"
-              loading={loading}
-            />
-            <StatTile
               icon={<CalendarCheckIcon />}
               label={t('dashboard.stats.todayInterventions', 'Aujourd’hui')}
               value={stats ? stats.interventions.today : '—'}
               loading={loading}
+              hint={stats
+                ? `${stats.interventions.upcoming} ${t('dashboard.stats.next7daysShort', 'sur 7 jours')}`
+                : undefined}
             />
-            <StatTile
-              icon={<WalletIcon />}
-              label={t('dashboard.stats.nextPayout', 'Prochain versement')}
-              value={
-                myPayoutData ? <Money value={myPayoutData.totalPendingAmount} decimals={0} /> : '—'
-              }
-              iconClassName="text-success"
-              loading={loading}
-              hint={
-                myPayoutData
-                  ? `${myPayoutData.pendingCount} ${t('dashboard.stats.pending', 'en attente')}`
-                  : undefined
-              }
-            />
+            {/*
+              Seule la charge du jour est commune. Les trois autres tuiles
+              dependent de la FAMILLE de metier : score et versements sont
+              calcules sur les seuls types de menage — `HousekeeperScoreService`
+              ne compte que CLEANING / EXPRESS_CLEANING / DEEP_CLEANING, et
+              `HousekeeperPayoutService` sort immediatement sur un type
+              maintenance. Les montrer a un technicien affichait « 0/100 ·
+              0 missions » et « 0 € » a vie — une promesse que le produit ne
+              peut pas tenir.
+            */}
+            {isTradeWorker ? (
+              <>
+                <StatTile
+                  icon={<ClipboardCheckIcon />}
+                  label={t('dashboard.stats.completedInterventions', 'Terminées')}
+                  value={stats ? stats.interventions.completed : '—'}
+                  iconClassName="text-success"
+                  loading={loading}
+                />
+                <StatTile
+                  icon={<FileTextIcon />}
+                  label={t('dashboard.stats.pendingQuotes', 'Devis en attente')}
+                  value={quotes.pendingCount}
+                  loading={loading}
+                  hint={quotes.pendingCount > 0
+                    ? t('dashboard.stats.pendingQuotesHint', 'en attente de réponse')
+                    : t('dashboard.stats.noPendingQuotes', 'aucun devis ouvert')}
+                />
+                <StatTile
+                  icon={<BanknoteIcon />}
+                  label={t('dashboard.stats.approvedQuotes', 'Devis acceptés')}
+                  value={<Money value={quotes.approvedAmount} decimals={0} />}
+                  iconClassName="text-success"
+                  loading={loading}
+                  hint={t('dashboard.stats.approvedQuotesHint', '{{count}} devis retenus', {
+                    count: quotes.approvedCount,
+                  })}
+                />
+              </>
+            ) : (
+              <>
+                {/* Le score influence l'auto-assignation : il a sa place la ou on
+                    regarde chaque matin, pas seulement dans l'ecran des tarifs. */}
+                <StatTile
+                  icon={<StarIcon />}
+                  label={t('dashboard.stats.qualityScore', 'Score qualité')}
+                  value={qualityScore ? qualityScore.score : '—'}
+                  unit="/100"
+                  iconClassName="text-success"
+                  loading={loading}
+                  hint={qualityScore
+                    ? t('dashboard.stats.qualityHint', '{{count}} missions · {{proof}} % avec preuve photo', {
+                      count: qualityScore.completedCount,
+                      proof: Math.round(qualityScore.proofRate * 100),
+                    })
+                    : undefined}
+                />
+                <StatTile
+                  icon={<BanknoteIcon />}
+                  label={t('dashboard.stats.paidThisMonth', 'Versé ce mois')}
+                  value={<Money value={earnings.paidThisMonth} decimals={0} />}
+                  iconClassName="text-success"
+                  loading={loading}
+                />
+                <StatTile
+                  icon={<WalletIcon />}
+                  label={t('dashboard.stats.nextPayout', 'Prochain versement')}
+                  value={<Money value={earnings.pending} decimals={0} />}
+                  loading={loading}
+                  hint={earnings.accountReady
+                    ? `${earnings.pendingCount} ${t('dashboard.stats.pending', 'en attente')}`
+                    : t('dashboard.stats.payoutAccountMissing', 'compte de versement à configurer')}
+                />
+              </>
+            )}
           </StatTileRow>
         </DashboardErrorBoundary>
       ),
     });
     widgets.push({
-      id: 'today-operations',
-      label: t('dashboard.widgets.todayOperations', 'Opérations du jour'),
+      id: 'field-week',
+      label: t('dashboard.widgets.myWeek', 'Ma semaine'),
       node: (
-        <DashboardErrorBoundary widgetName="TodayOperations">
-          <TodayOperationsSection />
+        <DashboardErrorBoundary widgetName="MyWeek">
+          <MyWeekCard />
+        </DashboardErrorBoundary>
+      ),
+    });
+    if (isTradeWorker) {
+      widgets.push({
+        id: 'field-quotes',
+        label: t('dashboard.widgets.myQuotes', 'Mes devis'),
+        node: (
+          <DashboardErrorBoundary widgetName="MyQuotes">
+            <MyQuotesCard />
+          </DashboardErrorBoundary>
+        ),
+      });
+    }
+    widgets.push({
+      id: 'field-follow-ups',
+      label: t('dashboard.widgets.followUps', 'Mes suites'),
+      node: (
+        <DashboardErrorBoundary widgetName="FollowUps">
+          <MyFollowUpsSection />
         </DashboardErrorBoundary>
       ),
     });
@@ -405,16 +538,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <div className={cn('flex flex-col gap-4', !isReady && 'sr-only')}>
           <MissingContractsDashboardAlert />
 
-          <OnboardingChecklist onReady={onOnboardingReady} />
-
           <div className="relative flex flex-col gap-4">
-            {showOnboardingOverlay && (
-              <div className="absolute inset-0 z-[2] flex justify-center rounded-xl bg-background/55 pt-8 backdrop-blur-[3px]">
-                <p className="m-0 h-fit rounded-lg border border-border bg-card/95 px-4 py-2 text-center text-sm font-semibold text-muted-foreground shadow-sm">
-                  {t('onboarding.completionMessage')}
-                </p>
-              </div>
-            )}
 
             {/* `[&>*]:shrink-0` — les tuiles ne doivent JAMAIS etre comprimees :
                 cette colonne vit dans une zone qui defile deja, sa hauteur doit
@@ -429,7 +553,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             <div
               className={cn(
                 'flex flex-col gap-4 [&>*]:shrink-0',
-                showOnboardingOverlay && 'pointer-events-none select-none',
               )}
             >
               <DashboardWidgetGrid

@@ -50,6 +50,7 @@ class TagResolverServiceTest {
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
     @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
+    @Mock private com.clenzy.service.UserAvatarStorageService imageStorage;
     @Mock private ReceivedFormRepository receivedFormRepository;
     @Mock private com.clenzy.repository.ManagementContractRepository managementContractRepository;
     @Mock private PricingConfigService pricingConfigService;
@@ -62,7 +63,7 @@ class TagResolverServiceTest {
         // Registre OCP (T-SOLID-5) : un resolveur par type de reference, wiring
         // identique a celui de Spring (List<ReferenceTagResolver> injectee).
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, objectMapper);
+        EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, objectMapper, imageStorage);
         service = new TagResolverService(List.of(
                 new InterventionTagResolver(interventionRepository, builders, cleaningPricingEngine),
                 new ReservationTagResolver(reservationRepository, builders),

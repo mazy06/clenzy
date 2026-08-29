@@ -78,6 +78,20 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
             Instant now);
 
     /**
+     * Même doublon, mais RÉCUPÉRÉ plutôt que compté.
+     *
+     * <p>Sert à PROMOUVOIR une carte : quand un scanner qui n'émettait qu'un
+     * constat se met à proposer une action, sa carte informative encore en
+     * attente bloque sa propre remplaçante — la dédup se fait par intitulé, et
+     * l'intitulé n'a pas changé. Le constat resterait sans issue jusqu'à son
+     * expiration. On lui greffe l'action au lieu de la jeter.</p>
+     */
+    java.util.Optional<SupervisionSuggestion>
+        findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+            Long organizationId, Long propertyId, String moduleKey, String title, String status,
+            Instant now);
+
+    /**
      * Cooldown anti-re-suggestion : une carte identique a-t-elle été rejetée récemment ?
      * (même org/logement/module/intitulé, statut donné, {@code dismissed_at} après le seuil).
      */

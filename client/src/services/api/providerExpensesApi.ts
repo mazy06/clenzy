@@ -71,6 +71,14 @@ export const providerExpensesApi = {
     return apiClient.get<ProviderExpense[]>('/provider-expenses', { params });
   },
 
+  /**
+   * Mes frais. Le fournisseur est resolu depuis le JWT cote serveur — on ne
+   * passe pas son propre identifiant en parametre.
+   */
+  async getMine(): Promise<ProviderExpense[]> {
+    return apiClient.get<ProviderExpense[]>('/provider-expenses', { params: { mine: true } });
+  },
+
   async getById(id: number): Promise<ProviderExpense> {
     return apiClient.get<ProviderExpense>(`/provider-expenses/${id}`);
   },

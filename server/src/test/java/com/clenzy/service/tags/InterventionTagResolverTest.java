@@ -41,13 +41,14 @@ class InterventionTagResolverTest {
 
     @Mock private InterventionRepository interventionRepository;
     @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
+    @Mock private com.clenzy.service.UserAvatarStorageService imageStorage;
     @Mock private CleaningPricingEngine cleaningPricingEngine;
 
     private InterventionTagResolver resolver;
 
     @BeforeEach
     void setUp() {
-        EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, new ObjectMapper());
+        EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, new ObjectMapper(), imageStorage);
         resolver = new InterventionTagResolver(interventionRepository, builders, cleaningPricingEngine);
     }
 

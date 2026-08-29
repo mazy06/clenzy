@@ -49,6 +49,7 @@ class HousekeeperRateAssignmentTest {
         @Mock private InterventionRepository interventionRepository;
         @Mock private UserRepository userRepository;
         @Mock private TeamRepository teamRepository;
+    @Mock private com.clenzy.repository.PropertyPhotoRepository propertyPhotoRepository;
         @Mock private NotificationService notificationService;
         @Mock private TenantContext tenantContext;
         @Mock private InterventionPhotoService photoService;
@@ -56,11 +57,13 @@ class HousekeeperRateAssignmentTest {
         @Mock private InterventionAccessPolicy accessPolicy;
         @Mock private CleaningPricingEngine cleaningPricingEngine;
         @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
+        @Mock private com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
         private InterventionService service() {
             return new InterventionService(interventionRepository, userRepository, teamRepository,
                     notificationService, tenantContext, photoService, interventionMapper, accessPolicy,
-                    cleaningPricingEngine, missionAssignmentEmailComposer);
+                    cleaningPricingEngine, missionAssignmentEmailComposer, propertyPhotoRepository,
+                    supervisionTriggerService);
         }
 
         private Jwt adminJwt() {

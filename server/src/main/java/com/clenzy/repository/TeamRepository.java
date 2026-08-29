@@ -40,6 +40,22 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     Optional<Team> findByIdWithMembers(@Param("id") Long id);
 
     /**
+     * Equipes de l'annuaire — les equipes PERSONNELLES en sont exclues : une par
+     * intervenant independant, elles noieraient les vraies equipes. Pagination
+     * SQL reelle, pas un findAll() re-pagine en memoire.
+     */
+    @Query("SELECT t FROM Team t WHERE t.personalUserId IS NULL")
+    Page<Team> findAllNonPersonal(Pageable pageable);
+
+    /**
+     * Equipe PERSONNELLE d'un intervenant — celle d'un seul membre, creee pour
+     * rendre un independant visible du moteur d'affectation. L'unicite est
+     * garantie en base par un index unique partiel.
+     */
+    @Query("SELECT t FROM Team t WHERE t.personalUserId = :userId AND t.organizationId = :orgId")
+    Optional<Team> findByPersonalUserId(@Param("userId") Long userId, @Param("orgId") Long orgId);
+
+    /**
      * Requêtes optimisées avec FETCH JOIN et cache
      */
     @Query("SELECT t FROM Team t LEFT JOIN FETCH t.members tm LEFT JOIN FETCH tm.user WHERE t.interventionType = :interventionType AND t.organizationId = :orgId")

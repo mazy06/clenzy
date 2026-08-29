@@ -17,6 +17,10 @@ public interface ServiceQuoteRepository extends JpaRepository<ServiceQuote, Long
 
     Optional<ServiceQuote> findByIdAndOrganizationId(Long id, Long organizationId);
 
+    /** « Mes devis » — les plus recents d'abord, toujours borne a l'organisation. */
+    List<ServiceQuote> findByProviderUserIdAndOrganizationIdOrderByCreatedAtDesc(
+            Long providerUserId, Long organizationId);
+
     /** Transition CAS RECEIVED → APPROVED (l'unique partiel DB verrouille le doublon). */
     @Modifying
     @Query("UPDATE ServiceQuote q SET q.status = com.clenzy.model.ServiceQuote.Status.APPROVED, "

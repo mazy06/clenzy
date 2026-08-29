@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { FIELD_ROLES } from '../utils/fieldRoles';
 import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
 import { useAuth } from '../hooks/useAuth';
@@ -41,6 +42,10 @@ const WorkOrdersPage = lazy(() => import('./work-orders/WorkOrdersPage'));
 const InterventionForm = lazy(() => import('./interventions/InterventionForm'));
 const InterventionDetails = lazy(() => import('./interventions/InterventionDetails'));
 const InterventionEdit = lazy(() => import('./interventions/InterventionEdit'));
+const InterventionRunScreen = lazy(() => import('./interventions/InterventionRunScreen'));
+const MyAccountPage = lazy(() => import('./account/MyAccountPage'));
+const MyRatesPage = lazy(() => import('./account/MyRatesPage'));
+const MyAvailabilityPage = lazy(() => import('./account/MyAvailabilityPage'));
 const PaymentSuccess = lazy(() => import('./interventions/PaymentSuccess'));
 const PaymentCancel = lazy(() => import('./interventions/PaymentCancel'));
 const InterventionsPendingPayment = lazy(() => import('./interventions/InterventionsPendingPayment'));
@@ -91,7 +96,6 @@ const TemplateDetails = lazy(() => import('./documents/TemplateDetails'));
 const NotificationsPage = lazy(() => import('./notifications/NotificationsPage'));
 
 // Calendar
-const CalendarPage = lazy(() => import('./calendar/CalendarPage'));
 
 // Portfolios (sub-routes only — main list is inside DirectoryPage)
 const ClientPropertyAssignmentForm = lazy(() => import('./portfolios/ClientPropertyAssignmentForm'));
@@ -302,6 +306,13 @@ const AuthenticatedApp: React.FC = () => {
             </ErrorBoundary>
           </ProtectedRoute>
         } />
+        {/* Ecran terrain plein ecran de l'intervention en cours. Il se garde
+            lui-meme : tout statut autre que IN_PROGRESS renvoie a la fiche. */}
+        <Route path="/interventions/:id/suivi" element={
+          <ProtectedRoute requiredPermission="interventions:view">
+            <InterventionRunScreen />
+          </ProtectedRoute>
+        } />
         <Route path="/interventions/:id/edit" element={
           <ProtectedRoute requiredPermission="interventions:edit">
             <ErrorBoundary>
@@ -363,11 +374,9 @@ const AuthenticatedApp: React.FC = () => {
         {/* Backward-compat redirects */}
         <Route path="/payments/history" element={<Navigate to="/billing" replace />} />
 
-        <Route path="/calendar" element={
-          <ProtectedRoute requiredPermission="interventions:view">
-            <CalendarPage />
-          </ProtectedRoute>
-        } />
+        {/* Le calendrier des interventions est un ONGLET de /interventions ;
+            l'URL historique y mene, comme /service-requests. */}
+        <Route path="/calendar" element={<Navigate to="/interventions?tab=calendar" replace />} />
 
         <Route path="/teams" element={<Navigate to="/directory?tab=teams" replace />} />
         <Route path="/teams/new" element={
@@ -410,8 +419,19 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
         
+        {/* « Mon compte » : profil + notifications, SANS permission dediee —
+            /settings exige `settings:view`, absente des roles operationnels. */}
+        <Route path="/account" element={<MyAccountPage />} />
+        {/* Tarifs et disponibilites : gestes du QUOTIDIEN d'un intervenant, donc
+            des ecrans a eux, pas des cartes noyees dans « Mon compte ». Aucune
+            permission dediee — ce sont ses propres donnees. */}
+        <Route path="/mes-tarifs" element={<MyRatesPage />} />
+        <Route path="/mes-disponibilites" element={<MyAvailabilityPage />} />
+        {/* Reglages de l'ORGANISATION. Fermes au terrain meme quand
+            `settings:view` leur a ete accordee a la main : leurs reglages
+            personnels vivent dans « Mon compte ». */}
         <Route path="/settings" element={
-          <ProtectedRoute requiredPermission="settings:view">
+          <ProtectedRoute requiredPermission="settings:view" deniedRoles={[...FIELD_ROLES]}>
             <Settings />
           </ProtectedRoute>
         } />

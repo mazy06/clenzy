@@ -92,6 +92,13 @@ public class User {
     @Column(name = "company_name")
     private String companyName;
 
+    /**
+     * Storage key du logo d'entreprise (meme convention que
+     * {@code profilePictureUrl}) — repris dans les documents generes.
+     */
+    @Column(name = "company_logo_path", length = 500)
+    private String companyLogoPath;
+
     private String forfait;
 
     private String city;
@@ -161,6 +168,19 @@ public class User {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     
+    // ── CGU prestataire (intervenants payes a la mission) ──────────────────
+    // Acceptation HORODATEE, pas signature : la version acceptee, la date et
+    // l'IP suffisent a rendre la retenue de commission opposable. La version est
+    // stockee pour pouvoir republier des CGU sans perdre la trace precedente.
+    @Column(name = "provider_terms_version", length = 20)
+    private String providerTermsVersion;
+
+    @Column(name = "provider_terms_accepted_at")
+    private LocalDateTime providerTermsAcceptedAt;
+
+    @Column(name = "provider_terms_accepted_ip", length = 45)
+    private String providerTermsAcceptedIp;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -307,6 +327,10 @@ public class User {
         this.companyName = companyName;
     }
 
+    public String getCompanyLogoPath() { return companyLogoPath; }
+
+    public void setCompanyLogoPath(String companyLogoPath) { this.companyLogoPath = companyLogoPath; }
+
     public String getForfait() {
         return forfait;
     }
@@ -425,6 +449,30 @@ public class User {
 
     public void setNewsletterOptIn(boolean newsletterOptIn) {
         this.newsletterOptIn = newsletterOptIn;
+    }
+
+    public String getProviderTermsVersion() {
+        return providerTermsVersion;
+    }
+
+    public void setProviderTermsVersion(String providerTermsVersion) {
+        this.providerTermsVersion = providerTermsVersion;
+    }
+
+    public LocalDateTime getProviderTermsAcceptedAt() {
+        return providerTermsAcceptedAt;
+    }
+
+    public void setProviderTermsAcceptedAt(LocalDateTime providerTermsAcceptedAt) {
+        this.providerTermsAcceptedAt = providerTermsAcceptedAt;
+    }
+
+    public String getProviderTermsAcceptedIp() {
+        return providerTermsAcceptedIp;
+    }
+
+    public void setProviderTermsAcceptedIp(String providerTermsAcceptedIp) {
+        this.providerTermsAcceptedIp = providerTermsAcceptedIp;
     }
 
     public String getPromoCode() {

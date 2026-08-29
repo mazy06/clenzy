@@ -9,10 +9,15 @@ import {
   Build as WrenchIcon,
   PriorityHigh as PriorityHighIcon,
   PlayCircleOutline as PlayCircleOutlineIcon,
+  PlayArrow as PlayArrowIcon,
   StopCircle as StopCircleIcon,
+  CheckCircleOutline,
 } from '../../icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import { getInterventionTypeLabel } from '../../utils/statusUtils';
+import type { ServiceQuote } from '../../services/api/serviceQuotesApi';
+import type { WorkOrderAssignmentState } from '../work-orders/WorkOrderDetailLayout';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDateTime } from '../../utils/formatUtils';
@@ -24,6 +29,9 @@ import {
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import InterventionQuotesSection from './InterventionQuotesSection';
+import { useAuth } from '../../hooks/useAuth';
+import { interventionsApi } from '../../services/api/interventionsApi';
+import { TRADE_ROLES } from '../../utils/fieldRoles';
 import { interventionsKeys } from './useInterventionsList';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 import WorkOrderDetailLayout, {
@@ -34,12 +42,58 @@ import WorkOrderDetailLayout, {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
+/**
+ * Etat a montrer a l'intervenant.
+ *
+ * <p>Il accepte l'assignation, mais le prix ne devient acquis que lorsque le
+ * proprietaire ou la conciergerie approuve son devis. Entre les deux, dire
+ * « Acceptee » laisserait croire l'affaire conclue.</p>
+ */
+function resolveAssignmentState(
+  response: 'PENDING' | 'ACCEPTED' | 'DECLINED' | undefined,
+  quotes: ServiceQuote[] | null,
+): WorkOrderAssignmentState | undefined {
+  if (!response) return undefined;
+  if (response !== 'ACCEPTED') return response;
+  if (quotes?.some((quote) => quote.status === 'APPROVED')) return 'QUOTE_APPROVED';
+  if (quotes?.some((quote) => quote.status === 'RECEIVED')) return 'QUOTE_SUBMITTED';
+  return 'ACCEPTED';
+}
+
 export default function InterventionDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { notify } = useNotification();
   const queryClient = useQueryClient();
+
+  const { hasAnyRole } = useAuth();
+  const [respondingAssignment, setRespondingAssignment] = React.useState(false);
+  // Incremente pour demander l'ouverture du chiffrage. Accepter une mission et
+  // annoncer son prix sont le meme geste : l'un sans l'autre laisse le
+  // gestionnaire sans rien a approuver.
+  const [quoteFormSignal, setQuoteFormSignal] = React.useState(0);
+
+  /** Accepter ou refuser la mission depuis sa fiche, sans repasser par le tableau de bord. */
+  const respondToAssignment = async (accept: boolean) => {
+    if (!id) return;
+    setRespondingAssignment(true);
+    try {
+      await (accept ? interventionsApi.accept(Number(id)) : interventionsApi.decline(Number(id)));
+      notify.success(accept
+        ? t('field.proposals.accepted', 'Mission acceptée')
+        : t('field.proposals.declined', 'Mission refusée'));
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id) });
+      if (accept && canSubmitOwnQuote) setQuoteFormSignal((signal) => signal + 1);
+    } catch {
+      setError(t('field.proposals.error', 'L’action a échoué, réessayez.'));
+    } finally {
+      setRespondingAssignment(false);
+    }
+  };
+
+  /** Metiers de travaux : eux seuls chiffrent une intervention. */
+  const canSubmitOwnQuote = hasAnyRole([...TRADE_ROLES]);
 
   const {
     intervention, loading, error, starting, completing,
@@ -60,6 +114,10 @@ export default function InterventionDetailsPage() {
     setCompletedSteps, setInspectionComplete,
     startSuccessMessage, setStartSuccessMessage,
   } = useInterventionDetails(id);
+
+  // Les devis conditionnent l'etat affiche dans « Votre reponse » : la section
+  // les charge deja, elle les remonte plutot que d'ouvrir une seconde requete.
+  const [quotes, setQuotes] = React.useState<ServiceQuote[] | null>(null);
 
   const photosProps = useMemo(() => ({
     beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds,
@@ -89,6 +147,16 @@ export default function InterventionDetailsPage() {
     setStartSuccessMessage(null);
   }, [startSuccessMessage, notify, setStartSuccessMessage]);
 
+  // Intervention EN COURS et utilisateur charge de l'executer → l'ecran terrain
+  // prend la main : pendant l'execution, le detail (metriques, adresse,
+  // personnes) n'a plus d'utilite, seul le suivi compte. `replace` pour que le
+  // retour arriere sorte vers la liste et non vers une fiche qui redirige.
+  // Les autres profils (manager en lecture, comptabilite) gardent la fiche.
+  const shouldRunFieldScreen = intervention?.status === 'IN_PROGRESS' && canStartOrUpdateIntervention;
+  useEffect(() => {
+    if (shouldRunFieldScreen) navigate(`/interventions/${id}/suivi`, { replace: true });
+  }, [shouldRunFieldScreen, navigate, id]);
+
   if (!permissionsLoaded || loading) {
     return (
       <div className="flex justify-center py-12">
@@ -115,26 +183,10 @@ export default function InterventionDetailsPage() {
   const buildViewModel = (): WorkOrderViewModel | null => {
     if (!intervention) return null;
 
-    // Start / end times surfaced as extra KPI tiles (intervention-only fields).
+    // Debut et fin ne sont PAS des tuiles : le bloc « Detail du temps » les
+    // rend deja, plus bas dans le meme ecran. Sans ce doublon, les tuiles
+    // restantes (type, duree, echeance, cout) tiennent sur une seule rangee.
     const extraMetrics: WorkOrderMetric[] = [];
-    if (intervention.startTime) {
-      extraMetrics.push({
-        icon: <PlayCircleOutlineIcon size={18} strokeWidth={1.75} />,
-        // `tone` est peint en `color:` sur la valeur ET sur l'icone : c'est du
-        // TEXTE, donc l'encre `-ink` (la teinte vive plafonne a ~2,2:1).
-        tone: 'var(--bui-success-ink)',
-        value: formatDateTime(intervention.startTime),
-        label: t('interventions.detail.start'),
-      });
-    }
-    if (intervention.endTime) {
-      extraMetrics.push({
-        icon: <StopCircleIcon size={18} strokeWidth={1.75} />,
-        tone: 'var(--bui-destructive-ink)',
-        value: formatDateTime(intervention.endTime),
-        label: t('interventions.detail.end'),
-      });
-    }
 
     // Start / end times also listed in the time-detail section for completeness.
     const extraTimeRows: WorkOrderTimeRow[] = [];
@@ -161,6 +213,27 @@ export default function InterventionDetailsPage() {
 
     return {
       type: intervention.type,
+      // La photo de couverture arrive avec l'intervention depuis le lot
+      // pre-charge : un intervenant reconnait un lieu avant de le lire.
+      propertyPhotoUrl: intervention.propertyCoverPhotoUrl,
+      // L'acces vient de la PROPRIETE : code de porte, stationnement, arrivee.
+      // Il vivait a deux ecrans de celui qui se deplace.
+      // Le signalement d'origine : l'intervention seule ne dit pas POURQUOI
+      // elle existe, ni ce qui a ete constate sur place.
+      assignment: resolveAssignmentState(intervention.assignmentResponse, quotes),
+      sourceIssue: intervention.sourceIssue
+        ? { ...intervention.sourceIssue, photoUrls: intervention.sourceIssue.photoUrls ?? undefined }
+        : undefined,
+      access: {
+        code: propertyDetails?.checkInInstructions?.accessCode,
+        parking: propertyDetails?.checkInInstructions?.parkingInfo,
+        arrival: propertyDetails?.checkInInstructions?.arrivalInstructions,
+      },
+      tasks: intervention.quoteLines?.map((line) => ({
+        label: line.label,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+      })),
       status: intervention.status,
       statusLabel: getStatusLabel(intervention.status, t),
       description: intervention.description || undefined,
@@ -194,6 +267,47 @@ export default function InterventionDetailsPage() {
   };
 
   const vm = buildViewModel();
+
+  /**
+   * Action principale, posee en tete de fiche (carte Progression). Avant, le
+   * bouton « Demarrer » vivait au bas du stepper : il fallait defiler toute la
+   * fiche pour l'atteindre, alors que c'est la seule chose qu'un intervenant
+   * vient y faire.
+   */
+  const heroAction = (() => {
+    if (!intervention) return undefined;
+    if (canStartIntervention) {
+      return (
+        <BuiButton size="sm" onClick={handleStartIntervention} disabled={starting}>
+          {starting ? <Spinner className="size-4" /> : <PlayArrowIcon size={16} strokeWidth={1.75} />}
+          {starting
+            ? t('interventions.progressSteps.starting')
+            : t('interventions.progressSteps.startIntervention')}
+        </BuiButton>
+      );
+    }
+    // Assigne mais trop tot : le bouton n'a pas de sens, la date en a un.
+    if (canStartOrUpdateIntervention && intervention.status === 'PENDING'
+        && isBeforeScheduledDate && intervention.scheduledDate) {
+      return (
+        <span className="rounded-lg bg-warning-soft px-2 py-1 text-xs font-semibold text-warning-ink">
+          {t('interventions.detail.scheduledFor', 'Démarrage possible le')}{' '}
+          {formatDateTime(intervention.scheduledDate)}
+        </span>
+      );
+    }
+    // En cours vu par un profil non executant (manager) : la fiche reste, mais
+    // l'ecran terrain est a un tap. L'executant, lui, y est deja redirige.
+    if (intervention.status === 'IN_PROGRESS') {
+      return (
+        <BuiButton variant="outline" size="sm" onClick={() => navigate(`/interventions/${id}/suivi`)}>
+          <PlayArrowIcon size={16} strokeWidth={1.75} />
+          {t('interventions.detail.openRunScreen', 'Ouvrir le suivi')}
+        </BuiButton>
+      );
+    }
+    return undefined;
+  })();
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -242,6 +356,63 @@ export default function InterventionDetailsPage() {
       {vm && intervention && (
         <WorkOrderDetailLayout
           vm={vm}
+          heroAction={heroAction}
+          statusBanner={
+            // La fiche restait muette sur l'etat d'assignation, que le tableau
+            // de bord affiche : il fallait revenir en arriere pour repondre.
+            intervention.assignmentResponse === 'PENDING' && canSubmitOwnQuote ? (
+              <BuiAlert variant="warning" className="items-center py-2">
+                <TriangleAlert />
+                <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    {t('interventions.detail.toConfirm',
+                      'Cette mission vous est proposée — elle attend votre réponse.')}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <BuiButton
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive-ink"
+                      disabled={respondingAssignment}
+                      onClick={() => respondToAssignment(false)}
+                    >
+                      {t('field.proposals.decline', 'Refuser')}
+                    </BuiButton>
+                    <BuiButton
+                      variant="secondary"
+                      size="sm"
+                      disabled={respondingAssignment}
+                      onClick={() => respondToAssignment(true)}
+                    >
+                      {t('field.proposals.accept', 'Accepter')}
+                    </BuiButton>
+                  </span>
+                </AlertDescription>
+              </BuiAlert>
+            ) : intervention.assignmentResponse === 'ACCEPTED' ? (
+              // Le bandeau disait « Mission acceptée. » en texte vert dans un
+              // cadre pale : rien ne se voyait avant de lire. L'acceptation est
+              // un engagement — elle se signale d'abord par un aplat.
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-solid border-success/35 bg-success-soft px-3 py-2">
+                <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-success text-primary-foreground">
+                  <CheckCircleOutline size={14} strokeWidth={2.25} />
+                </span>
+                <p className="m-0 text-[13px] font-semibold text-success-ink">
+                  {t('interventions.detail.accepted', 'Mission acceptée')}
+                </p>
+                <p className="m-0 text-xs text-foreground">
+                  {quotes?.some((quote) => quote.status === 'RECEIVED')
+                    ? t('interventions.detail.quoteSubmittedHint',
+                        'Votre devis est soumis : le propriétaire ou la conciergerie doit encore l’approuver.')
+                    : intervention.status === 'IN_PROGRESS'
+                      ? t('interventions.detail.acceptedRunning',
+                          'Intervention en cours — pensez aux photos avant/après.')
+                      : t('interventions.detail.acceptedHint',
+                          'Vous êtes engagé sur cette intervention. Démarrez-la une fois sur place.')}
+                </p>
+              </div>
+            ) : undefined
+          }
           propertyAction={
             // Action discrete au coin d'une carte : ghost, et xs pour retrouver
             // la hauteur 24 que le sx d'origine imposait.
@@ -255,6 +426,11 @@ export default function InterventionDetailsPage() {
           }
           extraSection={
             <>
+              {/* Le suivi vit desormais sur l'ecran terrain
+                  (/interventions/:id/suivi). Sur la fiche il ne reste que pour
+                  une intervention TERMINEE : c'est alors un recapitulatif
+                  (pieces validees, photos, documents) et le bouton Rouvrir. */}
+              {intervention.status === 'COMPLETED' && (
               <Card size="sm" className="mb-[9px] shadow-none">
                 <CardContent>
                   <p className={WORKFLOW_TITLE_CLASS}>
@@ -277,13 +453,31 @@ export default function InterventionDetailsPage() {
                   />
                 </CardContent>
               </Card>
+              )}
               {/* Devis prestataires (M4) — l'approbation reporte le montant sur le
                   coût estimé : on invalide la query détail pour rafraîchir les KPI. */}
               <InterventionQuotesSection
                 interventionId={Number(id)}
                 canEdit={canEditInterventions}
+                // Chiffrer sa propre mission est le geste economique du
+                // technicien. `canEditInterventions` ne l'ouvre pas : cette
+                // permission est reservee aux gestionnaires, qui saisissent les
+                // devis RECUS de tiers et les approuvent.
+                canSubmitOwn={canSubmitOwnQuote}
+                interventionStatus={intervention.status}
+                interventionCreatedAt={intervention.createdAt}
                 onQuoteApproved={() => {
                   queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id ?? '') });
+                }}
+                onQuotesLoaded={setQuotes}
+                openFormSignal={quoteFormSignal}
+                // Le contexte de la demande, pour chiffrer sans revenir en
+                // arriere : surface, piece, gravite vivent dans ces champs.
+                demand={{
+                  title: intervention.title,
+                  description: intervention.description,
+                  typeLabel: getInterventionTypeLabel(intervention.type, t),
+                  lines: intervention.quoteLines,
                 }}
               />
             </>

@@ -403,5 +403,32 @@ public final class SupervisionActionType {
      */
     public static final String CHANNEL_PUBLISH = "CHANNEL_PUBLISH";
 
+    /**
+     * Recapitulatif d'une assignation DEJA faite par le planificateur automatique
+     * (agent Operations). La carte rend compte, elle ne propose rien : appliquer
+     * n'a aucun effet metier, cela ne fait que la retirer de la file.
+     *
+     * <p>L'assignation automatique reussissait en silence — seul le destinataire
+     * de la mission l'apprenait. Cote gestion, rien ne distinguait une mission
+     * confiee d'une mission oubliee.</p>
+     *
+     * <p>Params : {@code serviceRequestId}, {@code assigneeLabel} (indicatifs).</p>
+     */
+    public static final String ASSIGNMENT_RECAP = "ASSIGNMENT_RECAP";
+
+    /**
+     * Reprise en main d'une assignation que l'automatique n'a pas su faire
+     * (agent Operations). L'operateur designe l'intervenant lui-meme.
+     *
+     * <p><b>Le metier n'est PAS impose ici.</b> L'automatique applique ses
+     * criteres — disponibilite, metier, tarif — et c'est justement parce qu'ils
+     * n'ont trouve personne que la carte existe. Repeter la contrainte au
+     * rattrapage reviendrait a n'offrir aucune issue.</p>
+     *
+     * <p>Params : {@code serviceRequestId}, {@code assigneeId} (choisi dans la
+     * modale, parmi les candidats rendus par l'apercu).</p>
+     */
+    public static final String REASSIGN_MANUAL = "REASSIGN_MANUAL";
+
     private SupervisionActionType() {}
 }

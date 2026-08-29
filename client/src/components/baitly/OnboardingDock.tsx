@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
+import { STORAGE_KEYS } from '../../services/storageService';
 import {
   OnboardingStepList,
   countDoneSteps,
@@ -65,6 +66,154 @@ export interface OnboardingDockProps {
   className?: string;
 }
 
+/** Marge minimale conservee entre la carte et les bords de l'ecran. */
+const EDGE_MARGIN = 8;
+
+interface DockPosition { x: number; y: number }
+
+/**
+ * Coin d'ancrage. On memorise le COIN et non des coordonnees : un point fixe en
+ * pixels, mesure sur un grand ecran, atterrit n'importe ou sur une fenetre
+ * etroite — le coin, lui, garde son sens quelle que soit la taille.
+ */
+type DockCorner = 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
+
+const CORNERS: DockCorner[] = ['top-start', 'top-end', 'bottom-start', 'bottom-end'];
+const DEFAULT_CORNER: DockCorner = 'bottom-start';
+
+function readStoredCorner(): DockCorner | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.ONBOARDING_DOCK_POSITION);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return CORNERS.includes(parsed?.corner) ? (parsed.corner as DockCorner) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Position en pixels d'un coin, pour une carte de taille donnee. */
+function positionForCorner(corner: DockCorner, width: number, height: number): DockPosition {
+  const maxX = Math.max(EDGE_MARGIN, window.innerWidth - width - EDGE_MARGIN);
+  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - height - EDGE_MARGIN);
+  return {
+    x: corner.endsWith('start') ? EDGE_MARGIN : maxX,
+    y: corner.startsWith('top') ? EDGE_MARGIN : maxY,
+  };
+}
+
+/** Coin le plus proche du CENTRE de la carte — pas de son coin haut-gauche. */
+function nearestCorner(position: DockPosition, width: number, height: number): DockCorner {
+  const centerX = position.x + width / 2;
+  const centerY = position.y + height / 2;
+  const vertical = centerY < window.innerHeight / 2 ? 'top' : 'bottom';
+  const horizontal = centerX < window.innerWidth / 2 ? 'start' : 'end';
+  return `${vertical}-${horizontal}` as DockCorner;
+}
+
+/**
+ * Deplacement du guide a la souris comme au doigt, avec ANCRAGE PAR COIN.
+ *
+ * Pointer events et non mouse : le meme code sert au tactile, et
+ * `setPointerCapture` garde le suivi meme si le doigt sort de la poignee.
+ *
+ * Pendant le geste la carte suit librement le pointeur ; au relachement elle se
+ * cale au coin le plus proche. C'est ce qui l'empeche de finir au milieu du
+ * contenu, ou elle recouvrait l'ecran — tout en laissant quatre placements au
+ * choix. Le coin est recalcule a chaque redimensionnement, donc la carte reste
+ * accrochee quand la fenetre change de taille.
+ */
+function useDockDrag(enabled: boolean) {
+  const ref = React.useRef<HTMLElement | null>(null);
+  const [corner, setCorner] = React.useState<DockCorner>(() =>
+    (enabled ? readStoredCorner() ?? DEFAULT_CORNER : DEFAULT_CORNER));
+  /** Position libre PENDANT le geste ; hors geste, elle derive du coin. */
+  const [dragPosition, setDragPosition] = React.useState<DockPosition | null>(null);
+  const [anchored, setAnchored] = React.useState<DockPosition | null>(null);
+  const [dragging, setDragging] = React.useState(false);
+  const offset = React.useRef<DockPosition>({ x: 0, y: 0 });
+
+  const applyCorner = React.useCallback((next: DockCorner) => {
+    const el = ref.current;
+    if (!el) return;
+    setAnchored(positionForCorner(next, el.offsetWidth, el.offsetHeight));
+  }, []);
+
+  // Ancrage initial et re-ancrage : au montage, quand la fenetre change de
+  // taille, et quand la carte se deplie ou se replie (sa hauteur change).
+  React.useLayoutEffect(() => {
+    if (!enabled) return;
+    applyCorner(corner);
+  }, [enabled, corner, applyCorner]);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    const onResize = () => applyCorner(corner);
+    window.addEventListener('resize', onResize);
+    const observer = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => applyCorner(corner))
+      : null;
+    if (observer && ref.current) observer.observe(ref.current);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      observer?.disconnect();
+    };
+  }, [enabled, corner, applyCorner]);
+
+  const clamp = React.useCallback((next: DockPosition): DockPosition => {
+    const el = ref.current;
+    const width = el?.offsetWidth ?? 0;
+    const height = el?.offsetHeight ?? 0;
+    return {
+      x: Math.min(Math.max(next.x, EDGE_MARGIN), Math.max(EDGE_MARGIN, window.innerWidth - width - EDGE_MARGIN)),
+      y: Math.min(Math.max(next.y, EDGE_MARGIN), Math.max(EDGE_MARGIN, window.innerHeight - height - EDGE_MARGIN)),
+    };
+  }, []);
+
+  const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (!enabled) return;
+    // Les commandes de la carte (replier, masquer, Continuer…) gardent leur clic.
+    if ((event.target as HTMLElement).closest('button, a, input, select, textarea')) return;
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    offset.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    setDragPosition(clamp({ x: rect.left, y: rect.top }));
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!dragging) return;
+    event.preventDefault();
+    setDragPosition(clamp({ x: event.clientX - offset.current.x, y: event.clientY - offset.current.y }));
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLElement>) => {
+    if (!dragging) return;
+    setDragging(false);
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    const el = ref.current;
+    if (el && dragPosition) {
+      const next = nearestCorner(dragPosition, el.offsetWidth, el.offsetHeight);
+      setCorner(next);
+      applyCorner(next);
+      try {
+        window.localStorage.setItem(STORAGE_KEYS.ONBOARDING_DOCK_POSITION, JSON.stringify({ corner: next }));
+      } catch { /* quota plein ou mode prive : le coin n'est pas critique */ }
+    }
+    setDragPosition(null);
+  };
+
+  return {
+    ref,
+    // Pendant le geste la carte suit le pointeur ; sinon elle occupe son coin.
+    position: dragging ? dragPosition : anchored,
+    dragging,
+    handleProps: { onPointerDown, onPointerMove, onPointerUp: endDrag, onPointerCancel: endDrag },
+  };
+}
+
 export default function OnboardingDock({
   groups,
   title = 'Guide de démarrage',
@@ -81,6 +230,8 @@ export default function OnboardingDock({
   formatProgress = formatStepProgress,
   className,
 }: OnboardingDockProps) {
+  const drag = useDockDrag(floating);
+
   const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
   const isOpen = open ?? internalOpen;
   const setOpen = (next: boolean) => {
@@ -114,34 +265,59 @@ export default function OnboardingDock({
   const totalDone = groups.reduce((sum, g) => sum + countDoneSteps(g.steps), 0);
   const allDone = totalSteps > 0 && totalDone === totalSteps;
 
+  /** Prochaine etape actionnable — l'essentiel de ce qu'on lit quand la carte est repliee. */
+  const nextStep = groups
+    .flatMap((group) => group.steps)
+    .find((step) => (step.state ?? 'todo') === 'todo');
+
   return (
     <section
+      ref={drag.ref as React.RefObject<HTMLElement>}
       aria-label={typeof title === 'string' ? title : 'Guide de démarrage'}
       className={cn(
-        'flex w-full max-w-md flex-col gap-3 rounded-2xl border border-border bg-card p-4',
-        floating && 'fixed bottom-4 start-4 z-40',
+        'flex w-full max-w-[min(21rem,calc(100vw-2rem))] flex-col gap-2 rounded-xl border border-border bg-card p-3',
+        floating && 'fixed z-40',
+        // Repli tant que le coin n'est pas encore mesure (premier rendu).
+        floating && !drag.position && 'bottom-4 start-4',
+        drag.dragging && 'select-none',
+        // Glissement vers le coin au relachement — pas pendant le geste, ou la
+        // carte doit coller au pointeur sans retard.
+        floating && !drag.dragging && '[transition:left_180ms_cubic-bezier(0.22,1,0.36,1),top_180ms_cubic-bezier(0.22,1,0.36,1)]',
+        'motion-reduce:transition-none',
         className
       )}
-      // Ombre teintée vers la couleur de marque plutôt qu'un noir générique.
       style={{
+        // Ombre teintée vers la couleur de marque plutôt qu'un noir générique.
         boxShadow: '0 16px 40px -12px color-mix(in oklab, var(--bui-primary) 30%, transparent)',
+        // Coordonnees PHYSIQUES : un ecran n'a pas de sens de lecture, le coin
+        // haut-droit reste le haut-droit en arabe. `left`/`top` priment sur les
+        // classes d'ancrage par defaut.
+        ...(floating && drag.position
+          ? { left: drag.position.x, top: drag.position.y, right: 'auto', bottom: 'auto' }
+          : null),
       }}
     >
-      <header className="flex items-start gap-3">
-        {activeGroup?.media && (
-          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary ring-1 ring-primary/15 [&>svg]:size-5">
-            {activeGroup.media}
-          </span>
+      {/* L'en-tete est la POIGNEE : c'est la zone sans commande, celle qu'on
+          attrape naturellement. `touch-none` empeche le navigateur de prendre le
+          geste pour un defilement de page. */}
+      <header
+        {...(floating ? drag.handleProps : {})}
+        className={cn(
+          'flex items-center gap-2',
+          floating && 'touch-none',
+          floating && (drag.dragging ? 'cursor-grabbing' : 'cursor-grab'),
         )}
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium text-muted-foreground">{title}</div>
-          <div className="cn-font-heading truncate text-base font-semibold text-foreground">
-            {allDone ? 'Configuration terminée' : activeGroup?.title}
-          </div>
-        </div>
+      >
+        {/* Plus de pastille d'icone : elle ne portait aucune information que le
+            titre ne donne deja, et coutait 44px de largeur sur une carte qu'on
+            veut discrete. Le titre tient sur une ligne. */}
+        <p className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+          {allDone ? 'Configuration terminée' : title}
+        </p>
         <Button
-          variant="outline"
-          size="icon"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
           aria-expanded={isOpen}
           aria-label={isOpen ? 'Replier le guide' : 'Déplier le guide'}
           title={isOpen ? 'Replier le guide' : 'Déplier le guide'}
@@ -205,14 +381,14 @@ export default function OnboardingDock({
         </>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={totalSteps}
           aria-valuenow={totalDone}
           aria-label={formatProgress(totalDone, totalSteps)}
-          className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+          className="h-1 flex-1 overflow-hidden rounded-full bg-muted"
         >
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-300"
@@ -223,6 +399,23 @@ export default function OnboardingDock({
           {formatProgress(totalDone, totalSteps)}
         </span>
       </div>
+
+      {/* Repliee, la carte doit quand meme dire OU on en est : une ligne, la
+          prochaine etape, cliquable pour deplier. Sans elle, le guide replie ne
+          disait plus rien d'autre qu'un pourcentage. */}
+      {!isOpen && nextStep && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            'cursor-pointer truncate rounded-md text-start text-xs text-muted-foreground',
+            'outline-none transition-colors duration-150 hover:text-foreground',
+            'focus-visible:ring-[3px] focus-visible:ring-ring/50',
+          )}
+        >
+          Étape suivante : <span className="font-medium text-primary">{nextStep.title}</span>
+        </button>
+      )}
 
       {onDismiss && (
         <div>

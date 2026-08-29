@@ -53,6 +53,10 @@ class UserOnboardingServiceTest {
     @Mock private MessagingAutomationConfigRepository messagingAutomationConfigRepository;
     @Mock private PaymentMethodConfigRepository paymentMethodConfigRepository;
     @Mock private ICalFeedRepository icalFeedRepository;
+    @Mock private ProviderDocumentService providerDocumentService;
+    @Mock private PersonalTeamService personalTeamService;
+    @Mock private com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository;
+    @Mock private com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository;
 
     private UserOnboardingService service;
 
@@ -67,7 +71,8 @@ class UserOnboardingServiceTest {
                 organizationMemberRepository, fiscalProfileRepository,
                 propertyRepository, notificationPreferenceRepository,
                 messagingAutomationConfigRepository, paymentMethodConfigRepository,
-                icalFeedRepository);
+                icalFeedRepository, providerDocumentService, personalTeamService,
+                teamCoverageZoneRepository, weeklyAvailabilityRepository);
     }
 
     private User buildUser(String firstName, String lastName, String phone) {
@@ -537,8 +542,8 @@ class UserOnboardingServiceTest {
         }
 
         @Test
-        @DisplayName("HOUSEKEEPER role: 3 steps in correct order")
-        void whenHousekeeper_then3Steps() {
+        @DisplayName("HOUSEKEEPER role: 9 steps in correct order")
+        void whenHousekeeper_then9Steps() {
             when(repository.findByUserIdAndRole(USER_ID, UserRole.HOUSEKEEPER))
                     .thenReturn(List.of());
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -546,9 +551,15 @@ class UserOnboardingServiceTest {
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.HOUSEKEEPER, ORG_ID);
 
-            assertThat(dto.steps()).hasSize(3);
+            // L'ORDRE porte une regle metier : les conditions de prestation
+            // precedent le compte de versement et les tarifs — sans accord, ni la
+            // commission retenue ni le reversement ne sont opposables.
+            assertThat(dto.steps()).hasSize(9);
             assertThat(dto.steps()).extracting(OnboardingStatusDto.StepDto::key)
-                    .containsExactly("complete_profile", "setup_notifications", "view_interventions");
+                    .containsExactly("complete_profile", "setup_notifications",
+                            "accept_provider_terms", "upload_provider_documents",
+                            "setup_payout_account", "setup_coverage_zone", "setup_availability",
+                            "setup_rates", "view_interventions");
         }
 
         @Test

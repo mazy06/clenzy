@@ -6,6 +6,11 @@ import { Badge, Card, Button, Skeleton } from '../../components/ui';
 import {
   Field,
   FieldLabel,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -122,8 +127,11 @@ export default function MyRatesSettings() {
     </UiAlert>;
   }
 
+  // `pb-12` : l'onglet de l'assistant Baitly est fixe en bas a droite sur
+  // 44 px de haut. Sans cette reserve, « Enregistrer mes tarifs » — dernier
+  // element, aligne a droite — finit dessous, incliquable.
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 pb-12">
       {/* ── Score qualité 30 jours (MM-3D) ───────────────────────────────── */}
       {/* Le bloc « libellé + grosse valeur » ecrit a la main est desormais le
           primitive StatTile : meme information, sans la hero-metric maison. */}
@@ -198,47 +206,46 @@ export default function MyRatesSettings() {
               const raw = flats[property.propertyId] ?? '';
               const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
               return (
-                // Le `& + &` d'origine ne separait que les lignes suivantes :
-                // filet sur toutes, puis annule sur la premiere.
-                <div
+                <Item
                   key={property.propertyId}
-                  className="flex items-start flex-wrap gap-3 py-[7.5px] border-t border-solid border-t-border first:border-t-0"
+                  size="sm"
+                  className="px-0 border-t border-solid border-t-border first:border-t-0"
                 >
-                  <p className="flex-1 min-w-[160px] pt-1.5 text-[13px] font-semibold text-foreground">
-                    {property.propertyName}
-                  </p>
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1.5">
-                      {/* Champ sans libelle visible (le nom du logement est a
-                          gauche) : l'aria-label reste la seule etiquette. */}
-                      <InputGroup className="w-[150px]">
-                        <InputGroupInput
-                          id={`my-rates-flat-${property.propertyId}`}
-                          type="number"
-                          min={0}
-                          step={5}
-                          className="tabular-nums"
-                          aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
-                          placeholder={String(property.advisoryRecommended)}
-                          value={raw}
-                          onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                        />
-                        <InputGroupAddon align="inline-end">
-                          <InputGroupText>€</InputGroupText>
-                        </InputGroupAddon>
-                      </InputGroup>
-                      <NudgeBadge amount={amount} rate={property} />
-                    </div>
-                    {/* Nudge : fourchette conseil, ancre médiane */}
-                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                  <ItemContent>
+                    <ItemTitle>{property.propertyName}</ItemTitle>
+                    {/* Nudge : fourchette conseil, ancre mediane. Elle se lit
+                        SOUS le nom du logement qu'elle concerne — alignee a
+                        droite, elle formait une colonne de texte en drapeau. */}
+                    <ItemDescription className="tabular-nums">
                       {t('settings.myRates.advisoryLine', {
                         min: property.advisoryMin,
                         max: property.advisoryMax,
                       })}{' '}
                       · {t('settings.myRates.advisoryMedian')} <b>{property.advisoryRecommended} €</b>
-                    </p>
-                  </div>
-                </div>
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <NudgeBadge amount={amount} rate={property} />
+                    {/* Champ sans libelle visible (le nom du logement est a
+                        gauche) : l'aria-label reste la seule etiquette. */}
+                    <InputGroup className="w-[130px]">
+                      <InputGroupInput
+                        id={`my-rates-flat-${property.propertyId}`}
+                        type="number"
+                        min={0}
+                        step={5}
+                        className="tabular-nums"
+                        aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
+                        placeholder={String(property.advisoryRecommended)}
+                        value={raw}
+                        onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupText>€</InputGroupText>
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </ItemActions>
+                </Item>
               );
             })}
           </div>
@@ -247,7 +254,7 @@ export default function MyRatesSettings() {
 
       {/* ── Enregistrer ──────────────────────────────────────────────────── */}
       <div className="flex justify-end">
-        <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
+        <Button variant="secondary" size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
           {saveMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
           {t('settings.myRates.save')}
         </Button>
