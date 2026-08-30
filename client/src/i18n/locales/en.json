@@ -950,7 +950,8 @@
       "thisWeek": "This week",
       "thisMonth": "This month",
       "older": "Older"
-    }
+    },
+    "briefingWaiting": "a review is waiting for you"
   },
   "commandCenter": {
     "title": "Command center",

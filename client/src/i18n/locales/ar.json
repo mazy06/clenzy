@@ -950,7 +950,8 @@
       "thisWeek": "هذا الأسبوع",
       "thisMonth": "هذا الشهر",
       "older": "أقدم"
-    }
+    },
+    "briefingWaiting": "هناك مراجعة في انتظارك"
   },
   "commandCenter": {
     "title": "مركز الأوامر",
