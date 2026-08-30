@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { Close } from '../../../icons';
+import { Close, Info } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { AGENT_META, STATUS } from '../constants';
 import { OrbitDiagram, busiestAgent } from './OrbitDiagram';
@@ -194,6 +194,35 @@ export function OrbitConstellation({
     </>
   );
 
+  /**
+   * Le bilan, réduit à une icône sur la ligne des compteurs.
+   *
+   * <p>Il tenait une pastille pleine largeur dans le rail, à égalité avec
+   * « À traiter » — une information qu'on consulte de loin en loin au même
+   * rang que celle sur laquelle on agit. Le rail ne porte plus que les deux
+   * surfaces actionnables.</p>
+   *
+   * <p>Le tiroir reste sa surface : en étroit l'écran est tactile, et un
+   * panneau qui monte du bas se lit et se ferme au pouce, là où une bulle
+   * ancrée à une icône de 24 px se manipule mal.</p>
+   */
+  const bilan = report && (
+    <button
+      type="button"
+      aria-label={t('supervision.report.titleBase', 'Bilan')}
+      aria-expanded={sheet === 'hud'}
+      onClick={() => toggleSheet('hud')}
+      className={cn(
+        // 24 px de cible tactile : en dessous, le pouce manque l'icône.
+        'inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200',
+        'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+        sheet === 'hud' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+      )}
+    >
+      <Info size={14} strokeWidth={1.75} />
+    </button>
+  );
+
   /** L'exception, nommée — jamais masquée, jamais tassée. */
   const exception = attention.length > 0 && (
     <span className="flex min-w-0 items-center gap-1.5 text-destructive">
@@ -202,19 +231,17 @@ export function OrbitConstellation({
     </span>
   );
 
-  /** Pastilles de tiroir (compact seulement). */
-  const pastilles = compact && (
+  /**
+   * Pastilles de tiroir (compact seulement).
+   *
+   * <p>Le rail portait TROIS pastilles, dont « Bilan » : il ne restait donc
+   * jamais vide. Depuis que le bilan est passé en icône, il peut n'avoir plus
+   * rien à montrer — un fragment est toujours vrai, et sa rangée aurait alors
+   * réservé la gouttière de l'en-tête pour du vide.</p>
+   */
+  const aDesPastilles = compact && (Boolean(belowHud) || (Boolean(hitl) && (hitlCount ?? 0) > 0));
+  const pastilles = aDesPastilles && (
     <>
-      {report && (
-        <button
-          type="button"
-          aria-expanded={sheet === 'hud'}
-          onClick={() => toggleSheet('hud')}
-          className={pillClass(sheet === 'hud')}
-        >
-          {t('supervision.report.titleBase', 'Bilan')}
-        </button>
-      )}
       {belowHud && (
         <button
           type="button"
@@ -271,9 +298,13 @@ export function OrbitConstellation({
 
           {/* Bande de valeurs : séparateurs fins plutôt que du blanc, pour que
               les trois nombres se lisent comme une même mesure. */}
-          <p className="m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground [&>span+span]:before:me-2 [&>span+span]:before:text-faint [&>span+span]:before:content-['·']">
-            {compteurs}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground [&>span+span]:before:me-2 [&>span+span]:before:text-faint [&>span+span]:before:content-['·']">
+              {compteurs}
+            </p>
+            {/* Le bilan, replié : même geste qu'en large, surface adaptée. */}
+            {bilan}
+          </div>
 
           {exception && <p className="m-0 text-xs">{exception}</p>}
 
@@ -288,9 +319,10 @@ export function OrbitConstellation({
       ) : (
         /* ── Large : tout tient sur une ligne, l'espace ne manque pas. */
         <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 pt-3">
-          <p className="m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
+          <p className="m-0 flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
             {identite}
             {compteurs}
+            {bilan}
             {exception}
           </p>
           {headerAction && <span className="shrink-0">{headerAction}</span>}

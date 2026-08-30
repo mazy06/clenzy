@@ -137,7 +137,12 @@
       "later": "Plus tard",
       "maintenancePrefix": "Maintenance",
       "fallbackTitle": "Demande de service",
-      "reason": "Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe."
+      "reason": "Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe.",
+      "depositDue": "Dont acompte à verser",
+      "depositPaid": "Acompte déjà versé",
+      "confirmTitle": "Régler cette prestation",
+      "depositStage": "Acompte, avant le début des travaux",
+      "confirmDepositTitle": "Verser l’acompte"
     },
     "apply": {
       "action": "Appliquer",
@@ -371,8 +376,15 @@
       "matchingRoles": "Métier correspondant",
       "otherRoles": "Autres intervenants",
       "noWorker": "Aucun intervenant dans cette organisation. La mission sera créée sans attributaire.",
-      "unassignedHint": "Sans intervenant, la mission reste à assigner.",
-      "proposalHint": "La mission lui sera proposée : il peut l’accepter ou la refuser."
+      "unassignedHint": "sans intervenant, la mission reste à assigner.",
+      "proposalHint": "la mission lui sera proposée : il peut l’accepter ou la refuser.",
+      "searchWorker": "Rechercher un intervenant…",
+      "noMatch": "Aucun intervenant à ce nom.",
+      "clearAssignee": "Laisser sans intervenant",
+      "at": "à",
+      "orgTeam": "Conciergerie",
+      "myself": "Moi-même",
+      "selfHint": "la mission vous revient, déjà acceptée."
     },
     "confirm": {
       "amount": "Montant",
@@ -404,6 +416,21 @@
     },
     "recap": {
       "unavailable": "Le détail n’a pas pu être chargé. La mission a bien été confiée : la fiche de la demande en garde la trace."
+    },
+    "inspection": {
+      "title": "Contrôler le travail rendu",
+      "approve": "Valider le travail",
+      "reject": "Refuser",
+      "confirmReject": "Renvoyer en reprise",
+      "reasonLabel": "Qu’y a-t-il à reprendre ?",
+      "reasonPlaceholder": "Photos manquantes, pièce non traitée, finition à revoir…",
+      "openFile": "Ouvrir la fiche de l’intervention",
+      "previewFailed": "Le détail du travail rendu n’a pas pu être chargé. Ouvrez la fiche de l’intervention pour l’examiner.",
+      "photoAlt": "Photo {{n}} sur {{total}}",
+      "prevPhoto": "Photo précédente",
+      "nextPhoto": "Photo suivante",
+      "enlargePhoto": "Agrandir la photo {{n}}",
+      "backToGrid": "Revenir aux pièces"
     }
   },
   "channexGuided": {
@@ -1462,7 +1489,8 @@
         "title": "Paramétrez votre facturation",
         "description": "Renseignez vos informations fiscales et légales (SIRET, TVA, raison sociale) pour générer des factures conformes.",
         "action": "Configurer"
-      }
+      },
+      "dismiss": "Masquer"
     },
     "channelHealth": {
       "title": "Canaux de réservation",

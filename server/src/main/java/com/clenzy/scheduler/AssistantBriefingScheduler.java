@@ -25,8 +25,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Scheduler horaire des briefings proactifs.
@@ -37,10 +37,16 @@ import java.util.Optional;
  * {@code BriefingDefaultPolicy}) — on resout l'heure locale dans sa timezone et
  * on declenche le briefing si :
  * <ul>
- *   <li>L'heure courante (locale) correspond a {@code timeLocal} (precision heure)</li>
- *   <li>La date n'a pas deja un log d'envoi (idempotence stricte : 1 par jour)</li>
- *   <li>La frequence matche le jour (weekly_sunday ne tire que le dimanche)</li>
+ *   <li>L'instant cible de la periode est PASSE : {@code timeLocal} du jour pour
+ *       une frequence quotidienne, {@code timeLocal} du dimanche ecoule pour la
+ *       synthese hebdomadaire</li>
+ *   <li>Aucun log d'envoi n'existe sur cette periode (idempotence : 1 par
+ *       periode, pas 1 par tick)</li>
  * </ul>
+ *
+ * <p>La periode, et non l'heure pile : un tick manque — serveur arrete, deploiement,
+ * poste de dev eteint le dimanche matin — se rattrape au tick suivant au lieu de
+ * perdre la semaine en silence.</p>
  *
  * <p>Chaque user est traite dans sa propre transaction (REQUIRES_NEW) — un
  * echec sur un user ne casse pas la boucle.</p>
@@ -111,7 +117,7 @@ public class AssistantBriefingScheduler {
         for (AssistantBriefingPref pref : all) {
             try {
                 if (!shouldTrigger(pref, utcNow)) continue;
-                processOne(pref);
+                processOne(pref, utcNow);
                 triggered++;
             } catch (Exception e) {
                 log.warn("AssistantBriefingScheduler: erreur user {} : {}",
@@ -124,12 +130,23 @@ public class AssistantBriefingScheduler {
     }
 
     /**
-     * Matching TZ : convertit {@code utcNow} dans la timezone de l'user et
-     * compare l'heure (sans minutes) au {@code timeLocal} configure.
-     * Pour {@link AssistantBriefingPref.Frequency#WEEKLY_SUNDAY}, n'autorise que
-     * le dimanche. Pour {@link AssistantBriefingPref.Frequency#ONLY_ALERTS},
-     * meme cadence quotidienne — c'est le contenu qui decide si on envoie
-     * (le prompt retourne "Aucune alerte" si rien a remonter).
+     * L'instant cible de la periode courante est-il passe ?
+     *
+     * <p>Convertit {@code utcNow} dans la timezone de l'user, puis le compare a
+     * {@code timeLocal} pose sur le debut de periode : le jour meme pour une
+     * frequence quotidienne, le dimanche ecoule pour la synthese hebdomadaire.
+     * Pour {@link AssistantBriefingPref.Frequency#ONLY_ALERTS}, meme cadence
+     * quotidienne — c'est le contenu qui decide si on envoie (le prompt retourne
+     * "Aucune alerte" si rien a remonter).</p>
+     *
+     * <p><b>Au moins, et non exactement.</b> La comparaison etait une egalite
+     * d'heure : le briefing ne partait que si le tick tombait PILE sur l'heure
+     * cible. Un serveur arrete a ce moment-la — un deploiement, un poste de dev
+     * eteint le dimanche matin — perdait la periode entiere en silence : le
+     * retry ne reprend que les logs {@code FAILED}, et un tick qui n'a jamais eu
+     * lieu n'en laisse aucun. On declenche donc des que l'instant cible est
+     * passe ; c'est {@link #processOne} qui refuse le second envoi d'une meme
+     * periode.</p>
      */
     boolean shouldTrigger(AssistantBriefingPref pref, LocalDateTime utcNow) {
         if (pref == null || !pref.isEnabled()) return false;
@@ -143,19 +160,27 @@ public class AssistantBriefingScheduler {
         LocalDateTime local = utcNow.atZone(ZoneId.of("UTC"))
                 .withZoneSameInstant(zone)
                 .toLocalDateTime();
-        LocalTime currentLocalHour = local.toLocalTime().truncatedTo(ChronoUnit.HOURS);
         LocalTime targetHour = pref.getTimeLocal() != null
                 ? pref.getTimeLocal().truncatedTo(ChronoUnit.HOURS)
                 : LocalTime.of(8, 0);
-        if (!currentLocalHour.equals(targetHour)) return false;
+        LocalDateTime periodTarget =
+                periodStart(pref.getFrequencyEnum(), local.toLocalDate()).atTime(targetHour);
+        return !local.isBefore(periodTarget);
+    }
 
-        // Filtre frequence
-        AssistantBriefingPref.Frequency freq = pref.getFrequencyEnum();
-        if (freq == AssistantBriefingPref.Frequency.WEEKLY_SUNDAY
-                && local.getDayOfWeek() != DayOfWeek.SUNDAY) {
-            return false;
+    /**
+     * Debut de la periode couverte par une frequence, dans le calendrier local :
+     * le dimanche ecoule (ou le jour meme s'il EST dimanche) pour l'hebdomadaire,
+     * le jour meme pour les frequences quotidiennes.
+     *
+     * <p>C'est la borne d'idempotence du briefing : un envoi par periode, pas un
+     * par tick. Package-private pour les tests.</p>
+     */
+    static LocalDate periodStart(AssistantBriefingPref.Frequency frequency, LocalDate localDate) {
+        if (frequency == AssistantBriefingPref.Frequency.WEEKLY_SUNDAY) {
+            return localDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
         }
-        return true;
+        return localDate;
     }
 
     /**
@@ -163,7 +188,7 @@ public class AssistantBriefingScheduler {
      * <ol>
      *   <li>Insert un log (avec status SENT par defaut) — la contrainte unique
      *       fait office de mutex naturel. Si insert echoue, c'est qu'on a deja
-     *       envoye aujourd'hui.</li>
+     *       envoye sur la periode.</li>
      *   <li>Compose le briefing via l'orchestrateur</li>
      *   <li>Dispatch sur les canaux configures</li>
      *   <li>Met a jour le log avec conversation_id + canaux delivres + status</li>
@@ -181,17 +206,24 @@ public class AssistantBriefingScheduler {
      * TransactionTemplate ou self-reference Spring.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processOne(AssistantBriefingPref pref) {
-        LocalDate today = LocalDate.now(ZoneId.of(pref.getTimezone() != null
-                ? pref.getTimezone() : "Europe/Paris"));
+    public void processOne(AssistantBriefingPref pref, LocalDateTime utcNow) {
+        // La date vient de l'instant du tick, pas de l'horloge : sans quoi la
+        // periode evaluee ici pourrait differer de celle qu'a vue shouldTrigger
+        // — un tick de 23h qui bascule de jour entre les deux appels.
+        LocalDate today = utcNow.atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(ZoneId.of(pref.getTimezone() != null
+                        ? pref.getTimezone() : "Europe/Paris"))
+                .toLocalDate();
 
         // Garde-fou applicatif AVANT l'insert (evite le bruit dans les logs si
-        // l'insert leve une violation de contrainte).
-        Optional<AssistantBriefingLog> existing =
-                logRepository.findByKeycloakIdAndBriefingDate(pref.getKeycloakId(), today);
-        if (existing.isPresent()) {
-            log.debug("Briefing deja envoye aujourd'hui pour user {} (date {})",
-                    pref.getKeycloakId(), today);
+        // l'insert leve une violation de contrainte). La borne est la PERIODE, pas
+        // la journee : un rattrapage du mardi ne doit pas re-partir le mercredi
+        // sous pretexte que la date a change.
+        LocalDate periodStart = periodStart(pref.getFrequencyEnum(), today);
+        if (logRepository.existsByKeycloakIdAndBriefingDateGreaterThanEqual(
+                pref.getKeycloakId(), periodStart)) {
+            log.debug("Briefing deja envoye sur la periode ouverte le {} pour user {}",
+                    periodStart, pref.getKeycloakId());
             return;
         }
 

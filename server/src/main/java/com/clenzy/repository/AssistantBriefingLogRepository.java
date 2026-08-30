@@ -22,6 +22,17 @@ public interface AssistantBriefingLogRepository extends JpaRepository<AssistantB
                                                                     LocalDate briefingDate);
 
     /**
+     * Un briefing a-t-il deja ete journalise depuis {@code since} (incluse) ?
+     *
+     * <p>Borne d'idempotence de la PERIODE, la ou
+     * {@link #findByKeycloakIdAndBriefingDate} borne la journee. La synthese
+     * hebdomadaire peut etre rattrapee n'importe quel jour de la semaine quand le
+     * dimanche a ete manque : sans cette question — « depuis le dimanche, a-t-on
+     * envoye ? » — le rattrapage du mardi repartirait le mercredi, puis le jeudi.</p>
+     */
+    boolean existsByKeycloakIdAndBriefingDateGreaterThanEqual(String keycloakId, LocalDate since);
+
+    /**
      * Logs FAILED a re-tenter dans la fenetre {@code since}.
      *
      * <p>Ne filtre PAS sur {@code briefing_date} : un briefing echoue a 23h UTC

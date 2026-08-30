@@ -371,6 +371,33 @@ public class SupervisionSuggestionService {
         return new com.clenzy.dto.SupervisionPendingCountsDto(total, byProperty);
     }
 
+    /**
+     * Retire une carte encore en attente dont la situation ne tient plus.
+     *
+     * <p>Les scanners cessent d'ÉMETTRE quand la condition disparaît, mais les
+     * cartes déjà sorties restent jusqu'à leur expiration — plusieurs jours à
+     * proposer un geste que le serveur refuserait. Ici on les retire.</p>
+     *
+     * <p>La recherche se fait par intitulé : les cartes actionnables ne portent
+     * pas de nom d'outil, seul leur titre les identifie (il contient l'id du
+     * sujet). Best-effort, jamais sur le chemin critique d'un scan.</p>
+     */
+    @Transactional
+    public void dismissObsolete(Long organizationId, Long propertyId, String moduleKey, String title) {
+        if (organizationId == null || propertyId == null || moduleKey == null || title == null) {
+            return;
+        }
+        try {
+            repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                            organizationId, propertyId, moduleKey, truncate(title.strip(), TITLE_MAX),
+                            SupervisionSuggestion.STATUS_PENDING, clock.instant())
+                    .ifPresent(s -> dismiss(organizationId, s.getId()));
+        } catch (Exception e) {
+            log.debug("Retrait de carte obsolete ignore (module={} prop={}): {}",
+                    moduleKey, propertyId, e.getMessage());
+        }
+    }
+
     /** Rejette une suggestion (ownership org-scopé). No-op si absente/autre org. */
     @Transactional
     public void dismiss(Long organizationId, Long suggestionId) {

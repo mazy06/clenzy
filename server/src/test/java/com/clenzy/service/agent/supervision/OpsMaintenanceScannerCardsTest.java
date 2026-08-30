@@ -153,30 +153,16 @@ class OpsMaintenanceScannerCardsTest {
                 eq("mission_to_confirm"), any(), any());
     }
 
-    // --- Acompte a regler ----------------------------------------------------
+    // --- Acompte : plus de carte, un retrait ---------------------------------
 
     @Test
-    void whenApprovedQuoteHasUnpaidDeposit_thenCardRecorded() {
+    void whenApprovedQuoteHasUnpaidDeposit_thenNoSeparateCard() {
+        // L'acompte avait sa propre carte, sur un autre agent : « Regler 220 EUR »
+        // cote Finance et « Acompte a regler 40 EUR » cote Operations, pour le
+        // MEME chantier. Il est desormais une etape de l'echeancier porte par la
+        // carte de paiement.
         givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
                 InterventionAssignmentResponse.ACCEPTED));
-        when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
-                INTERVENTION_ID, ORG))
-                .thenReturn(List.of(quote(ServiceQuote.Status.APPROVED, new BigDecimal("40.00"), null)));
-
-        scanner().scanProperty(ORG, PROP);
-
-        verify(suggestionService).record(eq(ORG), eq(PROP), eq("ops"), eq("deposit_to_collect"),
-                contains("#94"), contains("40.00"));
-    }
-
-    @Test
-    void whenDepositAlreadyPaid_thenNoCard() {
-        givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
-                InterventionAssignmentResponse.ACCEPTED));
-        when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
-                INTERVENTION_ID, ORG))
-                .thenReturn(List.of(quote(ServiceQuote.Status.APPROVED, new BigDecimal("40.00"),
-                        LocalDateTime.parse("2026-08-21T09:00:00"))));
 
         scanner().scanProperty(ORG, PROP);
 
@@ -185,31 +171,16 @@ class OpsMaintenanceScannerCardsTest {
     }
 
     @Test
-    void whenQuoteNotApproved_thenNoCard() {
+    void whenScanning_thenStaleDepositCardsAreWithdrawn() {
+        // Cesser d'emettre ne suffit pas : les cartes deja sorties reclameraient
+        // des jours durant une somme desormais demandee ailleurs.
         givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
                 InterventionAssignmentResponse.ACCEPTED));
-        when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
-                INTERVENTION_ID, ORG))
-                .thenReturn(List.of(quote(ServiceQuote.Status.RECEIVED, new BigDecimal("40.00"), null)));
 
         scanner().scanProperty(ORG, PROP);
 
-        verify(suggestionService, never()).record(anyLong(), anyLong(), any(),
-                eq("deposit_to_collect"), any(), any());
-    }
-
-    @Test
-    void whenQuoteHasNoDeposit_thenNoCard() {
-        givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
-                InterventionAssignmentResponse.ACCEPTED));
-        when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
-                INTERVENTION_ID, ORG))
-                .thenReturn(List.of(quote(ServiceQuote.Status.APPROVED, BigDecimal.ZERO, null)));
-
-        scanner().scanProperty(ORG, PROP);
-
-        verify(suggestionService, never()).record(anyLong(), anyLong(), any(),
-                eq("deposit_to_collect"), any(), any());
+        verify(suggestionService).dismissObsolete(eq(ORG), eq(PROP), eq("ops"),
+                contains("Acompte a regler (intervention #94)"));
     }
 
     // --- Demande sans prestataire -------------------------------------------
@@ -267,5 +238,42 @@ class OpsMaintenanceScannerCardsTest {
 
         verify(suggestionService, never()).recordActionable(anyLong(), anyLong(), any(),
                 any(), any(), eq(SupervisionActionType.REASSIGN_MANUAL), any(), any(), any());
+    }
+
+    // --- Devis deja approuve ------------------------------------------------
+
+    @Test
+    void whenAQuoteIsAlreadyApproved_thenNoApprovalCardEvenIfOthersArrive() {
+        // Le prestataire peut resoumettre APRES l'approbation — l'intervention 97
+        // en portait quatre. Proposer d'approuver serait promettre un geste que
+        // le service refuse : il exige une intervention encore sans approbation.
+        givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
+                InterventionAssignmentResponse.ACCEPTED));
+        when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                INTERVENTION_ID, ORG))
+                .thenReturn(List.of(
+                        quote(ServiceQuote.Status.APPROVED, new BigDecimal("40.00"), null),
+                        quote(ServiceQuote.Status.RECEIVED, new BigDecimal("40.00"), null)));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verify(suggestionService, never()).recordActionable(anyLong(), anyLong(), any(),
+                contains("Devis à approuver"), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void whenAQuoteIsAlreadyApproved_thenTheStaleCardIsWithdrawn() {
+        // Cesser d'emettre ne suffit pas : la carte deja sortie resterait des
+        // jours a proposer un geste voue au refus.
+        givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
+                InterventionAssignmentResponse.ACCEPTED));
+        when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                INTERVENTION_ID, ORG))
+                .thenReturn(List.of(quote(ServiceQuote.Status.APPROVED, new BigDecimal("40.00"), null)));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verify(suggestionService).dismissObsolete(eq(ORG), eq(PROP), eq("ops"),
+                contains("Devis à approuver (intervention #94)"));
     }
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { renderWithProviders as render, screen, waitFor, act, fireEvent } from '../../../test/renderWithProviders';
 import { SupervisionPanel } from '../components/SupervisionPanel';
 import { MockSupervisionProvider } from '../provider/MockSupervisionProvider';
@@ -65,12 +65,51 @@ describe('<SupervisionPanel>', () => {
     cell.remove();
   });
 
-  it('clic satellite → drawer détail par logement (métriques)', async () => {
+  /**
+   * Le tiroir d'agent est une affordance de l'affichage ÉTROIT : en large, les
+   * cartes de l'agent vivent déjà dans la colonne de droite, et cliquer un
+   * satellite ne fait que le désigner dans le diagramme.
+   *
+   * <p>Ce test rendait à la largeur par défaut — donc en large — et attendait
+   * le tiroir. Il ne pouvait pas passer : jsdom ne mesure rien, `clientWidth`
+   * vaut 0, et le panneau retombe sur l'affichage large. Il faut donner une
+   * largeur au panneau pour atteindre l'étroit.</p>
+   */
+  const withPanelWidth = (px: number) => {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => px });
+    return () => {
+      if (original) Object.defineProperty(HTMLElement.prototype, 'clientWidth', original);
+      else delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
+    };
+  };
+
+  it('étroit — clic satellite → tiroir de l’agent (métriques)', async () => {
+    const restore = withPanelWidth(480);
+    try {
+      const provider = new MockSupervisionProvider('1', { latencyMs: 0 });
+      const { container } = render(<SupervisionPanel createProvider={() => provider} deps={['1']} />);
+      await waitFor(() => expect(container.querySelector('[data-agent="com"]')).toBeTruthy());
+      fireEvent.click(container.querySelector('[data-agent="com"]')!);
+      await waitFor(() => expect(screen.getByText('messages traités')).toBeTruthy());
+    } finally {
+      restore();
+    }
+  });
+
+  it('large — clic satellite : pas de tiroir, l’agent est désigné dans le diagramme', async () => {
+    const onSelectAgent = vi.fn();
     const provider = new MockSupervisionProvider('1', { latencyMs: 0 });
-    const { container } = render(<SupervisionPanel createProvider={() => provider} deps={['1']} />);
+    const { container } = render(
+      <SupervisionPanel createProvider={() => provider} deps={['1']} onSelectAgent={onSelectAgent} />,
+    );
     await waitFor(() => expect(container.querySelector('[data-agent="com"]')).toBeTruthy());
     fireEvent.click(container.querySelector('[data-agent="com"]')!);
-    await waitFor(() => expect(screen.getByText('messages traités')).toBeTruthy());
+
+    await waitFor(() => expect(onSelectAgent).toHaveBeenCalledWith('com'));
+    // La file de l'agent est déjà à l'écran, en colonne : un tiroir par-dessus
+    // ne montrerait rien de plus.
+    expect(screen.queryByText('messages traités')).toBeNull();
   });
 
   it('chaîne complète : interruption → validation → reprise (rev agit) → comète', async () => {

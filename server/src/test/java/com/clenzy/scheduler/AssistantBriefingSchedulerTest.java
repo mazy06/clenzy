@@ -14,7 +14,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,9 +37,10 @@ class AssistantBriefingSchedulerTest {
         logRepository = mock(AssistantBriefingLogRepository.class);
         scheduler = new AssistantBriefingScheduler(prefService, composer, delivery,
                 logRepository, new ObjectMapper());
-        // Defaults : pas de log preexistant, save retourne l'arg
-        when(logRepository.findByKeycloakIdAndBriefingDate(anyString(), any(LocalDate.class)))
-                .thenReturn(Optional.empty());
+        // Defaults : pas de log preexistant sur la periode, save retourne l'arg
+        when(logRepository.existsByKeycloakIdAndBriefingDateGreaterThanEqual(
+                anyString(), any(LocalDate.class)))
+                .thenReturn(false);
         when(logRepository.save(any(AssistantBriefingLog.class)))
                 .thenAnswer(inv -> {
                     AssistantBriefingLog l = inv.getArgument(0);
@@ -74,12 +74,22 @@ class AssistantBriefingSchedulerTest {
     }
 
     @Test
-    void shouldTrigger_localHourMismatch_returnsFalse() {
+    void shouldTrigger_avantLheureCible_returnsFalse() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
-        // 12:00 UTC = 13:00 Paris → ne matche pas 08:00
-        LocalDateTime utc = LocalDateTime.of(2026, 1, 15, 12, 0);
+        // 05:00 UTC = 06:00 Paris → l'instant cible du jour n'est pas passe
+        LocalDateTime utc = LocalDateTime.of(2026, 1, 15, 5, 0);
         assertFalse(scheduler.shouldTrigger(p, utc));
+    }
+
+    @Test
+    void shouldTrigger_apresLheureCible_rattrapeLeJourMeme() {
+        // Le serveur etait arrete a 08:00. A 13:00 Paris, le briefing du jour
+        // doit encore partir : mieux vaut tard que jamais.
+        AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
+                AssistantBriefingPref.Frequency.DAILY_MORNING, true);
+        LocalDateTime utc = LocalDateTime.of(2026, 1, 15, 12, 0);
+        assertTrue(scheduler.shouldTrigger(p, utc));
     }
 
     @Test
@@ -108,15 +118,45 @@ class AssistantBriefingSchedulerTest {
     }
 
     @Test
-    void shouldTrigger_weeklySunday_onlyFiresOnSunday() {
+    void shouldTrigger_hebdo_avantLeDimancheCible_returnsFalse() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(9, 0),
                 AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
-        // 2026-01-15 est un jeudi → match l'heure mais pas dimanche
-        LocalDateTime thursdayUtc = LocalDateTime.of(2026, 1, 15, 8, 0);
-        assertFalse(scheduler.shouldTrigger(p, thursdayUtc));
-        // 2026-01-18 est un dimanche → match
+        // 2026-01-18 est un dimanche ; 07:00 UTC = 08:00 Paris, avant la cible 09:00
+        LocalDateTime sundayEarlyUtc = LocalDateTime.of(2026, 1, 18, 7, 0);
+        assertFalse(scheduler.shouldTrigger(p, sundayEarlyUtc));
+    }
+
+    @Test
+    void shouldTrigger_hebdo_desLeDimancheCible_returnsTrue() {
+        AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(9, 0),
+                AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
+        // 2026-01-18 dimanche, 08:00 UTC = 09:00 Paris
         LocalDateTime sundayUtc = LocalDateTime.of(2026, 1, 18, 8, 0);
         assertTrue(scheduler.shouldTrigger(p, sundayUtc));
+    }
+
+    @Test
+    void shouldTrigger_hebdo_dimancheManque_rattrapeEnSemaine() {
+        // Le serveur etait arrete le dimanche 08:00 — c'etait UNE semaine perdue,
+        // sans trace ni retry. Le mercredi suivant, la synthese doit partir.
+        AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(9, 0),
+                AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
+        // 2026-01-21 est un mercredi, dimanche precedent = 2026-01-18
+        LocalDateTime wednesdayUtc = LocalDateTime.of(2026, 1, 21, 12, 0);
+        assertTrue(scheduler.shouldTrigger(p, wednesdayUtc));
+    }
+
+    @Test
+    void periodStart_hebdo_remonteAuDimanchePrecedent() {
+        // Mercredi 2026-01-21 → dimanche 2026-01-18
+        assertEquals(LocalDate.of(2026, 1, 18), AssistantBriefingScheduler.periodStart(
+                AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, LocalDate.of(2026, 1, 21)));
+        // Un dimanche est son propre debut de periode
+        assertEquals(LocalDate.of(2026, 1, 18), AssistantBriefingScheduler.periodStart(
+                AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, LocalDate.of(2026, 1, 18)));
+        // Quotidien : la periode est la journee
+        assertEquals(LocalDate.of(2026, 1, 21), AssistantBriefingScheduler.periodStart(
+                AssistantBriefingPref.Frequency.DAILY_MORNING, LocalDate.of(2026, 1, 21)));
     }
 
     @Test
@@ -148,16 +188,50 @@ class AssistantBriefingSchedulerTest {
     }
 
     @Test
-    void runFor_noMatchingHour_skipsAll() {
+    void runFor_heureCibleNonAtteinte_skipsAll() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
         when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
 
-        // 12:00 UTC = 13:00 Paris → pas a 08:00 → skip
-        scheduler.runFor(LocalDateTime.of(2026, 1, 15, 12, 0));
+        // 05:00 UTC = 06:00 Paris → avant 08:00 → skip
+        scheduler.runFor(LocalDateTime.of(2026, 1, 15, 5, 0));
 
         verifyNoInteractions(composer);
         verifyNoInteractions(delivery);
+    }
+
+    @Test
+    void runFor_hebdo_dimancheManque_rattrapeEnSemaine() {
+        AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
+                AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
+        when(composer.compose(p)).thenReturn(new BriefingComposer.BriefingResult(
+                42L, "Revue", AssistantBriefingPref.Frequency.WEEKLY_SUNDAY));
+        when(delivery.dispatch(any(), eq("user-x"), eq(1L), any())).thenReturn(List.of("in_app"));
+
+        // Mercredi 2026-01-21, 12:00 UTC : le dimanche 18 est passe sans envoi
+        scheduler.runFor(LocalDateTime.of(2026, 1, 21, 12, 0));
+
+        verify(composer).compose(p);
+        // La borne d'idempotence interrogee est bien le dimanche, pas le mercredi
+        verify(logRepository).existsByKeycloakIdAndBriefingDateGreaterThanEqual(
+                eq("user-x"), eq(LocalDate.of(2026, 1, 18)));
+    }
+
+    @Test
+    void runFor_hebdo_dejaEnvoyeDepuisDimanche_neRepartPas() {
+        AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
+                AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
+        when(logRepository.existsByKeycloakIdAndBriefingDateGreaterThanEqual(
+                eq("user-x"), any(LocalDate.class))).thenReturn(true);
+
+        // Un rattrapage du mardi ne doit pas re-partir le mercredi, ni les jours suivants
+        scheduler.runFor(LocalDateTime.of(2026, 1, 21, 12, 0));
+
+        verifyNoInteractions(composer);
+        verifyNoInteractions(delivery);
+        verify(logRepository, never()).save(any());
     }
 
     @Test
@@ -165,8 +239,8 @@ class AssistantBriefingSchedulerTest {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
         when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
-        when(logRepository.findByKeycloakIdAndBriefingDate(eq("user-x"), any(LocalDate.class)))
-                .thenReturn(Optional.of(new AssistantBriefingLog()));
+        when(logRepository.existsByKeycloakIdAndBriefingDateGreaterThanEqual(
+                eq("user-x"), any(LocalDate.class))).thenReturn(true);
 
         scheduler.runFor(LocalDateTime.of(2026, 1, 15, 7, 0));
 

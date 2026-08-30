@@ -27,7 +27,19 @@
  * - `informative`: rendre compte d'une action DÉJÀ faite. Le bouton ferme, il
  *                  n'exécute rien.
  */
-export type ModalFamily = 'schedule' | 'choice' | 'params' | 'review' | 'confirm' | 'informative';
+export type ModalFamily =
+  | 'schedule'
+  | 'choice'
+  | 'params'
+  | 'review'
+  | 'confirm'
+  | 'informative'
+  /**
+   * `inspection` : examiner des PIÈCES rendues, puis trancher dans un sens ou
+   * dans l'autre. Deux issues, pas une — c'est ce qui la distingue de
+   * `confirm`, où refuser revient simplement à ne rien faire.
+   */
+  | 'inspection';
 
 // ─── Confirmation ────────────────────────────────────────────────────────────
 
@@ -151,6 +163,15 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
         c('supervision.reviewReply.c2', 'Le brouillon proposé est modifiable : rien ne part sans votre relecture.'),
       ],
     },
+  },
+
+  // ── Examiner des pièces, puis trancher ────────────────────────────────────
+  WORK_REVIEW: {
+    family: 'inspection',
+    titleKey: 'supervision.inspection.title',
+    titleFallback: 'Contrôler le travail rendu',
+    ctaKey: 'supervision.inspection.approve',
+    ctaFallback: 'Valider le travail',
   },
 
   // ── Rendre compte : la modale n'exécute rien ──────────────────────────────
@@ -604,6 +625,30 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
       consequences: [
         c('supervision.confirm.reassignCleaning.c1', 'La recherche automatique repart sur les équipes et prestataires disponibles.'),
         c('supervision.confirm.reassignCleaning.c2', 'Sans personne de libre, la demande reste sans suite : il faudra assigner à la main.'),
+      ],
+    },
+  },
+
+  /**
+   * Règlement d'une demande de service.
+   *
+   * <p>Type porté par le FRONT, pas par le serveur : ces cartes n'ont pas
+   * d'{@code actionType}, leur règlement passe par le flux de paiement de la
+   * demande. L'entrée existe pour qu'elles cessent d'être la seule famille à
+   * partir au clic — vers une fenêtre Stripe, qui plus est.</p>
+   */
+  SERVICE_REQUEST_SETTLE: {
+    family: 'confirm',
+    titleKey: 'supervision.payment.confirmTitle',
+    titleFallback: 'Régler cette prestation',
+    ctaKey: 'supervision.payment.settle',
+    ctaFallback: 'Régler',
+    confirm: {
+      severity: 'engaging',
+      consequences: [
+        c('supervision.payment.c1', 'Une page de paiement sécurisée s’ouvre dans un nouvel onglet.'),
+        c('supervision.payment.c2', 'Aucun débit tant que vous n’avez pas validé sur cette page.'),
+        c('supervision.payment.c3', 'L’acompte éventuel est compris dans ce montant, jamais en plus.'),
       ],
     },
   },

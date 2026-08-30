@@ -137,7 +137,12 @@
       "later": "Later",
       "maintenancePrefix": "Maintenance",
       "fallbackTitle": "Service request",
-      "reason": "This service request ({{title}}) is unpaid. “Pay now” opens secure Stripe checkout — no charge without your confirmation on the Stripe page."
+      "reason": "This service request ({{title}}) is unpaid. “Pay now” opens secure Stripe checkout — no charge without your confirmation on the Stripe page.",
+      "depositDue": "Of which deposit due",
+      "depositPaid": "Deposit already paid",
+      "confirmTitle": "Settle this service",
+      "depositStage": "Deposit, before work starts",
+      "confirmDepositTitle": "Pay the deposit"
     },
     "apply": {
       "action": "Apply",
@@ -371,8 +376,15 @@
       "matchingRoles": "Matching trade",
       "otherRoles": "Other workers",
       "noWorker": "No worker in this organisation. The job will be created unassigned.",
-      "unassignedHint": "With no assignee, the job stays to be assigned.",
-      "proposalHint": "The job will be offered to them: they can accept or decline."
+      "unassignedHint": "unassigned, the job still needs someone.",
+      "proposalHint": "the job will be offered to them: they can accept or decline.",
+      "searchWorker": "Search for a worker…",
+      "noMatch": "No worker by that name.",
+      "clearAssignee": "Leave unassigned",
+      "at": "at",
+      "orgTeam": "Property manager",
+      "myself": "Myself",
+      "selfHint": "the job is yours, already accepted."
     },
     "confirm": {
       "amount": "Amount",
@@ -404,6 +416,21 @@
     },
     "recap": {
       "unavailable": "The details could not be loaded. The job was assigned: the request record keeps the trace."
+    },
+    "inspection": {
+      "title": "Review the delivered work",
+      "approve": "Approve the work",
+      "reject": "Reject",
+      "confirmReject": "Send back for rework",
+      "reasonLabel": "What needs reworking?",
+      "reasonPlaceholder": "Missing photos, room not done, finish to redo…",
+      "openFile": "Open the intervention record",
+      "previewFailed": "The delivered work could not be loaded. Open the intervention record to review it.",
+      "photoAlt": "Photo {{n}} of {{total}}",
+      "prevPhoto": "Previous photo",
+      "nextPhoto": "Next photo",
+      "enlargePhoto": "Enlarge photo {{n}}",
+      "backToGrid": "Back to the evidence"
     }
   },
   "channexGuided": {
@@ -1453,7 +1480,8 @@
         "title": "Set up your billing profile",
         "description": "Enter your tax and legal details (Tax ID, VAT, company name) to generate compliant invoices.",
         "action": "Configure"
-      }
+      },
+      "dismiss": "Hide"
     },
     "channelHealth": {
       "title": "Booking channels",

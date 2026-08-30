@@ -430,5 +430,19 @@ public final class SupervisionActionType {
      */
     public static final String REASSIGN_MANUAL = "REASSIGN_MANUAL";
 
+    /**
+     * Controle du travail rendu (agent Operations).
+     *
+     * <p>L'intervenant a soumis : photos, duree reelle, horodatage de fin. Le
+     * gestionnaire examine et tranche — valider rend le solde exigible, refuser
+     * renvoie en reprise avec un motif.</p>
+     *
+     * <p>Le controle n'existait pas : l'intervenant cloturait lui-meme et le
+     * solde devenait du sans que personne n'ait rien regarde.</p>
+     *
+     * <p>Params : {@code interventionId}.</p>
+     */
+    public static final String WORK_REVIEW = "WORK_REVIEW";
+
     private SupervisionActionType() {}
 }

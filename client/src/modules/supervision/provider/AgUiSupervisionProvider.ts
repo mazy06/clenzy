@@ -126,6 +126,21 @@ interface UnpaidSrCardShape {
   /** Famille : "cleaning" | "maintenance" → préfixe i18n côté composant. */
   category?: string;
   amount: number;
+  /**
+   * Acompte exigible sur le devis approuvé — PARTIE de `amount`, jamais une
+   * somme qui s'ajoute. Absent si le chantier n'en demande pas.
+   */
+  depositAmount?: number | null;
+  /** Vrai si cet acompte est déjà encaissé. */
+  depositPaid?: boolean;
+  /**
+   * Échéance appelée : `deposit` (l'acompte, avant travaux) ou `balance` (le
+   * reste, une fois la prestation facturable). Une carte, deux moments — ils ne
+   * se recouvrent jamais.
+   */
+  stage?: string;
+  /** Chantier concerné : requis pour régler un acompte. */
+  interventionId?: number | null;
 }
 
 /** Préfixe d'id d'une carte de paiement de demande de service. */
@@ -212,6 +227,14 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * reservationId. « Valider » sur ces cartes ouvre la fiche client (front), aucun `/apply`.
    */
   private readonly guestCardReservationIds = new Map<string, string>();
+  /**
+   * Échéance appelée par chaque carte de paiement, et le chantier concerné.
+   *
+   * <p>L'identifiant de carte ne porte que la demande : il ne dit pas si l'on
+   * réclame l'acompte ou le solde. Or les deux passent par des chemins
+   * différents — l'acompte par l'intervention, le solde par la demande.</p>
+   */
+  private readonly paymentStages = new Map<string, { stage: string; interventionId?: number }>();
   /** true tant qu'un run SSE est en cours → le polling se met en pause pour ne pas
    *  écraser l'état live (conversation, interrupt inline). */
   private runActive = false;
@@ -325,9 +348,23 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         createdAt: new Date().toISOString(),
         expiresAt: new Date().toISOString(),
         kind: 'payment',
+        // Type porté par le FRONT : le serveur n'en donne pas à ces cartes. Il
+        // sert uniquement à les faire passer par une modale, comme les autres —
+        // elles etaient les seules a partir au clic vers une fenetre Stripe.
+        applyActionType: 'SERVICE_REQUEST_SETTLE',
         // Montant BRUT en EUR → formaté dans la devise de l'opérateur au rendu
         // (PendingActionCard/useCurrency) et affiché DANS le bouton « Régler ».
         amountEur: sr.amount,
+        // Échéancier : l'acompte avait sa propre carte sur un autre agent, pour
+        // le même chantier. Il est ici une ÉTAPE, pas une seconde demande.
+        depositEur: sr.depositAmount ?? undefined,
+        depositPaid: sr.depositPaid ?? false,
+        paymentStage: sr.stage === 'deposit' ? 'deposit' : 'balance',
+        interventionId: sr.interventionId ?? undefined,
+      });
+      this.paymentStages.set(sr.id, {
+        stage: sr.stage === 'deposit' ? 'deposit' : 'balance',
+        interventionId: sr.interventionId ?? undefined,
       });
     }
     if (payoutReminder) {
@@ -345,6 +382,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }
     this.applicableSuggestionIds.clear();
     this.guestCardReservationIds.clear();
+    this.paymentStages.clear();
     pendingQueue.push(
       ...suggestions.map((s) => {
         const reservationId = s.reservationId != null ? String(s.reservationId) : null;
@@ -581,25 +619,65 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private async settleServiceRequest(cardId: string): Promise<void> {
     const srId = cardId.slice(SERVICE_REQUEST_PREFIX.length + 1); // "service-request-<id>"
     if (!srId) return;
+
+    // La fenêtre est ouverte AVANT l'appel, tant que le clic est encore le geste
+    // courant. Ouverte après un `await`, le navigateur la traite comme une popup
+    // non sollicitée et la bloque : le paiement ne s'ouvrait jamais.
+    const paymentWindow = window.open('', '_blank', 'noopener');
+
+    // Deux échéances, deux chemins. L'acompte se règle sur le CHANTIER (avec un
+    // montant que le serveur recalcule depuis le devis approuvé) ; le solde sur
+    // la demande, qui exige d'être facturable. Les confondre menait à un refus.
+    const stage = this.paymentStages.get(cardId);
+    const isDeposit = stage?.stage === 'deposit' && stage.interventionId != null;
+    const endpoint = isDeposit
+      ? '/payments/create-session'
+      : `/service-requests/${srId}/create-payment-session`;
+
+    let checkoutUrl: string | undefined;
     try {
       const token = getAccessToken();
-      const response = await fetch(buildApiUrl(`/service-requests/${srId}/create-payment-session`), {
+      const response = await fetch(buildApiUrl(endpoint), {
         method: 'POST',
         credentials: 'include',
         headers: {
           accept: 'application/json',
+          ...(isDeposit ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        ...(isDeposit
+          ? { body: JSON.stringify({ interventionId: stage!.interventionId, purpose: 'DEPOSIT' }) }
+          : {}),
       });
-      if (response.ok) {
-        const body = (await response.json()) as { checkoutUrl?: string };
-        if (body?.checkoutUrl) {
-          window.open(body.checkoutUrl, '_blank', 'noopener');
-        }
+      if (!response.ok) {
+        // La carte RESTE : l'émission de `pending.resolved` vivait hors de ce
+        // bloc et s'exécutait même sur un refus — la carte disparaissait sans
+        // que rien ne se passe, puis revenait au sondage suivant.
+        paymentWindow?.close();
+        toast.error(await describeApplyFailure(response));
+        return;
       }
+      // Les deux endpoints nomment le lien différemment : `checkoutUrl` côté
+      // demande de service, `url` côté paiement d'intervention.
+      const body = (await response.json()) as { checkoutUrl?: string; url?: string };
+      checkoutUrl = body?.checkoutUrl ?? body?.url;
     } catch {
-      /* réseau → la carte reste, l'opérateur pourra réessayer */
+      paymentWindow?.close();
+      toast.error("Paiement impossible : le serveur n'a pas répondu.");
       return;
+    }
+
+    if (!checkoutUrl) {
+      paymentWindow?.close();
+      toast.error('Paiement impossible : aucun lien de règlement reçu.');
+      return;
+    }
+    if (paymentWindow) {
+      paymentWindow.location.href = checkoutUrl;
+    } else {
+      // Fenêtre refusée malgré tout (bloqueur strict) : on bascule l'onglet
+      // courant plutôt que d'abandonner le paiement en silence.
+      window.location.href = checkoutUrl;
     }
     if (!this.disposed) this.emit({ type: 'pending.resolved', actionId: cardId, outcome: 'validated' });
   }

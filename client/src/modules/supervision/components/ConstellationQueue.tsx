@@ -120,7 +120,9 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
   const isSchedule = isApply && familyOf(action.applyActionType) === 'schedule' && Boolean(onSchedule);
   // Le CTA ouvre une modale : confirmation quand l'effet engage sans rien à
   // choisir, saisie quand l'action porte des paramètres devinés par l'agent.
-  const isConfirm = isApply && !isSchedule
+  // Les cartes de paiement y ont droit aussi : elles étaient les seules à partir
+  // au clic — vers une fenêtre Stripe, sans rien annoncer au préalable.
+  const isConfirm = (isApply || isPayment) && !isSchedule
     && Boolean(onOpenActionModal) && opensModal(action.applyActionType);
   // Un rappel/paiement/action applicable ne « périme » pas (cf. carte historique).
   const expired = !isReminder && !isPayment && !isApply && cd.expired;

@@ -55,6 +55,11 @@ export interface SuggestionPreview {
     detail: string | null;
     recommended: boolean;
   }>;
+  /**
+   * Pièces à examiner, prêtes à afficher (`data:` URL). Vide pour toutes les
+   * familles sauf « inspection ».
+   */
+  photos: string[];
 }
 
 export interface ActionReviewModalProps {

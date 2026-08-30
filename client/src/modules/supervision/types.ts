@@ -90,6 +90,29 @@ export interface PendingAction {
    */
   amountEur?: number;
   /**
+   * Acompte exigible sur ce chantier — une ÉTAPE de `amountEur`, jamais une
+   * somme qui s'ajoute.
+   *
+   * <p>Il avait sa propre carte, sur un autre agent : « Régler 220 € » d'un
+   * côté, « Acompte à régler 40 € » de l'autre, pour le même chantier. Rien ne
+   * disait que les 40 faisaient partie des 220, et régler l'un laissait
+   * l'autre.</p>
+   */
+  depositEur?: number;
+  /** Vrai si cet acompte est déjà encaissé. */
+  depositPaid?: boolean;
+  /**
+   * Échéance appelée par une carte de paiement.
+   *
+   * <p>`deposit` : l'acompte, dû AVANT les travaux — l'intervenant bloque sa
+   * date à réception. `balance` : le reste, une fois la prestation facturable.
+   * Les deux moments ne se recouvrent jamais, donc une demande ne produit
+   * qu'une carte à la fois.</p>
+   */
+  paymentStage?: 'deposit' | 'balance';
+  /** Chantier concerné — requis pour régler un acompte. */
+  interventionId?: number;
+  /**
    * Type d'action exécutable (ex. {@code PRICE_DROP}) pour une suggestion
    * actionnable : la carte affiche « Appliquer » (au lieu de « Valider ») et la
    * validation déclenche l'exécution serveur ({@code POST /suggestions/{id}/apply}).

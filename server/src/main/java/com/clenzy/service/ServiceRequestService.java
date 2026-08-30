@@ -442,7 +442,17 @@ public class ServiceRequestService {
                 log.info("SR {} : cout reevalue au tarif du pro {} → {}", sr.getId(), assignedToId, resolved.amount());
             }
         }
-        sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+        // ASSIGNÉE — surtout pas « en attente de paiement ».
+        //
+        // Le statut basculait ici, à l'ASSIGNATION : la demande devenait payable
+        // avant que quiconque ait touché au chantier. Deux conséquences. On
+        // réclamait le solde d'un travail non commencé ; et la demande quittant
+        // PENDING, la carte d'ACOMPTE — qui n'a de sens qu'avant les travaux —
+        // disparaissait. Les deux échéances s'inversaient.
+        //
+        // Le solde ne devient dû qu'après le contrôle du travail rendu, quand un
+        // gestionnaire a vu les photos, la durée réelle et l'écart au créneau.
+        sr.setStatus(RequestStatus.ASSIGNED);
         sr.setAutoAssignStatus("found");
         sr = serviceRequestRepository.save(sr);
 
@@ -995,7 +1005,10 @@ public class ServiceRequestService {
                 // housekeeper de l'équipe retenue en assignation user (opt-in,
                 // défaut false = comportement actuel strictement intact).
                 maybeUpgradeToBestPro(sr, availableTeamId.get());
-                sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+                // ASSIGNÉE, pas « en attente de paiement » : personne n'a encore
+                // travaillé. Le solde ne devient dû qu'après la validation du
+                // travail rendu — cf. manualAssign pour le raisonnement complet.
+                sr.setStatus(RequestStatus.ASSIGNED);
                 sr.setAutoAssignStatus("found");
                 serviceRequestRepository.save(sr);
 
@@ -1102,7 +1115,10 @@ public class ServiceRequestService {
                 // housekeeper de l'équipe retenue en assignation user (opt-in,
                 // défaut false = comportement actuel strictement intact).
                 maybeUpgradeToBestPro(sr, availableTeamId.get());
-                sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+                // ASSIGNÉE, pas « en attente de paiement » : personne n'a encore
+                // travaillé. Le solde ne devient dû qu'après la validation du
+                // travail rendu — cf. manualAssign pour le raisonnement complet.
+                sr.setStatus(RequestStatus.ASSIGNED);
                 sr.setAutoAssignStatus("found");
                 serviceRequestRepository.save(sr);
 

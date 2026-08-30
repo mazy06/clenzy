@@ -180,15 +180,30 @@ describe('PanelPropertyDetails', () => {
 
   // ── Interventions ──────────────────────────────────────────────────────────
   describe('interventions list', () => {
+    /**
+     * Radix active ses onglets au `mousedown`, pas au `click` : un
+     * `fireEvent.click` laisse l'onglet des demandes ouvert, et la liste
+     * cherchee n'est jamais montee.
+     */
+    const openInterventionsTab = () => {
+      const tab = screen.getByRole('tab', { name: /Interventions/ });
+      fireEvent.mouseDown(tab);
+      fireEvent.click(tab);
+    };
+
+    // Le compte a quitte le libelle : « Interventions (2) » est devenu un
+    // onglet `PageTabs` portant un badge separe. Les tests cherchaient encore
+    // le vieux texte d'un seul tenant.
     it('should display interventions count', () => {
       render(<PanelPropertyDetails propertyId={42} />);
-      expect(screen.getByText('Interventions (2)')).toBeInTheDocument();
+      const tab = screen.getByRole('tab', { name: /Interventions/ });
+      expect(tab).toBeInTheDocument();
+      expect(tab).toHaveTextContent('2');
     });
 
     it('should display intervention descriptions when tab is active', () => {
       render(<PanelPropertyDetails propertyId={42} />);
-      // Click the Interventions tab to reveal the list
-      fireEvent.click(screen.getByText('Interventions (2)'));
+      openInterventionsTab();
       expect(screen.getByText('Ménage 01/06')).toBeInTheDocument();
       expect(screen.getByText('Réparation plomberie')).toBeInTheDocument();
     });
@@ -197,8 +212,7 @@ describe('PanelPropertyDetails', () => {
       const onDrillDown = vi.fn();
       render(<PanelPropertyDetails propertyId={42} onDrillDown={onDrillDown} />);
 
-      // Click the Interventions tab first
-      fireEvent.click(screen.getByText('Interventions (2)'));
+      openInterventionsTab();
       fireEvent.click(screen.getByText('Ménage 01/06'));
       expect(onDrillDown).toHaveBeenCalledWith({ type: 'intervention-detail', interventionId: 1 });
     });

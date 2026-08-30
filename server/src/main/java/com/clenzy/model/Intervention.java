@@ -148,7 +148,15 @@ public class Intervention {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_request_id", nullable = false)
+    /**
+     * Demande de service a l'origine, QUAND IL Y EN A UNE.
+     *
+     * <p>Le flux humain part d'une demande. Le flux AGENT, non : une batterie
+     * a 12 %, un entretien en retard de onze mois, une escalade de bruit —
+     * personne n'a rien demande, l'agent a constate. La contrainte NOT NULL
+     * heritee du schema initial rendait ces creations impossibles.</p>
+     */
+    @JoinColumn(name = "service_request_id")
     private ServiceRequest serviceRequest;
 
 

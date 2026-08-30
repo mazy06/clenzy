@@ -107,6 +107,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService;
     private final com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
     private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
+    private final ObjectProvider<com.clenzy.service.InterventionLifecycleService> interventionLifecycle;
     private final com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
     private final ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor;
     private final ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider;
@@ -164,6 +165,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService,
                                     com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository,
                                     com.clenzy.repository.RatePlanRepository ratePlanRepository,
+                                    ObjectProvider<com.clenzy.service.InterventionLifecycleService> interventionLifecycle,
                                     com.clenzy.repository.UpsellOfferRepository upsellOfferRepository,
                                     ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor,
                                     ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider,
@@ -216,6 +218,7 @@ public class SuggestionActionExecutor {
         this.ownerStatementService = ownerStatementService;
         this.minNightsOverrideRepository = minNightsOverrideRepository;
         this.ratePlanRepository = ratePlanRepository;
+        this.interventionLifecycle = interventionLifecycle;
         this.upsellOfferRepository = upsellOfferRepository;
         this.maintenanceInterventionExecutor = maintenanceInterventionExecutor;
         this.interventionRepositoryProvider = interventionRepositoryProvider;
@@ -319,6 +322,7 @@ public class SuggestionActionExecutor {
             // c'est dit ici plutôt que de laisser le dispatch lever « type inconnu ».
             case SupervisionActionType.ASSIGNMENT_RECAP -> { }
             case SupervisionActionType.REASSIGN_MANUAL -> applyReassignManual(suggestion);
+            case SupervisionActionType.WORK_REVIEW -> applyWorkReview(suggestion);
             case SupervisionActionType.LOCK_BATTERY_REPLACE -> applyLockBatteryReplace(suggestion, plan);
             case SupervisionActionType.PREVENTIVE_MAINTENANCE -> applyPreventiveMaintenance(suggestion, plan);
             case SupervisionActionType.DEPOSIT_WITHHOLD -> applyDepositWithhold(suggestion);
@@ -980,6 +984,23 @@ public class SuggestionActionExecutor {
      * critères sans trouver personne, les répéter au rattrapage n'offrirait
      * aucune issue.</p>
      */
+    /**
+     * WORK_REVIEW — le gestionnaire VALIDE le travail rendu.
+     *
+     * <p>Le solde devient exigible : l'intervention passe en attente de
+     * paiement, et la demande qui la porte aussi — c'est elle qui produit la
+     * carte de reglement.</p>
+     *
+     * <p>Le REFUS ne passe pas par ici : il exige un motif, donc un geste
+     * explicite (endpoint {@code reject-work}). Appliquer une carte ne peut
+     * signifier que « d'accord ».</p>
+     */
+    private void applyWorkReview(SupervisionSuggestion suggestion) {
+        final long interventionId = requiredLongParam(suggestion, "interventionId");
+        interventionLifecycle.getObject()
+                .validateFromSupervision(interventionId, suggestion.getOrganizationId());
+    }
+
     private void applyReassignManual(SupervisionSuggestion suggestion) {
         final long serviceRequestId = requiredLongParam(suggestion, "serviceRequestId");
         final long assigneeId = requiredLongParam(suggestion, "assigneeId");

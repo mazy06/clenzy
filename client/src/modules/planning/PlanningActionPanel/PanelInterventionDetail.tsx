@@ -148,7 +148,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
     return (
       <Alert variant="warning" className="text-[0.75rem]">
         <TriangleAlert />
-        <AlertDescription>Intervention #{interventionId}introuvable</AlertDescription>
+        <AlertDescription>Intervention #{interventionId} introuvable</AlertDescription>
       </Alert>
     );
   }

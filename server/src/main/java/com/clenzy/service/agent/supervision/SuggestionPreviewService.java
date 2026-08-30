@@ -45,6 +45,9 @@ public class SuggestionPreviewService {
 
     private static final Logger log = LoggerFactory.getLogger(SuggestionPreviewService.class);
 
+    /** Au-dela, la modale met plus de temps a s'ouvrir que l'oeil n'en met a lire. */
+    private static final int MAX_PREVIEW_PHOTOS = 12;
+
     private static final String EMAIL = "Email";
     private static final String WHATSAPP = "WhatsApp, repli email";
 
@@ -75,6 +78,7 @@ public class SuggestionPreviewService {
     private final com.clenzy.booking.repository.SitePageRepository sitePageRepository;
     private final com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     private final com.clenzy.repository.UserRepository userRepository;
+    private final com.clenzy.service.InterventionPhotoService interventionPhotoService;
     private final java.time.Clock clock;
     private final ObjectMapper objectMapper;
 
@@ -91,6 +95,7 @@ public class SuggestionPreviewService {
                                     com.clenzy.booking.repository.SitePageRepository sitePageRepository,
                                     com.clenzy.repository.ServiceRequestRepository serviceRequestRepository,
                                     com.clenzy.repository.UserRepository userRepository,
+                                    com.clenzy.service.InterventionPhotoService interventionPhotoService,
                                     java.time.Clock clock,
                                     ObjectMapper objectMapper) {
         this.suggestionRepository = suggestionRepository;
@@ -106,6 +111,7 @@ public class SuggestionPreviewService {
         this.sitePageRepository = sitePageRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
+        this.interventionPhotoService = interventionPhotoService;
         this.clock = clock;
         this.objectMapper = objectMapper;
     }
@@ -152,6 +158,7 @@ public class SuggestionPreviewService {
                 case SupervisionActionType.QUOTE_APPROVAL -> quoteChoice(suggestion, orgId);
                 case SupervisionActionType.OVERBOOKING_RESOLVE -> overbookingChoice(suggestion, orgId);
                 case SupervisionActionType.RELODGE_TRANSFER -> relodgeChoice(suggestion, orgId);
+                case SupervisionActionType.WORK_REVIEW -> workReview(suggestion, orgId);
                 case SupervisionActionType.REASSIGN_MANUAL -> reassignChoice(suggestion, orgId);
                 case SupervisionActionType.ASSIGNMENT_RECAP -> assignmentRecap(suggestion, orgId);
                 default -> SuggestionPreviewDto.unavailable(
@@ -417,6 +424,156 @@ public class SuggestionPreviewService {
         } catch (Exception e) {
             return fallback;
         }
+    }
+
+    /**
+     * Les pièces du contrôle : ce qu'il faut avoir regardé avant de trancher.
+     *
+     * <p>Photos rendues, durée réelle face à l'estimation, et écart au créneau
+     * prévu. Sans ces trois éléments, « valider » ne serait qu'un clic de plus —
+     * exactement ce que le contrôle est censé remplacer.</p>
+     */
+    private SuggestionPreviewDto workReview(SupervisionSuggestion suggestion, Long orgId) {
+        final long interventionId = requiredLong(suggestion, "interventionId");
+        final Intervention intervention = interventionRepository.findById(interventionId)
+                .filter(i -> orgId.equals(i.getOrganizationId()))
+                .orElse(null);
+        if (intervention == null) {
+            return SuggestionPreviewDto.unavailable("Intervention introuvable");
+        }
+        if (intervention.getStatus() != com.clenzy.model.InterventionStatus.AWAITING_VALIDATION) {
+            return SuggestionPreviewDto.unavailable(
+                    "Ce travail n'attend plus de contrôle : il a déjà été tranché");
+        }
+
+        final List<String> facts = new ArrayList<>();
+        if (intervention.getAssignedUser() != null) {
+            facts.add("Rendu par " + nullSafe(intervention.getAssignedUser().getFullName(), "l'intervenant"));
+        }
+        final List<String> photos = afterPhotos(intervention);
+        facts.add(photosFact(photos));
+        facts.add(durationFact(intervention));
+        facts.add(punctualityFact(intervention));
+        if (intervention.getEstimatedCost() != null) {
+            facts.add("Valider rend exigible le solde de " + intervention.getEstimatedCost()
+                    + " " + nullSafe(intervention.getCurrency(), "EUR") + ".");
+        }
+        facts.add("Refuser renvoie le travail en reprise, avec le motif que vous indiquerez.");
+        return new SuggestionPreviewDto(null, List.of(), null, null, false, facts, null,
+                List.of(), photos == null ? List.of() : photos);
+    }
+
+    /** Le nombre de photos rendues — zéro est une information, pas un silence. */
+    /**
+     * Les photos du travail rendu, pretes a afficher.
+     *
+     * <p>Renvoie des {@code data:} URL, comme la fiche d'intervention : c'est le
+     * seul format que le front sache deja consommer, et il n'existe pas
+     * d'endpoint qui serve une photo par identifiant.</p>
+     *
+     * <p>Le nombre est plafonne. Ce que l'oeil ne parcourt pas ne sert pas au
+     * controle, et chaque piece pese quelques megaoctets en base64 : au-dela,
+     * la modale mettrait plus de temps a s'ouvrir qu'a etre lue.</p>
+     */
+    private List<String> afterPhotos(Intervention intervention) {
+        final String raw;
+        try {
+            raw = interventionPhotoService.loadPhotoBundle(intervention).afterUrls();
+        } catch (RuntimeException e) {
+            // Une piece illisible ne doit pas emporter l'apercu : les faits, eux,
+            // restent affichables, et le controle reste possible sur la fiche.
+            log.warn("Photos illisibles pour l'intervention {} : {}", intervention.getId(), e.toString());
+            return null;
+        }
+        return parsePhotoUrls(raw, objectMapper);
+    }
+
+    /**
+     * Deplie les deux formes que prend le champ des photos.
+     *
+     * <p>Avec des lignes en base, c'est un tableau JSON de {@code data:} URL ;
+     * sans, c'est la vieille colonne, une suite d'URL separees par des virgules.
+     * Ne traiter qu'une des deux formes n'echoue nulle part : la grille est
+     * simplement vide, et le controle se fait sans regarder.</p>
+     */
+    static List<String> parsePhotoUrls(String raw, ObjectMapper objectMapper) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+
+        final List<String> urls = new ArrayList<>();
+        if (raw.trim().startsWith("[")) {
+            try {
+                for (JsonNode node : objectMapper.readTree(raw)) {
+                    if (node.isTextual() && !node.asText().isBlank()) urls.add(node.asText());
+                }
+            } catch (Exception e) {
+                log.warn("Tableau de photos illisible : {}", e.toString());
+                return List.of();
+            }
+        } else {
+            for (String url : raw.split(",")) {
+                if (!url.isBlank()) urls.add(url.trim());
+            }
+        }
+        return urls.size() > MAX_PREVIEW_PHOTOS
+                ? List.copyOf(urls.subList(0, MAX_PREVIEW_PHOTOS))
+                : List.copyOf(urls);
+    }
+
+    /**
+     * Compte ce qui est REELLEMENT montre — sinon le fait contredit les vignettes.
+     *
+     * <p>{@code null} = on n'a pas su lire les pieces, ce qui n'est PAS la meme
+     * chose que n'en avoir aucune : annoncer « aucune photo » ferait refuser un
+     * travail correct.</p>
+     */
+    private static String photosFact(List<String> photos) {
+        if (photos == null) {
+            return "Les photos n'ont pas pu être chargées ici — ouvrez la fiche pour les voir.";
+        }
+        if (photos.isEmpty()) {
+            return "AUCUNE photo n'a été jointe.";
+        }
+        return photos.size() == 1
+                ? "1 photo jointe au travail rendu."
+                : photos.size() + " photos jointes au travail rendu.";
+    }
+
+    /** Durée réelle face à l'estimation : c'est l'écart qui se juge. */
+    private static String durationFact(Intervention intervention) {
+        final Integer actual = intervention.getActualDurationMinutes();
+        final Integer estimatedHours = intervention.getEstimatedDurationHours();
+        if (actual == null || actual <= 0) {
+            return "Durée réelle non déclarée.";
+        }
+        final String reel = actual + " min";
+        if (estimatedHours == null || estimatedHours <= 0) {
+            return "Durée réelle : " + reel + " (aucune estimation pour comparer).";
+        }
+        final int estimated = estimatedHours * 60;
+        final int ecart = actual - estimated;
+        if (ecart == 0) {
+            return "Durée réelle : " + reel + ", conforme à l'estimation.";
+        }
+        return "Durée réelle : " + reel + " pour " + estimated + " min estimées — "
+                + (ecart > 0 ? ecart + " min de plus." : Math.abs(ecart) + " min de moins.");
+    }
+
+    /** Retard sur le créneau : le constater après coup n'aide personne. */
+    private static String punctualityFact(Intervention intervention) {
+        final java.time.LocalDateTime prevu = intervention.getScheduledDate();
+        final java.time.LocalDateTime fini = intervention.getCompletedAt();
+        if (prevu == null || fini == null) {
+            return "Créneau ou fin non horodatés : ponctualité invérifiable.";
+        }
+        if (!fini.toLocalDate().isAfter(prevu.toLocalDate())) {
+            return "Terminé le " + fini.toLocalDate() + ", dans le créneau prévu.";
+        }
+        final long jours = java.time.temporal.ChronoUnit.DAYS.between(
+                prevu.toLocalDate(), fini.toLocalDate());
+        return "Terminé le " + fini.toLocalDate() + ", soit " + jours
+                + " jour(s) après la date prévue.";
     }
 
     // ── Résolveurs de candidats ──────────────────────────────────────────────

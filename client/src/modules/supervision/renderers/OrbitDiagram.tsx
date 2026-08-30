@@ -431,10 +431,17 @@ export function OrbitDiagram({
             // Le halo ne signale que ce qui n'est PAS déjà ouvert à droite.
             const needsDecision = (pending > 0 || agent.status === 'wait') && !isSelected;
             const statusLabel = t(STATUS[agent.status].labelKey);
+            // Ce que la PASTILLE dit deja ne se redit pas en texte. « 6 a
+            // valider », puis « Attend ta validation » : deux facons d'ecrire le
+            // meme nombre, sous un noeud qui l'affiche une troisieme fois. Un
+            // agent qui attend n'a donc plus de seconde ligne — son compte se lit
+            // sur le noeud. Les autres etats, eux, restent nommes : la pastille
+            // ne sait pas dire « Agit » ni « Reflechit a 40 % ».
+            const countedByBadge = pending > 0 || agent.status === 'wait';
             const subLabel = isAttention
               ? statusLabel
-              : pending > 0
-                ? `${pending} ${t('supervision.board.toValidate', 'à valider')}`
+              : countedByBadge
+                ? null
                 : agent.status === 'think' && agent.thinkingProgress != null
                   ? `${statusLabel} · ${Math.round(agent.thinkingProgress)} %`
                   : statusLabel;
@@ -481,7 +488,13 @@ export function OrbitDiagram({
                       data-agent={agent.id}
                       data-status={agent.status}
                       aria-pressed={isSelected}
-                      aria-label={`${t(meta.nameKey)} · ${subLabel}`}
+                      // Le lecteur d'écran, lui, ne voit pas la pastille : on
+                      // lui donne le compte que le texte ne porte plus.
+                      aria-label={[
+                        t(meta.nameKey),
+                        subLabel ?? statusLabel,
+                        pending > 0 ? `${pending} ${t('supervision.board.toValidate', 'à valider')}` : null,
+                      ].filter(Boolean).join(' · ')}
                       onClick={() => onSelect(agent.id)}
                       className={cn(
                         'relative flex size-full cursor-pointer items-center justify-center rounded-full border bg-card transition-colors duration-100 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
@@ -497,16 +510,23 @@ export function OrbitDiagram({
                       </span>
                       {/* Portefeuille : nb de logements concernés. */}
                       {agent.badge != null && agent.badge > 0 && (
-                        <span className="absolute -end-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground tabular-nums">
+                        <span className="absolute -end-1 -top-1 z-10 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground tabular-nums">
                           {agent.badge}
                         </span>
                       )}
-                      {/* Anneau à l'étroit : le compte remplace la légende. */}
-                      {crowded && agent.badge == null && pending > 0 && (
-                        // `bg-warning-soft` + `text-warning-ink` : le couple du
-                        // contrat. Il n'existe pas de `warning-foreground` —
-                        // écrire du texte sur l'aplat vif n'aurait rien donné.
-                        <span className="absolute -end-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full border border-warning/60 bg-warning-soft px-1 text-[9px] font-bold text-warning-ink tabular-nums">
+                      {/* Le compte, a toutes les largeurs. Il n'apparaissait
+                          qu'a l'etroit, la legende s'en chargeant au-dela :
+                          deux rendus pour une meme information, dont un qui
+                          evincait l'etat de l'agent. */}
+                      {agent.badge == null && pending > 0 && (
+                        // Fond de CARTE, opaque. `warning-soft` vaut
+                        // `rgba(…, 0.16)` : l'anneau et les liens du diagramme
+                        // se voyaient au travers, et le nombre devenait illisible
+                        // selon ce qui passait dessous. L'aplat vif n'est pas une
+                        // option non plus — `warning-ink` dessus ne donne que
+                        // 3,06:1, sous le seuil. Le contour et l'encre portent
+                        // donc seuls l'identité d'alerte.
+                        <span className="absolute -end-1 -top-1 z-10 inline-flex min-w-4 items-center justify-center rounded-full border border-warning bg-card px-1 text-[9px] font-bold text-warning-ink tabular-nums">
                           {pending}
                         </span>
                       )}
@@ -517,10 +537,10 @@ export function OrbitDiagram({
                   </TooltipContent>
                 </Tooltip>
                 {/* Anneau à l'étroit : une SEULE légende, celle de l'agent
-                    ouvert (plus une escalade, qui doit être nommée). Le compte
-                    d'actions passe en pastille sur le nœud — attaché à l'icône
-                    plutôt que posé à côté, il ne peut plus recouvrir personne.
-                    Les noms restent dans l'infobulle et dans `aria-label`. */}
+                    ouvert (plus une escalade, qui doit être nommée) — sinon les
+                    légendes se recouvrent. Les noms restent dans l'infobulle et
+                    dans `aria-label`. Le compte, lui, est toujours sur le nœud :
+                    attaché à l'icône, il ne peut recouvrir personne. */}
                 {(!crowded || isSelected || isAttention) && (
                   <span
                     className={cn(
@@ -532,18 +552,16 @@ export function OrbitDiagram({
                     <span className="text-xs font-medium whitespace-nowrap text-foreground">
                       {t(meta.nameKey)}
                     </span>
-                    <span
-                      className={cn(
-                        'text-xs whitespace-nowrap tabular-nums',
-                        isAttention
-                          ? 'font-medium text-destructive'
-                          : pending > 0
-                            ? 'font-medium text-warning-ink'
-                            : 'text-muted-foreground',
-                      )}
-                    >
-                      {subLabel}
-                    </span>
+                    {subLabel && (
+                      <span
+                        className={cn(
+                          'text-xs whitespace-nowrap tabular-nums',
+                          isAttention ? 'font-medium text-destructive' : 'text-muted-foreground',
+                        )}
+                      >
+                        {subLabel}
+                      </span>
+                    )}
                   </span>
                 )}
               </div>

@@ -38,6 +38,43 @@ class InterventionStatusTest {
         void canTransitionToCancelled() {
             assertThat(InterventionStatus.IN_PROGRESS.canTransitionTo(InterventionStatus.CANCELLED)).isTrue();
         }
+
+        @Test
+        @DisplayName("l'intervenant peut SOUMETTRE son travail au controle")
+        void canSubmitForValidation() {
+            // Sans ce chemin, il ne pouvait que clore lui-meme : ni photos
+            // examinees, ni duree confrontee a l'estimation, ni retard constate.
+            assertThat(InterventionStatus.IN_PROGRESS
+                    .canTransitionTo(InterventionStatus.AWAITING_VALIDATION)).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Controle du travail rendu")
+    class WorkReviewTransitions {
+        @Test
+        @DisplayName("valide -> le solde devient du")
+        void approvalMakesBalanceDue() {
+            assertThat(InterventionStatus.AWAITING_VALIDATION
+                    .canTransitionTo(InterventionStatus.AWAITING_PAYMENT)).isTrue();
+        }
+
+        @Test
+        @DisplayName("refuse -> reprise, pas retour a zero")
+        void rejectionSendsBackToWork() {
+            assertThat(InterventionStatus.AWAITING_VALIDATION
+                    .canTransitionTo(InterventionStatus.IN_PROGRESS)).isTrue();
+        }
+
+        @Test
+        @DisplayName("une fois le solde du, la prestation peut se clore")
+        void paidWorkCanBeClosed() {
+            // AWAITING_PAYMENT ne menait qu'a IN_PROGRESS ou CANCELLED : une
+            // intervention validee et payee restait bloquee, sans issue vers
+            // COMPLETED.
+            assertThat(InterventionStatus.AWAITING_PAYMENT
+                    .canTransitionTo(InterventionStatus.COMPLETED)).isTrue();
+        }
     }
 
     @Nested

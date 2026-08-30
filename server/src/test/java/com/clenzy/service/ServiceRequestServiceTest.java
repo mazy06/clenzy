@@ -671,7 +671,7 @@ class ServiceRequestServiceTest {
     class ManualAssign {
 
         @Test
-        @DisplayName("when SR PENDING - assigns and switches to AWAITING_PAYMENT")
+        @DisplayName("when SR PENDING - assigns and switches to ASSIGNED (pas encore payable)")
         void whenPending_thenAssigns() {
             ServiceRequest sr = buildEntity(1L, "T", RequestStatus.PENDING);
             when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
@@ -682,7 +682,9 @@ class ServiceRequestServiceTest {
 
             assertThat(sr.getAssignedToId()).isEqualTo(99L);
             assertThat(sr.getAssignedToType()).isEqualTo("user");
-            assertThat(sr.getStatus()).isEqualTo(RequestStatus.AWAITING_PAYMENT);
+            // ASSIGNEE, pas payable : personne n'a encore travaille. Le solde ne
+            // devient du qu'apres le controle du travail rendu.
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.ASSIGNED);
             assertThat(sr.getAutoAssignStatus()).isEqualTo("found");
             verify(assignmentEventRepository).save(argThat(e ->
                     "MANUAL_ASSIGN".equals(((AssignmentEvent) e).getEventType())));
@@ -768,7 +770,7 @@ class ServiceRequestServiceTest {
         }
 
         @Test
-        @DisplayName("when team available - assigns, switches AWAITING_PAYMENT, logs AUTO_SUCCESS")
+        @DisplayName("when team available - assigns, switches ASSIGNED, logs AUTO_SUCCESS")
         void whenTeamAvailable_thenAssigns() {
             ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
             sr.setOrganizationId(ORG_ID);
@@ -791,7 +793,9 @@ class ServiceRequestServiceTest {
             assertThat(result).isTrue();
             assertThat(sr.getAssignedToId()).isEqualTo(50L);
             assertThat(sr.getAssignedToType()).isEqualTo("team");
-            assertThat(sr.getStatus()).isEqualTo(RequestStatus.AWAITING_PAYMENT);
+            // ASSIGNEE, pas payable : personne n'a encore travaille. Le solde ne
+            // devient du qu'apres le controle du travail rendu.
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.ASSIGNED);
             assertThat(sr.getAutoAssignStatus()).isEqualTo("found");
             verify(assignmentEventRepository).save(argThat(e ->
                     "AUTO_SUCCESS".equals(((AssignmentEvent) e).getEventType())));
