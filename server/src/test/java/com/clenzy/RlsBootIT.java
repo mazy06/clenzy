@@ -238,29 +238,49 @@ class RlsBootIT extends AbstractIntegrationTest {
      * {@code SimpleJpaRepository} (paquet {@code org.springframework.data}), pas par du code
      * {@code com.clenzy}. L'aspect ne s'y déclenche pas.
      *
-     * <p>Ce test ne prescrit pas un résultat « correct » : il <b>documente</b> le
-     * comportement réel, pour que la décision d'activation soit prise en connaissance de
-     * cause plutôt que sur une hypothèse.
+     * <p>Ce test <b>documentait</b> le comportement au lieu de le prescrire, faute d'un
+     * mécanisme qui couvre ce chemin. L'inventaire de production a mesuré ce que cela
+     * coûtait : 34 chemins, dont dix scanners de supervision et la rotation des codes
+     * d'accès, tous hors du pointcut par construction — leurs appelants enchaînent des
+     * appels LLM ou des effets externes, qu'une transaction ne doit jamais englober.
+     *
+     * <p>{@link com.clenzy.tenant.RlsTenantConnectionProvider} pose désormais le contexte à
+     * la <b>prise de connexion</b> : aucune requête JPA n'atteint plus PostgreSQL sans lui.
+     * Le résultat cesse d'être une observation, il devient une assertion.
      */
     @Test
     @Transactional(propagation = Propagation.NEVER)
-    @DisplayName("hors transaction applicative : comportement documenté, pas supposé")
-    void horsTransactionApplicative_comportementDocumente() {
+    @DisplayName("hors transaction applicative : la connexion porte quand même le contexte")
+    void horsTransactionApplicative_contextePoseParLaConnexion() {
         tenant.setOrganizationId(ORG_A);
 
         long vues = transactionRepository.findAll().stream()
                 .filter(r -> ORG_A.equals(r.getOrganizationId()))
                 .count();
 
-        if (vues == 0) {
-            System.out.println("[RLS] Lecture hors transaction applicative : 0 ligne. "
-                    + "Tout appel de repository non encadre par une methode @Transactional de "
-                    + "com.clenzy renverra vide une fois la RLS active en production.");
-        } else {
-            System.out.println("[RLS] Lecture hors transaction applicative : " + vues
-                    + " ligne(s) — une GUC est posee sur ce chemin aussi.");
-        }
-        // Aucune assertion : la valeur de ce test est la trace qu'il laisse.
+        assertThat(vues)
+                .as("zéro ligne ici signifierait que le contexte n'est plus posé à la prise de "
+                        + "connexion : les scanners, la rotation des codes d'accès et le push CRS "
+                        + "se tairaient en production sans lever la moindre erreur")
+                .isGreaterThan(0);
+    }
+
+    /**
+     * Le pendant du test précédent : couvrir ce chemin ne doit pas revenir à tout montrer.
+     * Une GUC posée à la connexion vaudrait moins que rien si elle accordait le bypass.
+     */
+    @Test
+    @Transactional(propagation = Propagation.NEVER)
+    @DisplayName("hors transaction applicative : les autres organisations restent invisibles")
+    void horsTransactionApplicative_neVoitPasLesAutres() {
+        tenant.setOrganizationId(ORG_A);
+
+        boolean voitOrgB = transactionRepository.findAll().stream()
+                .anyMatch(r -> ORG_B.equals(r.getOrganizationId()));
+
+        assertThat(voitOrgB)
+                .as("le contexte posé à la connexion doit isoler, pas ouvrir")
+                .isFalse();
     }
 
     @Test
