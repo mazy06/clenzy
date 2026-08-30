@@ -4,7 +4,9 @@ import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
 import { Add as AddIcon, Close as CloseIcon, Fullscreen as FullscreenIcon, ChevronUp } from '../icons';
 import BaitlyMarkLogo from './BaitlyMarkLogo';
+import { NavCornerCountBadge } from './NavCountBadge';
 import { useAgent } from '../hooks/useAgent';
+import { useBriefingNotice } from '../hooks/useBriefingNotice';
 import { useTranslation } from '../hooks/useTranslation';
 import { AssistantSurface } from '../modules/assistant/components/AssistantSurface';
 import { ASSISTANT_SUGGESTION_KEYS } from '../modules/assistant/components/AssistantSuggestions';
@@ -83,6 +85,14 @@ const AssistantDockTab: React.FC = () => {
     currentPage: location.pathname.replace(/^\//, '') || 'home',
   });
 
+  // Revue en attente : porte la pastille de l'encoche, et la conversation a
+  // charger quand le panneau s'ouvre.
+  const { notice, dismiss } = useBriefingNotice();
+  // Le chargement automatique n'a lieu QU'UNE fois par montage : sans ce garde,
+  // refermer puis rouvrir l'encoche rechargerait la revue par-dessus ce que
+  // l'utilisateur vient d'ecrire.
+  const autoLoadedRef = useRef(false);
+
   const handleToggle = useCallback(() => setOpen((o) => !o), []);
   const handleClose = useCallback(() => {
     setOpen(false);
@@ -110,6 +120,24 @@ const AssistantDockTab: React.FC = () => {
     setView('panel');
     void loadConversation(id);
   }, [location.search, location.pathname, navigate, loadConversation]);
+
+  // ─── Chargement automatique de la revue ────────────────────────────────
+  // A l'ouverture du panneau, si une revue attend et qu'aucune conversation
+  // n'est en cours, on l'ouvre directement — la pastille disait qu'il y avait
+  // quelque chose a lire, on evite de le faire chercher. Rien ne se deploie
+  // tout seul : l'utilisateur garde l'initiative de l'ouverture.
+  //
+  // Le lien profond l'emporte : quand l'URL designe une conversation, c'est
+  // elle qu'on veut, pas la derniere revue.
+  useEffect(() => {
+    if (!open || autoLoadedRef.current) return;
+    if (new URLSearchParams(location.search).has(ASSISTANT_CONVERSATION_PARAM)) return;
+    const target = notice?.conversationId;
+    if (!target || conversationId) return;
+    autoLoadedRef.current = true;
+    void loadConversation(target);
+    void dismiss();
+  }, [open, location.search, notice, conversationId, loadConversation, dismiss]);
 
   // Ouverture demandee de l'exterieur — aujourd'hui le centre de commande
   // (⌘K → « Ouvrir l'assistant »). L'etat ouvert/ferme vit ici : un evenement
@@ -298,7 +326,13 @@ const AssistantDockTab: React.FC = () => {
             type="button"
             onClick={handleToggle}
             aria-expanded={open}
-            aria-label={open ? t('assistant.closeDock') : t('assistant.openDock')}
+            aria-label={
+              open
+                ? t('assistant.closeDock')
+                : notice
+                  ? `${t('assistant.openDock')} — ${t('assistant.briefingWaiting', 'une revue vous attend')}`
+                  : t('assistant.openDock')
+            }
             className={cn(
               'items-center gap-2 h-[44px] max-w-[100vw]',
               'border border-solid border-border border-r-0 border-b-0',
@@ -320,8 +354,16 @@ const AssistantDockTab: React.FC = () => {
                   ),
             )}
           >
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+            {/* La pastille se pose sur l'icone, seul element visible quand
+                l'encoche est compacte (logo seul sous 900px). `ring-card` et non
+                le `ring-sidebar` par defaut : ici la surface est celle de la
+                carte, pas celle de la barre laterale. Elle disparait a
+                l'ouverture — le panneau montre alors la revue. */}
+            <span className="relative flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
               <BaitlyMarkLogo variant="mark" size={16} idleAnimation={!open} active={isWorking} />
+              {!open && notice && (
+                <NavCornerCountBadge count={1} tone="primary" className="ring-card" />
+              )}
             </span>
 
             {/* Phrase animee — flex:1 pour occuper la largeur disponible (fermee
