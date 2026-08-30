@@ -40,6 +40,19 @@ export interface RlsAuditSummary {
   chemins: RlsAuditFinding[];
 }
 
+/** Résultat d'une fermeture en masse. */
+export interface RlsAuditBulkResolve {
+  /** Chemins effectivement passés de ouvert à traité. */
+  traites: number;
+  /**
+   * Constats encore en mémoire au moment de l'action — **non couverts** par la fermeture.
+   * Ceux qui portent sur un chemin qu'on vient de fermer le rouvriront au prochain vidage,
+   * et l'écran les montrera « réapparus après correction » alors qu'ils sont seulement
+   * arrivés en retard.
+   */
+  enAttente: number;
+}
+
 const BASE = '/admin/rls-audit';
 
 export const rlsAuditApi = {
@@ -47,4 +60,11 @@ export const rlsAuditApi = {
 
   marquerTraite: (id: number): Promise<RlsAuditFinding> =>
     apiClient.post<RlsAuditFinding>(`${BASE}/${id}/resolve`, {}),
+
+  /**
+   * Ferme tous les chemins ouverts d'un coup. Pour un correctif structurel, qui rend
+   * l'inventaire entier caduc — pas pour faire disparaître une liste qu'on n'a pas lue.
+   */
+  marquerTousTraites: (): Promise<RlsAuditBulkResolve> =>
+    apiClient.post<RlsAuditBulkResolve>(`${BASE}/resolve-all`, {}),
 };
