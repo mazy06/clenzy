@@ -73,8 +73,14 @@ public class PerfTestDataSeeder implements ApplicationRunner {
     private static final String ORG_SLUG = "baitly-perf-test";
     private static final String USER_EMAIL = "perf-test@baitly.fr";
 
-    /** Nombre de logements seedes, et de reservations par logement. */
-    private static final int PROPERTY_COUNT = 5;
+    /**
+     * Nombre de logements seedes, et de reservations par logement.
+     *
+     * <p>10 et pas 5 : le soak tire un id au hasard dans 1..10. Un jeu plus
+     * etroit renverrait 4xx sur la moitie de ces lectures — un taux d'erreur
+     * de fixture, indiscernable d'une vraie panne dans le resultat.</p>
+     */
+    private static final int PROPERTY_COUNT = 10;
     private static final int RESERVATIONS_PER_PROPERTY = 4;
 
     private final OrganizationRepository organizationRepository;
