@@ -84,8 +84,10 @@ function parseNotes(notes: string): ChecklistItem[] {
 
 // ─── Shared box classes ─────────────────────────────────────────────────────
 
+// `min-w-0` : sans lui, un mot long (une URL, un nom de residence) impose sa
+// largeur a la boite, qui refuse alors de retrecir et pousse sa voisine dehors.
 const BOX_BASE_CLASS =
-  'flex-1 flex gap-1.5 py-[7.5px] px-[9px] rounded-xl border border-solid min-h-[80px]';
+  'flex min-w-0 gap-1.5 py-[7.5px] px-[9px] rounded-xl border border-solid min-h-[80px] min-[900px]:flex-1';
 
 const TITLE_SX = {
   fontSize: '10.5px',
@@ -118,8 +120,10 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
     const hasDescription = !!description;
     const hasNotes = items.length > 0;
 
+    // Empilees sous 900 px : deux colonnes de texte long a 180 px de large se
+    // lisent un mot par ligne, et la carte devient plus haute que l'ecran.
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 min-[900px]:flex-row">
         {/* Description du logement */}
         <div className={`${BOX_BASE_CLASS} bg-card border-border`}>
           <span className="inline-flex text-faint mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>

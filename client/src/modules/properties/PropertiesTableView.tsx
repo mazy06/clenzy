@@ -66,7 +66,12 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
     // Surface « carte » de la liste : hairline + rayon xl (14 px) + fond carte.
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card shadow-none">
       <div className="flex-1 overflow-hidden">
-        <Table className="table-fixed w-full">
+        {/* `min-w-[920px]` : six colonnes en pourcentages sur 390 px de large
+            donnaient 43 px a « Type » et 78 px a « Caracteristiques » — les
+            en-tetes se chevauchaient, les cellules se superposaient. Le plancher
+            fait resoudre les pourcentages sur une largeur vivable et rend la
+            main au defilement horizontal du conteneur (`.cn-table-container`). */}
+        <Table className="table-fixed w-full min-w-[920px]">
           <TableHeader>
             {/* .pr-lhead — entête overline sur surface sur-élevée (h42) ; seuls le
                 fond, la hauteur et le py:0 s'ecartent du primitif. */}
