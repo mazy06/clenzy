@@ -32,6 +32,9 @@ const totalRequests = new Counter('total_api_requests');
 // ─── Options K6 ─────────────────────────────────────────────────────────────
 
 export const options = {
+  // p(99) n'est pas exporte par defaut : sans cette liste, le seuil
+  // http_req_duration p(99)<5000 est evalue mais sa valeur reste invisible.
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
     { duration: '30s', target: 20 },    // Warm-up
     { duration: '1m', target: 50 },     // Charge normale
