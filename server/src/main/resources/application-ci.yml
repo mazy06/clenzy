@@ -155,6 +155,11 @@ tuya:
 
 # Clenzy custom
 clenzy:
+  # Jeu de donnees de charge (PerfTestDataSeeder) : le `sub` du JWT de CI doit
+  # correspondre a cet identifiant, sinon le TenantFilter refuse tout en 403.
+  perf:
+    seed:
+      keycloak-id: ${PERF_SEED_KEYCLOAK_ID:perf-test-00000000-0000-0000-0000-000000000001}
   kafka:
     enabled: false
   mail:

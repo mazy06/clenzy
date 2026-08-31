@@ -147,7 +147,7 @@ export default function () {
 
     for (let propertyId = 1; propertyId <= 3; propertyId++) {
       const res = http.get(
-        `${API_BASE}/calendar-pricing/${propertyId}?from=${from}&to=${to}`,
+        `${API_BASE}/calendar/${propertyId}/pricing?from=${from}&to=${to}`,
         params,
       );
       totalRequests.add(1);
