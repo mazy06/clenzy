@@ -84,7 +84,9 @@ export default function PageTitle({
   const heading = (
     <div className="flex min-w-0 items-center gap-2.5">
       {icon}
-      <h1 className="cn-font-heading m-0 flex min-w-0 items-center gap-2 text-xl tracking-tight">
+      {/* 20 px de titre sur 375 px de large ne laissaient de place ni a l'onglet
+          ni aux commandes : la barre debordait, donc passait a la ligne. */}
+      <h1 className="cn-font-heading m-0 flex min-w-0 items-center gap-2 text-lg tracking-tight lg:text-xl">
         <span className="truncate font-semibold text-foreground">{title}</span>
         {parts.map((part) => (
           <React.Fragment key={part}>

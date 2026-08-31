@@ -74,7 +74,9 @@ export default function PageTabsMenu<T extends string | number>({
          n'affirme sa nature cliquable qu'au survol, par un fond discret. Un
          `variant="outline"` aurait pose une boite au milieu du h1. */
       className={cn(
-        '-mx-1.5 flex min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5',
+        /* `min-h-8` : la cible tactile s'aligne sur les boutons icone voisins de
+           la barre, sinon le libelle seul n'offrait que ~26 px a viser. */
+        '-mx-1.5 flex min-h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5',
         'font-normal text-muted-foreground transition-colors duration-200',
         'hover:bg-accent hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',

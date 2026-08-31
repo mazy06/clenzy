@@ -120,17 +120,23 @@ export default function PageHeader({
 
   return (
     <header className={cn('mb-1.5 flex flex-col gap-1.5 lg:mb-3', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* UNE ligne, jamais deux. `flex-wrap` + `justify-between` faisait passer
+          les commandes a la ligne des 375 px, et `justify-between` poussait
+          alors le titre contre le bord DROIT : le regard partait a droite pour
+          lire ou il etait, puis revenait a gauche pour agir. Le titre absorbe
+          desormais l'espace et se tronque ; les commandes ne se compriment
+          jamais — ce sont deja des icones. */}
+      <div className="flex items-center gap-2">
         {/* Le bouton de la sidebar occupait une bande de 48 px a lui seul sous
             1024 px. Il rejoint la ligne du titre : le seuil du kit sidebar
             (SIDEBAR_SHEET_BREAKPOINT) vaut deja lg, les deux coincident. */}
         <SidebarTrigger className="-ml-1 shrink-0 lg:hidden" />
 
-        {/* Sous lg, le titre ne prend que sa largeur : `flex-1` lui donnait la
-            moitie de la barre et repoussait les onglets contre les actions, ce
-            qui se lisait comme deux blocs plutot qu'une ligne continue. */}
+        {/* `flex-1` a TOUTES les largeurs : le selecteur d'onglet ayant rejoint
+            le titre, il n'y a plus deux blocs a rapprocher — il y a une ligne
+            qui commence a gauche et des commandes qui finissent a droite. */}
         <PageTitle
-          className="lg:flex-1"
+          className="flex-1"
           title={title}
           description={subtitle}
           adornment={titleAdornment}
@@ -141,7 +147,7 @@ export default function PageHeader({
           segmentSlot={
             <div
               ref={setTabsSlot}
-              className="cn-font-heading flex min-w-0 items-center gap-2 text-xl tracking-tight"
+              className="cn-font-heading flex min-w-0 items-center gap-2 text-lg tracking-tight lg:text-xl"
             />
           }
           icon={
@@ -164,7 +170,7 @@ export default function PageHeader({
           }
         />
 
-        <div className="flex min-w-0 shrink items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <GlobalSearchField />
 
           <PageHeaderActions filters={filters} actions={actions} narrow={isCompact} />
