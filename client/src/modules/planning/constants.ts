@@ -198,6 +198,10 @@ export const WEEKEND_CELL_BG = 'var(--pl-cell-we)';
 
 // Hauteur du bandeau bas : `PagePagination` (boutons h-8) + respiration.
 export const PAGINATION_BAR_HEIGHT = 44;
+// Rangee « Occupation » en pied de grille (py-1.5 + texte 10 px + filet).
+// Legerement sur-estimee : une ligne de trop cliperait, une de moins ne coute
+// qu'un peu de blanc.
+export const OCCUPANCY_ROW_HEIGHT = 30;
 // Hauteur desktop : rangée contrôles (~44px) + rangée filtres fusionnée
 // canaux+statuts+interventions (~32px) + gaps/padding. Sert au calcul du
 // pageSize (sur-estimé = sûr, jamais de clip).
