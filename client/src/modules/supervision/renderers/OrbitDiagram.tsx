@@ -61,12 +61,45 @@ const CORE_SIZE = 15;
 /** Diamètre uniforme des nœuds (% du canvas) — le volume ne se lit pas ici. */
 const NODE_SIZE = 13;
 /**
- * Part du canvas réellement OCCUPÉE par le dessin (anneau + nœuds) au rayon
- * maximal. Le canvas carré est plus grand que son dessin : le dimensionner sur
- * la boîte laisserait une couronne de vide. On le dimensionne donc sur cette
- * empreinte — le carré peut alors déborder la boîte, seul son vide déborde.
+ * Empreinte RÉELLE du dessin (anneau + nœuds) pour un carré de `side` px.
+ *
+ * <p>Le carré est toujours plus grand que son dessin : le dimensionner sur la
+ * boîte laisserait une couronne de vide. On le dimensionne donc sur cette
+ * empreinte — le carré peut alors déborder la boîte, seul son vide déborde.</p>
  */
-const CONTENT_SPAN = (2 * ORBIT_RADIUS_MAX + NODE_SIZE) / 100;
+function contentSpan(side: number): number {
+  return ((2 * orbitRadiusFor(side) + NODE_SIZE) / 100) * side;
+}
+
+/**
+ * Plus grand carré dont le DESSIN tient dans la boîte, en largeur comme en
+ * hauteur (la bande de libellés qui pend sous le dernier rang comprise).
+ *
+ * <p>Le carré était dimensionné sur l'empreinte au rayon MAXIMAL. Or
+ * `orbitRadiusFor` resserre le rayon dès que le canvas est petit : la place des
+ * libellés se compte en pixels, donc en pourcentage elle grandit quand le
+ * canvas rétrécit. Sur téléphone le rayon tombait à ~30 % au lieu de 38 — le
+ * dessin n'occupait plus que les trois quarts d'un carré lui-même bridé par la
+ * hauteur, d'où une constellation riquiqui au milieu du vide.</p>
+ *
+ * <p>L'empreinte est croissante avec le côté, mais par morceaux (trois régimes
+ * selon les bornes du rayon) : on cherche le côté par DICHOTOMIE plutôt que
+ * d'inverser la formule à la main, ce qu'un changement de borne casserait en
+ * silence.</p>
+ */
+function fitSide(width: number, height: number): number {
+  const room = height - LABEL_ROOM_PX;
+  if (width <= 0 || room <= 0) return 0;
+  let low = 0;
+  let high = Math.max(width, height) * 3;
+  for (let i = 0; i < 24; i += 1) {
+    const mid = (low + high) / 2;
+    const drawn = contentSpan(mid);
+    if (drawn <= width && drawn <= room) low = mid;
+    else high = mid;
+  }
+  return low;
+}
 /** Durée de la rotation de l'anneau — alignée sur `.oc-ring` ci-dessous. */
 const ROTATION_MS = 720;
 /**
@@ -333,10 +366,7 @@ export function OrbitDiagram({
   // large, moins ils se chevauchent. Repli tant que rien n'est mesuré (premier
   // rendu, jsdom).
   const [boxRef, box] = useElementSize<HTMLDivElement>();
-  const side = Math.max(
-    0,
-    Math.min(box.width / CONTENT_SPAN, (box.height - LABEL_ROOM_PX) / CONTENT_SPAN),
-  );
+  const side = fitSide(box.width, box.height);
   const radius = orbitRadiusFor(side);
 
   // Anneau à l'étroit : distance d'arc entre deux nœuds voisins. En dessous de
