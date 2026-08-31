@@ -16,8 +16,6 @@ export const ICON_BUTTON_SX = {
 } as const;
 
 export const ITEMS_PER_PAGE = 6;
-export const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
-export const LIST_DEFAULT_ROWS = 10;
 
 export const LIST_PAPER_SX = {
   border: '1px solid var(--bui-border)',
