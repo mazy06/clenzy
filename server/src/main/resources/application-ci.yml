@@ -162,6 +162,13 @@ tuya:
 
 # Clenzy custom
 clenzy:
+  security:
+    rate-limit:
+      # Le load test concentre 50 VUs sur l'unique compte de perf : a 300/min
+      # (defaut prod), 87 % des requetes repartaient en 429 et la mesure portait
+      # sur le limiteur. Le trafic reel repartit la charge sur autant d'identites
+      # qu'il y a d'utilisateurs — le plafond est donc un artefact du harnais.
+      api-per-minute: 1000000
   # Jeu de donnees de charge (PerfTestDataSeeder) : le `sub` du JWT de CI doit
   # correspondre a cet identifiant, sinon le TenantFilter refuse tout en 403.
   perf:

@@ -259,8 +259,11 @@ jobs:
       # harnais casse (token rejete, seed absent, endpoint renomme). Dans ce cas
       # les latences affichees ne mesurent qu'un refus : on echoue, y compris
       # sur PR ou les seuils de perf, eux, restent informatifs.
+      # always() : en dispatch, k6 sort en 99 des qu'un seuil est franchi et
+      # l'etape echoue — c'est precisement le cas ou l'on veut savoir si la
+      # mesure etait valide. Sans cela le diagnostic est saute quand il sert.
       - name: Verify load test measured something
-        if: steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load'
+        if: always() && (steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load')
         run: |
           SUMMARY=tests/performance/results/load-summary.json
 

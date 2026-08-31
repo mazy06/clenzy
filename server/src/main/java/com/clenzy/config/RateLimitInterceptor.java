@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -43,7 +44,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private static final int AUTH_RATE_LIMIT = 30;   // par IP sur /api/auth/** (hors session)
     private static final int SESSION_RATE_LIMIT = 120; // /api/auth/session — appele a chaque navigation
-    private static final int API_RATE_LIMIT = 300;
     // Protection brute-force des codes voucher (endpoint public, non auth).
     // 20 essais/min/IP suffit largement pour un guest qui tape son code,
     // bloque l'enumeration auto.
@@ -86,15 +86,25 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final StringRedisTemplate redisTemplate;
     private final SecurityAuditService securityAuditService;
 
+    /**
+     * Limite generale de l'API authentifiee, par utilisateur et par minute.
+     * Configurable (defaut 300, valeur historique inchangee) : un test de charge
+     * concentre 50 VUs sur une seule identite et heurte le plafond des la
+     * premiere minute — il mesurerait alors le limiteur, pas l'application.
+     */
+    private final int apiRateLimit;
+
     // Fallback in-memory si Redis indisponible
     private final Map<String, RateLimitBucket> localBuckets = new ConcurrentHashMap<>();
     private volatile long lastCleanup = System.currentTimeMillis();
     private static final long CLEANUP_INTERVAL_MS = 300_000;
 
     public RateLimitInterceptor(StringRedisTemplate redisTemplate,
-                                SecurityAuditService securityAuditService) {
+                                SecurityAuditService securityAuditService,
+                                @Value("${clenzy.security.rate-limit.api-per-minute:300}") int apiRateLimit) {
         this.redisTemplate = redisTemplate;
         this.securityAuditService = securityAuditService;
+        this.apiRateLimit = apiRateLimit;
     }
 
     @Override
@@ -135,7 +145,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             } else {
                 key = "ip:" + getClientIp(request);
             }
-            limit = API_RATE_LIMIT;
+            limit = apiRateLimit;
         }
 
         RateLimitResult result = tryConsume(key, limit);
