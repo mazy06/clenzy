@@ -68,8 +68,9 @@ const formatShortDate = (iso: string) => {
 
 // py 0.75 / px 1 en spacing MUI (6px) = 4.5px / 6px. Le nowrap vient deja du primitif.
 const CELL_CLS = 'text-[0.75rem] py-[4.5px] px-1.5';
-// Email cell : shrinkable + ellipsis pour eviter de pousser la table et clipper les actions
-const CELL_EMAIL_CLS = 'text-[0.75rem] py-[4.5px] px-1.5 max-w-0 w-full';
+// Email cell : plus de `max-w-0 w-full`. Un email tronque a « kha… » ne dit plus QUI a ete
+// invite ; la table depasse et son conteneur defile (cf. `min-w-max` sur <Table>).
+const CELL_EMAIL_CLS = 'text-[0.75rem] whitespace-nowrap py-[4.5px] px-1.5';
 // Entete : l'overline vient du primitif (cn-table-head) — on ne garde que l'espacement
 const HEAD_CELL_CLS = 'py-[4.5px] px-1.5';
 
@@ -183,8 +184,11 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   return (
     <>
-    <div className="overflow-x-hidden">
-      <Table className="table-auto">
+    {/* Defilement horizontal plutot que cellules rognees : `min-w-max` laisse la
+        table prendre la largeur de son contenu, `min-w-0` laisse l'enveloppe
+        passer dessous — sinon c'est la carte qui s'elargit au lieu de defiler. */}
+    <div className="min-w-0">
+      <Table className="table-auto min-w-max">
         <TableHeader>
           <TableRow>
             <TableHead className={HEAD_CELL_CLS}>Email</TableHead>
@@ -199,7 +203,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
           {invitations.map((inv) => (
             <TableRow key={inv.id}>
               <TableCell className={CELL_EMAIL_CLS}>
-                <p className="text-xs font-medium overflow-hidden text-ellipsis whitespace-nowrap" title={inv.invitedEmail}>
+                <p className="text-xs font-medium whitespace-nowrap" title={inv.invitedEmail}>
                   {inv.invitedEmail}
                 </p>
               </TableCell>
