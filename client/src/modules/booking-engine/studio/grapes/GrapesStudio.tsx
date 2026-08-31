@@ -8,6 +8,10 @@ import {
   Item,
   ItemActions,
   ItemMedia,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Separator,
   Spinner,
   Tooltip,
@@ -50,6 +54,7 @@ import { validateComposition } from './funnelRules';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
+import { Segmented, SegmentedItem } from '../Segmented';
 import TranslateModal from '../TranslateModal';
 import { useSitePages } from '../useSitePages';
 import { useNotification } from '../../../../hooks/useNotification';
@@ -803,7 +808,11 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   const canEditGlobal = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
   const [publishing, setPublishing] = useState(false);
   // Réduction du panneau latéral (bouton « réduire la colonne »).
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  // Replie d'entree sur ecran etroit : le panneau y flotte AU-DESSUS du canvas
+  // (cf. plus bas), l'ouvrir au chargement masquerait la page qu'on vient editer.
+  const [panelCollapsed, setPanelCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 900,
+  );
   // Option A — UI 100 % custom : les managers GrapesJS sont montés dans NOS conteneurs (panneau droit),
   // via `appendTo` à l'init. Plus aucun panneau GrapesJS par défaut (`panels: { defaults: [] }`).
   const blocksRef = useRef<HTMLDivElement>(null);
@@ -1125,7 +1134,50 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     };
     editor.on('component:add', onAutoSkin);
 
+    /**
+     * Ajout d'un bloc au CLIC, en plus du glisser-deposer.
+     *
+     * <p>La palette annonce « ou clique pour ajouter » et dessine un « + » sur
+     * chaque ligne : c'etait une promesse que rien ne tenait — GrapesJS ne pose
+     * que le glisser-deposer. Sur telephone ou le glisser vers un canvas large
+     * comme le pouce n'aboutit pas, c'etait le seul chemin praticable, et il
+     * n'existait pas.</p>
+     *
+     * <p>Ecouteur DELEGUE sur le conteneur : le BlockManager re-rend ses lignes
+     * a chaque changement de categorie, une ecoute par ligne serait perdue au
+     * premier rendu. L'id vient de `data-cz-block`, pose a l'enregistrement de
+     * TOUS les blocs (base, booking, composites).</p>
+     *
+     * <p>Le bloc se pose JUSTE APRES la selection courante plutot qu'en fin de
+     * page : on ajoute la ou l'on regarde. Sans selection, il rejoint la fin du
+     * document.</p>
+     */
+    const onBlockClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const row = target?.closest?.('.gjs-block[data-cz-block]') as HTMLElement | null;
+      if (!row) return;
+      const blockId = row.getAttribute('data-cz-block');
+      if (!blockId) return;
+      const block = editor.BlockManager.get(blockId);
+      const content = block?.get('content');
+      if (!content) return;
+
+      const selected = editor.getSelected();
+      const parent = selected?.parent();
+      const added = parent
+        ? parent.components().add(content, { at: parent.components().indexOf(selected!) + 1 })
+        : editor.getWrapper()?.append(content);
+
+      const created = Array.isArray(added) ? added[0] : added;
+      if (created) {
+        editor.select(created);
+        created.view?.el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    };
+    blocksEl?.addEventListener('click', onBlockClick);
+
     return () => {
+      blocksEl?.removeEventListener('click', onBlockClick);
       if (hydrationTimer) clearTimeout(hydrationTimer);
       if (timer) clearTimeout(timer);
       if (validationTimer) clearTimeout(validationTimer);
@@ -1632,9 +1684,17 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
   return (
     <div className="clenzy-grapes relative flex flex-col h-full min-h-0">
-      {/* Barre des pages (multi-page) — masquée en aperçu. */}
+      {/* Barre des pages (multi-page) — masquée en aperçu.
+
+          Elle porte les pages, les langues, l'etat de publication ET le bouton
+          Publier : sur telephone elle depasse forcement. Elle a d'abord defile de
+          cote, mais un defilement COUPE ce qui franchit son bord — la pastille de
+          langue active se retrouvait tranchee, son fond s'arretant net au milieu
+          du chip. Elle passe donc a la LIGNE sous 900 px : rien n'est jamais
+          coupe, et aucun geste n'est requis pour atteindre « Publier ». Au-dela,
+          tout tient sur une rangee comme avant. */}
       {pageMode && !chromeHidden && (
-        <div className="flex shrink-0 items-center border-b border-border bg-background">
+        <div className="flex shrink-0 flex-wrap items-center gap-y-1 border-b border-border bg-background py-1 min-[900px]:flex-nowrap min-[900px]:gap-y-0 min-[900px]:py-0">
           <div className="flex-1 min-w-0">
             <PagesBar
               pages={pages.pages}
@@ -1650,28 +1710,23 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
           </div>
           {/* Barre de LANGUES : bascule la langue d'édition (chips) + ajoute une langue supportée. La
               langue par défaut édite les pages `locale=null` ; les autres leurs variantes traduites. */}
-          <div className="inline-flex shrink-0 items-center gap-0.5 border-s border-border px-1.5">
-            {pages.availableLocales.map((loc) => {
-              const active = loc === pages.activeLocale;
-              return (
-                <button
-                  type="button"
+          {/* Langue d'edition : le MEME groupe segmente que le commutateur de rendu
+              de la barre du haut (cf. Segmented). Deux selecteurs voisins qui font
+              le meme geste doivent se dessiner pareil — la langue active tenait un
+              aplat sombre la ou le rendu actif tient une carte claire. */}
+          <div className="inline-flex shrink-0 items-center gap-1 px-1.5 min-[900px]:border-s min-[900px]:border-border">
+            <Segmented ariaLabel="Langue d'édition">
+              {pages.availableLocales.map((loc) => (
+                <SegmentedItem
                   key={loc}
+                  active={loc === pages.activeLocale}
+                  label={LOCALE_LABEL[loc] ?? loc.toUpperCase()}
                   onClick={() => { void handleSelectLocale(loc); }}
-                  aria-pressed={active}
-                  className={cn(
-                    'inline-flex h-6 cursor-pointer items-center justify-center rounded-md px-1.5 text-2xs font-semibold tracking-wide',
-                    'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-                    active
-                      ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
-                      : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
                 >
                   {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
-                </button>
-              );
-            })}
+                </SegmentedItem>
+              ))}
+            </Segmented>
             {SUPPORTED_LOCALES.flatMap((loc) => pages.availableLocales.includes(loc) ? [] : [(
               <Tooltip key={loc}>
                 <TooltipTrigger asChild>
@@ -1693,73 +1748,93 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 </TooltipContent>
               </Tooltip>
             )])}
-            {/* Auto-traduction IA (P1) : crée des VARIANTES en brouillon de la page active vers les
-                langues choisies (relecture humaine), via l'endpoint dédié — distinct du « Traduire »
-                in-place ci-dessous. Toujours disponible dès qu'une page est sélectionnée. */}
-            {pages.selectedPage && autoTranslateTargets.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <button
-                      type="button"
-                      onClick={() => setAutoTranslateOpen(true)}
-                      disabled={pages.loading}
-                      aria-label={t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
-                      className="ms-[3px] inline-flex h-6 cursor-pointer items-center gap-[3px] whitespace-nowrap rounded-md border border-primary px-1.5 text-2xs font-semibold text-primary transition-colors duration-150 ease-out-quart hover:bg-primary hover:text-primary-foreground disabled:opacity-50 motion-reduce:transition-none"
+            {/* ── Traduction : UN seul declencheur, ses actions dans un menu ──
+                   Il y en avait trois cote a cote, et deux portaient la meme
+                   icone une fois les libelles retires en etroit : impossible de
+                   les distinguer. Ils ne font pourtant pas la meme chose —
+                   « creer des variantes » ouvre une modale et ecrit AILLEURS
+                   (des brouillons a relire), « traduire cette page » et
+                   « traduire toutes les pages » ECRASENT le contenu courant.
+                   Trois actions dont deux destructrices ne peuvent pas se
+                   presenter comme trois icones jumelles : elles sont nommees
+                   dans un menu, et le libelle porte la difference. */}
+            {(pages.selectedPage && autoTranslateTargets.length > 0)
+              || pages.activeLocale !== pages.defaultLocale ? (
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          disabled={translating || pages.loading}
+                          aria-label="Traduction (IA)"
+                          className="ms-[3px] inline-flex h-6 cursor-pointer items-center gap-[3px] whitespace-nowrap rounded-md border border-primary px-1.5 text-2xs font-semibold text-primary transition-colors duration-150 ease-out-quart hover:bg-primary hover:text-primary-foreground disabled:opacity-50 motion-reduce:transition-none"
+                        >
+                          <Languages size={13} strokeWidth={2.2} />
+                          <span className="hidden min-[900px]:inline">
+                            {translating ? 'Traduction…' : 'Traduire (IA)'}
+                          </span>
+                        </button>
+                      </DropdownMenuTrigger>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Traduction (IA)</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end" className="min-w-64 max-w-[min(20rem,90vw)]">
+                  {pages.selectedPage && autoTranslateTargets.length > 0 && (
+                    <DropdownMenuItem
+                      onSelect={() => setAutoTranslateOpen(true)}
+                      className="min-h-9 cursor-pointer flex-col items-start gap-0"
                     >
-                      <Languages size={13} strokeWidth={2.2} />
-                      {t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
-                    </button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {t('bookingEngine.studio.ai.translate.pageTooltip', 'Traduire cette page (IA) — crée des variantes en brouillon')}
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {/* Traduction in-place : visible seulement hors langue par défaut. Traduit la page active. */}
-            {pages.activeLocale !== pages.defaultLocale && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <button
-                      type="button"
-                      onClick={() => { void handleTranslatePage(); }}
-                      disabled={translating || pages.loading}
-                      className="ms-[3px] inline-flex h-6 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-primary px-1.5 text-2xs font-semibold text-primary transition-colors duration-150 ease-out-quart hover:bg-primary hover:text-primary-foreground disabled:opacity-50 motion-reduce:transition-none"
-                    >
-                      {translating ? 'Traduction…' : 'Traduire (IA)'}
-                    </button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Traduire cette page depuis la langue par défaut (IA)</TooltipContent>
-              </Tooltip>
-            )}
-            {pages.activeLocale !== pages.defaultLocale && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <button
-                      type="button"
-                      onClick={() => { void handleTranslateAll(); }}
-                      disabled={translating || pages.loading}
-                      className="inline-flex h-6 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-border px-1 text-2xs font-medium text-muted-foreground transition-colors duration-150 ease-out-quart hover:border-primary hover:text-primary disabled:opacity-50 motion-reduce:transition-none"
-                    >
-                      Tout
-                    </button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Traduire TOUTES les pages de cette langue (IA)</TooltipContent>
-              </Tooltip>
-            )}
+                      <span>{t('bookingEngine.studio.ai.translate.pageAction', 'Créer des variantes traduites…')}</span>
+                      <span className="text-2xs text-muted-foreground">Crée des brouillons à relire, sans rien écraser</span>
+                    </DropdownMenuItem>
+                  )}
+                  {pages.activeLocale !== pages.defaultLocale && (
+                    <>
+                      <DropdownMenuItem
+                        onSelect={() => { void handleTranslatePage(); }}
+                        className="min-h-9 cursor-pointer flex-col items-start gap-0"
+                      >
+                        <span>Traduire cette page</span>
+                        <span className="text-2xs text-muted-foreground">Remplace le contenu de la page affichée</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => { void handleTranslateAll(); }}
+                        className="min-h-9 cursor-pointer flex-col items-start gap-0"
+                      >
+                        <span>Traduire toutes les pages</span>
+                        <span className="text-2xs text-muted-foreground">Remplace le contenu de toutes les pages de cette langue</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
           <div className="inline-flex shrink-0 items-center gap-1.5 px-1.5">
             {/* Pastille d'état : le texte porte le jeton `-ink` (contraste AA), la
                 puce la teinte vive — cf. §2.4 du contrat Baitly UI. */}
-            <div className={cn('inline-flex items-center gap-[3px] text-2xs font-semibold', needsPublish ? 'text-warning-ink' : 'text-success-ink')}>
-              <span className={cn('size-1.5 rounded-full', needsPublish ? 'bg-warning' : 'bg-success')} />
-              {needsPublish ? 'Brouillon non publié' : 'Publié'}
-            </div>
+            {/* « Brouillon non publié » coute 140 px pour un etat binaire, juste
+                a cote du bouton qui le resout. Sous 900 px il ne reste que la
+                pastille, agrandie a 8 px pour rester visible, son sens porte par
+                l'infobulle et l'`aria-label`. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  role="status"
+                  aria-label={needsPublish ? 'Brouillon non publié' : 'Publié'}
+                  className={cn('inline-flex shrink-0 items-center gap-[3px] text-2xs font-semibold', needsPublish ? 'text-warning-ink' : 'text-success-ink')}
+                >
+                  <span className={cn('size-2 rounded-full min-[900px]:size-1.5', needsPublish ? 'bg-warning' : 'bg-success')} />
+                  <span className="hidden min-[900px]:inline">
+                    {needsPublish ? 'Brouillon non publié' : 'Publié'}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>{needsPublish ? 'Brouillon non publié' : 'Publié'}</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex">
@@ -1783,8 +1858,11 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
       )}
 
       {/* Barre d'outils de l'éditeur (option A — 100 % React, un seul style de bouton). Masquée en aperçu. */}
+      {/* `overflow-x-auto` sur la barre d'outils : la rangee ne se replie pas et ne
+          se compresse pas — sur telephone ses derniers boutons (dont le repli du
+          panneau) sortaient de l'ecran, hors d'atteinte. Elle defile desormais. */}
       {!chromeHidden && (
-        <div className="cz-editor-toolbar flex h-[44px] shrink-0 items-center gap-0.5 border-b border-border bg-card px-1.5">
+        <div className="cz-editor-toolbar flex h-[44px] shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-card px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
           <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
           <Separator orientation="vertical" className="mx-0.5 h-5" />
@@ -1808,8 +1886,9 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         </div>
       )}
 
-      {/* Canvas (GrapesJS) + panneau droit (managers React). */}
-      <div className="flex flex-1 min-h-0">
+      {/* Canvas (GrapesJS) + panneau droit (managers React). `relative` : sous
+          900 px le panneau se pose EN SURIMPRESSION de cette zone (cf. plus bas). */}
+      <div className="relative flex flex-1 min-h-0">
         {/* Zone canvas (relative) : ancre la dalle du constructeur SANS couvrir le panneau droit (onglets). */}
         <div className="flex-1 min-w-0 h-full relative">
           <div className="w-full h-full" ref={containerRef} />
@@ -1827,7 +1906,21 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         </div>
         {/* Panneau droit : conteneurs des managers, TOUJOURS montés (cible `appendTo`) ; on bascule la
             vue par `display` et on réduit la largeur à 0 (sans démonter) au repli / en aperçu. */}
-        <div className={cn('cz-rightpanel flex h-full shrink-0 flex-col overflow-hidden bg-card', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'w-0 border-s-0' : 'w-[300px] border-s border-border')}>
+        {/* Sous 900 px, ses 300 px fixes s'ajoutaient aux 76 px du rail : sur un
+            telephone de 390 px il ne restait QUE 14 px de canvas. Il y devient
+            donc une surface flottante, posee au-dessus du canvas et repliee par
+            defaut ; au-dela il redevient la colonne de droite. Dans les deux cas
+            il reste MONTE — GrapesJS y attache ses managers (`appendTo`), le
+            demonter casserait l'editeur : on ne joue que sur la largeur. */}
+        <div
+          className={cn(
+            'cz-rightpanel flex h-full shrink-0 flex-col overflow-hidden bg-card',
+            panelCollapsed || chromeHidden || compositeCreatorOpen
+              ? 'w-0 border-s-0'
+              : 'absolute inset-y-0 end-0 z-30 w-[320px] max-w-full border-s border-border shadow-lg'
+                + ' min-[900px]:static min-[900px]:z-auto min-[900px]:w-[300px] min-[900px]:shadow-none',
+          )}
+        >
           {/* Sélecteur de vue — en tête du panneau droit (segmented), FIXE (hors zone de scroll). */}
           {!panelCollapsed && !chromeHidden && (
             <div className="flex shrink-0 justify-center border-b border-border bg-card p-1.5">

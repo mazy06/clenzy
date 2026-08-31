@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Button, Input, Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
-import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import {
+  Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  Input, Tooltip, TooltipContent, TooltipTrigger,
+} from '../../../../components/ui';
+import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw, Check, Files, ChevronDown } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
 
 /**
@@ -37,8 +40,56 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
     setEditingId(null);
   };
 
+  const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
+
   return (
     <div className="flex items-center gap-0.5 px-1.5 h-[38px] shrink-0 border-b border-border bg-background overflow-x-auto">
+      {/* Sous 900 px : un SEUL declencheur en icone, qui deplie la liste des
+          pages. La rangee d'onglets demandait la largeur d'un ecran de bureau —
+          elle debordait, et les onglets se faisaient couper par son defilement.
+          Renommer, deplacer et supprimer restent des gestes de bureau : ils
+          vivent sur les onglets, que cette liste ne remplace qu'a l'etroit. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Page — ${selected?.title ?? 'Accueil'}`}
+            className={cn(
+              'inline-flex h-[28px] max-w-[46vw] shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-border',
+              'bg-card px-2 text-xs font-semibold text-foreground shadow-sm transition-colors duration-150',
+              'hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              'min-[900px]:hidden',
+            )}
+          >
+            <Files size={14} strokeWidth={2} className="shrink-0 text-muted-foreground" />
+            {/* Le nom de la page COURANTE : une icone seule ne dit pas ou l'on est,
+                et c'est la seule chose que la rangee d'onglets disait encore ici. */}
+            <span className="min-w-0 truncate">{selected?.title || selected?.path || 'Accueil'}</span>
+            <ChevronDown size={14} strokeWidth={2} className="shrink-0 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-52 max-w-[min(18rem,90vw)]">
+          {pages.map((p) => (
+            <DropdownMenuItem
+              key={p.id}
+              onSelect={() => onSelect(p.id)}
+              className={cn('min-h-9 cursor-pointer gap-2', p.id === selectedId && 'font-medium text-foreground')}
+            >
+              {p.type === 'HOME'
+                ? <House size={14} strokeWidth={2} className="shrink-0 text-muted-foreground" />
+                : <span aria-hidden className="size-3.5 shrink-0" />}
+              <span className="min-w-0 flex-1 truncate">{p.title || p.path}</span>
+              {p.id === selectedId && <Check size={14} strokeWidth={2} className="shrink-0 text-primary" />}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuItem onSelect={() => onAdd()} disabled={busy} className="min-h-9 cursor-pointer gap-2 text-muted-foreground">
+            <Plus size={14} strokeWidth={2} className="shrink-0" />
+            Ajouter une page
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div className="hidden items-center gap-0.5 min-[900px]:flex">
       {pages.map((p, index) => {
         const active = p.id === selectedId;
         const isHome = p.type === 'HOME';
@@ -120,11 +171,16 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
           </div>
         );
       })}
+      </div>
+
+      {/* Ajouter / repartir de zero : gestes de bureau. Sur telephone, « Ajouter
+          une page » vit dans la liste deroulante ci-dessus ; « Repartir de zero »
+          est destructif et n'a rien a faire a portee de pouce dans une barre. */}
       <Tooltip>
         <TooltipTrigger asChild>
           {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
               porte le declencheur a sa place. */}
-          <span className="inline-flex shrink-0">
+          <span className="hidden shrink-0 min-[900px]:inline-flex">
             <button
               type="button"
               onClick={onAdd}
@@ -140,7 +196,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
       </Tooltip>
 
       {onReset && (
-        <div className="inline-flex items-center gap-0.5 shrink-0 ms-0.5 ps-0.5 border-s border-border">
+        <div className="hidden items-center gap-0.5 shrink-0 ms-0.5 ps-0.5 border-s border-border min-[900px]:inline-flex">
           {confirmReset ? (
             <>
               <div className="text-2xs text-muted-foreground whitespace-nowrap">Tout effacer ?</div>

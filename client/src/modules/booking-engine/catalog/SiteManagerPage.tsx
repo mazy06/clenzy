@@ -13,6 +13,7 @@ import {
 } from '../../../components/ui';
 import { Sparkles, Rocket, AlertTriangle, ArrowLeft, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
+import { SidebarTrigger, useSidebar } from '../../../components/ui/sidebar';
 
 /**
  * Studio de site IMMERSIF (surface user org, hors GrapesJS) — expérience « open-design » :
@@ -91,6 +92,9 @@ export default function SiteManagerPage() {
   const [instruction, setInstruction] = useState('');
   const [refining, setRefining] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  // Meme source de verite que la bande qu'on remplace : le declencheur n'apparait
+  // que lorsque la barre laterale est en mode feuille.
+  const { isMobile } = useSidebar();
   const [turnsByPage, setTurnsByPage] = useState<Record<number, Turn[]>>({});
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -166,31 +170,48 @@ export default function SiteManagerPage() {
   }
 
   return (
-    <div className="h-[100vh] flex flex-col bg-background">
-      {/* Barre supérieure */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
-        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="text-muted-foreground">
+    // `dvh` et non `vh` : sur mobile, `vh` compte la hauteur barre d'URL retractee.
+    // L'ecran depassait donc par le bas et la saisie de l'assistant, tout en bas,
+    // devenait inatteignable.
+    <div className="h-[100dvh] flex flex-col bg-background overflow-x-hidden">
+      {/* Barre supérieure — rangee unique : le titre se tronque, les libelles des
+          actions cedent sous 900 px. Sans cela le nom du site s'ecrivait sur trois
+          lignes et « Publier » sortait de l'ecran. */}
+      <div className="flex items-center gap-2 px-2 py-2 border-b border-border shrink-0 min-[900px]:gap-3 min-[900px]:px-4">
+        {/* Navigation de l'application : ici plutot que dans une bande a elle
+            seule (cf. MainLayoutFull), qui coutait 48 px de haut pour un bouton. */}
+        {isMobile && <SidebarTrigger className="shrink-0" />}
+        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="shrink-0 text-muted-foreground" aria-label="Retour au Studio">
           <ArrowLeft size={16} strokeWidth={2} />
-          Studio
+          <span className="hidden min-[900px]:inline">Studio</span>
         </Button>
-        <div className="text-sm font-semibold text-foreground">{site?.name ?? 'Mon site'}</div>
-        <div className="flex-1" />
+        <div className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{site?.name ?? 'Mon site'}</div>
         {/* Passage en ÉDITION MANUELLE : ouvre l'éditeur GrapesJS sur ce site (config liée). */}
         <Button
           variant="ghost"
           onClick={() => { if (site?.bookingEngineConfigId) navigate(`/booking-engine/studio/${site.bookingEngineConfigId}`); }}
           disabled={!site?.bookingEngineConfigId}
-          className="text-muted-foreground"
+          className="shrink-0 text-muted-foreground"
+          aria-label="Édition manuelle"
         >
           <SquarePen size={16} strokeWidth={2} />
-          Édition manuelle
+          <span className="hidden min-[900px]:inline">Édition manuelle</span>
         </Button>
         <Button
           onClick={handlePublish}
           disabled={publishing || !selected?.dirty}
+          className="shrink-0"
         >
           <Rocket size={16} strokeWidth={2} />
-          {publishing ? 'Publication…' : selected?.dirty ? 'Publier cette page' : 'Publié'}
+          {/* « Publier cette page » ne tient pas a cote du reste sur telephone :
+              le libelle s'y raccourcit, sans jamais disparaitre — c'est l'action
+              principale de l'ecran. */}
+          <span className="min-[900px]:hidden">
+            {publishing ? 'Publication…' : selected?.dirty ? 'Publier' : 'Publié'}
+          </span>
+          <span className="hidden min-[900px]:inline">
+            {publishing ? 'Publication…' : selected?.dirty ? 'Publier cette page' : 'Publié'}
+          </span>
         </Button>
       </div>
 
@@ -202,7 +223,11 @@ export default function SiteManagerPage() {
       )}
 
       {/* Corps : aperçu | conversation (la sélection de page vit dans la barre d'adresse de l'aperçu). */}
-      <div className="flex-1 min-h-0 grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_360px] gap-0">
+      {/* Empile sous 900 px. Les deux rangees etaient dimensionnees par leur
+          CONTENU : l'apercu prenait ce qu'il voulait et la conversation, poussee
+          en bas, se faisait clipper — sa zone de saisie devenait inatteignable.
+          L'apercu est donc borne, la conversation prend tout le reste. */}
+      <div className="flex-1 min-h-0 grid grid-cols-[1fr] grid-rows-[minmax(180px,38dvh)_minmax(0,1fr)] gap-0 min-[900px]:grid-cols-[1fr_360px] min-[900px]:grid-rows-[minmax(0,1fr)]">
 
         {/* Aperçu live */}
         <div className="p-3 min-w-0 flex flex-col">
@@ -258,7 +283,7 @@ export default function SiteManagerPage() {
         </div>
 
         {/* Conversation d'itération */}
-        <div className="border-s border-border flex flex-col min-h-0">
+        <div className="border-t border-border flex flex-col min-h-0 min-[900px]:border-t-0 min-[900px]:border-s">
           <div className="px-3 py-2 border-b border-border flex items-center gap-1.5 shrink-0">
             <Sparkles size={16} strokeWidth={2} color="var(--color-primary)" />
             <div className="text-sm font-semibold text-foreground">Assistant de design</div>

@@ -57,7 +57,12 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   // Éditeur Studio (/booking-engine/studio/:id) : full-bleed (sa propre coquille gère tout) →
   // pas de padding ni de scroll du conteneur, pour ne pas perdre de place.
   const { pathname } = useLocation();
-  const fullBleed = pathname.startsWith('/booking-engine/studio/');
+  // Ecrans qui portent leur PROPRE coquille pleine hauteur (barre du haut incluse) :
+  // ni padding, ni defilement du conteneur, ni bande de navigation en plus — sans
+  // quoi leur `100dvh` s'ajoute aux 48 px de la bande et le bas de l'ecran (la
+  // saisie de l'assistant, par exemple) passe sous le pli.
+  const fullBleed = pathname.startsWith('/booking-engine/studio/')
+    || pathname.startsWith('/booking-engine/sites/');
 
   const layoutState = useLayoutState();
   const { menuItems, loading: menuLoading, error: menuError, refreshMenu } = useNavigationMenu();
@@ -145,7 +150,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       />
 
       <SidebarInset className="min-w-0 overflow-hidden">
-        <MobileTopBar />
+        {/* Le Studio porte le declencheur DANS sa propre barre du haut : lui
+            laisser une bande a lui seul coutait 48 px de hauteur sur l'ecran ou
+            le canvas en manque le plus (cf. StudioShell). */}
+        {!fullBleed && <MobileTopBar />}
 
         {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace.
             p: { xs: 1.5, md: 2 } avec theme.spacing = 6 et le breakpoint MUI md = 900px.
