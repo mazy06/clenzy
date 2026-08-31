@@ -22,7 +22,7 @@ import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_ROWS_PER_PAGE_OPTIONS, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
+import { FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -41,7 +41,11 @@ interface PropertiesTableViewProps {
   page: number;
   rowsPerPage: number;
   onPageChange: (page: number) => void;
-  onRowsPerPageChange: (rows: number) => void;
+  /**
+   * Boite mesuree par `useDynamicPageSize` cote liste : c'est elle qui dit
+   * combien de lignes tiennent. Meme branchement que InterventionsTableView.
+   */
+  containerRef?: React.Ref<HTMLDivElement>;
   channexMappings: Map<number, ChannexMappingDto>;
   /** Coûts de ménage estimés (vrai estimateur backend), clé = propertyId. */
   cleaningEstimates: Record<number, number>;
@@ -56,7 +60,7 @@ interface PropertiesTableViewProps {
 
 /** Vue liste : tableau dense des propriétés + pagination. */
 const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
-  properties, totalCount, page, rowsPerPage, onPageChange, onRowsPerPageChange,
+  properties, totalCount, page, rowsPerPage, onPageChange, containerRef,
   channexMappings, cleaningEstimates, canManageContracts, missingContractIds, onMissingContractClick,
   onToggleStatus, onDelete, navigate,
 }) => {
@@ -64,9 +68,17 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
 
   return (
     // Surface « carte » de la liste : hairline + rayon xl (14 px) + fond carte.
-    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card shadow-none">
+    <div
+      ref={containerRef}
+      className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card shadow-none"
+    >
       <div className="flex-1 overflow-hidden">
-        <Table className="table-fixed w-full">
+        {/* `min-w-[920px]` : six colonnes en pourcentages sur 390 px de large
+            donnaient 43 px a « Type » et 78 px a « Caracteristiques » — les
+            en-tetes se chevauchaient, les cellules se superposaient. Le plancher
+            fait resoudre les pourcentages sur une largeur vivable et rend la
+            main au defilement horizontal du conteneur (`.cn-table-container`). */}
+        <Table className="table-fixed w-full min-w-[920px]">
           <TableHeader>
             {/* .pr-lhead — entête overline sur surface sur-élevée (h42) ; seuls le
                 fond, la hauteur et le py:0 s'ecartent du primitif. */}
@@ -290,13 +302,16 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
           </TableBody>
         </Table>
       </div>
+      {/* Plus de selecteur « N / page » : la taille de page est desormais
+          CALCULEE sur la hauteur disponible (cf. useDynamicPageSize cote liste,
+          comme Interventions / Reservations / Demandes). Le laisser aurait
+          permis de redemander 25 lignes la ou six tiennent — c'est-a-dire de
+          reproduire a la main le defaut qu'on corrige. */}
       <PagePagination
         count={totalCount}
         page={page}
         onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
-        onRowsPerPageChange={(rows) => onRowsPerPageChange(rows)}
       />
     </div>
   );

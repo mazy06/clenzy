@@ -520,9 +520,14 @@ const PropertyDetails: React.FC = () => {
 
           {/* ── Row 1: Photos | Informations + Tarification | Configuration ── */}
           <div className={cn(CARD_CLASS, 'mb-[9px]')}>
-            <div className="flex gap-3 items-stretch">
+            {/* Trois colonnes cote a cote reviennent a 120 px chacune sur un
+                telephone : l'adresse s'y ecrivait un mot par ligne. Elles
+                s'empilent donc sous 900 px, et les filets verticaux cedent la
+                place a des filets horizontaux (l'orientation d'un Separator est
+                une prop, pas une classe : il en faut deux, pas un responsive). */}
+            <div className="flex flex-col gap-3 min-[900px]:flex-row min-[900px]:items-stretch">
               {/* ── Col 1: Photos (carrousel + plein ecran au clic) ──── */}
-              <div className="flex-1 min-w-0 flex">
+              <div className="min-w-0 flex min-[900px]:flex-1">
                 <PropertyImageCarousel
                   photoUrls={photoUrls}
                   alt={property.name}
@@ -535,10 +540,11 @@ const PropertyDetails: React.FC = () => {
                 />
               </div>
 
-              <Separator orientation="vertical" />
+              <Separator className="min-[900px]:hidden" />
+              <Separator orientation="vertical" className="hidden min-[900px]:block" />
 
               {/* ── Col 2: Informations generales + Tarification menage ── */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 min-[900px]:flex-1">
                 <p className={SECTION_TITLE_CLASS}>
                   {t('properties.informationsGeneral')}
                 </p>
@@ -634,10 +640,11 @@ const PropertyDetails: React.FC = () => {
                 </div>
               </div>
 
-              <Separator orientation="vertical" />
+              <Separator className="min-[900px]:hidden" />
+              <Separator orientation="vertical" className="hidden min-[900px]:block" />
 
               {/* ── Col 3: Configuration ───────────────────────────── */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 min-[900px]:flex-1">
                 <p className={SECTION_TITLE_CLASS}>
                   {t('properties.configuration')}
                 </p>
@@ -714,9 +721,11 @@ const PropertyDetails: React.FC = () => {
           </div>
 
           {/* ── Row 2: Map + Description | Instructions voyageur ────── */}
-          <div className="flex gap-2 mb-2">
+          {/* Meme repli : cote a cote, la description tombait a une colonne de
+              quelques caracteres et les instructions debordaient du cadre. */}
+          <div className="flex flex-col gap-2 mb-2 min-[900px]:flex-row">
             {/* ── Left column: Map + Description ──────────────────── */}
-            <div className="flex-[6] min-w-0 flex flex-col gap-[9px]">
+            <div className="min-w-0 flex flex-col gap-[9px] min-[900px]:flex-[6]">
               {/* Mini-carte Mapbox */}
               {property.latitude != null && property.longitude != null && (
                 <div className={cn(CARD_CLASS, 'p-0 overflow-hidden')}>
@@ -770,7 +779,7 @@ const PropertyDetails: React.FC = () => {
               if (compactFields.length === 0 && fullWidthFields.length === 0) return null;
 
               return (
-                <div className="flex-[6] min-w-0">
+                <div className="min-w-0 min-[900px]:flex-[6]">
                   <div className={CARD_CLASS}>
                     <div className="flex justify-between items-center mb-1.5">
                       <p className={SECTION_TITLE_CLASS}>
@@ -789,7 +798,7 @@ const PropertyDetails: React.FC = () => {
 
                     {/* Compact fields: 2 columns */}
                     {compactFields.length > 0 && (
-                      <div className={cn('grid grid-cols-[1fr_1fr] gap-1.5', fullWidthFields.length > 0 ? 'mb-1.5' : 'mb-0')}>
+                      <div className={cn('grid grid-cols-1 gap-1.5 min-[600px]:grid-cols-2', fullWidthFields.length > 0 ? 'mb-1.5' : 'mb-0')}>
                         {compactFields.map((field) => (
                           <div key={field.label} className={INFO_ROW_CLASS}>
                             {field.icon}

@@ -8,9 +8,11 @@
 # Prerequis :
 #   - K6 installe dans le runner
 #   - Services backend + DB + Redis up
-#   - Profil Spring Boot "ci" avec cle RSA statique pour JWT
+#   - Profil Spring Boot "ci" (JWT valide par une cle RSA du classpath)
 #
-# En CI (sans Keycloak) : un JWT pre-signe (CI_AUTH_TOKEN) est utilise.
+# En CI (sans Keycloak) : une paire de cles RSA ephemere est generee a chaque
+# run, la publique est embarquee dans le jar et le JWT est signe a la volee.
+# Aucun secret longue duree, donc aucun token qui expire en silence.
 # En environnement reel : configurer KEYCLOAK_URL + PERF_TEST_USER/PASSWORD.
 
 name: Performance Tests
@@ -39,6 +41,12 @@ jobs:
   performance-tests:
     name: K6 Performance Tests
     runs-on: ubuntu-latest
+
+    # Identite du compte de charge : le `sub` du JWT signe ci-dessous DOIT etre
+    # celui que PerfTestDataSeeder pose en base, sinon le TenantFilter refuse
+    # toute requete org-scopee (403) et le test ne mesure plus rien.
+    env:
+      PERF_SEED_KEYCLOAK_ID: perf-test-00000000-0000-0000-0000-000000000001
 
     services:
       postgres:
@@ -70,6 +78,31 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # ── JWT de CI : paire de cles ephemere ──
+      # La cle publique est un resource du classpath (application-ci.yml pointe
+      # dessus via public-key-location) : elle doit etre en place AVANT le
+      # package, sinon le jar embarque l'ancienne et la signature est rejetee.
+      - name: Generate ephemeral JWT keypair
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/ci-jwt-private.pem
+          openssl rsa -in /tmp/ci-jwt-private.pem -pubout -out server/src/main/resources/ci-jwt-public.pem
+
+      - name: Mint CI JWT
+        run: |
+          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+          NOW=$(date +%s)
+          EXP=$((NOW + 7200))   # couvre le soak test (28 min) avec de la marge
+
+          HEADER=$(printf '%s' '{"alg":"RS256","typ":"JWT"}' | b64url)
+          PAYLOAD=$(printf '{"sub":"%s","preferred_username":"perf-test","email":"perf-test@baitly.fr","realm_access":{"roles":["HOST"]},"iat":%s,"nbf":%s,"exp":%s}' \
+            "$PERF_SEED_KEYCLOAK_ID" "$NOW" "$NOW" "$EXP" | b64url)
+
+          SIGNATURE=$(printf '%s.%s' "$HEADER" "$PAYLOAD" \
+            | openssl dgst -sha256 -sign /tmp/ci-jwt-private.pem | b64url)
+
+          echo "CI_AUTH_TOKEN=${HEADER}.${PAYLOAD}.${SIGNATURE}" >> "$GITHUB_ENV"
 
       # ── Build & start backend ──
       - name: Set up Java 21
@@ -135,6 +168,38 @@ jobs:
             sleep 1
           done
 
+      # ── Attendre le seed, puis resoudre le logement cible ──
+      # Sans jeu de donnees, le TenantFilter refuse tout en 403 et le load test
+      # mesure la chaine de filtres au lieu de l'application. On echoue ici,
+      # bruyamment, plutot que de publier des latences flatteuses.
+      #
+      # Pourquoi une attente et pas une simple requete : /actuator/health repond
+      # des l'ouverture de Tomcat, et Spring Boot execute les ApplicationRunner
+      # APRES — le message « Started ClenzyApplication » lui-meme precede
+      # callRunners(). La boucle de demarrage ci-dessus peut donc rendre la main
+      # 200 ms avant que le seeder ait ecrit sa premiere ligne (run 33415608422).
+      # La condition qui nous interesse est le jeu de donnees, pas le port ouvert.
+      - name: Resolve seeded property id
+        env:
+          PGPASSWORD: clenzy_perf_ci
+        run: |
+          for i in $(seq 1 60); do
+            PROPERTY_ID=$(psql -h localhost -p 5432 -U clenzy_perf -d clenzy_perf \
+              -tAc "SELECT id FROM properties ORDER BY id LIMIT 1" 2>/dev/null || true)
+            [ -n "$PROPERTY_ID" ] && break
+            sleep 1
+          done
+
+          if [ -z "$PROPERTY_ID" ]; then
+            echo "::error::Aucun logement seede apres 60s — PerfTestDataSeeder n'a pas tourne ou a echoue."
+            echo "=== Backend logs ==="
+            tail -80 /tmp/backend.log
+            exit 1
+          fi
+
+          echo "Logement de perf : id=$PROPERTY_ID"
+          echo "PROPERTY_ID=$PROPERTY_ID" >> "$GITHUB_ENV"
+
       # ── Install K6 ──
       - name: Install K6
         run: |
@@ -173,26 +238,63 @@ jobs:
         continue-on-error: false
 
       # ── Load Test (PR ou dispatch 'load') ──
-      # En CI sans donnees de test, les endpoints authentifies retournent des erreurs.
-      # Le load test est informatif sur PR (continue-on-error), bloquant en dispatch.
+      # Les seuils de perf restent informatifs sur PR (continue-on-error) : une
+      # p95 degradee ne bloque pas un deploiement. La validite de la mesure,
+      # elle, est verifiee juste apres et bloque dans tous les cas.
       - name: Run Load Test
         if: steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load'
         continue-on-error: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_URL: http://localhost:8080
-          CI_AUTH_TOKEN: ${{ secrets.CI_AUTH_TOKEN }}
+          CI_AUTH_TOKEN: ${{ env.CI_AUTH_TOKEN }}
+          PROPERTY_ID: ${{ env.PROPERTY_ID }}
         run: |
           k6 run \
             --out json=tests/performance/results/load-results.json \
             --summary-export=tests/performance/results/load-summary.json \
             tests/performance/load-test.js
 
+      # ── Garde-fou : la mesure est-elle seulement valide ? ──
+      # Un taux d'erreur massif n'est pas une regression de perf, c'est un
+      # harnais casse (token rejete, seed absent, endpoint renomme). Dans ce cas
+      # les latences affichees ne mesurent qu'un refus : on echoue, y compris
+      # sur PR ou les seuils de perf, eux, restent informatifs.
+      # always() : en dispatch, k6 sort en 99 des qu'un seuil est franchi et
+      # l'etape echoue — c'est precisement le cas ou l'on veut savoir si la
+      # mesure etait valide. Sans cela le diagnostic est saute quand il sert.
+      - name: Verify load test measured something
+        if: always() && (steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load')
+        run: |
+          SUMMARY=tests/performance/results/load-summary.json
+
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::error::Aucun resume de load test — K6 n'a pas produit de resultat."
+            exit 1
+          fi
+
+          FAIL_RATE=$(jq -r '.metrics.http_req_failed.value // 1' "$SUMMARY")
+
+          if jq -e '(.metrics.http_req_failed.value // 1) > 0.5' "$SUMMARY" > /dev/null; then
+            echo "::error::Taux d'erreur de $(jq -r '(.metrics.http_req_failed.value * 100 | round)' "$SUMMARY")% — le load test n'a pas mesure l'application."
+            echo "Repartition des reponses :"
+            jq -r 'select(.type == "Point" and .metric == "http_reqs")
+                   | "\(.data.tags.status) \(.data.tags.name)"' \
+              tests/performance/results/load-results.json 2>/dev/null \
+              | sort | uniq -c | sort -rn | head -10 || true
+            echo "=== Backend logs ==="
+            tail -80 /tmp/backend.log || true
+            exit 1
+          fi
+
+          echo "Taux d'erreur : ${FAIL_RATE} — mesure valide."
+
       # ── Stress Test (dispatch only) ──
       - name: Run Stress Test
         if: steps.test-type.outputs.type == 'stress'
         env:
           BASE_URL: http://localhost:8080
-          CI_AUTH_TOKEN: ${{ secrets.CI_AUTH_TOKEN }}
+          CI_AUTH_TOKEN: ${{ env.CI_AUTH_TOKEN }}
+          PROPERTY_ID: ${{ env.PROPERTY_ID }}
         run: |
           k6 run \
             --out json=tests/performance/results/stress-results.json \
@@ -204,7 +306,8 @@ jobs:
         if: steps.test-type.outputs.type == 'soak'
         env:
           BASE_URL: http://localhost:8080
-          CI_AUTH_TOKEN: ${{ secrets.CI_AUTH_TOKEN }}
+          CI_AUTH_TOKEN: ${{ env.CI_AUTH_TOKEN }}
+          PROPERTY_ID: ${{ env.PROPERTY_ID }}
         run: |
           k6 run \
             --out json=tests/performance/results/soak-results.json \
@@ -228,45 +331,87 @@ jobs:
           retention-days: 30
 
       # ── Post summary as PR comment ──
+      # Le tableau rend le VERDICT de chaque seuil, pas seulement sa valeur :
+      # une colonne "Threshold" jamais evaluee laissait croire a une mesure
+      # validee alors que K6 sortait en echec.
       - name: Post PR comment with results
         if: always() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          COMMENT_BODY="## Performance Test Results\n\n"
+          RESULTS=tests/performance/results
+          COMMENT=$RESULTS/pr-comment.md
 
           # Format --summary-export (plat) : .metrics.<name>.<stat>, PAS .values.<stat>
           # (le niveau "values" n'existe que dans les donnees handleSummary de k6).
-          ROUND_MS='if type == "number" then (. * 100 | round) / 100 else . end'
-          PCT='if type == "number" then "\((. * 10000 | round) / 100)%" else . end'
+          num() {
+            jq -r --arg m "$2" --arg k "$3" \
+              '.metrics[$m][$k] // "N/A" | if type == "number" then (. * 100 | round) / 100 else . end' "$1"
+          }
+          pct() {
+            jq -r --arg m "$2" --arg k "$3" \
+              '.metrics[$m][$k] // "N/A" | if type == "number" then "\((. * 10000 | round) / 100)%" else . end' "$1"
+          }
+          # Dans le summary-export, le booleen vaut true quand le seuil est FRANCHI.
+          # Piege : `// null` ne convient pas ici, l'operateur avale aussi false.
+          verdict() {
+            jq -r --arg m "$2" --arg t "$3" \
+              '(.metrics[$m].thresholds[$t]) as $breached
+               | if $breached == null then "—" elif $breached then "❌" else "✅" end' "$1"
+          }
+          breached() {
+            jq '[.metrics[].thresholds // {} | to_entries[] | select(.value)] | length' "$1"
+          }
+
+          TOTAL_BREACHED=0
+          for f in $RESULTS/smoke-summary.json $RESULTS/load-summary.json; do
+            [ -f "$f" ] && TOTAL_BREACHED=$((TOTAL_BREACHED + $(breached "$f")))
+          done
+
+          echo "## Performance Test Results" > $COMMENT
+          echo "" >> $COMMENT
+          if [ "$TOTAL_BREACHED" -eq 0 ]; then
+            echo "**Verdict : tous les seuils sont tenus.**" >> $COMMENT
+          else
+            echo "**Verdict : ${TOTAL_BREACHED} seuil(s) franchi(s)** — detail ci-dessous." >> $COMMENT
+          fi
+          echo "" >> $COMMENT
 
           # Smoke test summary
-          if [ -f tests/performance/results/smoke-summary.json ]; then
-            SMOKE_DURATION=$(jq -r ".metrics.http_req_duration[\"p(95)\"] // \"N/A\" | $ROUND_MS" tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
-            SMOKE_REQS=$(jq -r '.metrics.http_reqs.count // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
-            SMOKE_FAIL=$(jq -r ".metrics.http_req_failed.value // \"N/A\" | $PCT" tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
-            COMMENT_BODY+="### Smoke Test\n"
-            COMMENT_BODY+="| Metric | Value |\n|--------|-------|\n"
-            COMMENT_BODY+="| Total requests | ${SMOKE_REQS} |\n"
-            COMMENT_BODY+="| p95 latency | ${SMOKE_DURATION}ms |\n"
-            COMMENT_BODY+="| Error rate | ${SMOKE_FAIL} |\n\n"
+          SMOKE=$RESULTS/smoke-summary.json
+          if [ -f "$SMOKE" ]; then
+            {
+              echo "### Smoke Test"
+              echo "| Metric | Value | Threshold | Verdict |"
+              echo "|--------|-------|-----------|---------|"
+              echo "| Total requests | $(num $SMOKE http_reqs count) | — | — |"
+              echo "| p95 latency | $(num $SMOKE http_req_duration 'p(95)')ms | < 1000ms | $(verdict $SMOKE http_req_duration 'p(95)<1000') |"
+              echo "| Error rate | $(pct $SMOKE http_req_failed value) | < 5% | $(verdict $SMOKE http_req_failed 'rate<0.05') |"
+              echo ""
+            } >> $COMMENT
           fi
 
           # Load test summary
-          if [ -f tests/performance/results/load-summary.json ]; then
-            LOAD_DURATION=$(jq -r ".metrics.http_req_duration[\"p(95)\"] // \"N/A\" | $ROUND_MS" tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            LOAD_REQS=$(jq -r '.metrics.http_reqs.count // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            LOAD_FAIL=$(jq -r ".metrics.http_req_failed.value // \"N/A\" | $PCT" tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            LOAD_API=$(jq -r ".metrics.api_duration[\"p(95)\"] // \"N/A\" | $ROUND_MS" tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            COMMENT_BODY+="### Load Test (50 VUs)\n"
-            COMMENT_BODY+="| Metric | Value | Threshold |\n|--------|-------|----------|\n"
-            COMMENT_BODY+="| Total requests | ${LOAD_REQS} | — |\n"
-            COMMENT_BODY+="| p95 latency | ${LOAD_DURATION}ms | < 500ms |\n"
-            COMMENT_BODY+="| API p95 | ${LOAD_API}ms | < 500ms |\n"
-            COMMENT_BODY+="| Error rate | ${LOAD_FAIL} | < 1% |\n\n"
+          LOAD=$RESULTS/load-summary.json
+          if [ -f "$LOAD" ]; then
+            {
+              echo "### Load Test (50 VUs)"
+              echo "| Metric | Value | Threshold | Verdict |"
+              echo "|--------|-------|-----------|---------|"
+              echo "| Total requests | $(num $LOAD http_reqs count) | — | — |"
+              echo "| p95 latency | $(num $LOAD http_req_duration 'p(95)')ms | < 500ms | $(verdict $LOAD http_req_duration 'p(95)<500') |"
+              echo "| p99 latency | $(num $LOAD http_req_duration 'p(99)')ms | < 1500ms | $(verdict $LOAD http_req_duration 'p(99)<1500') |"
+              echo "| API p95 | $(num $LOAD api_duration 'p(95)')ms | < 500ms | $(verdict $LOAD api_duration 'p(95)<500') |"
+              echo "| Error rate | $(pct $LOAD http_req_failed value) | < 1% | $(verdict $LOAD http_req_failed 'rate<0.01') |"
+              echo "| Business errors | $(pct $LOAD business_errors value) | < 5% | $(verdict $LOAD business_errors 'rate<0.05') |"
+              echo ""
+            } >> $COMMENT
           fi
 
-          COMMENT_BODY+="---\n*Generated by Performance Tests workflow*"
+          {
+            echo "---"
+            echo "*Genere par le workflow Performance Tests*"
+          } >> $COMMENT
 
-          printf "%b" "$COMMENT_BODY" | gh pr comment "$PR_NUMBER" --body-file -
+          gh pr comment "$PR_NUMBER" --body-file $COMMENT

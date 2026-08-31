@@ -272,8 +272,10 @@ export default function OwnerPayoutSettings() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-hidden">
-            <Table>
+          <div className="min-w-0">
+            {/* Meme regle que les listes de l'onglet Organisation : la table prend
+                la largeur de son contenu et defile, au lieu d'etre comprimee. */}
+            <Table className="min-w-max">
               <TableHeader>
                 <TableRow>
                   <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.owner', 'Propriétaire')}</TableHead>

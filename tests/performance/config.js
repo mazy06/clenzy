@@ -20,6 +20,10 @@ export const TEST_PASSWORD = __ENV.TEST_PASSWORD || 'PerfTest2026!';
 // Genere avec la cle privee correspondant a ci-jwt-public.pem
 export const CI_AUTH_TOKEN = __ENV.CI_AUTH_TOKEN || '';
 
+// Logement cible des lectures unitaires (detail, calendrier). En CI, l'id est
+// celui du jeu seede par PerfTestDataSeeder, lu en base par le workflow.
+export const PROPERTY_ID = __ENV.PROPERTY_ID || '1';
+
 // Seuils de performance par defaut
 export const THRESHOLDS = {
   // 95% des requetes < 500ms, 99% < 1500ms

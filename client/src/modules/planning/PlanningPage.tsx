@@ -318,13 +318,21 @@ const PlanningPage: React.FC = () => {
     ];
   }, [filteredProperties, supervisorExpanded, expandedPropertyId]);
 
-  // Pagination (dynamic page size based on viewport height)
+  // Hauteur reelle de la grille, mesuree par PlanningTimeline. Le nombre de
+  // logements par page en decoule : l'estimation par constantes est taillee pour
+  // le chrome du desktop et perdait une a deux lignes sur telephone.
+  const [gridHeight, setGridHeight] = useState(0);
+
+  // Pagination — sur la hauteur MESUREE de la grille (repli sur une estimation
+  // le temps du premier rendu, cf. usePlanningPagination).
   const pagination = usePlanningPagination({
     totalProperties: orderedProperties,
     density: nav.density,
     isFullscreen: nav.isFullscreen,
     showPrices: filters.showPrices,
     firstItemAlone: supervisorExpanded,
+    gridHeight,
+    hasOccupancyRow: dayOccupancy != null && !supervisorExpanded,
   });
 
   // Ids des logements de la PAGE affichée uniquement, mémoïsés (stabilise les
@@ -948,6 +956,7 @@ const PlanningPage: React.FC = () => {
             onUnblock={handleUnblock}
             onEmptyClick={openQuickCreate}
             quickCreateOpen={!!quickCreateData}
+            onViewportHeight={setGridHeight}
             scrollRef={timeline.scrollRef}
             onScroll={handleTimelineScroll}
             propertyColWidth={effectivePropertyColWidth}
@@ -972,7 +981,12 @@ const PlanningPage: React.FC = () => {
               `px-2` au-dela). L'ancien `mx-[-9px]` etait cale sur le padding du
               <main>, pas sur celui d'ici : la barre depassait de 9px de chaque
               cote et rognait le « x-y sur n » au bord de l'ecran. */}
-          <div className="shrink-0 mt-1.5 mx-0 min-[900px]:-mx-2">
+          {/* Aucun ecart sous 900px : la carte y est a fleur d'ecran, sans
+              arrondi ni filet lateral, et les 6px de marge laissaient une bande
+              morte entre la rangee « Occupation » et la barre — laquelle porte
+              deja son propre filet haut. Au-dela, la carte redevient arrondie et
+              posee : la barre reprend sa distance. */}
+          <div className="shrink-0 mt-0 mx-0 min-[900px]:-mx-2 min-[900px]:mt-1.5">
             <PlanningPaginationBar
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}

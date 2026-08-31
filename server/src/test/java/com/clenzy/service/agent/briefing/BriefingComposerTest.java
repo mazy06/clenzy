@@ -33,8 +33,10 @@ class BriefingComposerTest {
         orchestrator = mock(AgentOrchestrator.class);
         convRepo = mock(AssistantConversationRepository.class);
         msgRepo = mock(AssistantMessageRepository.class);
+        // targetResolver null = chemin legacy : le modele reste impose, ce que
+        // verifient les tests de prompt ci-dessous.
         composer = new BriefingComposer(orchestrator, convRepo, msgRepo,
-                null, "claude-haiku-4-5-20251001");
+                null, null, "claude-haiku-4-5-20251001");
     }
 
     private static AssistantBriefingPref pref(AssistantBriefingPref.Frequency f) {
@@ -124,6 +126,88 @@ class BriefingComposerTest {
         BriefingComposer.BriefingResult result = composer.compose(
                 pref(AssistantBriefingPref.Frequency.DAILY_MORNING));
         assertNull(result);
+    }
+
+    @Test
+    void compose_corpsVide_returnsNull_pourQueLeRetryReprenne() {
+        // Cas reel du 30/08 : credits IA epuisses en prod, provider en 404 en
+        // dev. L'orchestrateur rend bien un id de conversation, mais aucun
+        // message assistant n'a ete produit. Rendre un resultat creux menait a
+        // SKIPPED, statut que le retry ignore ; null mene a FAILED, repris.
+        when(orchestrator.handleMessage(isNull(), anyString(), any(AgentContext.class), any()))
+                .thenReturn(42L);
+        AssistantConversation conv = new AssistantConversation(1L, "user-x");
+        conv.setId(42L);
+        when(convRepo.findById(42L)).thenReturn(Optional.of(conv));
+        when(msgRepo.findByConversation(42L)).thenReturn(List.of());
+
+        BriefingComposer.BriefingResult result = composer.compose(
+                pref(AssistantBriefingPref.Frequency.WEEKLY_SUNDAY));
+
+        assertNull(result);
+    }
+
+    @Test
+    void compose_corpsBlanc_returnsNull() {
+        // Meme exigence sur un message present mais vide de contenu : c'est le
+        // texte qui fait le briefing, pas l'existence d'une ligne en base.
+        when(orchestrator.handleMessage(isNull(), anyString(), any(AgentContext.class), any()))
+                .thenReturn(42L);
+        AssistantConversation conv = new AssistantConversation(1L, "user-x");
+        conv.setId(42L);
+        when(convRepo.findById(42L)).thenReturn(Optional.of(conv));
+        when(msgRepo.findByConversation(42L)).thenReturn(List.of(
+                AssistantMessage.assistant(42L, 1L, "   ", null)
+        ));
+
+        assertNull(composer.compose(pref(AssistantBriefingPref.Frequency.DAILY_MORNING)));
+    }
+
+    // ─── Modele impose : seulement chez Anthropic ───────────────────────────
+
+    private BriefingComposer composerWithProvider(String provider) {
+        com.clenzy.service.AiTargetResolver resolver =
+                mock(com.clenzy.service.AiTargetResolver.class);
+        when(resolver.primaryProvider(any(), eq(com.clenzy.model.AiFeature.ASSISTANT_CHAT)))
+                .thenReturn(provider);
+        return new BriefingComposer(orchestrator, convRepo, msgRepo, null, resolver,
+                "claude-haiku-4-5-20251001");
+    }
+
+    private void stubOrchestratorWithAnswer() {
+        when(orchestrator.handleMessage(isNull(), anyString(), any(AgentContext.class), any()))
+                .thenReturn(42L);
+        AssistantConversation conv = new AssistantConversation(1L, "user-x");
+        conv.setId(42L);
+        when(convRepo.findById(42L)).thenReturn(Optional.of(conv));
+        when(msgRepo.findByConversation(42L)).thenReturn(List.of(
+                AssistantMessage.assistant(42L, 1L, "La semaine ecoulee", null)
+        ));
+    }
+
+    @Test
+    void compose_providerOpenai_nImposePasLeModeleAnthropique() {
+        // Le resolveur applique l'override au provider retenu : un identifiant
+        // Anthropic envoye a un endpoint OpenAI repond 404, et l'organisation
+        // n'aurait alors JAMAIS de briefing.
+        stubOrchestratorWithAnswer();
+
+        composerWithProvider("openai").compose(pref(AssistantBriefingPref.Frequency.WEEKLY_SUNDAY));
+
+        ArgumentCaptor<AgentContext> ctx = ArgumentCaptor.forClass(AgentContext.class);
+        verify(orchestrator).handleMessage(isNull(), anyString(), ctx.capture(), any());
+        assertNull(ctx.getValue().modelOverride());
+    }
+
+    @Test
+    void compose_providerAnthropic_gardeLeModeleEconomique() {
+        stubOrchestratorWithAnswer();
+
+        composerWithProvider("anthropic").compose(pref(AssistantBriefingPref.Frequency.WEEKLY_SUNDAY));
+
+        ArgumentCaptor<AgentContext> ctx = ArgumentCaptor.forClass(AgentContext.class);
+        verify(orchestrator).handleMessage(isNull(), anyString(), ctx.capture(), any());
+        assertEquals("claude-haiku-4-5-20251001", ctx.getValue().modelOverride());
     }
 
     @Test

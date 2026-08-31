@@ -35,8 +35,10 @@ public class User {
     @NotBlank(message = "Le prénom est obligatoire")
     @Size(min = 2, max = 50, message = "Le prénom doit contenir entre 2 et 50 caractères")
     // length=500 : la valeur stockée est le ciphertext AES (EncryptedFieldConverter), bien plus long
-    // que le texte clair. Sans cette longueur explicite, Hibernate dimensionnerait la colonne sur le
-    // @Size(50) (texte clair) → varchar(50) trop court (cf. Guest, varchar(500)). Le @Size valide le clair.
+    // que le texte clair, tandis que le @Size(50) valide le clair. ATTENTION : cette longueur ne
+    // s'impose qu'au schéma Liquibase. Dans un schéma généré par Hibernate, @Size l'emporte
+    // (TypeSafeActivator.applyLength : setLength inconditionnel) et la colonne naît en varchar(50),
+    // trop courte pour le ciphertext — d'où hibernate.validator.apply_to_ddl=false en profil ci.
     @Column(name = "first_name", nullable = false, length = 500)
     @Convert(converter = EncryptedFieldConverter.class)
     private String firstName;

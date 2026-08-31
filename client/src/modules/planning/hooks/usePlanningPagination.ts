@@ -3,6 +3,7 @@ import type { PlanningProperty, DensityMode } from '../types';
 import {
   ROW_CONFIG,
   DATE_HEADER_HEIGHT,
+  OCCUPANCY_ROW_HEIGHT,
   PAGINATION_BAR_HEIGHT,
   TOOLBAR_HEIGHT,
   APP_HEADER_HEIGHT,
@@ -21,6 +22,15 @@ interface UsePlanningPaginationConfig {
    * logements glissent dans les pages suivantes (pageSize normal).
    */
   firstItemAlone?: boolean;
+  /**
+   * Hauteur MESURÉE de la boîte de la grille (en-tête des dates + lignes +
+   * rangée « Occupation »), publiée par `PlanningTimeline`. Dès qu'elle est
+   * connue, elle remplace l'estimation : c'est la seule qui dise la vérité sur
+   * un écran dont le chrome n'a pas la forme prévue.
+   */
+  gridHeight?: number;
+  /** La rangée « Occupation » occupe le pied de la grille (elle mange une place). */
+  hasOccupancyRow?: boolean;
 }
 
 export interface UsePlanningPaginationReturn {
@@ -38,6 +48,27 @@ export interface UsePlanningPaginationReturn {
 // Extra spacing added by the layout: toolbar mb(8) + pagination mt(8) + container pb(8) + border(2)
 const LAYOUT_SPACING = 26;
 
+/**
+ * Nombre de lignes qui tiennent dans la grille MESURÉE.
+ *
+ * <p>À préférer toujours à l'estimation ci-dessous : celle-ci soustrait un
+ * chrome écrit pour le desktop (barre d'outils sur DEUX rangées, 116 px) alors
+ * qu'un téléphone n'en affiche qu'une. Elle retirait donc une bonne cinquantaine
+ * de pixels qui existaient — une à deux lignes de logement perdues, remplacées
+ * par du blanc au-dessus de la rangée « Occupation » (que son `mt-auto` colle au
+ * bas de la carte, rendant l'écart d'autant plus visible).</p>
+ */
+function pageSizeFromGrid(
+  gridHeight: number,
+  density: DensityMode,
+  hasOccupancyRow: boolean,
+): number {
+  const rowHeight = ROW_CONFIG[density].rowHeight;
+  const available = gridHeight - DATE_HEADER_HEIGHT - (hasOccupancyRow ? OCCUPANCY_ROW_HEIGHT : 0);
+  return Math.max(1, Math.floor(available / rowHeight));
+}
+
+/** Estimation de repli, le temps que la grille soit mesurée (premier rendu). */
 function computePageSize(
   viewportHeight: number,
   density: DensityMode,
@@ -64,6 +95,8 @@ export function usePlanningPagination({
   isFullscreen,
   showPrices,
   firstItemAlone = false,
+  gridHeight = 0,
+  hasOccupancyRow = false,
 }: UsePlanningPaginationConfig): UsePlanningPaginationReturn {
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
   const [currentPage, setCurrentPage] = useState(0);
@@ -75,7 +108,9 @@ export function usePlanningPagination({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const pageSize = computePageSize(viewportHeight, density, isFullscreen, showPrices);
+  const pageSize = gridHeight > 0
+    ? pageSizeFromGrid(gridHeight, density, hasOccupancyRow)
+    : computePageSize(viewportHeight, density, isFullscreen, showPrices);
   const itemCount = totalProperties.length;
   const totalPages = firstItemAlone
     ? itemCount <= 1

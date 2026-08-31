@@ -24,6 +24,13 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        # @Size(max) l'emporte sur @Column(length) dans le DDL Hibernate
+        # (TypeSafeActivator.applyLength fait un setLength inconditionnel) :
+        # users.first_name naissait en varchar(50) malgre length=500, trop court
+        # pour le ciphertext AES d'EncryptedFieldConverter (~64 car. minimum).
+        # Invisible en prod, ou Liquibase est la source de verite du schema.
+        validator:
+          apply_to_ddl: false
         format_sql: false
         jdbc:
           time_zone: UTC
@@ -155,6 +162,18 @@ tuya:
 
 # Clenzy custom
 clenzy:
+  security:
+    rate-limit:
+      # Le load test concentre 50 VUs sur l'unique compte de perf : a 300/min
+      # (defaut prod), 87 % des requetes repartaient en 429 et la mesure portait
+      # sur le limiteur. Le trafic reel repartit la charge sur autant d'identites
+      # qu'il y a d'utilisateurs — le plafond est donc un artefact du harnais.
+      api-per-minute: 1000000
+  # Jeu de donnees de charge (PerfTestDataSeeder) : le `sub` du JWT de CI doit
+  # correspondre a cet identifiant, sinon le TenantFilter refuse tout en 403.
+  perf:
+    seed:
+      keycloak-id: ${PERF_SEED_KEYCLOAK_ID:perf-test-00000000-0000-0000-0000-000000000001}
   kafka:
     enabled: false
   mail:

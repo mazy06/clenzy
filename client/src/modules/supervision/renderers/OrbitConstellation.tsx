@@ -8,8 +8,9 @@
    - canvas aux jetons du thème, carte arrondie hors flush ;
    - HUD « Orchestrateur » haut-gauche en large (compteurs, bilan,
      escalades) — le mode focus l'efface ;
-   - mode COMPACT : rail de pastilles (Orchestrateur / En direct /
-     À traiter) + tiroir bas, un seul ouvert à la fois.
+   - mode COMPACT : en-tête sur UNE ligne (identité + effectif à
+     gauche, bascules en icônes à droite) + tiroir bas, un seul
+     ouvert à la fois.
 
    La vue LARGE par logement (accordéon Planning) n'utilise PLUS ce
    renderer : SupervisionPanel y compose la mise en page À PLAT de
@@ -19,7 +20,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { Close, Info } from '../../../icons';
+import { Checklist, Close, Info, Timeline } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { AGENT_META, STATUS } from '../constants';
 import { OrbitDiagram, busiestAgent } from './OrbitDiagram';
@@ -147,31 +148,55 @@ export function OrbitConstellation({
         ? t('supervision.feed.title')
         : t('supervision.compact.hitl', 'À traiter');
 
-  /** Pastille du rail compact — teinte warn réservée à « À traiter ». */
-  const pillClass = (on: boolean, warnTone = false) =>
-    cn(
-      'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-150',
-      'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-      on
-        ? warnTone
-          ? 'border-warning/60 bg-warning-soft text-warning-ink'
-          : 'border-primary/45 bg-primary-soft text-primary'
-        : warnTone
-          ? 'border-warning/60 bg-card text-warning-ink hover:bg-warning-soft'
-          : 'border-border bg-card text-foreground hover:bg-muted',
-    );
+  /**
+   * Bascule de tiroir du mode compact, réduite à son ICÔNE.
+   *
+   * <p>Le rail portait deux pastilles pleine largeur, sous les compteurs, eux
+   * sous l'identité : trois rangées pour dire ce qui tient en une, et autant de
+   * hauteur prise à la constellation — la seule chose qu'on soit venu voir. Le
+   * libellé passe en `aria-label`, comme les actions de la barre de titre
+   * (cf. compactHeaderActions) ; le compte, lui, reste écrit : c'est lui qui
+   * appelle.</p>
+   */
+  const toggleTiroir = (
+    key: 'live' | 'hitl',
+    label: string,
+    icon: React.ReactNode,
+    badge?: number,
+  ) => (
+    <button
+      type="button"
+      aria-label={badge != null ? `${label} — ${badge}` : label}
+      aria-expanded={sheet === key}
+      onClick={() => toggleSheet(key)}
+      className={cn(
+        'inline-flex h-7 min-w-7 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-full px-1.5',
+        'transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+        badge != null
+          ? sheet === key
+            ? 'bg-warning-soft text-warning-ink'
+            : 'text-warning-ink hover:bg-warning-soft'
+          : sheet === key
+            ? 'bg-primary-soft text-primary'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+      )}
+    >
+      {icon}
+      {badge != null && <b className="text-[11px] font-bold tabular-nums">{badge}</b>}
+    </button>
+  );
 
   // ── Fragments de l'en-tête, écrits UNE fois et composés différemment selon
   //    la largeur. Les dupliquer aurait garanti que les deux versions divergent.
 
   /** « ● Orchestrateur » — identité et état de la liaison. */
   const identite = (
-    <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+    <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
       <span
         aria-hidden
         className={cn('size-1.5 shrink-0 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
       />
-      {t('supervision.hud.orchestrator')}
+      <span className="truncate">{t('supervision.hud.orchestrator')}</span>
     </span>
   );
 
@@ -231,40 +256,12 @@ export function OrbitConstellation({
     </span>
   );
 
-  /**
-   * Pastilles de tiroir (compact seulement).
-   *
-   * <p>Le rail portait TROIS pastilles, dont « Bilan » : il ne restait donc
-   * jamais vide. Depuis que le bilan est passé en icône, il peut n'avoir plus
-   * rien à montrer — un fragment est toujours vrai, et sa rangée aurait alors
-   * réservé la gouttière de l'en-tête pour du vide.</p>
-   */
-  const aDesPastilles = compact && (Boolean(belowHud) || (Boolean(hitl) && (hitlCount ?? 0) > 0));
-  const pastilles = aDesPastilles && (
+  /** Les deux surfaces qu'on peut ouvrir, en icônes (compact seulement). */
+  const bascules = compact && (
     <>
-      {belowHud && (
-        <button
-          type="button"
-          aria-expanded={sheet === 'live'}
-          onClick={() => toggleSheet('live')}
-          className={pillClass(sheet === 'live')}
-        >
-          {t('supervision.feed.title')}
-        </button>
-      )}
-      {hitl && (hitlCount ?? 0) > 0 && (
-        <button
-          type="button"
-          aria-expanded={sheet === 'hitl'}
-          onClick={() => toggleSheet('hitl')}
-          className={pillClass(sheet === 'hitl', true)}
-        >
-          {t('supervision.compact.hitl', 'À traiter')}
-          <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1 text-[11px] font-bold text-warning-ink tabular-nums">
-            {hitlCount}
-          </span>
-        </button>
-      )}
+      {belowHud && toggleTiroir('live', t('supervision.feed.title'), <Timeline size={14} strokeWidth={1.75} />)}
+      {hitl && (hitlCount ?? 0) > 0
+        && toggleTiroir('hitl', t('supervision.compact.hitl', 'À traiter'), <Checklist size={14} strokeWidth={1.75} />, hitlCount)}
     </>
   );
 
@@ -285,36 +282,43 @@ export function OrbitConstellation({
              que l'en-tête du panneau large. Plus de carte flottante ni de rail
              posés SUR le canvas : la surface entière revient au diagramme. */}
       {!focused && (compact ? (
-        /* ── Étroit : trois registres empilés, chacun avec un seul travail —
-              qui parle, ce qu'il en est, ce qu'on peut ouvrir. Tout tenait
-              auparavant sur une seule rangée en `flex-wrap` : les compteurs,
-              coincés entre l'identité et les pastilles, se repliaient à une
-              unité par ligne et coupaient même le nombre de son libellé. */
-        <div className="flex shrink-0 flex-col gap-2 px-3 pt-3">
+        /* ── Étroit : UNE ligne. Trois rangées empilées — qui parle, ce qu'il en
+              est, ce qu'on peut ouvrir — mangeaient une centaine de pixels de
+              haut au seul écran où la hauteur manque, et c'est la constellation
+              qui payait. Ce qui tient sur la ligne : l'identité et l'effectif
+              en toutes lettres ; ce qui n'y tient pas devient une icône dont le
+              libellé passe en `aria-label`, ou disparaît quand il ne dit rien.
+              « En attente » n'est PAS perdu : la bascule « À traiter » porte le
+              même nombre — il s'écrivait deux fois. */
+        <div className="flex shrink-0 flex-col gap-1 px-3 pt-3">
           <div className="flex items-center gap-2">
-            <span className="min-w-0 flex-1">{identite}</span>
-            {headerAction && <span className="shrink-0">{headerAction}</span>}
-          </div>
-
-          {/* Bande de valeurs : séparateurs fins plutôt que du blanc, pour que
-              les trois nombres se lisent comme une même mesure. */}
-          <div className="flex items-center gap-2">
-            <p className="m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground [&>span+span]:before:me-2 [&>span+span]:before:text-faint [&>span+span]:before:content-['·']">
-              {compteurs}
+            <p className="m-0 flex min-w-0 flex-1 items-baseline gap-1.5 text-xs text-muted-foreground">
+              {identite}
+              <span aria-hidden className="text-faint">·</span>
+              <span className="whitespace-nowrap">
+                <b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b>{' '}
+                {t('supervision.hud.agents')}
+              </span>
+              {/* L'activité en cours n'apparaît que lorsqu'il y en a : « 0
+                  agissent » occupait une place fixe pour ne rien annoncer. */}
+              {hud.actingCount > 0 && (
+                <span className="whitespace-nowrap text-primary">
+                  <b className="font-semibold tabular-nums">{hud.actingCount}</b>{' '}
+                  {t('supervision.hud.acting')}
+                </span>
+              )}
             </p>
-            {/* Le bilan, replié : même geste qu'en large, surface adaptée. */}
-            {bilan}
+
+            <span className="flex shrink-0 items-center gap-0.5">
+              {bascules}
+              {bilan}
+              {headerAction}
+            </span>
           </div>
 
+          {/* L'exception garde sa ligne : elle est rare, et c'est une alerte —
+              la tasser entre deux nombres serait la faire disparaître. */}
           {exception && <p className="m-0 text-xs">{exception}</p>}
-
-          {/* Pastilles réparties sur toute la largeur : une rangée alignée à
-              gauche laissait un vide à droite qui lisait comme un oubli. */}
-          {pastilles && (
-            <div className="flex items-stretch gap-2 [&>button]:flex-1 [&>button]:justify-center">
-              {pastilles}
-            </div>
-          )}
         </div>
       ) : (
         /* ── Large : tout tient sur une ligne, l'espace ne manque pas. */
@@ -336,7 +340,10 @@ export function OrbitConstellation({
       {/* ── Diagramme orbital (projection) : il occupe TOUTE la surface
              restante. Il MESURE la boîte qu'on lui donne (`size-full`) —
              une boîte sans dimension calculerait un carré nul. ─────────── */}
-      <div className="relative min-h-0 flex-1 p-3">
+      {/* La gouttiere tombe a 4 px en etroit : sur telephone, 12 px de chaque
+          cote retiraient 24 px au diametre du dessin — un gabarit de confort
+          preleve sur la seule chose qu'on regarde. */}
+      <div className={cn('relative min-h-0 flex-1', compact ? 'p-1' : 'p-3')}>
         <OrbitDiagram
           className="size-full"
           agents={agents}

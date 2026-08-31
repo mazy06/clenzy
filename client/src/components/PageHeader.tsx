@@ -147,7 +147,12 @@ export default function PageHeader({
           segmentSlot={
             <div
               ref={setTabsSlot}
-              className="cn-font-heading flex min-w-0 items-center gap-2 text-lg tracking-tight lg:text-xl"
+              /* `shrink-0` + plafond : toute la compression tombait sur le
+                 selecteur (le titre a un `flex-1`, donc une base nulle, donc un
+                 poids de retrecissement nul). « Vue d'ensemble » se reduisait a
+                 « Vu… » sur une fiche au nom long — un onglet qu'on ne peut plus
+                 lire ne sert plus a se reperer. */
+              className="cn-font-heading flex min-w-0 max-w-[50%] shrink-0 items-center gap-2 text-lg tracking-tight lg:text-xl"
             />
           }
           icon={

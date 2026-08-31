@@ -41,11 +41,14 @@ class RateLimitInterceptorTest {
     @Mock
     private SecurityAuditService securityAuditService;
 
+    /** Limite API par defaut, celle de la production. */
+    private static final int API_RATE_LIMIT = 300;
+
     private RateLimitInterceptor interceptor;
 
     @BeforeEach
     void setUp() {
-        interceptor = new RateLimitInterceptor(redisTemplate, securityAuditService);
+        interceptor = new RateLimitInterceptor(redisTemplate, securityAuditService, API_RATE_LIMIT);
         SecurityContextHolder.clearContext();
     }
 
@@ -216,7 +219,7 @@ class RateLimitInterceptorTest {
 
         @Test
         void whenRedisNull_thenUsesLocalBucket() throws Exception {
-            interceptor = new RateLimitInterceptor(null, securityAuditService);
+            interceptor = new RateLimitInterceptor(null, securityAuditService, API_RATE_LIMIT);
 
             MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/properties");
             request.setRemoteAddr("8.8.8.8");

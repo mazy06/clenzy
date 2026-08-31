@@ -32,6 +32,9 @@ const totalRequests = new Counter('total_api_requests');
 // ─── Options K6 ─────────────────────────────────────────────────────────────
 
 export const options = {
+  // p(99) n'est pas exporte par defaut : sans cette liste, le seuil
+  // http_req_duration p(99)<5000 est evalue mais sa valeur reste invisible.
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
     { duration: '30s', target: 20 },    // Warm-up
     { duration: '1m', target: 50 },     // Charge normale
@@ -147,7 +150,7 @@ export default function () {
 
     for (let propertyId = 1; propertyId <= 3; propertyId++) {
       const res = http.get(
-        `${API_BASE}/calendar-pricing/${propertyId}?from=${from}&to=${to}`,
+        `${API_BASE}/calendar/${propertyId}/pricing?from=${from}&to=${to}`,
         params,
       );
       totalRequests.add(1);

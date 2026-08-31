@@ -94,17 +94,25 @@ public class BriefingComposer {
      * sans lui, l'appel reste direct (bucket INTERACTIVE par défaut).
      */
     private final com.clenzy.service.ai.AutonomyRunScope autonomyRunScope;
+    /**
+     * Sert a savoir CHEZ QUI le briefing va parler. Nullable (chemin legacy
+     * test-only) : sans lui, le modele est impose comme avant.
+     */
+    private final com.clenzy.service.AiTargetResolver targetResolver;
 
     public BriefingComposer(AgentOrchestrator orchestrator,
                               AssistantConversationRepository conversationRepository,
                               AssistantMessageRepository messageRepository,
                               @org.springframework.beans.factory.annotation.Autowired(required = false)
                               com.clenzy.service.ai.AutonomyRunScope autonomyRunScope,
+                              @org.springframework.beans.factory.annotation.Autowired(required = false)
+                              com.clenzy.service.AiTargetResolver targetResolver,
                               @Value("${clenzy.assistant.briefing.model:claude-haiku-4-5-20251001}") String briefingModel) {
         this.orchestrator = orchestrator;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.autonomyRunScope = autonomyRunScope;
+        this.targetResolver = targetResolver;
         this.briefingModel = briefingModel;
     }
 
@@ -121,7 +129,12 @@ public class BriefingComposer {
         String prompt = promptFor(freq);
 
         // Force le modele Haiku via modelOverride — gain de cout significatif
-        // sur un volume de briefings reguliers.
+        // sur un volume de briefings reguliers. MAIS seulement chez Anthropic :
+        // le resolveur applique l'override au provider retenu pour
+        // ASSISTANT_CHAT, et un identifiant Anthropic envoye a un endpoint
+        // OpenAI repond 404. L'organisation dont le provider n'est pas
+        // Anthropic n'a alors JAMAIS pu recevoir de briefing. Ailleurs, on
+        // laisse la configuration decider, comme pour l'assistant interactif.
         AgentContext context = new AgentContext(
                 pref.getOrganizationId(),
                 pref.getKeycloakId(),
@@ -129,7 +142,7 @@ public class BriefingComposer {
                 "fr",
                 "assistant", // currentPage informatif
                 null,
-                briefingModel
+                resolveModelOverride(pref.getOrganizationId())
         );
 
         // SSE consumer no-op : on lit le resultat en aval depuis la BDD (les
@@ -174,8 +187,43 @@ public class BriefingComposer {
                     e.getMessage(), conversationId);
         }
 
+        // Un briefing sans texte n'est pas un briefing. Le consommateur SSE voit
+        // bien l'erreur du LLM — credits epuises, provider en 404 — mais ne peut
+        // que la journaliser : c'est ici, au corps vide, qu'elle devient un
+        // echec. Sans ce test, le resultat creux remontait comme un succes et
+        // produisait deux degats en cascade : une notification au message vide,
+        // rejetee par la validation du bean et qui marquait la transaction
+        // rollback-only, puis un statut SKIPPED — que le retry ne reprend
+        // JAMAIS, la ou FAILED lui aurait donne six heures pour aboutir.
         String body = extractAssistantText(conversationId);
+        if (body == null || body.isBlank()) {
+            log.warn("Briefing vide pour user {} (conversation {}) — traite comme un echec",
+                    pref.getKeycloakId(), conversationId);
+            return null;
+        }
         return new BriefingResult(conversationId, body, freq);
+    }
+
+    /**
+     * Le modele impose, ou null quand il ne conviendrait pas au provider retenu.
+     *
+     * <p>Sans resolveur (chemin legacy test-only) ou en cas d'erreur de lecture,
+     * on garde le modele : le comportement historique, et un 404 reste plus
+     * lisible qu'un silence.</p>
+     */
+    private String resolveModelOverride(Long organizationId) {
+        if (targetResolver == null) return briefingModel;
+        try {
+            String provider = targetResolver.primaryProvider(
+                    organizationId, com.clenzy.model.AiFeature.ASSISTANT_CHAT);
+            if ("anthropic".equals(provider)) return briefingModel;
+            log.debug("Briefing : provider {} — le modele {} n'est pas impose",
+                    provider, briefingModel);
+            return null;
+        } catch (Exception e) {
+            log.debug("Briefing : provider indeterminable ({}) — modele conserve", e.getMessage());
+            return briefingModel;
+        }
     }
 
     /**

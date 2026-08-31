@@ -22,6 +22,7 @@ import {
   KEYCLOAK_URL,
   KEYCLOAK_REALM,
   KEYCLOAK_CLIENT_ID,
+  PROPERTY_ID,
   TEST_USER,
   TEST_PASSWORD,
 } from './config.js';
@@ -35,6 +36,9 @@ const apiDuration = new Trend('api_duration', true);
 // ─── Options K6 ─────────────────────────────────────────────────────────────
 
 export const options = {
+  // p(99) n'est pas exporte par defaut : sans cette liste, le seuil
+  // http_req_duration p(99)<1500 existe mais reste invisible dans le resume.
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
     { duration: '30s', target: 10 },   // Montee : 0 → 10 VUs
     { duration: '1m', target: 25 },    // Montee : 10 → 25 VUs
@@ -140,7 +144,7 @@ export default function () {
     apiDuration.add(res.timings.duration);
 
     const ok = check(res, {
-      'reservations: status 200 or 403': (r) => r.status === 200 || r.status === 403,
+      'reservations: status 200': (r) => r.status === 200,
     });
 
     errorRate.add(ok ? 0 : 1);
@@ -150,11 +154,11 @@ export default function () {
 
   // 5. Detail d'une propriete (lecture unitaire)
   group('Properties - Detail', () => {
-    const res = http.get(`${API_BASE}/properties/1`, params);
+    const res = http.get(`${API_BASE}/properties/${PROPERTY_ID}`, params);
     apiDuration.add(res.timings.duration);
 
     check(res, {
-      'property detail: status 200 or 404': (r) => r.status === 200 || r.status === 404,
+      'property detail: status 200': (r) => r.status === 200,
     });
   });
 
@@ -168,13 +172,13 @@ export default function () {
     const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
 
     const res = http.get(
-      `${API_BASE}/calendar-pricing/1?from=${from}&to=${to}`,
+      `${API_BASE}/calendar/${PROPERTY_ID}/pricing?from=${from}&to=${to}`,
       params,
     );
     apiDuration.add(res.timings.duration);
 
     check(res, {
-      'pricing: status 200 or 404': (r) => r.status === 200 || r.status === 404,
+      'pricing: status 200': (r) => r.status === 200,
     });
   });
 
@@ -182,7 +186,13 @@ export default function () {
 
   // 7. Liste des utilisateurs (endpoint admin)
   group('Users - List', () => {
-    const res = http.get(`${API_BASE}/users`, params);
+    // Endpoint SUPER_ADMIN-only : un HOST recoit 403, c'est la reponse attendue.
+    // responseCallback l'annonce a K6, sinon ce refus legitime gonflerait
+    // http_req_failed et rendrait le seuil <1% inatteignable par construction.
+    const res = http.get(`${API_BASE}/users`, {
+      ...params,
+      responseCallback: http.expectedStatuses(200, 403),
+    });
     apiDuration.add(res.timings.duration);
 
     check(res, {

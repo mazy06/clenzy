@@ -52,11 +52,10 @@ const CELL_NOWRAP_CLASS = 'whitespace-nowrap py-[4.5px] px-1.5';
 // logiques du kit et rester correct en RTL. `ps`/`pe` explicites plutot que `px` + `pe` :
 // deux utilitaires du meme groupe se departageraient sur l'ordre de la feuille generee.
 const CELL_ACTIONS_CLASS = 'whitespace-nowrap py-[4.5px] ps-1.5 pe-[7.5px] text-end';
-// Membre cell : shrinkable + ellipsis. `maxWidth: 0` + `width: '100%'` est le trick CSS pour
-// qu'une cellule <td> accepte text-overflow:ellipsis sur ses enfants tout en remplissant
-// l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
-// clipper par le `overflow: hidden` du SettingsSection.
-const CELL_MEMBER_CLASS = 'py-[4.5px] px-1.5 max-w-0 w-full';
+// Membre cell : PAS de `max-w-0 w-full`. Ce trick faisait tenir la table dans la carte en
+// rognant les noms et les emails — « A… / in… » sur telephone, illisible. La table depasse
+// desormais, et c'est son conteneur (`.cn-table-container`, overflow-x-auto) qui defile.
+const CELL_MEMBER_CLASS = 'whitespace-nowrap py-[4.5px] px-1.5';
 
 // ─── Boutons d'action de ligne ──────────────────────────────────────────────
 // Ecrits en litteraux : une classe Tailwind ne peut pas naitre d'une fabrique
@@ -152,8 +151,14 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   return (
     <>
-      <div className="overflow-x-hidden">
-        <Table>
+      {/* `min-w-max` : la table prend la largeur de son CONTENU au lieu de se
+          comprimer a celle de la carte, ce qui donne au conteneur du kit
+          (`.cn-table-container`, overflow-x-auto) de quoi defiler. L'enveloppe
+          etait en `overflow-x-hidden` : elle interdisait ce defilement, d'ou les
+          cellules rognees. `min-w-0` autorise l'enveloppe a passer sous la
+          largeur de son contenu — sans lui, c'est la CARTE qui s'elargirait. */}
+      <div className="min-w-0">
+        <Table className="min-w-max">
           <TableHeader>
             <TableRow>
               <TableHead className={CELL_NOWRAP_CLASS}>Membre</TableHead>
@@ -189,10 +194,10 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[0.82rem] font-semibold text-foreground leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap" title={getMemberName(member)}>
+                        <p className="text-[0.82rem] font-semibold text-foreground leading-[1.25] whitespace-nowrap" title={getMemberName(member)}>
                           {getMemberName(member)}
                         </p>
-                        <p className="text-2xs text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap" title={member.email}>
+                        <p className="text-2xs text-muted-foreground leading-[1.3] whitespace-nowrap" title={member.email}>
                           {member.email}
                         </p>
                       </div>

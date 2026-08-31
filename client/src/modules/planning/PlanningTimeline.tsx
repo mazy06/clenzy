@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '../../components/ui';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
@@ -67,6 +67,13 @@ interface PlanningTimelineProps {
   onToggleExpanded?: (propertyId: number) => void;
   /** Rendu du panneau de supervision pour un logement déployé. */
   renderExpanded?: (property: PlanningProperty) => React.ReactNode;
+  /**
+   * Hauteur mesurée de la boîte de la grille, publiée au parent : c'est elle
+   * qui decide combien de logements tiennent dans une page (cf.
+   * usePlanningPagination). La mesure existe deja ici pour l'accordeon — la
+   * refaire dans la page donnerait deux observateurs et deux verites.
+   */
+  onViewportHeight?: (height: number) => void;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -103,6 +110,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   expandedPropertyId = null,
   onToggleExpanded,
   renderExpanded,
+  onViewportHeight,
 }) => {
   const config = ROW_CONFIG[density];
 
@@ -121,6 +129,16 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
     ro.observe(el);
     return () => ro.disconnect();
   }, [scrollRef]);
+
+  // Publication au parent. Effet separe et callback tenue dans une ref : la
+  // lambda du parent est recreee a chaque rendu, la mettre en dependance de
+  // l'effet de mesure rebrancherait le ResizeObserver a chaque fois.
+  const onViewportHeightRef = useRef(onViewportHeight);
+  onViewportHeightRef.current = onViewportHeight;
+  useEffect(() => {
+    if (viewport.height > 0) onViewportHeightRef.current?.(viewport.height);
+  }, [viewport.height]);
+
   // Plus de price line dediee : les prix sont desormais affiches dans
   // chaque cellule de jour, centres et masques sous les bars.
   // Hauteur de ligne CONSTANTE (maquette) : les interventions partagent la

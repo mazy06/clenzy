@@ -156,6 +156,24 @@ public class AiTargetResolver {
     }
 
     /**
+     * Provider effectivement retenu pour une feature, sans imposer de modèle.
+     *
+     * <p>Répond à une question que les appelants ne peuvent pas trancher seuls :
+     * la précédence de {@link #resolvePrimary} compte quatre étapes (provider
+     * assigné + BYOK, modèle plateforme de la feature, BYOK Anthropic, repli),
+     * et lire la seule table d'assignation donnerait une réponse fausse dès que
+     * l'org n'a pas de clé pour le provider assigné.</p>
+     *
+     * <p>Utile à qui veut forcer un modèle : un identifiant de modèle
+     * n'appartenant pas au provider retenu est refusé par l'API distante — un
+     * modèle Anthropic envoyé à un endpoint OpenAI répond 404. Demander le
+     * provider AVANT de décider de l'override évite cet aller-retour perdu.</p>
+     */
+    public String primaryProvider(Long organizationId, AiFeature feature) {
+        return canonical(resolvePrimary(organizationId, feature, null).provider());
+    }
+
+    /**
      * Chaîne de basculement (failover) : cible primaire ({@link #resolvePrimary}) suivie des replis
      * canoniques disponibles (Anthropic puis OpenAI, hors provider primaire), uniquement ceux ayant
      * une clé utilisable. Le {@code contextModelOverride} n'est PAS propagé aux replis.

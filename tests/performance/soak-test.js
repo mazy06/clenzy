@@ -28,6 +28,9 @@ const apiDuration = new Trend('api_duration', true);
 // ─── Options K6 ─────────────────────────────────────────────────────────────
 
 export const options = {
+  // p(99) n'est pas exporte par defaut : sans cette liste, le seuil
+  // http_req_duration p(99)<2000 est evalue mais sa valeur reste invisible.
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
     { duration: '1m', target: 30 },     // Montee
     { duration: '25m', target: 30 },    // Plateau stable pendant 25 min

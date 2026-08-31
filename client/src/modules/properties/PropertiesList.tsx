@@ -30,7 +30,8 @@ import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { useContractedPropertyIds } from '../../hooks/useContractedPropertyIds';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
-import { ITEMS_PER_PAGE, LIST_DEFAULT_ROWS } from './propertiesListConstants';
+import { ITEMS_PER_PAGE } from './propertiesListConstants';
+import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import PropertiesMapView from './PropertiesMapView';
 import PropertiesGridView from './PropertiesGridView';
 import PropertiesPortfolioTiles from './PropertiesPortfolioTiles';
@@ -97,7 +98,18 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     ['grid', 'list', 'map'] as const,
     autoDefaultMode,
   );
-  const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
+  // Taille de page MESUREE, pas choisie : le hook partage avec Interventions,
+  // Reservations et Demandes compte les lignes qui tiennent dans la hauteur
+  // restante, en mesurant une vraie ligne du DOM. Les 10 lignes fixes d'avant
+  // depassaient la carte sur telephone, et comme le cadre clippe sans defiler,
+  // la derniere etait coupee en deux et les suivantes inatteignables.
+  const { containerRef: listContainerRef, pageSize: listRowsPerPage } = useDynamicPageSize({
+    rowHeight: 64,
+    headerHeight: 42,
+    bottomChrome: 72,
+    min: 3,
+    max: 50,
+  });
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
 
   const navigate = useNavigate();
@@ -183,7 +195,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     });
   }, [properties, searchTerm, selectedType, selectedStatus, selectedHost]);
 
-  const effectivePageSize = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
+  const effectivePageSize = viewMode === 'grid' ? ITEMS_PER_PAGE : listRowsPerPage;
 
   const paginatedProperties = useMemo(
     () => filteredProperties.slice(page * effectivePageSize, (page + 1) * effectivePageSize),
@@ -224,6 +236,14 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     setPage(0);
     if (viewMode !== 'map') setMapBounds(null);
   }, [searchTerm, selectedType, selectedStatus, selectedHost, viewMode]);
+
+  // La taille de page suit la hauteur : elle retrecit quand la fenetre retrecit
+  // (ou qu'on passe en paysage). Sans ce recadrage, la page courante pouvait
+  // sortir de la plage et la liste s'affichait vide.
+  useEffect(() => {
+    const lastPage = Math.max(0, Math.ceil(filteredProperties.length / effectivePageSize) - 1);
+    if (page > lastPage) setPage(lastPage);
+  }, [page, effectivePageSize, filteredProperties.length]);
 
   // ─── Map bounds tracking (debounced) ───────────────────────────────
   const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -468,9 +488,9 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           properties={paginatedProperties}
           totalCount={filteredProperties.length}
           page={page}
-          rowsPerPage={rowsPerPage}
+          rowsPerPage={listRowsPerPage}
           onPageChange={setPage}
-          onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
+          containerRef={listContainerRef}
           channexMappings={channexMappings}
           cleaningEstimates={cleaningEstimates}
           canManageContracts={canManageContracts}
