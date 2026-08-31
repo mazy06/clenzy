@@ -3,7 +3,7 @@ import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 import { Add, GppGood } from '../../icons';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
-import SettingsSection from './components/SettingsSection';
+import SettingsToggleRow from './components/SettingsToggleRow';
 import { guestsApi, type GuestDto } from '../../services/api/guestsApi';
 import { privacyRequestsApi, type PrivacyRequest } from '../../services/api/privacyRequestsApi';
 
@@ -46,10 +46,18 @@ const EMPTY_FORM: CreateForm = {
 };
 
 /**
- * Réglages > Général > Confidentialité (M9) — registre des demandes RGPD.
- * La saisie ici fait naître la carte « Effacer » de l'agent Conformité
+ * Registre des demandes RGPD (M9), rendu DANS la carte « Sécurité et
+ * confidentialité » de Réglages > Général (cf. AccountSecuritySection) : mot de
+ * passe et demandes des voyageurs relèvent du même sujet — ce que le compte
+ * protège et ce qu'il doit rendre —, et deux cartes pour cela laissaient un
+ * grand vide à côté du mot de passe.
+ *
+ * <p>Ce composant ne pose donc PAS sa propre carte : il rend une rangée de
+ * réglage (même primitive que les autres lignes de la carte) suivie du registre.</p>
+ *
+ * <p>La saisie ici fait naître la carte « Effacer » de l'agent Conformité
  * (échéance légale J+30) ; l'effacement peut aussi se lancer depuis cette
- * section, même chemin serveur (sélectif, irréversible, rapport tracé).
+ * section, même chemin serveur (sélectif, irréversible, rapport tracé).</p>
  */
 export default function PrivacyRequestsSection() {
   const { t } = useTranslation();
@@ -109,19 +117,22 @@ export default function PrivacyRequestsSection() {
   };
 
   return (
-    <SettingsSection
-      title={t('settings.privacy.title', 'Confidentialité (RGPD)')}
-      icon={GppGood}
-      accent="danger"
-      description={t('settings.privacy.description',
-        "Demandes des voyageurs : effacement, accès, rectification. Échéance légale 30 jours.")}
-      action={(
-        <Button size="sm" variant="outline" onClick={() => setForm(EMPTY_FORM)}>
-          <Add size={15} />
-          {t('settings.privacy.add', 'Saisir une demande')}
-        </Button>
-      )}
-    >
+    <>
+      <SettingsToggleRow
+        icon={GppGood}
+        iconColor="var(--bui-destructive)"
+        title={t('settings.privacy.title', 'Confidentialité (RGPD)')}
+        description={t('settings.privacy.description',
+          "Demandes des voyageurs : effacement, accès, rectification. Échéance légale 30 jours.")}
+        divider={false}
+        control={(
+          <Button size="sm" variant="outline" className="shrink-0" onClick={() => setForm(EMPTY_FORM)}>
+            <Add size={15} />
+            {t('settings.privacy.add', 'Saisir une demande')}
+          </Button>
+        )}
+      />
+
       {requests === null ? (
         <div className="flex justify-center py-5">
           <Spinner className="size-6" />
@@ -132,59 +143,66 @@ export default function PrivacyRequestsSection() {
             "Aucune demande enregistrée. Une demande d'effacement saisie ici lève la carte « Effacer » de l'agent Conformité avec son échéance légale.")}
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('settings.privacy.requester', 'Demandeur')}</TableHead>
-              <TableHead>{t('settings.privacy.type', 'Type')}</TableHead>
-              <TableHead>{t('settings.privacy.dueAt', 'Échéance')}</TableHead>
-              <TableHead>{t('settings.privacy.status', 'Statut')}</TableHead>
-              <TableHead aria-label="actions" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requests.map((request) => (
-              <TableRow key={request.id}>
-                <TableCell>
-                  <span className="font-medium">{request.requesterEmail}</span>
-                  {request.guestId == null && request.status === 'RECEIVED' && (
-                    <span className="block text-2xs text-muted-foreground">
-                      {t('settings.privacy.noGuest', 'Aucune fiche voyageur liée')}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>{TYPE_LABELS[request.type]}</TableCell>
-                <TableCell className="tabular-nums">{request.dueAt}</TableCell>
-                <TableCell>
-                  <StatusChip tone={STATUS_TONE[request.status]}
-                    label={STATUS_LABELS[request.status]} size="sm" />
-                </TableCell>
-                <TableCell className="text-end whitespace-nowrap">
-                  {request.status === 'RECEIVED' && (
-                    <>
-                      {request.type === 'ERASURE' && request.guestId != null && (
-                        <Button variant="outline" size="xs"
-                          onClick={() => setConfirmEraseId(request.id)}>
-                          {t('settings.privacy.erase', 'Effacer')}
-                        </Button>
-                      )}
-                      {request.type !== 'ERASURE' && (
-                        <Button variant="outline" size="xs"
-                          onClick={() => privacyRequestsApi.complete(request.id).then(reload)}>
-                          {t('settings.privacy.complete', 'Clore')}
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="xs"
-                        onClick={() => privacyRequestsApi.refuse(request.id).then(reload)}>
-                        {t('settings.privacy.refuse', 'Refuser')}
-                      </Button>
-                    </>
-                  )}
-                </TableCell>
+        /* Le registre defile au lieu de pousser la carte : la hauteur max est
+           posee sur le CONTENEUR du tableau (`.cn-table-container`), seul
+           element a etre un conteneur de defilement — l'envelopper d'un div
+           `overflow-y-auto` laisserait l'en-tete colle a un conteneur qui, lui,
+           ne defile pas. */
+        <div className="[&_[data-slot=table-container]]:max-h-64 [&_[data-slot=table-container]]:overflow-y-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 [&_th]:bg-card">
+              <TableRow>
+                <TableHead>{t('settings.privacy.requester', 'Demandeur')}</TableHead>
+                <TableHead>{t('settings.privacy.type', 'Type')}</TableHead>
+                <TableHead>{t('settings.privacy.dueAt', 'Échéance')}</TableHead>
+                <TableHead>{t('settings.privacy.status', 'Statut')}</TableHead>
+                <TableHead aria-label="actions" />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {requests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell>
+                    <span className="font-medium">{request.requesterEmail}</span>
+                    {request.guestId == null && request.status === 'RECEIVED' && (
+                      <span className="block text-2xs text-muted-foreground">
+                        {t('settings.privacy.noGuest', 'Aucune fiche voyageur liée')}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>{TYPE_LABELS[request.type]}</TableCell>
+                  <TableCell className="tabular-nums">{request.dueAt}</TableCell>
+                  <TableCell>
+                    <StatusChip tone={STATUS_TONE[request.status]}
+                      label={STATUS_LABELS[request.status]} size="sm" />
+                  </TableCell>
+                  <TableCell className="text-end whitespace-nowrap">
+                    {request.status === 'RECEIVED' && (
+                      <>
+                        {request.type === 'ERASURE' && request.guestId != null && (
+                          <Button variant="outline" size="xs"
+                            onClick={() => setConfirmEraseId(request.id)}>
+                            {t('settings.privacy.erase', 'Effacer')}
+                          </Button>
+                        )}
+                        {request.type !== 'ERASURE' && (
+                          <Button variant="outline" size="xs"
+                            onClick={() => privacyRequestsApi.complete(request.id).then(reload)}>
+                            {t('settings.privacy.complete', 'Clore')}
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="xs"
+                          onClick={() => privacyRequestsApi.refuse(request.id).then(reload)}>
+                          {t('settings.privacy.refuse', 'Refuser')}
+                        </Button>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {form && (
@@ -293,6 +311,6 @@ export default function PrivacyRequestsSection() {
           </DialogContent>
         </Dialog>
       )}
-    </SettingsSection>
+    </>
   );
 }

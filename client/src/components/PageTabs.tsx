@@ -4,7 +4,6 @@ import { useScreenTrailSegment } from './ScreenChrome';
 import NavCountBadge from './NavCountBadge';
 import { sizedIcon } from '../config/navigationIcons';
 import { createPortal } from 'react-dom';
-import { useMediaQuery } from '../hooks/use-media-query';
 import { useScreenChrome } from './ScreenChrome';
 import PageTabsMenu from './PageTabsMenu';
 import { cn } from '../utils/cn';
@@ -52,24 +51,27 @@ interface PageTabsProps<T extends string | number> {
   /** ARIA label pour Tabs. */
   ariaLabel?: string;
   /**
-   * Publier l'onglet actif dans le fil d'Ariane du header. Défaut : true.
-   * À passer à `false` pour une rangée d'onglets qui n'est PAS le niveau de
-   * navigation de la page (onglets d'un panneau latéral, d'une fiche device…).
+   * Cette rangée EST la navigation de la page : elle se rend alors en SÉLECTEUR
+   * dans la ligne du titre, et non en bande d'onglets. Défaut : true.
+   * À passer à `false` pour une rangée qui n'est pas ce niveau-là (onglets d'un
+   * panneau latéral, d'une fiche device…) : elle garde la bande soulignée.
    */
   trail?: boolean;
   className?: string;
 }
 
 /**
- * Onglets standardisés du PMS Baitly (kit Baitly UI, variante `line`).
+ * Onglets standardisés du PMS Baitly (kit Baitly UI).
  *
- * Rendu : libellés discrets, onglet actif en encre pleine SOULIGNÉ, le tout posé
- * sur une hairline pleine largeur — la signature « Tabs / Line » de la galerie
- * (/admin/design-system). Un slot d'actions contextuelles reste disponible à
- * droite de la rangée.
+ * Deux rendus, selon ce que la rangée navigue (cf. `trail`) :
  *
- * L'onglet actif est aussi publié dans le fil d'Ariane du header : le chemin
- * affiché devient « Hub › Écran › Onglet ».
+ *  - **la navigation de l'écran** (défaut) : pas de bande. Le titre porte le
+ *    sélecteur — « Paramètres │ Général ⌄ » —, qui déplie la liste entière des
+ *    onglets. Une ligne de moins, et l'on voit enfin combien d'onglets existent
+ *    et lequel est actif, ce qu'une bande qui défile ne disait jamais.
+ *  - **une rangée interne** (`trail={false}` : sous-onglets d'un panneau, d'une
+ *    fiche device) : la bande soulignée « Tabs / Line » de la galerie
+ *    (/admin/design-system), avec son slot d'actions à droite.
  *
  * @example
  * ```tsx
@@ -101,22 +103,26 @@ export default function PageTabs<T extends string | number = number>({
   const activeIndex = visibleOptions.findIndex((opt, index) => valueOf(opt, index) === value);
   const compact = size === 'compact';
 
-  useScreenTrailSegment(
-    trail && activeIndex >= 0 ? visibleOptions[activeIndex]?.label : undefined,
-  );
+  const { tabsSlot } = useScreenChrome();
 
   /**
-   * Sous 1024 px, les onglets rejoignent la ligne du titre plutot que d'occuper
-   * une bande a eux — deux fois, quand ils passent a la ligne. Un media query JS
-   * et non une classe : ce n'est pas un masquage mais un changement de parent,
-   * que le CSS seul ne sait pas faire sans dupliquer le tablist dans le DOM.
+   * La rangee d'onglets d'un ecran n'occupe plus une bande a elle : elle est
+   * rendue DANS la ligne du titre, sous forme de selecteur (« Parametres │
+   * General ⌄ »). Une bande de sept onglets coutait une ligne pleine pour dire
+   * une seule chose — lequel est actif —, et se derobait des que la largeur
+   * manquait.
+   *
+   * `trail` marque la rangee qui EST la navigation de la page ; les autres
+   * (sous-onglets d'un panneau, d'une fiche device) n'ont pas de titre ou se
+   * poser et gardent la bande soulignee.
    */
-  // Le seuil doit etre EXACTEMENT le `lg` de Tailwind (1024 px) : le slot
-  // d'accueil est masque par `lg:hidden`. Les breakpoints MUI (lg = 1200)
-  // ouvraient une zone morte 1024-1199 ou le JS portait les onglets dans un
-  // slot que le CSS venait de cacher — la rangee disparaissait purement.
-  const inHeader = useMediaQuery('(max-width: 1023.98px)');
-  const { tabsSlot } = useScreenChrome();
+  const asSelect = trail && Boolean(tabsSlot);
+
+  // Le libelle de l'onglet actif n'est publie au titre QUE si le selecteur ne
+  // le porte pas deja : sinon il s'afficherait deux fois, en texte puis en menu.
+  useScreenTrailSegment(
+    trail && !asSelect && activeIndex >= 0 ? visibleOptions[activeIndex]?.label : undefined,
+  );
 
   const tabsElement = (
       <Tabs
@@ -160,25 +166,37 @@ export default function PageTabs<T extends string | number = number>({
     </Tabs>
   );
 
-  // Porte dans le header : la ligne du titre porte deja bordure et marge. Et la
-  // rangee devient un MENU — une bande qui defile ne dit ni combien d'onglets
-  // existent, ni ou l'on se trouve dedans (cf. PageTabsMenu).
-  // `trail` marque deja la rangee qui EST la navigation de la page — les autres
-  // (sous-onglets, panneaux) passent trail={false}. Sans ce filtre, plusieurs
-  // rangees se portaient dans le meme slot et s'y empilaient.
-  if (inHeader && tabsSlot && trail) {
-    return createPortal(
-      <div className="flex min-w-0 items-center">
-        <PageTabsMenu
-          options={visibleOptions}
-          activeIndex={activeIndex}
-          onSelect={(index) => {
-            const opt = visibleOptions[index];
-            if (opt) onChange(valueOf(opt, index));
-          }}
-        />
-      </div>,
-      tabsSlot,
+  if (asSelect && tabsSlot) {
+    return (
+      <>
+        {createPortal(
+          <>
+            {/* Meme filet que celui des segments du titre (cf. PageTitle) : le
+                selecteur doit se lire comme la suite du titre, pas comme un
+                controle pose a cote. */}
+            <span aria-hidden className="h-[1.1em] w-px shrink-0 bg-border" />
+            <PageTabsMenu
+              options={visibleOptions}
+              activeIndex={activeIndex}
+              onSelect={(index) => {
+                const opt = visibleOptions[index];
+                if (opt) onChange(valueOf(opt, index));
+              }}
+            />
+          </>,
+          tabsSlot,
+        )}
+        {/* Les actions contextuelles de la rangee survivent a sa disparition :
+            certains ecrans y portent leur barre d'outils (cf. DynamicPricing). */}
+        {inlineActions && (
+          <div
+            className={cn('flex flex-wrap items-center justify-end gap-2', className)}
+            style={{ marginBottom: mb * 8 }}
+          >
+            {inlineActions}
+          </div>
+        )}
+      </>
     );
   }
 

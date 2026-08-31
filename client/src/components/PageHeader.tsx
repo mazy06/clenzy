@@ -47,7 +47,7 @@ interface PageHeaderProps {
  * Header de page standardise du PMS Baitly (kit Baitly UI).
  *
  * Structure — UNE seule ligne :
- *   [icône] Titre │ Onglet  [puce]   [recherche] [filtres] [actions] [retour]
+ *   [icône] Titre │ Onglet ⌄  [puce]   [recherche] [filtres] [actions] [retour]
  *
  * Le fil d'Ariane a été retiré : il coûtait une ligne pour redire ce que la
  * barre latérale montre déjà (où l'on est) et ce que le titre porte désormais
@@ -55,8 +55,9 @@ interface PageHeaderProps {
  *
  * Quatre invariants produits :
  *   - le TITRE dit l'écran ET l'endroit où l'on se trouve dedans : l'onglet
- *     actif y est accolé derrière un filet, et suit les changements d'onglet
- *     sans que l'écran recompose son titre (cf. PageTitle) ;
+ *     actif y est accolé derrière un filet, sous forme de SÉLECTEUR — c'est de
+ *     là qu'on change d'onglet, la bande d'onglets n'existe plus. L'écran n'a
+ *     pas à recomposer son titre (cf. PageTitle, PageTabs) ;
  *   - la DESCRIPTION de l'écran ne prend plus une ligne sous le titre : elle
  *     est rendue en infobulle au survol du titre ;
  *   - la PASTILLE d'icone est deduite de la route quand la page n'en fournit
@@ -87,9 +88,7 @@ export default function PageHeader({
   const { pathname } = useLocation();
   const { setTabsSlot } = useScreenChrome();
   // `lg` de Tailwind (1024 px) — le MEME seuil que toutes les autres bascules de
-  // cette barre : fil d'Ariane (`hidden lg:block`), sous-titre, declencheur de
-  // sidebar (`lg:hidden`) et rangee d'onglets, qui vient justement se poser DANS
-  // la barre sous ce seuil (cf. PageTabs, `max-width: 1023.98px`).
+  // cette barre : declencheur de sidebar (`lg:hidden`), repli des actions.
   //
   // Il valait 767,98 px, ce que son commentaire decrivait deja — a tort — comme
   // aligne sur le reste. Entre 768 et 1023 px la barre portait donc d'un coup le
@@ -135,6 +134,16 @@ export default function PageHeader({
           title={title}
           description={subtitle}
           adornment={titleAdornment}
+          /* Accueille le sélecteur d'onglet de `PageTabs`, accolé au titre.
+             Les classes de fonte sont posées ICI et pas dans le portail : le
+             filet du séparateur est dimensionné en `em`, il doit hériter de la
+             taille du titre pour tomber à la même hauteur que celui du h1. */
+          segmentSlot={
+            <div
+              ref={setTabsSlot}
+              className="cn-font-heading flex min-w-0 items-center gap-2 text-xl tracking-tight"
+            />
+          }
           icon={
             icon && (
               <span
@@ -156,13 +165,6 @@ export default function PageHeader({
         />
 
         <div className="flex min-w-0 shrink items-center justify-end gap-2">
-          {/* Les onglets viennent se poser ici sous 1024 px, sous forme de menu,
-              range avec les autres commandes de la barre : la navigation de
-              l'ecran est une commande, pas une extension du titre. `min-w-0`
-              laisse le libelle de l'onglet actif se tronquer plutot que pousser
-              les icones hors de l'ecran. */}
-          <div ref={setTabsSlot} className="flex min-w-0 items-center lg:hidden" />
-
           <GlobalSearchField />
 
           <PageHeaderActions filters={filters} actions={actions} narrow={isCompact} />

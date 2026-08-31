@@ -13,9 +13,13 @@ import { cn } from '../utils/cn';
  * c'est cette source qui est lue ici.</p>
  *
  * <pre>
- *   Configuration tarifaire │ Abonnement PMS
- *   └ titre (encre pleine)    └ onglet actif (encre douce)
+ *   Configuration tarifaire │ Abonnement PMS ⌄
+ *   └ titre (encre pleine)    └ onglet actif (encre douce), DÉROULANT
  * </pre>
+ *
+ * <p>Ce second segment n'est plus un simple libellé : `PageTabs` y porte son
+ * sélecteur (`segmentSlot`), qui déplie la liste des onglets de l'écran. La
+ * bande d'onglets a disparu — le titre EST la navigation interne.</p>
  *
  * <p>La DESCRIPTION de l'écran n'est plus une ligne sous le titre : elle est
  * rendue en infobulle au survol du titre. Une phrase d'explication lue une fois
@@ -54,6 +58,13 @@ interface PageTitleProps {
   icon?: React.ReactNode;
   /** Élément inline à droite du titre (puce de statut de l'entité). */
   adornment?: React.ReactNode;
+  /**
+   * Emplacement rendu APRÈS le titre, sur la même ligne : c'est là que
+   * `PageTabs` porte son sélecteur d'onglet (« Paramètres │ Général ⌄ »).
+   * Hors du déclencheur d'infobulle : le survol du titre ne doit pas ouvrir une
+   * bulle par-dessus le menu qu'on vient de déplier.
+   */
+  segmentSlot?: React.ReactNode;
   className?: string;
 }
 
@@ -63,6 +74,7 @@ export default function PageTitle({
   segments,
   icon,
   adornment,
+  segmentSlot,
   className,
 }: PageTitleProps) {
   const { trail } = useScreenChrome();
@@ -70,7 +82,7 @@ export default function PageTitle({
   const parts = useMemo(() => composeTitleSegments(title, source), [title, source]);
 
   const heading = (
-    <div className={cn('flex min-w-0 items-center gap-2.5', description ? 'flex-1' : className)}>
+    <div className="flex min-w-0 items-center gap-2.5">
       {icon}
       <h1 className="cn-font-heading m-0 flex min-w-0 items-center gap-2 text-xl tracking-tight">
         <span className="truncate font-semibold text-foreground">{title}</span>
@@ -87,24 +99,31 @@ export default function PageTitle({
     </div>
   );
 
-  if (!description) return heading;
-
-  return (
+  const titled = description ? (
     <Tooltip>
       <TooltipTrigger asChild>
         {/* `tabIndex` : sans lui, la description ne serait atteignable qu'à la
             souris — elle n'existe plus nulle part ailleurs sur l'écran. */}
         <div
           tabIndex={0}
-          className={cn(
-            'flex min-w-0 cursor-help items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-            className,
-          )}
+          className="flex min-w-0 cursor-help items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           {heading}
         </div>
       </TooltipTrigger>
       <TooltipContent className="max-w-sm">{description}</TooltipContent>
     </Tooltip>
+  ) : (
+    heading
+  );
+
+  // Le titre ne prend plus toute la ligne : il cède la place au sélecteur
+  // d'onglet, qui doit lui être ACCOLÉ et non repoussé à l'autre bout de la
+  // barre. C'est l'enveloppe qui porte la croissance (`className`).
+  return (
+    <div className={cn('flex min-w-0 items-center gap-2', className)}>
+      {titled}
+      {segmentSlot}
+    </div>
   );
 }
