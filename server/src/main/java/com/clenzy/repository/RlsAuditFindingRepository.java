@@ -22,6 +22,24 @@ public interface RlsAuditFindingRepository extends JpaRepository<RlsAuditFinding
     long countByResolvedAtIsNull();
 
     /**
+     * Ferme d'un coup tous les chemins encore ouverts.
+     *
+     * <p>UPDATE en masse plutot qu'un chargement suivi de N sauvegardes : le vidage du
+     * tampon tourne toutes les cinq minutes et peut inserer une ligne entre les deux.
+     * Fermer un chemin qu'on n'a pas compte — ou en compter un qu'on ne ferme pas — rendrait
+     * faux le nombre rapporte, seule chose que l'appelant puisse verifier.
+     *
+     * <p>{@code clearAutomatically} : les entites deja chargees dans le contexte de
+     * persistance ignoreraient cette mise a jour et reafficheraient leur ancien
+     * {@code resolvedAt}.
+     *
+     * @return nombre de chemins effectivement fermes
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE RlsAuditFinding f SET f.resolvedAt = :maintenant WHERE f.resolvedAt IS NULL")
+    int marquerTousTraites(@Param("maintenant") LocalDateTime maintenant);
+
+    /**
      * Accumulation idempotente : cree la ligne ou incremente l'existante.
      *
      * <p>En UPSERT natif plutot qu'en lecture-puis-ecriture : le vidage du tampon peut

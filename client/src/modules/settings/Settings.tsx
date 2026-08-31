@@ -813,17 +813,18 @@ export default function Settings() {
             </SettingsSection>
           </div>
 
-          {/* Sécurité (changement de mot de passe via email Keycloak) */}
+          {/* Sécurité et confidentialité : mot de passe (email Keycloak) et registre
+              RGPD (M9) dans UNE carte. Le registre reste réservé aux gestionnaires ;
+              pour les autres rôles la carte se réduit au mot de passe. */}
           <div className="col-span-12 min-[900px]:col-span-6">
-            <AccountSecuritySection />
+            <AccountSecuritySection
+              privacyRegister={
+                hasAnyRole(['HOST', 'SUPER_ADMIN', 'SUPER_MANAGER'])
+                  ? <PrivacyRequestsSection />
+                  : null
+              }
+            />
           </div>
-
-          {/* Confidentialité RGPD (M9) — registre des demandes, réservé aux gestionnaires */}
-          {hasAnyRole(['HOST', 'SUPER_ADMIN', 'SUPER_MANAGER']) && (
-            <div className="col-span-12">
-              <PrivacyRequestsSection />
-            </div>
-          )}
 
           {/* Workflow */}
           <div className="col-span-12 min-[900px]:col-span-6">

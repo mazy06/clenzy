@@ -4,6 +4,10 @@ import jakarta.persistence.EntityManager;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
 /**
  * Pose les variables de session PostgreSQL (GUC) utilisées par la Row-Level Security
  * multi-tenant (audit sécurité 2026-07, F1-STRUCT).
@@ -59,9 +63,29 @@ public final class RlsGuc {
      */
     private static final ThreadLocal<Boolean> GUC_POSEE = new ThreadLocal<>();
 
-    /** @return vrai si les GUC ont ete posees sur la transaction courante. */
+    /**
+     * Les GUC sont-elles posees a la prise de connexion, pour toute connexion sans exception ?
+     *
+     * <p>Pose par {@code RlsConnectionProviderConfig} quand
+     * {@link RlsTenantConnectionProvider} est installe. Ce provider ecrit les GUC sur
+     * <b>chaque</b> connexion empruntee, sans condition : il n'existe alors plus de requete
+     * JPA capable d'atteindre PostgreSQL sans contexte. Le marqueur par transaction devient
+     * un raffinement, plus la seule couverture.</p>
+     */
+    private static volatile boolean poseeParConnexion = false;
+
+    /** Voir {@link #poseeParConnexion}. Appele une fois, au montage du provider. */
+    public static void setPoseeParConnexion(boolean pose) {
+        poseeParConnexion = pose;
+    }
+
+    /**
+     * @return vrai si les GUC sont posees pour la requete en cours — soit par la connexion
+     *         elle-meme ({@link RlsTenantConnectionProvider}), soit par l'aspect sur la
+     *         transaction courante.
+     */
     public static boolean estGucPosee() {
-        return Boolean.TRUE.equals(GUC_POSEE.get());
+        return poseeParConnexion || Boolean.TRUE.equals(GUC_POSEE.get());
     }
 
     private RlsGuc() {
@@ -76,20 +100,43 @@ public final class RlsGuc {
         return strictContext;
     }
 
-    public static void apply(EntityManager em, TenantContext ctx) {
+    /**
+     * Valeurs a poser pour le thread courant.
+     *
+     * @param organisation identifiant d'organisation, chaine vide si aucune
+     * @param bypass       exemption de RLS accordee a cette execution
+     */
+    public record Valeurs(String organisation, boolean bypass) {
+
+        /** Representation attendue par la policy : {@code on} / {@code off}. */
+        public String bypassSql() {
+            return bypass ? "on" : "off";
+        }
+    }
+
+    /**
+     * Derive les valeurs de GUC du contexte tenant — <b>seul</b> endroit ou la regle de
+     * bypass est ecrite, pour que l'aspect (transaction) et le provider (connexion) ne
+     * puissent jamais diverger.
+     */
+    public static Valeurs valeursPour(TenantContext ctx) {
         final Long org = ctx.getOrganizationId();
         // Bypass EXPLICITE : décision métier assumée (staff plateforme, org SYSTEM).
         final boolean explicitBypass = ctx.isSuperAdmin() || ctx.isSystemOrg();
         // Bypass IMPLICITE : simple absence de contexte tenant — accordé par défaut pour ne pas
         // casser les exécutions internes, refusé en mode strict (défaut R3).
         final boolean implicitBypass = org == null && !strictContext;
-        final boolean bypass = explicitBypass || implicitBypass;
+        return new Valeurs(org == null ? "" : org.toString(), explicitBypass || implicitBypass);
+    }
+
+    public static void apply(EntityManager em, TenantContext ctx) {
+        final Valeurs valeurs = valeursPour(ctx);
         try {
             em.createNativeQuery("select set_config('app.current_org', :org, true)")
-                    .setParameter("org", org == null ? "" : org.toString())
+                    .setParameter("org", valeurs.organisation())
                     .getSingleResult();
             em.createNativeQuery("select set_config('app.bypass_rls', :bypass, true)")
-                    .setParameter("bypass", bypass ? "on" : "off")
+                    .setParameter("bypass", valeurs.bypassSql())
                     .getSingleResult();
             marquerGucPosee();
         } catch (RuntimeException e) {
@@ -97,6 +144,48 @@ public final class RlsGuc {
             // on NE relance PAS — la pose de GUC ne doit jamais casser une opération métier.
             // NB : si la GUC n'est pas posée alors que la RLS est active, les requêtes
             // renverront 0 ligne (fail-closed visible en staging), pas une fuite.
+        }
+    }
+
+    /**
+     * Pose les memes GUC en portee <b>SESSION</b> sur une connexion fraichement empruntee.
+     *
+     * <h2>Pourquoi SESSION ici, LOCAL dans {@link #apply}</h2>
+     * <p>A la prise de connexion, aucune transaction n'est garantie ouverte — et c'est
+     * precisement le cas qu'il s'agit de couvrir : un repository appele hors service
+     * {@code @Transactional} ouvre sa transaction dans {@code SimpleJpaRepository}, hors du
+     * pointcut de l'aspect. Un {@code set_config(..., true)} LOCAL y serait sans effet.</p>
+     *
+     * <h2>Pourquoi aucune connexion n'emporte le contexte de la precedente</h2>
+     * <p>Une GUC de session survit au retour de la connexion au pool. La seule protection
+     * qui tienne est donc l'inconditionnalite : ces deux valeurs sont ecrites a
+     * <b>chaque</b> emprunt, y compris quand il n'y a aucun tenant (chaine vide + bypass).
+     * Il n'existe pas de chemin ou l'on « saute » l'ecriture, donc pas de valeur heritee.
+     * Ne jamais rendre cet appel conditionnel.</p>
+     *
+     * <h2>Une valeur de session est annulee par un ROLLBACK</h2>
+     * <p>PostgreSQL annule un {@code set_config(..., false)} si la transaction englobante
+     * echoue. Hibernate acquerant la connexion a la premiere instruction de la transaction,
+     * l'ecriture faite ici en fait partie : un rollback la remet a la valeur precedente.
+     * Sans effet en pratique — la connexion est relachee dans la foulee et re-contextualisee
+     * au prochain emprunt — mais c'est la raison pour laquelle {@link RlsTenantGucAspect}
+     * n'est pas retire : ses GUC LOCAL sont reposees a chaque ouverture de transaction.</p>
+     *
+     * <h2>Pourquoi l'echec est relance, contrairement a {@link #apply}</h2>
+     * <p>L'aspect avale l'echec : une GUC LOCAL manquante fait renvoyer zero ligne, une
+     * panne visible, jamais une fuite. Ici l'enjeu est inverse — une connexion rendue sans
+     * ecriture porterait le contexte de son emprunteur precedent. Echouer bruyamment est la
+     * seule issue sure ; l'appelant referme la connexion.</p>
+     */
+    public static void applySession(Connection connection, TenantContext ctx) throws SQLException {
+        final Valeurs valeurs = valeursPour(ctx);
+        // Un seul aller-retour : les deux GUC dans la meme instruction.
+        try (PreparedStatement statement = connection.prepareStatement(
+                "select set_config('app.current_org', ?, false),"
+                        + " set_config('app.bypass_rls', ?, false)")) {
+            statement.setString(1, valeurs.organisation());
+            statement.setString(2, valeurs.bypassSql());
+            statement.execute();
         }
     }
 

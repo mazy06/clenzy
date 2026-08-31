@@ -468,6 +468,9 @@ const PermissionConfig: React.FC = () => {
               onChange={setActiveTab}
               paper={false}
               mb={0}
+              /* Rangee INTERNE au panneau du role : la navigation de l'ecran,
+                 c'est le selecteur de role au-dessus, qui occupe deja le titre. */
+              trail={false}
               ariaLabel="Configuration des permissions"
             />
           </div>

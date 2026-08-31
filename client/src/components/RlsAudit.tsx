@@ -2,6 +2,14 @@ import React from 'react';
 import {
   Alert,
   AlertDescription,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   AlertTitle,
   Badge,
   Button,
@@ -18,7 +26,7 @@ import {
   TooltipTrigger,
 } from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck, ShieldAlert, Layers, Clock, Check, Info, TriangleAlert, CircleAlert } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Layers, Clock, Check, CheckCheck, Info, TriangleAlert, CircleAlert } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
 import StatTile from './baitly/StatTile';
@@ -62,6 +70,13 @@ const RlsAudit: React.FC = () => {
     mutationFn: rlsAuditApi.marquerTraite,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rls-audit'] }),
   });
+
+  const marquerTousTraites = useMutation({
+    mutationFn: rlsAuditApi.marquerTousTraites,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rls-audit'] }),
+  });
+
+  const [confirmerFermetureEnMasse, setConfirmerFermetureEnMasse] = React.useState(false);
 
   if (error) {
     // Distinguer les causes : un message unique ferait chercher au mauvais endroit.
@@ -228,14 +243,52 @@ const RlsAudit: React.FC = () => {
 
       <Card>
         <CardContent>
-          <h6 className="text-sm font-semibold text-foreground mb-0.5">
-            Chemins sans contexte tenant
-          </h6>
-          <p className="text-xs text-muted-foreground mb-3">
-            Une fois la RLS active, ces requetes renverront zero ligne — sans lever
-            d'erreur. Le nombre d'occurrences indique l'urgence : un chemin tres emprunte
-            casserait plus d'ecrans qu'un chemin marginal.
-          </p>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h6 className="text-sm font-semibold text-foreground mb-0.5">
+                Chemins sans contexte tenant
+              </h6>
+              <p className="text-xs text-muted-foreground">
+                Une fois la RLS active, ces requetes renverront zero ligne — sans lever
+                d'erreur. Le nombre d'occurrences indique l'urgence : un chemin tres emprunte
+                casserait plus d'ecrans qu'un chemin marginal.
+              </p>
+            </div>
+            {/* Un correctif structurel rend tout l'inventaire caduc d'un coup : le fermer
+                ligne a ligne ferait cliquer sans lire. Le bouton n'apparait que s'il y a
+                quelque chose a fermer. */}
+            {ouverts.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                disabled={marquerTousTraites.isPending}
+                onClick={() => setConfirmerFermetureEnMasse(true)}
+              >
+                <CheckCheck />
+                Tout marquer traite
+              </Button>
+            )}
+          </div>
+
+          {/* Ce que la fermeture n'a pas couvert. Sans ce rappel, les constats arrives en
+              retard reapparaitraient etiquetes « reapparu apres correction » — un faux
+              signal de regression. */}
+          {marquerTousTraites.isSuccess && marquerTousTraites.data.enAttente > 0 && (
+            <Alert variant="warning" className="mb-3">
+              <TriangleAlert />
+              <AlertTitle>
+                {marquerTousTraites.data.traites} chemin(s) ferme(s),{' '}
+                {marquerTousTraites.data.enAttente} constat(s) non couvert(s)
+              </AlertTitle>
+              <AlertDescription>
+                Ces constats etaient encore en memoire au moment de la fermeture. Ceux qui
+                portent sur un chemin qu'on vient de fermer le rouvriront au prochain vidage
+                et s'afficheront « reapparu apres correction » : ils sont seulement arrives
+                en retard, ce n'est pas une regression.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {!isLoading && ouverts.length === 0 && traites.length === 0 && enAttente === 0 ? (
             <EmptyState
@@ -320,6 +373,37 @@ const RlsAudit: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={confirmerFermetureEnMasse} onOpenChange={setConfirmerFermetureEnMasse}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Marquer traites les {ouverts.length} chemins ouverts ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A reserver a un correctif structurel, qui rend l'inventaire entier caduc — pas
+              a une liste qu'on veut voir disparaitre. Les lignes sont conservees : si l'un
+              de ces chemins reapparait, il se rouvrira de lui-meme et s'affichera « reapparu
+              apres correction ».
+              {enAttente > 0 && (
+                <>
+                  {' '}
+                  <strong>
+                    {enAttente} constat(s) sont encore en memoire et ne seront pas couverts
+                  </strong>{' '}
+                  — le vidage a lieu toutes les 5 minutes.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => marquerTousTraites.mutate()}>
+              Tout marquer traite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

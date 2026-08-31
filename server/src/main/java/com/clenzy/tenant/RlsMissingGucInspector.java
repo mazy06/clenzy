@@ -26,14 +26,23 @@ import java.util.Locale;
  * chemin à traiter avant l'activation. Le silence prolongé de ce journal est la condition
  * d'activation : il transforme un pari en constat.
  *
- * <p><b>Après l'activation, il change de rôle plutôt que de devenir inutile.</b> Une requête
- * non scopée ne lèvera toujours aucune exception : le seul symptôme reste un écran vide, qui
- * n'atteint jamais les journaux. Cet inspecteur devient alors le seul détecteur des
- * régressions introduites plus tard — un {@code TransactionTemplate}, un flux de fond, un
- * repository appelé hors du pointcut. Voir {@link com.clenzy.config.RlsAuditConfig} pour la
- * distinction entre l'aspect qui <i>pose</i> les GUC et le contexte Liquibase qui
- * <i>applique</i> les politiques — les confondre conduit à couper l'instrumentation en
- * croyant l'inventaire terminé.
+ * <p><b>Ce que l'inventaire a produit, et ce qu'il a coûté à cet inspecteur.</b> Les 34
+ * chemins recensés partageaient tous la même cause structurelle, et la réponse a été
+ * structurelle : {@link RlsTenantConnectionProvider} pose désormais les GUC à la prise de
+ * connexion. Aucune requête JPA ne peut plus arriver sans contexte —
+ * {@link RlsGuc#estGucPosee()} le sait, et cet inspecteur se tait donc <b>par construction</b>,
+ * pas par mise en sourdine. Il reste actif pour le cas où le provider n'est pas installé
+ * ({@code clenzy.security.rls.enabled=false}).
+ *
+ * <p><b>Le risque résiduel qu'il ne couvre pas.</b> « GUC absente » est devenu impossible ;
+ * « GUC posée en bypass alors qu'un tenant était attendu » ne l'est pas — un thread de fond
+ * qui a perdu son contexte lit alors <i>toutes</i> les organisations. Ce symptôme-là est une
+ * fuite, pas un écran vide, et cet inspecteur ne le voit pas. Le détecter demanderait de
+ * signaler les requêtes exécutées <i>en bypass</i>, ce qui suppose d'abord d'inventorier les
+ * flux cross-organisation légitimes (schedulers financiers, consumers Kafka). Voir
+ * {@link com.clenzy.config.RlsAuditConfig} pour la distinction entre l'aspect qui <i>pose</i>
+ * les GUC et le contexte Liquibase qui <i>applique</i> les politiques — les confondre conduit
+ * à couper l'instrumentation en croyant l'inventaire terminé.
  *
  * <p><b>Coût.</b> Inerte tant que {@code clenzy.security.rls.audit-missing-guc} vaut
  * {@code false} (défaut) : la méthode retourne immédiatement. Activé, le chemin normal —

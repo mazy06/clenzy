@@ -25,11 +25,18 @@ import org.springframework.stereotype.Component;
  * LOCAL n'aurait pas de transaction où s'appliquer). Ce positionnement DOIT être validé
  * en staging (une GUC non posée = requêtes vides, visible immédiatement).</p>
  *
- * <p><b>Couverture connue (à valider en staging)</b> : l'aspect cible les méthodes
- * {@code @Transactional} de {@code com.clenzy}. Les accès repository Spring Data appelés
- * <b>directement</b> hors d'un service applicatif @Transactional (rare) ne sont pas couverts
- * par ce pointcut — la cible robuste long terme est un {@code ConnectionProvider} Hibernate
- * posant la GUC au checkout de connexion.</p>
+ * <p><b>Couverture</b> : l'aspect cible les méthodes {@code @Transactional} de
+ * {@code com.clenzy}. Les accès repository appelés <b>directement</b> hors d'un service
+ * applicatif @Transactional ouvrent leur transaction dans {@code SimpleJpaRepository} et
+ * échappent à ce pointcut — l'inventaire de production en a recensé 34, loin d'être « rares ».
+ * Cette couverture-là est désormais assurée par {@link RlsTenantConnectionProvider}, qui pose
+ * les GUC à la prise de connexion.</p>
+ *
+ * <p><b>Cet aspect n'est pas devenu redondant pour autant</b> : ses GUC sont LOCAL, donc
+ * reposées à chaque ouverture de transaction. C'est ce qui rattrape un flux qui change
+ * d'organisation en cours de connexion ({@code TenantScopedExecutor} dans une boucle), et ce
+ * qui restaure le contexte après un ROLLBACK — lequel annule une valeur de session. Les deux
+ * mécanismes lisent {@link RlsGuc#valeursPour} : ils ne peuvent pas diverger.</p>
  */
 @Aspect
 @Component

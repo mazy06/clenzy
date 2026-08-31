@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  buttonVariants,
 } from './ui';
 import NavCountBadge from './NavCountBadge';
 import { sizedIcon } from '../config/navigationIcons';
@@ -28,13 +27,13 @@ interface PageTabsMenuProps<T extends string | number> {
 }
 
 /**
- * Sélecteur d'onglets pour les écrans sous 1024 px.
+ * Sélecteur d'onglets de l'écran, rendu dans la ligne du titre.
  *
  * La bande d'onglets qui défile horizontalement ne dit jamais combien d'onglets
- * existent ni où l'on se trouve : sur tablette, « Général » cachait cinq onglets
- * à droite du pli. On remplace donc le défilement par un menu qui affiche
- * l'onglet courant et déplie la liste entière — un seul geste au lieu d'un
- * balayage à l'aveugle.
+ * existent ni où l'on se trouve : « Général » cachait cinq onglets à droite du
+ * pli. On remplace donc la bande par un menu qui affiche l'onglet courant et
+ * déplie la liste entière — un seul geste au lieu d'un balayage à l'aveugle,
+ * et une ligne rendue au contenu de l'écran.
  *
  * Deux surfaces selon la largeur, pas deux composants : `DropdownMenu` ancré au
  * déclencheur sur tablette (le pointeur est précis, la liste reste près de son
@@ -47,8 +46,8 @@ export default function PageTabsMenu<T extends string | number>({
   onSelect,
 }: PageTabsMenuProps<T>) {
   const { t } = useTranslation();
-  // `sm` de Tailwind (640 px), le meme seuil que le `hidden sm:inline` qui
-  // masque le libelle du declencheur.
+  // `sm` de Tailwind (640 px) : sous cette largeur la liste arrive sous le
+  // pouce (Drawer) plutot qu'ancree en haut de l'ecran.
   const isPhone = useMediaQuery('(max-width: 639.98px)');
   const [open, setOpen] = useState(false);
 
@@ -70,17 +69,20 @@ export default function PageTabsMenu<T extends string | number>({
     <button
       type="button"
       aria-label={`${label} — ${current.label}`}
-      /* Le gabarit vient de `buttonVariants`, pas d'un style maison : hauteur,
-         rayon, hairline et survol doivent etre EXACTEMENT ceux des boutons
-         voisins de la barre. Une classe recopiee derive — le rayon avait fini a
-         8 px la ou le kit en pose 10. */
-      className={cn(buttonVariants({ variant: 'outline' }), 'min-w-0 cursor-pointer font-medium')}
+      /* Pas de gabarit de bouton ici : le declencheur EST le second segment du
+         titre. Il en reprend donc la fonte et l'encre douce (cf. PageTitle) et
+         n'affirme sa nature cliquable qu'au survol, par un fond discret. Un
+         `variant="outline"` aurait pose une boite au milieu du h1. */
+      className={cn(
+        /* `min-h-8` : la cible tactile s'aligne sur les boutons icone voisins de
+           la barre, sinon le libelle seul n'offrait que ~26 px a viser. */
+        '-mx-1.5 flex min-h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5',
+        'font-normal text-muted-foreground transition-colors duration-200',
+        'hover:bg-accent hover:text-foreground',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+      )}
     >
-      {current.icon && sizedIcon(current.icon, 16, 1.75)}
-      {/* Sous 640 px, le libelle cede la place : le titre de l'ecran occupe
-          deja la barre et se tronquait a trois caracteres pour laisser passer
-          un nom d'onglet souvent identique. L'icone et l'aria-label suffisent. */}
-      <span className="hidden truncate sm:inline">{current.label}</span>
+      <span className="truncate">{current.label}</span>
       <NavCountBadge count={current.badge} tone={current.badgeColor} />
       <span className="relative flex shrink-0 items-center">
         <ChevronDown className="size-4 text-muted-foreground" />
@@ -154,9 +156,9 @@ export default function PageTabsMenu<T extends string | number>({
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      {/* Ancre a droite : le declencheur siege parmi les commandes de la barre,
-          un menu aligne a gauche deborderait de l'ecran. */}
-      <DropdownMenuContent align="end" className="min-w-56 max-w-[min(20rem,90vw)]">
+      {/* Ancre a gauche : le declencheur est accole au titre, a gauche de la
+          barre — un menu aligne a droite partirait chercher le bord oppose. */}
+      <DropdownMenuContent align="start" className="min-w-56 max-w-[min(20rem,90vw)]">
         {options.map((opt, index) => (
           <DropdownMenuItem
             key={opt.key ?? String(opt.value ?? index)}

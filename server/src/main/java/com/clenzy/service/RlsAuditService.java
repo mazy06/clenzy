@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.RlsAuditBulkResolveDto;
 import com.clenzy.dto.RlsAuditFindingDto;
 import com.clenzy.dto.RlsAuditSummaryDto;
 import com.clenzy.model.RlsAuditFinding;
@@ -74,6 +75,28 @@ public class RlsAuditService {
             finding.setResolvedAt(LocalDateTime.now());
             return RlsAuditFindingDto.from(repository.save(finding));
         });
+    }
+
+    /**
+     * Marque traités TOUS les chemins encore ouverts.
+     *
+     * <p>Un correctif structurel ferme l'inventaire entier d'un coup — c'est ce qu'a fait
+     * {@link com.clenzy.tenant.RlsTenantConnectionProvider}, qui pose le contexte tenant a
+     * la prise de connexion et rend donc caducs les 34 chemins recenses. Les fermer un a un
+     * transformerait ce constat unique en trente-quatre clics, et l'operateur finirait par
+     * les fermer sans les lire.</p>
+     *
+     * <p><b>La fermeture ne masque rien.</b> Les lignes sont conservees et
+     * {@code resolved_at} repasse a NULL si un chemin reapparait (cf.
+     * {@link RlsAuditFindingRepository#upsert}) : ce qui revient revient, marque comme tel.
+     * Les constats encore en memoire ne sont en revanche pas couverts — d'ou leur nombre
+     * dans la reponse, pour que l'appelant sache que l'inventaire ferme n'etait peut-etre
+     * pas complet.</p>
+     */
+    @Transactional
+    public RlsAuditBulkResolveDto marquerTousTraites() {
+        int traites = repository.marquerTousTraites(LocalDateTime.now());
+        return new RlsAuditBulkResolveDto(traites, RlsAuditBuffer.enAttente());
     }
 
     /** Chemins encore ouverts. Zéro est la condition d'activation de la RLS. */

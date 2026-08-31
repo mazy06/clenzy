@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.RlsAuditSummaryDto;
 import com.clenzy.model.RlsAuditFinding;
 import com.clenzy.repository.RlsAuditFindingRepository;
+import com.clenzy.tenant.RlsAuditBuffer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -101,5 +103,39 @@ class RlsAuditServiceTest {
 
         assertThat(new RlsAuditService(repository, true, true, "!rls").marquerTraite(99L))
                 .isEmpty();
+    }
+
+    @Test
+    @DisplayName("fermeture en masse : rend le nombre réellement fermé, pas celui demandé")
+    void fermetureEnMasse_rendLeNombreFerme() {
+        // Le vidage du tampon tourne toutes les cinq minutes et peut insérer une ligne
+        // pendant l'opération : seul l'UPDATE sait combien de chemins il a fermés.
+        when(repository.marquerTousTraites(any(LocalDateTime.class))).thenReturn(34);
+
+        var resultat = new RlsAuditService(repository, true, true, "!rls").marquerTousTraites();
+
+        assertThat(resultat.traites()).isEqualTo(34);
+    }
+
+    @Test
+    @DisplayName("fermeture en masse : signale les constats encore en mémoire")
+    void fermetureEnMasse_signaleLesConstatsEnAttente() {
+        when(repository.marquerTousTraites(any(LocalDateTime.class))).thenReturn(2);
+        // Le tampon est un état statique partagé par toute la JVM de test : sans ce vidage
+        // initial, ce qu'y ont laissé les tests précédents fausserait le compte.
+        RlsAuditBuffer.viderEtRecuperer();
+        // Un constat en mémoire n'est pas couvert par la fermeture : il rouvrira son chemin
+        // au prochain vidage, étiqueté « réapparu après correction » alors qu'il est
+        // seulement arrivé en retard. Le taire ferait lire une régression là où il n'y en a
+        // pas.
+        RlsAuditBuffer.enregistrer("com.clenzy.Exemple.methode:1", "reservations", "select 1");
+
+        try {
+            var resultat = new RlsAuditService(repository, true, true, "!rls").marquerTousTraites();
+
+            assertThat(resultat.enAttente()).isEqualTo(1);
+        } finally {
+            RlsAuditBuffer.viderEtRecuperer();
+        }
     }
 }

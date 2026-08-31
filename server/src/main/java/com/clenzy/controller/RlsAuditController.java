@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.RlsAuditBulkResolveDto;
 import com.clenzy.dto.RlsAuditFindingDto;
 import com.clenzy.dto.RlsAuditSummaryDto;
 import com.clenzy.service.RlsAuditService;
@@ -42,6 +43,17 @@ public class RlsAuditController {
                     + "Zero chemin ouvert est la condition d'activation de la RLS.")
     public ResponseEntity<RlsAuditSummaryDto> etat() {
         return ResponseEntity.ok(rlsAuditService.etat());
+    }
+
+    @PostMapping("/resolve-all")
+    @Operation(summary = "Marquer traites tous les chemins ouverts",
+            description = "Pour un correctif structurel, qui ferme l'inventaire entier d'un "
+                    + "coup. Les lignes sont conservees et rouvertes d'elles-memes si un "
+                    + "chemin reapparait. La reponse indique les constats encore en memoire, "
+                    + "que cette fermeture ne couvre pas.")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<RlsAuditBulkResolveDto> marquerTousTraites() {
+        return ResponseEntity.ok(rlsAuditService.marquerTousTraites());
     }
 
     @PostMapping("/{id}/resolve")
