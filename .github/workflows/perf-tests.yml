@@ -168,21 +168,32 @@ jobs:
             sleep 1
           done
 
-      # ── Verifier le seed avant de mesurer ──
+      # ── Attendre le seed, puis resoudre le logement cible ──
       # Sans jeu de donnees, le TenantFilter refuse tout en 403 et le load test
       # mesure la chaine de filtres au lieu de l'application. On echoue ici,
       # bruyamment, plutot que de publier des latences flatteuses.
+      #
+      # Pourquoi une attente et pas une simple requete : /actuator/health repond
+      # des l'ouverture de Tomcat, et Spring Boot execute les ApplicationRunner
+      # APRES — le message « Started ClenzyApplication » lui-meme precede
+      # callRunners(). La boucle de demarrage ci-dessus peut donc rendre la main
+      # 200 ms avant que le seeder ait ecrit sa premiere ligne (run 33415608422).
+      # La condition qui nous interesse est le jeu de donnees, pas le port ouvert.
       - name: Resolve seeded property id
         env:
           PGPASSWORD: clenzy_perf_ci
         run: |
-          PROPERTY_ID=$(psql -h localhost -p 5432 -U clenzy_perf -d clenzy_perf \
-            -tAc "SELECT id FROM properties ORDER BY id LIMIT 1")
+          for i in $(seq 1 60); do
+            PROPERTY_ID=$(psql -h localhost -p 5432 -U clenzy_perf -d clenzy_perf \
+              -tAc "SELECT id FROM properties ORDER BY id LIMIT 1" 2>/dev/null || true)
+            [ -n "$PROPERTY_ID" ] && break
+            sleep 1
+          done
 
           if [ -z "$PROPERTY_ID" ]; then
-            echo "::error::Aucun logement seede — PerfTestDataSeeder n'a pas tourne ou a echoue."
-            echo "=== Backend logs (seed) ==="
-            grep -i "perf\|seed" /tmp/backend.log | tail -30 || tail -50 /tmp/backend.log
+            echo "::error::Aucun logement seede apres 60s — PerfTestDataSeeder n'a pas tourne ou a echoue."
+            echo "=== Backend logs ==="
+            tail -80 /tmp/backend.log
             exit 1
           fi
 
