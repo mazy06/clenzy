@@ -24,6 +24,13 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        # @Size(max) l'emporte sur @Column(length) dans le DDL Hibernate
+        # (TypeSafeActivator.applyLength fait un setLength inconditionnel) :
+        # users.first_name naissait en varchar(50) malgre length=500, trop court
+        # pour le ciphertext AES d'EncryptedFieldConverter (~64 car. minimum).
+        # Invisible en prod, ou Liquibase est la source de verite du schema.
+        validator:
+          apply_to_ddl: false
         format_sql: false
         jdbc:
           time_zone: UTC
