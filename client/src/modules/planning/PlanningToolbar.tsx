@@ -18,7 +18,7 @@ import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
 import { ZOOM_LABELS, ZOOM_LABELS_SHORT } from './constants';
 import type { PlanningChannelKey } from './constants';
-import { formatMonthYear } from './utils/dateUtils';
+import { formatMonthYear, formatMonthYearShort } from './utils/dateUtils';
 import { ChannelLegendChips, StatusLegendChips, InterventionLegendChip } from './LegendChips';
 
 interface PlanningToolbarProps {
@@ -101,9 +101,20 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
         <ChevronLeft size={15} strokeWidth={1.75} />
       </Button>
 
-      {/* Month title : info principale (display, encre) */}
-      <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] whitespace-nowrap px-1 min-[480px]:px-0 min-[480px]:min-w-[110px] text-center">
-        {formatMonthYear(currentDate)}
+      {/* Month title : info principale (display, encre).
+
+          LARGEUR FIXE, dans les deux regimes. Le libelle n'en avait aucune sous
+          480 px et son plancher de 110 px ne couvrait meme pas « Septembre 2026 »
+          (~119 px) au-dela : changer de mois deplacait donc tout ce qui suit,
+          jusqu'a faire deborder la barre, gagner une ligne de hauteur, et
+          repousser un logement en page 2. Les planchers sont tailles sur le plus
+          long mois de chaque forme — abregee en dessous, entiere au-dessus.
+
+          L'abreviation n'est pas qu'une question de stabilite : elle rend une
+          trentaine de pixels a la rangee, qui ne tenait plus a 375 px. */}
+      <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] tabular-nums whitespace-nowrap px-1 min-w-[86px] min-[480px]:px-0 min-[480px]:min-w-[124px] text-center">
+        <span className="min-[480px]:hidden">{formatMonthYearShort(currentDate)}</span>
+        <span className="hidden min-[480px]:inline">{formatMonthYear(currentDate)}</span>
       </h6>
 
       <Button

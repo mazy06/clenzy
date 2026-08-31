@@ -43,6 +43,18 @@ export function formatMonthYear(date: Date): string {
   return format(date, 'MMMM yyyy', { locale: fr });
 }
 
+/**
+ * Mois abrege — « sept. 2026 ».
+ *
+ * <p>Sur les ecrans etroits, « Septembre 2026 » reclame une quarantaine de
+ * pixels de plus que « Aout 2026 » : la barre d'outils debordait, gagnait une
+ * ligne en hauteur, et la grille perdait un logement au profit de la page
+ * suivante. Le mois ne doit pas decider du nombre de lignes affichees.</p>
+ */
+export function formatMonthYearShort(date: Date): string {
+  return format(date, 'MMM yyyy', { locale: fr });
+}
+
 /** Format complet pour tooltips : "Lundi 18 mai 2026". */
 export function formatFullDate(date: Date): string {
   return format(date, 'EEEE d MMMM yyyy', { locale: fr });
