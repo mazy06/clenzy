@@ -39,7 +39,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
   return (
     <>
       <div className="flex items-center gap-0.5 mb-1">
-        <span className="inline-flex text-[var(--accent)]"><PhotoLibrary size={14} strokeWidth={1.75} /></span>
+        <span className="inline-flex text-[var(--brand-ink)]"><PhotoLibrary size={14} strokeWidth={1.75} /></span>
         <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)]">
           {label}
         </p>

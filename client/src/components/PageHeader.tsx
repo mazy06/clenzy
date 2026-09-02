@@ -38,6 +38,18 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   /** Slot pour les filtres, rendu avec les actions sur la ligne du titre. */
   filters?: React.ReactNode;
+  /**
+   * Commandes de l'ecran rendues EN CLAIR dans la barre, juste avant la
+   * recherche — typiquement une navigation de periode, dont le sens se perd
+   * derriere un declencheur unique : on ne lit plus quel mois est affiche sans
+   * ouvrir le menu.
+   *
+   * Elles ne restent en clair que tant que la barre a la place : sous `xl`
+   * (1280 px, cf. `canInlineControls`) elles rejoignent le repli du header — le
+   * popover de filtres, puis le menu d'actions sous `lg` — au lieu d'ecraser le
+   * titre.
+   */
+  inlineControls?: React.ReactNode;
   showBackButton?: boolean;
   showBackButtonWithActions?: boolean;
   className?: string;
@@ -47,7 +59,7 @@ interface PageHeaderProps {
  * Header de page standardise du PMS Baitly (kit Baitly UI).
  *
  * Structure — UNE seule ligne :
- *   [icône] Titre │ Onglet ⌄  [puce]   [recherche] [filtres] [actions] [retour]
+ *   [icône] Titre │ Onglet ⌄  [puce]   [commandes] [recherche] [filtres] [actions] [retour]
  *
  * Le fil d'Ariane a été retiré : il coûtait une ligne pour redire ce que la
  * barre latérale montre déjà (où l'on est) et ce que le titre porte désormais
@@ -80,6 +92,7 @@ export default function PageHeader({
   onBack,
   actions,
   filters,
+  inlineControls,
   showBackButton = true,
   showBackButtonWithActions = false,
   className,
@@ -96,6 +109,12 @@ export default function PageHeader({
   // actions et le retour : c'est la largeur ou l'espace manque le plus, et la
   // seule ou rien ne se repliait.
   const isCompact = useMediaQuery('(max-width: 1023.98px)');
+
+  // Seuil PROPRE aux commandes en clair, plus haut que `lg` : le groupe type
+  // (navigation de periode + selecteur d'echelle) pese ~530 px et la barre
+  // porte deja la recherche (256 px) et ses icones. Sous `xl`, le titre — seul
+  // element elastique de la ligne — serait ecrase avant que le groupe ne cede.
+  const canInlineControls = useMediaQuery('(min-width: 1280px)');
 
   const handleBack = () => {
     if (onBack) {
@@ -117,6 +136,21 @@ export default function PageHeader({
 
   const icon = iconBadge ?? screenIconFor(pathname);
   const showBack = (showBackButton || showBackButtonWithActions) && (onBack || backPath);
+
+  // Repliees, les commandes en clair ouvrent la meme couche que les filtres —
+  // elles y arrivent EN TETE, avant eux : ce sont des commandes de navigation,
+  // on les cherche en haut du panneau. Le ternaire garde `undefined` quand il
+  // n'y a rien a replier, sans quoi le fragment vide rendrait le declencheur
+  // « Filtres » sur un panneau vide.
+  const foldedFilters =
+    !canInlineControls && inlineControls ? (
+      <>
+        {inlineControls}
+        {filters}
+      </>
+    ) : (
+      filters
+    );
 
   return (
     <header className={cn('mb-1.5 flex flex-col gap-1.5 lg:mb-3', className)}>
@@ -176,9 +210,14 @@ export default function PageHeader({
         />
 
         <div className="flex shrink-0 items-center gap-2">
+          {/* Commandes en clair — AVANT la recherche : elles portent l'etat de
+              l'ecran (la periode affichee), la recherche n'est qu'un point
+              d'entree. Sous `xl` elles rejoignent le repli (cf. foldedFilters). */}
+          {canInlineControls && inlineControls}
+
           <GlobalSearchField />
 
-          <PageHeaderActions filters={filters} actions={actions} narrow={isCompact} />
+          <PageHeaderActions filters={foldedFilters} actions={actions} narrow={isCompact} />
 
           {showBack && (
             <Tooltip>

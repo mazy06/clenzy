@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { ZoomLevel } from '../types';
-import { ZOOM_CONFIGS, BUFFER_MULTIPLIER, EXTEND_THRESHOLD_DAYS } from '../constants';
+import { ZOOM_CONFIGS, BUFFER_MULTIPLIER, MAX_BUFFER_MULTIPLIER, EXTEND_THRESHOLD_DAYS } from '../constants';
 import { generateDays, computeBufferRange, addDays, subDays } from '../utils/dateUtils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -33,6 +33,9 @@ export function useInfiniteTimeline({
 }: UseInfiniteTimelineConfig): UseInfiniteTimelineReturn {
   const config = ZOOM_CONFIGS[zoom];
   const extendAmount = config.visibleDays; // how many days to add when extending
+  // Au-dela de ce plafond, etendre un bord ROGNE l'autre : le buffer glisse au
+  // lieu de grossir.
+  const maxBufferDays = config.visibleDays * MAX_BUFFER_MULTIPLIER;
 
   // Buffer state
   const [bufferStart, setBufferStart] = useState(() => {
@@ -127,11 +130,20 @@ export function useInfiniteTimeline({
     const visibleStartIndex = Math.floor(contentScrollLeft / dayWidth);
     const visibleEndIndex = visibleStartIndex + Math.ceil(containerWidth / dayWidth);
 
+    // Le buffer GLISSE : au-dela du plafond, on rogne le bord oppose de ce
+    // qu'on vient d'ajouter. Sans cela il grossissait sans fin, et chaque
+    // extension invalidait le calcul de position de toutes les briques.
+    const willOverflow = days.length + extendAmount > maxBufferDays;
+
     // Extend left
     if (visibleStartIndex < EXTEND_THRESHOLD_DAYS) {
       isExtending.current = true;
+      // Ajouter en tete decale le contenu vers la droite : on rend au
+      // scrollLeft ce que la prepend lui a pris. Le rognage a l'autre bout
+      // n'affecte AUCUNE position, il ne compense donc rien.
       pendingCompensation.current = extendAmount * dayWidth;
       setBufferStart((prev) => subDays(prev, extendAmount));
+      if (willOverflow) setBufferEnd((prev) => subDays(prev, extendAmount));
       requestAnimationFrame(() => {
         isExtending.current = false;
       });
@@ -141,11 +153,17 @@ export function useInfiniteTimeline({
     if (days.length - visibleEndIndex < EXTEND_THRESHOLD_DAYS) {
       isExtending.current = true;
       setBufferEnd((prev) => addDays(prev, extendAmount));
+      if (willOverflow) {
+        // Rogner en TETE decale tout le contenu vers la gauche : le scrollLeft
+        // doit reculer d'autant, sinon la vue saute d'une fenetre entiere.
+        pendingCompensation.current = -extendAmount * dayWidth;
+        setBufferStart((prev) => addDays(prev, extendAmount));
+      }
       requestAnimationFrame(() => {
         isExtending.current = false;
       });
     }
-  }, [dayWidth, days.length, extendAmount, propertyColWidth]);
+  }, [dayWidth, days.length, extendAmount, maxBufferDays, propertyColWidth]);
 
   // ── Scroll to specific date ───────────────────────────────────────────────
 

@@ -13,6 +13,60 @@
   --pl-cell-we: #131C23;
 }
 
+/* ─── Palette « Terre cuite » : couleurs de statut des briques ───────────────
+ *
+ * Une seule famille de bruns, ou la VALEUR encode la presence : plus le
+ * voyageur est la, plus la brique est dense. Beige = rien n'est acquis ;
+ * taupe desature = le sejour est passe.
+ *
+ * TROIS jetons par statut, non interchangeables (contrat Baitly UI, regle
+ * `-ink` / teinte vive / `-soft`). La table precedente n'en avait qu'un, servi
+ * a la fois en fond de brique ET en couleur de texte de pastille : une teinte
+ * vive plafonne a ~2,2:1 en texte, et c'est ainsi que les quatre statuts se
+ * sont retrouves sous le seuil de lisibilite.
+ *
+ *   --pl-st-{x}      fond de la brique
+ *   --pl-st-{x}-on   encre POSEE SUR ce fond (la brique porte du texte)
+ *   --pl-st-{x}-ink  encre du texte sur une carte (pastilles, libelles, puces)
+ *
+ * Toutes les valeurs sont mesurees : texte >= 4,5:1 sur son fond, brique
+ * >= 1,35:1 sur la grille, et >= 1,5:1 entre deux briques voisines.
+ *
+ * Ne PAS deriver ces teintes des tokens semantiques (--ok / --warn / --info) :
+ * elles ne disent pas « bon / attention / info », elles disent ou en est le
+ * sejour. Les confondre ferait virer les briques au premier reglage de marque.
+ */
+:root {
+  /* En attente — le plus pale : rien n'est acquis. Encre foncee obligatoire. */
+  --pl-st-pending:          #E0C89B;
+  --pl-st-pending-on:       #2B211A;
+  --pl-st-pending-ink:      #8A6420;
+  /* Confirmee — valeur mediane. */
+  --pl-st-confirmed:        #9A6C3A;
+  --pl-st-confirmed-on:     #FFFFFF;
+  --pl-st-confirmed-ink:    #7A5230;
+  /* Sur place — la plus dense : le voyageur est la maintenant. */
+  --pl-st-checked-in:       #5C3A21;
+  --pl-st-checked-in-on:    #FFFFFF;
+  --pl-st-checked-in-ink:   #4A2E1B;
+  /* Partie — meme famille, desaturee : le passe se retire sans disparaitre. */
+  --pl-st-checked-out:      #A89684;
+  --pl-st-checked-out-on:   #2B211A;
+  --pl-st-checked-out-ink:  #6B6055;
+}
+[data-theme="dark"] {
+  /* Les fonds pales tiennent tels quels sur la grille sombre. Seul « sur
+     place » remonte : a #5C3A21 il ne se detachait qu'a 1,71:1 du fond, la
+     brique la plus dense devenait la moins visible. */
+  --pl-st-checked-in:       #6B4527;
+  /* Les encres de TEXTE s'inversent : une encre foncee sur une carte sombre
+     ne se lit pas. Elles remontent dans les clairs de la meme famille. */
+  --pl-st-pending-ink:      #E0C89B;
+  --pl-st-confirmed-ink:    #CFA06A;
+  --pl-st-checked-in-ink:   #B98A5C;
+  --pl-st-checked-out-ink:  #B9AC9C;
+}
+
 /* ─── Animations d'urgence « wizz » (galerie Signature 09/09b) ──────────────
  *
  * Appliquées aux briques de réservation avec paiement en attente OU info
@@ -82,3 +136,29 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--bc) 55%, transparent);
   }
 }
+
+/* ─── Rangée de filtres : UNE ligne, jamais deux ────────────────────────────
+ *
+ * Elle passait en `flex-wrap` : dès qu'un canal de plus était présent dans les
+ * données, une seconde ligne apparaissait, la barre gagnait ~32 px de hauteur,
+ * et la grille perdait d'un coup un logement de la page (le pageSize se calcule
+ * sur la hauteur restante). Le contenu défile désormais horizontalement.
+ *
+ * L'ascenseur est masqué : les chips coupées au bord suffisent à dire qu'il y a
+ * une suite, et une barre de défilement de 15 px sous une rangée de 27 px
+ * pèserait plus que ce qu'elle surplombe. Le défilement reste possible à la
+ * molette, au trackpad, et au clavier via le focus des chips.
+ */
+.pl-filter-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;            /* Firefox */
+  -ms-overflow-style: none;         /* anciens Edge */
+  /* Le focus clavier d'une chip ne doit pas être rogné par l'overflow. */
+  padding-block: 2px;
+}
+.pl-filter-row::-webkit-scrollbar { display: none; }

@@ -120,7 +120,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
       <DialogContent className="w-full sm:max-w-[600px] max-h-[80vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5 pe-8">
-            <span className="inline-flex text-[var(--accent)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
+            <span className="inline-flex text-[var(--brand-ink)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
             Changer de logement
           </DialogTitle>
         </DialogHeader>
@@ -196,7 +196,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                       </p>
                     </div>
                     {isSelected && (
-                      <span className="inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>
+                      <span className="inline-flex text-[var(--brand-ink)]"><CheckCircle size={18} strokeWidth={1.75} /></span>
                     )}
                   </div>
                   <div className="flex gap-1 mt-1 ms-5">

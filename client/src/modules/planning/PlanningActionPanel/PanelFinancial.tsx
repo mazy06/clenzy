@@ -1278,7 +1278,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--accent)]"><Payment size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-[var(--brand-ink)]"><Payment size={20} strokeWidth={1.75} /></span>
               <span>Historique des paiements</span>
             </DialogTitle>
           </DialogHeader>
@@ -1345,7 +1345,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogContent className="sm:max-w-[444px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--accent)]"><Add size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-[var(--brand-ink)]"><Add size={20} strokeWidth={1.75} /></span>
               <span>Ajouter un paiement</span>
             </DialogTitle>
           </DialogHeader>
@@ -1417,7 +1417,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogContent className="sm:max-w-[444px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--accent)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-[var(--brand-ink)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
               <span>Frais supplementaires</span>
             </DialogTitle>
           </DialogHeader>

@@ -15,7 +15,7 @@ import {
   People as PeopleIcon,
 } from '../../icons';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { guestsApi } from '../../services/api/guestsApi';
+import { guestsApi, guestPhotoSrc } from '../../services/api/guestsApi';
 import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -242,7 +242,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                           email en dessous — la colonne Email disparait, la
                           donnee reste. */}
                       <span className="flex items-center gap-2.5">
-                        <GuestAvatar name={guest.fullName || '?'} size={28} />
+                        <GuestAvatar name={guest.fullName || '?'} photoUrl={guestPhotoSrc(guest.avatarUrl)} size={28} />
                         <span className="min-w-0">
                           <span className="flex items-center gap-1.5">
                             <span className="truncate text-[13px] font-medium text-foreground">{guest.fullName}</span>

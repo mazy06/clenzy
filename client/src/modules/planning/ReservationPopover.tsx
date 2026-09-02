@@ -1,3 +1,4 @@
+import { guestPhotoSrc } from '../../services/api/guestsApi';
 import React from 'react';
 import {
   Button,
@@ -143,7 +144,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       <div className="flex items-center gap-[7.5px] px-3.5 py-3">
         <GuestAvatar
           name={event.label}
-          photoUrl={reservation.guestAvatarUrl}
+          photoUrl={guestPhotoSrc(reservation.guestAvatarUrl)}
           size={40}
           sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8125rem' }}
         />

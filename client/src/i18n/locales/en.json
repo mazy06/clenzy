@@ -102,7 +102,9 @@
     },
     "scope": {
       "byProperty": "By property",
-      "portfolio": "Overview"
+      "portfolio": "Overview",
+      "switchToPortfolio": "Switch to overview",
+      "switchToProperty": "Switch to by property"
     },
     "states": {
       "loading": "Connecting to agents…",

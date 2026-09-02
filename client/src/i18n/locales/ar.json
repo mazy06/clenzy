@@ -102,7 +102,9 @@
     },
     "scope": {
       "byProperty": "حسب العقار",
-      "portfolio": "نظرة عامة"
+      "portfolio": "نظرة عامة",
+      "switchToPortfolio": "التبديل إلى نظرة عامة",
+      "switchToProperty": "التبديل إلى حسب العقار"
     },
     "states": {
       "loading": "جارٍ الاتصال بالوكلاء…",

@@ -134,7 +134,7 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
       variant="outline"
       aria-label="Aller à aujourd'hui"
       onClick={onGoToday}
-      className="size-[28px] shrink-0 justify-center gap-0 p-0 min-[480px]:size-auto min-[480px]:gap-1 min-[480px]:px-2 min-[480px]:py-0 text-[0.6875rem] font-semibold min-[480px]:h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]"
+      className="size-[28px] shrink-0 justify-center gap-0 p-0 min-[480px]:size-auto min-[480px]:gap-1 min-[480px]:px-2 min-[480px]:py-0 text-[0.6875rem] font-semibold min-[480px]:h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--brand-ink)]"
     >
       <TodayOutlined size={13} strokeWidth={1.75} />
       <span className="hidden min-[480px]:inline">Aujourd'hui</span>
@@ -233,7 +233,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           modale de filtres quand `legendInModal` (viewport compact OU
           constellation d'agents déployée) pour ne jamais dupliquer les chips. */}
       {!legendInModal && (
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="pl-filter-row">
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
           <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel}
             presentChannels={presentChannels} />

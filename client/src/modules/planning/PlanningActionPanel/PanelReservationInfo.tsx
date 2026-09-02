@@ -1,3 +1,4 @@
+import { guestPhotoSrc } from '../../../services/api/guestsApi';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
@@ -21,7 +22,7 @@ import {
   RESERVATION_SOURCE_LABELS,
 } from '../../../services/api/reservationsApi';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
-import { RESERVATION_STATUS_TOKEN_COLORS, PLANNING_DEPARTURE_VIOLET } from '../constants';
+import { RESERVATION_STATUS_TOKEN_COLORS, PLANNING_DEPARTURE_TINT } from '../constants';
 import { getSourceLogo } from '../utils/sourceLogos';
 import { getChannelChipTokens } from '../../../utils/channelChipTokens';
 import { toDate } from '../utils/dateUtils';
@@ -49,7 +50,7 @@ const STATUS_SOFT: Record<string, string> = {
   confirmed: 'var(--ok-soft)',
   pending: 'var(--warn-soft)',
   checked_in: 'var(--info-soft)',
-  checked_out: `${PLANNING_DEPARTURE_VIOLET}1F`,
+  checked_out: `${PLANNING_DEPARTURE_TINT}1F`,
   cancelled: 'var(--hover)',
 };
 
@@ -141,7 +142,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
         <div className="flex items-center gap-2">
           <GuestAvatar
             name={reservation.guestName}
-            photoUrl={reservation.guestAvatarUrl}
+            photoUrl={guestPhotoSrc(reservation.guestAvatarUrl)}
             size={56}
             sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: '1.125rem' }}
           />

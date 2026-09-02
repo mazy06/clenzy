@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { API_CONFIG } from '../../config/api';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,8 @@ export interface GuestDto {
   countryCode?: string;
   language?: string;
   notes?: string;
+  /** Photo de profil du voyageur. Absente -> repli sur les initiales. */
+  avatarUrl?: string;
 }
 
 export interface CreateGuestData {
@@ -38,6 +41,8 @@ export interface GuestListDto {
   createdAt?: string;
   organizationId: number;
   organizationName?: string;
+  /** Photo de profil du voyageur. Absente -> repli sur les initiales. */
+  avatarUrl?: string;
 }
 
 export interface GuestListParams {
@@ -94,3 +99,21 @@ export const guestsApi = {
     return apiClient.patch<GuestDto>(`/guests/${guestId}/email`, { email });
   },
 };
+
+/**
+ * URL exploitable par un `<img src>` pour la photo d'un voyageur.
+ *
+ * Le backend renvoie une URL SIGNEE **relative** (`/api/guests/{id}/photo?ticket=...`).
+ * En dev le front (:3000) et l'API (:8084) sont sur des origines distinctes : un
+ * `<img src="/api/...">` viserait Vite, qui repond index.html, et l'avatar
+ * tomberait sur les initiales. On prefixe donc la base API — vide en production
+ * (meme origine), ou l'URL reste relative et inchangee.
+ *
+ * Retourne `undefined` quand le voyageur n'a pas de photo : les surfaces
+ * d'avatar retombent alors sur ses initiales.
+ */
+export function guestPhotoSrc(avatarUrl?: string | null): string | undefined {
+  if (!avatarUrl) return undefined;
+  // Une URL absolue (photo importee d'un canal) ne passe pas par nos routes.
+  return avatarUrl.startsWith('/') ? `${API_CONFIG.BASE_URL}${avatarUrl}` : avatarUrl;
+}

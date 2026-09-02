@@ -3,7 +3,7 @@ import type { ReservationStatus, ReservationSource } from '../../services/api/re
 import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import {
   RESERVATION_STATUS_TOKEN_COLORS,
-  PLANNING_DEPARTURE_VIOLET,
+  PLANNING_DEPARTURE_TINT,
 } from '../planning/constants';
 import { getSourceLogo } from '../planning/utils/sourceLogos';
 import { getChannelChipTokens } from '../../utils/channelChipTokens';
@@ -19,7 +19,7 @@ const STATUS_SOFT: Record<string, string> = {
   confirmed: 'var(--ok-soft)',
   pending: 'var(--warn-soft)',
   checked_in: 'var(--info-soft)',
-  checked_out: `${PLANNING_DEPARTURE_VIOLET}1F`,
+  checked_out: `${PLANNING_DEPARTURE_TINT}1F`,
   cancelled: 'var(--hover)',
 };
 

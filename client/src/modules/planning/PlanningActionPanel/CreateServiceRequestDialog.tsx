@@ -815,7 +815,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         {/* ── Title ── */}
         <DialogHeader className="flex-row items-center gap-3 pb-1.5 pt-3 px-[15px]">
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="inline-flex text-[var(--accent)]"><Send size={20} strokeWidth={1.75} /></span>
+          <span className="inline-flex text-[var(--brand-ink)]"><Send size={20} strokeWidth={1.75} /></span>
           <DialogTitle className="cn-text-h6 font-bold text-[1rem]">
             {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
           </DialogTitle>
@@ -840,7 +840,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         <div className="mb-3 pb-3 border-b border-[var(--line)]">
           {/* Property name + address */}
           <div className="flex items-center gap-1 mb-1.5">
-            <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+            <span className="inline-flex text-[var(--brand-ink)]"><Home size={16} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 text-[0.8125rem] font-semibold text-[var(--ink)]">
               {propertyName}
             </p>
@@ -868,7 +868,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 render={({ field: { ref: fieldRef, ...field }, fieldState }) => (
                   <>
                     <div ref={fieldRef} className="flex items-center gap-[4.5px] px-[7.5px] py-[4.5px] rounded-[11px] bg-[var(--field)] min-h-[40px]" style={{ border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}` }}>
-                      <span className="inline-flex text-[var(--accent)]"><Send size={16} strokeWidth={1.75} /></span>
+                      <span className="inline-flex text-[var(--brand-ink)]"><Send size={16} strokeWidth={1.75} /></span>
                       <Input
                         {...field}
                         value={field.value ?? ''}
@@ -892,7 +892,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 Demandeur
               </p>
               <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
-                <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                <span className="inline-flex text-[var(--brand-ink)]"><Person size={16} strokeWidth={1.75} /></span>
                 <p className="cn-text-body1 text-[0.8125rem] font-medium text-[var(--ink)] flex-1">
                   {currentUserLabel}
                 </p>
@@ -937,14 +937,14 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                     {selectedProperty && isCleaningCategory && (
                       <div className="flex flex-col gap-[9px] px-[9px] py-[7.5px] rounded-[10px] border border-solid border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)] bg-[var(--accent-soft)]">
                         <div className="flex items-center gap-1">
-                          <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+                          <span className="inline-flex text-[var(--brand-ink)]"><Timer size={18} strokeWidth={1.75} /></span>
                           <div>
                             <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Durée estimée</p>
                             <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">{formatDuration(estimatedDuration)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
+                          <span className="inline-flex text-[var(--brand-ink)]"><Euro size={18} strokeWidth={1.75} /></span>
                           <div>
                             <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Prix estimé</p>
                             {priceRange ? (

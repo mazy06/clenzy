@@ -163,7 +163,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
       >
         <DialogHeader className="flex-row items-center justify-between gap-0">
           <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold">
-            <span className="inline-flex text-[var(--accent)]"><Person size={20} strokeWidth={1.75} /></span>
+            <span className="inline-flex text-[var(--brand-ink)]"><Person size={20} strokeWidth={1.75} /></span>
             Fiche client
           </DialogTitle>
           <Button variant="ghost" size="icon-sm" aria-label="Fermer" onClick={onClose}>

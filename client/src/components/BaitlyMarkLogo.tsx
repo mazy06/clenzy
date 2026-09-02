@@ -140,14 +140,22 @@ export default function BaitlyMarkLogo({
   // Couleur du trait de la maison — même logique que l'ancien logo pour garder
   // la compat des props tone/colorMode :
   //  - colorMode 'inherit' → currentColor (suit le parent : fond accent → blanc).
-  //  - tone 'auto' → suit l'accent sélectionné (var(--accent)) → reteinte live.
-  //  - tone FORCÉ (login photo-hero sombre) → palette fixe à fort contraste.
+  //  - tone 'auto' → var(--brand-ink), le noir de marque, qui s'inverse avec le thème.
+  //  - tone FORCÉ (login photo-hero sombre) → valeur fixe à fort contraste.
   const inherit = colorMode === 'inherit';
   const followAccent = tone === 'auto';
   const fixedDark = tone === 'dark';
+  // Le mark est NOIR, plus teinte par l'accent : la marque et les commandes ne
+  // parlent plus la meme langue — le noir dit « Baitly », la terracotta dit
+  // « ceci s'actionne ». `--brand-ink` s'inverse avec le theme (un logo noir
+  // sur fond sombre ne se voit pas), et n'est pas un #000 pur : un noir neutre
+  // jure avec une palette chaude.
+  //
+  // `tone` reste honore pour les fonds imposes (hero photo de la page de
+  // connexion), ou aucun theme ne peut etre deduit du contexte.
   const markColor = inherit
     ? 'currentColor'
-    : followAccent ? 'var(--accent)' : (fixedDark ? '#89B1C2' : '#6B8A9A');
+    : fixedDark ? '#F0EBE6' : (tone === 'light' ? '#171310' : 'var(--brand-ink)');
   // En mode 'auto', l'encre suit `--bui-foreground` : le mot-logo doit suivre le
   // MEME systeme que la surface sur laquelle il est pose, or toutes les surfaces
   // du PMS sont desormais peintes par Baitly UI.

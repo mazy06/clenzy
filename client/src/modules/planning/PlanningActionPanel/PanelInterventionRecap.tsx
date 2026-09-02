@@ -194,7 +194,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                 >
                   <AccordionTrigger className="min-h-8 items-center px-2 py-1">
                     <div className="flex items-center gap-0.5">
-                      <span className="inline-flex text-[var(--accent)]"><Notes size={14} strokeWidth={1.75} /></span>
+                      <span className="inline-flex text-[var(--brand-ink)]"><Notes size={14} strokeWidth={1.75} /></span>
                       <p className="cn-text-body1 text-[0.6875rem] font-semibold">{labels[step]}</p>
                     </div>
                   </AccordionTrigger>
