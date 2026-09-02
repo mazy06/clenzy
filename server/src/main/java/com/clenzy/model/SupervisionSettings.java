@@ -9,9 +9,18 @@ import java.time.LocalDateTime;
 /**
  * Réglage org-level de la constellation Superviseur d'agents (master).
  *
- * <p>Une ligne par organisation. {@code enabled} = interrupteur global de la
- * feature (désactivé par défaut → aucun changement tant que l'org n'active pas).
- * La config par module vit dans {@link SupervisionModuleSettings}.</p>
+ * <p>Une ligne par organisation. {@code enabled} = interrupteur global de
+ * l'<b>observation</b> : les agents passent les logements en revue et proposent
+ * des cartes. <b>Activé par défaut</b>, y compris pour une organisation sans
+ * ligne — une org qui n'a jamais ouvert le panneau ne renonce pas pour autant à
+ * savoir qu'une mission attend confirmation. L'opt-out reste explicite
+ * (Paramètres › IA).</p>
+ *
+ * <p>Ce défaut ne vaut QUE pour l'observation. <b>Agir seul</b> reste un opt-in
+ * explicite : {@code AutoApplyGate} exige une ligne, une règle d'automatisation
+ * activée et un niveau d'autonomie — voir son étape 1.</p>
+ *
+ * <p>La config par module vit dans {@link SupervisionModuleSettings}.</p>
  */
 @Entity
 @Table(name = "supervision_settings", indexes = {
@@ -28,9 +37,9 @@ public class SupervisionSettings {
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
-    /** Master : feature constellation activée pour l'org. Défaut OFF. */
+    /** Master : observation de la constellation activée pour l'org. Défaut ON. */
     @Column(nullable = false)
-    private boolean enabled = false;
+    private boolean enabled = true;
 
     /** Pause globale (le runtime autonome n'agit plus). */
     @Column(nullable = false)

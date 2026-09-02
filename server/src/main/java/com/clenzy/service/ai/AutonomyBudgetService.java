@@ -42,12 +42,24 @@ public class AutonomyBudgetService {
 
     // Defauts du plafond premium PAR FORFAIT (grille campagne §9, validee avec X5) :
     // essentiel 0 (activable via top-up), confort 500 credits, premium 2 500 credits.
-    // Appliques UNIQUEMENT quand l'org n'a pas de config explicite — les behaviors
-    // restant OFF par defaut, rien ne s'execute tant que l'org n'active pas un toggle ;
-    // mais quand elle le fait, le plafond de son forfait est deja en place.
+    // Appliques UNIQUEMENT quand l'org n'a pas de config explicite. C'est LE garde-fou
+    // de depense : un forfait essentiel reste a 0, donc DISABLED, meme comportement
+    // active. Les toggles, eux, disent ce que l'org veut voir tourner.
     private static final long DEFAULT_CAP_ESSENTIEL_MC = 0L;
     private static final long DEFAULT_CAP_CONFORT_MC = 500_000L;
     private static final long DEFAULT_CAP_PREMIUM_MC = 2_500_000L;
+
+    /**
+     * Defaut d'un comportement absent du JSON de l'org.
+     *
+     * <p>Le scan de supervision est le seul a ON : sans lui, la constellation
+     * n'appelle jamais de modele et ne peut donc rien PROPOSER — l'org voit les
+     * seules heuristiques deterministes et croit ses agents muets. Le plafond du
+     * forfait borne deja la depense, et un toggle explicitement a false est
+     * toujours respecte : ce defaut ne retire aucun controle.</p>
+     */
+    private static final Map<String, Boolean> BEHAVIOR_DEFAULTS = Map.of(
+            AiAutonomyBudget.BEHAVIOR_SUPERVISION_SCAN, true);
 
     private final AiAutonomyBudgetRepository budgetRepository;
     private final AiUsageLedgerRepository ledgerRepository;
@@ -152,13 +164,24 @@ public class AutonomyBudgetService {
                 organizationId, AiUsageLedgerEntry.BUCKET_PREMIUM_AUTO, currentCycleStart());
     }
 
+    /**
+     * Le comportement est-il actif pour cette org ? Cle presente → sa valeur
+     * (l'org a tranche) ; cle absente → {@link #BEHAVIOR_DEFAULTS} (elle n'a rien
+     * dit). Un JSON illisible retombe sur OFF : on ne devine pas une intention.
+     */
     private boolean isBehaviorEnabled(AiAutonomyBudget budget, String behaviorKey) {
         if (behaviorKey == null) {
             return false;
         }
+        final boolean byDefault = BEHAVIOR_DEFAULTS.getOrDefault(behaviorKey, false);
+        final String behaviors = budget.getBehaviors();
+        if (behaviors == null || behaviors.isBlank()) {
+            return byDefault; // rien de stocke : l'org n'a rien dit
+        }
         try {
-            Map<String, Object> toggles = objectMapper.readValue(budget.getBehaviors(), Map.class);
-            return Boolean.TRUE.equals(toggles.get(behaviorKey));
+            Map<String, Object> toggles = objectMapper.readValue(behaviors, Map.class);
+            Object explicit = toggles.get(behaviorKey);
+            return explicit == null ? byDefault : Boolean.TRUE.equals(explicit);
         } catch (Exception e) {
             log.warn("[AUTONOMY] behaviors JSON illisible (org={}) → comportement desactive : {}",
                     budget.getOrganizationId(), e.getMessage());

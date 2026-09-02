@@ -40,8 +40,11 @@ const TRUST_STATUS_TONE: Record<TrustRule['status'], StatusTone> = {
 };
 
 // Comportements premium branchés côté serveur (X8-b) — affichés même absents du
-// JSON de l'org (défaut : désactivé). S'allonge au fil des branchements.
-const KNOWN_BEHAVIOR_KEYS = ['supervision_scan'];
+// JSON de l'org, avec le défaut que le serveur leur applique quand l'org n'a
+// rien tranché (AutonomyBudgetService.BEHAVIOR_DEFAULTS). Les deux tables DOIVENT
+// rester d'accord : un défaut divergent afficherait « désactivé » un comportement
+// qui tourne. S'allonge au fil des branchements.
+const BEHAVIOR_DEFAULTS: Record<string, boolean> = { supervision_scan: true };
 
 function parseBehaviors(json: string): Record<string, boolean> {
   let parsed: Record<string, boolean> = {};
@@ -51,10 +54,7 @@ function parseBehaviors(json: string): Record<string, boolean> {
   } catch {
     /* JSON invalide → défauts */
   }
-  return {
-    ...Object.fromEntries(KNOWN_BEHAVIOR_KEYS.map((k) => [k, false])),
-    ...parsed,
-  };
+  return { ...BEHAVIOR_DEFAULTS, ...parsed };
 }
 
 export default function AiAutonomySection() {

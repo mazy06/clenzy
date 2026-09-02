@@ -3848,3 +3848,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0413__intervention_without_service_request.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0414-supervision-enabled-by-default"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0414__supervision_enabled_by_default.sql
+        relativeToChangelogFile: true

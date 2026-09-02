@@ -404,7 +404,13 @@ export default function AppSidebar({
 
       {/* ── Carte utilisateur + quatre actions ─────────────────────────── */}
       <SidebarFooter>
-        <SidebarMenu>
+        {/* Sur la feuille laterale (mobile), l'identite et les actions tiennent
+            sur UNE ligne : la feuille est plus large que le rail de bureau, et
+            deux rangees y empilaient de l'air en bas d'ecran. Sur le rail
+            (~256 px) elles restent superposees — un avatar, un nom, un role et
+            quatre icones n'y tiennent pas cote a cote. */}
+        <div className={cn(isMobile && 'flex items-center gap-1')}>
+        <SidebarMenu className={cn(isMobile && 'min-w-0 flex-1')}>
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
@@ -437,7 +443,10 @@ export default function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
 
-        <div className="flex items-center gap-1 px-1 pb-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
+        <div className={cn(
+          'flex items-center gap-1 px-1 pb-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0',
+          isMobile && 'shrink-0 pb-0',
+        )}>
           {/* Apparence / langue / devise */}
           <Popover open={prefsOpen} onOpenChange={setPrefsOpen}>
             <Tooltip>
@@ -581,6 +590,7 @@ export default function AppSidebar({
               </TooltipContent>
             </Tooltip>
           )}
+        </div>
         </div>
       </SidebarFooter>
 
