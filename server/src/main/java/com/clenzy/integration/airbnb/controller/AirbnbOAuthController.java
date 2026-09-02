@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,18 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/airbnb")
 @Tag(name = "Airbnb OAuth", description = "Gestion de la connexion OAuth Airbnb")
+/*
+ * Connecter, deconnecter ou lire l'etat d'un canal de distribution est une
+ * action d'administration. L'onglet « Integrations » qui la porte est deja
+ * reserve a SUPER_ADMIN / SUPER_MANAGER cote interface — l'API ne l'etait pas,
+ * et retombait sur l'attrape-tout `/api/**` de SecurityConfigProd, qui liste
+ * TOUS les roles : un HOUSEKEEPER authentifie pouvait deconnecter le compte
+ * Airbnb. Meme portee que ChannelConnectionController pour les memes gestes.
+ *
+ * `/callback` fait exception : c'est Airbnb qui y redirige le navigateur, sans
+ * jeton. Il figure a ce titre dans les permitAll() de SecurityConfigProd.
+ */
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class AirbnbOAuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AirbnbOAuthController.class);
@@ -71,6 +84,11 @@ public class AirbnbOAuthController {
     }
 
     @GetMapping("/callback")
+    // Redirection du navigateur depuis Airbnb : aucun jeton n'accompagne
+    // l'appel. Deja liste dans les permitAll() de SecurityConfigProd — la
+    // securite vient du `state` OAuth (UUID en Redis, TTL 10 min, consomme une
+    // seule fois), pas du role de l'appelant.
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Callback OAuth Airbnb",
             description = "Recoit le code d'autorisation et l'echange contre un token")
     public ResponseEntity<Map<String, Object>> callback(
