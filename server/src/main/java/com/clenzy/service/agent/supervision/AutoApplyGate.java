@@ -176,6 +176,12 @@ public class AutoApplyGate {
     private AutoDecision evaluate(Long orgId, String moduleKey, String actionType,
                                   Map<String, Object> envelopeInputs) {
         // 1. Kill-switch global : feature OFF ou en pause → HITL.
+        //
+        // L'ABSENCE de ligne vaut ici refus, alors que l'observation la traite
+        // comme un master ON (SupervisionConfigService.DEFAULT_ENABLED). Les deux
+        // lectures sont voulues : observer sans avoir rien réglé est sans effet
+        // — au pire une carte de trop —, agir seul ne l'est pas. Une org qui n'a
+        // jamais ouvert le panneau n'a consenti à rien.
         final SupervisionSettings settings =
                 settingsRepository.findByOrganizationId(orgId).orElse(null);
         if (settings == null || !settings.isEnabled() || settings.isPaused()) {

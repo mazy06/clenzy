@@ -23,13 +23,21 @@ import java.util.stream.Collectors;
  * <p>La config <b>effective</b> est calculée en superposant les overrides org
  * (tables {@link SupervisionSettings} / {@link SupervisionModuleSettings}) sur
  * les défauts du catalogue ({@link SupervisionModuleRegistry}). Une org sans
- * ligne → master OFF + tous les modules aux défauts du catalogue.</p>
+ * ligne → master ON (l'observation est le défaut produit) + tous les modules
+ * aux défauts du catalogue, donc SUGGEST : elle voit des cartes, rien ne
+ * s'applique tout seul.</p>
  */
 @Service
 public class SupervisionConfigService {
 
     /** Défaut quand l'org n'a pas encore de ligne (aligné sur l'entité). */
-    static final int DEFAULT_DAILY_SCAN_BUDGET = 20;
+    public static final int DEFAULT_DAILY_SCAN_BUDGET = 20;
+
+    /**
+     * Master d'une org sans ligne : l'observation est le défaut produit. Lu par
+     * le balayage autonome, qui doit trancher le même cas sans passer par ici.
+     */
+    public static final boolean DEFAULT_ENABLED = true;
 
     private final SupervisionSettingsRepository settingsRepository;
     private final SupervisionModuleSettingsRepository moduleRepository;
@@ -47,7 +55,7 @@ public class SupervisionConfigService {
     @Transactional(readOnly = true)
     public SupervisionConfigDto getConfig(Long organizationId) {
         SupervisionSettings settings = settingsRepository.findByOrganizationId(organizationId).orElse(null);
-        boolean enabled = settings != null && settings.isEnabled();
+        boolean enabled = settings != null ? settings.isEnabled() : DEFAULT_ENABLED;
         boolean paused = settings != null && settings.isPaused();
         int dailyScanBudget = settings != null ? settings.getDailyScanBudget() : DEFAULT_DAILY_SCAN_BUDGET;
 
