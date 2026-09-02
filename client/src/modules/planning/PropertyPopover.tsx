@@ -95,9 +95,9 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
         collisionPadding={8}
         className="w-[270px] max-w-[calc(100vw-16px)] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
       >
-      {/* Héro : fond accent-soft, icône bâtiment, nom en overlay */}
+      {/* Héro : fond accent-soft, icône bâtiment à l'encre de marque, nom en overlay */}
       <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
-        <div className="inline-flex text-[var(--accent)] opacity-55 mb-3.5">
+        <div className="inline-flex text-[var(--brand-ink)] opacity-55 mb-3.5">
           <Business size={26} strokeWidth={1.5} />
         </div>
         <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
@@ -219,7 +219,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       {perf && (
         <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
           <div className="flex items-center gap-[4.5px] mb-2">
-            <div className="inline-flex text-[var(--accent)]">
+            <div className="inline-flex text-[var(--brand-ink)]">
               <Speed size={STAT_ICON_SIZE} strokeWidth={1.75} />
             </div>
             <span className="font-bold uppercase tracking-[0.3px] text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>

@@ -16,6 +16,9 @@ import rentellyLogoSmall from '../../../assets/logo/rentelly-logo-small.svg';
 import gathernLogoSmall from '../../../assets/logo/gathern-logo-small.webp';
 import keaseLogoSmall from '../../../assets/logo/kease-logo-small.svg';
 import hometogoLogoSmall from '../../../assets/logo/hometogo-logo-small.svg';
+// Expedia n'a pas de declinaison « small » : le logo pleine taille est
+// contraint a 15 px par la chip, comme les autres.
+import expediaLogo from '../../../assets/logo/expedia-logo.png';
 
 const SOURCE_LOGO_MAP: Record<string, string> = {
   airbnb: airbnbLogoSmall,
@@ -30,6 +33,7 @@ const SOURCE_LOGO_MAP: Record<string, string> = {
   gathern: gathernLogoSmall,
   kease: keaseLogoSmall,
   hometogo: hometogoLogoSmall,
+  expedia: expediaLogo,
 };
 
 /**
@@ -39,5 +43,10 @@ const SOURCE_LOGO_MAP: Record<string, string> = {
  */
 export function getSourceLogo(source?: string): string | null {
   if (!source) return null;
-  return SOURCE_LOGO_MAP[source.toLowerCase()] ?? null;
+  const key = source.toLowerCase();
+  // Les cles de canal du planning s'ecrivent avec un underscore (`hotels_com`)
+  // la ou les assets et les sources de reservation utilisent un tiret. Sans
+  // cette normalisation, le canal retombait sur le globe alors que son logo
+  // etait bien present dans les assets.
+  return SOURCE_LOGO_MAP[key] ?? SOURCE_LOGO_MAP[key.replace(/_/g, '-')] ?? null;
 }

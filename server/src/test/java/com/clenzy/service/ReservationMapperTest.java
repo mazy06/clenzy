@@ -42,6 +42,7 @@ class ReservationMapperTest {
         // Resolver reel, pas un mock : c'est lui qui porte la regle « frais reel
         // sinon estimation », et la mocker reviendrait a tester le mock.
         mapper = new ReservationMapper(propertyRepository, guestRepository,
+            new GuestPhotoUrlResolver(new MediaTicketService("test-secret")),
             new ChannelCommissionResolver());
     }
 

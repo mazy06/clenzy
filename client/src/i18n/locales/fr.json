@@ -102,7 +102,9 @@
     },
     "scope": {
       "byProperty": "Par logement",
-      "portfolio": "Vue d'ensemble"
+      "portfolio": "Vue d'ensemble",
+      "switchToPortfolio": "Basculer en vue d'ensemble",
+      "switchToProperty": "Basculer par logement"
     },
     "states": {
       "loading": "Connexion aux agents…",

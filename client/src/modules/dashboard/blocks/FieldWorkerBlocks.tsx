@@ -167,8 +167,10 @@ const formatSlot = (iso: string, locale: string) => {
  */
 function PropertyBubble({ mission }: { mission: Intervention }) {
   const [broken, setBroken] = React.useState(false);
-  // `[DÉMO] Villa Amboise` donnait « [V » : un prefixe entre crochets etiquette
-  // le jeu de donnees, il ne nomme pas le logement.
+  // Un prefixe entre crochets etiquette le jeu de donnees, il ne nomme pas le
+  // logement : sans ce retrait, « [X] Villa Untel » donnait les initiales « [V ».
+  // La garde reste apres la sortie du jeu de demonstration — un import de canal
+  // peut tres bien reintroduire un nom prefixe.
   const initials = (mission.propertyName ?? '?')
     .replace(/^\s*\[[^\]]*\]\s*/, '')
     .split(/[\s-]+/)

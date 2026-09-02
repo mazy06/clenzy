@@ -1,112 +1,91 @@
-# 🎨 Palette de Couleurs Clenzy
+# Palette de couleurs Baitly
 
-## Identité Visuelle
+> Source de vérité : `theme/signature/tokens.css`. Ce document explique les
+> intentions ; il ne redéfinit rien. En cas d'écart, **c'est le fichier de
+> jetons qui a raison** — ce document a déjà décrit pendant des mois une
+> identité que le code n'appliquait plus.
 
-Cette palette de couleurs est basée sur l'identité visuelle Clenzy, utilisant des tons de bleu-gris harmonieux et professionnels.
+## Trois rôles, jamais confondus
 
-## Couleurs Principales
+L'erreur qui a coûté le plus cher est d'avoir fait porter deux rôles à une même
+teinte. Une couleur vive lue en TEXTE plafonne autour de 2,2:1 sur une carte
+claire : c'est illisible, et aucun typecheck ne le voit.
 
-### Primary (Couleur principale)
-- **Main**: `#6B8A9A` - Bleu-gris foncé Clenzy
-- **Light**: `#8BA3B3` - Bleu-gris moyen
-- **Dark**: `#5A7684` - Bleu-gris très foncé
-- **Usage**: Boutons principaux, liens, éléments interactifs principaux
+| Rôle | Sert à | Ne sert jamais à |
+|---|---|---|
+| **Teinte vive** | aplats, icônes, bordures, pastilles | le texte |
+| **`-ink`** | le texte, et lui seul | un fond |
+| **`-soft`** | fonds pastel, états actifs | le texte |
 
-### Secondary (Couleur secondaire)
-- **Main**: `#A6C0CE` - Bleu-gris clair Clenzy (couleur de marque)
-- **Light**: `#C5D5E0` - Bleu-gris très clair
-- **Dark**: `#8BA3B3` - Bleu-gris moyen
-- **Usage**: Accents, éléments secondaires, fonds
+## Marque
 
-### Clenzy (Couleur de marque)
-- **Main**: `#A6C0CE` - Bleu-gris clair Clenzy
-- **Light**: `#C5D5E0` - Bleu-gris très clair
-- **Dark**: `#8BA3B3` - Bleu-gris moyen
-- **Usage**: Logo, éléments de marque, fonds de page
+La marque est **noire**, les commandes sont **terracotta**. Les deux ne parlent
+pas la même langue : le noir dit « Baitly », la terracotta dit « ceci s'actionne ».
 
-## Couleurs Sémantiques
+| Jeton | Clair | Sombre | Usage |
+|---|---|---|---|
+| `--brand-ink` | `#171310` | `#F0EBE6` | logo (mark + lettrage), marqueurs de marque |
+| `--accent` | `#B45733` | `#DE855E` | boutons primaires, liens, sélection |
+| `--accent-deep` | `#96472A` | `#C96E48` | survol du bouton primaire |
+| `--accent-soft` | `rgba(180,87,51,.10)` | `rgba(222,133,94,.18)` | fond doux, état actif |
+| `--on-accent` | `#FFFFFF` | `#241812` | encre POSÉE sur l'accent |
 
-### Success
-- **Main**: `#4A9B8E` - Vert-bleu harmonieux
-- **Light**: `#6BB5A8`
-- **Dark**: `#3A7A6F`
-- **Usage**: Confirmations, statuts positifs, validations
+Deux points qui ne sont pas des détails :
 
-### Warning
-- **Main**: `#D4A574` - Ambre/beige chaud harmonieux
-- **Light**: `#E8C19A`
-- **Dark**: `#B88A5A`
-- **Usage**: Avertissements, actions nécessitant attention
+- Le noir n'est pas `#000`. Un noir neutre jure avec une palette chaude ; il est
+  tinté vers la terracotta. Même règle pour le blanc.
+- `--on-accent` **s'inverse** avec le thème. En sombre l'accent s'éclaircit, et
+  un libellé blanc y tombe à 2,75:1. L'encre passe donc au noir de marque, à
+  6,28:1.
 
-### Error
-- **Main**: `#C97A7A` - Rouge-rose doux harmonieux
-- **Light**: `#E09A9A`
-- **Dark**: `#B05A5A`
-- **Usage**: Erreurs, suppressions, actions critiques
+La terracotta par défaut n'est pas celle de la galerie d'accents (`#C0613B`) :
+celle-là ne porte le texte blanc qu'à 4,19:1. Tolérable pour un accent qu'on
+choisit, pas pour celui que porte chaque bouton primaire de l'application.
 
-### Info
-- **Main**: `#7BA3C2` - Bleu harmonieux avec Clenzy
-- **Light**: `#9BB8D1`
-- **Dark**: `#5B7A92`
-- **Usage**: Informations, notifications neutres
+## Sémantique
 
-## Nuances de Gris
+| Jeton | Valeur | Sens |
+|---|---|---|
+| `--ok` | `#4A9B8E` | succès, validé |
+| `--warn` | `#C28A52` | attention |
+| `--err` | `#C97A7A` | erreur |
+| `--info` | `#7BA3C2` | information |
+| `--paid` / `--unpaid` | `#3E9C80` / `#C9803F` | état de paiement |
 
-Les nuances de gris sont harmonisées avec la palette Clenzy :
+Ces jetons disent **ce qui se passe**, pas de quelle famille visuelle ils
+viennent. Ne pas les dériver de l'accent : ils doivent survivre à un changement
+de marque.
 
-- **50**: `#F8FAFC` - Fond très clair
-- **100**: `#F1F5F9` - Fond clair
-- **200**: `#E2E8F0` - Bordure claire
-- **300**: `#CBD5E1` - Bordure moyenne
-- **400**: `#94A3B8` - Texte secondaire clair
-- **500**: `#64748B` - Texte secondaire
-- **600**: `#475569` - Texte secondaire foncé
-- **700**: `#334155` - Texte principal foncé
-- **800**: `#1E293B` - Texte principal très foncé
-- **900**: `#0F172A` - Texte principal extrêmement foncé
+## Statuts du planning — « Terre cuite »
 
-## Texte
+Une famille de bruns où la **valeur encode la présence** : plus le voyageur est
+là, plus la brique est dense. Définie dans `modules/planning/planningUrgency.css`,
+trois jetons par statut (`--pl-st-{x}` / `-on` / `-ink`).
 
-- **Primary**: `#1E293B` - Texte principal foncé
-- **Secondary**: `#64748B` - Texte secondaire harmonisé
+| Statut | Brique | Encre sur brique | Sens |
+|---|---|---|---|
+| En attente | `#E0C89B` | foncée | rien n'est acquis |
+| Confirmée | `#9A6C3A` | blanche | le séjour tient |
+| Sur place | `#5C3A21` (`#6B4527` en sombre) | blanche | le voyageur est là |
+| Partie | `#A89684` | foncée | le passé se retire |
+| Annulée | — | — | brique fantôme hachurée |
 
-## Fond
+Ces teintes **ne sont pas** les jetons sémantiques, même quand les valeurs se
+sont historiquement croisées. Un séjour confirmé n'est pas un « succès ».
 
-- **Default**: `#F8FAFC` - Fond très clair harmonisé
-- **Paper**: `#FFFFFF` - Fond des cartes et papiers
+## Ce qui ne suit PAS cette palette
 
-## Utilisation dans le Code
+- **Palettes de canal** (`--airbnb`, `--booking`…) : couleurs de marque de tiers.
+- **Chrome de navigation** (`--chrome-*`, `--nav-*`) : sombre dans les deux thèmes.
+- **Surfaces voyageur** : livret d'accueil, page de réservation publique et sites
+  générés (`--bt-*`) redéfinissent `--ink`, `--card`, `--accent`… pour le thème
+  **du client**, pas celui du PMS. Test : le jeton est-il *défini* dans le
+  module ? Alors il lui appartient.
 
-### Material-UI Theme
-Utiliser les couleurs du thème Material-UI plutôt que des couleurs hardcodées :
+## Avant de poser une couleur
 
-```tsx
-// ✅ Bon
-<Button color="primary">Action</Button>
-<Typography color="primary.main">Texte</Typography>
-<Box sx={{ color: 'secondary.main' }}>Contenu</Box>
-
-// ❌ Mauvais
-<Button sx={{ backgroundColor: '#1976d2' }}>Action</Button>
-<Typography sx={{ color: '#A6C0CE' }}>Texte</Typography>
-```
-
-### Accès aux Couleurs dans sx
-```tsx
-// Utiliser les couleurs du thème
-sx={{ 
-  color: 'primary.main',
-  backgroundColor: 'secondary.light',
-  borderColor: 'success.main'
-}}
-```
-
-## Règles de Contraste
-
-- **Primary/Secondary sur fond clair**: Utiliser `contrastText` ou `text.primary`
-- **Couleurs claires sur fond clair**: Utiliser `text.primary` pour le contraste
-- **Couleurs foncées sur fond clair**: Utiliser `contrastText` (généralement blanc)
-
-## Cohérence
-
-Toutes les couleurs doivent être harmonisées avec la palette Clenzy. Éviter d'utiliser des couleurs Material-UI standard qui ne correspondent pas à l'identité visuelle.
+1. Quel rôle — aplat, texte, ou fond doux ?
+2. Un jeton existe-t-il déjà ? Une valeur en dur ne suivra pas le thème.
+3. Contraste **mesuré**, pas estimé : 4,5:1 pour du texte, dans les deux thèmes.
+   Une correspondance « fidèle » de jeton ne suffit pas — `--faint` donnait
+   2,48:1 là où il fallait `--muted-foreground` à 4,80:1.

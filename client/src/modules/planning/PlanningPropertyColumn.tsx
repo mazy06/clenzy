@@ -259,7 +259,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             </div>
             {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}
             {onToggleExpanded && (
-              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--accent)]', expandedPropertyId === property.id ? 'text-[var(--accent)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label="Superviseur d'agents" aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
+              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--brand-ink)]', expandedPropertyId === property.id ? 'text-[var(--brand-ink)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label="Superviseur d'agents" aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
                   e.stopPropagation();
                   onToggleExpanded(property.id);
                 }}>

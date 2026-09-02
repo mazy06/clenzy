@@ -123,7 +123,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     <div>
       {/* Payment status */}
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[var(--accent)]"><Payment size={18} strokeWidth={1.75} /></span>
+        <span className="inline-flex text-[var(--brand-ink)]"><Payment size={18} strokeWidth={1.75} /></span>
         <p className={OVERLINE_CLASS}>Statut paiement</p>
         {(() => { const t = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
         <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={intervention.paymentStatus || intervention.status} className="ms-auto" />

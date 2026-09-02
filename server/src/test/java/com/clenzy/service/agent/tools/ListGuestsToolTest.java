@@ -34,7 +34,7 @@ class ListGuestsToolTest {
 
     private static GuestListDto guest(Long id, String full, int stays) {
         return new GuestListDto(id, "A", "B", "a@x.fr", "+33", full, "direct",
-                stays, new BigDecimal("900"), "fr", null, 1L, "Org");
+                stays, new BigDecimal("900"), "fr", null, 1L, "Org", null);
     }
 
     @Test

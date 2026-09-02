@@ -20,5 +20,7 @@ public record GuestListDto(
     String language,
     LocalDateTime createdAt,
     Long organizationId,
-    String organizationName
+    String organizationName,
+    /** Photo de profil, ou {@code null} : repli sur les initiales. */
+    String avatarUrl
 ) {}

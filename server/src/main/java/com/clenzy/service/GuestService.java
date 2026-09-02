@@ -45,13 +45,53 @@ public class GuestService {
     private final GuestRepository guestRepository;
     private final ReservationRepository reservationRepository;
     private final OrganizationService organizationService;
+    /** Transforme la cle de stockage opaque en URL signee servable. */
+    private final GuestPhotoUrlResolver photoUrls;
+    private final GuestPhotoStorageService photoStorage;
 
     public GuestService(GuestRepository guestRepository,
                         ReservationRepository reservationRepository,
-                        OrganizationService organizationService) {
+                        OrganizationService organizationService,
+                        GuestPhotoUrlResolver photoUrls,
+                        GuestPhotoStorageService photoStorage) {
         this.guestRepository = guestRepository;
         this.reservationRepository = reservationRepository;
         this.organizationService = organizationService;
+        this.photoUrls = photoUrls;
+        this.photoStorage = photoStorage;
+    }
+
+    /** Photo prete a etre streamee : les octets et leur type. */
+    public record GuestPhoto(org.springframework.core.io.Resource resource, String contentType) {}
+
+    /**
+     * Charge la photo d'un voyageur pour le streaming HTTP.
+     *
+     * <p>{@code findById} ne passe pas par le filtre Hibernate organizationFilter
+     * (regle #3 de l'audit 2026-06) : l'appartenance a l'organisation est validee
+     * ici, explicitement. Un voyageur d'une autre organisation est donc
+     * INTROUVABLE, pas interdit — on ne confirme meme pas son existence.</p>
+     *
+     * @param organizationId organisation du demandeur, ou {@code null} pour un
+     *                       acces cross-org deja autorise en amont (platform
+     *                       staff, ou ticket signe verifie)
+     * @return la photo, ou {@link Optional#empty()} si le voyageur n'existe pas,
+     *         appartient a une autre organisation, n'a pas de photo, ou si
+     *         l'objet a disparu du stockage
+     */
+    @Transactional(readOnly = true)
+    public Optional<GuestPhoto> streamPhoto(Long guestId, Long organizationId) {
+        return guestRepository.findById(guestId)
+                .filter(g -> organizationId == null || organizationId.equals(g.getOrganizationId()))
+                .map(Guest::getAvatarUrl)
+                .filter(key -> key != null && !key.isBlank() && !key.startsWith("http"))
+                .flatMap(key -> photoStorage.load(key)
+                        .map(res -> new GuestPhoto(res, photoStorage.contentTypeFor(key))));
+    }
+
+    /** URL publique de la photo d'un voyageur, ou {@code null} s'il n'en a pas. */
+    private String photoUrlOf(Guest g) {
+        return photoUrls.publicUrl(g.getId(), g.getAvatarUrl());
     }
 
     /**
@@ -237,7 +277,7 @@ public class GuestService {
         return guests.stream()
                 // Filtre search (en memoire — champs chiffres, cf. javadoc)
                 .filter(g -> lowerSearch == null || matchesSearch(g, lowerSearch))
-                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
+                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null), photoUrlOf(g)))
                 .toList();
     }
 
@@ -284,7 +324,7 @@ public class GuestService {
                         : guestRepository.findByOrganizationId(organizationId, pageable);
             }
             List<GuestListDto> content = guestPage.getContent().stream()
-                    .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
+                    .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null), photoUrlOf(g)))
                     .toList();
             return new GuestPageDto(content, page, size, guestPage.getTotalElements());
         }
@@ -297,7 +337,7 @@ public class GuestService {
         int from = Math.min(page * size, filtered.size());
         int to = Math.min(from + size, filtered.size());
         List<GuestListDto> content = filtered.subList(from, to).stream()
-                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
+                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null), photoUrlOf(g)))
                 .toList();
         return new GuestPageDto(content, page, size, filtered.size());
     }
@@ -319,7 +359,7 @@ public class GuestService {
                             || full.contains(lowerSearch);
                 })
                 .limit(20)
-                .map(GuestService::toDto)
+                .map(g -> toDto(g, photoUrlOf(g)))
                 .toList();
     }
 
@@ -338,7 +378,7 @@ public class GuestService {
                 .map(guest -> {
                     guest.setEmail(email.trim());
                     guestRepository.save(guest);
-                    return toDto(guest);
+                    return toDto(guest, photoUrlOf(guest));
                 });
     }
 
@@ -365,7 +405,7 @@ public class GuestService {
                     if (dto.language() != null && !dto.language().isBlank()) guest.setLanguage(dto.language().trim());
                     if (dto.notes() != null) guest.setNotes(dto.notes().isBlank() ? null : dto.notes().trim());
                     guestRepository.save(guest);
-                    return toDto(guest);
+                    return toDto(guest, photoUrlOf(guest));
                 });
     }
 
@@ -373,7 +413,7 @@ public class GuestService {
     // Mapping DTO
     // ================================================================
 
-    public static GuestDto toDto(Guest g) {
+    public static GuestDto toDto(Guest g, String photoUrl) {
         return new GuestDto(
                 g.getId(),
                 g.getFirstName(),
@@ -383,7 +423,8 @@ public class GuestService {
                 g.getFullName(),
                 g.getLanguage(),
                 g.getCountryCode(),
-                g.getNotes()
+                g.getNotes(),
+                photoUrl
         );
     }
 
@@ -423,10 +464,10 @@ public class GuestService {
         if (changed) {
             guest = guestRepository.save(guest);
         }
-        return toDto(guest);
+        return toDto(guest, photoUrlOf(guest));
     }
 
-    private static GuestListDto toListDto(Guest g, String organizationName) {
+    private static GuestListDto toListDto(Guest g, String organizationName, String photoUrl) {
         return new GuestListDto(
                 g.getId(),
                 g.getFirstName(),
@@ -440,7 +481,8 @@ public class GuestService {
                 g.getLanguage(),
                 g.getCreatedAt(),
                 g.getOrganizationId(),
-                organizationName
+                organizationName,
+                photoUrl
         );
     }
 

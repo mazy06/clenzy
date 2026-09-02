@@ -66,4 +66,19 @@ function TooltipContent({
   )
 }
 
-export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }
+/**
+ * Racine SANS provider, pour les listes longues.
+ *
+ * <p>`Tooltip` s'auto-enveloppe d'un `TooltipProvider` : pratique à l'unité,
+ * ruineux en liste. Le planning monte jusqu'à cinq infobulles par brique et
+ * trois cent quarante briques d'emblée — soit près d'un millier de providers
+ * imbriqués, chacun avec son contexte et ses minuteries, tous re-rendus à
+ * chaque extension du buffer.</p>
+ *
+ * <p>Usage : UN `TooltipProvider` autour de la liste, puis `TooltipRoot` par
+ * élément. Le comportement est identique — c'est le même composant Radix,
+ * privé de son enveloppe redondante.</p>
+ */
+const TooltipRoot = TooltipPrimitive.Root
+
+export { Tooltip, TooltipRoot, TooltipContent, TooltipProvider, TooltipTrigger }

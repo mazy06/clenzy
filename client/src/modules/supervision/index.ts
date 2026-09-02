@@ -97,7 +97,7 @@ export { AgentDrawer } from './components/AgentDrawer';
 export type { AgentDetail } from './components/AgentDrawer';
 export { PortfolioPanel } from './components/PortfolioPanel';
 export type { PortfolioPanelProps } from './components/PortfolioPanel';
-export { ScopeSwitch } from './components/ScopeSwitch';
+export { ScopeSwitch, ScopeToggle } from './components/ScopeSwitch';
 export type { SupervisionScope } from './components/ScopeSwitch';
 export { SupervisionView } from './components/SupervisionView';
 export type { SupervisionViewProps } from './components/SupervisionView';

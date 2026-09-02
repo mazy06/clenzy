@@ -29,25 +29,34 @@ import {
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 
 // ---------------------------------------------------------------------------
-// Color mapping: intervention status -> couleur d'évènement FullCalendar.
-// Palette VALIDÉE planning (constantes locales planning-grid-reference.css) :
-// ambre = en attente, bleu = en cours, vert = terminé, mauve = validation.
-// Annulée = fantôme neutre (équivalent de la brique hachurée du planning).
+// Couleur d'un evenement FullCalendar depuis le statut d'INTERVENTION.
+//
+// Ces statuts empruntaient les hex de la palette des briques du planning, avec
+// un commentaire qui s'en reclamait. Deux problemes : ce ne sont pas les memes
+// statuts (une intervention n'est pas un sejour), et des hex figes ne suivent
+// pas le theme — le calendrier gardait des couleurs de mode clair en sombre.
+//
+// Ils pointent desormais les jetons SEMANTIQUES, qui disent exactement ce que
+// chaque statut signifie et se retintent avec le theme. FullCalendar accepte
+// une var() comme couleur d'evenement.
 // ---------------------------------------------------------------------------
 const getStatusColorHex = (status: string): string => {
   switch (status) {
     case 'PENDING':
-      return '#C28A52';
+      return 'var(--warn)';
     case 'IN_PROGRESS':
-      return '#4F86C6';
+      return 'var(--info)';
     case 'COMPLETED':
-      return '#3E9C80';
+      return 'var(--ok)';
     case 'CANCELLED':
       return 'var(--bui-faint)';
     case 'AWAITING_VALIDATION':
-      return '#9A7FA3';
+      // Pas de jeton semantique pour « en attente de validation » : l'accent
+      // marque l'action attendue de l'utilisateur, sans inventer une teinte.
+      return 'var(--accent)';
     case 'AWAITING_PAYMENT':
-      return '#C28A52';
+      // Correspondance exacte : le jeton existe pour l'etat « non regle ».
+      return 'var(--unpaid)';
     default:
       return 'var(--bui-muted-foreground)';
   }

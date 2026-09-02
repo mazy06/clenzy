@@ -74,9 +74,13 @@ const PACKET_COLORS = {
 export function BaitlyAnimatedLogo({ scale = 1, showWordmark = true }: BaitlyAnimatedLogoProps) {
   const theme = useTheme();
   // Gris de marque Baitly canonique (aligné sur le logo web BaitlyMarkLogo) :
-  // #6B8A9A en clair, éclairci à #89B1C2 en sombre pour garder le contraste.
-  // On n'utilise PAS theme.colors.primary.main (#4A7C8E) qui est plus foncé.
-  const markColor = theme.isDark ? '#89B1C2' : '#6B8A9A';
+  // Le mark est NOIR : la marque et les commandes ne parlent plus la meme
+  // langue — le noir dit « Baitly », la terracotta de l'accent dit « ceci
+  // s'actionne ». Memes valeurs que `--brand-ink` cote web, et pour la meme
+  // raison qu'elles ne sont pas #000/#FFF purs : un noir neutre jure avec une
+  // palette chaude. Le mobile n'ayant pas de custom properties CSS, la paire
+  // est posee ici en dur — a garder alignee sur theme/signature/tokens.css.
+  const markColor = theme.isDark ? '#F0EBE6' : '#171310';
   const packetColors = PACKET_COLORS[theme.isDark ? 'dark' : 'light'];
   const wordmarkColor = theme.colors.text.primary;
 

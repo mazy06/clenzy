@@ -187,14 +187,24 @@ resilience4j:
 clenzy:
   # Constellation d'agents — balayage autonome des logements.
   # Le déclenchement nominal est événementiel (arrivée d'un avis, d'une
-  # réservation… → marquage « dirty » → scan du seul logement concerné) ; ce
-  # balayage périodique est le filet qui rattrape ce qui a précédé l'activation
-  # ou raté son événement. Chaque cycle reste borné par le budget de scans de
-  # l'organisation (Paramètres › IA) et par le plafond de crédits premium.
+  # réservation… → marquage « dirty » → scan du seul logement concerné) ; le
+  # complément périodique est le filet qui rattrape ce qui a précédé
+  # l'activation ou raté son événement : à chaque cycle, les logements ACTIFS
+  # les plus anciennement passés en revue (jamais scannés en tête) repassent,
+  # après les logements événementiels. Chaque cycle reste borné par le budget de
+  # scans de l'organisation (Paramètres › IA) et par le plafond premium.
   supervision:
     autonomous:
       enabled: ${SUPERVISION_AUTONOMOUS_ENABLED:true}
       interval-ms: ${SUPERVISION_AUTONOMOUS_INTERVAL_MS:3600000}
+      # Fraîcheur visée du complément : un logement revu depuis moins que cela
+      # n'est pas repris. 6 h = quatre passages par jour au plus par logement.
+      periodic-interval-ms: ${SUPERVISION_PERIODIC_INTERVAL_MS:21600000}
+      # Logements du complément par cycle et par org. Volontairement bas : le
+      # budget quotidien est commun aux deux sources, et un cycle qui le viderait
+      # priverait de scan les événements des heures suivantes. 0 = complément
+      # désactivé (retour au tout-événementiel).
+      max-periodic-per-cycle: ${SUPERVISION_MAX_PERIODIC_PER_CYCLE:5}
   # Channel manager Channex (staging par defaut — prod: app.channex.io via env).
   # api-key : header user-api-key ; webhook-secret : valeur du X-Channex-Token
   # attendue sur /api/webhooks/channex ; webhook-callback-url : URL publique de

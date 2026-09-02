@@ -57,7 +57,7 @@ import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
 import type { ReservationStatus } from '../../services/api';
 import {
-  ScopeSwitch,
+  ScopeToggle,
   PortfolioPanel,
   SupervisionPanel,
   MockPortfolioProvider,
@@ -752,128 +752,139 @@ const PlanningPage: React.FC = () => {
           chrome ; la toolbar garde les actions critiques) */}
       {!nav.isFullscreen && (
         <div className="shrink-0 px-[9px] min-[900px]:px-3 pt-[9px] min-[900px]:pt-3">
+          {/* Pont vers la recherche UNIQUE de l'app : ne dessine rien, publie
+              seulement la valeur et le placeholder que le champ du header
+              pilotera. Il vivait dans le slot `filters` du PageHeader — le seul
+              qui restait a y passer, et qui suffisait a y faire dessiner un
+              entonnoir pour un panneau vide. */}
+          {!isOverview && (
+            supervisorExpanded ? (
+              <HeaderSearchField
+                value={agentAsk}
+                onChange={setAgentAsk}
+                placeholder="Demandez quelque chose aux agents…"
+                onSubmit={sendAgentAsk}
+              />
+            ) : (
+              <HeaderSearchField
+                value={filters.searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Rechercher une réservation, un voyageur…"
+              />
+            )
+          )}
           <PageHeader
             title="Planning"
             subtitle={headerSubtitle}
             showBackButton={false}
-            filters={
-              <>
-                {canSupervise && (
-                  <ScopeSwitch value={supervisionScope} onChange={setSupervisionScope} />
-                )}
-                {/* Constellation déployée : la navigation de dates + zoom
-                    REMONTE ici — la toolbar disparaît et rend sa hauteur à
-                    l'accordéon. PAS sous lg : le header replie alors ses
-                    éléments dans le menu ⋯, où ce groupe de 414 px se
-                    retrouverait tronqué. La toolbar le garde. */}
-                {!isOverview && supervisorExpanded && !inHeaderMenu && (
-                  <PlanningDateNav
-                    currentDate={visibleMonthDate}
-                    zoom={nav.zoom}
-                    onGoPrev={nav.goPrev}
-                    onGoToday={handleGoToday}
-                    onGoNext={nav.goNext}
-                    onZoomChange={nav.setZoom}
-                  />
-                )}
-                {!isOverview && (
-                  supervisorExpanded ? (
-                    <HeaderSearchField
-                      value={agentAsk}
-                      onChange={setAgentAsk}
-                      placeholder="Demandez quelque chose aux agents…"
-                      onSubmit={sendAgentAsk}
-                    />
-                  ) : (
-                    <HeaderSearchField
-                      value={filters.searchQuery}
-                      onChange={setSearchQuery}
-                      placeholder="Rechercher une réservation, un voyageur…"
-                    />
-                  )
-                )}
-              </>
+            /* Constellation déployée : la navigation de dates + zoom REMONTE
+               ici — la toolbar disparaît et rend sa hauteur à l'accordéon.
+               Elle est rendue EN CLAIR dans la barre, juste avant la
+               recherche : repliée derrière l'entonnoir, on ne lisait plus quel
+               mois était affiché sans ouvrir le panneau. Le PageHeader la
+               replie de lui-même quand la barre n'a plus la place (cf.
+               `inlineControls`), jusqu'au menu ⋯ sur mobile. */
+            inlineControls={
+              !isOverview && supervisorExpanded ? (
+                <PlanningDateNav
+                  currentDate={visibleMonthDate}
+                  zoom={nav.zoom}
+                  onGoPrev={nav.goPrev}
+                  onGoToday={handleGoToday}
+                  onGoNext={nav.goNext}
+                  onZoomChange={nav.setZoom}
+                />
+              ) : undefined
             }
             actions={
-              isOverview ? undefined : (
-                <>
-                  {/* Sous `lg`, le PageHeader replie DEJA ses actions dans son
-                      menu ⋯ : y remettre un menu revient a empiler deux couches
-                      pour une seule intention. Les entrees sont donc rendues a
-                      PLAT, comme des lignes de ce menu. Au-dessus, elles
-                      retrouvent leur propre ⋯ — la barre a la place de l'afficher.
-                      Le span porte, dans les deux cas, l'ancre du popover de
-                      filtres (rendu a part, controle). */}
-                  {inHeaderMenu ? (
-                    <span ref={setMoreAnchorEl} className="flex flex-col items-stretch gap-1">
-                      {PLANNING_ACTIONS.map((action) => (
-                        <Button
-                          key={action.label}
-                          variant="ghost"
-                          size="sm"
-                          disabled={action.disabled}
-                          onClick={action.onSelect}
-                          className="w-full justify-start gap-2"
-                        >
-                          {action.icon}
-                          {action.label}
-                        </Button>
-                      ))}
-                    </span>
-                  ) : (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <span ref={setMoreAnchorEl} className="inline-flex">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Actions du planning"
-                            className="relative"
-                          >
-                            <MoreVert size={18} strokeWidth={1.85} />
-                            {/* Des filtres sont actifs : le point le dit même menu fermé. */}
-                            {hasActiveFilters && (
-                              <span className="absolute top-1 end-1 size-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-                            )}
-                          </Button>
-                        </span>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+              <>
+                {/* Portee de supervision — remplace le declencheur « Filtres »,
+                    qui n'ouvrait plus qu'un panneau a un seul reglage. Rendue a
+                    TOUTES les portees : c'est le seul chemin de retour depuis la
+                    vue d'ensemble, qui n'a aucune autre action. */}
+                {canSupervise && (
+                  <ScopeToggle value={supervisionScope} onChange={setSupervisionScope} />
+                )}
+                {!isOverview && (
+                  <>
+                    {/* Sous `lg`, le PageHeader replie DEJA ses actions dans son
+                        menu ⋯ : y remettre un menu revient a empiler deux couches
+                        pour une seule intention. Les entrees sont donc rendues a
+                        PLAT, comme des lignes de ce menu. Au-dessus, elles
+                        retrouvent leur propre ⋯ — la barre a la place de l'afficher.
+                        Le span porte, dans les deux cas, l'ancre du popover de
+                        filtres (rendu a part, controle). */}
+                    {inHeaderMenu ? (
+                      <span ref={setMoreAnchorEl} className="flex flex-col items-stretch gap-1">
                         {PLANNING_ACTIONS.map((action) => (
-                          <React.Fragment key={action.label}>
-                            {action.separatorBefore && <DropdownMenuSeparator />}
-                            <DropdownMenuItem disabled={action.disabled} onSelect={action.onSelect}>
-                              {action.icon}
-                              {action.label}
-                            </DropdownMenuItem>
-                          </React.Fragment>
+                          <Button
+                            key={action.label}
+                            variant="ghost"
+                            size="sm"
+                            disabled={action.disabled}
+                            onClick={action.onSelect}
+                            className="w-full justify-start gap-2"
+                          >
+                            {action.icon}
+                            {action.label}
+                          </Button>
                         ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <PlanningFilterButton
-                    filters={filters}
-                    density={nav.density}
-                    hasActiveFilters={hasActiveFilters}
-                    onDensityChange={nav.setDensity}
-                    onShowInterventionsChange={setShowInterventions}
-                    onShowPricesChange={setShowPrices}
-                    onClearFilters={handleClearFilters}
-                    urgencyAnimation={urgencyAnimation}
-                    onUrgencyAnimationChange={setUrgencyAnimation}
-                    showLegendChips={legendInModal}
-                    activeChannels={activeChannels}
-                    onToggleChannel={toggleChannel}
-                    presentChannels={presentChannels}
-                    activeStatuses={activeStatuses}
-                    onToggleStatus={toggleStatus}
-                    open={filterMenuOpen}
-                    onOpenChange={setFilterMenuOpen}
-                    anchorEl={moreAnchorEl}
-                    inline={inHeaderMenu}
-                  />
-                </>
-              )
+                      </span>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <span ref={setMoreAnchorEl} className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Actions du planning"
+                              className="relative"
+                            >
+                              <MoreVert size={18} strokeWidth={1.85} />
+                              {/* Des filtres sont actifs : le point le dit même menu fermé. */}
+                              {hasActiveFilters && (
+                                <span className="absolute top-1 end-1 size-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+                              )}
+                            </Button>
+                          </span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {PLANNING_ACTIONS.map((action) => (
+                            <React.Fragment key={action.label}>
+                              {action.separatorBefore && <DropdownMenuSeparator />}
+                              <DropdownMenuItem disabled={action.disabled} onSelect={action.onSelect}>
+                                {action.icon}
+                                {action.label}
+                              </DropdownMenuItem>
+                            </React.Fragment>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <PlanningFilterButton
+                      filters={filters}
+                      density={nav.density}
+                      hasActiveFilters={hasActiveFilters}
+                      onDensityChange={nav.setDensity}
+                      onShowInterventionsChange={setShowInterventions}
+                      onShowPricesChange={setShowPrices}
+                      onClearFilters={handleClearFilters}
+                      urgencyAnimation={urgencyAnimation}
+                      onUrgencyAnimationChange={setUrgencyAnimation}
+                      showLegendChips={legendInModal}
+                      activeChannels={activeChannels}
+                      onToggleChannel={toggleChannel}
+                      presentChannels={presentChannels}
+                      activeStatuses={activeStatuses}
+                      onToggleStatus={toggleStatus}
+                      open={filterMenuOpen}
+                      onOpenChange={setFilterMenuOpen}
+                      anchorEl={moreAnchorEl}
+                      inline={inHeaderMenu}
+                    />
+                  </>
+                )}
+              </>
             }
           />
         </div>
@@ -881,10 +892,10 @@ const PlanningPage: React.FC = () => {
 
       {/* Toolbar — navigation/zoom/légendes du planning : masquée en Vue
           d'ensemble, et quand la constellation est déployée (la navigation vit
-          alors dans le PageHeader) — SAUF en plein écran, où le header n'existe
-          pas : la toolbar reste la seule porteuse de la navigation. Idem sous
-          lg, où le header replie ses éléments dans le menu ⋯. */}
-      {!isOverview && (!supervisorExpanded || nav.isFullscreen || inHeaderMenu) && (
+          alors dans le PageHeader, en clair puis repliée dans son menu selon la
+          largeur) — SAUF en plein écran, où le header n'existe pas : la toolbar
+          reste la seule porteuse de la navigation. */}
+      {!isOverview && (!supervisorExpanded || nav.isFullscreen) && (
         <div className="shrink-0 mb-1.5">
           <PlanningToolbar
             currentDate={visibleMonthDate}

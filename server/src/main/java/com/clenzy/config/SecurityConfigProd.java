@@ -140,6 +140,10 @@ public class SecurityConfigProd {
                         // Securite par ticket HMAC scope avatar:{id} valide dans UserController
                         // (fail-closed : ticket valide OU, a defaut, JWT meme-org). Cf. MediaTicketService.
                         .requestMatchers(HttpMethod.GET, "/api/users/*/profile-picture").permitAll()
+                        // Photos des voyageurs : meme raison, meme garde-fou — ticket HMAC
+                        // scope guest-photo:{id} valide dans GuestController (fail-closed :
+                        // ticket valide OU, a defaut, JWT meme-org ; sinon 404, jamais 403).
+                        .requestMatchers(HttpMethod.GET, "/api/guests/*/photo").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/webhooks/expedia").permitAll()
                         .requestMatchers("/api/webhooks/whatsapp").permitAll()

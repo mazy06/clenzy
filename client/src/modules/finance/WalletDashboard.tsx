@@ -18,7 +18,7 @@ import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import PagePagination from '../../components/PagePagination';
 
-// Accents = palette Baitly validée (ESCROW : mauve désaturé validé planning #9A7FA3)
+// Accents = palette Baitly validée (ESCROW : mauve désaturé, propre à cet écran)
 const WALLET_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   PLATFORM: { label: 'Plateforme', icon: <Business size={16} strokeWidth={1.75} />, color: '#6B8A9A' },
   OWNER: { label: 'Propriétaire', icon: <TrendingUp size={16} strokeWidth={1.75} />, color: '#4A9B8E' },

@@ -18,24 +18,22 @@ export const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
   { value: 'cancelled', label: RESERVATION_STATUS_LABELS.cancelled },
 ];
 
-// « Direct » n'a pas de logo (vente en direct) → globe accent.
-export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | null }[] = [
-  { key: 'airbnb', label: RESERVATION_SOURCE_LABELS.airbnb, logo: getSourceLogo('airbnb') },
-  { key: 'booking', label: RESERVATION_SOURCE_LABELS.booking, logo: getSourceLogo('booking') },
-  { key: 'vrbo', label: RESERVATION_SOURCE_LABELS.vrbo, logo: getSourceLogo('vrbo') },
-  // Expedia n'a pas de logo dans les assets → globe accent, comme « Direct ».
-  { key: 'expedia', label: RESERVATION_SOURCE_LABELS.expedia, logo: null },
-  // Longue traîne : pas de logo non plus, et pas de couleur de marque inventée
-  // (`getChannelChipTokens` les laisse en gris neutre). Ces chips n'apparaissent
-  // que sur les organisations qui vendent réellement sur ces canaux.
-  { key: 'agoda', label: RESERVATION_SOURCE_LABELS.agoda, logo: null },
-  { key: 'hotels_com', label: RESERVATION_SOURCE_LABELS.hotels_com, logo: null },
-  { key: 'hometogo', label: RESERVATION_SOURCE_LABELS.hometogo, logo: null },
-  { key: 'mabeet', label: RESERVATION_SOURCE_LABELS.mabeet, logo: null },
-  { key: 'rentelly', label: RESERVATION_SOURCE_LABELS.rentelly, logo: null },
-  { key: 'gathern', label: RESERVATION_SOURCE_LABELS.gathern, logo: null },
-  { key: 'direct', label: RESERVATION_SOURCE_LABELS.direct, logo: null },
-];
+// Le logo de chaque canal est RESOLU, jamais figé : les assets existent pour
+// presque tous les canaux (agoda, hotels.com, hometogo, mabeet, rentelly,
+// gathern, expedia) et cette table les forçait à `null`, si bien que sept
+// canaux sur onze s'affichaient avec un globe générique alors que leur logo
+// était livré dans le bundle.
+//
+// « Direct » reste sans logo : ce n'est pas un canal externe mais l'absence
+// d'intermédiaire — un globe, à l'encre de marque comme le reste du chrome.
+export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | null }[] =
+  (['airbnb', 'booking', 'vrbo', 'expedia', 'agoda', 'hotels_com',
+    'hometogo', 'mabeet', 'rentelly', 'gathern', 'direct'] as const)
+    .map((key) => ({
+      key,
+      label: RESERVATION_SOURCE_LABELS[key],
+      logo: key === 'direct' ? null : getSourceLogo(key),
+    }));
 
 // ─── Styles partagés (langage Signature) ─────────────────────────────────────
 
@@ -100,7 +98,7 @@ export type LegendChipVariant = 'legend' | 'toggle';
 /** Equivalent en classes de `sigChipSx` + `BUTTON_RESET`, hors couleurs et transition.
  *  gap: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet, pas 8). */
 const CHIP_BASE_CLS =
-  'inline-flex items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+  'inline-flex shrink-0 items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
 const CHIP_IDLE_COLORS_CLS = 'text-[var(--body)] bg-[var(--card)] border-[var(--line-2)] hover:border-[var(--faint)]';
 const CHIP_TOGGLE_TRANSITION_CLS =
   'transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)]';
@@ -154,7 +152,7 @@ export const ChannelLegendChips: React.FC<{
               {ch.logo ? (
                 <img className="w-[15px] h-[15px] object-contain block shrink-0" src={ch.logo} alt="" />
               ) : (
-                <span className="inline-flex text-[var(--accent)]">
+                <span className="inline-flex text-[var(--brand-ink)]">
                   <GlobeIcon size={15} strokeWidth={1.75} />
                 </span>
               )}

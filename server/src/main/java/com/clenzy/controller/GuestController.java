@@ -3,16 +3,24 @@ package com.clenzy.controller;
 import com.clenzy.dto.GuestDto;
 import com.clenzy.dto.GuestListDto;
 import com.clenzy.dto.GuestPageDto;
+import com.clenzy.service.GuestPhotoUrlResolver;
 import com.clenzy.service.GuestService;
+import com.clenzy.service.MediaTicketService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/guests")
@@ -25,11 +33,14 @@ public class GuestController {
 
     private final GuestService guestService;
     private final TenantContext tenantContext;
+    private final MediaTicketService mediaTicketService;
 
     public GuestController(GuestService guestService,
-                           TenantContext tenantContext) {
+                           TenantContext tenantContext,
+                           MediaTicketService mediaTicketService) {
         this.guestService = guestService;
         this.tenantContext = tenantContext;
+        this.mediaTicketService = mediaTicketService;
     }
 
     // ── GET /list : listing complet pour la page Voyageurs ───────────────────
@@ -139,5 +150,53 @@ public class GuestController {
     public Map<String, Object> recalculateStats() {
         int updated = guestService.recalculateAllStats();
         return Map.of("updated", updated, "status", "ok");
+    }
+
+    // ── GET /{id}/photo : photo de profil du voyageur ────────────────────────
+
+    /**
+     * Sert la photo de profil d'un voyageur.
+     *
+     * <p><b>Pourquoi une route plutot qu'une image dans le JSON.</b> La photo
+     * etait auparavant embarquee en data URI dans chaque reservation : le meme
+     * portrait repartait autant de fois que le voyageur avait de sejours, sans
+     * que le navigateur puisse rien mettre en cache. Servie ici, elle est
+     * demandee une fois et rangee dans le cache HTTP.</p>
+     *
+     * <p><b>Acces, ferme par defaut.</b> Deux chemins, jamais un troisieme :
+     * soit un ticket HMAC valide pour CE voyageur — indispensable parce qu'un
+     * {@code <img src>} n'envoie aucun en-tete d'autorisation —, soit un
+     * utilisateur authentifie de la meme organisation. Un voyageur d'une autre
+     * organisation ressort en 404 et non en 403 : repondre « interdit »
+     * confirmerait son existence et rendrait les identifiants enumerables.</p>
+     */
+    @GetMapping("/{id}/photo")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "Recuperer la photo de profil d'un voyageur")
+    public ResponseEntity<Resource> getPhoto(
+            @PathVariable Long id,
+            @RequestParam(value = "ticket", required = false) String ticket,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        // Portee de lecture : null = cross-org. Le ticket vaut autorisation pour
+        // ce voyageur precis, il n'a donc pas a etre re-borne par organisation.
+        final Long scopeOrgId;
+        if (mediaTicketService.verify(GuestPhotoUrlResolver.scopeFor(id), ticket)) {
+            scopeOrgId = null;
+        } else if (jwt == null) {
+            return ResponseEntity.status(401).build();
+        } else {
+            scopeOrgId = tenantContext.isSuperAdmin() ? null : tenantContext.getRequiredOrganizationId();
+        }
+
+        return guestService.streamPhoto(id, scopeOrgId)
+                .map(photo -> ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(photo.contentType()))
+                        // Privee : la photo n'est pas publique, aucun cache
+                        // partage ne doit la garder. La fenetre suit celle du
+                        // ticket, pour qu'une URL cachee reste valide.
+                        .cacheControl(CacheControl.maxAge(15, TimeUnit.MINUTES).cachePrivate())
+                        .body(photo.resource()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

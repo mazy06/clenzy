@@ -22,6 +22,18 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     List<Property> findByOrganizationId(Long organizationId);
 
     /**
+     * Ids des logements ACTIFS d'une org — tour de role du balayage autonome de
+     * la constellation. Seul l'id est necessaire : charger les entites pour
+     * n'en lire que la cle couterait une hydratation complete par cycle.
+     *
+     * <p>Appelee sous {@code TenantScopedExecutor}, donc filtre Hibernate actif ;
+     * l'org explicite reste la defense en profondeur habituelle.</p>
+     */
+    @Query("SELECT p.id FROM Property p WHERE p.organizationId = :orgId "
+        + "AND p.status = com.clenzy.model.PropertyStatus.ACTIVE")
+    List<Long> findActiveIdsByOrganizationId(@Param("orgId") Long orgId);
+
+    /**
      * Destinataires eligibles au briefing par defaut : les proprietaires d'au
      * moins un logement ACTIF, toutes organisations confondues.
      *

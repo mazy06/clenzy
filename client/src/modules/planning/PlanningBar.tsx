@@ -1,5 +1,6 @@
+import { guestPhotoSrc } from '../../services/api/guestsApi';
 import React, { useState } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Tooltip, TooltipRoot, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { useDraggable } from '@dnd-kit/core';
 import { Lock as LockIcon, Close, Warning, BroomFill, WrenchFill, CreditCardFill, CheckBold } from '../../icons';
@@ -15,7 +16,7 @@ import {
   BAR_PRICE_INLINE_MIN as PRICE_INLINE_MIN,
   BAR_FEE_PILL_MIN as FEE_PILL_MIN,
 } from './constants';
-import { getEventDisplayColor } from './utils/colorUtils';
+import { getEventDisplayColor, getEventInkColor, hasDarkInk } from './utils/colorUtils';
 import { getSourceLogo } from './utils/sourceLogos';
 import { daysBetween } from './utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
@@ -98,7 +99,7 @@ const RadarPastille: React.FC<{
   tooltip: string;
   right?: number;
 }> = ({ color, tooltip, right = -4 }) => (
-  <Tooltip>
+  <TooltipRoot>
     <TooltipTrigger asChild>
       <div className="absolute top-[-3px] w-[10px] h-[10px] z-[12]" style={{ right }}>
         {/* Anneau 1 (pulse continu) */}
@@ -116,7 +117,7 @@ const RadarPastille: React.FC<{
       </div>
     </TooltipTrigger>
     <TooltipContent>{tooltip}</TooltipContent>
-  </Tooltip>
+  </TooltipRoot>
 );
 
 // ─── Pastille blanche (langage Signature, dans la brique) ───────────────────
@@ -235,6 +236,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       event.sublabel,
     ].filter(Boolean).join(' — ');
     return (
+      // Branche intervention : elle sort avant le provider de la brique et ne
+      // porte qu'UNE infobulle. Le `Tooltip` auto-enveloppant du kit est ici le
+      // bon choix — mutualiser un provider pour un seul root n'economise rien.
       <Tooltip>
         <TooltipTrigger asChild>
         <div
@@ -289,6 +293,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // ou le TYPE (interventions), via les tokens CSS. Annulée = fond hachuré
   // gris (géré plus bas). Aplat uniforme, pas de side-stripe (ban Impeccable).
   const barColor = getEventDisplayColor(event);
+  // Encre de la brique. Elle etait figee sur var(--on-accent) : la palette
+  // « Terre cuite » va du beige au brun fonce, un blanc constant disparaitrait
+  // sur les valeurs claires. Les briques pales portent donc une encre foncee,
+  // et tout ce qui se pose PAR-DESSUS (avatar, pastille de prix) s'aligne sur
+  // elle plutot que de presumer un fond sombre.
+  const barInk = getEventInkColor(event);
+  const darkInk = hasDarkInk(event);
 
   // Note : pas de pattern strié pour "paiement en attente". L'info est
   // transmise par la pastille paiement (badge blanc ou radar en repli).
@@ -432,6 +443,19 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     : undefined;
 
   return (
+    // UN provider d'infobulles par brique, et non un par infobulle.
+    //
+    // `Tooltip` du kit s'auto-enveloppe : pratique a l'unite, ruineux en liste.
+    // La brique en compte jusqu'a sept, et le planning en monte plus de trois
+    // cents d'emblee — soit pres d'un millier de contextes imbriques, tous
+    // re-rendus a chaque extension du buffer. Les infobulles internes passent
+    // donc par `TooltipRoot`, qui n'en cree aucun.
+    //
+    // Le provider reste DANS la brique plutot qu'autour de la grille : Radix
+    // leve une erreur si la racine n'en trouve pas, et une brique rendue hors
+    // grille (tests, apercu) planterait. On divise par sept sans rendre le
+    // composant dependant de son parent. Le provider ne rend aucun DOM.
+    <TooltipProvider>
     <>
     <div
       ref={setNodeRef}
@@ -498,11 +522,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         // Spec .pl-bar : gap 7px entre avatar / texte / pastilles. Le clip du
         // contenu se fait ici, l'overflow visible reste sur le parent (radar).
         <div
-          style={{ borderRadius: `${BAR_BORDER_RADIUS}px` }}
           className={cn(
             'flex flex-row items-center justify-between gap-[7px] w-full h-full min-w-0 overflow-hidden',
-            isCancelled ? 'text-[var(--muted)]' : 'text-[var(--on-accent)]',
+            isCancelled && 'text-[var(--muted)]',
           )}
+          // L'encre depend du statut : `text-[var(--on-accent)]` etait un blanc
+          // constant, invisible sur les briques pales de la palette.
+          style={{ borderRadius: `${BAR_BORDER_RADIUS}px`, ...(isCancelled ? {} : { color: barInk }) }}
         >
           {/* Avatar voyageur : rond 26px (spec .pl-bar__av), bord clair,
               initiales 9.5px fw700. Pas de pastille d'alerte dessus (les
@@ -511,13 +537,15 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           {showAvatar && !compactRightZone && (
             <GuestAvatar
               name={event.label}
-              photoUrl={event.reservation?.guestAvatarUrl}
+              photoUrl={guestPhotoSrc(event.reservation?.guestAvatarUrl)}
               size={26}
               sx={{
-                border: '1.5px solid rgba(255,255,255,.55)',
-                backgroundColor: 'rgba(255,255,255,.22)',
+                // Voiles tires de l'ENCRE : sur une brique beige, un liseré
+                // blanc translucide ne se voit pas.
+                border: `1.5px solid ${darkInk ? 'rgba(43,33,26,.30)' : 'rgba(255,255,255,.55)'}`,
+                backgroundColor: darkInk ? 'rgba(43,33,26,.12)' : 'rgba(255,255,255,.22)',
                 fontSize: '9.5px',
-                color: isCancelled ? 'var(--muted)' : '#fff',
+                color: isCancelled ? 'var(--muted)' : barInk,
                 ...(isCancelled && {
                   filter: 'grayscale(1)',
                   opacity: 0.6,
@@ -548,7 +576,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               brique a la place ; couleur = état paiement. Sous PRICE_AMOUNT_MIN
               le montant se masque (icône d'état seule, .is-narrow). */}
           {priceInline && (
-            <Tooltip>
+            <TooltipRoot>
               <TooltipTrigger asChild>
               <div
                 // PILL_UNPAID / PILL_UNPAID_ICON sont des constantes locales :
@@ -563,11 +591,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                     ? 'bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.14)]'
                     : isCancelled
                       ? 'bg-[var(--surface-2)] text-[var(--muted)] shadow-[inset_0_0_0_1px_var(--line-2)]'
-                      // Verre SOMBRE (et non clair) : un check / montant blanc
-                      // reste lisible sur TOUTES les couleurs de brique, y
-                      // compris les plus claires (ambre, vert) où le verre clair
-                      // d'origine se confondait avec le fond.
-                      : 'bg-[rgba(0,0,0,.20)] text-[#fff] shadow-[inset_0_0_0_1px_rgba(255,255,255,.22)]',
+                      // Le verre suit l'encre de la brique. Un verre sombre +
+                      // texte blanc tenait sur les fonds soutenus ; sur le
+                      // beige et le taupe de la palette « Terre cuite » le
+                      // blanc s'efface, on inverse donc le régime.
+                      : darkInk
+                        ? 'bg-[rgba(255,255,255,.55)] shadow-[inset_0_0_0_1px_rgba(43,33,26,.18)]'
+                        : 'bg-[rgba(0,0,0,.20)] text-[#fff] shadow-[inset_0_0_0_1px_rgba(255,255,255,.22)]',
                 )}
               >
                 <span
@@ -586,7 +616,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               <TooltipContent>
                 {priceUnpaid ? `${paymentTooltip} · ${priceFull}` : `Réglé · ${priceFull}`}
               </TooltipContent>
-            </Tooltip>
+            </TooltipRoot>
           )}
           {/* Pastilles a droite : indicateurs (+N) + logo canal */}
           {(showBadgeGroup || (sourceLogo && displayWidth > 60)) && (
@@ -596,7 +626,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 // brique est large ; sinon carré-icône d'origine (.is-narrow).
                 const asFeePill = !!it.fee && displayWidth >= FEE_PILL_MIN;
                 return (
-                  <Tooltip key={it.key}>
+                  <TooltipRoot key={it.key}>
                     <TooltipTrigger asChild>
                     <div
                       onClick={it.onClick}
@@ -629,11 +659,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                     </div>
                     </TooltipTrigger>
                     <TooltipContent>{it.tooltip}</TooltipContent>
-                  </Tooltip>
+                  </TooltipRoot>
                 );
               })}
               {showBadgeGroup && overflowItems.length > 0 && (
-                <Tooltip
+                <TooltipRoot
                   // Contrôlé : le survol (onOpenChange) ET le clic / clavier
                   // ouvrent le même tooltip.
                   open={overflowOpen}
@@ -681,7 +711,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                       ))}
                     </ul>
                   </TooltipContent>
-                </Tooltip>
+                </TooltipRoot>
               )}
               {sourceLogo && displayWidth > 60 && !compactRightZone && (() => {
                 const logoBadge = (
@@ -700,10 +730,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 // bulle vide la ou MUI n'affichait rien.
                 if (!event.sublabel) return logoBadge;
                 return (
-                  <Tooltip>
+                  <TooltipRoot>
                     <TooltipTrigger asChild>{logoBadge}</TooltipTrigger>
                     <TooltipContent>{event.sublabel}</TooltipContent>
-                  </Tooltip>
+                  </TooltipRoot>
                 );
               })()}
             </div>
@@ -729,7 +759,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
 
       {/* Hide button for cancelled reservations — always visible, badge-style top-right */}
       {isReservation && event.status === 'cancelled' && onHide && (
-        <Tooltip>
+        <TooltipRoot>
           <TooltipTrigger asChild>
             <div
               role="button"
@@ -750,7 +780,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             </div>
           </TooltipTrigger>
           <TooltipContent>Masquer du planning</TooltipContent>
-        </Tooltip>
+        </TooltipRoot>
       )}
 
       {/* Pastilles radar flottantes — REPLI quand la brique est trop etroite
@@ -806,6 +836,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       />
     )}
     </>
+    </TooltipProvider>
   );
 });
 

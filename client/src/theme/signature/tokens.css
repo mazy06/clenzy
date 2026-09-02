@@ -28,16 +28,28 @@
      (voir le bloc « SÉLECTION DE TEINTE » en bas du fichier).
      Tout élément d'accent NE DOIT lire QUE ces 3 variables —
      ainsi un changement de teinte couvre toute l'UI. ---- */
-  --accent:      #5453D6;            /* indigo-violet — signature Baitly */
-  --accent-deep: #4341BE;            /* hover bouton primaire */
-  --accent-soft: rgba(84,83,214,.10); /* fond doux / actif */
+  /* Terracotta — signature Baitly, meme famille chaude que les briques du
+     planning. La teinte de la galerie d'accents (#C0613B) n'a PAS ete reprise
+     telle quelle : elle ne porte le texte blanc qu'a 4,19:1, tolerable pour un
+     accent optionnel, pas pour celui que porte chaque bouton primaire. */
+  --accent:      #B45733;            /* 4,83:1 avec --on-accent */
+  --accent-deep: #96472A;            /* hover bouton primaire */
+  --accent-soft: rgba(180,87,51,.10); /* fond doux / actif */
   --on-accent:   #FFFFFF;
+  /* Encre de marque : le logo et les marqueurs de marque sont NOIRS, l'accent
+     ne servant plus qu'aux commandes. Tinte vers la terracotta plutot que
+     #000 pur — un noir neutre jure avec une palette chaude. */
+  --brand-ink:   #171310;
+  --on-brand-ink: #FFFFFF;          /* encre POSEE sur --brand-ink */
   /* Packets request/response du logo Baitly (BaitlyMarkLogo) : paire choisie
      PAR teinte d'accent pour rester visible sur le trait qui suit --accent
      (ex : accent indigo → request cyan, pas bleu). Redéfinie dans chaque bloc
      [data-accent] ci-dessous, clair et sombre. */
-  --accent-flow-request:  #06B6D4;   /* cyan — se détache de l'indigo */
-  --accent-flow-response: #D97706;   /* ambre — complémentaire */
+  /* Paires du flux animé du logo : accordées à la terracotta, comme la variante
+     [data-accent="terracotta"]. Le cyan/ambre d'origine était calibré contre
+     l'indigo — l'ambre se confondait avec une marque devenue chaude. */
+  --accent-flow-request:  #2563EB;   /* bleu — franc contre la terracotta */
+  --accent-flow-response: #0D9488;   /* teal — complémentaire */
 
   /* ---- Champs — gris neutre (dé-bleui) ---- */
   --field:      #EFF2F4;
@@ -57,7 +69,8 @@
   --info: #7BA3C2;  --info-soft: rgba(123,163,194,.14);
 
   /* ---- Paiement réservation (brique planning .pl-price) ---- */
-  --paid:          #3E9C80;  /* payé — vert (= --st-confirmee) */
+  --paid:          #3E9C80;  /* payé — vert. Jeton de PAIEMENT : ne suit pas
+                                les briques du planning, passées au brun. */
   --unpaid:        #C9803F;  /* non réglé — ambre (icône carte) */
   --unpaid-strong: #B25A2A;  /* non réglé — ambre foncé (montant, contraste sur blanc) */
 
@@ -132,10 +145,17 @@
   --muted: #869199;
   --faint: #647079;
 
-  /* accent éclairci pour le contraste sur fond sombre (défaut Indigo — Baitly Signature) */
-  --accent:      #8584F0;
-  --accent-deep: #6F6EE6;
-  --accent-soft: rgba(133,132,240,.18);
+  /* Accent éclairci pour le contraste sur fond sombre (défaut Terracotta —
+     Baitly Signature). Un accent clair ne porte plus de texte blanc : à
+     2,75:1 le libellé d'un bouton primaire disparaissait. `--on-accent`
+     bascule donc sur l'encre de marque, à 6,28:1. */
+  --accent:      #DE855E;
+  --accent-deep: #C96E48;
+  --accent-soft: rgba(222,133,94,.18);
+  --on-accent:   #241812;
+  /* Le noir de marque s'inverse : un logo noir sur fond sombre ne se voit pas. */
+  --brand-ink:   #F0EBE6;
+  --on-brand-ink: #171310;
   --accent-flow-request:  #22D3EE;
   --accent-flow-response: #FBBF24;
 
@@ -246,4 +266,4 @@
    (cf. AuthLayout) pour rester clairs même si le device est en mode sombre —
    donc PAS de variante [data-theme="dark"] .brand-accent ici, qui réassombrirait
    l'accent. */
-.brand-accent           { --accent:#5453D6; --accent-deep:#4341BE; --accent-soft:rgba(84,83,214,.10); --accent-flow-request:#06B6D4; --accent-flow-response:#D97706; }
+.brand-accent           { --accent:#B45733; --accent-deep:#96472A; --accent-soft:rgba(180,87,51,.10); --accent-flow-request:#2563EB; --accent-flow-response:#0D9488; }

@@ -1458,7 +1458,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
-              <span className="inline-flex text-[var(--accent)]">
+              <span className="inline-flex text-[var(--brand-ink)]">
                 {assignMode === 'service_request'
                   ? <PersonAdd size={20} strokeWidth={1.75} />
                   : <Groups size={20} strokeWidth={1.75} />}

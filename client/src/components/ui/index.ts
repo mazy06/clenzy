@@ -68,5 +68,5 @@ export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants } from './ta
 export { Textarea } from './textarea';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';
 export { Toggle, toggleVariants } from './toggle';
-export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
+export { Tooltip, TooltipRoot, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 export { Stepper, Step, StepLabel } from './stepper';

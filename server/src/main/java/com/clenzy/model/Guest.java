@@ -51,6 +51,24 @@ public class Guest {
     @Column(name = "phone_hash", length = 64)
     private String phoneHash;
 
+    /**
+     * Photo de profil : CLE DE STOCKAGE {@code guests/{id}/{uuid}.{ext}}, resolue
+     * par {@code GuestPhotoStorageService} et servie par
+     * {@code GET /api/guests/{id}/photo}. Meme convention que
+     * {@code users.profile_picture_url}.
+     *
+     * <p>Une URL absolue est toleree — photo importee d'un canal : elle est
+     * alors renvoyee telle quelle, sans passer par nos routes.</p>
+     *
+     * <p>{@code null} = l'interface retombe sur les initiales (cf. GuestAvatar).</p>
+     *
+     * <p>NON chiffree, contrairement aux nom/email/telephone voisins : une cle
+     * de stockage n'identifie personne, et les octets ne transitent jamais
+     * par cette colonne.</p>
+     */
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
+    private String avatarUrl;
+
     @Convert(converter = EncryptedFieldConverter.class)
     @Column(name = "first_name", length = 500, nullable = false)
     private String firstName;
@@ -112,6 +130,10 @@ public class Guest {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public String getPhoneHash() { return phoneHash; }
     public void setPhoneHash(String phoneHash) { this.phoneHash = phoneHash; }

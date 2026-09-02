@@ -57,14 +57,50 @@ class AutonomyBudgetServiceTest {
 
     @Test
     void noConfig_isDisabled_behaviorsOffByDefault() {
-        // Meme avec un plafond par defaut > 0 (forfait premium), les behaviors
-        // restent OFF sans config explicite → rien ne s'execute (opt-in conserve).
+        // Meme avec un plafond par defaut > 0 (forfait premium), un comportement
+        // SANS defaut declare reste OFF sans config explicite (opt-in conserve).
         orgWithForfait("premium");
 
         AutonomyBudgetService.Decision decision = service().evaluate(42L, "pricing_scan");
 
         assertThat(decision.outcome()).isEqualTo(AutonomyBudgetService.Outcome.DISABLED);
         assertThat(decision.capMillicredits()).isEqualTo(2_500_000L);
+    }
+
+    @Test
+    void supervisionScan_isOnByDefault_whenOrgNeverChose() {
+        // Sans ce defaut, la constellation n'appelle jamais de modele : elle ne
+        // peut donc rien proposer, et l'org croit ses agents muets.
+        orgWithForfait("premium");
+        when(ledgerRepository.sumBucketDebitSince(eq(42L), eq(AiUsageLedgerEntry.BUCKET_PREMIUM_AUTO), any()))
+                .thenReturn(0L);
+
+        AutonomyBudgetService.Decision decision = service().evaluate(42L, "supervision_scan");
+
+        assertThat(decision.outcome()).isEqualTo(AutonomyBudgetService.Outcome.ALLOWED);
+    }
+
+    @Test
+    void supervisionScan_explicitFalse_isRespected() {
+        // Le defaut ne retire aucun controle : un toggle decoche reste decoche.
+        when(budgetRepository.findById(42L))
+                .thenReturn(Optional.of(budget(2_500_000L, AiAutonomyBudget.ON_CAP_NOTIFY_ONLY,
+                        "{\"supervision_scan\":false}")));
+
+        AutonomyBudgetService.Decision decision = service().evaluate(42L, "supervision_scan");
+
+        assertThat(decision.outcome()).isEqualTo(AutonomyBudgetService.Outcome.DISABLED);
+    }
+
+    @Test
+    void supervisionScan_onEssentiel_staysDisabled_becauseCapIsZero() {
+        // Le plafond du forfait reste le garde-fou de depense : essentiel = 0.
+        orgWithForfait("essentiel");
+
+        AutonomyBudgetService.Decision decision = service().evaluate(42L, "supervision_scan");
+
+        assertThat(decision.outcome()).isEqualTo(AutonomyBudgetService.Outcome.DISABLED);
+        assertThat(decision.capMillicredits()).isZero();
     }
 
     @Test

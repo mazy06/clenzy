@@ -77,6 +77,6 @@ class GuestAnalyticsServiceTest {
 
     private static GuestListDto guest(Long id, String fullName, int stays, String spent) {
         return new GuestListDto(id, fullName, "L", null, null, fullName, "airbnb",
-                stays, new BigDecimal(spent), "fr", null, ORG, null);
+                stays, new BigDecimal(spent), "fr", null, ORG, null, null);
     }
 }

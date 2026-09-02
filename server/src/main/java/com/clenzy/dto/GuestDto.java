@@ -13,5 +13,7 @@ public record GuestDto(
     String fullName,
     String language,
     String countryCode,
-    String notes
+    String notes,
+    /** Photo de profil, ou {@code null} : repli sur les initiales. */
+    String avatarUrl
 ) {}

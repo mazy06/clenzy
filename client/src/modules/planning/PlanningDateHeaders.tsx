@@ -65,7 +65,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
       </CornerTag>
 
       {/* Day row (spec .pl-day : padding 8px 0, hairlines, dernier sans) :
-          jour abrégé + numéro (aujourd'hui = carré accent 24×24).
+          jour abrégé + numéro (aujourd'hui = carré noir de marque 24×24).
           Le mois/année vit dans la toolbar (sélecteur ‹ Mois Année ›, suivi du
           scroll) — plus de rangée mois dans la grille. Le nom complet
           (jour + numero + mois + annee) reste au hover via Tooltip. */}
@@ -83,19 +83,19 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 <div className="flex flex-col items-center justify-center gap-px py-1 border-e border-solid border-e-[var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
-                    <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}>
+                    <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--brand-ink)]' : 'text-[var(--faint)]')}>
                       {formatDayShort(day).replace('.', '')}
                     </span>
                   )}
                   {/* Numéro (spec .dn : Space Grotesk 14px fw600) —
-                      aujourd'hui dans un carré accent 24×24 radius 8 */}
+                      aujourd'hui dans un carré noir de marque 24×24 radius 8 */}
                   {/* rounded-[8px] et non rounded-lg : l'echelle de rayons du
                       projet redefinit lg a 0.625rem (10px). */}
                   <p
                     className={cn(
                       'cn-text-body1 [font-family:var(--font-display)] text-[14px] font-semibold leading-none tabular-nums',
                       today
-                        ? 'inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)]'
+                        ? 'inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--brand-ink)] text-[var(--on-brand-ink)]'
                         // Spec .dn : var(--body), week-end inclus
                         : 'text-[var(--body)]',
                     )}

@@ -152,24 +152,64 @@ export const DEFAULT_CHECK_OUT_HOUR = 11;
 // la grille Clenzy a un nombre de jours variable (timeline infinie).
 export const BAR_MIN_DAY_FRACTION = 0.49;
 
-// ─── Couleurs de statut (constantes locales, maquette pl-grid) ──────────────
+// ─── Couleurs de statut — palette « Terre cuite » ───────────────────────────
 //
-// La COULEUR de brique encode le STATUT de la réservation (le canal est porté
-// par la pastille logo). Valeurs EXACTES de planning-grid-reference.css
-// (--st-*) ; identiques en sombre — la référence ne les redéfinit pas.
+// La COULEUR de brique encode le STATUT (le canal est porté par la pastille
+// logo). Une seule famille de bruns où la VALEUR encode la présence : plus le
+// voyageur est là, plus la brique est dense.
+//
+// TROIS rôles, non interchangeables (contrat Baitly UI, règle `-ink` / teinte
+// vive / `-soft`). Une seule table les servait tous les deux auparavant — fond
+// de brique ET couleur de texte des pastilles —, et c'est ainsi que les quatre
+// statuts se sont retrouvés sous le seuil de lisibilité : une teinte vive
+// plafonne à ~2,2:1 en texte.
+//
+// Les valeurs vivent dans planningUrgency.css : elles changent avec le thème,
+// ce qu'une constante JS ne sait pas faire.
+//
 // Annulée = brique fantôme hachurée sans remplissage ; var(--faint) ne sert
 // qu'à la puce de la chip Statuts.
-// NB : nom historique « DEPARTURE_VIOLET » conservé (consommé par le panneau
-// et le popover) — valeur réalignée sur le mauve --st-checkout.
-export const PLANNING_DEPARTURE_VIOLET = '#9A7FA3';
 
-export const RESERVATION_STATUS_TOKEN_COLORS: Record<string, string> = {
-  confirmed: '#3E9C80',   // --st-confirmee (vert)
-  pending: '#C28A52',     // --st-pending   (ambre)
-  checked_in: '#4F86C6',  // --st-checkin   (bleu)
-  checked_out: PLANNING_DEPARTURE_VIOLET, // --st-checkout (mauve)
+/** Fond de la brique. */
+export const RESERVATION_STATUS_BAR_COLORS: Record<string, string> = {
+  confirmed: 'var(--pl-st-confirmed)',
+  pending: 'var(--pl-st-pending)',
+  checked_in: 'var(--pl-st-checked-in)',
+  checked_out: 'var(--pl-st-checked-out)',
   cancelled: 'var(--faint)',
 };
+
+/**
+ * Encre POSÉE SUR la brique. La brique porte un nom et un nombre de nuits :
+ * sur un fond beige, du blanc ne se lit pas. C'est cette table qui rend le
+ * beige possible — sans elle, la palette serait bornée aux bruns foncés.
+ */
+export const RESERVATION_STATUS_BAR_INK: Record<string, string> = {
+  confirmed: 'var(--pl-st-confirmed-on)',
+  pending: 'var(--pl-st-pending-on)',
+  checked_in: 'var(--pl-st-checked-in-on)',
+  checked_out: 'var(--pl-st-checked-out-on)',
+};
+
+/**
+ * Encre du statut sur une CARTE (pastilles, libellés, puces) — pas un fond.
+ * Nom historique conservé : une quinzaine d'appels la consomment déjà dans ce
+ * rôle, et c'est bien celui-là qu'ils veulent.
+ */
+export const RESERVATION_STATUS_TOKEN_COLORS: Record<string, string> = {
+  confirmed: 'var(--pl-st-confirmed-ink)',
+  pending: 'var(--pl-st-pending-ink)',
+  checked_in: 'var(--pl-st-checked-in-ink)',
+  checked_out: 'var(--pl-st-checked-out-ink)',
+  cancelled: 'var(--faint)',
+};
+
+/**
+ * Teinte « Partie » en HEX et non en token : deux appels la concatènent à un
+ * suffixe alpha (`${…}1F`) pour composer un fond doux, ce qu'une `var()` ne
+ * permet pas. Doit rester alignée sur `--pl-st-checked-out`.
+ */
+export const PLANNING_DEPARTURE_TINT = '#A89684';
 
 // Indicateurs internes (spec --menage / --maintenance) : couleurs des icônes
 // ménage (balai) et maintenance (clé à molette). Blocage : neutre.
@@ -211,5 +251,20 @@ export const APP_HEADER_HEIGHT = 56;
 // ─── Infinite scroll ────────────────────────────────────────────────────────
 
 export const BUFFER_MULTIPLIER = 3;
+/**
+ * Plafond du buffer, en multiples de la fenêtre visible.
+ *
+ * <p>Le buffer ne faisait que CROÎTRE : chaque approche d'un bord ajoutait une
+ * fenêtre de jours, et rien n'en retirait jamais. Défiler d'avant en arrière
+ * pendant quelques minutes portait `days` à plusieurs centaines d'entrées —
+ * autant de colonnes de largeur, de fonds de week-end, et surtout une
+ * invalidation du calcul de position de TOUTES les briques à chaque extension.
+ * D'où une fluidité qui se dégradait à mesure qu'on scrollait.</p>
+ *
+ * <p>5× la fenêtre visible : deux fenêtres de marge de chaque côté du contenu
+ * affiché, de quoi défiler sans à-coup, sans que le DOM croisse indéfiniment.
+ * Au-delà, étendre un bord rogne l'autre (cf. useInfiniteTimeline).</p>
+ */
+export const MAX_BUFFER_MULTIPLIER = 5;
 export const EXTEND_THRESHOLD_DAYS = 7;
 export const DATA_CHUNK_SIZE_DAYS = 30;

@@ -201,7 +201,7 @@ const AI_FEATURES = [
   { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
   { key: 'ASSISTANT_SMALL', label: 'Assistant IA — tier éco', desc: "Modèle économique des rôles utilitaires (classification, résumés). Non assigné = tiering inactif ; ne s'applique que si le provider correspond au modèle résolu", icon: <AutoAwesome />, color: '#7BA3C2' }, // info
   { key: 'ASSISTANT_STRONG', label: 'Assistant IA — tier fort', desc: "Modèle haut de gamme des rôles d'analyse (Insights). Mêmes règles que le tier éco", icon: <AutoAwesome />, color: '#5A7684' }, // slate foncé
-  { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#9A7FA3' }, // mauve (= PLANNING_DEPARTURE_VIOLET)
+  { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#9A7FA3' }, // mauve, propre a cet agent
   { key: 'PRICING', label: 'Tarification IA', desc: 'Recommandations de prix', icon: <AttachMoney />, color: '#4A9B8E' }, // = --ok
   { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#7BA3C2' }, // = --info
   { key: 'ANALYTICS', label: 'Analytics IA', desc: 'Insights performance', icon: <BarChart />, color: '#C28A52' }, // = --warn
