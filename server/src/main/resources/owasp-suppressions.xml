@@ -83,4 +83,90 @@
         <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib.*$</packageUrl>
         <cve>CVE-2026-53914</cve>
     </suppress>
+
+    <!--
+        2026-09-02 — spring-core 6.2.19 et spring-security 6.5.11 : cinq CVE
+        publiees dans le NVD depuis le dernier run vert. Aucune n'est
+        atteignable ici, et les cinq partagent la meme condition de levee.
+
+        EXCEPTION ASSUMEE A LA REGLE DE CE FICHIER. L'en-tete dit que ce qui a
+        une version corrigee se regle dans le pom. Une version corrigee existe
+        bien — Spring Framework 7.0.9, Spring Security 7.1.1 — mais elle
+        n'arrive qu'avec **Spring Boot 4.1.1**. Ce n'est pas une montee de
+        patch : Boot 3 -> 4, Framework 6 -> 7, Security 6.5 -> 7.1, sur un
+        service de plus de treize mille tests. La branche 3.5 est un cul-de-sac
+        (3.5.16 en est le dernier patch, 6.2.19 et 6.5.11 les derniers des
+        leurs).
+
+        Ces quatre entrees se levent donc TOUTES a la migration Spring Boot 4,
+        et a rien d'autre. Elles ne doivent pas survivre a ce chantier.
+    -->
+
+    <!--
+        CVE-2026-59313 (9.8) : corruption de flux en Server-Sent Events, pour
+        les applications Spring MVC utilisant le framework web **fonctionnel**.
+
+        Non atteignable ici : le SSE existe bien (AssistantController /chat,
+        AgUiController /run) mais en modele ANNOTE — `@RestController` +
+        `@PostMapping(produces = TEXT_EVENT_STREAM_VALUE)` renvoyant un
+        `org.springframework.web.servlet.mvc.method.annotation.SseEmitter`.
+        Aucun `RouterFunction` ni `ServerResponse` dans le code. (Le `route()`
+        d'AgentOrchestrator est un accesseur de record, pas du routage.)
+    -->
+    <suppress>
+        <notes>spring-core : corruption SSE du framework web fonctionnel — notre SSE est annote (SseEmitter), aucun RouterFunction</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
+        <cve>CVE-2026-59313</cve>
+    </suppress>
+
+    <!--
+        CVE-2026-47892 (9.8) et CVE-2026-47893 (7.5) : contournement de
+        predicat d'en-tete en pre-vol, et fuite d'en-tetes dans un motif
+        d'exception WebSocket. Les deux visent **WebFlux**.
+
+        Non atteignable ici : le projet n'a aucune dependance WebFlux — pile
+        servlet uniquement (spring-boot-starter-web, Tomcat embarque). Le
+        WebSocket present vient de spring-boot-starter-websocket, cote servlet,
+        que CVE-2026-47893 ne concerne pas : son perimetre est le WebSocket
+        reactif de WebFlux.
+    -->
+    <suppress>
+        <notes>spring-core : CVE WebFlux (pre-vol, WebSocket reactif) — aucune dependance WebFlux, pile servlet uniquement</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
+        <cve>CVE-2026-47892</cve>
+        <cve>CVE-2026-47893</cve>
+    </suppress>
+
+    <!--
+        CVE-2026-59283 (9.1) : contournement du garde-fou de
+        `SimpleEvaluationContext` quand le compilateur SpEL est actif.
+
+        Non atteignable ici : deux conditions, aucune remplie. Le code
+        n'instancie nulle part de `SimpleEvaluationContext`, et le compilateur
+        SpEL n'est pas active (`spring.expression.compiler.mode` absent de la
+        configuration, defaut OFF). Le SpEL du projet se limite aux expressions
+        d'annotations Spring (`@Value`, `@PreAuthorize`), evaluees dans un
+        contexte standard.
+    -->
+    <suppress>
+        <notes>spring-core : garde-fou SpEL contourne — SimpleEvaluationContext jamais instancie, compilateur SpEL non active</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
+        <cve>CVE-2026-59283</cve>
+    </suppress>
+
+    <!--
+        CVE-2026-59270 (9.4) : le serveur LDAP UnboundID embarque
+        (`UnboundIdContainer`) enregistre inconditionnellement un compte
+        d'administration et ecoute sur toutes les interfaces reseau.
+
+        Non atteignable ici : ce conteneur est un outil de TEST de Spring
+        Security. Aucune occurrence d'`UnboundIdContainer` ni d'`unboundid`
+        dans le code ni dans les dependances — l'authentification passe par
+        Keycloak en OIDC, il n'y a pas de LDAP du tout.
+    -->
+    <suppress>
+        <notes>spring-security : serveur LDAP UnboundID embarque — non utilise, authentification OIDC via Keycloak, aucun LDAP</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-.*$</packageUrl>
+        <cve>CVE-2026-59270</cve>
+    </suppress>
 </suppressions>
