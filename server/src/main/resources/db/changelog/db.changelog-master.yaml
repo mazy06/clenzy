@@ -3855,3 +3855,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0414__supervision_enabled_by_default.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0415-add-guest-avatar-url"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0415__add_guest_avatar_url.sql
+        relativeToChangelogFile: true

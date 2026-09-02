@@ -51,7 +51,13 @@ public record ReservationDto(
      * defaut du canal, {@code false} quand le canal l'a reellement remonte.
      * Sans cette distinction, une estimation se lirait comme un releve.
      */
-    Boolean otaFeeEstimated
+    Boolean otaFeeEstimated,
+    /**
+     * Photo de profil du voyageur, en sortie uniquement. {@code null} quand le
+     * sejour n'est rattache a aucun voyageur ou que celui-ci n'a pas de photo —
+     * l'interface retombe alors sur ses initiales.
+     */
+    String guestAvatarUrl
 ) {
 
     /**
@@ -76,6 +82,6 @@ public record ReservationDto(
              null, totalPrice, confirmationCode, notes, cleaningFee, touristTaxAmount,
              createCleaning, paymentLinkSentAt, paymentLinkEmail, hiddenFromPlanning,
              paymentStatus, paidAt, interventionId, adultsCount, childrenCount,
-             null, null);
+             null, null, null);
     }
 }

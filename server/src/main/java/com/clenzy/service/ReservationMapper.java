@@ -21,13 +21,17 @@ public class ReservationMapper {
 
     private final PropertyRepository propertyRepository;
     private final GuestRepository guestRepository;
+    /** La base ne stocke qu'une cle opaque : l'URL servable se fabrique ici. */
+    private final GuestPhotoUrlResolver photoUrls;
     private final ChannelCommissionResolver commissionResolver;
 
     public ReservationMapper(PropertyRepository propertyRepository,
                              GuestRepository guestRepository,
+                             GuestPhotoUrlResolver photoUrls,
                              ChannelCommissionResolver commissionResolver) {
         this.propertyRepository = propertyRepository;
         this.guestRepository = guestRepository;
+        this.photoUrls = photoUrls;
         this.commissionResolver = commissionResolver;
     }
 
@@ -88,7 +92,8 @@ public class ReservationMapper {
             entity.getChildrenCount(),
             resolveOtaFee(entity),
             // Sortie seule : le champ n'est jamais relu depuis le DTO en entree.
-            commissionResolver.isEstimated(entity)
+            commissionResolver.isEstimated(entity),
+            guest != null ? photoUrls.publicUrl(guest.getId(), guest.getAvatarUrl()) : null
         );
     }
 

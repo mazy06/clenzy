@@ -41,7 +41,9 @@ class GuestServiceTest {
 
     @BeforeEach
     void setUp() {
-        guestService = new GuestService(guestRepository, reservationRepository, organizationService);
+        guestService = new GuestService(guestRepository, reservationRepository, organizationService,
+            new com.clenzy.service.GuestPhotoUrlResolver(new com.clenzy.service.MediaTicketService("test-secret")),
+            org.mockito.Mockito.mock(com.clenzy.service.GuestPhotoStorageService.class));
     }
 
     private Guest buildGuest(Long id, String firstName, String lastName) {

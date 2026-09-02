@@ -65,8 +65,12 @@ class GuestControllerTest {
         OrganizationService organizationService =
             new OrganizationService(organizationRepository, memberRepository, userRepository,
                 org.mockito.Mockito.mock(com.clenzy.service.AutomationRuleService.class));
-        guestService = spy(new GuestService(guestRepository, reservationRepository, organizationService));
-        controller = new GuestController(guestService, tenantContext);
+        com.clenzy.service.MediaTicketService mediaTicketService =
+            new com.clenzy.service.MediaTicketService("test-secret");
+        guestService = spy(new GuestService(guestRepository, reservationRepository, organizationService,
+            new com.clenzy.service.GuestPhotoUrlResolver(mediaTicketService),
+            org.mockito.Mockito.mock(com.clenzy.service.GuestPhotoStorageService.class)));
+        controller = new GuestController(guestService, tenantContext, mediaTicketService);
     }
 
     private Guest newGuest(Long id, Long orgId, String first, String last, String email, GuestChannel ch) {
@@ -359,10 +363,10 @@ class GuestControllerTest {
         @DisplayName("create -> delegates to createDirect + returns DTO")
         void whenCreate_thenDelegatesToService() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            GuestDto input = new GuestDto(null, "Alice", "Dupont", "alice@x.com", "+33600000000", null, "fr", "FR", "VIP");
+            GuestDto input = new GuestDto(null, "Alice", "Dupont", "alice@x.com", "+33600000000", null, "fr", "FR", "VIP", null);
 
             Guest created = newGuest(99L, 1L, "Alice", "Dupont", "alice@x.com", GuestChannel.DIRECT);
-            doReturn(GuestService.toDto(created)).when(guestService).createDirect(eq(input), eq(1L));
+            doReturn(GuestService.toDto(created, null)).when(guestService).createDirect(eq(input), eq(1L));
 
             ResponseEntity<GuestDto> response = controller.create(input);
 
