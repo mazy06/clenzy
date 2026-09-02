@@ -293,6 +293,42 @@ class CmiPaymentProviderTest {
         return config;
     }
 
+    @Test
+    @DisplayName("le lien de redirection porte la reference PERSISTEE, pas la cle d'idempotence")
+    void createPayment_idempotencyKeyDiffers_usesPersistedRef() {
+        // Regression : le lien etait construit sur la cle d'idempotence, fournie
+        // par l'appelant. Or CmiRedirectController resout par `transactionRef` —
+        // la transaction etait donc introuvable, et le payeur voyait une page
+        // d'erreur au lieu de la passerelle. La cle etant de surcroit previsible,
+        // elle rendait enumerable une page qui expose montant et identifiant
+        // marchand.
+        PaymentMethodConfig config = buildEnabledConfig("MERCHANT_001", "STORE_KEY_TEST",
+            Map.of("okUrl", "https://app.clenzy.fr/ok", "failUrl", "https://app.clenzy.fr/fail"));
+        when(configService.getOrCreateConfig(eq(42L), eq(PaymentProviderType.CMI))).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("MERCHANT_001");
+        when(configService.decryptApiSecret(config)).thenReturn("STORE_KEY_TEST");
+
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("orgId", "42");
+        metadata.put("transactionRef", "TX-9f3a1c7b2e04");   // persistee, imprevisible
+        PaymentRequest request = new PaymentRequest(
+            BigDecimal.valueOf(250), "MAD", "Clenzy reservation",
+            "guest@example.com", "Guest",
+            "https://app.clenzy.fr/success", "https://app.clenzy.fr/cancel",
+            "booking-42-checkout",                            // cle d'idempotence, devinable
+            metadata);
+
+        PaymentResult result = provider.createPayment(request);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.redirectUrl())
+            .isEqualTo("https://app.clenzy.fr/api/payments/cmi-redirect/TX-9f3a1c7b2e04")
+            .doesNotContain("booking-42-checkout");
+        // `oid` envoye a la banque et `providerTxId` doivent parler de la meme
+        // reference, sans quoi le callback ne retrouve pas la transaction.
+        assertThat(result.providerTxId()).isEqualTo("TX-9f3a1c7b2e04");
+    }
+
     private PaymentRequest buildRequest(Long orgId, String transactionRef, String currency) {
         Map<String, String> metadata = new HashMap<>();
         metadata.put("orgId", String.valueOf(orgId));
