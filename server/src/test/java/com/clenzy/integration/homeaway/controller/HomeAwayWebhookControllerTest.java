@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -81,7 +82,7 @@ class HomeAwayWebhookControllerTest {
     class SignatureValidation {
 
         @Test
-        @DisplayName("invalid signature returns 400")
+        @DisplayName("signature invalide -> 401")
         void invalidSignature() {
             when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{}}";
@@ -89,7 +90,7 @@ class HomeAwayWebhookControllerTest {
             ResponseEntity<Map<String, String>> resp =
                     controller.receiveWebhook(payload, "deadbeef");
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             assertThat(resp.getBody()).containsEntry("status", "error");
             verify(syncService, never()).handleReservationCreated(any(), anyLong());
         }
@@ -100,38 +101,35 @@ class HomeAwayWebhookControllerTest {
             when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{}";
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
         @Test
-        @DisplayName("no secret configured -> bypasses signature check")
-        void noSecretConfigured_bypasses() {
+        @DisplayName("secret absent -> refus, aucun traitement")
+        void noSecretConfigured_rejects() {
             when(config.getWebhookSecret()).thenReturn(null);
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{\"listing_id\":\"L-1\"}}";
-            when(connectionRepository.findByListingId("L-1"))
-                    .thenReturn(Optional.of(conn(7L, "L-1")));
 
             ResponseEntity<Map<String, String>> resp =
                     controller.receiveWebhook(payload, "anything");
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-            verify(syncService).handleReservationCreated(any(), eq(7L));
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            verifyNoInteractions(syncService);
         }
 
         @Test
-        @DisplayName("empty secret -> bypasses signature check")
-        void emptySecret_bypasses() {
+        @DisplayName("secret vide -> refus, aucun traitement")
+        void emptySecret_rejects() {
             when(config.getWebhookSecret()).thenReturn("");
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{\"listing_id\":\"L-1\"}}";
-            when(connectionRepository.findByListingId("L-1"))
-                    .thenReturn(Optional.of(conn(1L, "L-1")));
 
             ResponseEntity<Map<String, String>> resp =
                     controller.receiveWebhook(payload, "any");
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            verifyNoInteractions(syncService);
         }
 
         @Test
@@ -159,12 +157,12 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("reservation.created routes to handleReservationCreated")
         void routesCreated() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{\"listing_id\":\"L-1\"}}";
             when(connectionRepository.findByListingId("L-1"))
                     .thenReturn(Optional.of(conn(10L, "L-1")));
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             verify(syncService).handleReservationCreated(any(), eq(10L));
@@ -173,12 +171,12 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("reservation.updated routes to handleReservationUpdated")
         void routesUpdated() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.updated\",\"data\":{\"listing_id\":\"L-1\"}}";
             when(connectionRepository.findByListingId("L-1"))
                     .thenReturn(Optional.of(conn(10L, "L-1")));
 
-            controller.receiveWebhook(payload, null);
+            controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             verify(syncService).handleReservationUpdated(any(), eq(10L));
         }
@@ -186,12 +184,12 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("reservation.cancelled routes to handleReservationCancelled")
         void routesCancelled() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.cancelled\",\"data\":{\"listing_id\":\"L-1\"}}";
             when(connectionRepository.findByListingId("L-1"))
                     .thenReturn(Optional.of(conn(10L, "L-1")));
 
-            controller.receiveWebhook(payload, null);
+            controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             verify(syncService).handleReservationCancelled(any(), eq(10L));
         }
@@ -199,12 +197,12 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("availability.updated routes to handleAvailabilityUpdate")
         void routesAvailability() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"availability.updated\",\"data\":{\"listing_id\":\"L-1\"}}";
             when(connectionRepository.findByListingId("L-1"))
                     .thenReturn(Optional.of(conn(10L, "L-1")));
 
-            controller.receiveWebhook(payload, null);
+            controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             verify(syncService).handleAvailabilityUpdate(any(), eq(10L));
         }
@@ -212,12 +210,12 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("unknown event type is logged but returns OK")
         void unknownEventType() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"unknown.event\",\"data\":{\"listing_id\":\"L-1\"}}";
             when(connectionRepository.findByListingId("L-1"))
                     .thenReturn(Optional.of(conn(10L, "L-1")));
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             verify(syncService, never()).handleReservationCreated(any(), anyLong());
@@ -233,10 +231,10 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("missing event_type returns 400")
         void missingEventType() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"data\":{\"listing_id\":\"L-1\"}}";
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(resp.getBody()).containsEntry("status", "error");
@@ -245,10 +243,10 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("missing data returns 400")
         void missingData() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.created\"}";
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
@@ -256,12 +254,12 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("listing not linked -> 200 with 'ignored' message")
         void listingNotLinked() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{\"listing_id\":\"UNKNOWN\"}}";
             when(connectionRepository.findByListingId("UNKNOWN"))
                     .thenReturn(Optional.empty());
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).containsEntry("status", "ok");
@@ -272,10 +270,10 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("null listing_id -> 200 with 'ignored' message")
         void nullListingId() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{}}";
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             verify(syncService, never()).handleReservationCreated(any(), anyLong());
@@ -284,9 +282,9 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("malformed JSON returns 200 (caught by general exception handler)")
         void malformedJson() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook("not json", null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook("not json", sign("not json", WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().get("message")).contains("processing failed");
@@ -295,14 +293,14 @@ class HomeAwayWebhookControllerTest {
         @Test
         @DisplayName("downstream sync exception returns 200")
         void downstreamThrows() {
-            when(config.getWebhookSecret()).thenReturn(null);
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
             String payload = "{\"event_type\":\"reservation.created\",\"data\":{\"listing_id\":\"L-1\"}}";
             when(connectionRepository.findByListingId("L-1"))
                     .thenReturn(Optional.of(conn(1L, "L-1")));
             org.mockito.Mockito.doThrow(new RuntimeException("kafka down"))
                     .when(syncService).handleReservationCreated(any(), eq(1L));
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, null);
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().get("message")).contains("processing failed");
@@ -310,13 +308,16 @@ class HomeAwayWebhookControllerTest {
 
         @Test
         @DisplayName("null payload + no secret -> 200 (catches exception)")
-        void nullPayloadNoSecret() {
-            when(config.getWebhookSecret()).thenReturn(null);
+        void nullPayload() {
+            when(config.getWebhookSecret()).thenReturn(WEBHOOK_SECRET);
 
-            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(null, null);
+            // Un payload nul ne peut pas etre signe : la verification le refuse
+            // avant tout parsing. C'etait auparavant un 200 « processing failed »,
+            // uniquement parce que l'absence de secret sautait le controle.
+            ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(null, "any");
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(resp.getBody().get("message")).contains("processing failed");
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            verifyNoInteractions(syncService);
         }
     }
 }

@@ -153,6 +153,19 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/nuki/**").permitAll()
                         .requestMatchers("/api/webhooks/pennylane/**").permitAll()
                         .requestMatchers("/api/webhooks/channex/**").permitAll()
+                        // Canaux OTA et prestataires de virement : appeles sans JWT par le
+                        // partenaire. Ils tombaient jusqu'ici sur l'attrape-tout `/api/**`,
+                        // qui exige un role — l'appelant externe n'en a aucun, ces webhooks
+                        // etaient donc INJOIGNABLES (403 avant meme la verification de
+                        // signature). Chaque handler est fail-closed : secret absent ou
+                        // signature invalide => rejet, jamais de traitement par defaut.
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/airbnb").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/booking").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/homeaway").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/tripadvisor").permitAll()
+                        // `payouts` et non `payments` : ces deux-la versent AUX proprietaires,
+                        // la regle voisine couvre les encaissements CLIENT (PaymentWebhookRouter).
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/payouts/**").permitAll()
                         // Webhooks PSP (PaymentWebhookRouter) : appeles par Stripe/PayTabs/
                         // CMI/Payzone/YouCan Pay sans JWT — auth par signature crypto par
                         // provider (HMAC/hash verifie dans chaque handler, fail-closed).

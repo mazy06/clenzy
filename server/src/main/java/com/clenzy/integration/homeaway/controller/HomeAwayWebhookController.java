@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,15 +64,29 @@ public class HomeAwayWebhookController {
 
         log.debug("Webhook HomeAway recu ({} bytes)", payload != null ? payload.length() : 0);
 
-        // Valider la signature si le secret est configure
-        if (config.getWebhookSecret() != null && !config.getWebhookSecret().isEmpty()) {
-            if (!verifySignature(payload, signature)) {
-                log.warn("Signature webhook HomeAway invalide");
-                return ResponseEntity.badRequest().body(Map.of(
-                        "status", "error",
-                        "message", "Invalid signature"
-                ));
-            }
+        // Signature OBLIGATOIRE — fail-closed.
+        //
+        // La validation etait conditionnee a la presence du secret : sans
+        // secret configure, elle etait purement et simplement SAUTEE et le
+        // payload traite. La route etant desormais publique (elle doit l'etre,
+        // HomeAway appelle sans jeton), ce repli aurait laisse n'importe qui
+        // injecter des evenements de reservation. Un secret absent est une
+        // erreur de deploiement, pas une permission.
+        //
+        // Meme regime que les webhooks Airbnb, Booking.com et TripAdvisor.
+        if (config.getWebhookSecret() == null || config.getWebhookSecret().isEmpty()) {
+            log.error("HOMEAWAY_WEBHOOK_SECRET non configure — webhook rejete par securite");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                    "status", "error",
+                    "message", "Webhook signature verification not configured"
+            ));
+        }
+        if (!verifySignature(payload, signature)) {
+            log.warn("Signature webhook HomeAway invalide");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "status", "error",
+                    "message", "Invalid signature"
+            ));
         }
 
         try {
