@@ -82,9 +82,24 @@ public class CmiPaymentProvider implements PaymentProvider {
     @Override
     public PaymentResult createPayment(PaymentRequest request) {
         try {
-            String transactionRef = request.idempotencyKey() != null
-                ? request.idempotencyKey()
-                : (request.metadata() != null ? request.metadata().get("transactionRef") : null);
+            // La reference PERSISTEE d'abord, la cle d'idempotence seulement en
+            // repli. L'ordre inverse cassait deux choses a la fois :
+            //
+            //  - le lien de redirection portait la cle d'idempotence, alors que
+            //    CmiRedirectController resout par `transactionRef` — la
+            //    transaction etait donc INTROUVABLE et le client voyait une page
+            //    d'erreur au lieu de la passerelle ;
+            //  - cette cle vient de l'appelant. La page rendue expose le montant,
+            //    l'identifiant marchand et les URL de retour de l'organisation :
+            //    une reference devinable les rendait enumerables. La reference
+            //    persistee est un UUID tronque, imprevisible par construction.
+            //
+            // C'est aussi la valeur que la banque recoit en `oid` et nous
+            // renvoie au callback : les trois chemins parlent enfin de la meme.
+            String transactionRef = (request.metadata() != null
+                    && request.metadata().get("transactionRef") != null)
+                ? request.metadata().get("transactionRef")
+                : request.idempotencyKey();
             if (transactionRef == null) {
                 return PaymentResult.failure("CMI : transactionRef absent du metadata");
             }

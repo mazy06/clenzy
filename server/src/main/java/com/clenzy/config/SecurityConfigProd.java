@@ -166,6 +166,20 @@ public class SecurityConfigProd {
                         // `payouts` et non `payments` : ces deux-la versent AUX proprietaires,
                         // la regle voisine couvre les encaissements CLIENT (PaymentWebhookRouter).
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/payouts/**").permitAll()
+                        // Redirections SORTANTES vers les passerelles marocaines (CMI,
+                        // Attijari). Le navigateur du payeur y arrive apres le checkout,
+                        // sans jeton — un acheteur du booking engine n'en a aucun. Elles
+                        // tombaient sur l'attrape-tout `/api/**` et etaient donc
+                        // inatteignables : le paiement s'arretait la.
+                        //
+                        // La page rendue auto-soumet un formulaire signe vers la banque.
+                        // Ce qui l'autorise, c'est la REFERENCE elle-meme — un UUID
+                        // tronque, imprevisible (cf. PaymentPersistence). Meme modele de
+                        // capacite que le livret d'accueil ou la signature de contrat.
+                        // GET seul : rien n'est modifie ici, la transaction reste PENDING
+                        // jusqu'au callback signe.
+                        .requestMatchers(HttpMethod.GET, "/api/payments/cmi-redirect/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/payments/attijari-redirect/*").permitAll()
                         // Webhooks PSP (PaymentWebhookRouter) : appeles par Stripe/PayTabs/
                         // CMI/Payzone/YouCan Pay sans JWT — auth par signature crypto par
                         // provider (HMAC/hash verifie dans chaque handler, fail-closed).
