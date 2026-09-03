@@ -8,6 +8,9 @@ public class UserAssociationDto {
     private String role;
     private String assignedAt;
     private String notes;
+
+    /** Ville de rattachement de l'intervenant : axe de regroupement. */
+    private String city;
     private Long portfolioId;
     private String portfolioName;
 
@@ -55,4 +58,7 @@ public class UserAssociationDto {
     
     public String getPortfolioName() { return portfolioName; }
     public void setPortfolioName(String portfolioName) { this.portfolioName = portfolioName; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 }

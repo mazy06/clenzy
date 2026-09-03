@@ -724,6 +724,7 @@ public class ManagerService {
         dto.setNotes(portfolioTeam.getNotes());
         dto.setPortfolioId(portfolioTeam.getPortfolio().getId());
         dto.setPortfolioName(portfolioTeam.getPortfolio().getName());
+        dto.setCity(portfolioTeam.getTeamMember().getCity());
         return dto;
     }
 
@@ -735,6 +736,7 @@ public class ManagerService {
         dto.setDescription(property.getDescription());
         dto.setOwnerId(property.getOwner().getId());
         dto.setOwnerName(property.getOwner().getFirstName() + " " + property.getOwner().getLastName());
+        dto.setCity(property.getCity());
         dto.setAssignedAt(property.getCreatedAt() != null
                 ? property.getCreatedAt().toString() : "N/A");
         dto.setNotes(property.getSpecialRequirements());
@@ -750,6 +752,24 @@ public class ManagerService {
         dto.setAssignedAt(team.getCreatedAt() != null
                 ? team.getCreatedAt().toString() : "N/A");
         dto.setNotes(team.getInterventionType());
+        // Le metier transitait dans `notes`, faute de champ. Il en a un.
+        dto.setInterventionType(team.getInterventionType());
+        // Ville de la zone d'intervention : elle est l'axe de regroupement du
+        // portefeuille. Une zone definie au seul departement ne la porte pas.
+        dto.setCity(team.getCoverageZones().stream()
+                .map(com.clenzy.model.TeamCoverageZone::getCity)
+                .filter(city -> city != null && !city.isBlank())
+                .findFirst().orElse(null));
+        // « 6 membres » ne repond pas a « qui compose cette equipe ? ». On
+        // charge les personnes : la relation est en LAZY, la methode appelante
+        // est @Transactional(readOnly = true).
+        dto.setMembers(team.getMembers().stream()
+                .filter(member -> member.getUser() != null)
+                .map(member -> new com.clenzy.dto.TeamMemberSummaryDto(
+                        member.getUser().getId(),
+                        displayName(member.getUser()),
+                        member.getRole()))
+                .toList());
         return dto;
     }
 
@@ -763,6 +783,24 @@ public class ManagerService {
         dto.setAssignedAt(user.getCreatedAt() != null
                 ? user.getCreatedAt().toString() : "N/A");
         dto.setNotes("Assigne directement au manager");
+        dto.setCity(user.getCity());
         return dto;
+    }
+
+    /**
+     * Prenom et nom d'une personne, pour un affichage direct.
+     *
+     * <p>Les deux champs sont chiffres en base et dechiffres par l'entite ; ils
+     * peuvent etre absents sur un compte incomplet, d'ou le repli sur l'email
+     * plutot qu'une chaine vide qui laisserait une pastille anonyme a l'ecran.</p>
+     */
+    private String displayName(User user) {
+        final String first = user.getFirstName() != null ? user.getFirstName().trim() : "";
+        final String last = user.getLastName() != null ? user.getLastName().trim() : "";
+        final String full = (first + " " + last).trim();
+        if (!full.isEmpty()) {
+            return full;
+        }
+        return user.getEmail() != null ? user.getEmail() : "Utilisateur " + user.getId();
     }
 }
