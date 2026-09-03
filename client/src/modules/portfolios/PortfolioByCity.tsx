@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   useDraggable,
@@ -8,6 +9,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, Button, Card } from '../../components/ui';
@@ -66,11 +68,24 @@ function fullName(user: { firstName: string; lastName: string }): string {
   return `${user.firstName} ${user.lastName}`.trim();
 }
 
-/** Libellé métier d'une équipe : le nom porte déjà la ville, pas besoin de la répéter. */
-function teamTrade(team: PortfolioTeam): string {
-  if (team.interventionType === 'CLEANING') return 'Ménage';
-  if (team.interventionType === 'MAINTENANCE') return 'Maintenance';
-  return team.name;
+/**
+ * Libellé d'une équipe dans le panneau d'une ville.
+ *
+ * <p>On retire la ville du nom quand elle s'y trouve — « Ménage Tours » dans le
+ * panneau de Tours devient « Ménage » — mais on ne remplace JAMAIS le nom par
+ * le métier : une équipe qui ne suit pas cette nomenclature y perdrait son
+ * identité, et deux équipes de ménage deviendraient indistinguables.</p>
+ */
+function teamLabel(team: PortfolioTeam, city: string): string {
+  const name = team.name?.trim() ?? '';
+  if (!name) {
+    return team.interventionType === 'MAINTENANCE' ? 'Maintenance' : 'Ménage';
+  }
+  const suffix = ` ${city}`;
+  if (city && name.toLowerCase().endsWith(suffix.toLowerCase())) {
+    return name.slice(0, -suffix.length).trim() || name;
+  }
+  return name;
 }
 
 
@@ -127,7 +142,9 @@ const DraggablePerson: React.FC<{
 }> = ({ id, payload, label, tone = 'default', disabled }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
-    data: payload,
+    // Le libelle voyage avec la charge utile : l'apercu rendu sous le curseur
+    // n'a pas acces a la liste d'origine.
+    data: { ...payload, label },
     disabled,
   });
   return (
@@ -140,8 +157,12 @@ const DraggablePerson: React.FC<{
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full border py-0.5 pe-2.5 ps-0.5 text-xs',
         'transition-opacity duration-200',
-        disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
-        isDragging && 'opacity-40',
+        // `touch-none` : sans lui, le capteur pointeur perd la main au profit
+        // du defilement sur ecran tactile.
+        disabled ? 'cursor-default' : 'cursor-grab touch-none active:cursor-grabbing',
+        // La pastille d'origine reste en place, estompee ; c'est la copie du
+        // DragOverlay qui suit le curseur.
+        isDragging && 'opacity-30',
         tone === 'warn'
           ? 'border-warning bg-warning-soft text-warning-ink'
           : 'border-border bg-muted/40 text-foreground',
@@ -164,7 +185,7 @@ const DraggableProperty: React.FC<{
 }> = ({ property, disabled, children }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `property-${property.id}`,
-    data: { kind: 'property', propertyId: property.id } satisfies DragPayload,
+    data: { kind: 'property', propertyId: property.id, label: property.name },
     disabled,
   });
   return (
@@ -175,8 +196,8 @@ const DraggableProperty: React.FC<{
       className={cn(
         'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted/40 px-3 py-2',
         'transition-opacity duration-200',
-        disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
-        isDragging && 'opacity-40',
+        disabled ? 'cursor-default' : 'cursor-grab touch-none active:cursor-grabbing',
+        isDragging && 'opacity-30',
       )}
     >
       {children}
@@ -240,6 +261,12 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  // Ce qu'on tient en main. Sans cet etat, rien ne peut etre dessine sous le
+  // curseur : `useDraggable` expose un `transform`, mais une pastille qui se
+  // deplacerait dans le flux serait rognee par son conteneur.
+  const [dragging, setDragging] = useState<{ label: string; tone: 'default' | 'warn' } | null>(
+    null,
+  );
 
   // L'affectation d'un logement est réservée aux SUPER_ADMIN côté serveur. On
   // désactive la poignée plutôt que d'offrir un dépôt qui finirait en 403.
@@ -312,8 +339,17 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
    * pas d'endpoint pour ajouter ou retirer une seule personne. On reconstruit
    * donc la liste à partir de ce que l'écran affiche.</p>
    */
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current as (DragPayload & { label?: string }) | undefined;
+    setDragging({
+      label: data?.label ?? '',
+      tone: data?.kind === 'person' && data.fromTeamId == null ? 'warn' : 'default',
+    });
+  }, []);
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      setDragging(null);
       const payload = event.active.data.current as DragPayload | undefined;
       const overId = event.over?.id ? String(event.over.id) : null;
       if (!payload || !overId || busy || !current) {
@@ -398,7 +434,12 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDragging(null)}
+    >
     <div className={cn('flex flex-col gap-3', busy && 'pointer-events-none opacity-70')}>
       {/* Une répartition, pas de grands nombres isolés : « 105 » n'appelle
           aucune action, « 2 sans équipe » en appelle une. */}
@@ -477,6 +518,28 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
         ) : null}
       </div>
     </div>
+      {/* La copie qui suit reellement le curseur. Rendue dans un portail, elle
+          echappe au `overflow` des cartes et reste lisible par-dessus tout. */}
+      <DragOverlay dropAnimation={null}>
+        {dragging ? (
+          <span
+            className={cn(
+              'inline-flex cursor-grabbing items-center gap-1.5 rounded-full border py-0.5 pe-2.5 ps-0.5',
+              'text-xs shadow-lg',
+              dragging.tone === 'warn'
+                ? 'border-warning bg-warning-soft text-warning-ink'
+                : 'border-primary bg-card text-foreground',
+            )}
+          >
+            <Avatar className="size-[21px]">
+              <AvatarFallback className="text-[0.55rem] font-bold">
+                {initials(dragging.label)}
+              </AvatarFallback>
+            </Avatar>
+            {dragging.label}
+          </span>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };
@@ -546,7 +609,9 @@ const CityDetail: React.FC<{
               className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">{teamTrade(team)}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {teamLabel(team, group.city)}
+                </span>
                 <StatusChip
                   tone={(team.members?.length ?? 0) > 0 ? 'ok' : 'warn'}
                   label={`${team.members?.length ?? team.memberCount} ${t('portfolios.byCity.members', 'membres')}`}
