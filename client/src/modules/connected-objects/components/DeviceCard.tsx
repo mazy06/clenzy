@@ -62,14 +62,23 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
   // (Hub, vue par logement…) sans câblage par l'hôte. Confirmation explicite
   // (geste destructif) ; au succès la carte disparaît au refetch, l'erreur part
   // en toast pour permettre un nouvel essai.
-  // Sync ponctuelle du statut réel au montage (online réel via provider), qui
-  // rafraîchit le read-model → carte + KPIs cohérents. No-op hors du type concerné.
-  useLockLiveStatus(device.id, device.kind === 'lock');
-  useNoiseLiveStatus(device.id, device.kind === 'noise');
-  // Capteurs d'environnement (Tuya/Netatmo) : 1re lecture auto au montage (init).
+  // AMORCE UNIQUEMENT. Un appareil jamais synchronisé (`statusLevel === 'unknown'`,
+  // c'est-à-dire `online == null`) reste bloqué sur « En attente » tant que rien ne
+  // l'a lu : on déclenche alors sa première lecture ici.
+  //
+  // Pour tous les autres, on ne demande plus rien. La fraîcheur arrive désormais
+  // par `useDeviceEventStream` : le serveur l'apprend par webhook (Nuki, Minut) ou
+  // par son propre scheduler (Tuya), et ne prévient que sur changement réel.
+  // Interroger le fabricant depuis chaque carte revenait à poser la question à tout
+  // le parc à chaque affichage, pour s'entendre répondre que rien n'avait bougé.
+  const neverSynced = device.statusLevel === 'unknown';
+  useLockLiveStatus(device.id, neverSynced && device.kind === 'lock');
+  useNoiseLiveStatus(device.id, neverSynced && device.kind === 'noise');
   useSensorLiveStatus(
     device.id,
-    device.kind === 'climate' || device.kind === 'contact' || device.kind === 'motion' || device.kind === 'smoke',
+    neverSynced
+      && (device.kind === 'climate' || device.kind === 'contact'
+          || device.kind === 'motion' || device.kind === 'smoke'),
   );
 
   const deletable = isDeviceDeletable(device.kind);

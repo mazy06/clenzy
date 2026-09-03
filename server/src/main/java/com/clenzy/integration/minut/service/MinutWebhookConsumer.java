@@ -1,6 +1,7 @@
 package com.clenzy.integration.minut.service;
 
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.service.device.DeviceRealtimePublisher;
 import com.clenzy.model.AutomationTrigger;
 import com.clenzy.model.NoiseAlert.AlertSource;
 import com.clenzy.model.NoiseDevice;
@@ -43,17 +44,20 @@ public class MinutWebhookConsumer {
     private final NoiseAlertService noiseAlertService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final AutomationEngine automationEngine;
+    private final DeviceRealtimePublisher realtimePublisher;
 
     public MinutWebhookConsumer(ObjectMapper objectMapper,
                                  NoiseDeviceRepository deviceRepository,
                                  NoiseAlertService noiseAlertService,
                                  KafkaTemplate<String, Object> kafkaTemplate,
-                                 AutomationEngine automationEngine) {
+                                 AutomationEngine automationEngine,
+                                 DeviceRealtimePublisher realtimePublisher) {
         this.objectMapper = objectMapper;
         this.deviceRepository = deviceRepository;
         this.noiseAlertService = noiseAlertService;
         this.kafkaTemplate = kafkaTemplate;
         this.automationEngine = automationEngine;
+        this.realtimePublisher = realtimePublisher;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_MINUT_WEBHOOKS, groupId = "clenzy-minut-noise")
@@ -147,6 +151,10 @@ public class MinutWebhookConsumer {
 
         log.info("Device Minut {} hors ligne (property={}) — trigger IOT_DEVICE_OFFLINE",
             device.getId(), device.getPropertyId());
+        // Le CAS markOffline ci-dessus garantit qu'on est au DEBUT d'un episode :
+        // une re-livraison Kafka est deja sortie, elle ne re-notifie pas le hub.
+        realtimePublisher.publishDeviceChanged(
+            device.getOrganizationId(), "noise", device.getId(), "hors ligne");
         automationEngine.fireTrigger(AutomationTrigger.IOT_DEVICE_OFFLINE,
             device.getOrganizationId(),
             new AutomationSubject(AutomationSubject.TYPE_IOT_DEVICE, device.getId(), data));
@@ -160,6 +168,8 @@ public class MinutWebhookConsumer {
         }
         deviceRepository.markOnline(device.getId(), LocalDateTime.now());
         log.info("Device Minut {} de retour en ligne (episode hors-ligne clos)", device.getId());
+        realtimePublisher.publishDeviceChanged(
+            device.getOrganizationId(), "noise", device.getId(), "de retour en ligne");
     }
 
     /** Resout le NoiseDevice de l'evenement (device_id a la racine ou dans "data"). */

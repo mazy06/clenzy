@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { scheduleConnectedObjectsInvalidation } from './invalidateConnectedObjects';
 import { environmentSensorsApi } from '../../services/api/environmentSensorsApi';
 
 /**
@@ -15,7 +16,8 @@ export function useSensorLiveStatus(deviceId: number, enabled: boolean) {
     queryKey: ['sensor-status', deviceId],
     queryFn: async () => {
       const s = await environmentSensorsApi.refresh(deviceId);
-      await qc.invalidateQueries({ queryKey: ['connected-objects'] });
+      // Regroupé : une carte par appareil, mais une seule invalidation par fenêtre.
+      scheduleConnectedObjectsInvalidation(qc);
       return s;
     },
     enabled,

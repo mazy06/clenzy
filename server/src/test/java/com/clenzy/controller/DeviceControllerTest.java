@@ -24,13 +24,15 @@ import static org.mockito.Mockito.when;
 class DeviceControllerTest {
 
     @Mock private DeviceAggregationService deviceAggregationService;
+    @Mock private com.clenzy.service.device.DeviceSseRegistry sseRegistry;
+    @Mock private com.clenzy.tenant.TenantContext tenantContext;
 
     private DeviceController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new DeviceController(deviceAggregationService);
+        controller = new DeviceController(deviceAggregationService, sseRegistry, tenantContext);
         jwt = Jwt.withTokenValue("t").header("alg", "RS256").claim("sub", "kc-user-1")
                 .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
     }

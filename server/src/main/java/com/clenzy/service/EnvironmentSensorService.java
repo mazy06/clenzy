@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.environment.CreateEnvironmentSensorDto;
+import com.clenzy.service.device.DeviceRealtimePublisher;
 import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.dto.environment.EnvironmentSensorDto;
 import com.clenzy.integration.netatmo.service.NetatmoApiService;
@@ -55,6 +56,7 @@ public class EnvironmentSensorService {
     private final NotificationService notificationService;
     private final NetatmoApiService netatmoApiService;
     private final SupervisionActivityService supervisionActivityService;
+    private final DeviceRealtimePublisher realtimePublisher;
 
     public EnvironmentSensorService(EnvironmentSensorRepository sensorRepository,
                                     PropertyRepository propertyRepository,
@@ -64,8 +66,10 @@ public class EnvironmentSensorService {
                                     NotificationService notificationService,
                                     NetatmoApiService netatmoApiService,
                                     SupervisionActivityService supervisionActivityService,
-                                    OrganizationAccessGuard organizationAccessGuard) {
+                                    OrganizationAccessGuard organizationAccessGuard,
+                                    DeviceRealtimePublisher realtimePublisher) {
         this.sensorRepository = sensorRepository;
+        this.realtimePublisher = realtimePublisher;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
@@ -200,7 +204,9 @@ public class EnvironmentSensorService {
             boolean contactChanged = prevContact != null
                     && !prevContact.equals(sensor.getContactOpen());
 
-            if ((nowSmoke && !prevSmoke) || (nowMotion && !prevMotion) || contactChanged) {
+            final boolean transition =
+                    (nowSmoke && !prevSmoke) || (nowMotion && !prevMotion) || contactChanged;
+            if (transition) {
                 sensor.setLastEventAt(LocalDateTime.now());
             }
             if (sensor.getSensorType() == SensorType.SMOKE && nowSmoke && !prevSmoke) {
@@ -211,6 +217,14 @@ public class EnvironmentSensorService {
             }
 
             sensorRepository.save(sensor);
+
+            // Push vers les hubs ouverts UNIQUEMENT sur transition. Le scheduler
+            // repasse toutes les trois minutes sur chaque capteur : notifier a
+            // chaque releve rebatirait cote SSE la tempete qu'on vient de retirer.
+            if (transition) {
+                realtimePublisher.publishDeviceChanged(sensor.getOrganizationId(), "sensor",
+                        sensor.getId(), "changement d'etat");
+            }
         } catch (Exception e) {
             log.error("Erreur recuperation statut capteur {} (device Tuya {}): {}",
                     sensor.getId(), sensor.getExternalDeviceId(), e.getMessage());

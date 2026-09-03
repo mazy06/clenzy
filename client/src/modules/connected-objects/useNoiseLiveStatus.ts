@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { scheduleConnectedObjectsInvalidation } from './invalidateConnectedObjects';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
 
 /**
@@ -12,7 +13,8 @@ export function useNoiseLiveStatus(deviceId: number, enabled: boolean) {
     queryKey: ['noise-status', deviceId],
     queryFn: async () => {
       const status = await noiseDevicesApi.getStatus(deviceId);
-      await qc.invalidateQueries({ queryKey: ['connected-objects'] });
+      // Regroupé : une carte par appareil, mais une seule invalidation par fenêtre.
+      scheduleConnectedObjectsInvalidation(qc);
       return status;
     },
     enabled,
