@@ -3398,7 +3398,14 @@
       "portfolios": "Portefeuilles",
       "clients": "Clients",
       "properties": "Propriétés",
-      "noDataAvailable": "Aucune donnée disponible pour le moment."
+      "noDataAvailable": "Aucune donnée disponible pour le moment.",
+      "subtitleStats": "Répartition du parc et des rattachements, portefeuille par portefeuille.",
+      "staff": "intervenants",
+      "composition": "Composition des portefeuilles",
+      "recent": "Activité récente",
+      "noRecent": "Aucun rattachement récent.",
+      "clientsLabel": "clients",
+      "propertiesLabel": "logements"
     },
     "teamManagement": {
       "title": "Mes Équipes",

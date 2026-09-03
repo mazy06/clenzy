@@ -3377,7 +3377,14 @@
       "portfolios": "Portfolios",
       "clients": "Clients",
       "properties": "Properties",
-      "noDataAvailable": "No data available at the moment."
+      "noDataAvailable": "No data available at the moment.",
+      "subtitleStats": "Portfolio-by-portfolio breakdown of properties and staff.",
+      "staff": "staff",
+      "composition": "Portfolio composition",
+      "recent": "Recent activity",
+      "noRecent": "No recent assignment.",
+      "clientsLabel": "clients",
+      "propertiesLabel": "properties"
     },
     "teamManagement": {
       "title": "My Teams",

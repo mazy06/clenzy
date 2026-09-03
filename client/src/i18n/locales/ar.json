@@ -3379,7 +3379,14 @@
       "portfolios": "المحافظ",
       "clients": "العملاء",
       "properties": "العقارات",
-      "noDataAvailable": "لا تتوفر بيانات حالياً."
+      "noDataAvailable": "لا تتوفر بيانات حالياً.",
+      "subtitleStats": "توزيع العقارات والفرق حسب كل محفظة.",
+      "staff": "العاملون",
+      "composition": "تكوين المحافظ",
+      "recent": "النشاط الأخير",
+      "noRecent": "لا توجد ارتباطات حديثة.",
+      "clientsLabel": "عملاء",
+      "propertiesLabel": "عقارات"
     },
     "teamManagement": {
       "title": "فرقي",
