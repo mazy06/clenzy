@@ -240,6 +240,15 @@ clenzy:
     # features ASSISTANT_SMALL / ASSISTANT_STRONG (Paramètres > IA > Modèles).
     routing:
       enabled: true
+  smartlock:
+    # Banc d'essai des codes d'accès : la marque SIMULATION répond à la place du
+    # fabricant, ce qui permet d'éprouver persistance, événement, outbox,
+    # notification voyageur et révocation au départ sans compte Tuya ni Nuki.
+    # Aucun effet sur les serrures TUYA/NUKI réelles, qui gardent leur provider.
+    # Absente ou false = désactivé ; le bean refuse en outre de démarrer si le
+    # profil 'prod' est actif (SimulationSmartLockProvider.refuseEnProduction).
+    simulation:
+      enabled: ${SMARTLOCK_SIMULATION_ENABLED:true}
   channex:
     base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
     api-key: ${CHANNEX_API_KEY:}
