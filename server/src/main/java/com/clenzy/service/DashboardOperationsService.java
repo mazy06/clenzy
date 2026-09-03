@@ -69,15 +69,20 @@ public class DashboardOperationsService {
     private final UserRepository userRepository;
     private final Clock clock;
 
+    /** La base ne stocke qu'une cle opaque : l'URL servable se fabrique ici. */
+    private final GuestPhotoUrlResolver guestPhotoUrls;
+
     public DashboardOperationsService(ReservationRepository reservationRepository,
                                       InterventionRepository interventionRepository,
                                       SecurityDepositRepository securityDepositRepository,
                                       UserRepository userRepository,
+                                      GuestPhotoUrlResolver guestPhotoUrls,
                                       Clock clock) {
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.securityDepositRepository = securityDepositRepository;
         this.userRepository = userRepository;
+        this.guestPhotoUrls = guestPhotoUrls;
         this.clock = clock;
     }
 
@@ -206,6 +211,8 @@ public class DashboardOperationsService {
                 .map(r -> new UpcomingArrivalDto(
                         r.getId(),
                         r.getGuestName(),
+                        r.getGuest() == null ? null
+                            : guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl()),
                         propertyId(r.getProperty()),
                         propertyName(r.getProperty()),
                         r.getCheckIn(),

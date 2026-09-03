@@ -42,6 +42,10 @@ class NukiWebhookServiceTest {
     @Mock
     private AutomationEngine automationEngine;
 
+    /** Push vers les hubs ouverts : sans ce mock, @InjectMocks laisse le champ nul. */
+    @Mock
+    private com.clenzy.service.device.DeviceRealtimePublisher realtimePublisher;
+
     @InjectMocks
     private NukiWebhookService service;
 

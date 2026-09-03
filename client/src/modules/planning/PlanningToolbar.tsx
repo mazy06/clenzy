@@ -30,6 +30,13 @@ interface PlanningToolbarProps {
    *  par la modale de filtres (viewport compact OU constellation déployée) :
    *  on ne la rend PAS ici pour éviter le doublon. */
   legendInModal: boolean;
+  /**
+   * La barre porte-t-elle encore la navigation de dates ? Sur grand ecran le
+   * PageHeader la prend (cf. `dateNavInHeader` dans PlanningPage) et la barre
+   * ne garde que sa rangee de filtres. La dessiner aux deux endroits la
+   * dupliquerait.
+   */
+  showDateNav: boolean;
   onGoPrev: () => void;
   onGoToday: () => void;
   onGoNext: () => void;
@@ -171,6 +178,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   isFullscreen,
   filters,
   legendInModal,
+  showDateNav,
   onGoPrev,
   onGoToday,
   onGoNext,
@@ -185,7 +193,12 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 }) => {
   return (
     <div className="flex flex-col gap-1.5 py-1.5 px-2 bg-[transparent] shrink-0">
-      {/* ── Rangée 1 : navigation + mois + segmented + recherche + actions ── */}
+      {/* ── Rangée 1 : navigation + mois + segmented + sortie plein écran ──
+          Rendue seulement si elle a quelque chose à porter. Sur grand écran la
+          navigation vit dans le PageHeader et le bouton de sortie ne sert qu'en
+          plein écran : garder un conteneur vide coûterait à la grille la
+          hauteur qu'on vient de lui rendre. */}
+      {(showDateNav || isFullscreen) && (
       <div className="flex flex-wrap items-center gap-1.5">
         {/* Spacer de tête flex:1 — centre le groupe nav+mois+Aujourd'hui+zoom
             dans la zone planning. Symétrique au spacer de queue → centrage qui
@@ -193,14 +206,16 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             sidebar, le contenu étant un flex-sibling de la sidebar). */}
         <div className="flex-1 min-w-0" aria-hidden />
 
-        <PlanningDateNav
-          currentDate={currentDate}
-          zoom={zoom}
-          onGoPrev={onGoPrev}
-          onGoToday={onGoToday}
-          onGoNext={onGoNext}
-          onZoomChange={onZoomChange}
-        />
+        {showDateNav && (
+          <PlanningDateNav
+            currentDate={currentDate}
+            zoom={zoom}
+            onGoPrev={onGoPrev}
+            onGoToday={onGoToday}
+            onGoNext={onGoNext}
+            onZoomChange={onZoomChange}
+          />
+        )}
 
         <div className="flex-1 min-w-0" />
 
@@ -227,6 +242,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           </Tooltip>
         )}
       </div>
+      )}
 
       {/* ── Rangée 2 (desktop) : filtres togglables fusionnés — canaux,
           statuts puis Interventions, sans libellés de rangée. Migrée dans la

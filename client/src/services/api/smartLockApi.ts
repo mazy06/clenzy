@@ -2,7 +2,7 @@ import apiClient from '../apiClient';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type SmartLockBrand = 'TUYA' | 'NUKI' | 'TTLOCK' | 'YALE';
+export type SmartLockBrand = 'TUYA' | 'NUKI' | 'TTLOCK' | 'YALE' | 'SIMULATION';
 
 /** Origine du code : PMS le génère et le pousse à la serrure, ou la serrure le génère. */
 export type SmartLockAccessCodeMode = 'PMS_GENERATED' | 'LOCK_GENERATED';

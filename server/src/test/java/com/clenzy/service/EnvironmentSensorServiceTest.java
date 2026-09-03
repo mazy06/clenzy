@@ -47,6 +47,7 @@ class EnvironmentSensorServiceTest {
     @Mock NotificationService notificationService;
     @Mock NetatmoApiService netatmoApiService;
     @Mock SupervisionActivityService supervisionActivityService;
+    @Mock com.clenzy.service.device.DeviceRealtimePublisher realtimePublisher;
 
     EnvironmentSensorService service;
 
@@ -55,7 +56,8 @@ class EnvironmentSensorServiceTest {
         service = new EnvironmentSensorService(sensorRepository, propertyRepository,
                 tuyaApiService, tenantContext, claimService, notificationService, netatmoApiService,
                 supervisionActivityService,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
+                realtimePublisher);
         // Isolation multi-tenant (audit P1-09/P1-10/P1-15) : sans organisation courante,
         // le garde refuse — il est fail-closed. Les entites de ces tests portent la meme.
         org.mockito.Mockito.lenient().when(tenantContext.getOrganizationId()).thenReturn(1L);

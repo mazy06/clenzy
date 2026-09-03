@@ -20,11 +20,14 @@ import AddDeviceWizard from './components/AddDeviceWizard';
 import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { useDeviceEventStream } from './useDeviceEventStream';
 
 const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
 const PROVIDER_LABELS: Record<string, string> = {
   MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
+  // Banc d'essai (hors production) : affiche comme tel, jamais propose a la creation.
+  SIMULATION: 'Simulation',
 };
 
 // Types « à venir » disposant d'un écran d'aperçu (Phase 2, UI-first).
@@ -52,6 +55,11 @@ export default function ConnectedObjectsHub({
   const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
   const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
   const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Le serveur pousse les changements du parc tant que ce hub est ouvert. Rien
+  // n'est demandé au repos : c'est l'activité des appareils qui déclenche, pas
+  // l'affichage de l'écran.
+  useDeviceEventStream(true);
 
   // Services reliés : statut réel des providers (backend), repli présence sinon.
   // On masque le bruit (provider ni connecté ni porteur d'objets).

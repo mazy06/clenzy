@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { TriangleAlert } from 'lucide-react';
-import { Alert, AlertAction, AlertDescription, Button } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
-import { useTranslation } from '../../hooks/useTranslation';
 import { useMissingContractCount } from '../../hooks/useMissingContractCount';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
+import MissingContractsBanner from '../contracts/MissingContractsBanner';
 
 /**
  * Alerte urgente sur le dashboard : N propriété(s) sans contrat de gestion.
@@ -13,7 +11,6 @@ import ManagementContractFormModal from '../contracts/ManagementContractFormModa
  * de création de contrat, préselectionnée sur le premier logement à régulariser.
  */
 const MissingContractsDashboardAlert: React.FC = () => {
-  const { t } = useTranslation();
   const { isAdmin, isManager, isHost } = useAuth();
   const canManage = isAdmin() || isManager() || isHost();
   const { count, missingPropertyIds } = useMissingContractCount(canManage);
@@ -23,22 +20,9 @@ const MissingContractsDashboardAlert: React.FC = () => {
 
   return (
     <>
-      <Alert variant="warning" className="mb-3 text-[0.8125rem]">
-        <TriangleAlert />
-        <AlertDescription className="text-[0.8125rem]">
-          {`${count} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
-        </AlertDescription>
-        {/* Action logee dans une alerte : ghost, pour ne pas concurrencer le message. */}
-        <AlertAction>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setContractModalOpen(true)}
-          >
-            {t('contracts.gate.cta', 'Établir les contrats')}
-          </Button>
-        </AlertAction>
-      </Alert>
+      {/* Aucune marge propre : le tableau de bord empile ses blocs avec un
+          `gap`, une marge s'y ajouterait au lieu de s'y substituer. */}
+      <MissingContractsBanner count={count} onEstablish={() => setContractModalOpen(true)} />
 
       <ManagementContractFormModal
         open={contractModalOpen}

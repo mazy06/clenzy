@@ -21,7 +21,7 @@ export type DeviceStatusLevel = 'ok' | 'warning' | 'critical' | 'offline' | 'unk
 
 /** Fournisseur d'origine de l'objet (sert au filtrage + au bandeau de connexion). */
 export type DeviceProvider =
-  | 'NUKI' | 'TUYA' | 'TTLOCK' | 'YALE'
+  | 'NUKI' | 'TUYA' | 'TTLOCK' | 'YALE' | 'SIMULATION'
   | 'MINUT' | 'NETATMO'
   | 'KEYNEST' | 'CLENZY_KEYVAULT'
   | 'UNKNOWN';

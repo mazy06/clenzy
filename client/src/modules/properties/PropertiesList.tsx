@@ -30,6 +30,7 @@ import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { useContractedPropertyIds } from '../../hooks/useContractedPropertyIds';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
+import MissingContractsBanner from '../contracts/MissingContractsBanner';
 import { ITEMS_PER_PAGE } from './propertiesListConstants';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import PropertiesMapView from './PropertiesMapView';
@@ -406,24 +407,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           Le variant `warning` du primitif porte deja le fond pastel et l'encre
           `-ink` : aucune couleur n'est reecrite ici, seule la mise en ligne. */}
       {canManageContracts && missingContractIds.size > 0 ? (
-        <Alert
-          variant="warning"
-          className="mb-1.5 flex shrink-0 items-center gap-2"
-        >
-          <AlertDescription className="min-w-0 flex-1 text-xs">
-            {`${missingContractIds.size} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
-          </AlertDescription>
-          {/* CTA d'un bandeau d'avertissement : la teinte est portee par le
-              bouton lui-meme, encre `-ink` pour le libelle. */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openContractModal([...missingContractIds][0] ?? null)}
-            className="shrink-0 border-warning bg-transparent text-warning-ink hover:bg-warning-soft hover:text-warning-ink"
-          >
-            {t('contracts.gate.cta', 'Établir les contrats')}
-          </Button>
-        </Alert>
+        <MissingContractsBanner
+          count={missingContractIds.size}
+          onEstablish={() => openContractModal([...missingContractIds][0] ?? null)}
+          className="mb-1.5"
+        />
       ) : null}
 
       {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}

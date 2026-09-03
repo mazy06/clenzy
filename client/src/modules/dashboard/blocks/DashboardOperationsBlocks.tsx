@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { guestPhotoSrc } from '../../../services/api/guestsApi';
 import { useNavigate } from 'react-router-dom';
 import {
   BanknoteIcon,
@@ -1006,7 +1007,7 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
               >
                 <TableCell>
                   <span className="flex items-center gap-2">
-                    <GuestAvatar name={row.guestName ?? '?'} size={24} />
+                    <GuestAvatar name={row.guestName ?? '?'} photoUrl={guestPhotoSrc(row.guestAvatarUrl)} size={24} />
                     <span className="font-medium">{row.guestName}</span>
                   </span>
                 </TableCell>

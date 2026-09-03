@@ -5,6 +5,7 @@ import com.clenzy.integration.nuki.model.NukiConnection.NukiConnectionStatus;
 import com.clenzy.integration.nuki.repository.NukiConnectionRepository;
 import com.clenzy.model.AutomationTrigger;
 import com.clenzy.model.SmartLockDevice;
+import com.clenzy.service.device.DeviceRealtimePublisher;
 import com.clenzy.model.SmartLockDevice.LockState;
 import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.service.automation.AutomationEngine;
@@ -41,13 +42,16 @@ public class NukiWebhookService {
     private final SmartLockDeviceRepository deviceRepository;
     private final NukiConnectionRepository connectionRepository;
     private final AutomationEngine automationEngine;
+    private final DeviceRealtimePublisher realtimePublisher;
 
     public NukiWebhookService(SmartLockDeviceRepository deviceRepository,
                               NukiConnectionRepository connectionRepository,
-                              AutomationEngine automationEngine) {
+                              AutomationEngine automationEngine,
+                              DeviceRealtimePublisher realtimePublisher) {
         this.deviceRepository = deviceRepository;
         this.connectionRepository = connectionRepository;
         this.automationEngine = automationEngine;
+        this.realtimePublisher = realtimePublisher;
     }
 
     /**
@@ -127,6 +131,10 @@ public class NukiWebhookService {
             deviceRepository.save(device);
             log.info("Webhook Nuki : serrure {} mise a jour (lockState={}, battery={}%)",
                     device.getId(), device.getLockState(), device.getBatteryLevel());
+            // Push vers les hubs ouverts : emis SUR CHANGEMENT (le garde ci-dessus),
+            // jamais a chaque webhook — Nuki en emet aussi sans transition d'etat.
+            realtimePublisher.publishDeviceChanged(
+                    device.getOrganizationId(), "lock", device.getId(), "etat serrure");
         }
 
         // F7a — batterie critique : declencheur LOCK_BATTERY_CRITICAL du moteur

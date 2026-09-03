@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { scheduleConnectedObjectsInvalidation } from './invalidateConnectedObjects';
 import { smartLockApi } from '../../services/api/smartLockApi';
 
 /**
@@ -17,7 +18,8 @@ export function useLockLiveStatus(deviceId: number, enabled: boolean) {
       const status = await smartLockApi.getStatus(deviceId);
       // Le statut a été persisté côté serveur → rafraîchit le read-model
       // (carte + KPIs cohérents, plus de « En ligne » vs « État inconnu »).
-      await qc.invalidateQueries({ queryKey: ['connected-objects'] });
+      // Regroupé : une carte par appareil, mais une seule invalidation par fenêtre.
+      scheduleConnectedObjectsInvalidation(qc);
       return status;
     },
     enabled,

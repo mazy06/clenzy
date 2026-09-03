@@ -55,6 +55,8 @@ export interface DashboardOperations {
 export interface DashboardUpcomingArrival {
   reservationId: number;
   guestName: string | null;
+  /** Photo de profil du voyageur. Absente -> repli sur les initiales. */
+  guestAvatarUrl?: string | null;
   propertyId: number | null;
   propertyName: string | null;
   /** ISO `yyyy-MM-dd`. */

@@ -18,7 +18,7 @@ import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FilterList, MoreVert } from '../../icons';
 import EmptyState from '../../components/EmptyState';
-import PageHeader from '../../components/PageHeader';
+import PageHeader, { INLINE_CONTROLS_QUERY } from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
 import PlanningToolbar, { PlanningDateNav } from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
@@ -401,6 +401,23 @@ const PlanningPage: React.FC = () => {
   // Seuil du repli du PageHeader (`isCompact`, lg) : sous cette largeur les
   // actions vivent DEJA dans son menu ⋯, il ne faut donc pas en ouvrir un second.
   const inHeaderMenu = useMediaQuery('(max-width: 1023.98px)');
+
+  // ── Ou vit la navigation de dates (mois, Aujourd'hui, echelle) ────────────
+  //
+  // Sur GRAND ECRAN elle remonte dans le PageHeader, juste avant la recherche :
+  // la barre du planning n'existait que pour la porter, et lui coutait une
+  // rangee de hauteur prise sur la grille.
+  //
+  // Sous ce seuil, rien ne change : le header replierait le groupe (~530 px)
+  // dans son menu, ou il serait tronque — la barre le garde. Exception, la
+  // constellation deployee : la barre disparait alors pour rendre sa hauteur a
+  // l'accordeon, donc le header le prend meme replie.
+  //
+  // En plein ecran il n'y a plus de header : la barre redevient la seule
+  // porteuse.
+  const canInlineDateNav = useMediaQuery(INLINE_CONTROLS_QUERY);
+  const dateNavInHeader =
+    !isOverview && !nav.isFullscreen && (canInlineDateNav || supervisorExpanded);
 
   // Source UNIQUE des entrées d'action : la même liste alimente le menu ⋯ propre
   // au planning (desktop) et les lignes à plat du menu du header (mobile).
@@ -785,7 +802,7 @@ const PlanningPage: React.FC = () => {
                replie de lui-même quand la barre n'a plus la place (cf.
                `inlineControls`), jusqu'au menu ⋯ sur mobile. */
             inlineControls={
-              !isOverview && supervisorExpanded ? (
+              dateNavInHeader ? (
                 <PlanningDateNav
                   currentDate={visibleMonthDate}
                   zoom={nav.zoom}
@@ -903,6 +920,7 @@ const PlanningPage: React.FC = () => {
             isFullscreen={nav.isFullscreen}
             filters={filters}
             legendInModal={legendInModal}
+            showDateNav={!dateNavInHeader}
             onGoPrev={nav.goPrev}
             onGoToday={handleGoToday}
             onGoNext={nav.goNext}

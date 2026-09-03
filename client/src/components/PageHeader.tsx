@@ -11,6 +11,17 @@ import GlobalSearchField from './GlobalSearchField';
 import PageHeaderActions from './PageHeaderActions';
 import { cn } from '../utils/cn';
 
+/**
+ * Seuil au-dela duquel le header affiche `inlineControls` EN CLAIR (`xl`).
+ *
+ * <p>Exporte parce qu'un ecran qui alimente ce slot doit connaitre le meme
+ * seuil : sous celui-ci le header replie les commandes dans son menu, et
+ * l'ecran doit alors les dessiner lui-meme — sans quoi elles apparaissent deux
+ * fois, ou pas du tout. Une valeur dupliquee des deux cotes divergerait au
+ * premier ajustement.</p>
+ */
+export const INLINE_CONTROLS_QUERY = '(min-width: 1280px)';
+
 interface PageHeaderProps {
   title: string;
   /**
@@ -114,7 +125,7 @@ export default function PageHeader({
   // (navigation de periode + selecteur d'echelle) pese ~530 px et la barre
   // porte deja la recherche (256 px) et ses icones. Sous `xl`, le titre — seul
   // element elastique de la ligne — serait ecrase avant que le groupe ne cede.
-  const canInlineControls = useMediaQuery('(min-width: 1280px)');
+  const canInlineControls = useMediaQuery(INLINE_CONTROLS_QUERY);
 
   const handleBack = () => {
     if (onBack) {
