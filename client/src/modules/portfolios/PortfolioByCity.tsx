@@ -268,6 +268,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
     null,
   );
   const [dropError, setDropError] = useState<string | null>(null);
+  const [dropNotice, setDropNotice] = useState<string | null>(null);
 
   // L'affectation d'un logement est réservée aux SUPER_ADMIN côté serveur. On
   // désactive la poignée plutôt que d'offrir un dépôt qui finirait en 403.
@@ -315,6 +316,27 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
     teams.forEach((team) => ensure(team.city || SANS_VILLE).teams.push(team));
     people.forEach((user) => ensure(user.city || SANS_VILLE).staff.push(user));
 
+    // Une personne peut travailler dans une ville sans y etre basee : un
+    // responsable de secteur siege dans une ville et encadre les equipes de
+    // plusieurs autres. Compter le personnel d'une ville sur la seule ville de
+    // rattachement laissait ces gens hors du total alors qu'ils figurent dans
+    // ses equipes — et le compte de la liste contredisait ce que le panneau
+    // affichait.
+    const byId = new Map(people.map((user) => [user.id, user]));
+    byCity.forEach((group) => {
+      const known = new Set(group.staff.map((user) => user.id));
+      group.teams.forEach((team) =>
+        (team.members ?? []).forEach((member) => {
+          if (known.has(member.id)) return;
+          const person = byId.get(member.id);
+          if (person) {
+            known.add(member.id);
+            group.staff.push(person);
+          }
+        }),
+      );
+    });
+
     // Une personne « sans équipe » est rattachée à la ville sans figurer dans
     // aucune de ses équipes. C'est le seul état qui demande une décision, donc
     // le seul qu'on remonte jusqu'à la liste des villes.
@@ -352,6 +374,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
     async (event: DragEndEvent) => {
       setDragging(null);
       setDropError(null);
+      setDropNotice(null);
       const payload = event.active.data.current as DragPayload | undefined;
       const overId = event.over?.id ? String(event.over.id) : null;
       if (!payload || !overId || busy || !current) {
@@ -406,6 +429,20 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
               throw new Error(`Métier absent sur l'équipe ${source.id} : retrait refusé`);
             }
             await teamsApi.update(source.id, body);
+
+            // Sortir quelqu'un d'une equipe le sort AUSSI de la ville quand il
+            // n'y est pas base : sa seule attache etait cette equipe. La
+            // disparition est alors correcte, mais elle doit se dire — sinon on
+            // croit a un retrait qui a echoue.
+            const removed = people.find((u) => Number(u.id) === Number(payload.userId));
+            const home = removed?.city ?? null;
+            if (!target && home && home !== current.city) {
+              const who = removed ? fullName(removed) : `L'intervenant ${payload.userId}`;
+              setDropNotice(
+                `${who} a été retiré de l'équipe. Rattaché à ${home}, il n'apparaît plus `
+                + `dans ${current.city}.`,
+              );
+            }
           }
         }
 
@@ -421,7 +458,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
         setBusy(false);
       }
     },
-    [busy, current, queryClient, user?.id],
+    [busy, current, people, queryClient, user?.id],
   );
 
   const totals = useMemo(
@@ -482,6 +519,15 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
           </Button>
         </div>
       </Card>
+
+      {dropNotice ? (
+        <p
+          role="status"
+          className="m-0 rounded-lg border border-info bg-info-soft px-3 py-2 text-xs text-info-ink"
+        >
+          {dropNotice}
+        </p>
+      ) : null}
 
       {dropError ? (
         <p
