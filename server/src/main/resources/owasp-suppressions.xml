@@ -169,4 +169,57 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-.*$</packageUrl>
         <cve>CVE-2026-59270</cve>
     </suppress>
+
+    <!--
+        2026-09-03 — spring-core 6.2.19 (Spring Boot 3.5.16), trois CVE publiees
+        a la NVD dans la nuit du 2 au 3 septembre. Aucune n'est atteignable, et
+        AUCUNE n'a de version corrigee open source : la 6.2.20 est reservee au
+        support Enterprise, l'open source passe par la 7.0.9 — Spring Framework 7,
+        donc une migration Spring Boot 4. C'est ce qui les fait tomber dans le
+        cas 2 du preambule, et non dans le pom.xml.
+
+        Ecart de notation a garder en tete : la NVD annonce 9.8 / 9.8 / 7.5 ;
+        l'editeur classe 47890 en BASSE et 59282 en MOYENNE.
+
+        CVE-2026-47890 (NVD 9.8, editeur BASSE) — corruption de flux SSE par
+        injection CRLF. Trois conditions cumulatives, dont « envoyer des
+        FRAGMENTS DE VUE en SSE ». Nos quatre points d'emission
+        (`SseEmitter.event()` dans SupervisionController, DeviceSseRegistry,
+        SupervisionSseRegistry, AgUi) envoient tous du JSON serialise par
+        Jackson, jamais un fragment de vue. Sur le flux des objets connectes,
+        la charge utile ne contient en outre que des constantes serveur et un
+        identifiant numerique : aucune donnee d'un tiers n'y transite, et
+        Jackson echappe de toute facon les retours chariot.
+
+        CVE-2026-47891 (NVD 9.8) — `maxInMemorySize` contourne dans le
+        Jaxb2Decoder. Exige WebFlux ET le processeur Aalto XML. Les deux sont
+        absents de l'arbre de dependances (`mvn dependency:list` : zero
+        occurrence) ; l'application est servlet/Spring MVC.
+
+        CVE-2026-59282 (NVD 7.5, editeur MOYENNE) — allocation non bornee via
+        des chemins de propriete a index geant. Exige une liste auto-peuplee
+        (`AutoPopulatingList`) sur une cible de liaison, et l'usage de
+        DataBinder / BeanWrapper / DirectFieldAccessor sur des chemins fournis
+        par l'utilisateur. Aucune occurrence de l'un ni de l'autre.
+
+        A LEVER : a la migration Spring Boot 4 (Spring Framework 7.0.9+), qui
+        corrige les trois. A RE-EXAMINER si un flux SSE se met a diffuser des
+        fragments de vue, si WebFlux ou Aalto entrent dans l'arbre, ou si une
+        liaison par chemins de propriete apparait.
+    -->
+    <suppress>
+        <notes>spring-core : corruption de flux SSE — nos flux SSE emettent du JSON, jamais des fragments de vue</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
+        <cve>CVE-2026-47890</cve>
+    </suppress>
+    <suppress>
+        <notes>spring-core : Jaxb2Decoder — WebFlux et Aalto XML absents de l'arbre de dependances</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
+        <cve>CVE-2026-47891</cve>
+    </suppress>
+    <suppress>
+        <notes>spring-core : allocation non bornee en liaison — ni AutoPopulatingList ni DataBinder/BeanWrapper</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
+        <cve>CVE-2026-59282</cve>
+    </suppress>
 </suppressions>
