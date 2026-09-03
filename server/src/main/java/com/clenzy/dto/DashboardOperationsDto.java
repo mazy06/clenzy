@@ -74,6 +74,12 @@ public record DashboardOperationsDto(
     public record UpcomingArrivalDto(
             Long reservationId,
             String guestName,
+            /**
+             * Photo de profil du voyageur, en sortie seule. {@code null} quand le
+             * sejour n'est rattache a aucun voyageur ou que celui-ci n'a pas de
+             * photo — la vignette retombe alors sur ses initiales.
+             */
+            String guestAvatarUrl,
             Long propertyId,
             String propertyName,
             LocalDate checkIn,
