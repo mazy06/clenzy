@@ -131,8 +131,16 @@ export default function ConnectedObjectsHub({
       {embedded && actionsContainer ? createPortal(compactHeaderActions(headerAction), actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
-      <Card className="gap-0 py-0 p-1.5 mb-2 border-border flex items-center gap-1.5 flex-wrap">
-        <span className="text-2xs font-semibold uppercase tracking-wide text-faint me-0.5">
+      {/* `flex-row` EXPLICITE : Card est `flex flex-col` a la base, et ajouter
+          `flex` ne change pas la direction. Sans lui, `items-center` centrait
+          HORIZONTALEMENT — d'ou les pastilles empilees au milieu, et « Connecter
+          Netatmo » seul a droite puisque `ms-auto` poussait sur l'axe croise
+          d'une colonne au lieu de chasser en fin de rangee. */}
+      <Card className="mb-2 flex flex-row flex-wrap items-center gap-x-2 gap-y-1.5 border-border p-1.5">
+        {/* `text-faint` plafonne a 2,48:1 (contrat UI) : sous le seuil AA meme
+            pour du grand texte, et ici applique a des capitales minuscules.
+            `text-muted-foreground` monte a 4,80:1. */}
+        <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           Services reliés
         </span>
         {visibleProviders.length === 0 && !loading ? (
@@ -146,7 +154,23 @@ export default function ConnectedObjectsHub({
                 <span className="inline-flex">
                   {/* Ton sémantique du kit : connecté = succès, à reconnecter = avertissement.
                       Le couple `-ink` / `-soft` de StatusChip tient l'AA dans les deux thèmes. */}
-                  <StatusChip tone={p.connected ? 'ok' : 'warn'} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
+                  <StatusChip
+                    tone={p.connected ? 'ok' : 'warn'}
+                    label={(
+                      <span className="inline-flex items-center gap-1">
+                        {/* Sur un rang de pastilles, la teinte seule ne dit pas
+                            LAQUELLE pose probleme a qui ne distingue pas le vert
+                            de l'ambre. L'icone ne parait que sur l'exception. */}
+                        {!p.connected && <Warning size={11} strokeWidth={2} />}
+                        <span>{PROVIDER_LABELS[p.provider] ?? p.provider}</span>
+                        {/* Le compteur est la donnee qu'on vient lire : contraste
+                            de graisse plutot qu'un « · » qui mettait le nom et le
+                            nombre sur le meme plan. */}
+                        <span className="font-semibold tabular-nums">{p.deviceCount}</span>
+                      </span>
+                    )}
+                    className="h-[24px]"
+                  />
                 </span>
               </TooltipTrigger>
               <TooltipContent>{p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'}</TooltipContent>
