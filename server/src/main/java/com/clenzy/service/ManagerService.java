@@ -33,6 +33,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.UserAvatarUrlResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -62,6 +63,7 @@ public class ManagerService {
     private final ManagerUserRepository managerUserRepository;
     private final ManagerPropertyRepository managerPropertyRepository;
     private final TenantContext tenantContext;
+    private final UserAvatarUrlResolver avatarUrls;
 
     public ManagerService(PortfolioRepository portfolioRepository,
                           PortfolioClientRepository portfolioClientRepository,
@@ -71,7 +73,8 @@ public class ManagerService {
                           ManagerTeamRepository managerTeamRepository,
                           ManagerUserRepository managerUserRepository,
                           ManagerPropertyRepository managerPropertyRepository,
-                          TenantContext tenantContext) {
+                          TenantContext tenantContext,
+                          UserAvatarUrlResolver avatarUrls) {
         this.portfolioRepository = portfolioRepository;
         this.portfolioClientRepository = portfolioClientRepository;
         this.propertyRepository = propertyRepository;
@@ -81,6 +84,7 @@ public class ManagerService {
         this.managerUserRepository = managerUserRepository;
         this.managerPropertyRepository = managerPropertyRepository;
         this.tenantContext = tenantContext;
+        this.avatarUrls = avatarUrls;
     }
 
     // ===== MANAGER ID RESOLUTION =====
@@ -754,6 +758,8 @@ public class ManagerService {
         dto.setPortfolioId(portfolioTeam.getPortfolio().getId());
         dto.setPortfolioName(portfolioTeam.getPortfolio().getName());
         dto.setCity(portfolioTeam.getTeamMember().getCity());
+        dto.setAvatarUrl(avatarUrls.publicUrl(portfolioTeam.getTeamMember().getId(),
+                portfolioTeam.getTeamMember().getProfilePictureUrl()));
         return dto;
     }
 
@@ -797,7 +803,11 @@ public class ManagerService {
                 .map(member -> new com.clenzy.dto.TeamMemberSummaryDto(
                         member.getUser().getId(),
                         displayName(member.getUser()),
-                        member.getRole()))
+                        member.getRole(),
+                        member.getUser().getRole() != null
+                                ? member.getUser().getRole().name() : null,
+                        avatarUrls.publicUrl(member.getUser().getId(),
+                                member.getUser().getProfilePictureUrl())))
                 .toList());
         return dto;
     }
@@ -813,6 +823,7 @@ public class ManagerService {
                 ? user.getCreatedAt().toString() : "N/A");
         dto.setNotes("Assigne directement au manager");
         dto.setCity(user.getCity());
+        dto.setAvatarUrl(avatarUrls.publicUrl(user.getId(), user.getProfilePictureUrl()));
         return dto;
     }
 

@@ -11,6 +11,9 @@ package com.clenzy.dto;
  * @param fullName prenom et nom, deja dechiffres et concatenes
  * @param role     role DANS l'equipe (MEMBER, SUPERVISOR, MANAGER…), qui n'est
  *                 pas le role plateforme de la personne
+ * @param platformRole role PLATEFORME, qui porte le corps de metier
+ * @param avatarUrl URL ticketee de la photo, ou null
  */
-public record TeamMemberSummaryDto(Long id, String fullName, String role) {
+public record TeamMemberSummaryDto(Long id, String fullName, String role,
+                                   String platformRole, String avatarUrl) {
 }

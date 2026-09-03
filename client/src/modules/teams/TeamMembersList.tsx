@@ -1,7 +1,9 @@
+import { resolveMediaUrl } from '../../config/api';
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import {
   Avatar,
+  AvatarImage,
   AvatarFallback,
   Button,
   Card,
@@ -178,6 +180,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                 <React.Fragment key={memberId}>
                   <div className="flex items-center gap-3 px-1.5 py-[9px]">
                     <Avatar className="size-9 rounded-[10px] shrink-0">
+                      {resolveMediaUrl(member.avatarUrl) ? (
+                        <AvatarImage src={resolveMediaUrl(member.avatarUrl)} alt="" />
+                      ) : null}
                       <AvatarFallback className="rounded-[10px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold">
                         {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
                       </AvatarFallback>

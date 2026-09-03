@@ -40,14 +40,17 @@ public class TeamService {
     private final ManagerTeamRepository managerTeamRepository;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
+    private final UserAvatarUrlResolver avatarUrls;
 
-    public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService, TenantContext tenantContext) {
+    public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService, TenantContext tenantContext,
+                       UserAvatarUrlResolver avatarUrls) {
         this.teamRepository = teamRepository;
         this.teamCoverageZoneRepository = teamCoverageZoneRepository;
         this.userRepository = userRepository;
         this.managerTeamRepository = managerTeamRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
+        this.avatarUrls = avatarUrls;
     }
 
     public TeamDto create(TeamDto dto, Jwt jwt) {
@@ -326,6 +329,8 @@ public class TeamService {
         dto.firstName = member.getFirstName();
         dto.lastName = member.getLastName();
         dto.email = member.getEmail();
+        dto.avatarUrl = avatarUrls.publicUrl(member.getUser().getId(),
+                member.getUser().getProfilePictureUrl());
         return dto;
     }
 

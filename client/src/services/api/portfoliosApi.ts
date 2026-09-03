@@ -31,12 +31,14 @@ export interface ManagerAssociations {
   clients: Array<{ id: number; firstName: string; lastName: string; email: string; role: string; phoneNumber?: string; assignedAt: string; notes?: string }>;
   teams: Array<{ id: number; name: string; memberCount?: number; description?: string; assignedAt?: string;
     city?: string | null; interventionType?: string | null;
-    members?: Array<{ id: number; fullName: string; role: string }> }>;
+    members?: Array<{ id: number; fullName: string; role: string;
+      platformRole?: string | null; avatarUrl?: string | null }> }>;
   portfolios: Array<{ id: number; name: string }>;
   properties: Array<{ id: number; name: string; address?: string; description?: string; city?: string | null;
     ownerId?: number; ownerName?: string; assignedAt?: string; notes?: string }>;
   users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string;
-    assignedAt?: string; city?: string | null; coverageCities?: string[] }>;
+    assignedAt?: string; city?: string | null; coverageCities?: string[];
+    avatarUrl?: string | null }>;
 }
 
 export interface Manager {

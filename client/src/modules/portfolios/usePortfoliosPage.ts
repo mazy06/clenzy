@@ -49,6 +49,10 @@ export interface PortfolioTeamMember {
   fullName: string;
   /** Role DANS l'equipe (MEMBER, SUPERVISOR…), pas le role plateforme. */
   role: string;
+  /** Role PLATEFORME, qui porte le corps de métier. */
+  platformRole?: string | null;
+  /** URL ticketée de la photo de profil. */
+  avatarUrl?: string | null;
 }
 
 export interface PortfolioTeam {
@@ -78,6 +82,8 @@ export interface PortfolioUser {
    * responsable de secteur siège dans une ville et intervient dans plusieurs.
    */
   coverageCities?: string[];
+  /** URL ticketée de la photo de profil. */
+  avatarUrl?: string | null;
 }
 
 export interface Manager {

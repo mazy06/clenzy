@@ -18,6 +18,9 @@ public class UserAssociationDto {
      * siege dans une ville et intervient dans plusieurs.
      */
     private java.util.List<String> coverageCities = new java.util.ArrayList<>();
+
+    /** URL ticketee de la photo de profil, ou null. */
+    private String avatarUrl;
     private Long portfolioId;
     private String portfolioName;
 
@@ -73,4 +76,7 @@ public class UserAssociationDto {
     public void setCoverageCities(java.util.List<String> coverageCities) {
         this.coverageCities = coverageCities;
     }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

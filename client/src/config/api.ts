@@ -38,6 +38,27 @@ const alignHostWithPage = (url: string): string => {
 const API_BASE_URL = alignHostWithPage(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8084');
 const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH || '/api';
 
+/**
+ * Rend absolue une URL de media renvoyee par le serveur.
+ *
+ * <p>Le backend emet un chemin relatif — {@code /api/users/12/profile-picture?ticket=…} —
+ * parce qu'il ignore sous quelle origine le front est servi. Tel quel, le
+ * navigateur le resout contre l'origine de la PAGE : juste seulement quand
+ * l'API est co-hebergee. Ce n'est le cas ni en developpement (page sur :3000,
+ * API sur :8084, et le proxy Vite ne couvre que /api/copilotkit) ni en
+ * production (app.clenzy.fr contre api.clenzy.com). L'image partait donc en
+ * 404 et l'avatar retombait silencieusement sur les initiales.</p>
+ *
+ * <p>La chaine de requete est preservee : c'est elle qui porte le ticket HMAC
+ * sans lequel l'endpoint repond 401.</p>
+ */
+export function resolveMediaUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url;
+  // Le chemin porte deja son prefixe `/api` : on ne prepend que l'origine.
+  return url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+}
+
 export const API_CONFIG = {
   // URLs de base
   BASE_URL: API_BASE_URL,

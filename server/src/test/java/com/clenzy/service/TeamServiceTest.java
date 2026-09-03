@@ -62,6 +62,9 @@ class TeamServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private com.clenzy.service.UserAvatarUrlResolver avatarUrls;
+
     private TenantContext tenantContext;
     private TeamService teamService;
 
@@ -79,7 +82,8 @@ class TeamServiceTest {
                 userRepository,
                 managerTeamRepository,
                 notificationService,
-                tenantContext
+                tenantContext,
+                avatarUrls
         );
     }
 

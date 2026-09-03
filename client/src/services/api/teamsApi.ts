@@ -11,6 +11,8 @@ export interface TeamMember {
   userName?: string;
   userEmail?: string;
   roleInTeam?: string;
+  /** URL ticketee de la photo de profil, servie par le backend. */
+  avatarUrl?: string | null;
 }
 
 export interface CoverageZone {

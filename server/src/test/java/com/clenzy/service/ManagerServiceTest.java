@@ -40,6 +40,7 @@ class ManagerServiceTest {
     @Mock private ManagerTeamRepository managerTeamRepository;
     @Mock private ManagerUserRepository managerUserRepository;
     @Mock private ManagerPropertyRepository managerPropertyRepository;
+    @Mock private com.clenzy.service.UserAvatarUrlResolver avatarUrls;
 
     private TenantContext tenantContext;
     private ManagerService managerService;
@@ -55,7 +56,7 @@ class ManagerServiceTest {
         managerService = new ManagerService(
                 portfolioRepository, portfolioClientRepository, propertyRepository,
                 teamRepository, userRepository, managerTeamRepository,
-                managerUserRepository, managerPropertyRepository, tenantContext);
+                managerUserRepository, managerPropertyRepository, tenantContext, avatarUrls);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
