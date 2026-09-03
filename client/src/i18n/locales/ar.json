@@ -3452,6 +3452,27 @@
     "warnings": {
       "attention": "تنبيه",
       "noTeamSelectedWarning": "لم يتم اختيار أي فريق. يجب اختيار مستخدم واحد على الأقل للمتابعة."
+    },
+    "byCity": {
+      "assignProperties": "تعيين عقار",
+      "assignStaff": "إلحاق عامل",
+      "cities": "المدن",
+      "clients": "الملاك",
+      "covered": "مغطاة",
+      "dropToDetach": "أفلت شخصًا هنا لإزالته من فريقه.",
+      "emptyDescription": "عيّن عقارات لعرض المدن وفرقها وعامليها.",
+      "emptyTeam": "لا أحد في هذا الفريق.",
+      "emptyTitle": "لا عقار في هذه المحفظة",
+      "members": "أعضاء",
+      "noProperty": "لا عقار في هذه المدينة.",
+      "noTeam": "لا فريق في هذه المدينة.",
+      "properties": "عقارات",
+      "staff": "عاملون",
+      "teams": "فرق",
+      "teamsOf": "الفرق",
+      "unassigned": "بلا فريق",
+      "unassignedTitle": "ملحقون بالمدينة، بلا فريق",
+      "without": "بلا فريق"
     }
   },
   "contact": {

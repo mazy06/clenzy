@@ -3450,6 +3450,27 @@
     "warnings": {
       "attention": "Attention",
       "noTeamSelectedWarning": "No team has been selected. You must choose at least one user to continue."
+    },
+    "byCity": {
+      "assignProperties": "Assign a property",
+      "assignStaff": "Attach a team member",
+      "cities": "Cities",
+      "clients": "owners",
+      "covered": "Covered",
+      "dropToDetach": "Drop someone here to remove them from their team.",
+      "emptyDescription": "Assign properties to see cities, their teams and their staff.",
+      "emptyTeam": "Nobody in this team.",
+      "emptyTitle": "No property in this portfolio",
+      "members": "members",
+      "noProperty": "No property in this city.",
+      "noTeam": "No team in this city.",
+      "properties": "properties",
+      "staff": "staff",
+      "teams": "teams",
+      "teamsOf": "Teams",
+      "unassigned": "without a team",
+      "unassignedTitle": "Attached to the city, in no team",
+      "without": "without a team"
     }
   },
   "contact": {

@@ -640,7 +640,11 @@ const CityDetail: React.FC<{
       )}
     </Section>
 
-    {group.unassigned.length > 0 ? (
+    {/* Cette zone est TOUJOURS rendue des qu'il existe une equipe : c'est la
+        cible ou l'on depose quelqu'un pour l'en retirer. Ne l'afficher que
+        lorsqu'elle contient deja du monde la rendait inatteignable dans une
+        ville entierement couverte — on ne pouvait donc jamais desassigner. */}
+    {group.teams.length > 0 || group.unassigned.length > 0 ? (
       <Section
         title={t('portfolios.byCity.unassignedTitle', 'Rattachés à la ville, dans aucune équipe')}
         count={group.unassigned.length}
@@ -648,17 +652,29 @@ const CityDetail: React.FC<{
         <DropZone
           id="unassigned"
           accepts={['person']}
-          className="flex flex-wrap gap-1.5 rounded-lg border border-dashed border-border p-3"
+          className={cn(
+            'flex flex-wrap items-center gap-1.5 rounded-lg border border-dashed border-border p-3',
+            group.unassigned.length === 0 && 'justify-center',
+          )}
         >
-          {group.unassigned.map((user) => (
-            <DraggablePerson
-              key={user.id}
-              id={`free-${user.id}`}
-              payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
-              label={fullName(user)}
-              tone="warn"
-            />
-          ))}
+          {group.unassigned.length === 0 ? (
+            <Hint>
+              {t(
+                'portfolios.byCity.dropToDetach',
+                'Déposez ici un intervenant pour le retirer de son équipe.',
+              )}
+            </Hint>
+          ) : (
+            group.unassigned.map((user) => (
+              <DraggablePerson
+                key={user.id}
+                id={`free-${user.id}`}
+                payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
+                label={fullName(user)}
+                tone="warn"
+              />
+            ))
+          )}
         </DropZone>
       </Section>
     ) : null}

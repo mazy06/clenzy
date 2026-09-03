@@ -3471,6 +3471,27 @@
     "warnings": {
       "attention": "Attention",
       "noTeamSelectedWarning": "Aucune équipe n'a été sélectionnée. Vous devez choisir au moins un utilisateur pour continuer."
+    },
+    "byCity": {
+      "assignProperties": "Affecter un logement",
+      "assignStaff": "Rattacher un intervenant",
+      "cities": "Villes",
+      "clients": "propriétaires",
+      "covered": "Couverte",
+      "dropToDetach": "Déposez ici un intervenant pour le retirer de son équipe.",
+      "emptyDescription": "Affectez des logements pour voir apparaître les villes, leurs équipes et leurs intervenants.",
+      "emptyTeam": "Personne dans cette équipe.",
+      "emptyTitle": "Aucun logement dans ce portefeuille",
+      "members": "membres",
+      "noProperty": "Aucun logement dans cette ville.",
+      "noTeam": "Aucune équipe sur cette ville.",
+      "properties": "logements",
+      "staff": "intervenants",
+      "teams": "équipes",
+      "teamsOf": "Équipes",
+      "unassigned": "sans équipe",
+      "unassignedTitle": "Rattachés à la ville, dans aucune équipe",
+      "without": "sans équipe"
     }
   },
   "contact": {
