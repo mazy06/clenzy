@@ -246,6 +246,10 @@ public class ManagerService {
             for (Long teamId : request.getTeamIds()) {
                 if (!managerTeamRepository.existsByManagerIdAndTeamIdAndIsActiveTrue(managerId, teamId, tenantContext.getRequiredOrganizationId())) {
                     final ManagerTeam managerTeam = new ManagerTeam(managerId, teamId);
+                    // Le constructeur ne prend pas l'organisation, et toutes les
+                    // requetes du depot la filtrent : sans cette ligne l'assignation
+                    // est ecrite puis introuvable.
+                    managerTeam.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     managerTeamRepository.save(managerTeam);
                     teamsAssigned++;
                     log.debug("Equipe {} assignee au manager {}", teamId, managerId);
@@ -259,6 +263,7 @@ public class ManagerService {
             for (Long userId : request.getUserIds()) {
                 if (!managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(managerId, userId, tenantContext.getRequiredOrganizationId())) {
                     final ManagerUser managerUser = new ManagerUser(managerId, userId);
+                    managerUser.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     managerUserRepository.save(managerUser);
                     usersAssigned++;
                     log.debug("Utilisateur {} assigne au manager {}", userId, managerId);
@@ -565,6 +570,11 @@ public class ManagerService {
         portfolio.setDescription("Portefeuille automatiquement cree");
         portfolio.setManager(manager);
         portfolio.setIsActive(true);
+        // Sans organisation, la ligne est invisible du @Filter Hibernate ET de
+        // findManagerPortfolio, qui filtre sur l'org : le getOrCreate ne
+        // retrouvait donc jamais ce qu'il venait d'ecrire et recreait un
+        // portefeuille a chaque appel.
+        portfolio.setOrganizationId(tenantContext.getRequiredOrganizationId());
         final Portfolio saved = portfolioRepository.save(portfolio);
         log.debug("Portefeuille cree: {}", saved.getId());
         return saved;
@@ -590,6 +600,7 @@ public class ManagerService {
                 final User client = userRepository.findById(clientId).orElse(null);
                 if (client != null) {
                     final PortfolioClient portfolioClient = new PortfolioClient(portfolio, client);
+                    portfolioClient.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     portfolioClientRepository.save(portfolioClient);
                     assigned++;
                     log.debug("Client {} assigne au portefeuille {}", clientId, portfolio.getId());

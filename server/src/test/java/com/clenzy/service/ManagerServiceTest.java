@@ -1315,4 +1315,113 @@ class ManagerServiceTest {
                     .hasMessageContaining("non assignee");
         }
     }
+
+    /**
+     * Ces quatre ecritures partaient sans organisation, alors que TOUTES les
+     * lectures correspondantes la filtrent. Une ligne ecrite a NULL etait donc
+     * introuvable par le chemin meme qui la cherchait — et invisible du
+     * {@code @Filter} Hibernate, donc d'un autre tenant aussi bien que du sien.
+     *
+     * <p>La consequence la plus couteuse portait sur le portefeuille : son
+     * {@code getOrCreate} ne retrouvait jamais ce qu'il venait d'ecrire, et
+     * recreait donc un portefeuille a chaque appel du bouton « Associer Clients
+     * &amp; Proprietes ». Un orphelin par clic, sans borne.</p>
+     */
+    @Nested
+    @DisplayName("Cloisonnement multi-tenant des ecritures")
+    class OrganisationSurLesEcritures {
+
+        @Test
+        @DisplayName("le portefeuille cree porte l'organisation courante")
+        void whenPortefeuilleCree_thenPorteLOrganisation() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+            when(portfolioRepository.save(any(Portfolio.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            managerService.assignClientsAndProperties(
+                    MANAGER_ID, new AssignmentRequest(List.of(), List.of()));
+
+            ArgumentCaptor<Portfolio> captor = ArgumentCaptor.forClass(Portfolio.class);
+            verify(portfolioRepository).save(captor.capture());
+            assertThat(captor.getValue().getOrganizationId()).isEqualTo(ORG_ID);
+        }
+
+        @Test
+        @DisplayName("le portefeuille ecrit est retrouve par la lecture scopee — plus de doublon")
+        void whenDeuxiemeAppel_thenAucunNouveauPortefeuille() {
+            // La regression d'origine : findByManagerId filtre sur l'org, donc un
+            // portefeuille ecrit sans org n'etait jamais retrouve. On simule ici le
+            // depot en ne rendant que les portefeuilles de l'org demandee — ce que
+            // fait la vraie requete.
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+
+            final List<Portfolio> stockes = new ArrayList<>();
+            when(portfolioRepository.findByManagerId(eq(MANAGER_ID), eq(ORG_ID)))
+                    .thenAnswer(inv -> stockes.stream()
+                            .filter(pf -> ORG_ID.equals(pf.getOrganizationId()))
+                            .toList());
+            when(portfolioRepository.save(any(Portfolio.class))).thenAnswer(inv -> {
+                Portfolio pf = inv.getArgument(0);
+                pf.setId(1L);
+                stockes.add(pf);
+                return pf;
+            });
+
+            AssignmentRequest vide = new AssignmentRequest(List.of(), List.of());
+            managerService.assignClientsAndProperties(MANAGER_ID, vide);
+            managerService.assignClientsAndProperties(MANAGER_ID, vide);
+
+            // Un seul enregistrement : le second appel a retrouve le premier.
+            verify(portfolioRepository, times(1)).save(any(Portfolio.class));
+            assertThat(stockes).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("le rattachement d'un client porte l'organisation courante")
+        void whenClientRattache_thenPorteLOrganisation() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            User client = buildUser(20L, UserRole.HOST);
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(userRepository.findById(20L)).thenReturn(Optional.of(client));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID))
+                    .thenReturn(List.of(buildPortfolio(1L, manager)));
+            when(portfolioClientRepository.existsByPortfolioIdAndClientId(1L, 20L, ORG_ID))
+                    .thenReturn(false);
+            when(portfolioClientRepository.save(any(PortfolioClient.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            managerService.assignClientsAndProperties(
+                    MANAGER_ID, new AssignmentRequest(List.of(20L), List.of()));
+
+            ArgumentCaptor<PortfolioClient> captor =
+                    ArgumentCaptor.forClass(PortfolioClient.class);
+            verify(portfolioClientRepository).save(captor.capture());
+            assertThat(captor.getValue().getOrganizationId()).isEqualTo(ORG_ID);
+        }
+
+        @Test
+        @DisplayName("les equipes et intervenants assignes portent l'organisation courante")
+        void whenEquipesEtIntervenantsAssignes_thenPortentLOrganisation() {
+            when(managerTeamRepository.existsByManagerIdAndTeamIdAndIsActiveTrue(
+                    eq(MANAGER_ID), anyLong(), eq(ORG_ID))).thenReturn(false);
+            when(managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(
+                    eq(MANAGER_ID), anyLong(), eq(ORG_ID))).thenReturn(false);
+            when(managerTeamRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(managerUserRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            managerService.assignTeamsAndUsers(MANAGER_ID,
+                    new TeamUserAssignmentRequest(MANAGER_ID, List.of(1L), List.of(3L)));
+
+            ArgumentCaptor<ManagerTeam> equipe = ArgumentCaptor.forClass(ManagerTeam.class);
+            verify(managerTeamRepository).save(equipe.capture());
+            assertThat(equipe.getValue().getOrganizationId()).isEqualTo(ORG_ID);
+
+            ArgumentCaptor<ManagerUser> intervenant = ArgumentCaptor.forClass(ManagerUser.class);
+            verify(managerUserRepository).save(intervenant.capture());
+            assertThat(intervenant.getValue().getOrganizationId()).isEqualTo(ORG_ID);
+        }
+    }
 }
