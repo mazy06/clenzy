@@ -1,10 +1,25 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, Button, Card } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import EmptyState from '../../components/EmptyState';
 import { Home, LocationOn } from '../../icons';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
+import { teamsApi } from '../../services/api/teamsApi';
+import { propertyTeamsApi } from '../../services/api/propertyTeamsApi';
+import { portfoliosKeys } from '../../services/api/portfoliosApi';
 import type {
   PortfolioClient,
   PortfolioProperty,
@@ -58,6 +73,143 @@ function teamTrade(team: PortfolioTeam): string {
   return team.name;
 }
 
+
+/**
+ * Ce qu'on deplace : un intervenant, ou un logement.
+ *
+ * <p>Un meme conteneur porte les deux, et la cible lit ce type pour savoir
+ * quoi faire du depot — plutot que de deviner a la forme de l'identifiant.</p>
+ */
+type DragPayload =
+  | { kind: 'person'; userId: number; fromTeamId: number | null }
+  | { kind: 'property'; propertyId: number };
+
+/** Seul un SUPER_ADMIN peut affecter un logement (POST /property-teams). */
+const PROPERTY_ASSIGN_ROLES = new Set(['SUPER_ADMIN']);
+
+
+/**
+ * Charge utile de `PUT /api/teams/{id}`, ou `null` si on ne peut pas la bâtir
+ * sans risque.
+ *
+ * <p>Le contrat attend l'équipe ENTIÈRE, pas un delta : `TeamService.update`
+ * écrit `name`, `description` et `interventionType` SANS garde. Un métier
+ * absent qu'on remplacerait par une valeur par défaut convertirait
+ * silencieusement une équipe de maintenance en équipe de ménage — on préfère
+ * refuser le dépôt.</p>
+ *
+ * <p>`coverageZones` est en revanche gardé par un `!= null` côté serveur :
+ * l'omettre laisse les zones intactes, donc la ville de l'équipe survit. C'est
+ * ce qui permet de ne renvoyer que les membres.</p>
+ */
+function buildTeamPayload(
+  team: PortfolioTeam,
+  members: { userId: number; role: string }[],
+) {
+  if (!team.name || !team.interventionType) {
+    return null;
+  }
+  return {
+    name: team.name,
+    description: team.description ?? '',
+    interventionType: team.interventionType,
+    members,
+  };
+}
+
+/** Pastille d'intervenant deplacable au pointeur comme au clavier. */
+const DraggablePerson: React.FC<{
+  id: string;
+  payload: DragPayload;
+  label: string;
+  tone?: 'default' | 'warn';
+  disabled?: boolean;
+}> = ({ id, payload, label, tone = 'default', disabled }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id,
+    data: payload,
+    disabled,
+  });
+  return (
+    <span
+      ref={setNodeRef}
+      // `attributes` porte role, tabIndex et les aria-* dont le capteur clavier
+      // a besoin : sans eux le deplacement serait reserve a la souris.
+      {...attributes}
+      {...listeners}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border py-0.5 pe-2.5 ps-0.5 text-xs',
+        'transition-opacity duration-200',
+        disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-40',
+        tone === 'warn'
+          ? 'border-warning bg-warning-soft text-warning-ink'
+          : 'border-border bg-muted/40 text-foreground',
+      )}
+    >
+      <Avatar className="size-[21px]">
+        <AvatarFallback className="text-[0.55rem] font-bold">{initials(label)}</AvatarFallback>
+      </Avatar>
+      {label}
+    </span>
+  );
+};
+
+
+/** Ligne de logement, deplacable vers une equipe. */
+const DraggableProperty: React.FC<{
+  property: PortfolioProperty;
+  disabled: boolean;
+  children: React.ReactNode;
+}> = ({ property, disabled, children }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `property-${property.id}`,
+    data: { kind: 'property', propertyId: property.id } satisfies DragPayload,
+    disabled,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted/40 px-3 py-2',
+        'transition-opacity duration-200',
+        disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-40',
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
+/** Zone d'accueil : une equipe, ou le vivier « sans equipe ». */
+const DropZone: React.FC<{
+  id: string;
+  accepts: DragPayload['kind'][];
+  className?: string;
+  children: React.ReactNode;
+}> = ({ id, accepts, className, children }) => {
+  const { isOver, setNodeRef, active } = useDroppable({ id, data: { accepts } });
+  const dragged = active?.data.current as DragPayload | undefined;
+  // On ne s'allume que pour ce qu'on sait recevoir : un survol qui s'illumine
+  // puis refuse le depot est un mensonge visuel.
+  const welcome = isOver && dragged != null && accepts.includes(dragged.kind);
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        className,
+        'transition-colors duration-200',
+        welcome && 'border-primary bg-primary-soft',
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
 /**
  * Le portefeuille, organisé par ville.
  *
@@ -85,6 +237,24 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   onAssignStaff,
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+
+  // L'affectation d'un logement est réservée aux SUPER_ADMIN côté serveur. On
+  // désactive la poignée plutôt que d'offrir un dépôt qui finirait en 403.
+  const canAssignProperty = useMemo(() => {
+    if (!user) return false;
+    if (user.platformRole && PROPERTY_ASSIGN_ROLES.has(user.platformRole)) return true;
+    return user.roles?.some((role) => PROPERTY_ASSIGN_ROLES.has(role)) ?? false;
+  }, [user]);
+
+  const sensors = useSensors(
+    // Sans distance d'activation, un simple clic sur une pastille lancerait un
+    // déplacement.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor),
+  );
 
   // L'API concatène DEUX sources d'intervenants : les rattachements de
   // portefeuille et les assignations directes au manager. Une même personne
@@ -134,6 +304,70 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   const [selected, setSelected] = useState<string | null>(null);
   const current = groups.find((g) => g.city === selected) ?? groups[0] ?? null;
 
+  /**
+   * Applique un dépôt.
+   *
+   * <p>L'appartenance à une équipe se met à jour en renvoyant la liste
+   * COMPLÈTE des membres : c'est le contrat de `PUT /api/teams/{id}`, il n'y a
+   * pas d'endpoint pour ajouter ou retirer une seule personne. On reconstruit
+   * donc la liste à partir de ce que l'écran affiche.</p>
+   */
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const payload = event.active.data.current as DragPayload | undefined;
+      const overId = event.over?.id ? String(event.over.id) : null;
+      if (!payload || !overId || busy || !current) {
+        return;
+      }
+
+      const teamOf = (id: string) =>
+        current.teams.find((team) => `team-${team.id}` === id) ?? null;
+
+      try {
+        setBusy(true);
+
+        if (payload.kind === 'property') {
+          const target = teamOf(overId);
+          if (!target) return;
+          await propertyTeamsApi.assign(payload.propertyId, target.id);
+        } else {
+          const target = teamOf(overId);
+          const leaving = payload.fromTeamId;
+          if (target && target.id === leaving) return; // déposé là d'où il vient
+
+          if (target) {
+            const members = [
+              ...(target.members ?? []).map((m) => ({ userId: m.id, role: m.role })),
+              { userId: payload.userId, role: 'MEMBER' },
+            ];
+            const body = buildTeamPayload(target, members);
+            if (!body) return;
+            await teamsApi.update(target.id, body);
+          }
+          if (leaving != null && (target || overId === 'unassigned')) {
+            const source = current.teams.find((team) => team.id === leaving);
+            if (source) {
+              const members = (source.members ?? [])
+                .filter((m) => m.id !== payload.userId)
+                .map((m) => ({ userId: m.id, role: m.role }));
+              const body = buildTeamPayload(source, members);
+              if (body) {
+                await teamsApi.update(source.id, body);
+              }
+            }
+          }
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: portfoliosKeys.associations(user?.id ?? ''),
+        });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, current, queryClient, user?.id],
+  );
+
   const totals = useMemo(
     () => ({
       properties: properties.length,
@@ -164,7 +398,8 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <div className={cn('flex flex-col gap-3', busy && 'pointer-events-none opacity-70')}>
       {/* Une répartition, pas de grands nombres isolés : « 105 » n'appelle
           aucune action, « 2 sans équipe » en appelle une. */}
       <Card className="flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2 border-border p-3">
@@ -237,9 +472,12 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
           </nav>
         </Card>
 
-        {current ? <CityDetail group={current} t={t} /> : null}
+        {current ? (
+          <CityDetail group={current} t={t} canDragProperty={canAssignProperty} />
+        ) : null}
       </div>
     </div>
+    </DndContext>
   );
 };
 
@@ -261,7 +499,11 @@ const Figure: React.FC<{ value: number; label: string; alert?: boolean }> = ({
   </span>
 );
 
-const CityDetail: React.FC<{ group: CityGroup; t: Translate }> = ({ group, t }) => (
+const CityDetail: React.FC<{
+  group: CityGroup;
+  t: Translate;
+  canDragProperty: boolean;
+}> = ({ group, t, canDragProperty }) => (
   <div className="flex flex-col gap-3">
     <Section
       title={t('portfolios.byCity.properties', 'Logements')}
@@ -272,9 +514,10 @@ const CityDetail: React.FC<{ group: CityGroup; t: Translate }> = ({ group, t }) 
       ) : (
         <div className="flex flex-col gap-px">
           {group.properties.map((property) => (
-            <div
+            <DraggableProperty
               key={property.id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted/40 px-3 py-2"
+              property={property}
+              disabled={!canDragProperty}
             >
               <span className="text-sm font-semibold text-foreground">{property.name}</span>
               {property.address ? (
@@ -284,7 +527,7 @@ const CityDetail: React.FC<{ group: CityGroup; t: Translate }> = ({ group, t }) 
                 </span>
               ) : null}
               <span className="ms-auto text-xs text-muted-foreground">{property.ownerName}</span>
-            </div>
+            </DraggableProperty>
           ))}
         </div>
       )}
@@ -296,7 +539,12 @@ const CityDetail: React.FC<{ group: CityGroup; t: Translate }> = ({ group, t }) 
       ) : (
         <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
           {group.teams.map((team) => (
-            <Card key={team.id} className="flex flex-col gap-2 border-border p-3">
+            <DropZone
+              key={team.id}
+              id={`team-${team.id}`}
+              accepts={['person', 'property']}
+              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3"
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-semibold text-foreground">{teamTrade(team)}</span>
                 <StatusChip
@@ -312,21 +560,16 @@ const CityDetail: React.FC<{ group: CityGroup; t: Translate }> = ({ group, t }) 
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {(team.members ?? []).map((member) => (
-                    <span
+                    <DraggablePerson
                       key={member.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 py-0.5 pe-2.5 ps-0.5 text-xs text-foreground"
-                    >
-                      <Avatar className="size-[21px]">
-                        <AvatarFallback className="text-[0.55rem] font-bold">
-                          {initials(member.fullName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {member.fullName}
-                    </span>
+                      id={`member-${team.id}-${member.id}`}
+                      payload={{ kind: 'person', userId: member.id, fromTeamId: team.id }}
+                      label={member.fullName}
+                    />
                   ))}
                 </div>
               )}
-            </Card>
+            </DropZone>
           ))}
         </div>
       )}
@@ -337,21 +580,21 @@ const CityDetail: React.FC<{ group: CityGroup; t: Translate }> = ({ group, t }) 
         title={t('portfolios.byCity.unassignedTitle', 'Rattachés à la ville, dans aucune équipe')}
         count={group.unassigned.length}
       >
-        <div className="flex flex-wrap gap-1.5 rounded-lg border border-dashed border-border p-3">
+        <DropZone
+          id="unassigned"
+          accepts={['person']}
+          className="flex flex-wrap gap-1.5 rounded-lg border border-dashed border-border p-3"
+        >
           {group.unassigned.map((user) => (
-            <span
+            <DraggablePerson
               key={user.id}
-              className="inline-flex items-center gap-1.5 rounded-full border border-warning bg-warning-soft py-0.5 pe-2.5 ps-0.5 text-xs text-warning-ink"
-            >
-              <Avatar className="size-[21px]">
-                <AvatarFallback className="text-[0.55rem] font-bold">
-                  {initials(fullName(user))}
-                </AvatarFallback>
-              </Avatar>
-              {fullName(user)}
-            </span>
+              id={`free-${user.id}`}
+              payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
+              label={fullName(user)}
+              tone="warn"
+            />
           ))}
-        </div>
+        </DropZone>
       </Section>
     ) : null}
   </div>
