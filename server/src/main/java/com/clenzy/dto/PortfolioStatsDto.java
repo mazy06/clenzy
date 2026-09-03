@@ -16,6 +16,18 @@ public class PortfolioStatsDto {
     private List<RecentAssignment> recentAssignments = new ArrayList<>();
     private List<PortfolioBreakdown> portfolioBreakdown = new ArrayList<>();
 
+    /**
+     * Repartitions et serie temporelle, pour les graphiques de l'ecran.
+     *
+     * <p>Toutes sont calculees a partir des entites DEJA chargees par le
+     * parcours des portefeuilles : aucune requete supplementaire.</p>
+     */
+    private List<Bucket> staffByTrade = new ArrayList<>();
+    private List<Bucket> staffByCity = new ArrayList<>();
+    private List<Bucket> propertiesByCity = new ArrayList<>();
+    private List<Bucket> propertiesByType = new ArrayList<>();
+    private List<MonthPoint> assignmentsByMonth = new ArrayList<>();
+
     // ── Getters / Setters ────────────────────────────────────────────────────
 
     public int getTotalPortfolios() { return totalPortfolios; }
@@ -42,7 +54,66 @@ public class PortfolioStatsDto {
     public List<PortfolioBreakdown> getPortfolioBreakdown() { return portfolioBreakdown; }
     public void setPortfolioBreakdown(List<PortfolioBreakdown> portfolioBreakdown) { this.portfolioBreakdown = portfolioBreakdown; }
 
+    public List<Bucket> getStaffByTrade() { return staffByTrade; }
+    public void setStaffByTrade(List<Bucket> staffByTrade) { this.staffByTrade = staffByTrade; }
+
+    public List<Bucket> getStaffByCity() { return staffByCity; }
+    public void setStaffByCity(List<Bucket> staffByCity) { this.staffByCity = staffByCity; }
+
+    public List<Bucket> getPropertiesByCity() { return propertiesByCity; }
+    public void setPropertiesByCity(List<Bucket> propertiesByCity) { this.propertiesByCity = propertiesByCity; }
+
+    public List<Bucket> getPropertiesByType() { return propertiesByType; }
+    public void setPropertiesByType(List<Bucket> propertiesByType) { this.propertiesByType = propertiesByType; }
+
+    public List<MonthPoint> getAssignmentsByMonth() { return assignmentsByMonth; }
+    public void setAssignmentsByMonth(List<MonthPoint> assignmentsByMonth) { this.assignmentsByMonth = assignmentsByMonth; }
+
     // ── Inner classes ────────────────────────────────────────────────────────
+
+    /** Une part d'une repartition : un libelle, un effectif. */
+    public static class Bucket {
+        private String label;
+        private int count;
+
+        public Bucket() {}
+
+        public Bucket(String label, int count) {
+            this.label = label;
+            this.count = count;
+        }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+
+        public int getCount() { return count; }
+        public void setCount(int count) { this.count = count; }
+    }
+
+    /** Rattachements d'un mois, separes par nature. */
+    public static class MonthPoint {
+        /** Mois au format ISO {@code YYYY-MM}, ordonnable comme une chaine. */
+        private String month;
+        private int clients;
+        private int staff;
+
+        public MonthPoint() {}
+
+        public MonthPoint(String month, int clients, int staff) {
+            this.month = month;
+            this.clients = clients;
+            this.staff = staff;
+        }
+
+        public String getMonth() { return month; }
+        public void setMonth(String month) { this.month = month; }
+
+        public int getClients() { return clients; }
+        public void setClients(int clients) { this.clients = clients; }
+
+        public int getStaff() { return staff; }
+        public void setStaff(int staff) { this.staff = staff; }
+    }
 
     public static class RecentAssignment {
         private Long id;

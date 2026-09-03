@@ -2,6 +2,12 @@ import apiClient from '../apiClient';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Une part d'une répartition : un libellé, un effectif. */
+export interface PortfolioBucket {
+  label: string;
+  count: number;
+}
+
 export interface PortfolioStats {
   totalPortfolios: number;
   totalClients: number;
@@ -16,6 +22,12 @@ export interface PortfolioStats {
     portfolioName: string;
     assignedAt: string;
   }>;
+  /** Répartitions et série temporelle, pour les graphiques. */
+  staffByTrade: PortfolioBucket[];
+  staffByCity: PortfolioBucket[];
+  propertiesByCity: PortfolioBucket[];
+  propertiesByType: PortfolioBucket[];
+  assignmentsByMonth: Array<{ month: string; clients: number; staff: number }>;
   portfolioBreakdown: Array<{
     portfolioId: number;
     portfolioName: string;

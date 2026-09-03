@@ -3409,7 +3409,16 @@
       "activeShare": "actifs",
       "chartScope": "Clients et intervenants rattachés",
       "typeClient": "Client",
-      "typeTeam": "Intervenant"
+      "typeTeam": "Intervenant",
+      "staffPerProperty": "intervenants / logement",
+      "propertiesPerClient": "logements / client",
+      "overTime": "Rattachements dans le temps",
+      "overTimeHint": "Par mois, clients et intervenants",
+      "byTrade": "Intervenants par métier",
+      "coverage": "Couverture par ville",
+      "coverageHint": "Une ville sans intervenant appelle un rattachement",
+      "byPropertyType": "Logements par type",
+      "staffByCity": "Intervenants par ville"
     },
     "teamManagement": {
       "title": "Mes Équipes",

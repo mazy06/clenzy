@@ -3388,7 +3388,16 @@
       "activeShare": "active",
       "chartScope": "Assigned clients and staff",
       "typeClient": "Client",
-      "typeTeam": "Staff member"
+      "typeTeam": "Staff member",
+      "staffPerProperty": "staff / property",
+      "propertiesPerClient": "properties / client",
+      "overTime": "Assignments over time",
+      "overTimeHint": "Per month, clients and staff",
+      "byTrade": "Staff by trade",
+      "coverage": "Coverage by city",
+      "coverageHint": "A city with no staff needs an assignment",
+      "byPropertyType": "Properties by type",
+      "staffByCity": "Staff by city"
     },
     "teamManagement": {
       "title": "My Teams",

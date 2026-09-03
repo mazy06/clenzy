@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import StatusChip from '../../components/StatusChip';
 import {
   Card,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
@@ -10,10 +15,12 @@ import {
   ChartTooltipContent,
   Progress,
   Spinner,
+  type CarouselApi,
   type ChartConfig,
 } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
+import { useViewportFill } from '../../hooks/useViewportFill';
 import {
   portfoliosApi,
   portfoliosKeys,
@@ -21,6 +28,14 @@ import {
 } from '../../services/api/portfoliosApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
+import {
+  CHART_HEIGHT,
+  CoverageChart,
+  DonutChart,
+  HistogramChart,
+  SERIES_TOKENS,
+  TimelineChart,
+} from './PortfolioCharts';
 
 /** Le `t` du hook, plutot qu'une signature reecrite a la main qui diverge. */
 type Translate = ReturnType<typeof useTranslation>['t'];
@@ -44,6 +59,8 @@ type Translate = ReturnType<typeof useTranslation>['t'];
 const PortfolioStatsTab: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  // Appele AVANT tout retour anticipe : regle des Hooks.
+  const [fillRef, fillHeight] = useViewportFill<HTMLDivElement>();
 
   const statsQuery = useQuery({
     queryKey: portfoliosKeys.stats(user?.id ?? ''),
@@ -95,11 +112,16 @@ const PortfolioStatsTab: React.FC = () => {
 
       <SummaryBand stats={stats} t={t} />
 
-      {/* Le graphique prend deux tiers : c'est lui qui porte la comparaison.
-          `items-start` empeche la colonne courte de s'etirer sur la hauteur de
-          l'autre — c'est ce qui creusait le grand vide. */}
-      <div className="grid grid-cols-1 items-start gap-3 min-[1000px]:grid-cols-[2fr_1fr]">
-        <CompositionChart breakdown={stats.portfolioBreakdown} t={t} />
+      {/* La hauteur mesuree descend ici. `min-h-0` leve le plancher
+          `min-height: auto` des elements de grille : sans lui la colonne
+          d'activite ne pourrait pas devenir plus courte que son contenu, donc
+          ne defilerait jamais et etirerait la page. */}
+      <div
+        ref={fillRef}
+        style={fillHeight ? { height: fillHeight } : undefined}
+        className="grid grid-cols-1 items-stretch gap-3 min-[1100px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[1100px]:grid-rows-[minmax(0,1fr)]"
+      >
+        <ChartCarousel stats={stats} t={t} />
         <RecentActivity
           assignments={stats.recentAssignments}
           showPortfolio={manyPortfolios}
@@ -120,6 +142,13 @@ const SummaryBand: React.FC<{ stats: PortfolioStats; t: Translate }> = ({
   const inactive = stats.inactivePortfolios;
   const activeShare = totalPortfolios > 0 ? (stats.activePortfolios / totalPortfolios) * 100 : 0;
 
+  // Deux ratios que les totaux bruts ne disent pas : combien d'intervenants
+  // pour tenir un logement, et quelle taille de parc par client.
+  const staffPerProperty =
+    stats.totalProperties > 0 ? stats.totalTeamMembers / stats.totalProperties : null;
+  const propertiesPerClient =
+    stats.totalClients > 0 ? stats.totalProperties / stats.totalClients : null;
+
   return (
     <Card className="flex flex-col gap-2.5 border-border p-3">
       <div className="flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -127,6 +156,20 @@ const SummaryBand: React.FC<{ stats: PortfolioStats; t: Translate }> = ({
         <Figure value={stats.totalClients} label={t('portfolios.statistics.clients')} />
         <Figure value={stats.totalProperties} label={t('portfolios.statistics.properties')} />
         <Figure value={stats.totalTeamMembers} label={t('portfolios.statistics.staff')} />
+        {staffPerProperty !== null ? (
+          <Figure
+            value={staffPerProperty.toFixed(1)}
+            label={t('portfolios.statistics.staffPerProperty', 'intervenants / logement')}
+            muted
+          />
+        ) : null}
+        {propertiesPerClient !== null ? (
+          <Figure
+            value={propertiesPerClient.toFixed(1)}
+            label={t('portfolios.statistics.propertiesPerClient', 'logements / client')}
+            muted
+          />
+        ) : null}
       </div>
 
       {/* La barre n'apparait QUE s'il y a un portefeuille inactif. Une jauge
@@ -150,29 +193,190 @@ const SummaryBand: React.FC<{ stats: PortfolioStats; t: Translate }> = ({
   );
 };
 
-const Figure: React.FC<{ value: number; label: string }> = ({ value, label }) => (
+const Figure: React.FC<{ value: number | string; label: string; muted?: boolean }> = ({
+  value,
+  label,
+  muted,
+}) => (
   <span className="flex items-baseline gap-1.5">
-    <b className="font-[family-name:var(--font-display)] text-lg font-bold tabular-nums text-foreground">{value}</b>
+    <b
+      className={cn(
+        'font-[family-name:var(--font-display)] text-lg font-bold tabular-nums',
+        muted ? 'text-muted-foreground' : 'text-foreground',
+      )}
+    >
+      {value}
+    </b>
     <span className="text-xs text-muted-foreground">{label}</span>
   </span>
 );
 
-// ─── Composition : le graphique ──────────────────────────────────────────────
+// ─── Le carrousel de graphiques ──────────────────────────────────────────────
 
-/** Hauteur par portefeuille, plus la place des axes et de la legende. */
-const ROW_HEIGHT = 46;
-const CHART_CHROME = 64;
+interface Vue {
+  cle: string;
+  titre: string;
+  precision?: string;
+  render: () => React.ReactNode;
+}
+
+/**
+ * Les graphiques defilent au lieu de s'empiler.
+ *
+ * <p>Six vues cote a cote se reduiraient a des vignettes illisibles, et les
+ * empiler ferait defiler la page sur trois hauteurs d'ecran. Le carrousel
+ * n'est donc pas un ornement : il donne a chaque graphique la largeur qu'il
+ * lui faut. Le titre et la position restent HORS du carrousel, pour qu'on sache
+ * toujours ce qu'on regarde et combien il reste a voir.</p>
+ */
+const ChartCarousel: React.FC<{ stats: PortfolioStats; t: Translate }> = ({ stats, t }) => {
+  const [api, setApi] = useState<CarouselApi>();
+  const [courant, setCourant] = useState(0);
+
+  React.useEffect(() => {
+    if (!api) return undefined;
+    const sync = () => setCourant(api.selectedScrollSnap());
+    sync();
+    api.on('select', sync);
+    return () => {
+      api.off('select', sync);
+    };
+  }, [api]);
+
+  const labelClients = t('portfolios.statistics.clientsLabel');
+  const labelStaff = t('portfolios.statistics.staff');
+  const labelProperties = t('portfolios.statistics.properties');
+
+  // Une vue dont la donnee est vide n'entre pas dans le carrousel : faire
+  // defiler jusqu'a un graphique vide est une promesse non tenue.
+  const vues: Vue[] = ([
+    {
+      cle: 'composition',
+      titre: t('portfolios.statistics.composition'),
+      precision: t('portfolios.statistics.chartScope', 'Clients et intervenants rattachés'),
+      render: () => <CompositionChart breakdown={stats.portfolioBreakdown} t={t} />,
+    },
+    // Deux mois au minimum : une aire tracee sur un seul point ne dessine
+    // rien, et « dans le temps » ne veut rien dire sur un mois unique.
+    stats.assignmentsByMonth.length > 1 && {
+      cle: 'timeline',
+      titre: t('portfolios.statistics.overTime', 'Rattachements dans le temps'),
+      precision: t('portfolios.statistics.overTimeHint', 'Par mois, clients et intervenants'),
+      render: () => (
+        <TimelineChart
+          points={stats.assignmentsByMonth}
+          clientsLabel={labelClients}
+          staffLabel={labelStaff}
+        />
+      ),
+    },
+    stats.staffByTrade.length > 0 && {
+      cle: 'trades',
+      titre: t('portfolios.statistics.byTrade', 'Intervenants par métier'),
+      render: () => <DonutChart buckets={stats.staffByTrade} totalLabel={labelStaff} />,
+    },
+    (stats.propertiesByCity.length > 0 || stats.staffByCity.length > 0) && {
+      cle: 'coverage',
+      titre: t('portfolios.statistics.coverage', 'Couverture par ville'),
+      precision: t(
+        'portfolios.statistics.coverageHint',
+        'Une ville sans intervenant appelle un rattachement',
+      ),
+      render: () => (
+        <CoverageChart
+          properties={stats.propertiesByCity}
+          staff={stats.staffByCity}
+          propertiesLabel={labelProperties}
+          staffLabel={labelStaff}
+        />
+      ),
+    },
+    stats.propertiesByType.length > 0 && {
+      cle: 'types',
+      titre: t('portfolios.statistics.byPropertyType', 'Logements par type'),
+      render: () => <DonutChart buckets={stats.propertiesByType} totalLabel={labelProperties} />,
+    },
+    stats.staffByCity.length > 0 && {
+      cle: 'staffCity',
+      titre: t('portfolios.statistics.staffByCity', 'Intervenants par ville'),
+      render: () => <HistogramChart buckets={stats.staffByCity} label={labelStaff} tokenIndex={1} />,
+    },
+  ] as Array<Vue | false>).filter(Boolean) as Vue[];
+
+  const vue = vues[Math.min(courant, vues.length - 1)];
+
+  return (
+    <Card className="flex min-h-0 flex-col gap-2.5 border-border p-3.5">
+      {/* Titre HORS du carrousel : il doit rester lisible pendant la
+          transition, et c'est lui qui dit ce qu'on regarde. */}
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="m-0 truncate text-sm font-semibold tracking-tight text-foreground">
+            {vue?.titre}
+          </h3>
+          {vue?.precision ? (
+            <p className="m-0 mt-0.5 truncate text-2xs text-muted-foreground">{vue.precision}</p>
+          ) : null}
+        </div>
+        <span className="shrink-0 text-2xs tabular-nums text-muted-foreground">
+          {courant + 1} / {vues.length}
+        </span>
+      </div>
+
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
+        <Carousel setApi={setApi} opts={{ align: 'start', loop: false }}>
+          <CarouselContent className="ms-0">
+            {vues.map((v) => (
+              <CarouselItem key={v.cle} className="ps-0">
+                {v.render()}
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+
+          {/* Les fleches ne servent a rien sur une vue unique. */}
+          {vues.length > 1 ? (
+            <>
+              <CarouselPrevious className="-start-1 size-7" />
+              <CarouselNext className="-end-1 size-7" />
+            </>
+          ) : null}
+        </Carousel>
+      </div>
+
+      {/* Des puces cliquables : sur six vues, viser directement vaut mieux que
+          cinq clics sur une fleche. Ce sont de vrais boutons, donc focusables
+          au clavier et annonces comme actionnables. */}
+      {vues.length > 1 ? (
+        <div className="flex shrink-0 flex-wrap justify-center gap-1.5">
+          {vues.map((v, i) => (
+            <button
+              key={v.cle}
+              type="button"
+              onClick={() => api?.scrollTo(i)}
+              aria-label={v.titre}
+              aria-current={i === courant}
+              className={cn(
+                'h-1.5 cursor-pointer rounded-full transition-all duration-200',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                i === courant ? 'w-5 bg-primary' : 'w-1.5 bg-border hover:bg-muted-foreground',
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+    </Card>
+  );
+};
+
+// ─── Composition par portefeuille ──────────────────────────────────────────────
 
 const CompositionChart: React.FC<{
   breakdown: PortfolioStats['portfolioBreakdown'];
   t: Translate;
 }> = ({ breakdown, t }) => {
-  const labelClients = t('portfolios.statistics.clientsLabel');
-  const labelStaff = t('portfolios.statistics.staff');
-
   const config: ChartConfig = {
-    clients: { label: labelClients, color: 'var(--bui-chart-1)' },
-    staff: { label: labelStaff, color: 'var(--bui-chart-2)' },
+    clients: { label: t('portfolios.statistics.clientsLabel'), color: SERIES_TOKENS[0] },
+    staff: { label: t('portfolios.statistics.staff'), color: SERIES_TOKENS[1] },
   };
 
   const data = breakdown.map((portfolio) => ({
@@ -182,19 +386,7 @@ const CompositionChart: React.FC<{
   }));
 
   return (
-    <Card className="flex flex-col gap-2.5 border-border p-3.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-          {t('portfolios.statistics.composition')}
-        </h3>
-        {/* Le graphique ne montre pas les logements : `portfolioBreakdown` ne
-            les compte pas par portefeuille. Autant le dire plutot que de
-            laisser croire a un parc absent. */}
-        <p className="m-0 text-2xs text-muted-foreground">
-          {t('portfolios.statistics.chartScope', 'Clients et intervenants rattachés')}
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-2">
       {data.length === 0 ? (
         <p className="m-0 py-6 text-center text-xs text-muted-foreground">
           {t('portfolios.statistics.noDataAvailable')}
@@ -206,7 +398,7 @@ const CompositionChart: React.FC<{
           <ChartContainer
             config={config}
             className="aspect-auto w-full"
-            style={{ height: data.length * ROW_HEIGHT + CHART_CHROME }}
+            style={{ height: CHART_HEIGHT }}
           >
             <BarChart
               accessibilityLayer
@@ -250,7 +442,7 @@ const CompositionChart: React.FC<{
           </div>
         </>
       )}
-    </Card>
+    </div>
   );
 };
 
@@ -277,8 +469,8 @@ const RecentActivity: React.FC<{
   });
 
   return (
-    <Card className="flex flex-col gap-2 border-border p-3.5">
-      <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
+    <Card className="flex min-h-0 flex-col gap-2 border-border p-3.5">
+      <h3 className="m-0 shrink-0 text-sm font-semibold tracking-tight text-foreground">
         {t('portfolios.statistics.recent')}
       </h3>
 
@@ -289,7 +481,7 @@ const RecentActivity: React.FC<{
       ) : (
         // Defilement borne, barre masquee : la liste ne doit pas etirer la
         // colonne au-dela du graphique voisin.
-        <div className="no-scrollbar flex max-h-[320px] flex-col gap-3 overflow-y-auto">
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
           {days.map(({ day, items }) => (
             <div key={day} className="flex flex-col gap-1.5">
               <p className="m-0 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -3390,7 +3390,16 @@
       "activeShare": "نشطة",
       "chartScope": "العملاء والعاملون المرتبطون",
       "typeClient": "عميل",
-      "typeTeam": "عامل"
+      "typeTeam": "عامل",
+      "staffPerProperty": "عاملون / عقار",
+      "propertiesPerClient": "عقارات / عميل",
+      "overTime": "الارتباطات عبر الزمن",
+      "overTimeHint": "شهرياً، العملاء والعاملون",
+      "byTrade": "العاملون حسب المهنة",
+      "coverage": "التغطية حسب المدينة",
+      "coverageHint": "مدينة بلا عاملين تحتاج إلى ارتباط",
+      "byPropertyType": "العقارات حسب النوع",
+      "staffByCity": "العاملون حسب المدينة"
     },
     "teamManagement": {
       "title": "فرقي",
