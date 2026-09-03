@@ -267,6 +267,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   const [dragging, setDragging] = useState<{ label: string; tone: 'default' | 'warn' } | null>(
     null,
   );
+  const [dropError, setDropError] = useState<string | null>(null);
 
   // L'affectation d'un logement est réservée aux SUPER_ADMIN côté serveur. On
   // désactive la poignée plutôt que d'offrir un dépôt qui finirait en 403.
@@ -350,6 +351,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       setDragging(null);
+      setDropError(null);
       const payload = event.active.data.current as DragPayload | undefined;
       const overId = event.over?.id ? String(event.over.id) : null;
       if (!payload || !overId || busy || !current) {
@@ -369,7 +371,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
         } else {
           const target = teamOf(overId);
           const leaving = payload.fromTeamId;
-          if (target && target.id === leaving) return; // déposé là d'où il vient
+          if (target && Number(target.id) === Number(leaving)) return; // déposé là d'où il vient
 
           if (target) {
             const members = [
@@ -381,22 +383,40 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
             await teamsApi.update(target.id, body);
           }
           if (leaving != null && (target || overId === 'unassigned')) {
-            const source = current.teams.find((team) => team.id === leaving);
-            if (source) {
-              const members = (source.members ?? [])
-                .filter((m) => m.id !== payload.userId)
-                .map((m) => ({ userId: m.id, role: m.role }));
-              const body = buildTeamPayload(source, members);
-              if (body) {
-                await teamsApi.update(source.id, body);
-              }
+            const source = current.teams.find((team) => Number(team.id) === Number(leaving));
+            if (!source) {
+              throw new Error(`Équipe d'origine ${leaving} introuvable dans ${current.city}`);
             }
+            const before = source.members ?? [];
+            // Comparaison sur des nombres : un identifiant qui arriverait en
+            // chaine ne serait jamais egal en `!==`, le filtre ne retirerait
+            // personne, et le PUT renverrait la liste inchangee — un retrait
+            // qui reussit en apparence sans rien changer.
+            const members = before
+              .filter((m) => Number(m.id) !== Number(payload.userId))
+              .map((m) => ({ userId: m.id, role: m.role }));
+            if (members.length === before.length) {
+              throw new Error(
+                `L'intervenant ${payload.userId} n'est pas dans l'équipe ${source.id} `
+                + `(membres : ${before.map((m) => m.id).join(', ') || 'aucun'})`,
+              );
+            }
+            const body = buildTeamPayload(source, members);
+            if (!body) {
+              throw new Error(`Métier absent sur l'équipe ${source.id} : retrait refusé`);
+            }
+            await teamsApi.update(source.id, body);
           }
         }
 
         await queryClient.invalidateQueries({
           queryKey: portfoliosKeys.associations(user?.id ?? ''),
         });
+      } catch (err) {
+        // Sans ce catch, un echec partait en rejet non gere : l'ecran se
+        // rechargeait a l'identique et l'utilisateur ne voyait RIEN — ni
+        // deplacement, ni erreur. Un depot qui echoue doit se dire.
+        setDropError(err instanceof Error ? err.message : String(err));
       } finally {
         setBusy(false);
       }
@@ -462,6 +482,15 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
           </Button>
         </div>
       </Card>
+
+      {dropError ? (
+        <p
+          role="alert"
+          className="m-0 rounded-lg border border-destructive bg-destructive-soft px-3 py-2 text-xs text-destructive-ink"
+        >
+          {dropError}
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr]">
         {/* Rail des villes : un bouton par ville, donc navigable au clavier
