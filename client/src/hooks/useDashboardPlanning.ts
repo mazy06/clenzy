@@ -132,7 +132,10 @@ async function fetchProperties(
           city: p.city || '',
           postalCode: '',
           country: '',
-          type: p.type || '',
+          // Le read-model des associations ne porte pas le type de bien : la
+          // valeur etait `undefined` et retombait deja sur la chaine vide. On
+          // cesse de faire croire qu'elle vient de l'API.
+          type: '',
           status: '',
           bedroomCount: 0,
           bathroomCount: 0,

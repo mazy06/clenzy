@@ -26,11 +26,16 @@ export interface PortfolioStats {
 }
 
 export interface ManagerAssociations {
-  clients: Array<{ id: number; firstName: string; lastName: string; email: string; role: string; phoneNumber?: string; associatedAt: string }>;
-  teams: Array<{ id: number; name: string; memberCount?: number; description?: string; assignedAt?: string }>;
+  // `assignedAt`, comme le serveur l'envoie. Ce type declarait `associatedAt` —
+  // un champ qui n'existe nulle part cote API — d'ou « Associe le Invalid Date ».
+  clients: Array<{ id: number; firstName: string; lastName: string; email: string; role: string; phoneNumber?: string; assignedAt: string; notes?: string }>;
+  teams: Array<{ id: number; name: string; memberCount?: number; description?: string; assignedAt?: string;
+    city?: string | null; interventionType?: string | null;
+    members?: Array<{ id: number; fullName: string; role: string }> }>;
   portfolios: Array<{ id: number; name: string }>;
-  properties: Array<{ id: number; name: string; address?: string; city?: string; type?: string; createdAt?: string; ownerId?: number }>;
-  users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string; assignedAt?: string }>;
+  properties: Array<{ id: number; name: string; address?: string; description?: string; city?: string | null;
+    ownerId?: number; ownerName?: string; assignedAt?: string; notes?: string }>;
+  users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string; assignedAt?: string; city?: string | null }>;
 }
 
 export interface Manager {

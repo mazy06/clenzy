@@ -11,6 +11,14 @@ import type { ChipColor } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+// Ces types decrivent ce que l'API renvoie REELLEMENT (ClientAssociationDto,
+// PropertyAssociationDto, TeamAssociationDto, UserAssociationDto). Ils etaient
+// ecrits a la main et se sont mis a mentir : le client declarait `associatedAt`
+// quand le serveur envoie `assignedAt`, et le logement declarait `createdAt` et
+// `type`, qui n'existent pas. TypeScript ne peut rien voir dans ce cas — il
+// verifie la coherence avec le type declare, pas avec le serveur. C'est ce qui
+// affichait « Associe le Invalid Date » : new Date(undefined).
+
 export interface PortfolioClient {
   id: number;
   firstName: string;
@@ -18,17 +26,29 @@ export interface PortfolioClient {
   email: string;
   role: string;
   phoneNumber?: string;
-  associatedAt: string;
+  assignedAt: string;
+  notes?: string;
 }
 
 export interface PortfolioProperty {
   id: number;
   name: string;
   address: string;
-  city: string;
-  type: string;
-  createdAt: string;
+  description?: string;
   ownerId: number;
+  ownerName: string;
+  assignedAt: string;
+  notes?: string;
+  /** Ville du logement — l'axe de regroupement de l'ecran. */
+  city?: string | null;
+}
+
+/** Un membre nomme : « 6 membres » ne dit pas qui compose l'equipe. */
+export interface PortfolioTeamMember {
+  id: number;
+  fullName: string;
+  /** Role DANS l'equipe (MEMBER, SUPERVISOR…), pas le role plateforme. */
+  role: string;
 }
 
 export interface PortfolioTeam {
@@ -37,6 +57,11 @@ export interface PortfolioTeam {
   memberCount: number;
   description?: string;
   assignedAt: string;
+  notes?: string;
+  city?: string | null;
+  /** CLEANING | MAINTENANCE */
+  interventionType?: string | null;
+  members?: PortfolioTeamMember[];
 }
 
 export interface PortfolioUser {
@@ -46,6 +71,8 @@ export interface PortfolioUser {
   email: string;
   role: string;
   assignedAt: string;
+  notes?: string;
+  city?: string | null;
 }
 
 export interface Manager {
