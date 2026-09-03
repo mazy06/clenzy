@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -12,10 +12,17 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { useQueryClient } from '@tanstack/react-query';
-import { Avatar, AvatarFallback, Button, Card } from '../../components/ui';
+import { resolveMediaUrl } from '../../config/api';
+import { Avatar, AvatarFallback, AvatarImage, Button, Card } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import EmptyState from '../../components/EmptyState';
-import { Home, LocationOn } from '../../icons';
+import {
+  Home,
+  LocationOn,
+  CleaningServices,
+  Handyman,
+  SupervisorAccount,
+} from '../../icons';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -135,6 +142,39 @@ const TRADE_LABEL: Record<Trade, string> = {
   BOTH: 'Encadrement',
 };
 
+/**
+ * Pictogramme du corps de metier.
+ *
+ * <p>La forme du glyphe est un signal INDEPENDANT de la couleur — brosse,
+ * cle a molette, encadrant — et son libelle accessible dit le metier en toutes
+ * lettres, pour qui ne voit pas l'image ou ne distingue pas les teintes.</p>
+ */
+const TradeGlyph: React.FC<{ trade: Trade }> = ({ trade }) => {
+  const label = TRADE_LABEL[trade];
+  const common = { size: 13, strokeWidth: 1.9, 'aria-hidden': true } as const;
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      role="img"
+      className={cn(
+        'inline-flex shrink-0',
+        trade === 'CLEANING' && 'text-success',
+        trade === 'MAINTENANCE' && 'text-info',
+        trade === 'BOTH' && 'text-primary',
+      )}
+    >
+      {trade === 'CLEANING' ? (
+        <CleaningServices {...common} />
+      ) : trade === 'MAINTENANCE' ? (
+        <Handyman {...common} />
+      ) : (
+        <SupervisorAccount {...common} />
+      )}
+    </span>
+  );
+};
+
 /** Une personne peut-elle rejoindre cette equipe, au regard de son metier ? */
 function tradeAllows(role: string | undefined, teamType: string | null | undefined): boolean {
   const trade = tradeOf(role);
@@ -188,19 +228,78 @@ function buildTeamPayload(
   };
 }
 
+/** En deca de cette largeur les colonnes s'empilent : les figer serait nuisible. */
+const SIDE_BY_SIDE = 1024;
+
+/** Marge sous la carte, pour que le bord bas ne colle pas a la fenetre. */
+const GUTTER = 20;
+
+/**
+ * Hauteur restante entre le haut de l'element et le bas de la fenetre.
+ *
+ * <p>L'ecran n'a aucune contrainte de hauteur au-dessus de lui : la coque
+ * grandit avec son contenu. Sans hauteur explicite ici, `flex-1` et
+ * `overflow-y-auto` se resolvent a zero — les deux colonnes ne pourraient
+ * jamais defiler independamment, et la carte s'arreterait au milieu d'un
+ * grand ecran.</p>
+ *
+ * <p>On mesure plutot que de soustraire un `calc(100dvh - Xpx)` code en dur :
+ * l'en-tete change de hauteur quand le champ de recherche apparait ou que les
+ * onglets passent a la ligne, et un offset fige laisserait deriver le bas de
+ * la carte. Renvoie `undefined` sous {@link SIDE_BY_SIDE}, ou les colonnes
+ * s'empilent et doivent reprendre leur hauteur naturelle.</p>
+ */
+function useViewportFill<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [height, setHeight] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+
+    const measure = () => {
+      if (window.innerWidth < SIDE_BY_SIDE) {
+        setHeight(undefined);
+        return;
+      }
+      const top = element.getBoundingClientRect().top;
+      // Un plancher : sur une fenetre tres basse mieux vaut deborder que
+      // reduire les colonnes a une bande illisible.
+      setHeight(Math.max(360, Math.round(window.innerHeight - top - GUTTER)));
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+    // Ce qui precede l'element peut changer de hauteur sans que la fenetre
+    // bouge — bandeau d'erreur, onglets qui passent a la ligne.
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.body);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer.disconnect();
+    };
+  }, []);
+
+  return [ref, height] as const;
+}
+
 /** Pastille d'intervenant deplacable au pointeur comme au clavier. */
 const DraggablePerson: React.FC<{
   id: string;
   payload: DragPayload;
   label: string;
+  /** Corps de metier, rendu en glyphe dans la pastille. */
+  trade: Trade;
+  /** Photo de profil ; a defaut, les initiales. */
+  avatarUrl?: string | null;
   tone?: 'default' | 'warn';
   disabled?: boolean;
-}> = ({ id, payload, label, tone = 'default', disabled }) => {
+}> = ({ id, payload, label, trade, avatarUrl, tone = 'default', disabled }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
     // Le libelle voyage avec la charge utile : l'apercu rendu sous le curseur
     // n'a pas acces a la liste d'origine.
-    data: { ...payload, label },
+    data: { ...payload, label, trade, avatarUrl },
     disabled,
   });
   return (
@@ -224,11 +323,32 @@ const DraggablePerson: React.FC<{
           : 'border-border bg-muted/40 text-foreground',
       )}
     >
-      <Avatar className="size-[21px]">
-        <AvatarFallback className="text-[0.55rem] font-bold">{initials(label)}</AvatarFallback>
-      </Avatar>
+      <PersonFace label={label} avatarUrl={avatarUrl} />
       {label}
+      {/* Le metier se lit SUR la pastille : c'est lui qui decide dans quelle
+          equipe la personne peut aller, on ne doit pas le deviner au depot. */}
+      <TradeGlyph trade={trade} />
     </span>
+  );
+};
+
+/**
+ * Visage d'un intervenant : sa photographie, ou ses initiales.
+ *
+ * <p>L'URL porte un ticket HMAC — une balise {@code <img>} n'envoie pas
+ * d'en-tete d'autorisation. Le repli sur les initiales est celui d'`Avatar` :
+ * il joue aussi bien pour qui n'a pas de photo que pour un ticket expire.</p>
+ */
+const PersonFace: React.FC<{ label: string; avatarUrl?: string | null }> = ({
+  label,
+  avatarUrl,
+}) => {
+  const src = resolveMediaUrl(avatarUrl);
+  return (
+  <Avatar className="size-[21px]">
+    {src ? <AvatarImage src={src} alt="" /> : null}
+    <AvatarFallback className="text-[0.55rem] font-bold">{initials(label)}</AvatarFallback>
+  </Avatar>
   );
 };
 
@@ -320,7 +440,15 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   // Ce qu'on tient en main. Sans cet etat, rien ne peut etre dessine sous le
   // curseur : `useDraggable` expose un `transform`, mais une pastille qui se
   // deplacerait dans le flux serait rognee par son conteneur.
-  const [dragging, setDragging] = useState<{ label: string; tone: 'default' | 'warn' } | null>(
+  // Appele AVANT les retours anticipes de chargement : regle des Hooks.
+  const [columnsRef, columnsHeight] = useViewportFill<HTMLDivElement>();
+
+  const [dragging, setDragging] = useState<{
+    label: string;
+    tone: 'default' | 'warn';
+    trade: Trade;
+    avatarUrl?: string | null;
+  } | null>(
     null,
   );
   const [dropError, setDropError] = useState<string | null>(null);
@@ -419,10 +547,14 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
    * donc la liste à partir de ce que l'écran affiche.</p>
    */
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const data = event.active.data.current as (DragPayload & { label?: string }) | undefined;
+    const data = event.active.data.current as
+      | (DragPayload & { label?: string; trade?: Trade; avatarUrl?: string | null })
+      | undefined;
     setDragging({
       label: data?.label ?? '',
       tone: data?.kind === 'person' && data.fromTeamId == null ? 'warn' : 'default',
+      trade: data?.trade ?? 'BOTH',
+      avatarUrl: data?.avatarUrl,
     });
   }, []);
 
@@ -611,14 +743,31 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr]">
+      {/* La hauteur mesuree descend ici : les deux colonnes s'etirent dessus
+          (`align-items: stretch` par defaut), et `min-h-0` leve le plancher
+          `min-height: auto` d'un element de grille — sans lui, aucune des deux
+          ne pourrait devenir plus courte que son contenu, donc aucune ne
+          defilerait. */}
+      <div
+        ref={columnsRef}
+        style={columnsHeight ? { height: columnsHeight } : undefined}
+        // La rangee est explicitement `minmax(0, 1fr)` : une rangee implicite
+        // `auto` ne s'etire a la hauteur du conteneur que via `align-content`,
+        // et son plancher `auto` empecherait les colonnes de se comprimer.
+        className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr] lg:grid-rows-[minmax(0,1fr)]"
+      >
         {/* Rail des villes : un bouton par ville, donc navigable au clavier
             sans avoir à recréer un rôle et un gestionnaire de touches. */}
-        <Card className="flex flex-col gap-0 overflow-hidden border-border p-0">
+        <Card className="flex min-h-0 flex-col gap-0 overflow-hidden border-border p-0">
           <div className="px-4 pb-2 pt-3 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t('portfolios.byCity.cities', 'Villes')}
           </div>
-          <nav aria-label={t('portfolios.byCity.cities', 'Villes')}>
+          {/* `no-scrollbar` masque la barre sans desactiver le defilement :
+              molette, clavier et pave tactile continuent d'operer. */}
+          <nav
+            aria-label={t('portfolios.byCity.cities', 'Villes')}
+            className="no-scrollbar min-h-0 flex-1 overflow-y-auto"
+          >
             {groups.map((group) => {
               const active = current?.city === group.city;
               return (
@@ -662,7 +811,11 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
         </Card>
 
         {current ? (
-          <CityDetail group={current} t={t} canDragProperty={canAssignProperty} />
+          // `pe-0.5` : le contenu ne vient pas mourir sur le bord du cadre de
+          // defilement, ou l'anneau de focus d'une pastille serait rogne.
+          <div className="no-scrollbar min-h-0 overflow-y-auto pe-0.5">
+            <CityDetail group={current} t={t} canDragProperty={canAssignProperty} />
+          </div>
         ) : null}
       </div>
     </div>
@@ -679,12 +832,9 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
                 : 'border-primary bg-card text-foreground',
             )}
           >
-            <Avatar className="size-[21px]">
-              <AvatarFallback className="text-[0.55rem] font-bold">
-                {initials(dragging.label)}
-              </AvatarFallback>
-            </Avatar>
+            <PersonFace label={dragging.label} avatarUrl={dragging.avatarUrl} />
             {dragging.label}
+            <TradeGlyph trade={dragging.trade} />
           </span>
         ) : null}
       </DragOverlay>
@@ -700,7 +850,7 @@ const Figure: React.FC<{ value: number; label: string; alert?: boolean }> = ({
   <span className="flex items-baseline gap-1.5">
     <b
       className={cn(
-        'font-display text-lg font-bold tabular-nums',
+        'font-[family-name:var(--font-display)] text-lg font-bold tabular-nums',
         alert ? 'text-warning-ink' : 'text-foreground',
       )}
     >
@@ -778,6 +928,8 @@ const CityDetail: React.FC<{
                       id={`member-${team.id}-${member.id}`}
                       payload={{ kind: 'person', userId: member.id, fromTeamId: team.id }}
                       label={member.fullName}
+                      trade={tradeOf(member.platformRole ?? undefined)}
+                      avatarUrl={member.avatarUrl}
                     />
                   ))}
                 </div>
@@ -814,22 +966,18 @@ const CityDetail: React.FC<{
             </Hint>
           ) : (
             group.unassigned.map((user) => (
-              // Le corps de metier est ce qui decide dans quelle equipe la
-              // personne peut aller : il doit se lire sur la pastille, pas se
-              // deviner au moment du depot.
-              <span key={user.id} className="inline-flex items-center gap-1">
-                <DraggablePerson
-                  id={`free-${user.id}`}
-                  payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
-                  label={fullName(user)}
-                  tone="warn"
-                />
-                <StatusChip
-                  tone={tradeOf(user.role) === 'BOTH' ? 'info' : 'neutral'}
-                  label={TRADE_LABEL[tradeOf(user.role)]}
-                  className="h-[18px] text-[0.55rem]"
-                />
-              </span>
+              // Le metier tient DANS la pastille : la puce grise accolee
+              // doublait la largeur de chaque nom et cassait l'alignement du
+              // vivier, pour dire ce qu'un glyphe dit d'un coup d'oeil.
+              <DraggablePerson
+                key={user.id}
+                id={`free-${user.id}`}
+                payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
+                label={fullName(user)}
+                trade={tradeOf(user.role)}
+                avatarUrl={user.avatarUrl}
+                tone="warn"
+              />
             ))
           )}
         </DropZone>
@@ -845,7 +993,7 @@ const Section: React.FC<{ title: string; count: number; children: React.ReactNod
 }) => (
   <div className="flex flex-col gap-2">
     <div className="flex items-baseline gap-2">
-      <h3 className="font-display text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="font-[family-name:var(--font-display)] text-sm font-semibold text-foreground">{title}</h3>
       <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
     </div>
     {children}
