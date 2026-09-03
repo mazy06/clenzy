@@ -103,6 +103,62 @@ type DragPayload =
 const PROPERTY_ASSIGN_ROLES = new Set(['SUPER_ADMIN']);
 
 
+
+/**
+ * Corps de metier d'une personne, en regard du metier d'une equipe.
+ *
+ * <p>Aligne sur {@code PersonalTeamService.interventionTypeFor} cote serveur,
+ * avec une nuance : celui-ci range l'encadrement en CLEANING par defaut, ce
+ * qui interdirait a un superviseur d'encadrer une equipe de maintenance. Un
+ * encadrant ne fait pas le travail, il le supervise — il est compatible des
+ * deux cotes.</p>
+ */
+type Trade = 'CLEANING' | 'MAINTENANCE' | 'BOTH';
+
+function tradeOf(role: string | undefined): Trade {
+  switch (role) {
+    case 'HOUSEKEEPER':
+    case 'LAUNDRY':
+      return 'CLEANING';
+    case 'TECHNICIAN':
+    case 'EXTERIOR_TECH':
+      return 'MAINTENANCE';
+    default:
+      // SUPERVISOR, MANAGER, SUPER_ADMIN, HOST… : encadrement.
+      return 'BOTH';
+  }
+}
+
+const TRADE_LABEL: Record<Trade, string> = {
+  CLEANING: 'Ménage',
+  MAINTENANCE: 'Maintenance',
+  BOTH: 'Encadrement',
+};
+
+/** Une personne peut-elle rejoindre cette equipe, au regard de son metier ? */
+function tradeAllows(role: string | undefined, teamType: string | null | undefined): boolean {
+  const trade = tradeOf(role);
+  if (trade === 'BOTH') return true;
+  if (!teamType) return true; // metier d'equipe inconnu : on ne bloque pas a l'aveugle
+  return trade === teamType;
+}
+
+/**
+ * Une personne peut-elle travailler dans cette ville ?
+ *
+ * <p>On s'appuie sur la zone DECLAREE, pas sur la ville de rattachement : un
+ * responsable de secteur siege a Marrakech et intervient a Cannes, Lyon et
+ * Nice. Sans zone declaree, on retombe sur la ville de rattachement plutot que
+ * de tout interdire — une donnee absente n'est pas un refus.</p>
+ */
+function coversCity(user: PortfolioUser, city: string): boolean {
+  const declared = user.coverageCities ?? [];
+  if (declared.length > 0) {
+    return declared.some((c) => c.localeCompare(city, 'fr', { sensitivity: 'base' }) === 0);
+  }
+  return !user.city || user.city.localeCompare(city, 'fr', { sensitivity: 'base' }) === 0;
+}
+
 /**
  * Charge utile de `PUT /api/teams/{id}`, ou `null` si on ne peut pas la bâtir
  * sans risque.
@@ -397,6 +453,23 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
           if (target && Number(target.id) === Number(leaving)) return; // déposé là d'où il vient
 
           if (target) {
+            // Les deux regles s'appliquent AVANT d'ecrire quoi que ce soit :
+            // un refus doit se dire, pas se decouvrir apres coup.
+            const person = people.find((u) => Number(u.id) === Number(payload.userId));
+            if (person && !coversCity(person, current.city)) {
+              const zone = (person.coverageCities ?? []).join(', ') || person.city || 'aucune';
+              throw new Error(
+                `${fullName(person)} n'intervient pas à ${current.city}. `
+                + `Zone déclarée : ${zone}.`,
+              );
+            }
+            if (person && !tradeAllows(person.role, target.interventionType)) {
+              throw new Error(
+                `${fullName(person)} est ${TRADE_LABEL[tradeOf(person.role)].toLowerCase()} : `
+                + `il ne peut pas rejoindre une équipe `
+                + `${target.interventionType === 'MAINTENANCE' ? 'de maintenance' : 'de ménage'}.`,
+              );
+            }
             const members = [
               ...(target.members ?? []).map((m) => ({ userId: m.id, role: m.role })),
               { userId: payload.userId, role: 'MEMBER' },
@@ -741,13 +814,22 @@ const CityDetail: React.FC<{
             </Hint>
           ) : (
             group.unassigned.map((user) => (
-              <DraggablePerson
-                key={user.id}
-                id={`free-${user.id}`}
-                payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
-                label={fullName(user)}
-                tone="warn"
-              />
+              // Le corps de metier est ce qui decide dans quelle equipe la
+              // personne peut aller : il doit se lire sur la pastille, pas se
+              // deviner au moment du depot.
+              <span key={user.id} className="inline-flex items-center gap-1">
+                <DraggablePerson
+                  id={`free-${user.id}`}
+                  payload={{ kind: 'person', userId: user.id, fromTeamId: null }}
+                  label={fullName(user)}
+                  tone="warn"
+                />
+                <StatusChip
+                  tone={tradeOf(user.role) === 'BOTH' ? 'info' : 'neutral'}
+                  label={TRADE_LABEL[tradeOf(user.role)]}
+                  className="h-[18px] text-[0.55rem]"
+                />
+              </span>
             ))
           )}
         </DropZone>

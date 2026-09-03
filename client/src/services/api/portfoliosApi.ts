@@ -35,7 +35,8 @@ export interface ManagerAssociations {
   portfolios: Array<{ id: number; name: string }>;
   properties: Array<{ id: number; name: string; address?: string; description?: string; city?: string | null;
     ownerId?: number; ownerName?: string; assignedAt?: string; notes?: string }>;
-  users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string; assignedAt?: string; city?: string | null }>;
+  users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string;
+    assignedAt?: string; city?: string | null; coverageCities?: string[] }>;
 }
 
 export interface Manager {

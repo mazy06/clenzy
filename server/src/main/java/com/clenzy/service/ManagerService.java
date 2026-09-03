@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -520,6 +521,34 @@ public class ManagerService {
         final List<UserAssociationDto> users = new ArrayList<>();
         users.addAll(usersFromPortfolios);
         users.addAll(usersFromDirect);
+
+        // Zone declaree de chaque intervenant, portee par son equipe
+        // personnelle. Elle dit ou il peut travailler, ce que sa ville de
+        // rattachement ne dit pas : un responsable de secteur siege dans une
+        // ville et intervient dans plusieurs. Une seule requete pour tout le
+        // lot, zones comprises.
+        final Set<Long> userIds = users.stream()
+                .map(UserAssociationDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!userIds.isEmpty()) {
+            final Map<Long, List<String>> citiesByUser = teamRepository
+                    .findPersonalTeamsWithZones(userIds, tenantContext.getRequiredOrganizationId())
+                    .stream()
+                    .filter(team -> team.getPersonalUserId() != null)
+                    .collect(Collectors.toMap(
+                            Team::getPersonalUserId,
+                            team -> team.getCoverageZones().stream()
+                                    .map(com.clenzy.model.TeamCoverageZone::getCity)
+                                    .filter(city -> city != null && !city.isBlank())
+                                    .distinct()
+                                    .toList(),
+                            // Un intervenant n'a qu'une equipe personnelle (index
+                            // unique partiel) ; on garde la premiere par surete.
+                            (first, second) -> first));
+            users.forEach(dto -> dto.setCoverageCities(
+                    citiesByUser.getOrDefault(dto.getId(), List.of())));
+        }
 
         // Properties via manager_properties — meme batch findAllById (IN).
         final List<PropertyAssociationDto> properties = new ArrayList<>();

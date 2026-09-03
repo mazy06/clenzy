@@ -52,6 +52,17 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
      * rendre un independant visible du moteur d'affectation. L'unicite est
      * garantie en base par un index unique partiel.
      */
+    /**
+     * Equipes personnelles d'un lot d'intervenants, zones comprises.
+     *
+     * <p>Le JOIN FETCH evite une requete de zones par intervenant : le
+     * portefeuille en affiche plusieurs dizaines d'un coup.</p>
+     */
+    @Query("SELECT DISTINCT t FROM Team t LEFT JOIN FETCH t.coverageZones "
+         + "WHERE t.organizationId = :orgId AND t.personalUserId IN :userIds")
+    List<Team> findPersonalTeamsWithZones(@Param("userIds") java.util.Collection<Long> userIds,
+                                          @Param("orgId") Long orgId);
+
     @Query("SELECT t FROM Team t WHERE t.personalUserId = :userId AND t.organizationId = :orgId")
     Optional<Team> findByPersonalUserId(@Param("userId") Long userId, @Param("orgId") Long orgId);
 

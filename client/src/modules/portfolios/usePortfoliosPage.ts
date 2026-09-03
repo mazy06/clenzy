@@ -73,6 +73,11 @@ export interface PortfolioUser {
   assignedAt: string;
   notes?: string;
   city?: string | null;
+  /**
+   * Villes que l'intervenant déclare couvrir. Distinct de `city` : un
+   * responsable de secteur siège dans une ville et intervient dans plusieurs.
+   */
+  coverageCities?: string[];
 }
 
 export interface Manager {

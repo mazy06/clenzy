@@ -11,6 +11,13 @@ public class UserAssociationDto {
 
     /** Ville de rattachement de l'intervenant : axe de regroupement. */
     private String city;
+
+    /**
+     * Villes que l'intervenant declare couvrir, portees par son equipe
+     * personnelle. Distinctes de {@link #city} : un responsable de secteur
+     * siege dans une ville et intervient dans plusieurs.
+     */
+    private java.util.List<String> coverageCities = new java.util.ArrayList<>();
     private Long portfolioId;
     private String portfolioName;
 
@@ -61,4 +68,9 @@ public class UserAssociationDto {
 
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
+
+    public java.util.List<String> getCoverageCities() { return coverageCities; }
+    public void setCoverageCities(java.util.List<String> coverageCities) {
+        this.coverageCities = coverageCities;
+    }
 }
