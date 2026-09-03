@@ -3386,7 +3386,11 @@
       "recent": "النشاط الأخير",
       "noRecent": "لا توجد ارتباطات حديثة.",
       "clientsLabel": "عملاء",
-      "propertiesLabel": "عقارات"
+      "propertiesLabel": "عقارات",
+      "activeShare": "نشطة",
+      "chartScope": "العملاء والعاملون المرتبطون",
+      "typeClient": "عميل",
+      "typeTeam": "عامل"
     },
     "teamManagement": {
       "title": "فرقي",

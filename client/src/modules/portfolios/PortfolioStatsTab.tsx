@@ -1,36 +1,45 @@
 import React from 'react';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import StatusChip from '../../components/StatusChip';
 import {
   Card,
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemSeparator,
-  ItemTitle,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  Progress,
   Spinner,
+  type ChartConfig,
 } from '../../components/ui';
-import { Business, People, Group, Schedule } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { portfoliosApi, portfoliosKeys } from '../../services/api/portfoliosApi';
+import {
+  portfoliosApi,
+  portfoliosKeys,
+  type PortfolioStats,
+} from '../../services/api/portfoliosApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
+
+/** Le `t` du hook, plutot qu'une signature reecrite a la main qui diverge. */
+type Translate = ReturnType<typeof useTranslation>['t'];
 
 /**
  * Statistiques des portefeuilles.
  *
- * <p>L'écran affichait quatre grandes tuiles identiques en rang, dont l'une
- * portait pour titre le message d'erreur d'i18next — {@code t('teams.members')}
- * pointe sur un OBJET, pas une chaîne. Il répétait « Statistiques des
- * Portefeuilles » en titre de page puis en titre de panneau, promettait en
- * sous-titre de « gérer » ce qu'on ne peut que consulter ici, et intitulait un
- * panneau « Associé le » — un libellé de champ promu en titre.</p>
+ * <p>Refonte : la composition n'occupait qu'une carte minuscule en haut d'une
+ * colonne vide sur toute sa hauteur, pendant que la colonne voisine deroulait
+ * six lignes identiques — meme horodatage, meme badge-icone repete. Les
+ * chiffres, eux, n'etaient que des chiffres : rien ne se comparait d'un coup
+ * d'oeil.</p>
  *
- * <p>La bande de synthèse reprend l'idiome du portefeuille par ville : une
- * répartition sur une ligne plutôt que des grands nombres isolés. « 1 »
- * portefeuille en gros caractères n'apprend rien à personne.</p>
+ * <p>La composition devient un vrai graphique — les primitives du kit
+ * (`ChartContainer`, recharts habille des jetons du theme), pas un dessin
+ * maison —, ce qui remplit la colonne et rend les portefeuilles comparables.
+ * L'etat du parc passe par une barre segmentee, mais SEULEMENT s'il y a
+ * quelque chose a signaler : une barre a 100 % sur tous les ecrans n'apprend
+ * rien.</p>
  */
 const PortfolioStatsTab: React.FC = () => {
   const { user } = useAuth();
@@ -44,15 +53,6 @@ const PortfolioStatsTab: React.FC = () => {
   });
 
   const stats = statsQuery.data;
-
-  const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
 
   if (statsQuery.isLoading) {
     return (
@@ -78,8 +78,8 @@ const PortfolioStatsTab: React.FC = () => {
     );
   }
 
-  // Le nom du portefeuille sur chaque ligne est du bruit quand il n'y en a
-  // qu'un : il ne distingue rien.
+  // Le nom du portefeuille sur chaque ligne d'activite est du bruit quand il
+  // n'y en a qu'un : il ne distingue rien.
   const manyPortfolios = stats.portfolioBreakdown.length > 1;
 
   return (
@@ -89,148 +89,248 @@ const PortfolioStatsTab: React.FC = () => {
           {t('portfolios.statistics.title')}
         </h2>
         <p className="m-0 text-xs text-muted-foreground">
-          {/* L'ancien sous-titre promettait de « gérer » : rien ne se gère ici. */}
           {t('portfolios.statistics.subtitleStats')}
         </p>
       </div>
 
-      <Card className="flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2 border-border p-3">
-        <Figure value={stats.totalPortfolios} label={t('portfolios.statistics.portfolios')} />
-        <Figure value={stats.totalClients} label={t('portfolios.statistics.clients')} />
-        <Figure value={stats.totalProperties} label={t('portfolios.statistics.properties')} />
-        {/* `teams.members` renvoyait un objet : i18next affichait alors son
-            message d'erreur en guise de titre de KPI. */}
-        <Figure value={stats.totalTeamMembers} label={t('portfolios.statistics.staff')} />
-        {stats.inactivePortfolios > 0 ? (
-          <Figure
-            value={stats.inactivePortfolios}
-            label={t('portfolios.teamManagement.inactive')}
-            alert
-          />
-        ) : null}
-      </Card>
+      <SummaryBand stats={stats} t={t} />
 
-      {/* Deux panneaux de hauteurs libres : forcer `h-full` sur un panneau qui
-          porte un seul élément laissait un grand vide à côté d'une liste. */}
-      <div className="grid grid-cols-1 items-start gap-3 min-[900px]:grid-cols-2">
-        <Card className="flex flex-col gap-2 border-border p-3.5">
-          <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-            {t('portfolios.statistics.composition')}
-          </h3>
-          {stats.portfolioBreakdown.length === 0 ? (
-            <p className="m-0 py-3 text-center text-xs text-muted-foreground">
-              {t('portfolios.statistics.noDataAvailable')}
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {stats.portfolioBreakdown.map((portfolio) => (
-                <div key={portfolio.portfolioId} className="flex flex-col gap-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {portfolio.portfolioName}
-                    </span>
-                    <StatusChip
-                      tone={portfolio.isActive ? 'ok' : 'neutral'}
-                      label={
-                        portfolio.isActive
-                          ? t('portfolios.teamManagement.active')
-                          : t('portfolios.teamManagement.inactive')
-                      }
-                      className="h-[20px] text-[0.6rem]"
-                    />
-                  </div>
-                  {/* Ce que porte le portefeuille, chiffré et nommé — plutôt
-                      qu'un « 51 membres » sans unité de comparaison. */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <span className="tabular-nums">
-                      <b className="font-semibold text-foreground">{portfolio.clientCount}</b>{' '}
-                      {t('portfolios.statistics.clientsLabel')}
-                    </span>
-                    <span className="tabular-nums">
-                      <b className="font-semibold text-foreground">{portfolio.teamMemberCount}</b>{' '}
-                      {t('portfolios.statistics.staff')}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card className="flex flex-col gap-2 border-border p-3.5">
-          <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-            {/* Le titre nomme le contenu du panneau. Il portait « Associé le »,
-                qui est le libellé d'une colonne, pas d'une section. */}
-            {t('portfolios.statistics.recent')}
-          </h3>
-          {stats.recentAssignments.length === 0 ? (
-            <p className="m-0 py-3 text-center text-xs text-muted-foreground">
-              {/* L'état vide annonçait « Aucun client associé » alors que la
-                  liste mêle clients et équipes. */}
-              {t('portfolios.statistics.noRecent')}
-            </p>
-          ) : (
-            <ItemGroup>
-              {stats.recentAssignments.slice(0, 6).map((assignment, index, shown) => (
-                <React.Fragment key={`${assignment.type}-${assignment.id}`}>
-                  <Item size="xs" className="px-0">
-                    <ItemMedia
-                      variant="icon"
-                      className={cn(
-                        'size-7 rounded-md',
-                        assignment.type === 'CLIENT'
-                          ? 'bg-success-soft text-success'
-                          : 'bg-info-soft text-info',
-                      )}
-                    >
-                      {assignment.type === 'CLIENT' ? (
-                        <People size={14} strokeWidth={1.75} aria-hidden="true" />
-                      ) : (
-                        <Group size={14} strokeWidth={1.75} aria-hidden="true" />
-                      )}
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle className="text-[0.82rem] font-semibold">
-                        {assignment.name}
-                      </ItemTitle>
-                      {manyPortfolios ? (
-                        <ItemDescription className="text-[0.7rem]">
-                          {assignment.portfolioName}
-                        </ItemDescription>
-                      ) : null}
-                      <span className="mt-0.5 flex items-center gap-1 text-[0.65rem] tabular-nums text-muted-foreground">
-                        <Schedule size={12} strokeWidth={1.75} aria-hidden="true" />
-                        {formatDate(assignment.assignedAt)}
-                      </span>
-                    </ItemContent>
-                  </Item>
-                  {index < shown.length - 1 ? <ItemSeparator /> : null}
-                </React.Fragment>
-              ))}
-            </ItemGroup>
-          )}
-        </Card>
+      {/* Le graphique prend deux tiers : c'est lui qui porte la comparaison.
+          `items-start` empeche la colonne courte de s'etirer sur la hauteur de
+          l'autre — c'est ce qui creusait le grand vide. */}
+      <div className="grid grid-cols-1 items-start gap-3 min-[1000px]:grid-cols-[2fr_1fr]">
+        <CompositionChart breakdown={stats.portfolioBreakdown} t={t} />
+        <RecentActivity
+          assignments={stats.recentAssignments}
+          showPortfolio={manyPortfolios}
+          t={t}
+        />
       </div>
     </div>
   );
 };
 
-const Figure: React.FC<{ value: number; label: string; alert?: boolean }> = ({
-  value,
-  label,
-  alert,
-}) => (
+// ─── Bande de synthese ───────────────────────────────────────────────────────
+
+const SummaryBand: React.FC<{ stats: PortfolioStats; t: Translate }> = ({
+  stats,
+  t,
+}) => {
+  const totalPortfolios = stats.totalPortfolios;
+  const inactive = stats.inactivePortfolios;
+  const activeShare = totalPortfolios > 0 ? (stats.activePortfolios / totalPortfolios) * 100 : 0;
+
+  return (
+    <Card className="flex flex-col gap-2.5 border-border p-3">
+      <div className="flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2">
+        <Figure value={totalPortfolios} label={t('portfolios.statistics.portfolios')} />
+        <Figure value={stats.totalClients} label={t('portfolios.statistics.clients')} />
+        <Figure value={stats.totalProperties} label={t('portfolios.statistics.properties')} />
+        <Figure value={stats.totalTeamMembers} label={t('portfolios.statistics.staff')} />
+      </div>
+
+      {/* La barre n'apparait QUE s'il y a un portefeuille inactif. Une jauge
+          bloquee a 100 % sur tous les ecrans est une decoration, pas une
+          statistique — et le chiffre en rouge suffit a alerter. */}
+      {inactive > 0 ? (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              {stats.activePortfolios}/{totalPortfolios}{' '}
+              {t('portfolios.statistics.activeShare', 'actifs')}
+            </span>
+            <span className="font-semibold tabular-nums text-warning-ink">
+              {inactive} {t('portfolios.teamManagement.inactive')}
+            </span>
+          </div>
+          <Progress value={activeShare} className="h-1.5" />
+        </div>
+      ) : null}
+    </Card>
+  );
+};
+
+const Figure: React.FC<{ value: number; label: string }> = ({ value, label }) => (
   <span className="flex items-baseline gap-1.5">
-    <b
-      className={cn(
-        'font-display text-lg font-bold tabular-nums',
-        alert ? 'text-warning-ink' : 'text-foreground',
-      )}
-    >
-      {value}
-    </b>
+    <b className="font-[family-name:var(--font-display)] text-lg font-bold tabular-nums text-foreground">{value}</b>
     <span className="text-xs text-muted-foreground">{label}</span>
   </span>
 );
+
+// ─── Composition : le graphique ──────────────────────────────────────────────
+
+/** Hauteur par portefeuille, plus la place des axes et de la legende. */
+const ROW_HEIGHT = 46;
+const CHART_CHROME = 64;
+
+const CompositionChart: React.FC<{
+  breakdown: PortfolioStats['portfolioBreakdown'];
+  t: Translate;
+}> = ({ breakdown, t }) => {
+  const labelClients = t('portfolios.statistics.clientsLabel');
+  const labelStaff = t('portfolios.statistics.staff');
+
+  const config: ChartConfig = {
+    clients: { label: labelClients, color: 'var(--bui-chart-1)' },
+    staff: { label: labelStaff, color: 'var(--bui-chart-2)' },
+  };
+
+  const data = breakdown.map((portfolio) => ({
+    name: portfolio.portfolioName,
+    clients: portfolio.clientCount,
+    staff: portfolio.teamMemberCount,
+  }));
+
+  return (
+    <Card className="flex flex-col gap-2.5 border-border p-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
+          {t('portfolios.statistics.composition')}
+        </h3>
+        {/* Le graphique ne montre pas les logements : `portfolioBreakdown` ne
+            les compte pas par portefeuille. Autant le dire plutot que de
+            laisser croire a un parc absent. */}
+        <p className="m-0 text-2xs text-muted-foreground">
+          {t('portfolios.statistics.chartScope', 'Clients et intervenants rattachés')}
+        </p>
+      </div>
+
+      {data.length === 0 ? (
+        <p className="m-0 py-6 text-center text-xs text-muted-foreground">
+          {t('portfolios.statistics.noDataAvailable')}
+        </p>
+      ) : (
+        <>
+          {/* Barres HORIZONTALES : un nom de portefeuille tient sur une ligne,
+              pas sous une colonne verticale ou il serait tronque ou pivote. */}
+          <ChartContainer
+            config={config}
+            className="aspect-auto w-full"
+            style={{ height: data.length * ROW_HEIGHT + CHART_CHROME }}
+          >
+            <BarChart
+              accessibilityLayer
+              layout="vertical"
+              data={data}
+              margin={{ top: 4, right: 12, bottom: 0, left: 4 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                width={120}
+                tickMargin={6}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="clients" fill="var(--color-clients)" radius={[0, 3, 3, 0]} maxBarSize={14} />
+              <Bar dataKey="staff" fill="var(--color-staff)" radius={[0, 3, 3, 0]} maxBarSize={14} />
+            </BarChart>
+          </ChartContainer>
+
+          {/* L'etat de chaque portefeuille reste une information textuelle :
+              une couleur de barre ne doit pas avoir a la porter. */}
+          <div className="flex flex-wrap gap-1.5">
+            {breakdown.map((portfolio) => (
+              <StatusChip
+                key={portfolio.portfolioId}
+                tone={portfolio.isActive ? 'ok' : 'neutral'}
+                dot
+                label={
+                  portfolio.isActive
+                    ? portfolio.portfolioName
+                    : `${portfolio.portfolioName} · ${t('portfolios.teamManagement.inactive')}`
+                }
+                className="h-[20px] text-[0.6rem]"
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+};
+
+// ─── Activite recente ────────────────────────────────────────────────────────
+
+const RecentActivity: React.FC<{
+  assignments: PortfolioStats['recentAssignments'];
+  showPortfolio: boolean;
+  t: Translate;
+}> = ({ assignments, showPortfolio, t }) => {
+  const formatTime = (value: string) =>
+    new Date(value).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const formatDay = (value: string) =>
+    new Date(value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Regroupe par jour : six lignes repetant la meme date en toutes lettres
+  // faisaient passer l'horodatage pour l'information principale.
+  const days: Array<{ day: string; items: PortfolioStats['recentAssignments'] }> = [];
+  assignments.forEach((assignment) => {
+    const day = formatDay(assignment.assignedAt);
+    const last = days[days.length - 1];
+    if (last && last.day === day) last.items.push(assignment);
+    else days.push({ day, items: [assignment] });
+  });
+
+  return (
+    <Card className="flex flex-col gap-2 border-border p-3.5">
+      <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
+        {t('portfolios.statistics.recent')}
+      </h3>
+
+      {assignments.length === 0 ? (
+        <p className="m-0 py-3 text-center text-xs text-muted-foreground">
+          {t('portfolios.statistics.noRecent')}
+        </p>
+      ) : (
+        // Defilement borne, barre masquee : la liste ne doit pas etirer la
+        // colonne au-dela du graphique voisin.
+        <div className="no-scrollbar flex max-h-[320px] flex-col gap-3 overflow-y-auto">
+          {days.map(({ day, items }) => (
+            <div key={day} className="flex flex-col gap-1.5">
+              <p className="m-0 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {day}
+              </p>
+              {items.map((assignment) => (
+                <div
+                  key={`${assignment.type}-${assignment.id}`}
+                  className="flex items-baseline gap-2"
+                >
+                  {/* Une pastille, plus un badge-icone carre de 28 px repete a
+                      chaque ligne. Le type se lit a la couleur ET au libelle. */}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'mt-1 size-2 shrink-0 rounded-[2.5px]',
+                      assignment.type === 'CLIENT' ? 'bg-success-ink' : 'bg-info-ink',
+                    )}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[0.82rem] font-semibold text-foreground">
+                      {assignment.name}
+                    </span>
+                    <span className="block truncate text-2xs text-muted-foreground">
+                      {assignment.type === 'CLIENT'
+                        ? t('portfolios.statistics.typeClient', 'Client')
+                        : t('portfolios.statistics.typeTeam', 'Intervenant')}
+                      {showPortfolio ? ` · ${assignment.portfolioName}` : ''}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-2xs tabular-nums text-muted-foreground">
+                    {formatTime(assignment.assignedAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+};
 
 export default PortfolioStatsTab;

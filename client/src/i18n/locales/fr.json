@@ -3405,7 +3405,11 @@
       "recent": "Activité récente",
       "noRecent": "Aucun rattachement récent.",
       "clientsLabel": "clients",
-      "propertiesLabel": "logements"
+      "propertiesLabel": "logements",
+      "activeShare": "actifs",
+      "chartScope": "Clients et intervenants rattachés",
+      "typeClient": "Client",
+      "typeTeam": "Intervenant"
     },
     "teamManagement": {
       "title": "Mes Équipes",

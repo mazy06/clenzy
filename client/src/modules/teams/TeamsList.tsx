@@ -31,20 +31,30 @@ import {
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import TeamCard from '../../components/TeamCard';
+import { TEAM_TYPE_OPTIONS, type TeamTypeValue } from '../../types/teamTypes';
 import { useTeamsList } from './useTeamsList';
 import PagePagination from '../../components/PagePagination';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import StatusChip from '../../components/StatusChip';
 import compactHeaderActions from '../../components/compactHeaderActions';
 
-// Catégories de filtrage pour la liste des équipes. La puce choisie prend le ton
-// `accent` de la primitive (identique pour toutes) ; au repos, seule la bordure
-// distingue la catégorie — une BORDURE, donc la teinte vive et non l'encre (§2.4).
-const TEAM_FILTER_CATEGORIES = [
-  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={16} strokeWidth={1.75} />, borderColor: 'var(--bui-success)' },
-  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={16} strokeWidth={1.75} />, borderColor: 'var(--bui-warning)' },
-  { value: 'OTHER', label: 'Autre', icon: <Category size={16} strokeWidth={1.75} />, borderColor: 'var(--bui-info)' },
-];
+// Catégories de filtrage. Valeurs, libellés et teintes viennent de la source
+// UNIQUE `TEAM_TYPE_OPTIONS` : cette liste les redéfinissait, et la carte
+// d'équipe interrogeait de son côté le vocabulaire des INTERVENTIONS — d'où un
+// « MAINTENANCE » brut et gris sur les cartes alors que le filtre affichait
+// « Maintenance » en ambre. Seule l'icône reste locale : elle n'a de sens que
+// dans une rangée de filtres, où elle aide au balayage.
+const FILTER_ICONS: Record<TeamTypeValue, React.ReactElement> = {
+  CLEANING: <AutoAwesome size={16} strokeWidth={1.75} />,
+  MAINTENANCE: <Build size={16} strokeWidth={1.75} />,
+  OTHER: <Category size={16} strokeWidth={1.75} />,
+};
+
+const TEAM_FILTER_CATEGORIES = TEAM_TYPE_OPTIONS.map((option) => ({
+  ...option,
+  icon: FILTER_ICONS[option.value],
+  borderColor: option.token,
+}));
 
 interface TeamsListProps {
   embedded?: boolean;

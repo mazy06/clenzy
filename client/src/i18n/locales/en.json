@@ -3384,7 +3384,11 @@
       "recent": "Recent activity",
       "noRecent": "No recent assignment.",
       "clientsLabel": "clients",
-      "propertiesLabel": "properties"
+      "propertiesLabel": "properties",
+      "activeShare": "active",
+      "chartScope": "Assigned clients and staff",
+      "typeClient": "Client",
+      "typeTeam": "Staff member"
     },
     "teamManagement": {
       "title": "My Teams",
