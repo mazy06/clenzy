@@ -23,10 +23,14 @@ import { API_CONFIG } from '../config/api';
  * aucun `refetchInterval`, et seules les mutations de l'utilisateur LUI-MÊME
  * invalident le cache. Un écran ouvert ne se rafraîchissait donc jamais.</p>
  *
- * <p>Le chat INTERNE, lui, emprunte un tout autre chemin — `ContactMessage`,
- * publié sur `/topic/contact/{orgId}` — que personne n'écoutait davantage. Il
- * ne s'en tirait que par un sondage toutes les 30 à 60 secondes : jamais perdu,
- * mais jamais instantané non plus. Les deux familles sont donc abonnées ici.</p>
+ * <p>Le chat INTERNE emprunte un tout autre chemin — `ContactMessage` — que
+ * personne n'écoutait davantage. Il ne s'en tirait que par un sondage toutes
+ * les 30 à 60 secondes : jamais perdu, mais jamais instantané non plus.</p>
+ *
+ * <p>Son contenu arrive sur la file PERSONNELLE, jamais sur un sujet
+ * d'organisation : un fil de groupe ne doit être lisible que de ses
+ * participants. Le sujet d'organisation ne porte plus qu'un signal sans contenu,
+ * pour rafraîchir la liste des fils.</p>
  */
 
 /** Attente avant la première reconnexion, puis doublée jusqu'au plafond. */
@@ -145,6 +149,10 @@ export function useConversationStream(
         const token = getAccessToken();
         client.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
       },
+      // En développement, la trace du client STOMP est la seule façon de voir
+      // ce qui part et ce qui arrive : un abonnement perdu ne laisse aucune
+      // trace côté serveur, par définition.
+      debug: import.meta.env.DEV ? (m: string) => console.debug('[stomp]', m) : undefined,
       onStompError: (frame) => {
         // Une trame ERROR est renvoyée par le serveur (CONNECT refusé,
         // abonnement non autorisé) : elle ne doit pas passer inaperçue.
@@ -199,8 +207,15 @@ export function useConversationStream(
         queryClient.invalidateQueries({ queryKey: conversationKeys.unreadCount() });
       });
 
-      // ── Chat interne ────────────────────────────────────────────────────
-      client.subscribe(`/topic/contact/${organizationId}`, (frame: IMessage) => {
+      // ── Chat interne : le CONTENU, sur ma file personnelle ──────────────
+      // Le serveur n'envoie le message qu'aux participants du fil. Le sujet
+      // d'organisation ne porte plus qu'un signal sans contenu : un membre non
+      // participant ne peut donc plus lire ce qui ne le regarde pas, et le
+      // filtrage ne repose plus sur la bonne volonte du client.
+      //
+      // `/user/...` est resolu par le courtier vers MA session : chacun ne
+      // recoit que la sienne, sans avoir a nommer son identifiant.
+      client.subscribe('/user/queue/contact-messages', (frame: IMessage) => {
         let event: { message?: ContactMessage & { threadId?: number | null } };
         try {
           event = JSON.parse(frame.body);
@@ -208,11 +223,8 @@ export function useConversationStream(
           return;
         }
 
-        // Le fil ouvert est écrit DIRECTEMENT depuis la trame, qui porte le
-        // message complet. Invalider ferait repartir chaque poste abonné en
-        // HTTP : sur une organisation de vingt personnes, un seul message
-        // provoquait vingt rechargements du fil — la tempête qu'on a déjà vue
-        // sur les objets connectés.
+        // Le fil ouvert s'ecrit DIRECTEMENT depuis la trame, qui porte le
+        // message complet : aucun aller-retour sur le chemin critique.
         const message = event.message;
         if (message?.threadId != null) {
           appendToContactThread(queryClient, `group:${message.threadId}`, message);
@@ -222,9 +234,12 @@ export function useConversationStream(
             exact: false,
           });
         }
+      });
 
-        // La liste des fils porte des agrégats absents de la trame — non-lus,
-        // ordre, dernier extrait : elle reste invalidée.
+      // ── Signal de rafraichissement, sans contenu ────────────────────────
+      // La liste des fils porte des agregats absents de la trame — non-lus,
+      // ordre, dernier extrait — et l'endpoint qui la sert applique les droits.
+      client.subscribe(`/topic/contact/${organizationId}`, () => {
         queryClient.invalidateQueries({
           queryKey: [...contactKeys.all, 'threads'],
           exact: false,

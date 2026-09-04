@@ -187,10 +187,15 @@ public class ContactThreadService {
 
         // Les fils de GROUPE ne publiaient aucun evenement temps reel : ni ce
         // service ni le controleur ne touchaient au courtier. Les participants
-        // ne voyaient donc le message qu'au sondage suivant — jusqu'a une
-        // minute. On emet sur la meme destination que les messages de contact
-        // 1 a 1, celle que le client ecoute deja.
-        eventPublisher.publishNewMessage(message, ContactMessageDto.fromEntity(message));
+        // ne voyaient donc le message qu'au sondage suivant — jusqu'a une minute.
+        //
+        // Le contenu ne part QUE dans les files personnelles des participants.
+        // Le diffuser sur le sujet d'organisation l'aurait rendu lisible par
+        // tout membre abonne, participant ou non.
+        eventPublisher.publishToParticipants(message, ContactMessageDto.fromEntity(message),
+                participantRepository.findByThreadId(thread.getId()).stream()
+                        .map(ContactThreadParticipant::getKeycloakId)
+                        .toList());
         return message;
     }
 
