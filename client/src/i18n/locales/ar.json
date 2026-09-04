@@ -3399,7 +3399,14 @@
       "coverage": "التغطية حسب المدينة",
       "coverageHint": "مدينة بلا عاملين تحتاج إلى ارتباط",
       "byPropertyType": "العقارات حسب النوع",
-      "staffByCity": "العاملون حسب المدينة"
+      "staffByCity": "العاملون حسب المدينة",
+      "highlights": "أبرز الأرقام",
+      "highlightsHint": "الفرق، غائبة عن الرسوم",
+      "citiesUncovered": "مدن بلا عاملين",
+      "teams": "الفرق",
+      "avgTeamSize": "متوسط الأعضاء لكل فريق",
+      "staffWithoutTeam": "عاملون بلا فريق",
+      "emptyTeams": "فرق بلا أعضاء"
     },
     "teamManagement": {
       "title": "فرقي",

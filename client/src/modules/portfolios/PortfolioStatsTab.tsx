@@ -1,8 +1,6 @@
 import React from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import StatusChip from '../../components/StatusChip';
-import StatTile from '../../components/baitly/StatTile';
-import StatTileRow from '../../components/baitly/StatTileRow';
 import {
   Card,
   ChartContainer,
@@ -24,9 +22,8 @@ import {
 } from '../../services/api/portfoliosApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
-import { Business, Group, Home, People } from '../../icons';
+import { PROPERTY_TYPES } from '../../utils/statusUtils';
 import {
-  CHART_MIN_HEIGHT,
   CoverageChart,
   DonutChart,
   HistogramChart,
@@ -94,6 +91,13 @@ const PortfolioStatsTab: React.FC = () => {
   const labelStaff = t('portfolios.statistics.staff');
   const labelProperties = t('portfolios.statistics.properties');
 
+  // Le serveur envoie la valeur brute de l'enum ; « APARTMENT » n'est pas un
+  // libelle. La table de correspondance existe deja, on la reutilise.
+  const propertyTypeLabels = stats.propertiesByType.map((bucket) => {
+    const option = PROPERTY_TYPES.find((type) => type.value === bucket.label);
+    return option ? { ...bucket, label: t(option.i18nKey) } : bucket;
+  });
+
   // Une tuile dont la donnee est vide n'est pas rendue : un cadre titre sur un
   // graphique absent occupe de la place pour ne rien dire.
   const tuiles: Tuile[] = (
@@ -128,7 +132,7 @@ const PortfolioStatsTab: React.FC = () => {
       stats.propertiesByType.length > 0 && {
         cle: 'types',
         titre: t('portfolios.statistics.byPropertyType', 'Logements par type'),
-        render: () => <DonutChart buckets={stats.propertiesByType} totalLabel={labelProperties} />,
+        render: () => <DonutChart buckets={propertyTypeLabels} totalLabel={labelProperties} />,
       },
       stats.staffByCity.length > 0 && {
         cle: 'staffCity',
@@ -136,6 +140,15 @@ const PortfolioStatsTab: React.FC = () => {
         render: () => (
           <HistogramChart buckets={stats.staffByCity} label={labelStaff} tokenIndex={1} />
         ),
+      },
+      {
+        cle: 'reperes',
+        titre: t('portfolios.statistics.highlights', 'Repères'),
+        precision: t(
+          'portfolios.statistics.highlightsHint',
+          'Les équipes, absentes des graphiques',
+        ),
+        render: () => <Highlights stats={stats} t={t} />,
       },
       // Deux mois au minimum : une aire tracee sur un point unique ne dessine
       // rien, et « dans le temps » ne veut rien dire sur un mois isole.
@@ -159,19 +172,21 @@ const PortfolioStatsTab: React.FC = () => {
     // `min-height: auto` d'un element flex empeche la grille de se comprimer,
     // et la hauteur mesuree serait aussitot depassee.
     <div className="flex min-h-0 flex-col gap-3">
-      <KpiSection stats={stats} t={t} />
+      <SummaryBand stats={stats} t={t} />
 
       <div
         ref={fillRef}
         style={fillHeight ? { height: fillHeight } : undefined}
         className={cn(
           'grid min-h-0 grid-cols-1 gap-3',
-          // Deux puis trois colonnes : un histogramme a six villes dans un tiers
-          // de 1200 px n'a plus la place d'ecrire ses libelles.
-          'min-[900px]:grid-cols-2 min-[1500px]:grid-cols-3',
+          // 1024 px, le MEME seuil que `useViewportFill`. La grille passait a
+          // deux colonnes des 900 px alors que la hauteur mesuree ne
+          // s'appliquait qu'a partir de 1024 : entre les deux, six tuiles
+          // s'empilaient sans contrainte et la page defilait.
+          'min-[1024px]:grid-cols-2 min-[1500px]:grid-cols-3',
           // Rangees egales, et surtout un plancher a zero : sans `minmax(0, …)`
           // une rangee `auto` se dimensionne sur son contenu et deborde.
-          'min-[900px]:auto-rows-[minmax(0,1fr)]',
+          'min-[1024px]:auto-rows-[minmax(0,1fr)]',
         )}
       >
         {tuiles.map((tuile) => (
@@ -213,7 +228,7 @@ const ChartTile: React.FC<{
     </div>
     {/* `@container` : les anneaux passent leur legende a cote ou dessous
         selon la largeur de LA TUILE, que nulle media query ne connait. */}
-    <div className="@container min-h-0 flex-1" style={{ minHeight: CHART_MIN_HEIGHT }}>
+    <div className="@container min-h-0 flex-1">
       {children}
     </div>
   </Card>
@@ -221,74 +236,47 @@ const ChartTile: React.FC<{
 
 // ─── Bande de synthese ───────────────────────────────────────────────────────
 
-/**
- * Les indicateurs de tête.
- *
- * <p>Quatre volumes, puis deux RATIOS que les totaux bruts ne disent pas :
- * combien d'intervenants pour tenir un logement, et quelle taille de parc par
- * client. Ce sont eux qui se comparent d'un mois sur l'autre — un total de
- * logements ne dit rien sans l'effectif en face.</p>
- *
- * <p>La jauge d'activité ne s'affiche QUE s'il y a un portefeuille inactif :
- * une barre bloquée à 100 % sur tous les écrans est une décoration, pas un
- * indicateur, et elle coûterait ici la hauteur des graphiques.</p>
- */
-const KpiSection: React.FC<{ stats: PortfolioStats; t: Translate }> = ({ stats, t }) => {
+const SummaryBand: React.FC<{ stats: PortfolioStats; t: Translate }> = ({
+  stats,
+  t,
+}) => {
   const totalPortfolios = stats.totalPortfolios;
   const inactive = stats.inactivePortfolios;
   const activeShare = totalPortfolios > 0 ? (stats.activePortfolios / totalPortfolios) * 100 : 0;
 
+  // Deux ratios que les totaux bruts ne disent pas : combien d'intervenants
+  // pour tenir un logement, et quelle taille de parc par client.
   const staffPerProperty =
     stats.totalProperties > 0 ? stats.totalTeamMembers / stats.totalProperties : null;
   const propertiesPerClient =
     stats.totalClients > 0 ? stats.totalProperties / stats.totalClients : null;
 
   return (
-    <div className="flex shrink-0 flex-col gap-2">
-      <StatTileRow columns={6}>
-        <StatTile
-          icon={<Business />}
-          label={t('portfolios.statistics.portfolios')}
-          value={totalPortfolios}
-          hint={
-            inactive > 0
-              ? `${stats.activePortfolios} ${t('portfolios.statistics.activeShare', 'actifs')}`
-              : undefined
-          }
-        />
-        <StatTile
-          icon={<People />}
-          label={t('portfolios.statistics.clients')}
-          value={stats.totalClients}
-          iconClassName="text-success"
-        />
-        <StatTile
-          icon={<Home />}
-          label={t('portfolios.statistics.properties')}
-          value={stats.totalProperties}
-          iconClassName="text-info"
-        />
-        <StatTile
-          icon={<Group />}
-          label={t('portfolios.statistics.staff')}
-          value={stats.totalTeamMembers}
-          iconClassName="text-warning"
-        />
-        {/* Les ratios portent une unité : « 5,1 » seul ne se lit pas. */}
-        <StatTile
-          icon={<Group />}
-          label={t('portfolios.statistics.staffPerProperty', 'intervenants / logement')}
-          value={staffPerProperty !== null ? staffPerProperty.toFixed(1) : '—'}
-          iconClassName="text-muted-foreground"
-        />
-        <StatTile
-          icon={<Home />}
-          label={t('portfolios.statistics.propertiesPerClient', 'logements / client')}
-          value={propertiesPerClient !== null ? propertiesPerClient.toFixed(1) : '—'}
-          iconClassName="text-muted-foreground"
-        />
-      </StatTileRow>
+    <Card className="flex flex-col gap-2.5 border-border p-3">
+      <div className="flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2">
+        <Figure value={totalPortfolios} label={t('portfolios.statistics.portfolios')} />
+        <Figure value={stats.totalClients} label={t('portfolios.statistics.clients')} />
+        <Figure value={stats.totalProperties} label={t('portfolios.statistics.properties')} />
+        <Figure value={stats.totalTeamMembers} label={t('portfolios.statistics.staff')} />
+        {staffPerProperty !== null ? (
+          <Figure
+            value={staffPerProperty.toFixed(1)}
+            label={t('portfolios.statistics.staffPerProperty', 'intervenants / logement')}
+            muted
+          />
+        ) : null}
+        {propertiesPerClient !== null ? (
+          <Figure
+            value={propertiesPerClient.toFixed(1)}
+            label={t('portfolios.statistics.propertiesPerClient', 'logements / client')}
+            muted
+          />
+        ) : null}
+      </div>
 
+      {/* La barre n'apparait QUE s'il y a un portefeuille inactif. Une jauge
+          bloquee a 100 % sur tous les ecrans est une decoration, pas une
+          statistique — et le chiffre en rouge suffit a alerter. */}
       {inactive > 0 ? (
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-2 text-xs">
@@ -303,7 +291,98 @@ const KpiSection: React.FC<{ stats: PortfolioStats; t: Translate }> = ({ stats, 
           <Progress value={activeShare} className="h-1.5" />
         </div>
       ) : null}
-    </div>
+    </Card>
+  );
+};
+
+const Figure: React.FC<{ value: number | string; label: string; muted?: boolean }> = ({
+  value,
+  label,
+  muted,
+}) => (
+  <span className="flex items-baseline gap-1.5">
+    <b
+      className={cn(
+        'font-[family-name:var(--font-display)] text-lg font-bold tabular-nums',
+        muted ? 'text-muted-foreground' : 'text-foreground',
+      )}
+    >
+      {value}
+    </b>
+    <span className="text-xs text-muted-foreground">{label}</span>
+  </span>
+);
+
+/**
+ * Repères chiffrés.
+ *
+ * <p>La première version répétait ses voisins : « villes couvertes » se comptait
+ * sur les barres de l'histogramme d'à côté, « ville la mieux dotée » en était la
+ * première barre, et le rapport ménage / maintenance se lisait dans l'anneau.
+ * Un tableau de bord n'a pas à dire deux fois la même chose.</p>
+ *
+ * <p>Ces lignes portent donc ce qu'AUCUN graphique ne montre : les ÉQUIPES. Le
+ * reste de l'écran décrit des effectifs et des lieux, jamais la structure qui
+ * les organise. Les équipes personnelles — celles qui ne portent que les zones
+ * de couverture d'un intervenant — en sont exclues côté serveur : elles
+ * n'existent pas sur le terrain.</p>
+ */
+const Highlights: React.FC<{ stats: PortfolioStats; t: Translate }> = ({ stats, t }) => {
+  const villesAvecStaff = new Set(stats.staffByCity.map((b) => b.label));
+  const villesDecouvertes = stats.propertiesByCity
+    .map((b) => b.label)
+    .filter((ville) => !villesAvecStaff.has(ville));
+
+  const lignes: Array<{ label: string; valeur: string; alerte?: boolean }> = [
+    {
+      label: t('portfolios.statistics.teams', 'Équipes'),
+      valeur: `${stats.totalTeams}`,
+    },
+    {
+      label: t('portfolios.statistics.avgTeamSize', 'Membres par équipe en moyenne'),
+      valeur: stats.averageTeamSize.toFixed(1),
+    },
+    {
+      // Le seul chiffre de l'ecran qui appelle un geste : ces intervenants sont
+      // rattaches a un portefeuille mais dans aucune equipe.
+      label: t('portfolios.statistics.staffWithoutTeam', 'Intervenants sans équipe'),
+      valeur: `${stats.staffWithoutTeam}`,
+      alerte: stats.staffWithoutTeam > 0,
+    },
+    {
+      label: t('portfolios.statistics.emptyTeams', 'Équipes sans membre'),
+      valeur: `${stats.teamsWithoutMembers}`,
+      alerte: stats.teamsWithoutMembers > 0,
+    },
+    // Ne s'affiche QUE si le cas existe : un « 0 » permanent occupe une ligne
+    // pour ne rien dire, et c'est exactement ce qu'on reprochait a la version
+    // precedente.
+    villesDecouvertes.length > 0 && {
+      label: t('portfolios.statistics.citiesUncovered', 'Villes sans intervenant'),
+      valeur: `${villesDecouvertes.length} · ${villesDecouvertes.slice(0, 2).join(', ')}`,
+      alerte: true,
+    },
+  ].filter(Boolean) as Array<{ label: string; valeur: string; alerte?: boolean }>;
+
+  return (
+    <dl className="no-scrollbar m-0 flex h-full flex-col justify-center gap-2 overflow-y-auto">
+      {lignes.map((ligne) => (
+        <div
+          key={ligne.label}
+          className="flex items-baseline justify-between gap-3 border-b border-border pb-1.5 last:border-b-0 last:pb-0"
+        >
+          <dt className="min-w-0 truncate text-xs text-muted-foreground">{ligne.label}</dt>
+          <dd
+            className={cn(
+              'm-0 shrink-0 text-end text-sm font-semibold tabular-nums',
+              ligne.alerte ? 'text-warning-ink' : 'text-foreground',
+            )}
+          >
+            {ligne.valeur}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 };
 

@@ -36,6 +36,7 @@ class PortfolioServiceTest {
     @Mock private PortfolioTeamRepository portfolioTeamRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.clenzy.repository.TeamRepository teamRepository;
     @Mock private NotificationService notificationService;
 
     private TenantContext tenantContext;
@@ -51,7 +52,8 @@ class PortfolioServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         portfolioService = new PortfolioService(portfolioRepository, portfolioClientRepository,
-                portfolioTeamRepository, propertyRepository, userRepository, notificationService, tenantContext);
+                portfolioTeamRepository, propertyRepository, userRepository, teamRepository,
+                notificationService, tenantContext);
     }
 
     private User buildUser(Long id, String firstName, String lastName, UserRole role) {

@@ -40,16 +40,6 @@ export const SERIES_TOKENS = [
   'var(--bui-chart-5)',
 ];
 
-/**
- * Hauteur plancher d'une tuile.
- *
- * <p>Les graphiques ne fixent plus leur hauteur : ils remplissent la tuile que
- * la grille leur donne, elle-même dérivée de la hauteur de fenêtre. Ce plancher
- * ne sert qu'à empêcher une fenêtre très basse de les réduire à une bande où
- * plus aucun axe ne se lit — mieux vaut alors déborder.</p>
- */
-export const CHART_MIN_HEIGHT = 150;
-
 /** Une part sans effectif ne se voit pas ; inutile de la porter au graphique. */
 const nonEmpty = (buckets: PortfolioBucket[]) => buckets.filter((b) => b.count > 0);
 
@@ -100,7 +90,7 @@ export const DonutChart: React.FC<{
   if (shown.length === 0) return <EmptyChart />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 @[380px]:flex-row @[380px]:items-center">
+    <div className="flex h-full min-h-0 flex-col gap-2 @[380px]:flex-row">
       <div className="min-h-0 min-w-0 flex-1">
         <ChartContainer config={config} className="aspect-auto h-full w-full">
           <PieChart margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
@@ -146,7 +136,7 @@ export const DonutChart: React.FC<{
 
       {/* La légende porte les chiffres : sans eux, un anneau ne se lit qu'au
           survol, ce qui exclut le clavier et l'impression. */}
-      <ul className="no-scrollbar m-0 flex max-h-full shrink-0 list-none flex-col gap-1 overflow-y-auto p-0 @[380px]:w-[46%]">
+      <ul className="no-scrollbar m-0 flex max-h-full shrink-0 list-none flex-col justify-center gap-1 overflow-y-auto p-0 @[380px]:w-[46%]">
         {shown.map((b, i) => (
           <li key={b.label} className="flex items-baseline gap-1.5 text-2xs">
             <span
@@ -203,6 +193,7 @@ export const HistogramChart: React.FC<{
           tickLine={false}
           width={96}
           tickMargin={6}
+          interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="count" fill="var(--color-count)" radius={[0, 3, 3, 0]} maxBarSize={18} />

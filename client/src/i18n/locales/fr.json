@@ -3418,7 +3418,14 @@
       "coverage": "Couverture par ville",
       "coverageHint": "Une ville sans intervenant appelle un rattachement",
       "byPropertyType": "Logements par type",
-      "staffByCity": "Intervenants par ville"
+      "staffByCity": "Intervenants par ville",
+      "highlights": "Repères",
+      "highlightsHint": "Les équipes, absentes des graphiques",
+      "citiesUncovered": "Villes sans intervenant",
+      "teams": "Équipes",
+      "avgTeamSize": "Membres par équipe en moyenne",
+      "staffWithoutTeam": "Intervenants sans équipe",
+      "emptyTeams": "Équipes sans membre"
     },
     "teamManagement": {
       "title": "Mes Équipes",

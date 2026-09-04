@@ -22,6 +22,11 @@ export interface PortfolioStats {
     portfolioName: string;
     assignedAt: string;
   }>;
+  /** Chiffres sur les équipes, absents de toute répartition graphique. */
+  totalTeams: number;
+  teamsWithoutMembers: number;
+  staffWithoutTeam: number;
+  averageTeamSize: number;
   /** Répartitions et série temporelle, pour les graphiques. */
   staffByTrade: PortfolioBucket[];
   staffByCity: PortfolioBucket[];

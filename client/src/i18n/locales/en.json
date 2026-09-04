@@ -3397,7 +3397,14 @@
       "coverage": "Coverage by city",
       "coverageHint": "A city with no staff needs an assignment",
       "byPropertyType": "Properties by type",
-      "staffByCity": "Staff by city"
+      "staffByCity": "Staff by city",
+      "highlights": "Highlights",
+      "highlightsHint": "Teams, absent from the charts",
+      "citiesUncovered": "Cities without staff",
+      "teams": "Teams",
+      "avgTeamSize": "Average members per team",
+      "staffWithoutTeam": "Staff without a team",
+      "emptyTeams": "Teams with no member"
     },
     "teamManagement": {
       "title": "My Teams",

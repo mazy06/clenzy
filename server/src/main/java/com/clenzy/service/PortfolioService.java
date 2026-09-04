@@ -39,6 +39,7 @@ public class PortfolioService {
     private final PortfolioTeamRepository portfolioTeamRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final com.clenzy.repository.TeamRepository teamRepository;
     private final NotificationService notificationService;
     private final com.clenzy.tenant.TenantContext tenantContext;
 
@@ -47,6 +48,7 @@ public class PortfolioService {
                             PortfolioTeamRepository portfolioTeamRepository,
                             PropertyRepository propertyRepository,
                             UserRepository userRepository,
+                            com.clenzy.repository.TeamRepository teamRepository,
                             NotificationService notificationService,
                             com.clenzy.tenant.TenantContext tenantContext) {
         this.portfolioRepository = portfolioRepository;
@@ -54,6 +56,7 @@ public class PortfolioService {
         this.portfolioTeamRepository = portfolioTeamRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
+        this.teamRepository = teamRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
     }
@@ -375,6 +378,7 @@ public class PortfolioService {
         stats.setTotalProperties(uniquePropertyIds.size());
         stats.setTotalTeamMembers(totalTeamMembers);
         stats.setPortfolioBreakdown(breakdowns);
+        fillTeamFigures(stats, countedStaff);
         stats.setStaffByTrade(toBuckets(staffByTrade));
         stats.setStaffByCity(toBuckets(staffByCity));
         stats.setPropertiesByCity(toBuckets(propertiesByCity));
@@ -394,6 +398,31 @@ public class PortfolioService {
         );
 
         return stats;
+    }
+
+    /**
+     * Chiffres sur les equipes.
+     *
+     * <p>Deux projections suffisent : les effectifs par equipe et les
+     * utilisateurs deja membres d'une equipe reelle. Charger les entites
+     * provoquerait un N+1 sur les membres pour n'en compter que le nombre.</p>
+     *
+     * @param portfolioStaff intervenants rattaches aux portefeuilles, dont on
+     *                       cherche ceux qui ne sont dans aucune equipe
+     */
+    private void fillTeamFigures(PortfolioStatsDto stats, Set<Long> portfolioStaff) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        List<Object[]> effectifs = teamRepository.countMembersPerRealTeam(orgId);
+        stats.setTotalTeams(effectifs.size());
+        stats.setTeamsWithoutMembers(
+                (int) effectifs.stream().filter(row -> ((Number) row[1]).intValue() == 0).count());
+        stats.setAverageTeamSize(effectifs.isEmpty() ? 0d
+                : effectifs.stream().mapToInt(row -> ((Number) row[1]).intValue()).average().orElse(0d));
+
+        Set<Long> enEquipe = new HashSet<>(teamRepository.findUserIdsInRealTeams(orgId));
+        stats.setStaffWithoutTeam(
+                (int) portfolioStaff.stream().filter(id -> !enEquipe.contains(id)).count());
     }
 
     private static final String UNKNOWN_LABEL = "Non renseigné";

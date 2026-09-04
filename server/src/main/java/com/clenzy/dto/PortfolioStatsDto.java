@@ -28,6 +28,18 @@ public class PortfolioStatsDto {
     private List<Bucket> propertiesByType = new ArrayList<>();
     private List<MonthPoint> assignmentsByMonth = new ArrayList<>();
 
+    /**
+     * Chiffres sur les EQUIPES, absents de toute repartition graphique.
+     *
+     * <p>Les equipes personnelles — celles qui ne portent que les zones de
+     * couverture d'un intervenant — sont exclues : elles n'existent pas sur le
+     * terrain.</p>
+     */
+    private int totalTeams;
+    private int teamsWithoutMembers;
+    private int staffWithoutTeam;
+    private double averageTeamSize;
+
     // ── Getters / Setters ────────────────────────────────────────────────────
 
     public int getTotalPortfolios() { return totalPortfolios; }
@@ -53,6 +65,18 @@ public class PortfolioStatsDto {
 
     public List<PortfolioBreakdown> getPortfolioBreakdown() { return portfolioBreakdown; }
     public void setPortfolioBreakdown(List<PortfolioBreakdown> portfolioBreakdown) { this.portfolioBreakdown = portfolioBreakdown; }
+
+    public int getTotalTeams() { return totalTeams; }
+    public void setTotalTeams(int totalTeams) { this.totalTeams = totalTeams; }
+
+    public int getTeamsWithoutMembers() { return teamsWithoutMembers; }
+    public void setTeamsWithoutMembers(int teamsWithoutMembers) { this.teamsWithoutMembers = teamsWithoutMembers; }
+
+    public int getStaffWithoutTeam() { return staffWithoutTeam; }
+    public void setStaffWithoutTeam(int staffWithoutTeam) { this.staffWithoutTeam = staffWithoutTeam; }
+
+    public double getAverageTeamSize() { return averageTeamSize; }
+    public void setAverageTeamSize(double averageTeamSize) { this.averageTeamSize = averageTeamSize; }
 
     public List<Bucket> getStaffByTrade() { return staffByTrade; }
     public void setStaffByTrade(List<Bucket> staffByTrade) { this.staffByTrade = staffByTrade; }
