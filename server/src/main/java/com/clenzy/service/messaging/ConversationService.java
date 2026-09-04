@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -31,7 +33,7 @@ public class ConversationService {
     private final ConversationMessageRepository messageRepository;
     private final ConversationEventPublisher eventPublisher;
     private final NotificationService notificationService;
-    private final WhatsAppChannel whatsAppChannel;
+    private final WhatsAppOutboundDispatcher whatsAppDispatcher;
     private final ReservationRepository reservationRepository;
     private final GuestRepository guestRepository;
     private final com.clenzy.repository.UserRepository userRepository;
@@ -42,7 +44,7 @@ public class ConversationService {
                                ConversationMessageRepository messageRepository,
                                ConversationEventPublisher eventPublisher,
                                NotificationService notificationService,
-                               WhatsAppChannel whatsAppChannel,
+                               WhatsAppOutboundDispatcher whatsAppDispatcher,
                                ReservationRepository reservationRepository,
                                GuestRepository guestRepository,
                                com.clenzy.repository.UserRepository userRepository,
@@ -52,7 +54,7 @@ public class ConversationService {
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
         this.notificationService = notificationService;
-        this.whatsAppChannel = whatsAppChannel;
+        this.whatsAppDispatcher = whatsAppDispatcher;
         this.reservationRepository = reservationRepository;
         this.guestRepository = guestRepository;
         this.userRepository = userRepository;
@@ -206,8 +208,17 @@ public class ConversationService {
         outcomeTracker.recordManualMessage(conversation.getOrganizationId(), reservationId);
 
         // Envoi reel via WhatsApp (compte global) si la conversation est sur ce canal.
+        // L'appel a Meta se faisait ICI, dans la transaction : la connexion de
+        // base restait tenue pendant l'aller-retour HTTP, et l'expediteur
+        // attendait la reponse de Meta avant de voir son propre message. Seuls
+        // les controles — numero present, fenetre de 24 h — restent en
+        // transaction ; le depart part APRES le commit, sur un autre fil.
         if (conversation.getChannel() == ConversationChannel.WHATSAPP) {
-            deliverViaWhatsApp(conversation.getId(), msg, senderName, content);
+            Long messageId = msg.getId();
+            Long conversationId = conversation.getId();
+            prepareWhatsAppDelivery(conversationId, msg, senderName, content)
+                .ifPresent(request -> runAfterCommit(
+                    () -> whatsAppDispatcher.deliver(messageId, conversationId, request)));
         }
 
         return msg;
@@ -285,8 +296,14 @@ public class ConversationService {
         updateConversationOnNewMessage(conversation, content, false);
         eventPublisher.publishNewMessage(conversation, msg);
 
+        // Meme traitement que l'envoi manuel : l'appel a Meta ne doit pas se
+        // faire dans la transaction, ni retenir l'appelant.
         if (conversation.getChannel() == ConversationChannel.WHATSAPP) {
-            deliverViaWhatsApp(conversation.getId(), msg, "Concierge IA", content);
+            Long messageId = msg.getId();
+            Long conversationId = conversation.getId();
+            prepareWhatsAppDelivery(conversationId, msg, "Concierge IA", content)
+                .ifPresent(request -> runAfterCommit(
+                    () -> whatsAppDispatcher.deliver(messageId, conversationId, request)));
         }
         return msg;
     }
@@ -332,17 +349,29 @@ public class ConversationService {
      * puis delegue au {@link WhatsAppChannel} (compte global). Met a jour le
      * statut de livraison du message.
      */
-    private void deliverViaWhatsApp(Long conversationId, ConversationMessage msg,
-                                     String senderName, String content) {
+    /**
+     * Controles prealables a une remise WhatsApp.
+     *
+     * <p>Tout ce qui suit est de la LECTURE en base, donc a sa place dans la
+     * transaction d'envoi : presence du numero, fenetre de service de 24 h.
+     * Quand l'envoi est impossible, le statut terminal est pose ici meme — le
+     * message est de toute facon en cours d'ecriture.</p>
+     *
+     * @return la requete a emettre, ou vide si rien ne doit partir
+     */
+    private Optional<MessageDeliveryRequest> prepareWhatsAppDelivery(Long conversationId,
+                                                                     ConversationMessage msg,
+                                                                     String senderName,
+                                                                     String content) {
         Conversation conv = conversationRepository.findById(conversationId).orElse(null);
-        if (conv == null) return;
+        if (conv == null) return Optional.empty();
 
         Guest guest = conv.getGuest();
         if (guest == null || guest.getPhone() == null || guest.getPhone().isBlank()) {
             log.warn("Envoi WhatsApp impossible (guest/numero absent) pour conversation {}", conversationId);
             msg.setDeliveryStatus("FAILED");
             messageRepository.save(msg);
-            return;
+            return Optional.empty();
         }
 
         // Fenetre de service 24h : hors fenetre, Meta interdit le message libre
@@ -356,21 +385,31 @@ public class ConversationService {
             log.info("Fenetre 24h WhatsApp expiree (conv {}) : message libre non envoye, template requis", conversationId);
             msg.setDeliveryStatus("WINDOW_EXPIRED");
             messageRepository.save(msg);
-            return;
+            return Optional.empty();
         }
 
         String signed = buildSignedContent(senderName, conv.getProperty(), content);
-        MessageDeliveryRequest request = new MessageDeliveryRequest(
-            null, guest.getPhone(), guest.getFullName(), null, null, signed, guest.getLanguage());
-        MessageDeliveryResult result = whatsAppChannel.send(request);
+        return Optional.of(new MessageDeliveryRequest(
+            null, guest.getPhone(), guest.getFullName(), null, null, signed, guest.getLanguage()));
+    }
 
-        msg.setDeliveryStatus(result.success() ? "SENT" : "FAILED");
-        if (result.providerMessageId() != null) {
-            msg.setExternalMessageId(result.providerMessageId());
-        }
-        messageRepository.save(msg);
-        if (!result.success()) {
-            log.warn("Echec envoi WhatsApp (conv {}): {}", conversationId, result.errorMessage());
+    /**
+     * Execute apres le commit, ou immediatement hors contexte transactionnel.
+     *
+     * <p>Un effet externe declenche avant le commit peut porter sur un etat qui
+     * ne sera jamais valide ; et dans un test sans transaction, la synchronisation
+     * n'existe pas — l'action doit alors s'executer telle quelle.</p>
+     */
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
         }
     }
 
