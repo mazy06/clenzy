@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 /** En deca de cette largeur la mise en page s'empile : la figer serait nuisible. */
 const SIDE_BY_SIDE = 1024;
 
-/** Marge sous la carte, pour que le bord bas ne colle pas a la fenetre. */
-const GUTTER = 20;
+/** Respiration sous l'element, pour que son bord ne colle pas a la fenetre. */
+const GUTTER = 12;
 
 /**
  * Hauteur restante entre le haut de l'element et le bas de la fenetre.
@@ -20,9 +20,18 @@ const GUTTER = 20;
  * onglets passent a la ligne, et un offset fige laisserait deriver le bas de
  * la carte. Renvoie `undefined` sous {@link SIDE_BY_SIDE}, ou la mise en
  * page s'empile et doit reprendre sa hauteur naturelle.</p>
+ *
+ * <p>L'espace occupe SOUS l'element — les rembourrages des conteneurs qui
+ * l'enveloppent — est retranche lui aussi. Sans cela l'element descend
+ * exactement au bas de la fenetre, ces rembourrages depassent, et une barre de
+ * defilement apparait pour une dizaine de pixels. On le mesure au premier
+ * passage, quand l'element a encore sa hauteur naturelle, puis on le conserve :
+ * un rembourrage ne change pas avec la taille de la fenetre, et le recalculer
+ * a partir d'une hauteur qu'on vient soi-meme d'imposer serait circulaire.</p>
  */
 export function useViewportFill<T extends HTMLElement>() {
   const ref = useRef<T>(null);
+  const trailingRef = useRef<number | null>(null);
   const [height, setHeight] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -34,10 +43,25 @@ export function useViewportFill<T extends HTMLElement>() {
         setHeight(undefined);
         return;
       }
-      const top = element.getBoundingClientRect().top;
+      const rect = element.getBoundingClientRect();
+
+      if (trailingRef.current === null) {
+        const documentTop = rect.top + window.scrollY;
+        const below =
+          document.documentElement.scrollHeight - (documentTop + element.offsetHeight);
+        // Une valeur negative signale un contenu deja deborde : on ne retranche
+        // alors rien plutot que d'agrandir l'element.
+        trailingRef.current = Math.max(0, Math.round(below));
+      }
+
       // Un plancher : sur une fenetre tres basse mieux vaut deborder que
-      // reduire les colonnes a une bande illisible.
-      setHeight(Math.max(360, Math.round(window.innerHeight - top - GUTTER)));
+      // reduire la mise en page a une bande illisible.
+      setHeight(
+        Math.max(
+          360,
+          Math.round(window.innerHeight - rect.top - trailingRef.current - GUTTER),
+        ),
+      );
     };
 
     measure();
