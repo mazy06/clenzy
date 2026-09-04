@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { Client, type IMessage } from '@stomp/stompjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { conversationKeys } from './useConversations';
+import { contactKeys } from './useContactMessages';
+import type { ContactMessage } from '../services/api/contactApi';
+import type { ConversationMessageDto, PageResponse } from '../services/api/conversationApi';
 import { getAccessToken } from '../keycloak';
 import { API_CONFIG } from '../config/api';
 
@@ -15,21 +18,63 @@ import { API_CONFIG } from '../config/api';
  * `sockjs-client` figuraient dans les dépendances sans qu'une seule ligne ne
  * les importe. Les événements partaient donc dans le vide.</p>
  *
- * <p>Rien ne rattrapait ce silence : `refetchOnWindowFocus` est désactivé
- * globalement, aucune requête de messagerie ne porte de `refetchInterval`, et
- * seules les mutations de l'utilisateur LUI-MÊME invalident le cache. Un écran
- * ouvert ne se rafraîchissait donc jamais — le message n'arrivait qu'après une
- * navigation ou un rechargement.</p>
+ * <p>Rien ne rattrapait ce silence côté conversations voyageur :
+ * `refetchOnWindowFocus` est désactivé globalement, ces requêtes ne portent
+ * aucun `refetchInterval`, et seules les mutations de l'utilisateur LUI-MÊME
+ * invalident le cache. Un écran ouvert ne se rafraîchissait donc jamais.</p>
+ *
+ * <p>Le chat INTERNE, lui, emprunte un tout autre chemin — `ContactMessage`,
+ * publié sur `/topic/contact/{orgId}` — que personne n'écoutait davantage. Il
+ * ne s'en tirait que par un sondage toutes les 30 à 60 secondes : jamais perdu,
+ * mais jamais instantané non plus. Les deux familles sont donc abonnées ici.</p>
  */
 
 /** Attente avant la première reconnexion, puis doublée jusqu'au plafond. */
 const RETRY_BASE_MS = 1_000;
 const RETRY_MAX_MS = 30_000;
 
-/** Forme minimale de ce que publie le serveur ; seul l'aiguillage nous importe. */
-interface ConversationMessageEvent {
-  id?: number;
-  conversationId?: number;
+/**
+ * Écrit le message reçu directement dans le fil en cache.
+ *
+ * <p>La trame PORTE déjà le message : invalider pour aller le rechercher en
+ * HTTP ajoutait un aller-retour complet entre son arrivée et son affichage,
+ * alors qu'il était là. On l'insère donc, et le fil ouvert se met à jour sans
+ * un octet de réseau.</p>
+ *
+ * <p>Les messages arrivent triés du plus ancien au plus récent, paginés : le
+ * nouveau appartient à la page marquée `last`. Les autres pages ne le
+ * concernent pas.</p>
+ *
+ * @returns `true` si le cache a été mis à jour ; `false` s'il faut retomber sur
+ *          une invalidation — page absente du cache, ou fil dont la dernière
+ *          page n'est pas chargée.
+ */
+function appendToThread(
+  queryClient: ReturnType<typeof useQueryClient>,
+  message: ConversationMessageDto,
+): boolean {
+  const entries = queryClient.getQueriesData<PageResponse<ConversationMessageDto>>({
+    queryKey: [...conversationKeys.all, 'messages', message.conversationId],
+    exact: false,
+  });
+
+  let patched = false;
+  entries.forEach(([key, page]) => {
+    if (!page || !page.last) return;
+    // Le serveur nous renvoie aussi NOTRE propre message : sans ce garde, il
+    // apparaîtrait deux fois après un envoi.
+    if (page.content.some((existing) => existing.id === message.id)) {
+      patched = true;
+      return;
+    }
+    queryClient.setQueryData(key, {
+      ...page,
+      content: [...page.content, message],
+      totalElements: page.totalElements + 1,
+    });
+    patched = true;
+  });
+  return patched;
 }
 
 /**
@@ -42,6 +87,28 @@ interface ConversationMessageEvent {
 function brokerUrl(): string {
   const base = API_CONFIG.BASE_URL || window.location.origin;
   return `${base.replace(/^http/, 'ws')}/ws`;
+}
+
+/**
+ * Ajoute un message de chat interne au fil déjà en cache.
+ *
+ * <p>Contrairement aux conversations voyageur, ce fil n'est pas paginé : le
+ * cache contient un simple tableau, et le message va à la fin.</p>
+ */
+function appendToContactThread(
+  queryClient: ReturnType<typeof useQueryClient>,
+  cleFil: string,
+  message: ContactMessage,
+): void {
+  [false, true].forEach((archived) => {
+    const cle = contactKeys.threadMessages(cleFil, archived);
+    const actuel = queryClient.getQueryData<ContactMessage[]>(cle);
+    if (!Array.isArray(actuel)) return;
+    // Le serveur renvoie aussi NOTRE propre message : sans ce garde, il
+    // apparaîtrait deux fois après un envoi.
+    if (actuel.some((m) => m.id === message.id)) return;
+    queryClient.setQueryData(cle, [...actuel, message]);
+  });
 }
 
 /**
@@ -98,36 +165,79 @@ export function useConversationStream(
       client.reconnectDelay = RETRY_BASE_MS;
 
       client.subscribe(`/topic/conversations/${organizationId}`, (frame: IMessage) => {
-        let event: ConversationMessageEvent;
+        let event: ConversationMessageDto;
         try {
-          event = JSON.parse(frame.body) as ConversationMessageEvent;
+          event = JSON.parse(frame.body) as ConversationMessageDto;
         } catch {
           // Un corps illisible ne doit pas rompre l'abonnement.
           return;
         }
 
-        // On invalide CIBLÉ, jamais `conversationKeys.all` : cette clé couvre
-        // aussi chaque fil ouvert et chaque page de la boîte, et une salve de
-        // messages déclencherait autant de rechargements complets — c'est
-        // exactement la boucle qui avait fait tomber l'écran des objets
-        // connectés sur le limiteur de débit.
-        if (event.conversationId != null) {
-          // Le fil est paginé et la clé se termine par `{ page }` : passer par
-          // `conversationKeys.messages(id)` produirait `{ page: undefined }`,
-          // qui ne préfixe PAS `{ page: 1 }`. On s'arrête donc à l'identifiant.
-          queryClient.invalidateQueries({
-            queryKey: [...conversationKeys.all, 'messages', event.conversationId],
-            exact: false,
-          });
+        if (event.conversationId != null && event.id != null) {
+          // Le fil ouvert se met à jour SANS réseau : la trame porte le
+          // message. On ne retombe sur une invalidation que si le cache ne
+          // contient pas la dernière page — le seul cas où il manque du
+          // contexte. La clé s'arrête à l'identifiant : la clé complète se
+          // termine par `{ page }`, et `{ page: undefined }` ne préfixe pas
+          // `{ page: 1 }`.
+          if (!appendToThread(queryClient, event)) {
+            queryClient.invalidateQueries({
+              queryKey: [...conversationKeys.all, 'messages', event.conversationId],
+              exact: false,
+            });
+          }
         }
 
-        // La boîte de réception change à chaque message : dernier extrait,
-        // horodatage, compteur de non-lus.
+        // La boîte de réception, elle, porte des AGRÉGATS que la trame ne
+        // contient pas — compteur de non-lus, ordre, dernier extrait — donc
+        // une invalidation reste nécessaire. Elle n'est pas sur le chemin
+        // critique : le fil ouvert est déjà à jour.
         queryClient.invalidateQueries({
           queryKey: [...conversationKeys.all, 'inbox'],
           exact: false,
         });
         queryClient.invalidateQueries({ queryKey: conversationKeys.unreadCount() });
+      });
+
+      // ── Chat interne ────────────────────────────────────────────────────
+      client.subscribe(`/topic/contact/${organizationId}`, (frame: IMessage) => {
+        let event: { message?: ContactMessage & { threadId?: number | null } };
+        try {
+          event = JSON.parse(frame.body);
+        } catch {
+          return;
+        }
+
+        // Le fil ouvert est écrit DIRECTEMENT depuis la trame, qui porte le
+        // message complet. Invalider ferait repartir chaque poste abonné en
+        // HTTP : sur une organisation de vingt personnes, un seul message
+        // provoquait vingt rechargements du fil — la tempête qu'on a déjà vue
+        // sur les objets connectés.
+        const message = event.message;
+        if (message?.threadId != null) {
+          appendToContactThread(queryClient, `group:${message.threadId}`, message);
+        } else {
+          queryClient.invalidateQueries({
+            queryKey: [...contactKeys.all, 'thread-messages'],
+            exact: false,
+          });
+        }
+
+        // La liste des fils porte des agrégats absents de la trame — non-lus,
+        // ordre, dernier extrait : elle reste invalidée.
+        queryClient.invalidateQueries({
+          queryKey: [...contactKeys.all, 'threads'],
+          exact: false,
+        });
+      });
+
+      // Une reconnexion laisse un trou : les événements émis pendant la coupure
+      // ne sont pas rejoués. On recale donc les listes à chaque (re)connexion —
+      // c'est ce qui permet de desserrer le sondage sans rien perdre.
+      queryClient.invalidateQueries({ queryKey: contactKeys.all, exact: false });
+      queryClient.invalidateQueries({
+        queryKey: [...conversationKeys.all, 'inbox'],
+        exact: false,
       });
     };
 

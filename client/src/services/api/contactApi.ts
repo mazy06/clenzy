@@ -47,6 +47,8 @@ export interface DepositCardPayload {
 
 export interface ContactMessage {
   id: number;
+  /** Fil de groupe, `null` pour un échange 1 à 1. */
+  threadId?: number | null;
   senderId: string;
   senderName?: string;
   recipientId: string;
