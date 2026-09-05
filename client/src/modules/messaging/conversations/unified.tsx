@@ -1,14 +1,6 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Chat as ChatIcon,
-  Email as EmailIcon,
-  Message as MessageIcon,
-  Hub as AirbnbIcon,
-  Hotel as BookingIcon,
-  Groups as GroupsIcon,
-  Description as FormIcon,
-} from '../../../icons';
+import { channelLabel } from './ChannelMark';
 import { useContactThreads } from '../../../hooks/useContactMessages';
 import { useChannelInbox } from '../../../hooks/useConversations';
 import { receivedFormsKeys } from '../../../hooks/useReceivedForms';
@@ -16,28 +8,6 @@ import { conversationTitle } from '../../channels/channelConfig';
 import type { ConversationDto } from '../../../services/api/conversationApi';
 import type { ContactThreadSummary } from '../../../services/api/contactApi';
 import { receivedFormsApi, type ReceivedForm } from '../../../services/api/receivedFormsApi';
-
-// ─── Pastilles canal (référence .mg-chn — couleurs spécifiées) ───────────────
-
-export interface ChannelBadge {
-  color: string;
-  Icon: React.ComponentType<{ size?: number | string; strokeWidth?: number | string }>;
-  label: string;
-}
-
-const CHANNEL_BADGES: Record<string, ChannelBadge> = {
-  WHATSAPP: { color: '#25A36F', Icon: ChatIcon, label: 'WhatsApp' },
-  EMAIL: { color: '#7BA3C2', Icon: EmailIcon, label: 'Email' },
-  SMS: { color: '#C28A52', Icon: MessageIcon, label: 'SMS' },
-  AIRBNB: { color: 'var(--airbnb)', Icon: AirbnbIcon, label: 'Airbnb' },
-  BOOKING: { color: 'var(--booking)', Icon: BookingIcon, label: 'Booking.com' },
-  INTERNAL: { color: 'var(--bui-primary)', Icon: GroupsIcon, label: 'Interne' },
-  FORM: { color: 'var(--bui-primary)', Icon: FormIcon, label: 'Formulaire' },
-};
-
-export function getChannelBadge(channel: string): ChannelBadge {
-  return CHANNEL_BADGES[channel] ?? { color: 'var(--bui-faint)', Icon: ChatIcon, label: channel };
-}
 
 // ─── Avatars (initiales + couleur déterministe, palette référence) ───────────
 
@@ -115,7 +85,7 @@ function fromChannelConversation(conv: ConversationDto): UnifiedConversation {
     key: `ch-${conv.id}`,
     kind: 'channel',
     name: conv.guestName || conversationTitle(conv),
-    context: conv.propertyName ?? getChannelBadge(conv.channel).label,
+    context: conv.propertyName ?? channelLabel(conv.channel),
     channel: conv.channel,
     preview: conv.lastMessagePreview || '—',
     lastAt: conv.lastMessageAt ?? conv.createdAt,

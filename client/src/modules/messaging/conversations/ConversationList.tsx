@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import GuestAvatar from '../../../components/baitly/GuestAvatar';
+import ConversationAvatar from './ConversationAvatar';
 import HeaderSearchField from '../../../components/HeaderSearchField';
 import {
   Archive as ArchiveIcon,
@@ -21,7 +21,6 @@ import {
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   type UnifiedConversation,
-  getChannelBadge,
   formatConvTime,
   conversationRawId,
 } from './unified';
@@ -73,7 +72,6 @@ function ConversationRow({
   restoreTitle?: string;
   isFirst: boolean;
 }) {
-  const badge = getChannelBadge(item.channel);
   return (
     <div
       onClick={onSelect}
@@ -85,17 +83,12 @@ function ConversationRow({
         active ? 'bg-primary-soft/50' : onSelect && 'hover:bg-accent',
       )}
     >
-      {/* Avatar + pastille du flux (email, SMS, WhatsApp, OTA, interne…) */}
-      <span className="relative shrink-0">
-        <GuestAvatar name={item.name} size={32} />
-        <span
-          className="absolute -bottom-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full border-2 border-card text-white"
-          style={{ backgroundColor: badge.color }}
-          title={badge.label}
-        >
-          <badge.Icon size={8} strokeWidth={2.5} />
-        </span>
-      </span>
+      {/* Qui parle (initiales, ou glyphe de groupe) + d'où ça vient (marque du canal) */}
+      <ConversationAvatar
+        name={item.name}
+        channel={item.channel}
+        group={item.kind === 'internal' && item.thread?.threadId != null}
+      />
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">

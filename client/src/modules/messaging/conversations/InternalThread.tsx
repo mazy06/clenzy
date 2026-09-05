@@ -19,7 +19,9 @@ import type { ContactThreadSummary } from '../../../services/api/contactApi';
 import QuoteMessageCard from './QuoteMessageCard';
 import DepositMessageCard from './DepositMessageCard';
 import ThreadView from './ThreadView';
-import { type ThreadMessage, getChannelBadge } from './unified';
+import { type ThreadMessage } from './unified';
+import ChannelMark from './ChannelMark';
+import ConversationAvatar from './ConversationAvatar';
 
 /** Equivalent classes de `composeToolSx` (toujours exporte par ThreadView pour ChannelThread). */
 const COMPOSE_TOOL_CLASS =
@@ -120,8 +122,6 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
     );
   };
 
-  const badge = getChannelBadge('INTERNAL');
-
   return (
     <>
       <input
@@ -136,11 +136,10 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
       />
       <ThreadView
         title={counterpartName}
+        avatar={<ConversationAvatar name={counterpartName} channel="INTERNAL" group={isGroup} />}
         subtitle={
           <>
-            <span className="inline-flex text-primary">
-              <badge.Icon size={13} strokeWidth={2} />
-            </span>
+            <ChannelMark channel="INTERNAL" size={14} />
             {t('messagingHub.internalChat', 'Chat interne')}
             {isGroup
               ? ` · ${(thread.participantNames ?? []).join(', ')}`
