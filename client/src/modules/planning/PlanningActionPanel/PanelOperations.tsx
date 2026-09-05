@@ -75,6 +75,11 @@ import { useNavigate } from 'react-router-dom';
 import CreateServiceRequestDialog from './CreateServiceRequestDialog';
 import MessagingAutomationStatus from './MessagingAutomationStatus';
 import { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
+import {
+  filterAttachedToReservation,
+  type AttachmentCandidate,
+} from '../utils/interventionAttachment';
+import { useAttachedServiceRequests } from './useAttachedServiceRequests';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -155,6 +160,8 @@ interface PanelOperationsProps {
   event: PlanningEvent;
   allEvents?: PlanningEvent[];
   interventions?: PlanningIntervention[];
+  /** Réservations chargées — arbitrage du rattachement des interventions. */
+  loadedReservations?: AttachmentCandidate[];
   /** @deprecated — service requests are now self-fetched via useQuery inside PanelOperations */
   _serviceRequestsUnused?: ServiceRequest[];
   onAssignIntervention?: (interventionId: number, assigneeName: string, options?: { userId?: number; teamId?: number }) => Promise<{ success: boolean; error: string | null }>;
@@ -178,6 +185,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   event,
   allEvents,
   interventions,
+  loadedReservations = [],
   onAssignIntervention,
   onSetPriority,
   onUpdateInterventionNotes,
@@ -223,20 +231,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     staleTime: 5 * 60 * 1000,
   });
 
-  // ── Fetch service requests for the current reservation ─────────────────────
+  // ── Demandes de service rattachées à la réservation ────────────────────────
   const currentReservationId = isReservation ? reservation?.id : undefined;
-  const { data: serviceRequestsRaw } = useQuery({
-    queryKey: ['planning', 'service-requests', currentReservationId],
-    queryFn: async () => {
-      const result = await serviceRequestsApi.getAll({ reservationId: currentReservationId });
-      // API returns paginated or array — handle both
-      const list = result;
-      return list as ServiceRequest[];
-    },
-    enabled: isReservation && !!currentReservationId,
-    staleTime: 30_000,
+  const serviceRequests = useAttachedServiceRequests({
+    reservationId: currentReservationId,
+    allEvents,
+    loadedReservations,
   });
-  const serviceRequests = serviceRequestsRaw ?? [];
 
   /** Unified assignee options list (users + teams) */
   const assigneeOptions = useMemo<AssigneeOption[]>(() => {
@@ -344,9 +345,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     }
   };
 
-  /** Find interventions linked to this reservation */
+  /** Interventions rattachées à cette réservation — MÊME règle que la brique du
+   *  planning (cf. filterAttachedToReservation) : ce qui est dessiné en pastille
+   *  dans la brique doit se retrouver ici. */
   const linkedInterventions = isReservation && reservation
-    ? (interventions || []).filter((i) => i.linkedReservationId === reservation.id && i.status !== 'cancelled')
+    ? filterAttachedToReservation(
+        (interventions || []).filter((i) => i.status !== 'cancelled'),
+        reservation.id,
+        loadedReservations,
+      )
     : [];
 
   /** The target intervention for assign / priority buttons */

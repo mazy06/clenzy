@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 import ReservationLifecycle, { buildSteps } from '../PlanningActionPanel/ReservationLifecycle';
 import type { PlanningEvent } from '../types';
@@ -82,6 +82,41 @@ describe('ReservationLifecycle', () => {
     expect(screen.getByText('Paiement')).toBeInTheDocument();
     expect(screen.getByText('Arrivée')).toBeInTheDocument();
     expect(screen.getByText('Départ')).toBeInTheDocument();
+  });
+
+  it('whenPaymentStepClicked_thenOpensPaymentTab', () => {
+    const onOpenPayment = vi.fn();
+    render(
+      <ReservationLifecycle reservation={makeReservation()} onOpenPayment={onOpenPayment} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Paiement/ }));
+
+    expect(onOpenPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it('whenArrivalStepClicked_thenOpensOperationsTab', () => {
+    const onOpenOperations = vi.fn();
+    render(
+      <ReservationLifecycle reservation={makeReservation()} onOpenOperations={onOpenOperations} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Arrivée/ }));
+
+    expect(onOpenOperations).toHaveBeenCalledTimes(1);
+  });
+
+  it('whenNoHandler_thenNoMilestoneIsClickable', () => {
+    render(<ReservationLifecycle reservation={makeReservation()} />);
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('whenOnlyPaymentHandler_thenArrivalStaysReadOnly', () => {
+    render(<ReservationLifecycle reservation={makeReservation()} onOpenPayment={vi.fn()} />);
+
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /Arrivée/ })).not.toBeInTheDocument();
   });
 
   it('whenCancelled_thenRendersNothing', () => {

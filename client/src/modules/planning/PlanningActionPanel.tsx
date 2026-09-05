@@ -16,6 +16,7 @@ import {
 } from '../../icons';
 import type { PlanningEvent, PanelTab, PlanningProperty, PlanningEventType, PanelView } from './types';
 import type { PlanningIntervention } from '../../services/api';
+import type { AttachmentCandidate } from './utils/interventionAttachment';
 import PageTabs from '../../components/PageTabs';
 import PanelReservationInfo from './PlanningActionPanel/PanelReservationInfo';
 import PanelOperations from './PlanningActionPanel/PanelOperations';
@@ -43,6 +44,12 @@ interface PlanningActionPanelProps {
   allEvents: PlanningEvent[];
   properties?: PlanningProperty[];
   interventions?: PlanningIntervention[];
+  /**
+   * Réservations CHARGÉES (avant filtres de légende), telles que les reçoit la
+   * grille : elles arbitrent le rattachement des interventions aux séjours, de
+   * sorte que le panneau montre exactement ce que la brique dessine.
+   */
+  loadedReservations?: AttachmentCandidate[];
   // Reservation actions
   onUpdateReservation?: (reservationId: number, updates: {
     checkIn?: string; checkOut?: string; checkInTime?: string; checkOutTime?: string;
@@ -159,6 +166,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   allEvents,
   properties,
   interventions,
+  loadedReservations,
   onUpdateReservation,
   onChangeProperty,
   onCancelReservation,
@@ -251,6 +259,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               onUpdateReservation={onUpdateReservation}
               onUpdateNotes={onUpdateNotes}
               onUpdateGuestInfo={onUpdateGuestInfo}
+              onOpenPayment={() => onTabChange('financial')}
+              onOpenOperations={() => onTabChange('operations')}
             />
           );
         case 'property':
@@ -266,6 +276,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               event={event}
               allEvents={allEvents}
               interventions={interventions}
+              loadedReservations={loadedReservations}
               onAssignIntervention={onAssignIntervention}
               onSetPriority={onSetPriority}
               onUpdateInterventionNotes={onUpdateInterventionNotes}
@@ -277,7 +288,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           return (
             <PanelFinancial
               event={event}
+              allEvents={allEvents}
               interventions={interventions}
+              loadedReservations={loadedReservations}
               onCreatePaymentSession={onCreatePaymentSession}
               onCreateEmbeddedSession={onCreateEmbeddedSession}
               onSendPaymentLink={onSendPaymentLink}
@@ -382,6 +395,10 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         <PanelSubViewHeader title={getSubViewTitle(currentView)} onBack={popView} />
       ) : (
         <div className="px-1.5">
+          {/* Onglets du PANNEAU, pas la navigation de l'écran : `trail={false}`.
+              Sans lui, `PageTabs` les portait dans le sélecteur du titre de la
+              page (« Planning │ Infos ⌄ ») — le drawer perdait sa bande d'onglets
+              et l'accès aux Opérations, au Logement et au Paiement avec elle. */}
           <PageTabs<PanelTab>
             options={tabConfig.map((tab) => ({ value: tab.value, label: tab.label, icon: tab.icon }))}
             value={activeTab}
@@ -389,6 +406,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             size="compact"
             paper={false}
             mb={0}
+            trail={false}
             ariaLabel="Onglets du détail"
           />
         </div>

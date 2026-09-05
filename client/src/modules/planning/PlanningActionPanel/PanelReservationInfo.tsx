@@ -102,6 +102,10 @@ interface PanelReservationInfoProps {
   }) => Promise<ActionResult>;
   onUpdateNotes?: (reservationId: number, notes: string) => Promise<ActionResult>;
   onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<ActionResult>;
+  /** Bascule sur l'onglet Paiement (jalon « Paiement » du cycle de vie). */
+  onOpenPayment?: () => void;
+  /** Bascule sur l'onglet Opérations (jalon « Arrivée » du cycle de vie). */
+  onOpenOperations?: () => void;
 }
 
 const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
@@ -109,6 +113,8 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
   onUpdateReservation,
   onUpdateNotes,
   onUpdateGuestInfo,
+  onOpenPayment,
+  onOpenOperations,
 }) => {
   const reservation = event.reservation;
   const [editingName, setEditingName] = useState(false);
@@ -214,7 +220,11 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
       </div>
 
       {/* ─── Cycle de vie du séjour (stepper de la projection) ─────────── */}
-      <ReservationLifecycle reservation={reservation} />
+      <ReservationLifecycle
+        reservation={reservation}
+        onOpenPayment={onOpenPayment}
+        onOpenOperations={onOpenOperations}
+      />
 
       {/* ─── DATES & HORAIRES ──────────────────────────────────────────── */}
       <EditableDatesSection reservation={reservation} onUpdate={onUpdateReservation} />
