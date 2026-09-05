@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  filterAttachedToReservation,
   resolveAttachedReservationId,
   type AttachmentCandidate,
 } from '../utils/interventionAttachment';
@@ -232,5 +233,43 @@ describe('resolveAttachedReservationId', () => {
       );
       expect(id).toBe(43);
     });
+  });
+});
+
+// ─── filterAttachedToReservation ─────────────────────────────────────────────
+//
+// La règle de rattachement du PANNEAU doit être celle de la BRIQUE : un ménage
+// dessiné en pastille dans la brique se retrouve dans Opérations et Paiement.
+
+describe('filterAttachedToReservation', () => {
+  const checkoutCleaning = { id: 1, propertyId: 1, startDate: '2026-03-15' };
+  const midStayCleaning = { id: 2, propertyId: 1, startDate: '2026-03-13' };
+  const otherProperty = { id: 3, propertyId: 2, startDate: '2026-03-13' };
+
+  it('retient le ménage de checkout et le ménage en cours de séjour, sans lien explicite', () => {
+    const attached = filterAttachedToReservation(
+      [checkoutCleaning, midStayCleaning, otherProperty],
+      42,
+      [gerard, nextGuest],
+    );
+
+    // Le ménage du 15 est celui du CHECKOUT de Gérard, pas de l'arrivée suivante.
+    expect(attached.map((i) => i.id)).toEqual([1, 2]);
+  });
+
+  it('ne retient rien pour une réservation à laquelle rien ne se rattache', () => {
+    const attached = filterAttachedToReservation([checkoutCleaning], 43, [gerard, nextGuest]);
+
+    expect(attached).toEqual([]);
+  });
+
+  it('sans réservations chargées, s’en tient au lien explicite', () => {
+    const attached = filterAttachedToReservation(
+      [checkoutCleaning, { ...midStayCleaning, linkedReservationId: 42 }],
+      42,
+      [],
+    );
+
+    expect(attached.map((i) => i.id)).toEqual([2]);
   });
 });

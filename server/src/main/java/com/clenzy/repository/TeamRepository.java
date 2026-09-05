@@ -52,6 +52,17 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
      * rendre un independant visible du moteur d'affectation. L'unicite est
      * garantie en base par un index unique partiel.
      */
+    /**
+     * Equipes personnelles d'un lot d'intervenants, zones comprises.
+     *
+     * <p>Le JOIN FETCH evite une requete de zones par intervenant : le
+     * portefeuille en affiche plusieurs dizaines d'un coup.</p>
+     */
+    @Query("SELECT DISTINCT t FROM Team t LEFT JOIN FETCH t.coverageZones "
+         + "WHERE t.organizationId = :orgId AND t.personalUserId IN :userIds")
+    List<Team> findPersonalTeamsWithZones(@Param("userIds") java.util.Collection<Long> userIds,
+                                          @Param("orgId") Long orgId);
+
     @Query("SELECT t FROM Team t WHERE t.personalUserId = :userId AND t.organizationId = :orgId")
     Optional<Team> findByPersonalUserId(@Param("userId") Long userId, @Param("orgId") Long orgId);
 
@@ -128,4 +139,25 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
      */
     @Query("SELECT t.id FROM Team t WHERE t.interventionType = :interventionType AND t.organizationId = :orgId")
     List<Long> findIdsByInterventionType(@Param("interventionType") String interventionType, @Param("orgId") Long orgId);
+
+    /**
+     * Effectif de chaque equipe REELLE de l'organisation.
+     *
+     * <p>{@code personalUserId IS NULL} ecarte les equipes personnelles, creees
+     * pour porter les zones de couverture d'un intervenant : les compter
+     * gonflerait le nombre d'equipes sans qu'aucune existe sur le terrain.</p>
+     *
+     * <p>{@code SIZE()} devient un sous-select : on evite le N+1 qu'un
+     * chargement des membres provoquerait.</p>
+     *
+     * @return des paires {@code [teamId, nombre de membres]}
+     */
+    @Query("SELECT t.id, SIZE(t.members) FROM Team t "
+         + "WHERE t.organizationId = :orgId AND t.personalUserId IS NULL")
+    List<Object[]> countMembersPerRealTeam(@Param("orgId") Long orgId);
+
+    /** Identifiants des utilisateurs membres d'au moins une equipe REELLE. */
+    @Query("SELECT DISTINCT tm.user.id FROM TeamMember tm "
+         + "WHERE tm.team.organizationId = :orgId AND tm.team.personalUserId IS NULL")
+    List<Long> findUserIdsInRealTeams(@Param("orgId") Long orgId);
 }

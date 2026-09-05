@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
@@ -6,6 +7,7 @@ import { Spinner } from '../../components/ui';
 import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import {
   Avatar,
+  AvatarImage,
   AvatarFallback,
   Card,
   CardContent,
@@ -59,6 +61,8 @@ interface TeamMember {
   lastName: string;
   email: string;
   role: string;
+  /** URL ticketee de la photo de profil, servie par le backend. */
+  avatarUrl?: string | null;
 }
 
 interface TeamFormData {
@@ -149,6 +153,7 @@ const TeamEdit: React.FC = () => {
           lastName: m.lastName,
           email: m.email,
           role: m.roleInTeam ?? m.role,
+          avatarUrl: m.avatarUrl,
         })),
         coverageZones: teamData.coverageZones?.map((z) => ({
           id: z.id,
@@ -639,6 +644,9 @@ const TeamEdit: React.FC = () => {
                       className="flex items-center gap-2 border border-solid border-border rounded-lg px-2 py-1.5"
                     >
                       <Avatar className="rounded-[10px]">
+                        {resolveMediaUrl(member.avatarUrl) ? (
+                          <AvatarImage src={resolveMediaUrl(member.avatarUrl)} alt="" />
+                        ) : null}
                         <AvatarFallback className="rounded-[10px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold">
                           {member.firstName.charAt(0)}{member.lastName.charAt(0)}
                         </AvatarFallback>

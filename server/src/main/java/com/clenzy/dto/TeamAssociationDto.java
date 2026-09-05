@@ -8,6 +8,18 @@ public class TeamAssociationDto {
     private String assignedAt;
     private String notes;
 
+    /**
+     * Ville couverte par l'equipe, prise sur sa zone d'intervention. NULL quand
+     * la zone n'est definie qu'au departement.
+     */
+    private String city;
+
+    /** CLEANING | MAINTENANCE — le metier, qui transitait dans {@code notes}. */
+    private String interventionType;
+
+    /** Les membres, nommes. Un compte seul ne dit pas qui travaille ou. */
+    private java.util.List<TeamMemberSummaryDto> members = new java.util.ArrayList<>();
+
     // Constructors
     public TeamAssociationDto() {}
 
@@ -39,4 +51,13 @@ public class TeamAssociationDto {
     
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public String getInterventionType() { return interventionType; }
+    public void setInterventionType(String interventionType) { this.interventionType = interventionType; }
+
+    public java.util.List<TeamMemberSummaryDto> getMembers() { return members; }
+    public void setMembers(java.util.List<TeamMemberSummaryDto> members) { this.members = members; }
 }

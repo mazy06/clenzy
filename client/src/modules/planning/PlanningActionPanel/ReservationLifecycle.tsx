@@ -17,7 +17,11 @@ import { toDate } from '../utils/dateUtils';
 
 type StepState = 'done' | 'current' | 'todo';
 
+/** Jalon identifié par une clé stable : l'ordre du tableau n'est pas un contrat. */
+type StepId = 'confirmed' | 'payment' | 'arrival' | 'departure';
+
 interface LifecycleStep {
+  id: StepId;
   label: string;
   detail?: string;
   done: boolean;
@@ -39,10 +43,12 @@ export function buildSteps(reservation: NonNullable<PlanningEvent['reservation']
   const arrived = reservation.status === 'checked_in' || reservation.status === 'checked_out';
   return [
     {
+      id: 'confirmed',
       label: 'Confirmée',
       done: reservation.status !== 'pending',
     },
     {
+      id: 'payment',
       label: 'Paiement',
       detail: reservation.collectedByChannel
         ? 'via le canal'
@@ -54,11 +60,13 @@ export function buildSteps(reservation: NonNullable<PlanningEvent['reservation']
       done: paid,
     },
     {
+      id: 'arrival',
       label: 'Arrivée',
       detail: fmtMilestone(reservation.checkIn, reservation.checkInTime),
       done: arrived,
     },
     {
+      id: 'departure',
       label: 'Départ',
       detail: fmtMilestone(reservation.checkOut, reservation.checkOutTime),
       done: reservation.status === 'checked_out',
@@ -66,11 +74,68 @@ export function buildSteps(reservation: NonNullable<PlanningEvent['reservation']
   ];
 }
 
-interface ReservationLifecycleProps {
-  reservation: NonNullable<PlanningEvent['reservation']>;
+const STEP_CLASS = 'flex flex-col items-center gap-[3px] px-1.5 text-center';
+
+/** Pastille + libellé + détail : identiques que le jalon soit cliquable ou non. */
+function renderStepContent(step: LifecycleStep, state: StepState, interactive: boolean) {
+  return (
+    <>
+      <span
+        className={cn(
+          'inline-flex size-5 items-center justify-center rounded-full shrink-0',
+          state === 'done' && 'bg-[var(--accent)] text-[var(--on-accent)]',
+          state === 'current' && 'bg-[var(--warn-soft)] text-[var(--warn)] ring-4 ring-[color-mix(in_srgb,var(--warn)_15%,transparent)]',
+          state === 'todo' && 'bg-[var(--hover)] text-[var(--muted)]',
+        )}
+      >
+        {state === 'done'
+          ? <Check size={11} strokeWidth={2.5} />
+          : <span className="size-[6px] rounded-full bg-current" />}
+      </span>
+      <span
+        className={cn(
+          'text-[0.625rem] font-semibold whitespace-nowrap',
+          state === 'current' ? 'text-[var(--warn)]' : 'text-[var(--ink)]',
+          interactive && 'underline decoration-dotted underline-offset-2',
+        )}
+      >
+        {step.label}
+      </span>
+      {step.detail && (
+        <span className="text-[0.625rem] whitespace-nowrap text-[var(--muted)] tabular-nums">
+          {step.detail}
+        </span>
+      )}
+    </>
+  );
 }
 
-const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({ reservation }) => {
+/** Ce vers quoi mène un jalon, quand il mène quelque part. */
+const STEP_DESTINATION: Partial<Record<StepId, string>> = {
+  payment: "ouvrir l'onglet Paiement",
+  arrival: "ouvrir l'onglet Opérations",
+};
+
+interface ReservationLifecycleProps {
+  reservation: NonNullable<PlanningEvent['reservation']>;
+  /**
+   * Ouvre l'onglet Paiement du panneau. Fourni, il rend le jalon « Paiement »
+   * actionnable : c'est là qu'on lit « en attente », c'est de là qu'on doit
+   * pouvoir encaisser, sans repasser par la bande d'onglets.
+   */
+  onOpenPayment?: () => void;
+  /**
+   * Ouvre l'onglet Opérations. Même geste pour le jalon « Arrivée » : le
+   * check-in et le ménage qui le précède se pilotent là.
+   */
+  onOpenOperations?: () => void;
+}
+
+const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({
+  reservation,
+  onOpenPayment,
+  onOpenOperations,
+}) => {
   if (reservation.status === 'cancelled') return null;
 
   const steps = buildSteps(reservation);
@@ -81,6 +146,11 @@ const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({ reservation
     <div className="flex items-center rounded-[12px] border border-solid border-[var(--line)] bg-[var(--field)] px-2 py-2">
       {steps.map((step, index) => {
         const state: StepState = step.done ? 'done' : index === currentIndex ? 'current' : 'todo';
+        // Un jalon n'est actionnable que s'il mène à un onglet ET que le parent
+        // a fourni le geste correspondant ; sinon il reste une lecture.
+        const action =
+          step.id === 'payment' ? onOpenPayment : step.id === 'arrival' ? onOpenOperations : undefined;
+        const interactive = Boolean(action);
         return (
           <div key={step.label} className={cn('flex items-center min-w-0', index > 0 && 'flex-1')}>
             {index > 0 && (
@@ -89,33 +159,24 @@ const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({ reservation
                 style={{ backgroundColor: state === 'todo' ? 'var(--line)' : 'var(--accent)' }}
               />
             )}
-            <div className="flex flex-col items-center gap-[3px] px-1.5 text-center">
-              <span
+            {interactive ? (
+              <button
+                type="button"
+                onClick={action}
+                aria-label={`${step.label}${step.detail ? ` ${step.detail}` : ''} — ${STEP_DESTINATION[step.id]}`}
                 className={cn(
-                  'inline-flex size-5 items-center justify-center rounded-full shrink-0',
-                  state === 'done' && 'bg-[var(--accent)] text-[var(--on-accent)]',
-                  state === 'current' && 'bg-[var(--warn-soft)] text-[var(--warn)] ring-4 ring-[color-mix(in_srgb,var(--warn)_15%,transparent)]',
-                  state === 'todo' && 'bg-[var(--hover)] text-[var(--muted)]',
+                  STEP_CLASS,
+                  'cursor-pointer rounded-[8px] border-0 bg-transparent py-0.5',
+                  'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none',
+                  'hover:bg-[var(--hover)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--field)]',
                 )}
               >
-                {state === 'done'
-                  ? <Check size={11} strokeWidth={2.5} />
-                  : <span className="size-[6px] rounded-full bg-current" />}
-              </span>
-              <span
-                className={cn(
-                  'text-[0.625rem] font-semibold whitespace-nowrap',
-                  state === 'current' ? 'text-[var(--warn)]' : 'text-[var(--ink)]',
-                )}
-              >
-                {step.label}
-              </span>
-              {step.detail && (
-                <span className="text-[0.625rem] whitespace-nowrap text-[var(--muted)] tabular-nums">
-                  {step.detail}
-                </span>
-              )}
-            </div>
+                {renderStepContent(step, state, interactive)}
+              </button>
+            ) : (
+              <div className={STEP_CLASS}>{renderStepContent(step, state, interactive)}</div>
+            )}
           </div>
         );
       })}

@@ -82,21 +82,24 @@ async function fetchProperties(
     try {
       const associations = await managersApi.getAssociations(user.id);
       if (associations?.properties && Array.isArray(associations.properties)) {
-        propertyList = associations.properties.map((p: { id: number; name: string; address?: string; city?: string; type?: string; ownerId?: number; maxGuests?: number }) => ({
+        propertyList = associations.properties.map((p) => ({
           id: p.id,
           name: p.name,
           address: p.address || '',
           city: p.city || '',
           postalCode: '',
           country: '',
-          type: p.type || '',
+          // Ni le type de bien ni la capacite ne figurent dans le read-model des
+          // associations : ces lectures valaient `undefined` et retombaient deja
+          // sur leur valeur neutre.
+          type: '',
           status: '',
           bedroomCount: 0,
           bathroomCount: 0,
           squareMeters: 0,
           nightlyPrice: 0,
           description: '',
-          maxGuests: p.maxGuests || 0,
+          maxGuests: 0,
           cleaningFrequency: '',
           ownerId: p.ownerId || 0,
         }));

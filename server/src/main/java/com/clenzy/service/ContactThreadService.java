@@ -60,17 +60,20 @@ public class ContactThreadService {
     private final ContactMessageRepository messageRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ContactMessageEventPublisher eventPublisher;
 
     public ContactThreadService(ContactThreadRepository threadRepository,
                                 ContactThreadParticipantRepository participantRepository,
                                 ContactMessageRepository messageRepository,
                                 UserRepository userRepository,
-                                NotificationService notificationService) {
+                                NotificationService notificationService,
+                                ContactMessageEventPublisher eventPublisher) {
         this.threadRepository = threadRepository;
         this.participantRepository = participantRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
     }
 
     /** `group:12` → 12 ; toute autre cle designe un echange un-a-un. */
@@ -181,6 +184,18 @@ public class ContactThreadService {
         threadRepository.save(thread);
 
         notifyParticipants(thread, senderKeycloakId, sender);
+
+        // Les fils de GROUPE ne publiaient aucun evenement temps reel : ni ce
+        // service ni le controleur ne touchaient au courtier. Les participants
+        // ne voyaient donc le message qu'au sondage suivant — jusqu'a une minute.
+        //
+        // Le contenu ne part QUE dans les files personnelles des participants.
+        // Le diffuser sur le sujet d'organisation l'aurait rendu lisible par
+        // tout membre abonne, participant ou non.
+        eventPublisher.publishToParticipants(message, ContactMessageDto.fromEntity(message),
+                participantRepository.findByThreadId(thread.getId()).stream()
+                        .map(ContactThreadParticipant::getKeycloakId)
+                        .toList());
         return message;
     }
 

@@ -5,7 +5,6 @@ import apiClient from '../apiClient';
 export interface ChartDataItem {
   name: string;
   value: number;
-  color?: string;
 }
 
 export interface MonthlyInterventionData {
@@ -57,8 +56,13 @@ export interface FinancialReportData {
 
 // ─── Shapes serveur (agrégats Baitly, ReportStatsController) ────────────────
 // Le serveur renvoie des agrégats bruts (GROUP BY SQL) : types NON regroupés
-// en catégories, mois au format ISO yyyy-MM, pas de couleurs. Le regroupement
-// d'affichage (catégories localisées, libellés de mois, couleurs) reste ici.
+// en catégories, mois au format ISO yyyy-MM. Le regroupement d'affichage
+// (catégories, libellés de mois) reste ici.
+//
+// Les COULEURS, elles, ne passent plus par cette couche : chaque série portait
+// un hexadécimal en dur (#2196f3, #4caf50…) hors de la charte, qui ne suivait
+// ni le thème sombre ni la teinte d'accent. Les graphiques prennent désormais
+// les jetons de série `--bui-chart-*`.
 
 interface RawChartItem {
   name: string;
@@ -76,26 +80,6 @@ interface RawFinancialStats {
   monthlyFinancials: FinancialMonthlyData[]; // month = 'yyyy-MM'
   costBreakdown: RawChartItem[];
 }
-
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-const CHART_COLORS = ['#2196f3', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4', '#795548', '#607d8b'];
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: '#ff9800',
-  IN_PROGRESS: '#2196f3',
-  COMPLETED: '#4caf50',
-  CANCELLED: '#f44336',
-  SCHEDULED: '#9c27b0',
-  ON_HOLD: '#607d8b',
-};
-
-const PRIORITY_COLORS: Record<string, string> = {
-  LOW: '#4caf50',
-  MEDIUM: '#ff9800',
-  HIGH: '#f44336',
-  URGENT: '#9c27b0',
-};
 
 // ─── Helpers (présentation uniquement) ──────────────────────────────────────
 
@@ -121,11 +105,7 @@ function bucketByTypeCategory(items: RawChartItem[]): ChartDataItem[] {
     const category = typeCategory(item.name);
     sums.set(category, (sums.get(category) || 0) + item.value);
   }
-  return Array.from(sums.entries()).map(([name, value], idx) => ({
-    name,
-    value,
-    color: CHART_COLORS[idx % CHART_COLORS.length],
-  }));
+  return Array.from(sums.entries()).map(([name, value]) => ({ name, value }));
 }
 
 // ─── API ────────────────────────────────────────────────────────────────────
@@ -134,16 +114,10 @@ export const reportsApi = {
   async getInterventionStats(): Promise<InterventionReportData> {
     const raw = await apiClient.get<RawInterventionStats>('/reports/stats/interventions');
     return {
-      byStatus: raw.byStatus.map((item) => ({
-        ...item,
-        color: STATUS_COLORS[item.name] || CHART_COLORS[0],
-      })),
+      byStatus: raw.byStatus,
       byType: bucketByTypeCategory(raw.byType),
       byMonth: raw.byMonth.map((m) => ({ ...m, month: monthLabel(m.month) })),
-      byPriority: raw.byPriority.map((item) => ({
-        ...item,
-        color: PRIORITY_COLORS[item.name] || CHART_COLORS[0],
-      })),
+      byPriority: raw.byPriority,
     };
   },
 

@@ -121,3 +121,28 @@ export function resolveAttachedReservationId(
 
   return null;
 }
+
+/**
+ * Les interventions rattachées à UNE réservation, selon la règle qui vaut pour
+ * la brique du planning (`resolveAttachedReservationId`).
+ *
+ * C'est la même question posée au même endroit : une pastille dessinée dans la
+ * brique DOIT se retrouver dans les onglets Opérations et Paiement du panneau.
+ * Tant que chacun filtrait à sa façon — lien explicite ici, chevauchement de
+ * dates là —, une brique pouvait afficher deux ménages et le panneau annoncer
+ * « aucune intervention liée ».
+ *
+ * `reservations` sont les réservations CHARGÉES (avant filtres de légende),
+ * nécessaires pour arbitrer entre séjours voisins. Vide, on ne peut rien
+ * arbitrer : on s'en tient alors au lien explicite.
+ */
+export function filterAttachedToReservation<T extends AttachableIntervention>(
+  items: readonly T[],
+  reservationId: number,
+  reservations: readonly AttachmentCandidate[],
+): T[] {
+  if (reservations.length === 0) {
+    return items.filter((item) => item.linkedReservationId === reservationId);
+  }
+  return items.filter((item) => resolveAttachedReservationId(item, reservations) === reservationId);
+}

@@ -33,13 +33,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             + "http://localhost:5173,http://localhost:5174,http://localhost:4173";
 
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+    private final WebSocketCookieHandshakeInterceptor cookieHandshakeInterceptor;
     private final WebSocketSubscribeAuthorizationInterceptor subscribeAuthorizationInterceptor;
     private final String allowedOrigins;
 
     public WebSocketConfig(WebSocketAuthInterceptor webSocketAuthInterceptor,
+                           WebSocketCookieHandshakeInterceptor cookieHandshakeInterceptor,
                            WebSocketSubscribeAuthorizationInterceptor subscribeAuthorizationInterceptor,
                            @Value("${cors.allowed-origins:" + DEV_DEFAULT_ORIGINS + "}") String allowedOrigins) {
         this.webSocketAuthInterceptor = webSocketAuthInterceptor;
+        this.cookieHandshakeInterceptor = cookieHandshakeInterceptor;
         this.subscribeAuthorizationInterceptor = subscribeAuthorizationInterceptor;
         this.allowedOrigins = allowedOrigins;
     }
@@ -57,10 +60,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Endpoint avec SockJS pour le web
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(origins)
+                .addInterceptors(cookieHandshakeInterceptor)
                 .withSockJS();
         // Endpoint raw WebSocket pour mobile (React Native n'a pas SockJS)
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(origins);
+                .setAllowedOriginPatterns(origins)
+                .addInterceptors(cookieHandshakeInterceptor);
     }
 
     @Override

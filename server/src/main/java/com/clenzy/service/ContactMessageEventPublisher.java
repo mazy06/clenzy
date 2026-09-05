@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactMessageEvent;
 import com.clenzy.model.ContactMessage;
+import java.util.Collection;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -68,16 +70,71 @@ public class ContactMessageEventPublisher {
             );
             log.debug("Evenement contact publie vers expediteur {}", msg.getSenderKeycloakId());
 
-            // Broadcast au niveau org (pour rafraichir la liste de threads des autres utilisateurs)
-            messagingTemplate.convertAndSend(
-                    "/topic/contact/" + orgId,
-                    event
-            );
-            log.debug("Evenement contact broadcast sur /topic/contact/{}", orgId);
+            broadcastRefreshSignal(orgId, msg.getId());
 
         } catch (Exception e) {
             log.warn("Erreur publication WebSocket contact: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Publie un message de fil de GROUPE aux seuls participants.
+     *
+     * <p>Le contenu ne part que dans les files personnelles des participants.
+     * Le diffuser sur le sujet d'organisation le rendait lisible par tout
+     * membre abonne, participant ou non : le filtrage ne tenait alors qu'a la
+     * bonne volonte du client, ce qui n'est pas un controle d'acces.</p>
+     *
+     * @param participantKeycloakIds participants du fil, expediteur inclus —
+     *                               il a d'autres onglets et d'autres appareils
+     */
+    public void publishToParticipants(ContactMessage msg, ContactMessageDto dto,
+                                      Collection<String> participantKeycloakIds) {
+        if (messagingTemplate == null) {
+            log.debug("WebSocket non configure, evenement contact non publie");
+            return;
+        }
+
+        try {
+            Long orgId = msg.getOrganizationId();
+            ContactMessageEvent event = new ContactMessageEvent(
+                    "NEW_MESSAGE",
+                    msg.getId(),
+                    msg.getSenderKeycloakId(),
+                    msg.getRecipientKeycloakId(),
+                    orgId,
+                    dto
+            );
+
+            for (String keycloakId : participantKeycloakIds) {
+                if (keycloakId == null || keycloakId.isBlank() || "external".equals(keycloakId)) {
+                    continue;
+                }
+                messagingTemplate.convertAndSendToUser(keycloakId, "/queue/contact-messages", event);
+            }
+            log.debug("Evenement contact publie a {} participant(s) du fil {}",
+                    participantKeycloakIds.size(), msg.getThreadId());
+
+            broadcastRefreshSignal(orgId, msg.getId());
+
+        } catch (Exception e) {
+            log.warn("Erreur publication WebSocket contact: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Signal SANS CONTENU sur le sujet d'organisation.
+     *
+     * <p>Il ne sert qu'a faire rafraichir la liste des fils : les compteurs de
+     * non-lus et l'ordre changent pour tout le monde. Le message lui-meme n'y
+     * figure pas — l'endpoint qui sert la liste applique, lui, les droits.</p>
+     */
+    private void broadcastRefreshSignal(Long orgId, Long messageId) {
+        messagingTemplate.convertAndSend(
+                "/topic/contact/" + orgId,
+                new ContactMessageEvent("REFRESH", messageId, null, null, orgId, null)
+        );
+        log.debug("Signal de rafraichissement diffuse sur /topic/contact/{}", orgId);
     }
 
     /**

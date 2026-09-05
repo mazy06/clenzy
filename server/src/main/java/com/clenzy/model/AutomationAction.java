@@ -22,6 +22,15 @@ public enum AutomationAction {
     SEND_INVOICE_REMINDER("SEND_INVOICE_REMINDER"),
     NOTIFY_STAFF("NOTIFY_STAFF"),
     SEND_OWNER_STATEMENT("SEND_OWNER_STATEMENT"),
+    /**
+     * F9b : releve d'analyse mensuel en PDF, distinct du releve de reversements.
+     *
+     * <p>Genere SANS commentaire d'agent, donc entierement deterministe — c'est
+     * ce qui autorise l'envoi automatique. Un texte redige par un modele ne part
+     * jamais chez un proprietaire sans relecture humaine ; un rapport dont
+     * chaque ligne est calculee, si.</p>
+     */
+    SEND_OWNER_REPORT("SEND_OWNER_REPORT"),
     SEND_NOISE_WARNING("SEND_NOISE_WARNING"),
 
     // ── Flux Vague 3 — arbitrage utilisateur (fiche 08) ──────────────────────

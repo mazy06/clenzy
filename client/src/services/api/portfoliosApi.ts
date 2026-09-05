@@ -2,6 +2,12 @@ import apiClient from '../apiClient';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Une part d'une répartition : un libellé, un effectif. */
+export interface PortfolioBucket {
+  label: string;
+  count: number;
+}
+
 export interface PortfolioStats {
   totalPortfolios: number;
   totalClients: number;
@@ -16,6 +22,17 @@ export interface PortfolioStats {
     portfolioName: string;
     assignedAt: string;
   }>;
+  /** Chiffres sur les équipes, absents de toute répartition graphique. */
+  totalTeams: number;
+  teamsWithoutMembers: number;
+  staffWithoutTeam: number;
+  averageTeamSize: number;
+  /** Répartitions et série temporelle, pour les graphiques. */
+  staffByTrade: PortfolioBucket[];
+  staffByCity: PortfolioBucket[];
+  propertiesByCity: PortfolioBucket[];
+  propertiesByType: PortfolioBucket[];
+  assignmentsByMonth: Array<{ month: string; clients: number; staff: number }>;
   portfolioBreakdown: Array<{
     portfolioId: number;
     portfolioName: string;
@@ -26,11 +43,19 @@ export interface PortfolioStats {
 }
 
 export interface ManagerAssociations {
-  clients: Array<{ id: number; firstName: string; lastName: string; email: string; role: string; phoneNumber?: string; associatedAt: string }>;
-  teams: Array<{ id: number; name: string; memberCount?: number; description?: string; assignedAt?: string }>;
+  // `assignedAt`, comme le serveur l'envoie. Ce type declarait `associatedAt` —
+  // un champ qui n'existe nulle part cote API — d'ou « Associe le Invalid Date ».
+  clients: Array<{ id: number; firstName: string; lastName: string; email: string; role: string; phoneNumber?: string; assignedAt: string; notes?: string }>;
+  teams: Array<{ id: number; name: string; memberCount?: number; description?: string; assignedAt?: string;
+    city?: string | null; interventionType?: string | null;
+    members?: Array<{ id: number; fullName: string; role: string;
+      platformRole?: string | null; avatarUrl?: string | null }> }>;
   portfolios: Array<{ id: number; name: string }>;
-  properties: Array<{ id: number; name: string; address?: string; city?: string; type?: string; createdAt?: string; ownerId?: number }>;
-  users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string; assignedAt?: string }>;
+  properties: Array<{ id: number; name: string; address?: string; description?: string; city?: string | null;
+    ownerId?: number; ownerName?: string; assignedAt?: string; notes?: string }>;
+  users: Array<{ id: number; firstName: string; lastName: string; email?: string; role?: string;
+    assignedAt?: string; city?: string | null; coverageCities?: string[];
+    avatarUrl?: string | null }>;
 }
 
 export interface Manager {

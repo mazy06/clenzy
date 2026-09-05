@@ -16,12 +16,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +39,7 @@ public class PortfolioService {
     private final PortfolioTeamRepository portfolioTeamRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final com.clenzy.repository.TeamRepository teamRepository;
     private final NotificationService notificationService;
     private final com.clenzy.tenant.TenantContext tenantContext;
 
@@ -43,6 +48,7 @@ public class PortfolioService {
                             PortfolioTeamRepository portfolioTeamRepository,
                             PropertyRepository propertyRepository,
                             UserRepository userRepository,
+                            com.clenzy.repository.TeamRepository teamRepository,
                             NotificationService notificationService,
                             com.clenzy.tenant.TenantContext tenantContext) {
         this.portfolioRepository = portfolioRepository;
@@ -50,6 +56,7 @@ public class PortfolioService {
         this.portfolioTeamRepository = portfolioTeamRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
+        this.teamRepository = teamRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
     }
@@ -282,6 +289,17 @@ public class PortfolioService {
         List<PortfolioStatsDto.PortfolioBreakdown> breakdowns = new ArrayList<>();
         List<PortfolioStatsDto.RecentAssignment> allRecentAssignments = new ArrayList<>();
 
+        // Repartitions pour les graphiques. Tout se calcule au fil du parcours
+        // deja fait : pas une requete de plus.
+        Map<String, Integer> staffByTrade = new LinkedHashMap<>();
+        Map<String, Integer> staffByCity = new TreeMap<>();
+        Map<String, Integer> propertiesByCity = new TreeMap<>();
+        Map<String, Integer> propertiesByType = new TreeMap<>();
+        Map<String, int[]> assignmentsByMonth = new TreeMap<>();
+        // Un intervenant rattache a deux portefeuilles ne doit compter qu'une
+        // fois dans une repartition d'effectif.
+        Set<Long> countedStaff = new HashSet<>();
+
         for (Portfolio portfolio : portfolios) {
             // Count active / inactive
             if (Boolean.TRUE.equals(portfolio.getIsActive())) {
@@ -303,7 +321,11 @@ public class PortfolioService {
                 // Count properties owned by this client
                 List<Property> clientProperties = propertyRepository.findByOwnerId(clientId);
                 for (Property prop : clientProperties) {
-                    uniquePropertyIds.add(prop.getId());
+                    if (uniquePropertyIds.add(prop.getId())) {
+                        bump(propertiesByCity, labelOrUnknown(prop.getCity()));
+                        bump(propertiesByType, prop.getType() != null
+                                ? prop.getType().name() : UNKNOWN_LABEL);
+                    }
                 }
 
                 // Build recent assignment entry for this client
@@ -314,6 +336,7 @@ public class PortfolioService {
                         portfolio.getName(),
                         pc.getAssignedAt()
                 ));
+                bumpMonth(assignmentsByMonth, pc.getAssignedAt(), 0);
             }
 
             // Team members for this portfolio
@@ -330,6 +353,13 @@ public class PortfolioService {
                         portfolio.getName(),
                         pt.getAssignedAt()
                 ));
+                bumpMonth(assignmentsByMonth, pt.getAssignedAt(), 1);
+
+                com.clenzy.model.User staff = pt.getTeamMember();
+                if (staff != null && countedStaff.add(staff.getId())) {
+                    bump(staffByTrade, tradeOf(staff.getRole()));
+                    bump(staffByCity, labelOrUnknown(staff.getCity()));
+                }
             }
 
             // Portfolio breakdown
@@ -348,6 +378,15 @@ public class PortfolioService {
         stats.setTotalProperties(uniquePropertyIds.size());
         stats.setTotalTeamMembers(totalTeamMembers);
         stats.setPortfolioBreakdown(breakdowns);
+        fillTeamFigures(stats, countedStaff);
+        stats.setStaffByTrade(toBuckets(staffByTrade));
+        stats.setStaffByCity(toBuckets(staffByCity));
+        stats.setPropertiesByCity(toBuckets(propertiesByCity));
+        stats.setPropertiesByType(toBuckets(propertiesByType));
+        stats.setAssignmentsByMonth(assignmentsByMonth.entrySet().stream()
+                .map(e -> new PortfolioStatsDto.MonthPoint(
+                        e.getKey(), e.getValue()[0], e.getValue()[1]))
+                .collect(Collectors.toList()));
 
         // Sort recent assignments by date desc and keep top 10
         allRecentAssignments.sort(Comparator.comparing(
@@ -359,6 +398,80 @@ public class PortfolioService {
         );
 
         return stats;
+    }
+
+    /**
+     * Chiffres sur les equipes.
+     *
+     * <p>Deux projections suffisent : les effectifs par equipe et les
+     * utilisateurs deja membres d'une equipe reelle. Charger les entites
+     * provoquerait un N+1 sur les membres pour n'en compter que le nombre.</p>
+     *
+     * @param portfolioStaff intervenants rattaches aux portefeuilles, dont on
+     *                       cherche ceux qui ne sont dans aucune equipe
+     */
+    private void fillTeamFigures(PortfolioStatsDto stats, Set<Long> portfolioStaff) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        List<Object[]> effectifs = teamRepository.countMembersPerRealTeam(orgId);
+        stats.setTotalTeams(effectifs.size());
+        stats.setTeamsWithoutMembers(
+                (int) effectifs.stream().filter(row -> ((Number) row[1]).intValue() == 0).count());
+        stats.setAverageTeamSize(effectifs.isEmpty() ? 0d
+                : effectifs.stream().mapToInt(row -> ((Number) row[1]).intValue()).average().orElse(0d));
+
+        Set<Long> enEquipe = new HashSet<>(teamRepository.findUserIdsInRealTeams(orgId));
+        stats.setStaffWithoutTeam(
+                (int) portfolioStaff.stream().filter(id -> !enEquipe.contains(id)).count());
+    }
+
+    private static final String UNKNOWN_LABEL = "Non renseigné";
+
+    /** Libelle d'une dimension, jamais vide : une part sans nom serait muette. */
+    private static String labelOrUnknown(String value) {
+        return value == null || value.isBlank() ? UNKNOWN_LABEL : value;
+    }
+
+    private static void bump(Map<String, Integer> counts, String key) {
+        counts.merge(key, 1, Integer::sum);
+    }
+
+    /**
+     * Incremente le mois d'un rattachement.
+     *
+     * @param slot 0 pour un client, 1 pour un intervenant
+     */
+    private static void bumpMonth(Map<String, int[]> months, LocalDateTime at, int slot) {
+        if (at == null) {
+            return;
+        }
+        months.computeIfAbsent(String.format("%04d-%02d", at.getYear(), at.getMonthValue()),
+                k -> new int[2])[slot]++;
+    }
+
+    /**
+     * Corps de metier porte par le role PLATEFORME.
+     *
+     * <p>C'est bien {@code users.role} et non le role d'appartenance a
+     * l'organisation : le premier dit le metier, le second le rang.</p>
+     */
+    private static String tradeOf(com.clenzy.model.UserRole role) {
+        if (role == null) {
+            return "Encadrement";
+        }
+        return switch (role) {
+            case HOUSEKEEPER, LAUNDRY -> "Ménage";
+            case TECHNICIAN, EXTERIOR_TECH -> "Maintenance";
+            default -> "Encadrement";
+        };
+    }
+
+    /** Parts triees du plus grand effectif au plus petit : un histogramme se lit ainsi. */
+    private static List<PortfolioStatsDto.Bucket> toBuckets(Map<String, Integer> counts) {
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .map(e -> new PortfolioStatsDto.Bucket(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
     }
 
     /**

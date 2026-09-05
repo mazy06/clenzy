@@ -65,13 +65,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     }
 
     private void authenticate(StompHeaderAccessor accessor) {
-        String authHeader = accessor.getFirstNativeHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("WebSocket STOMP CONNECT rejete : header Authorization absent ou malforme");
+        String token = rawToken(accessor);
+        if (token == null) {
+            log.warn("WebSocket STOMP CONNECT rejete : aucun jeton (ni header Authorization, ni cookie de session)");
             throw new AccessDeniedException("Connexion WebSocket non authentifiee");
         }
 
-        Jwt jwt = decodeOrReject(authHeader.substring(7));
+        Jwt jwt = decodeOrReject(token);
         String userId = jwt.getSubject();
         if (userId == null || userId.isBlank()) {
             log.warn("WebSocket STOMP CONNECT rejete : JWT sans subject");
@@ -81,6 +81,31 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         accessor.setUser(new StompPrincipal(userId));
         storeTenantAttributes(accessor, userId);
         log.debug("WebSocket STOMP CONNECT authentifie pour userId={}", userId);
+    }
+
+    /**
+     * Jeton brut de la trame CONNECT, header d'abord, cookie ensuite.
+     *
+     * <p>Le SPA n'a pas acces au jeton — le cookie {@code clenzy_auth} est
+     * HttpOnly et {@code AuthSessionController} refuse deliberement de
+     * l'exposer (Z1-SEC-FRONTAUX-02). Sans ce repli, aucune connexion STOMP
+     * depuis le navigateur ne pouvait aboutir. Le mobile, lui, porte le header.</p>
+     *
+     * <p>Les deux sources convergent vers la MEME validation : un cookie
+     * invalide ou expire est rejete comme un header invalide.</p>
+     */
+    private String rawToken(StompHeaderAccessor accessor) {
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+        if (sessionAttributes == null) {
+            return null;
+        }
+        Object cookieToken = sessionAttributes.get(
+                WebSocketCookieHandshakeInterceptor.SESSION_ATTR_COOKIE_TOKEN);
+        return cookieToken instanceof String value && !value.isBlank() ? value : null;
     }
 
     private Jwt decodeOrReject(String token) {

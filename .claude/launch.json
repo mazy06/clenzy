@@ -4,36 +4,51 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "client",
-      "port": 3002,
-      "autoPort": true
+      "port": 3000
     },
     {
       "name": "baitly-site",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:site"],
+      "runtimeArgs": [
+        "run",
+        "dev:site"
+      ],
       "cwd": "client",
       "port": 3005
     },
     {
       "name": "backend",
       "runtimeExecutable": "mvn",
-      "runtimeArgs": ["spring-boot:run", "-Dspring-boot.run.profiles=dev,local"],
+      "runtimeArgs": [
+        "spring-boot:run",
+        "-Dspring-boot.run.profiles=dev,local"
+      ],
       "cwd": "server",
       "port": 8084
     },
     {
       "name": "frontend-preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview"],
+      "runtimeArgs": [
+        "run",
+        "preview"
+      ],
       "cwd": "client",
       "port": 4173
     },
     {
       "name": "logo-proposals",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5500"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5500"
+      ],
       "cwd": "client/public",
       "port": 5500
     }

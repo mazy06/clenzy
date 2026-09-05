@@ -3862,3 +3862,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0415__add_guest_avatar_url.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0416-report-documents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0416__report_documents.sql
+        relativeToChangelogFile: true

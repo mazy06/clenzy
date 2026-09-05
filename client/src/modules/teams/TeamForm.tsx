@@ -1,3 +1,4 @@
+import { userAvatarSrc } from '../../services/api/usersApi';
 import React, { useState, useEffect } from 'react';
 import { Badge, Button, Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -5,6 +6,7 @@ import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import {
   Avatar,
+  AvatarImage,
   AvatarFallback,
   Card,
   CardContent,
@@ -784,6 +786,9 @@ const TeamForm: React.FC = () => {
                                         <ComboboxItem key={user.id} value={user}>
                                           <div className="flex items-center gap-1">
                                             <Avatar className="size-6 shrink-0 rounded-lg after:rounded-lg">
+                                              {userAvatarSrc(user) ? (
+                                                <AvatarImage src={userAvatarSrc(user)} alt="" />
+                                              ) : null}
                                               <AvatarFallback className="rounded-lg bg-primary font-[family-name:var(--font-display)] text-[0.6rem] font-semibold text-primary-foreground">
                                                 {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                                               </AvatarFallback>

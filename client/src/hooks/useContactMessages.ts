@@ -40,7 +40,11 @@ export function useContactThreads(archived = false) {
     queryFn: () => (archived ? contactApi.getArchivedThreads() : contactApi.getThreads()),
     staleTime: 30_000,
     // Pas de polling sur les archives : elles n'évoluent pas en temps réel.
-    refetchInterval: archived ? false : 60_000,
+    // Filet de securite : la livraison passe desormais par le flux temps
+    // reel (useConversationStream), qui recale aussi les listes a chaque
+    // reconnexion. Ce sondage ne couvre plus que le cas ou la socket
+    // resterait muette sans qu'on le sache.
+    refetchInterval: archived ? false : 300_000,
   });
 }
 
@@ -50,7 +54,8 @@ export function useThreadMessages(counterpartKeycloakId: string | null, archived
     queryKey: contactKeys.threadMessages(counterpartKeycloakId!, archived),
     queryFn: () => contactApi.getThreadMessages(counterpartKeycloakId!, archived),
     staleTime: 15_000,
-    refetchInterval: archived ? false : 30_000,
+    // Idem : filet, pas moyen de livraison.
+    refetchInterval: archived ? false : 300_000,
     enabled: counterpartKeycloakId != null,
   });
 }

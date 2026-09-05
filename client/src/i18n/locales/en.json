@@ -1056,7 +1056,8 @@
     "ratesAt": "Rates as of",
     "download": "Download",
     "tabsMenu": "Tabs",
-    "tabsMenuCount": "{{count}} tabs"
+    "tabsMenuCount": "{{count}} tabs",
+    "retry": "Retry"
   },
   "connectedObjects": {
     "previewBadge": "Preview",
@@ -3377,7 +3378,34 @@
       "portfolios": "Portfolios",
       "clients": "Clients",
       "properties": "Properties",
-      "noDataAvailable": "No data available at the moment."
+      "noDataAvailable": "No data available at the moment.",
+      "subtitleStats": "Portfolio-by-portfolio breakdown of properties and staff.",
+      "staff": "staff",
+      "composition": "Portfolio composition",
+      "recent": "Recent activity",
+      "noRecent": "No recent assignment.",
+      "clientsLabel": "clients",
+      "propertiesLabel": "properties",
+      "activeShare": "active",
+      "chartScope": "Assigned clients and staff",
+      "typeClient": "Client",
+      "typeTeam": "Staff member",
+      "staffPerProperty": "staff / property",
+      "propertiesPerClient": "properties / client",
+      "overTime": "Assignments over time",
+      "overTimeHint": "Per month, clients and staff",
+      "byTrade": "Staff by trade",
+      "coverage": "Coverage by city",
+      "coverageHint": "A city with no staff needs an assignment",
+      "byPropertyType": "Properties by type",
+      "staffByCity": "Staff by city",
+      "highlights": "Highlights",
+      "highlightsHint": "Teams, absent from the charts",
+      "citiesUncovered": "Cities without staff",
+      "teams": "Teams",
+      "avgTeamSize": "Average members per team",
+      "staffWithoutTeam": "Staff without a team",
+      "emptyTeams": "Teams with no member"
     },
     "teamManagement": {
       "title": "My Teams",
@@ -3443,6 +3471,27 @@
     "warnings": {
       "attention": "Attention",
       "noTeamSelectedWarning": "No team has been selected. You must choose at least one user to continue."
+    },
+    "byCity": {
+      "assignProperties": "Assign a property",
+      "assignStaff": "Attach a team member",
+      "cities": "Cities",
+      "clients": "owners",
+      "covered": "Covered",
+      "dropToDetach": "Drop someone here to remove them from their team.",
+      "emptyDescription": "Assign properties to see cities, their teams and their staff.",
+      "emptyTeam": "Nobody in this team.",
+      "emptyTitle": "No property in this portfolio",
+      "members": "members",
+      "noProperty": "No property in this city.",
+      "noTeam": "No team in this city.",
+      "properties": "properties",
+      "staff": "staff",
+      "teams": "teams",
+      "teamsOf": "Teams",
+      "unassigned": "without a team",
+      "unassignedTitle": "Attached to the city, in no team",
+      "without": "without a team"
     }
   },
   "contact": {
@@ -4063,20 +4112,36 @@
       "description": "This reports module is currently under development. Features will be progressively added according to your needs."
     },
     "sections": {
+      "overview": {
+        "title": "Overview",
+        "description": "Period at a glance: revenue, occupancy, alerts"
+      },
+      "revenue": {
+        "title": "Revenue",
+        "description": "Revenue, net margin and cost breakdown"
+      },
+      "occupancy": {
+        "title": "Occupancy",
+        "description": "Occupied and vacant nights, rate per property"
+      },
+      "pricing": {
+        "title": "Pricing & forecast",
+        "description": "Recommended price, elasticity and revenue projection"
+      },
       "financial": {
         "title": "Financial Reports",
         "description": "Revenues, costs and financial analyses"
       },
       "interventions": {
-        "title": "Intervention Reports",
+        "title": "Interventions",
         "description": "Planning, tracking and performance of interventions"
       },
       "teams": {
-        "title": "Team Reports",
+        "title": "Teams",
         "description": "Performance, availabilities and team planning"
       },
       "properties": {
-        "title": "Property Reports",
+        "title": "Properties",
         "description": "Status, maintenance and costs of properties"
       },
       "fiscal": {
@@ -4088,8 +4153,8 @@
         "description": "Upcoming bookings vs last year, pickup and booking curve"
       },
       "custom": {
-        "title": "Custom report",
-        "description": "Compose your reports: dimensions, metrics, granularity"
+        "title": "Analysis reports",
+        "description": "Compose a document for an owner, the team or a prospect"
       }
     },
     "selectReport": "Select a report to generate",
@@ -4192,7 +4257,31 @@
       "noData": "No data available",
       "noDataDescription": "There is no data yet to generate this report.",
       "loadingData": "Loading data...",
-      "errorLoading": "Error loading data"
+      "errorLoading": "Error loading data",
+      "others": "Others"
+    },
+    "periodFilter": "Period",
+    "custom": {
+      "dimensions": {
+        "PROPERTY": "Property",
+        "CHANNEL": "Channel",
+        "PERIOD": "Period",
+        "COUNTRY": "Country"
+      },
+      "metrics": {
+        "REVENUE": "Revenue",
+        "ADR": "ADR",
+        "REVPAR": "RevPAR",
+        "OCCUPANCY": "Occupancy",
+        "FEES": "Fees",
+        "MARGIN": "Margin"
+      },
+      "granularities": {
+        "DAY": "Daily",
+        "WEEK": "Weekly",
+        "MONTH": "Monthly",
+        "YEAR": "Yearly"
+      }
     }
   },
   "export": {
@@ -6551,12 +6640,15 @@
       "title": "Reports",
       "default": "Generate and view reports from your Baitly platform",
       "subtitle": {
-        "financial": "Revenue per property, operating costs, net margin and accounting exports for the chosen period.",
-        "interventions": "Volume, average delays and completion rates of interventions by type and team.",
-        "teams": "Workload, performance and availability per team and per member.",
-        "properties": "Occupancy rate, RevPAR, maintenance alerts and health indicators per property.",
+        "overview": "What the period earned, how the portfolio performed, and what needs a decision.",
+        "revenue": "Revenue by month, channel and property, net margin and operating cost breakdown.",
+        "occupancy": "Occupied and vacant nights, rate per property and booking sources over the period.",
+        "pricing": "Average price against RevPAN, recommended price, elasticity and revenue projection by scenario.",
         "pace": "Nights on the books for upcoming months versus last year at the same lead time, recent pickup and booking curve.",
-        "custom": "Build-your-own report: cross properties, channels, periods and countries over your revenue metrics."
+        "properties": "Performance score, operating costs and net margin per property, against the portfolio benchmark.",
+        "interventions": "Volume, completion rate and backlog of interventions by status, type and priority.",
+        "teams": "Workload, completion rate and delays per team.",
+        "custom": "Compose a document for an owner, the team or a prospect, then send it as a PDF."
       }
     },
     "tarification": {

@@ -13,6 +13,16 @@ import java.util.List;
  */
 public record ContactMessageDto(
         Long id,
+        /**
+         * Fil de groupe auquel appartient le message, {@code null} pour un
+         * echange 1 a 1.
+         *
+         * <p>Sans lui, un client qui recoit l'evenement ne sait pas QUELLE
+         * conversation mettre a jour : il ne peut qu'invalider et repartir en
+         * HTTP. Avec vingt postes abonnes, un seul message declenchait alors
+         * vingt rechargements.</p>
+         */
+        Long threadId,
         String senderId,
         String senderName,
         String recipientId,
@@ -48,6 +58,7 @@ public record ContactMessageDto(
 
         return new ContactMessageDto(
                 m.getId(),
+                m.getThreadId(),
                 m.getSenderKeycloakId(),
                 (sName + " " + sLast).trim(),
                 m.getRecipientKeycloakId(),

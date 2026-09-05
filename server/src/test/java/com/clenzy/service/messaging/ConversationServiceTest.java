@@ -31,7 +31,7 @@ class ConversationServiceTest {
     @Mock private ConversationMessageRepository messageRepository;
     @Mock private ConversationEventPublisher eventPublisher;
     @Mock private NotificationService notificationService;
-    @Mock private WhatsAppChannel whatsAppChannel;
+    @Mock private WhatsAppOutboundDispatcher whatsAppDispatcher;
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private com.clenzy.repository.GuestRepository guestRepository;
     @Mock private com.clenzy.repository.UserRepository userRepository;
@@ -43,7 +43,7 @@ class ConversationServiceTest {
     @BeforeEach
     void setUp() {
         service = new ConversationService(conversationRepository, messageRepository,
-            eventPublisher, notificationService, whatsAppChannel, reservationRepository, guestRepository,
+            eventPublisher, notificationService, whatsAppDispatcher, reservationRepository, guestRepository,
             userRepository, outcomeTracker, applicationEventPublisher);
     }
 
@@ -459,17 +459,19 @@ class ConversationServiceTest {
         inbound.setSentAt(LocalDateTime.now());
         when(messageRepository.findTopByConversationIdAndDirectionOrderBySentAtDesc(50L, MessageDirection.INBOUND))
             .thenReturn(Optional.of(inbound));
-        when(whatsAppChannel.send(any())).thenReturn(MessageDeliveryResult.success("wamid-out"));
-
         ConversationMessage result = service.sendOutboundMessage(
             conv, "Jean", "kc-host", "Bonjour", "<p>Bonjour</p>");
 
+        // L'appel a Meta a quitte la transaction : le service ne fait plus que
+        // preparer la requete et la confier au repartiteur, apres commit. Hors
+        // contexte transactionnel — ce test — l'action part immediatement.
         ArgumentCaptor<MessageDeliveryRequest> captor = ArgumentCaptor.forClass(MessageDeliveryRequest.class);
-        verify(whatsAppChannel).send(captor.capture());
+        verify(whatsAppDispatcher).deliver(any(), eq(50L), captor.capture());
         assertThat(captor.getValue().recipientPhone()).isEqualTo("+33612345678");
         assertThat(captor.getValue().plainBody()).isEqualTo("Jean (Villa Azur) : Bonjour");
+        // Le statut definitif est pose par WhatsAppDeliveryRecorder, hors de ce
+        // service : ici le message repart avec son statut optimiste.
         assertThat(result.getDeliveryStatus()).isEqualTo("SENT");
-        assertThat(result.getExternalMessageId()).isEqualTo("wamid-out");
     }
 
     @Test
@@ -492,7 +494,7 @@ class ConversationServiceTest {
         ConversationMessage result = service.sendOutboundMessage(
             conv, "Jean", "kc-host", "Bonjour", "<p>Bonjour</p>");
 
-        verify(whatsAppChannel, never()).send(any());
+        verify(whatsAppDispatcher, never()).deliver(any(), any(), any());
         assertThat(result.getDeliveryStatus()).isEqualTo("WINDOW_EXPIRED");
     }
 
@@ -522,7 +524,7 @@ class ConversationServiceTest {
         ConversationMessage note = service.sendInternalNote(
             conv, "Jean", "kc-host", "Client deja venu, exigeant sur le bruit");
 
-        verify(whatsAppChannel, never()).send(any());
+        verify(whatsAppDispatcher, never()).deliver(any(), any(), any());
         assertThat(note.isInternalNote()).isTrue();
         assertThat(note.getDeliveryStatus()).isEqualTo("INTERNAL");
     }

@@ -57,5 +57,8 @@ public class TeamDto {
         public String firstName;
         public String lastName;
         public String email;
+
+        /** URL ticketee de la photo de profil, ou null. */
+        public String avatarUrl;
     }
 }

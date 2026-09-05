@@ -10,6 +10,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import { useAuth } from '../../hooks/useAuth';
 import { useMarkAsRead, useUpdateConversationStatus } from '../../hooks/useConversations';
+import { useConversationStream } from '../../hooks/useConversationStream';
 import { useArchiveThread, useMarkThreadAsRead } from '../../hooks/useContactMessages';
 import { useUpdateFormStatus } from '../../hooks/useReceivedForms';
 import { useUnifiedInbox, useArchivedInbox, conversationRawId, type UnifiedConversation } from './conversations/unified';
@@ -42,6 +43,11 @@ export default function MessagingHubPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Reception en direct : sans cet abonnement, un message entrant n'atteignait
+  // jamais un ecran deja ouvert — `refetchOnWindowFocus` est desactive
+  // globalement et aucune requete de messagerie ne se rafraichit d'elle-meme.
+  useConversationStream(user?.organizationId);
   const [searchParams, setSearchParams] = useSearchParams();
   // Palier 900 : c'est le `md` de MUI (et non le 768 de Tailwind), donc le meme
   // seuil que les classes `min-[900px]:` qui basculent la mise en page en dessous.

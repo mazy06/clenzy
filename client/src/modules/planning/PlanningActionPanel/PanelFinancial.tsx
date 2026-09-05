@@ -3,9 +3,8 @@ import { cn } from '../../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Button, Spinner } from '../../../components/ui';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
-import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
@@ -58,6 +57,11 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { useNotification } from '../../../hooks/useNotification';
 import { Money } from '../../../components/Money';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
+import {
+  filterAttachedToReservation,
+  type AttachmentCandidate,
+} from '../utils/interventionAttachment';
+import { useAttachedServiceRequests } from './useAttachedServiceRequests';
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -227,7 +231,11 @@ const FinRow: React.FC<{
 // ── Props ──────────────────────────────────────────────────────────────────
 interface PanelFinancialProps {
   event: PlanningEvent;
+  /** Événements du planning — rattachement des demandes de service. */
+  allEvents?: PlanningEvent[];
   interventions?: PlanningIntervention[];
+  /** Réservations chargées — arbitrage du rattachement des interventions. */
+  loadedReservations?: AttachmentCandidate[];
   onFinancialAction?: (action: string, data: Record<string, unknown>) => Promise<{ success: boolean; error: string | null }>;
   onCreatePaymentSession?: (interventionIds: number[], total: number) => Promise<{ url: string; sessionId: string }>;
   onCreateEmbeddedSession?: (interventionId: number, amount: number) => Promise<{ clientSecret: string; sessionId: string }>;
@@ -255,7 +263,9 @@ const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
 
 const PanelFinancial: React.FC<PanelFinancialProps> = ({
   event,
+  allEvents,
   interventions,
+  loadedReservations = [],
   onCreatePaymentSession,
   onCreateEmbeddedSession,
   onSendPaymentLink,
@@ -276,16 +286,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   const today = new Date().toISOString().split('T')[0];
 
-  // ── Fetch service requests for this reservation ───────────────────────────
-  const { data: serviceRequestsRaw } = useQuery({
-    queryKey: ['planning', 'service-requests', reservation?.id],
-    queryFn: async () => {
-      const result = await serviceRequestsApi.getAll({ reservationId: reservation!.id });
-      const list = result;
-      return list as ServiceRequest[];
-    },
-    enabled: !!reservation?.id,
-    staleTime: 30_000,
+  // ── Demandes de service rattachées à la réservation ───────────────────────
+  const serviceRequestsRaw = useAttachedServiceRequests({
+    reservationId: reservation?.id,
+    allEvents,
+    loadedReservations,
   });
 
   // ── Local financial state ─────────────────────────────────────────────────
@@ -468,25 +473,19 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const paymentStatusTokens = balanceDue <= 0 ? OK_TOKENS : totalPaid > 0 ? INFO_TOKENS : WARN_TOKENS;
 
   // ── Computed values — Interventions ────────────────────────────────────
-  // Only show interventions that are assigned + paid (or no cost) in the financial tab
-  const linkedInterventions = (interventions || []).filter((i) => {
-    if (!reservation) return false;
-    // Must be assigned to a contractor/team
-    if (!i.assigneeName) return false;
-    // If has a cost, must be paid
-    const cost = i.actualCost || i.estimatedCost || 0;
-    if (cost > 0 && i.paymentStatus !== 'PAID') return false;
-    // Only show interventions explicitly linked to THIS reservation
-    if (i.linkedReservationId === reservation.id) return true;
-    // Also include unlinked interventions (no reservation link) on the same property
-    // with overlapping dates — these are "orphan" interventions that likely belong here
-    if (!i.linkedReservationId && i.propertyId === event.propertyId) {
-      const iStart = i.startDate;
-      const iEnd = i.endDate;
-      return iStart <= reservation.checkOut && iEnd >= reservation.checkIn;
-    }
-    return false;
-  });
+  // Rattachement : MÊME règle que la brique du planning et que l'onglet
+  // Opérations (cf. filterAttachedToReservation). Les prestations NON réglées
+  // en font partie — c'est précisément celles-là qu'on vient encaisser ici : le
+  // filtre « assignée + payée » qui tenait lieu de rattachement vidait la
+  // section de tout ce qui restait à payer, et rendait le bouton « Payer »
+  // inatteignable.
+  const linkedInterventions = reservation
+    ? filterAttachedToReservation(
+        (interventions || []).filter((i) => i.status !== 'cancelled'),
+        reservation.id,
+        loadedReservations,
+      )
+    : [];
 
   const interventionCostTotal = linkedInterventions.reduce((sum, i) => {
     const cost = i.actualCost || i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
@@ -507,7 +506,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   }, 0);
 
   // ── Computed values — Service Requests (interventions proposees) ──────
-  const payableServiceRequests = (serviceRequestsRaw ?? []).filter(
+  const payableServiceRequests = serviceRequestsRaw.filter(
     (sr) => sr.status === 'AWAITING_PAYMENT',
   );
   const srProposedTotal = payableServiceRequests.reduce((sum, sr) => {

@@ -1,6 +1,6 @@
 import apiClient from '../apiClient';
 import { extractApiList } from '../../types';
-import { API_CONFIG } from '../../config/api';
+import { API_CONFIG, resolveMediaUrl } from '../../config/api';
 
 export interface User {
   id: number;
@@ -185,8 +185,8 @@ export function userAvatarSrc(
     // renvoie index.html au lieu de l'image -> <img> casse -> initiales. On prefixe donc la
     // base API pour viser le backend (BASE_URL vide en prod same-origin -> inchange). Les
     // URL externes (http/https, SSO) passent telles quelles.
-    const raw = user.profilePictureUrl;
-    const url = raw.startsWith('/') ? `${API_CONFIG.BASE_URL}${raw}` : raw;
+    // Meme regle d'origine que pour les autres medias servis par l'API.
+    const url = resolveMediaUrl(user.profilePictureUrl) as string;
     if (!user.updatedAt) return url;
     // Cache-bust sur upload (l'URL signee a deja un '?ticket=').
     return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(user.updatedAt)}`;

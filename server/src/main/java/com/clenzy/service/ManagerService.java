@@ -33,6 +33,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.UserAvatarUrlResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -61,6 +63,7 @@ public class ManagerService {
     private final ManagerUserRepository managerUserRepository;
     private final ManagerPropertyRepository managerPropertyRepository;
     private final TenantContext tenantContext;
+    private final UserAvatarUrlResolver avatarUrls;
 
     public ManagerService(PortfolioRepository portfolioRepository,
                           PortfolioClientRepository portfolioClientRepository,
@@ -70,7 +73,8 @@ public class ManagerService {
                           ManagerTeamRepository managerTeamRepository,
                           ManagerUserRepository managerUserRepository,
                           ManagerPropertyRepository managerPropertyRepository,
-                          TenantContext tenantContext) {
+                          TenantContext tenantContext,
+                          UserAvatarUrlResolver avatarUrls) {
         this.portfolioRepository = portfolioRepository;
         this.portfolioClientRepository = portfolioClientRepository;
         this.propertyRepository = propertyRepository;
@@ -80,6 +84,7 @@ public class ManagerService {
         this.managerUserRepository = managerUserRepository;
         this.managerPropertyRepository = managerPropertyRepository;
         this.tenantContext = tenantContext;
+        this.avatarUrls = avatarUrls;
     }
 
     // ===== MANAGER ID RESOLUTION =====
@@ -246,6 +251,10 @@ public class ManagerService {
             for (Long teamId : request.getTeamIds()) {
                 if (!managerTeamRepository.existsByManagerIdAndTeamIdAndIsActiveTrue(managerId, teamId, tenantContext.getRequiredOrganizationId())) {
                     final ManagerTeam managerTeam = new ManagerTeam(managerId, teamId);
+                    // Le constructeur ne prend pas l'organisation, et toutes les
+                    // requetes du depot la filtrent : sans cette ligne l'assignation
+                    // est ecrite puis introuvable.
+                    managerTeam.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     managerTeamRepository.save(managerTeam);
                     teamsAssigned++;
                     log.debug("Equipe {} assignee au manager {}", teamId, managerId);
@@ -259,6 +268,7 @@ public class ManagerService {
             for (Long userId : request.getUserIds()) {
                 if (!managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(managerId, userId, tenantContext.getRequiredOrganizationId())) {
                     final ManagerUser managerUser = new ManagerUser(managerId, userId);
+                    managerUser.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     managerUserRepository.save(managerUser);
                     usersAssigned++;
                     log.debug("Utilisateur {} assigne au manager {}", userId, managerId);
@@ -516,6 +526,34 @@ public class ManagerService {
         users.addAll(usersFromPortfolios);
         users.addAll(usersFromDirect);
 
+        // Zone declaree de chaque intervenant, portee par son equipe
+        // personnelle. Elle dit ou il peut travailler, ce que sa ville de
+        // rattachement ne dit pas : un responsable de secteur siege dans une
+        // ville et intervient dans plusieurs. Une seule requete pour tout le
+        // lot, zones comprises.
+        final Set<Long> userIds = users.stream()
+                .map(UserAssociationDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!userIds.isEmpty()) {
+            final Map<Long, List<String>> citiesByUser = teamRepository
+                    .findPersonalTeamsWithZones(userIds, tenantContext.getRequiredOrganizationId())
+                    .stream()
+                    .filter(team -> team.getPersonalUserId() != null)
+                    .collect(Collectors.toMap(
+                            Team::getPersonalUserId,
+                            team -> team.getCoverageZones().stream()
+                                    .map(com.clenzy.model.TeamCoverageZone::getCity)
+                                    .filter(city -> city != null && !city.isBlank())
+                                    .distinct()
+                                    .toList(),
+                            // Un intervenant n'a qu'une equipe personnelle (index
+                            // unique partiel) ; on garde la premiere par surete.
+                            (first, second) -> first));
+            users.forEach(dto -> dto.setCoverageCities(
+                    citiesByUser.getOrDefault(dto.getId(), List.of())));
+        }
+
         // Properties via manager_properties — meme batch findAllById (IN).
         final List<PropertyAssociationDto> properties = new ArrayList<>();
         final List<ManagerProperty> managerProperties = managerPropertyRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
@@ -565,6 +603,11 @@ public class ManagerService {
         portfolio.setDescription("Portefeuille automatiquement cree");
         portfolio.setManager(manager);
         portfolio.setIsActive(true);
+        // Sans organisation, la ligne est invisible du @Filter Hibernate ET de
+        // findManagerPortfolio, qui filtre sur l'org : le getOrCreate ne
+        // retrouvait donc jamais ce qu'il venait d'ecrire et recreait un
+        // portefeuille a chaque appel.
+        portfolio.setOrganizationId(tenantContext.getRequiredOrganizationId());
         final Portfolio saved = portfolioRepository.save(portfolio);
         log.debug("Portefeuille cree: {}", saved.getId());
         return saved;
@@ -590,6 +633,7 @@ public class ManagerService {
                 final User client = userRepository.findById(clientId).orElse(null);
                 if (client != null) {
                     final PortfolioClient portfolioClient = new PortfolioClient(portfolio, client);
+                    portfolioClient.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     portfolioClientRepository.save(portfolioClient);
                     assigned++;
                     log.debug("Client {} assigne au portefeuille {}", clientId, portfolio.getId());
@@ -713,6 +757,9 @@ public class ManagerService {
         dto.setNotes(portfolioTeam.getNotes());
         dto.setPortfolioId(portfolioTeam.getPortfolio().getId());
         dto.setPortfolioName(portfolioTeam.getPortfolio().getName());
+        dto.setCity(portfolioTeam.getTeamMember().getCity());
+        dto.setAvatarUrl(avatarUrls.publicUrl(portfolioTeam.getTeamMember().getId(),
+                portfolioTeam.getTeamMember().getProfilePictureUrl()));
         return dto;
     }
 
@@ -724,6 +771,7 @@ public class ManagerService {
         dto.setDescription(property.getDescription());
         dto.setOwnerId(property.getOwner().getId());
         dto.setOwnerName(property.getOwner().getFirstName() + " " + property.getOwner().getLastName());
+        dto.setCity(property.getCity());
         dto.setAssignedAt(property.getCreatedAt() != null
                 ? property.getCreatedAt().toString() : "N/A");
         dto.setNotes(property.getSpecialRequirements());
@@ -739,6 +787,28 @@ public class ManagerService {
         dto.setAssignedAt(team.getCreatedAt() != null
                 ? team.getCreatedAt().toString() : "N/A");
         dto.setNotes(team.getInterventionType());
+        // Le metier transitait dans `notes`, faute de champ. Il en a un.
+        dto.setInterventionType(team.getInterventionType());
+        // Ville de la zone d'intervention : elle est l'axe de regroupement du
+        // portefeuille. Une zone definie au seul departement ne la porte pas.
+        dto.setCity(team.getCoverageZones().stream()
+                .map(com.clenzy.model.TeamCoverageZone::getCity)
+                .filter(city -> city != null && !city.isBlank())
+                .findFirst().orElse(null));
+        // « 6 membres » ne repond pas a « qui compose cette equipe ? ». On
+        // charge les personnes : la relation est en LAZY, la methode appelante
+        // est @Transactional(readOnly = true).
+        dto.setMembers(team.getMembers().stream()
+                .filter(member -> member.getUser() != null)
+                .map(member -> new com.clenzy.dto.TeamMemberSummaryDto(
+                        member.getUser().getId(),
+                        displayName(member.getUser()),
+                        member.getRole(),
+                        member.getUser().getRole() != null
+                                ? member.getUser().getRole().name() : null,
+                        avatarUrls.publicUrl(member.getUser().getId(),
+                                member.getUser().getProfilePictureUrl())))
+                .toList());
         return dto;
     }
 
@@ -752,6 +822,25 @@ public class ManagerService {
         dto.setAssignedAt(user.getCreatedAt() != null
                 ? user.getCreatedAt().toString() : "N/A");
         dto.setNotes("Assigne directement au manager");
+        dto.setCity(user.getCity());
+        dto.setAvatarUrl(avatarUrls.publicUrl(user.getId(), user.getProfilePictureUrl()));
         return dto;
+    }
+
+    /**
+     * Prenom et nom d'une personne, pour un affichage direct.
+     *
+     * <p>Les deux champs sont chiffres en base et dechiffres par l'entite ; ils
+     * peuvent etre absents sur un compte incomplet, d'ou le repli sur l'email
+     * plutot qu'une chaine vide qui laisserait une pastille anonyme a l'ecran.</p>
+     */
+    private String displayName(User user) {
+        final String first = user.getFirstName() != null ? user.getFirstName().trim() : "";
+        final String last = user.getLastName() != null ? user.getLastName().trim() : "";
+        final String full = (first + " " + last).trim();
+        if (!full.isEmpty()) {
+            return full;
+        }
+        return user.getEmail() != null ? user.getEmail() : "Utilisateur " + user.getId();
     }
 }

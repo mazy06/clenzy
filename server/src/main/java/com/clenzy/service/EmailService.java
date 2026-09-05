@@ -414,12 +414,41 @@ public class EmailService {
      */
     public void sendDocumentEmail(String toEmail, String subject, String htmlBody,
                                    String pdfFilename, byte[] pdfBytes) {
+        sendDocumentEmail(toEmail, subject, htmlBody, pdfFilename, pdfBytes, null, null);
+    }
+
+    /**
+     * Variante en MARQUE BLANCHE : le destinataire voit le nom de l'emetteur.
+     *
+     * <p>Seul le nom affiche change ; l'ADRESSE d'envoi reste celle de la
+     * plateforme. C'est deliberе : emettre depuis le domaine d'une conciergerie
+     * demanderait que SPF et DKIM y soient alignes, faute de quoi le message
+     * part en indesirable — un releve qui n'arrive pas est pire qu'un releve
+     * signe du mauvais nom. La reponse, elle, est redirigee vers l'emetteur.</p>
+     *
+     * @param senderName nom affiche, ou {@code null} pour celui de la plateforme
+     * @param replyTo    adresse de reponse, ou {@code null}
+     */
+    public void sendDocumentEmail(String toEmail, String subject, String htmlBody,
+                                   String pdfFilename, byte[] pdfBytes,
+                                   String senderName, String replyTo) {
         try {
             JavaMailSender ms = requireMailSender();
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             applyDeliverabilityHeaders(message, helper);
+            if (senderName != null && !senderName.isBlank()) {
+                try {
+                    helper.setFrom(resolveFromAddress(), sanitizeHeaderValue(senderName));
+                } catch (Exception e) {
+                    log.warn("Nom d'emetteur non applique ({}), repli sur celui de la plateforme",
+                            e.getMessage());
+                }
+            }
+            if (replyTo != null && !replyTo.isBlank()) {
+                helper.setReplyTo(replyTo);
+            }
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);

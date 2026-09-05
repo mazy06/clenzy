@@ -10,6 +10,9 @@ public class PropertyAssociationDto {
     private String assignedAt;
     private String notes;
 
+    /** Ville du logement : axe de regroupement du portefeuille. */
+    private String city;
+
     // Constructors
     public PropertyAssociationDto() {}
 
@@ -49,4 +52,7 @@ public class PropertyAssociationDto {
     
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 }

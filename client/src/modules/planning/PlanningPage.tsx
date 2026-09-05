@@ -1039,6 +1039,7 @@ const PlanningPage: React.FC = () => {
         allEvents={filteredEvents}
         properties={properties}
         interventions={interventions}
+        loadedReservations={reservations}
         onUpdateReservation={updateReservation}
         onChangeProperty={changeProperty}
         onCancelReservation={cancelReservation}

@@ -8,6 +8,19 @@ public class UserAssociationDto {
     private String role;
     private String assignedAt;
     private String notes;
+
+    /** Ville de rattachement de l'intervenant : axe de regroupement. */
+    private String city;
+
+    /**
+     * Villes que l'intervenant declare couvrir, portees par son equipe
+     * personnelle. Distinctes de {@link #city} : un responsable de secteur
+     * siege dans une ville et intervient dans plusieurs.
+     */
+    private java.util.List<String> coverageCities = new java.util.ArrayList<>();
+
+    /** URL ticketee de la photo de profil, ou null. */
+    private String avatarUrl;
     private Long portfolioId;
     private String portfolioName;
 
@@ -55,4 +68,15 @@ public class UserAssociationDto {
     
     public String getPortfolioName() { return portfolioName; }
     public void setPortfolioName(String portfolioName) { this.portfolioName = portfolioName; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public java.util.List<String> getCoverageCities() { return coverageCities; }
+    public void setCoverageCities(java.util.List<String> coverageCities) {
+        this.coverageCities = coverageCities;
+    }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }
