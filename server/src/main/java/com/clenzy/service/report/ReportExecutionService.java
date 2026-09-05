@@ -85,6 +85,23 @@ public class ReportExecutionService {
     @Transactional(readOnly = true)
     public ReportResultDto execute(List<String> dimensionCodes, List<String> metricCodes,
                                    String granularityCode, LocalDate from, LocalDate to, Long orgId) {
+        return execute(dimensionCodes, metricCodes, granularityCode, from, to, orgId, null);
+    }
+
+    /**
+     * Variante restreinte a un sous-ensemble de biens.
+     *
+     * <p>Sert le rapport d'un proprietaire : SES biens, et rien d'autre. Le
+     * filtre s'applique a la SOURCE et non aux lignes de resultat — les
+     * denominateurs d'occupation et de RevPAR se calculent alors sur le seul
+     * perimetre demande. Filtrer apres coup donnerait des taux justes par bien
+     * mais faux en agregat, ce qui est pire qu'une erreur visible.</p>
+     *
+     * @param propertyIds perimetre ; {@code null} ou vide = toute l'organisation
+     */
+    public ReportResultDto execute(List<String> dimensionCodes, List<String> metricCodes,
+                                   String granularityCode, LocalDate from, LocalDate to, Long orgId,
+                                   Set<Long> propertyIds) {
         catalog.validate(dimensionCodes, metricCodes, granularityCode);
         if (from == null || to == null || !from.isBefore(to.plusDays(1))) {
             throw new IllegalArgumentException("Période invalide : from doit être <= to");
@@ -101,7 +118,12 @@ public class ReportExecutionService {
                 ? Granularity.MONTH
                 : Granularity.valueOf(granularityCode.trim().toUpperCase(Locale.ROOT));
 
-        final List<Property> properties = propertyRepository.findByOrganizationId(orgId);
+        final boolean scoped = propertyIds != null && !propertyIds.isEmpty();
+        final List<Property> properties = propertyRepository.findByOrganizationId(orgId).stream()
+                .filter(p -> !scoped || propertyIds.contains(p.getId()))
+                .toList();
+        // Les reservations d'un bien hors perimetre sont ecartees par le
+        // `property == null` de la boucle : le filtre ci-dessus suffit.
         final Map<Long, Property> propertyById = new HashMap<>();
         properties.forEach(p -> propertyById.put(p.getId(), p));
 

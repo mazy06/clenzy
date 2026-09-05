@@ -7,6 +7,45 @@ const SIDE_BY_SIDE = 1024;
 const GUTTER = 12;
 
 /**
+ * Espace REELLEMENT occupe sous l'element, jusqu'a la racine du document.
+ *
+ * <p>C'est la somme des freres qui le suivent et des rembourrages bas de ses
+ * ancetres — jamais un ecart de boites. On mesurait auparavant
+ * `scrollHeight - bas de l'element`, ce qui a deux defauts : quand la coque est
+ * etiree (`min-height: 100vh`, ce que fait la notre) l'ecart contient tout le
+ * BLANC restant de la fenetre, et quand la page est plus courte que la fenetre
+ * `scrollHeight` vaut la fenetre. Dans les deux cas on retranchait l'espace
+ * libre de l'espace disponible : l'element ne pouvait plus grandir au-dela de
+ * sa hauteur naturelle — un point fixe qui ecrasait la grille des Rapports a
+ * 373 px dans une fenetre de 950.</p>
+ *
+ * <p>Cette mesure ne depend d'aucune hauteur qu'on aurait soi-meme imposee :
+ * elle se recalcule sans risque de circularite.</p>
+ */
+function occupiedBelow(element: HTMLElement): number {
+  let total = 0;
+  let node: HTMLElement = element;
+
+  while (node.parentElement) {
+    const parent = node.parentElement;
+
+    for (let sibling = node.nextElementSibling; sibling; sibling = sibling.nextElementSibling) {
+      // Un element sorti du flux (barre flottante, dock de l'assistant) ne
+      // pousse rien vers le bas : il ne compte pas.
+      const style = getComputedStyle(sibling);
+      if (style.position === 'fixed' || style.position === 'absolute') continue;
+      total += sibling.getBoundingClientRect().height;
+    }
+
+    total += parseFloat(getComputedStyle(parent).paddingBottom) || 0;
+    if (parent === document.body || parent === document.documentElement) break;
+    node = parent;
+  }
+
+  return Math.max(0, Math.round(total));
+}
+
+/**
  * Hauteur restante entre le haut de l'element et le bas de la fenetre.
  *
  * <p>L'ecran n'a aucune contrainte de hauteur au-dessus de lui : la coque
@@ -22,16 +61,12 @@ const GUTTER = 12;
  * page s'empile et doit reprendre sa hauteur naturelle.</p>
  *
  * <p>L'espace occupe SOUS l'element — les rembourrages des conteneurs qui
- * l'enveloppent — est retranche lui aussi. Sans cela l'element descend
- * exactement au bas de la fenetre, ces rembourrages depassent, et une barre de
- * defilement apparait pour une dizaine de pixels. On le mesure au premier
- * passage, quand l'element a encore sa hauteur naturelle, puis on le conserve :
- * un rembourrage ne change pas avec la taille de la fenetre, et le recalculer
- * a partir d'une hauteur qu'on vient soi-meme d'imposer serait circulaire.</p>
+ * l'enveloppent — est retranche lui aussi (cf. {@link occupiedBelow}). Sans
+ * cela l'element descend exactement au bas de la fenetre, ces rembourrages
+ * depassent, et une barre de defilement apparait pour une dizaine de pixels.</p>
  */
 export function useViewportFill<T extends HTMLElement>() {
   const ref = useRef<T>(null);
-  const trailingRef = useRef<number | null>(null);
   const [height, setHeight] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -44,30 +79,13 @@ export function useViewportFill<T extends HTMLElement>() {
         return;
       }
       const rect = element.getBoundingClientRect();
-
-      if (trailingRef.current === null) {
-        const documentTop = rect.top + window.scrollY;
-        const below =
-          document.documentElement.scrollHeight - (documentTop + element.offsetHeight);
-        // Une valeur negative signale un contenu deja deborde : on ne retranche
-        // alors rien plutot que d'agrandir l'element.
-        trailingRef.current = Math.max(0, Math.round(below));
-      }
-
-      // Un plancher : sur une fenetre tres basse mieux vaut deborder que
-      // reduire la mise en page a une bande illisible.
       setHeight(
-        Math.max(
-          360,
-          Math.round(window.innerHeight - rect.top - trailingRef.current - GUTTER),
-        ),
+        Math.max(360, Math.round(window.innerHeight - rect.top - occupiedBelow(element) - GUTTER)),
       );
     };
 
     measure();
     window.addEventListener('resize', measure);
-    // Ce qui precede l'element peut changer de hauteur sans que la fenetre
-    // bouge — bandeau d'erreur, onglets qui passent a la ligne.
     const observer = new ResizeObserver(measure);
     observer.observe(document.body);
     return () => {

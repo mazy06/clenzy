@@ -1056,7 +1056,8 @@
     "ratesAt": "Taux au",
     "download": "Télécharger",
     "tabsMenu": "Onglets",
-    "tabsMenuCount": "{{count}} onglets"
+    "tabsMenuCount": "{{count}} onglets",
+    "retry": "Réessayer"
   },
   "connectedObjects": {
     "previewBadge": "Aperçu",
@@ -4132,20 +4133,36 @@
       "description": "Ce module de rapports est actuellement en cours de développement. Les fonctionnalités seront progressivement ajoutées selon vos besoins."
     },
     "sections": {
+      "overview": {
+        "title": "Synthèse",
+        "description": "Vue d'ensemble de la période : revenus, occupation, alertes"
+      },
+      "revenue": {
+        "title": "Revenus",
+        "description": "Revenus, marge nette et postes de coût"
+      },
+      "occupancy": {
+        "title": "Occupation",
+        "description": "Nuits occupées et vacantes, taux par bien"
+      },
+      "pricing": {
+        "title": "Tarifs & prévisions",
+        "description": "Prix conseillé, élasticité et projection de revenus"
+      },
       "financial": {
         "title": "Rapports Financiers",
         "description": "Revenus, coûts et analyses financières"
       },
       "interventions": {
-        "title": "Rapports d'Interventions",
+        "title": "Interventions",
         "description": "Planification, suivi et performance des interventions"
       },
       "teams": {
-        "title": "Rapports d'Équipes",
+        "title": "Équipes",
         "description": "Performance, disponibilités et planning des équipes"
       },
       "properties": {
-        "title": "Rapports de Propriétés",
+        "title": "Biens",
         "description": "État, maintenance et coûts des propriétés"
       },
       "fiscal": {
@@ -4157,8 +4174,8 @@
         "description": "Réservations à venir vs l'an dernier, pickup et booking curve"
       },
       "custom": {
-        "title": "Rapport personnalisé",
-        "description": "Composez vos rapports : dimensions, métriques, granularité"
+        "title": "Rapports d'analyse",
+        "description": "Composez un document pour un propriétaire, l'équipe ou un prospect"
       }
     },
     "selectReport": "Sélectionnez un rapport à générer",
@@ -4261,7 +4278,31 @@
       "noData": "Aucune donnée disponible",
       "noDataDescription": "Il n'y a pas encore de données pour générer ce rapport.",
       "loadingData": "Chargement des données...",
-      "errorLoading": "Erreur lors du chargement des données"
+      "errorLoading": "Erreur lors du chargement des données",
+      "others": "Autres"
+    },
+    "periodFilter": "Période",
+    "custom": {
+      "dimensions": {
+        "PROPERTY": "Bien",
+        "CHANNEL": "Canal",
+        "PERIOD": "Période",
+        "COUNTRY": "Pays"
+      },
+      "metrics": {
+        "REVENUE": "Revenus",
+        "ADR": "ADR",
+        "REVPAR": "RevPAR",
+        "OCCUPANCY": "Occupation",
+        "FEES": "Commissions",
+        "MARGIN": "Marge"
+      },
+      "granularities": {
+        "DAY": "Par jour",
+        "WEEK": "Par semaine",
+        "MONTH": "Par mois",
+        "YEAR": "Par an"
+      }
     }
   },
   "export": {
@@ -6622,12 +6663,15 @@
       "title": "Rapports",
       "default": "Générez et consultez les rapports de votre plateforme Baitly",
       "subtitle": {
-        "financial": "Revenus par bien, coûts d'exploitation, marge nette et exports comptables sur la période choisie.",
-        "interventions": "Volume, délais moyens et taux de réalisation des interventions par type et par équipe.",
-        "teams": "Charge de travail, performance et disponibilités par équipe et par membre.",
-        "properties": "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien.",
+        "overview": "Ce que la période a rapporté, comment le parc a tourné, et ce qui appelle une décision.",
+        "revenue": "Revenus par mois, par canal et par bien, marge nette et postes de coût d'exploitation.",
+        "occupancy": "Nuits occupées et vacantes, taux par bien et sources de réservation sur la période.",
+        "pricing": "Prix moyen face au RevPAN, prix conseillé, élasticité et projection de revenus par scénario.",
         "pace": "Nuits réservées pour les prochains mois comparées à l'an dernier au même recul, pickup récent et montée des réservations.",
-        "custom": "Rapport à la carte : croisez propriétés, canaux, périodes et pays sur vos métriques revenue."
+        "properties": "Score de performance, coûts d'exploitation et marge nette bien par bien, face à la référence du portefeuille.",
+        "interventions": "Volume, taux de réalisation et arriéré des interventions par statut, type et priorité.",
+        "teams": "Charge de travail, taux de réalisation et retards par équipe.",
+        "custom": "Composez un document destiné à un propriétaire, à l'équipe ou à un prospect, puis diffusez-le en PDF."
       }
     },
     "tarification": {
