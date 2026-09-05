@@ -11,7 +11,7 @@ import {
   ItemTitle,
   Spinner,
 } from '../../../components/ui';
-import GuestAvatar from '../../../components/baitly/GuestAvatar';
+import ConversationAvatar from '../conversations/ConversationAvatar';
 import { Field, FieldLabel, FieldDescription, Input, Textarea } from '../../../components/ui';
 import {
   Dialog,
@@ -221,7 +221,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               <ArrowBackIcon size={16} strokeWidth={1.75} />
             </Button>
           )}
-          <GuestAvatar name={form.fullName || 'Anonyme'} size={44} />
+          <ConversationAvatar name={form.fullName || 'Anonyme'} channel="FORM" size={44} />
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">

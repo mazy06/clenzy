@@ -6,6 +6,7 @@ import abritelLogo from '../assets/logo/abritel-logo-small.svg';
 import agodaLogo from '../assets/logo/agoda-logo-small.svg';
 import hometogoLogo from '../assets/logo/hometogo-logo-small.svg';
 import hotelsComLogo from '../assets/logo/hotels-com-logo-small.svg';
+import whatsappLogo from '../assets/logo/whatsapp-logo-small.svg';
 import baitlyMark from '../assets/logo/baitly-mark.svg';
 
 /**
@@ -26,6 +27,9 @@ export const CHANNEL_LOGOS: Record<string, string> = {
   agoda: agodaLogo,
   hometogo: hometogoLogo,
   hotels_com: hotelsComLogo,
+  // Canal de MESSAGERIE, pas de distribution : la messagerie unifiee s'en sert
+  // pour dire d'ou vient un echange voyageur.
+  whatsapp: whatsappLogo,
   // Reservations directes / booking engine : la marque Baitly fait office de
   // logo de canal, c'est nous qui portons la distribution.
   direct: baitlyMark,

@@ -62,6 +62,11 @@ interface ThreadViewProps {
   title: string;
   /** Sous-titre entête : « canal · logement » (icône canal colorée incluse par l'appelant). */
   subtitle: React.ReactNode;
+  /**
+   * Avatar de l'entête. Les fils le fournissent marqué du canal
+   * ({@code ConversationAvatar}) ; à défaut, initiales du titre.
+   */
+  avatar?: React.ReactNode;
   /** Pastille de statut à droite du nom (ex. « Confirmée » pour une réservation). */
   statusBadge?: React.ReactNode;
   /** Lien contextuel de l'entête (ex. « Voir la réservation »). */
@@ -116,6 +121,7 @@ interface ThreadViewProps {
 export default function ThreadView({
   title,
   subtitle,
+  avatar,
   statusBadge,
   contextAction,
   actions = [],
@@ -180,7 +186,7 @@ export default function ThreadView({
               <ArrowBackIcon size={16} strokeWidth={1.75} />
             </Button>
           )}
-          <GuestAvatar name={title} size={32} />
+          {avatar ?? <GuestAvatar name={title} size={32} />}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="truncate text-sm font-semibold text-foreground">{title}</span>

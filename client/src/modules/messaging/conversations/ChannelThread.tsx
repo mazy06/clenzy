@@ -35,7 +35,9 @@ import AttachReservationDialog from '../../channels/AttachReservationDialog';
 import SendWhatsAppTemplateDialog from '../../channels/SendWhatsAppTemplateDialog';
 import GuestProfileDialog from '../../channels/GuestProfileDialog';
 import ThreadView, { type ThreadAction } from './ThreadView';
-import { type ThreadMessage, getChannelBadge } from './unified';
+import { type ThreadMessage } from './unified';
+import ChannelMark, { channelLabel } from './ChannelMark';
+import ConversationAvatar from './ConversationAvatar';
 
 /** Date de séjour au format court « ven. 25 juil. » (locale du navigateur). */
 function formatStayDate(date: Date): string {
@@ -157,7 +159,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
     );
   };
 
-  const badge = getChannelBadge(conv.channel);
+  const channelName = channelLabel(conv.channel);
   const actions: ThreadAction[] = [];
   if (conv.guestId != null) {
     actions.push({
@@ -246,13 +248,12 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       />
       <GuestProfileDialog guestId={conv.guestId} open={guestOpen} onClose={() => setGuestOpen(false)} />
       <ThreadView
-        title={conv.guestName || badge.label}
+        title={conv.guestName || channelName}
+        avatar={<ConversationAvatar name={conv.guestName || channelName} channel={conv.channel} />}
         subtitle={
           <>
-            <span className="inline-flex" style={{ color: badge.color }}>
-              <badge.Icon size={13} strokeWidth={2} />
-            </span>
-            {badge.label}
+            <ChannelMark channel={conv.channel} size={14} />
+            {channelName}
             {conv.propertyName ? ` · ${conv.propertyName}` : ''}
             {stayLabel ? ` · ${stayLabel}` : ''}
           </>
@@ -287,7 +288,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         composePlaceholder={
           whatsappWindowExpired
             ? t('messagingHub.whatsappWindowPlaceholder', 'Réponse libre indisponible (template requis)')
-            : t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: conv.guestName || badge.label })
+            : t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: conv.guestName || channelName })
         }
         internalNote={internalNote}
         onInternalNoteChange={setInternalNote}
