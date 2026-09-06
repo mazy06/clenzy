@@ -1,6 +1,6 @@
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import React, { useState } from 'react';
-import { Tooltip, TooltipRoot, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui';
+import { Tooltip, TooltipRoot, TooltipProvider, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { useDraggable } from '@dnd-kit/core';
 import { Lock as LockIcon, Close, Warning, BroomFill, WrenchFill, CreditCardFill, CheckBold } from '../../icons';
@@ -24,6 +24,7 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { Money } from '../../components/Money';
 import GuestAvatar from '../../components/GuestAvatar';
 import './planningUrgency.css';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 // Les trois @keyframes de la brique vivaient dans le `sx` MUI, qui les injectait
 // lui-meme dans le document. Sans MUI il faut une vraie feuille de style : on la
@@ -116,7 +117,7 @@ const RadarPastille: React.FC<{
         <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
       </div>
     </TooltipTrigger>
-    <TooltipContent>{tooltip}</TooltipContent>
+    <PlanningTooltipContent>{tooltip}</PlanningTooltipContent>
   </TooltipRoot>
 );
 
@@ -279,7 +280,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             : <WrenchFill size={13} />}
         </div>
         </TooltipTrigger>
-        <TooltipContent>{tooltipTitle}</TooltipContent>
+        <PlanningTooltipContent>{tooltipTitle}</PlanningTooltipContent>
       </Tooltip>
     );
   }
@@ -330,8 +331,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const priceFull = hasPrice ? convertAndFormat(totalPrice, srcCurrency) : '';
   const showPrice = hasPrice && height >= 28;
   const priceAmountVisible = showPrice && displayWidth >= PRICE_AMOUNT_MIN; // icône + montant
-  const priceInline = showPrice && displayWidth >= PRICE_INLINE_MIN;        // pilule sur la ligne
-  const priceFolded = showPrice && !priceInline;                           // → « +N »
+  const priceInlineByWidth = showPrice && displayWidth >= PRICE_INLINE_MIN;  // pilule sur la ligne
+  let priceInline = priceInlineByWidth;
+  // Repli du prix : soit la brique est trop etroite pour la pilule, soit le NOM
+  // ne tient pas — le prix rejoint alors le « +N » pour lui rendre ses ~66 px.
+  // (`nameFitsInline` est calcule plus bas ; la valeur est reprise juste apres.)
+  let priceFolded = showPrice && !priceInline;                             // → « +N »
   // Brique medium (PRICE_INLINE_MIN..PRICE_AMOUNT_MIN) : le prix prend la ligne,
   // tout le reste (tarif, alerte, logo canal) se replie dans un unique « +N ».
   const compactRightZone = priceInline && !priceAmountVisible;
@@ -392,7 +397,46 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // représentées — sur brique étroite elles comptent dans le « +N ». Sur brique
   // medium (compactRightZone), tout se replie pour laisser la place au prix.
   const showBadgeGroup = isReservation && displayWidth > 56 && height >= 28;
-  const indicatorSlots = compactRightZone ? 0 : (displayWidth > (priceInline ? 220 : 175) ? 2 : 1);
+  const baseIndicatorSlots = compactRightZone ? 0 : (displayWidth > (priceInline ? 220 : 175) ? 2 : 1);
+
+  // ── Le NOM du voyageur prime sur les indicateurs ────────────────────────
+  //
+  // Une brique tronquait « Marie-Christine Dubois » en « Marie-Chris… » pour
+  // garder une pastille de ménage à sa droite : on perdait l'information qui
+  // identifie le séjour au profit d'une autre, déjà disponible au survol. En
+  // vue Mois le cas est la règle et non l'exception — la brique médiane fait
+  // 144 px, et il faut un séjour de 5 nuits pour dépasser 175 px.
+  //
+  // Si le nom ne tient pas, TOUT se replie dans le « +N » : la place ainsi
+  // rendue va au nom, et rien n'est perdu — le repli liste chaque élément avec
+  // son libellé et son montant.
+  //
+  // La largeur du nom est ESTIMÉE (≈ 6,8 px par caractère en 12 px semibold),
+  // comme le fait déjà INTERVENTION_TYPE_MIN_WIDTH. La mesurer réellement
+  // supposerait de lire `scrollWidth` sur chaque brique à chaque rendu, donc de
+  // forcer un calcul de mise en page synchrone des centaines de fois par
+  // glissement de fenêtre.
+  const NAME_CHAR_PX = 6.8;
+  const estimatedNameWidth = showLabel ? (event.label?.length ?? 0) * NAME_CHAR_PX : 0;
+  const avatarZone = showAvatar ? 33 : 0;
+  const priceZone = priceInline ? (priceAmountVisible ? 66 : 34) : 0;
+  /** Place restante pour la colonne de texte, indicateurs inline compris. */
+  const textRoomWith = (slots: number) => {
+    const shown = Math.min(indicators.length, slots >= indicators.length ? slots : Math.max(0, slots - 1));
+    const overflowBadge = shown < indicators.length ? 30 : 0;
+    return displayWidth - avatarZone - priceZone - (showBadgeGroup ? shown * 24 + overflowBadge : 0) - 20;
+  };
+  const nameFitsInline = estimatedNameWidth <= textRoomWith(baseIndicatorSlots);
+  const indicatorSlots = nameFitsInline ? baseIndicatorSlots : 0;
+  if (!nameFitsInline && priceInlineByWidth) {
+    // La pilule de prix pese ~66 px, bien plus que les pastilles : sans elle,
+    // « Camille Benali » (82 px) tient dans une brique ou il ne restait que
+    // 40 px. Le montant reste lisible d'un clic sur le « +N », qui l'annonce
+    // avec son etat de paiement.
+    priceInline = false;
+    priceFolded = showPrice;
+  }
+
   const shownIndicators = indicators.length <= indicatorSlots
     ? indicators
     : indicators.slice(0, Math.max(0, indicatorSlots - 1));
@@ -401,7 +445,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // ── Repli « +N » : prix réservation (si replié) > tarif prestation > canal ──
   // Le canal rejoint la liste si sa pastille logo n'a pas la place d'être
   // affichée (brique étroite ou medium) : « Canal : Airbnb ».
-  const channelFolded = !!sourceLogo && (displayWidth <= 60 || compactRightZone);
+  // Le canal se replie aussi quand le nom ne tient pas : la regle vaut pour
+  // TOUS les elements de la brique, pas seulement les interventions.
+  const channelFolded = !!sourceLogo && (displayWidth <= 60 || compactRightZone || !nameFitsInline);
   const overflowItems: { key: string; label: string; color?: string; icon: React.ReactNode }[] = [
     ...(priceFolded
       ? [{
@@ -613,13 +659,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 )}
               </div>
               </TooltipTrigger>
-              <TooltipContent>
+              <PlanningTooltipContent>
                 {priceUnpaid ? `${paymentTooltip} · ${priceFull}` : `Réglé · ${priceFull}`}
-              </TooltipContent>
+              </PlanningTooltipContent>
             </TooltipRoot>
           )}
           {/* Pastilles a droite : indicateurs (+N) + logo canal */}
-          {(showBadgeGroup || (sourceLogo && displayWidth > 60)) && (
+          {(showBadgeGroup || (sourceLogo && displayWidth > 60 && nameFitsInline)) && (
             <div className="flex items-center gap-0.5 shrink-0">
               {showBadgeGroup && shownIndicators.map((it) => {
                 // Tarif de prestation : pilule « icône + montant » quand la
@@ -658,7 +704,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                       )}
                     </div>
                     </TooltipTrigger>
-                    <TooltipContent>{it.tooltip}</TooltipContent>
+                    <PlanningTooltipContent>{it.tooltip}</PlanningTooltipContent>
                   </TooltipRoot>
                 );
               })}
@@ -697,7 +743,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                     +{overflowItems.length}
                   </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <PlanningTooltipContent>
                     <ul className="list-none m-0 p-[2px_0] flex flex-col gap-[5px]">
                       {overflowItems.map((it) => (
                         <li className="flex items-center gap-[7px]" key={it.key}>
@@ -710,10 +756,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                         </li>
                       ))}
                     </ul>
-                  </TooltipContent>
+                  </PlanningTooltipContent>
                 </TooltipRoot>
               )}
-              {sourceLogo && displayWidth > 60 && !compactRightZone && (() => {
+              {sourceLogo && displayWidth > 60 && !compactRightZone && nameFitsInline && (() => {
                 const logoBadge = (
                   <div className={BAR_BADGE_CLS}>
                     <img
@@ -732,7 +778,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 return (
                   <TooltipRoot>
                     <TooltipTrigger asChild>{logoBadge}</TooltipTrigger>
-                    <TooltipContent>{event.sublabel}</TooltipContent>
+                    <PlanningTooltipContent>{event.sublabel}</PlanningTooltipContent>
                   </TooltipRoot>
                 );
               })()}
@@ -779,7 +825,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               <Close size={10} strokeWidth={1.75} />
             </div>
           </TooltipTrigger>
-          <TooltipContent>Masquer du planning</TooltipContent>
+          <PlanningTooltipContent>Masquer du planning</PlanningTooltipContent>
         </TooltipRoot>
       )}
 
