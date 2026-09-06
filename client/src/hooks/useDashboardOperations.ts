@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { actionItemsApi, type BulkGesture } from '../services/api/actionItemsApi';
 import {
   dashboardOperationsApi,
   type DashboardActionItems,
@@ -45,6 +46,23 @@ export function useDashboardActionItems(enabled = true) {
     queryKey: ['dashboard', 'action-items'],
     queryFn: () => dashboardOperationsApi.getActionItems(),
     staleTime: 2 * 60_000,
+    enabled,
+  });
+}
+
+/**
+ * Les rubriques qui se traitent d'un seul geste.
+ *
+ * <p>Une liste de configuration, pas des données : elle ne dépend ni de
+ * l'organisation ni de l'heure, et ne change qu'au déploiement. Elle est donc
+ * gardée fraîche une heure — la recharger à chaque affichage du tableau de bord
+ * serait un appel pour rien.</p>
+ */
+export function useBulkGestures(enabled = true) {
+  return useQuery<BulkGesture[]>({
+    queryKey: ['action-items', 'bulk-gestures'],
+    queryFn: () => actionItemsApi.bulkGestures(),
+    staleTime: 60 * 60_000,
     enabled,
   });
 }

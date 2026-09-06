@@ -3,6 +3,7 @@ package com.clenzy.service.dashboard;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.Team;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.RequestStatus;
@@ -11,6 +12,7 @@ import com.clenzy.model.UserRole;
 import com.clenzy.repository.ConversationRepository;
 import com.clenzy.repository.GuestMessageLogRepository;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
@@ -26,6 +28,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +60,7 @@ class ActionItemSourcesTest {
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private TeamRepository teamRepository;
     @Mock private ConversationRepository conversationRepository;
     @Mock private GuestMessageLogRepository guestMessageLogRepository;
     @Mock private WelcomeGuideRepository welcomeGuideRepository;
@@ -220,20 +224,106 @@ class ActionItemSourcesTest {
                 .noneMatch(item -> item.kind() == ActionItemKind.WELCOME_GUIDE_MISSING);
     }
 
+    /**
+     * La ligne nomme le LOGEMENT de l'intervention, pas le titre venu du canal.
+     *
+     * <p>Un ménage synchronisé depuis Airbnb s'intitule « Menage Airbnb —
+     * Appartement Duplex Paris » alors qu'il porte sur l'Appartement Médina :
+     * afficher ce titre mettait deux logements sur une même ligne, dont un
+     * faux. Le type part dans {@code actionType}, que l'écran traduit.</p>
+     */
     @Test
-    void whenAnInterventionIsPastDue_thenItSurfaces() {
+    void whenAnInterventionIsPastDue_thenTheLineNamesItsPropertyAndWindow() {
         final Intervention late = new Intervention();
         late.setId(73L);
-        late.setTitle("Ménage de départ");
+        late.setTitle("Menage Airbnb — Appartement Duplex Paris");
+        late.setType("CLEANING");
+        late.setStartTime(NOW_LOCAL.withHour(11).withMinute(0));
+        late.setEndTime(NOW_LOCAL.withHour(15).withMinute(0));
         late.setProperty(property(300L, "Loft Gueliz"));
         when(interventionRepository.findOverdueForOrg(eq(ORG), any())).thenReturn(List.of(late));
 
-        assertThat(new InterventionActionSource(interventionRepository).collect(CTX))
+        assertThat(new InterventionActionSource(interventionRepository, teamRepository).collect(CTX))
                 .singleElement()
                 .satisfies(item -> {
                     assertThat(item.kind()).isEqualTo(ActionItemKind.INTERVENTION_OVERDUE);
-                    assertThat(item.title()).isEqualTo("Ménage de départ");
+                    assertThat(item.title()).isEqualTo("Loft Gueliz");
+                    assertThat(item.actionType()).isEqualTo("CLEANING");
+                    assertThat(item.detail()).isEqualTo("Créneau 11:00 → 15:00");
+                    // Le retard se compte depuis la fin du créneau, pas depuis
+                    // le passage du balayage : c'est ce que l'écran affiche.
+                    assertThat(item.waitingSince()).isNotNull();
                 });
+    }
+
+    /** L'équipe attendue complète le créneau — c'est elle qu'on relance. */
+    @Test
+    void whenAnOverdueInterventionHasATeam_thenItIsNamed() {
+        final Intervention late = new Intervention();
+        late.setId(74L);
+        late.setType("CLEANING");
+        late.setStartTime(NOW_LOCAL.withHour(11).withMinute(0));
+        late.setEndTime(NOW_LOCAL.withHour(15).withMinute(0));
+        late.setTeamId(9L);
+        late.setProperty(property(300L, "Loft Gueliz"));
+        when(interventionRepository.findOverdueForOrg(eq(ORG), any())).thenReturn(List.of(late));
+        final Team zoneSud = new Team();
+        zoneSud.setId(9L);
+        zoneSud.setName("Zone Sud");
+        when(teamRepository.findAllById(Set.of(9L))).thenReturn(List.of(zoneSud));
+
+        assertThat(new InterventionActionSource(interventionRepository, teamRepository).collect(CTX))
+                .singleElement()
+                .satisfies(item ->
+                        assertThat(item.detail()).isEqualTo("Créneau 11:00 → 15:00 · équipe Zone Sud"));
+    }
+
+    /**
+     * Une équipe déjà nommée « Equipe … » ne se fait pas re-préfixer.
+     *
+     * <p>« équipe Equipe Entretien Paris » : le doublon se lisait à l'écran.</p>
+     */
+    @Test
+    void whenTheTeamNameAlreadySaysTeam_thenItIsNotPrefixedTwice() {
+        final Intervention late = new Intervention();
+        late.setId(75L);
+        late.setType("CLEANING");
+        late.setStartTime(NOW_LOCAL.withHour(11).withMinute(0));
+        late.setEndTime(NOW_LOCAL.withHour(15).withMinute(0));
+        late.setTeamId(9L);
+        late.setProperty(property(300L, "Loft Gueliz"));
+        when(interventionRepository.findOverdueForOrg(eq(ORG), any())).thenReturn(List.of(late));
+        final Team named = new Team();
+        named.setId(9L);
+        named.setName("Equipe Entretien Paris");
+        when(teamRepository.findAllById(Set.of(9L))).thenReturn(List.of(named));
+
+        assertThat(new InterventionActionSource(interventionRepository, teamRepository).collect(CTX))
+                .singleElement()
+                .satisfies(item ->
+                        assertThat(item.detail()).isEqualTo("Créneau 11:00 → 15:00 · Equipe Entretien Paris"));
+    }
+
+    /**
+     * Une intervention d'un autre jour porte sa date.
+     *
+     * <p>« Prévu à 11:00 · 161 j de retard » ne dit pas de quel 11:00 on
+     * parle.</p>
+     */
+    @Test
+    void whenTheInterventionIsNotFromToday_thenTheDayIsWritten() {
+        final Intervention old = new Intervention();
+        old.setId(76L);
+        old.setType("CLEANING");
+        old.setStartTime(NOW_LOCAL.minusDays(161).withHour(11).withMinute(0));
+        old.setProperty(property(300L, "Loft Gueliz"));
+        when(interventionRepository.findOverdueForOrg(eq(ORG), any())).thenReturn(List.of(old));
+
+        assertThat(new InterventionActionSource(interventionRepository, teamRepository).collect(CTX))
+                .singleElement()
+                .satisfies(item -> assertThat(item.detail())
+                        .startsWith("Prévu le ")
+                        .endsWith("11:00"));
     }
 
     @Test

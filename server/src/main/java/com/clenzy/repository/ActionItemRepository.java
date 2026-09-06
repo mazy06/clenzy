@@ -1,6 +1,7 @@
 package com.clenzy.repository;
 
 import com.clenzy.model.ActionItem;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -38,6 +39,40 @@ public interface ActionItemRepository extends JpaRepository<ActionItem, Long> {
 
     Optional<ActionItem> findByOrganizationIdAndKindAndSubjectRef(
             Long organizationId, String kind, String subjectRef);
+
+    /**
+     * Une tranche de la file ouverte d'une <b>seule</b> nature, dans l'ordre
+     * d'urgence — le lot que traite un geste de masse.
+     *
+     * <p>Bornée par le {@code Pageable} plutôt que chargée entière : une
+     * organisation peut avoir des centaines d'envois en échec, et les traiter
+     * tous dans une même requête HTTP tiendrait le fil d'exécution pendant des
+     * minutes. Le reliquat est annoncé à l'appelant, qui relance.</p>
+     */
+    @Query("""
+            SELECT a FROM ActionItem a
+            WHERE a.organizationId = :orgId
+              AND a.kind = :kind
+              AND a.status = 'OPEN'
+              AND (a.snoozedUntil IS NULL OR a.snoozedUntil <= :now)
+            ORDER BY a.severityRank ASC, a.deadlineAt ASC NULLS LAST, a.firstSeenAt ASC
+            """)
+    List<ActionItem> findOpenForOrgAndKind(@Param("orgId") Long orgId,
+                                           @Param("kind") String kind,
+                                           @Param("now") Instant now,
+                                           Pageable page);
+
+    /** Combien de lignes ouvertes cette nature compte réellement. */
+    @Query("""
+            SELECT COUNT(a) FROM ActionItem a
+            WHERE a.organizationId = :orgId
+              AND a.kind = :kind
+              AND a.status = 'OPEN'
+              AND (a.snoozedUntil IS NULL OR a.snoozedUntil <= :now)
+            """)
+    long countOpenForOrgAndKind(@Param("orgId") Long orgId,
+                                @Param("kind") String kind,
+                                @Param("now") Instant now);
 
     /**
      * Les lignes dérivées d'une organisation, <b>ouvertes comme closes</b>.

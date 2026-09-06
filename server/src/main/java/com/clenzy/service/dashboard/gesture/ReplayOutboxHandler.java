@@ -38,6 +38,12 @@ public class ReplayOutboxHandler implements ActionGestureHandler {
         return Set.of(ActionItemKind.OUTBOX_DEAD_LETTER);
     }
 
+    /** Remettre en file des messages internes perdus n'a de sens qu'en lot : ils tombent par vagues. */
+    @Override
+    public boolean bulkable() {
+        return true;
+    }
+
     @Override
     public void handle(GestureContext context) {
         final Long orgId = context.orgId();

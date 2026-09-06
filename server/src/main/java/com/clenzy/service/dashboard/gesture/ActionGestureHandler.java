@@ -34,5 +34,24 @@ public interface ActionGestureHandler {
      */
     Set<ActionItemKind> kinds();
 
+    /**
+     * Ce geste peut-il être appliqué d'un coup à toute une rubrique ?
+     *
+     * <p><b>Faux par défaut, et c'est l'essentiel.</b> Un geste de masse ne
+     * demande qu'une confirmation pour des dizaines d'effets : il n'est
+     * acceptable que là où chaque effet est identique, réparable, et ne repose
+     * sur aucune décision propre à la ligne. Rejouer trente envois en échec
+     * remplit ces conditions ; approuver trente reversements — de l'argent qui
+     * part — ou déclarer trente interventions terminées — sans en avoir vu une
+     * seule preuve — ne les remplissent pas.</p>
+     *
+     * <p>L'opt-in vaut aussi pour les gestes qui exigent une cible choisie par
+     * l'utilisateur (assigner, replanifier) : il n'y a rien à choisir en
+     * masse.</p>
+     */
+    default boolean bulkable() {
+        return false;
+    }
+
     void handle(GestureContext context);
 }

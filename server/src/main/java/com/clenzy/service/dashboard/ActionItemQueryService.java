@@ -1,5 +1,6 @@
 package com.clenzy.service.dashboard;
 
+import com.clenzy.dto.DashboardOperationsDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemsDto;
@@ -10,8 +11,10 @@ import com.clenzy.repository.PropertyRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +85,7 @@ public class ActionItemQueryService {
      */
     public ActionItemsDto getActionItems(Long orgId, UserRole role, String keycloakId) {
         if (OPERATIONAL_ROLES.contains(role)) {
-            return new ActionItemsDto(List.of(), 0, Map.of());
+            return new ActionItemsDto(List.of(), 0, Map.of(), Map.of());
         }
 
         final Set<ActionItemKind> allowedKinds = allowedKinds(role);
@@ -118,7 +121,20 @@ public class ActionItemQueryService {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size(),
                         (a, b) -> a, LinkedHashMap::new));
 
-        return new ActionItemsDto(shown, all.size(), totals);
+        // Les cumuls aussi portent sur AVANT plafonnement : « Soldes jamais
+        // encaissés · 4 810 € » doit dire ce qui dort réellement, pas la somme
+        // des dix lignes transmises. Seules les natures dont le montant est de
+        // l'argent en ont un — ailleurs, `amount` porte un nombre d'heures.
+        final Map<ActionItemKind, BigDecimal> amounts = byKind.entrySet().stream()
+                .filter(entry -> DashboardOperationsDto.MONETARY_KINDS.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(ActionItemDto::amount)
+                                .filter(Objects::nonNull)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add),
+                        (a, b) -> a, LinkedHashMap::new));
+
+        return new ActionItemsDto(shown, all.size(), totals, amounts);
     }
 
     /**
@@ -191,6 +207,10 @@ public class ActionItemQueryService {
                 item.getActionType(),
                 null,
                 item.getCurrency(),
-                item.getId());
+                item.getId(),
+                // L'échéance quand la source en a posé une — « en retard depuis
+                // la fin du créneau » est ce que l'utilisateur veut lire. Sinon
+                // l'âge de la ligne dans la file, seul repère qui reste.
+                item.getDeadlineAt() != null ? item.getDeadlineAt() : item.getFirstSeenAt());
     }
 }

@@ -46,6 +46,12 @@ public class RetryDocumentDeliveryHandler implements ActionGestureHandler {
         return Set.of(ActionItemKind.DOCUMENT_DELIVERY_FAILED);
     }
 
+    /** Un fournisseur qui retombe fait échouer des dizaines d'envois d'un coup ; les reprendre un à un n'aurait pas de sens. */
+    @Override
+    public boolean bulkable() {
+        return true;
+    }
+
     @Override
     public void handle(GestureContext context) {
         final Long orgId = context.orgId();

@@ -161,6 +161,10 @@ public class ActionItemReconciler {
         item.setCurrency(dto.currency());
         item.setBadge(dto.badge());
         item.setActionType(dto.actionType());
+        // Depuis quand la ligne est en souffrance, quand la source le sait —
+        // la fin du créneau d'un ménage, par exemple. À défaut, l'écran
+        // retombera sur l'âge de la ligne dans la file.
+        item.setDeadlineAt(dto.waitingSince());
         item.setLastSeenAt(sweptAt);
     }
 

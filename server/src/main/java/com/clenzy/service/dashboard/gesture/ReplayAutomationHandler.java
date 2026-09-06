@@ -31,6 +31,12 @@ public class ReplayAutomationHandler implements ActionGestureHandler {
         return Set.of(ActionItemKind.AUTOMATION_FAILED);
     }
 
+    /** Rejouer un échec ne fait que retenter ce qui était prévu : rien de neuf n'est décidé. */
+    @Override
+    public boolean bulkable() {
+        return true;
+    }
+
     @Override
     public void handle(GestureContext context) {
         automationEvaluationService.replayExecution(context.targetId(), context.orgId());

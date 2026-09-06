@@ -167,6 +167,29 @@ const RADIAL_SIZE = 208;
 const RADIAL_OUTER = 96;
 const RADIAL_INNER_MIN = 30;
 
+/**
+ * Bornes du disque à l'écran, en pixels.
+ *
+ * <p>Le tracé est en unités de `viewBox` : il s'étire donc sans rien recalculer.
+ * Ce qui a besoin de bornes, c'est le résultat — sous 140 px les anneaux
+ * deviennent des cheveux, et au-delà de 300 px un camembert de la hauteur d'une
+ * colonne n'informe pas mieux, il occupe.</p>
+ */
+const RADIAL_MIN_PX = 140;
+const RADIAL_MAX_PX = 300;
+
+/**
+ * Place réservée à l'encart, gouttière comprise : sa largeur quand il se pose à
+ * côté du disque, sa hauteur quand il passe dessous.
+ *
+ * <p>Des constantes et non une seconde mesure : mesurer l'encart <i>dans</i> le
+ * conteneur qu'on mesure déjà ferait dépendre la taille du disque d'une place
+ * que le disque détermine — la vue rétrécirait d'elle-même à chaque passe. Ses
+ * deux lignes courtes ne varient pas.</p>
+ */
+const LABEL_WIDTH_PX = 220;
+const LABEL_HEIGHT_PX = 52;
+
 function OccupancyRadial({
   rows,
   averageLabel,
@@ -178,6 +201,39 @@ function OccupancyRadial({
   nightsLabel: (occupied: number, total: number) => string;
 }) {
   const [hovered, setHovered] = React.useState<number | null>(null);
+  const boxRef = React.useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = React.useState({ side: RADIAL_MIN_PX, beside: false });
+
+  /*
+   * Le disque est carré : c'est le plus petit des deux côtés qui le borne, une
+   * fois la place de l'encart retirée.
+   *
+   * L'encart se met à CÔTÉ dès que la largeur le permet — le tableau de bord
+   * est large et la carte haute, poser deux lignes de texte sous un disque y
+   * gaspille de la hauteur que le disque pourrait prendre. En dessous du seuil
+   * (colonne étroite, mobile), il repasse sous le disque plutôt que de l'écraser.
+   */
+  React.useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return undefined;
+    const measure = () => {
+      const rect = box.getBoundingClientRect();
+      const beside = rect.width - LABEL_WIDTH_PX >= RADIAL_MIN_PX;
+      const available = beside
+        ? Math.min(rect.width - LABEL_WIDTH_PX, rect.height)
+        : Math.min(rect.width, rect.height - LABEL_HEIGHT_PX);
+      setLayout({
+        side: Math.max(RADIAL_MIN_PX, Math.min(RADIAL_MAX_PX, Math.floor(available))),
+        beside,
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+
+  const { side, beside } = layout;
 
   // Le plus occupé à l'extérieur : l'anneau le plus long est aussi le plus lisible.
   const data = [...rows].sort((a, b) => b.rate - a.rate);
@@ -199,73 +255,115 @@ function OccupancyRadial({
   const boxTotal = focus ? focus.totalNights : data.reduce((s, r) => s + r.totalNights, 0);
 
   return (
-    <div className="relative mx-auto w-fit" onMouseLeave={() => setHovered(null)}>
-      <svg
-        viewBox={`0 0 ${RADIAL_SIZE} ${RADIAL_SIZE}`}
-        // Taille DÉFINIE : un `h-full` se résoudrait à zéro, le parent étant en
-        // hauteur automatique. 160 px passent sous la hauteur des tuiles
-        // voisines, donc la bascule n'agrandit pas la ligne.
-        className="size-40"
-        role="img"
-        aria-label={averageLabel}
+    // Le composant occupe lui-même la place restante et s'y mesure : la carte
+    // est étirée à la hauteur de sa voisine de ligne, et cette hauteur n'est
+    // connue de personne à l'écriture. Un disque de taille fixe y flottait au
+    // milieu d'un vide de plusieurs centaines de pixels.
+    //
+    // Pas de `min-h-0` ici, à dessein : sans hauteur définie du parent (mobile,
+    // widgets empilés) `flex-1` se résout à zéro, et c'est la hauteur minimale
+    // du contenu qui sauve la vue. La borne basse fait le reste.
+    <div
+      ref={boxRef}
+      className={cn(
+        'relative flex w-full flex-1 items-center justify-center gap-3',
+        beside ? 'flex-row' : 'flex-col',
+      )}
+    >
+      <div
+        className="relative"
+        style={{ width: side, height: side }}
+        onMouseLeave={() => setHovered(null)}
       >
-        {data.map((row, index) => {
-          const radius = RADIAL_OUTER - index * pitch - stroke / 2;
-          const circumference = 2 * Math.PI * radius;
-          return (
-            <g
-              key={row.propertyId}
-              onMouseEnter={() => setHovered(index)}
-              className="cursor-default"
-            >
-              {/* La piste porte le survol : elle couvre toute la circonférence,
-                  donc un logement à 5 % reste survolable sur tout son anneau. */}
-              <circle
-                cx={centre}
-                cy={centre}
-                r={radius}
-                fill="none"
-                stroke="var(--bui-field)"
-                strokeWidth={stroke}
-              />
-              <circle
-                cx={centre}
-                cy={centre}
-                r={radius}
-                fill="none"
-                stroke={occupancyColor(row.rate)}
-                strokeWidth={stroke}
-                strokeLinecap="round"
-                strokeDasharray={`${(circumference * row.rate) / 100} ${circumference}`}
-                transform={`rotate(-90 ${centre} ${centre})`}
-                className="pointer-events-none"
-              />
-              {/* Repli natif : le nom reste accessible même sans notre infobulle. */}
-              <title>{`${row.name} — ${row.rate}%`}</title>
-            </g>
-          );
-        })}
-      </svg>
+        <svg
+          viewBox={`0 0 ${RADIAL_SIZE} ${RADIAL_SIZE}`}
+          className="size-full"
+          role="img"
+          aria-label={averageLabel}
+        >
+          {data.map((row, index) => {
+            const radius = RADIAL_OUTER - index * pitch - stroke / 2;
+            const circumference = 2 * Math.PI * radius;
+            return (
+              <g
+                key={row.propertyId}
+                onMouseEnter={() => setHovered(index)}
+                className="cursor-default"
+              >
+                {/* La piste porte le survol : elle couvre toute la circonférence,
+                    donc un logement à 5 % reste survolable sur tout son anneau. */}
+                <circle
+                  cx={centre}
+                  cy={centre}
+                  r={radius}
+                  fill="none"
+                  stroke="var(--bui-field)"
+                  strokeWidth={stroke}
+                />
+                <circle
+                  cx={centre}
+                  cy={centre}
+                  r={radius}
+                  fill="none"
+                  stroke={occupancyColor(row.rate)}
+                  strokeWidth={stroke}
+                  strokeLinecap="round"
+                  strokeDasharray={`${(circumference * row.rate) / 100} ${circumference}`}
+                  transform={`rotate(-90 ${centre} ${centre})`}
+                  className="pointer-events-none"
+                />
+                {/* Repli natif : le nom reste accessible même sans notre infobulle. */}
+                <title>{`${row.name} — ${row.rate}%`}</title>
+              </g>
+            );
+          })}
+        </svg>
 
-      {/* Le taux seul au centre : le libellé vit dans l'encart flottant, on ne
-          le dit pas deux fois. */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-semibold tracking-tight tabular-nums">{boxRate}%</span>
+        {/* Le taux seul au centre : le libellé vit dans l'encart flottant, on ne
+            le dit pas deux fois. */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          {/* Le chiffre suit le disque : à 24 px fixes, il se perdait au centre
+              d'un anneau de 300 px. */}
+          <span
+            className="font-semibold tracking-tight tabular-nums"
+            style={{ fontSize: Math.round(side * 0.14) }}
+          >
+            {boxRate}%
+          </span>
+        </div>
+
       </div>
 
-      {/* Encart FLOTTANT, superposé au disque — posé dans le flux, il volait sa
-          hauteur au graphique. Toujours visible : il porte le portefeuille au
-          repos et bascule sur le logement survolé. Une infobulle qui n'existe
-          qu'au survol laisserait la vue muette tant qu'on ne bouge pas la
-          souris, et inaccessible au clavier ou au tactile.
-          `pointer-events-none` : l'encart ne doit pas masquer les anneaux qu'il
-          recouvre au survol. */}
+      {/* Encart À CÔTÉ du disque, dans le flux — sous lui quand la largeur
+          manque. Superposé, il masquait le bas des anneaux, c'est-à-dire les
+          logements les moins occupés : ceux qu'on regarde. Sa place est réservée
+          au moment de la mesure, elle ne se prend donc pas sur le graphique.
+
+          Toujours visible : il porte le portefeuille au repos et bascule sur le
+          logement survolé. Une infobulle qui n'existe qu'au survol laisserait la
+          vue muette tant qu'on ne bouge pas la souris, et inaccessible au
+          clavier ou au tactile. */}
       <div
-        className="pointer-events-none absolute inset-x-0 -bottom-1 z-10 mx-auto w-max max-w-52 rounded-lg border border-border bg-card/95 px-2.5 py-1 text-center shadow-md backdrop-blur-[2px]"
+        className={cn(
+          // Largeur FIXE, et non `w-max` : le contenu change au survol (« Moyenne
+          // du portefeuille » puis le nom du logement), et une boîte qui suit son
+          // texte fait bouger tout ce que le conteneur centre — le disque se
+          // déplaçait sous la souris. Le nom est tronqué plutôt que la boîte
+          // élargie ; la première ligne reste donc unique, et la hauteur aussi.
+          'pointer-events-none w-52 rounded-lg border border-border bg-card px-2.5 py-1',
+          // Aligné à gauche quand il est posé de côté : centré, ses deux lignes
+          // de longueurs différentes dessinaient un axe qui ne correspond à rien.
+          beside ? 'text-start' : 'text-center',
+        )}
         aria-live="polite"
       >
         <p className="m-0 truncate text-xs font-medium text-foreground">{boxLabel}</p>
-        <p className="m-0 mt-0.5 flex items-center justify-center gap-1.5 text-2xs text-muted-foreground">
+        <p
+          className={cn(
+            'm-0 mt-0.5 flex items-center gap-1.5 text-2xs text-muted-foreground',
+            beside ? 'justify-start' : 'justify-center',
+          )}
+        >
           <span
             className="inline-block size-2 shrink-0 rounded-full"
             style={{ background: occupancyColor(boxRate) }}
@@ -338,25 +436,21 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
           {t('dashboard.occupancyByProperty.empty', 'Aucun logement sur la période.')}
         </p>
       ) : view === 'radial' ? (
-        /* `flex-1` : le graphique se centre dans ce qui reste sous l'en-tête, au
-           lieu de se coller dessous et de laisser tout le vide en bas. La carte
-           est étirée à la hauteur de sa voisine de ligne, ce vide est donc réel
-           et variable — seul un centrage sur l'espace restant tient. */
-        /* `flex-1` : le disque se centre dans ce qui reste sous l'en-tête, au
-           lieu de se coller dessous et de laisser tout le vide en bas. */
-        <div className="flex flex-1 items-center justify-center">
-          <OccupancyRadial
-            rows={rows}
-            averageLabel={t('dashboard.occupancyByProperty.average', 'Moyenne du portefeuille')}
-            nightsLabel={(occupied, total) =>
-              t('dashboard.occupancyByProperty.nights', {
-                occupied,
-                total,
-                defaultValue: '{{occupied}} nuits sur {{total}}',
-              })
-            }
-          />
-        </div>
+        /* Le composant porte lui-même son `flex-1` et se mesure : il réclame ce
+           qui reste sous l'en-tête, puis y dessine le plus grand disque que cet
+           espace admet. La carte est étirée à la hauteur de sa voisine de ligne,
+           et cette hauteur n'est connue qu'à l'exécution. */
+        <OccupancyRadial
+          rows={rows}
+          averageLabel={t('dashboard.occupancyByProperty.average', 'Moyenne du portefeuille')}
+          nightsLabel={(occupied, total) =>
+            t('dashboard.occupancyByProperty.nights', {
+              occupied,
+              total,
+              defaultValue: '{{occupied}} nuits sur {{total}}',
+            })
+          }
+        />
       ) : (
         <div className="flex flex-col gap-2.5">
           {rows.map((row) => {

@@ -43,6 +43,12 @@ public class RetryGuestMessageHandler implements ActionGestureHandler {
         return Set.of(ActionItemKind.GUEST_MESSAGE_FAILED);
     }
 
+    /** Même raison que les documents : la panne est commune, la reprise l'est aussi. */
+    @Override
+    public boolean bulkable() {
+        return true;
+    }
+
     @Override
     public void handle(GestureContext context) {
         final Long orgId = context.orgId();

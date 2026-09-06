@@ -1,6 +1,7 @@
 package com.clenzy.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -104,11 +105,19 @@ public record DashboardOperationsDto(
      * @param totalsByKind décompte réel par nature — sans lui, l'écran ne pourrait
      *                     compter que les lignes reçues et afficherait « Avis (3) »
      *                     là où douze attendent
+     * @param amountsByKind cumul réel en jeu par nature financière, avant
+     *                      plafonnement. Même raison que les décomptes : l'écran
+     *                      ne reçoit qu'une dizaine de lignes sur trente, et
+     *                      additionner ce qu'il a sous les yeux afficherait un
+     *                      total faux là où l'on veut justement un ordre de
+     *                      grandeur juste au premier coup d'œil. Absent pour les
+     *                      natures dont le montant n'est pas de l'argent.
      */
     public record ActionItemsDto(
             List<ActionItemDto> items,
             int total,
-            Map<ActionItemKind, Integer> totalsByKind) {}
+            Map<ActionItemKind, Integer> totalsByKind,
+            Map<ActionItemKind, BigDecimal> amountsByKind) {}
 
     /**
      * Élément de la file « à traiter ».
@@ -163,7 +172,20 @@ public record DashboardOperationsDto(
              * source produit une action <i>candidate</i>, c'est la lecture qui
              * lui donne son identité.</p>
              */
-            Long actionItemId) {
+            Long actionItemId,
+            /**
+             * Depuis quand cette ligne attend — l'instant où la file l'a vue
+             * pour la première fois.
+             *
+             * <p>C'est le seul repère de durée que possède une file dont les
+             * natures n'ont pas d'échéance commune : un ménage n'a pas de date
+             * limite au même sens qu'un litige. « En retard » sans dire de
+             * combien ne permet ni d'arbitrer ni de s'alarmer.</p>
+             *
+             * <p>{@code null} pour une action candidate : elle n'attend pas
+             * encore, elle vient d'être constatée.</p>
+             */
+            Instant waitingSince) {
 
         /**
          * Forme employée par les sources : une action candidate, pas encore
@@ -174,7 +196,7 @@ public record DashboardOperationsDto(
                              String propertyName, BigDecimal amount, String badge,
                              String actionType, String actionParams) {
             this(id, kind, severity, title, detail, subject, targetId, propertyId, propertyName,
-                    amount, badge, actionType, actionParams, null, null);
+                    amount, badge, actionType, actionParams, null, null, null);
         }
     }
 
@@ -184,6 +206,23 @@ public record DashboardOperationsDto(
      * <p>L'ordre de déclaration EST l'ordre de tri à sévérité égale : un solde
      * non encaissé passe avant un avis sans réponse.</p>
      */
+    /**
+     * Les natures dont {@code amount} est un montant en devise.
+     *
+     * <p>Le champ est générique — il porte un nombre d'heures pour un flux de
+     * calendrier muet, une somme pour un solde. Additionner sans distinguer
+     * produirait « 74 € » à partir d'heures de retard.</p>
+     */
+    public static final java.util.Set<ActionItemKind> MONETARY_KINDS = java.util.EnumSet.of(
+            ActionItemKind.PAYMENT_INCIDENT,
+            ActionItemKind.BALANCE_DUE,
+            ActionItemKind.BALANCE_ABANDONED,
+            ActionItemKind.DEPOSIT_STUCK,
+            ActionItemKind.SERVICE_UNPAID,
+            ActionItemKind.SERVICE_UNASSIGNED,
+            ActionItemKind.INTERVENTION_UNPAID,
+            ActionItemKind.OWNER_PAYOUT_PENDING);
+
     public enum ActionItemKind {
         /** Le fournisseur de paiement contredit un règlement enregistré. */
         PAYMENT_INCIDENT,

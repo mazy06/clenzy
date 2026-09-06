@@ -157,6 +157,13 @@ export interface DashboardActionItem {
    * galerie, qui ne sont enregistrées nulle part.
    */
   actionItemId: number | null;
+  /**
+   * Depuis quand la ligne attend — instant ISO, ou `null` pour une fixture.
+   *
+   * <p>Le seul repère de durée d'une file dont les natures n'ont pas d'échéance
+   * commune : « en retard » sans dire de combien ne permet pas d'arbitrer.</p>
+   */
+  waitingSince: string | null;
 }
 
 export interface DashboardActionItems {
@@ -169,6 +176,15 @@ export interface DashboardActionItems {
    * compter que les lignes reçues, et écrirait « Avis (3) » là où douze attendent.
    */
   totalsByKind: Partial<Record<DashboardActionKind, number>>;
+  /**
+   * Cumul réel en jeu par nature financière, avant plafonnement.
+   *
+   * <p>Calculé par le serveur pour la même raison que les décomptes : l'écran
+   * ne reçoit qu'une dizaine de lignes sur trente, et additionner ce qu'il a
+   * sous les yeux afficherait un total faux là où l'on veut justement un ordre
+   * de grandeur juste au premier coup d'œil.</p>
+   */
+  amountsByKind: Partial<Record<DashboardActionKind, number>>;
 }
 
 export const dashboardOperationsApi = {

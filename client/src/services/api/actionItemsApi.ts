@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import type { DashboardActionKind } from './dashboardOperationsApi';
 
 /** Équipe candidate pour une assignation, telle que le serveur la classe. */
 export interface AssignableTeam {
@@ -83,6 +84,35 @@ export interface AssignableTeams {
   requiredTeamType: string | null;
 }
 
+/** Une rubrique dont le geste s'applique à toutes ses lignes d'un coup. */
+export interface BulkGesture {
+  kind: DashboardActionKind;
+  /** Nom du geste côté serveur — l'écran n'a pas à le transmettre, il l'affiche. */
+  action: string;
+}
+
+/** Une ligne que le lot n'a pas pu traiter. */
+export interface BulkGestureFailure {
+  actionItemId: number;
+  title: string | null;
+  /** Raison lisible, ou mention générique quand l'échec est technique. */
+  reason: string;
+}
+
+/**
+ * Ce qu'un geste de masse a réellement fait.
+ *
+ * <p>Le lot est plafonné côté serveur : `remaining` dit ce qu'il reste après
+ * coup, et un second appel le reprend.</p>
+ */
+export interface BulkGestureResult {
+  requested: number;
+  succeeded: number;
+  failed: number;
+  remaining: number;
+  failures: BulkGestureFailure[];
+}
+
 /**
  * Clôture d'une action de la file « à traiter ».
  *
@@ -147,6 +177,26 @@ export const actionItemsApi = {
 
   assignableTeams: (id: number): Promise<AssignableTeams> =>
     apiClient.get<AssignableTeams>(`/action-items/${id}/assignable-teams`),
+
+  /**
+   * Les rubriques qui se traitent d'un seul geste.
+   *
+   * <p>La liste vient du serveur et non de l'écran : « ce geste est répétable
+   * sans dommage » est une décision qui appartient au service qui le porte. La
+   * dupliquer ici finirait par proposer un bouton que le serveur refuse.</p>
+   */
+  bulkGestures: (): Promise<BulkGesture[]> =>
+    apiClient.get<BulkGesture[]>('/action-items/bulk-gestures'),
+
+  /**
+   * Applique le geste de cette rubrique à toutes ses lignes ouvertes.
+   *
+   * <p>Seule la nature est transmise : l'écran ne reçoit qu'une dizaine de
+   * lignes sur les centaines que la rubrique peut compter, et c'est le serveur
+   * qui va chercher les cibles dans l'organisation du demandeur.</p>
+   */
+  bulk: (kind: DashboardActionKind): Promise<BulkGestureResult> =>
+    apiClient.post<BulkGestureResult>('/action-items/bulk', { kind }),
 };
 
 /**
