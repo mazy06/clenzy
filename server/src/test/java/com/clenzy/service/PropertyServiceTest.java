@@ -353,6 +353,7 @@ class PropertyServiceTest {
             Property property = new Property();
             property.setId(10L);
             property.setOwner(null);
+            property.setOrganizationId(ORG_ID); // cf. commentaire dans ToDtoBranches
 
             when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
@@ -693,6 +694,10 @@ class PropertyServiceTest {
             property.setType(PropertyType.APARTMENT);
             property.setStatus(PropertyStatus.ACTIVE);
             property.setOwner(null);
+            // getById valide desormais l'organisation : une fixture sans org est
+            // refusee (garde fail-closed). Ce test porte sur le mapping du DTO,
+            // pas sur la tenancy — on lui donne donc un logement de l'org courante.
+            property.setOrganizationId(ORG_ID);
 
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
 
@@ -901,6 +906,53 @@ class PropertyServiceTest {
             when(listingMappingRepository.findByPropertyId(10L)).thenReturn(Optional.empty());
 
             assertThat(propertyService.getAirbnbListingMapping(10L)).isEmpty();
+        }
+    }
+
+    // ── Isolation multi-tenant de getById ────────────────────────────────────
+    //
+    // findByIdRespectingTenant ne validait RIEN malgre son nom : un findById nu,
+    // qui ne passe pas par le filtre Hibernate (celui-ci ne s'applique pas aux
+    // recherches par cle primaire). Les outils de l'assistant recevant leur
+    // propertyId du modele, demander « les details du logement 42 » suffisait a
+    // lire la fiche d'un autre tenant.
+
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("getById — isolation d'organisation")
+    class GetByIdIsolation {
+
+        private Property propertyOfOtherOrg() {
+            Property p = buildProperty(42L, buildOwner(9L));
+            p.setOrganizationId(999L); // une AUTRE organisation
+            return p;
+        }
+
+        @Test
+        void unLogementDUneAutreOrganisation_estRefuse() {
+            when(propertyRepository.findById(42L)).thenReturn(Optional.of(propertyOfOtherOrg()));
+
+            assertThatThrownBy(() -> propertyService.getById(42L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        void unLogementDeSonOrganisation_estServi() {
+            Property mine = buildProperty(7L, buildOwner(3L));
+            mine.setOrganizationId(ORG_ID);
+            when(propertyRepository.findById(7L)).thenReturn(Optional.of(mine));
+
+            assertThat(propertyService.getById(7L).id).isEqualTo(7L);
+        }
+
+        @Test
+        void leStaffPlateformeGardeSonAccesTransverse() {
+            // Le bypass est porte par le DRAPEAU super-admin, pas par l'absence
+            // d'organisation : sans org resolue, le garde est fail-closed et
+            // REFUSE (c'est tout son interet).
+            tenantContext.setSuperAdmin(true);
+            when(propertyRepository.findById(42L)).thenReturn(Optional.of(propertyOfOtherOrg()));
+
+            assertThat(propertyService.getById(42L).id).isEqualTo(42L);
         }
     }
 }
