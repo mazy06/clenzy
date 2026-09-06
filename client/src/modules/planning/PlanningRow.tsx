@@ -147,9 +147,18 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             } else {
               linked.set(host.event.id, [event]);
             }
+            continue;
           }
-          // Rattachée mais brique hôte non rendue : on ne rend rien.
-          continue;
+          // Hôte NON rendu — il est masqué par une puce de légende, ou son
+          // séjour tombe hors de la fenêtre de dates affichée. L'intervention
+          // redevient alors AUTONOME.
+          //
+          // Elle disparaissait purement et simplement : masquer un canal
+          // effaçait aussi ses ménages, alors que la légende ne filtre QUE les
+          // réservations (usePlanningFilters laisse passer tout ce qui n'en est
+          // pas une) et que les interventions ont déjà leur propre interrupteur.
+          // Un ménage planifié à checkout+N dont le séjour s'achève avant le
+          // bord gauche de la fenêtre disparaissait de la même façon.
         }
       }
       visible.push(l);
