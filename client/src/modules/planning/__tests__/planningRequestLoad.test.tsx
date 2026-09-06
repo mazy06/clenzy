@@ -5,7 +5,8 @@ import type { ReactNode } from 'react';
 import React from 'react';
 import { usePlanningPricing } from '../hooks/usePlanningPricing';
 import { useSettledRange } from '../hooks/useSettledRange';
-import { addDays, toDateStr } from '../utils/dateUtils';
+import { addDays, toDateStr, getOverlappingChunks } from '../utils/dateUtils';
+import { DATA_CHUNK_SIZE_DAYS } from '../constants';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 
 /**
@@ -34,6 +35,12 @@ const PROPERTY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const START = new Date(2026, 8, 6);
 /** Fenetre de la vue Mois : 2 × 31 × 2 + 1 jours. */
 const WINDOW_DAYS = 124;
+/**
+ * Nombre de tranches couvrant cette fenetre — DERIVE, jamais code en dur : le
+ * test doit exprimer « une requete par tranche », pas memoriser combien il y en
+ * a le jour ou il a ete ecrit.
+ */
+const CHUNKS = getOverlappingChunks(START, addDays(START, WINDOW_DAYS), DATA_CHUNK_SIZE_DAYS).length;
 
 /**
  * UN seul client par test. En creer un a chaque rendu du wrapper (piege facile)
@@ -70,10 +77,9 @@ describe('planning — charge reseau', () => {
     await waitFor(() => expect(batchMock).toHaveBeenCalled());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    // Une requete par TRANCHE de 30 jours, pas par logement × tranche.
-    // 124 jours couvrent 5 tranches alignees ; l'ancienne strategie en aurait
-    // emis 10 × 5 = 50 pour la meme grille.
-    expect(batchMock.mock.calls.length).toBeLessThanOrEqual(6);
+    // Une requete par TRANCHE, pas par logement × tranche : c'est tout l'enjeu.
+    // L'ancienne strategie en aurait emis 10 × CHUNKS pour la meme grille.
+    expect(batchMock.mock.calls.length).toBe(CHUNKS);
 
     // Et chaque appel porte bien TOUS les logements.
     for (const [ids] of batchMock.mock.calls) {
@@ -92,7 +98,7 @@ describe('planning — charge reseau', () => {
     );
 
     await waitFor(() => expect(batchMock).toHaveBeenCalled());
-    await waitFor(() => expect(batchMock.mock.calls.length).toBe(5));
+    await waitFor(() => expect(batchMock.mock.calls.length).toBe(CHUNKS));
     const afterFirstPaint = batchMock.mock.calls.length;
 
     // Defilement violent : la fenetre de RENDU glisse 40 fois d'affilee, chaque
@@ -115,12 +121,11 @@ describe('planning — charge reseau', () => {
     await new Promise((r) => setTimeout(r, 300));
 
     const slideCalls = batchMock.mock.calls.length - afterFirstPaint;
-    // Seule la fenetre FINALE est chargee : 5 tranches. Mesure faite en
-    // branchant le hook directement sur la fenetre de rendu (sans palier) :
-    // 41 requetes pour la meme rafale, toutes jetees sauf les 5 dernieres.
-    // Et ce n'est que le prix — les min-nights et les quatre requetes de
-    // donnees suivent la meme fenetre.
-    expect(slideCalls).toBeLessThanOrEqual(6);
+    // Seule la fenetre FINALE est chargee. Mesure faite en branchant le hook
+    // directement sur la fenetre de rendu (sans palier) : 41 requetes pour la
+    // meme rafale, toutes jetees sauf les dernieres. Et ce n'est que le prix —
+    // les min-nights et les quatre requetes de donnees suivent la meme fenetre.
+    expect(slideCalls).toBeLessThanOrEqual(CHUNKS + 1);
 
     // Et c'est bien la DERNIERE fenetre qui a ete chargee, pas une etape
     // intermediaire : sinon la grille afficherait des prix d'un autre mois.
@@ -137,8 +142,10 @@ describe('planning — charge reseau', () => {
     await waitFor(() => expect(batchMock).toHaveBeenCalled());
     const initial = batchMock.mock.calls.length;
 
-    // Aller sur une autre fenetre, laisser poser, puis revenir.
-    rerender({ start: addDays(START, 62) });
+    // Aller sur une fenetre GARANTIE disjointe — le decalage se derive de la
+    // largeur de fenetre, pas d'un nombre de jours ecrit en dur : 62 jours
+    // changeaient de tranche a 30 j, plus a 60.
+    rerender({ start: addDays(START, WINDOW_DAYS + DATA_CHUNK_SIZE_DAYS) });
     await new Promise((r) => setTimeout(r, 350));
     const afterMove = batchMock.mock.calls.length;
     expect(afterMove).toBeGreaterThan(initial);

@@ -4,6 +4,7 @@ import com.clenzy.integration.channel.AirbnbChannelAdapter;
 import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.CalendarDay;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.PlanningPricingService;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.ReservationService;
 import com.clenzy.tenant.TenantContext;
@@ -56,17 +57,20 @@ public class CalendarController {
     private final TenantContext tenantContext;
     private final PriceEngine priceEngine;
     private final AirbnbChannelAdapter airbnbChannelAdapter;
+    private final PlanningPricingService planningPricingService;
 
     public CalendarController(CalendarEngine calendarEngine,
                               ReservationService reservationService,
                               TenantContext tenantContext,
                               PriceEngine priceEngine,
-                              AirbnbChannelAdapter airbnbChannelAdapter) {
+                              AirbnbChannelAdapter airbnbChannelAdapter,
+                              PlanningPricingService planningPricingService) {
         this.calendarEngine = calendarEngine;
         this.reservationService = reservationService;
         this.tenantContext = tenantContext;
         this.priceEngine = priceEngine;
         this.airbnbChannelAdapter = airbnbChannelAdapter;
+        this.planningPricingService = planningPricingService;
     }
 
     // ----------------------------------------------------------------
@@ -236,7 +240,8 @@ public class CalendarController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
 
-        return ResponseEntity.ok(buildPricingRows(propertyId, from, to, orgId, false));
+        return ResponseEntity.ok(
+                planningPricingService.pricingRows(List.of(propertyId), from, to, orgId, false));
     }
 
     @GetMapping("/pricing")
@@ -258,57 +263,8 @@ public class CalendarController {
             validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
         }
 
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Long propertyId : propertyIds) {
-            result.addAll(buildPricingRows(propertyId, from, to, orgId, true));
-        }
-
-        return ResponseEntity.ok(result);
-    }
-
-    /**
-     * Lignes « prix du jour » d'une propriete sur [from, to).
-     *
-     * <p>Corps commun aux deux formes de l'endpoint (une propriete / un lot) :
-     * la cascade de prix ne doit exister qu'a un seul endroit.</p>
-     *
-     * @param withPropertyId ajoute le propertyId a chaque ligne — indispensable
-     *                       en lot, ou les lignes de toutes les proprietes sont
-     *                       melees dans une seule liste.
-     */
-    private List<Map<String, Object>> buildPricingRows(Long propertyId, LocalDate from, LocalDate to,
-                                                       Long orgId, boolean withPropertyId) {
-        // Charger les jours calendrier existants
-        List<CalendarDay> days = calendarEngine.getDays(propertyId, from, to, orgId);
-        Map<LocalDate, CalendarDay> dayMap = days.stream()
-                .collect(Collectors.toMap(CalendarDay::getDate, d -> d));
-
-        // Resoudre prix ET source via PriceEngine — source de verite unique de la
-        // cascade (audit T-ARCH-04 : plus de re-implementation dans le controller).
-        Map<LocalDate, PriceEngine.ResolvedPrice> prices =
-                priceEngine.resolvePriceRangeWithSource(propertyId, from, to, orgId);
-
-        // Construire la reponse enrichie pour chaque jour
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
-            Map<String, Object> entry = new LinkedHashMap<>();
-            if (withPropertyId) entry.put("propertyId", propertyId);
-            entry.put("date", date.toString());
-
-            PriceEngine.ResolvedPrice resolved = prices.get(date);
-            entry.put("nightlyPrice", resolved != null && resolved.price() != null
-                    ? resolved.price().doubleValue() : null);
-
-            CalendarDay day = dayMap.get(date);
-            entry.put("status", day != null ? day.getStatus().name() : "AVAILABLE");
-            entry.put("reservationId", day != null && day.getReservation() != null ? day.getReservation().getId() : null);
-
-            entry.put("priceSource", resolved != null ? resolved.source() : PriceEngine.SOURCE_PROPERTY_DEFAULT);
-
-            result.add(entry);
-        }
-
-        return result;
+        return ResponseEntity.ok(
+                planningPricingService.pricingRows(propertyIds, from, to, orgId, true));
     }
 
     // ----------------------------------------------------------------

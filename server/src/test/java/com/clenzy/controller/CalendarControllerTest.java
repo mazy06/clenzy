@@ -5,6 +5,7 @@ import com.clenzy.integration.channel.AirbnbChannelAdapter;
 import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.*;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.PlanningPricingService;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.ReservationService;
 import com.clenzy.tenant.TenantContext;
@@ -34,6 +35,7 @@ class CalendarControllerTest {
     @Mock private TenantContext tenantContext;
     @Mock private PriceEngine priceEngine;
     @Mock private AirbnbChannelAdapter airbnbChannelAdapter;
+    @Mock private PlanningPricingService planningPricingService;
 
     private CalendarController controller;
     private Jwt jwt;
@@ -41,7 +43,8 @@ class CalendarControllerTest {
     @BeforeEach
     void setUp() {
         controller = new CalendarController(calendarEngine,
-                reservationService, tenantContext, priceEngine, airbnbChannelAdapter);
+                reservationService, tenantContext, priceEngine, airbnbChannelAdapter,
+                planningPricingService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -162,11 +165,8 @@ class CalendarControllerTest {
             LocalDate from = LocalDate.of(2026, 3, 1);
             LocalDate to = LocalDate.of(2026, 3, 3);
 
-            when(calendarEngine.getDays(1L, from, to, 1L)).thenReturn(List.of());
-            Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
-            prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(100), "BASE"));
-            prices.put(from.plusDays(1), new PriceEngine.ResolvedPrice(BigDecimal.valueOf(120), "BASE"));
-            when(priceEngine.resolvePriceRangeWithSource(1L, from, to, 1L)).thenReturn(prices);
+            when(planningPricingService.pricingRows(List.of(1L), from, to, 1L, false))
+                    .thenReturn(List.of(Map.of("date", "2026-03-01"), Map.of("date", "2026-03-02")));
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
 
@@ -189,21 +189,19 @@ class CalendarControllerTest {
             LocalDate from = LocalDate.of(2026, 3, 1);
             LocalDate to = LocalDate.of(2026, 3, 3);
 
-            for (Long propertyId : List.of(1L, 2L)) {
-                when(calendarEngine.getDays(propertyId, from, to, 1L)).thenReturn(List.of());
-                Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
-                prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(100), "BASE"));
-                prices.put(from.plusDays(1), new PriceEngine.ResolvedPrice(BigDecimal.valueOf(120), "BASE"));
-                when(priceEngine.resolvePriceRangeWithSource(propertyId, from, to, 1L)).thenReturn(prices);
-            }
+            when(planningPricingService.pricingRows(List.of(1L, 2L), from, to, 1L, true))
+                    .thenReturn(List.of(
+                            Map.of("propertyId", 1L, "date", "2026-03-01"),
+                            Map.of("propertyId", 1L, "date", "2026-03-02"),
+                            Map.of("propertyId", 2L, "date", "2026-03-01"),
+                            Map.of("propertyId", 2L, "date", "2026-03-02")));
 
             ResponseEntity<List<Map<String, Object>>> response =
                     controller.getPricingBatch(List.of(1L, 2L), from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            // 2 logements x 2 jours, chaque ligne portant son logement : sans le
-            // propertyId, le client ne saurait pas a quelle ligne du planning
-            // rattacher le prix.
+            // Chaque ligne porte son logement : sans le propertyId, le client ne
+            // saurait pas a quelle ligne du planning rattacher le prix.
             assertThat(response.getBody()).hasSize(4);
             assertThat(response.getBody()).extracting(row -> row.get("propertyId"))
                     .containsExactly(1L, 1L, 2L, 2L);
@@ -221,7 +219,7 @@ class CalendarControllerTest {
                     List.of(1L, 2L), LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3), jwt))
                     .isInstanceOf(RuntimeException.class);
 
-            verify(calendarEngine, never()).getDays(anyLong(), any(), any(), anyLong());
+            verify(planningPricingService, never()).pricingRows(any(), any(), any(), anyLong(), anyBoolean());
         }
     }
 
@@ -380,49 +378,10 @@ class CalendarControllerTest {
         }
     }
 
-    @Nested
-    @DisplayName("getPricing with overrides and plans")
-    class GetPricingExt {
-        @Test
-        void whenOverrideExists_thenSourceIsOverride() {
-            setupSuperAdminAccess(1L);
-            LocalDate from = LocalDate.of(2026, 5, 1);
-            LocalDate to = LocalDate.of(2026, 5, 3);
-
-            when(calendarEngine.getDays(1L, from, to, 1L)).thenReturn(List.of());
-            Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
-            prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(150), "OVERRIDE"));
-            prices.put(from.plusDays(1), new PriceEngine.ResolvedPrice(BigDecimal.valueOf(150), "PROPERTY_DEFAULT"));
-            when(priceEngine.resolvePriceRangeWithSource(1L, from, to, 1L)).thenReturn(prices);
-
-            ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody()).hasSize(2);
-            assertThat(response.getBody().get(0)).containsEntry("priceSource", "OVERRIDE");
-            assertThat(response.getBody().get(1)).containsEntry("priceSource", "PROPERTY_DEFAULT");
-        }
-
-        @Test
-        void whenEventPlanWins_thenSourceComesFromPriceEngine() {
-            // T-ARCH-04 : la source vient du PriceEngine (cascade unique), y compris
-            // pour les types EVENT/WEEKEND/EARLY_BIRD absents de l'ancienne copie locale
-            setupSuperAdminAccess(1L);
-            LocalDate from = LocalDate.of(2026, 5, 1);
-            LocalDate to = LocalDate.of(2026, 5, 2);
-
-            when(calendarEngine.getDays(1L, from, to, 1L)).thenReturn(List.of());
-            Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
-            prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(250), "EVENT"));
-            when(priceEngine.resolvePriceRangeWithSource(1L, from, to, 1L)).thenReturn(prices);
-
-            ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody().get(0)).containsEntry("priceSource", "EVENT");
-            assertThat(response.getBody().get(0)).containsEntry("nightlyPrice", 250.0);
-        }
-    }
+    // La cascade de prix (source OVERRIDE / EVENT / PROPERTY_DEFAULT) est
+    // desormais testee la ou elle vit : PlanningPricingServiceTest, avec le vrai
+    // PriceEngine plutot qu'un mock — la verifier a travers le controller ne
+    // testait plus que du cablage.
 
     @Nested
     @DisplayName("getAvailability edge cases")

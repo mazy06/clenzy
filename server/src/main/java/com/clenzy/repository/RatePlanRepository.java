@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Set;
 
 public interface RatePlanRepository extends JpaRepository<RatePlan, Long> {
 
@@ -39,5 +40,18 @@ public interface RatePlanRepository extends JpaRepository<RatePlan, Long> {
            "AND rp.organizationId = :orgId ORDER BY rp.type, rp.priority DESC")
     List<RatePlan> findAllByPropertyId(
             @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Plans actifs de PLUSIEURS proprietes.
+     *
+     * <p>Les plans ne dependent PAS de la plage de dates : les recharger pour
+     * chaque tranche de 30 jours du planning etait de la duplication pure.</p>
+     */
+    @Query("SELECT rp FROM RatePlan rp WHERE rp.property.id IN :propertyIds " +
+           "AND rp.isActive = true AND rp.organizationId = :orgId " +
+           "ORDER BY rp.property.id, rp.priority DESC")
+    List<RatePlan> findActiveByPropertyIds(
+            @Param("propertyIds") Set<Long> propertyIds,
             @Param("orgId") Long orgId);
 }

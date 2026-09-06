@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 
 public interface RateOverrideRepository extends JpaRepository<RateOverride, Long> {
@@ -32,6 +33,22 @@ public interface RateOverrideRepository extends JpaRepository<RateOverride, Long
            "ORDER BY ro.date")
     List<RateOverride> findByPropertyIdAndDateRange(
             @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Overrides de PLUSIEURS proprietes sur une plage.
+     *
+     * <p>Le planning resout les prix de N logements sur la meme fenetre : une
+     * requete par logement et par tranche faisait 50 allers-retours la ou un
+     * seul suffit. Borne haute EXCLUSIVE, comme la variante mono-propriete.</p>
+     */
+    @Query("SELECT ro FROM RateOverride ro WHERE ro.property.id IN :propertyIds " +
+           "AND ro.date >= :from AND ro.date < :to AND ro.organizationId = :orgId " +
+           "ORDER BY ro.property.id, ro.date")
+    List<RateOverride> findByPropertyIdsAndDateRange(
+            @Param("propertyIds") Set<Long> propertyIds,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);

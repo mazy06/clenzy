@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.integration.channel.AirbnbChannelAdapter;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.PlanningPricingService;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.ReservationService;
 import com.clenzy.tenant.TenantContext;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -58,6 +60,7 @@ class CalendarControllerRoutingTest {
     @Mock private TenantContext tenantContext;
     @Mock private PriceEngine priceEngine;
     @Mock private AirbnbChannelAdapter airbnbChannelAdapter;
+    @Mock private PlanningPricingService planningPricingService;
 
     private MockMvc mockMvc;
 
@@ -83,15 +86,16 @@ class CalendarControllerRoutingTest {
     @BeforeEach
     void setUp() {
         CalendarController controller = new CalendarController(calendarEngine,
-                reservationService, tenantContext, priceEngine, airbnbChannelAdapter);
+                reservationService, tenantContext, priceEngine, airbnbChannelAdapter,
+                planningPricingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new JwtArgumentResolver())
                 .build();
 
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        when(planningPricingService.pricingRows(any(), any(), any(), anyLong(), anyBoolean()))
+                .thenReturn(List.of());
         when(calendarEngine.getDays(anyLong(), any(), any(), anyLong())).thenReturn(List.of());
-        when(priceEngine.resolvePriceRangeWithSource(anyLong(), any(), any(), anyLong()))
-                .thenReturn(Map.of());
         when(calendarEngine.getBlockedOrMaintenanceDays(any(), any(), any(), anyLong()))
                 .thenReturn(List.of());
     }
@@ -104,11 +108,11 @@ class CalendarControllerRoutingTest {
                         .param("to", "2026-09-05"))
                 .andExpect(status().isOk());
 
-        // La preuve que le segment litteral gagne : le lot a bien lu DEUX
+        // La preuve que le segment litteral gagne : le lot a bien recu les DEUX
         // logements. Si l'URL avait ete happee par /{propertyId}, on aurait eu
-        // une erreur de conversion, jamais ces deux lectures.
-        verify(calendarEngine).getDays(eq(1L), any(LocalDate.class), any(LocalDate.class), eq(1L));
-        verify(calendarEngine).getDays(eq(2L), any(LocalDate.class), any(LocalDate.class), eq(1L));
+        // une erreur de conversion, jamais cet appel.
+        verify(planningPricingService).pricingRows(eq(List.of(1L, 2L)), any(LocalDate.class),
+                any(LocalDate.class), eq(1L), eq(true));
     }
 
     @Test
@@ -118,7 +122,8 @@ class CalendarControllerRoutingTest {
                         .param("to", "2026-09-05"))
                 .andExpect(status().isOk());
 
-        verify(calendarEngine).getDays(eq(7L), any(LocalDate.class), any(LocalDate.class), eq(1L));
+        verify(planningPricingService).pricingRows(eq(List.of(7L)), any(LocalDate.class),
+                any(LocalDate.class), eq(1L), eq(false));
     }
 
     @Test
@@ -129,7 +134,7 @@ class CalendarControllerRoutingTest {
                         .param("to", "2026-09-05"))
                 .andExpect(status().isOk());
 
-        verify(calendarEngine, never()).getDays(anyLong(), any(), any(), anyLong());
+        verify(planningPricingService, never()).pricingRows(any(), any(), any(), anyLong(), anyBoolean());
     }
 
     @Test

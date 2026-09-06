@@ -268,4 +268,17 @@ export const APP_HEADER_HEIGHT = 56;
  */
 export const BUFFER_MULTIPLIER = 2;
 export const EXTEND_THRESHOLD_DAYS = 7;
-export const DATA_CHUNK_SIZE_DAYS = 30;
+/**
+ * Largeur d'une tranche de chargement, en jours.
+ *
+ * <p>Les donnees du planning sont chargees par tranches alignees sur une epoque
+ * fixe, ce qui les rend partageables entre fenetres qui se recouvrent. La
+ * largeur decide combien de requetes coute une fenetre : en vue Mois (125 j),
+ * des tranches de 30 j en demandaient 5 par famille d'endpoint, soit 30 appels
+ * au total. A 60 j il en faut 3 — meme volume de donnees, deux fois moins
+ * d'allers-retours, et autant de transactions en moins cote serveur.</p>
+ *
+ * <p>Ne pas monter beaucoup plus haut : une tranche trop large fait payer au
+ * premier affichage des dates que l'utilisateur ne regardera jamais.</p>
+ */
+export const DATA_CHUNK_SIZE_DAYS = 60;
