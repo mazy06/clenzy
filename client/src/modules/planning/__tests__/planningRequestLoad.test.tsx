@@ -8,6 +8,7 @@ import { useSettledRange } from '../hooks/useSettledRange';
 import { addDays, toDateStr, getOverlappingChunks } from '../utils/dateUtils';
 import { DATA_CHUNK_SIZE_DAYS } from '../constants';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
+import { planningDataApi } from '../../../services/api/planningDataApi';
 
 /**
  * Charge RESEAU du planning.
@@ -28,7 +29,30 @@ vi.mock('../../../services/api/calendarPricingApi', () => ({
   },
 }));
 
+vi.mock('../../../hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1', roles: ['SUPER_ADMIN'] } }),
+}));
+
+vi.mock('../../../services/api/propertiesApi', () => ({
+  propertiesApi: {
+    getAll: vi.fn(async () => PROPERTY_IDS.map((id) => ({ id, name: `L${id}`, photoUrls: [] }))),
+  },
+}));
+
+vi.mock('../../../services/api/portfoliosApi', () => ({
+  managersApi: { getAssociations: vi.fn(async () => ({ properties: [] })) },
+}));
+
+vi.mock('../../../services/api/planningDataApi', () => ({
+  planningDataApi: {
+    getPlanningData: vi.fn(async () => ({
+      reservations: [], interventions: [], awaitingPayment: [], blocked: [],
+    })),
+  },
+}));
+
 const batchMock = vi.mocked(calendarPricingApi.getPricingBatch);
+const dataMock = vi.mocked(planningDataApi.getPlanningData);
 
 /** 10 logements : la taille d'une page de planning telle qu'affichee. */
 const PROPERTY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -65,6 +89,10 @@ describe('planning — charge reseau', () => {
   beforeEach(() => {
     batchMock.mockClear();
     batchMock.mockResolvedValue([]);
+    dataMock.mockClear();
+    dataMock.mockResolvedValue({
+      reservations: [], interventions: [], awaitingPayment: [], blocked: [],
+    });
   });
 
   afterEach(() => {
@@ -156,6 +184,27 @@ describe('planning — charge reseau', () => {
     // Le cache React Query (staleTime 60 s) sert le retour : la cle est le LOT
     // de logements + la tranche, elle est donc identique a l'aller.
     expect(batchMock.mock.calls.length).toBe(afterMove);
+  });
+
+  it('les quatre jeux de donnees tiennent en UNE requete par tranche', async () => {
+    const { usePlanningData } = await import('../hooks/usePlanningData');
+    const { result } = renderHook(() => usePlanningData(START, addDays(START, WINDOW_DAYS)), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.properties.length).toBe(PROPERTY_IDS.length));
+    await waitFor(() => expect(dataMock).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Sejours, interventions, demandes en attente et jours bloques arrivent
+    // ENSEMBLE : au plus une requete par tranche. Avec quatre endpoints
+    // distincts c'etait 4 x CHUNKS requetes pour peindre la meme fenetre.
+    expect(dataMock.mock.calls.length).toBeGreaterThan(0);
+    expect(dataMock.mock.calls.length).toBeLessThanOrEqual(CHUNKS);
+    // …et chaque appel porte TOUS les logements, pas un seul.
+    for (const [ids] of dataMock.mock.calls) {
+      expect(ids).toEqual(PROPERTY_IDS);
+    }
   });
 
   it('le toggle « prix » coupe reellement le trafic', async () => {
