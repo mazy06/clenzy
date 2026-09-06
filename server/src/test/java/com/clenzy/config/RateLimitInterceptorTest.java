@@ -45,10 +45,14 @@ class RateLimitInterceptorTest {
     private static final int API_RATE_LIMIT = 300;
 
     private RateLimitInterceptor interceptor;
+    private com.clenzy.tenant.TenantContext tenantContext;
+    private static final int ORG_RATE_LIMIT = 1000;
 
     @BeforeEach
     void setUp() {
-        interceptor = new RateLimitInterceptor(redisTemplate, securityAuditService, API_RATE_LIMIT);
+        tenantContext = new com.clenzy.tenant.TenantContext();
+        interceptor = new RateLimitInterceptor(redisTemplate, securityAuditService,
+                tenantContext, API_RATE_LIMIT, ORG_RATE_LIMIT);
         SecurityContextHolder.clearContext();
     }
 
@@ -219,7 +223,8 @@ class RateLimitInterceptorTest {
 
         @Test
         void whenRedisNull_thenUsesLocalBucket() throws Exception {
-            interceptor = new RateLimitInterceptor(null, securityAuditService, API_RATE_LIMIT);
+            interceptor = new RateLimitInterceptor(null, securityAuditService,
+                    tenantContext, API_RATE_LIMIT, ORG_RATE_LIMIT);
 
             MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/properties");
             request.setRemoteAddr("8.8.8.8");
@@ -509,6 +514,54 @@ class RateLimitInterceptorTest {
             RateLimitInterceptor.RateLimitBucket bucket = new RateLimitInterceptor.RateLimitBucket(10);
 
             assertThat(bucket.getSecondsUntilReset()).isPositive();
+        }
+    }
+
+    // ── Plafond par ORGANISATION ─────────────────────────────────────────────
+    //
+    // La limite par utilisateur borne un individu, pas un tenant : une
+    // organisation de vingt utilisateurs pouvait consommer vingt fois la limite
+    // et etouffer les autres sur le pool partage.
+
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("plafond par organisation")
+    class PlafondOrganisation {
+
+        @Test
+        void quandLOrgSature_laRequeteEstRefusee_memeSiLUtilisateurAEncoreDuCredit()
+                throws Exception {
+            tenantContext.setOrganizationId(7L);
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/reservations");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            // L'org a depasse son plafond ; l'utilisateur, lui, n'a rien consomme.
+            stubRateLimitScript("ratelimit:org:7", ORG_RATE_LIMIT + 1, 30_000);
+
+            assertThat(interceptor.preHandle(request, response, new Object())).isFalse();
+            assertThat(response.getStatus()).isEqualTo(429);
+            assertThat(response.getHeader("X-RateLimit-Limit"))
+                    .isEqualTo(String.valueOf(ORG_RATE_LIMIT));
+        }
+
+        @Test
+        void quandLOrgADuCredit_laRequetePasse() throws Exception {
+            tenantContext.setOrganizationId(7L);
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/reservations");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            stubRateLimitScript("ratelimit:org:7", 1, 60_000);
+            stubRateLimitScript("ratelimit:ip:127.0.0.1", 1, 60_000);
+
+            assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
+        }
+
+        @Test
+        void horsContexteTenant_aucunPlafondDOrganisation() throws Exception {
+            // Endpoints publics / pre-authentification : pas d'organisation resolue,
+            // le plafond ne s'applique pas et ne doit rien casser.
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/reservations");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            stubRateLimitScript("ratelimit:ip:127.0.0.1", 1, 60_000);
+
+            assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
         }
     }
 }

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import com.clenzy.service.SecurityAuditService;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.ClientIpResolver;
 
 import java.util.List;
@@ -31,6 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Limites :
  * - Endpoints /api/auth/** : 10 req/min par IP (protection brute-force)
  * - Endpoints /api/** (authentifie) : 300 req/min par utilisateur
+ *   ET un plafond par ORGANISATION (defaut 3000/min), qui borne la part du pool
+ *   partage qu'un seul tenant peut consommer
  *
  * Headers standards retournes :
  * - X-RateLimit-Limit : limite maximale
@@ -85,6 +88,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate redisTemplate;
     private final SecurityAuditService securityAuditService;
+    private final TenantContext tenantContext;
 
     /**
      * Limite generale de l'API authentifiee, par utilisateur et par minute.
@@ -94,6 +98,20 @@ public class RateLimitInterceptor implements HandlerInterceptor {
      */
     private final int apiRateLimit;
 
+    /**
+     * Plafond par ORGANISATION, par minute.
+     *
+     * <p>La limite par utilisateur ne protege pas le pool partage : elle borne
+     * un individu, pas un tenant. Une organisation de vingt utilisateurs pouvait
+     * donc consommer vingt fois la limite et etouffer les autres — d'autant plus
+     * facilement qu'un gros parc multiplie le cout de chaque ecran. Ce second
+     * plafond borne la part qu'un seul tenant peut prendre.</p>
+     *
+     * <p>Defaut 3000/min, soit dix utilisateurs a plein regime : large pour un
+     * usage normal, net pour un emballement.</p>
+     */
+    private final int orgRateLimit;
+
     // Fallback in-memory si Redis indisponible
     private final Map<String, RateLimitBucket> localBuckets = new ConcurrentHashMap<>();
     private volatile long lastCleanup = System.currentTimeMillis();
@@ -101,10 +119,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     public RateLimitInterceptor(StringRedisTemplate redisTemplate,
                                 SecurityAuditService securityAuditService,
-                                @Value("${clenzy.security.rate-limit.api-per-minute:300}") int apiRateLimit) {
+                                TenantContext tenantContext,
+                                @Value("${clenzy.security.rate-limit.api-per-minute:300}") int apiRateLimit,
+                                @Value("${clenzy.security.rate-limit.org-per-minute:3000}") int orgRateLimit) {
         this.redisTemplate = redisTemplate;
         this.securityAuditService = securityAuditService;
+        this.tenantContext = tenantContext;
         this.apiRateLimit = apiRateLimit;
+        this.orgRateLimit = orgRateLimit;
     }
 
     @Override
@@ -114,6 +136,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String path = request.getRequestURI();
         String key;
         int limit;
+        boolean orgScoped = false;
 
         if (path.equals("/api/auth/session") || path.equals("/api/permissions/sync")) {
             // Session check et permission sync sont appeles frequemment par le frontend
@@ -146,6 +169,20 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 key = "ip:" + getClientIp(request);
             }
             limit = apiRateLimit;
+            orgScoped = true;
+        }
+
+        // Plafond d'organisation, evalue AVANT celui de l'utilisateur : inutile
+        // de consommer un jeton individuel si le tenant a deja sature sa part.
+        if (orgScoped) {
+            Long orgId = currentOrganizationId();
+            if (orgId != null) {
+                RateLimitResult orgResult = tryConsume("org:" + orgId, orgRateLimit);
+                if (!orgResult.allowed) {
+                    reject(response, "org:" + orgId, path, orgRateLimit, orgResult.retryAfterSeconds);
+                    return false;
+                }
+            }
         }
 
         RateLimitResult result = tryConsume(key, limit);
@@ -155,18 +192,33 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             response.setHeader("X-RateLimit-Remaining", String.valueOf(result.remaining));
             return true;
         } else {
-            long retryAfter = result.retryAfterSeconds;
-            response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
-            response.setHeader("X-RateLimit-Remaining", "0");
-            response.setHeader("Retry-After", String.valueOf(retryAfter));
-            response.setStatus(429);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"too_many_requests\",\"message\":\"Rate limit exceeded. Retry after " + retryAfter + " seconds.\"}");
-
-            log.warn("Rate limit atteint pour {} (path: {})", key, path);
-            securityAuditService.logSuspiciousActivity(getCurrentUserId(),
-                    "Rate limit exceeded", Map.of("key", key, "path", path, "limit", limit));
+            reject(response, key, path, limit, result.retryAfterSeconds);
             return false;
+        }
+    }
+
+    /** Reponse 429 commune aux deux plafonds (utilisateur et organisation). */
+    private void reject(HttpServletResponse response, String key, String path,
+                        int limit, long retryAfter) throws java.io.IOException {
+        response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
+        response.setHeader("X-RateLimit-Remaining", "0");
+        response.setHeader("Retry-After", String.valueOf(retryAfter));
+        response.setStatus(429);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\":\"too_many_requests\",\"message\":\"Rate limit exceeded. Retry after "
+                + retryAfter + " seconds.\"}");
+
+        log.warn("Rate limit atteint pour {} (path: {})", key, path);
+        securityAuditService.logSuspiciousActivity(getCurrentUserId(),
+                "Rate limit exceeded", Map.of("key", key, "path", path, "limit", limit));
+    }
+
+    /** Organisation courante, ou null hors contexte tenant (endpoints publics). */
+    private Long currentOrganizationId() {
+        try {
+            return tenantContext.getOrganizationId();
+        } catch (Exception e) {
+            return null;
         }
     }
 
