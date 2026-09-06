@@ -146,7 +146,13 @@ export function prefetchPlanningProperties(
  *   4. Paid (paymentStatus === 'PAID') → confirmed (green)
  *   5. Otherwise → pending (orange)
  */
-function computeEffectiveStatus(r: Reservation): ReservationStatus {
+/*
+ * Les transformations ci-dessous sont EXPORTEES pour etre testees telles
+ * quelles. Elles ne l'etaient pas, et leur test les REIMPLEMENTAIT localement :
+ * il validait donc une copie, libre de deriver de l'original sans que rien ne
+ * le signale — un vert qui ne prouvait rien.
+ */
+export function computeEffectiveStatus(r: Reservation): ReservationStatus {
   if (r.status === 'cancelled') return 'cancelled';
 
   const today = toDateStr(new Date());
@@ -160,7 +166,7 @@ function computeEffectiveStatus(r: Reservation): ReservationStatus {
 
 const PAYMENT_BADGE_STATUSES = new Set(['PENDING', 'PROCESSING', 'FAILED']);
 
-function reservationToEvent(
+export function reservationToEvent(
   r: Reservation,
   propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
 ): PlanningEvent {
@@ -199,7 +205,7 @@ function reservationToEvent(
   };
 }
 
-function interventionToEvent(i: PlanningIntervention): PlanningEvent {
+export function interventionToEvent(i: PlanningIntervention): PlanningEvent {
   // Compute a reliable endTime:
   // 1) Use the API-provided endTime if available
   // 2) Otherwise compute from startTime + estimatedDurationHours
@@ -247,7 +253,7 @@ const CLEANING_SERVICE_TYPES = new Set([
   'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING', 'EXTERIOR_CLEANING', 'DISINFECTION',
 ]);
 
-function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
+export function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
   const eventType = CLEANING_SERVICE_TYPES.has(sr.serviceType) ? 'cleaning' : 'maintenance';
 
   let endTime = sr.endTime;
@@ -287,7 +293,7 @@ interface BlockedRange {
   notes: string | null;
 }
 
-function groupBlockedDays(days: CalendarBlockedDay[]): BlockedRange[] {
+export function groupBlockedDays(days: CalendarBlockedDay[]): BlockedRange[] {
   if (days.length === 0) return [];
 
   // Sort by propertyId, then date
@@ -354,7 +360,7 @@ function blockedRangeToEvent(range: BlockedRange, index: number): PlanningEvent 
 
 // ─── Dedup helper ────────────────────────────────────────────────────────────
 
-function dedup<T extends { id: number }>(arrays: T[][]): T[] {
+export function dedup<T extends { id: number }>(arrays: T[][]): T[] {
   const seen = new Map<number, T>();
   for (const arr of arrays) {
     for (const item of arr) {

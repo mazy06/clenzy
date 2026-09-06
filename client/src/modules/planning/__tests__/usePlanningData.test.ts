@@ -1,273 +1,301 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  computeEffectiveStatus,
+  reservationToEvent,
+  interventionToEvent,
+  serviceRequestToEvent,
+  groupBlockedDays,
+  dedup,
+} from '../hooks/usePlanningData';
+import type { Reservation, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
+import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
+
 /**
- * Tests for usePlanningData transform functions.
- * We test the exported pure functions (reservationToEvent, interventionToEvent, dedup)
- * by importing and testing the module's internal logic via the hook's output shapes.
+ * Transformations donnee -> evenement du planning.
  *
- * Since the transform functions are not directly exported, we test them indirectly
- * by verifying the PlanningEvent shapes produced by the hook's data pipeline.
+ * <p>Ces fonctions sont importees du module. La version precedente de ce
+ * fichier les REIMPLEMENTAIT localement — elle validait donc une copie, libre
+ * de deriver de l'original sans que rien ne le signale. Un statut effectif
+ * calcule autrement, une pastille de paiement dont la regle change : le test
+ * restait vert. Il ne prouvait rien.</p>
  */
-import { describe, it, expect } from 'vitest';
-import type { PlanningEvent } from '../types';
-import type { PlanningIntervention } from '../../../services/api';
 
-// ─── Replicate the transform functions from usePlanningData.ts ───────────────
-// (These are private in the module, so we re-implement for testing)
+const TODAY = new Date(2026, 8, 15); // 15 septembre 2026
 
-function getReservationColor(status: string): string {
-  switch (status) {
-    case 'confirmed': return '#4A9B8E';
-    case 'pending': return '#F59E0B';
-    case 'cancelled': return '#EF4444';
-    default: return '#6B7280';
-  }
-}
-
-function getInterventionColor(type: string): string {
-  return type === 'cleaning' ? '#8B5CF6' : '#F97316';
-}
-
-interface Reservation {
-  id: number;
-  propertyId: number;
-  guestName: string;
-  checkIn: string;
-  checkOut: string;
-  checkInTime?: string;
-  checkOutTime?: string;
-  status: string;
-  source: string;
-  sourceName?: string;
-}
-
-function reservationToEvent(
-  r: Reservation,
-  propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
-): PlanningEvent {
+function reservation(over: Partial<Reservation> = {}): Reservation {
   return {
-    id: `res-${r.id}`,
-    type: 'reservation',
-    propertyId: r.propertyId,
-    startDate: r.checkIn,
-    endDate: r.checkOut,
-    startTime: r.checkInTime || propertyDefaults?.defaultCheckInTime || '15:00',
-    endTime: r.checkOutTime || propertyDefaults?.defaultCheckOutTime || '11:00',
-    label: r.guestName,
-    sublabel: r.source !== 'other' ? r.sourceName || r.source : undefined,
-    status: r.status,
-    color: getReservationColor(r.status),
-  };
-}
-
-function interventionToEvent(i: PlanningIntervention): PlanningEvent {
-  let endTime = i.endTime;
-  if (!endTime && i.startTime && i.estimatedDurationHours) {
-    const [h, m] = i.startTime.split(':').map(Number);
-    const endH = Math.min(h + i.estimatedDurationHours, 23);
-    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  } else if (!endTime && i.startTime) {
-    const defaultHours = i.type === 'cleaning' ? 3 : 2;
-    const [h, m] = i.startTime.split(':').map(Number);
-    const endH = Math.min(h + defaultHours, 23);
-    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  }
-
-  return {
-    id: `int-${i.id}`,
-    type: i.type === 'cleaning' ? 'cleaning' : 'maintenance',
-    propertyId: i.propertyId,
-    startDate: i.startDate,
-    endDate: i.endDate,
-    startTime: i.startTime,
-    endTime,
-    label: i.title,
-    sublabel: i.assigneeName,
-    status: i.status,
-    color: getInterventionColor(i.type),
-    intervention: i,
-  };
-}
-
-function dedup<T extends { id: number }>(arrays: T[][]): T[] {
-  const seen = new Map<number, T>();
-  for (const arr of arrays) {
-    for (const item of arr) {
-      if (!seen.has(item.id)) {
-        seen.set(item.id, item);
-      }
-    }
-  }
-  return Array.from(seen.values());
-}
-
-// ─── reservationToEvent ──────────────────────────────────────────────────────
-
-describe('reservationToEvent', () => {
-  const baseReservation: Reservation = {
     id: 1,
     propertyId: 10,
-    guestName: 'John Doe',
-    checkIn: '2026-03-01',
-    checkOut: '2026-03-05',
+    propertyName: 'Villa Test',
+    guestName: 'Gérard Mazy',
+    guestCount: 2,
+    checkIn: '2026-09-20',
+    checkOut: '2026-09-25',
     status: 'confirmed',
-    source: 'direct',
-  };
+    source: 'airbnb',
+    totalPrice: 500,
+    ...over,
+  } as Reservation;
+}
 
-  it('maps reservation fields to PlanningEvent', () => {
-    const event = reservationToEvent(baseReservation);
-    expect(event.id).toBe('res-1');
-    expect(event.type).toBe('reservation');
-    expect(event.propertyId).toBe(10);
-    expect(event.startDate).toBe('2026-03-01');
-    expect(event.endDate).toBe('2026-03-05');
-    expect(event.label).toBe('John Doe');
-  });
-
-  it('uses property defaults when no check-in time specified', () => {
-    const event = reservationToEvent(baseReservation, { defaultCheckInTime: '16:00', defaultCheckOutTime: '10:00' });
-    expect(event.startTime).toBe('16:00');
-    expect(event.endTime).toBe('10:00');
-  });
-
-  it('uses reservation times over defaults', () => {
-    const r = { ...baseReservation, checkInTime: '14:00', checkOutTime: '12:00' };
-    const event = reservationToEvent(r, { defaultCheckInTime: '16:00' });
-    expect(event.startTime).toBe('14:00');
-    expect(event.endTime).toBe('12:00');
-  });
-
-  it('falls back to 15:00/11:00 when no times available', () => {
-    const event = reservationToEvent(baseReservation);
-    expect(event.startTime).toBe('15:00');
-    expect(event.endTime).toBe('11:00');
-  });
-
-  it('sets sublabel for non-other sources', () => {
-    const r = { ...baseReservation, source: 'airbnb', sourceName: 'Airbnb' };
-    const event = reservationToEvent(r);
-    expect(event.sublabel).toBe('Airbnb');
-  });
-
-  it('sets undefined sublabel for "other" source', () => {
-    const r = { ...baseReservation, source: 'other' };
-    const event = reservationToEvent(r);
-    expect(event.sublabel).toBeUndefined();
-  });
-
-  it('maps status colors correctly', () => {
-    expect(reservationToEvent({ ...baseReservation, status: 'confirmed' }).color).toBe('#4A9B8E');
-    expect(reservationToEvent({ ...baseReservation, status: 'pending' }).color).toBe('#F59E0B');
-    expect(reservationToEvent({ ...baseReservation, status: 'cancelled' }).color).toBe('#EF4444');
-  });
-});
-
-// ─── interventionToEvent ─────────────────────────────────────────────────────
-
-describe('interventionToEvent', () => {
-  const baseIntervention: PlanningIntervention = {
-    id: 5,
+function intervention(over: Partial<PlanningIntervention> = {}): PlanningIntervention {
+  return {
+    id: 100,
     propertyId: 10,
-    propertyName: 'Apt A',
+    propertyName: 'Villa Test',
     type: 'cleaning',
-    title: 'Ménage départ',
-    assigneeName: 'Marie',
-    startDate: '2026-03-05',
-    endDate: '2026-03-05',
-    startTime: '11:00',
-    endTime: '14:00',
+    title: 'Ménage',
+    startDate: '2026-09-25',
+    endDate: '2026-09-25',
     status: 'scheduled',
-    estimatedDurationHours: 3,
-  };
+    ...over,
+  } as PlanningIntervention;
+}
 
-  it('maps intervention fields to PlanningEvent', () => {
-    const event = interventionToEvent(baseIntervention);
-    expect(event.id).toBe('int-5');
-    expect(event.type).toBe('cleaning');
-    expect(event.propertyId).toBe(10);
-    expect(event.startDate).toBe('2026-03-05');
-    expect(event.label).toBe('Ménage départ');
-    expect(event.sublabel).toBe('Marie');
+describe('transformations du planning', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(TODAY);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  // ── Statut effectif ───────────────────────────────────────────────────────
+  //
+  // Le statut AFFICHE n'est pas le statut stocke : il se deduit des dates et du
+  // paiement. C'est exactement la logique que l'ancien test ne voyait pas.
+
+  describe('computeEffectiveStatus', () => {
+    it('une reservation annulee le reste, quelles que soient les dates', () => {
+      expect(computeEffectiveStatus(reservation({ status: 'cancelled' }))).toBe('cancelled');
+    });
+
+    it('un sejour termine passe en checked_out', () => {
+      expect(computeEffectiveStatus(
+        reservation({ checkIn: '2026-09-01', checkOut: '2026-09-10' }),
+      )).toBe('checked_out');
+    });
+
+    it('un sejour en cours passe en checked_in', () => {
+      expect(computeEffectiveStatus(
+        reservation({ checkIn: '2026-09-10', checkOut: '2026-09-20' }),
+      )).toBe('checked_in');
+    });
+
+    it('le jour du checkout compte encore comme sejour en cours', () => {
+      expect(computeEffectiveStatus(
+        reservation({ checkIn: '2026-09-10', checkOut: '2026-09-15' }),
+      )).toBe('checked_in');
+    });
+
+    it('un sejour a venir paye est confirme', () => {
+      expect(computeEffectiveStatus(reservation({ paymentStatus: 'PAID' }))).toBe('confirmed');
+    });
+
+    it('un sejour a venir non paye reste en attente', () => {
+      expect(computeEffectiveStatus(reservation({ paymentStatus: 'PENDING' }))).toBe('pending');
+    });
   });
 
-  it('uses provided endTime when available', () => {
-    const event = interventionToEvent(baseIntervention);
-    expect(event.endTime).toBe('14:00');
+  // ── Reservation -> evenement ──────────────────────────────────────────────
+
+  describe('reservationToEvent', () => {
+    it('porte l\'identifiant prefixe et les dates du sejour', () => {
+      const e = reservationToEvent(reservation());
+      expect(e.id).toBe('res-1');
+      expect(e.type).toBe('reservation');
+      expect(e.startDate).toBe('2026-09-20');
+      expect(e.endDate).toBe('2026-09-25');
+      expect(e.label).toBe('Gérard Mazy');
+    });
+
+    it('les heures de la reservation priment sur celles du logement', () => {
+      const e = reservationToEvent(
+        reservation({ checkInTime: '18:00', checkOutTime: '09:00' }),
+        { defaultCheckInTime: '15:00', defaultCheckOutTime: '11:00' },
+      );
+      expect(e.startTime).toBe('18:00');
+      expect(e.endTime).toBe('09:00');
+    });
+
+    it('a defaut, les heures du logement', () => {
+      const e = reservationToEvent(reservation(), {
+        defaultCheckInTime: '16:00', defaultCheckOutTime: '10:00',
+      });
+      expect(e.startTime).toBe('16:00');
+      expect(e.endTime).toBe('10:00');
+    });
+
+    it('a defaut de tout, 15h / 11h', () => {
+      const e = reservationToEvent(reservation());
+      expect(e.startTime).toBe('15:00');
+      expect(e.endTime).toBe('11:00');
+    });
+
+    it('le canal est affiche en sous-titre, sauf « other »', () => {
+      expect(reservationToEvent(reservation({ source: 'airbnb' })).sublabel).toBeTruthy();
+      expect(reservationToEvent(reservation({ source: 'other' })).sublabel).toBeUndefined();
+    });
+
+    // ── Pastille de paiement : la regle metier la plus fragile ──────────────
+
+    it('un sejour a venir impaye porte la pastille de paiement', () => {
+      const e = reservationToEvent(reservation({ paymentStatus: 'PENDING', totalPrice: 500 }));
+      expect(e.needsPaymentBadge).toBe(true);
+      expect(e.paymentBadgeStatus).toBe('PENDING');
+    });
+
+    it('un sejour paye n\'en porte pas', () => {
+      expect(reservationToEvent(reservation({ paymentStatus: 'PAID' })).needsPaymentBadge).toBe(false);
+    });
+
+    it('un sejour annule n\'en porte pas, meme impaye', () => {
+      const e = reservationToEvent(reservation({ status: 'cancelled', paymentStatus: 'PENDING' }));
+      expect(e.needsPaymentBadge).toBe(false);
+    });
+
+    it('un sejour termine n\'en porte pas', () => {
+      const e = reservationToEvent(reservation({
+        checkIn: '2026-09-01', checkOut: '2026-09-10', paymentStatus: 'PENDING',
+      }));
+      expect(e.needsPaymentBadge).toBe(false);
+    });
+
+    it('un sejour sans montant n\'en porte pas', () => {
+      const e = reservationToEvent(reservation({ paymentStatus: 'PENDING', totalPrice: 0 }));
+      expect(e.needsPaymentBadge).toBe(false);
+    });
   });
 
-  it('computes endTime from startTime + estimatedDurationHours when no endTime', () => {
-    const i = { ...baseIntervention, endTime: undefined, startTime: '11:00', estimatedDurationHours: 3 };
-    const event = interventionToEvent(i);
-    expect(event.endTime).toBe('14:00');
+  // ── Intervention -> evenement ─────────────────────────────────────────────
+
+  describe('interventionToEvent', () => {
+    it('un menage devient un evenement de type cleaning', () => {
+      const e = interventionToEvent(intervention());
+      expect(e.id).toBe('int-100');
+      expect(e.type).toBe('cleaning');
+    });
+
+    it('une maintenance devient un evenement de type maintenance', () => {
+      expect(interventionToEvent(intervention({ type: 'maintenance' })).type).toBe('maintenance');
+    });
+
+    it('l\'heure de fin fournie est respectee', () => {
+      const e = interventionToEvent(intervention({ startTime: '09:00', endTime: '10:30' }));
+      expect(e.endTime).toBe('10:30');
+    });
+
+    it('sinon elle se deduit de la duree estimee', () => {
+      const e = interventionToEvent(intervention({ startTime: '09:00', estimatedDurationHours: 3 }));
+      expect(e.endTime).toBe('12:00');
+    });
+
+    it('elle ne depasse jamais 23h', () => {
+      const e = interventionToEvent(intervention({ startTime: '22:00', estimatedDurationHours: 5 }));
+      expect(e.endTime).toBe('23:00');
+    });
+
+    it('sans duree, un menage dure 3h et une maintenance 2h', () => {
+      expect(interventionToEvent(intervention({ startTime: '09:00' })).endTime).toBe('12:00');
+      expect(interventionToEvent(
+        intervention({ type: 'maintenance', startTime: '09:00' }),
+      ).endTime).toBe('11:00');
+    });
+
+    it('une intervention avec un cout impaye porte la pastille de paiement', () => {
+      const e = interventionToEvent(intervention({ estimatedCost: 60, paymentStatus: 'PENDING' }));
+      expect(e.needsPaymentBadge).toBe(true);
+    });
+
+    it('payee ou sans cout, aucune pastille', () => {
+      expect(interventionToEvent(
+        intervention({ estimatedCost: 60, paymentStatus: 'PAID' }),
+      ).needsPaymentBadge).toBe(false);
+      expect(interventionToEvent(intervention({ estimatedCost: 0 })).needsPaymentBadge).toBe(false);
+    });
   });
 
-  it('clamps computed endTime to 23:00', () => {
-    const i = { ...baseIntervention, endTime: undefined, startTime: '22:00', estimatedDurationHours: 5 };
-    const event = interventionToEvent(i);
-    expect(event.endTime).toBe('23:00');
+  // ── Demande de service en attente de paiement ─────────────────────────────
+
+  describe('serviceRequestToEvent', () => {
+    const sr = (over: Partial<PlanningServiceRequest> = {}): PlanningServiceRequest => ({
+      id: 200,
+      propertyId: 10,
+      propertyName: 'Villa Test',
+      serviceType: 'CLEANING',
+      title: 'Ménage à payer',
+      startDate: '2026-09-26',
+      status: 'AWAITING_PAYMENT',
+      ...over,
+    } as PlanningServiceRequest);
+
+    it('un service de nettoyage devient un evenement cleaning, toujours a payer', () => {
+      const e = serviceRequestToEvent(sr());
+      expect(e.id).toBe('sr-200');
+      expect(e.type).toBe('cleaning');
+      expect(e.isAwaitingPayment).toBe(true);
+      expect(e.needsPaymentBadge).toBe(true);
+    });
+
+    it('un service hors nettoyage devient une maintenance', () => {
+      expect(serviceRequestToEvent(sr({ serviceType: 'PLUMBING' })).type).toBe('maintenance');
+    });
+
+    it('la demande tient sur un seul jour', () => {
+      const e = serviceRequestToEvent(sr());
+      expect(e.startDate).toBe(e.endDate);
+    });
   });
 
-  it('falls back to default duration when no endTime and no estimatedDuration', () => {
-    const i = { ...baseIntervention, endTime: undefined, estimatedDurationHours: 0, startTime: '11:00' };
-    // estimatedDurationHours is falsy (0), so falls through to default
-    const event = interventionToEvent(i);
-    // cleaning default = 3h → 14:00
-    expect(event.endTime).toBe('14:00');
+  // ── Jours bloques -> plages ───────────────────────────────────────────────
+
+  describe('groupBlockedDays', () => {
+    const day = (date: string, over: Partial<CalendarBlockedDay> = {}): CalendarBlockedDay => ({
+      propertyId: 10, date, status: 'BLOCKED', source: 'MANUAL', notes: null, ...over,
+    });
+
+    it('regroupe des jours contigus en une seule plage', () => {
+      const r = groupBlockedDays([day('2026-09-01'), day('2026-09-02'), day('2026-09-03')]);
+      expect(r).toHaveLength(1);
+      expect(r[0].startDate).toBe('2026-09-01');
+      expect(r[0].endDate).toBe('2026-09-03');
+    });
+
+    it('coupe la plage sur un trou de dates', () => {
+      const r = groupBlockedDays([day('2026-09-01'), day('2026-09-03')]);
+      expect(r).toHaveLength(2);
+    });
+
+    it('ne melange pas deux logements ni deux statuts', () => {
+      expect(groupBlockedDays([
+        day('2026-09-01'), day('2026-09-02', { propertyId: 11 }),
+      ])).toHaveLength(2);
+      expect(groupBlockedDays([
+        day('2026-09-01'), day('2026-09-02', { status: 'MAINTENANCE' }),
+      ])).toHaveLength(2);
+    });
+
+    it('aucun jour, aucune plage', () => {
+      expect(groupBlockedDays([])).toHaveLength(0);
+    });
   });
 
-  it('uses 2h default for maintenance type', () => {
-    const i = {
-      ...baseIntervention,
-      type: 'maintenance' as const,
-      endTime: undefined,
-      estimatedDurationHours: 0,
-      startTime: '11:00',
-    };
-    const event = interventionToEvent(i);
-    expect(event.endTime).toBe('13:00');
-  });
+  // ── Dedup ─────────────────────────────────────────────────────────────────
 
-  it('maps maintenance type correctly', () => {
-    const i = { ...baseIntervention, type: 'maintenance' as const };
-    const event = interventionToEvent(i);
-    expect(event.type).toBe('maintenance');
-  });
+  describe('dedup', () => {
+    it('elimine les doublons d\'identifiant entre les tranches', () => {
+      const r = dedup([[{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 3 }]]);
+      expect(r.map((x) => x.id)).toEqual([1, 2, 3]);
+    });
 
-  it('uses cleaning color for cleaning type', () => {
-    const event = interventionToEvent(baseIntervention);
-    expect(event.color).toBe('#8B5CF6');
-  });
+    it('le premier arrive gagne — les tranches se recouvrent sur leurs bords', () => {
+      const r = dedup([[{ id: 1, v: 'a' }], [{ id: 1, v: 'b' }]]);
+      expect(r).toHaveLength(1);
+      expect((r[0] as { v: string }).v).toBe('a');
+    });
 
-  it('uses maintenance color for maintenance type', () => {
-    const i = { ...baseIntervention, type: 'maintenance' as const };
-    const event = interventionToEvent(i);
-    expect(event.color).toBe('#F97316');
-  });
-});
-
-// ─── dedup ───────────────────────────────────────────────────────────────────
-
-describe('dedup', () => {
-  it('deduplicates by id across arrays', () => {
-    const arr1 = [{ id: 1, name: 'a' }, { id: 2, name: 'b' }];
-    const arr2 = [{ id: 2, name: 'b-dup' }, { id: 3, name: 'c' }];
-    const result = dedup([arr1, arr2]);
-    expect(result).toHaveLength(3);
-    expect(result.map(r => r.id)).toEqual([1, 2, 3]);
-  });
-
-  it('keeps first occurrence on duplicate', () => {
-    const arr1 = [{ id: 1, name: 'first' }];
-    const arr2 = [{ id: 1, name: 'second' }];
-    const result = dedup([arr1, arr2]);
-    expect(result[0].name).toBe('first');
-  });
-
-  it('handles empty arrays', () => {
-    expect(dedup([])).toHaveLength(0);
-    expect(dedup([[]])).toHaveLength(0);
-  });
-
-  it('handles single array', () => {
-    const arr = [{ id: 1 }, { id: 2 }];
-    expect(dedup([arr])).toHaveLength(2);
+    it('supporte les tableaux vides', () => {
+      expect(dedup([])).toEqual([]);
+      expect(dedup([[], []])).toEqual([]);
+    });
   });
 });

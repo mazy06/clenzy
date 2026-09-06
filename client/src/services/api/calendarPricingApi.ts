@@ -200,13 +200,6 @@ export const calendarPricingApi = {
     return apiClient.post(`/calendar/${propertyId}/push-pricing`, {});
   },
 
-  // Blocked days for planning (batch multi-property)
-  async getBlockedDays(propertyIds: number[], from: string, to: string): Promise<CalendarBlockedDay[]> {
-    return apiClient.get<CalendarBlockedDay[]>('/calendar/blocked', {
-      params: { propertyIds: propertyIds.join(','), from, to },
-    });
-  },
-
   // Block dates on a property
   async blockDates(propertyId: number, from: string, to: string, notes?: string): Promise<void> {
     return apiClient.post(`/calendar/${propertyId}/block`, { from, to, notes, source: 'MANUAL' });
