@@ -160,14 +160,6 @@ export const serviceRequestsApi = {
   checkPaymentStatus(id: number) {
     return apiClient.post<{ paymentStatus: string; message: string }>(`/service-requests/${id}/check-payment`);
   },
-  /** SR en AWAITING_PAYMENT pour le planning Gantt */
-  getPlanningAwaitingPayment(filters?: { propertyIds?: number[]; from?: string; to?: string }) {
-    const params: Record<string, string> = {};
-    if (filters?.propertyIds?.length) params.propertyIds = filters.propertyIds.join(',');
-    if (filters?.from) params.from = filters.from;
-    if (filters?.to) params.to = filters.to;
-    return apiClient.get<PlanningServiceRequest[]>('/service-requests/planning', { params });
-  },
 };
 
 export interface PlanningServiceRequest {

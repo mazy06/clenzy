@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Public as GlobeIcon, BroomFill, WrenchFill } from '../../icons';
 import type { ReservationStatus } from '../../services/api';
@@ -7,6 +7,7 @@ import { RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from 
 import type { PlanningChannelKey } from './constants';
 import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import { getSourceLogo } from './utils/sourceLogos';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 // ─── Options partagées (toolbar + modale de filtres) ─────────────────────────
 
@@ -159,9 +160,9 @@ export const ChannelLegendChips: React.FC<{
               {ch.label}
             </button>
           </TooltipTrigger>
-          <TooltipContent>
+          <PlanningTooltipContent>
             {selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`}
-          </TooltipContent>
+          </PlanningTooltipContent>
         </Tooltip>
       );
     })}

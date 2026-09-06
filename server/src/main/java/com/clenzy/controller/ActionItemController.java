@@ -1,5 +1,9 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.BulkGestureDto;
+import com.clenzy.dto.BulkGestureResultDto;
+import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
+import com.clenzy.service.dashboard.ActionItemBulkService;
 import com.clenzy.service.dashboard.ActionItemReconciler;
 import com.clenzy.service.dashboard.ActionItemActionService;
 import com.clenzy.service.dashboard.ActionItemWriter;
@@ -42,6 +46,7 @@ public class ActionItemController {
     private final ActionItemWriter actionItemWriter;
     private final ActionItemReconciler reconciler;
     private final ActionItemActionService actionService;
+    private final ActionItemBulkService bulkService;
     private final PayoutRecapService payoutRecapService;
     private final InterventionActionContextService interventionContextService;
     private final TenantContext tenantContext;
@@ -49,10 +54,12 @@ public class ActionItemController {
     public ActionItemController(ActionItemWriter actionItemWriter,
                                 ActionItemReconciler reconciler,
                                 ActionItemActionService actionService,
+                                ActionItemBulkService bulkService,
                                 PayoutRecapService payoutRecapService,
                                 InterventionActionContextService interventionContextService,
                                 TenantContext tenantContext) {
         this.actionService = actionService;
+        this.bulkService = bulkService;
         this.payoutRecapService = payoutRecapService;
         this.interventionContextService = interventionContextService;
         this.actionItemWriter = actionItemWriter;
@@ -114,6 +121,44 @@ public class ActionItemController {
                                 @com.fasterxml.jackson.annotation.JsonFormat(
                                         shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING)
                                 java.time.LocalDateTime scheduledAt) {}
+
+    /**
+     * Les rubriques qui se traitent d'un seul geste.
+     *
+     * <p>L'écran ne devine pas où proposer le bouton : il demande. La liste est
+     * courte et ne dépend pas de l'organisation — seuls les gestes répétables
+     * sans dommage y figurent, et c'est le gestionnaire du geste qui le
+     * déclare.</p>
+     */
+    @GetMapping("/bulk-gestures")
+    public List<BulkGestureDto> bulkGestures() {
+        return bulkService.bulkGestures();
+    }
+
+    /**
+     * Applique le geste de la rubrique à toutes ses lignes ouvertes.
+     *
+     * <p>Le client nomme une <b>nature</b>, jamais une liste d'identifiants :
+     * il n'en reçoit qu'une dizaine sur les centaines que la rubrique peut
+     * compter, et lui laisser désigner les cibles reviendrait à lui laisser
+     * désigner des lignes qu'il n'a jamais vues. L'organisation vient du
+     * contexte tenant.</p>
+     */
+    @PostMapping("/bulk")
+    public BulkGestureResultDto bulk(@RequestBody @jakarta.validation.Valid BulkRequest request,
+                                     @AuthenticationPrincipal Jwt jwt) {
+        return bulkService.apply(tenantContext.getRequiredOrganizationId(), request.kind(), jwt);
+    }
+
+    /**
+     * La rubrique à traiter.
+     *
+     * <p>Le geste n'est pas transmis : une nature n'en porte qu'un seul, et
+     * c'est le serveur qui sait lequel. Le faire choisir par le client rouvrirait
+     * la porte qu'on vient de fermer — « libérer les cautions » envoyé sur la
+     * rubrique des alertes de bruit.</p>
+     */
+    public record BulkRequest(@jakarta.validation.constraints.NotNull ActionItemKind kind) {}
 
     /**
      * Ce qu'il faut savoir avant d'approuver le reversement que cette action

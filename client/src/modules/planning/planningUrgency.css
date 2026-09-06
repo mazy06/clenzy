@@ -54,6 +54,7 @@
   --pl-st-checked-out-on:   #2B211A;
   --pl-st-checked-out-ink:  #6B6055;
 }
+
 [data-theme="dark"] {
   /* Les fonds pales tiennent tels quels sur la grille sombre. Seul « sur
      place » remonte : a #5C3A21 il ne se detachait qu'a 1,71:1 du fond, la
@@ -79,6 +80,46 @@
  * La couleur de l'anneau est portée par la custom property `--bc`, posée
  * inline sur la brique (= sa couleur de statut).
  */
+
+/* Chiffre de la pastille « actions a valider ». Le FOND, lui, ne bascule pas :
+   --pl-st-pending vaut #E0C89B dans les deux themes (les fonds pales tiennent
+   tels quels sur la grille sombre). Seule l'encre change. */
+:root            { --pl-hitl-digit: #FFFFFF; }  /* 1,6:1 — choix produit */
+[data-theme="dark"] { --pl-hitl-digit: #000000; }  /* 13,4:1 */
+
+/* ─── Infobulles du planning : la surface DU theme, pas son inverse ──────────
+ *
+ * Le primitive shadcn peint `bg-foreground / text-background` : bulle noire en
+ * theme clair, bulle blanche en theme sombre. Sur une grille ou la VALEUR d'un
+ * aplat encode deja une information (plus la brique est dense, plus le voyageur
+ * est la), cette inversion faisait lire l'infobulle comme un element de la
+ * grille. Ici : carte claire en clair, carte sombre en sombre.
+ *
+ * Portalisee dans <body>, la bulle n'a aucun ancetre planning — c'est cette
+ * classe, posee par `PlanningTooltipContent`, qui la rattache a l'ecran.
+ * Selecteur double : `bg-foreground` est une utilitaire de meme specificite,
+ * et l'ordre d'injection des feuilles de module n'est pas garanti.
+ */
+.pl-tip.pl-tip {
+  background-color: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .10);
+}
+.pl-tip .cn-tooltip-arrow {
+  background-color: var(--card);
+  fill: var(--card);
+}
+
+/* Infobulle a deux etages (titre + explication). `cn-tooltip-content` est une
+   RANGEE (`inline-flex items-center`) : sans cela le titre et son explication
+   se retrouvent cote a cote, et le titre se coupe en deux faute de largeur.
+   Selecteur double, meme raison que ci-dessus. */
+.pl-tip-stack.pl-tip-stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
 
 @keyframes plWizzShake {
   0%, 12%, 100% { transform: translateX(0); }

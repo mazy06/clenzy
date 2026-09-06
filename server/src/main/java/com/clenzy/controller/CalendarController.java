@@ -4,6 +4,7 @@ import com.clenzy.integration.channel.AirbnbChannelAdapter;
 import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.CalendarDay;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.PlanningPricingService;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.ReservationService;
 import com.clenzy.tenant.TenantContext;
@@ -56,17 +57,20 @@ public class CalendarController {
     private final TenantContext tenantContext;
     private final PriceEngine priceEngine;
     private final AirbnbChannelAdapter airbnbChannelAdapter;
+    private final PlanningPricingService planningPricingService;
 
     public CalendarController(CalendarEngine calendarEngine,
                               ReservationService reservationService,
                               TenantContext tenantContext,
                               PriceEngine priceEngine,
-                              AirbnbChannelAdapter airbnbChannelAdapter) {
+                              AirbnbChannelAdapter airbnbChannelAdapter,
+                              PlanningPricingService planningPricingService) {
         this.calendarEngine = calendarEngine;
         this.reservationService = reservationService;
         this.tenantContext = tenantContext;
         this.priceEngine = priceEngine;
         this.airbnbChannelAdapter = airbnbChannelAdapter;
+        this.planningPricingService = planningPricingService;
     }
 
     // ----------------------------------------------------------------
@@ -236,36 +240,31 @@ public class CalendarController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
 
-        // Charger les jours calendrier existants
-        List<CalendarDay> days = calendarEngine.getDays(propertyId, from, to, orgId);
-        Map<LocalDate, CalendarDay> dayMap = days.stream()
-                .collect(Collectors.toMap(CalendarDay::getDate, d -> d));
+        return ResponseEntity.ok(
+                planningPricingService.pricingRows(List.of(propertyId), from, to, orgId, false));
+    }
 
-        // Resoudre prix ET source via PriceEngine — source de verite unique de la
-        // cascade (audit T-ARCH-04 : plus de re-implementation dans le controller).
-        Map<LocalDate, PriceEngine.ResolvedPrice> prices =
-                priceEngine.resolvePriceRangeWithSource(propertyId, from, to, orgId);
+    @GetMapping("/pricing")
+    @Operation(summary = "Calendrier de prix enrichi (batch multi-proprietes)",
+            description = "Meme contenu que /{propertyId}/pricing, pour plusieurs proprietes a la fois ; "
+                    + "chaque entree porte son propertyId. Le planning affiche N logements sur la meme "
+                    + "fenetre de dates : une requete par logement saturait le quota de l'API.")
+    public ResponseEntity<List<Map<String, Object>>> getPricingBatch(
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal Jwt jwt) {
 
-        // Construire la reponse enrichie pour chaque jour
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("date", date.toString());
+        Long orgId = tenantContext.getRequiredOrganizationId();
 
-            PriceEngine.ResolvedPrice resolved = prices.get(date);
-            entry.put("nightlyPrice", resolved != null && resolved.price() != null
-                    ? resolved.price().doubleValue() : null);
-
-            CalendarDay day = dayMap.get(date);
-            entry.put("status", day != null ? day.getStatus().name() : "AVAILABLE");
-            entry.put("reservationId", day != null && day.getReservation() != null ? day.getReservation().getId() : null);
-
-            entry.put("priceSource", resolved != null ? resolved.source() : PriceEngine.SOURCE_PROPERTY_DEFAULT);
-
-            result.add(entry);
+        // Ownership : valider chaque propriete du lot (anti-IDOR, regle audit #3),
+        // comme le fait deja /blocked.
+        for (Long propertyId : propertyIds) {
+            validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
         }
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(
+                planningPricingService.pricingRows(propertyIds, from, to, orgId, true));
     }
 
     // ----------------------------------------------------------------

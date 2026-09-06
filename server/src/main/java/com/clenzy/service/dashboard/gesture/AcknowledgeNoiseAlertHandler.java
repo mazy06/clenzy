@@ -31,6 +31,12 @@ public class AcknowledgeNoiseAlertHandler implements ActionGestureHandler {
         return Set.of(ActionItemKind.NOISE_ALERT_UNACKNOWLEDGED);
     }
 
+    /** Acquitter n'a qu'un effet, local et réversible : la rubrique entière se traite d'un geste. */
+    @Override
+    public boolean bulkable() {
+        return true;
+    }
+
     @Override
     public void handle(GestureContext context) {
         noiseAlertService.acknowledge(

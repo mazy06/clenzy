@@ -1,12 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi } from '../../../services/api/propertiesApi';
 import { managersApi } from '../../../services/api/portfoliosApi';
-import { reservationsApi, isCollectedByChannel } from '../../../services/api/reservationsApi';
-import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
-import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
+import { isCollectedByChannel } from '../../../services/api/reservationsApi';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
+import { planningDataApi, type PlanningData } from '../../../services/api/planningDataApi';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
@@ -19,14 +18,13 @@ export const planningKeys = {
   all: ['planning-page'] as const,
   properties: (userId: string | undefined) =>
     [...planningKeys.all, 'properties', userId] as const,
-  reservations: (propertyIds: number[], from: string, to: string) =>
-    [...planningKeys.all, 'reservations', { propertyIds, from, to }] as const,
-  interventions: (propertyIds: number[], from: string, to: string) =>
-    [...planningKeys.all, 'interventions', { propertyIds, from, to }] as const,
-  awaitingPayment: (propertyIds: number[], from: string, to: string) =>
-    [...planningKeys.all, 'awaitingPayment', { propertyIds, from, to }] as const,
-  blockedDays: (propertyIds: number[], from: string, to: string) =>
-    [...planningKeys.all, 'blockedDays', { propertyIds, from, to }] as const,
+  /**
+   * UNE cle par tranche de dates : sejours, interventions, demandes en attente
+   * de paiement et jours bloques arrivent ensemble (cf. planningDataApi).
+   * Quatre cles distinctes signifiaient quatre requetes par tranche.
+   */
+  data: (propertyIds: number[], from: string, to: string) =>
+    [...planningKeys.all, 'data', { propertyIds, from, to }] as const,
 };
 
 // ─── Fetch helpers ───────────────────────────────────────────────────────────
@@ -148,7 +146,13 @@ export function prefetchPlanningProperties(
  *   4. Paid (paymentStatus === 'PAID') → confirmed (green)
  *   5. Otherwise → pending (orange)
  */
-function computeEffectiveStatus(r: Reservation): ReservationStatus {
+/*
+ * Les transformations ci-dessous sont EXPORTEES pour etre testees telles
+ * quelles. Elles ne l'etaient pas, et leur test les REIMPLEMENTAIT localement :
+ * il validait donc une copie, libre de deriver de l'original sans que rien ne
+ * le signale — un vert qui ne prouvait rien.
+ */
+export function computeEffectiveStatus(r: Reservation): ReservationStatus {
   if (r.status === 'cancelled') return 'cancelled';
 
   const today = toDateStr(new Date());
@@ -162,7 +166,7 @@ function computeEffectiveStatus(r: Reservation): ReservationStatus {
 
 const PAYMENT_BADGE_STATUSES = new Set(['PENDING', 'PROCESSING', 'FAILED']);
 
-function reservationToEvent(
+export function reservationToEvent(
   r: Reservation,
   propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
 ): PlanningEvent {
@@ -201,7 +205,7 @@ function reservationToEvent(
   };
 }
 
-function interventionToEvent(i: PlanningIntervention): PlanningEvent {
+export function interventionToEvent(i: PlanningIntervention): PlanningEvent {
   // Compute a reliable endTime:
   // 1) Use the API-provided endTime if available
   // 2) Otherwise compute from startTime + estimatedDurationHours
@@ -249,7 +253,7 @@ const CLEANING_SERVICE_TYPES = new Set([
   'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING', 'EXTERIOR_CLEANING', 'DISINFECTION',
 ]);
 
-function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
+export function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
   const eventType = CLEANING_SERVICE_TYPES.has(sr.serviceType) ? 'cleaning' : 'maintenance';
 
   let endTime = sr.endTime;
@@ -289,7 +293,7 @@ interface BlockedRange {
   notes: string | null;
 }
 
-function groupBlockedDays(days: CalendarBlockedDay[]): BlockedRange[] {
+export function groupBlockedDays(days: CalendarBlockedDay[]): BlockedRange[] {
   if (days.length === 0) return [];
 
   // Sort by propertyId, then date
@@ -356,7 +360,7 @@ function blockedRangeToEvent(range: BlockedRange, index: number): PlanningEvent 
 
 // ─── Dedup helper ────────────────────────────────────────────────────────────
 
-function dedup<T extends { id: number }>(arrays: T[][]): T[] {
+export function dedup<T extends { id: number }>(arrays: T[][]): T[] {
   const seen = new Map<number, T>();
   for (const arr of arrays) {
     for (const item of arr) {
@@ -439,106 +443,60 @@ export function usePlanningData(
   // sans changer de référence — les queries prioritaires étant souscrites via
   // useQueries ci-dessous, leur résolution re-render ce hook et rouvre la vanne.
   const queryClient = useQueryClient();
-  const chunkKeyFns = [
-    planningKeys.reservations,
-    planningKeys.interventions,
-    planningKeys.awaitingPayment,
-    planningKeys.blockedDays,
-  ];
   const prioritySettled = propertyIds.length > 0 && chunks
     .filter((c) => priorityFroms.has(c.from))
-    .every((c) => chunkKeyFns.every((keyFn) => {
-      const state = queryClient.getQueryState(keyFn(propertyIds, c.from, c.to));
+    .every((c) => {
+      const state = queryClient.getQueryState(planningKeys.data(propertyIds, c.from, c.to));
       return !!state && (state.dataUpdatedAt > 0 || state.errorUpdatedAt > 0);
-    }));
+    });
 
   const chunkEnabled = (chunk: { from: string }) =>
     propertyIds.length > 0 && (priorityFroms.has(chunk.from) || prioritySettled);
 
-  // Query 2: Reservations — one query per chunk
-  const reservationQueries = useQueries({
+  // UNE requete par tranche, et `combine` pour en deriver les quatre listes.
+  //
+  // Sans `combine`, `useQueries` rend un tableau d'identite NEUVE a chaque
+  // rendu : les `useMemo` qui en derivaient recalculaient `events` en boucle et
+  // produisaient des objets d'evenement neufs, ce qui invalidait la memo de
+  // PlanningRow et faisait repeindre la grille entiere au moindre changement
+  // d'etat local.
+  const planningResult = useQueries({
     queries: chunks.map((chunk) => ({
-      queryKey: planningKeys.reservations(propertyIds, chunk.from, chunk.to),
-      queryFn: () => reservationsApi.getAll({ propertyIds, from: chunk.from, to: chunk.to }),
+      queryKey: planningKeys.data(propertyIds, chunk.from, chunk.to),
+      queryFn: () => planningDataApi.getPlanningData(propertyIds, chunk.from, chunk.to),
       enabled: chunkEnabled(chunk),
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000, // keep cached 5 min after last use
     })),
-  });
-
-  // Query 3: Interventions — one query per chunk
-  const interventionQueries = useQueries({
-    queries: chunks.map((chunk) => ({
-      queryKey: planningKeys.interventions(propertyIds, chunk.from, chunk.to),
-      queryFn: () => reservationsApi.getPlanningInterventions({ propertyIds, from: chunk.from, to: chunk.to }),
-      enabled: chunkEnabled(chunk),
-      staleTime: 30_000,
-      gcTime: 5 * 60 * 1000,
-    })),
-  });
-
-  // Query 4: Service Requests AWAITING_PAYMENT — one query per chunk
-  const awaitingPaymentQueries = useQueries({
-    queries: chunks.map((chunk) => ({
-      queryKey: planningKeys.awaitingPayment(propertyIds, chunk.from, chunk.to),
-      queryFn: () => serviceRequestsApi.getPlanningAwaitingPayment({ propertyIds, from: chunk.from, to: chunk.to }),
-      enabled: chunkEnabled(chunk),
-      staleTime: 30_000,
-      gcTime: 5 * 60 * 1000,
-    })),
-  });
-
-  // Query 5: Blocked/Maintenance days — one query per chunk
-  const blockedQueries = useQueries({
-    queries: chunks.map((chunk) => ({
-      queryKey: planningKeys.blockedDays(propertyIds, chunk.from, chunk.to),
-      queryFn: () => calendarPricingApi.getBlockedDays(propertyIds, chunk.from, chunk.to),
-      enabled: chunkEnabled(chunk),
-      staleTime: 30_000,
-      gcTime: 5 * 60 * 1000,
-    })),
-  });
-
-  // Merge + dedup all chunk results
-  const reservations = useMemo(() => {
-    const allChunkData = reservationQueries
-      .map((q) => q.data)
-      .filter((d): d is Reservation[] => !!d);
-    return dedup(allChunkData);
-  }, [reservationQueries]);
-
-  const interventions = useMemo(() => {
-    const allChunkData = interventionQueries
-      .map((q) => q.data)
-      .filter((d): d is PlanningIntervention[] => !!d);
-    return dedup(allChunkData);
-  }, [interventionQueries]);
-
-  const awaitingPaymentSRs = useMemo(() => {
-    const allChunkData = awaitingPaymentQueries
-      .map((q) => q.data)
-      .filter((d): d is PlanningServiceRequest[] => !!d);
-    return dedup(allChunkData);
-  }, [awaitingPaymentQueries]);
-
-  const blockedDays = useMemo(() => {
-    const allChunkData = blockedQueries
-      .map((q) => q.data)
-      .filter((d): d is CalendarBlockedDay[] => !!d);
-    // Flatten and deduplicate by propertyId+date
-    const seen = new Set<string>();
-    const result: CalendarBlockedDay[] = [];
-    for (const arr of allChunkData) {
-      for (const item of arr) {
-        const key = `${item.propertyId}-${item.date}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          result.push(item);
+    combine: (results) => {
+      const blockedSeen = new Set<string>();
+      const blocked: CalendarBlockedDay[] = [];
+      for (const q of results) {
+        if (!q.data) continue;
+        for (const item of q.data.blocked ?? []) {
+          const key = `${item.propertyId}-${item.date}`;
+          if (blockedSeen.has(key)) continue;
+          blockedSeen.add(key);
+          blocked.push(item);
         }
       }
-    }
-    return result;
-  }, [blockedQueries]);
+      const chunkData = results.map((q) => q.data).filter((d): d is PlanningData => !!d);
+      return {
+        reservations: dedup(chunkData.map((d) => d.reservations ?? [])),
+        interventions: dedup(chunkData.map((d) => d.interventions ?? [])),
+        awaitingPayment: dedup(chunkData.map((d) => d.awaitingPayment ?? [])),
+        blocked,
+        hasAnyData: chunkData.length > 0,
+        isLoading: results.some((q) => q.isLoading),
+        error: results.find((q) => q.error)?.error?.message,
+      };
+    },
+  });
+
+  const reservations = planningResult.reservations;
+  const interventions = planningResult.interventions;
+  const awaitingPaymentSRs = planningResult.awaitingPayment;
+  const blockedDays = planningResult.blocked;
 
   // Build a property defaults lookup for check-in/check-out time fallback
   const propertyDefaultsMap = useMemo(() => {
@@ -576,19 +534,31 @@ export function usePlanningData(
   // After initial, remaining chunks load in background. Les chunks non
   // prioritaires sont disabled au 1er rendu (isLoading=false) — le critère
   // est donc « aucune data + au moins un fetch en cours », pas every(isLoading).
-  const reservationsInitialLoading = propertyIds.length > 0 &&
-    reservationQueries.every((q) => !q.data) && reservationQueries.some((q) => q.isLoading);
-  const interventionsInitialLoading = propertyIds.length > 0 &&
-    interventionQueries.every((q) => !q.data) && interventionQueries.some((q) => q.isLoading);
+  const planningInitialLoading = propertyIds.length > 0
+    && !planningResult.hasAnyData && planningResult.isLoading;
 
-  const loading = propertiesQuery.isLoading
-    || reservationsInitialLoading
-    || interventionsInitialLoading;
+  // Verrou : « chargement » ne vaut QUE pour le tout premier affichage.
+  //
+  // La page remplace la grille par un sursis plein ecran tant que `loading` est
+  // vrai. Or la fenetre de chargement saute d'un bloc quand on fait defiler
+  // vite (cf. useSettledRange) : atterrir sur une fenetre qui ne partage aucune
+  // tranche avec la precedente remettait `hasAnyData` a faux, donc `loading` a
+  // vrai — et la grille etait DEMONTEE en plein geste. Mesure au navigateur :
+  // 6 rafales = 6 sursis plein ecran et 5 pertes de la position de defilement,
+  // le remontage repartant du bord du buffer. Une fois la grille peinte, les
+  // fenetres suivantes se chargent en fond : les cellules sont deja dessinees,
+  // les briques y apparaissent quand la reponse arrive.
+  const aDejaAffiche = useRef(false);
+  if (!propertiesQuery.isLoading && planningResult.hasAnyData) {
+    aDejaAffiche.current = true;
+  }
+
+  const loading = !aDejaAffiche.current
+    && (propertiesQuery.isLoading || planningInitialLoading);
 
   // Error: first error from any query
   const error = propertiesQuery.error?.message
-    ?? reservationQueries.find((q) => q.error)?.error?.message
-    ?? interventionQueries.find((q) => q.error)?.error?.message
+    ?? planningResult.error
     ?? null;
 
   return {

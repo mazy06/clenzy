@@ -1825,8 +1825,20 @@
       "proposalPending": "يقوم الوكيل بصياغة رد…",
       "retryProposal": "إعادة المحاولة",
       "unassignedGroup": "خدمات بلا مزوّد",
+      "shownOf": "معروض {{shown}} من {{total}}",
       "showMore": "عرض {{count}} أخرى",
       "showLess": "عرض أقل",
+      "ageMinutes": "{{count}} د",
+      "ageHours": "{{count}} س",
+      "ageDays": "{{count}} ي",
+      "waitingSince": "بالانتظار منذ {{age}}",
+      "overdueBy": "متأخر {{age}}",
+      "bulkAction": "{{verb}} الـ {{count}} كلها",
+      "bulkTitle": "{{verb}} الـ {{count}} سطرًا كلها؟",
+      "bulkMessage": "سيُطبَّق الإجراء على مجموعة «{{label}}» بأكملها، على دفعات من 50. تُعالَج كل سطر على حدة: فشل أحدها لا يوقف الباقي، وسنخبرك أيها فشل.",
+      "bulkDone": "عولج {{succeeded}} من {{requested}}",
+      "bulkRemaining": "بقي {{count}}: أعد التشغيل للدفعة التالية.",
+      "bulkFailed": "تعذّر بدء المعالجة.",
       "seeChannels": "عرض القنوات",
       "declarationGroup": "تصاريح النزلاء الناقصة",
       "pendingGroup": "حجوزات بانتظار التأكيد",
@@ -7100,6 +7112,22 @@
         "title": "مدير القنوات",
         "description": "اربط منصات الحجز عبر Channex: مزامنة الحجوزات والأسعار والتوافر في الاتجاهين."
       }
+    },
+    "propertyColumn": {
+      "pendingTitle": "إجراءات بانتظار المصادقة",
+      "pendingHint_zero": "لا يوجد اقتراح بانتظار المصادقة على هذا السكن.",
+      "pendingHint_one": "اقتراح واحد من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_two": "اقتراحان من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_few": "{{count}} اقتراحات من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_many": "{{count}} اقتراحًا من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_other": "{{count}} اقتراح من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "reservationsTitle": "الحجوزات القادمة",
+      "reservationsHint_zero": "لا يوجد إقامة جارية أو قادمة في هذا السكن.",
+      "reservationsHint_one": "إقامة واحدة جارية أو قادمة في هذا السكن.",
+      "reservationsHint_two": "إقامتان جاريتان أو قادمتان في هذا السكن.",
+      "reservationsHint_few": "{{count}} إقامات جارية أو قادمة في هذا السكن.",
+      "reservationsHint_many": "{{count}} إقامة جارية أو قادمة في هذا السكن.",
+      "reservationsHint_other": "{{count}} إقامة جارية أو قادمة في هذا السكن."
     }
   },
   "designSystem": {

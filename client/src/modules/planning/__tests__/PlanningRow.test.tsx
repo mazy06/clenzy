@@ -353,14 +353,44 @@ describe('PlanningRow', () => {
       );
     });
 
-    it('rattachée mais brique hôte non rendue (masquée/hors plage) → rien', () => {
+    it('rattachée mais brique hôte non rendue (masquée/hors plage) → redevient autonome', () => {
       const { container } = renderRow({
         barLayouts: [cleaningLayout],
         allEvents: [cleaningEvent],
         loadedReservations: [hostReservation],
       });
       const bars = container.querySelectorAll('[data-planning-bar]');
-      expect(bars.length).toBe(0);
+      // Ce cas ne rendait RIEN : l'intervention disparaissait purement et
+      // simplement. Masquer un canal effaçait donc aussi ses ménages, alors que
+      // la légende ne filtre QUE les réservations et que les interventions ont
+      // déjà leur propre interrupteur ; et un ménage planifié à checkout+N dont
+      // le séjour s'achève avant le bord gauche de la fenêtre s'évaporait de la
+      // même façon, sans que rien ne le signale.
+      expect(bars.length).toBe(1);
+    });
+
+    it('la pastille redevenue autonome reste cliquable', () => {
+      const { container } = renderRow({
+        barLayouts: [cleaningLayout],
+        allEvents: [cleaningEvent],
+        loadedReservations: [hostReservation],
+      });
+      const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
+      fireEvent.click(bar);
+      expect(mockOnEventClick).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'int-1000' }),
+      );
+    });
+
+    it('l\'hôte rendu reprend la pastille : pas de doublon', () => {
+      const { container } = renderRow({
+        barLayouts: [hostLayout, cleaningLayout],
+        allEvents: [hostEvent, cleaningEvent],
+        loadedReservations: [hostReservation],
+      });
+      // Une intervention est soit DANS sa brique, soit autonome — jamais les
+      // deux : rendre les deux la dessinerait en double, l'une sous l'autre.
+      expect(container.querySelectorAll('[data-planning-bar]').length).toBe(1);
     });
 
     it('orpheline réelle (aucune réservation candidate chargée) → pastille isolée', () => {

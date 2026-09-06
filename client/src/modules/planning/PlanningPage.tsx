@@ -32,6 +32,7 @@ import ImportSourceChooserDialog from './ImportSourceChooserDialog';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
+import { useSettledRange } from './hooks/useSettledRange';
 import { usePlanningData } from './hooks/usePlanningData';
 import { usePlanningFilters } from './hooks/usePlanningFilters';
 import { usePlanningLayout } from './hooks/usePlanningLayout';
@@ -166,10 +167,15 @@ const PlanningPage: React.FC = () => {
     propertyColWidth: effectivePropertyColWidth,
   });
 
+  // Fenetre de CHARGEMENT : celle du rendu, une fois posee. Un defilement
+  // rapide traverse plusieurs fenetres ; sans ce palier, chacune declenchait un
+  // lot complet de requetes aussitot jete — de quoi epuiser le quota de l'API.
+  const fetchRange = useSettledRange(timeline.bufferStart, timeline.bufferEnd);
+
   // Data fetching (chunked by 30-day aligned windows)
   const { properties, events, reservations, interventions, loading, error } = usePlanningData(
-    timeline.bufferStart,
-    timeline.bufferEnd,
+    fetchRange.start,
+    fetchRange.end,
   );
 
   // TOUTES les réservations chargées (avant filtres/légende) : servent à
@@ -336,30 +342,35 @@ const PlanningPage: React.FC = () => {
   });
 
   // Ids des logements de la PAGE affichée uniquement, mémoïsés (stabilise les
-  // queryDescriptors des hooks pricing/min-nights). Fetcher toutes les
-  // propriétés filtrées créait un burst de (N logements × chunks 30 j × 2 hooks)
-  // requêtes au chargement ; le cache React Query par (propriété × chunk)
-  // sert de cache au changement de page.
+  // clés des hooks pricing/min-nights). Fetcher toutes les propriétés filtrées
+  // créait un burst de requêtes au chargement ; le cache React Query par
+  // (lot × tranche) sert de cache au changement de page.
   const paginatedPropertyIds = useMemo(
     () => pagination.paginatedProperties.map((p) => p.id),
     [pagination.paginatedProperties],
   );
 
+  // Tant que la taille de page vient de l'ESTIMATION, cette liste va encore
+  // changer : l'estimation donnait 8 logements là où la grille mesurée en tient
+  // 10, et tout ce qui en dépend partait donc DEUX fois. On attend la mesure,
+  // qui arrive dès le premier effet suivant le montage de la grille.
+  const pageScopedFetchReady = pagination.isPageSizeMeasured;
+
   // Pricing data (fetched only when toggle is ON)
   const { pricingMap } = usePlanningPricing(
     paginatedPropertyIds,
-    timeline.bufferStart,
-    timeline.bufferEnd,
-    filters.showPrices,
+    fetchRange.start,
+    fetchRange.end,
+    filters.showPrices && pageScopedFetchReady,
   );
 
   // Min-nights overrides (toujours fetch quand showPrices est ON, meme
   // indicateur que pour les prix : info contextuelle a la cellule)
   const { minNightsMap } = usePlanningMinNights(
     paginatedPropertyIds,
-    timeline.bufferStart,
-    timeline.bufferEnd,
-    filters.showPrices,
+    fetchRange.start,
+    fetchRange.end,
+    filters.showPrices && pageScopedFetchReady,
   );
 
   // Channel sync health : "X/Y canaux OK" agrege par propriete (current state,
@@ -367,7 +378,7 @@ const PlanningPage: React.FC = () => {
   // seule la page affichee en a besoin (meme scope que pricing/min-nights).
   const { channelSyncMap } = usePlanningChannelSync(
     paginatedPropertyIds,
-    true,
+    pageScopedFetchReady,
   );
 
   // Layout (bar positions) — sur les events visibles (toggles Canaux/Statuts)

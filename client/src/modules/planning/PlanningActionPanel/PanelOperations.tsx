@@ -23,7 +23,6 @@ import {
   Switch,
   Textarea,
   Tooltip,
-  TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
 import {
@@ -80,6 +79,7 @@ import {
   type AttachmentCandidate,
 } from '../utils/interventionAttachment';
 import { useAttachedServiceRequests } from './useAttachedServiceRequests';
+import { PlanningTooltipContent } from '../PlanningTooltip';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -1288,9 +1288,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <PlanningTooltipContent>
                             {isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}
-                          </TooltipContent>
+                          </PlanningTooltipContent>
                         </Tooltip>
                       </div>
 

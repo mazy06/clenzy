@@ -40,6 +40,10 @@ function item(
     badge: null,
     actionType: null,
     actionItemId: null,
+    // Quatre heures d'attente : assez pour que la pastille d'ancienneté soit
+    // rendue dans la galerie, sans dépendre de l'heure à laquelle on la
+    // regarde. Une valeur figée sauterait à « 3 j » dans trois jours.
+    waitingSince: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     ...overrides,
   };
 }
@@ -50,12 +54,16 @@ function pack(
   overrides: Partial<Record<DashboardActionKind, number>> = {},
 ): DashboardActionItems {
   const counted: Partial<Record<DashboardActionKind, number>> = {};
+  const summed: Partial<Record<DashboardActionKind, number>> = {};
   for (const entry of items) {
     counted[entry.kind] = (counted[entry.kind] ?? 0) + 1;
+    if (entry.amount != null) summed[entry.kind] = (summed[entry.kind] ?? 0) + entry.amount;
   }
   const totalsByKind = { ...counted, ...overrides };
   const total = Object.values(totalsByKind).reduce((sum, n) => sum + (n ?? 0), 0);
-  return { items, total, totalsByKind };
+  // Le serveur cumule sur toutes les lignes ; la galerie n'a que celles qu'on
+  // lui donne, et les additionne donc telles quelles.
+  return { items, total, totalsByKind, amountsByKind: summed };
 }
 
 /**
@@ -249,6 +257,7 @@ export const ACTION_ITEMS_EMPTY: DashboardActionItems = {
   items: [],
   total: 0,
   totalsByKind: {},
+  amountsByKind: {},
 };
 
 // ─── Démos ───────────────────────────────────────────────────────────────────

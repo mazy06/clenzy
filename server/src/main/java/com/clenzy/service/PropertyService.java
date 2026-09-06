@@ -132,13 +132,34 @@ public class PropertyService {
         return result;
     }
 
+    /**
+     * Cle de cache scopee par ORGANISATION.
+     *
+     * <p>Elle etait {@code #id} seul. Le garde d'organisation vivant DANS la
+     * methode, un hit de cache le court-circuitait : une fiche mise en cache par
+     * une organisation aurait ete servie telle quelle a une autre. La cle porte
+     * donc le tenant, comme le fait deja PricingConfigService.</p>
+     *
+     * <p>Public : referencee en SpEL par l'annotation.</p>
+     */
+    public String currentTenantCacheKey() {
+        Long orgId = tenantContext.getOrganizationId();
+        return orgId != null ? orgId.toString() : "platform";
+    }
+
     @Transactional(readOnly = true)
-    @Cacheable(value = "properties", key = "#id")
+    @Cacheable(value = "properties", key = "#root.target.currentTenantCacheKey() + ':' + #id")
     public PropertyDto getById(Long id) {
         try {
             Property entity = findByIdRespectingTenant(id);
             return toDto(entity);
         } catch (NotFoundException e) {
+            throw e;
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            // Un refus d'organisation doit rester un REFUS (403). Le fourre-tout
+            // ci-dessous le rhabillait en RuntimeException, donc en 500 : le
+            // client ne pouvait plus distinguer « interdit » de « casse », et la
+            // regle d'audit #7 proscrit ce genre d'avaleur.
             throw e;
         } catch (Exception e) {
             log.error("PropertyService.getById - Erreur lors de la recuperation de la propriete ID: {}", id, e);
@@ -184,9 +205,29 @@ public class PropertyService {
      * automatiquement pour les utilisateurs non-staff. Pour le staff plateforme (SUPER_ADMIN,
      * SUPER_MANAGER), le filtre n'est pas active, donc findById retourne toutes les proprietes.
      */
+    /**
+     * Charge un logement par id EN VALIDANT l'organisation.
+     *
+     * <p>Cette methode ne validait rien : c'etait un {@code findById} nu, dont
+     * le nom promettait le contraire. Or {@code findById} ne passe PAS par le
+     * filtre Hibernate {@code organizationFilter} (il ne s'applique pas aux
+     * recherches par cle primaire) — n'importe quel identifiant renvoyait donc
+     * le logement, quelle que soit son organisation. Les outils de l'assistant
+     * (get_property_details, get_property_amenities, get_price_quote,
+     * get_weather_forecast) recoivent leur {@code propertyId} du modele : il
+     * suffisait de demander « les details du logement 42 » pour lire la fiche
+     * d'un autre tenant. Meme classe de bug que celle deja corrigee sur
+     * {@link #list()} (regle audit #3).</p>
+     *
+     * <p>Le bypass platform staff est porte par
+     * {@code organizationAccessGuard} — un SUPER_ADMIN garde son acces
+     * transverse.</p>
+     */
     private Property findByIdRespectingTenant(Long id) {
-        return propertyRepository.findById(id)
+        Property property = propertyRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
+        requireSameOrganization(property);
+        return property;
     }
 
     /**
@@ -299,7 +340,10 @@ public class PropertyService {
         return new PageImpl<>(dtos, pageable, page.getTotalElements());
     }
 
-    @CacheEvict(value = "properties", key = "#id")
+    // Eviction GLOBALE du cache : la cle porte desormais l'organisation
+    // (cf. PropertyService#currentTenantCacheKey), une eviction par id seul
+    // ne correspondrait plus a rien et laisserait des fiches perimees.
+    @CacheEvict(value = "properties", allEntries = true)
     public PropertyDto updateStatus(Long id, String status) {
         final com.clenzy.model.Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Property not found"));

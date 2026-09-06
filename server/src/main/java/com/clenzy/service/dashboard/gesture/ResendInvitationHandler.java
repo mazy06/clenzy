@@ -32,6 +32,12 @@ public class ResendInvitationHandler implements ActionGestureHandler {
         return Set.of(ActionItemKind.INVITATION_EXPIRED);
     }
 
+    /** Réinviter renvoie le même courriel à la même personne — répétable sans dommage. */
+    @Override
+    public boolean bulkable() {
+        return true;
+    }
+
     @Override
     public void handle(GestureContext context) {
         invitationService.resendInvitation(context.orgId(), context.targetId(), context.jwt());

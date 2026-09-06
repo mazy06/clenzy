@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.model.Property;
 import com.clenzy.model.RateOverride;
 import com.clenzy.model.RatePlan;
 import com.clenzy.model.RatePlanType;
@@ -255,6 +256,70 @@ public class PriceEngine {
 
             // 6. Fallback
             result.put(date, new ResolvedPrice(propertyPrice, SOURCE_PROPERTY_DEFAULT));
+        }
+
+        return result;
+    }
+
+    /**
+     * Resout prix ET source pour PLUSIEURS proprietes sur [from, to), en un
+     * nombre CONSTANT de requetes (3), quel que soit le nombre de proprietes.
+     *
+     * <p>La variante mono-propriete coute 3 requetes ; l'appeler en boucle pour
+     * peindre un planning de N logements sur C tranches de dates en coutait
+     * 3 × N × C — 150 requetes pour 10 logements sur 5 tranches, dont les deux
+     * tiers redondantes : ni les plans tarifaires ni la fiche logement ne
+     * dependent de la plage de dates, ils etaient pourtant recharges a chaque
+     * tranche. Ici tout est charge en lot puis resolu en memoire.</p>
+     *
+     * @return propertyId -> (date -> prix resolu). Une propriete sans aucune
+     *         donnee figure quand meme, avec son prix de repli.
+     */
+    public Map<Long, Map<LocalDate, ResolvedPrice>> resolvePriceRangeWithSourceForProperties(
+            Collection<Long> propertyIds, LocalDate from, LocalDate to, Long orgId) {
+
+        Map<Long, Map<LocalDate, ResolvedPrice>> result = new LinkedHashMap<>();
+        if (propertyIds == null || propertyIds.isEmpty()) return result;
+
+        Set<Long> ids = new LinkedHashSet<>(propertyIds);
+
+        // 3 requetes, en lot, au lieu de 3 par propriete et par tranche.
+        Map<Long, Map<LocalDate, BigDecimal>> overridesByProperty = rateOverrideRepository
+                .findByPropertyIdsAndDateRange(ids, from, to, orgId).stream()
+                .collect(Collectors.groupingBy(
+                        o -> o.getProperty().getId(),
+                        Collectors.toMap(RateOverride::getDate, RateOverride::getNightlyPrice,
+                                (a, b) -> a)));
+
+        Map<Long, List<RatePlan>> plansByProperty = ratePlanRepository
+                .findActiveByPropertyIds(ids, orgId).stream()
+                .collect(Collectors.groupingBy(rp -> rp.getProperty().getId()));
+
+        Map<Long, BigDecimal> defaultPriceByProperty = new HashMap<>();
+        for (Property property : propertyRepository.findAllById(ids)) {
+            defaultPriceByProperty.put(property.getId(), property.getNightlyPrice());
+        }
+
+        LocalDate resolutionDate = LocalDate.now();
+
+        for (Long propertyId : ids) {
+            Map<LocalDate, BigDecimal> overrideMap =
+                    overridesByProperty.getOrDefault(propertyId, Map.of());
+            List<RatePlan> plans = plansByProperty.getOrDefault(propertyId, List.of());
+            BigDecimal propertyPrice = defaultPriceByProperty.get(propertyId);
+
+            Map<LocalDate, ResolvedPrice> perDate = new LinkedHashMap<>();
+            for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+                BigDecimal override = overrideMap.get(date);
+                if (override != null) {
+                    perDate.put(date, new ResolvedPrice(override, SOURCE_OVERRIDE));
+                    continue;
+                }
+                Optional<ResolvedPrice> planPrice = resolveFromPlans(plans, date, resolutionDate);
+                perDate.put(date, planPrice.orElseGet(
+                        () -> new ResolvedPrice(propertyPrice, SOURCE_PROPERTY_DEFAULT)));
+            }
+            result.put(propertyId, perDate);
         }
 
         return result;

@@ -57,6 +57,30 @@ public class MinNightsOverrideService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Overrides de PLUSIEURS proprietes sur la plage [from, to).
+     *
+     * <p>Sert le planning, qui affiche N logements sur une meme fenetre : une
+     * requete HTTP par logement saturait le quota de l'API (300 req/min par
+     * utilisateur) des qu'on faisait defiler la grille. L'acces est valide
+     * logement par logement (regle audit #3 : jamais de chargement par id sans
+     * controle d'organisation), comme le fait deja /api/calendar/blocked.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<MinNightsOverrideDto> getByPropertiesAndRange(List<Long> propertyIds, LocalDate from,
+                                                              LocalDate to, String keycloakId) {
+        if (propertyIds == null || propertyIds.isEmpty()) return List.of();
+
+        for (Long propertyId : propertyIds) {
+            reservationService.validatePropertyAccess(propertyId, keycloakId);
+        }
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        return overrideRepository.findByPropertyIdsAndDateRange(propertyIds, from, to, orgId).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
     /** Cree un override pour une date. */
     @Transactional
     public MinNightsOverrideDto create(MinNightsOverrideDto dto, String keycloakId) {

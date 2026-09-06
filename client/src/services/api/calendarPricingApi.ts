@@ -11,6 +11,11 @@ export interface CalendarPricingDay {
   currency?: string;
 }
 
+/** Ligne de prix d'un lot multi-logements : meme forme, plus le logement. */
+export interface CalendarPricingDayForProperty extends CalendarPricingDay {
+  propertyId: number;
+}
+
 export interface RatePlan {
   id: number;
   propertyId: number;
@@ -119,6 +124,19 @@ export const calendarPricingApi = {
     });
   },
 
+  /**
+   * Prix de PLUSIEURS logements sur la meme plage, en un seul appel.
+   *
+   * Le planning affiche N logements sur une fenetre commune : une requete par
+   * logement et par tranche de 30 jours saturait le quota de l'API
+   * (300 req/min par utilisateur) des qu'on faisait defiler la grille.
+   */
+  async getPricingBatch(propertyIds: number[], from: string, to: string): Promise<CalendarPricingDayForProperty[]> {
+    return apiClient.get<CalendarPricingDayForProperty[]>('/calendar/pricing', {
+      params: { propertyIds: propertyIds.join(','), from, to },
+    });
+  },
+
   async updatePrice(propertyId: number, from: string, to: string, price: number): Promise<void> {
     return apiClient.put(`/calendar/${propertyId}/price`, { from, to, price });
   },
@@ -162,6 +180,13 @@ export const calendarPricingApi = {
     });
   },
 
+  /** Overrides min-nights de PLUSIEURS logements en un seul appel (cf. getPricingBatch). */
+  async getMinNightsOverridesBatch(propertyIds: number[], from: string, to: string): Promise<MinNightsOverride[]> {
+    return apiClient.get<MinNightsOverride[]>('/min-nights-overrides/batch', {
+      params: { propertyIds: propertyIds.join(','), from, to },
+    });
+  },
+
   async createMinNightsOverrideBulk(data: BulkMinNightsOverrideData): Promise<void> {
     return apiClient.post('/min-nights-overrides/bulk', data);
   },
@@ -173,13 +198,6 @@ export const calendarPricingApi = {
   // Push pricing to Airbnb
   async pushPricing(propertyId: number): Promise<{ daysResolved: number; status: string }> {
     return apiClient.post(`/calendar/${propertyId}/push-pricing`, {});
-  },
-
-  // Blocked days for planning (batch multi-property)
-  async getBlockedDays(propertyIds: number[], from: string, to: string): Promise<CalendarBlockedDay[]> {
-    return apiClient.get<CalendarBlockedDay[]>('/calendar/blocked', {
-      params: { propertyIds: propertyIds.join(','), from, to },
-    });
   },
 
   // Block dates on a property

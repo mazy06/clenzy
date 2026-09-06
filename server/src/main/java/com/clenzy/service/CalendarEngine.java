@@ -110,6 +110,19 @@ public class CalendarEngine {
     }
 
     /**
+     * Jours calendrier de PLUSIEURS proprietes sur une plage (borne haute
+     * INCLUSIVE, comme la variante mono-propriete).
+     *
+     * <p>Peindre un planning de N logements appelait {@link #getDays} en
+     * boucle : une requete par logement et par tranche de dates.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<CalendarDay> getDays(Set<Long> propertyIds, LocalDate from, LocalDate to, Long orgId) {
+        if (propertyIds == null || propertyIds.isEmpty()) return List.of();
+        return calendarDayRepository.findByPropertiesAndDateRange(propertyIds, from, to, orgId);
+    }
+
+    /**
      * Jours BLOCKED / MAINTENANCE de plusieurs proprietes (planning batch).
      * La requete est bornee a l'organisation passee en parametre.
      */

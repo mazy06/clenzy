@@ -148,11 +148,30 @@ if (import.meta.env.VITE_CRISP_WEBSITE_ID) {
   d.getElementsByTagName('head')[0].appendChild(s);
 }
 
+/**
+ * Retenter une reponse 4xx est au mieux inutile, au pire nuisible.
+ *
+ * <p>Le serveur limite a 300 requetes/min par utilisateur et repond 429 au-dela
+ * (RateLimitConfig). Avec un `retry` aveugle, chaque depassement generait une
+ * requete de PLUS : la limite s'auto-alimentait et la fenetre mettait deux fois
+ * plus de temps a se liberer. Meme raisonnement pour 401/403/404 : la reponse
+ * ne changera pas en la redemandant.</p>
+ *
+ * <p>Les erreurs reseau et les 5xx restent retentees une fois : celles-la sont
+ * bien transitoires.</p>
+ */
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 1) return false;
+  const status = (error as { status?: number } | null)?.status;
+  if (typeof status === 'number' && status >= 400 && status < 500) return false;
+  return true;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      retry: 1,
+      retry: shouldRetry,
       refetchOnWindowFocus: false,
     },
   },

@@ -34,7 +34,12 @@ interface PlanningTimelineProps {
   totalGridWidth: number;
   selectedEventId: string | null;
   events: PlanningEvent[];
-  /** Toutes les réservations chargées (non filtrées) — cf. PlanningRow. */
+  /**
+   * Toutes les réservations chargées (NON filtrées) — cf. PlanningRow : elles
+   * servent à rattacher chaque intervention à son séjour, y compris quand ce
+   * séjour est masqué par la légende. Une intervention dont l'hôte n'est pas
+   * rendu redevient autonome plutôt que de disparaître.
+   */
   loadedReservations: AttachmentCandidate[];
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;

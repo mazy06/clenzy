@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Tooltip, TooltipTrigger, TooltipContent } from '../../components/ui';
+import { TooltipProvider, TooltipRoot, TooltipTrigger } from '../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -21,6 +21,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeLabel } from '../../utils/statusUtils';
 import { getPropertyTypeIcon } from '../../utils/propertyTypeIcon';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 // ─── Colonne logements (gauche, sticky) ──────────────────────────────────────
 //
@@ -72,6 +73,11 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   collapsed = false,
 }) => {
   const { t } = useTranslation();
+  // Les deux etages de la colonne d'indicateurs sont RESERVES ou absents pour
+  // TOUTE la colonne, jamais ligne par ligne : c'est ce qui garde les pastilles
+  // sur une meme verticale, y compris sur les lignes ou le compteur est nul.
+  const showPendingSlot = !!pendingCountByProperty;
+  const showReservationSlot = !!reservationCountByProperty;
   // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
   const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
   const popoverProperty = popover
@@ -156,9 +162,17 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           )}
         />
       )}
+      {/* UN provider pour toute la colonne : `Tooltip` s'auto-enveloppe du
+          sien, ce qui en ferait un par ligne (cf. la note de tooltip.tsx). */}
+      <TooltipProvider>
       {properties.map((property) => {
         const reservationCount = reservationCountByProperty?.get(property.id) ?? 0;
         const pendingCount = pendingCountByProperty?.get(property.id) ?? 0;
+        const pendingLabel = pendingCount > 99 ? '99+' : String(pendingCount);
+        // 11px a un chiffre, 9,5px a deux, 8px pour « 99+ » : le disque garde
+        // ses 20px, seul le chiffre s'adapte.
+        const pendingFontSize =
+          pendingLabel.length >= 3 ? '0.5rem' : pendingLabel.length === 2 ? '0.59375rem' : '0.6875rem';
         const subtitle = property.city || property.address || '';
         const sync = channelSyncMap?.get(property.id);
         // Color du wifi : vert si tout sync, ambre si partiel, rouge si zero
@@ -213,38 +227,22 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           <React.Fragment key={property.id}>
           <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)', transition: 'background-color 0.15s ease' }} onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>
             {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
-                nom + ville dessous. Le count de reservations en cours reste
-                visible en pastille discrete inline a cote du nom. */}
-            <div className="flex-1 min-w-0 flex flex-col gap-[0.75px] px-4">
-              <div className="flex items-center gap-1 min-w-0">
-                {/* span nu (et non Typography) : evite l'heritage du variant
-                    body1, dont les fontSize responsive du theme MUI peuvent
-                    surcharger la taille en breakpoint large. */}
-                {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
-                <span
-                  className={cn(
-                    'font-semibold text-[var(--ink)] leading-[1.25] tracking-[-0.01em] whitespace-nowrap overflow-hidden text-ellipsis min-w-0',
-                    density === 'compact' ? 'text-[11.5px]' : 'text-[12.5px]',
-                  )}
-                >
-                  {property.name}
-                </span>
-                {/* Reservations en cours / a venir : pastille inline discrete */}
-                {reservationCount > 0 && (
-                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[var(--faint)]">
-                    <TagIcon size={10} strokeWidth={1.75} />
-                    <span className="text-[0.625rem] font-semibold leading-[1] tabular-nums">
-                      {reservationCount}
-                    </span>
-                  </span>
+                nom + ville dessous. Les deux compteurs ont quitté la ligne du
+                nom : accrochés derrière un libellé de longueur variable, ils
+                ne s'alignaient d'une ligne à l'autre que par accident. */}
+            <div className="flex-1 min-w-0 flex flex-col gap-[0.75px] ps-4 pe-2">
+              {/* span nu (et non Typography) : evite l'heritage du variant
+                  body1, dont les fontSize responsive du theme MUI peuvent
+                  surcharger la taille en breakpoint large. */}
+              {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
+              <span
+                className={cn(
+                  'font-semibold text-[var(--ink)] leading-[1.25] tracking-[-0.01em] whitespace-nowrap overflow-hidden text-ellipsis min-w-0',
+                  density === 'compact' ? 'text-[11.5px]' : 'text-[12.5px]',
                 )}
-                {/* Cartes HITL en attente : pastille ambre numérotée (attire l'œil) */}
-                {pendingCount > 0 && (
-                  <span className="inline-flex items-center justify-center shrink-0 min-w-[16px] h-[16px] px-1 rounded-[8px] bg-[var(--warn,_#A97C2E)] text-[#fff] text-[0.625rem] font-bold leading-[1] tabular-nums" aria-label={`${pendingCount} action(s) à valider`}>
-                    {pendingCount > 99 ? '99+' : pendingCount}
-                  </span>
-                )}
-              </div>
+              >
+                {property.name}
+              </span>
               {/* Spec .pl-name .ci : 10.5px var(--muted) */}
               {subtitle && (
                 <span
@@ -257,6 +255,81 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 </span>
               )}
             </div>
+            {/* Colonne d'indicateurs, de largeur FIXE : c'est elle qui aligne
+                les pastilles d'une ligne a l'autre, quelle que soit la
+                longueur du nom. Deux etages — actions a valider au-dessus,
+                reservations futures dessous — dont la hauteur est RESERVEE
+                meme a zero : sans cela, l'etage du bas remonterait sur les
+                lignes sans pastille et l'alignement serait de nouveau perdu. */}
+            {(showPendingSlot || showReservationSlot) && (
+              <div className="shrink-0 w-[30px] flex flex-col items-center justify-center gap-[3px]">
+                {showPendingSlot && (
+                  <div className="flex items-center justify-center h-[20px]">
+                    {pendingCount > 0 && (
+                      <TooltipRoot>
+                        <TooltipTrigger asChild>
+                          <span
+                            aria-label={`${pendingLabel} ${t('planning.propertyColumn.pendingTitle', 'Actions à valider')}`}
+                            /* Fond de la brique « en attente » : les deux objets
+                               disent la meme chose — quelque chose attend une
+                               decision. L'encre n'est PAS celle de la paire
+                               (--pl-st-pending-on) : blanc en clair, noir en
+                               sombre, a la demande. Valeurs : planningUrgency.css. */
+                            className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-full bg-[var(--pl-st-pending)] text-[var(--pl-hitl-digit)] font-bold leading-none tabular-nums"
+                            /* Le disque ne bouge PAS : c'est le chiffre qui
+                               retrecit a mesure qu'il gagne un rang, faute de
+                               quoi la pastille s'ovaliserait a deux chiffres. */
+                            style={{ fontSize: pendingFontSize }}
+                          >
+                            {pendingLabel}
+                          </span>
+                        </TooltipTrigger>
+                        <PlanningTooltipContent side="top" className="pl-tip-stack max-w-[228px]">
+                          <span className="block font-semibold whitespace-nowrap">
+                            {t('planning.propertyColumn.pendingTitle', 'Actions à valider')}
+                          </span>
+                          <span className="block opacity-80">
+                            {t('planning.propertyColumn.pendingHint', {
+                              count: pendingCount,
+                              defaultValue: '{{count}} proposition(s) de vos agents attendent votre validation sur ce logement.',
+                            })}
+                          </span>
+                        </PlanningTooltipContent>
+                      </TooltipRoot>
+                    )}
+                  </div>
+                )}
+                {showReservationSlot && (
+                  <div className="flex items-center justify-center h-[12px]">
+                    {reservationCount > 0 && (
+                      <TooltipRoot>
+                        <TooltipTrigger asChild>
+                          {/* var(--muted) et non var(--faint) : ce dernier
+                              plafonne a 2,4:1 sur la carte (contrat Baitly). */}
+                          <span className="inline-flex items-center gap-0.5 text-[var(--muted)] cursor-help">
+                            <TagIcon size={10} strokeWidth={1.75} />
+                            <span className="text-[0.625rem] font-semibold leading-[1] tabular-nums">
+                              {reservationCount}
+                            </span>
+                          </span>
+                        </TooltipTrigger>
+                        <PlanningTooltipContent side="top" className="pl-tip-stack max-w-[228px]">
+                          <span className="block font-semibold whitespace-nowrap">
+                            {t('planning.propertyColumn.reservationsTitle', 'Réservations futures')}
+                          </span>
+                          <span className="block opacity-80">
+                            {t('planning.propertyColumn.reservationsHint', {
+                              count: reservationCount,
+                              defaultValue: '{{count}} séjour(s) en cours ou à venir sur ce logement.',
+                            })}
+                          </span>
+                        </PlanningTooltipContent>
+                      </TooltipRoot>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}
             {onToggleExpanded && (
               <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--brand-ink)]', expandedPropertyId === property.id ? 'text-[var(--brand-ink)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label="Superviseur d'agents" aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
@@ -269,7 +342,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             {/* Indicateur en bas-droite : sync canaux (wifi) */}
             {sync && sync.total > 0 && (
               <div className="absolute end-[6px] bottom-[4px] flex items-center gap-1 pointer-events-none">
-                <Tooltip>
+                <TooltipRoot>
                   <TooltipTrigger asChild>
                     <div className="flex items-center gap-[1.5px] pointer-events-auto" style={{ color: syncColor }}>
                       <ChannelIcon size={11} strokeWidth={1.75} />
@@ -278,10 +351,10 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                       </span>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="top">
+                  <PlanningTooltipContent side="top">
                     {`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
-                  </TooltipContent>
-                </Tooltip>
+                  </PlanningTooltipContent>
+                </TooltipRoot>
               </div>
             )}
           </div>
@@ -303,6 +376,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           </React.Fragment>
         );
       })}
+      </TooltipProvider>
       </div>
       {/* Zone vide sous le dernier logement : transparente, SANS bordure droite
           → pas de « 2 colonnes », juste un espace vide (aligné sur la grille,

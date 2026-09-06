@@ -72,7 +72,10 @@ public class PropertyPhotoService {
     }
 
     @Transactional
-    @CacheEvict(value = "properties", key = "#propertyId")
+    // Eviction GLOBALE du cache : la cle porte desormais l'organisation
+    // (cf. PropertyService#currentTenantCacheKey), une eviction par id seul
+    // ne correspondrait plus a rien et laisserait des fiches perimees.
+    @CacheEvict(value = "properties", allEntries = true)
     public PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file, String caption) {
         validateFile(file);
         validatePhotoLimit(propertyId);
@@ -137,7 +140,10 @@ public class PropertyPhotoService {
     }
 
     @Transactional
-    @CacheEvict(value = "properties", key = "#propertyId")
+    // Eviction GLOBALE du cache : la cle porte desormais l'organisation
+    // (cf. PropertyService#currentTenantCacheKey), une eviction par id seul
+    // ne correspondrait plus a rien et laisserait des fiches perimees.
+    @CacheEvict(value = "properties", allEntries = true)
     public void deletePhoto(Long propertyId, Long photoId) {
         requirePropertyInOrganization(propertyId);
         final PropertyPhoto photo = photoRepository.findByIdAndPropertyId(photoId, propertyId)
@@ -152,7 +158,10 @@ public class PropertyPhotoService {
     }
 
     @Transactional
-    @CacheEvict(value = "properties", key = "#propertyId")
+    // Eviction GLOBALE du cache : la cle porte desormais l'organisation
+    // (cf. PropertyService#currentTenantCacheKey), une eviction par id seul
+    // ne correspondrait plus a rien et laisserait des fiches perimees.
+    @CacheEvict(value = "properties", allEntries = true)
     public void reorderPhotos(Long propertyId, List<Long> photoIds) {
         requirePropertyInOrganization(propertyId);
         final List<PropertyPhoto> photos = photoRepository.findByPropertyIdOrderBySortOrderAsc(propertyId);

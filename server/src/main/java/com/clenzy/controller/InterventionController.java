@@ -56,8 +56,12 @@ public class InterventionController {
     @GetMapping("/planning")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SUPER_ADMIN')")
     @Operation(summary = "Interventions pour le planning",
-            description = "Retourne les interventions filtrees par proprietes et plage de dates pour le planning. " +
-                    "Admin/Manager voient tout, Host voit ses proprietes uniquement.")
+            description = "Retourne les interventions filtrees par proprietes et plage de dates pour le planning. "
+                    + "RESERVE a ADMIN / MANAGER / SUPER_ADMIN (cf. @PreAuthorize) : quand des propertyIds "
+                    + "sont fournis, le service filtre sur l'ORGANISATION mais ne valide PAS l'appartenance "
+                    + "des logements demandes — le role est la contrepartie de cette confiance. "
+                    + "Ouvrir l'endpoint a HOST suppose donc d'abord de valider l'acces logement par "
+                    + "logement dans cette branche.")
     public ResponseEntity<List<Map<String, Object>>> getPlanningInterventions(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) List<Long> propertyIds,

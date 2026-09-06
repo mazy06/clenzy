@@ -1834,8 +1834,20 @@
       "proposalPending": "L’agent rédige une proposition…",
       "retryProposal": "Réessayer",
       "unassignedGroup": "Prestations sans prestataire",
+      "shownOf": "{{shown}} affichées sur {{total}}",
       "showMore": "Voir les {{count}} autres",
       "showLess": "Réduire",
+      "ageMinutes": "{{count}} min",
+      "ageHours": "{{count}} h",
+      "ageDays": "{{count}} j",
+      "waitingSince": "En attente depuis {{age}}",
+      "overdueBy": "{{age}} de retard",
+      "bulkAction": "{{verb}} les {{count}}",
+      "bulkTitle": "{{verb}} les {{count}} lignes ?",
+      "bulkMessage": "Le geste sera appliqué à toute la rubrique « {{label}} », par lots de 50. Chaque ligne est traitée séparément : un échec n’arrête pas les autres, et vous saurez lesquelles.",
+      "bulkDone": "{{succeeded}} sur {{requested}} traitées",
+      "bulkRemaining": "Il en reste {{count}} : relancez pour le lot suivant.",
+      "bulkFailed": "Le traitement n’a pas pu démarrer.",
       "seeChannels": "Voir les canaux",
       "declarationGroup": "Déclarations voyageur manquantes",
       "pendingGroup": "Réservations à confirmer",
@@ -7362,6 +7374,14 @@
         "title": "Channel Manager",
         "description": "Connectez vos OTA via Channex : réservations, tarifs et disponibilités synchronisés dans les deux sens."
       }
+    },
+    "propertyColumn": {
+      "pendingTitle": "Actions à valider",
+      "pendingHint_one": "Une proposition de vos agents attend votre validation sur ce logement.",
+      "pendingHint_other": "{{count}} propositions de vos agents attendent votre validation sur ce logement.",
+      "reservationsTitle": "Réservations futures",
+      "reservationsHint_one": "Un séjour en cours ou à venir sur ce logement.",
+      "reservationsHint_other": "{{count}} séjours en cours ou à venir sur ce logement."
     }
   },
   "designSystem": {

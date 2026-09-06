@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { ZoomLevel } from '../types';
-import { ZOOM_CONFIGS, BUFFER_MULTIPLIER, MAX_BUFFER_MULTIPLIER, EXTEND_THRESHOLD_DAYS } from '../constants';
-import { generateDays, computeBufferRange, addDays, subDays } from '../utils/dateUtils';
+import { ZOOM_CONFIGS, BUFFER_MULTIPLIER, EXTEND_THRESHOLD_DAYS } from '../constants';
+import { generateDays, addDays, subDays } from '../utils/dateUtils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -23,8 +23,33 @@ export interface UseInfiniteTimelineReturn {
   scrollToAnchor: () => void;
 }
 
+/** Index du jour situe au bord gauche de la zone de grille. */
+function firstVisibleIndex(scrollLeft: number, dayWidth: number): number {
+  return Math.floor(Math.max(0, scrollLeft) / dayWidth);
+}
+
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
+/**
+ * Fenetre de jours GLISSANTE, a taille CONSTANTE.
+ *
+ * <p>Le buffer ne grandit jamais : il compte toujours
+ * {@code 2 × BUFFER_MULTIPLIER × visibleDays + 1} jours et se decale d'une
+ * fenetre visible quand le defilement approche d'un bord. Une taille fixe
+ * garantit un cout de rendu constant (le DOM de la grille ne depend plus de la
+ * duree pendant laquelle on a fait defiler) et, surtout, un nombre de tranches
+ * de donnees constant — c'est la croissance du buffer qui multipliait les
+ * requetes.</p>
+ *
+ * <p><b>Le decalage DOIT etre compense sur le scrollLeft.</b> Retirer N jours
+ * en tete deplace tout le contenu de N × dayWidth vers la gauche ; sans
+ * correction, la vue saute d'autant. L'ancienne implementation compensait dans
+ * un effet de mise en page declenche par {@code days.length} — or la taille ne
+ * changeait justement JAMAIS lors d'un glissement (les deux bords bougeaient
+ * ensemble), la compensation ne partait donc pas et chaque evenement de
+ * defilement pres d'un bord faisait sauter la grille d'une fenetre entiere,
+ * en boucle : d'ou les sauts de plusieurs mois et le defilement fige.</p>
+ */
 export function useInfiniteTimeline({
   anchorDate,
   zoom,
@@ -32,44 +57,48 @@ export function useInfiniteTimeline({
   propertyColWidth,
 }: UseInfiniteTimelineConfig): UseInfiniteTimelineReturn {
   const config = ZOOM_CONFIGS[zoom];
-  const extendAmount = config.visibleDays; // how many days to add when extending
-  // Au-dela de ce plafond, etendre un bord ROGNE l'autre : le buffer glisse au
-  // lieu de grossir.
-  const maxBufferDays = config.visibleDays * MAX_BUFFER_MULTIPLIER;
+  /** Pas de glissement : une fenetre visible a la fois. */
+  const slideAmount = config.visibleDays;
+  /** Taille constante du buffer, en jours. */
+  const bufferDays = config.visibleDays * BUFFER_MULTIPLIER * 2 + 1;
 
-  // Buffer state
-  const [bufferStart, setBufferStart] = useState(() => {
-    const range = computeBufferRange(anchorDate, zoom, BUFFER_MULTIPLIER);
-    return range.start;
-  });
-  const [bufferEnd, setBufferEnd] = useState(() => {
-    const range = computeBufferRange(anchorDate, zoom, BUFFER_MULTIPLIER);
-    return range.end;
-  });
+  // Seul le bord GAUCHE est un etat : le bord droit s'en deduit, la taille
+  // etant fixe. Deux etats independants laissaient la porte ouverte a des
+  // buffers de taille variable (et donc a des compensations fausses).
+  const [bufferStart, setBufferStart] = useState(() =>
+    subDays(anchorDate, config.visibleDays * BUFFER_MULTIPLIER),
+  );
+  const bufferEnd = useMemo(() => addDays(bufferStart, bufferDays - 1), [bufferStart, bufferDays]);
 
-  // Generate days from buffer
   const days = useMemo(() => generateDays(bufferStart, bufferEnd), [bufferStart, bufferEnd]);
   const totalGridWidth = days.length * dayWidth;
 
-  // Refs
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  /** Pixels a rendre au scrollLeft une fois le nouveau buffer peint. */
   const pendingCompensation = useRef(0);
-  const isExtending = useRef(false);
-  const prevDaysLength = useRef(days.length);
+  /**
+   * Verrou : un glissement est dispatche mais pas encore compense. Il est
+   * relache par l'effet de mise en page, PAS par une frame d'animation — sans
+   * cela, plusieurs glissements partaient avant que le DOM ne rattrape, et la
+   * grille defilait de plusieurs mois en quelques images.
+   */
+  const slidePending = useRef(false);
+  const scrollRaf = useRef<number | null>(null);
 
-  // ── Scroll compensation after prepend (runs before paint) ─────────────────
+  // ── Compensation du glissement (avant peinture) ───────────────────────────
 
+  const bufferStartTime = bufferStart.getTime();
   useLayoutEffect(() => {
-    if (scrollRef.current && pendingCompensation.current !== 0) {
-      scrollRef.current.scrollLeft += pendingCompensation.current;
-      pendingCompensation.current = 0;
+    const el = scrollRef.current;
+    if (el && pendingCompensation.current !== 0) {
+      el.scrollLeft += pendingCompensation.current;
     }
-    prevDaysLength.current = days.length;
-  }, [days.length]);
+    pendingCompensation.current = 0;
+    slidePending.current = false;
+  }, [bufferStartTime, dayWidth]);
 
-  // ── Recenter buffer when anchor or zoom changes ───────────────────────────
+  // ── Recentrage sur changement d'ancre ou de zoom ──────────────────────────
 
-  // Track previous anchor+zoom to detect external navigation
   const prevAnchorRef = useRef(anchorDate);
   const prevZoomRef = useRef(zoom);
   const pendingScrollTarget = useRef<Date | null>(null);
@@ -82,23 +111,42 @@ export function useInfiniteTimeline({
     const zoomChanged = zoom !== prevZoomRef.current;
 
     if (anchorChanged || zoomChanged) {
-      const range = computeBufferRange(anchorDate, zoom, BUFFER_MULTIPLIER);
-      setBufferStart(range.start);
-      setBufferEnd(range.end);
+      // Recentrage explicite : aucune compensation ne doit survivre a un saut
+      // d'ancre, le scrollLeft est repositionne juste apres.
+      pendingCompensation.current = 0;
+      slidePending.current = false;
+      setBufferStart(subDays(anchorDate, ZOOM_CONFIGS[zoom].visibleDays * BUFFER_MULTIPLIER));
       prevAnchorRef.current = anchorDate;
       prevZoomRef.current = zoom;
 
-      // On zoom change, scroll to today; on anchor change, scroll to anchor
       pendingScrollTarget.current = zoomChanged ? new Date() : anchorDate;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorDate, zoom]);
 
-  // ── Mouse wheel → horizontal scroll ─────────────────────────────────────
+  // ── Molette → defilement horizontal ──────────────────────────────────────
+
+  /**
+   * L'ecouteur est pose une seule fois par element, et seulement quand il
+   * existe.
+   *
+   * <p>Deux ecueils s'annulaient ici. Sans liste de dependances, l'effet
+   * desabonnait puis reabonnait un ecouteur NON PASSIF a chaque rendu — des
+   * dizaines de fois par seconde pendant un defilement, avec des evenements
+   * perdus entre les deux. Mais une liste vide ne marcherait pas non plus : la
+   * grille n'est pas montee pendant le chargement, l'element n'existe donc pas
+   * au premier rendu et l'ecouteur ne serait jamais pose. D'ou ce montage
+   * imperatif, evalue a chaque rendu mais qui ne touche au DOM que si
+   * l'element a reellement change.</p>
+   */
+  const attachedEl = useRef<HTMLDivElement | null>(null);
+  const detachWheel = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || el === attachedEl.current) return;
+
+    detachWheel.current?.();
 
     const handleWheel = (e: WheelEvent) => {
       // Ne PAS détourner le scroll vertical quand le pointeur est au-dessus d'une zone
@@ -114,77 +162,68 @@ export function useInfiniteTimeline({
     };
 
     el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
+    attachedEl.current = el;
+    detachWheel.current = () => el.removeEventListener('wheel', handleWheel);
   });
 
-  // ── Scroll monitoring ─────────────────────────────────────────────────────
+  useEffect(() => () => {
+    detachWheel.current?.();
+    detachWheel.current = null;
+    attachedEl.current = null;
+  }, []);
+
+  // ── Surveillance du defilement (une evaluation par frame au plus) ─────────
+
+  const evaluateSlide = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || slidePending.current) return;
+
+    const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
+    const startIndex = firstVisibleIndex(el.scrollLeft, dayWidth);
+    const endIndex = startIndex + Math.ceil(gridViewportWidth / dayWidth);
+
+    // Glissement vers le passe : la fenetre recule, le contenu se decale vers
+    // la droite → on rend au scrollLeft ce que la prepend lui a pris.
+    if (startIndex < EXTEND_THRESHOLD_DAYS) {
+      slidePending.current = true;
+      pendingCompensation.current = slideAmount * dayWidth;
+      setBufferStart((prev) => subDays(prev, slideAmount));
+      return;
+    }
+
+    // Glissement vers le futur : la tete est rognee, tout recule d'autant.
+    if (days.length - endIndex < EXTEND_THRESHOLD_DAYS) {
+      slidePending.current = true;
+      pendingCompensation.current = -slideAmount * dayWidth;
+      setBufferStart((prev) => addDays(prev, slideAmount));
+    }
+  }, [dayWidth, days.length, propertyColWidth, slideAmount]);
 
   const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || isExtending.current) return;
+    if (scrollRaf.current !== null) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = null;
+      evaluateSlide();
+    });
+  }, [evaluateSlide]);
 
-    const scrollLeft = el.scrollLeft;
-    const contentScrollLeft = Math.max(0, scrollLeft);
-    const containerWidth = el.clientWidth - propertyColWidth;
+  useEffect(() => () => {
+    if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
+  }, []);
 
-    const visibleStartIndex = Math.floor(contentScrollLeft / dayWidth);
-    const visibleEndIndex = visibleStartIndex + Math.ceil(containerWidth / dayWidth);
+  // ── Defilement vers une date ─────────────────────────────────────────────
 
-    // Le buffer GLISSE : au-dela du plafond, on rogne le bord oppose de ce
-    // qu'on vient d'ajouter. Sans cela il grossissait sans fin, et chaque
-    // extension invalidait le calcul de position de toutes les briques.
-    const willOverflow = days.length + extendAmount > maxBufferDays;
-
-    // Extend left
-    if (visibleStartIndex < EXTEND_THRESHOLD_DAYS) {
-      isExtending.current = true;
-      // Ajouter en tete decale le contenu vers la droite : on rend au
-      // scrollLeft ce que la prepend lui a pris. Le rognage a l'autre bout
-      // n'affecte AUCUNE position, il ne compense donc rien.
-      pendingCompensation.current = extendAmount * dayWidth;
-      setBufferStart((prev) => subDays(prev, extendAmount));
-      if (willOverflow) setBufferEnd((prev) => subDays(prev, extendAmount));
-      requestAnimationFrame(() => {
-        isExtending.current = false;
-      });
-    }
-
-    // Extend right
-    if (days.length - visibleEndIndex < EXTEND_THRESHOLD_DAYS) {
-      isExtending.current = true;
-      setBufferEnd((prev) => addDays(prev, extendAmount));
-      if (willOverflow) {
-        // Rogner en TETE decale tout le contenu vers la gauche : le scrollLeft
-        // doit reculer d'autant, sinon la vue saute d'une fenetre entiere.
-        pendingCompensation.current = -extendAmount * dayWidth;
-        setBufferStart((prev) => addDays(prev, extendAmount));
-      }
-      requestAnimationFrame(() => {
-        isExtending.current = false;
-      });
-    }
-  }, [dayWidth, days.length, extendAmount, maxBufferDays, propertyColWidth]);
-
-  // ── Scroll to specific date ───────────────────────────────────────────────
-
-  const scrollToDateImmediate = useCallback(
-    (targetDate: Date) => {
-      const el = scrollRef.current;
-      if (!el) return;
-
-      // Find target index in current days
+  const scrollLeftForDate = useCallback(
+    (targetDate: Date): number | null => {
       const targetIndex = days.findIndex(
         (d) =>
           d.getFullYear() === targetDate.getFullYear() &&
           d.getMonth() === targetDate.getMonth() &&
           d.getDate() === targetDate.getDate(),
       );
-
-      if (targetIndex >= 0) {
-        // Position today as the 3rd column (offset by 2 day columns)
-        const targetScrollLeft = Math.max(0, (targetIndex - 2) * dayWidth);
-        el.scrollLeft = targetScrollLeft;
-      }
+      if (targetIndex < 0) return null;
+      // Le jour vise se pose en 3e colonne (2 colonnes de marge a gauche).
+      return Math.max(0, (targetIndex - 2) * dayWidth);
     },
     [days, dayWidth],
   );
@@ -193,54 +232,51 @@ export function useInfiniteTimeline({
     (targetDate: Date) => {
       const el = scrollRef.current;
       if (!el) return;
+      const left = scrollLeftForDate(targetDate);
 
-      const targetIndex = days.findIndex(
-        (d) =>
-          d.getFullYear() === targetDate.getFullYear() &&
-          d.getMonth() === targetDate.getMonth() &&
-          d.getDate() === targetDate.getDate(),
-      );
-
-      if (targetIndex >= 0) {
-        // Position today as the 3rd column (offset by 2 day columns)
-        const targetScrollLeft = Math.max(0, (targetIndex - 2) * dayWidth);
-        el.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+      if (left === null) {
+        // Cible hors fenetre : on RECENTRE ici meme.
+        //
+        // L'ancienne version abandonnait en silence, en pariant sur le
+        // recentrage declenche par un changement d'ancre. Or « Aujourd'hui »
+        // remet l'ancre sur une date ou elle EST DEJA (defiler ne la deplace
+        // pas) : le recentrage ne partait donc jamais, et le bouton ne faisait
+        // rien du tout des qu'on avait defile au-dela de la fenetre. Constate
+        // au navigateur : grille en 2053, clic sur « Aujourd'hui », seule
+        // l'etiquette du mois changeait.
+        pendingCompensation.current = 0;
+        slidePending.current = false;
+        pendingScrollTarget.current = targetDate;
+        setBufferStart(subDays(targetDate, config.visibleDays * BUFFER_MULTIPLIER));
+        return;
       }
-      // If not in buffer, the anchorDate change will trigger buffer recenter
+
+      el.scrollTo({ left, behavior: 'smooth' });
     },
-    [days, dayWidth],
+    [scrollLeftForDate, config.visibleDays],
   );
 
   const scrollToAnchor = useCallback(() => {
     requestAnimationFrame(() => {
-      scrollToDateImmediate(anchorDate);
+      const el = scrollRef.current;
+      if (!el) return;
+      const left = scrollLeftForDate(anchorDate);
+      if (left !== null) el.scrollLeft = left;
     });
-  }, [anchorDate, scrollToDateImmediate]);
+  }, [anchorDate, scrollLeftForDate]);
 
-  // ── Fulfill pending scroll after buffer is recalculated (days changed) ─────
-  // We track days.length + first day as a stable identity for "days changed"
-  const daysIdentity = days.length > 0
-    ? `${days.length}-${days[0].getTime()}`
-    : '';
-  useEffect(() => {
+  // ── Repositionnement differe apres recentrage du buffer ──────────────────
+
+  const daysIdentity = days.length > 0 ? `${days.length}-${days[0].getTime()}` : '';
+  useLayoutEffect(() => {
     if (!pendingScrollTarget.current) return;
     const target = pendingScrollTarget.current;
     pendingScrollTarget.current = null;
 
     const el = scrollRef.current;
     if (!el) return;
-
-    // Compute scroll inline with current days/dayWidth (guaranteed fresh in this render)
-    const targetIndex = days.findIndex(
-      (d) =>
-        d.getFullYear() === target.getFullYear() &&
-        d.getMonth() === target.getMonth() &&
-        d.getDate() === target.getDate(),
-    );
-    if (targetIndex >= 0) {
-      const targetScrollLeft = Math.max(0, (targetIndex - 2) * dayWidth);
-      el.scrollLeft = targetScrollLeft;
-    }
+    const left = scrollLeftForDate(target);
+    if (left !== null) el.scrollLeft = left;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daysIdentity]);
 

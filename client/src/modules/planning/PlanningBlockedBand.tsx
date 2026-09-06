@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { Lock as LockIcon, LockOpen as LockOpenIcon } from '../../icons';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 interface PlanningBlockedBandProps {
   /** Position et taille (px) calculées par le layout du planning. */
@@ -131,7 +132,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
           )}
         </div>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[240px]" onEscapeKeyDown={close}>
+      <PlanningTooltipContent side="top" className="max-w-[240px]" onEscapeKeyDown={close}>
         <div className="py-0.5">
           <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">
             Période bloquée
@@ -177,7 +178,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
             </>
           )}
         </div>
-      </TooltipContent>
+      </PlanningTooltipContent>
     </Tooltip>
   );
 };
