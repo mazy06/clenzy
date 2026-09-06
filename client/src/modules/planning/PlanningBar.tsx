@@ -311,7 +311,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const sourceLogo = isReservation ? getSourceLogo(event.reservation?.source) : null;
 
   // Avatar voyageur (rond initiales) — affiché si la brique est assez large.
-  const showAvatar = isReservation && displayWidth > 90 && height >= 32;
+  const showAvatarByWidth = isReservation && displayWidth > 90 && height >= 32;
+  let showAvatar = showAvatarByWidth;
 
   const paymentTooltip = event.paymentBadgeStatus === 'FAILED'
     ? 'Paiement échoué'
@@ -428,6 +429,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   };
   const nameFitsInline = estimatedNameWidth <= textRoomWith(baseIndicatorSlots);
   const indicatorSlots = nameFitsInline ? baseIndicatorSlots : 0;
+  if (!nameFitsInline && showAvatarByWidth) {
+    // L'avatar pese 33 px — sur une brique de 106 px, c'est la difference entre
+    // « Mehdi Hadd… » et « Mehdi Haddad ». Il dit QUI, le nom le dit mieux : sur
+    // une brique trop etroite pour les deux, on garde le nom. L'avatar revient
+    // des que la place existe, et le panneau de reservation le montre toujours.
+    showAvatar = false;
+  }
   if (!nameFitsInline && priceInlineByWidth) {
     // La pilule de prix pese ~66 px, bien plus que les pastilles : sans elle,
     // « Camille Benali » (82 px) tient dans une brique ou il ne restait que
