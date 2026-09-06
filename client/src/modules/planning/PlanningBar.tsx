@@ -400,50 +400,66 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const showBadgeGroup = isReservation && displayWidth > 56 && height >= 28;
   const baseIndicatorSlots = compactRightZone ? 0 : (displayWidth > (priceInline ? 220 : 175) ? 2 : 1);
 
-  // ── Le NOM du voyageur prime sur les indicateurs ────────────────────────
+  // ── Le NOM du voyageur prime sur tout le reste ──────────────────────────
   //
   // Une brique tronquait « Marie-Christine Dubois » en « Marie-Chris… » pour
-  // garder une pastille de ménage à sa droite : on perdait l'information qui
-  // identifie le séjour au profit d'une autre, déjà disponible au survol. En
-  // vue Mois le cas est la règle et non l'exception — la brique médiane fait
-  // 144 px, et il faut un séjour de 5 nuits pour dépasser 175 px.
+  // garder a sa droite une pastille de menage et une pilule de prix : on
+  // perdait l'information qui IDENTIFIE le sejour au profit de deux autres,
+  // deja disponibles au survol.
   //
-  // Si le nom ne tient pas, TOUT se replie dans le « +N » : la place ainsi
-  // rendue va au nom, et rien n'est perdu — le repli liste chaque élément avec
-  // son libellé et son montant.
+  // Les elements se replient donc PAR PALIERS, du moins couteux au plus
+  // couteux, et on s'arrete des que le nom tient. L'avatar part en DERNIER :
+  // il porte lui aussi l'identite, on ne le sacrifie que si rien d'autre ne
+  // suffit.
   //
-  // La largeur du nom est ESTIMÉE (≈ 6,8 px par caractère en 12 px semibold),
-  // comme le fait déjà INTERVENTION_TYPE_MIN_WIDTH. La mesurer réellement
-  // supposerait de lire `scrollWidth` sur chaque brique à chaque rendu, donc de
-  // forcer un calcul de mise en page synchrone des centaines de fois par
-  // glissement de fenêtre.
-  const NAME_CHAR_PX = 6.8;
-  const estimatedNameWidth = showLabel ? (event.label?.length ?? 0) * NAME_CHAR_PX : 0;
-  const avatarZone = showAvatar ? 33 : 0;
-  const priceZone = priceInline ? (priceAmountVisible ? 66 : 34) : 0;
-  /** Place restante pour la colonne de texte, indicateurs inline compris. */
-  const textRoomWith = (slots: number) => {
-    const shown = Math.min(indicators.length, slots >= indicators.length ? slots : Math.max(0, slots - 1));
-    const overflowBadge = shown < indicators.length ? 30 : 0;
-    return displayWidth - avatarZone - priceZone - (showBadgeGroup ? shown * 24 + overflowBadge : 0) - 20;
+  // Les largeurs sont MESUREES sur la grille rendue, pas devinees — une
+  // premiere version les estimait a vue et se trompait du simple au double sur
+  // la pastille (52 px reels contre 24 supposes) tout en oubliant le logo du
+  // canal, si bien qu'une brique de 258 px laissait 2 px au nom.
+  const NAME_CHAR_PX = 6.4;   // 12px semibold, mesure ~5,9-6,6
+  const GAP_PX = 7;
+  const CONTENT_PAD_PX = 14;
+  const AVATAR_PX = 26;
+  const CHANNEL_LOGO_PX = 26;
+  const PRICE_PILL_PX = 66;
+  const INDICATOR_PILL_PX = 54;
+  const OVERFLOW_PILL_PX = 21;
+
+  const nameNeededPx = showLabel ? (event.label?.length ?? 0) * NAME_CHAR_PX : 0;
+  const inlineIndicatorCount = indicators.length <= baseIndicatorSlots
+    ? indicators.length
+    : Math.max(0, baseIndicatorSlots - 1);
+  const logoInlineByWidth = !!sourceLogo && displayWidth > 60 && !compactRightZone;
+
+  /**
+   * Paliers de repli. 0 = rien de replie ; 3 = tout replie, avatar compris.
+   * Renvoie la place restante pour la colonne de texte.
+   */
+  const roomAtLevel = (level: number): number => {
+    const showsIndicators = level === 0 && showBadgeGroup;
+    const showsLogo = level === 0 && logoInlineByWidth;
+    const showsPrice = level <= 1 && priceInlineByWidth;
+    const showsAvatar = level <= 2 && showAvatarByWidth;
+    const anythingFolded = level > 0
+      || (showBadgeGroup && indicators.length > inlineIndicatorCount);
+
+    let right = 0;
+    if (showsIndicators) right += inlineIndicatorCount * (INDICATOR_PILL_PX + GAP_PX);
+    if (anythingFolded) right += OVERFLOW_PILL_PX + GAP_PX;
+    if (showsLogo) right += CHANNEL_LOGO_PX + GAP_PX;
+    if (showsPrice) right += PRICE_PILL_PX + GAP_PX;
+    const left = showsAvatar ? AVATAR_PX + GAP_PX : 0;
+    return displayWidth - CONTENT_PAD_PX - left - right;
   };
-  const nameFitsInline = estimatedNameWidth <= textRoomWith(baseIndicatorSlots);
-  const indicatorSlots = nameFitsInline ? baseIndicatorSlots : 0;
-  if (!nameFitsInline && showAvatarByWidth) {
-    // L'avatar pese 33 px — sur une brique de 106 px, c'est la difference entre
-    // « Mehdi Hadd… » et « Mehdi Haddad ». Il dit QUI, le nom le dit mieux : sur
-    // une brique trop etroite pour les deux, on garde le nom. L'avatar revient
-    // des que la place existe, et le panneau de reservation le montre toujours.
-    showAvatar = false;
-  }
-  if (!nameFitsInline && priceInlineByWidth) {
-    // La pilule de prix pese ~66 px, bien plus que les pastilles : sans elle,
-    // « Camille Benali » (82 px) tient dans une brique ou il ne restait que
-    // 40 px. Le montant reste lisible d'un clic sur le « +N », qui l'annonce
-    // avec son etat de paiement.
-    priceInline = false;
-    priceFolded = showPrice;
-  }
+
+  let foldLevel = 0;
+  while (foldLevel < 3 && nameNeededPx > roomAtLevel(foldLevel)) foldLevel++;
+
+  const indicatorSlots = foldLevel === 0 ? baseIndicatorSlots : 0;
+  if (foldLevel >= 1) priceInline = priceInlineByWidth && foldLevel < 2;
+  if (foldLevel >= 2 && priceInlineByWidth) priceFolded = showPrice;
+  if (foldLevel >= 3) showAvatar = false;
+  const nameFitsInline = foldLevel === 0;
 
   const shownIndicators = indicators.length <= indicatorSlots
     ? indicators
