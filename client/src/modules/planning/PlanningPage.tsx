@@ -342,21 +342,26 @@ const PlanningPage: React.FC = () => {
   });
 
   // Ids des logements de la PAGE affichée uniquement, mémoïsés (stabilise les
-  // queryDescriptors des hooks pricing/min-nights). Fetcher toutes les
-  // propriétés filtrées créait un burst de (N logements × chunks 30 j × 2 hooks)
-  // requêtes au chargement ; le cache React Query par (propriété × chunk)
-  // sert de cache au changement de page.
+  // clés des hooks pricing/min-nights). Fetcher toutes les propriétés filtrées
+  // créait un burst de requêtes au chargement ; le cache React Query par
+  // (lot × tranche) sert de cache au changement de page.
   const paginatedPropertyIds = useMemo(
     () => pagination.paginatedProperties.map((p) => p.id),
     [pagination.paginatedProperties],
   );
+
+  // Tant que la taille de page vient de l'ESTIMATION, cette liste va encore
+  // changer : l'estimation donnait 8 logements là où la grille mesurée en tient
+  // 10, et tout ce qui en dépend partait donc DEUX fois. On attend la mesure,
+  // qui arrive dès le premier effet suivant le montage de la grille.
+  const pageScopedFetchReady = pagination.isPageSizeMeasured;
 
   // Pricing data (fetched only when toggle is ON)
   const { pricingMap } = usePlanningPricing(
     paginatedPropertyIds,
     fetchRange.start,
     fetchRange.end,
-    filters.showPrices,
+    filters.showPrices && pageScopedFetchReady,
   );
 
   // Min-nights overrides (toujours fetch quand showPrices est ON, meme
@@ -365,7 +370,7 @@ const PlanningPage: React.FC = () => {
     paginatedPropertyIds,
     fetchRange.start,
     fetchRange.end,
-    filters.showPrices,
+    filters.showPrices && pageScopedFetchReady,
   );
 
   // Channel sync health : "X/Y canaux OK" agrege par propriete (current state,
@@ -373,7 +378,7 @@ const PlanningPage: React.FC = () => {
   // seule la page affichee en a besoin (meme scope que pricing/min-nights).
   const { channelSyncMap } = usePlanningChannelSync(
     paginatedPropertyIds,
-    true,
+    pageScopedFetchReady,
   );
 
   // Layout (bar positions) — sur les events visibles (toggles Canaux/Statuts)

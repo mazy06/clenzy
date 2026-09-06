@@ -38,6 +38,18 @@ export interface UsePlanningPaginationReturn {
   currentPage: number;
   totalPages: number;
   pageSize: number;
+  /**
+   * `false` tant que la taille de page vient de l'ESTIMATION de repli.
+   *
+   * <p>L'estimation soustrait un chrome ecrit pour le desktop et tombe donc
+   * rarement juste : au premier rendu elle donnait 8 lignes la ou la grille
+   * mesuree en tient 10. Les requetes indexees sur la page affichee partaient
+   * alors une premiere fois pour 8 logements, puis a nouveau pour 10 — une
+   * bonne demi-douzaine d'appels jetes a chaque ouverture du planning. Ce
+   * drapeau permet de les retenir jusqu'a la mesure, qui arrive des le premier
+   * effet suivant le montage de la grille.</p>
+   */
+  isPageSizeMeasured: boolean;
   rangeStart: number;
   rangeEnd: number;
   goToPage: (page: number) => void;
@@ -108,7 +120,8 @@ export function usePlanningPagination({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const pageSize = gridHeight > 0
+  const isPageSizeMeasured = gridHeight > 0;
+  const pageSize = isPageSizeMeasured
     ? pageSizeFromGrid(gridHeight, density, hasOccupancyRow)
     : computePageSize(viewportHeight, density, isFullscreen, showPrices);
   const itemCount = totalProperties.length;
@@ -175,6 +188,7 @@ export function usePlanningPagination({
     currentPage,
     totalPages,
     pageSize,
+    isPageSizeMeasured,
     rangeStart,
     rangeEnd,
     goToPage,
