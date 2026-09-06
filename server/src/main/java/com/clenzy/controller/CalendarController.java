@@ -236,6 +236,48 @@ public class CalendarController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
 
+        return ResponseEntity.ok(buildPricingRows(propertyId, from, to, orgId, false));
+    }
+
+    @GetMapping("/pricing")
+    @Operation(summary = "Calendrier de prix enrichi (batch multi-proprietes)",
+            description = "Meme contenu que /{propertyId}/pricing, pour plusieurs proprietes a la fois ; "
+                    + "chaque entree porte son propertyId. Le planning affiche N logements sur la meme "
+                    + "fenetre de dates : une requete par logement saturait le quota de l'API.")
+    public ResponseEntity<List<Map<String, Object>>> getPricingBatch(
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        // Ownership : valider chaque propriete du lot (anti-IDOR, regle audit #3),
+        // comme le fait deja /blocked.
+        for (Long propertyId : propertyIds) {
+            validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Long propertyId : propertyIds) {
+            result.addAll(buildPricingRows(propertyId, from, to, orgId, true));
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Lignes « prix du jour » d'une propriete sur [from, to).
+     *
+     * <p>Corps commun aux deux formes de l'endpoint (une propriete / un lot) :
+     * la cascade de prix ne doit exister qu'a un seul endroit.</p>
+     *
+     * @param withPropertyId ajoute le propertyId a chaque ligne — indispensable
+     *                       en lot, ou les lignes de toutes les proprietes sont
+     *                       melees dans une seule liste.
+     */
+    private List<Map<String, Object>> buildPricingRows(Long propertyId, LocalDate from, LocalDate to,
+                                                       Long orgId, boolean withPropertyId) {
         // Charger les jours calendrier existants
         List<CalendarDay> days = calendarEngine.getDays(propertyId, from, to, orgId);
         Map<LocalDate, CalendarDay> dayMap = days.stream()
@@ -250,6 +292,7 @@ public class CalendarController {
         List<Map<String, Object>> result = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
             Map<String, Object> entry = new LinkedHashMap<>();
+            if (withPropertyId) entry.put("propertyId", propertyId);
             entry.put("date", date.toString());
 
             PriceEngine.ResolvedPrice resolved = prices.get(date);
@@ -265,7 +308,7 @@ public class CalendarController {
             result.add(entry);
         }
 
-        return ResponseEntity.ok(result);
+        return result;
     }
 
     // ----------------------------------------------------------------

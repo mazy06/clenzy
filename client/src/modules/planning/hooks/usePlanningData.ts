@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi } from '../../../services/api/propertiesApi';
@@ -455,8 +455,13 @@ export function usePlanningData(
   const chunkEnabled = (chunk: { from: string }) =>
     propertyIds.length > 0 && (priorityFroms.has(chunk.from) || prioritySettled);
 
+  // `combine` sur chaque lot : sans lui, `useQueries` rend un tableau d'identite
+  // NEUVE a chaque rendu. Les `useMemo` qui en derivaient (dedup, puis `events`)
+  // se recalculaient donc a chaque rendu et produisaient des objets d'evenement
+  // neufs — ce qui invalidait la memo de PlanningRow et faisait repeindre la
+  // grille entiere au moindre changement d'etat local.
   // Query 2: Reservations — one query per chunk
-  const reservationQueries = useQueries({
+  const reservationResult = useQueries({
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.reservations(propertyIds, chunk.from, chunk.to),
       queryFn: () => reservationsApi.getAll({ propertyIds, from: chunk.from, to: chunk.to }),
@@ -464,10 +469,16 @@ export function usePlanningData(
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000, // keep cached 5 min after last use
     })),
+    combine: (results) => ({
+      data: dedup(results.map((q) => q.data).filter((d): d is Reservation[] => !!d)),
+      hasAnyData: results.some((q) => !!q.data),
+      isLoading: results.some((q) => q.isLoading),
+      error: results.find((q) => q.error)?.error?.message,
+    }),
   });
 
   // Query 3: Interventions — one query per chunk
-  const interventionQueries = useQueries({
+  const interventionResult = useQueries({
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.interventions(propertyIds, chunk.from, chunk.to),
       queryFn: () => reservationsApi.getPlanningInterventions({ propertyIds, from: chunk.from, to: chunk.to }),
@@ -475,10 +486,16 @@ export function usePlanningData(
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
     })),
+    combine: (results) => ({
+      data: dedup(results.map((q) => q.data).filter((d): d is PlanningIntervention[] => !!d)),
+      hasAnyData: results.some((q) => !!q.data),
+      isLoading: results.some((q) => q.isLoading),
+      error: results.find((q) => q.error)?.error?.message,
+    }),
   });
 
   // Query 4: Service Requests AWAITING_PAYMENT — one query per chunk
-  const awaitingPaymentQueries = useQueries({
+  const awaitingPaymentResult = useQueries({
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.awaitingPayment(propertyIds, chunk.from, chunk.to),
       queryFn: () => serviceRequestsApi.getPlanningAwaitingPayment({ propertyIds, from: chunk.from, to: chunk.to }),
@@ -486,10 +503,13 @@ export function usePlanningData(
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
     })),
+    combine: (results) => ({
+      data: dedup(results.map((q) => q.data).filter((d): d is PlanningServiceRequest[] => !!d)),
+    }),
   });
 
   // Query 5: Blocked/Maintenance days — one query per chunk
-  const blockedQueries = useQueries({
+  const blockedResult = useQueries({
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.blockedDays(propertyIds, chunk.from, chunk.to),
       queryFn: () => calendarPricingApi.getBlockedDays(propertyIds, chunk.from, chunk.to),
@@ -497,48 +517,30 @@ export function usePlanningData(
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
     })),
+    combine: (results) => {
+      const seen = new Set<string>();
+      const data: CalendarBlockedDay[] = [];
+      for (const q of results) {
+        if (!q.data) continue;
+        for (const item of q.data) {
+          const key = `${item.propertyId}-${item.date}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          data.push(item);
+        }
+      }
+      return { data };
+    },
   });
 
   // Merge + dedup all chunk results
-  const reservations = useMemo(() => {
-    const allChunkData = reservationQueries
-      .map((q) => q.data)
-      .filter((d): d is Reservation[] => !!d);
-    return dedup(allChunkData);
-  }, [reservationQueries]);
+  const reservations = reservationResult.data;
 
-  const interventions = useMemo(() => {
-    const allChunkData = interventionQueries
-      .map((q) => q.data)
-      .filter((d): d is PlanningIntervention[] => !!d);
-    return dedup(allChunkData);
-  }, [interventionQueries]);
+  const interventions = interventionResult.data;
 
-  const awaitingPaymentSRs = useMemo(() => {
-    const allChunkData = awaitingPaymentQueries
-      .map((q) => q.data)
-      .filter((d): d is PlanningServiceRequest[] => !!d);
-    return dedup(allChunkData);
-  }, [awaitingPaymentQueries]);
+  const awaitingPaymentSRs = awaitingPaymentResult.data;
 
-  const blockedDays = useMemo(() => {
-    const allChunkData = blockedQueries
-      .map((q) => q.data)
-      .filter((d): d is CalendarBlockedDay[] => !!d);
-    // Flatten and deduplicate by propertyId+date
-    const seen = new Set<string>();
-    const result: CalendarBlockedDay[] = [];
-    for (const arr of allChunkData) {
-      for (const item of arr) {
-        const key = `${item.propertyId}-${item.date}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          result.push(item);
-        }
-      }
-    }
-    return result;
-  }, [blockedQueries]);
+  const blockedDays = blockedResult.data;
 
   // Build a property defaults lookup for check-in/check-out time fallback
   const propertyDefaultsMap = useMemo(() => {
@@ -576,19 +578,34 @@ export function usePlanningData(
   // After initial, remaining chunks load in background. Les chunks non
   // prioritaires sont disabled au 1er rendu (isLoading=false) — le critère
   // est donc « aucune data + au moins un fetch en cours », pas every(isLoading).
-  const reservationsInitialLoading = propertyIds.length > 0 &&
-    reservationQueries.every((q) => !q.data) && reservationQueries.some((q) => q.isLoading);
-  const interventionsInitialLoading = propertyIds.length > 0 &&
-    interventionQueries.every((q) => !q.data) && interventionQueries.some((q) => q.isLoading);
+  const reservationsInitialLoading = propertyIds.length > 0
+    && !reservationResult.hasAnyData && reservationResult.isLoading;
+  const interventionsInitialLoading = propertyIds.length > 0
+    && !interventionResult.hasAnyData && interventionResult.isLoading;
 
-  const loading = propertiesQuery.isLoading
-    || reservationsInitialLoading
-    || interventionsInitialLoading;
+  // Verrou : « chargement » ne vaut QUE pour le tout premier affichage.
+  //
+  // La page remplace la grille par un sursis plein ecran tant que `loading` est
+  // vrai. Or la fenetre de chargement saute d'un bloc quand on fait defiler
+  // vite (cf. useSettledRange) : atterrir sur une fenetre qui ne partage aucune
+  // tranche avec la precedente remettait `hasAnyData` a faux, donc `loading` a
+  // vrai — et la grille etait DEMONTEE en plein geste. Mesure au navigateur :
+  // 6 rafales = 6 sursis plein ecran et 5 pertes de la position de defilement,
+  // le remontage repartant du bord du buffer. Une fois la grille peinte, les
+  // fenetres suivantes se chargent en fond : les cellules sont deja dessinees,
+  // les briques y apparaissent quand la reponse arrive.
+  const aDejaAffiche = useRef(false);
+  if (!propertiesQuery.isLoading && (reservationResult.hasAnyData || interventionResult.hasAnyData)) {
+    aDejaAffiche.current = true;
+  }
+
+  const loading = !aDejaAffiche.current
+    && (propertiesQuery.isLoading || reservationsInitialLoading || interventionsInitialLoading);
 
   // Error: first error from any query
   const error = propertiesQuery.error?.message
-    ?? reservationQueries.find((q) => q.error)?.error?.message
-    ?? interventionQueries.find((q) => q.error)?.error?.message
+    ?? reservationResult.error
+    ?? interventionResult.error
     ?? null;
 
   return {

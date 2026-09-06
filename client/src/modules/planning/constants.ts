@@ -250,21 +250,22 @@ export const APP_HEADER_HEIGHT = 56;
 
 // ─── Infinite scroll ────────────────────────────────────────────────────────
 
-export const BUFFER_MULTIPLIER = 3;
 /**
- * Plafond du buffer, en multiples de la fenêtre visible.
+ * Demi-largeur du buffer, en multiples de la fenêtre visible.
  *
- * <p>Le buffer ne faisait que CROÎTRE : chaque approche d'un bord ajoutait une
- * fenêtre de jours, et rien n'en retirait jamais. Défiler d'avant en arrière
- * pendant quelques minutes portait `days` à plusieurs centaines d'entrées —
- * autant de colonnes de largeur, de fonds de week-end, et surtout une
- * invalidation du calcul de position de TOUTES les briques à chaque extension.
- * D'où une fluidité qui se dégradait à mesure qu'on scrollait.</p>
+ * <p>Le buffer est une fenêtre GLISSANTE à taille CONSTANTE :
+ * `2 × BUFFER_MULTIPLIER × visibleDays + 1` jours, centrée sur l'ancre puis
+ * décalée d'une fenêtre visible à l'approche d'un bord (cf.
+ * useInfiniteTimeline). Elle ne grandit jamais — le coût de rendu de la grille
+ * et le nombre de tranches de données restent les mêmes après dix minutes de
+ * défilement qu'au premier affichage.</p>
  *
- * <p>5× la fenêtre visible : deux fenêtres de marge de chaque côté du contenu
- * affiché, de quoi défiler sans à-coup, sans que le DOM croisse indéfiniment.
- * Au-delà, étendre un bord rogne l'autre (cf. useInfiniteTimeline).</p>
+ * <p>2 (et non 3) : en vue Mois, 3 portait la fenêtre à 187 jours, soit autant
+ * de colonnes de cellules de prix à repeindre à chaque glissement et 7 tranches
+ * de 30 jours à charger — pour deux fenêtres de marge de chaque côté que
+ * personne n'atteint avant que la fenêtre n'ait déjà glissé. Une fenêtre de
+ * marge de chaque côté absorbe un défilement rapide.</p>
  */
-export const MAX_BUFFER_MULTIPLIER = 5;
+export const BUFFER_MULTIPLIER = 2;
 export const EXTEND_THRESHOLD_DAYS = 7;
 export const DATA_CHUNK_SIZE_DAYS = 30;

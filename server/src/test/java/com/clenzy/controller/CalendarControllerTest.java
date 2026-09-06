@@ -176,6 +176,56 @@ class CalendarControllerTest {
     }
 
     /**
+     * Forme batch : le planning affiche N logements sur une meme fenetre. Une
+     * requete par logement multipliait les allers-retours jusqu'a saturer le
+     * quota de l'API (300 req/min par utilisateur) des qu'on faisait defiler.
+     */
+    @Nested
+    @DisplayName("getPricingBatch")
+    class GetPricingBatch {
+        @Test
+        void whenSeveralProperties_thenEachRowCarriesItsPropertyId() {
+            setupSuperAdminAccess(1L);
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 3);
+
+            for (Long propertyId : List.of(1L, 2L)) {
+                when(calendarEngine.getDays(propertyId, from, to, 1L)).thenReturn(List.of());
+                Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
+                prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(100), "BASE"));
+                prices.put(from.plusDays(1), new PriceEngine.ResolvedPrice(BigDecimal.valueOf(120), "BASE"));
+                when(priceEngine.resolvePriceRangeWithSource(propertyId, from, to, 1L)).thenReturn(prices);
+            }
+
+            ResponseEntity<List<Map<String, Object>>> response =
+                    controller.getPricingBatch(List.of(1L, 2L), from, to, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            // 2 logements x 2 jours, chaque ligne portant son logement : sans le
+            // propertyId, le client ne saurait pas a quelle ligne du planning
+            // rattacher le prix.
+            assertThat(response.getBody()).hasSize(4);
+            assertThat(response.getBody()).extracting(row -> row.get("propertyId"))
+                    .containsExactly(1L, 1L, 2L, 2L);
+        }
+
+        @Test
+        void whenOnePropertyIsForbidden_thenNothingIsReturned() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            // Anti-IDOR (regle audit #3) : l'acces est valide logement par
+            // logement AVANT toute lecture, un seul refus fait echouer le lot.
+            doThrow(new RuntimeException("Acces refuse"))
+                    .when(reservationService).validatePropertyAccess(2L, "user-123");
+
+            assertThatThrownBy(() -> controller.getPricingBatch(
+                    List.of(1L, 2L), LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3), jwt))
+                    .isInstanceOf(RuntimeException.class);
+
+            verify(calendarEngine, never()).getDays(anyLong(), any(), any(), anyLong());
+        }
+    }
+
+    /**
      * T-ARCH-09 : le push n'est plus factice — l'endpoint delegue reellement a
      * AirbnbChannelAdapter.pushCalendarUpdate et reflete son resultat (PUSHED /
      * SKIPPED 409 / FAILED 502) au lieu de toujours repondre "PUSHED".

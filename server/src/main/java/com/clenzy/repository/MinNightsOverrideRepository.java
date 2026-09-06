@@ -35,4 +35,20 @@ public interface MinNightsOverrideRepository extends JpaRepository<MinNightsOver
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
+
+    /**
+     * Overrides dans une plage de dates pour PLUSIEURS proprietes.
+     *
+     * <p>Le planning affiche N logements sur une meme plage : une requete par
+     * logement multipliait les allers-retours HTTP jusqu'a saturer le quota de
+     * l'API (300 req/min par utilisateur). Un seul appel les couvre tous.</p>
+     */
+    @Query("SELECT mno FROM MinNightsOverride mno WHERE mno.property.id IN :propertyIds " +
+           "AND mno.date >= :from AND mno.date < :to AND mno.organizationId = :orgId " +
+           "ORDER BY mno.property.id, mno.date")
+    List<MinNightsOverride> findByPropertyIdsAndDateRange(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
 }

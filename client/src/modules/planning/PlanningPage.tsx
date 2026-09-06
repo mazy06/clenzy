@@ -32,6 +32,7 @@ import ImportSourceChooserDialog from './ImportSourceChooserDialog';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
+import { useSettledRange } from './hooks/useSettledRange';
 import { usePlanningData } from './hooks/usePlanningData';
 import { usePlanningFilters } from './hooks/usePlanningFilters';
 import { usePlanningLayout } from './hooks/usePlanningLayout';
@@ -166,10 +167,15 @@ const PlanningPage: React.FC = () => {
     propertyColWidth: effectivePropertyColWidth,
   });
 
+  // Fenetre de CHARGEMENT : celle du rendu, une fois posee. Un defilement
+  // rapide traverse plusieurs fenetres ; sans ce palier, chacune declenchait un
+  // lot complet de requetes aussitot jete — de quoi epuiser le quota de l'API.
+  const fetchRange = useSettledRange(timeline.bufferStart, timeline.bufferEnd);
+
   // Data fetching (chunked by 30-day aligned windows)
   const { properties, events, reservations, interventions, loading, error } = usePlanningData(
-    timeline.bufferStart,
-    timeline.bufferEnd,
+    fetchRange.start,
+    fetchRange.end,
   );
 
   // TOUTES les réservations chargées (avant filtres/légende) : servent à
@@ -348,8 +354,8 @@ const PlanningPage: React.FC = () => {
   // Pricing data (fetched only when toggle is ON)
   const { pricingMap } = usePlanningPricing(
     paginatedPropertyIds,
-    timeline.bufferStart,
-    timeline.bufferEnd,
+    fetchRange.start,
+    fetchRange.end,
     filters.showPrices,
   );
 
@@ -357,8 +363,8 @@ const PlanningPage: React.FC = () => {
   // indicateur que pour les prix : info contextuelle a la cellule)
   const { minNightsMap } = usePlanningMinNights(
     paginatedPropertyIds,
-    timeline.bufferStart,
-    timeline.bufferEnd,
+    fetchRange.start,
+    fetchRange.end,
     filters.showPrices,
   );
 

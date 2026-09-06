@@ -46,6 +46,20 @@ public class MinNightsOverrideController {
                 minNightsOverrideService.getByPropertyAndRange(propertyId, from, to, jwt.getSubject()));
     }
 
+    @GetMapping("/batch")
+    @Operation(summary = "Overrides de min-nights pour PLUSIEURS proprietes et une periode",
+               description = "Variante batch de GET / : le planning affiche N logements sur la meme "
+                       + "fenetre, une requete par logement saturait le quota de l'API.")
+    public ResponseEntity<List<MinNightsOverrideDto>> getByPropertiesAndRange(
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        return ResponseEntity.ok(
+                minNightsOverrideService.getByPropertiesAndRange(propertyIds, from, to, jwt.getSubject()));
+    }
+
     @PostMapping
     @Operation(summary = "Creer un override de min-nights")
     public ResponseEntity<MinNightsOverrideDto> create(
