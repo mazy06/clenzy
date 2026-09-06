@@ -222,4 +222,32 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
         <cve>CVE-2026-59282</cve>
     </suppress>
+
+    <!--
+        2026-09-06 — spring-security 6.5.11, CVE-2026-47841 (7.4) : contournement
+        de la verification utilisateur **WebAuthn**. La comparaison du reglage
+        `UserVerificationRequirement` se fait par identite (`==`) et non par
+        egalite ; une session serialisee puis relue dans un store distribue
+        rend un objet distinct de la constante `REQUIRED`, et l'exigence tombe
+        en silence.
+
+        Non atteignable ici. L'avis Spring pose trois conditions cumulatives, et
+        AUCUNE n'est remplie : le code n'implemente pas WebAuthn/passkey (aucune
+        occurrence de `WebAuthn`, `PublicKeyCredential` ni
+        `UserVerificationRequirement` dans le serveur), l'authentification passe
+        par OIDC/JWT via Keycloak ; le reglage `REQUIRED` n'est donc jamais pose ;
+        et aucun store de session distribue n'est embarque (pas de dependance
+        spring-session). Le chemin vulnerable n'existe pas dans l'arbre execute.
+
+        Aucune version corrigee accessible : les correctifs de la branche 6.5
+        (6.5.12) et 6.4 (6.4.19) sont **reserves a l'offre Enterprise** — 6.5.11
+        reste la derniere publiee sur Maven Central. Les seuls correctifs OSS
+        sont en 7.0.7 et 7.1.1, hors de portee du BOM Spring Boot 3.5.x. A lever
+        a la montee vers Spring Boot 4 / Spring Security 7.
+    -->
+    <suppress>
+        <notes>spring-security : contournement WebAuthn — ni WebAuthn, ni reglage REQUIRED, ni session distribuee ici</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-.*$</packageUrl>
+        <cve>CVE-2026-47841</cve>
+    </suppress>
 </suppressions>
