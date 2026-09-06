@@ -7374,6 +7374,14 @@
         "title": "Channel Manager",
         "description": "Connectez vos OTA via Channex : réservations, tarifs et disponibilités synchronisés dans les deux sens."
       }
+    },
+    "propertyColumn": {
+      "pendingTitle": "Actions à valider",
+      "pendingHint_one": "Une proposition de vos agents attend votre validation sur ce logement.",
+      "pendingHint_other": "{{count}} propositions de vos agents attendent votre validation sur ce logement.",
+      "reservationsTitle": "Réservations futures",
+      "reservationsHint_one": "Un séjour en cours ou à venir sur ce logement.",
+      "reservationsHint_other": "{{count}} séjours en cours ou à venir sur ce logement."
     }
   },
   "designSystem": {

@@ -27,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
   Tooltip,
-  TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
 import {
@@ -62,6 +61,7 @@ import {
   type AttachmentCandidate,
 } from '../utils/interventionAttachment';
 import { useAttachedServiceRequests } from './useAttachedServiceRequests';
+import { PlanningTooltipContent } from '../PlanningTooltip';
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -806,7 +806,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Telecharger</TooltipContent>
+                      <PlanningTooltipContent>Telecharger</PlanningTooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -824,7 +824,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Duplicata</TooltipContent>
+                      <PlanningTooltipContent>Duplicata</PlanningTooltipContent>
                     </Tooltip>
                   </div>
                 </div>
@@ -987,7 +987,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           {sr.title}
                         </p>
                       </TooltipTrigger>
-                      <TooltipContent side="top">{sr.title}</TooltipContent>
+                      <PlanningTooltipContent side="top">{sr.title}</PlanningTooltipContent>
                     </Tooltip>
                     {sr.estimatedDurationHours > 0 && (
                       <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
@@ -1039,7 +1039,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                             {intv.title}
                           </p>
                         </TooltipTrigger>
-                        <TooltipContent side="top">{intv.title}</TooltipContent>
+                        <PlanningTooltipContent side="top">{intv.title}</PlanningTooltipContent>
                       </Tooltip>
                       {intv.estimatedDurationHours > 0 && (
                         <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
@@ -1240,7 +1240,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Telecharger</TooltipContent>
+                      <PlanningTooltipContent>Telecharger</PlanningTooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1258,7 +1258,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Duplicata</TooltipContent>
+                      <PlanningTooltipContent>Duplicata</PlanningTooltipContent>
                     </Tooltip>
                   </div>
                 </div>

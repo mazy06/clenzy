@@ -1,11 +1,12 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
+import { Button, Tooltip, TooltipTrigger } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bolt, CheckCircle, Close, Settings, Warning, AccessTime } from '../../../icons';
 import { automationRulesApi, isMessagingAction, type AutomationTrigger } from '../../../services/api/automationRulesApi';
 import { anonymizesGuestEmail } from '../../../services/api/reservationsApi';
+import { PlanningTooltipContent } from '../PlanningTooltip';
 
 // Déclencheurs de messagerie « autour de l'arrivée » / « autour du départ » : une
 // règle active de messagerie sur l'un d'eux = envoi automatique côté hub.
@@ -82,7 +83,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Configurer dans Automatisations</TooltipContent>
+          <PlanningTooltipContent>Configurer dans Automatisations</PlanningTooltipContent>
         </Tooltip>
       </div>
 

@@ -8,7 +8,6 @@ import {
   Separator,
   Tooltip,
   TooltipTrigger,
-  TooltipContent,
 } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -27,6 +26,7 @@ import {
   STATUS_OPTIONS,
   CHANNEL_LEGEND,
 } from './LegendChips';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 interface PlanningFilterButtonProps {
   filters: PlanningFilters;
@@ -337,7 +337,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               </span>
             </PopoverTrigger>
           </TooltipTrigger>
-          <TooltipContent>Filtres</TooltipContent>
+          <PlanningTooltipContent>Filtres</PlanningTooltipContent>
         </Tooltip>
       )}
 

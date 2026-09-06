@@ -1,10 +1,11 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { ChevronRight } from '../../icons';
 import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel } from './types';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 interface PlanningDateHeadersProps {
   days: Date[];
@@ -104,9 +105,9 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   </p>
                 </div>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="capitalize text-[0.6875rem]">
+                <PlanningTooltipContent side="top" className="capitalize text-[0.6875rem]">
                   {formatFullDate(day)}
-                </TooltipContent>
+                </PlanningTooltipContent>
               </Tooltip>
             );
           })}

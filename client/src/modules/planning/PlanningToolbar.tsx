@@ -5,7 +5,6 @@ import {
   ToggleGroup,
   ToggleGroupItem,
   Tooltip,
-  TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
 import {
@@ -20,6 +19,7 @@ import { ZOOM_LABELS, ZOOM_LABELS_SHORT } from './constants';
 import type { PlanningChannelKey } from './constants';
 import { formatMonthYear, formatMonthYearShort } from './utils/dateUtils';
 import { ChannelLegendChips, StatusLegendChips, InterventionLegendChip } from './LegendChips';
+import { PlanningTooltipContent } from './PlanningTooltip';
 
 interface PlanningToolbarProps {
   currentDate: Date;
@@ -238,7 +238,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Quitter le plein écran</TooltipContent>
+            <PlanningTooltipContent>Quitter le plein écran</PlanningTooltipContent>
           </Tooltip>
         )}
       </div>

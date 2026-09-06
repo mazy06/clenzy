@@ -7351,6 +7351,14 @@
         "title": "Channel Manager",
         "description": "Connect your OTAs through Channex: reservations, rates and availability synced both ways."
       }
+    },
+    "propertyColumn": {
+      "pendingTitle": "Actions to review",
+      "pendingHint_one": "One suggestion from your agents is waiting for your approval on this property.",
+      "pendingHint_other": "{{count}} suggestions from your agents are waiting for your approval on this property.",
+      "reservationsTitle": "Upcoming reservations",
+      "reservationsHint_one": "One stay in progress or upcoming on this property.",
+      "reservationsHint_other": "{{count}} stays in progress or upcoming on this property."
     }
   },
   "designSystem": {

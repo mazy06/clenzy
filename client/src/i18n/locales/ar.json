@@ -7112,6 +7112,22 @@
         "title": "مدير القنوات",
         "description": "اربط منصات الحجز عبر Channex: مزامنة الحجوزات والأسعار والتوافر في الاتجاهين."
       }
+    },
+    "propertyColumn": {
+      "pendingTitle": "إجراءات بانتظار المصادقة",
+      "pendingHint_zero": "لا يوجد اقتراح بانتظار المصادقة على هذا السكن.",
+      "pendingHint_one": "اقتراح واحد من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_two": "اقتراحان من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_few": "{{count}} اقتراحات من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_many": "{{count}} اقتراحًا من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "pendingHint_other": "{{count}} اقتراح من وكلائك بانتظار مصادقتك على هذا السكن.",
+      "reservationsTitle": "الحجوزات القادمة",
+      "reservationsHint_zero": "لا يوجد إقامة جارية أو قادمة في هذا السكن.",
+      "reservationsHint_one": "إقامة واحدة جارية أو قادمة في هذا السكن.",
+      "reservationsHint_two": "إقامتان جاريتان أو قادمتان في هذا السكن.",
+      "reservationsHint_few": "{{count}} إقامات جارية أو قادمة في هذا السكن.",
+      "reservationsHint_many": "{{count}} إقامة جارية أو قادمة في هذا السكن.",
+      "reservationsHint_other": "{{count}} إقامة جارية أو قادمة في هذا السكن."
     }
   },
   "designSystem": {
