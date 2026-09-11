@@ -5767,7 +5767,13 @@
         "cancelConfirm": "إلغاء الحجز",
         "cancelling": "جارٍ الإلغاء…",
         "cancelDone": "أُلغي الحجز — تحرّرت الليالي.",
-        "cancelFailed": "فشل الإلغاء."
+        "cancelFailed": "فشل الإلغاء.",
+        "guests": "النزلاء",
+        "guestSplit": "{{adults}} بالغ · {{children}} طفل",
+        "collectedByChannel": "حُصِّل عبر القناة",
+        "paid": "مسدَّد",
+        "unpaid": "بانتظار السداد",
+        "notes": "ملاحظات"
       },
       "accessCode": {
         "current": "الرمز المعمول به",

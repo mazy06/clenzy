@@ -5739,7 +5739,13 @@
         "cancelConfirm": "Cancel the booking",
         "cancelling": "Cancelling…",
         "cancelDone": "Booking cancelled — the nights are free again.",
-        "cancelFailed": "The cancellation failed."
+        "cancelFailed": "The cancellation failed.",
+        "guests": "Guests",
+        "guestSplit": "{{adults}} ad. · {{children}} ch.",
+        "collectedByChannel": "Collected by the channel",
+        "paid": "Settled",
+        "unpaid": "Awaiting payment",
+        "notes": "Notes"
       },
       "accessCode": {
         "current": "Code in force",

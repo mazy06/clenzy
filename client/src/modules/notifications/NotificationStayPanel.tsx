@@ -1,4 +1,6 @@
 import React from 'react';
+import { parseISO } from 'date-fns';
+import { ar, enUS, fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -28,10 +30,11 @@ import { sizedIcon } from '../../config/navigationIcons';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { PropertyIdentity, PropertyLine } from './NotificationPropertyPanel';
+import RangeCalendar, { type CalendarRange } from './RangeCalendar';
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
-import { formatFactDate, FACT_ICON } from './notificationMeta';
+import { deepLinkId, factId, formatFactDate, FACT_ICON } from './notificationMeta';
 import type { Notification } from '../../services/api';
 
 /**
@@ -61,22 +64,41 @@ import type { Notification } from '../../services/api';
 /**
  * Gestes de la constellation qui portent sur un SEJOUR.
  *
- * <p>Comme pour les serrures, la liste est explicite : {@code reservationId}
- * designe « une reservation », pas « une reservation sur laquelle ces gestes-ci
- * ont un sens ». Un geste de facturation portant le meme fait ne doit pas se
- * voir proposer « Annuler la reservation ».</p>
+ * <p>La liste est explicite : {@code reservationId} designe « une reservation »,
+ * pas « une reservation sur laquelle ces gestes-ci ont un sens ». Une
+ * notification de messagerie porte le meme fait, et n'a rien a faire d'un
+ * « Annuler la reservation ».</p>
  */
 const STAY_ACTION_TYPES = new Set(['NOSHOW_MARK']);
 
-/** Sejour designe par une notification, ou `null`. */
+/**
+ * Sejour designe par une notification, ou `null`.
+ *
+ * <p>Le DOSSIER s'ouvre des qu'un sejour est designe — un message envoye, une
+ * arrivee, une annulation parlent tous du meme objet, et un gestionnaire se
+ * pose les memes questions devant chacun. Ce sont les GESTES qui restent
+ * reserves (cf. {@link stayActionsApply}).</p>
+ *
+ * <p>Le fait d'abord ; a defaut, le sejour surligne par le lien profond
+ * ({@code /reservations?highlight=25}), que ces notifications portent depuis
+ * toujours.</p>
+ */
 export function reservationIdOf(notification: Notification): number | null {
-  const actionType = notification.metadata?.actionType;
-  if (typeof actionType !== 'string' || !STAY_ACTION_TYPES.has(actionType)) return null;
+  const fact = factId(notification, 'reservationId');
+  if (fact !== null) return fact;
 
-  const raw = notification.metadata?.reservationId;
-  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw);
-  return null;
+  return notification.notificationKey?.startsWith('RESERVATION_')
+    ? deepLinkId(notification, { param: 'highlight' })
+    : null;
+}
+
+/**
+ * Les gestes de no-show ne valent que pour la carte qui les propose : marquer,
+ * relancer, annuler n'ont de sens que tant que l'agent attend une decision.
+ */
+export function stayActionsApply(notification: Notification): boolean {
+  const actionType = notification.metadata?.actionType;
+  return typeof actionType === 'string' && STAY_ACTION_TYPES.has(actionType);
 }
 
 export interface NotificationStay {
@@ -150,6 +172,15 @@ function Caption({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Teinte du statut d'un sejour. */
+const STATUS_BADGE: Record<string, 'success' | 'info' | 'warning' | 'destructive' | 'secondary'> = {
+  confirmed: 'success',
+  checked_in: 'info',
+  checked_out: 'secondary',
+  pending: 'warning',
+  cancelled: 'destructive',
+};
+
 /** Nombre de nuits entre deux dates ISO, ou `null` si l'une est illisible. */
 function nightsBetween(from: string, to: string): number | null {
   const a = Date.parse(`${from}T00:00:00Z`);
@@ -211,6 +242,26 @@ export default function NotificationStayPanel({
 
   const cancelled = reservation.status === 'cancelled';
 
+  // Deux plages plutot qu'une : ce qui est CONSOMME et ce qui reste vendable ne
+  // se lisent pas pareil, et c'est toute la question d'un no-show.
+  const calendarLocale = currentLanguage === 'ar' ? ar : currentLanguage === 'en' ? enUS : fr;
+  const splitAt = reservation.checkIn > today ? reservation.checkIn : today;
+  const calendarRanges: CalendarRange[] = [];
+  if (reservation.checkIn < splitAt) {
+    calendarRanges.push({
+      from: parseISO(reservation.checkIn),
+      toExclusive: parseISO(splitAt),
+      color: 'var(--bui-muted-foreground)',
+    });
+  }
+  if (splitAt < reservation.checkOut) {
+    calendarRanges.push({
+      from: parseISO(splitAt),
+      toExclusive: parseISO(reservation.checkOut),
+      color: cancelled ? 'var(--bui-muted-foreground)' : 'var(--bui-warning)',
+    });
+  }
+
   return (
     <section className="flex flex-col gap-4 rounded-xl bg-muted px-4 py-4">
       <PropertyIdentity
@@ -243,11 +294,9 @@ export default function NotificationStayPanel({
             )}
           </div>
         </div>
-        {cancelled && (
-          <Badge variant="destructive">
-            {t('notifications.detail.stay.cancelled', 'Annulée')}
-          </Badge>
-        )}
+        <Badge variant={STATUS_BADGE[reservation.status] ?? 'secondary'}>
+          {t(`reservations.status.${reservation.status}`, reservation.status)}
+        </Badge>
       </div>
 
       <div className="rounded-lg bg-card px-3.5 py-3">
@@ -256,12 +305,22 @@ export default function NotificationStayPanel({
             <Caption>{t('notifications.detail.metadata.checkIn', 'Arrivée')}</Caption>
             <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
               {formatFactDate(reservation.checkIn, currentLanguage)}
+              {reservation.checkInTime && (
+                <span className="ms-1.5 font-normal text-muted-foreground">
+                  {reservation.checkInTime}
+                </span>
+              )}
             </p>
           </div>
           <div className="min-w-0">
             <Caption>{t('notifications.detail.metadata.checkOut', 'Départ')}</Caption>
             <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
               {formatFactDate(reservation.checkOut, currentLanguage)}
+              {reservation.checkOutTime && (
+                <span className="ms-1.5 font-normal text-muted-foreground">
+                  {reservation.checkOutTime}
+                </span>
+              )}
             </p>
           </div>
           {remaining !== null && nights !== null && (
@@ -303,12 +362,51 @@ export default function NotificationStayPanel({
         )}
       </div>
 
-      {typeof reservation.totalPrice === 'number' && reservation.totalPrice > 0 && (
-        <div className="flex items-baseline justify-between gap-4">
-          <Caption>{t('notifications.detail.stay.stayAmount', 'Montant du séjour')}</Caption>
-          <span className="text-sm font-semibold tabular-nums text-foreground">
-            <Money value={reservation.totalPrice} />
-          </span>
+      <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+        {typeof reservation.guestCount === 'number' && reservation.guestCount > 0 && (
+          <div className="min-w-0">
+            <Caption>{t('notifications.detail.stay.guests', 'Voyageurs')}</Caption>
+            <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
+              {reservation.guestCount}
+              {/* La ventilation quand elle est connue : un menage et une taxe de
+                  sejour ne se calculent pas pareil avec des enfants. */}
+              {typeof reservation.adultsCount === 'number' && (
+                <span className="ms-1.5 text-xs font-normal text-muted-foreground">
+                  {t('notifications.detail.stay.guestSplit', '{{adults}} ad. · {{children}} enf.', {
+                    adults: reservation.adultsCount,
+                    children: reservation.childrenCount ?? 0,
+                  })}
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
+        {typeof reservation.totalPrice === 'number' && reservation.totalPrice > 0 && (
+          <div className="ms-auto min-w-0 text-end">
+            <Caption>{t('notifications.detail.stay.stayAmount', 'Montant du séjour')}</Caption>
+            <p className="m-0 mt-1 text-sm font-semibold tabular-nums text-foreground">
+              <Money value={reservation.totalPrice} />
+            </p>
+            {/* Qui a encaisse decide de ce qu'il reste a faire : rien quand le
+                canal a deja pris l'argent, relancer sinon. */}
+            <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+              {reservation.collectedByChannel
+                ? t('notifications.detail.stay.collectedByChannel', 'Encaissé par le canal')
+                : reservation.paymentStatus?.toUpperCase() === 'PAID'
+                  ? t('notifications.detail.stay.paid', 'Réglé')
+                  : t('notifications.detail.stay.unpaid', 'En attente de règlement')}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {reservation.notes?.trim() && (
+        <div>
+          <Caption>{t('notifications.detail.stay.notes', 'Notes')}</Caption>
+          <p className="m-0 mt-1 text-sm leading-relaxed text-pretty whitespace-pre-line text-muted-foreground">
+            {reservation.notes}
+          </p>
         </div>
       )}
 

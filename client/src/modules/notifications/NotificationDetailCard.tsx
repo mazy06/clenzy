@@ -64,6 +64,7 @@ import NotificationStayPanel, {
   NotificationStayActions,
   NotificationStaySkeleton,
   reservationIdOf,
+  stayActionsApply,
   useNotificationStay,
 } from './NotificationStayPanel';
 import { resolveSubject } from './NotificationSubjectPanel';
@@ -425,7 +426,10 @@ export default function NotificationDetailCard({
           )
         )}
 
-        {subject?.node}
+        {/* Le panneau de sujet cede au DOSSIER quand il y en a un : tous deux
+            racontent le sejour, l'un en resume des faits, l'autre en allant le
+            lire. Les afficher ensemble le dirait deux fois. */}
+        {!stay && subject?.node}
 
         {remainingFacts.length > 0 && (
           <section className="flex flex-col gap-2.5">
@@ -515,7 +519,11 @@ export default function NotificationDetailCard({
             </Button>
           ))}
 
-          {stay && <NotificationStayActions stay={stay} onChanged={reloadStay} />}
+          {/* Les gestes de no-show ne valent que pour la carte qui les propose ;
+              le dossier, lui, s'ouvre sur toute notification de sejour. */}
+          {stay && stayActionsApply(notification) && (
+            <NotificationStayActions stay={stay} onChanged={reloadStay} />
+          )}
 
           {destination && businessActions.length === 0 && (
             <Button onClick={() => navigate(destination.path)}>

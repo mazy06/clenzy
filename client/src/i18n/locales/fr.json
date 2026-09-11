@@ -5760,7 +5760,13 @@
         "cancelConfirm": "Annuler la réservation",
         "cancelling": "Annulation…",
         "cancelDone": "Réservation annulée — les nuits sont libérées.",
-        "cancelFailed": "L'annulation a échoué."
+        "cancelFailed": "L'annulation a échoué.",
+        "guests": "Voyageurs",
+        "guestSplit": "{{adults}} ad. · {{children}} enf.",
+        "collectedByChannel": "Encaissé par le canal",
+        "paid": "Réglé",
+        "unpaid": "En attente de règlement",
+        "notes": "Notes"
       },
       "accessCode": {
         "current": "Code en vigueur",
