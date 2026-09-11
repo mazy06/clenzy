@@ -5,6 +5,7 @@ import com.clenzy.model.NotificationCategory;
 import com.clenzy.model.NotificationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.time.Instant;
 
@@ -28,6 +29,13 @@ public class NotificationDto {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Cle du fait porte-photo. Resolue a la LECTURE, jamais ecrite en base :
+     * elle n'a pas sa place dans {@code NotificationMetadata}, qui declare ce
+     * qu'un EMETTEUR peut deposer.
+     */
+    private static final String GUEST_AVATAR_URL = "guestAvatarUrl";
+
     // ─── Constructeurs ──────────────────────────────────────────────────────────
 
     public NotificationDto() {}
@@ -35,6 +43,19 @@ public class NotificationDto {
     // ─── Factory depuis Entity ──────────────────────────────────────────────────
 
     public static NotificationDto fromEntity(Notification entity) {
+        return fromEntity(entity, null);
+    }
+
+    /**
+     * Notification, photo du voyageur comprise.
+     *
+     * <p>La photo ne peut pas etre figee a l'emission : son URL porte un ticket
+     * signe valable un quart d'heure, et une notification se lit souvent bien
+     * plus tard. Elle est donc frappee a la lecture
+     * ({@code NotificationGuestAvatarResolver}) et greffee aux faits, ou elle
+     * accompagne le NOM du voyageur qui, lui, a bien ete ecrit a l'emission.</p>
+     */
+    public static NotificationDto fromEntity(Notification entity, String guestAvatarUrl) {
         NotificationDto dto = new NotificationDto();
         dto.id = entity.getId();
         dto.userId = entity.getUserId();
@@ -45,9 +66,21 @@ public class NotificationDto {
         dto.notificationKey = entity.getNotificationKey() != null ? entity.getNotificationKey().name() : null;
         dto.read = entity.isRead();
         dto.actionUrl = entity.getActionUrl();
-        dto.metadata = parseMetadata(entity.getMetadata());
+        dto.metadata = withGuestAvatar(parseMetadata(entity.getMetadata()), guestAvatarUrl);
         dto.createdAt = entity.getCreatedAt();
         return dto;
+    }
+
+    /**
+     * Greffe la photo aux faits. Rien a greffer, ou des faits qui ne sont pas un
+     * objet : les faits ressortent inchanges — une notification reste lisible
+     * meme quand son voyageur n'a pas de photo, ce qui est le cas courant.
+     */
+    private static JsonNode withGuestAvatar(JsonNode metadata, String guestAvatarUrl) {
+        if (guestAvatarUrl == null || guestAvatarUrl.isBlank()) return metadata;
+        if (!(metadata instanceof ObjectNode facts)) return metadata;
+        facts.put(GUEST_AVATAR_URL, guestAvatarUrl);
+        return facts;
     }
 
     /** Des faits illisibles n'empechent pas de lire la notification. */
