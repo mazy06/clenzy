@@ -109,15 +109,24 @@ export function PropertyLine({ icon, children }: { icon: React.ReactNode; childr
 export function PropertyIdentity({
   property,
   name,
+  address,
   extra,
   trailing,
 }: {
   property: Property | null;
   name: string;
+  /**
+   * Adresse complete, quand l'appelant en a une.
+   *
+   * <p>Elle REMPLACE la ville : les deux cote a cote donnaient « Marrakech
+   * 40000 · 12 derb Sidi Bouloukat, 40000, Marrakech » — la meme information
+   * ecrite deux fois, dont une en moins precis.</p>
+   */
+  address?: string | null;
   extra?: React.ReactNode;
   trailing?: React.ReactNode;
 }) {
-  const place = propertyPlace(property);
+  const place = address?.trim() || propertyPlace(property);
 
   return (
     <header className="flex items-start gap-3">

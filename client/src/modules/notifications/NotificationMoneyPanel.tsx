@@ -4,9 +4,14 @@ import GuestAvatar from '../../components/baitly/GuestAvatar';
 import { Money } from '../../components/baitly/Money';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
+import { CheckCircle } from '../../icons';
+import { sizedIcon } from '../../config/navigationIcons';
 import { accountingApi, type OwnerPayout } from '../../services/api/accountingApi';
 import { invoicesApi, type Invoice } from '../../services/api/invoicesApi';
+import { interventionsApi } from '../../services/api/interventionsApi';
+import { serviceRequestsApi } from '../../services/api/serviceRequestsApi';
 import { Caption, Figure, ObservationBand } from './NotificationFieldParts';
+import { PropertyThumb, propertyPlace, useNotificationProperty } from './NotificationPropertyPanel';
 import { deepLinkId, factId, formatFactDate } from './notificationMeta';
 import type { Notification } from '../../services/api';
 
@@ -37,7 +42,9 @@ const BATCH_KEY = 'PAYOUT_BATCH_GENERATED';
 export type MoneySubject =
   | { kind: 'payout'; id: number }
   | { kind: 'invoice'; id: number }
-  | { kind: 'batch' };
+  | { kind: 'batch' }
+  /** Ce qui vient d'etre regle : une intervention, ou la demande d'avant. */
+  | { kind: 'settlement'; paidKind: 'intervention' | 'request'; id: number };
 
 /** Objet d'argent designe par une notification, ou `null`. */
 export function moneySubjectOf(notification: Notification): MoneySubject | null {
@@ -51,13 +58,34 @@ export function moneySubjectOf(notification: Notification): MoneySubject | null 
     const id = factId(notification, 'invoiceId') ?? deepLinkId(notification, { param: 'highlight' });
     return id === null ? null : { kind: 'invoice', id };
   }
+  if (key === 'PAYMENT_CONFIRMED') {
+    // Le lien profond dit CE QUI a ete regle : une intervention aujourd'hui,
+    // une demande de service dans les notifications d'avant.
+    const intervention = factId(notification, 'interventionId')
+      ?? deepLinkId(notification, { pathPrefix: '/interventions' });
+    if (intervention !== null) return { kind: 'settlement', paidKind: 'intervention', id: intervention };
+    const request = factId(notification, 'serviceRequestId')
+      ?? deepLinkId(notification, { pathPrefix: '/service-requests' });
+    if (request !== null) return { kind: 'settlement', paidKind: 'request', id: request };
+  }
   return null;
+}
+
+/** Ce qui a ete regle, reduit a ce qu'un recu montre. */
+export interface SettledJob {
+  title: string;
+  propertyId: number | null;
+  propertyName: string | null;
+  amount: number | null;
+  paidAt: string | null;
+  paymentStatus: string | null;
 }
 
 export type MoneyDossier =
   | { kind: 'payout'; payout: OwnerPayout }
   | { kind: 'invoice'; invoice: Invoice }
-  | { kind: 'batch'; pending: OwnerPayout[] };
+  | { kind: 'batch'; pending: OwnerPayout[] }
+  | { kind: 'settlement'; job: SettledJob };
 
 /**
  * Charge l'objet designe.
@@ -73,6 +101,7 @@ export function useNotificationMoney(subject: MoneySubject | null) {
 
   const kind = subject?.kind ?? null;
   const id = subject && 'id' in subject ? subject.id : null;
+  const paidKind = subject?.kind === 'settlement' ? subject.paidKind : null;
 
   React.useEffect(() => {
     if (kind === null) {
@@ -88,14 +117,38 @@ export function useNotificationMoney(subject: MoneySubject | null) {
         ? accountingApi.getPayouts(undefined, 'PENDING').then((pending) => ({ kind: 'batch', pending }))
         : kind === 'invoice'
           ? invoicesApi.get(id!).then((invoice) => ({ kind: 'invoice', invoice }))
-          : accountingApi.getPayout(id!).then((payout) => ({ kind: 'payout', payout }));
+          : kind === 'settlement'
+            ? paidKind === 'intervention'
+              ? interventionsApi.getById(id!).then((job) => ({
+                  kind: 'settlement',
+                  job: {
+                    title: job.title,
+                    propertyId: job.propertyId ?? null,
+                    propertyName: job.propertyName ?? null,
+                    amount: job.actualCost || job.estimatedCost || null,
+                    paidAt: null,
+                    paymentStatus: job.paymentStatus ?? null,
+                  },
+                }))
+              : serviceRequestsApi.getById(id!).then((job) => ({
+                  kind: 'settlement',
+                  job: {
+                    title: job.title,
+                    propertyId: job.propertyId ?? null,
+                    propertyName: job.propertyName ?? null,
+                    amount: job.estimatedCost ?? null,
+                    paidAt: null,
+                    paymentStatus: job.paymentStatus ?? null,
+                  },
+                }))
+            : accountingApi.getPayout(id!).then((payout) => ({ kind: 'payout', payout }));
 
     load
       .then((loaded) => { if (active) setDossier(loaded); })
       .catch(() => { if (active) setDossier(null); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [kind, id]);
+  }, [kind, id, paidKind]);
 
   return { dossier, loading };
 }
@@ -374,11 +427,82 @@ function BatchPanel({ pending }: { pending: OwnerPayout[] }) {
   );
 }
 
+/**
+ * Le RECU d'un reglement.
+ *
+ * <p>Une confirmation de paiement partageait la fiche des demandes : bon de
+ * travail complet, code de porte, carte d'acces, banniere « Priorite elevee ».
+ * Tout cela sert a ALLER FAIRE le travail — pas a constater qu'il est paye. Un
+ * recu ne dit que trois choses : combien, pour quoi, sur quel logement.</p>
+ *
+ * <p>Le montant vient des FAITS quand ils le portent : c'est celui que le
+ * fournisseur de paiement a confirme, et c'est lui qui fait foi. A defaut, le
+ * cout de l'objet regle — une approximation, mais la seule disponible sur les
+ * notifications d'avant.</p>
+ */
+function SettlementPanel({
+  job,
+  confirmedAmount,
+  confirmedAt,
+}: {
+  job: SettledJob;
+  confirmedAmount: number | null;
+  confirmedAt: string | null;
+}) {
+  const { t, currentLanguage } = useTranslation();
+  const { property } = useNotificationProperty(job.propertyId);
+  const amount = confirmedAmount ?? job.amount;
+  const place = propertyPlace(property);
+
+  return (
+    <section className="flex flex-col gap-4 rounded-xl bg-muted px-4 py-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="m-0 inline-flex items-center gap-1.5 text-2xs font-semibold tracking-wide text-success-ink uppercase">
+            <span className="inline-flex shrink-0">{sizedIcon(<CheckCircle />, 13, 2)}</span>
+            {t('notifications.detail.money.settled', 'Paiement confirmé')}
+          </p>
+          {amount !== null && amount > 0 && (
+            <p className="m-0 mt-1.5 text-2xl leading-none font-semibold tabular-nums text-success-ink">
+              <Money value={amount} from="EUR" symbolSize={16} />
+            </p>
+          )}
+        </div>
+        {confirmedAt && (
+          <p className="m-0 text-xs tabular-nums text-muted-foreground">
+            {formatFactDate(confirmedAt.slice(0, 10), currentLanguage)}
+          </p>
+        )}
+      </header>
+
+      {/* Ce qui a ete paye. Le logement n'est ici qu'un repere — pas un lieu ou
+          se rendre : ni carte, ni code de porte, ni indications d'acces. */}
+      <div className="flex items-center gap-3 rounded-lg bg-card px-3.5 py-3">
+        <PropertyThumb property={property} name={job.propertyName ?? job.title} className="h-12 w-16" />
+        <div className="min-w-0 flex-1">
+          <Caption>{t('notifications.detail.money.settledFor', 'Prestation réglée')}</Caption>
+          <p className="m-0 mt-1 truncate text-sm font-medium text-foreground">{job.title}</p>
+          {(job.propertyName || place) && (
+            <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">
+              {[job.propertyName, place].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function NotificationMoneyPanel({
   dossier,
+  confirmedAmount = null,
+  confirmedAt = null,
   observation,
 }: {
   dossier: MoneyDossier;
+  /** Montant confirme par le fournisseur — il fait foi sur le cout de l'objet. */
+  confirmedAmount?: number | null;
+  confirmedAt?: string | null;
   /** Motif de l'evenement — ce que le panneau ne montre pas de lui-meme. */
   observation?: string;
 }) {
@@ -387,6 +511,13 @@ export default function NotificationMoneyPanel({
       {dossier.kind === 'payout' && <PayoutPanel payout={dossier.payout} />}
       {dossier.kind === 'invoice' && <InvoicePanel invoice={dossier.invoice} />}
       {dossier.kind === 'batch' && <BatchPanel pending={dossier.pending} />}
+      {dossier.kind === 'settlement' && (
+        <SettlementPanel
+          job={dossier.job}
+          confirmedAmount={confirmedAmount}
+          confirmedAt={confirmedAt}
+        />
+      )}
       <ObservationBand text={observation} />
     </div>
   );

@@ -5809,7 +5809,9 @@
         "pending": "Payouts awaiting approval",
         "pendingCount_one": "{{count}} payout",
         "pendingCount_other": "{{count}} payouts",
-        "more": "+ {{count}} more"
+        "more": "+ {{count}} more",
+        "settled": "Payment confirmed",
+        "settledFor": "Job settled"
       },
       "review": {
         "anonymous": "Guest",
@@ -5830,7 +5832,8 @@
         "SUPERVISION_SUGGESTION": "An agent spotted something on a property and is proposing a move — it does not act alone. The card is waiting for your approval in that property's supervision queue.",
         "SUPERVISION_AUTO_APPLIED": "An agent applied a move you had authorised as automatic. This is a report: nothing is waiting on you.",
         "SUPERVISION_AUTO_RULE_SUGGESTED": "The same move comes back often enough to deserve a rule: the agent offers to automate it rather than ask you again.",
-        "ACCESS_CODE_ROTATED": "The guest's departure triggered the renewal of this property's access code. The code shown here is the one IN FORCE, read just now: a more recent rotation would have made the one in the message stale."
+        "ACCESS_CODE_ROTATED": "The guest's departure triggered the renewal of this property's access code. The code shown here is the one IN FORCE, read just now: a more recent rotation would have made the one in the message stale.",
+        "PAYMENT_CONFIRMED": "Payment for this job has arrived. The file above is the one that was just paid — it is recalled here so you can check the amount against what was ordered."
       },
       "nextStep": {
         "default": "Open the related screen to act on the item behind this notification.",
@@ -5846,7 +5849,8 @@
         "SUPERVISION_SUGGESTION": "Open the card in the supervision queue: it restates the exact situation at the moment of acting, and the move runs from there in one click.",
         "SUPERVISION_AUTO_APPLIED": "Nothing to do. If the move does not suit you, the automation rule is tuned in Automations.",
         "SUPERVISION_AUTO_RULE_SUGGESTED": "Decide whether this move should become automatic — otherwise the agent keeps proposing it card by card.",
-        "ACCESS_CODE_ROTATED": "Carry the code over to the keybox: it is the one place the platform does not update by itself."
+        "ACCESS_CODE_ROTATED": "Carry the code over to the keybox: it is the one place the platform does not update by itself.",
+        "PAYMENT_CONFIRMED": "Nothing to do: the payment is recorded. Open the file if the amount does not match what was ordered."
       }
     }
   },

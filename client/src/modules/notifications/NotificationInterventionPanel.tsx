@@ -2,12 +2,11 @@ import React from 'react';
 import { Badge, Progress, Skeleton } from '../../components/ui';
 import GuestAvatar from '../../components/baitly/GuestAvatar';
 import { Money } from '../../components/baitly/Money';
-import { LocationOn } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getInterventionTypeLabel } from '../../utils/statusUtils';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import type { InterventionDetailsData } from '../interventions/interventionUtils';
-import { PropertyIdentity, PropertyLine, useNotificationProperty } from './NotificationPropertyPanel';
+import { PropertyIdentity, useNotificationProperty } from './NotificationPropertyPanel';
 import {
   AccessBlock,
   Caption,
@@ -166,7 +165,7 @@ export default function NotificationInterventionPanel({
         <PropertyIdentity
           property={property}
           name={intervention.propertyName}
-          extra={address && <PropertyLine icon={<LocationOn />}>{address}</PropertyLine>}
+          address={address}
           trailing={intervention.type ? (
             <Badge variant={tone?.badge ?? 'secondary'}>
               {getInterventionTypeLabel(intervention.type, t)}

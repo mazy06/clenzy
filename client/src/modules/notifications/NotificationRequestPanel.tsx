@@ -2,12 +2,11 @@ import React from 'react';
 import { Badge, Skeleton } from '../../components/ui';
 import GuestAvatar from '../../components/baitly/GuestAvatar';
 import { Money } from '../../components/baitly/Money';
-import { LocationOn } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getInterventionTypeLabel } from '../../utils/statusUtils';
 import { serviceRequestsApi, type ServiceRequest } from '../../services/api/serviceRequestsApi';
 import { issuesApi, type Issue } from '../../services/api/issuesApi';
-import { PropertyIdentity, PropertyLine, useNotificationProperty } from './NotificationPropertyPanel';
+import { PropertyIdentity, useNotificationProperty } from './NotificationPropertyPanel';
 import {
   AccessBlock,
   Caption,
@@ -56,13 +55,6 @@ export function requestSubjectOf(notification: Notification): RequestSubject | n
   if (REQUEST_KEYS.test(key)) {
     const id = factId(notification, 'serviceRequestId')
       ?? deepLinkId(notification, { param: 'highlight' });
-    return id === null ? null : { kind: 'request', id };
-  }
-  // Les confirmations de paiement d'avant pointaient vers la DEMANDE reglee ;
-  // celles d'aujourd'hui vers l'intervention, prise par l'autre panneau.
-  if (key === 'PAYMENT_CONFIRMED') {
-    const id = factId(notification, 'serviceRequestId')
-      ?? deepLinkId(notification, { pathPrefix: '/service-requests' });
     return id === null ? null : { kind: 'request', id };
   }
   return null;
@@ -195,7 +187,7 @@ export default function NotificationRequestPanel({
         <PropertyIdentity
           property={property}
           name={propertyName}
-          extra={address && <PropertyLine icon={<LocationOn />}>{address}</PropertyLine>}
+          address={address}
           trailing={request?.serviceType ? (
             <Badge variant={tone?.badge ?? 'secondary'}>
               {getInterventionTypeLabel(request.serviceType, t)}

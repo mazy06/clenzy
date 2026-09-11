@@ -358,7 +358,15 @@ export default function NotificationDetailCard({
 
         {moneySubject &&
           (moneyDossier ? (
-            <NotificationMoneyPanel dossier={moneyDossier} observation={notification.message} />
+            <NotificationMoneyPanel
+              dossier={moneyDossier}
+              // Le montant CONFIRME par le fournisseur, quand les faits le
+              // portent : c'est lui qui fait foi, pas le cout de l'objet.
+              confirmedAmount={typeof notification.metadata?.amount === 'number'
+                ? notification.metadata.amount : null}
+              confirmedAt={notification.createdAt}
+              observation={notification.message}
+            />
           ) : moneyLoading ? (
             <NotificationMoneySkeleton />
           ) : null)}

@@ -5830,7 +5830,9 @@
         "pending": "Reversements en attente d'approbation",
         "pendingCount_one": "{{count}} reversement",
         "pendingCount_other": "{{count}} reversements",
-        "more": "+ {{count}} autres"
+        "more": "+ {{count}} autres",
+        "settled": "Paiement confirmé",
+        "settledFor": "Prestation réglée"
       },
       "review": {
         "anonymous": "Voyageur",
@@ -5851,7 +5853,8 @@
         "SUPERVISION_SUGGESTION": "Un agent de la constellation a repéré quelque chose sur un logement et propose un geste — il ne l'exécute pas seul. La carte attend votre validation dans la file de supervision du logement concerné.",
         "SUPERVISION_AUTO_APPLIED": "Un agent a appliqué lui-même un geste que vous aviez autorisé en automatique. C'est un compte rendu : rien n'attend de décision.",
         "SUPERVISION_AUTO_RULE_SUGGESTED": "Le même geste revient assez souvent pour valoir une règle : l'agent propose de l'automatiser plutôt que de vous le redemander.",
-        "ACCESS_CODE_ROTATED": "Le départ du voyageur a déclenché le renouvellement du code d'accès de ce logement. Le code montré ici est celui qui est EN VIGUEUR, relu à l'instant : une rotation plus récente aurait périmé celui du message."
+        "ACCESS_CODE_ROTATED": "Le départ du voyageur a déclenché le renouvellement du code d'accès de ce logement. Le code montré ici est celui qui est EN VIGUEUR, relu à l'instant : une rotation plus récente aurait périmé celui du message.",
+        "PAYMENT_CONFIRMED": "Le règlement de cette prestation est arrivé. Le dossier ci-dessus est celui qui vient d'être payé — il est rappelé ici pour vérifier que le montant correspond bien à ce qui a été commandé."
       },
       "nextStep": {
         "default": "Ouvrez l'écran concerné pour agir sur l'élément à l'origine de cette notification.",
@@ -5867,7 +5870,8 @@
         "SUPERVISION_SUGGESTION": "Ouvrez la carte dans la file de supervision : elle rappelle l'état exact au moment d'agir, et le geste s'y exécute en un clic.",
         "SUPERVISION_AUTO_APPLIED": "Rien à faire. Si le geste ne vous convient pas, la règle d'automatisation se règle dans Automatisations.",
         "SUPERVISION_AUTO_RULE_SUGGESTED": "Décidez si ce geste doit devenir automatique — l'agent continuera sinon à vous le proposer carte par carte.",
-        "ACCESS_CODE_ROTATED": "Reportez le code sur la boîte à clés : c'est le seul endroit que la plateforme ne met pas à jour elle-même."
+        "ACCESS_CODE_ROTATED": "Reportez le code sur la boîte à clés : c'est le seul endroit que la plateforme ne met pas à jour elle-même.",
+        "PAYMENT_CONFIRMED": "Rien à faire : l'encaissement est enregistré. Ouvrez le dossier si le montant ne correspond pas à ce qui a été commandé."
       }
     }
   },
