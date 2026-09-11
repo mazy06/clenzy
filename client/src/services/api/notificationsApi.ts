@@ -2,6 +2,13 @@ import apiClient from '../apiClient';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/**
+ * Faits structures attaches a une notification, ecrits par le serveur au
+ * moment de l'evenement (vocabulaire : `NotificationMetadata` cote Java).
+ * Lecture et affichage seulement — jamais de routage ni de decision dessus.
+ */
+export type NotificationMetadata = Record<string, unknown>;
+
 export interface Notification {
   id: number;
   userId: string;
@@ -12,6 +19,7 @@ export interface Notification {
   notificationKey?: string;
   read: boolean;
   actionUrl?: string;
+  metadata?: NotificationMetadata | null;
   createdAt: string;
 }
 

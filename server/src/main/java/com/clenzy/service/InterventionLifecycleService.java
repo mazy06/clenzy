@@ -11,6 +11,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.util.JwtRoleExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -137,7 +138,7 @@ public class InterventionLifecycleService {
     private void notifyManagers(Intervention intervention, String title, String message) {
         try {
             notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
-                    title, message, "/interventions/" + intervention.getId());
+                    title, message, "/interventions/" + intervention.getId(), interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification error assignment response: {}", e.getMessage());
         }
@@ -191,11 +192,11 @@ public class InterventionLifecycleService {
             notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_STARTED,
                     "Intervention demarree",
                     "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
             notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_STARTED,
                     "Intervention demarree",
                     "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification error startIntervention: {}", e.getMessage());
         }
@@ -231,8 +232,8 @@ public class InterventionLifecycleService {
                     NotificationKey.DOCUMENT_GENERATION_FAILED,
                     "Erreur generation document",
                     "Le document BON_INTERVENTION pour l'intervention #" + intervention.getId() + " n'a pas pu etre genere. Erreur: " + e.getMessage(),
-                    "/interventions/" + intervention.getId()
-                );
+                    "/interventions/" + intervention.getId(),
+                    interventionFacts(intervention));
             } catch (Exception ignored) {
                 // Best-effort notification
             }
@@ -373,11 +374,11 @@ public class InterventionLifecycleService {
             notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_REOPENED,
                     "Intervention rouverte",
                     "L'intervention '" + intervention.getTitle() + "' a ete rouverte pour modifications.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
             notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_REOPENED,
                     "Intervention rouverte",
                     "L'intervention '" + intervention.getTitle() + "' a ete rouverte.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification error reopenIntervention: {}", e.getMessage());
         }
@@ -428,16 +429,16 @@ public class InterventionLifecycleService {
                 notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_CANCELLED,
                         "Intervention annulee",
                         "L'intervention '" + intervention.getTitle() + "' a ete annulee.",
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
                 notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_CANCELLED,
                         "Intervention annulee",
                         "L'intervention '" + intervention.getTitle() + "' a ete annulee.",
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
             } else {
                 notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_STATUS_CHANGED,
                         "Statut intervention modifie",
                         "L'intervention '" + intervention.getTitle() + "' est passee au statut " + newStatus.name() + ".",
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
             }
         } catch (Exception e) {
             log.warn("Notification error updateStatus intervention: {}", e.getMessage());
@@ -533,7 +534,7 @@ public class InterventionLifecycleService {
                     "Travail a controler",
                     "« " + intervention.getTitle() + " » est termine et attend votre controle :"
                             + " photos, duree reelle, respect du creneau.",
-                    "/interventions/" + intervention.getId());
+                    "/interventions/" + intervention.getId(), interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification soumission intervention {}: {}", id, e.getMessage());
         }
@@ -575,7 +576,7 @@ public class InterventionLifecycleService {
                         NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
                         "Travail a reprendre",
                         "« " + intervention.getTitle() + " » : " + reason.strip(),
-                        "/interventions/" + intervention.getId());
+                        "/interventions/" + intervention.getId(), interventionFacts(intervention));
             }
         } catch (Exception e) {
             log.warn("Notification refus intervention {}: {}", id, e.getMessage());
@@ -643,11 +644,11 @@ public class InterventionLifecycleService {
             notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_VALIDATED,
                     "Intervention validee",
                     "L'intervention '" + intervention.getTitle() + "' a ete validee. Cout estime: " + estimatedCost + " EUR.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
             notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_AWAITING_PAYMENT,
                     "Paiement requis",
                     "Un paiement est requis pour l'intervention '" + intervention.getTitle() + "'. Montant: " + estimatedCost + " EUR.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification error validateIntervention: {}", e.getMessage());
         }
@@ -728,8 +729,8 @@ public class InterventionLifecycleService {
                     NotificationKey.DOCUMENT_GENERATION_FAILED,
                     "Erreur generation document",
                     "Le document VALIDATION_FIN_MISSION pour l'intervention #" + intervention.getId() + " n'a pas pu etre genere. Erreur: " + e.getMessage(),
-                    "/interventions/" + intervention.getId()
-                );
+                    "/interventions/" + intervention.getId(),
+                    interventionFacts(intervention));
             } catch (Exception ignored) {
                 // Best-effort notification
             }
@@ -748,17 +749,35 @@ public class InterventionLifecycleService {
                     NotificationKey.INTERVENTION_COMPLETED,
                     "Intervention terminee",
                     "L'intervention '" + intervention.getTitle() + "' sur " + propertyName + " est terminee.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
 
             if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
                 String ownerKeycloakId = intervention.getProperty().getOwner().getKeycloakId();
                 notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_COMPLETED,
                         "Intervention terminee",
                         "L'intervention '" + intervention.getTitle() + "' sur votre propriete " + propertyName + " est terminee.",
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
             }
         } catch (Exception e) {
             log.warn("Notification error interventionCompleted: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Faits joints aux notifications d'intervention : de quel logement il
+     * s'agit, quel travail, pour quand, et par qui. Tout est deja charge par
+     * le flux qui notifie — la fiche de notification n'ajoute aucune requete.
+     */
+    private static Map<String, Object> interventionFacts(Intervention intervention) {
+        if (intervention == null) return null;
+        return NotificationMetadata.of()
+                .property(intervention.getProperty() != null ? intervention.getProperty().getName() : null)
+                .intervention(intervention.getTitle())
+                .interventionId(intervention.getId())
+                .assignee(intervention.getAssignedUser() != null
+                        ? intervention.getAssignedUser().getFirstName() : null)
+                .dueDate(intervention.getScheduledDate() != null
+                        ? intervention.getScheduledDate().toLocalDate() : null)
+                .build();
     }
 }

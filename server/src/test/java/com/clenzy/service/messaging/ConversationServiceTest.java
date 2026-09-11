@@ -186,8 +186,8 @@ class ConversationServiceTest {
         Conversation result = service.assignConversation(1L, 1L, "user-kc-id");
 
         assertThat(result.getAssignedToKeycloakId()).isEqualTo("user-kc-id");
-        verify(notificationService).send(eq("user-kc-id"), eq(NotificationKey.CONVERSATION_ASSIGNED),
-            anyString(), anyString(), any());
+        verify(notificationService).notify(eq("user-kc-id"), eq(NotificationKey.CONVERSATION_ASSIGNED),
+            anyString(), anyString(), any(), any());
     }
 
     @Test
@@ -318,9 +318,9 @@ class ConversationServiceTest {
 
         service.addInboundMessage(conv, "Guest", "guest@a.com", "Hi", null, null);
 
-        verify(notificationService).send(eq("assignee-kc-id"),
+        verify(notificationService).notify(eq("assignee-kc-id"),
                 eq(NotificationKey.CONVERSATION_NEW_MESSAGE),
-                anyString(), anyString(), eq("/contact?highlight=1"));
+                anyString(), anyString(), eq("/contact?highlight=1"), any());
     }
 
     @Test

@@ -1120,7 +1120,7 @@ class ICalImportServiceImportFlowTest {
         assertThat(response.getErrors()).anyMatch(e -> e.contains("tronque"));
         // Alerte utilisateur : import partiel notifie
         verify(notificationService).notify(eq("kc"), eq(NotificationKey.ICAL_IMPORT_FAILED),
-                anyString(), anyString(), anyString());
+                anyString(), anyString(), anyString(), any());
     }
 
     @Test

@@ -435,11 +435,16 @@ public class IssueService {
                 + issue.getTitle() + " (" + severityLabel + ")";
         String actionUrl = "/interventions?tab=issues&highlight=" + issue.getId();
         try {
+            Map<String, Object> facts = NotificationMetadata.of()
+                    .property(property.getName())
+                    .propertyId(property.getId())
+                    .request(issue.getTitle())
+                    .build();
             notificationService.notifyAdminsAndManagers(
-                    NotificationKey.ISSUE_REPORTED, "Anomalie terrain signalée", message, actionUrl);
+                    NotificationKey.ISSUE_REPORTED, "Anomalie terrain signalée", message, actionUrl, facts);
             if (property.getOwner() != null) {
                 notificationService.notify(property.getOwner().getKeycloakId(),
-                        NotificationKey.ISSUE_REPORTED, "Anomalie terrain signalée", message, actionUrl);
+                        NotificationKey.ISSUE_REPORTED, "Anomalie terrain signalée", message, actionUrl, facts);
             }
         } catch (Exception e) {
             log.warn("Notification error ISSUE_REPORTED (issue={}): {}", issue.getId(), e.getMessage());
@@ -458,7 +463,12 @@ public class IssueService {
             if (property != null && property.getOwner() != null) {
                 notificationService.notify(property.getOwner().getKeycloakId(),
                         NotificationKey.ISSUE_CONVERTED, "Anomalie convertie en maintenance",
-                        message, actionUrl);
+                        message, actionUrl,
+                        NotificationMetadata.of()
+                                .property(property.getName())
+                                .propertyId(property.getId())
+                                .request(issue.getTitle())
+                                .build());
             }
         } catch (Exception e) {
             log.warn("Notification error ISSUE_CONVERTED (issue={}): {}", issue.getId(), e.getMessage());

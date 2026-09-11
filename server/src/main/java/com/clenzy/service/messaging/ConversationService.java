@@ -6,6 +6,7 @@ import com.clenzy.repository.ConversationMessageRepository;
 import com.clenzy.repository.ConversationRepository;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
@@ -152,12 +153,13 @@ public class ConversationService {
 
         // Notification au responsable assigne (s'il y en a un)
         if (conversation.getAssignedToKeycloakId() != null) {
-            notificationService.send(
+            notificationService.notify(
                 conversation.getAssignedToKeycloakId(),
                 NotificationKey.CONVERSATION_NEW_MESSAGE,
                 "Nouveau message de " + senderName,
                 truncate(content, 100),
-                "/contact?highlight=" + conversation.getId()
+                "/contact?highlight=" + conversation.getId(),
+                NotificationMetadata.of().guest(senderName).build()
             );
         }
 
@@ -445,12 +447,13 @@ public class ConversationService {
         conv.setAssignedToKeycloakId(keycloakId);
         conv = conversationRepository.save(conv);
 
-        notificationService.send(
+        notificationService.notify(
             keycloakId,
             NotificationKey.CONVERSATION_ASSIGNED,
             "Conversation assignee",
             "Vous avez ete assigne a une conversation" + (conv.getSubject() != null ? " : " + conv.getSubject() : ""),
-            "/contact?highlight=" + conv.getId()
+            "/contact?highlight=" + conv.getId(),
+            NotificationMetadata.of().request(conv.getSubject()).build()
         );
 
         return conv;

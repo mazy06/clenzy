@@ -116,13 +116,13 @@ public class InterventionService {
                         NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                         "Intervention en attente de validation",
                         "L'intervention '" + intervention.getTitle() + "' sur " + propertyName + " est en attente de validation." + montant,
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
             } else {
                 notificationService.notifyAdminsAndManagers(
                         NotificationKey.INTERVENTION_CREATED,
                         "Nouvelle intervention creee",
                         "L'intervention '" + intervention.getTitle() + "' a ete creee sur " + propertyName + "." + montant,
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
             }
         } catch (Exception e) {
             log.warn("Notification error create intervention: {}", e.getMessage());
@@ -154,7 +154,7 @@ public class InterventionService {
             notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_UPDATED,
                     "Intervention mise a jour",
                     "L'intervention '" + intervention.getTitle() + "' a ete modifiee.",
-                    actionUrl);
+                    actionUrl, interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification error update intervention: {}", e.getMessage());
         }
@@ -325,7 +325,7 @@ public class InterventionService {
             notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_DELETED,
                     "Intervention supprimee",
                     "L'intervention '" + intervention.getTitle() + "' a ete supprimee.",
-                    "/interventions");
+                    "/interventions", interventionFacts(intervention));
         } catch (Exception e) {
             log.warn("Notification error delete intervention: {}", e.getMessage());
         }
@@ -395,7 +395,7 @@ public class InterventionService {
                 notificationService.notify(assignedKeycloakId, NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
                         "Intervention assignee",
                         "Vous etes assigne a l'intervention '" + intervention.getTitle() + "'." + remuneration,
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
                 // P5 : email « mission assignée » POST-COMMIT (jamais d'effet externe en
                 // transaction). Hors transaction active → envoi immédiat (best-effort).
                 final Intervention assigned = intervention;
@@ -420,7 +420,7 @@ public class InterventionService {
                 notificationService.notifyUsers(memberIds, NotificationKey.INTERVENTION_ASSIGNED_TO_TEAM,
                         "Intervention assignee a votre equipe",
                         "Votre equipe est assignee a l'intervention '" + intervention.getTitle() + "'.",
-                        actionUrl);
+                        actionUrl, interventionFacts(intervention));
             }
         } catch (Exception e) {
             log.warn("Notification error assign intervention: {}", e.getMessage());
@@ -514,5 +514,22 @@ public class InterventionService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
         return interventionMapper.convertToResponse(intervention);
+    }
+
+    /**
+     * Faits joints aux notifications d'intervention : logement, travail,
+     * echeance, intervenant. Tout est deja charge par le flux qui notifie.
+     */
+    private static Map<String, Object> interventionFacts(Intervention intervention) {
+        if (intervention == null) return null;
+        return NotificationMetadata.of()
+                .property(intervention.getProperty() != null ? intervention.getProperty().getName() : null)
+                .intervention(intervention.getTitle())
+                .interventionId(intervention.getId())
+                .assignee(intervention.getAssignedUser() != null
+                        ? intervention.getAssignedUser().getFirstName() : null)
+                .dueDate(intervention.getScheduledDate() != null
+                        ? intervention.getScheduledDate().toLocalDate() : null)
+                .build();
     }
 }

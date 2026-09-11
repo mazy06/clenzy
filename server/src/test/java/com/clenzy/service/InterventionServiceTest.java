@@ -643,7 +643,7 @@ class InterventionServiceTest {
             service.assign(1L, technician.getId(), null, jwt);
 
             verify(notificationService).notify(eq("tech-kc"), eq(NotificationKey.INTERVENTION_ASSIGNED_TO_USER),
-                    any(), any(), any());
+                    any(), any(), any(), any());
         }
 
         @Test
@@ -739,7 +739,7 @@ class InterventionServiceTest {
             service.create(request, jwt);
 
             verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any());
+                    eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any(), any(Map.class));
         }
 
         @Test
@@ -761,7 +761,7 @@ class InterventionServiceTest {
             service.create(request, jwt);
 
             verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.INTERVENTION_CREATED), any(), any(), any());
+                    eq(NotificationKey.INTERVENTION_CREATED), any(), any(), any(), any(Map.class));
         }
     }
 
@@ -780,7 +780,7 @@ class InterventionServiceTest {
             service.delete(1L, jwt);
 
             verify(notificationService).notify(eq("owner-kc"), eq(NotificationKey.INTERVENTION_DELETED),
-                    any(), any(), any());
+                    any(), any(), any(), any());
         }
     }
 

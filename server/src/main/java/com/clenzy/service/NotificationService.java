@@ -226,7 +226,7 @@ public class NotificationService {
      * @return le DTO cree, ou null si la notification est desactivee
      */
     public NotificationDto send(String userId, NotificationKey key, String title, String message, String actionUrl) {
-        return send(userId, key, title, message, actionUrl, tenantContext.getOrganizationId());
+        return send(userId, key, title, message, actionUrl, tenantContext.getOrganizationId(), null);
     }
 
     /**
@@ -235,6 +235,16 @@ public class NotificationService {
      */
     public NotificationDto send(String userId, NotificationKey key, String title, String message,
                                  String actionUrl, Long organizationId) {
+        return send(userId, key, title, message, actionUrl, organizationId, null);
+    }
+
+    /**
+     * Variante porteuse des faits structures ({@link NotificationMetadata}) :
+     * ce que l'emetteur avait deja sous la main, et que la fiche affichera
+     * sans nouvelle requete.
+     */
+    public NotificationDto send(String userId, NotificationKey key, String title, String message,
+                                 String actionUrl, Long organizationId, Map<String, Object> metadata) {
         if (userId == null || key == null) {
             log.warn("Tentative de notification avec userId ou key null");
             return null;
@@ -250,6 +260,7 @@ public class NotificationService {
             Notification notification = new Notification(userId, title, message, key.getDefaultType(), key.getCategory());
             notification.setNotificationKey(key);
             notification.setActionUrl(actionUrl);
+            notification.setMetadata(serializeMetadata(metadata, key));
             notification.setOrganizationId(organizationId);
             notification = notificationRepository.save(notification);
             log.info("Notification {} creee (ID: {}) pour l'utilisateur {}", key, notification.getId(), userId);
@@ -304,6 +315,23 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Serialise les faits attaches a la notification. Un fait illisible ne doit
+     * jamais empecher la notification elle-meme : on la cree sans, et la trace
+     * dit lequel manque.
+     */
+    private String serializeMetadata(Map<String, Object> metadata, NotificationKey key) {
+        if (metadata == null || metadata.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.warn("Metadonnees non serialisables pour la notification {} : {}", key, e.getMessage());
+            return null;
+        }
+    }
+
     /** Deep-link simple : dernier segment numérique de l'actionUrl (ex. /interventions/42 → 42). */
     private static String extractEntityId(String actionUrl) {
         if (actionUrl == null) return null;
@@ -323,6 +351,19 @@ public class NotificationService {
      * Notifie tous les ADMIN et MANAGER du systeme.
      */
     public void notifyAdminsAndManagers(NotificationKey key, String title, String message, String actionUrl) {
+        notifyAdminsAndManagers(key, title, message, actionUrl, (Map<String, Object>) null);
+    }
+
+    /**
+     * Surcharge avec faits structures ({@link NotificationMetadata}).
+     *
+     * <p>Elle partage sa signature d'arite avec la variante {@code Long
+     * organizationId} : passer un {@code null} NU en dernier argument ne
+     * compile pas (ambiguite). Passer une expression typee — ce que fait
+     * naturellement un appel a {@code NotificationMetadata.of()....build()}.</p>
+     */
+    public void notifyAdminsAndManagers(NotificationKey key, String title, String message,
+                                        String actionUrl, Map<String, Object> metadata) {
         try {
             List<User> adminsManagers = userRepository.findByRoleIn(
                     Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER),
@@ -330,7 +371,8 @@ public class NotificationService {
             );
             for (User user : adminsManagers) {
                 if (user.getKeycloakId() != null) {
-                    send(user.getKeycloakId(), key, title, message, actionUrl);
+                    send(user.getKeycloakId(), key, title, message, actionUrl,
+                            tenantContext.getOrganizationId(), metadata);
                 }
             }
         } catch (Exception e) {
@@ -344,6 +386,13 @@ public class NotificationService {
      */
     public void notifyAdminsAndManagers(NotificationKey key, String title, String message,
                                          String actionUrl, Long organizationId) {
+        notifyAdminsAndManagers(key, title, message, actionUrl, organizationId, null);
+    }
+
+    /** Surcharge avec faits structures ({@link NotificationMetadata}). */
+    public void notifyAdminsAndManagers(NotificationKey key, String title, String message,
+                                         String actionUrl, Long organizationId,
+                                         Map<String, Object> metadata) {
         try {
             List<User> adminsManagers = userRepository.findByRoleIn(
                     Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER),
@@ -351,7 +400,7 @@ public class NotificationService {
             );
             for (User user : adminsManagers) {
                 if (user.getKeycloakId() != null) {
-                    send(user.getKeycloakId(), key, title, message, actionUrl, organizationId);
+                    send(user.getKeycloakId(), key, title, message, actionUrl, organizationId, metadata);
                 }
             }
         } catch (Exception e) {
@@ -363,14 +412,22 @@ public class NotificationService {
      * Notifie une liste d'utilisateurs par leurs keycloakId.
      */
     public void notifyUsers(List<String> keycloakIds, NotificationKey key, String title, String message, String actionUrl) {
+        notifyUsers(keycloakIds, key, title, message, actionUrl, null);
+    }
+
+    /** Surcharge avec faits structures ({@link NotificationMetadata}). */
+    public void notifyUsers(List<String> keycloakIds, NotificationKey key, String title, String message,
+                            String actionUrl, Map<String, Object> metadata) {
         if (keycloakIds == null || keycloakIds.isEmpty()) {
             return;
         }
         try {
+            final Long organizationId = tenantContext.getOrganizationId();
             keycloakIds.stream()
                     .filter(Objects::nonNull)
                     .distinct()
-                    .forEach(keycloakId -> send(keycloakId, key, title, message, actionUrl));
+                    .forEach(keycloakId -> send(keycloakId, key, title, message, actionUrl,
+                            organizationId, metadata));
         } catch (Exception e) {
             log.error("Erreur lors de la notification de {} utilisateurs pour {}: {}", keycloakIds.size(), key, e.getMessage());
         }
@@ -380,10 +437,16 @@ public class NotificationService {
      * Notifie un utilisateur unique (wrapper try-catch pour usage dans les services).
      */
     public void notify(String keycloakId, NotificationKey key, String title, String message, String actionUrl) {
+        notify(keycloakId, key, title, message, actionUrl, null);
+    }
+
+    /** Surcharge avec faits structures ({@link NotificationMetadata}). */
+    public void notify(String keycloakId, NotificationKey key, String title, String message,
+                       String actionUrl, Map<String, Object> metadata) {
         if (keycloakId == null) {
             return;
         }
-        send(keycloakId, key, title, message, actionUrl);
+        send(keycloakId, key, title, message, actionUrl, tenantContext.getOrganizationId(), metadata);
     }
 
     // ─── Helpers pour contexte scheduler (pas de TenantContext) ──────────────────
@@ -393,6 +456,13 @@ public class NotificationService {
      */
     public NotificationDto sendByOrgId(String userId, NotificationKey key, String title,
                                         String message, String actionUrl, Long orgId) {
+        return sendByOrgId(userId, key, title, message, actionUrl, orgId, null);
+    }
+
+    /** Surcharge avec faits structures ({@link NotificationMetadata}). */
+    public NotificationDto sendByOrgId(String userId, NotificationKey key, String title,
+                                        String message, String actionUrl, Long orgId,
+                                        Map<String, Object> metadata) {
         if (userId == null || key == null) {
             return null;
         }
@@ -403,6 +473,7 @@ public class NotificationService {
             Notification notification = new Notification(userId, title, message, key.getDefaultType(), key.getCategory());
             notification.setNotificationKey(key);
             notification.setActionUrl(actionUrl);
+            notification.setMetadata(serializeMetadata(metadata, key));
             notification.setOrganizationId(orgId);
             notification = notificationRepository.save(notification);
             log.info("Notification {} creee (ID: {}) pour utilisateur {} (org={})", key, notification.getId(), userId, orgId);
@@ -418,13 +489,20 @@ public class NotificationService {
      */
     public void notifyAdminsAndManagersByOrgId(Long orgId, NotificationKey key, String title,
                                                 String message, String actionUrl) {
+        notifyAdminsAndManagersByOrgId(orgId, key, title, message, actionUrl, null);
+    }
+
+    /** Surcharge avec faits structures ({@link NotificationMetadata}). */
+    public void notifyAdminsAndManagersByOrgId(Long orgId, NotificationKey key, String title,
+                                                String message, String actionUrl,
+                                                Map<String, Object> metadata) {
         try {
             List<User> adminsManagers = userRepository.findByRoleIn(
                     Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER), orgId
             );
             for (User user : adminsManagers) {
                 if (user.getKeycloakId() != null) {
-                    sendByOrgId(user.getKeycloakId(), key, title, message, actionUrl, orgId);
+                    sendByOrgId(user.getKeycloakId(), key, title, message, actionUrl, orgId, metadata);
                 }
             }
         } catch (Exception e) {

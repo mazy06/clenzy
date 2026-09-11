@@ -10,6 +10,7 @@ import com.clenzy.service.access.AccessCodeResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -609,10 +610,17 @@ class GuestMessagingServiceTest {
 
             // Echec = owner notifie (surcharge orgId explicite : contexte scheduler)
             // + admins/managers (meme circuit que les echecs de generation de document).
+            // Les deux portent les memes faits, dont le motif d'echec : la fiche
+            // de notification dit pourquoi rien n'est parti sans ouvrir l'historique.
+            ArgumentCaptor<Map<String, Object>> facts = ArgumentCaptor.forClass(Map.class);
             verify(notificationService).send(eq("owner-kc"), eq(NotificationKey.GUEST_MESSAGE_FAILED),
-                anyString(), anyString(), any(), eq(1L));
+                anyString(), anyString(), any(), eq(1L), facts.capture());
+            assertThat(facts.getValue())
+                .containsEntry("property", "P")
+                .containsEntry("template", "T")
+                .containsEntry("error", "Erreur d'envoi a G Test : smtp error");
             verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.GUEST_MESSAGE_FAILED),
-                anyString(), anyString(), any(), eq(1L));
+                anyString(), anyString(), any(), eq(1L), any(Map.class));
         }
 
         @Test
@@ -654,7 +662,7 @@ class GuestMessagingServiceTest {
             verify(emailChannel, never()).send(any());
             // Historiquement, ce chemin sortait AVANT toute notification : echec silencieux.
             verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.GUEST_NO_EMAIL_FOR_CHECKIN),
-                anyString(), anyString(), any(), eq(1L));
+                anyString(), anyString(), any(), eq(1L), any(Map.class));
         }
 
         @Test

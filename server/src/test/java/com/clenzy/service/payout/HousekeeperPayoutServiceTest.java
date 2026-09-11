@@ -190,7 +190,7 @@ class HousekeeperPayoutServiceTest {
             service.processPayoutForIntervention(intervention);
 
             verify(notificationService).send(eq("kc-pro"), eq(NotificationKey.PAYOUT_BLOCKED_ONBOARDING),
-                    any(), contains("compte de versement"), any(), eq(7L));
+                    any(), contains("compte de versement"), any(), eq(7L), any());
             verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
@@ -252,7 +252,7 @@ class HousekeeperPayoutServiceTest {
             assertThat(dest.getValue()).isEqualTo("acct_123");
             assertThat(idem.getValue()).isEqualTo("payout-intervention-11");
             verify(notificationService).send(eq("kc-pro"), eq(NotificationKey.PAYOUT_SENT),
-                    any(), contains("95"), any(), eq(7L));
+                    any(), contains("95"), any(), eq(7L), any());
         }
 
         @Test
@@ -315,7 +315,7 @@ class HousekeeperPayoutServiceTest {
             verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.PAYOUT_FAILED),
                     any(), contains("Relance manuelle requise"), any());
             verify(notificationService, never()).send(any(), eq(NotificationKey.PAYOUT_SENT),
-                    any(), any(), any(), any());
+                    any(), any(), any(), any(Long.class));
         }
     }
 

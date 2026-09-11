@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -394,7 +395,7 @@ class ReservationServiceUpdateTest {
 
             // Assert
             verify(notificationService).notifyAdminsAndManagers(
-                    any(), anyString(), anyString(), anyString());
+                    any(), anyString(), anyString(), anyString(), any(Map.class));
         }
     }
 

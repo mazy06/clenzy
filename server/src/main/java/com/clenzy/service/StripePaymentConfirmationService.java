@@ -142,7 +142,8 @@ public class StripePaymentConfirmationService {
                     NotificationKey.PAYMENT_CONFIRMED,
                     "Paiement confirme",
                     "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme." + montantPaye,
-                    "/interventions/" + intervention.getId()
+                    "/interventions/" + intervention.getId(),
+                    interventionPaymentFacts(intervention)
                 );
             }
             String montantPayeAdmins = intervention.getEstimatedCost() != null
@@ -153,7 +154,8 @@ public class StripePaymentConfirmationService {
                 NotificationKey.PAYMENT_CONFIRMED,
                 "Paiement confirme",
                 "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme." + montantPayeAdmins,
-                "/interventions/" + intervention.getId()
+                "/interventions/" + intervention.getId(),
+                interventionPaymentFacts(intervention)
             );
 
             // Notifier les admins/managers qu'une action d'assignation est requise
@@ -198,7 +200,8 @@ public class StripePaymentConfirmationService {
                         NotificationKey.PAYMENT_FAILED,
                         "Echec du paiement",
                         "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a echoue",
-                        "/interventions/" + intervention.getId()
+                        "/interventions/" + intervention.getId(),
+                        interventionPaymentFacts(intervention)
                     );
                 }
                 // Also notify admins/managers
@@ -206,7 +209,8 @@ public class StripePaymentConfirmationService {
                     NotificationKey.PAYMENT_FAILED,
                     "Echec du paiement",
                     "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a echoue",
-                    "/interventions/" + intervention.getId()
+                    "/interventions/" + intervention.getId(),
+                    interventionPaymentFacts(intervention)
                 );
             } catch (Exception e) {
                 log.warn("Erreur notification PAYMENT_FAILED: {}", e.getMessage());
@@ -768,5 +772,18 @@ public class StripePaymentConfirmationService {
         } catch (Exception e) {
             log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Faits joints aux notifications de paiement : le logement, l'intervention
+     * reglee et le montant dans sa devise. L'intervention est deja chargee —
+     * la fiche ne coute rien de plus.
+     */
+    private Map<String, Object> interventionPaymentFacts(Intervention intervention) {
+        return NotificationMetadata.of()
+            .property(intervention.getProperty() != null ? intervention.getProperty().getName() : null)
+            .intervention(intervention.getTitle())
+            .amount(intervention.getEstimatedCost(), resolveInterventionCurrency(intervention))
+            .build();
     }
 }

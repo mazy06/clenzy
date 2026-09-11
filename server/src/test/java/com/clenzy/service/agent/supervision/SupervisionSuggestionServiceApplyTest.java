@@ -230,7 +230,7 @@ class SupervisionSuggestionServiceApplyTest {
                 SupervisionActionType.PAYMENT_REMINDER, "{}", null, "warning");
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-                eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any());
+                eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any(), any());
     }
 
     @Test

@@ -54,7 +54,7 @@ export { usersApi } from './usersApi';
 export type { User, UserFormData, LockoutStatus } from './usersApi';
 
 export { notificationsApi } from './notificationsApi';
-export type { Notification, UnreadCountResponse, NotificationPage, NotificationPageParams } from './notificationsApi';
+export type { Notification, NotificationMetadata, UnreadCountResponse, NotificationPage, NotificationPageParams } from './notificationsApi';
 
 export { reservationsApi } from './reservationsApi';
 export type {

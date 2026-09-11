@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,7 +57,7 @@ class ReviewAlertServiceTest {
             eq("Avis negatif recu"),
             contains("Unhappy Guest"),
             eq("/channels/reviews?highlight=1")
-        );
+        , any(Map.class));
     }
 
     @Test
@@ -100,12 +101,12 @@ class ReviewAlertServiceTest {
         doThrow(new RuntimeException("Notification error"))
             .doNothing()
             .when(notificationService).notifyAdminsAndManagers(
-                any(NotificationKey.class), anyString(), anyString(), anyString());
+                any(NotificationKey.class), anyString(), anyString(), anyString(), any(Map.class));
 
         int alertCount = service.checkAndAlertNegativeReviews(ORG_ID);
 
         assertEquals(1, alertCount);
         verify(notificationService, times(2)).notifyAdminsAndManagers(
-            any(NotificationKey.class), anyString(), anyString(), anyString());
+            any(NotificationKey.class), anyString(), anyString(), anyString(), any(Map.class));
     }
 }

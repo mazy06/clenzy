@@ -55,10 +55,10 @@ class PayoutNotifierTest {
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.PAYOUT_EXECUTED),
             contains("Reversement execute"),
-            any(String.class), eq("/billing?tab=payouts&highlight=10"));
+            any(String.class), eq("/billing?tab=payouts&highlight=10"), any());
         verify(notificationService).sendByOrgId(
             eq("kc-owner"), eq(NotificationKey.PAYOUT_EXECUTED),
-            any(String.class), any(String.class), eq("/billing?tab=payouts&highlight=10"), eq(1L));
+            any(String.class), any(String.class), eq("/billing?tab=payouts&highlight=10"), eq(1L), any());
     }
 
     @Test
@@ -70,7 +70,7 @@ class PayoutNotifierTest {
 
         notifier.notifySuccess(payout);
 
-        verify(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+        verify(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any(), any());
         verify(notificationService, never()).sendByOrgId(any(), any(), any(), any(), any(), any());
     }
 
@@ -81,7 +81,7 @@ class PayoutNotifierTest {
 
         notifier.notifySuccess(payout);
 
-        verify(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+        verify(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any(), any());
         verify(notificationService, never()).sendByOrgId(any(), any(), any(), any(), any(), any());
     }
 
@@ -96,10 +96,10 @@ class PayoutNotifierTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.PAYOUT_FAILED),
-            contains("Echec"), contains("API error"), eq("/billing?tab=payouts&highlight=10"));
+            contains("Echec"), contains("API error"), eq("/billing?tab=payouts&highlight=10"), any());
         verify(notificationService).sendByOrgId(
             eq("kc-owner"), eq(NotificationKey.PAYOUT_FAILED),
-            any(), any(), eq("/billing?tab=payouts&highlight=10"), eq(1L));
+            any(), any(), eq("/billing?tab=payouts&highlight=10"), eq(1L), any());
     }
 
     @Test
@@ -109,7 +109,7 @@ class PayoutNotifierTest {
 
         notifier.notifyFailure(payout, "err");
 
-        verify(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+        verify(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any(), any());
         verify(notificationService, never()).sendByOrgId(any(), any(), any(), any(), any(), any());
     }
 
@@ -121,7 +121,7 @@ class PayoutNotifierTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.RECONCILIATION_FAILED),
-            contains("Reconciliation"), contains("tr_abc123"), eq("/billing?tab=payouts&highlight=10"));
+            contains("Reconciliation"), contains("tr_abc123"), eq("/billing?tab=payouts&highlight=10"), any());
     }
 
     @Test
@@ -142,7 +142,7 @@ class PayoutNotifierTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.PAYOUT_PENDING_APPROVAL),
-            contains("SEPA"), any(), eq("/billing?tab=payouts&highlight=10"));
+            contains("SEPA"), any(), eq("/billing?tab=payouts&highlight=10"), any());
     }
 
     @Test

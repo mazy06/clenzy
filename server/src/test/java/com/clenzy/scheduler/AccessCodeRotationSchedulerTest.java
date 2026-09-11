@@ -12,12 +12,14 @@ import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -78,8 +80,13 @@ class AccessCodeRotationSchedulerTest {
         assertThat(ci.getAccessCode()).hasSize(4).matches("\\d{4}");
         assertThat(ci.getAccessCodeRotatedAt()).isNotNull();
         verify(instructionsRepository).save(ci);
+        // La notification porte desormais le logement en fait structure — et
+        // surtout PAS le code, qui reste dans le corps du message.
+        ArgumentCaptor<Map<String, Object>> facts = ArgumentCaptor.forClass(Map.class);
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-            eq(1L), eq(NotificationKey.ACCESS_CODE_ROTATED), anyString(), anyString(), anyString());
+            eq(1L), eq(NotificationKey.ACCESS_CODE_ROTATED), anyString(), anyString(), anyString(),
+            facts.capture());
+        assertThat(facts.getValue()).containsExactly(Map.entry("property", ci.getProperty().getName()));
     }
 
     @Test
@@ -94,7 +101,8 @@ class AccessCodeRotationSchedulerTest {
 
         assertThat(ci.getAccessCode()).isEqualTo("4827");
         verify(instructionsRepository, never()).save(any());
-        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
+            any(), any(), any(), any(), any(), any());
     }
 
     @Test

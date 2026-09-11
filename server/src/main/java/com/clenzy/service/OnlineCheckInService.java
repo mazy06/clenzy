@@ -166,9 +166,16 @@ public class OnlineCheckInService {
         try {
             Property property = checkIn.getReservation().getProperty();
             if (property != null && property.getOwner() != null && property.getOwner().getKeycloakId() != null) {
-                notificationService.send(property.getOwner().getKeycloakId(), key,
+                notificationService.notify(property.getOwner().getKeycloakId(), key,
                     "Check-in en ligne", message,
-                    "/reservations?highlight=" + checkIn.getReservation().getId());
+                    "/reservations?highlight=" + checkIn.getReservation().getId(),
+                    NotificationMetadata.of()
+                        .property(property.getName())
+                        .propertyId(property.getId())
+                        .guest(checkIn.getReservation().getGuestName())
+                        .reservationId(checkIn.getReservation().getId())
+                        .stay(checkIn.getReservation().getCheckIn(), checkIn.getReservation().getCheckOut())
+                        .build());
             }
         } catch (Exception e) {
             log.warn("Erreur notification check-in: {}", e.getMessage());

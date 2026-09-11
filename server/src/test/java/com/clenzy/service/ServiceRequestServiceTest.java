@@ -218,7 +218,7 @@ class ServiceRequestServiceTest {
             verify(serviceRequestRepository).save(any(ServiceRequest.class));
             verify(notificationService).notifyAdminsAndManagers(
                     eq(NotificationKey.SERVICE_REQUEST_CREATED),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any(Map.class));
         }
 
         @Test
@@ -298,7 +298,7 @@ class ServiceRequestServiceTest {
             verify(notificationService).notify(
                     eq("kc-user-10"),
                     eq(NotificationKey.SERVICE_REQUEST_REJECTED),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any());
         }
 
         @Test
@@ -541,7 +541,7 @@ class ServiceRequestServiceTest {
             assertThat(sr.getAutoAssignRetryCount()).isEqualTo(0);
             verify(notificationService).notifyAdminsAndManagers(
                     eq(NotificationKey.SERVICE_REQUEST_CREATED),
-                    contains("refusee"), anyString(), anyString());
+                    contains("refusee"), anyString(), anyString(), any(Map.class));
             verify(assignmentEventRepository).save(argThat(e ->
                     "REFUSE".equals(((AssignmentEvent) e).getEventType())));
         }
@@ -822,7 +822,7 @@ class ServiceRequestServiceTest {
             assertThat(sr.getAutoAssignStatus()).isEqualTo("searching");
             verify(notificationService).notifyAdminsAndManagers(
                     eq(NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any(Map.class));
         }
 
         @Test
@@ -849,7 +849,7 @@ class ServiceRequestServiceTest {
             assertThat(sr.getAutoAssignStatus()).isEqualTo("exhausted");
             verify(notificationService).notifyAdminsAndManagers(
                     eq(NotificationKey.SERVICE_REQUEST_ESCALATION),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any(Map.class));
             verify(assignmentEventRepository).save(argThat(e ->
                     "ESCALATION".equals(((AssignmentEvent) e).getEventType())));
         }
@@ -897,7 +897,7 @@ class ServiceRequestServiceTest {
             assertThat(sr.getAssignedToId()).isEqualTo(60L);
             verify(notificationService).notifyAdminsAndManagersByOrgId(
                     eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any());
         }
 
         @Test
@@ -919,7 +919,7 @@ class ServiceRequestServiceTest {
             assertThat(sr.getAutoAssignStatus()).isEqualTo("exhausted");
             verify(notificationService).notifyAdminsAndManagersByOrgId(
                     eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_ESCALATION),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any());
         }
 
         @Test
@@ -1020,7 +1020,7 @@ class ServiceRequestServiceTest {
             verify(kafkaTemplate).send(anyString(), anyString(), any());
             verify(notificationService).notifyAdminsAndManagers(
                     eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION),
-                    anyString(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), any(Map.class));
         }
 
         @Test

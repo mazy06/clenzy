@@ -76,7 +76,7 @@ class ChannexWatchdogNotificationsTest {
             contains("Studio Marais"),
             contains("diagnoseChannex=100"),
             eq(42L)
-        );
+        , any());
     }
 
     @Test
@@ -90,7 +90,7 @@ class ChannexWatchdogNotificationsTest {
 
         // Une seule notif ERROR au total
         verify(notificationService).notifyAdminsAndManagers(
-            eq(NotificationKey.CHANNEX_SYNC_ERROR), any(), any(), any(), anyLong());
+            eq(NotificationKey.CHANNEX_SYNC_ERROR), any(), any(), any(), anyLong(), any());
     }
 
     @Test
@@ -115,7 +115,7 @@ class ChannexWatchdogNotificationsTest {
             contains("100"),
             any(),
             eq(42L)
-        );
+        , any());
     }
 
     @Test

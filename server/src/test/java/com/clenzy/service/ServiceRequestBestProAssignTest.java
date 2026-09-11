@@ -253,6 +253,6 @@ class ServiceRequestBestProAssignTest {
         service.attemptAutoAssign(sr);
 
         verify(notificationService).send(eq("kc-10"), eq(NotificationKey.INTERVENTION_ASSIGNED_TO_USER),
-                anyString(), contains("110 EUR"), anyString(), eq(ORG_ID));
+                anyString(), contains("110 EUR"), anyString(), eq(ORG_ID), any());
     }
 }

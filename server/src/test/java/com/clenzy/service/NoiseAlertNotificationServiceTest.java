@@ -141,13 +141,13 @@ class NoiseAlertNotificationServiceTest {
 
         service.dispatch(alert, config);
 
-        verify(notificationService).send(
+        verify(notificationService).notify(
             eq("owner-kc-id"),
             eq(NotificationKey.NOISE_ALERT_WARNING),
             contains("Studio Paris"),
             contains("75 dB"),
             contains("/connected-objects/property/")
-        );
+        , any());
         assertTrue(alert.isNotifiedInApp());
     }
 
@@ -158,13 +158,13 @@ class NoiseAlertNotificationServiceTest {
 
         service.dispatch(alert, config);
 
-        verify(notificationService).send(
+        verify(notificationService).notify(
             eq("owner-kc-id"),
             eq(NotificationKey.NOISE_ALERT_CRITICAL),
             contains("critique"),
             anyString(),
             contains("/connected-objects/property/")
-        );
+        , any());
     }
 
     @Test

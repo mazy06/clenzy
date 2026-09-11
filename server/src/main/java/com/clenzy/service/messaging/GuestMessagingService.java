@@ -3,6 +3,7 @@ package com.clenzy.service.messaging;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import com.clenzy.service.MapboxStaticImageService;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.service.access.AccessCodeResolverService;
@@ -345,7 +346,9 @@ public class GuestMessagingService {
                     property.getOwner().getKeycloakId(), NotificationKey.GUEST_MESSAGE_SENT,
                     "Message envoye a " + request.recipientName(),
                     "Template '" + template.getName() + "' envoye via " + channel.getChannelType(),
-                    "/reservations?highlight=" + reservation.getId(), orgId
+                    "/reservations?highlight=" + reservation.getId(), orgId,
+                    messagingFacts(reservation, property, template,
+                        channel.getChannelType() != null ? channel.getChannelType().name() : null, null)
                 );
             }
         } else {
@@ -409,16 +412,37 @@ public class GuestMessagingService {
             String message = "Template '" + template.getName() + "' (réservation #"
                 + reservation.getId() + ") : " + detail;
             String actionUrl = "/documents?tab=history";
-            notificationService.notifyAdminsAndManagers(key, title, message, actionUrl, orgId);
+            Map<String, Object> facts = messagingFacts(reservation, property, template, null, detail);
+            notificationService.notifyAdminsAndManagers(key, title, message, actionUrl, orgId, facts);
             if (property != null && property.getOwner() != null
                     && property.getOwner().getKeycloakId() != null) {
                 notificationService.send(property.getOwner().getKeycloakId(), key,
-                    title, message, actionUrl, orgId);
+                    title, message, actionUrl, orgId, facts);
             }
         } catch (Exception e) {
             log.error("Notification d'echec d'envoi impossible (reservation={}) : {}",
                 reservation.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * Faits joints a la notification d'envoi : de quel sejour il s'agit, a qui
+     * on ecrivait, avec quel modele — et, quand ca a echoue, pourquoi. Tout est
+     * deja charge par l'envoi lui-meme.
+     */
+    private static Map<String, Object> messagingFacts(Reservation reservation, Property property,
+                                                      MessageTemplate template, String channel,
+                                                      String error) {
+        return NotificationMetadata.of()
+            .property(property != null ? property.getName() : null)
+            .guest(reservation != null ? reservation.getGuestName() : null)
+            .reservationReference(reservation != null ? reservation.getConfirmationCode() : null)
+            .stay(reservation != null ? reservation.getCheckIn() : null,
+                  reservation != null ? reservation.getCheckOut() : null)
+            .template(template != null ? template.getName() : null)
+            .channel(channel)
+            .error(error)
+            .build();
     }
 
     private GuestMessageLog createLog(

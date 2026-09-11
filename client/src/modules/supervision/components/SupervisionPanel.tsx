@@ -171,6 +171,12 @@ export interface SupervisionPanelProps {
   /** Fenêtre du bilan affiché dans le HUD (jours) — alignée sur le zoom planning. */
   reportWindowDays?: number;
   onSelectAgent?: (id: AgentId) => void;
+  /**
+   * Agent sur lequel s'ouvrir, quand le panneau est atteint par un lien
+   * profond (la fiche d'une notification qui renvoie vers sa carte HITL).
+   * Prime sur le choix automatique de l'agent le plus charge.
+   */
+  initialAgent?: AgentId;
   /** Agent qui agit sur une réservation → comète (en plus du rendu interne). */
   onActing?: (agentId: AgentId, reservationId: string) => void;
   /** Ouvre l'éditeur métier concerné (ex. grille tarifaire) sur « Modifier ». */
@@ -193,7 +199,7 @@ const COMPACT_MAX_WIDTH = 840;
  */
 export const SUPERVISION_ASK_EVENT = 'supervision:ask';
 
-export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction, flush }: SupervisionPanelProps) {
+export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, initialAgent, onActing, onEditAction, flush }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   // Largeur mesurée du panneau → mode compact. Callback ref (et non un effect
@@ -420,6 +426,28 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     const busiest = busiestAgent(normalized.agents);
     if (busiest) setBoardAgent((prev) => (prev === busiest ? prev : busiest));
   }, [normalized]);
+
+  // Lien profond : l'agent designe par l'appelant s'impose AVANT le calcul du
+  // « plus charge » — sinon l'operateur venu d'une notification atterrit sur la
+  // file d'un autre agent que celle qui l'a fait cliquer. On marque la
+  // selection comme deja faite, exactement comme un clic.
+  const deepLinkApplied = useRef<AgentId | null>(null);
+  useEffect(() => {
+    if (!initialAgent || deepLinkApplied.current === initialAgent) return;
+    deepLinkApplied.current = initialAgent;
+    boardAgentPicked.current = true;
+    setBoardAgent(initialAgent);
+  }, [initialAgent]);
+
+  // En etroit, la file de l'agent ne vit que dans son tiroir : sans cela le
+  // lien profond ouvrirait le bon logement sur une constellation muette.
+  // La largeur n'est connue qu'apres la premiere mesure, d'ou l'effet separe.
+  const deepLinkDrawerOpened = useRef(false);
+  useEffect(() => {
+    if (!initialAgent || !compact || deepLinkDrawerOpened.current) return;
+    deepLinkDrawerOpened.current = true;
+    setSelected(initialAgent);
+  }, [initialAgent, compact]);
 
   const selectBoardAgent = useCallback(
     (id: AgentId) => {
