@@ -5856,7 +5856,8 @@
         "missing_one": "{{count}} tag non résolu",
         "missing_other": "{{count}} tags non résolus",
         "groupAbsent": "Données « {{group}} » absentes du contexte",
-        "groupUnknown": "Origine non précisée"
+        "groupUnknown": "Origine non précisée",
+        "failedTitle": "La pièce n'a pas pu être produite"
       },
       "review": {
         "anonymous": "Voyageur",

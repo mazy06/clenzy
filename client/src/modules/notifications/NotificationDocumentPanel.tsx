@@ -208,13 +208,29 @@ const STATUS_BADGE: Record<string, 'success' | 'info' | 'warning' | 'destructive
 export default function NotificationDocumentPanel({
   generation,
   message,
+  failedEvent = false,
 }: {
-  generation: DocumentGeneration;
+  /**
+   * La generation, quand elle a pu etre lue.
+   *
+   * <p>`null` est un cas NORMAL, pas une panne : un echec de generation porte
+   * deja tout son motif dans le message de la notification. Faire dependre sa
+   * mise en forme d'un aller-retour serveur, c'est la perdre des que celui-ci
+   * ne repond pas — or c'est precisement quand la production documentaire va
+   * mal qu'on lit ces fiches.</p>
+   */
+  generation: DocumentGeneration | null;
   /** Message de la notification — sa nature change ce qu'il faut en faire. */
   message?: string;
+  /** L'evenement est un ECHEC, d'apres sa cle. Fait foi quand la piece manque. */
+  failedEvent?: boolean;
 }) {
   const { t, currentLanguage } = useTranslation();
-  const failed = generation.status === 'FAILED';
+  // Le statut de la piece fait foi quand on l'a ; sinon la nature de l'evenement.
+  const failed = generation ? generation.status === 'FAILED' : failedEvent;
+  // Le motif : celui de la piece s'il est complet, sinon celui du message — qui
+  // est le meme texte, tronque a 500 caracteres.
+  const failureText = generation?.errorMessage?.trim() || message;
 
   return (
     <section
@@ -225,32 +241,39 @@ export default function NotificationDocumentPanel({
     >
       <header className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <Caption>{generation.documentType || t('notifications.detail.document.type', 'Document')}</Caption>
+          <Caption>
+            {generation?.documentType || t('notifications.detail.document.type', 'Document')}
+          </Caption>
           {/* Le MESSAGE en tete : c'est lui qui dit de quelle nature est
-              l'evenement — produit, envoye, ou echoue. */}
+              l'evenement — produit, envoye, ou echoue. Sur un echec, la mise en
+              forme du motif prend le relais juste en dessous. */}
           <p className="m-0 mt-1 text-[15px] leading-snug font-medium text-pretty text-foreground">
-            {message?.trim() || generation.fileName}
+            {failed
+              ? t('notifications.detail.document.failedTitle', 'La pièce n’a pas pu être produite')
+              : message?.trim() || generation?.fileName}
           </p>
         </div>
-        <Badge variant={STATUS_BADGE[generation.status] ?? 'secondary'}>
-          {t(`documents.status.${generation.status}`, generation.status)}
-        </Badge>
+        {generation && (
+          <Badge variant={STATUS_BADGE[generation.status] ?? 'secondary'}>
+            {t(`documents.status.${generation.status}`, generation.status)}
+          </Badge>
+        )}
       </header>
 
-      {failed && generation.errorMessage && <FailureReport message={generation.errorMessage} />}
+      {failed && failureText && <FailureReport message={failureText} />}
 
       <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
-        {generation.templateName && (
+        {generation?.templateName && (
           <Figure label={t('notifications.detail.document.template', 'Modèle')}>
             {generation.templateName}
           </Figure>
         )}
-        {!failed && generation.fileSize > 0 && (
+        {!failed && generation && generation.fileSize > 0 && (
           <Figure label={t('notifications.detail.document.size', 'Taille')}>
             {fileSize(generation.fileSize)}
           </Figure>
         )}
-        {generation.emailTo && (
+        {generation?.emailTo && (
           <div className="min-w-0">
             <Caption>{t('notifications.detail.document.sentTo', 'Envoyé à')}</Caption>
             <p className="m-0 mt-1 inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm font-medium text-foreground">
@@ -261,20 +284,22 @@ export default function NotificationDocumentPanel({
             </p>
           </div>
         )}
-        {generation.legalNumber && (
+        {generation?.legalNumber && (
           <Figure label={t('notifications.detail.document.legalNumber', 'Numéro légal')}>
             {generation.legalNumber}
           </Figure>
         )}
-        <div className="ms-auto min-w-0 text-end">
-          <Caption>{t('notifications.detail.document.producedAt', 'Produit le')}</Caption>
-          <p className="m-0 mt-1 text-xs tabular-nums text-muted-foreground">
-            {fullTimestamp(generation.createdAt, currentLanguage)}
-          </p>
-        </div>
+        {generation && (
+          <div className="ms-auto min-w-0 text-end">
+            <Caption>{t('notifications.detail.document.producedAt', 'Produit le')}</Caption>
+            <p className="m-0 mt-1 text-xs tabular-nums text-muted-foreground">
+              {fullTimestamp(generation.createdAt, currentLanguage)}
+            </p>
+          </div>
+        )}
       </div>
 
-      {!failed && (
+      {!failed && generation && (
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-4">
             <Caption>{t('notifications.detail.document.piece', 'La pièce')}</Caption>

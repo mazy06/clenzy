@@ -214,6 +214,7 @@ export default function NotificationDetailCard({
   const { dossier, loading: dossierLoading } = useNotificationIntervention(interventionId);
 
   const documentGenerationId = documentGenerationIdOf(notification);
+  const documentFailed = notification.notificationKey === 'DOCUMENT_GENERATION_FAILED';
   const { generation, loading: generationLoading } = useNotificationDocument(documentGenerationId);
 
   const moneySubject = React.useMemo(() => moneySubjectOf(notification), [notification]);
@@ -275,7 +276,7 @@ export default function NotificationDetailCard({
   /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
   const messageTakenOver = stay !== null || instructions !== null || plan !== null
     || dossier !== null || requestDossier !== null || moneyDossier !== null
-    || generation !== null;
+    || generation !== null || documentFailed;
 
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
@@ -370,12 +371,19 @@ export default function NotificationDetailCard({
             <NotificationStaySkeleton />
           ) : null)}
 
-        {documentGenerationId !== null &&
-          (generation ? (
-            <NotificationDocumentPanel generation={generation} message={notification.message} />
-          ) : generationLoading ? (
+        {/* Un ECHEC s'affiche meme sans la piece : son motif est dans le
+            message, et c'est quand la production documentaire va mal qu'on lit
+            ces fiches. Un succes sans sa piece n'aurait, lui, rien a ajouter. */}
+        {documentGenerationId !== null && (generation || documentFailed) &&
+          (generationLoading ? (
             <NotificationDocumentSkeleton />
-          ) : null)}
+          ) : (
+            <NotificationDocumentPanel
+              generation={generation}
+              message={notification.message}
+              failedEvent={documentFailed}
+            />
+          ))}
 
         {moneySubject &&
           (moneyDossier ? (

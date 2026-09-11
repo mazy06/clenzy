@@ -5863,7 +5863,8 @@
         "missing_one": "وسم واحد غير محلول",
         "missing_other": "{{count}} وسوم غير محلولة",
         "groupAbsent": "بيانات «{{group}}» غائبة عن السياق",
-        "groupUnknown": "المصدر غير محدَّد"
+        "groupUnknown": "المصدر غير محدَّد",
+        "failedTitle": "تعذّر إنتاج الملف"
       },
       "review": {
         "anonymous": "نزيل",
