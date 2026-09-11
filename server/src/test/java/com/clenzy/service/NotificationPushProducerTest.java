@@ -31,14 +31,14 @@ class NotificationPushProducerTest {
     @Mock private UserRepository userRepository;
     @Mock private TenantContext tenantContext;
     @Mock private OutboxPublisher outboxPublisher;
-    @Mock private NotificationGuestAvatarResolver guestAvatars;
+    @Mock private NotificationFactsResolver readFacts;
 
     private NotificationService service;
 
     @BeforeEach
     void setUp() {
         service = new NotificationService(notificationRepository, preferenceService,
-                userRepository, tenantContext, outboxPublisher, new ObjectMapper(), guestAvatars);
+                userRepository, tenantContext, outboxPublisher, new ObjectMapper(), readFacts);
         when(preferenceService.isEnabled(anyString(), any())).thenReturn(true);
         when(notificationRepository.save(any())).thenAnswer(inv -> {
             Notification n = inv.getArgument(0);

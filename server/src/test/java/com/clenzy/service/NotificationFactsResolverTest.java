@@ -3,7 +3,9 @@ package com.clenzy.service;
 import com.clenzy.model.Guest;
 import com.clenzy.model.Notification;
 import com.clenzy.model.Reservation;
+import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.SupervisionSuggestionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -23,23 +26,27 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Photos de voyageurs d'un LOT de notifications.
+ * Faits resolus a la LECTURE pour un lot de notifications.
  *
- * <p>Trois choses a prouver : une seule requete quel que soit le nombre de
- * lignes (l'ecran se recharge en continu), aucune fuite entre organisations, et
- * des faits illisibles qui n'empechent pas de lire la page.</p>
+ * <p>Quatre choses a prouver : une seule requete de sejours quel que soit le
+ * nombre de lignes (l'ecran se recharge en continu), le sejour retrouve par la
+ * CARTE quand les faits ne le portent pas, aucune fuite entre organisations a
+ * aucun des deux sauts, et des faits illisibles qui n'empechent pas de lire la
+ * page.</p>
  */
 @ExtendWith(MockitoExtension.class)
-class NotificationGuestAvatarResolverTest {
+class NotificationFactsResolverTest {
 
     @Mock private ReservationRepository reservationRepository;
+    @Mock private SupervisionSuggestionRepository suggestionRepository;
     @Mock private GuestPhotoUrlResolver photoUrls;
 
-    private NotificationGuestAvatarResolver resolver;
+    private NotificationFactsResolver resolver;
 
     @BeforeEach
     void setUp() {
-        resolver = new NotificationGuestAvatarResolver(reservationRepository, photoUrls, new ObjectMapper());
+        resolver = new NotificationFactsResolver(reservationRepository, suggestionRepository,
+                photoUrls, new ObjectMapper());
         lenient().when(photoUrls.publicUrl(org.mockito.ArgumentMatchers.anyLong(),
                                            org.mockito.ArgumentMatchers.anyString()))
                 .thenAnswer(call -> "/api/guests/" + call.getArgument(0) + "/photo?ticket=t");
@@ -77,10 +84,10 @@ class NotificationGuestAvatarResolverTest {
                                     reservation(12L, 7L, 102L),
                                     reservation(13L, 7L, 103L)));
 
-        Map<Long, String> photos = resolver.forNotifications(rows);
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(rows);
 
-        assertThat(photos).hasSize(3);
-        assertThat(photos.get(1L)).isEqualTo("/api/guests/101/photo?ticket=t");
+        assertThat(facts).hasSize(3);
+        assertThat(facts.get(1L).guestAvatarUrl()).isEqualTo("/api/guests/101/photo?ticket=t");
         verify(reservationRepository, times(1)).findAllWithGuestByIdIn(anyCollection());
     }
 
@@ -90,11 +97,11 @@ class NotificationGuestAvatarResolverTest {
         when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
                 .thenReturn(List.of(reservation(11L, 7L, 101L)));
 
-        Map<Long, String> photos = resolver.forNotifications(List.of(
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(List.of(
                 notification(1L, 7L, "{\"reservationId\":11}"),
                 notification(2L, 7L, "{\"reservationId\":11}")));
 
-        assertThat(photos).containsOnlyKeys(1L, 2L);
+        assertThat(facts).containsOnlyKeys(1L, 2L);
         verify(reservationRepository, times(1)).findAllWithGuestByIdIn(anyCollection());
     }
 
@@ -103,10 +110,10 @@ class NotificationGuestAvatarResolverTest {
         when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
                 .thenReturn(List.of(reservation(11L, 999L, 101L)));
 
-        Map<Long, String> photos = resolver.forNotifications(
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
                 List.of(notification(1L, 7L, "{\"reservationId\":11}")));
 
-        assertThat(photos).isEmpty();
+        assertThat(facts).isEmpty();
     }
 
     @Test
@@ -116,10 +123,10 @@ class NotificationGuestAvatarResolverTest {
         when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
                 .thenReturn(List.of(reservation(11L, 7L, 101L)));
 
-        Map<Long, String> photos = resolver.forNotifications(
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
                 List.of(notification(1L, null, "{\"reservationId\":11}")));
 
-        assertThat(photos).isEmpty();
+        assertThat(facts).isEmpty();
     }
 
     @Test
@@ -127,20 +134,70 @@ class NotificationGuestAvatarResolverTest {
         when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
                 .thenReturn(List.of(reservation(11L, 7L, null)));
 
-        Map<Long, String> photos = resolver.forNotifications(
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
                 List.of(notification(1L, 7L, "{\"reservationId\":11}")));
 
-        assertThat(photos).isEmpty();
+        assertThat(facts).isEmpty();
     }
 
     @Test
     void whenNoNotificationCarriesAStay_thenNothingIsQueried() {
-        Map<Long, String> photos = resolver.forNotifications(List.of(
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(List.of(
                 notification(1L, 7L, null),
                 notification(2L, 7L, "{\"property\":\"Studio Jemmapes\"}"),
                 notification(3L, 7L, "pas du json")));
 
-        assertThat(photos).isEmpty();
+        assertThat(facts).isEmpty();
+        verify(reservationRepository, never()).findAllWithGuestByIdIn(anyCollection());
+    }
+
+    private SupervisionSuggestion card(long id, Long orgId, Long reservationId) {
+        SupervisionSuggestion suggestion = new SupervisionSuggestion();
+        suggestion.setId(id);
+        suggestion.setOrganizationId(orgId);
+        suggestion.setReservationId(reservationId);
+        return suggestion;
+    }
+
+    @Test
+    void whenFactsCarryOnlyTheCard_thenTheStayIsFoundThroughIt() {
+        // Notification emise avant que le sejour ne rejoigne les faits : sa carte
+        // ne renotifiera pas (deduplication), la fiche resterait muette a vie.
+        when(suggestionRepository.findAllById(anyIterable()))
+                .thenReturn(List.of(card(556L, 7L, 515L)));
+        when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
+                .thenReturn(List.of(reservation(515L, 7L, 101L)));
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
+                List.of(notification(1L, 7L, "{\"suggestionId\":556,\"actionType\":\"NOSHOW_MARK\"}")));
+
+        assertThat(facts.get(1L).reservationId()).isEqualTo(515L);
+        assertThat(facts.get(1L).guestAvatarUrl()).isEqualTo("/api/guests/101/photo?ticket=t");
+    }
+
+    @Test
+    void whenTheStayIsAlreadyInTheFacts_thenItIsNotRepublished() {
+        // Le regreffer serait du bruit : il est deja la, ecrit a l'emission.
+        when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
+                .thenReturn(List.of(reservation(11L, 7L, 101L)));
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
+                List.of(notification(1L, 7L, "{\"reservationId\":11}")));
+
+        assertThat(facts.get(1L).reservationId()).isNull();
+        assertThat(facts.get(1L).guestAvatarUrl()).isNotNull();
+        verify(suggestionRepository, never()).findAllById(anyIterable());
+    }
+
+    @Test
+    void whenTheCardBelongsToAnotherOrganization_thenItOpensNoStay() {
+        when(suggestionRepository.findAllById(anyIterable()))
+                .thenReturn(List.of(card(556L, 999L, 515L)));
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
+                List.of(notification(1L, 7L, "{\"suggestionId\":556}")));
+
+        assertThat(facts).isEmpty();
         verify(reservationRepository, never()).findAllWithGuestByIdIn(anyCollection());
     }
 }

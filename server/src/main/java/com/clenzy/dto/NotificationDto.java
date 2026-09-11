@@ -1,6 +1,8 @@
 package com.clenzy.dto;
 
 import com.clenzy.model.Notification;
+import com.clenzy.service.NotificationFactsResolver.ReadFacts;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.model.NotificationCategory;
 import com.clenzy.model.NotificationType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,15 +49,15 @@ public class NotificationDto {
     }
 
     /**
-     * Notification, photo du voyageur comprise.
+     * Notification, faits de lecture compris.
      *
-     * <p>La photo ne peut pas etre figee a l'emission : son URL porte un ticket
-     * signe valable un quart d'heure, et une notification se lit souvent bien
-     * plus tard. Elle est donc frappee a la lecture
-     * ({@code NotificationGuestAvatarResolver}) et greffee aux faits, ou elle
-     * accompagne le NOM du voyageur qui, lui, a bien ete ecrit a l'emission.</p>
+     * <p>Deux faits ne peuvent pas etre figes a l'emission — la photo du
+     * voyageur, dont l'URL porte un ticket qui expire, et le sejour d'une carte
+     * de supervision emise avant que ce fait n'existe. Ils sont resolus par
+     * {@code NotificationFactsResolver} et greffes ici, aux cotes de ceux que
+     * l'emetteur, lui, a bien ecrits.</p>
      */
-    public static NotificationDto fromEntity(Notification entity, String guestAvatarUrl) {
+    public static NotificationDto fromEntity(Notification entity, ReadFacts readFacts) {
         NotificationDto dto = new NotificationDto();
         dto.id = entity.getId();
         dto.userId = entity.getUserId();
@@ -66,20 +68,25 @@ public class NotificationDto {
         dto.notificationKey = entity.getNotificationKey() != null ? entity.getNotificationKey().name() : null;
         dto.read = entity.isRead();
         dto.actionUrl = entity.getActionUrl();
-        dto.metadata = withGuestAvatar(parseMetadata(entity.getMetadata()), guestAvatarUrl);
+        dto.metadata = withReadFacts(parseMetadata(entity.getMetadata()), readFacts);
         dto.createdAt = entity.getCreatedAt();
         return dto;
     }
 
     /**
-     * Greffe la photo aux faits. Rien a greffer, ou des faits qui ne sont pas un
-     * objet : les faits ressortent inchanges — une notification reste lisible
-     * meme quand son voyageur n'a pas de photo, ce qui est le cas courant.
+     * Greffe les faits de lecture. Rien a greffer, ou des faits qui ne sont pas
+     * un objet : ils ressortent inchanges — une notification reste lisible meme
+     * quand son voyageur n'a pas de photo, ce qui est le cas courant.
      */
-    private static JsonNode withGuestAvatar(JsonNode metadata, String guestAvatarUrl) {
-        if (guestAvatarUrl == null || guestAvatarUrl.isBlank()) return metadata;
+    private static JsonNode withReadFacts(JsonNode metadata, ReadFacts readFacts) {
+        if (readFacts == null) return metadata;
         if (!(metadata instanceof ObjectNode facts)) return metadata;
-        facts.put(GUEST_AVATAR_URL, guestAvatarUrl);
+        if (readFacts.reservationId() != null) {
+            facts.put(NotificationMetadata.RESERVATION_ID, readFacts.reservationId());
+        }
+        if (readFacts.guestAvatarUrl() != null && !readFacts.guestAvatarUrl().isBlank()) {
+            facts.put(GUEST_AVATAR_URL, readFacts.guestAvatarUrl());
+        }
         return facts;
     }
 

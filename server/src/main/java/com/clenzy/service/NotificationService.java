@@ -60,7 +60,7 @@ public class NotificationService {
 
     private final OutboxPublisher outboxPublisher;
     private final ObjectMapper objectMapper;
-    private final NotificationGuestAvatarResolver guestAvatars;
+    private final NotificationFactsResolver readFacts;
 
     public NotificationService(NotificationRepository notificationRepository,
                                NotificationPreferenceService preferenceService,
@@ -68,14 +68,14 @@ public class NotificationService {
                                TenantContext tenantContext,
                                OutboxPublisher outboxPublisher,
                                ObjectMapper objectMapper,
-                               NotificationGuestAvatarResolver guestAvatars) {
+                               NotificationFactsResolver readFacts) {
         this.notificationRepository = notificationRepository;
         this.preferenceService = preferenceService;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.outboxPublisher = outboxPublisher;
         this.objectMapper = objectMapper;
-        this.guestAvatars = guestAvatars;
+        this.readFacts = readFacts;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ public class NotificationService {
      */
     @Transactional(readOnly = true)
     public List<NotificationDto> getAllForUser(String userId) {
-        return withGuestPhotos(notificationRepository
+        return withReadFacts(notificationRepository
                 .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, MAX_NOTIFICATIONS_RETURNED)));
     }
 
@@ -122,18 +122,17 @@ public class NotificationService {
             total = notificationRepository.countByUserId(userId);
         }
 
-        return new NotificationPageDto(withGuestPhotos(rows), page, size, total);
+        return new NotificationPageDto(withReadFacts(rows), page, size, total);
     }
 
     /**
-     * Converti en DTO, photo du voyageur comprise — une requete pour tout le
-     * lot, jamais une par ligne : l'ecran des notifications se recharge en
-     * continu.
+     * Converti en DTO, faits de lecture compris — resolus pour tout le lot,
+     * jamais ligne par ligne : l'ecran des notifications se recharge en continu.
      */
-    private List<NotificationDto> withGuestPhotos(List<Notification> rows) {
-        Map<Long, String> photos = guestAvatars.forNotifications(rows);
+    private List<NotificationDto> withReadFacts(List<Notification> rows) {
+        Map<Long, NotificationFactsResolver.ReadFacts> resolved = readFacts.forNotifications(rows);
         return rows.stream()
-                .map(row -> NotificationDto.fromEntity(row, photos.get(row.getId())))
+                .map(row -> NotificationDto.fromEntity(row, resolved.get(row.getId())))
                 .toList();
     }
 
