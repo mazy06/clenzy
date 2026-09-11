@@ -125,9 +125,15 @@ public class AccessCodeRotationScheduler {
                 "Le voyageur est parti : le code d'accès de « " + property.getName()
                         + " » a été régénéré (" + newCode + "). Pensez à mettre à jour le code de la boîte à clé.",
                 "/properties/" + propertyId,
-                // Le code lui-meme reste dans le message : un secret n'a rien a
+                // Le code lui-meme reste hors des faits : un secret n'a rien a
                 // faire dans un champ structure destine a etre affiche partout.
-                NotificationMetadata.of().property(property.getName()).build());
+                // Le LOGEMENT, lui, y entre : c'est par lui que la fiche va lire
+                // le code EN VIGUEUR — celui du message vieillit a la premiere
+                // rotation suivante, et c'est l'ancien qu'on irait recopier.
+                NotificationMetadata.of()
+                        .property(property.getName())
+                        .propertyId(propertyId)
+                        .build());
 
         // Feed « En direct » de la constellation du logement (agent Opérations « ops ») : best-effort,
         // un échec ne doit jamais casser la rotation. propertyId résolu par occurrence (ce logement).

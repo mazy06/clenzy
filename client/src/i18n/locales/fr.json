@@ -5762,6 +5762,13 @@
         "cancelDone": "Réservation annulée — les nuits sont libérées.",
         "cancelFailed": "L'annulation a échoué."
       },
+      "accessCode": {
+        "current": "Code en vigueur",
+        "copy": "Copier le code",
+        "copied": "Copié",
+        "autoRotate": "Renouvellement auto",
+        "unknown": "Aucun code d'accès n'est enregistré sur ce logement."
+      },
       "review": {
         "anonymous": "Voyageur",
         "awaitingReply": "Sans réponse",
@@ -5780,7 +5787,8 @@
         "system": "Événement de plateforme : synchronisation d'un canal, configuration, intégration ou compte utilisateur.",
         "SUPERVISION_SUGGESTION": "Un agent de la constellation a repéré quelque chose sur un logement et propose un geste — il ne l'exécute pas seul. La carte attend votre validation dans la file de supervision du logement concerné.",
         "SUPERVISION_AUTO_APPLIED": "Un agent a appliqué lui-même un geste que vous aviez autorisé en automatique. C'est un compte rendu : rien n'attend de décision.",
-        "SUPERVISION_AUTO_RULE_SUGGESTED": "Le même geste revient assez souvent pour valoir une règle : l'agent propose de l'automatiser plutôt que de vous le redemander."
+        "SUPERVISION_AUTO_RULE_SUGGESTED": "Le même geste revient assez souvent pour valoir une règle : l'agent propose de l'automatiser plutôt que de vous le redemander.",
+        "ACCESS_CODE_ROTATED": "Le départ du voyageur a déclenché le renouvellement du code d'accès de ce logement. Le code montré ici est celui qui est EN VIGUEUR, relu à l'instant : une rotation plus récente aurait périmé celui du message."
       },
       "nextStep": {
         "default": "Ouvrez l'écran concerné pour agir sur l'élément à l'origine de cette notification.",
@@ -5795,7 +5803,8 @@
         "system": "Rien à faire tant qu'aucune erreur n'est signalée. Sinon, ouvrez l'écran concerné pour relancer.",
         "SUPERVISION_SUGGESTION": "Ouvrez la carte dans la file de supervision : elle rappelle l'état exact au moment d'agir, et le geste s'y exécute en un clic.",
         "SUPERVISION_AUTO_APPLIED": "Rien à faire. Si le geste ne vous convient pas, la règle d'automatisation se règle dans Automatisations.",
-        "SUPERVISION_AUTO_RULE_SUGGESTED": "Décidez si ce geste doit devenir automatique — l'agent continuera sinon à vous le proposer carte par carte."
+        "SUPERVISION_AUTO_RULE_SUGGESTED": "Décidez si ce geste doit devenir automatique — l'agent continuera sinon à vous le proposer carte par carte.",
+        "ACCESS_CODE_ROTATED": "Reportez le code sur la boîte à clés : c'est le seul endroit que la plateforme ne met pas à jour elle-même."
       }
     }
   },

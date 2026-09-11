@@ -35,6 +35,11 @@ import NotificationReviewPanel, {
   reviewIdOf,
   useNotificationReview,
 } from './NotificationReviewPanel';
+import NotificationAccessCodePanel, {
+  NotificationAccessCodeSkeleton,
+  accessCodePropertyIdOf,
+  useNotificationAccessCode,
+} from './NotificationAccessCodePanel';
 import NotificationStayPanel, {
   NotificationStayActions,
   NotificationStaySkeleton,
@@ -173,6 +178,9 @@ export default function NotificationDetailCard({
   const reservationId = reservationIdOf(notification);
   const { stay, loading: stayLoading, reload: reloadStay } = useNotificationStay(reservationId);
 
+  const accessCodePropertyId = accessCodePropertyIdOf(notification);
+  const { instructions, loading: accessCodeLoading } = useNotificationAccessCode(accessCodePropertyId);
+
   const destination = resolveDestination(notification.actionUrl);
   const destinationLabel = destination?.translationKey
     ? t(destination.translationKey, destination.fallbackLabel ?? '')
@@ -219,6 +227,9 @@ export default function NotificationDetailCard({
       ? t(`notifications.detail.${kind}.${notification.notificationKey}`, byCategory)
       : byCategory;
   };
+  /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
+  const messageTakenOver = stay !== null || instructions !== null;
+
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
     'nextStep',
@@ -308,13 +319,24 @@ export default function NotificationDetailCard({
             <NotificationStaySkeleton />
           ) : null)}
 
+        {accessCodePropertyId !== null &&
+          (instructions ? (
+            <NotificationAccessCodePanel
+              instructions={instructions}
+              propertyName={propertyName}
+              observation={notification.message}
+            />
+          ) : accessCodeLoading ? (
+            <NotificationAccessCodeSkeleton />
+          ) : null)}
+
         {showsReview ? (
           review ? <NotificationReviewPanel review={review} /> : <NotificationReviewSkeleton />
         ) : (
-          /* Le motif n'est rendu ici que si aucun panneau ne l'a PRIS. Le
-             dossier d'un sejour le porte desormais en pied de carte — l'afficher
-             deux fois faisait lire la meme phrase a deux endroits. */
-          !stay && (
+          /* Le motif n'est rendu ici que si aucun panneau ne l'a PRIS : ceux qui
+             ouvrent un dossier le portent desormais en pied de carte, et le lire
+             deux fois au meme ecran n'apprenait rien. */
+          !messageTakenOver && (
             <p className="m-0 text-[15px] leading-relaxed whitespace-pre-line text-foreground">
               {notification.message}
             </p>
