@@ -200,6 +200,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest WHERE r.id IN :ids")
     List<Reservation> findAllWithGuestByIdIn(@Param("ids") Collection<Long> ids);
 
+    /**
+     * Sejours d'une organisation retrouves par leur code de confirmation.
+     *
+     * <p>Le pendant de {@link #findAllWithGuestByIdIn} pour les evenements qui
+     * n'ont garde du sejour que sa REFERENCE affichable — une notification
+     * emise avant que l'identifiant n'y soit joint. Org-scope dans la requete :
+     * un code n'est unique qu'a l'interieur d'une organisation.</p>
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest "
+        + "WHERE r.organizationId = :orgId AND r.confirmationCode IN :codes")
+    List<Reservation> findAllWithGuestByConfirmationCodeIn(@Param("orgId") Long orgId,
+                                                           @Param("codes") Collection<String> codes);
+
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE LOWER(r.guestName) LIKE LOWER(CONCAT('%', :q, '%')) " +
            "OR LOWER(r.property.name) LIKE LOWER(CONCAT('%', :q, '%')) " +

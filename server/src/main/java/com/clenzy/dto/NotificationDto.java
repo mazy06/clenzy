@@ -87,6 +87,14 @@ public class NotificationDto {
         if (readFacts.guestAvatarUrl() != null && !readFacts.guestAvatarUrl().isBlank()) {
             facts.put(GUEST_AVATAR_URL, readFacts.guestAvatarUrl());
         }
+        // La serrure et l'avis ne sont greffes que s'ils MANQUENT : quand
+        // l'emetteur les a ecrits, ce sont les siens qui font foi.
+        if (readFacts.deviceId() != null && !facts.has(NotificationMetadata.DEVICE_ID)) {
+            facts.put(NotificationMetadata.DEVICE_ID, readFacts.deviceId());
+        }
+        if (readFacts.reviewId() != null && !facts.has(NotificationMetadata.REVIEW_ID)) {
+            facts.put(NotificationMetadata.REVIEW_ID, readFacts.reviewId());
+        }
         return facts;
     }
 

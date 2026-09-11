@@ -19,6 +19,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyIterable;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -58,6 +59,12 @@ class NotificationFactsResolverTest {
         notification.setOrganizationId(orgId);
         notification.setMetadata(metadata);
         return notification;
+    }
+
+    private Reservation reservationWithCode(long id, Long orgId, Long guestId, String code) {
+        Reservation reservation = reservation(id, orgId, guestId);
+        reservation.setConfirmationCode(code);
+        return reservation;
     }
 
     private Reservation reservation(long id, Long orgId, Long guestId) {
@@ -187,6 +194,80 @@ class NotificationFactsResolverTest {
         assertThat(facts.get(1L).reservationId()).isNull();
         assertThat(facts.get(1L).guestAvatarUrl()).isNotNull();
         verify(suggestionRepository, never()).findAllById(anyIterable());
+    }
+
+    @Test
+    void whenFactsCarryOnlyTheReference_thenTheStayIsFoundThroughIt() {
+        // Message envoye avant que l'identifiant du sejour ne rejoigne les faits :
+        // seule sa reference affichable reste, et elle suffit a retrouver le visage.
+        when(reservationRepository.findAllWithGuestByConfirmationCodeIn(eq(7L), anyCollection()))
+                .thenReturn(List.of(reservationWithCode(515L, 7L, 101L, "SD-76-0041")));
+        when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
+                .thenReturn(List.of(reservationWithCode(515L, 7L, 101L, "SD-76-0041")));
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
+                List.of(notification(1L, 7L, "{\"reservationReference\":\"SD-76-0041\"}")));
+
+        assertThat(facts.get(1L).reservationId()).isEqualTo(515L);
+        assertThat(facts.get(1L).guestAvatarUrl()).isEqualTo("/api/guests/101/photo?ticket=t");
+    }
+
+    @Test
+    void whenTheReferenceIsLookedUp_thenItIsScopedToTheNotificationOrganization() {
+        // Un code de confirmation n'est unique qu'a l'interieur d'une
+        // organisation : interroger sans elle rendrait le sejour d'une autre.
+        when(reservationRepository.findAllWithGuestByConfirmationCodeIn(eq(7L), anyCollection()))
+                .thenReturn(List.of());
+
+        assertThat(resolver.forNotifications(
+                List.of(notification(1L, 7L, "{\"reservationReference\":\"SD-76-0041\"}")))).isEmpty();
+        verify(reservationRepository).findAllWithGuestByConfirmationCodeIn(eq(7L), anyCollection());
+        verify(reservationRepository, never()).findAllWithGuestByIdIn(anyCollection());
+    }
+
+    @Test
+    void whenTheStayIsAlreadyKnownById_thenTheReferenceIsNotLookedUp() {
+        // La reference n'est qu'un repli : elle ne doit pas couter une requete
+        // quand les faits portent deja l'identifiant.
+        when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
+                .thenReturn(List.of(reservation(11L, 7L, 101L)));
+
+        resolver.forNotifications(List.of(
+                notification(1L, 7L, "{\"reservationId\":11,\"reservationReference\":\"SD-76-0041\"}")));
+
+        verify(reservationRepository, never())
+                .findAllWithGuestByConfirmationCodeIn(org.mockito.ArgumentMatchers.anyLong(), anyCollection());
+    }
+
+    @Test
+    void whenTheCardDesignatesALockRatherThanAStay_thenTheDeviceIsResolved() {
+        // Une alerte de batterie ne designe aucun sejour : son identifiant de
+        // serrure vit dans les parametres de la carte. Sans lui, la fiche
+        // restait un paragraphe — et rien ne fera renotifier une carte en
+        // attente.
+        SupervisionSuggestion lockCard = card(551L, 7L, null);
+        lockCard.setActionParams("{\"deviceId\":8}");
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(lockCard));
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
+                List.of(notification(1L, 7L,
+                        "{\"suggestionId\":551,\"actionType\":\"LOCK_BATTERY_REPLACE\"}")));
+
+        assertThat(facts.get(1L).deviceId()).isEqualTo(8L);
+        assertThat(facts.get(1L).reservationId()).isNull();
+        // Aucun sejour a charger : la requete des sejours n'a pas lieu d'etre.
+        verify(reservationRepository, never()).findAllWithGuestByIdIn(anyCollection());
+    }
+
+    @Test
+    void whenTheCardCarriesNoParameters_thenNothingIsInvented() {
+        SupervisionSuggestion bare = card(551L, 7L, null);
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(bare));
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(
+                List.of(notification(1L, 7L, "{\"suggestionId\":551}")));
+
+        assertThat(facts).isEmpty();
     }
 
     @Test
