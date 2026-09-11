@@ -5783,6 +5783,24 @@
         "segments": "الفترات المعنية",
         "impact": "المكسب المقدَّر"
       },
+      "intervention": {
+        "critical": "أولوية حرجة — تُعالَج قبل كل شيء",
+        "high": "أولوية عالية",
+        "nature": "طبيعة التدخّل",
+        "reported": "البلاغ الأصلي",
+        "reportedBy": "بلّغ عنه {{name}}",
+        "scheduled": "مقرَّر في",
+        "estimatedCost": "التكلفة المقدَّرة",
+        "actualCost": "التكلفة الفعلية",
+        "estimatedDuration": "المدة المتوقّعة",
+        "actualDuration": "المدة الفعلية",
+        "minutes": "د",
+        "progress": "التقدّم",
+        "access": "إرشادات الدخول",
+        "parking": "الوقوف",
+        "photos": "صور",
+        "openMap": "فتح في الخرائط"
+      },
       "review": {
         "anonymous": "نزيل",
         "awaitingReply": "بلا رد",

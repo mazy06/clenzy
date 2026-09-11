@@ -40,6 +40,11 @@ import NotificationAccessCodePanel, {
   accessCodePropertyIdOf,
   useNotificationAccessCode,
 } from './NotificationAccessCodePanel';
+import NotificationInterventionPanel, {
+  NotificationInterventionSkeleton,
+  interventionIdOf,
+  useNotificationIntervention,
+} from './NotificationInterventionPanel';
 import NotificationPricingPanel, {
   NotificationPricingSkeleton,
   pricingCardOf,
@@ -189,6 +194,9 @@ export default function NotificationDetailCard({
   const pricingCard = React.useMemo(() => pricingCardOf(notification), [notification]);
   const { plan, loading: pricingLoading } = useNotificationPricing(pricingCard);
 
+  const interventionId = interventionIdOf(notification);
+  const { dossier, loading: dossierLoading } = useNotificationIntervention(interventionId);
+
   const destination = resolveDestination(notification.actionUrl);
   const destinationLabel = destination?.translationKey
     ? t(destination.translationKey, destination.fallbackLabel ?? '')
@@ -236,7 +244,7 @@ export default function NotificationDetailCard({
       : byCategory;
   };
   /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
-  const messageTakenOver = stay !== null || instructions !== null || plan !== null;
+  const messageTakenOver = stay !== null || instructions !== null || plan !== null || dossier !== null;
 
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
@@ -325,6 +333,13 @@ export default function NotificationDetailCard({
             <NotificationStayPanel stay={stay} observation={notification.message} />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
+          ) : null)}
+
+        {interventionId !== null &&
+          (dossier ? (
+            <NotificationInterventionPanel dossier={dossier} observation={notification.message} />
+          ) : dossierLoading ? (
+            <NotificationInterventionSkeleton />
           ) : null)}
 
         {pricingCard &&

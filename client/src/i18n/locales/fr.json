@@ -5776,6 +5776,24 @@
         "segments": "Créneaux concernés",
         "impact": "Gain estimé"
       },
+      "intervention": {
+        "critical": "Priorité critique — à traiter avant le reste",
+        "high": "Priorité élevée",
+        "nature": "Nature de l'intervention",
+        "reported": "Signalement à l'origine",
+        "reportedBy": "Signalé par {{name}}",
+        "scheduled": "Prévue le",
+        "estimatedCost": "Coût estimé",
+        "actualCost": "Coût réel",
+        "estimatedDuration": "Durée prévue",
+        "actualDuration": "Durée réelle",
+        "minutes": "min",
+        "progress": "Avancement",
+        "access": "Indications d'accès",
+        "parking": "Stationnement",
+        "photos": "Photos",
+        "openMap": "Ouvrir dans Maps"
+      },
       "review": {
         "anonymous": "Voyageur",
         "awaitingReply": "Sans réponse",
