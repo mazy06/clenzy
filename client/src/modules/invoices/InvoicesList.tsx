@@ -332,7 +332,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
       {/* ─── KPIs — les trois tuiles monetaires de la projection ─────────── */}
       {stats && (
-        <StatTileRow columns={3} className="mb-3">
+        <StatTileRow compact className="mb-3">
           <StatTile
             icon={<ReceiptIcon />}
             label={t('invoices.stats.issuedTotal', 'Émis')}

@@ -70,7 +70,7 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
   if (aggregates.covered === 0) return null;
 
   return (
-    <StatTileRow columns={3} className="mb-[9px] shrink-0">
+    <StatTileRow compact className="mb-[9px] shrink-0">
       <StatTile
         icon={<Percent />}
         label="Occupation moyenne"

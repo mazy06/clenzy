@@ -44,6 +44,7 @@ import {
   useCheckTemplateCompliance,
 } from './hooks/useDocuments';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 
 // ─── Teintes d'icone des tuiles KPI (classes Baitly UI) ─────────────────────
 const PRIMARY = 'text-primary';
@@ -293,7 +294,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
 
       {/* ─── KPIs (primitive StatTile) ───────────────────────────────── */}
       {stats && (
-        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px] mb-[18px]">
+        <StatTileRow compact className="mb-[18px]">
           <StatTile
             icon={<Description size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.totalDocuments')}
@@ -318,7 +319,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             value={`${stats.averageComplianceScore}%`}
             iconClassName={ACCENT_TEAL}
           />
-        </div>
+        </StatTileRow>
       )}
 
       {/* ─── Search result ────────────────────────────────────────────── */}

@@ -41,6 +41,7 @@ import { FilterSearchBar } from '../../components/FilterSearchBar';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
@@ -438,7 +439,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       )}
 
       {/* KPIs (StatTile baseline) */}
-      <div className="grid grid-cols-[repeat(auto-fit,_minmax(160px,_1fr))] gap-1.5 mb-3">
+      <StatTileRow compact className="mb-3">
         {summaryCards.map((card) => (
           <StatTile
             key={card.label}
@@ -449,7 +450,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             loading={loading}
           />
         ))}
-      </div>
+      </StatTileRow>
 
       {/* Data table */}
       <DataFetchWrapper

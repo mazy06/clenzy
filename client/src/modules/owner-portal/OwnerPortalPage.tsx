@@ -391,7 +391,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   return (
     <>
       {/* ── KPI ── */}
-      <StatTileRow columns={5} className="mb-3">
+      <StatTileRow compact className="mb-3">
         {kpis.map((kpi) => (
           <StatTile
             key={kpi.label}

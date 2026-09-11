@@ -434,15 +434,25 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           meme la carte, et `shrink-0` les rendait incompressibles. Le plancher de
           largeur evite qu'elles se tassent, `snap` cale le defilement sur chaque
           tuile. A partir de `sm` on retrouve la grille a trois colonnes. */}
-      <StatTileRow columns={3} className="mb-3 shrink-0">
+      <StatTileRow
+        compact
+        className="mb-3 shrink-0"
+        footer={kpis.plusAncienne ? (
+          <p className="m-0 text-xs text-muted-foreground">
+            <b className="font-semibold text-foreground">{kpis.plusAncienne.title.slice(0, 40)}</b>{' '}
+            {t('serviceRequests.kpi.sinceDays', { count: kpis.joursRetard, defaultValue: 'depuis {{count}} j' })}
+            {kpis.dureeMoy > 0 && (
+              <> · <b className="font-semibold text-foreground">{formatDuree(kpis.dureeMoy)}</b>{' '}
+                {t('serviceRequests.kpi.avgDuration', 'de durée moyenne estimée')}</>
+            )}
+          </p>
+        ) : undefined}
+      >
         <StatTile
           icon={<WarningIcon />}
           label={t('serviceRequests.kpi.late', 'En retard')}
           value={String(kpis.enRetard)}
           iconClassName="text-destructive"
-          hint={kpis.plusAncienne
-            ? <><b>{kpis.plusAncienne.title.slice(0, 24)}</b> {t('serviceRequests.kpi.sinceDays', { count: kpis.joursRetard, defaultValue: 'depuis {{count}} j' })}</>
-            : undefined}
           loading={loading}
         />
         <StatTile
@@ -456,9 +466,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           label={t('serviceRequests.kpi.done7d', 'Terminées (7 j)')}
           value={String(kpis.terminees7j)}
           iconClassName="text-success"
-          hint={kpis.dureeMoy > 0
-            ? <><b>{formatDuree(kpis.dureeMoy)}</b> {t('serviceRequests.kpi.avgDuration', 'de durée moyenne estimée')}</>
-            : undefined}
           loading={loading}
         />
       </StatTileRow>

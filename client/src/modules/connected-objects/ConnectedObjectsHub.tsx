@@ -197,7 +197,7 @@ export default function ConnectedObjectsHub({
 
       {/* KPIs — les tuiles de la projection : la teinte ne porte que sur
           l'icone, et seulement la ou elle dit quelque chose. */}
-      <StatTileRow columns={5} className="mb-[9px]">
+      <StatTileRow compact className="mb-[9px]">
         <StatTile icon={<Inventory2 />} label="Objets" value={String(kpis.total)} loading={loading} />
         <StatTile
           icon={<MonitorHeart />}
