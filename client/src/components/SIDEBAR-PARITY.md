@@ -180,10 +180,11 @@ fonctionnalité, mais ils changent le rendu — à valider à l'œil.
 La galerie et l'application sont derrière l'authentification : **rien de ce qui
 précède n'a été vu à l'écran.** En priorité :
 - le rail de 3 rem en mode icônes (logo, pastilles de badge, pied en colonne) ;
-- le sous-menu déplié sur un hub actif, et l'exception « clic = navigation » en
-  mode icônes ;
-- les deux volets en RTL — bulle de l'assistant et préférences : côté
-  d'ouverture, congés du raccord, alignement des coches ;
+- le sous-menu déplié sur un hub actif, et son VOLET en mode icônes : dans le
+  rail, un hub n'envoie plus vers son premier onglet, il ouvre ses onglets dans
+  le volet accolé à la barre (`SidebarFlyout`) ;
+- les trois volets en RTL — bulle de l'assistant, préférences, onglets d'un hub :
+  côté d'ouverture, congés du raccord, alignement des coches ;
 - la zone de contenu : `h-svh` + `overflow-hidden` doivent conserver le scroll
   interne des pages qui gèrent le leur (Planning, Studio full-bleed).
 

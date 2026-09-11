@@ -80,8 +80,8 @@ import { cn } from '../utils/cn';
  *  - palette `--bui-sidebar-*` en remplacement des `--nav-*` ;
  *  - un clic sur une entrée de hub **déplie** son sous-menu, la navigation se
  *    fait par les onglets. Exception en mode icônes, où le sous-menu est masqué
- *    par le kit : le clic navigue alors vers le premier onglet, sinon il ne
- *    ferait rien.
+ *    par le kit : le hub ouvre alors ses onglets dans un VOLET accolé à la barre
+ *    (cf. `SidebarFlyout`), le même que les préférences du pied.
  */
 
 const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
@@ -143,6 +143,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
   const { state, isMobile } = useSidebar();
   const iconOnly = state === 'collapsed' && !isMobile;
   const hasChildren = (item.children?.length ?? 0) > 0;
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
 
   const prefetch = () => prefetchRoute(item.path);
 
@@ -156,9 +157,8 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
     </>
   );
 
-  // Entrée simple, ou mode icônes : le clic navigue. En mode icônes le
-  // sous-menu est masqué par le kit — déplier n'aurait aucun effet visible.
-  if (!hasChildren || iconOnly) {
+  // Entrée simple : le clic navigue.
+  if (!hasChildren) {
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -172,6 +172,71 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
           {label}
           <NavBadge item={item} />
         </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  /* ── Hub en mode icônes : ses onglets dans un VOLET ────────────────────────
+     Le kit masque les sous-menus dans le rail : déplier n'y aurait aucun effet
+     visible. Le clic envoyait donc vers le premier onglet, ce qui faisait
+     disparaître les autres du rail — on ne pouvait plus atteindre « Propriétés »
+     sans passer par « Exploitation » puis ses onglets. Le hub ouvre maintenant
+     ses onglets dans le même volet que les préférences (cf. `SidebarFlyout`).
+
+     L'ANCRE est le `div` pleine largeur, pas le bouton : dans le rail le kit
+     réduit celui-ci à un carré de 32 px, alors que le `div` occupe la boîte de
+     contenu du groupe — son bord est donc à 8 px de la ligne de la barre, comme
+     la rangée du pied, et `SIDEBAR_FLYOUT_SEAM_OFFSET` vaut pour les deux.
+
+     `SidebarMenuButton asChild` autour du `PopoverTrigger`, et non l'inverse :
+     Radix pose sur son enfant la ref qui sert d'ancre, et `SidebarMenuButton`
+     est un composant fonction sans `forwardRef` — en React 18 la ref se perd en
+     silence. Dans ce sens-là c'est le `Slot` du kit qui la transmet au trigger,
+     qui lui est bien `forwardRef`. */
+  if (iconOnly) {
+    return (
+      <SidebarMenuItem>
+        <Popover open={flyoutOpen} onOpenChange={setFlyoutOpen}>
+          <PopoverAnchor asChild>
+            <div className="w-full">
+              <SidebarMenuButton
+                asChild
+                isActive={isActive}
+                tooltip={{ children: item.text, side: tooltipSide }}
+                className={cn(flyoutOpen && 'bg-sidebar-accent text-sidebar-accent-foreground')}
+              >
+                <PopoverTrigger onMouseEnter={prefetch} onFocus={prefetch}>
+                  {label}
+                  <NavBadge item={item} />
+                </PopoverTrigger>
+              </SidebarMenuButton>
+            </div>
+          </PopoverAnchor>
+          <PopoverContent
+            side={tooltipSide}
+            align="start"
+            sideOffset={SIDEBAR_FLYOUT_SEAM_OFFSET}
+            className={cn('w-56 gap-0 p-0', sidebarFlyoutClass)}
+          >
+            <SidebarFlyoutGroup label={item.text}>
+              {item.children!.map((child) => (
+                <SidebarFlyoutRow
+                  key={child.path}
+                  // Une DESTINATION, pas un choix : pas de coche, l'aplat de la
+                  // barre suffit à dire quelle page est ouverte.
+                  choice={false}
+                  selected={isSubActive(child.matchPaths, child.path)}
+                  onSelect={() => {
+                    onNavigate(child.path);
+                    setFlyoutOpen(false);
+                  }}
+                >
+                  <span className="truncate">{child.text}</span>
+                </SidebarFlyoutRow>
+              ))}
+            </SidebarFlyoutGroup>
+          </PopoverContent>
+        </Popover>
       </SidebarMenuItem>
     );
   }
