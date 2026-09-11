@@ -216,7 +216,14 @@ function ContactLine({ icon, value, href }: { icon: React.ReactNode; value?: str
  * consommee (elle ne reviendra pas), la part teintee est celle que « Marquer
  * no-show » remet en vente.</p>
  */
-export default function NotificationStayPanel({ stay }: { stay: NotificationStay }) {
+export default function NotificationStayPanel({
+  stay,
+  observation,
+}: {
+  stay: NotificationStay;
+  /** Motif de l'evenement — ce que la carte ne montre pas d'elle-meme. */
+  observation?: string;
+}) {
   const { t, currentLanguage } = useTranslation();
   const { reservation, property } = stay;
 
@@ -347,6 +354,19 @@ export default function NotificationStayPanel({ stay }: { stay: NotificationStay
           <span className="text-sm font-semibold tabular-nums text-foreground">
             <Money value={reservation.totalPrice} />
           </span>
+        </div>
+      )}
+
+      {/* Le motif CLOT le dossier au lieu de flotter en dessous : la carte se lit
+          alors de haut en bas — quel logement, qui, quand, combien, et pourquoi
+          on en parle. Le texte vient de l'emetteur et n'est pas decoupe ici :
+          decouper de la prose a l'ecran casserait a la premiere reformulation. */}
+      {observation?.trim() && (
+        <div className="border-t border-border pt-3.5">
+          <Caption>{t('notifications.detail.stay.observed', 'Ce qui a été observé')}</Caption>
+          <p className="m-0 mt-1.5 text-sm leading-relaxed text-pretty whitespace-pre-line text-foreground">
+            {observation}
+          </p>
         </div>
       )}
     </section>

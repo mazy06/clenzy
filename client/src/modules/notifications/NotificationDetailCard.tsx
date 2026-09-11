@@ -303,7 +303,7 @@ export default function NotificationDetailCard({
 
         {reservationId !== null &&
           (stay ? (
-            <NotificationStayPanel stay={stay} />
+            <NotificationStayPanel stay={stay} observation={notification.message} />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
           ) : null)}
@@ -311,9 +311,14 @@ export default function NotificationDetailCard({
         {showsReview ? (
           review ? <NotificationReviewPanel review={review} /> : <NotificationReviewSkeleton />
         ) : (
-          <p className="m-0 text-[15px] leading-relaxed whitespace-pre-line text-foreground">
-            {notification.message}
-          </p>
+          /* Le motif n'est rendu ici que si aucun panneau ne l'a PRIS. Le
+             dossier d'un sejour le porte desormais en pied de carte — l'afficher
+             deux fois faisait lire la meme phrase a deux endroits. */
+          !stay && (
+            <p className="m-0 text-[15px] leading-relaxed whitespace-pre-line text-foreground">
+              {notification.message}
+            </p>
+          )
         )}
 
         {subject?.node}

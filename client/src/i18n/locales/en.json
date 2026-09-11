@@ -5728,6 +5728,7 @@
         "remainingOfTotal_one": "{{count}} night of {{total}}",
         "remainingOfTotal_other": "{{count}} nights of {{total}}",
         "stayAmount": "Stay total",
+        "observed": "What was observed",
         "remind": "Remind the guest to check in",
         "cancelStay": "Cancel the booking",
         "cancelTitle": "Cancel the booking?",

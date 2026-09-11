@@ -5756,6 +5756,7 @@
         "remainingOfTotal_one": "ليلة واحدة من {{total}}",
         "remainingOfTotal_other": "{{count}} ليالٍ من {{total}}",
         "stayAmount": "مبلغ الإقامة",
+        "observed": "ما تمت ملاحظته",
         "remind": "تذكير النزيل باستكمال استمارة الوصول",
         "cancelStay": "إلغاء الحجز",
         "cancelTitle": "إلغاء الحجز؟",

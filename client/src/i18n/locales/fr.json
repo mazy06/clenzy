@@ -5749,6 +5749,7 @@
         "remainingOfTotal_one": "{{count}} nuit sur {{total}}",
         "remainingOfTotal_other": "{{count}} nuits sur {{total}}",
         "stayAmount": "Montant du séjour",
+        "observed": "Ce qui a été observé",
         "remind": "Relancer la fiche voyageur",
         "cancelStay": "Annuler la réservation",
         "cancelTitle": "Annuler la réservation ?",
