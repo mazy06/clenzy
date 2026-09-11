@@ -12,7 +12,7 @@ import {
   WalletIcon,
   WrenchIcon,
 } from 'lucide-react';
-import { GridView } from '../../icons';
+import { Add, GridView } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
@@ -22,6 +22,13 @@ import { useMyPendingPayout } from '../../hooks/usePendingPayouts';
 import { useDashboardReady } from '../../hooks/useDashboardReady';
 import { useDashboardUpcomingArrivals } from '../../hooks/useDashboardOperations';
 import { useDashboardLayout } from '../../hooks/useDashboardLayout';
+import DashboardWidgetPicker from './DashboardWidgetPicker';
+import {
+  ImportedTileWidget,
+  findTileSource,
+  isImportedWidgetId,
+  parseImportedWidgetId,
+} from './importedWidgets';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import StatTile from '../../components/baitly/StatTile';
@@ -98,28 +105,6 @@ function OverviewSkeleton() {
   );
 }
 
-/** Variation vs période précédente — en points pour un taux, en % sinon. */
-function TrendHint({
-  growth,
-  unit,
-  t,
-}: {
-  growth: number;
-  unit: 'pts' | '%';
-  t: ReturnType<typeof useTranslation>['t'];
-}) {
-  return (
-    <>
-      <b>
-        {growth > 0 ? '+' : ''}
-        {growth}
-        {unit === 'pts' ? ' pts' : ' %'}
-      </b>{' '}
-      {t('dashboard.analytics.vsPreviousPeriod', 'vs période préc.')}
-    </>
-  );
-}
-
 const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -193,16 +178,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="KPIs">
-          <StatTileRow columns={3} className="xl:grid-cols-6">
+          <StatTileRow compact>
             <StatTile
               icon={<PercentIcon />}
               label={t('dashboard.analytics.occupancyShort', 'Occupation')}
               value={kpis ? kpis.occupancyRate.value : '—'}
               unit="%"
               loading={loading}
-              hint={
-                kpis ? <TrendHint growth={kpis.occupancyRate.growth} unit="pts" t={t} /> : undefined
-              }
+              delta={kpis ? kpis.occupancyRate.growth : null}
+              deltaUnit="pts"
             />
             <StatTile
               icon={<EuroIcon />}
@@ -210,7 +194,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               value={kpis ? <Money value={kpis.totalRevenue.value} decimals={0} /> : '—'}
               iconClassName="text-success"
               loading={loading}
-              hint={kpis ? <TrendHint growth={kpis.totalRevenue.growth} unit="%" t={t} /> : undefined}
+              delta={kpis ? kpis.totalRevenue.growth : null}
             />
             <StatTile
               icon={<TrendingUpIcon />}
@@ -234,12 +218,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               label={t('dashboard.analytics.bookings', 'Réservations')}
               value={kpis ? kpis.bookings.value : '—'}
               loading={loading}
+              delta={upcomingCount > 0 || !kpis ? null : kpis.bookings.growth}
               hint={
                 upcomingCount > 0
                   ? `${t('dashboard.analytics.including', 'dont')} ${upcomingCount} ${t('dashboard.analytics.arrivalsThisWeek', 'arrivées cette semaine')}`
-                  : kpis
-                    ? <TrendHint growth={kpis.bookings.growth} unit="%" t={t} />
-                    : undefined
+                  : undefined
               }
             />
             <StatTile
@@ -360,7 +343,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="OperationalKPIs">
-          <StatTileRow columns={4}>
+          <StatTileRow compact>
             <StatTile
               icon={<CalendarCheckIcon />}
               label={t('dashboard.stats.todayInterventions', 'Aujourd’hui')}
@@ -496,7 +479,45 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       .map((id) => (pairs[id] && availableWidgetIds.includes(pairs[id]) ? [id, pairs[id]] : [id]));
   }, [availableWidgetIds]);
 
-  const layout = useDashboardLayout(availableWidgetIds, defaultRows);
+  const layoutOptions = useMemo(() => ({ isImported: isImportedWidgetId }), []);
+  const layout = useDashboardLayout(availableWidgetIds, defaultRows, layoutOptions);
+
+  // ─── Tuiles importées d'un autre écran ──────────────────────────────────
+  // Elles n'existent que parce qu'elles ont été posées : on les dérive de la
+  // disposition, pas d'un registre. Une source retirée du produit disparaît
+  // donc d'elle-même (`parse` refuse un identifiant inconnu).
+  const placedIds = useMemo(() => layout.rows.flatMap((row) => row.ids), [layout.rows]);
+  const importedWidgets: DashboardWidgetEntry[] = useMemo(
+    () =>
+      placedIds.flatMap((id) => {
+        const reference = parseImportedWidgetId(id);
+        if (!reference) return [];
+        const source = findTileSource(reference.sourceId);
+        return [{
+          id,
+          label: source ? t(source.labelKey, source.fallback) : id,
+          minSizePct: 25,
+          node: (
+            <DashboardErrorBoundary widgetName={id}>
+              <ImportedTileWidget reference={reference} period={period} />
+            </DashboardErrorBoundary>
+          ),
+        }];
+      }),
+    [placedIds, period, t],
+  );
+
+  const allWidgets = useMemo(() => [...widgets, ...importedWidgets], [widgets, importedWidgets]);
+
+  /** Tuiles natives écartées — le sélecteur doit pouvoir les remettre. */
+  const removedNative = useMemo(
+    () => widgets
+      .filter((widget) => layout.hidden.includes(widget.id))
+      .map((widget) => ({ id: widget.id, label: widget.label })),
+    [widgets, layout.hidden],
+  );
+
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Composer sa disposition suppose de la place et un pointeur.
   const canCustomize = !useIsMobile(1024);
@@ -506,6 +527,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const layoutActions = usePageHeaderActions(
     canCustomize ? (
       <>
+        {isEditingLayout && (
+          <Button size="sm" variant="ghost" onClick={() => setPickerOpen(true)}>
+            <Add size={14} />
+            {t('dashboard.layout.add', 'Ajouter un composant')}
+          </Button>
+        )}
         {isEditingLayout && layout.isCustomized && (
           <Button size="sm" variant="ghost" onClick={layout.reset}>
             {t('dashboard.layout.reset', 'Réinitialiser')}
@@ -556,7 +583,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               )}
             >
               <DashboardWidgetGrid
-                widgets={widgets}
+                widgets={allWidgets}
                 rows={layout.rows}
                 editing={isEditingLayout}
                 stacked={!canCustomize}
@@ -564,11 +591,21 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                 onMoveToOwnRow={layout.moveToOwnRow}
                 onShiftWithinRow={layout.shiftWithinRow}
                 onRowSizes={layout.setRowSizes}
+                onRemove={layout.removeWidget}
               />
             </div>
           </div>
         </div>
       </div>
+
+      <DashboardWidgetPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        period={period}
+        removedNative={removedNative}
+        placedIds={placedIds}
+        onAdd={(id) => layout.addWidget(id)}
+      />
     </>
   );
 });

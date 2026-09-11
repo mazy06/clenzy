@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.DashboardOperationsDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemsDto;
 import com.clenzy.dto.DashboardOperationsDto.UpcomingArrivalDto;
+import com.clenzy.dto.DashboardOperationsDto.UpcomingDepartureDto;
 import com.clenzy.model.UserRole;
 import com.clenzy.service.DashboardOperationsService;
 import com.clenzy.service.dashboard.ActionItemQueryService;
@@ -53,6 +54,19 @@ public class DashboardOperationsController {
         final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
         return operationsService.getToday(
                 tenantContext.getRequiredOrganizationId(), role, jwt.getSubject());
+    }
+
+    @GetMapping("/upcoming-departures")
+    public List<UpcomingDepartureDto> getUpcomingDepartures(
+            @RequestParam(name = "days", defaultValue = "7") int days,
+            @AuthenticationPrincipal Jwt jwt) {
+        if (days < 1 || days > MAX_UPCOMING_DAYS) {
+            throw new IllegalArgumentException(
+                    "Fenêtre invalide: " + days + " (attendu entre 1 et " + MAX_UPCOMING_DAYS + ")");
+        }
+        final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        return operationsService.getUpcomingDepartures(
+                tenantContext.getRequiredOrganizationId(), days, role, jwt.getSubject());
     }
 
     @GetMapping("/upcoming-arrivals")

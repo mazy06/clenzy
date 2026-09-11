@@ -4,6 +4,7 @@ import {
   placeNextTo,
   placeOnOwnRow,
   shiftIdWithinRow,
+  withoutWidget,
 } from '../useDashboardLayout';
 
 /**
@@ -170,5 +171,98 @@ describe('placeOnOwnRow — extraire une tuile', () => {
   it('indexHorsBornes_estRamene', () => {
     const rows = [{ ids: ['a'] }, { ids: ['b'] }];
     expect(placeOnOwnRow(rows, 'a', 99).map((r) => r.ids)).toEqual([['b'], ['a']]);
+  });
+});
+
+
+describe('mergeLayoutRows — tuiles retirées et tuiles importées', () => {
+  const imported = (id: string) => id.startsWith('import:');
+
+  it('tuileRetiree_neRevientPasParLaRegleDAjout', () => {
+    // Sans mémoire du retrait, la règle « toute tuile disponible non placée est
+    // ajoutée » la remettait au rendu suivant : le retrait ne tenait pas.
+    const rows = mergeLayoutRows({ rows: [{ ids: ['a'] }], hidden: ['b'] }, ['a', 'b'], [['a'], ['b']]);
+
+    expect(rows.map((row) => row.ids)).toEqual([['a']]);
+  });
+
+  it('tuileRetirePuisReplacee_reprendSaPlace', () => {
+    const rows = mergeLayoutRows({ rows: [{ ids: ['a'] }, { ids: ['b'] }], hidden: [] }, ['a', 'b'], [['a']]);
+
+    expect(rows.map((row) => row.ids)).toEqual([['a'], ['b']]);
+  });
+
+  it('tuileImportee_survitAlorsQuElleNEstPasDansLeRegistre', () => {
+    const rows = mergeLayoutRows(
+      { rows: [{ ids: ['a', 'import:reports.overview:revenue'] }] },
+      ['a'],
+      [['a']],
+      { isImported: imported },
+    );
+
+    expect(rows[0].ids).toEqual(['a', 'import:reports.overview:revenue']);
+  });
+
+  it('sansPredicat_uneTuileImporteeEstJetee', () => {
+    // C'est le comportement d'origine : un identifiant hors registre disparaît.
+    const rows = mergeLayoutRows(
+      { rows: [{ ids: ['a', 'import:reports.overview:revenue'] }] },
+      ['a'],
+      [['a']],
+    );
+
+    expect(rows[0].ids).toEqual(['a']);
+  });
+
+  it('formatsAnciens_restentLisibles', () => {
+    expect(mergeLayoutRows(['a', 'b'], ['a', 'b'], []).map((r) => r.ids)).toEqual([['a'], ['b']]);
+    expect(mergeLayoutRows([{ ids: ['a', 'b'] }], ['a', 'b'], []).map((r) => r.ids)).toEqual([['a', 'b']]);
+  });
+});
+
+describe('withoutWidget — retirer une tuile', () => {
+  it('videSaLigne_puisLaSupprime', () => {
+    expect(withoutWidget([{ ids: ['a'] }, { ids: ['b', 'c'] }], 'a').map((r) => r.ids))
+      .toEqual([['b', 'c']]);
+  });
+
+  it('reharmoniseLesLargeursDeLaLigneAmputee', () => {
+    const rows = withoutWidget([{ ids: ['a', 'b'], sizes: [70, 30] }], 'a');
+
+    expect(rows).toEqual([{ ids: ['b'], sizes: [100] }]);
+  });
+});
+
+
+describe('placeNextTo — le côté du dépôt', () => {
+  it('parDefaut_insereAvantLaCible', () => {
+    expect(placeNextTo([{ ids: ['a'] }, { ids: ['b'] }], 'a', 'b').map((r) => r.ids))
+      .toEqual([['a', 'b']]);
+  });
+
+  it('cotéApres_insereDerriereLaCible', () => {
+    expect(placeNextTo([{ ids: ['a'] }, { ids: ['b'] }], 'a', 'b', 'after').map((r) => r.ids))
+      .toEqual([['b', 'a']]);
+  });
+
+  it('apresLaDerniereTuile_estEnfinAtteignable', () => {
+    // C'est ce que « avant » seul ne permettait pas : poser en bout de ligne.
+    const rows = placeNextTo([{ ids: ['a', 'b'] }, { ids: ['c'] }], 'c', 'b', 'after');
+
+    expect(rows.map((r) => r.ids)).toEqual([['a', 'b', 'c']]);
+  });
+
+  it('dansSaPropreLigne_reordonneDesDeuxCotes', () => {
+    expect(placeNextTo([{ ids: ['a', 'b', 'c'] }], 'a', 'c', 'after').map((r) => r.ids))
+      .toEqual([['b', 'c', 'a']]);
+    expect(placeNextTo([{ ids: ['a', 'b', 'c'] }], 'c', 'a').map((r) => r.ids))
+      .toEqual([['c', 'a', 'b']]);
+  });
+
+  it('ligneCiblePleine_refuseLesDeuxCotes', () => {
+    const full = [{ ids: ['a', 'b', 'c'] }, { ids: ['d'] }];
+
+    expect(placeNextTo(full, 'd', 'b', 'before')).toEqual(full);
+    expect(placeNextTo(full, 'd', 'b', 'after')).toEqual(full);
   });
 });

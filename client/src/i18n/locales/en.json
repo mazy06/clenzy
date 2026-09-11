@@ -1910,7 +1910,10 @@
       "ownRow": "Move to its own row",
       "shiftStart": "Move to start of row",
       "shiftEnd": "Move to end of row",
-      "dropNewRow": "New row"
+      "dropNewRow": "New row",
+      "add": "Add a component",
+      "remove": "Remove from the dashboard",
+      "editingHint": "Drag a tile by its handle to move it, or drop it between two rows."
     },
     "occupancyByProperty": {
       "title": "Occupancy by property",
@@ -1958,7 +1961,8 @@
       "balanceDue": "Balance due",
       "paid": "Paid",
       "confirmed": "Confirmed",
-      "seePlanning": "Full planning"
+      "seePlanning": "Full planning",
+      "more": "+ {{count}} more arrivals"
     },
     "widgets": {
       "kpis": "Key metrics",
@@ -2186,6 +2190,20 @@
       "deductions": "{{count}} expense(s) deducted",
       "failed": "The details could not be loaded. Better not to approve without seeing them.",
       "factsSection": "Beneficiary and payout method"
+    },
+    "imported": {
+      "missingTitle": "Chart unavailable",
+      "missingHint": "No data over the selected period.",
+      "kpisTitle": "Key figures",
+      "openOrigin": "Open in {{screen}}"
+    },
+    "picker": {
+      "title": "Add a component",
+      "description": "Charts from Reports and portfolio statistics can be placed here, one at a time.",
+      "removed": "Removed from the dashboard",
+      "fromScreens": "From other screens",
+      "emptySource": "No chart over the selected period.",
+      "placed": "Already placed"
     }
   },
   "properties": {
@@ -8018,5 +8036,130 @@
     "removeLogo": "Remove the logo",
     "logoSaved": "Logo saved",
     "logoError": "Upload failed: JPEG, PNG, WEBP or GIF, 5 MB maximum."
+  },
+  "pulse": {
+    "agents": {
+      "hint": "Waiting in the constellation",
+      "property": "Property #{{id}}",
+      "title": "Cards to validate"
+    },
+    "contracts": {
+      "hint": "By contract status",
+      "title": "Management mandates",
+      "total": "Mandates",
+      "active": "Active mandates",
+      "status": {
+        "ACTIVE": "Active",
+        "DRAFT": "Draft",
+        "SUSPENDED": "Suspended",
+        "TERMINATED": "Terminated",
+        "EXPIRED": "Expired"
+      }
+    },
+    "conversations": {
+      "empty": "No message waiting.",
+      "hint": "Unread guest messages",
+      "thread": "Conversation",
+      "title": "Unanswered conversations",
+      "figure": "Unread messages"
+    },
+    "denied": {
+      "hint": "Real demand walking away",
+      "title": "Searches with no availability"
+    },
+    "departures": {
+      "allPlanned": "Every cleaning is scheduled",
+      "empty": "No departure in this window.",
+      "title": "Departures in the next 7 days",
+      "toPlan": "cleaning to schedule",
+      "unplanned": "{{n}} with no cleaning scheduled",
+      "figure": "Departures without cleaning"
+    },
+    "devices": {
+      "alerts": "Alerting",
+      "battery": "Low battery",
+      "hint": "{{n}} devices tracked",
+      "offline": "Offline",
+      "online": "Online",
+      "title": "Connected devices",
+      "total": "Devices"
+    },
+    "docs": {
+      "hint": "{{locked}} locked · {{score}} % compliance",
+      "label": "Documents",
+      "title": "Documents issued",
+      "score": "Document compliance",
+      "locked": "Locked documents"
+    },
+    "filings": {
+      "clear": "Nothing to file",
+      "due": "{{n}} to file",
+      "empty": "No filing.",
+      "title": "Tax filings",
+      "figure": "Filings due",
+      "status": {
+        "DUE": "Due",
+        "FILED": "Filed",
+        "PAID": "Paid"
+      }
+    },
+    "funnel": {
+      "anyDate": "Any dates",
+      "checkouts": "Checkouts started",
+      "confirmed": "Confirmed",
+      "conversion": "{{pct}} % conversion",
+      "guests": "{{n}} guests",
+      "label": "Stays",
+      "searches": "Searches",
+      "title": "Direct booking funnel",
+      "trendHint": "From search to confirmation",
+      "trendTitle": "Direct journey, day by day",
+      "views": "Property views",
+      "conversionLabel": "Direct conversion"
+    },
+    "payouts": {
+      "empty": "Nothing to approve.",
+      "hint": "Awaiting your approval",
+      "owner": "Owner #{{id}}",
+      "title": "Payouts to approve",
+      "figure": "To approve"
+    },
+    "positioning": {
+      "aligned": "In line",
+      "hint": "Published price against the local market",
+      "over": "Above market",
+      "title": "Portfolio price positioning",
+      "total": "Properties",
+      "under": "Below market",
+      "unknown": "No market reference"
+    },
+    "reviews": {
+      "allAnswered": "Every review has a reply.",
+      "anonymous": "Guest",
+      "hint": "{{avg}}/5 across {{n}} reviews",
+      "title": "Reputation",
+      "total": "Reviews",
+      "unansweredHint": "A reply weighs on your ranking",
+      "unansweredTitle": "Reviews without a reply"
+    },
+    "stock": {
+      "hint": "Quantity left against reorder threshold",
+      "noSupplier": "no supplier",
+      "title": "Restocking needed",
+      "figure": "Lines below threshold"
+    },
+    "wallets": {
+      "hint": "Platform, escrow, owner, agency",
+      "label": "Balance",
+      "title": "Wallet balances",
+      "figure": "Consolidated balance"
+    },
+    "sources": {
+      "growth": "Growth & distribution",
+      "operations": "Portfolio operations",
+      "compliance": "Compliance & mandates",
+      "finance": "Cash",
+      "guest": "Guests & reputation"
+    }
   }
 }

@@ -71,28 +71,73 @@ function sizesAreSane(sizes: number[] | undefined, count: number): sizes is numb
  * nécessaire côté données — une préférence v1 devient une pile de lignes à une
  * tuile, ce qui est exactement le rendu qu'avait l'utilisateur.
  */
+/**
+ * Préférence enregistrée : les lignes, et ce que l'utilisateur a RETIRÉ.
+ *
+ * <p>Les deux formats antérieurs (liste plate d'identifiants, tableau de
+ * lignes) restent lus tels quels — une préférence ancienne devient simplement
+ * une disposition sans retrait.</p>
+ */
+export interface DashboardLayoutPref {
+  rows: DashboardRow[];
+  /** Tuiles NATIVES écartées de l'écran. Sans elles, la règle 2 les remettrait. */
+  hidden?: string[];
+}
+
+export type SavedLayout = DashboardRow[] | string[] | DashboardLayoutPref;
+
+/** Normalise les trois formats de préférence en un seul. */
+function readPref(saved: unknown): { rows: DashboardRow[] | null; hidden: string[] } {
+  if (saved && !Array.isArray(saved) && typeof saved === 'object') {
+    const pref = saved as DashboardLayoutPref;
+    return {
+      rows: Array.isArray(pref.rows) && pref.rows.length > 0 ? pref.rows : null,
+      hidden: Array.isArray(pref.hidden) ? pref.hidden.filter((id) => typeof id === 'string') : [],
+    };
+  }
+  if (Array.isArray(saved) && saved.length > 0 && typeof saved[0] === 'string') {
+    return {
+      rows: (saved as string[]).map((id): DashboardRow => ({ ids: [id] })),
+      hidden: [],
+    };
+  }
+  if (Array.isArray(saved) && saved.length > 0) {
+    return { rows: saved as DashboardRow[], hidden: [] };
+  }
+  return { rows: null, hidden: [] };
+}
+
+export interface MergeOptions {
+  /**
+   * Un identifiant DÉSIGNE-t-il une tuile importée d'un autre écran ?
+   *
+   * <p>Ces tuiles ne figurent pas dans `available` : elles n'existent que
+   * parce que l'utilisateur les a placées. Sans ce prédicat, la règle 1 les
+   * jetterait au prochain rendu.</p>
+   */
+  isImported?: (id: string) => boolean;
+}
+
 export function mergeLayoutRows(
   saved: unknown,
   available: string[],
   defaultRows: string[][],
+  options: MergeOptions = {},
 ): DashboardRow[] {
   const availableSet = new Set(available);
-
-  let savedRows: DashboardRow[];
-  if (Array.isArray(saved) && saved.length > 0 && typeof saved[0] === 'string') {
-    savedRows = (saved as string[]).map((id) => ({ ids: [id] }));
-  } else if (Array.isArray(saved) && saved.length > 0) {
-    savedRows = saved as DashboardRow[];
-  } else {
-    savedRows = defaultRows.map((ids) => ({ ids }));
-  }
+  const { rows: savedRowsRaw, hidden } = readPref(saved);
+  const hiddenSet = new Set(hidden);
+  const isImported = options.isImported ?? (() => false);
+  const savedRows: DashboardRow[] = savedRowsRaw ?? defaultRows.map((ids) => ({ ids }));
 
   const seen = new Set<string>();
   const rows: DashboardRow[] = [];
   for (const row of savedRows) {
     if (!row || !Array.isArray(row.ids)) continue;
     const ids = row.ids
-      .filter((id) => typeof id === 'string' && availableSet.has(id) && !seen.has(id))
+      .filter((id) => typeof id === 'string'
+        && (availableSet.has(id) || isImported(id))
+        && !seen.has(id))
       .slice(0, MAX_WIDGETS_PER_ROW);
     if (ids.length === 0) continue;
     ids.forEach((id) => seen.add(id));
@@ -102,15 +147,16 @@ export function mergeLayoutRows(
     });
   }
 
-  // Tuiles disponibles jamais placées : ajoutées en fin, dans l'ordre du registre.
+  // Tuiles disponibles jamais placées : ajoutées en fin, dans l'ordre du
+  // registre — sauf celles que l'utilisateur a retirées.
   for (const id of available) {
-    if (!seen.has(id)) rows.push({ ids: [id], sizes: [100] });
+    if (!seen.has(id) && !hiddenSet.has(id)) rows.push({ ids: [id], sizes: [100] });
   }
   return rows;
 }
 
 /** Retire une tuile de sa ligne, supprime les lignes vidées, réharmonise. */
-function withoutWidget(rows: DashboardRow[], id: string): DashboardRow[] {
+export function withoutWidget(rows: DashboardRow[], id: string): DashboardRow[] {
   return rows
     .map((row) => ({ ...row, ids: row.ids.filter((rowId) => rowId !== id) }))
     .filter((row) => row.ids.length > 0)
@@ -124,10 +170,20 @@ function withoutWidget(rows: DashboardRow[], id: string): DashboardRow[] {
  * plusieurs tuiles. Si la ligne cible est pleine, rien ne change — mieux vaut
  * une action sans effet qu'une tuile qui disparaît ailleurs.
  */
+/**
+ * De quel COTE de la cible la tuile se pose.
+ *
+ * <p>« before » et « after » se disent dans l'ordre de LECTURE, pas en gauche
+ * et droite : en arabe, `before` est à droite. C'est le rendu qui place la
+ * barre d'insertion du bon côté, avec des propriétés logiques.</p>
+ */
+export type DropSide = 'before' | 'after';
+
 export function placeNextTo(
   rows: DashboardRow[],
   draggedId: string,
   targetId: string,
+  side: DropSide = 'before',
 ): DashboardRow[] {
   if (draggedId === targetId) return rows;
   const targetRow = rows.find((row) => row.ids.includes(targetId));
@@ -138,7 +194,7 @@ export function placeNextTo(
   return withoutWidget(rows, draggedId).map((row) => {
     if (!row.ids.includes(targetId)) return row;
     const ids = [...row.ids];
-    ids.splice(ids.indexOf(targetId), 0, draggedId);
+    ids.splice(ids.indexOf(targetId) + (side === 'after' ? 1 : 0), 0, draggedId);
     return { ids, sizes: equalSizes(ids.length) };
   });
 }
@@ -181,14 +237,17 @@ export function shiftIdWithinRow(
 
 export interface DashboardLayout {
   rows: DashboardRow[];
+  /** Tuiles natives retirées de l'écran — le sélecteur les repropose. */
+  hidden: string[];
   isLoaded: boolean;
   /** L'utilisateur a-t-il une disposition à lui ? Pilote l'affichage du « Réinitialiser ». */
   isCustomized: boolean;
   /**
    * Déplace une tuile à côté d'une autre, dans la ligne de celle-ci.
-   * Si la ligne cible est pleine, rien ne se passe.
+   * `side` dit de quel côté, dans l'ordre de lecture. Si la ligne cible est
+   * pleine, rien ne se passe.
    */
-  moveNextTo: (draggedId: string, targetId: string) => void;
+  moveNextTo: (draggedId: string, targetId: string, side?: DropSide) => void;
   /** Sort une tuile sur sa propre ligne, insérée à la position donnée. */
   moveToOwnRow: (draggedId: string, rowIndex: number) => void;
   /**
@@ -200,35 +259,60 @@ export interface DashboardLayout {
   shiftWithinRow: (id: string, delta: -1 | 1) => void;
   /** Enregistre les largeurs d'une ligne après redimensionnement. */
   setRowSizes: (rowIndex: number, sizes: number[]) => void;
+  /**
+   * Retire une tuile de l'écran.
+   *
+   * <p>Une tuile NATIVE est mémorisée comme écartée : sans cela, la règle
+   * d'ajout automatique la remettrait au rendu suivant. Une tuile IMPORTÉE
+   * n'existe que par sa présence dans les lignes — la sortir suffit.</p>
+   */
+  removeWidget: (id: string) => void;
+  /** Place une tuile en fin de disposition, sur sa propre ligne. */
+  addWidget: (id: string) => void;
   reset: () => void;
 }
 
 export function useDashboardLayout(
   availableIds: string[],
   defaultRows: string[][],
+  options: MergeOptions = {},
 ): DashboardLayout {
-  const [saved, setSaved, { isLoaded, reset: resetPref }] = useUserPreference<
-    DashboardRow[] | string[]
-  >(LAYOUT_KEY, []);
+  const [saved, setSaved, { isLoaded, reset: resetPref }] = useUserPreference<SavedLayout>(
+    LAYOUT_KEY,
+    [],
+  );
+
+  const { isImported } = options;
+  const mergeOptions = useMemo(() => ({ isImported }), [isImported]);
 
   const rows = useMemo(
-    () => mergeLayoutRows(saved, availableIds, defaultRows),
-    [saved, availableIds, defaultRows],
+    () => mergeLayoutRows(saved, availableIds, defaultRows, mergeOptions),
+    [saved, availableIds, defaultRows, mergeOptions],
+  );
+
+  const hidden = useMemo(() => readPref(saved).hidden, [saved]);
+
+  /** Écrit lignes ET retraits : la préférence est désormais un couple. */
+  const write = useCallback(
+    (nextRows: DashboardRow[], nextHidden: string[]) =>
+      setSaved({ rows: nextRows, hidden: nextHidden }),
+    [setSaved],
   );
 
   const moveNextTo = useCallback(
-    (draggedId: string, targetId: string) => setSaved(placeNextTo(rows, draggedId, targetId)),
-    [rows, setSaved],
+    (draggedId: string, targetId: string, side: DropSide = 'before') =>
+      write(placeNextTo(rows, draggedId, targetId, side), hidden),
+    [rows, write, hidden],
   );
 
   const moveToOwnRow = useCallback(
-    (draggedId: string, rowIndex: number) => setSaved(placeOnOwnRow(rows, draggedId, rowIndex)),
-    [rows, setSaved],
+    (draggedId: string, rowIndex: number) => write(placeOnOwnRow(rows, draggedId, rowIndex), hidden),
+    [rows, write, hidden],
   );
 
   const shiftWithinRow = useCallback(
-    (id: string, delta: -1 | 1) => setSaved(shiftIdWithinRow(rows, id, delta)),
-    [rows, setSaved],
+    (id: string, delta: -1 | 1) => write(shiftIdWithinRow(rows, id, delta), hidden),
+    [rows, write, hidden],
   );
 
   /**
@@ -243,21 +327,44 @@ export function useDashboardLayout(
       const next = rows.map((row, index) =>
         index === rowIndex && sizes.length === row.ids.length ? { ...row, sizes } : row,
       );
-      setSaved(next);
+      write(next, hidden);
     },
-    [rows, setSaved],
+    [rows, write, hidden],
+  );
+
+  const removeWidget = useCallback(
+    (id: string) => {
+      const nextHidden = availableIds.includes(id) && !hidden.includes(id)
+        ? [...hidden, id]
+        : hidden;
+      write(withoutWidget(rows, id), nextHidden);
+    },
+    [rows, write, hidden, availableIds],
+  );
+
+  const addWidget = useCallback(
+    (id: string) => {
+      if (rows.some((row) => row.ids.includes(id))) return;
+      write([...rows, { ids: [id], sizes: [100] }], hidden.filter((hiddenId) => hiddenId !== id));
+    },
+    [rows, write, hidden],
   );
 
   const reset = useCallback(() => resetPref(), [resetPref]);
 
   return {
     rows,
+    hidden,
     isLoaded,
-    isCustomized: Array.isArray(saved) && saved.length > 0,
+    isCustomized: Array.isArray(saved)
+      ? saved.length > 0
+      : Boolean(saved && ((saved.rows?.length ?? 0) > 0 || (saved.hidden?.length ?? 0) > 0)),
     moveNextTo,
     moveToOwnRow,
     shiftWithinRow,
     setRowSizes,
+    removeWidget,
+    addWidget,
     reset,
   };
 }

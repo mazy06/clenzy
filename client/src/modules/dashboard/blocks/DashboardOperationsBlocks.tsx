@@ -77,6 +77,7 @@ import type {
   DashboardActionSeverity,
   DashboardUpcomingArrival,
 } from '../../../services/api/dashboardOperationsApi';
+import { useFitRows } from '../../../hooks/useFitRows';
 
 /** Type exact du `t` du projet — les helpers ci-dessous le reçoivent en paramètre. */
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
@@ -127,6 +128,16 @@ export function BlockCard({
   children: React.ReactNode;
   className?: string;
 }) {
+  /**
+   * La carte remplit la hauteur qu'on lui donne, sans ascenseur : les rangs qui
+   * ne tiennent pas se replient et se comptent.
+   *
+   * <p>Les rangs sont ceux du conteneur que l'appelant marque `data-fit-list` —
+   * lui seul sait lequel de ses conteneurs porte une liste plutot qu'un bloc.
+   * Sans marque, la carte ne replie rien : elle se contente d'annoncer a sa
+   * ligne la hauteur qu'il lui faudrait.</p>
+   */
+  const { ref, hidden } = useFitRows<HTMLDivElement>('[data-fit-list] > *');
   return (
     // Contour en `ring-1`, jamais en `border` : c'est la métrique du `Card` du
     // design system (cf. `.cn-card`, baitly-nova.css). Un `ring` est un
@@ -134,13 +145,27 @@ export function BlockCard({
     // là où une bordure de 1 px pousse le contenu vers l'intérieur. Mélanger
     // les deux sur une même ligne du tableau de bord décale les cartes et
     // leurs titres d'un pixel.
-    <section className={cn('rounded-xl bg-card ring-1 ring-foreground/10 p-4', className)}>
-      <h3 className="m-0 mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+    <section
+      className={cn(
+        'flex h-full flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 p-4',
+        className,
+      )}
+    >
+      <h3 className="m-0 mb-3 flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         {icon}
         {title}
         {count !== undefined && <span className="tabular-nums">({count})</span>}
       </h3>
-      {children}
+      <div ref={ref} className="min-h-0 flex-1 overflow-hidden">
+        {children}
+      </div>
+      {/* Frere du cadre, jamais dedans : la mention prend sa place sur la
+          hauteur disponible au lieu de la disputer aux rangs. */}
+      {hidden > 0 && (
+        <p className="m-0 shrink-0 pt-1.5 text-2xs font-semibold text-muted-foreground tabular-nums">
+          +{hidden}
+        </p>
+      )}
     </section>
   );
 }
@@ -179,7 +204,7 @@ export function TodayOperationsSection() {
         {arrivals.length === 0 ? (
           <BlockEmpty>{t('dashboard.today.noArrivals', 'Aucune arrivée aujourd’hui.')}</BlockEmpty>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div data-fit-list className="flex flex-col gap-2.5">
             {arrivals.map((arrival) => (
               <button
                 key={arrival.reservationId}
@@ -230,7 +255,7 @@ export function TodayOperationsSection() {
           <BlockEmpty>{t('dashboard.today.noDepartures', 'Aucun départ aujourd’hui.')}</BlockEmpty>
         ) : (
           <>
-            <div className="flex flex-col gap-2.5">
+            <div data-fit-list className="flex flex-col gap-2.5">
               {departures.map((departure) => (
                 <div key={departure.reservationId} className="flex items-center gap-2.5">
                   <GuestAvatar name={departure.guestName ?? '?'} size={30} />
@@ -277,7 +302,7 @@ export function TodayOperationsSection() {
         {cleanings.length === 0 ? (
           <BlockEmpty>{t('dashboard.today.noCleanings', 'Aucun ménage planifié aujourd’hui.')}</BlockEmpty>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div data-fit-list className="flex flex-col gap-2.5">
             {cleanings.map((cleaning) => (
               <div key={cleaning.interventionId} className="flex items-center gap-2.5">
                 <GuestAvatar name={cleaning.assigneeName ?? '?'} size={30} />
@@ -700,17 +725,17 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
           {t('dashboard.actionItems.empty', 'Rien à traiter — tout est à jour.')}
         </BlockEmpty>
       ) : (
-        // Hauteur bornée : avec vingt-deux actions la carte poussait tout le
-        // reste du tableau de bord hors de l'écran, et son propre en-tête
-        // disparaissait avant qu'on ait fini de lire.
+        // Plus de hauteur bornée ni d'ascenseur : c'est la LIGNE du tableau de
+        // bord qui donne sa hauteur à la carte, et les rubriques qui n'y
+        // tiennent pas se replient derrière un « +N » (cf. `BlockCard`).
+        // L'ancien cadre à `max-h-[28rem]` réglait le même problème — vingt-deux
+        // actions poussaient le reste de l'écran dehors — mais en cachant la
+        // moitié de la file derrière un rail qu'on ne voyait qu'en la survolant.
         //
-        // `max-h` et non `h` : une organisation qui n'a que deux actions ne doit
-        // pas se voir servir un cadre aux trois quarts vide.
-        //
-        // `pe-2 -me-2` place l'ascenseur dans la gouttière de la carte plutôt
-        // que par-dessus les chevrons : le contenu garde exactement la même
-        // largeur qu'avant, seul le rail vient s'y ajouter.
-        <div className="-me-2 flex max-h-[28rem] flex-col overflow-y-auto pe-2">
+        // `data-fit-list` : les rangs à replier sont les RUBRIQUES, pas les
+        // lignes d'action. Une rubrique repliée reste ouvrable d'un clic ; une
+        // ligne masquée au milieu d'une rubrique dépliée ne se retrouve pas.
+        <div data-fit-list className="flex flex-col">
           {groups.map((group) => (
             <ActionGroup
               key={group.kind}
@@ -1309,13 +1334,17 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
   // elle ne quitte pas le tableau de bord.
   // ⚠️ Avant tout early return (règles des hooks).
   const [opened, setOpened] = React.useState<DashboardUpcomingArrival | null>(null);
+  // Le tableau ne defile pas : il montre les arrivees qui tiennent dans la
+  // hauteur de sa ligne, et compte les autres. La plus proche est la plus
+  // utile — c'est donc la FIN de la liste qu'on abrege.
+  const { ref: bodyRef, hidden } = useFitRows<HTMLDivElement>('tbody > tr');
 
   if (isLoading) return null;
   const rows = data ?? [];
 
   return (
-    <section className="rounded-xl bg-card ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+    <section className="flex h-full flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+      <div className="flex shrink-0 items-center justify-between px-4 pt-4 pb-2">
         <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
           {t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')} ({days} j)
         </h3>
@@ -1337,6 +1366,7 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
           </BlockEmpty>
         </div>
       ) : (
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1383,6 +1413,15 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
             ))}
           </TableBody>
         </Table>
+        </div>
+      )}
+      {hidden > 0 && (
+        <p className="m-0 shrink-0 px-4 py-1.5 text-2xs font-semibold text-muted-foreground">
+          {t('dashboard.upcomingArrivals.more', {
+            count: hidden,
+            defaultValue: '+ {{count}} autres arrivées',
+          })}
+        </p>
       )}
 
       <ReservationActionDialog

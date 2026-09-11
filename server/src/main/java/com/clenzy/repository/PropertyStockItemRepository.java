@@ -16,6 +16,19 @@ public interface PropertyStockItemRepository extends JpaRepository<PropertyStock
 
     Optional<PropertyStockItem> findByIdAndOrganizationId(Long id, Long organizationId);
 
+    /**
+     * Articles SOUS LEUR SEUIL sur toute l'organisation, le plus bas d'abord.
+     *
+     * <p>Le stock ne se consultait que logement par logement : voir ce qu'il
+     * faut recommander demandait d'ouvrir les fiches une a une. Un seuil a zero
+     * signifie « article non suivi » — il est ecarte, comme dans le scanner.</p>
+     */
+    @Query("SELECT s FROM PropertyStockItem s "
+            + "WHERE s.organizationId = :orgId AND s.reorderThreshold > 0 "
+            + "AND s.quantity <= s.reorderThreshold "
+            + "ORDER BY (s.quantity - s.reorderThreshold) ASC, s.name ASC")
+    List<PropertyStockItem> findBelowThreshold(@Param("orgId") Long orgId);
+
     /** Décrément atomique de la consommation par ménage (jamais sous zéro). */
     @Modifying
     @Query("UPDATE PropertyStockItem s "

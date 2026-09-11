@@ -1929,7 +1929,10 @@
       "ownRow": "Sortir sur sa propre ligne",
       "shiftStart": "Déplacer vers le début de la ligne",
       "shiftEnd": "Déplacer vers la fin de la ligne",
-      "dropNewRow": "Nouvelle ligne"
+      "dropNewRow": "Nouvelle ligne",
+      "add": "Ajouter un composant",
+      "remove": "Retirer du tableau de bord",
+      "editingHint": "Glissez une tuile par sa poignée pour la déplacer, ou déposez-la entre deux lignes."
     },
     "occupancyByProperty": {
       "title": "Occupation par logement",
@@ -1977,7 +1980,8 @@
       "balanceDue": "Solde dû",
       "paid": "Payée",
       "confirmed": "Confirmée",
-      "seePlanning": "Tout le planning"
+      "seePlanning": "Tout le planning",
+      "more": "+ {{count}} autres arrivées"
     },
     "widgets": {
       "kpis": "Indicateurs",
@@ -2205,6 +2209,20 @@
       "deductions": "{{count}} dépense(s) déduite(s)",
       "failed": "Le détail n’a pas pu être chargé. Mieux vaut ne pas approuver sans l’avoir vu.",
       "factsSection": "Bénéficiaire et versement"
+    },
+    "imported": {
+      "missingTitle": "Graphique indisponible",
+      "missingHint": "Aucune donnée sur la période choisie.",
+      "kpisTitle": "Indicateurs clés",
+      "openOrigin": "Ouvrir dans {{screen}}"
+    },
+    "picker": {
+      "title": "Ajouter un composant",
+      "description": "Les graphiques des Rapports et des statistiques de portefeuilles se posent ici, un par un.",
+      "removed": "Retirés du tableau de bord",
+      "fromScreens": "Depuis les autres écrans",
+      "emptySource": "Aucun graphique sur la période choisie.",
+      "placed": "Déjà posé"
     }
   },
   "properties": {
@@ -8041,5 +8059,130 @@
     "removeLogo": "Retirer le logo",
     "logoSaved": "Logo enregistré",
     "logoError": "Le dépôt a échoué : formats JPEG, PNG, WEBP ou GIF, 5 Mo maximum."
+  },
+  "pulse": {
+    "funnel": {
+      "searches": "Recherches",
+      "views": "Vues de bien",
+      "checkouts": "Paniers ouverts",
+      "confirmed": "Confirmées",
+      "anyDate": "Dates libres",
+      "guests": "{{n}} voyageurs",
+      "title": "Entonnoir de réservation directe",
+      "conversion": "{{pct}} % de conversion",
+      "label": "Séjours",
+      "trendTitle": "Parcours direct, jour par jour",
+      "trendHint": "De la recherche à la confirmation",
+      "conversionLabel": "Conversion directe"
+    },
+    "positioning": {
+      "under": "Sous le marché",
+      "aligned": "Aligné",
+      "over": "Au-dessus",
+      "unknown": "Sans repère marché",
+      "title": "Positionnement tarifaire du parc",
+      "hint": "Prix publié face au marché de la zone",
+      "total": "Logements"
+    },
+    "denied": {
+      "title": "Recherches sans disponibilité",
+      "hint": "De la demande réelle qui repart ailleurs"
+    },
+    "devices": {
+      "online": "En ligne",
+      "offline": "Hors ligne",
+      "alerts": "En alerte",
+      "battery": "Batterie faible",
+      "title": "Parc connecté",
+      "hint": "{{n}} objets suivis",
+      "total": "Objets"
+    },
+    "agents": {
+      "property": "Logement #{{id}}",
+      "title": "Cartes à valider",
+      "hint": "En attente dans la constellation"
+    },
+    "stock": {
+      "noSupplier": "sans fournisseur",
+      "title": "Réassort à prévoir",
+      "hint": "Quantité restante sur seuil de commande",
+      "figure": "Lignes sous seuil"
+    },
+    "departures": {
+      "title": "Départs des 7 jours",
+      "unplanned": "{{n}} sans ménage planifié",
+      "allPlanned": "Tous les ménages sont posés",
+      "toPlan": "ménage à planifier",
+      "empty": "Aucun départ sur la fenêtre.",
+      "figure": "Départs sans ménage"
+    },
+    "docs": {
+      "title": "Documents produits",
+      "hint": "{{locked}} verrouillés · {{score}} % de conformité",
+      "label": "Documents",
+      "score": "Conformité documentaire",
+      "locked": "Documents verrouillés"
+    },
+    "contracts": {
+      "title": "Mandats de gestion",
+      "hint": "Par état du contrat",
+      "total": "Mandats",
+      "active": "Mandats actifs",
+      "status": {
+        "ACTIVE": "Actif",
+        "DRAFT": "Brouillon",
+        "SUSPENDED": "Suspendu",
+        "TERMINATED": "Résilié",
+        "EXPIRED": "Expiré"
+      }
+    },
+    "filings": {
+      "title": "Déclarations fiscales",
+      "due": "{{n}} à déposer",
+      "clear": "Rien à déposer",
+      "empty": "Aucune déclaration.",
+      "figure": "Déclarations à déposer",
+      "status": {
+        "DUE": "À déposer",
+        "FILED": "Déposée",
+        "PAID": "Payée"
+      }
+    },
+    "wallets": {
+      "title": "Soldes des portefeuilles",
+      "hint": "Plateforme, séquestre, propriétaire, conciergerie",
+      "label": "Solde",
+      "figure": "Solde consolidé"
+    },
+    "payouts": {
+      "title": "Reversements à approuver",
+      "hint": "En attente de votre validation",
+      "owner": "Propriétaire #{{id}}",
+      "empty": "Rien à approuver.",
+      "figure": "À approuver"
+    },
+    "reviews": {
+      "title": "Réputation",
+      "hint": "{{avg}}/5 sur {{n}} avis",
+      "total": "Avis",
+      "unansweredTitle": "Avis sans réponse",
+      "unansweredHint": "Une réponse pèse sur le classement",
+      "anonymous": "Voyageur",
+      "allAnswered": "Tous les avis ont une réponse."
+    },
+    "conversations": {
+      "title": "Conversations sans réponse",
+      "hint": "Messages voyageurs non lus",
+      "thread": "Conversation",
+      "empty": "Aucun message en attente.",
+      "figure": "Messages non lus"
+    },
+    "sources": {
+      "growth": "Croissance & distribution",
+      "operations": "Opérations du parc",
+      "compliance": "Conformité & mandats",
+      "finance": "Trésorerie",
+      "guest": "Voyageurs & réputation"
+    }
   }
 }

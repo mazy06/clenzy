@@ -53,6 +53,8 @@ export type { GeocodedAddress } from '../geocoderApi';
 export { usersApi } from './usersApi';
 export type { User, UserFormData, LockoutStatus } from './usersApi';
 
+export { portfolioPulseApi } from './portfolioPulseApi';
+export type { ReorderItem, PropertyPositioning, PositioningVerdict } from './portfolioPulseApi';
 export { notificationsApi } from './notificationsApi';
 export type { Notification, NotificationMetadata, UnreadCountResponse, NotificationPage, NotificationPageParams } from './notificationsApi';
 
