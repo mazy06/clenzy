@@ -5773,6 +5773,15 @@
         "photos": "Photos",
         "openMap": "Open in Maps"
       },
+      "request": {
+        "nature": "Nature of the request",
+        "issueNature": "What was observed",
+        "quote": "Quote breakdown",
+        "suggestedCost": "Suggested cost",
+        "desired": "Requested for",
+        "team": "Team",
+        "reportedBy": "Reported by"
+      },
       "review": {
         "anonymous": "Guest",
         "awaitingReply": "No reply yet",

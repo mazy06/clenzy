@@ -5801,6 +5801,15 @@
         "photos": "صور",
         "openMap": "فتح في الخرائط"
       },
+      "request": {
+        "nature": "طبيعة الطلب",
+        "issueNature": "ما تمت معاينته",
+        "quote": "تفصيل عرض السعر",
+        "suggestedCost": "التكلفة المقترحة",
+        "desired": "مطلوب في",
+        "team": "الفريق",
+        "reportedBy": "بلّغ عنه"
+      },
       "review": {
         "anonymous": "نزيل",
         "awaitingReply": "بلا رد",

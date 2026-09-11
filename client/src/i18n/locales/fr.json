@@ -5794,6 +5794,15 @@
         "photos": "Photos",
         "openMap": "Ouvrir dans Maps"
       },
+      "request": {
+        "nature": "Nature de la demande",
+        "issueNature": "Ce qui a été constaté",
+        "quote": "Détail du devis",
+        "suggestedCost": "Coût suggéré",
+        "desired": "Souhaitée le",
+        "team": "Équipe",
+        "reportedBy": "Signalé par"
+      },
       "review": {
         "anonymous": "Voyageur",
         "awaitingReply": "Sans réponse",

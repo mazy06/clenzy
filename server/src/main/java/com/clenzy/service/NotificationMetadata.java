@@ -76,6 +76,10 @@ public final class NotificationMetadata {
     public static final String RESERVATION_ID = "reservationId";
     /** Intervention concernee. */
     public static final String INTERVENTION_ID = "interventionId";
+    /** Demande de service concernee — la fiche va y lire le devis et l'echeance. */
+    public static final String SERVICE_REQUEST_ID = "serviceRequestId";
+    /** Signalement terrain concerne — la fiche va y lire la gravite et les photos. */
+    public static final String ISSUE_ID = "issueId";
     /** Carte HITL a l'origine de la notification. */
     public static final String SUGGESTION_ID = "suggestionId";
     /** Agent de la constellation ayant produit la carte (ops, fin, rev...). */
@@ -141,6 +145,8 @@ public final class NotificationMetadata {
         public Builder propertyId(Long id) { return put(PROPERTY_ID, id); }
         public Builder reservationId(Long id) { return put(RESERVATION_ID, id); }
         public Builder interventionId(Long id) { return put(INTERVENTION_ID, id); }
+        public Builder serviceRequestId(Long id) { return put(SERVICE_REQUEST_ID, id); }
+        public Builder issueId(Long id) { return put(ISSUE_ID, id); }
         public Builder reviewId(Long id) { return put(REVIEW_ID, id); }
         public Builder deviceId(Long id) { return put(DEVICE_ID, id); }
 

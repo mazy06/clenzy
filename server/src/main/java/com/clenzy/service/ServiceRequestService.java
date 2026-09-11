@@ -560,6 +560,7 @@ public class ServiceRequestService {
                     .property(sr.getProperty() != null ? sr.getProperty().getName() : null)
                     .propertyId(sr.getProperty() != null ? sr.getProperty().getId() : null)
                     .request(sr.getTitle())
+                    .serviceRequestId(sr.getId())
                     .intervention(intervention.getTitle())
                     .interventionId(intervention.getId())
                     .build());
@@ -1441,6 +1442,10 @@ public class ServiceRequestService {
                 .property(sr.getProperty() != null ? sr.getProperty().getName() : null)
                 .propertyId(sr.getProperty() != null ? sr.getProperty().getId() : null)
                 .request(sr.getTitle())
+                // L'identifiant permet a la fiche d'aller lire la demande ENTIERE
+                // — devis, echeance, prestataire — la ou le message n'en porte
+                // que l'intitule.
+                .serviceRequestId(sr.getId())
                 .build();
     }
 }

@@ -439,6 +439,9 @@ public class IssueService {
                     .property(property.getName())
                     .propertyId(property.getId())
                     .request(issue.getTitle())
+                    // La fiche va y lire la gravite, le constat et ses photos —
+                    // le message n'en porte que l'intitule.
+                    .issueId(issue.getId())
                     .build();
             notificationService.notifyAdminsAndManagers(
                     NotificationKey.ISSUE_REPORTED, "Anomalie terrain signalée", message, actionUrl, facts);
@@ -468,6 +471,7 @@ public class IssueService {
                                 .property(property.getName())
                                 .propertyId(property.getId())
                                 .request(issue.getTitle())
+                                .issueId(issue.getId())
                                 .build());
             }
         } catch (Exception e) {

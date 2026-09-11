@@ -50,6 +50,11 @@ import NotificationPricingPanel, {
   pricingCardOf,
   useNotificationPricing,
 } from './NotificationPricingPanel';
+import NotificationRequestPanel, {
+  NotificationRequestSkeleton,
+  requestSubjectOf,
+  useNotificationRequest,
+} from './NotificationRequestPanel';
 import NotificationStayPanel, {
   NotificationStayActions,
   NotificationStaySkeleton,
@@ -197,6 +202,13 @@ export default function NotificationDetailCard({
   const interventionId = interventionIdOf(notification);
   const { dossier, loading: dossierLoading } = useNotificationIntervention(interventionId);
 
+  const requestSubject = React.useMemo(() => requestSubjectOf(notification), [notification]);
+  const {
+    dossier: requestDossier,
+    property: requestProperty,
+    loading: requestLoading,
+  } = useNotificationRequest(requestSubject);
+
   const destination = resolveDestination(notification.actionUrl);
   const destinationLabel = destination?.translationKey
     ? t(destination.translationKey, destination.fallbackLabel ?? '')
@@ -244,7 +256,8 @@ export default function NotificationDetailCard({
       : byCategory;
   };
   /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
-  const messageTakenOver = stay !== null || instructions !== null || plan !== null || dossier !== null;
+  const messageTakenOver = stay !== null || instructions !== null || plan !== null
+    || dossier !== null || requestDossier !== null;
 
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
@@ -333,6 +346,17 @@ export default function NotificationDetailCard({
             <NotificationStayPanel stay={stay} observation={notification.message} />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
+          ) : null)}
+
+        {requestSubject &&
+          (requestDossier ? (
+            <NotificationRequestPanel
+              dossier={requestDossier}
+              property={requestProperty}
+              observation={notification.message}
+            />
+          ) : requestLoading ? (
+            <NotificationRequestSkeleton />
           ) : null)}
 
         {interventionId !== null &&

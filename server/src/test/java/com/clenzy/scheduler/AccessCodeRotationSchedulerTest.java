@@ -80,13 +80,17 @@ class AccessCodeRotationSchedulerTest {
         assertThat(ci.getAccessCode()).hasSize(4).matches("\\d{4}");
         assertThat(ci.getAccessCodeRotatedAt()).isNotNull();
         verify(instructionsRepository).save(ci);
-        // La notification porte desormais le logement en fait structure — et
-        // surtout PAS le code, qui reste dans le corps du message.
+        // La notification porte le logement — son nom pour l'afficher, son
+        // identifiant pour que la fiche aille lire le code EN VIGUEUR — et
+        // surtout PAS le code lui-meme, qui reste dans le corps du message.
+        // `containsExactly` : ce qui compte ici est autant ce qui est absent.
         ArgumentCaptor<Map<String, Object>> facts = ArgumentCaptor.forClass(Map.class);
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.ACCESS_CODE_ROTATED), anyString(), anyString(), anyString(),
             facts.capture());
-        assertThat(facts.getValue()).containsExactly(Map.entry("property", ci.getProperty().getName()));
+        assertThat(facts.getValue()).containsExactly(
+            Map.entry("property", ci.getProperty().getName()),
+            Map.entry("propertyId", ci.getProperty().getId()));
     }
 
     @Test
