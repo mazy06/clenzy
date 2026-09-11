@@ -40,6 +40,11 @@ import NotificationAccessCodePanel, {
   accessCodePropertyIdOf,
   useNotificationAccessCode,
 } from './NotificationAccessCodePanel';
+import NotificationDocumentPanel, {
+  NotificationDocumentSkeleton,
+  documentGenerationIdOf,
+  useNotificationDocument,
+} from './NotificationDocumentPanel';
 import NotificationInterventionPanel, {
   NotificationInterventionSkeleton,
   interventionIdOf,
@@ -208,6 +213,9 @@ export default function NotificationDetailCard({
   const interventionId = interventionIdOf(notification);
   const { dossier, loading: dossierLoading } = useNotificationIntervention(interventionId);
 
+  const documentGenerationId = documentGenerationIdOf(notification);
+  const { generation, loading: generationLoading } = useNotificationDocument(documentGenerationId);
+
   const moneySubject = React.useMemo(() => moneySubjectOf(notification), [notification]);
   const { dossier: moneyDossier, loading: moneyLoading } = useNotificationMoney(moneySubject);
 
@@ -266,7 +274,8 @@ export default function NotificationDetailCard({
   };
   /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
   const messageTakenOver = stay !== null || instructions !== null || plan !== null
-    || dossier !== null || requestDossier !== null || moneyDossier !== null;
+    || dossier !== null || requestDossier !== null || moneyDossier !== null
+    || generation !== null;
 
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
@@ -359,6 +368,13 @@ export default function NotificationDetailCard({
             />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
+          ) : null)}
+
+        {documentGenerationId !== null &&
+          (generation ? (
+            <NotificationDocumentPanel generation={generation} message={notification.message} />
+          ) : generationLoading ? (
+            <NotificationDocumentSkeleton />
           ) : null)}
 
         {moneySubject &&

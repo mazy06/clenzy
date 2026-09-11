@@ -259,6 +259,29 @@ export const documentsApi = {
     return apiClient.get<PaginatedResponse<DocumentGeneration>>('/documents/generations', { params });
   },
 
+  /** Une generation precise — l'historique se lit par pages, pas par identifiant. */
+  getGeneration(generationId: number) {
+    return apiClient.get<DocumentGeneration>(`/documents/generations/${generationId}`);
+  },
+
+  /**
+   * Le PDF en memoire, pour l'afficher SANS le telecharger.
+   *
+   * <p>La route exige un en-tete d'autorisation : un {@code <iframe src>} n'en
+   * envoie aucun. On recupere donc les octets, et l'adresse blob qui en sort
+   * s'affiche. A l'appelant de la revoquer.</p>
+   */
+  async openGenerationBlob(generationId: number): Promise<string> {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/generations/${generationId}/download`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!response.ok) throw new Error(`Erreur ${response.status}`);
+    return window.URL.createObjectURL(await response.blob());
+  },
+
   /** Telecharger un document genere */
   async downloadGeneration(generationId: number, filename: string) {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/generations/${generationId}/download`;

@@ -5848,6 +5848,23 @@
         "settled": "تم تأكيد الدفع",
         "settledFor": "الخدمة المسدَّدة"
       },
+      "document": {
+        "type": "مستند",
+        "template": "القالب",
+        "size": "الحجم",
+        "sentTo": "أُرسل إلى",
+        "legalNumber": "الرقم القانوني",
+        "producedAt": "أُنتج في",
+        "piece": "الملف",
+        "show": "عرض المستند",
+        "download": "تنزيل",
+        "preview": "معاينة المستند",
+        "previewFailed": "تعذّر تحميل الملف.",
+        "missing_one": "وسم واحد غير محلول",
+        "missing_other": "{{count}} وسوم غير محلولة",
+        "groupAbsent": "بيانات «{{group}}» غائبة عن السياق",
+        "groupUnknown": "المصدر غير محدَّد"
+      },
       "review": {
         "anonymous": "نزيل",
         "awaitingReply": "بلا رد",

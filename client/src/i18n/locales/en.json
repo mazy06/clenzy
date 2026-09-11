@@ -5820,6 +5820,23 @@
         "settled": "Payment confirmed",
         "settledFor": "Job settled"
       },
+      "document": {
+        "type": "Document",
+        "template": "Template",
+        "size": "Size",
+        "sentTo": "Sent to",
+        "legalNumber": "Legal number",
+        "producedAt": "Produced on",
+        "piece": "The file",
+        "show": "Show the document",
+        "download": "Download",
+        "preview": "Document preview",
+        "previewFailed": "The file could not be loaded.",
+        "missing_one": "{{count}} unresolved tag",
+        "missing_other": "{{count}} unresolved tags",
+        "groupAbsent": "“{{group}}” data missing from the context",
+        "groupUnknown": "Origin not stated"
+      },
       "review": {
         "anonymous": "Guest",
         "awaitingReply": "No reply yet",

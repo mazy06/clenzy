@@ -5841,6 +5841,23 @@
         "settled": "Paiement confirmé",
         "settledFor": "Prestation réglée"
       },
+      "document": {
+        "type": "Document",
+        "template": "Modèle",
+        "size": "Taille",
+        "sentTo": "Envoyé à",
+        "legalNumber": "Numéro légal",
+        "producedAt": "Produit le",
+        "piece": "La pièce",
+        "show": "Afficher le document",
+        "download": "Télécharger",
+        "preview": "Aperçu du document",
+        "previewFailed": "La pièce n'a pas pu être chargée.",
+        "missing_one": "{{count}} tag non résolu",
+        "missing_other": "{{count}} tags non résolus",
+        "groupAbsent": "Données « {{group}} » absentes du contexte",
+        "groupUnknown": "Origine non précisée"
+      },
       "review": {
         "anonymous": "Voyageur",
         "awaitingReply": "Sans réponse",
