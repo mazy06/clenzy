@@ -6,6 +6,7 @@ import com.clenzy.dto.ReviewResponseRequest;
 import com.clenzy.dto.ReviewStatsDto;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.GuestReview;
+import com.clenzy.service.ReviewGuestAvatarResolver;
 import com.clenzy.service.ReviewService;
 import com.clenzy.service.ReviewSyncService;
 import com.clenzy.service.agent.supervision.ReviewReplyDraftService;
@@ -35,13 +36,14 @@ class ReviewControllerTest {
     @Mock private ReviewService reviewService;
     @Mock private ReviewSyncService syncService;
     @Mock private ReviewReplyDraftService draftService;
+    @Mock private ReviewGuestAvatarResolver guestAvatars;
     @Mock private TenantContext tenantContext;
 
     private ReviewController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ReviewController(reviewService, syncService, draftService, tenantContext);
+        controller = new ReviewController(reviewService, syncService, draftService, guestAvatars, tenantContext);
         lenient().when(tenantContext.getOrganizationId()).thenReturn(1L);
     }
 
@@ -129,6 +131,31 @@ class ReviewControllerTest {
 
         assertThat(resp.getBody().id()).isEqualTo(10L);
         assertThat(resp.getBody().rating()).isEqualTo(4);
+    }
+
+    @Test
+    void whenListedGuestsHavePhotos_thenEachReviewCarriesItsOwn() {
+        GuestReview review = stubReview();
+        Page<GuestReview> page = new PageImpl<>(List.of(review));
+        when(reviewService.getAll(eq(1L), any(PageRequest.class))).thenReturn(page);
+        when(guestAvatars.forReviews(page.getContent()))
+                .thenReturn(Map.of(10L, "/api/guests/7/photo?ticket=abc"));
+
+        ResponseEntity<Page<GuestReviewDto>> resp = controller.getAll(0, 20, null, null);
+
+        assertThat(resp.getBody().getContent().get(0).guestAvatarUrl())
+                .isEqualTo("/api/guests/7/photo?ticket=abc");
+    }
+
+    @Test
+    void whenGuestHasAPhoto_thenTheSingleReviewCarriesIt() {
+        GuestReview review = stubReview();
+        when(reviewService.getById(10L, 1L)).thenReturn(review);
+        when(guestAvatars.forReview(review)).thenReturn("/api/guests/7/photo?ticket=abc");
+
+        ResponseEntity<GuestReviewDto> resp = controller.getById(10L);
+
+        assertThat(resp.getBody().guestAvatarUrl()).isEqualTo("/api/guests/7/photo?ticket=abc");
     }
 
     @Test

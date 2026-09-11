@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -1106,9 +1107,9 @@ class ReservationServiceTest {
             reservationService.notifyReservationUpdated(reservation);
 
             verify(notificationService).notify(eq("owner-kc"), eq(NotificationKey.RESERVATION_UPDATED),
-                    any(), any(), any());
+                    any(), any(), any(), any());
             verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.RESERVATION_UPDATED), any(), any(), any());
+                    eq(NotificationKey.RESERVATION_UPDATED), any(), any(), any(), any(Map.class));
         }
 
         @Test
@@ -1121,7 +1122,7 @@ class ReservationServiceTest {
             // Should not throw
             reservationService.notifyReservationUpdated(reservation);
             verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.RESERVATION_UPDATED), any(), any(), any());
+                    eq(NotificationKey.RESERVATION_UPDATED), any(), any(), any(), any(Map.class));
         }
 
         @Test

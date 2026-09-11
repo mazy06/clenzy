@@ -10,6 +10,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.PriceSourceOfTruth;
 import com.clenzy.model.Property;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PriceEngine;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -226,7 +227,11 @@ public class ChannexRatesReconciliationScheduler {
                     + " avec un prix Clenzy different du prix OTA. "
                     + "Verifier le tableau de conflits pour resoudre.",
                 "/channels",
-                property.getOrganizationId()
+                property.getOrganizationId(),
+                NotificationMetadata.of()
+                    .property(propertyName)
+                    .propertyId(property.getId())
+                    .build()
             );
         } catch (Exception e) {
             log.warn("ChannexReconciliation: notification drift KO property={}: {}",

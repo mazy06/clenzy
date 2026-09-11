@@ -22,8 +22,6 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import StatTile from '../../components/baitly/StatTile';
-import StatTileRow from '../../components/baitly/StatTileRow';
 import { cn } from '../../utils/cn';
 import {
   AccessTime,
@@ -40,7 +38,6 @@ import {
   Category,
   Deck,
   Description,
-  Euro,
   Flag,
   Group,
   Home,
@@ -115,7 +112,6 @@ const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-foreground mt-px';
  * Tuile de la rangee : rembourrage resserre par rapport au defaut du kit (p-4),
  * pour qu'une rangee de quatre tienne sur une largeur de tablette.
  */
-const TILE_CLASS = 'p-3 gap-0.5';
 
 /**
  * Etat de l'intervenant sur la mission.
@@ -147,7 +143,6 @@ const ASSIGNMENT_VALUE_CLASS: Record<WorkOrderAssignmentState, string> = {
  * Tuile mise en avant : fond pastel et filet primaire. Pas de bande laterale ni
  * d'ombre coloree — le contrat les proscrit ; c'est la SURFACE qui distingue.
  */
-const HERO_TILE_CLASS = 'border-primary/45 bg-primary-soft';
 
 /** Valeur chiffree d'une tuile metrique. */
 const METRIC_VALUE_CLASS =
@@ -505,52 +500,52 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
   const isHeroDueDate = !isClosed && !!vm.dueDate;
   const hasActualCost = vm.actualCost != null && vm.actualCost > 0;
 
-  const costTile = hasActualCost ? (
-    <StatTile
-      icon={<AttachMoney />}
-      label={t('serviceRequests.details.actualCost')}
-      value={<Money value={vm.actualCost!} from="EUR" />}
-      iconClassName="text-success"
-      className={cn(TILE_CLASS, isClosed && HERO_TILE_CLASS)}
-    />
-  ) : vm.estimatedCost != null ? (
-    <StatTile
-      icon={<Euro />}
-      label={t('serviceRequests.details.estimatedCost')}
-      value={<Money value={vm.estimatedCost} from="EUR" />}
-      className={cn(TILE_CLASS, isClosed && HERO_TILE_CLASS)}
-      hint={vm.recommendedCost != null && vm.recommendedCost > 0 ? (() => {
-        // Moteur Menage 2A : ecart vs bareme conseil (snapshot recommended_cost).
-        const delta = vm.estimatedCost! - vm.recommendedCost!;
-        const conform = Math.abs(delta) <= 5;
-        const deltaPct = Math.round((delta / vm.recommendedCost!) * 100);
-        const label = conform
-          ? t('workOrders.recommended.conform')
-          : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span
-                className={cn(
-                  'inline-block rounded-[7px] px-1.5 py-px text-[10px] font-bold tabular-nums whitespace-nowrap cursor-default',
-                  conform
-                    ? 'text-success-ink bg-success-soft'
-                    : 'text-muted-foreground bg-field border border-solid border-field-line',
-                )}
-              >
-                {label}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`}</TooltipContent>
-          </Tooltip>
-        );
-      })() : undefined}
-    />
-  ) : null;
+  /**
+   * Moteur Menage 2A : ecart du cout estime au bareme conseil (snapshot
+   * `recommended_cost`).
+   *
+   * <p>La pastille avait disparu de l'ecran lors du passage des tuiles a la
+   * rangee de faits : le prix restait affiche, mais plus rien ne disait s'il
+   * s'ecartait du bareme — la seule chose que le chiffre seul ne dit pas.
+   * Elle ne concerne que le cout ESTIME : une fois le cout REEL connu, c'est
+   * lui qui fait foi, pas un ecart de devis.</p>
+   */
+  const recommendedBadge = !hasActualCost
+    && vm.estimatedCost != null
+    && vm.recommendedCost != null
+    && vm.recommendedCost > 0
+    ? (() => {
+      const delta = vm.estimatedCost! - vm.recommendedCost!;
+      const conform = Math.abs(delta) <= 5;
+      const deltaPct = Math.round((delta / vm.recommendedCost!) * 100);
+      const label = conform
+        ? t('workOrders.recommended.conform')
+        : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={cn(
+                'inline-block shrink-0 rounded-[7px] px-1.5 py-px text-[10px] font-bold tabular-nums whitespace-nowrap cursor-default',
+                conform
+                  ? 'text-success-ink bg-success-soft'
+                  : 'text-muted-foreground bg-field border border-solid border-field-line',
+              )}
+            >
+              {label}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`}</TooltipContent>
+        </Tooltip>
+      );
+    })()
+    : undefined;
 
   /** Fait saillant : un libelle discret, une valeur qui porte. */
-  const Fact = ({ icon, label, value, strong }: {
+  const Fact = ({ icon, label, value, strong, badge }: {
     icon: React.ReactNode; label: string; value: React.ReactNode; strong?: boolean;
+    /** Mention accolee a la valeur (ecart au bareme). Jamais tronquee. */
+    badge?: React.ReactNode;
   }) => (
     <div className="flex min-w-0 items-start gap-2">
       <span className={cn('mt-[3px] inline-flex shrink-0', strong ? 'text-primary' : 'text-muted-foreground')}>
@@ -558,9 +553,12 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       </span>
       <div className="min-w-0">
         <p className="m-0 text-2xs font-semibold uppercase tracking-[.05em] text-faint">{label}</p>
-        <p className={cn('m-0 truncate', strong ? 'text-[15px] font-semibold text-foreground' : 'text-[15px] text-foreground')}>
-          {value}
-        </p>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className={cn('min-w-0 truncate', strong ? 'text-[15px] font-semibold text-foreground' : 'text-[15px] text-foreground')}>
+            {value}
+          </span>
+          {badge}
+        </span>
       </div>
     </div>
   );
@@ -677,6 +675,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 : vm.estimatedCost != null ? <Money value={vm.estimatedCost} from="EUR" /> : '—'
             }
             strong={isClosed}
+            badge={recommendedBadge}
           />
         </div>
         {vm.assignment && (

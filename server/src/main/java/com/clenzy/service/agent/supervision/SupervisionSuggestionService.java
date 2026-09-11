@@ -5,6 +5,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.SupervisionSuggestionRepository;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,9 @@ public class SupervisionSuggestionService {
      *  au-delà, elle peut re-remonter si la situation persiste — pas de masquage définitif). */
     private static final Duration DISMISS_COOLDOWN = Duration.ofDays(14);
     private static final int TITLE_MAX = 300;
+    /** Lecture seule des paramètres d'action ; sans état, donc partageable. */
+    private static final com.fasterxml.jackson.databind.ObjectMapper PARAMS_MAPPER =
+            new com.fasterxml.jackson.databind.ObjectMapper();
     private static final int MOTIF_MAX = 500;
 
     private final SupervisionSuggestionRepository repository;
@@ -304,7 +308,7 @@ public class SupervisionSuggestionService {
         s.setOrgLevel(orgLevel);
         repository.save(s);
         if (notifyPending) {
-            notifyIfActionable(organizationId, safeTitle, motif, severity);
+            notifyIfActionable(s, motif);
         }
         return java.util.Optional.of(s);
     }
@@ -316,18 +320,59 @@ public class SupervisionSuggestionService {
      * (outbox tx-safe) : n'échoue jamais l'enregistrement. Les cartes informationnelles
      * ({@link #record}) ne notifient pas — évite le bruit des scans.
      */
-    private void notifyIfActionable(Long organizationId, String title, String motif, String severity) {
+    private void notifyIfActionable(SupervisionSuggestion suggestion, String motif) {
+        final String severity = suggestion.getSeverity();
         if (!"warning".equalsIgnoreCase(severity) && !"critical".equalsIgnoreCase(severity)) {
             return;
         }
         try {
-            notificationService.notifyAdminsAndManagersByOrgId(organizationId,
-                    NotificationKey.SUPERVISION_SUGGESTION, title,
+            // Le TYPE d'action voyage avec la notification : c'est lui qui permet
+            // a la fiche de nommer le geste — « Commander » un reassort, « Verser »
+            // un paiement — au lieu d'un « Ouvrir Planning » qui laisse deviner.
+            // Le logement suit pour que la fiche puisse aussi mener la ou l'etat
+            // se corrige (le stock d'un consommable, par exemple).
+            // Le SEJOUR aussi, quand la carte en designe un : sans lui, une carte
+            // « No-show possible (reservation #498) » n'etait qu'une phrase — la
+            // fiche ne pouvait montrer ni le voyageur, ni les nuits en jeu, ni le
+            // logement concerne. L'identifiant est deja porte par la carte : aucune
+            // requete supplementaire dans la boucle de scan.
+            java.util.Map<String, Object> facts = NotificationMetadata.of()
+                    .supervision(suggestion.getId(), suggestion.getModuleKey(), suggestion.getActionType())
+                    .propertyId(suggestion.getPropertyId())
+                    .reservationId(suggestion.getReservationId())
+                    .reviewId(longParam(suggestion.getActionParams(), NotificationMetadata.REVIEW_ID))
+                    .deviceId(longParam(suggestion.getActionParams(), NotificationMetadata.DEVICE_ID))
+                    .build();
+            notificationService.notifyAdminsAndManagersByOrgId(suggestion.getOrganizationId(),
+                    NotificationKey.SUPERVISION_SUGGESTION, suggestion.getTitle(),
                     motif != null && !motif.isBlank() ? motif
                             : "Une action de supervision attend votre validation.",
-                    "/planning");
+                    "/planning", facts);
         } catch (Exception e) {
-            log.debug("supervision suggestion notification failed (org={}): {}", organizationId, e.getMessage());
+            log.debug("supervision suggestion notification failed (org={}): {}",
+                    suggestion.getOrganizationId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Entier porté par les paramètres d'action d'une carte, ou {@code null}.
+     *
+     * <p>Les paramètres disent SUR QUOI la carte porte — l'avis pour une carte de
+     * réputation, la serrure pour une alerte de batterie. La notification les
+     * relaie pour que sa fiche puisse montrer l'objet lui-même (note, canal,
+     * commentaire ; niveau de batterie, état du verrou) plutôt que la phrase qui
+     * le résume. Des paramètres illisibles ne valent pas un échec : la fiche
+     * retombe alors sur son texte.</p>
+     */
+    private static Long longParam(String actionParams, String field) {
+        if (actionParams == null || actionParams.isBlank()) {
+            return null;
+        }
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = PARAMS_MAPPER.readTree(actionParams).get(field);
+            return node != null && node.canConvertToLong() ? node.asLong() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 

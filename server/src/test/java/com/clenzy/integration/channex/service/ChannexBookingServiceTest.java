@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -172,9 +173,17 @@ class ChannexBookingServiceTest {
         verify(calendarEngine).book(eq(100L), eq(LocalDate.of(2026, 6, 1)),
             eq(LocalDate.of(2026, 6, 5)), eq(999L), eq(42L), anyString(), anyString());
 
-        // notif appelee
+        // notif appelee, avec le sejour joint en faits structures : la fiche de
+        // notification n'a pas a rappeler la reservation pour les afficher.
+        ArgumentCaptor<Map<String, Object>> facts = ArgumentCaptor.forClass(Map.class);
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-            eq(42L), eq(NotificationKey.RESERVATION_CREATED), any(), any(), any());
+            eq(42L), eq(NotificationKey.RESERVATION_CREATED), any(), any(), any(), facts.capture());
+        assertThat(facts.getValue())
+            .containsEntry("property", "Studio Marais")
+            .containsEntry("checkIn", "2026-06-01")
+            .containsEntry("checkOut", "2026-06-05")
+            .containsEntry("currency", "EUR")
+            .containsEntry("channel", "Airbnb");
     }
 
     @Test
@@ -225,7 +234,7 @@ class ChannexBookingServiceTest {
         assertThat(result.getId()).isEqualTo(123L);
         verify(reservationRepository, never()).save(any());
         verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
-        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -277,7 +286,7 @@ class ChannexBookingServiceTest {
             return r;
         });
         doThrow(new RuntimeException("notif fail"))
-            .when(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+            .when(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any(), any());
 
         // Ne doit pas relever — le test passe si pas d'exception
         Reservation result = service.handleNewBooking(booking);
@@ -594,7 +603,7 @@ class ChannexBookingServiceTest {
         assertThat(result.get().getStatus()).isEqualTo("cancelled");
         verify(calendarEngine).cancel(eq(900L), eq(42L), anyString());
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-            eq(42L), eq(NotificationKey.RESERVATION_CANCELLED), any(), any(), any());
+            eq(42L), eq(NotificationKey.RESERVATION_CANCELLED), any(), any(), any(), any());
     }
 
     @Test
@@ -695,7 +704,7 @@ class ChannexBookingServiceTest {
             .thenReturn(Optional.of(existing));
         when(reservationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         doThrow(new RuntimeException("notif KO"))
-            .when(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
+            .when(notificationService).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any(), any());
 
         Optional<Reservation> result = service.handleCancellation(booking);
         assertThat(result).isPresent();

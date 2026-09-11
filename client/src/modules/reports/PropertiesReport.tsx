@@ -2,9 +2,6 @@ import React from 'react';
 import {
   HighlightList,
   HistogramChart,
-  StatsBand,
-  StatsLayout,
-  TileGrid,
   tiles,
   type Highlight,
   type StatFigure,
@@ -14,7 +11,7 @@ import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
 import { usePropertyReport } from './hooks/useReportData';
-import { ReportFrame, scaleColor, useReportFormats } from './reportShell';
+import { ReportView, scaleColor, useReportFormats, type ReportContent } from './reportShell';
 
 const NO_INTERVENTIONS: never[] = [];
 
@@ -29,7 +26,7 @@ const SCORE_FAIR = 45;
  * ce qu'il RAPPORTE au regard du reste du portefeuille. L'ancien onglet les
  * séparait par un accordéon « Analyses avancées » que personne n'ouvrait.</p>
  */
-const PropertiesReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
+export function usePropertiesReport(period: DashboardPeriod = 'month'): ReportContent {
   const { t } = useTranslation();
   const format = useReportFormats();
   const { data, loading, error, retry } = usePropertyReport();
@@ -201,14 +198,12 @@ const PropertiesReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'mo
     },
   ] as TileOrNothing[]);
 
-  return (
-    <ReportFrame loading={loading || analyticsLoading} error={error} onRetry={retry}>
-      <StatsLayout>
-        <StatsBand figures={figures} />
-        <TileGrid items={items} />
-      </StatsLayout>
-    </ReportFrame>
-  );
+  return { figures, items, loading: loading || analyticsLoading, error, retry };
+}
+
+const PropertiesReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
+  const content = usePropertiesReport(period);
+  return <ReportView content={content} />;
 };
 
 export default PropertiesReport;

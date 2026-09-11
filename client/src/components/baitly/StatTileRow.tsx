@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { cn } from '../../utils/cn';
+import { StatsBandShell } from '../stats/StatsBand';
+import { StatTileCompactContext } from './statTileCompact';
 
 /**
  * Rangée de tuiles KPI — surface UNIQUE des écrans qui en affichent.
@@ -41,6 +43,16 @@ const COLUMNS_CLASS: Record<number, string> = {
 export interface StatTileRowProps {
   children: React.ReactNode;
   /**
+   * Bandeau plutôt que pavés : une seule carte, les chiffres alignés sur leur
+   * ligne de base — le langage des Rapports. Une rangée de quatre passe
+   * d'environ 110 px de haut à 46 px, et le tiers haut de l'écran revient au
+   * contenu. À préférer sur les écrans de LISTE, où les chiffres situent la
+   * page sans en être le sujet.
+   */
+  compact?: boolean;
+  /** Ligne complémentaire sous les chiffres, en mode compact. */
+  footer?: React.ReactNode;
+  /**
    * Nombre de colonnes à partir de `sm`. Défaut : le nombre de tuiles fournies,
    * borné à 6 — au-delà, chacune deviendrait illisible.
    */
@@ -48,7 +60,17 @@ export interface StatTileRowProps {
   className?: string;
 }
 
-export default function StatTileRow({ children, columns, className }: StatTileRowProps) {
+export default function StatTileRow({ children, columns, compact, footer, className }: StatTileRowProps) {
+  if (compact) {
+    return (
+      <StatTileCompactContext.Provider value>
+        <StatsBandShell footer={footer} className={className}>
+          {children}
+        </StatsBandShell>
+      </StatTileCompactContext.Provider>
+    );
+  }
+
   const count = columns ?? Math.min(6, Math.max(2, React.Children.count(children)));
   const cols = COLUMNS_CLASS[Math.min(6, Math.max(2, count))];
 

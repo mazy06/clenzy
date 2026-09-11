@@ -3869,3 +3869,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0416__report_documents.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0417-notification-metadata"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0417__notification_metadata.sql
+        relativeToChangelogFile: true

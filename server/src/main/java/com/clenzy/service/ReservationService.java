@@ -34,6 +34,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -919,12 +920,12 @@ public class ReservationService {
             if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
                 notificationService.notify(
                         reservation.getProperty().getOwner().getKeycloakId(),
-                        NotificationKey.RESERVATION_CREATED, title, message, actionUrl);
+                        NotificationKey.RESERVATION_CREATED, title, message, actionUrl, stayFacts(reservation));
             }
 
             // Notifier admins/managers
             notificationService.notifyAdminsAndManagers(
-                    NotificationKey.RESERVATION_CREATED, title, message, actionUrl);
+                    NotificationKey.RESERVATION_CREATED, title, message, actionUrl, stayFacts(reservation));
         } catch (Exception e) {
             log.warn("Notification error reservationCreated: {}", e.getMessage());
         }
@@ -942,11 +943,11 @@ public class ReservationService {
             if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
                 notificationService.notify(
                         reservation.getProperty().getOwner().getKeycloakId(),
-                        NotificationKey.RESERVATION_UPDATED, title, message, actionUrl);
+                        NotificationKey.RESERVATION_UPDATED, title, message, actionUrl, stayFacts(reservation));
             }
 
             notificationService.notifyAdminsAndManagers(
-                    NotificationKey.RESERVATION_UPDATED, title, message, actionUrl);
+                    NotificationKey.RESERVATION_UPDATED, title, message, actionUrl, stayFacts(reservation));
         } catch (Exception e) {
             log.warn("Notification error reservationUpdated: {}", e.getMessage());
         }
@@ -964,11 +965,11 @@ public class ReservationService {
             if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
                 notificationService.notify(
                         reservation.getProperty().getOwner().getKeycloakId(),
-                        NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl);
+                        NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl, stayFacts(reservation));
             }
 
             notificationService.notifyAdminsAndManagers(
-                    NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl);
+                    NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl, stayFacts(reservation));
         } catch (Exception e) {
             log.warn("Notification error reservationCancelled: {}", e.getMessage());
         }
@@ -1014,5 +1015,23 @@ public class ReservationService {
                     "Minimum de %d nuits requis pour un check-in le %s (reservation soumise: %d nuits)",
                     effectiveMinNights, reservation.getCheckIn(), actualNights));
         }
+    }
+
+    /**
+     * Faits joints aux notifications de sejour : le logement, le voyageur, les
+     * dates et le total. Deja charges par la reservation qu'on notifie.
+     */
+    private static Map<String, Object> stayFacts(Reservation reservation) {
+        if (reservation == null) return null;
+        return NotificationMetadata.of()
+                .property(reservation.getProperty() != null ? reservation.getProperty().getName() : null)
+                .propertyId(reservation.getProperty() != null ? reservation.getProperty().getId() : null)
+                .guest(reservation.getGuestName())
+                .reservationId(reservation.getId())
+                .reservationReference(reservation.getConfirmationCode())
+                .stay(reservation.getCheckIn(), reservation.getCheckOut())
+                .amount(reservation.getTotalPrice(), reservation.getCurrency())
+                .channel(reservation.getSourceName())
+                .build();
     }
 }

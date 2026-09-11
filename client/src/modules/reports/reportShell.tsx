@@ -4,7 +4,9 @@ import { TriangleAlert } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { ValueFormatter } from '../../components/stats';
+import { StatsBand, StatsLayout, TileGrid } from '../../components/stats';
+import type { StatFigure, Tile, ValueFormatter } from '../../components/stats';
+import { useFitRows } from '../../hooks/useFitRows';
 
 /**
  * Coque commune des onglets de Rapports.
@@ -132,6 +134,12 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
   items,
   emptyLabel,
 }) => {
+  // La liste ne defile plus — elle montre ce qui tient et compte le reste. Un
+  // ascenseur masque (`no-scrollbar`) cachait la moitie des signaux sans qu'un
+  // rail ne le laisse deviner : on ne savait meme pas qu'il y avait a faire
+  // defiler.
+  const { ref, hidden } = useFitRows<HTMLUListElement>();
+
   if (items.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -141,7 +149,8 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
   }
 
   return (
-    <ul className="no-scrollbar m-0 flex h-full list-none flex-col gap-2 overflow-y-auto p-0">
+    <div className="flex h-full flex-col">
+    <ul ref={ref} className="m-0 flex min-h-0 flex-1 list-none flex-col gap-2 overflow-hidden p-0">
       {items.map((item) => (
         <li
           key={item.id}
@@ -163,10 +172,73 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
         </li>
       ))}
     </ul>
+      {hidden > 0 && (
+        <p className="m-0 shrink-0 pt-1.5 text-2xs font-semibold text-muted-foreground tabular-nums">
+          +{hidden}
+        </p>
+      )}
+    </div>
   );
 };
 
-/** Un tableau dans une tuile : c'est lui qui défile, jamais la tuile. */
-export const TileScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="no-scrollbar h-full min-h-0 overflow-auto">{children}</div>
+/**
+ * Un tableau dans une tuile : il montre les lignes qui tiennent, et compte les
+ * autres.
+ *
+ * <p>Il defilait, sous `no-scrollbar` : un rail invisible cachait la moitie du
+ * tableau sans qu'on puisse meme le deviner. La largeur, elle, defile toujours
+ * — un tableau a sept colonnes ne se replie pas.</p>
+ */
+export const TileScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { ref, hidden } = useFitRows<HTMLDivElement>('tbody > tr');
+  return (
+    <div className="flex h-full flex-col">
+      <div ref={ref} className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+        {children}
+      </div>
+      {hidden > 0 && (
+        <p className="m-0 shrink-0 pt-1.5 text-2xs font-semibold text-muted-foreground tabular-nums">
+          +{hidden}
+        </p>
+      )}
+    </div>
+  );
+};
+
+
+// ─── Contenu d'un onglet, separe de son rendu ────────────────────────────────
+
+/**
+ * Ce qu'un onglet de Rapports PRODUIT : des chiffres, des tuiles, et l'etat de
+ * son chargement. Le rendu, lui, est le meme pour tous ({@link ReportView}).
+ *
+ * <p>Cette separation existe pour que les tuiles soient ADRESSABLES ailleurs :
+ * le tableau de bord importe des graphiques un par un, par leur cle, en
+ * montant le hook de leur onglet d'origine. Sans elle, un graphique n'existait
+ * qu'a l'interieur du `return` de son onglet, et n'etait reutilisable nulle
+ * part.</p>
+ */
+export interface ReportContent {
+  figures: StatFigure[];
+  items: Tile[];
+  loading: boolean;
+  error?: boolean | string | null;
+  retry?: () => void;
+  /** `false` : la grille rend la main au defilement de la page. */
+  fill?: boolean;
+}
+
+/**
+ * Rendu commun d'un onglet : le bandeau, puis la grille.
+ *
+ * <p>Les huit onglets refermaient sur le meme arbre de quatre composants. Une
+ * seule copie, et une hauteur de grille qui se regle au meme endroit.</p>
+ */
+export const ReportView: React.FC<{ content: ReportContent }> = ({ content }) => (
+  <ReportFrame loading={content.loading} error={content.error} onRetry={content.retry}>
+    <StatsLayout>
+      <StatsBand figures={content.figures} />
+      <TileGrid items={content.items} fill={content.fill} />
+    </StatsLayout>
+  </ReportFrame>
 );

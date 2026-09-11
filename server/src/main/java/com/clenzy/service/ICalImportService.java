@@ -380,7 +380,13 @@ public class ICalImportService {
                     "Import iCal partiel — " + session.property.getName(),
                     session.imported + " importee(s), " + session.cancelled + " annulee(s), "
                             + session.errors.size() + " erreur(s) via " + session.request.getSourceName(),
-                    "/planning"
+                    "/planning",
+                    NotificationMetadata.of()
+                        .property(session.property.getName())
+                        .propertyId(session.property.getId())
+                        .channel(session.request.getSourceName())
+                        .error(session.errors.get(0))
+                        .build()
                 );
             } else if (session.imported > 0 || session.cancelled > 0) {
                 // New reservations or cancellations — notify

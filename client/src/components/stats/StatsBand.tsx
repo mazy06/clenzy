@@ -22,19 +22,54 @@ export interface StatFigure {
   deltaInverted?: boolean;
 }
 
+/**
+ * Coque du bandeau : la carte, la rangée qui s'enroule, la ligne de base
+ * commune.
+ *
+ * <p>Extraite pour que les écrans de LISTE puissent adopter exactement le même
+ * bandeau que les Rapports, sans en recopier les classes — deux copies d'un
+ * contrat visuel finissent toujours par diverger. `StatTileRow` en mode
+ * compact s'appuie dessus (cf. `components/baitly/StatTileRow`).</p>
+ */
+const FIGURES_ROW_CLASS = 'flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2';
+
+export const StatsBandShell: React.FC<{
+  children: React.ReactNode;
+  /** Ligne complémentaire sous les chiffres (jauge, alerte, période). */
+  footer?: React.ReactNode;
+  className?: string;
+}> = ({ children, footer, className }) => (
+  <Card className={cn('flex flex-col gap-2.5 border-border p-3', className)}>
+    <div className={FIGURES_ROW_CLASS}>{children}</div>
+    {footer}
+  </Card>
+);
+
+/**
+ * Rangée de chiffres SANS carte.
+ *
+ * <p>Le bandeau porte sa propre carte, ce qui convient à un écran de rapport
+ * mais pas à une tuile du tableau de bord : la tuile est déjà une carte, et
+ * une carte dans une carte double les bordures pour rien.</p>
+ */
+export const FiguresRow: React.FC<{ figures: StatFigure[] }> = ({ figures }) => (
+  <div className={FIGURES_ROW_CLASS}>
+    {figures.map(({ key, ...figure }) => (
+      <Figure key={key} {...figure} />
+    ))}
+  </div>
+);
+
 export const StatsBand: React.FC<{
   figures: StatFigure[];
   /** Ligne complémentaire sous les chiffres (jauge, alerte, période). */
   footer?: React.ReactNode;
 }> = ({ figures, footer }) => (
-  <Card className="flex flex-col gap-2.5 border-border p-3">
-    <div className="flex flex-row flex-wrap items-baseline gap-x-6 gap-y-2">
-      {figures.map(({ key, ...figure }) => (
-        <Figure key={key} {...figure} />
-      ))}
-    </div>
-    {footer}
-  </Card>
+  <StatsBandShell footer={footer}>
+    {figures.map(({ key, ...figure }) => (
+      <Figure key={key} {...figure} />
+    ))}
+  </StatsBandShell>
 );
 
 export const Figure: React.FC<Omit<StatFigure, 'key'>> = ({
@@ -67,7 +102,11 @@ export const Figure: React.FC<Omit<StatFigure, 'key'>> = ({
  * contraste AA. Une variation nulle reste neutre — la colorer donnerait à lire
  * un mouvement qui n'a pas eu lieu.</p>
  */
-const Delta: React.FC<{ value: number; inverted?: boolean }> = ({ value, inverted }) => {
+export const Delta: React.FC<{ value: number; inverted?: boolean; unit?: string }> = ({
+  value,
+  inverted,
+  unit = '%',
+}) => {
   const favorable = inverted ? value < 0 : value > 0;
   const tone =
     value === 0
@@ -79,7 +118,7 @@ const Delta: React.FC<{ value: number; inverted?: boolean }> = ({ value, inverte
     <span className={cn('text-2xs font-semibold tabular-nums', tone)}>
       {value > 0 ? '+' : ''}
       {/* `{886.7}` rend « 886.7 » : le point decimal anglais. */}
-      {value.toLocaleString(undefined, { maximumFractionDigits: 1 })} %
+      {value.toLocaleString(undefined, { maximumFractionDigits: 1 })} {unit}
     </span>
   );
 };

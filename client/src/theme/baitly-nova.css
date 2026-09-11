@@ -1842,3 +1842,306 @@
   .cn-text-body2 { font-size: 0.75rem; }
   .cn-text-caption { font-size: 0.6875rem; }
 }
+
+/* MARK: Volet de la barre latérale ──────────────────────────────────────────
+   Le volet de la barre (bulle de l'assistant au survol du logo, panneau
+   apparence / langue / devise du pied) ne flotte pas À CÔTÉ d'elle : il en SORT.
+   Son CONTENU, lui, est bâti sur les primitives de la barre — cf.
+   `components/SidebarFlyout.tsx`, qui porte l'autre moitié du contrat.
+
+   Le panneau est posé au ras de la ligne de la barre, sans bordure ni arrondi de
+   ce côté-là — son remplissage recouvre la ligne sur toute sa hauteur — et les
+   deux angles de la jonction sont des raccords CONCAVES : un congé qui emmène la
+   ligne verticale de la barre dans la bordure horizontale du panneau.
+
+   ── Construction des congés ──
+   Deux pseudo-éléments posés HORS du panneau (au-dessus, en dessous), peints par
+   un dégradé radial à trois zones : transparent au centre du cercle (le fond de
+   page passe au travers), 1 px de ligne, puis le fond de la barre. Le centre est
+   à l'OPPOSÉ de la matière — c'est ce qui rend l'angle concave.
+
+   Le cercle est calé pour que sa ligne médiane soit tangente à la médiane de la
+   ligne de la barre ET à celle de la bordure du panneau, d'où les demi-pixels :
+   centre à un demi-pixel du bord du congé, bande de ligne CENTRÉE sur r. Sans ce
+   calage, l'arc arriverait un demi-pixel à côté des deux traits qu'il doit
+   joindre, et le raccord se lirait comme un décrochement.
+
+   Les arrêts se chevauchent d'un demi-pixel de part et d'autre (r±0,25 pleine
+   encre, rampes de r−0,75 et jusqu'à r+0,75) au lieu d'être adjacents : un arrêt
+   FRANC dans un dégradé radial sort en marches d'escalier, le rasteriseur ne
+   l'anticrénelant pas. Poids visuel du trait : toujours 1 px, médiane sur r. Pas
+   de frange grise à craindre du `transparent` — la spec interpole les dégradés en
+   alpha prémultiplié.
+
+   Le congé mesure r+1 et non r : le pixel de plus recouvre la rangée de la
+   bordure du panneau, qu'il remplace sur sa largeur. Comme les pseudo-éléments
+   se peignent PAR-DESSUS la bordure de leur parent, rien à retirer côté panneau.
+
+   ── Ce qui a été écarté ──
+   `box-shadow` (la technique habituelle des arrondis inversés) : la forme d'une
+   ombre est celle de sa boîte, or un congé concave n'est pas une boîte arrondie.
+   Il faudrait deux ombres décalées par angle plus une découpe, sans jamais
+   obtenir le trait de 1 px qui suit l'arc. Un SVG en `data:` : `var()` n'y est
+   pas résolu, le raccord ne suivrait pas le passage en sombre.
+
+   ── Pièges ──
+   ⚠️ Les congés débordent de r+1 px au-dessus et en dessous du panneau : les
+   appelants reculent le panneau d'autant le long de son bord d'alignement
+   (`SIDEBAR_FLYOUT_ALIGN_OFFSET`), sinon le congé du haut passe sous le bord de
+   la fenêtre.
+   ⚠️ Sélecteur à deux composants (`[data-side]`) pour passer devant les
+   `cn-popover-content` / `cn-hover-card-content` du kit par la spécificité, et
+   non par l'ordre des règles. En revanche une utility Tailwind, elle, vit dans
+   la couche `utilities` et repasserait devant : ne rien passer depuis le
+   composant qui touche au fond, à la bordure, au rayon ou à l'ombre. */
+.bui-sidebar-flyout {
+  /* Rayon du congé, et rayon des deux coins LIBRES du panneau : la pièce n'a
+     qu'un seul rayon. */
+  --bui-flyout-radius: 14px;
+  /* Ombre teintée à l'encre de marque, comme la feuille de MapWithSheet. */
+  --bui-flyout-shadow: rgb(27 42 53 / 0.28);
+  /* Course du tiroir : le volet sort de la barre sur sa propre LARGEUR. Il est
+     alors tout juste rentré au premier instant, et toute la course est visible,
+     donc rythmée par la courbe.
+
+     `100%` se résout ici sur la boîte de bordure du volet — celle du
+     `translateX` comme celle de l'`inset()`, c'est la même. Aucune valeur à
+     tenir en regard d'une largeur, donc, et n'importe quel volet à venir est
+     servi sans réglage. */
+  --bui-flyout-slide: 100%;
+
+  /* Position du tiroir, dérivée de la progression animée : 1 = rentré dans la
+     barre, 0 = sorti et en place. La règle est STATIQUE et relit la variable à
+     chaque image — c'est ce qui garde le corps, la fenêtre de découpe et les
+     congés dans le même mouvement, sans trois animations à synchroniser. */
+  --bui-flyout-reveal: calc(var(--bui-flyout-progress) * var(--bui-flyout-slide));
+
+  /* Bord de la fenêtre de découpe. Au repos il coïncide avec le bord du volet,
+     qui MORD de 2 px sur la barre (cf. `SIDEBAR_FLYOUT_SEAM_OFFSET`) : la ligne
+     est donc recouverte avec de la marge, et non posée au pixel près. Sans
+     cette marge, l'arrondi de position au pixel d'écran — Radix arrondit à la
+     densité de l'affichage — laissait passer un liseré au raccord sur un écran
+     à densité fractionnaire. Recouvrir 2 px de l'INTÉRIEUR de la barre ne coûte
+     rien : c'est le même fond.
+
+     Pendant la course, en revanche, la découpe remonte sur la face EXTÉRIEURE
+     de la ligne (3 px plus loin) : la barre reste intacte tant que le volet
+     n'est pas sorti. Sans quoi son remplissage effaçait la ligne dès la
+     première image, sur toute la hauteur du volet — la barre paraissait trouée
+     et le volet posé par-dessus.
+
+     Le `min()` fait la bascule : plein écart tant que le volet est rentré aux
+     trois dixièmes, puis retour à zéro. La barre reste donc entière le temps que
+     le volet jaillisse, et la ligne se scelle derrière lui sur le reste de la
+     course — progressivement, jamais d'un coup. */
+  --bui-flyout-cut: calc(
+    var(--bui-flyout-reveal) + min(3px, var(--bui-flyout-progress) * 10px)
+  );
+
+  position: relative;
+  background: var(--bui-sidebar);
+  color: var(--bui-sidebar-foreground);
+  border: 1px solid var(--bui-sidebar-border);
+  /* Le `ring-1` du kit est une ombre : il ferait le tour de la boîte et
+     redessinerait un trait pile sur la jonction qu'on vient d'effacer. Il est
+     remplacé par une vraie bordure, seule interruptible par les congés. */
+  box-shadow: none;
+}
+
+[data-theme='dark'] .bui-sidebar-flyout {
+  --bui-flyout-shadow: rgb(2 6 14 / 0.65);
+}
+
+/* L'ombre ne porte que vers l'EXTÉRIEUR. L'étalement négatif (−14) rentre la
+   forme de 14 px avant de la décaler de 16 : côté couture elle finit sous le
+   panneau opaque, flou compris, et rien ne vient noircir le raccord. */
+.bui-sidebar-flyout[data-side='right'] {
+  border-left: 0;
+  border-radius: 0 var(--bui-flyout-radius) var(--bui-flyout-radius) 0;
+  box-shadow: 16px 8px 34px -14px var(--bui-flyout-shadow);
+  /* Le corps sort de la barre. La fenêtre de découpe se ferme d'autant du côté
+     de la couture : les deux se compensent exactement, le bord gauche de la
+     fenêtre reste donc PILE sur la couture à chaque image. Ce qui dépasse
+     encore la couture est masqué — d'où le tiroir. Généreuse sur les trois
+     autres côtés, pour ne rogner ni les congés (15 px) ni l'ombre (19 px). */
+  transform: translateX(calc(-1 * var(--bui-flyout-reveal)));
+  clip-path: inset(-30px -40px -30px var(--bui-flyout-cut));
+}
+
+.bui-sidebar-flyout[data-side='left'] {
+  border-right: 0;
+  border-radius: var(--bui-flyout-radius) 0 0 var(--bui-flyout-radius);
+  box-shadow: -16px 8px 34px -14px var(--bui-flyout-shadow);
+  transform: translateX(var(--bui-flyout-reveal));
+  clip-path: inset(-30px var(--bui-flyout-cut) -30px -40px);
+}
+
+.bui-sidebar-flyout[data-side]::before,
+.bui-sidebar-flyout[data-side]::after {
+  content: '';
+  position: absolute;
+  /* Largeur = rayon + la rangée de bordure (1) + la morsure du volet sur la
+     barre (2). Ces 2 px sont indispensables : les bordures HAUT et BAS du volet
+     mordent elles aussi de 2 px dans la barre, et un congé qui démarrait après
+     elles les laissait dépasser — deux moignons de 2 x 1 px posés dans la
+     barre, aux coins du volet, qui se lisaient comme deux points.
+     Le centre du cercle reste cale sur `100% - 0.5px`, donc la tangente tombe
+     toujours sur la MÉDIANE de la ligne : elargir ne deplace pas l'arc. */
+  width: calc(var(--bui-flyout-radius) + 3px);
+  height: calc(var(--bui-flyout-radius) + 1px);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--bui-flyout-cx) var(--bui-flyout-cy),
+    transparent 0 calc(var(--bui-flyout-radius) - 0.75px),
+    var(--bui-sidebar-border) calc(var(--bui-flyout-radius) - 0.25px)
+      calc(var(--bui-flyout-radius) + 0.25px),
+    var(--bui-sidebar) calc(var(--bui-flyout-radius) + 0.75px)
+  );
+}
+
+/* Haut puis bas de la jonction. `-1px - r` amène le bord intérieur du congé
+   pile sur celui de la bordure du panneau, qu'il recouvre. */
+.bui-sidebar-flyout[data-side]::before {
+  top: calc(-1px - var(--bui-flyout-radius));
+  --bui-flyout-cy: 0.5px;
+}
+
+.bui-sidebar-flyout[data-side]::after {
+  bottom: calc(-1px - var(--bui-flyout-radius));
+  --bui-flyout-cy: calc(100% - 0.5px);
+}
+
+/* Côté raccordé : le congé part du ras de la ligne, centre du cercle à
+   l'opposé. Miroir quand la barre passe à droite (arabe). */
+.bui-sidebar-flyout[data-side='right']::before,
+.bui-sidebar-flyout[data-side='right']::after {
+  /* Au ras du volet, morsure comprise : c'est la largeur du congé qui absorbe
+     les 2 px, pas sa position. */
+  left: 0;
+  --bui-flyout-cx: calc(100% - 0.5px);
+  /* Contre-translation : les congés ANNULENT la course du corps et restent donc
+     immobiles à la couture. C'est ce qui les rend SYNCHRONES de l'ouverture —
+     accrochés au corps, ils voyageaient avec sa queue et n'arrivaient qu'une
+     fois le volet sorti à 94 %, d'où un raccord qui s'arrondissait APRÈS coup.
+     Ils ne peuvent pas se desynchroniser du reste : l'opacite du volet vaut
+     pour eux aussi, ils se fondent donc avec lui. */
+  transform: translateX(var(--bui-flyout-reveal));
+}
+
+.bui-sidebar-flyout[data-side='left']::before,
+.bui-sidebar-flyout[data-side='left']::after {
+  right: 0;
+  --bui-flyout-cx: 0.5px;
+  transform: translateX(calc(-1 * var(--bui-flyout-reveal)));
+}
+
+/* ── Ouverture, maintien, fermeture : le TIROIR ───────────────────────────────
+   Le volet ne grandit plus sur place : il SORT de la barre. Le corps se
+   translate hors d'elle pendant que la fenêtre de découpe se referme d'autant du
+   côté de la couture — les deux se compensent exactement, si bien que le bord de
+   la fenêtre ne quitte jamais la couture. Ce qui n'est pas encore sorti est
+   masqué.
+
+   ── La barre doit rester INTACTE tant que rien n'est sorti ──
+   Deux détails, tenus pour des raffinements, creusaient en fait l'ouverture
+   AVANT l'arrivée de la matière : la fenêtre découpée sur la face intérieure de
+   la ligne (le remplissage du volet l'effaçait donc dès la première image, sur
+   toute sa hauteur), et des congés contre-translatés pour rester immobiles à la
+   couture (donc dessinés, eux aussi, dès la première image). Résultat : une
+   barre trouée sur 435 px, deux évasements dans le vide, et un volet qui
+   paraissait s'ouvrir PAR-DESSUS elle.
+
+   Les deux sont corrigés : `--bui-flyout-cut` décale la découpe d'un pixel vers
+   l'extérieur pendant la course, et les congés repartent avec le corps. Ils
+   émergent donc avec la queue du volet, sur la seconde moitié de la course, en
+   se dévoilant progressivement à travers la découpe — ce qui EST l'étirement de
+   matière qu'on cherchait, arrivé au bon moment.
+
+   ── Une seule progression pilote tout ──
+   Deux choses doivent bouger à l'unisson, la translation du corps et l'inset de
+   la fenêtre, et une troisième en dérive, le cran de découpe. Des animations
+   séparées se désynchroniseraient au premier réglage de courbe — et Radix n'en
+   accepte qu'une, cf. plus bas. D'où une PROGRESSION unique, animée (1 = rentré
+   dans la barre, 0 = en place), que les règles statiques de côté relisent à
+   chaque image. Les images-clés ne portent donc que des nombres littéraux :
+   aucun `var()` à interpoler, et le comportement ne dépend pas de la façon dont
+   le moteur substitue une variable dans une image-clé.
+
+   Contrepartie assumée : une transformation dérivée d'une variable n'est pas
+   composée par le GPU, elle repasse par un recalcul de style à chaque image.
+   Trois éléments, une zone de 224 × 435 px : sans conséquence mesurable. Le prix
+   d'une animation composée serait de laisser les congés derrière.
+
+   ── Pas de rebond, et ce n'est pas qu'une question de goût ──
+   Un dépassement vers l'extérieur est géométriquement incompatible avec le
+   raccord : il pousse le bord du volet AU-DELÀ de la couture, et plus rien ne
+   couvre alors la fente ainsi ouverte — la page apparaît sur toute la hauteur du
+   volet. Avec une courbe à ressort classique (dépassement ~9 %) et une course de
+   224 px, cela ferait une déchirure de 20 px au raccord, pendant une centaine de
+   millisecondes. Aucune découpe n'y changerait rien : le problème n'est pas de
+   masquer, c'est qu'il n'y a plus de matière à cet endroit.
+
+   Un rebond vers la BARRE, lui, serait sans danger — le bord reste couvert quoi
+   qu'il arrive. Essayé, écarté : à l'œil, un volet qui ressort puis rentre un
+   peu se lit comme un raté, pas comme un ressort. Reste la seule décélération.
+
+   (Pour un vrai dépassement vers l'extérieur il faudrait doter le volet d'un
+   tablier masqué sous la découpe, au-delà de la couture — six constantes
+   couplées de plus, à mettre en regard d'un rebond de 20 px.)
+
+   ── Un seul nom d'animation par état, c'est une contrainte Radix ──
+   Radix démonte le volet sur `animationend`, en comparant le nom porté par
+   l'événement à `getComputedStyle(node).animationName`. Deux animations
+   simultanées rendent « a, b », qui n'égale jamais le nom d'un événement : le
+   volet ne se démonterait plus. D'où un seul jeu d'images-clés par état, opacité
+   comprise — et `both`, pour que l'état final tienne jusqu'au démontage : c'est
+   ce qui garantit qu'aucun résidu de bordure ne reste à l'écran. Les congés,
+   eux, n'ont AUCUNE animation propre : ils se contentent de relire la
+   progression héritée. Rien à synchroniser, et pas d'événement parasite.
+
+   Le sélecteur compte trois composants là où le kit n'en a qu'un : ses
+   `:where([data-state=open])` ne pèsent rien. */
+@property --bui-flyout-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* Une seule décélération, sans rebond. L'opacité suit la même courbe : elle est
+   pleine au quart du temps, le volet est donc lisible bien avant d'avoir fini de
+   sortir. */
+@keyframes bui-flyout-in {
+  from {
+    opacity: 0;
+    --bui-flyout-progress: 1;
+  }
+  to {
+    opacity: 1;
+    --bui-flyout-progress: 0;
+  }
+}
+
+/* Fermeture : pas de rebond, le volet rentre dans la barre et s'en va. */
+@keyframes bui-flyout-out {
+  from {
+    opacity: 1;
+    --bui-flyout-progress: 0;
+  }
+  to {
+    opacity: 0;
+    --bui-flyout-progress: 1;
+  }
+}
+
+.bui-sidebar-flyout[data-side][data-state='open'] {
+  animation: bui-flyout-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.bui-sidebar-flyout[data-side][data-state='closed'] {
+  animation: bui-flyout-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* Mouvement réduit : rien à faire ici, `theme/base.css` ramène déjà toute
+   animation à 0,01 ms en `!important`. Et c'est une durée, pas `animation:
+   none` — Radix attend la fin d'une animation pour démonter, il lui en faut
+   donc toujours une. */

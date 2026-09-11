@@ -6,8 +6,9 @@
  * Rapports pour que les deux écrans se lisent de la même façon.</p>
  */
 export { ChartTile, TileGrid, StatsLayout, tiles, type Tile, type TileOrNothing } from './ChartTile';
-export { StatsBand, Figure, type StatFigure } from './StatsBand';
+export { StatsBand, StatsBandShell, FiguresRow, Figure, Delta, type StatFigure } from './StatsBand';
 export { HighlightList, type Highlight } from './HighlightList';
+export { ChartThumbnailContext, useChartThumbnail } from './chartThumbnail';
 export {
   DonutChart,
   HistogramChart,

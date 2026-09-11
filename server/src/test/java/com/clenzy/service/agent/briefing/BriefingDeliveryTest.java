@@ -96,7 +96,7 @@ class BriefingDeliveryTest {
     void dispatch_inApp_serviceFailure_dropsChannel() {
         when(userRepository.findByKeycloakId("user-x")).thenReturn(Optional.of(user("a@b.com", null)));
         doThrow(new RuntimeException("notify down"))
-                .when(notificationService).send(any(), any(), any(), any(), any(), any());
+                .when(notificationService).send(any(), any(), any(), any(), any(), any(Long.class));
 
         List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("in_app"));
         assertTrue(delivered.isEmpty());

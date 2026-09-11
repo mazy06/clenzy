@@ -27,6 +27,16 @@ interface SendMessageDialogProps {
   open: boolean;
   reservationId: number;
   guestName?: string;
+  /**
+   * Type de modele a pre-selectionner a l'ouverture (`CHECK_IN`, `CHECK_OUT`…).
+   *
+   * <p>Un appelant qui ouvre ce dialogue POUR un geste precis — « Relancer la
+   * fiche voyageur » depuis une carte no-show — sait deja quel modele il veut ;
+   * sans cela le geste nomme une intention puis demandait de la retrouver dans
+   * une liste. Le choix reste modifiable : c'est une amorce, pas un verrou. Un
+   * type sans modele actif laisse la liste vierge, comme avant.</p>
+   */
+  preferredTemplateType?: string;
   onClose: () => void;
   onSent?: () => void;
 }
@@ -35,6 +45,7 @@ export default function SendMessageDialog({
   open,
   reservationId,
   guestName,
+  preferredTemplateType,
   onClose,
   onSent,
 }: SendMessageDialogProps) {
@@ -53,20 +64,27 @@ export default function SendMessageDialog({
         try {
           setLoading(true);
           const data = await guestMessagingApi.getTemplates();
-          setTemplates(data.filter((tpl) => tpl.isActive));
+          const active = data.filter((tpl) => tpl.isActive);
+          setTemplates(active);
+          const preferred = preferredTemplateType
+            ? active.find((tpl) => tpl.type === preferredTemplateType)
+            : undefined;
+          if (preferred) setSelectedTemplateId(preferred.id);
         } catch {
           setError(t('messaging.send.loadError'));
         } finally {
           setLoading(false);
         }
       };
-      loadTemplates();
+      // La remise a zero AVANT le chargement : posee apres, elle effacait la
+      // pre-selection que `loadTemplates` venait d'ecrire.
       setSelectedTemplateId('');
       setChannel('EMAIL');
       setError(null);
       setSuccess(false);
+      loadTemplates();
     }
-  }, [open, t]);
+  }, [open, preferredTemplateType, t]);
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 

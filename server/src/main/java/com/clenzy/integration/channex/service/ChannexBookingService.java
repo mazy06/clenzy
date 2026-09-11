@@ -14,6 +14,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.GuestService;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.model.NotificationKey;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -204,7 +206,8 @@ public class ChannexBookingService {
                 String.format("%s du %s au %s (%s %s)",
                     property.getName(), booking.arrivalDate(), booking.departureDate(),
                     booking.amount(), booking.currency()),
-                "/reservations?highlight=" + reservation.getId()
+                "/reservations?highlight=" + reservation.getId(),
+                bookingFacts(booking, property, reservation)
             );
         } catch (Exception e) {
             log.warn("ChannexBooking: notification echouee pour reservation #{}: {}",
@@ -326,7 +329,8 @@ public class ChannexBookingService {
                 NotificationKey.RESERVATION_CANCELLED,
                 "Reservation annulee via " + (booking.otaName() != null ? booking.otaName() : "Channex"),
                 "Reservation #" + reservation.getId() + " annulee depuis l'OTA. Calendrier libere automatiquement.",
-                "/reservations?highlight=" + reservation.getId()
+                "/reservations?highlight=" + reservation.getId(),
+                bookingFacts(booking, reservation.getProperty(), reservation)
             );
         } catch (Exception e) {
             log.warn("ChannexBooking: notification annulation echouee: {}", e.getMessage());
@@ -444,5 +448,22 @@ public class ChannexBookingService {
     private static String resolveCalendarSource(String otaName) {
         if (otaName == null) return "channex";
         return ("channex-" + otaName.toLowerCase()).replaceAll("[^a-z0-9_-]", "_");
+    }
+
+    /**
+     * Faits joints a la notification : le sejour tel qu'il vient d'arriver.
+     * Tout est deja en memoire — le booking, le logement et la reservation
+     * qu'on vient d'ecrire —, la fiche ne coute donc aucune requete de plus.
+     */
+    private static Map<String, Object> bookingFacts(ChannexBookingDto booking, Property property,
+                                                    Reservation reservation) {
+        return NotificationMetadata.of()
+            .property(property != null ? property.getName() : null)
+            .guest(reservation != null ? reservation.getGuestName() : null)
+            .reservationReference(reservation != null ? reservation.getConfirmationCode() : null)
+            .stay(booking.arrivalDate(), booking.departureDate())
+            .amount(booking.amount(), booking.currency())
+            .channel(booking.otaName())
+            .build();
     }
 }

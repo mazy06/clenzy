@@ -126,8 +126,16 @@ public class NoiseAlertNotificationService {
                     && property.getOwner().getKeycloakId() != null) {
                 String actionUrl = "/connected-objects/property/" + alert.getPropertyId()
                         + "?highlight=" + alert.getId();
-                notificationService.send(
-                    property.getOwner().getKeycloakId(), key, title, message, actionUrl);
+                notificationService.notify(
+                    property.getOwner().getKeycloakId(), key, title, message, actionUrl,
+                    // Mesure et seuil voyagent avec l'alerte : la fiche les
+                    // dessine en jauge, la ou le message les enfermait dans une
+                    // phrase. Rien de plus a lire en base — ils sont deja la.
+                    NotificationMetadata.of()
+                        .property(propertyName)
+                        .propertyId(alert.getPropertyId())
+                        .noise(alert.getMeasuredDb(), alert.getThresholdDb())
+                        .build());
                 alert.setNotifiedInApp(true);
             }
         } catch (Exception e) {

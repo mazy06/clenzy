@@ -1,10 +1,15 @@
 /* ─── Mode « Personnaliser » du tableau de bord ─────────────────────────────
  *
- * Le cadre en tirets de chaque tuile est tracé en SVG (DashboardWidgetGrid) et
- * non avec `outline-dashed` : le motif d'une bordure CSS n'est pas réglable —
- * chaque moteur choisit sa longueur de tiret, et à 2 px Chrome produit des
- * créneaux épais qui saturent l'écran une fois répétés sur huit tuiles. Le
- * tracé SVG donne la maîtrise du rythme, de l'épaisseur et du rayon.
+ * Le cadre de chaque tuile est tracé en SVG (DashboardWidgetGrid) et non avec
+ * `outline-dashed` : le motif d'une bordure CSS n'est pas réglable — chaque
+ * moteur choisit sa longueur de tiret, et à 2 px Chrome produit des créneaux
+ * épais qui saturent l'écran une fois répétés sur huit tuiles. Le tracé SVG
+ * donne la maîtrise du rythme, de l'épaisseur et du rayon.
+ *
+ * UN TIRET VEUT DIRE UNE CHOSE : « quelque chose peut se poser ici ». Au repos
+ * une tuile porte un filet PLEIN — c'est un objet, pas une zone d'accueil. Le
+ * pointillé est réservé à la cible de dépôt et à l'interligne, et ce dernier ne
+ * paraît que pendant un glisser.
  */
 
 /* Tuile survolée pendant un glisser : les tirets défilent le long du tracé.
@@ -22,15 +27,75 @@
   }
 }
 
-/* Interligne d'accueil : filet en tirets visible en permanence en mode édition.
-   Sans lui, rien n'indiquait qu'on pouvait déposer une tuile entre deux lignes
-   pour la sortir sur sa propre ligne — la zone n'apparaissait qu'une fois le
-   curseur dessus, donc après coup. La couleur suit `currentColor` : l'état de
-   survol se pilote depuis les classes utilitaires, sans dupliquer le motif. */
+/* Interligne d'accueil : filet en tirets révélé pendant un GLISSER.
+   Il annonce qu'on peut déposer une tuile entre deux lignes pour la sortir sur
+   sa propre ligne. Affiché en permanence, il doublait le nombre de traits à
+   l'écran pour une cible qui n'existe que le temps d'un déplacement. La couleur
+   suit `currentColor` : survol et apparition se pilotent depuis les classes
+   utilitaires, sans dupliquer le motif. */
 .db-rowgap-rule {
   background-image: repeating-linear-gradient(
     to right,
     currentColor 0 6px,
     transparent 6px 12px
   );
+}
+
+
+/* ─── Aperçu de glisser ─────────────────────────────────────────────────────
+ *
+ * La tuile saisie s'incline légèrement et se pose sur le curseur. L'inclinaison
+ * n'est pas un ornement : elle dit que l'objet a QUITTÉ la grille — un aperçu
+ * parfaitement d'aplomb au milieu de tuiles d'aplomb ne se distingue pas de la
+ * mise en page. C'est la convention des tableaux à cartes.
+ *
+ * L'apparition dure 120 ms, sous le seuil où l'on attend quelque chose.
+ */
+.db-drag-preview {
+  transform: rotate(-1.5deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes dashboardPreviewLift {
+    from {
+      transform: rotate(0deg) scale(0.96);
+      opacity: 0.6;
+    }
+    to {
+      transform: rotate(-1.5deg) scale(1);
+      opacity: 1;
+    }
+  }
+  .db-drag-preview {
+    animation: dashboardPreviewLift 120ms ease-out;
+  }
+}
+
+/* L'emplacement laissé libre par la tuile saisie. Le pointillé y reprend son
+   sens — « quelque chose peut se poser ici » — et c'est justement l'endroit
+   d'où elle vient, donc celui où un relâchement sans cible la ramène. */
+.db-slot-vacated {
+  outline: 1.5px dashed var(--bui-border);
+  outline-offset: -1px;
+  border-radius: var(--radius-xl, 0.75rem);
+}
+
+
+/* ─── Vignette du sélecteur de composants ───────────────────────────────────
+ *
+ * Rien à masquer ici : les graphiques ne DESSINENT ni axes ni légende quand ils
+ * sont rendus en vignette (`ChartThumbnailContext`). Les cacher en CSS ne
+ * suffisait pas — Recharts réserve la place de ses axes, et un `display: none`
+ * laissait la gouttière : le tracé restait tassé dans un coin, et un zoom
+ * réglé à l'estime tentait de rattraper le cadrage sans y parvenir pour tous
+ * les types de graphique à la fois.
+ */
+
+/* ── Renvoi vers l'écran d'origine ──────────────────────────────────────────
+   Une tuile importée porte un lien vers l'écran où sa donnée se travaille.
+   En mode édition, la tuile se déplace : un lien sous le curseur y devient un
+   piège. Le plan de travail (`.db-board`) n'existe qu'en édition, donc la
+   règle se limite d'elle-même au bon moment. */
+.db-board .db-origin-link {
+  display: none;
 }

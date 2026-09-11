@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -62,6 +64,21 @@ public class Notification {
 
     @Column(name = "action_url")
     private String actionUrl;
+
+    /**
+     * Faits structures que l'emetteur avait deja sous la main : logement,
+     * voyageur, dates du sejour, montant... Objet JSON plat, serialise, ecrit
+     * par le SERVEUR seul et destine au seul AFFICHAGE de la fiche de
+     * notification.
+     *
+     * <p>Il ne porte ni tenant, ni identifiant de routage, ni decision : lire
+     * l'organisation ou l'effet metier dans le payload d'un evenement est
+     * precisement ce que l'audit interdit. Le vocabulaire des cles est
+     * declare dans {@link com.clenzy.service.NotificationMetadata}.</p>
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata", columnDefinition = "jsonb")
+    private String metadata;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
@@ -158,6 +175,14 @@ public class Notification {
 
     public void setActionUrl(String actionUrl) {
         this.actionUrl = actionUrl;
+    }
+
+    public String getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
     }
 
     public Instant getCreatedAt() {

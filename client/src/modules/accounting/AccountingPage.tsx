@@ -904,7 +904,7 @@ export const ExpensesTab: React.FC = () => {
       {/* ── Stats — primitive StatTile ──
           La teinte de statut porte desormais l'ICONE et non le nombre : une
           valeur chiffree est du texte, et la teinte vive n'y tient pas le 4,5:1. */}
-      <StatTileRow className="mb-2">
+      <StatTileRow compact className="mb-2">
         <StatTile
           icon={<AttachMoneyIcon />}
           label={t('accounting.expenses.totalExpenses', 'Total depenses')}

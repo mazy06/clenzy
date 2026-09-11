@@ -3,6 +3,8 @@ package com.clenzy.dto;
 import com.clenzy.model.Notification;
 import com.clenzy.model.NotificationCategory;
 import com.clenzy.model.NotificationType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
@@ -20,7 +22,11 @@ public class NotificationDto {
     public String notificationKey;  // NotificationKey enum name (e.g. "INTERVENTION_CREATED")
     public boolean read;
     public String actionUrl;
+    /** Faits structures attaches a l'evenement — lecture seule, affichage seul. */
+    public JsonNode metadata;
     public Instant createdAt;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // ─── Constructeurs ──────────────────────────────────────────────────────────
 
@@ -39,12 +45,27 @@ public class NotificationDto {
         dto.notificationKey = entity.getNotificationKey() != null ? entity.getNotificationKey().name() : null;
         dto.read = entity.isRead();
         dto.actionUrl = entity.getActionUrl();
+        dto.metadata = parseMetadata(entity.getMetadata());
         dto.createdAt = entity.getCreatedAt();
         return dto;
     }
 
+    /** Des faits illisibles n'empechent pas de lire la notification. */
+    private static JsonNode parseMetadata(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return MAPPER.readTree(json);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // ─── Factory vers Entity ────────────────────────────────────────────────────
 
+    /**
+     * Volontairement sans {@code metadata} : les faits sont ecrits par le
+     * serveur au moment de l'evenement, jamais recopies depuis un DTO entrant.
+     */
     public Notification toEntity() {
         Notification entity = new Notification();
         entity.setUserId(this.userId);

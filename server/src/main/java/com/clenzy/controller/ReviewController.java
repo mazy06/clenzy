@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.*;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.GuestReview;
+import com.clenzy.service.ReviewGuestAvatarResolver;
 import com.clenzy.service.ReviewService;
 import com.clenzy.service.ReviewSyncService;
 import com.clenzy.service.agent.supervision.ReviewReplyDraftService;
@@ -24,18 +25,31 @@ public class ReviewController {
     private final ReviewService reviewService;
     private final ReviewSyncService syncService;
     private final ReviewReplyDraftService draftService;
+    private final ReviewGuestAvatarResolver guestAvatars;
     private final TenantContext tenantContext;
 
     public ReviewController(ReviewService reviewService,
                             ReviewSyncService syncService,
                             ReviewReplyDraftService draftService,
+                            ReviewGuestAvatarResolver guestAvatars,
                             TenantContext tenantContext) {
         this.reviewService = reviewService;
         this.syncService = syncService;
         this.draftService = draftService;
+        this.guestAvatars = guestAvatars;
         this.tenantContext = tenantContext;
     }
 
+    /**
+     * Page d'avis, photo du voyageur comprise.
+     *
+     * <p>La photo etait autrefois reservee a l'avis ouvert, au motif qu'une
+     * liste la paierait d'une jointure PAR LIGNE. Elle est desormais resolue
+     * pour toute la page en une requete
+     * ({@link ReviewGuestAvatarResolver#forReviews}) : le motif ne tient plus,
+     * et une liste d'avis ou l'on ne reconnait personne oblige a lire chaque nom
+     * pour savoir qui parle.</p>
+     */
     @GetMapping
     public ResponseEntity<Page<GuestReviewDto>> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -43,26 +57,27 @@ public class ReviewController {
             @RequestParam(required = false) Long propertyId,
             @RequestParam(required = false) ChannelName channel) {
         Long orgId = tenantContext.getOrganizationId();
-        Page<GuestReviewDto> result;
+        PageRequest pageable = PageRequest.of(page, size);
 
+        Page<GuestReview> reviews;
         if (propertyId != null) {
-            result = reviewService.getByProperty(propertyId, orgId, PageRequest.of(page, size))
-                .map(GuestReviewDto::from);
+            reviews = reviewService.getByProperty(propertyId, orgId, pageable);
         } else if (channel != null) {
-            result = reviewService.getByChannel(channel, orgId, PageRequest.of(page, size))
-                .map(GuestReviewDto::from);
+            reviews = reviewService.getByChannel(channel, orgId, pageable);
         } else {
-            result = reviewService.getAll(orgId, PageRequest.of(page, size))
-                .map(GuestReviewDto::from);
+            reviews = reviewService.getAll(orgId, pageable);
         }
-        return ResponseEntity.ok(result);
+
+        Map<Long, String> photos = guestAvatars.forReviews(reviews.getContent());
+        return ResponseEntity.ok(reviews.map(review -> GuestReviewDto.from(review, photos.get(review.getId()))));
     }
 
+    /** Avis complet, photo du voyageur comprise. */
     @GetMapping("/{id}")
     public ResponseEntity<GuestReviewDto> getById(@PathVariable Long id) {
         Long orgId = tenantContext.getOrganizationId();
         GuestReview review = reviewService.getById(id, orgId);
-        return ResponseEntity.ok(GuestReviewDto.from(review));
+        return ResponseEntity.ok(GuestReviewDto.from(review, guestAvatars.forReview(review)));
     }
 
     @GetMapping("/stats/{propertyId}")

@@ -15,6 +15,7 @@ import { Money } from '../../components/Money';
 import type { WalletDto, LedgerEntryDto } from '../../types/payment';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import PagePagination from '../../components/PagePagination';
 
@@ -152,39 +153,33 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
         </div>
       ) : (
         <>
-          {/* Wallet summary cards */}
-          <div className="grid grid-cols-12 gap-3 mt-1.5">
+          {/* Bandeau de soldes — même langage que les Rapports, à ceci près que
+              chaque chiffre reste SÉLECTIONNABLE : c'est lui qui commande
+              l'historique en dessous. StatTile rend alors un vrai <button>
+              (focus, Entrée et Espace natifs) et la sélection se dit par le
+              fond, jamais par un liseré. */}
+          <StatTileRow compact className="mt-1.5">
             {wallets.map((wallet) => {
               const typeInfo = WALLET_TYPE_LABELS[wallet.walletType] || WALLET_TYPE_LABELS.PLATFORM;
               const isSelected = selectedWallet?.id === wallet.id;
 
               return (
-                <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={wallet.id}>
-                  {/* Tuile KPI selectionnable : primitive StatTile — un vrai
-                      <button>, dont le focus, Entree et Espace sont natifs.
-                      La selection se dit par le fond (§5), pas par un liseré. */}
-                  <StatTile
-                    icon={(
-                      <span
-                        className="inline-flex size-[26px] shrink-0 items-center justify-center rounded-md"
-                        style={{ color: typeInfo.color, backgroundColor: `color-mix(in srgb, ${typeInfo.color} 12%, transparent)` }}
-                      >
-                        {typeInfo.icon}
-                      </span>
-                    )}
-                    label={typeInfo.label}
-                    value={<Money value={wallet.balance} from={wallet.currency} />}
-                    hint={wallet.currency}
-                    onClick={() => { setSelectedWallet(wallet); setPage(0); }}
-                    className={cn(
-                      'h-full',
-                      isSelected && 'border-primary bg-primary-soft hover:bg-primary-soft',
-                    )}
-                  />
-                </div>
+                <StatTile
+                  key={wallet.id}
+                  icon={(
+                    <span className="inline-flex shrink-0" style={{ color: typeInfo.color }}>
+                      {typeInfo.icon}
+                    </span>
+                  )}
+                  label={typeInfo.label}
+                  value={<Money value={wallet.balance} from={wallet.currency} />}
+                  hint={wallet.currency}
+                  onClick={() => { setSelectedWallet(wallet); setPage(0); }}
+                  className={cn(isSelected && 'bg-primary-soft hover:bg-primary-soft')}
+                />
               );
             })}
-          </div>
+          </StatTileRow>
 
           {/* Ledger entries table */}
           {selectedWallet && (

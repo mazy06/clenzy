@@ -124,7 +124,7 @@ class ServiceRequestAutoCleaningTest {
         assertThat(created.getDesiredDate().toLocalTime()).isEqualTo(LocalTime.of(10, 30));
         // Notification interne org.
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-            eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_CREATED), anyString(), anyString(), anyString());
+            eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_CREATED), anyString(), anyString(), anyString(), any());
     }
 
     @Test
@@ -212,7 +212,7 @@ class ServiceRequestAutoCleaningTest {
         // et une re-livraison du CANCELLED devient un no-op.
         assertThat(sr.getAutoFlowKey()).isEqualTo(EXPECTED_KEY + ":CANCELLED:55");
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-            eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_CANCELLED), anyString(), anyString(), anyString());
+            eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_CANCELLED), anyString(), anyString(), anyString(), any());
     }
 
     @Test

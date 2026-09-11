@@ -18,6 +18,7 @@ import com.clenzy.repository.HousekeeperPayoutRecordRepository;
 import com.clenzy.repository.InterventionPhotoRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
 import com.stripe.exception.StripeException;
@@ -281,7 +282,11 @@ public class HousekeeperPayoutService {
                             "Versement en attente",
                             "Votre versement pour la mission '" + intervention.getTitle()
                                     + "' est en attente : configurez votre compte de versement dans Réglages > Mes versements.",
-                            "/settings?tab=my-payouts-pro", orgId);
+                            "/settings?tab=my-payouts-pro", orgId,
+                            NotificationMetadata.of()
+                                    .intervention(intervention.getTitle())
+                                    .interventionId(intervention.getId())
+                                    .build());
                 }
                 return;
             }
@@ -453,7 +458,11 @@ public class HousekeeperPayoutService {
                         "Versement envoyé",
                         "Votre versement de " + net.stripTrailingZeros().toPlainString()
                                 + " EUR pour la mission '" + title + "' a été envoyé.",
-                        "/settings?tab=my-payouts-pro", orgId);
+                        "/settings?tab=my-payouts-pro", orgId,
+                        NotificationMetadata.of()
+                                .interventionId(interventionId)
+                                .amount(net, "EUR")
+                                .build());
             }
             log.info("Payout intervention {} : transfert {} envoyé ({} EUR)", interventionId, transferId, net);
         } catch (StripeException e) {

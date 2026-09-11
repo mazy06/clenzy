@@ -1,8 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Progress, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
-
-const LOW = 20;
-const CRITICAL = 10;
+import { batteryTone } from '../../../components/baitly/BatteryGauge';
 
 interface BatteryIndicatorProps {
   /** Niveau 0–100, ou null/undefined si inconnu (rien n'est rendu). */
@@ -21,9 +19,12 @@ interface BatteryIndicatorProps {
 export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
   if (level == null) return null;
 
-  const low = level <= LOW;
-  const barColor = level <= CRITICAL ? 'var(--bui-destructive)' : low ? 'var(--bui-warning)' : 'var(--bui-success)';
-  const inkColor = level <= CRITICAL ? 'var(--bui-destructive-ink)' : low ? 'var(--bui-warning-ink)' : 'var(--bui-success-ink)';
+  // Seuils partages avec la jauge des fiches d'alerte : un meme niveau ne peut
+  // pas etre « faible » ici et « suffisant » la.
+  const tone = batteryTone(level);
+  const low = tone !== 'ok';
+  const barColor = tone === 'critical' ? 'var(--bui-destructive)' : low ? 'var(--bui-warning)' : 'var(--bui-success)';
+  const inkColor = tone === 'critical' ? 'var(--bui-destructive-ink)' : low ? 'var(--bui-warning-ink)' : 'var(--bui-success-ink)';
 
   return (
     <Tooltip>

@@ -24,12 +24,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -293,8 +295,14 @@ class StripeServiceTest {
             stripeService.markPaymentAsFailed("sess_fail");
 
             // Assert
-            verify(notificationService).notify(eq("kc-owner-1"), any(), any(), any(), any());
-            verify(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
+            // Les deux notifications portent les memes faits : le logement,
+            // l'intervention reglee et son montant.
+            ArgumentCaptor<Map<String, Object>> facts = ArgumentCaptor.forClass(Map.class);
+            verify(notificationService).notify(eq("kc-owner-1"), any(), any(), any(), any(),
+                    facts.capture());
+            assertThat(facts.getValue()).containsEntry("intervention", "Test intervention");
+            verify(notificationService).notifyAdminsAndManagers(any(), any(), any(), any(),
+                    any(Map.class));
         }
     }
 
@@ -1061,7 +1069,8 @@ class StripeServiceTest {
             stripeService.confirmPayment("sess_n2");
 
             verify(notificationService).notifyAdminsAndManagers(
-                eq(com.clenzy.model.NotificationKey.PAYMENT_CONFIRMED), any(), any(), any());
+                eq(com.clenzy.model.NotificationKey.PAYMENT_CONFIRMED), any(), any(), any(),
+                any(Map.class));
             verify(notificationService).notifyAdminsAndManagers(
                 eq(com.clenzy.model.NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any());
         }
@@ -1086,9 +1095,13 @@ class StripeServiceTest {
 
             stripeService.confirmPayment("sess_no_owner");
 
-            verify(notificationService, never()).notify(any(), any(), any(), any(), any());
-            // 2 admin notifications: PAYMENT_CONFIRMED + INTERVENTION_AWAITING_VALIDATION
-            verify(notificationService, times(2)).notifyAdminsAndManagers(any(), any(), any(), any());
+            verify(notificationService, never()).notify(any(), any(), any(), any(), any(), any());
+            // 2 notifications admin : PAYMENT_CONFIRMED (avec faits) + INTERVENTION_AWAITING_VALIDATION
+            verify(notificationService).notifyAdminsAndManagers(
+                eq(com.clenzy.model.NotificationKey.PAYMENT_CONFIRMED), any(), any(), any(),
+                any(Map.class));
+            verify(notificationService).notifyAdminsAndManagers(
+                eq(com.clenzy.model.NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any());
         }
     }
 
@@ -1139,15 +1152,17 @@ class StripeServiceTest {
 
             stripeService.markPaymentAsFailed("sess_no");
 
-            verify(notificationService, never()).notify(any(), any(), any(), any(), any());
-            verify(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
+            verify(notificationService, never()).notify(any(), any(), any(), any(), any(), any());
+            verify(notificationService).notifyAdminsAndManagers(any(), any(), any(), any(),
+                    any(Map.class));
         }
 
         @Test
         void whenNotificationsFail_stillSavesFailedStatus() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             when(interventionRepository.findByStripeSessionId("sess_fn")).thenReturn(Optional.of(intervention));
-            doThrow(new RuntimeException("notif")).when(notificationService).notify(any(), any(), any(), any(), any());
+            doThrow(new RuntimeException("notif")).when(notificationService)
+                    .notify(any(), any(), any(), any(), any(), any());
 
             stripeService.markPaymentAsFailed("sess_fn");
 

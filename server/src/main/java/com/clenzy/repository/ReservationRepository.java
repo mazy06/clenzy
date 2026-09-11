@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -183,6 +184,21 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findPendingWithUpcomingCheckIn(@Param("orgId") Long orgId,
                                                      @Param("from") LocalDate from,
                                                      @Param("horizon") LocalDate horizon);
+
+    /**
+     * Reservations d'un lot d'identifiants, voyageur compris.
+     *
+     * <p>Sert a resoudre les photos de voyageurs d'une PAGE d'avis en une seule
+     * requete : {@code findAllById} suivi d'un {@code getGuest()} par ligne
+     * ferait un N+1, et c'est ce cout qui interdisait jusqu'ici de montrer les
+     * photos ailleurs que sur un avis ouvert.</p>
+     *
+     * <p>Aucune clause d'organisation ici, a dessein : l'appelant compare
+     * l'organisation de chaque reservation a celle de son avis (regle #3 de
+     * l'audit 2026-06), ce qu'une requete ne peut pas faire ligne par ligne.</p>
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest WHERE r.id IN :ids")
+    List<Reservation> findAllWithGuestByIdIn(@Param("ids") Collection<Long> ids);
 
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE LOWER(r.guestName) LIKE LOWER(CONCAT('%', :q, '%')) " +

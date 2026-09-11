@@ -251,7 +251,7 @@ class ChannexAuditCoverageTest {
             verify(driftRepository).save(any(ChannexPriceDrift.class));
             verify(notificationService).notifyAdminsAndManagers(
                 eq(com.clenzy.model.NotificationKey.CHANNEX_PRICE_DRIFT_DETECTED),
-                any(), any(), any(), eq(42L));
+                any(), any(), any(), eq(42L), any());
         }
 
         @Test

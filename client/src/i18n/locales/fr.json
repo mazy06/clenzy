@@ -850,6 +850,10 @@
     "openDock": "Déplier l'assistant",
     "closeDock": "Replier l'assistant",
     "dockLabel": "Assistant Baitly",
+    "launcher": {
+      "hint": "Demande-moi, par exemple :",
+      "ask": "Poser cette question"
+    },
     "empty": {
       "title": "Pose ta question",
       "body": "J'utilise tes données Baitly en temps réel.",
@@ -860,7 +864,17 @@
       "occupancy": "Quel est mon taux d'occupation ?",
       "arrivals": "Prépare les arrivées de la semaine",
       "guestMessage": "Rédige un message voyageur",
-      "compare": "Compare tes performances"
+      "compare": "Compare tes performances",
+      "revenue": "Combien j'ai gagné ce mois-ci ?",
+      "pricing": "Mes tarifs du week-end sont-ils bien placés ?",
+      "gaps": "Trouve les trous dans mon calendrier",
+      "cleaning": "Quels ménages restent à planifier ?",
+      "unpaid": "Quels paiements sont encore en attente ?",
+      "maintenance": "Y a-t-il des interventions en retard ?",
+      "checkouts": "Qui part demain ?",
+      "topProperty": "Quel logement performe le mieux ?",
+      "channels": "Mes annonces sont-elles bien synchronisées ?",
+      "lastMinute": "Que faire des nuits encore vides cette semaine ?"
     },
     "composer": {
       "placeholder": "Demande une analyse, une action, un chiffre…",
@@ -1915,7 +1929,10 @@
       "ownRow": "Sortir sur sa propre ligne",
       "shiftStart": "Déplacer vers le début de la ligne",
       "shiftEnd": "Déplacer vers la fin de la ligne",
-      "dropNewRow": "Nouvelle ligne"
+      "dropNewRow": "Nouvelle ligne",
+      "add": "Ajouter un composant",
+      "remove": "Retirer du tableau de bord",
+      "editingHint": "Glissez une tuile par sa poignée pour la déplacer, ou déposez-la entre deux lignes."
     },
     "occupancyByProperty": {
       "title": "Occupation par logement",
@@ -1963,7 +1980,8 @@
       "balanceDue": "Solde dû",
       "paid": "Payée",
       "confirmed": "Confirmée",
-      "seePlanning": "Tout le planning"
+      "seePlanning": "Tout le planning",
+      "more": "+ {{count}} autres arrivées"
     },
     "widgets": {
       "kpis": "Indicateurs",
@@ -2191,6 +2209,20 @@
       "deductions": "{{count}} dépense(s) déduite(s)",
       "failed": "Le détail n’a pas pu être chargé. Mieux vaut ne pas approuver sans l’avoir vu.",
       "factsSection": "Bénéficiaire et versement"
+    },
+    "imported": {
+      "missingTitle": "Graphique indisponible",
+      "missingHint": "Aucune donnée sur la période choisie.",
+      "kpisTitle": "Indicateurs clés",
+      "openOrigin": "Ouvrir dans {{screen}}"
+    },
+    "picker": {
+      "title": "Ajouter un composant",
+      "description": "Les graphiques des Rapports et des statistiques de portefeuilles se posent ici, un par un.",
+      "removed": "Retirés du tableau de bord",
+      "fromScreens": "Depuis les autres écrans",
+      "emptySource": "Aucun graphique sur la période choisie.",
+      "placed": "Déjà posé"
     }
   },
   "properties": {
@@ -4335,7 +4367,9 @@
       "expenses": "Dépenses",
       "housekeeperPayouts": "Versements prestataires",
       "reportsExports": "Rapports & Exports",
-      "exportsSection": "Exports comptables"
+      "exportsSection": "Exports comptables",
+      "fiscalReport": "Rapport fiscal",
+      "exports": "Exports comptables"
     },
     "basePlan": "Abonnement de base",
     "seats": "Utilisateurs suppl.",
@@ -5572,6 +5606,196 @@
       "title": "Soyez prévenu de ce qui compte, pas du reste",
       "description": "Nouvelle réservation, annulation, incident de paiement, alerte de bruit : vous choisissez le canal et la fréquence.",
       "action": "Régler mes notifications"
+    },
+    "categories": {
+      "reservation": "Réservation",
+      "payment": "Paiement",
+      "intervention": "Intervention",
+      "service_request": "Demande de service",
+      "document": "Document",
+      "contact": "Contact",
+      "guest_messaging": "Message voyageur",
+      "team": "Équipe",
+      "system": "Système"
+    },
+    "levels": {
+      "info": "Information",
+      "success": "Confirmation",
+      "warning": "À surveiller",
+      "error": "Erreur"
+    },
+    "detail": {
+      "selectTitle": "Sélectionnez une notification",
+      "selectHint": "Choisissez un événement à gauche pour lire son détail complet et les actions possibles.",
+      "unreadBadge": "Non lue",
+      "subject": "Ce qui est concerné",
+      "meaning": "Ce que cela signifie",
+      "metadata": {
+        "property": "Logement",
+        "guest": "Voyageur",
+        "reservationReference": "Réservation",
+        "stay": "Séjour",
+        "checkIn": "Arrivée",
+        "checkOut": "Départ",
+        "amount": "Montant",
+        "channel": "Canal",
+        "template": "Modèle de message",
+        "intervention": "Intervention",
+        "error": "Motif de l'échec",
+        "request": "Demande",
+        "assignee": "Assigné à",
+        "dueDate": "Échéance",
+        "document": "Document",
+        "rating": "Note",
+        "noiseDb": "Niveau sonore",
+        "noiseThresholdDb": "Seuil sonore"
+      },
+      "facts": "Repères",
+      "technical": "Détails techniques",
+      "receivedAt": "Reçue le",
+      "reference": "Référence",
+      "category": "Catégorie",
+      "event": "Événement",
+      "destination": "Destination",
+      "destinationUnknown": "Écran lié",
+      "noDestination": "Aucun écran lié — information seule",
+      "actions": "Que faire ensuite",
+      "act": {
+        "answerInquiry": "Répondre à la demande",
+        "approvePayout": "Approuver le versement",
+        "assignManually": "Assigner manuellement",
+        "assignTeam": "Assigner une équipe",
+        "assignWorker": "Assigner un intervenant",
+        "changeAiModel": "Changer de modèle",
+        "checkCalendar": "Vérifier le calendrier libéré",
+        "checkProperty": "Vérifier le logement",
+        "checkStay": "Vérifier le séjour",
+        "completeGuest": "Compléter la fiche voyageur",
+        "completePayoutSetup": "Compléter la configuration de versement",
+        "convertToIntervention": "Convertir en intervention",
+        "diagnoseSync": "Diagnostiquer la synchronisation",
+        "handleIncident": "Traiter l'incident de paiement",
+        "handleRequest": "Traiter la demande",
+        "handleRequestUrgent": "Traiter en priorité",
+        "mapProperty": "Rattacher le logement",
+        "openAccounting": "Ouvrir la comptabilité",
+        "openAiCredits": "Ouvrir les crédits IA",
+        "openBilling": "Ouvrir la facturation",
+        "openChannels": "Ouvrir les canaux",
+        "openContract": "Ouvrir le mandat",
+        "openConversation": "Ouvrir la conversation",
+        "openKnowledgeBase": "Ouvrir la base de connaissances",
+        "openKpi": "Ouvrir les indicateurs",
+        "openLocks": "Voir les serrures",
+        "openMission": "Ouvrir la mission",
+        "openMonitoring": "Ouvrir le monitoring",
+        "openNoiseSensors": "Ouvrir les capteurs de bruit",
+        "openPlanning": "Ouvrir le planning",
+        "openPricing": "Ouvrir la tarification",
+        "openQueue": "Ouvrir la file de supervision",
+        "openReservation": "Ouvrir la réservation",
+        "openSendHistory": "Voir l'historique d'envoi",
+        "openStock": "Voir le stock du logement",
+        "replayDelivery": "Rejouer la livraison",
+        "reply": "Répondre",
+        "replyGuest": "Répondre au voyageur",
+        "replyReview": "Répondre à l'avis",
+        "republishRates": "Republier les tarifs",
+        "rescheduleIntervention": "Replanifier l'intervention",
+        "resendMessage": "Renvoyer le message",
+        "retryGeneration": "Relancer la génération",
+        "retryImport": "Relancer l'import",
+        "retryPayment": "Relancer le paiement",
+        "retryPayout": "Relancer le versement",
+        "reviewAutoApplied": "Voir ce qui a été appliqué",
+        "reviewFraud": "Examiner la réservation à risque",
+        "reviewWork": "Contrôler le travail rendu",
+        "settleIntervention": "Régler l'intervention",
+        "startMission": "Démarrer la mission",
+        "takeOverConversation": "Reprendre la conversation en main",
+        "takeOverRequest": "Reprendre la demande en main",
+        "tuneAutomation": "Régler l'automatisation",
+        "updateKeybox": "Mettre à jour la boîte à clés",
+        "verifyPayoutConfig": "Vérifier la configuration",
+        "warnGuest": "Avertir le voyageur"
+      },
+      "openTarget": "Ouvrir {{target}}",
+      "openGeneric": "Ouvrir l'écran concerné",
+      "tune": "Régler ce type d'alerte",
+      "delete": "Supprimer la notification",
+      "subjectPanel": {
+        "stay": "Séjour",
+        "noiseLevel": "Niveau sonore",
+        "noiseThreshold": "Seuil {{db}} dB",
+        "nights_one": "{{count}} nuit",
+        "nights_other": "{{count}} nuits",
+        "overdue": "En retard",
+        "dueToday": "Aujourd'hui",
+        "dueInDays_one": "Dans {{count}} j",
+        "dueInDays_other": "Dans {{count}} j"
+      },
+      "device": {
+        "batteryCritical": "Batterie critique",
+        "batteryLow": "Batterie faible",
+        "batteryOk": "Batterie suffisante",
+        "batteryUnknown": "Niveau de batterie inconnu",
+        "offline": "Hors ligne"
+      },
+      "stay": {
+        "unknownGuest": "Voyageur inconnu",
+        "noContact": "Aucun moyen de le joindre",
+        "cancelled": "Annulée",
+        "releasable": "Encore revendable",
+        "remainingOfTotal_one": "{{count}} nuit sur {{total}}",
+        "remainingOfTotal_other": "{{count}} nuits sur {{total}}",
+        "stayAmount": "Montant du séjour",
+        "remind": "Relancer la fiche voyageur",
+        "cancelStay": "Annuler la réservation",
+        "cancelTitle": "Annuler la réservation ?",
+        "cancelIntro": "Le séjour de {{guest}} est clos et toute sa fenêtre repasse en vente.",
+        "cancelC1": "Rien n'est modifié côté paiement : remboursement et frais restent à traiter à part.",
+        "cancelC2": "La déclaration au canal d'origine reste à faire à la main.",
+        "cancelC3": "Pour ne libérer que les nuits restantes en gardant le séjour, préférez « Marquer no-show ».",
+        "cancelConfirm": "Annuler la réservation",
+        "cancelling": "Annulation…",
+        "cancelDone": "Réservation annulée — les nuits sont libérées.",
+        "cancelFailed": "L'annulation a échoué."
+      },
+      "review": {
+        "anonymous": "Voyageur",
+        "awaitingReply": "Sans réponse",
+        "hostReply": "Votre réponse"
+      },
+      "explain": {
+        "default": "Cet événement a été enregistré par la plateforme.",
+        "reservation": "Un séjour a bougé : création, modification, annulation ou accès voyageur. Les tâches déjà planifiées sur les anciennes dates ne se déplacent pas toutes seules.",
+        "payment": "Un mouvement d'argent a été enregistré ou a échoué. C'est le fournisseur de paiement qui fait foi : le montant affiché ici est celui qu'il a confirmé.",
+        "intervention": "Une intervention terrain a changé d'état. Le détail complet — photos, notes, intervenant, durée — reste sur sa fiche.",
+        "service_request": "Une demande attend une décision : approbation, refus, affectation à une équipe ou conversion en intervention.",
+        "document": "Un document a été produit, envoyé ou signé. La pièce elle-même se retrouve dans l'historique des documents.",
+        "contact": "Un message a transité par la messagerie interne ou par le formulaire public du site.",
+        "guest_messaging": "Un échange avec un voyageur a eu lieu, ou n'a pas pu aboutir. En cas d'échec, le voyageur n'a rien reçu.",
+        "team": "La composition ou les droits d'une équipe ont changé.",
+        "system": "Événement de plateforme : synchronisation d'un canal, configuration, intégration ou compte utilisateur.",
+        "SUPERVISION_SUGGESTION": "Un agent de la constellation a repéré quelque chose sur un logement et propose un geste — il ne l'exécute pas seul. La carte attend votre validation dans la file de supervision du logement concerné.",
+        "SUPERVISION_AUTO_APPLIED": "Un agent a appliqué lui-même un geste que vous aviez autorisé en automatique. C'est un compte rendu : rien n'attend de décision.",
+        "SUPERVISION_AUTO_RULE_SUGGESTED": "Le même geste revient assez souvent pour valoir une règle : l'agent propose de l'automatiser plutôt que de vous le redemander."
+      },
+      "nextStep": {
+        "default": "Ouvrez l'écran concerné pour agir sur l'élément à l'origine de cette notification.",
+        "reservation": "Ouvrez la réservation pour vérifier les dates, le paiement et les interventions déjà planifiées.",
+        "payment": "Rapprochez le montant de la facture concernée, puis relancez ou remboursez depuis la facturation.",
+        "intervention": "Ouvrez la fiche pour suivre l'avancement, valider le travail ou relancer l'intervenant.",
+        "service_request": "Traitez la demande : approuvez, refusez, ou affectez-la à une équipe disponible.",
+        "document": "Vérifiez le document produit et, si besoin, renvoyez-le à son destinataire.",
+        "contact": "Répondez depuis la messagerie pour que l'échange reste rattaché au contact.",
+        "guest_messaging": "Vérifiez que le voyageur a bien reçu le message ; sinon, corrigez ses coordonnées et renvoyez.",
+        "team": "Contrôlez les accès de l'équipe si le changement ne vient pas de vous.",
+        "system": "Rien à faire tant qu'aucune erreur n'est signalée. Sinon, ouvrez l'écran concerné pour relancer.",
+        "SUPERVISION_SUGGESTION": "Ouvrez la carte dans la file de supervision : elle rappelle l'état exact au moment d'agir, et le geste s'y exécute en un clic.",
+        "SUPERVISION_AUTO_APPLIED": "Rien à faire. Si le geste ne vous convient pas, la règle d'automatisation se règle dans Automatisations.",
+        "SUPERVISION_AUTO_RULE_SUGGESTED": "Décidez si ce geste doit devenir automatique — l'agent continuera sinon à vous le proposer carte par carte."
+      }
     }
   },
   "fiscal": {
@@ -7835,5 +8059,130 @@
     "removeLogo": "Retirer le logo",
     "logoSaved": "Logo enregistré",
     "logoError": "Le dépôt a échoué : formats JPEG, PNG, WEBP ou GIF, 5 Mo maximum."
+  },
+  "pulse": {
+    "funnel": {
+      "searches": "Recherches",
+      "views": "Vues de bien",
+      "checkouts": "Paniers ouverts",
+      "confirmed": "Confirmées",
+      "anyDate": "Dates libres",
+      "guests": "{{n}} voyageurs",
+      "title": "Entonnoir de réservation directe",
+      "conversion": "{{pct}} % de conversion",
+      "label": "Séjours",
+      "trendTitle": "Parcours direct, jour par jour",
+      "trendHint": "De la recherche à la confirmation",
+      "conversionLabel": "Conversion directe"
+    },
+    "positioning": {
+      "under": "Sous le marché",
+      "aligned": "Aligné",
+      "over": "Au-dessus",
+      "unknown": "Sans repère marché",
+      "title": "Positionnement tarifaire du parc",
+      "hint": "Prix publié face au marché de la zone",
+      "total": "Logements"
+    },
+    "denied": {
+      "title": "Recherches sans disponibilité",
+      "hint": "De la demande réelle qui repart ailleurs"
+    },
+    "devices": {
+      "online": "En ligne",
+      "offline": "Hors ligne",
+      "alerts": "En alerte",
+      "battery": "Batterie faible",
+      "title": "Parc connecté",
+      "hint": "{{n}} objets suivis",
+      "total": "Objets"
+    },
+    "agents": {
+      "property": "Logement #{{id}}",
+      "title": "Cartes à valider",
+      "hint": "En attente dans la constellation"
+    },
+    "stock": {
+      "noSupplier": "sans fournisseur",
+      "title": "Réassort à prévoir",
+      "hint": "Quantité restante sur seuil de commande",
+      "figure": "Lignes sous seuil"
+    },
+    "departures": {
+      "title": "Départs des 7 jours",
+      "unplanned": "{{n}} sans ménage planifié",
+      "allPlanned": "Tous les ménages sont posés",
+      "toPlan": "ménage à planifier",
+      "empty": "Aucun départ sur la fenêtre.",
+      "figure": "Départs sans ménage"
+    },
+    "docs": {
+      "title": "Documents produits",
+      "hint": "{{locked}} verrouillés · {{score}} % de conformité",
+      "label": "Documents",
+      "score": "Conformité documentaire",
+      "locked": "Documents verrouillés"
+    },
+    "contracts": {
+      "title": "Mandats de gestion",
+      "hint": "Par état du contrat",
+      "total": "Mandats",
+      "active": "Mandats actifs",
+      "status": {
+        "ACTIVE": "Actif",
+        "DRAFT": "Brouillon",
+        "SUSPENDED": "Suspendu",
+        "TERMINATED": "Résilié",
+        "EXPIRED": "Expiré"
+      }
+    },
+    "filings": {
+      "title": "Déclarations fiscales",
+      "due": "{{n}} à déposer",
+      "clear": "Rien à déposer",
+      "empty": "Aucune déclaration.",
+      "figure": "Déclarations à déposer",
+      "status": {
+        "DUE": "À déposer",
+        "FILED": "Déposée",
+        "PAID": "Payée"
+      }
+    },
+    "wallets": {
+      "title": "Soldes des portefeuilles",
+      "hint": "Plateforme, séquestre, propriétaire, conciergerie",
+      "label": "Solde",
+      "figure": "Solde consolidé"
+    },
+    "payouts": {
+      "title": "Reversements à approuver",
+      "hint": "En attente de votre validation",
+      "owner": "Propriétaire #{{id}}",
+      "empty": "Rien à approuver.",
+      "figure": "À approuver"
+    },
+    "reviews": {
+      "title": "Réputation",
+      "hint": "{{avg}}/5 sur {{n}} avis",
+      "total": "Avis",
+      "unansweredTitle": "Avis sans réponse",
+      "unansweredHint": "Une réponse pèse sur le classement",
+      "anonymous": "Voyageur",
+      "allAnswered": "Tous les avis ont une réponse."
+    },
+    "conversations": {
+      "title": "Conversations sans réponse",
+      "hint": "Messages voyageurs non lus",
+      "thread": "Conversation",
+      "empty": "Aucun message en attente.",
+      "figure": "Messages non lus"
+    },
+    "sources": {
+      "growth": "Croissance & distribution",
+      "operations": "Opérations du parc",
+      "compliance": "Conformité & mandats",
+      "finance": "Trésorerie",
+      "guest": "Voyageurs & réputation"
+    }
   }
 }

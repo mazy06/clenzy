@@ -3,8 +3,11 @@ package com.clenzy.payment.payout;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * Composant utilitaire partagé par les {@link PayoutExecutor} pour envoyer
@@ -33,8 +36,8 @@ public class PayoutNotifier {
             NotificationKey.PAYOUT_EXECUTED,
             "Reversement execute",
             "Le reversement #" + payout.getId() + " (" + amount + ") a ete execute avec succes.",
-            "/billing?tab=payouts&highlight=" + payout.getId()
-        );
+            "/billing?tab=payouts&highlight=" + payout.getId(),
+            payoutFacts(payout));
         notifyOwner(payout, NotificationKey.PAYOUT_EXECUTED,
             "Reversement effectue",
             "Votre reversement de " + amount + " a ete effectue. Reference: " + payout.getPaymentReference());
@@ -47,8 +50,8 @@ public class PayoutNotifier {
             NotificationKey.PAYOUT_FAILED,
             "Echec du reversement",
             "Le reversement #" + payout.getId() + " a echoue: " + errorMessage,
-            "/billing?tab=payouts&highlight=" + payout.getId()
-        );
+            "/billing?tab=payouts&highlight=" + payout.getId(),
+            payoutFacts(payout));
         notifyOwner(payout, NotificationKey.PAYOUT_FAILED,
             "Echec du reversement",
             "Votre reversement de " + payout.getNetAmount() + " " + payout.getCurrency()
@@ -72,8 +75,8 @@ public class PayoutNotifier {
             "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
                 + ") a ete transfere (ref " + transferReference + ") mais son enregistrement a echoue. "
                 + "Verifier l'etat du payout avant tout re-essai (le re-essai est sans risque : idempotence du virement).",
-            "/billing?tab=payouts&highlight=" + payout.getId()
-        );
+            "/billing?tab=payouts&highlight=" + payout.getId(),
+            payoutFacts(payout));
     }
 
     /** Notification "virement SEPA a effectuer manuellement". */
@@ -84,8 +87,8 @@ public class PayoutNotifier {
             "Virement SEPA a effectuer",
             "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
                 + ") est pret pour virement SEPA.",
-            "/billing?tab=payouts&highlight=" + payout.getId()
-        );
+            "/billing?tab=payouts&highlight=" + payout.getId(),
+            payoutFacts(payout));
     }
 
     private void notifyOwner(OwnerPayout payout, NotificationKey key, String title, String message) {
@@ -93,9 +96,20 @@ public class PayoutNotifier {
             if (owner.getKeycloakId() != null) {
                 notificationService.sendByOrgId(
                     owner.getKeycloakId(), key, title, message,
-                    "/billing?tab=payouts&highlight=" + payout.getId(), payout.getOrganizationId()
-                );
+                    "/billing?tab=payouts&highlight=" + payout.getId(), payout.getOrganizationId(),
+                    payoutFacts(payout));
             }
         });
+    }
+
+    /**
+     * Faits joints aux notifications de reversement : le montant net et sa
+     * devise, deja portes par le reversement qu'on notifie.
+     */
+    private static Map<String, Object> payoutFacts(OwnerPayout payout) {
+        if (payout == null) return null;
+        return NotificationMetadata.of()
+            .amount(payout.getNetAmount(), payout.getCurrency())
+            .build();
     }
 }

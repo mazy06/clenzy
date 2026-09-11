@@ -56,6 +56,7 @@ import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import { usersApi, type UserFormData } from '../../services/api/usersApi';
 import { userAvatarSrc } from '../../services/api/usersApi';
@@ -435,43 +436,34 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         />
       )}
 
-      {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
-      <div className="mb-3">
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-6 min-[900px]:col-span-3">
-            <StatTile
-              icon={<Person />}
-              label="Total utilisateurs"
-              value={users.length}
-              iconClassName="text-primary"
-            />
-          </div>
-          <div className="col-span-6 min-[900px]:col-span-3">
-            <StatTile
-              icon={<ManageAccounts />}
-              label="Utilisateurs actifs"
-              value={users.filter(u => u.status === 'ACTIVE').length}
-              iconClassName="text-success"
-            />
-          </div>
-          <div className="col-span-6 min-[900px]:col-span-3">
-            <StatTile
-              icon={<AdminPanelSettings />}
-              label="Administrateurs"
-              value={users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
-              iconClassName="text-destructive"
-            />
-          </div>
-          <div className="col-span-6 min-[900px]:col-span-3">
-            <StatTile
-              icon={<Build />}
-              label="Personnel opérationnel"
-              value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
-              iconClassName="text-info"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Bandeau de chiffres — même langage que les Rapports : une carte,
+          une ligne de base, le tiers haut de l'écran rendu à la liste. */}
+      <StatTileRow compact className="mb-3">
+        <StatTile
+          icon={<Person />}
+          label="Total utilisateurs"
+          value={users.length}
+          iconClassName="text-primary"
+        />
+        <StatTile
+          icon={<ManageAccounts />}
+          label="Utilisateurs actifs"
+          value={users.filter(u => u.status === 'ACTIVE').length}
+          iconClassName="text-success"
+        />
+        <StatTile
+          icon={<AdminPanelSettings />}
+          label="Administrateurs"
+          value={users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
+          iconClassName="text-destructive"
+        />
+        <StatTile
+          icon={<Build />}
+          label="Personnel opérationnel"
+          value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
+          iconClassName="text-info"
+        />
+      </StatTileRow>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
       {filtersContainer

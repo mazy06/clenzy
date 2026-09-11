@@ -41,6 +41,7 @@ import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import { organizationsApi } from '../../services/api/organizationsApi';
 import type { OrganizationDto } from '../../services/api';
@@ -279,35 +280,29 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         />
       )}
 
-      {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
-      <div className="mb-3">
-        {/* Les 5 tuiles se partagent la ligne a parts egales des 900px (ancien
-            `<Grid item md>` sans taille) : `flex-1` n'a aucun effet sur un enfant
-            de `display: grid`, d'ou le passage du conteneur en flex a ce palier. */}
-        <div className="grid grid-cols-12 gap-3 min-[900px]:flex">
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:flex-1">
+      {/* Bandeau de chiffres — même langage que les Rapports. Cinq tuiles se
+          disputaient la ligne à 900 px ; cinq chiffres y tiennent sans se
+          serrer, et s'enroulent d'eux-mêmes en dessous. */}
+      <StatTileRow compact className="mb-3">
+        <StatTile
+          icon={<CorporateFare />}
+          label="Total organisations"
+          value={organizations.length}
+          iconClassName="text-primary"
+        />
+        {orgTypes.map((typeInfo) => {
+          const TypeIcon = typeInfo.Icon;
+          return (
             <StatTile
-              icon={<CorporateFare />}
-              label="Total organisations"
-              value={organizations.length}
-              iconClassName="text-primary"
+              key={typeInfo.value}
+              icon={<TypeIcon />}
+              label={typeInfo.label}
+              value={organizations.filter(o => o.type === typeInfo.value).length}
+              iconClassName={typeInfo.iconClass}
             />
-          </div>
-          {orgTypes.map((typeInfo) => {
-            const TypeIcon = typeInfo.Icon;
-            return (
-              <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:flex-1" key={typeInfo.value}>
-                <StatTile
-                  icon={<TypeIcon />}
-                  label={typeInfo.label}
-                  value={organizations.filter(o => o.type === typeInfo.value).length}
-                  iconClassName={typeInfo.iconClass}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
+          );
+        })}
+      </StatTileRow>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
       {filtersContainer

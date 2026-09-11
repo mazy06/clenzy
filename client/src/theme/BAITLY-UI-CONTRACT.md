@@ -176,6 +176,22 @@ au runtime, `--color-secondary` absente).
 | Recherche d'écran | `useScreenSearch` — **jamais** un champ dessiné dans la page |
 | Pagination | `PagePagination` |
 | Carte + liste | `MapWithSheet` |
+| Popover / bulle ouverte depuis la barre latérale | `components/SidebarFlyout.tsx` — `sidebarFlyoutClass` + ses deux décalages pour la coquille, `SidebarFlyoutGroup` / `SidebarFlyoutRow` / `SidebarFlyoutSeparator` pour le contenu |
+
+Le **volet de la barre latérale** (`SidebarFlyout`) mérite un mot, en deux moitiés. La *coquille*
+reprend la surface et la ligne de `--bui-sidebar-*`, remplace le `ring-1` du kit par une vraie
+`border` — un ring est une box-shadow, il ne peut PAS être interrompu par un raccord — et pose les
+deux congés concaves en `::before` / `::after` (dégradé radial, cf. les commentaires de
+`baitly-nova.css`). Le côté est lu sur le `data-side` de Radix : le raccord suit donc la barre quand
+elle passe à droite en arabe, et survit à un retournement par détection de collision. Toute cette
+peinture est en CSS et non en utilities, avec un sélecteur à deux composants pour passer devant les
+`cn-*` du kit par la spécificité et non par l'ordre des règles — corollaire : **ne rien passer depuis
+le composant qui touche au fond, à la bordure, au rayon ou à l'ombre**, une utility repasserait
+devant. Le *contenu*, lui, n'invente rien : ce sont `SidebarGroup` / `SidebarGroupLabel` /
+`SidebarMenuButton` / `SidebarSeparator`, à l'identique. Un volet a donc la même structure HTML
+qu'une rubrique de navigation, le même rythme et la même échelle typographique — et les variantes
+`group-data-[collapsible=icon]` du kit, inertes hors du DOM de la barre, lui laissent ses lignes
+pleines même barre repliée.
 
 **Attention aux primitives en double.** 28 composants existent en `components/X.tsx` (production) et
 `components/baitly/X.tsx` (remaster). Un arbitrage complet a conclu : **5 adoptions seulement**

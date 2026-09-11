@@ -5,6 +5,7 @@ import com.clenzy.dto.DashboardOperationsDto.ArrivalDto;
 import com.clenzy.dto.DashboardOperationsDto.CleaningDto;
 import com.clenzy.dto.DashboardOperationsDto.DepartureDto;
 import com.clenzy.dto.DashboardOperationsDto.UpcomingArrivalDto;
+import com.clenzy.dto.DashboardOperationsDto.UpcomingDepartureDto;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
@@ -222,6 +223,57 @@ public class DashboardOperationsService {
                         r.getPaymentStatus() == null ? null : r.getPaymentStatus().name(),
                         r.getTotalPrice(),
                         r.getAmountDue()))
+                .toList();
+    }
+
+    // ─── Départs à venir ────────────────────────────────────────────────────
+
+    /**
+     * Les departs de la fenetre, et si leur menage est deja pose.
+     *
+     * <p>Le tableau de bord montrait qui ARRIVE, jamais qui part. Or c'est le
+     * depart qui commande : le menage a planifier, la caution a liberer, le code
+     * d'acces a faire tourner. Un depart sans menage se voit ici avant d'etre
+     * un incident le lendemain.</p>
+     */
+    public List<UpcomingDepartureDto> getUpcomingDepartures(Long orgId, int days, UserRole role,
+                                                            String keycloakId) {
+        if (OPERATIONAL_ROLES.contains(role)) return List.of();
+        final LocalDate today = LocalDate.now(clock);
+        final String ownerKc = role == UserRole.HOST ? keycloakId : null;
+
+        final List<Reservation> upcoming = scopeToOwner(
+                reservationRepository.findConfirmedByCheckOutRange(today, today.plusDays(days), orgId),
+                ownerKc);
+        if (upcoming.isEmpty()) return List.of();
+
+        // Menages deja poses sur la fenetre, indexes par (logement, jour) : une
+        // requete pour toute la liste plutot qu'une par depart.
+        final Set<String> plannedCleanings = interventionRepository
+                .findForDashboardWindow(today.atStartOfDay(), today.plusDays(days + 1L).atStartOfDay(),
+                        orgId, ownerKc, null)
+                .stream()
+                .filter(this::isCleaning)
+                .filter(i -> i.getStartTime() != null && i.getProperty() != null)
+                .map(i -> i.getProperty().getId() + "@" + i.getStartTime().toLocalDate())
+                .collect(java.util.stream.Collectors.toSet());
+
+        return upcoming.stream()
+                .sorted(Comparator.comparing(Reservation::getCheckOut))
+                .limit(MAX_ROWS)
+                .map(r -> new UpcomingDepartureDto(
+                        r.getId(),
+                        r.getGuestName(),
+                        r.getGuest() == null ? null
+                            : guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl()),
+                        propertyId(r.getProperty()),
+                        propertyName(r.getProperty()),
+                        r.getCheckOut(),
+                        nightsOf(r),
+                        r.getSource(),
+                        r.getSourceName(),
+                        r.getProperty() != null && r.getCheckOut() != null
+                                && plannedCleanings.contains(r.getProperty().getId() + "@" + r.getCheckOut())))
                 .toList();
     }
 

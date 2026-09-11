@@ -3,9 +3,6 @@ import {
   DonutChart,
   HighlightList,
   HistogramChart,
-  StatsBand,
-  StatsLayout,
-  TileGrid,
   TrendAreaChart,
   tiles,
   type Highlight,
@@ -18,7 +15,7 @@ import {
   getInterventionStatusLabel,
 } from '../../utils/statusUtils';
 import { useInterventionReport } from './hooks/useReportData';
-import { ReportFrame } from './reportShell';
+import { ReportView, type ReportContent } from './reportShell';
 
 /**
  * Onglet « Interventions ».
@@ -27,7 +24,7 @@ import { ReportFrame } from './reportShell';
  * `IN_PROGRESS`, `URGENT` — sur les axes comme dans les légendes. Ils passent
  * maintenant par les libellés localisés du reste de l'application.</p>
  */
-const InterventionsReport: React.FC = () => {
+export function useInterventionsReport(): ReportContent {
   const { t } = useTranslation();
   const { data, loading, error, retry } = useInterventionReport();
 
@@ -174,14 +171,12 @@ const InterventionsReport: React.FC = () => {
     },
   ] as TileOrNothing[]);
 
-  return (
-    <ReportFrame loading={loading} error={error} onRetry={retry}>
-      <StatsLayout>
-        <StatsBand figures={figures} />
-        <TileGrid items={items} />
-      </StatsLayout>
-    </ReportFrame>
-  );
+  return { figures, items, loading, error, retry };
+}
+
+const InterventionsReport: React.FC = () => {
+  const content = useInterventionsReport();
+  return <ReportView content={content} />;
 };
 
 export default InterventionsReport;

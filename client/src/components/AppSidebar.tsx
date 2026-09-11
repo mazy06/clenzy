@@ -9,7 +9,6 @@ import {
   Logout,
   Notifications,
   Faders as PreferencesIcon,
-  Check as CheckIcon,
 } from '../icons';
 import {
   Avatar,
@@ -19,9 +18,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
-  Separator,
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -56,7 +55,16 @@ import { clearTokens } from '../services/storageService';
 import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
 import type { MenuItem, NavGroup } from '../hooks/useNavigationMenu';
 import { prefetchRoute } from '../modules/routePrefetch';
-import BaitlyMarkLogo from './BaitlyMarkLogo';
+import SidebarAssistantLauncher from './SidebarAssistantLauncher';
+import {
+  SIDEBAR_FLYOUT_ALIGN_OFFSET,
+  SIDEBAR_FLYOUT_SEAM_OFFSET,
+  SidebarFlyoutGroup,
+  SidebarFlyoutNote,
+  SidebarFlyoutRow,
+  SidebarFlyoutSeparator,
+  sidebarFlyoutClass,
+} from './SidebarFlyout';
 import { cn } from '../utils/cn';
 
 /**
@@ -211,41 +219,6 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
   );
 }
 
-/** Ligne d'option du panneau de préférences : libellé + coche si active. */
-function PreferenceRow({
-  selected,
-  onSelect,
-  children,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={cn(
-        'flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-start text-[13px]',
-        'outline-none transition-colors duration-150 hover:bg-accent',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/50'
-      )}
-    >
-      <span className="flex min-w-0 items-center gap-2">{children}</span>
-      {selected && <CheckIcon size={16} strokeWidth={2} className="shrink-0 text-primary" />}
-    </button>
-  );
-}
-
-function PreferenceSectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-2 pt-2 pb-1 text-[11px] font-bold tracking-wider text-muted-foreground uppercase select-none">
-      {children}
-    </div>
-  );
-}
-
 interface AppSidebarProps {
   menuItems: MenuItem[];
   /** Repli piloté par `useSidebarState` (persisté en localStorage). */
@@ -266,6 +239,14 @@ export default function AppSidebar({
   const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
   const { isMobile, setOpenMobile } = useSidebar();
   const [prefsOpen, setPrefsOpen] = useState(false);
+
+  /**
+   * La barre est-elle une CLOISON — un rail fixe bordant le contenu ? C'est la
+   * condition du volet (cf. `SidebarFlyout`). Sous 1024 px elle devient une
+   * feuille latérale posée sur un voile : il n'y a plus de couture à raccorder,
+   * et un volet ouvert sur le côté sortirait de l'écran.
+   */
+  const flyoutAttached = !isMobile;
 
   // La langue, pas `document.documentElement.dir` : cette lecture-là se faisait
   // une fois au rendu et ne rebasculait pas quand l'utilisateur changeait de
@@ -342,36 +323,13 @@ export default function AppSidebar({
     // En arabe, la barre passe à droite : elle est le point de départ de la
     // lecture, et la laisser à gauche coupait le sens de parcours de l'écran.
     <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
-      {/* ── Logo → tableau de bord ─────────────────────────────────────── */}
+      {/* ── Logo → assistant Baitly ────────────────────────────────────────
+          Le logo menait au tableau de bord ; celui-ci a son entrée dans la
+          navigation ci-dessous, alors que l'assistant n'en avait pas d'autre
+          que l'encoche flottante, supprimée. Cf. SidebarAssistantLauncher. */}
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip={{ children: t('navigation.dashboard'), side: tooltipSide }}
-              aria-label={t('navigation.dashboard')}
-              onClick={() => handleNavigation('/dashboard')}
-            >
-              {/* Disposition reprise de la projection : mark carré, puis le nom
-                  du produit sur deux lignes. En mode icônes le texte est rogné
-                  par le bouton, comme dans le kit.
-
-                  ⚠️ `SidebarMenuButton` force TOUS ses SVG descendants à 16 px
-                  (`[&_svg]:size-4`) — la prop `size` du logo était donc écrasée,
-                  y compris dans la projection. D'où le `!` qui rétablit la
-                  taille voulue, et sa réduction en mode icônes où le bouton
-                  n'est plus qu'un carré de 32 px. */}
-              <span className="flex size-10 shrink-0 items-center justify-center [&_svg]:size-10! group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:[&_svg]:size-8!">
-                <BaitlyMarkLogo variant="mark" size={40} />
-              </span>
-              <span className="grid flex-1 text-start leading-tight">
-                <span className="truncate text-sm font-semibold">Baitly</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {t('navigation.productTagline', 'Property Management')}
-                </span>
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <SidebarAssistantLauncher side={tooltipSide} />
         </SidebarMenu>
       </SidebarHeader>
 
@@ -443,33 +401,60 @@ export default function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
 
+        {/* Le panneau apparence / langue / devise est RACCORDÉ à la barre par
+            deux congés concaves (cf. `SidebarFlyout`), et son ANCRE est la
+            RANGÉE d'actions, pas le bouton : le côté d'ouverture se mesure au
+            bord de l'ancre, et ce bouton est le premier de quatre — le panneau se
+            serait ouvert au tiers de la barre. La rangée, elle, occupe exactement
+            la boîte de contenu du pied : son bord est à 8 px de la ligne de la
+            barre, dépliée comme repliée, sur une ligne comme en colonne. C'est ce
+            8 que rattrape le décalage, au pixel près — le congé cale son arc sur
+            la médiane de la ligne. */}
+        <Popover open={prefsOpen} onOpenChange={setPrefsOpen}>
+        <PopoverAnchor asChild>
         <div className={cn(
           'flex items-center gap-1 px-1 pb-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0',
           isMobile && 'shrink-0 pb-0',
         )}>
           {/* Apparence / langue / devise */}
-          <Popover open={prefsOpen} onOpenChange={setPrefsOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger
-                  aria-label={t('navigation.languageAndCurrency')}
-                  className={footerButtonClass}
-                >
-                  <PreferencesIcon size={16} />
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side={isCollapsed ? tooltipSide : 'top'}>
-                {t('navigation.languageAndCurrency')}
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent
-              side="top"
-              align={isRtl ? 'end' : 'start'}
-              className="w-56 p-1"
-            >
-              <PreferenceSectionLabel>
-                {t('navigation.appearance', 'Apparence')}
-              </PreferenceSectionLabel>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger
+                aria-label={t('navigation.languageAndCurrency')}
+                className={cn(
+                  footerButtonClass,
+                  // Le bouton reste allumé tant que le panneau est ouvert : le
+                  // raccord se fait au bord de la barre, pas au bouton, et en
+                  // mode icônes les quatre boutons sont empilés — c'est donc
+                  // cette encre qui dit lequel a ouvert le panneau.
+                  'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
+                )}
+              >
+                <PreferencesIcon size={16} />
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side={isCollapsed ? tooltipSide : 'top'}>
+              {t('navigation.languageAndCurrency')}
+            </TooltipContent>
+          </Tooltip>
+          {/* `align="end"` : le volet part du bas de la barre, du côté des
+              boutons qui l'ouvrent. `alignOffset` l'en recule : les congés
+              débordent du volet, et celui du bas serait passé sous le bord de la
+              fenêtre. */}
+          <PopoverContent
+            side={flyoutAttached ? tooltipSide : 'top'}
+            align={flyoutAttached ? 'end' : isRtl ? 'end' : 'start'}
+            sideOffset={flyoutAttached ? SIDEBAR_FLYOUT_SEAM_OFFSET : undefined}
+            alignOffset={flyoutAttached ? SIDEBAR_FLYOUT_ALIGN_OFFSET : undefined}
+            className={cn(
+              // `gap-0 p-0` : le rythme intérieur vient des groupes, comme dans
+              // la barre — 8 px de groupe, intitulés et lignes à 16 px du bord.
+              'w-56 gap-0 p-0',
+              flyoutAttached && sidebarFlyoutClass,
+              !flyoutAttached && 'p-1',
+            )}
+          >
+            <SidebarFlyoutGroup label={t('navigation.appearance', 'Apparence')}>
               {/* Le sélecteur de teinte d'accent a été retiré : l'identité Baitly
                   est MONOCHROME (bleu nuit du wordmark). Aucune surface ne lit
                   plus `--accent`, un sélecteur n'aurait donc plus rien reteint.
@@ -481,51 +466,60 @@ export default function AppSidebar({
                   { value: 'auto', label: t('navigation.themeAuto', 'Auto') },
                 ] as Array<{ value: ThemeMode; label: string }>
               ).map((opt) => (
-                <PreferenceRow
+                <SidebarFlyoutRow
                   key={opt.value}
                   selected={themeMode === opt.value}
                   onSelect={() => setThemeMode(opt.value)}
                 >
-                  {opt.label}
-                </PreferenceRow>
+                  <span className="truncate">{opt.label}</span>
+                </SidebarFlyoutRow>
               ))}
+            </SidebarFlyoutGroup>
 
-              <Separator className="my-1" />
+            <SidebarFlyoutSeparator />
 
-              <PreferenceSectionLabel>{t('navigation.language')}</PreferenceSectionLabel>
+            <SidebarFlyoutGroup label={t('navigation.language')}>
               {(['fr', 'en', 'ar'] as const).map((lang) => (
-                <PreferenceRow
+                <SidebarFlyoutRow
                   key={lang}
                   selected={currentLanguage === lang}
                   onSelect={() => changeLanguage(lang)}
                 >
-                  {t(`navigation.languages.${lang}`)}
-                </PreferenceRow>
+                  <span className="truncate">{t(`navigation.languages.${lang}`)}</span>
+                </SidebarFlyoutRow>
               ))}
+            </SidebarFlyoutGroup>
 
-              <Separator className="my-1" />
+            <SidebarFlyoutSeparator />
 
-              <PreferenceSectionLabel>{t('navigation.currency')}</PreferenceSectionLabel>
+            <SidebarFlyoutGroup label={t('navigation.currency')}>
               {CURRENCY_OPTIONS.map((opt) => (
-                <PreferenceRow
+                <SidebarFlyoutRow
                   key={opt.code}
                   selected={currency === opt.code}
                   onSelect={() => setCurrency(opt.code as CurrencyCode)}
                 >
-                  <span className="inline-flex min-w-7 items-center justify-center text-[13px] font-semibold">
-                    {/* MAD/SAR n'ont pas de glyphe Unicode rendu → icône. */}
-                    <CurrencySymbol code={opt.code} size={15} />
+                  {/* MAD/SAR n'ont pas de glyphe Unicode rendu → icône, alors
+                      que l'euro est un simple caractère. D'où la case de 16 px,
+                      qui leur donne la MÊME emprise : sans elle les libellés ne
+                      s'alignaient plus d'une devise à l'autre. 16 px, soit la
+                      case d'une icône de navigation — et le kit y cale de toute
+                      façon tout SVG d'une ligne de menu, la taille propre du
+                      symbole n'a donc plus cours ici. */}
+                  <span className="flex size-4 shrink-0 items-center justify-center text-sm font-semibold">
+                    <CurrencySymbol code={opt.code} />
                   </span>
                   <span className="truncate">{opt.label}</span>
-                </PreferenceRow>
+                </SidebarFlyoutRow>
               ))}
-              {rateDate && currency !== 'EUR' && (
-                <p className="m-0 px-2 py-1 text-[11px] text-muted-foreground italic">
-                  {ratesLoading ? t('common.loading') : `${t('common.ratesAt')} ${rateDate}`}
-                </p>
-              )}
-            </PopoverContent>
-          </Popover>
+            </SidebarFlyoutGroup>
+
+            {rateDate && currency !== 'EUR' && (
+              <SidebarFlyoutNote>
+                {ratesLoading ? t('common.loading') : `${t('common.ratesAt')} ${rateDate}`}
+              </SidebarFlyoutNote>
+            )}
+          </PopoverContent>
 
           {/* Notifications */}
           <Tooltip>
@@ -591,6 +585,8 @@ export default function AppSidebar({
             </Tooltip>
           )}
         </div>
+        </PopoverAnchor>
+        </Popover>
         </div>
       </SidebarFooter>
 

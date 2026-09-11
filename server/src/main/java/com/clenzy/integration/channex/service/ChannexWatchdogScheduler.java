@@ -5,6 +5,7 @@ import com.clenzy.integration.channex.dto.ChannexHealthSummary.AttentionItem;
 import com.clenzy.integration.channex.dto.ChannexHealthSummary.Severity;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -159,7 +160,12 @@ public class ChannexWatchdogScheduler {
                         + (item.lastSyncError() != null ? " — " + truncate(item.lastSyncError(), 120) : ""),
                     // Deep-link vers le diagnostic de la propriete (PropertiesList lit ?diagnoseChannex=<id>)
                     "/properties?diagnoseChannex=" + propertyId,
-                    item.organizationId()
+                    item.organizationId(),
+                    NotificationMetadata.of()
+                        .property(item.propertyName())
+                        .propertyId(propertyId)
+                        .error(item.lastSyncError())
+                        .build()
                 );
                 log.warn("ChannexWatchdog: notification ERROR envoyee property={} org={}",
                     propertyId, item.organizationId());
@@ -190,7 +196,8 @@ public class ChannexWatchdogScheduler {
                     "La synchronisation pour la propriete #" + propertyId
                         + " fonctionne a nouveau.",
                     "/properties?diagnoseChannex=" + propertyId,
-                    orgId
+                    orgId,
+                    NotificationMetadata.of().propertyId(propertyId).build()
                 );
                 log.info("ChannexWatchdog: notification RECOVERED envoyee property={} org={}",
                     propertyId, orgId);

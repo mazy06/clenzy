@@ -315,6 +315,15 @@ class SmartLockServiceTest {
         }
 
         @Test
+        void whenReadingADeviceFromOtherOrganization_thenAccessDenied() {
+            when(smartLockRepository.findById(1L)).thenReturn(Optional.of(buildForeignDevice()));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> service.getDevice(1L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
         void whenSendLockCommandFromOtherOrganization_thenAccessDenied() {
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(buildForeignDevice()));
             when(tenantContext.getOrganizationId()).thenReturn(1L);

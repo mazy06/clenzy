@@ -41,7 +41,15 @@ public class ReviewAlertService {
                     NotificationKey.REVIEW_NEGATIVE_ALERT,
                     "Avis negatif recu",
                     message,
-                    "/channels/reviews?highlight=" + review.getId()
+                    "/channels/reviews?highlight=" + review.getId(),
+                    // L'identifiant permet a la fiche d'aller chercher l'avis
+                    // ENTIER — le message n'en porte que cent caracteres.
+                    NotificationMetadata.of()
+                        .guest(review.getGuestName())
+                        .rating(review.getRating())
+                        .reviewId(review.getId())
+                        .propertyId(review.getPropertyId())
+                        .build()
                 );
                 alertCount++;
             } catch (Exception e) {

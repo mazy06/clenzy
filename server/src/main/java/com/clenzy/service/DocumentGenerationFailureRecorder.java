@@ -98,7 +98,11 @@ public class DocumentGenerationFailureRecorder {
                     "Echec generation document",
                     label + " : " + truncate(errorMessage),
                     "/documents?tab=history&highlight=" + failed.getId(),
-                    organizationId
+                    organizationId,
+                    NotificationMetadata.of()
+                            .document(label)
+                            .error(truncate(errorMessage))
+                            .build()
             );
 
             log.info("Echec de generation persiste (FAILED) : type={}, refId={}, orgId={}",

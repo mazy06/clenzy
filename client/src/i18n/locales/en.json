@@ -850,6 +850,10 @@
     "openDock": "Open the assistant",
     "closeDock": "Close the assistant",
     "dockLabel": "Baitly assistant",
+    "launcher": {
+      "hint": "Ask me, for example:",
+      "ask": "Ask this question"
+    },
     "empty": {
       "title": "Ask your question",
       "body": "I use your Baitly data in real time.",
@@ -860,7 +864,17 @@
       "occupancy": "What is my occupancy rate?",
       "arrivals": "Prepare this week's arrivals",
       "guestMessage": "Draft a guest message",
-      "compare": "Compare my performance"
+      "compare": "Compare my performance",
+      "revenue": "How much did I earn this month?",
+      "pricing": "Are my weekend rates well positioned?",
+      "gaps": "Find the gaps in my calendar",
+      "cleaning": "Which cleanings still need scheduling?",
+      "unpaid": "Which payments are still outstanding?",
+      "maintenance": "Are any work orders overdue?",
+      "checkouts": "Who checks out tomorrow?",
+      "topProperty": "Which property performs best?",
+      "channels": "Are my listings properly synced?",
+      "lastMinute": "What should I do with this week's empty nights?"
     },
     "composer": {
       "placeholder": "Ask for an analysis, an action, a figure…",
@@ -1896,7 +1910,10 @@
       "ownRow": "Move to its own row",
       "shiftStart": "Move to start of row",
       "shiftEnd": "Move to end of row",
-      "dropNewRow": "New row"
+      "dropNewRow": "New row",
+      "add": "Add a component",
+      "remove": "Remove from the dashboard",
+      "editingHint": "Drag a tile by its handle to move it, or drop it between two rows."
     },
     "occupancyByProperty": {
       "title": "Occupancy by property",
@@ -1944,7 +1961,8 @@
       "balanceDue": "Balance due",
       "paid": "Paid",
       "confirmed": "Confirmed",
-      "seePlanning": "Full planning"
+      "seePlanning": "Full planning",
+      "more": "+ {{count}} more arrivals"
     },
     "widgets": {
       "kpis": "Key metrics",
@@ -2172,6 +2190,20 @@
       "deductions": "{{count}} expense(s) deducted",
       "failed": "The details could not be loaded. Better not to approve without seeing them.",
       "factsSection": "Beneficiary and payout method"
+    },
+    "imported": {
+      "missingTitle": "Chart unavailable",
+      "missingHint": "No data over the selected period.",
+      "kpisTitle": "Key figures",
+      "openOrigin": "Open in {{screen}}"
+    },
+    "picker": {
+      "title": "Add a component",
+      "description": "Charts from Reports and portfolio statistics can be placed here, one at a time.",
+      "removed": "Removed from the dashboard",
+      "fromScreens": "From other screens",
+      "emptySource": "No chart over the selected period.",
+      "placed": "Already placed"
     }
   },
   "properties": {
@@ -4314,7 +4346,9 @@
       "expenses": "Expenses",
       "housekeeperPayouts": "Provider payouts",
       "reportsExports": "Reports & Exports",
-      "exportsSection": "Accounting Exports"
+      "exportsSection": "Accounting Exports",
+      "fiscalReport": "Tax report",
+      "exports": "Accounting exports"
     },
     "basePlan": "Base subscription",
     "seats": "Additional users",
@@ -5551,6 +5585,196 @@
       "title": "Be told about what matters, not the rest",
       "description": "New booking, cancellation, payment incident, noise alert: you choose the channel and the frequency.",
       "action": "Set up my notifications"
+    },
+    "categories": {
+      "reservation": "Reservation",
+      "payment": "Payment",
+      "intervention": "Intervention",
+      "service_request": "Service request",
+      "document": "Document",
+      "contact": "Contact",
+      "guest_messaging": "Guest message",
+      "team": "Team",
+      "system": "System"
+    },
+    "levels": {
+      "info": "Information",
+      "success": "Confirmation",
+      "warning": "Needs attention",
+      "error": "Error"
+    },
+    "detail": {
+      "selectTitle": "Select a notification",
+      "selectHint": "Pick an event on the left to read its full detail and the actions available.",
+      "unreadBadge": "Unread",
+      "subject": "What this is about",
+      "meaning": "What this means",
+      "metadata": {
+        "property": "Property",
+        "guest": "Guest",
+        "reservationReference": "Reservation",
+        "stay": "Stay",
+        "checkIn": "Check-in",
+        "checkOut": "Check-out",
+        "amount": "Amount",
+        "channel": "Channel",
+        "template": "Message template",
+        "intervention": "Intervention",
+        "error": "Failure reason",
+        "request": "Request",
+        "assignee": "Assigned to",
+        "dueDate": "Due",
+        "document": "Document",
+        "rating": "Rating",
+        "noiseDb": "Noise level",
+        "noiseThresholdDb": "Noise threshold"
+      },
+      "facts": "Key facts",
+      "technical": "Technical details",
+      "receivedAt": "Received on",
+      "reference": "Reference",
+      "category": "Category",
+      "event": "Event",
+      "destination": "Destination",
+      "destinationUnknown": "Linked screen",
+      "noDestination": "No linked screen — information only",
+      "actions": "What to do next",
+      "act": {
+        "answerInquiry": "Answer the inquiry",
+        "approvePayout": "Approve the payout",
+        "assignManually": "Assign manually",
+        "assignTeam": "Assign a team",
+        "assignWorker": "Assign a worker",
+        "changeAiModel": "Change model",
+        "checkCalendar": "Check the freed calendar",
+        "checkProperty": "Check the property",
+        "checkStay": "Check the stay",
+        "completeGuest": "Complete the guest record",
+        "completePayoutSetup": "Complete payout setup",
+        "convertToIntervention": "Convert into an intervention",
+        "diagnoseSync": "Diagnose the sync",
+        "handleIncident": "Handle the payment incident",
+        "handleRequest": "Handle the request",
+        "handleRequestUrgent": "Handle as priority",
+        "mapProperty": "Map the property",
+        "openAccounting": "Open accounting",
+        "openAiCredits": "Open AI credits",
+        "openBilling": "Open billing",
+        "openChannels": "Open channels",
+        "openContract": "Open the mandate",
+        "openConversation": "Open the conversation",
+        "openKnowledgeBase": "Open the knowledge base",
+        "openKpi": "Open the indicators",
+        "openLocks": "See the locks",
+        "openMission": "Open the mission",
+        "openMonitoring": "Open monitoring",
+        "openNoiseSensors": "Open noise sensors",
+        "openPlanning": "Open the planning",
+        "openPricing": "Open pricing",
+        "openQueue": "Open the supervision queue",
+        "openReservation": "Open the reservation",
+        "openSendHistory": "See the send history",
+        "openStock": "Open the property's stock",
+        "replayDelivery": "Replay the delivery",
+        "reply": "Reply",
+        "replyGuest": "Reply to the guest",
+        "replyReview": "Reply to the review",
+        "republishRates": "Republish rates",
+        "rescheduleIntervention": "Reschedule the intervention",
+        "resendMessage": "Send the message again",
+        "retryGeneration": "Retry generation",
+        "retryImport": "Retry the import",
+        "retryPayment": "Chase the payment",
+        "retryPayout": "Retry the payout",
+        "reviewAutoApplied": "See what was applied",
+        "reviewFraud": "Review the risky reservation",
+        "reviewWork": "Review the work done",
+        "settleIntervention": "Settle the intervention",
+        "startMission": "Start the mission",
+        "takeOverConversation": "Take over the conversation",
+        "takeOverRequest": "Take over the request",
+        "tuneAutomation": "Tune the automation",
+        "updateKeybox": "Update the key box",
+        "verifyPayoutConfig": "Verify the configuration",
+        "warnGuest": "Warn the guest"
+      },
+      "openTarget": "Open {{target}}",
+      "openGeneric": "Open the related screen",
+      "tune": "Tune this type of alert",
+      "delete": "Delete this notification",
+      "subjectPanel": {
+        "stay": "Stay",
+        "noiseLevel": "Noise level",
+        "noiseThreshold": "Threshold {{db}} dB",
+        "nights_one": "{{count}} night",
+        "nights_other": "{{count}} nights",
+        "overdue": "Overdue",
+        "dueToday": "Today",
+        "dueInDays_one": "In {{count}} d",
+        "dueInDays_other": "In {{count}} d"
+      },
+      "device": {
+        "batteryCritical": "Critical battery",
+        "batteryLow": "Low battery",
+        "batteryOk": "Battery is fine",
+        "batteryUnknown": "Battery level unknown",
+        "offline": "Offline"
+      },
+      "stay": {
+        "unknownGuest": "Unknown guest",
+        "noContact": "No way to reach them",
+        "cancelled": "Cancelled",
+        "releasable": "Still resellable",
+        "remainingOfTotal_one": "{{count}} night of {{total}}",
+        "remainingOfTotal_other": "{{count}} nights of {{total}}",
+        "stayAmount": "Stay total",
+        "remind": "Remind the guest to check in",
+        "cancelStay": "Cancel the booking",
+        "cancelTitle": "Cancel the booking?",
+        "cancelIntro": "{{guest}}'s stay is closed and its whole window goes back on sale.",
+        "cancelC1": "Nothing changes on the payment side: refund and fees are handled separately.",
+        "cancelC2": "Reporting to the origin channel is still yours to do by hand.",
+        "cancelC3": "To free only the remaining nights and keep the stay, use “Mark no-show” instead.",
+        "cancelConfirm": "Cancel the booking",
+        "cancelling": "Cancelling…",
+        "cancelDone": "Booking cancelled — the nights are free again.",
+        "cancelFailed": "The cancellation failed."
+      },
+      "review": {
+        "anonymous": "Guest",
+        "awaitingReply": "No reply yet",
+        "hostReply": "Your reply"
+      },
+      "explain": {
+        "default": "This event was recorded by the platform.",
+        "reservation": "A stay changed: creation, update, cancellation or guest access. Tasks already scheduled on the former dates do not move on their own.",
+        "payment": "Money moved, or failed to move. The payment provider is the source of truth: the amount shown here is the one it confirmed.",
+        "intervention": "A field intervention changed state. The full detail — photos, notes, assignee, duration — stays on its record.",
+        "service_request": "A request is waiting for a decision: approval, rejection, assignment to a team, or conversion into an intervention.",
+        "document": "A document was produced, sent or signed. The file itself lives in the document history.",
+        "contact": "A message came through the internal inbox or the public contact form.",
+        "guest_messaging": "An exchange with a guest happened, or could not go through. On failure, the guest received nothing.",
+        "team": "A team’s composition or permissions changed.",
+        "system": "Platform event: channel sync, configuration, integration or user account.",
+        "SUPERVISION_SUGGESTION": "An agent spotted something on a property and is proposing a move — it does not act alone. The card is waiting for your approval in that property's supervision queue.",
+        "SUPERVISION_AUTO_APPLIED": "An agent applied a move you had authorised as automatic. This is a report: nothing is waiting on you.",
+        "SUPERVISION_AUTO_RULE_SUGGESTED": "The same move comes back often enough to deserve a rule: the agent offers to automate it rather than ask you again."
+      },
+      "nextStep": {
+        "default": "Open the related screen to act on the item behind this notification.",
+        "reservation": "Open the reservation to check dates, payment and the interventions already scheduled.",
+        "payment": "Match the amount against the related invoice, then chase or refund from Billing.",
+        "intervention": "Open the record to follow progress, validate the work or chase the assignee.",
+        "service_request": "Handle the request: approve, reject, or assign it to an available team.",
+        "document": "Check the generated document and, if needed, send it again to its recipient.",
+        "contact": "Reply from the inbox so the exchange stays attached to the contact.",
+        "guest_messaging": "Confirm the guest actually received the message; otherwise fix their details and send again.",
+        "team": "Review the team’s access if the change did not come from you.",
+        "system": "Nothing to do while everything is green. Otherwise, open the related screen to retry.",
+        "SUPERVISION_SUGGESTION": "Open the card in the supervision queue: it restates the exact situation at the moment of acting, and the move runs from there in one click.",
+        "SUPERVISION_AUTO_APPLIED": "Nothing to do. If the move does not suit you, the automation rule is tuned in Automations.",
+        "SUPERVISION_AUTO_RULE_SUGGESTED": "Decide whether this move should become automatic — otherwise the agent keeps proposing it card by card."
+      }
     }
   },
   "fiscal": {
@@ -7812,5 +8036,130 @@
     "removeLogo": "Remove the logo",
     "logoSaved": "Logo saved",
     "logoError": "Upload failed: JPEG, PNG, WEBP or GIF, 5 MB maximum."
+  },
+  "pulse": {
+    "agents": {
+      "hint": "Waiting in the constellation",
+      "property": "Property #{{id}}",
+      "title": "Cards to validate"
+    },
+    "contracts": {
+      "hint": "By contract status",
+      "title": "Management mandates",
+      "total": "Mandates",
+      "active": "Active mandates",
+      "status": {
+        "ACTIVE": "Active",
+        "DRAFT": "Draft",
+        "SUSPENDED": "Suspended",
+        "TERMINATED": "Terminated",
+        "EXPIRED": "Expired"
+      }
+    },
+    "conversations": {
+      "empty": "No message waiting.",
+      "hint": "Unread guest messages",
+      "thread": "Conversation",
+      "title": "Unanswered conversations",
+      "figure": "Unread messages"
+    },
+    "denied": {
+      "hint": "Real demand walking away",
+      "title": "Searches with no availability"
+    },
+    "departures": {
+      "allPlanned": "Every cleaning is scheduled",
+      "empty": "No departure in this window.",
+      "title": "Departures in the next 7 days",
+      "toPlan": "cleaning to schedule",
+      "unplanned": "{{n}} with no cleaning scheduled",
+      "figure": "Departures without cleaning"
+    },
+    "devices": {
+      "alerts": "Alerting",
+      "battery": "Low battery",
+      "hint": "{{n}} devices tracked",
+      "offline": "Offline",
+      "online": "Online",
+      "title": "Connected devices",
+      "total": "Devices"
+    },
+    "docs": {
+      "hint": "{{locked}} locked · {{score}} % compliance",
+      "label": "Documents",
+      "title": "Documents issued",
+      "score": "Document compliance",
+      "locked": "Locked documents"
+    },
+    "filings": {
+      "clear": "Nothing to file",
+      "due": "{{n}} to file",
+      "empty": "No filing.",
+      "title": "Tax filings",
+      "figure": "Filings due",
+      "status": {
+        "DUE": "Due",
+        "FILED": "Filed",
+        "PAID": "Paid"
+      }
+    },
+    "funnel": {
+      "anyDate": "Any dates",
+      "checkouts": "Checkouts started",
+      "confirmed": "Confirmed",
+      "conversion": "{{pct}} % conversion",
+      "guests": "{{n}} guests",
+      "label": "Stays",
+      "searches": "Searches",
+      "title": "Direct booking funnel",
+      "trendHint": "From search to confirmation",
+      "trendTitle": "Direct journey, day by day",
+      "views": "Property views",
+      "conversionLabel": "Direct conversion"
+    },
+    "payouts": {
+      "empty": "Nothing to approve.",
+      "hint": "Awaiting your approval",
+      "owner": "Owner #{{id}}",
+      "title": "Payouts to approve",
+      "figure": "To approve"
+    },
+    "positioning": {
+      "aligned": "In line",
+      "hint": "Published price against the local market",
+      "over": "Above market",
+      "title": "Portfolio price positioning",
+      "total": "Properties",
+      "under": "Below market",
+      "unknown": "No market reference"
+    },
+    "reviews": {
+      "allAnswered": "Every review has a reply.",
+      "anonymous": "Guest",
+      "hint": "{{avg}}/5 across {{n}} reviews",
+      "title": "Reputation",
+      "total": "Reviews",
+      "unansweredHint": "A reply weighs on your ranking",
+      "unansweredTitle": "Reviews without a reply"
+    },
+    "stock": {
+      "hint": "Quantity left against reorder threshold",
+      "noSupplier": "no supplier",
+      "title": "Restocking needed",
+      "figure": "Lines below threshold"
+    },
+    "wallets": {
+      "hint": "Platform, escrow, owner, agency",
+      "label": "Balance",
+      "title": "Wallet balances",
+      "figure": "Consolidated balance"
+    },
+    "sources": {
+      "growth": "Growth & distribution",
+      "operations": "Portfolio operations",
+      "compliance": "Compliance & mandates",
+      "finance": "Cash",
+      "guest": "Guests & reputation"
+    }
   }
 }

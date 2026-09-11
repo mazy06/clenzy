@@ -260,7 +260,12 @@ public class ServiceQuoteService {
                     "Tarif propose par un intervenant",
                     me.getFullName() + " propose " + amount + " EUR pour l'intervention #"
                             + saved.getInterventionId() + ". A approuver.",
-                    "/interventions/" + saved.getInterventionId());
+                    "/interventions/" + saved.getInterventionId(),
+                    NotificationMetadata.of()
+                            .interventionId(saved.getInterventionId())
+                            .assignee(me.getFullName())
+                            .amount(saved.getAmount(), saved.getCurrency())
+                            .build());
             notifyPropertyOwner(saved, me.getFullName(), amount);
             openQuoteDiscussion(saved, me);
         } catch (Exception e) {
@@ -501,7 +506,14 @@ public class ServiceQuoteService {
                 "Tarif propose pour une intervention",
                 providerName + " propose " + amount + " EUR pour l'intervention sur "
                         + intervention.getProperty().getName() + ".",
-                "/interventions/" + quote.getInterventionId());
+                "/interventions/" + quote.getInterventionId(),
+                NotificationMetadata.of()
+                        .property(intervention.getProperty().getName())
+                        .intervention(intervention.getTitle())
+                        .interventionId(quote.getInterventionId())
+                        .assignee(providerName)
+                        .amount(quote.getAmount(), quote.getCurrency())
+                        .build());
     }
 
     @Transactional

@@ -33,6 +33,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -172,7 +173,7 @@ class IssueServiceTest {
         assertThat(dto.status()).isEqualTo(IssueStatus.OPEN);
         assertThat(dto.reportedById()).isEqualTo(9L);
         verify(notificationService).notifyAdminsAndManagers(
-                eq(NotificationKey.ISSUE_REPORTED), any(), any(), any());
+                eq(NotificationKey.ISSUE_REPORTED), any(), any(), any(), any(Map.class));
     }
 
     @Test

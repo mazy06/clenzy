@@ -245,7 +245,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
   return (
     <div className="flex h-full min-h-0 flex-col gap-3" ref={rootRef}>
       {/* ── Ce que les agents ont fait gagner, en quatre nombres ────────────── */}
-      <StatTileRow columns={4} className="shrink-0">
+      <StatTileRow compact className="shrink-0">
         <StatTile
           icon={<HomeWork />}
           label={t('supervision.portfolio.properties', 'Logements pilotés')}

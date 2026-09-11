@@ -1,0 +1,13 @@
+-- Faits structures attaches a une notification.
+--
+-- Une notification ne portait qu'un titre et une phrase : pour savoir de QUEL
+-- logement, de QUEL voyageur ou de QUEL montant il s'agissait, il fallait
+-- ouvrir l'ecran vise -- quand il y en avait un. Ce champ porte les faits que
+-- l'emetteur avait deja sous la main au moment d'ecrire le message, pour que
+-- la fiche de notification les affiche sans nouvelle requete.
+--
+-- Contenu : objet JSON plat, ecrit par le SERVEUR seul, en LECTURE SEULE cote
+-- interface. Il ne sert jamais au routage ni a une decision d'autorisation
+-- (cf. regle d'audit : ne jamais lire le tenant ni l'effet metier dans le
+-- payload d'un evenement) -- uniquement a l'affichage.
+ALTER TABLE notifications ADD COLUMN metadata JSONB;

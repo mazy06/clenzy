@@ -3,9 +3,6 @@ import {
   DonutChart,
   HighlightList,
   HistogramChart,
-  StatsBand,
-  StatsLayout,
-  TileGrid,
   TrendAreaChart,
   tiles,
   type Highlight,
@@ -16,7 +13,7 @@ import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
 import { useFinancialReport } from './hooks/useReportData';
-import { ReportFrame, useReportFormats } from './reportShell';
+import { ReportView, useReportFormats, type ReportContent } from './reportShell';
 
 const NO_INTERVENTIONS: never[] = [];
 
@@ -29,7 +26,7 @@ const NO_INTERVENTIONS: never[] = [];
  * quel coût. Les alertes sont passées à la Synthèse, les tarifs et prévisions à
  * leur propre onglet ; il ne reste ici que l'argent.</p>
  */
-const RevenueReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
+export function useRevenueReport(period: DashboardPeriod = 'month'): ReportContent {
   const { t } = useTranslation();
   const format = useReportFormats();
   const { analytics, loading } = useAnalyticsEngine({ period, interventions: NO_INTERVENTIONS });
@@ -172,14 +169,12 @@ const RevenueReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month
     },
   ] as TileOrNothing[]);
 
-  return (
-    <ReportFrame loading={loading} error={financial.error} onRetry={financial.retry}>
-      <StatsLayout>
-        <StatsBand figures={figures} />
-        <TileGrid items={items} />
-      </StatsLayout>
-    </ReportFrame>
-  );
+  return { figures, items, loading, error: financial.error, retry: financial.retry };
+}
+
+const RevenueReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
+  const content = useRevenueReport(period);
+  return <ReportView content={content} />;
 };
 
 export default RevenueReport;

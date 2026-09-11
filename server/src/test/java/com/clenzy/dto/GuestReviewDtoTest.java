@@ -37,7 +37,8 @@ class GuestReviewDtoTest {
                 "en",
                 tags,
                 true,
-                createdAt
+                createdAt,
+                "/api/guests/100/photo?ticket=abc"
         );
 
         assertEquals(1L, dto.id());
@@ -56,6 +57,7 @@ class GuestReviewDtoTest {
         assertEquals(tags, dto.tags());
         assertTrue(dto.isPublic());
         assertEquals(createdAt, dto.createdAt());
+        assertEquals("/api/guests/100/photo?ticket=abc", dto.guestAvatarUrl());
     }
 
     @Test
@@ -100,6 +102,9 @@ class GuestReviewDtoTest {
         assertFalse(dto.isPublic());
         // createdAt set by @PrePersist — may be null in unit test without persistence
         assertNull(dto.createdAt());
+        // La photo suppose de rejoindre la reservation : le mapping d'entite seule
+        // ne la resout pas, c'est la route d'UN avis qui la fournit.
+        assertNull(dto.guestAvatarUrl());
     }
 
     @Test

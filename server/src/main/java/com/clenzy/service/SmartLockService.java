@@ -66,6 +66,24 @@ public class SmartLockService {
     }
 
     /**
+     * Une serrure de l'organisation, telle qu'elle est CONNUE EN BASE.
+     *
+     * <p>A distinguer de {@link #getLockStatus} : celui-ci interroge le
+     * fabricant en direct. Une fiche qui s'ouvre — l'alerte de batterie, par
+     * exemple — n'a pas a payer un aller-retour vers Tuya, ni a echouer quand
+     * il ne repond pas ; elle montre le dernier etat synchronise.</p>
+     *
+     * <p>{@code findById} ne passe pas par le filtre Hibernate : l'appartenance
+     * a l'organisation est verifiee explicitement (regle #3 de l'audit 2026-06).</p>
+     */
+    public SmartLockDeviceDto getDevice(Long deviceId) {
+        SmartLockDevice device = smartLockRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
+        requireSameOrganization(device);
+        return toDto(device);
+    }
+
+    /**
      * Cree une nouvelle serrure.
      */
     public SmartLockDeviceDto createDevice(String userId, CreateSmartLockDeviceDto dto) {

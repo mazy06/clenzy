@@ -379,7 +379,7 @@ export function MyNextMissionCard() {
       title={title}
       count={ordered.length}
     >
-      <div className="grid grid-cols-1 gap-2 min-[640px]:grid-cols-2 min-[900px]:grid-cols-3">
+      <div data-fit-list className="grid grid-cols-1 gap-2 min-[640px]:grid-cols-2 min-[900px]:grid-cols-3">
         {visible.map((mission) => (
           <MissionCard key={mission.id} mission={mission} onOpen={openMission} />
         ))}
@@ -693,7 +693,7 @@ export function MissionProposalsCard() {
       title={t('field.proposals.title', 'Missions à confirmer')}
       count={proposals.length}
     >
-      <div className="grid grid-cols-1 gap-2 min-[640px]:grid-cols-2 min-[900px]:grid-cols-3">
+      <div data-fit-list className="grid grid-cols-1 gap-2 min-[640px]:grid-cols-2 min-[900px]:grid-cols-3">
         {proposals.map((mission) => {
           const lines = mission.quoteLines ?? [];
           const mineTotal = myTotalFor(mission);
@@ -1099,7 +1099,7 @@ export function MyFollowUpsSection() {
             {t('field.issues.none', 'Aucune anomalie signalée pour le moment.')}
           </BlockEmpty>
         ) : (
-          <div className="flex flex-col gap-1.5">
+          <div data-fit-list className="flex flex-col gap-1.5">
             {recentIssues.map((issue) => (
               <Item key={issue.id} variant="outline" size="sm">
                 <ItemContent>
@@ -1132,7 +1132,7 @@ export function MyFollowUpsSection() {
             {t('field.expenses.none', 'Aucun frais en attente de remboursement.')}
           </BlockEmpty>
         ) : (
-          <div className="flex flex-col gap-1.5">
+          <div data-fit-list className="flex flex-col gap-1.5">
             {pendingExpenses.slice(0, 5).map((expense) => (
               <Item key={expense.id} variant="outline" size="sm">
                 <ItemContent>
@@ -1327,7 +1327,7 @@ export function MyQuotesCard() {
           variant="dashed"
         />
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div data-fit-list className="flex flex-col gap-1.5">
           {recent.map((quote) => (
             <QuoteRow key={quote.id} quote={quote} onOpen={(id) => navigate(`/interventions/${id}`)} />
           ))}

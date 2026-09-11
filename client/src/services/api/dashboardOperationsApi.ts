@@ -52,6 +52,25 @@ export interface DashboardOperations {
   cleanings: DashboardCleaning[];
 }
 
+/**
+ * Un départ à venir. Le tableau de bord montrait qui arrive, jamais qui part —
+ * or c'est le départ qui commande le ménage, la caution et le code d'accès.
+ */
+export interface DashboardUpcomingDeparture {
+  reservationId: number;
+  guestName: string | null;
+  guestAvatarUrl?: string | null;
+  propertyId: number | null;
+  propertyName: string | null;
+  /** ISO `yyyy-MM-dd`. */
+  checkOut: string;
+  nights: number;
+  source: string | null;
+  sourceName: string | null;
+  /** Ménage déjà posé sur ce départ ? Sinon, il reste à planifier. */
+  cleaningPlanned: boolean;
+}
+
 export interface DashboardUpcomingArrival {
   reservationId: number;
   guestName: string | null;
@@ -190,6 +209,9 @@ export interface DashboardActionItems {
 export const dashboardOperationsApi = {
   getToday: (): Promise<DashboardOperations> =>
     apiClient.get<DashboardOperations>('/dashboard/operations/today'),
+
+  getUpcomingDepartures: (days = 7): Promise<DashboardUpcomingDeparture[]> =>
+    apiClient.get<DashboardUpcomingDeparture[]>('/dashboard/upcoming-departures', { params: { days } }),
 
   getUpcomingArrivals: (days = 7): Promise<DashboardUpcomingArrival[]> =>
     apiClient.get<DashboardUpcomingArrival[]>('/dashboard/upcoming-arrivals', { params: { days } }),

@@ -13,6 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
+import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
@@ -70,6 +71,8 @@ import {
   useSupervisionConfig,
   useSupervisionPendingCounts,
   SUPERVISION_ASK_EVENT,
+  AGENT_IDS,
+  type AgentId,
   type SupervisionScope,
 } from '../supervision';
 
@@ -112,8 +115,42 @@ const PlanningPage: React.FC = () => {
   // et à la reconnexion. Arbre Storage §2 (préférence ad-hoc par écran).
   // `null` = tous repliés. Un id périmé (logement filtré/supprimé) est inoffensif :
   // orderedProperties le laisse passer et renderExpanded ne matche jamais.
-  const [expandedPropertyId, setExpandedPropertyId, { reset: resetExpandedProperty }] =
+  const [expandedPropertyId, setExpandedPropertyId, { reset: resetExpandedProperty, isLoaded: expandedPrefLoaded }] =
     useUserPreference<number | null>('planning.expandedPropertyId', null);
+
+  // Lien profond depuis la fiche d'une notification :
+  // `/planning?property=<id>&agent=<module>` déploie l'accordéon du logement
+  // concerné ET vise l'agent qui porte la carte HITL — sans quoi l'opérateur
+  // atterrissait sur le planning nu, à lui de retrouver la carte.
+  //
+  // Les paramètres sont CONSOMMÉS (retirés de l'URL) : la préférence
+  // d'accordéon reprend la main, et replier le panneau ne se défait pas au
+  // rechargement. L'écriture attend `expandedPrefLoaded` — écrire avant que le
+  // backend ait répondu, c'est se faire écraser par sa réponse.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [deepLink, setDeepLink] = useState<{ propertyId: number; agent: AgentId | null } | null>(null);
+  const deepLinkConsumed = useRef(false);
+  useEffect(() => {
+    if (deepLinkConsumed.current || !expandedPrefLoaded) return;
+    const propertyParam = searchParams.get('property');
+    const agentParam = searchParams.get('agent');
+    if (!propertyParam && !agentParam) return;
+    deepLinkConsumed.current = true;
+
+    const propertyId = Number(propertyParam);
+    const agent = agentParam && (AGENT_IDS as string[]).includes(agentParam)
+      ? (agentParam as AgentId)
+      : null;
+    if (Number.isInteger(propertyId) && propertyId > 0) {
+      setExpandedPropertyId(propertyId);
+      setDeepLink({ propertyId, agent });
+    }
+
+    const remaining = new URLSearchParams(searchParams);
+    remaining.delete('property');
+    remaining.delete('agent');
+    setSearchParams(remaining, { replace: true });
+  }, [searchParams, setSearchParams, setExpandedPropertyId, expandedPrefLoaded]);
   // Ouverture pilotée du modal « Fiche client » depuis une carte de la constellation
   // (« email voyageur manquant ») : signal contrôlé transmis à PlanningActionPanel →
   // PanelFooterActions. Remis à null une fois consommé (permet une réouverture).
@@ -722,11 +759,14 @@ const PlanningPage: React.FC = () => {
           deps={mockMode ? [property.id, cometReservationId] : [property.id]}
           propertyId={property.id}
           reportWindowDays={reportWindowDays}
+          // L'agent visé ne vaut que pour le logement du lien : ouvrir un autre
+          // accordéon ensuite ne doit pas rejouer cette sélection.
+          initialAgent={deepLink?.propertyId === property.id ? deepLink.agent ?? undefined : undefined}
           flush
         />
       );
     },
-    [visibleEvents, handleOpenGuestCard, reportWindowDays],
+    [visibleEvents, handleOpenGuestCard, reportWindowDays, deepLink],
   );
 
   // ── Initial scroll to today when timeline first becomes visible ──────────
@@ -1034,7 +1074,6 @@ const PlanningPage: React.FC = () => {
               rangeEnd={pagination.rangeEnd}
               totalProperties={filteredProperties.length}
               onPageChange={pagination.goToPage}
-              reserveAssistantSlot={!nav.isFullscreen}
             />
           </div>
         </div>

@@ -22,6 +22,13 @@ export interface GuestReview {
   hostResponseDraft?: string | null;
   hostResponseDraftAt?: string | null;
   reviewDate?: string | null;
+  /**
+   * Photo du voyageur (URL signee relative), ou `null` : repli sur les
+   * initiales. Servie par les routes de LECTURE, l'avis seul comme la liste —
+   * une page entiere se resout en une requete cote serveur. A passer par
+   * `guestPhotoSrc` avant tout `<img>`.
+   */
+  guestAvatarUrl?: string | null;
 }
 
 interface Page<T> {

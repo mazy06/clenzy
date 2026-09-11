@@ -151,8 +151,8 @@ public class ServiceRequestService {
                 NotificationKey.SERVICE_REQUEST_CREATED,
                 "Nouvelle demande de service",
                 "Demande \"" + entity.getTitle() + "\" creee",
-                "/interventions?tab=service-requests&highlight=" + entity.getId()
-            );
+                "/interventions?tab=service-requests&highlight=" + entity.getId(),
+                requestFacts(entity));
         } catch (Exception e) {
             log.warn("Notification error SERVICE_REQUEST_CREATED: {}", e.getMessage());
         }
@@ -190,8 +190,8 @@ public class ServiceRequestService {
                 NotificationKey.SERVICE_REQUEST_CREATED,
                 "Assignation refusee",
                 "L'equipe/utilisateur a refuse la demande \"" + sr.getTitle() + "\". Reassignation necessaire.",
-                "/interventions?tab=service-requests&highlight=" + sr.getId()
-            );
+                "/interventions?tab=service-requests&highlight=" + sr.getId(),
+                requestFacts(sr));
         } catch (Exception e) {
             log.warn("Notification error REFUSE: {}", e.getMessage());
         }
@@ -553,8 +553,16 @@ public class ServiceRequestService {
                     + (intervention.getEstimatedCost() != null
                         ? " Cout estime: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
                         : ""),
-                "/interventions/" + intervention.getId()
-            );
+                "/interventions/" + intervention.getId(),
+                // Ici la notification parle de l'INTERVENTION nee de la demande :
+                // ce sont ses reperes a elle qui doivent mener la fiche.
+                NotificationMetadata.of()
+                    .property(sr.getProperty() != null ? sr.getProperty().getName() : null)
+                    .propertyId(sr.getProperty() != null ? sr.getProperty().getId() : null)
+                    .request(sr.getTitle())
+                    .intervention(intervention.getTitle())
+                    .interventionId(intervention.getId())
+                    .build());
         } catch (Exception e) {
             log.warn("Notification error INTERVENTION_CREATED_FROM_SR: {}", e.getMessage());
         }
@@ -576,8 +584,8 @@ public class ServiceRequestService {
                     NotificationKey.SERVICE_REQUEST_REJECTED,
                     "Demande de service refusee",
                     "Votre demande \"" + entity.getTitle() + "\" a ete refusee",
-                    "/interventions?tab=service-requests&highlight=" + entity.getId()
-                );
+                    "/interventions?tab=service-requests&highlight=" + entity.getId(),
+                    requestFacts(entity));
             }
         } catch (Exception e) {
             log.warn("Notification error SERVICE_REQUEST_REJECTED: {}", e.getMessage());
@@ -893,7 +901,7 @@ public class ServiceRequestService {
                 notificationService.send(best.getKeycloakId(), NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
                         "Mission assignee",
                         "Vous etes assigne a la mission '" + sr.getTitle() + "'." + remuneration,
-                        "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId);
+                        "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId, requestFacts(sr));
             }
             log.info("Auto-assign best pro: user {} (team {}) for SR {}", best.getId(), teamId, sr.getId());
         } catch (Exception e) {
@@ -1024,8 +1032,8 @@ public class ServiceRequestService {
                         NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Demande auto-assignee",
                         "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
-                        "/interventions?tab=service-requests&highlight=" + sr.getId()
-                    );
+                        "/interventions?tab=service-requests&highlight=" + sr.getId(),
+                        requestFacts(sr));
                     notifyHost(sr, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Equipe assignee",
                         "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\" — en attente de paiement");
@@ -1054,8 +1062,8 @@ public class ServiceRequestService {
                             NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
                             "Aucune equipe disponible",
                             "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee. Retry automatique dans 15 min.",
-                            "/interventions?tab=service-requests&highlight=" + sr.getId()
-                        );
+                            "/interventions?tab=service-requests&highlight=" + sr.getId(),
+                            requestFacts(sr));
                         notifyHost(sr, NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
                             "Recherche en cours",
                             "Nous recherchons une equipe pour votre demande \"" + sr.getTitle() + "\"");
@@ -1073,8 +1081,8 @@ public class ServiceRequestService {
                             NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "ACTION REQUISE — Assignation manuelle",
                             "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives. Assignation manuelle necessaire.",
-                            "/interventions?tab=service-requests&highlight=" + sr.getId()
-                        );
+                            "/interventions?tab=service-requests&highlight=" + sr.getId(),
+                            requestFacts(sr));
                         notifyHost(sr, NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "Assignation impossible",
                             "Nous n'avons pas pu trouver d'equipe pour votre demande \"" + sr.getTitle() + "\". Un administrateur va intervenir.");
@@ -1133,8 +1141,8 @@ public class ServiceRequestService {
                         NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Demande auto-assignee (retry)",
                         "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
-                        "/interventions?tab=service-requests&highlight=" + sr.getId()
-                    );
+                        "/interventions?tab=service-requests&highlight=" + sr.getId(),
+                        requestFacts(sr));
                     notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Equipe assignee",
                         "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\" — en attente de paiement");
@@ -1164,8 +1172,8 @@ public class ServiceRequestService {
                             NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "ACTION REQUISE — Assignation manuelle",
                             "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives.",
-                            "/interventions?tab=service-requests&highlight=" + sr.getId()
-                        );
+                            "/interventions?tab=service-requests&highlight=" + sr.getId(),
+                            requestFacts(sr));
                         notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "Assignation impossible",
                             "Nous n'avons pas pu trouver d'equipe pour votre demande \"" + sr.getTitle() + "\". Un administrateur va intervenir.");
@@ -1305,7 +1313,7 @@ public class ServiceRequestService {
                 "Menage post-checkout planifie",
                 "Demande de menage creee automatiquement pour \"" + property.getName()
                     + "\" (depart du " + checkOut + ")",
-                "/interventions?tab=service-requests&highlight=" + sr.getId());
+                "/interventions?tab=service-requests&highlight=" + sr.getId(), requestFacts(sr));
         } catch (Exception e) {
             log.warn("Notification error menage auto SR {}: {}", sr.getId(), e.getMessage());
         }
@@ -1360,7 +1368,7 @@ public class ServiceRequestService {
                 "Menage post-checkout annule",
                 "La reservation liee a ete annulee : la demande de menage \"" + sr.getTitle()
                     + "\" a ete annulee automatiquement.",
-                "/interventions?tab=service-requests&highlight=" + sr.getId());
+                "/interventions?tab=service-requests&highlight=" + sr.getId(), requestFacts(sr));
         } catch (Exception e) {
             log.warn("Notification error annulation menage auto SR {}: {}", sr.getId(), e.getMessage());
         }
@@ -1411,15 +1419,28 @@ public class ServiceRequestService {
     private void notifyHost(ServiceRequest sr, NotificationKey key, String title, String msg) {
         if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
             notificationService.notify(sr.getUser().getKeycloakId(), key, title, msg,
-                "/interventions?tab=service-requests&highlight=" + sr.getId());
+                "/interventions?tab=service-requests&highlight=" + sr.getId(), requestFacts(sr));
         }
     }
 
     private void notifyHostByOrgId(ServiceRequest sr, Long orgId, NotificationKey key, String title, String msg) {
         if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
             notificationService.sendByOrgId(sr.getUser().getKeycloakId(), key, title, msg,
-                "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId);
+                "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId, requestFacts(sr));
         }
     }
 
+
+    /**
+     * Faits joints aux notifications de demande : quel logement, quelle
+     * demande, et a qui elle est confiee. Deja charges par le flux qui notifie.
+     */
+    private static Map<String, Object> requestFacts(ServiceRequest sr) {
+        if (sr == null) return null;
+        return NotificationMetadata.of()
+                .property(sr.getProperty() != null ? sr.getProperty().getName() : null)
+                .propertyId(sr.getProperty() != null ? sr.getProperty().getId() : null)
+                .request(sr.getTitle())
+                .build();
+    }
 }

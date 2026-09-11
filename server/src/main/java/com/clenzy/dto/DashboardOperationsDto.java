@@ -72,6 +72,25 @@ public record DashboardOperationsDto(
             String status) {}
 
     /** Arrivée à venir, pour le tableau « prochaines arrivées ». */
+    /**
+     * Un depart a venir. Symetrique de {@link UpcomingArrivalDto} : le tableau
+     * de bord montrait qui arrive, jamais qui part — or c'est le depart qui
+     * commande le menage, la caution a liberer et le code d'acces a tourner.
+     */
+    public record UpcomingDepartureDto(
+            Long reservationId,
+            String guestName,
+            String guestAvatarUrl,
+            Long propertyId,
+            String propertyName,
+            LocalDate checkOut,
+            int nights,
+            String source,
+            String sourceName,
+            /** Menage deja planifie sur ce depart ? Sinon, il reste a poser. */
+            boolean cleaningPlanned) {
+    }
+
     public record UpcomingArrivalDto(
             Long reservationId,
             String guestName,

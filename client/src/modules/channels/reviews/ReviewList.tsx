@@ -10,6 +10,8 @@ import {
 import { TriangleAlert } from 'lucide-react';
 import EmptyState from '../../../components/EmptyState';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
+import { guestPhotoSrc } from '../../../services/api/guestsApi';
+import RatingStars from '../../../components/baitly/RatingStars';
 import StatTile from '../../../components/baitly/StatTile';
 import { cn } from '../../../utils/cn';
 import {
@@ -21,31 +23,6 @@ import {
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useNotification } from '../../../hooks/useNotification';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
-
-const RATING_STARS = [0, 1, 2, 3, 4];
-
-/**
- * Note en lecture seule, 5 étoiles au pas de 0,5. Deux calques superposés : le
- * calque plein est rogné à la largeur correspondant à la note — seule façon
- * d'obtenir une demi-étoile sans glyphe dédié.
- */
-function ReadOnlyRating({ value, size = 14 }: { value: number; size?: number }) {
-  const rounded = Math.round(value * 2) / 2;
-  return (
-    <span className="relative inline-flex shrink-0" aria-label={`${rounded} / 5`}>
-      <span className="inline-flex text-border">
-        {RATING_STARS.map((i) => <StarIcon key={i} size={size} strokeWidth={1.75} />)}
-      </span>
-      <span
-        className="absolute inset-0 inline-flex overflow-hidden text-warning-ink"
-        style={{ width: `${(rounded / 5) * 100}%` }}
-        aria-hidden
-      >
-        {RATING_STARS.map((i) => <StarIcon key={i} size={size} strokeWidth={1.75} />)}
-      </span>
-    </span>
-  );
-}
 
 interface ReviewListProps {
   /** Filtre sur un logement. Absent = tous les logements de l'organisation. */
@@ -191,13 +168,19 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
             return (
               <article key={review.id} className="rounded-xl border border-border bg-card p-3.5">
                 <header className="flex items-start gap-2.5">
-                  <GuestAvatar name={review.guestName || 'Voyageur'} size={32} />
+                  {/* La route de liste sert desormais la photo : l'ecran des
+                      avis n'a plus de raison de s'en tenir aux initiales. */}
+                  <GuestAvatar
+                    name={review.guestName || 'Voyageur'}
+                    photoUrl={guestPhotoSrc(review.guestAvatarUrl)}
+                    size={32}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="text-sm font-medium text-foreground">
                         {review.guestName || t('channels.reviews.anonymous', 'Voyageur')}
                       </span>
-                      {typeof review.rating === 'number' && <ReadOnlyRating value={review.rating} />}
+                      {typeof review.rating === 'number' && <RatingStars value={review.rating} />}
                       {review.channelName && <Badge variant="secondary">{review.channelName}</Badge>}
                       {!review.hostResponse && (
                         <Badge variant="warning">

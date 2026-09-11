@@ -6,6 +6,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.access.AccessCodeGenerator;
 import com.clenzy.service.access.StayTimes;
@@ -123,7 +124,10 @@ public class AccessCodeRotationScheduler {
                 "Nouveau code d'accès — " + property.getName(),
                 "Le voyageur est parti : le code d'accès de « " + property.getName()
                         + " » a été régénéré (" + newCode + "). Pensez à mettre à jour le code de la boîte à clé.",
-                "/properties/" + propertyId);
+                "/properties/" + propertyId,
+                // Le code lui-meme reste dans le message : un secret n'a rien a
+                // faire dans un champ structure destine a etre affiche partout.
+                NotificationMetadata.of().property(property.getName()).build());
 
         // Feed « En direct » de la constellation du logement (agent Opérations « ops ») : best-effort,
         // un échec ne doit jamais casser la rotation. propertyId résolu par occurrence (ce logement).
