@@ -27,16 +27,28 @@ public record GuestReviewDto(
     String language,
     List<ReviewTag> tags,
     Boolean isPublic,
-    Instant createdAt
+    Instant createdAt,
+    /** Photo du voyageur (URL signee), ou {@code null} : repli sur les initiales. */
+    String guestAvatarUrl
 ) {
+    /**
+     * Avis sans photo de voyageur : les routes d'ECRITURE, qui renvoient l'avis
+     * qu'elles viennent de modifier a un appelant qui l'a deja sous les yeux.
+     * Les routes de lecture passent la photo, resolue par
+     * {@code ReviewGuestAvatarResolver} — a l'unite ou par page.
+     */
     public static GuestReviewDto from(GuestReview r) {
+        return from(r, null);
+    }
+
+    public static GuestReviewDto from(GuestReview r, String guestAvatarUrl) {
         return new GuestReviewDto(
             r.getId(), r.getPropertyId(), r.getReservationId(), r.getChannelName(),
             r.getGuestName(), r.getRating(), r.getReviewText(), r.getHostResponse(),
             r.getHostRespondedAt(), r.getHostResponseDraft(), r.getHostResponseDraftAt(),
             r.getReviewDate(), r.getSentimentScore(),
             r.getSentimentLabel(), r.getLanguage(), r.getTags(), r.getIsPublic(),
-            r.getCreatedAt()
+            r.getCreatedAt(), guestAvatarUrl
         );
     }
 }
