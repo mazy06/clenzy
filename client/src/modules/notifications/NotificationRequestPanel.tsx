@@ -58,6 +58,13 @@ export function requestSubjectOf(notification: Notification): RequestSubject | n
       ?? deepLinkId(notification, { param: 'highlight' });
     return id === null ? null : { kind: 'request', id };
   }
+  // Les confirmations de paiement d'avant pointaient vers la DEMANDE reglee ;
+  // celles d'aujourd'hui vers l'intervention, prise par l'autre panneau.
+  if (key === 'PAYMENT_CONFIRMED') {
+    const id = factId(notification, 'serviceRequestId')
+      ?? deepLinkId(notification, { pathPrefix: '/service-requests' });
+    return id === null ? null : { kind: 'request', id };
+  }
   return null;
 }
 

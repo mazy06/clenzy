@@ -782,7 +782,11 @@ public class StripePaymentConfirmationService {
     private Map<String, Object> interventionPaymentFacts(Intervention intervention) {
         return NotificationMetadata.of()
             .property(intervention.getProperty() != null ? intervention.getProperty().getName() : null)
+            .propertyId(intervention.getProperty() != null ? intervention.getProperty().getId() : null)
             .intervention(intervention.getTitle())
+            // L'objet paye, pour que la fiche ouvre son dossier plutot que de
+            // se limiter au montant.
+            .interventionId(intervention.getId())
             .amount(intervention.getEstimatedCost(), resolveInterventionCurrency(intervention))
             .build();
     }

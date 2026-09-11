@@ -51,11 +51,15 @@ import type { Notification } from '../../services/api';
  * s'ouvrirait — et rien ne les fera renotifier.</p>
  */
 export function interventionIdOf(notification: Notification): number | null {
-  if (!notification.notificationKey?.startsWith('INTERVENTION_')) {
-    return factId(notification, 'interventionId');
-  }
-  return factId(notification, 'interventionId')
-    ?? deepLinkId(notification, { pathPrefix: '/interventions' });
+  const fact = factId(notification, 'interventionId');
+  if (fact !== null) return fact;
+
+  // Le repli ne vaut que pour les cles dont le lien profond ouvre une fiche
+  // d'intervention. Les anciennes confirmations de paiement, elles, pointaient
+  // vers la DEMANDE : c'est le panneau des demandes qui les prend.
+  const key = notification.notificationKey ?? '';
+  if (!key.startsWith('INTERVENTION_') && key !== 'PAYMENT_CONFIRMED') return null;
+  return deepLinkId(notification, { pathPrefix: '/interventions' });
 }
 
 export interface InterventionDossier {

@@ -45,6 +45,11 @@ import NotificationInterventionPanel, {
   interventionIdOf,
   useNotificationIntervention,
 } from './NotificationInterventionPanel';
+import NotificationMoneyPanel, {
+  NotificationMoneySkeleton,
+  moneySubjectOf,
+  useNotificationMoney,
+} from './NotificationMoneyPanel';
 import NotificationPricingPanel, {
   NotificationPricingSkeleton,
   pricingCardOf,
@@ -202,6 +207,9 @@ export default function NotificationDetailCard({
   const interventionId = interventionIdOf(notification);
   const { dossier, loading: dossierLoading } = useNotificationIntervention(interventionId);
 
+  const moneySubject = React.useMemo(() => moneySubjectOf(notification), [notification]);
+  const { dossier: moneyDossier, loading: moneyLoading } = useNotificationMoney(moneySubject);
+
   const requestSubject = React.useMemo(() => requestSubjectOf(notification), [notification]);
   const {
     dossier: requestDossier,
@@ -257,7 +265,7 @@ export default function NotificationDetailCard({
   };
   /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
   const messageTakenOver = stay !== null || instructions !== null || plan !== null
-    || dossier !== null || requestDossier !== null;
+    || dossier !== null || requestDossier !== null || moneyDossier !== null;
 
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
@@ -346,6 +354,13 @@ export default function NotificationDetailCard({
             <NotificationStayPanel stay={stay} observation={notification.message} />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
+          ) : null)}
+
+        {moneySubject &&
+          (moneyDossier ? (
+            <NotificationMoneyPanel dossier={moneyDossier} observation={notification.message} />
+          ) : moneyLoading ? (
+            <NotificationMoneySkeleton />
           ) : null)}
 
         {requestSubject &&
