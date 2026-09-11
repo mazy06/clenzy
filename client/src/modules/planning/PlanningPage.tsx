@@ -23,6 +23,7 @@ import PageHeader, { INLINE_CONTROLS_QUERY } from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
 import PlanningToolbar, { PlanningDateNav } from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
+import PlanningEmptyShowcase from './PlanningEmptyShowcase';
 import PlanningTimeline from './PlanningTimeline';
 import { computeDayOccupancy } from './PlanningOccupancyRow';
 import PlanningActionPanel from './PlanningActionPanel';
@@ -1006,12 +1007,26 @@ const PlanningPage: React.FC = () => {
             Chargement du planning...
           </p>
         </div>
+      ) : properties.length === 0 ? (
+        /* Aucun logement dans l'organisation : l'utilisateur découvre l'écran,
+           il n'a aucun filtre à corriger. État vide « vitrine » — la promesse
+           du planning et un aperçu de l'écran rempli. */
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <PlanningEmptyShowcase onImport={() => setImportChooserOpen(true)} />
+        </div>
       ) : filteredProperties.length === 0 ? (
+        /* Le portefeuille existe, c'est le filtre par logement qui ne laisse
+           rien passer : le seul geste utile est de le relâcher. */
         <div className="flex justify-center items-center flex-1 px-3">
           <EmptyState
             icon={<CalendarMonth />}
-            title="Aucun logement trouvé"
-            description="Vérifiez vos filtres ou ajoutez des propriétés pour les voir apparaître dans le planning."
+            title="Aucun logement ne correspond au filtre"
+            description="Le filtre par logement masque tout le portefeuille du planning."
+            action={
+              <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                Réinitialiser les filtres
+              </Button>
+            }
             variant="transparent"
           />
         </div>
