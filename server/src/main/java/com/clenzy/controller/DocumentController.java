@@ -291,7 +291,10 @@ public class DocumentController {
         if (generation.getReferenceType() == ReferenceType.INTERVENTION && generation.getReferenceId() != null) {
             documentAccessService.validateInterventionOwnership(jwt, generation.getReferenceId());
         }
-        return ResponseEntity.ok(DocumentGenerationDto.fromEntity(generation));
+        // La conversion repasse par le service : `template` est LAZY et
+        // `open-in-view` vaut false — la faire ici toucherait le proxy hors
+        // session.
+        return ResponseEntity.ok(generatorService.getGenerationDto(id));
     }
 
     @GetMapping("/generations/by-reference")
