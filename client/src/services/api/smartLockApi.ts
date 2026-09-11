@@ -67,6 +67,16 @@ export const smartLockApi = {
     return apiClient.get<SmartLockDeviceDto[]>('/smart-locks');
   },
 
+  /**
+   * Une serrure, dans son dernier etat CONNU EN BASE.
+   *
+   * A distinguer de `getStatus`, qui interroge le fabricant en direct : une
+   * fiche qui s'ouvre ne doit ni attendre Tuya ni echouer quand il se tait.
+   */
+  getById(id: number) {
+    return apiClient.get<SmartLockDeviceDto>(`/smart-locks/${id}`);
+  },
+
   /** Creer une nouvelle serrure */
   create(data: CreateSmartLockDeviceDto) {
     return apiClient.post<SmartLockDeviceDto>('/smart-locks', data);

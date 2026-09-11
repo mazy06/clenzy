@@ -1,0 +1,65 @@
+/* Mouvements des fiches d'objet connecté (jauge de batterie, serrure).
+ *
+ * En CSS nommé plutôt qu'en `animate-[...]` Tailwind : une animation nommée
+ * suppose des `@keyframes` que Tailwind n'émet pas, et une règle exotique posée
+ * en classe utilitaire est invisible tant qu'on ne va pas la chercher dans le
+ * bundle. Ici elle se lit.
+ *
+ * `transform-box: view-box` est explicite sur les groupes SVG : sans lui,
+ * l'origine de rotation se calcule dans la boîte de l'élément et le levier
+ * pivote autour du mauvais point. */
+
+/* ─── Jauges d'alerte ───────────────────────────────────────────────────────
+ * Un remplissage EN ALERTE respire — pile basse, niveau sonore au-dessus du
+ * seuil. C'est la seule chose qui bouge dans la fiche, et elle désigne
+ * exactement ce dont l'alerte parle. Une valeur normale reste fixe. */
+@keyframes buiAlertBreathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.bui-alert-breathe {
+  animation: buiAlertBreathe 2.4s ease-in-out infinite;
+}
+
+/* ─── Serrure ───────────────────────────────────────────────────────────────
+ * Géométrie et mouvements repris de `assets/logo/smart-lock-animation.html`.
+ * Le levier tourne plus lentement et moins loin que dans la maquette : ici il
+ * accompagne un texte, il ne fait pas le spectacle. */
+@keyframes buiLockHandle {
+  0%, 100% { transform: rotate(0deg); }
+  38%, 62% { transform: rotate(28deg); }
+}
+
+@keyframes buiLockSignal {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes buiLockLed {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.bui-lock-handle {
+  transform-box: view-box;
+  transform-origin: 100px 230px;
+  animation: buiLockHandle 4.5s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+.bui-lock-arc { animation: buiLockSignal 2.4s ease-in-out infinite; }
+.bui-lock-arc--2 { animation-delay: 0.3s; }
+.bui-lock-arc--3 { animation-delay: 0.6s; }
+.bui-lock-led { animation: buiLockLed 2.4s ease-in-out infinite; }
+
+/* Sans mouvement, l'information reste : la pile garde son niveau, le levier sa
+ * position de repos, les arcs et la diode leur pleine opacité. */
+@media (prefers-reduced-motion: reduce) {
+  .bui-alert-breathe,
+  .bui-lock-handle,
+  .bui-lock-arc,
+  .bui-lock-led {
+    animation: none;
+    opacity: 1;
+  }
+}

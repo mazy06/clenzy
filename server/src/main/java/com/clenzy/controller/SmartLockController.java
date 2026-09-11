@@ -27,6 +27,7 @@ import java.util.Map;
  *
  * Endpoints :
  * - GET    /api/smart-locks             : liste des serrures
+ * - GET    /api/smart-locks/{id}        : une serrure (dernier etat en base)
  * - POST   /api/smart-locks             : ajouter une serrure
  * - DELETE  /api/smart-locks/{id}       : supprimer une serrure
  * - GET    /api/smart-locks/{id}/status : statut live Tuya
@@ -59,6 +60,13 @@ public class SmartLockController {
         String userId = jwt.getSubject();
         List<SmartLockDeviceDto> devices = smartLockService.getUserDevices(userId);
         return ResponseEntity.ok(devices);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Une serrure connectee",
+            description = "Dernier etat connu en base (nom, marque, batterie, verrou) — sans appel au fabricant")
+    public ResponseEntity<SmartLockDeviceDto> getDevice(@PathVariable Long id) {
+        return ResponseEntity.ok(smartLockService.getDevice(id));
     }
 
     @PostMapping
