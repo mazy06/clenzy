@@ -5856,7 +5856,6 @@
         "legalNumber": "الرقم القانوني",
         "producedAt": "أُنتج في",
         "piece": "الملف",
-        "show": "عرض المستند",
         "download": "تنزيل",
         "preview": "معاينة المستند",
         "previewFailed": "تعذّر تحميل الملف.",
@@ -5864,7 +5863,8 @@
         "missing_other": "{{count}} وسوم غير محلولة",
         "groupAbsent": "بيانات «{{group}}» غائبة عن السياق",
         "groupUnknown": "المصدر غير محدَّد",
-        "failedTitle": "تعذّر إنتاج الملف"
+        "failedTitle": "تعذّر إنتاج الملف",
+        "retry": "إعادة المحاولة"
       },
       "review": {
         "anonymous": "نزيل",

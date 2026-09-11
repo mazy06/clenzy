@@ -5828,7 +5828,6 @@
         "legalNumber": "Legal number",
         "producedAt": "Produced on",
         "piece": "The file",
-        "show": "Show the document",
         "download": "Download",
         "preview": "Document preview",
         "previewFailed": "The file could not be loaded.",
@@ -5836,7 +5835,8 @@
         "missing_other": "{{count}} unresolved tags",
         "groupAbsent": "“{{group}}” data missing from the context",
         "groupUnknown": "Origin not stated",
-        "failedTitle": "The file could not be produced"
+        "failedTitle": "The file could not be produced",
+        "retry": "Retry"
       },
       "review": {
         "anonymous": "Guest",

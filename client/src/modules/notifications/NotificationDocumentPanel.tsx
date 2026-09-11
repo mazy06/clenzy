@@ -87,52 +87,71 @@ function fileSize(bytes: number): string {
 }
 
 /**
- * La piece elle-meme, dans la fiche.
+ * La piece elle-meme, affichee sans rien demander.
  *
  * <p>Le binaire exige un en-tete d'autorisation qu'un {@code <iframe src>}
  * n'envoie pas : on charge les octets et on affiche l'adresse blob qui en sort,
- * revoquee au demontage. Le chargement est A LA DEMANDE — une page de
- * notifications ne doit pas tirer un PDF par ligne.</p>
+ * revoquee au demontage. Un bouton « Afficher » gardait cette requete — il
+ * gardait surtout la mauvaise chose : c'est la LISTE qui ne doit pas tirer un
+ * PDF par ligne, et elle n'en tire aucun. Une seule fiche est ouverte a la
+ * fois, donc un seul document se charge.</p>
+ *
+ * <p>L'echec, lui, se dit et se retente : une piece introuvable ou un stockage
+ * muet ne doit pas laisser un cadre vide sans explication.</p>
  */
 function DocumentViewer({ generation }: { generation: DocumentGeneration }) {
   const { t } = useTranslation();
   const [blobUrl, setBlobUrl] = React.useState<string | null>(null);
-  const [state, setState] = React.useState<'idle' | 'loading' | 'failed'>('idle');
+  const [failed, setFailed] = React.useState(false);
+  const [attempt, setAttempt] = React.useState(0);
 
-  React.useEffect(() => () => { if (blobUrl) window.URL.revokeObjectURL(blobUrl); }, [blobUrl]);
-
-  const open = () => {
-    setState('loading');
+  React.useEffect(() => {
+    let active = true;
+    let url: string | null = null;
+    setBlobUrl(null);
+    setFailed(false);
     documentsApi
       .openGenerationBlob(generation.id)
-      .then((url) => { setBlobUrl(url); setState('idle'); })
-      .catch(() => setState('failed'));
-  };
+      .then((loaded) => {
+        url = loaded;
+        // Demonte entre-temps : revoquer tout de suite, sinon l'adresse fuit.
+        if (active) setBlobUrl(loaded);
+        else window.URL.revokeObjectURL(loaded);
+      })
+      .catch(() => { if (active) setFailed(true); });
+    return () => {
+      active = false;
+      if (url) window.URL.revokeObjectURL(url);
+    };
+  }, [generation.id, attempt]);
 
   if (blobUrl) {
     return (
       <iframe
         src={blobUrl}
         title={generation.fileName ?? t('notifications.detail.document.preview', 'Aperçu du document')}
-        className="h-[420px] w-full rounded-lg border border-border bg-card"
+        className="h-[480px] w-full rounded-lg border border-border bg-card"
       />
     );
   }
 
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card px-4 py-8">
-      <span className="inline-flex text-muted-foreground">{sizedIcon(<Description />, 28, 1.5)}</span>
-      <Button variant="outline" onClick={open} disabled={state === 'loading'}>
-        {state === 'loading'
-          ? <Spinner className="size-4" />
-          : <Description size={15} strokeWidth={1.75} />}
-        {t('notifications.detail.document.show', 'Afficher le document')}
-      </Button>
-      {state === 'failed' && (
-        <p className="m-0 text-xs text-destructive-ink">
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card px-4 py-10">
+        <span className="inline-flex text-muted-foreground">{sizedIcon(<Description />, 28, 1.5)}</span>
+        <p className="m-0 text-sm text-destructive-ink">
           {t('notifications.detail.document.previewFailed', 'La pièce n’a pas pu être chargée.')}
         </p>
-      )}
+        <Button variant="outline" size="sm" onClick={() => setAttempt((n) => n + 1)}>
+          {t('notifications.detail.document.retry', 'Réessayer')}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[480px] items-center justify-center rounded-lg border border-border bg-card">
+      <Spinner className="size-6 text-muted-foreground" />
     </div>
   );
 }
