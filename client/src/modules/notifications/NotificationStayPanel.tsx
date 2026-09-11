@@ -20,16 +20,14 @@ import SendMessageDialog from '../messaging/SendMessageDialog';
 import {
   BlockOutlined,
   Email,
-  LocationOn,
   Person,
   Phone,
   Send,
 } from '../../icons';
 import { sizedIcon } from '../../config/navigationIcons';
 import { cn } from '../../utils/cn';
-import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { useTranslation } from '../../hooks/useTranslation';
-import { propertyGradientCss } from '../properties/propertiesListConstants';
+import { PropertyIdentity, PropertyLine } from './NotificationPropertyPanel';
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
@@ -167,33 +165,6 @@ function todayIso(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/**
- * Vignette du logement : sa photo, ou a defaut le degrade reproductible qui lui
- * sert deja d'identite dans la liste des logements. Jamais un carre vide — une
- * vignette absente se lit comme une image cassee.
- */
-function PropertyThumb({ property, name }: { property: Property | null; name: string }) {
-  const [failed, setFailed] = React.useState(false);
-  const src = toApiMediaUrl(property?.coverPhotoUrl ?? property?.photoUrls?.[0]);
-
-  return (
-    <span
-      className="relative block h-[66px] w-[88px] shrink-0 overflow-hidden rounded-lg border border-border"
-      style={{ background: propertyGradientCss(String(property?.id ?? name)) }}
-    >
-      {src && !failed && (
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          className="absolute inset-0 size-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      )}
-    </span>
-  );
-}
-
 /** Un moyen de joindre le voyageur, ou rien — pas de ligne vide « — ». */
 function ContactLine({ icon, value, href }: { icon: React.ReactNode; value?: string; href: string }) {
   if (!value?.trim()) return null;
@@ -239,35 +210,19 @@ export default function NotificationStayPanel({
     : 0;
 
   const cancelled = reservation.status === 'cancelled';
-  const place = [property?.city, property?.postalCode].filter(Boolean).join(' ');
 
   return (
     <section className="flex flex-col gap-4 rounded-xl bg-muted px-4 py-4">
-      <header className="flex items-start gap-3">
-        <PropertyThumb property={property} name={reservation.propertyName} />
-
-        <div className="min-w-0 flex-1 self-center">
-          <p className="m-0 truncate text-sm font-semibold text-foreground">
-            {reservation.propertyName}
-          </p>
-          {place && (
-            <p className="m-0 mt-1 inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="inline-flex shrink-0">{sizedIcon(<LocationOn />, 13, 1.75)}</span>
-              <span className="truncate">{place}</span>
-            </p>
-          )}
-          {reservation.confirmationCode && (
-            <p className="m-0 mt-1 inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
-              <span className="inline-flex shrink-0">
-                {sizedIcon(FACT_ICON.reservationReference, 13, 1.75)}
-              </span>
-              <span className="truncate">{reservation.confirmationCode}</span>
-            </p>
-          )}
-        </div>
-
-        {reservation.source && <ChannelTag channel={reservation.source} />}
-      </header>
+      <PropertyIdentity
+        property={property}
+        name={reservation.propertyName}
+        extra={reservation.confirmationCode && (
+          <PropertyLine icon={FACT_ICON.reservationReference}>
+            <span className="tabular-nums">{reservation.confirmationCode}</span>
+          </PropertyLine>
+        )}
+        trailing={reservation.source ? <ChannelTag channel={reservation.source} /> : undefined}
+      />
 
       <div className="flex items-center gap-3 border-t border-border pt-4">
         <GuestAvatar

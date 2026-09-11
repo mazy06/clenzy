@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge, Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
-import { Autorenew, Check, ContentCopy, VpnKey } from '../../icons';
-import { sizedIcon, SCREEN_ICON } from '../../config/navigationIcons';
+import { Autorenew, Check, ContentCopy } from '../../icons';
+import { PropertyIdentity, useNotificationProperty } from './NotificationPropertyPanel';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi, type CheckInInstructions } from '../../services/api/airbnbApi';
@@ -154,31 +154,21 @@ export default function NotificationAccessCodePanel({
   observation?: string;
 }) {
   const { t } = useTranslation();
+  const { property } = useNotificationProperty(instructions.propertyId);
   const code = instructions.accessCode?.trim();
 
   return (
     <section className="flex flex-col gap-4 rounded-xl bg-muted px-4 py-4">
-      <header className="flex items-center gap-3">
-        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground">
-          {sizedIcon(<VpnKey />, 17, 1.75)}
-        </span>
-        <div className="min-w-0 flex-1">
-          {propertyName && (
-            <p className="m-0 inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm font-semibold text-foreground">
-              <span className="inline-flex shrink-0 text-muted-foreground">
-                {sizedIcon(SCREEN_ICON['/properties'], 14, 1.75)}
-              </span>
-              <span className="truncate">{propertyName}</span>
-            </p>
-          )}
-        </div>
-        {instructions.accessCodeAutoRotate && (
+      <PropertyIdentity
+        property={property}
+        name={property?.name ?? propertyName ?? ''}
+        trailing={instructions.accessCodeAutoRotate ? (
           <Badge variant="info">
             <Autorenew size={12} strokeWidth={2} />
             {t('notifications.detail.accessCode.autoRotate', 'Renouvellement auto')}
           </Badge>
-        )}
-      </header>
+        ) : undefined}
+      />
 
       {code ? (
         <div className="flex items-center gap-3 rounded-lg bg-card px-3.5 py-3">

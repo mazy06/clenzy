@@ -5748,6 +5748,13 @@
         "autoRotate": "Auto-renewed",
         "unknown": "No access code is recorded on this property."
       },
+      "pricing": {
+        "drop": "Discount",
+        "raise": "Uplift",
+        "basePrice": "Base price",
+        "segments": "Windows covered",
+        "impact": "Estimated gain"
+      },
       "review": {
         "anonymous": "Guest",
         "awaitingReply": "No reply yet",

@@ -5776,6 +5776,13 @@
         "autoRotate": "تجديد تلقائي",
         "unknown": "لا يوجد رمز دخول مسجّل على هذا المسكن."
       },
+      "pricing": {
+        "drop": "خفض",
+        "raise": "رفع",
+        "basePrice": "السعر الأساسي",
+        "segments": "الفترات المعنية",
+        "impact": "المكسب المقدَّر"
+      },
       "review": {
         "anonymous": "نزيل",
         "awaitingReply": "بلا رد",

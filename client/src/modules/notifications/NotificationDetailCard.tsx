@@ -40,6 +40,11 @@ import NotificationAccessCodePanel, {
   accessCodePropertyIdOf,
   useNotificationAccessCode,
 } from './NotificationAccessCodePanel';
+import NotificationPricingPanel, {
+  NotificationPricingSkeleton,
+  pricingCardOf,
+  useNotificationPricing,
+} from './NotificationPricingPanel';
 import NotificationStayPanel, {
   NotificationStayActions,
   NotificationStaySkeleton,
@@ -181,6 +186,9 @@ export default function NotificationDetailCard({
   const accessCodePropertyId = accessCodePropertyIdOf(notification);
   const { instructions, loading: accessCodeLoading } = useNotificationAccessCode(accessCodePropertyId);
 
+  const pricingCard = React.useMemo(() => pricingCardOf(notification), [notification]);
+  const { plan, loading: pricingLoading } = useNotificationPricing(pricingCard);
+
   const destination = resolveDestination(notification.actionUrl);
   const destinationLabel = destination?.translationKey
     ? t(destination.translationKey, destination.fallbackLabel ?? '')
@@ -228,7 +236,7 @@ export default function NotificationDetailCard({
       : byCategory;
   };
   /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
-  const messageTakenOver = stay !== null || instructions !== null;
+  const messageTakenOver = stay !== null || instructions !== null || plan !== null;
 
   const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
@@ -317,6 +325,18 @@ export default function NotificationDetailCard({
             <NotificationStayPanel stay={stay} observation={notification.message} />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
+          ) : null)}
+
+        {pricingCard &&
+          (plan ? (
+            <NotificationPricingPanel
+              plan={plan}
+              propertyId={pricingCard.propertyId}
+              propertyName={propertyName}
+              observation={notification.message}
+            />
+          ) : pricingLoading ? (
+            <NotificationPricingSkeleton />
           ) : null)}
 
         {accessCodePropertyId !== null &&

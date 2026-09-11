@@ -5769,6 +5769,13 @@
         "autoRotate": "Renouvellement auto",
         "unknown": "Aucun code d'accès n'est enregistré sur ce logement."
       },
+      "pricing": {
+        "drop": "Baisse",
+        "raise": "Revalorisation",
+        "basePrice": "Prix de base",
+        "segments": "Créneaux concernés",
+        "impact": "Gain estimé"
+      },
       "review": {
         "anonymous": "Voyageur",
         "awaitingReply": "Sans réponse",
