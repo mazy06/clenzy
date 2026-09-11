@@ -352,7 +352,11 @@ export default function NotificationDetailCard({
 
         {reservationId !== null &&
           (stay ? (
-            <NotificationStayPanel stay={stay} observation={notification.message} />
+            <NotificationStayPanel
+              stay={stay}
+              observation={notification.message}
+              observedAt={notification.createdAt}
+            />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
           ) : null)}

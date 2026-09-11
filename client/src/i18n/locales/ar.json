@@ -5773,7 +5773,8 @@
         "collectedByChannel": "حُصِّل عبر القناة",
         "paid": "مسدَّد",
         "unpaid": "بانتظار السداد",
-        "notes": "ملاحظات"
+        "notes": "ملاحظات",
+        "cancelledBanner": "أُلغيت الإقامة — تحرّرت الليالي"
       },
       "accessCode": {
         "current": "الرمز المعمول به",

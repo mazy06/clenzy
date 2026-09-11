@@ -5766,7 +5766,8 @@
         "collectedByChannel": "Encaissé par le canal",
         "paid": "Réglé",
         "unpaid": "En attente de règlement",
-        "notes": "Notes"
+        "notes": "Notes",
+        "cancelledBanner": "Séjour annulé — les nuits sont libérées"
       },
       "accessCode": {
         "current": "Code en vigueur",

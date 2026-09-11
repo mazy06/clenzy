@@ -4,6 +4,7 @@ import { sizedIcon } from '../../config/navigationIcons';
 import { cn } from '../../utils/cn';
 import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { useTranslation } from '../../hooks/useTranslation';
+import { formatFactDate } from './notificationMeta';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import type { Property } from '../../services/api/propertiesApi';
 
@@ -254,13 +255,23 @@ export function PhotoStrip({ urls, max = 6 }: { urls: string[]; max?: number }) 
  *
  * <p>Le texte vient de l'emetteur et n'est pas decoupe ici : decouper de la
  * prose a l'ecran casserait a la premiere reformulation.</p>
+ *
+ * <p><b>Il est DATE.</b> Le dossier au-dessus est relu maintenant ; ce texte,
+ * lui, a ete ecrit au moment de l'evenement. Un sejour deplace puis annule
+ * donnait alors deux verites contradictoires cote a cote — « Test Property, du
+ * 24 au 25 » dans le message, « Appartement Medina, du 23 au 25, annulee » dans
+ * le dossier. Les deux sont vraies ; seule la date le disait.</p>
  */
-export function ObservationBand({ text }: { text?: string }) {
-  const { t } = useTranslation();
+export function ObservationBand({ text, at }: { text?: string; at?: string }) {
+  const { t, currentLanguage } = useTranslation();
   if (!text?.trim()) return null;
+  const moment = at ? formatFactDate(at.slice(0, 10), currentLanguage) : null;
   return (
     <div className="border-t border-border pt-3.5">
-      <Caption>{t('notifications.detail.stay.observed', 'Ce qui a été observé')}</Caption>
+      <Caption>
+        {t('notifications.detail.stay.observed', 'Ce qui a été observé')}
+        {moment && <span className="ms-1.5 font-normal normal-case">· {moment}</span>}
+      </Caption>
       <p className="m-0 mt-1.5 text-sm leading-relaxed text-pretty whitespace-pre-line text-foreground">
         {text}
       </p>

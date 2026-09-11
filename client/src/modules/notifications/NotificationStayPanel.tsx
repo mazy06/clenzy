@@ -31,6 +31,7 @@ import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { PropertyIdentity, PropertyLine } from './NotificationPropertyPanel';
 import RangeCalendar, { type CalendarRange } from './RangeCalendar';
+import { ObservationBand } from './NotificationFieldParts';
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
@@ -221,10 +222,13 @@ function ContactLine({ icon, value, href }: { icon: React.ReactNode; value?: str
 export default function NotificationStayPanel({
   stay,
   observation,
+  observedAt,
 }: {
   stay: NotificationStay;
   /** Motif de l'evenement — ce que la carte ne montre pas d'elle-meme. */
   observation?: string;
+  /** Quand il a ete ecrit : le dossier, lui, est relu maintenant. */
+  observedAt?: string;
 }) {
   const { t, currentLanguage } = useTranslation();
   const { reservation, property } = stay;
@@ -241,11 +245,18 @@ export default function NotificationStayPanel({
     : 0;
 
   const cancelled = reservation.status === 'cancelled';
+  // Un sejour annule ou termine n'a plus rien a « liberer » : « 0 nuit sur 2 »
+  // sur un sejour d'aout ne renseigne personne.
+  const resellable = !cancelled && reservation.checkOut > today;
 
   // Deux plages plutot qu'une : ce qui est CONSOMME et ce qui reste vendable ne
   // se lisent pas pareil, et c'est toute la question d'un no-show.
   const calendarLocale = currentLanguage === 'ar' ? ar : currentLanguage === 'en' ? enUS : fr;
-  const splitAt = reservation.checkIn > today ? reservation.checkIn : today;
+  // La bascule consomme/vendable, bornee AUX DEUX BOUTS : avant l'arrivee rien
+  // n'est consomme, apres le depart plus rien n'est vendable. Sans la seconde
+  // borne, un sejour d'aout se peignait jusqu'a aujourd'hui.
+  const splitAt = [reservation.checkIn, today, reservation.checkOut]
+    .sort((a, b) => a.localeCompare(b))[1];
   const calendarRanges: CalendarRange[] = [];
   if (reservation.checkIn < splitAt) {
     calendarRanges.push({
@@ -263,7 +274,23 @@ export default function NotificationStayPanel({
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl bg-muted px-4 py-4">
+    <section
+      className={cn(
+        'flex flex-col gap-4 rounded-xl px-4 py-4',
+        // L'annulation teinte TOUT le dossier : une pastille de huit caracteres
+        // en haut a droite se rate, et c'est l'information qui commande.
+        cancelled ? 'bg-destructive-soft' : 'bg-muted',
+      )}
+    >
+      {cancelled && (
+        <div className="flex items-center gap-2.5 text-destructive-ink">
+          <span className="inline-flex shrink-0">{sizedIcon(<BlockOutlined />, 16, 2)}</span>
+          <p className="m-0 text-sm font-semibold">
+            {t('notifications.detail.stay.cancelledBanner', 'Séjour annulé — les nuits sont libérées')}
+          </p>
+        </div>
+      )}
+
       <PropertyIdentity
         property={property}
         name={reservation.propertyName}
@@ -323,7 +350,7 @@ export default function NotificationStayPanel({
               )}
             </p>
           </div>
-          {remaining !== null && nights !== null && (
+          {resellable && remaining !== null && nights !== null && (
             <div className="ms-auto text-end">
               <Caption>{t('notifications.detail.stay.releasable', 'Encore revendable')}</Caption>
               <p
@@ -341,7 +368,7 @@ export default function NotificationStayPanel({
           )}
         </div>
 
-        {nights !== null && remaining !== null && (
+        {resellable && nights !== null && remaining !== null && (
           <div
             className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-border"
             role="img"
@@ -361,6 +388,14 @@ export default function NotificationStayPanel({
           </div>
         )}
       </div>
+
+      {/* Les bornes se LISENT dans la grille d'un mois : « du 23 au 25 aout » ne
+          dit pas quel week-end tombe dedans, ni ce qui reste apres aujourd'hui. */}
+      {calendarRanges.length > 0 && (
+        <div className="rounded-lg bg-card px-3.5 py-3">
+          <RangeCalendar ranges={calendarRanges} locale={calendarLocale} />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
         {typeof reservation.guestCount === 'number' && reservation.guestCount > 0 && (
@@ -390,13 +425,17 @@ export default function NotificationStayPanel({
             </p>
             {/* Qui a encaisse decide de ce qu'il reste a faire : rien quand le
                 canal a deja pris l'argent, relancer sinon. */}
-            <p className="m-0 mt-0.5 text-xs text-muted-foreground">
-              {reservation.collectedByChannel
-                ? t('notifications.detail.stay.collectedByChannel', 'Encaissé par le canal')
-                : reservation.paymentStatus?.toUpperCase() === 'PAID'
-                  ? t('notifications.detail.stay.paid', 'Réglé')
-                  : t('notifications.detail.stay.unpaid', 'En attente de règlement')}
-            </p>
+            {/* « En attente de reglement » sur un sejour annule fait croire
+                qu'il reste a encaisser. Rien n'est du. */}
+            {!cancelled && (
+              <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+                {reservation.collectedByChannel
+                  ? t('notifications.detail.stay.collectedByChannel', 'Encaissé par le canal')
+                  : reservation.paymentStatus?.toUpperCase() === 'PAID'
+                    ? t('notifications.detail.stay.paid', 'Réglé')
+                    : t('notifications.detail.stay.unpaid', 'En attente de règlement')}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -414,14 +453,7 @@ export default function NotificationStayPanel({
           alors de haut en bas — quel logement, qui, quand, combien, et pourquoi
           on en parle. Le texte vient de l'emetteur et n'est pas decoupe ici :
           decouper de la prose a l'ecran casserait a la premiere reformulation. */}
-      {observation?.trim() && (
-        <div className="border-t border-border pt-3.5">
-          <Caption>{t('notifications.detail.stay.observed', 'Ce qui a été observé')}</Caption>
-          <p className="m-0 mt-1.5 text-sm leading-relaxed text-pretty whitespace-pre-line text-foreground">
-            {observation}
-          </p>
-        </div>
-      )}
+      <ObservationBand text={observation} at={observedAt} />
     </section>
   );
 }

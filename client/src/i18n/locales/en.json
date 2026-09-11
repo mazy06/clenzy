@@ -5745,7 +5745,8 @@
         "collectedByChannel": "Collected by the channel",
         "paid": "Settled",
         "unpaid": "Awaiting payment",
-        "notes": "Notes"
+        "notes": "Notes",
+        "cancelledBanner": "Stay cancelled — the nights are free again"
       },
       "accessCode": {
         "current": "Code in force",
