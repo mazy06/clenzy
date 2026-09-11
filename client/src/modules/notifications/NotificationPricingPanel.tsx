@@ -1,8 +1,28 @@
 import React from 'react';
-import { format, parseISO, isValid, addDays, differenceInCalendarDays, startOfMonth, differenceInCalendarMonths } from 'date-fns';
+import { format, parseISO, isValid, addDays, differenceInCalendarDays } from 'date-fns';
 import { ar, enUS, fr } from 'date-fns/locale';
-import { Badge, Calendar, Skeleton } from '../../components/ui';
+import { Badge, Skeleton } from '../../components/ui';
 import { Money } from '../../components/baitly/Money';
+import { SERIES_TOKENS } from '../../components/stats';
+
+/**
+ * Teintes des plages, une par creneau : c'est ce qui rattache « −7 % » a
+ * l'endroit du calendrier qui le porte. Le SENS de l'ajustement, lui, se dit
+ * par le signe et par la pastille — pas par la couleur.
+ *
+ * <p>Les jetons de serie, moins le troisieme : c'est le bleu nuit du theme, et
+ * dilue a 14 % il donne un gris que rien ne distingue d'une nuit non
+ * concernee. La sixieme plage reprend donc la premiere, ce qui reste lisible —
+ * deux creneaux de meme teinte ne se touchent jamais, par construction.</p>
+ */
+const BAND_TOKENS = [
+  SERIES_TOKENS[0],
+  SERIES_TOKENS[1],
+  SERIES_TOKENS[3],
+  SERIES_TOKENS[4],
+  'var(--bui-primary)',
+];
+import RangeCalendar, { type CalendarRange } from './RangeCalendar';
 import { PropertyIdentity, PropertyLine, useNotificationProperty } from './NotificationPropertyPanel';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -189,17 +209,13 @@ export default function NotificationPricingPanel({
   const nightsBySegment = plan.segments.map(nightsOf);
   const allNights = nightsBySegment.flat();
   const firstNight = allNights[0];
-  const lastNight = allNights[allNights.length - 1];
 
-  // Le calendrier couvre les mois REELLEMENT touches, borne a trois : au-dela
-  // il ne se lit plus, et le detail en dessous dit deja tout.
-  const months = firstNight && lastNight
-    ? Math.min(3, differenceInCalendarMonths(startOfMonth(lastNight), startOfMonth(firstNight)) + 1)
-    : 1;
-
-  const tone = raise
-    ? { chip: 'bg-success-soft text-success-ink', swatch: 'bg-success', ink: 'text-success-ink' }
-    : { chip: 'bg-warning-soft text-warning-ink', swatch: 'bg-warning', ink: 'text-warning-ink' };
+  const colorOf = (index: number) => BAND_TOKENS[index % BAND_TOKENS.length];
+  const ranges: CalendarRange[] = plan.segments.map((segment, index) => ({
+    from: parseISO(segment.from),
+    toExclusive: parseISO(segment.to),
+    color: colorOf(index),
+  }));
 
   const signed = (percent: number) => `${raise ? '+' : '−'}${Math.abs(percent)} %`;
 
@@ -226,64 +242,59 @@ export default function NotificationPricingPanel({
         )}
       />
 
-      {firstNight && (
-        <div className="overflow-x-auto rounded-lg bg-card p-2">
-          <div aria-hidden="true" className="pointer-events-none w-fit">
-            <Calendar
-              locale={locale}
-              defaultMonth={firstNight}
-              numberOfMonths={months}
-              hideNavigation
-              showOutsideDays={false}
-              modifiers={{ adjusted: allNights }}
-              modifiersClassNames={{ adjusted: cn('rounded-md font-semibold', tone.chip) }}
-              className="bg-transparent p-0"
-            />
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-5 rounded-lg bg-card px-3.5 py-3.5">
+        {firstNight && <RangeCalendar ranges={ranges} locale={locale} />}
+
+        {/* La legende occupe la place laissee a DROITE des mois : deux
+            calendriers font 420 px, la carte en fait le double. Elle repasse
+            dessous quand la largeur ne suffit plus. */}
+        <div className="flex min-w-[240px] flex-1 flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <Caption>{t('notifications.detail.pricing.segments', 'Créneaux concernés')}</Caption>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {t('notifications.detail.subjectPanel.nights', '{{count}} nuit', { count: allNights.length })}
+            </span>
           </div>
-        </div>
-      )}
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+            {plan.segments.map((segment, index) => {
+              const nights = nightsBySegment[index];
+              const last = nights[nights.length - 1];
+              if (!last) return null;
+              return (
+                <li key={`${segment.from}-${segment.to}`} className="flex items-baseline gap-2.5 text-sm">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 size-2 shrink-0 rounded-[3px]"
+                    style={{ backgroundColor: colorOf(index) }}
+                  />
+                  <span className="min-w-0 tabular-nums text-foreground">
+                    {format(nights[0], 'd MMM', { locale })} – {format(last, 'd MMM yyyy', { locale })}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {t('notifications.detail.subjectPanel.nights', '{{count}} nuit', { count: nights.length })}
+                  </span>
+                  <span
+                    className="ms-auto shrink-0 font-semibold tabular-nums"
+                    style={{ color: `color-mix(in srgb, ${colorOf(index)} var(--bui-tint-text, 82%), var(--bui-ink))` }}
+                  >
+                    {signed(segment.percent)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between gap-4">
-          <Caption>{t('notifications.detail.pricing.segments', 'Créneaux concernés')}</Caption>
-          <span className="text-xs tabular-nums text-muted-foreground">
-            {t('notifications.detail.subjectPanel.nights', '{{count}} nuit', { count: allNights.length })}
-          </span>
+          {plan.estimatedImpactCents !== null && plan.estimatedImpactCents > 0 && (
+            <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-border pt-3">
+              <Caption>{t('notifications.detail.pricing.impact', 'Gain estimé')}</Caption>
+              <span className={cn('text-sm font-semibold tabular-nums',
+                raise ? 'text-success-ink' : 'text-warning-ink')}>
+                <Money value={plan.estimatedImpactCents / 100} from="EUR" />
+              </span>
+            </div>
+          )}
         </div>
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-          {plan.segments.map((segment, index) => {
-            const nights = nightsBySegment[index];
-            const last = nights[nights.length - 1];
-            if (!last) return null;
-            return (
-              <li key={`${segment.from}-${segment.to}`} className="flex items-baseline gap-2.5 text-sm">
-                <span
-                  aria-hidden="true"
-                  className={cn('mt-1.5 size-2 shrink-0 rounded-[3px]', tone.swatch)}
-                />
-                <span className="min-w-0 tabular-nums text-foreground">
-                  {format(nights[0], 'd MMM', { locale })} – {format(last, 'd MMM yyyy', { locale })}
-                </span>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {t('notifications.detail.subjectPanel.nights', '{{count}} nuit', { count: nights.length })}
-                </span>
-                <span className={cn('ms-auto shrink-0 font-semibold tabular-nums', tone.ink)}>
-                  {signed(segment.percent)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
       </div>
-
-      {plan.estimatedImpactCents !== null && plan.estimatedImpactCents > 0 && (
-        <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3.5">
-          <Caption>{t('notifications.detail.pricing.impact', 'Gain estimé')}</Caption>
-          <span className={cn('text-sm font-semibold tabular-nums', tone.ink)}>
-            <Money value={plan.estimatedImpactCents / 100} from="EUR" />
-          </span>
-        </div>
-      )}
 
       {/* Le motif CLOT le dossier plutot que de flotter sous la carte : la fiche
           se lit d'un seul tenant. Le texte vient de l'emetteur et n'est pas
