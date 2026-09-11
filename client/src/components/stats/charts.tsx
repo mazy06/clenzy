@@ -23,6 +23,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '../ui';
+import { useChartThumbnail } from './chartThumbnail';
 
 /**
  * Les graphiques du langage « statistiques » de Baitly.
@@ -272,6 +273,7 @@ export const DonutChart: React.FC<{
   formatTotal?: ValueFormatter;
   otherLabel?: string;
 }> = ({ buckets, totalLabel, formatValue, formatTotal, otherLabel = 'Autres' }) => {
+  const thumb = useChartThumbnail();
   const parts = positive(buckets);
   const MAX_SLICES = 6;
   const shown =
@@ -349,7 +351,13 @@ export const DonutChart: React.FC<{
 
       {/* Empilee, la legende `shrink-0` gardait sa hauteur entiere et rognait la
           couronne au-dessus d'elle. A cote, elle reprend sa largeur fixe. */}
-      <ul className="no-scrollbar m-0 flex min-h-0 list-none flex-col justify-center gap-1 overflow-y-auto p-0 @[380px]:max-h-full @[380px]:w-[46%] @[380px]:shrink-0">
+      {/* En vignette, la legende disparait ET la couronne reprend la largeur
+          qu'elle occupait : c'est ce qu'un `display: none` n'aurait pas fait. */}
+      {thumb ? null : (
+      <ul
+        data-slot="chart-legend"
+        className="no-scrollbar m-0 flex min-h-0 list-none flex-col justify-center gap-1 overflow-y-auto p-0 @[380px]:max-h-full @[380px]:w-[46%] @[380px]:shrink-0"
+      >
         {shown.map((b, i) => (
           <li key={b.label} className="flex items-baseline gap-1.5 text-2xs">
             <span
@@ -369,6 +377,7 @@ export const DonutChart: React.FC<{
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 };
@@ -390,6 +399,7 @@ export const HistogramChart: React.FC<{
   colorFor?: (bucket: StatBucket) => string;
   labelWidth?: number;
 }> = ({ buckets, label, tokenIndex = 0, tone, formatValue, colorFor, labelWidth = 96 }) => {
+  const thumb = useChartThumbnail();
   const parts = nonZero(buckets);
   const base = tone ? TONE_TOKENS[tone] : SERIES_TOKENS[tokenIndex % SERIES_TOKENS.length];
   const config: ChartConfig = { count: { label, color: base } };
@@ -414,6 +424,7 @@ export const HistogramChart: React.FC<{
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis
           type="number"
+          hide={thumb}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
@@ -422,6 +433,7 @@ export const HistogramChart: React.FC<{
         <YAxis
           type="category"
           dataKey="label"
+          hide={thumb}
           axisLine={false}
           tickLine={false}
           width={gutter}
@@ -467,6 +479,7 @@ export const GroupedBarChart = <P extends { label: string }>({
   hideLegend,
   angled,
 }: MultiSeriesProps<P> & { angled?: boolean }) => {
+  const thumb = useChartThumbnail();
   const config = buildConfig(series);
   const [boxRef, boxWidth] = useMeasuredWidth<HTMLDivElement>();
 
@@ -496,6 +509,7 @@ export const GroupedBarChart = <P extends { label: string }>({
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="label"
+          hide={thumb}
           axisLine={false}
           tickLine={false}
           tickMargin={6}
@@ -504,6 +518,7 @@ export const GroupedBarChart = <P extends { label: string }>({
           tick={angled ? angledTick : undefined}
         />
         <YAxis
+          hide={thumb}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
@@ -515,7 +530,7 @@ export const GroupedBarChart = <P extends { label: string }>({
             formatValue ? <ChartTooltipContent formatter={tooltipValue(formatValue)} /> : <ChartTooltipContent />
           }
         />
-        {hideLegend ? null : <ChartLegend content={<ChartLegendContent />} />}
+        {hideLegend || thumb ? null : <ChartLegend content={<ChartLegendContent />} />}
         {series.map((s, i) => (
           <Bar
             key={s.key}
@@ -546,6 +561,7 @@ export const TrendAreaChart = <P extends { label: string }>({
   hideLegend,
   stacked,
 }: MultiSeriesProps<P> & { stacked?: boolean }) => {
+  const thumb = useChartThumbnail();
   const config = buildConfig(series);
   if (data.length === 0) return <EmptyChart />;
 
@@ -559,8 +575,9 @@ export const TrendAreaChart = <P extends { label: string }>({
         margin={{ top: 4, right: 8, bottom: 0, left: gutter.margin }}
       >
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={6} />
+        <XAxis dataKey="label" hide={thumb} axisLine={false} tickLine={false} tickMargin={6} />
         <YAxis
+          hide={thumb}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
@@ -572,7 +589,7 @@ export const TrendAreaChart = <P extends { label: string }>({
             formatValue ? <ChartTooltipContent formatter={tooltipValue(formatValue)} /> : <ChartTooltipContent />
           }
         />
-        {hideLegend ? null : <ChartLegend content={<ChartLegendContent />} />}
+        {hideLegend || thumb ? null : <ChartLegend content={<ChartLegendContent />} />}
         {series.map((s, i) => (
           <Area
             key={s.key}
@@ -607,6 +624,7 @@ export const TrendLineChart = <P extends { label: string }>({
   referenceValue,
   referenceLabel,
 }: MultiSeriesProps<P> & { referenceValue?: number; referenceLabel?: string }) => {
+  const thumb = useChartThumbnail();
   const config = buildConfig(series);
   if (data.length === 0) return <EmptyChart />;
 
@@ -620,14 +638,14 @@ export const TrendLineChart = <P extends { label: string }>({
         margin={{ top: 4, right: 8, bottom: 0, left: gutter.margin }}
       >
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={6} />
-        <YAxis axisLine={false} tickLine={false} width={gutter.width} tickFormatter={formatValue} />
+        <XAxis dataKey="label" hide={thumb} axisLine={false} tickLine={false} tickMargin={6} />
+        <YAxis hide={thumb} axisLine={false} tickLine={false} width={gutter.width} tickFormatter={formatValue} />
         <ChartTooltip
           content={
             formatValue ? <ChartTooltipContent formatter={tooltipValue(formatValue)} /> : <ChartTooltipContent />
           }
         />
-        {hideLegend ? null : <ChartLegend content={<ChartLegendContent />} />}
+        {hideLegend || thumb ? null : <ChartLegend content={<ChartLegendContent />} />}
         {referenceValue !== undefined ? (
           <ReferenceLine
             y={referenceValue}

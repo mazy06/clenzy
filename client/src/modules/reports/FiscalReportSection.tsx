@@ -19,6 +19,9 @@ import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } fro
 import { formatTaxRate } from '../../utils/currencyUtils';
 import { Money } from '../../components/Money';
 import type { VatSummary } from '../../services/api/fiscalReportingApi';
+import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
+import { tiles, type TileOrNothing } from '../../components/stats';
+import type { ReportContent } from './reportShell';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -41,6 +44,144 @@ const MONTHS = [
   'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
   'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre',
 ];
+
+
+// ─── Blocs reutilisables ────────────────────────────────────────────────────
+//
+// Sortis du composant pour que le tableau de bord puisse les importer sans
+// recopier leur rendu : une correction ici vaut aux deux endroits.
+
+/** Les cinq chiffres d'une periode : periode, factures, HT, TVA, TTC. */
+export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string }> = ({
+  summary,
+  className,
+}) => (
+  <div className={cn('flex gap-3 flex-wrap', className)}>
+    {[
+      { label: 'Periode', value: summary.period, isText: true },
+      { label: 'Factures', value: String(summary.invoiceCount), isText: true },
+      { label: 'Total HT', value: <Money value={summary.totalHt} from={summary.currency} /> },
+      { label: 'Total TVA', value: <Money value={summary.totalTax} from={summary.currency} /> },
+      { label: 'Total TTC', value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
+    ].map(card => (
+      <div
+        key={card.label}
+        className={cn(
+          PANEL_CLASS,
+          'p-[9px] flex-1 min-w-[130px]',
+          // KPI accentué (Total TTC) : fond pastel de marque + filet à 30 %
+          card.primary && 'bg-primary-soft border-primary/30',
+        )}
+      >
+        <p className="block text-2xs font-bold uppercase tracking-[0.05em] text-faint mb-0.5">
+          {card.label}
+        </p>
+        <p className={cn('font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-primary' : 'text-foreground')} style={{ fontFamily: 'var(--font-display)' }}>
+          {card.value}
+        </p>
+      </div>
+    ))}
+  </div>
+);
+
+/** Ventilation de la TVA par categorie et par taux. */
+export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }) => (
+  <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Categorie</TableHead>
+          <TableHead>Taxe</TableHead>
+          <TableHead className="text-end">Taux</TableHead>
+          <TableHead className="text-end">Base HT</TableHead>
+          <TableHead className="text-end">Montant TVA</TableHead>
+          <TableHead className="text-end">Lignes</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {summary.breakdown.map((row) => (
+          <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`}>
+            <TableCell className={CELL_CLASS}>{row.taxCategory}</TableCell>
+            <TableCell className={CELL_CLASS}>{row.taxName}</TableCell>
+            <TableCell className={cn(CELL_CLASS, 'text-end')}>{formatTaxRate(row.taxRate)}</TableCell>
+            <TableCell className={cn(CELL_CLASS, 'text-end')}><Money value={row.baseAmount} from={summary.currency} /></TableCell>
+            <TableCell className={cn(CELL_CLASS, 'text-end font-semibold')}><Money value={row.taxAmount} from={summary.currency} /></TableCell>
+            <TableCell className={cn(CELL_CLASS, 'text-end')}>{row.lineCount}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+);
+
+
+// ─── Contenu importable ─────────────────────────────────────────────────────
+
+/**
+ * Granularite fiscale correspondant a la periode du tableau de bord.
+ *
+ * <p>La TVA ne se declare pas a la semaine : une periode hebdomadaire retombe
+ * sur le MOIS en cours, la seule reponse honnete. Le reste s'aligne
+ * naturellement.</p>
+ */
+export function fiscalModeFor(period: DashboardPeriod): PeriodMode {
+  if (period === 'quarter') return 'quarterly';
+  if (period === 'year') return 'annual';
+  return 'monthly';
+}
+
+/**
+ * Contenu de l'onglet Comptabilite, adressable depuis le tableau de bord.
+ *
+ * <p>Cet onglet choisit sa periode LUI-MEME (granularite + annee + mois), ce
+ * qui n'a pas d'equivalent sur un tableau de bord. La tuile importee suit donc
+ * la periode de l'ecran d'accueil, ramenee a la granularite fiscale la plus
+ * proche, sur la periode EN COURS — et son intitule le dit, pour qu'on ne
+ * croie pas lire une declaration passee.</p>
+ */
+export function useFiscalReport(period: DashboardPeriod = 'month'): ReportContent {
+  const mode = fiscalModeFor(period);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const quarter = Math.ceil(month / 3);
+
+  const monthlyQuery = useMonthlyVatSummary(mode === 'monthly' ? year : 0, mode === 'monthly' ? month : 0);
+  const quarterlyQuery = useQuarterlyVatSummary(mode === 'quarterly' ? year : 0, mode === 'quarterly' ? quarter : 0);
+  const annualQuery = useAnnualVatSummary(mode === 'annual' ? year : 0);
+
+  const activeQuery = mode === 'monthly' ? monthlyQuery : mode === 'quarterly' ? quarterlyQuery : annualQuery;
+  const summary: VatSummary | undefined = activeQuery.data;
+
+  const items = summary
+    ? tiles([
+      {
+        key: 'vat-summary',
+        fluid: true,
+        title: 'Synthèse TVA',
+        hint: summary.period,
+        render: () => <VatSummaryCards summary={summary} />,
+      },
+      summary.breakdown?.length > 0 && {
+        key: 'vat-breakdown',
+        fluid: true,
+        span: 2,
+        title: 'Ventilation de la TVA',
+        hint: `${summary.period} · ${summary.invoiceCount} facture${summary.invoiceCount > 1 ? 's' : ''}`,
+        render: () => <VatBreakdownTable summary={summary} />,
+      },
+    ] as TileOrNothing[])
+    : [];
+
+  return {
+    figures: [],
+    items,
+    loading: activeQuery.isLoading,
+    error: activeQuery.error ? 'Erreur lors du chargement du rapport fiscal' : null,
+    retry: () => { void activeQuery.refetch(); },
+    fill: false,
+  };
+}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -174,63 +315,8 @@ const FiscalReportSection: React.FC = () => {
         />
       ) : (
         <>
-          {/* Summary cards */}
-          <div className="flex gap-3 mb-3 flex-wrap">
-            {[
-              { label: 'Periode', value: summary.period, isText: true },
-              { label: 'Factures', value: String(summary.invoiceCount), isText: true },
-              { label: 'Total HT', value: <Money value={summary.totalHt} from={summary.currency} /> },
-              { label: 'Total TVA', value: <Money value={summary.totalTax} from={summary.currency} /> },
-              { label: 'Total TTC', value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
-            ].map(card => (
-              <div
-                key={card.label}
-                className={cn(
-                  PANEL_CLASS,
-                  'p-[9px] flex-1 min-w-[130px]',
-                  // KPI accentué (Total TTC) : fond pastel de marque + filet à 30 %
-                  card.primary && 'bg-primary-soft border-primary/30',
-                )}
-              >
-                <p className="block text-2xs font-bold uppercase tracking-[0.05em] text-faint mb-0.5">
-                  {card.label}
-                </p>
-                <p className={cn('font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-primary' : 'text-foreground')} style={{ fontFamily: 'var(--font-display)' }}>
-                  {card.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Breakdown table */}
-          {summary.breakdown?.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Categorie</TableHead>
-                    <TableHead>Taxe</TableHead>
-                    <TableHead className="text-end">Taux</TableHead>
-                    <TableHead className="text-end">Base HT</TableHead>
-                    <TableHead className="text-end">Montant TVA</TableHead>
-                    <TableHead className="text-end">Lignes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summary.breakdown.map((row) => (
-                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`}>
-                      <TableCell className={CELL_CLASS}>{row.taxCategory}</TableCell>
-                      <TableCell className={CELL_CLASS}>{row.taxName}</TableCell>
-                      <TableCell className={cn(CELL_CLASS, 'text-end')}>{formatTaxRate(row.taxRate)}</TableCell>
-                      <TableCell className={cn(CELL_CLASS, 'text-end')}><Money value={row.baseAmount} from={summary.currency} /></TableCell>
-                      <TableCell className={cn(CELL_CLASS, 'text-end font-semibold')}><Money value={row.taxAmount} from={summary.currency} /></TableCell>
-                      <TableCell className={cn(CELL_CLASS, 'text-end')}>{row.lineCount}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <VatSummaryCards summary={summary} className="mb-3" />
+          {summary.breakdown?.length > 0 && <VatBreakdownTable summary={summary} />}
         </>
       )}
     </div>

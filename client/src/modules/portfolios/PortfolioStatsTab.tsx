@@ -31,6 +31,7 @@ import {
 } from '../../services/api/portfoliosApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { PROPERTY_TYPES } from '../../utils/statusUtils';
+import type { ReportContent } from '../reports/reportShell';
 import { CoverageChart, DonutChart, HistogramChart, TimelineChart } from './PortfolioCharts';
 
 /** Le `t` du hook, plutot qu'une signature reecrite a la main qui diverge. */
@@ -46,7 +47,19 @@ type Translate = ReturnType<typeof useTranslation>['t'];
  * <p>Le bandeau, la grille et les graphiques viennent de `components/stats` :
  * l'ecran Rapports tient le meme discours et doit le tenir du meme endroit.</p>
  */
-const PortfolioStatsTab: React.FC = () => {
+/**
+ * Contenu de l'onglet, separe de son rendu.
+ *
+ * <p>Meme motif que les onglets de Rapports ({@link ReportContent}) : les
+ * tuiles deviennent ADRESSABLES par leur cle, pour que le tableau de bord
+ * puisse en importer une sans emmener l'ecran entier. `stats` reste expose
+ * parce que le bandeau de cet onglet est le sien, pas un `StatsBand`.</p>
+ */
+export interface PortfolioStatsContent extends ReportContent {
+  stats?: PortfolioStats;
+}
+
+export function usePortfolioStatsReport(): PortfolioStatsContent {
   const { user } = useAuth();
   const { t } = useTranslation();
 
@@ -59,40 +72,17 @@ const PortfolioStatsTab: React.FC = () => {
 
   const stats = statsQuery.data;
 
-  if (statsQuery.isLoading) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <Spinner className="size-8" />
-      </div>
-    );
-  }
-
-  if (statsQuery.isError) {
-    return (
-      <p className="py-6 text-center text-sm text-destructive">
-        {t('portfolios.errors.connectionError')}
-      </p>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
-        {t('portfolios.statistics.noDataAvailable')}
-      </p>
-    );
-  }
-
   const labelClients = t('portfolios.statistics.clientsLabel');
   const labelStaff = t('portfolios.statistics.staff');
   const labelProperties = t('portfolios.statistics.properties');
 
-  const propertyTypeLabels = stats.propertiesByType.map((bucket) => {
+  const propertyTypeLabels = (stats?.propertiesByType ?? []).map((bucket) => {
     const option = PROPERTY_TYPES.find((type) => type.value === bucket.label);
     return option ? { ...bucket, label: t(option.i18nKey) } : bucket;
   });
 
-  const tuiles = tiles([
+  const items = stats ? tiles([
+
     {
       key: 'composition',
       title: t('portfolios.statistics.composition'),
@@ -151,12 +141,46 @@ const PortfolioStatsTab: React.FC = () => {
         />
       ),
     },
-  ] as TileOrNothing[]);
+  ] as TileOrNothing[]) : [];
+
+  return {
+    figures: [],
+    items,
+    stats,
+    loading: statsQuery.isLoading,
+    error: statsQuery.isError ? t('portfolios.errors.connectionError') : null,
+    retry: () => { void statsQuery.refetch(); },
+  };
+}
+
+const PortfolioStatsTab: React.FC = () => {
+  const { t } = useTranslation();
+  const { stats, items, loading, error } = usePortfolioStatsReport();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <Spinner className="size-8" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p className="py-6 text-center text-sm text-destructive">{error}</p>;
+  }
+
+  if (!stats) {
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        {t('portfolios.statistics.noDataAvailable')}
+      </p>
+    );
+  }
 
   return (
     <StatsLayout>
       <SummaryBand stats={stats} t={t} />
-      <TileGrid items={tuiles} />
+      <TileGrid items={items} />
     </StatsLayout>
   );
 };

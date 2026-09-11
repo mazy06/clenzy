@@ -4349,7 +4349,9 @@
       "expenses": "Dépenses",
       "housekeeperPayouts": "Versements prestataires",
       "reportsExports": "Rapports & Exports",
-      "exportsSection": "Exports comptables"
+      "exportsSection": "Exports comptables",
+      "fiscalReport": "Rapport fiscal",
+      "exports": "Exports comptables"
     },
     "basePlan": "Abonnement de base",
     "seats": "Utilisateurs suppl.",

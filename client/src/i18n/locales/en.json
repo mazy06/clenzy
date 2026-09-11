@@ -4328,7 +4328,9 @@
       "expenses": "Expenses",
       "housekeeperPayouts": "Provider payouts",
       "reportsExports": "Reports & Exports",
-      "exportsSection": "Accounting Exports"
+      "exportsSection": "Accounting Exports",
+      "fiscalReport": "Tax report",
+      "exports": "Accounting exports"
     },
     "basePlan": "Base subscription",
     "seats": "Additional users",

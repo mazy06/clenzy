@@ -4302,7 +4302,9 @@
       "expenses": "المصاريف",
       "housekeeperPayouts": "تحويلات المزودين",
       "reportsExports": "التقارير والتصدير",
-      "exportsSection": "التصدير المحاسبي"
+      "exportsSection": "التصدير المحاسبي",
+      "fiscalReport": "التقرير الضريبي",
+      "exports": "التصدير المحاسبي"
     }
   },
   "workOrders": {

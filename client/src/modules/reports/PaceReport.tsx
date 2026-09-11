@@ -6,9 +6,6 @@ import {
   GroupedBarChart,
   HighlightList,
   HistogramChart,
-  StatsBand,
-  StatsLayout,
-  TileGrid,
   TrendLineChart,
   tiles,
   type Highlight,
@@ -18,7 +15,7 @@ import {
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { paceApi } from '../../services/api/paceApi';
-import { ReportFrame, TileScroll } from './reportShell';
+import { ReportView, TileScroll, type ReportContent } from './reportShell';
 
 const MONTHS_AHEAD = 6;
 
@@ -33,7 +30,7 @@ const MONTHS_AHEAD = 6;
  * tuiles que le reste des rapports. La grille ne se cale pas sur la hauteur de
  * la fenêtre ici : un tableau de six lignes écrasé à 180 px ne se lit plus.</p>
  */
-const PaceReport: React.FC = () => {
+export function usePaceReport(): ReportContent {
   const { t } = useTranslation();
   const [curveMonth, setCurveMonth] = useState<string | null>(null);
 
@@ -314,20 +311,12 @@ const PaceReport: React.FC = () => {
     },
   ] as TileOrNothing[]);
 
-  return (
-    <ReportFrame
-      loading={summaryQuery.isLoading}
-      error={
-        summaryQuery.isError ? t('reports.pace.loadError', 'Impossible de charger le pace.') : null
-      }
-      onRetry={() => summaryQuery.refetch()}
-    >
-      <StatsLayout>
-        <StatsBand figures={figures} />
-        <TileGrid items={items} fill={false} />
-      </StatsLayout>
-    </ReportFrame>
-  );
+  return { figures, items, loading: summaryQuery.isLoading, error: summaryQuery.isError ? t('reports.pace.loadError', 'Impossible de charger le pace.') : null, retry: () => { void summaryQuery.refetch(); }, fill: false };
+}
+
+const PaceReport: React.FC = () => {
+  const content = usePaceReport();
+  return <ReportView content={content} />;
 };
 
 export default PaceReport;

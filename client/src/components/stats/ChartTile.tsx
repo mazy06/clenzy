@@ -101,6 +101,14 @@ export interface Tile {
   span?: 1 | 2 | 3;
   /** Le contenu se dimensionne seul (liste, tableau) plutot qu'un graphique. */
   fluid?: boolean;
+  /**
+   * Ecran ou la donnee se travaille.
+   *
+   * <p>Une tuile posee sur le tableau de bord montre un etat sans dire ou
+   * agir dessus. Le chemin renseigne ici devient le lien de renvoi de la
+   * tuile importee ; a defaut, c'est l'ecran d'origine de la source.</p>
+   */
+  href?: string;
   render: () => React.ReactNode;
 }
 

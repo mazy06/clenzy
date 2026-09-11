@@ -3,9 +3,6 @@ import {
   DonutChart,
   GroupedBarChart,
   HighlightList,
-  StatsBand,
-  StatsLayout,
-  TileGrid,
   TrendAreaChart,
   tiles,
   type Highlight,
@@ -15,7 +12,7 @@ import {
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
-import { ReportFrame, SignalList, useReportFormats, type SignalItem } from './reportShell';
+import { ReportView, SignalList, useReportFormats, type ReportContent, type SignalItem } from './reportShell';
 
 const NO_INTERVENTIONS: never[] = [];
 
@@ -27,7 +24,7 @@ const NO_INTERVENTIONS: never[] = [];
  * tourné, et qu'est-ce qui appelle une décision. Les onglets suivants creusent ;
  * celui-ci oriente.</p>
  */
-const OverviewReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
+export function useOverviewReport(period: DashboardPeriod = 'month'): ReportContent {
   const { t } = useTranslation();
   const format = useReportFormats();
   const { analytics, loading } = useAnalyticsEngine({ period, interventions: NO_INTERVENTIONS });
@@ -208,14 +205,12 @@ const OverviewReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'mont
     },
   ] as TileOrNothing[]);
 
-  return (
-    <ReportFrame loading={loading}>
-      <StatsLayout>
-        <StatsBand figures={figures} />
-        <TileGrid items={items} />
-      </StatsLayout>
-    </ReportFrame>
-  );
+  return { figures, items, loading };
+}
+
+const OverviewReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
+  const content = useOverviewReport(period);
+  return <ReportView content={content} />;
 };
 
 export default OverviewReport;
