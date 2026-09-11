@@ -21,16 +21,21 @@
 La projection n'a qu'une carte utilisateur. Le réel a **quatre boutons d'action**
 sous cette carte, disposés en **ligne** (déplié) ou en **colonne** (réduit) :
 
-- [x] **Préférences** (icône `Faders`) — ouvre un menu à trois sections :
-  - [x] *Apparence* : **7 pastilles de teinte d'accent** (`ACCENT_OPTIONS`,
-        `useAccent` → `data-accent` sur `<html>`, optimiste + PUT préférences)
+- [x] **Préférences** (icône `Faders`) — ouvre un **volet** à trois rubriques
+      (`components/SidebarFlyout.tsx` : coquille raccordée à la barre par deux
+      congés concaves, contenu bâti sur les primitives de la barre) :
   - [x] *Apparence* : **mode clair / sombre / auto** (`useThemeMode`, optimiste + backend)
   - [x] *Langue* : **fr / en / ar** (`changeLanguage`), coche sur l'actif
   - [x] *Devise* : `CURRENCY_OPTIONS` avec `<CurrencySymbol>` (MAD/SAR en icône,
         € textuel), coche sur l'actif
   - [x] *Devise* : ligne « taux au JJ/MM » + état `ratesLoading`, affichée
         seulement si `currency !== 'EUR'`
-  - [x] Ancrage du menu inversé en RTL (`anchorOrigin`/`transformOrigin`)
+  - [x] Côté d'ouverture et congés inversés en RTL, lus sur le `data-side` de Radix
+  - [x] Ancré sur la **rangée d'actions**, pas sur le bouton (`PopoverAnchor`) :
+        c'est ce qui met son bord à 8 px de la ligne de la barre, dépliée comme
+        repliée
+  - [x] Pas de pastilles de teinte d'accent : l'identité Baitly est monochrome,
+        le sélecteur et `AccentProvider` ont été retirés (2026-08-06)
 - [x] **Notifications** (cloche) → `/notifications`
   - [x] **Pastille de non-lus** : composant isolé `UnreadNotificationsBadge`,
         rendu par `NavCornerCountBadge` (la MÊME pastille que la navigation
@@ -52,8 +57,12 @@ sous cette carte, disposés en **ligne** (déplié) ou en **colonne** (réduit) 
 - [x] **Actif par préfixes** : `isActive` = chemin exact **ou** n'importe quel
       `matchPaths` (préfixe + sous-routes détail). C'est ce qui garde un hub
       actif sur tous ses onglets.
-- [x] **Logo cliquable** → `/dashboard`, `role="button"`, `tabIndex`, clavier
-      Entrée/Espace, `aria-label`
+- [~] **Logo cliquable** — affordances conservées (`role="button"`, `tabIndex`,
+      clavier Entrée/Espace, `aria-label`), **destination changée** : il bascule
+      désormais l'assistant Baitly (`SidebarAssistantLauncher`) au lieu de mener
+      à `/dashboard`. Le tableau de bord garde son entrée propre dans la
+      navigation ; l'assistant, lui, n'en avait aucune depuis la suppression de
+      son encoche flottante.
 - [x] **Carte utilisateur cliquable** → `/settings`, mêmes affordances clavier
 
 ### A.3 Badges
@@ -173,7 +182,8 @@ précède n'a été vu à l'écran.** En priorité :
 - le rail de 3 rem en mode icônes (logo, pastilles de badge, pied en colonne) ;
 - le sous-menu déplié sur un hub actif, et l'exception « clic = navigation » en
   mode icônes ;
-- le panneau de préférences en RTL (ancrage, pastilles d'accent) ;
+- les deux volets en RTL — bulle de l'assistant et préférences : côté
+  d'ouverture, congés du raccord, alignement des coches ;
 - la zone de contenu : `h-svh` + `overflow-hidden` doivent conserver le scroll
   interne des pages qui gèrent le leur (Planning, Studio full-bleed).
 

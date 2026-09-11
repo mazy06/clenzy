@@ -56,8 +56,9 @@ interface PagePaginationProps {
   hideOnSinglePage?: boolean;
   /**
    * Centrer les boutons dans la largeur au lieu de les caler à droite, le
-   * rappel du total restant à gauche. Pour les écrans dont le bord droit est
-   * occupé — le planning, où l'encoche de l'assistant Baitly mordrait dessus.
+   * rappel du total restant à gauche. Pour les barres qui traversent tout
+   * l'écran — le planning, où des boutons collés au bord droit se perdraient
+   * loin de la grille qu'ils font défiler.
    */
   centerNav?: boolean;
   className?: string;

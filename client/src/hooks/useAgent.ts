@@ -65,6 +65,20 @@ export interface UseAgentOptions {
   selectedPropertyId?: number;
 }
 
+/** Options ponctuelles d'un envoi. */
+export interface SendMessageOptions {
+  /**
+   * Ouvre une conversation NEUVE au lieu de poursuivre la courante.
+   *
+   * <p>C'est un drapeau d'ENVOI et non un {@code reset()} prealable, parce que
+   * {@code sendMessage} capture {@code conversationId} et {@code status} dans sa
+   * fermeture : appeler {@code reset()} juste avant laisserait l'envoi partir
+   * avec l'ancien identifiant (le message atterrit dans l'ancien fil) et se
+   * faire refuser si un flux etait encore en cours.</p>
+   */
+  newConversation?: boolean;
+}
+
 export interface UseAgentResult {
   conversationId: number | null;
   messages: DisplayMessage[];
@@ -73,7 +87,11 @@ export interface UseAgentResult {
   /** Tool en attente de confirmation user, null sinon. */
   pendingConfirmation: PendingToolConfirmation | null;
   /** Envoie un message et stream la reponse. Attachments optionnels (images Vision). */
-  sendMessage(text: string, attachments?: NonNullable<DisplayMessage['attachments']>): Promise<void>;
+  sendMessage(
+    text: string,
+    attachments?: NonNullable<DisplayMessage['attachments']>,
+    sendOptions?: SendMessageOptions,
+  ): Promise<void>;
   /** Confirme ou refuse un tool d'ecriture en attente. */
   confirmTool(confirmed: boolean): Promise<void>;
   /** Charge l'historique d'une conversation existante. */
@@ -171,11 +189,23 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
   const sendMessage = useCallback(async (
     text: string,
     attachments?: NonNullable<DisplayMessage['attachments']>,
+    sendOptions?: SendMessageOptions,
   ) => {
     const trimmed = text.trim();
     const hasAttachments = !!attachments && attachments.length > 0;
     if (!trimmed && !hasAttachments) return;
-    if (status === 'streaming' || status === 'sending') return;
+    const fresh = sendOptions?.newConversation === true;
+    // Un envoi « conversation neuve » passe outre le flux en cours : il
+    // l'interrompt (ci-dessous) au lieu d'etre refuse.
+    if (!fresh && (status === 'streaming' || status === 'sending')) return;
+
+    if (fresh) {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      draftRef.current = null;
+      setConversationId(null);
+      setPendingConfirmation(null);
+    }
 
     setError(null);
     setStatus('sending');
@@ -187,7 +217,9 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
       attachments: hasAttachments ? attachments : undefined,
       createdAt: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+    // Fil neuf : la question est le PREMIER message, elle ne s'ajoute pas au
+    // fil precedent.
+    setMessages((prev) => (fresh ? [userMessage] : [...prev, userMessage]));
 
     // Prepare draft assistant message
     const draft: DisplayMessage = {
@@ -199,7 +231,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
     setMessages((prev) => [...prev, draft]);
 
     const body: ChatRequestBody = {
-      conversationId: conversationId ?? undefined,
+      conversationId: fresh ? undefined : (conversationId ?? undefined),
       message: trimmed,
       currentPage: options.currentPage,
       selectedPropertyId: options.selectedPropertyId,
@@ -313,7 +345,12 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
       }
       draftRef.current = null;
     } finally {
-      abortRef.current = null;
+      // Ne relacher QUE son propre controleur. Un envoi « conversation neuve »
+      // interrompt le flux en cours puis en ouvre un autre aussitot : la
+      // promesse du premier se rejette apres coup, et un `abortRef.current =
+      // null` inconditionnel effacerait le controleur du SECOND — le bouton
+      // Arreter serait alors sans effet sur lui.
+      if (abortRef.current === controller) abortRef.current = null;
     }
   }, [conversationId, options.currentPage, options.selectedPropertyId, status]);
 

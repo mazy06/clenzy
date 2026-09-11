@@ -850,6 +850,10 @@
     "openDock": "Déplier l'assistant",
     "closeDock": "Replier l'assistant",
     "dockLabel": "Assistant Baitly",
+    "launcher": {
+      "hint": "Demande-moi, par exemple :",
+      "ask": "Poser cette question"
+    },
     "empty": {
       "title": "Pose ta question",
       "body": "J'utilise tes données Baitly en temps réel.",
@@ -860,7 +864,17 @@
       "occupancy": "Quel est mon taux d'occupation ?",
       "arrivals": "Prépare les arrivées de la semaine",
       "guestMessage": "Rédige un message voyageur",
-      "compare": "Compare tes performances"
+      "compare": "Compare tes performances",
+      "revenue": "Combien j'ai gagné ce mois-ci ?",
+      "pricing": "Mes tarifs du week-end sont-ils bien placés ?",
+      "gaps": "Trouve les trous dans mon calendrier",
+      "cleaning": "Quels ménages restent à planifier ?",
+      "unpaid": "Quels paiements sont encore en attente ?",
+      "maintenance": "Y a-t-il des interventions en retard ?",
+      "checkouts": "Qui part demain ?",
+      "topProperty": "Quel logement performe le mieux ?",
+      "channels": "Mes annonces sont-elles bien synchronisées ?",
+      "lastMinute": "Que faire des nuits encore vides cette semaine ?"
     },
     "composer": {
       "placeholder": "Demande une analyse, une action, un chiffre…",

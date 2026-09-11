@@ -2,20 +2,19 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
-import { Add as AddIcon, Close as CloseIcon, Fullscreen as FullscreenIcon, ChevronUp } from '../icons';
-import BaitlyMarkLogo from './BaitlyMarkLogo';
-import { NavCornerCountBadge } from './NavCountBadge';
+import { Add as AddIcon, Close as CloseIcon, Fullscreen as FullscreenIcon } from '../icons';
 import { useAgent } from '../hooks/useAgent';
 import { useBriefingNotice } from '../hooks/useBriefingNotice';
 import { useTranslation } from '../hooks/useTranslation';
 import { AssistantSurface } from '../modules/assistant/components/AssistantSurface';
-import { ASSISTANT_SUGGESTION_KEYS } from '../modules/assistant/components/AssistantSuggestions';
 import { ToolConfirmationDialog } from '../modules/assistant/components/ToolConfirmationDialog';
 import AssistantExpandedDialog from '../modules/assistant/components/AssistantExpandedDialog';
 import { ASSISTANT_QUICK_REPLY_EVENT } from '../modules/assistant/widgets/WorkflowWidget';
-import { ASSISTANT_OPEN_EVENT } from './command-center/assistantBridge';
-
-const PHRASE_INTERVAL_MS = 4200;
+import {
+  ASSISTANT_OPEN_EVENT,
+  ASSISTANT_TOGGLE_EVENT,
+  type AssistantOpenDetail,
+} from './command-center/assistantBridge';
 
 /**
  * Paramètre d'URL qui ouvre l'assistant sur une conversation précise
@@ -30,31 +29,26 @@ const PHRASE_INTERVAL_MS = 4200;
 export const ASSISTANT_CONVERSATION_PARAM = 'assistantConversation';
 
 /**
- * Clés des phrases d'invitation qui défilent dans l'encoche fermée : l'invite
- * générique puis les amorces de l'état vide — ce qu'on lit en passant est
- * exactement ce qu'on peut lancer d'un clic une fois ouvert.
- */
-const DOCK_PHRASE_KEYS = [
-  'assistant.tagline',
-  ...ASSISTANT_SUGGESTION_KEYS.map((key) => `assistant.suggestions.${key}`),
-];
-
-/**
- * Point d'entree unique de l'assistant — « encoche » docquee en bas a droite,
- * comme un onglet de classeur qui depasse du bord de l'ecran.
+ * Panneau de discussion de l'assistant, docke au bord droit de l'ecran.
  *
  * <p>Coquille mince : elle porte l'ancrage a l'ecran et l'etat ouvert/ferme, la
  * conversation elle-meme vivant dans {@link AssistantSurface}.</p>
  *
+ * <p><b>Rien ne s'affiche tant que l'assistant est ferme.</b> Il portait avant
+ * une « encoche » docquee en bas a droite : un onglet permanent qui flottait par
+ * dessus chaque ecran, mangeait le coin ou les listes posent leur pagination, et
+ * changeait de phrase toutes les quatre secondes. Le point d'entree est desormais
+ * le logo Baitly de la barre laterale
+ * ({@code SidebarAssistantLauncher}), qui propose au survol quelques questions
+ * tirees au sort.</p>
+ *
  * <p><b>Comportement</b> :</p>
  * <ul>
- *   <li>Fermee : encoche collee au bord bas (coins hauts arrondis, pas de
- *       bordure basse) avec le mark Baitly, une phrase d'invitation qui change
- *       toutes les ~4s (fondu + glissement, fige si
- *       {@code prefers-reduced-motion}), et un chevron.</li>
- *   <li>Clic (ou Entree) : le panneau de discussion se deploie au-dessus de
- *       l'encoche ; le chevron pivote. Re-clic, clic exterieur ou bouton
- *       Fermer : le panneau se replie, l'encoche reste.</li>
+ *   <li>Le panneau s'ouvre sur bascule du logo, sur demande du centre de
+ *       commande (⌘K), ou sur un lien profond de notification. Une amorce peut
+ *       accompagner l'ouverture : elle part aussitot dans la conversation.</li>
+ *   <li>Nouvelle bascule du logo, clic exterieur ou bouton Fermer : le panneau
+ *       se replie et ne laisse rien derriere lui.</li>
  *   <li>Bouton « Agrandir » : bascule en plein ecran via
  *       {@link AssistantExpandedDialog} — meme {@code useAgent}, donc meme
  *       conversation, plus l'historique a droite.</li>
@@ -93,15 +87,12 @@ const AssistantDockTab: React.FC = () => {
   // l'utilisateur vient d'ecrire.
   const autoLoadedRef = useRef(false);
 
-  const handleToggle = useCallback(() => setOpen((o) => !o), []);
   const handleClose = useCallback(() => {
     setOpen(false);
     setView('panel');
   }, []);
   const handleExpand = useCallback(() => setView('expanded'), []);
   const handleMinimize = useCallback(() => setView('panel'), []);
-
-  const isWorking = status === 'sending' || status === 'streaming';
 
   // ─── Lien profond « ouvrir cette conversation » ─────────────────────────
   // Cible des notifications et emails de briefing. On ouvre le panneau, on
@@ -139,16 +130,36 @@ const AssistantDockTab: React.FC = () => {
     void dismiss();
   }, [open, location.search, notice, conversationId, loadConversation, dismiss]);
 
-  // Ouverture demandee de l'exterieur — aujourd'hui le centre de commande
-  // (⌘K → « Ouvrir l'assistant »). L'etat ouvert/ferme vit ici : un evenement
-  // evite de le hisser dans un contexte global pour un seul appelant.
+  // Ouverture demandee de l'exterieur : le centre de commande (⌘K → « Ouvrir
+  // l'assistant ») et les amorces de la bulle du logo, qui joignent la question
+  // a poser. L'etat ouvert/ferme vit ici : un evenement evite de le hisser dans
+  // un contexte global pour deux appelants.
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
       setOpen(true);
       setView('panel');
+      const detail = (event as CustomEvent<AssistantOpenDetail>).detail;
+      const prompt = detail?.prompt;
+      // `newConversation` est un drapeau d'ENVOI, pas un `reset()` prealable :
+      // `sendMessage` capture `conversationId` dans sa fermeture, un reset juste
+      // avant laisserait la question atterrir dans l'ancien fil.
+      if (prompt && prompt.trim()) {
+        void sendMessage(prompt, undefined, { newConversation: detail?.newConversation === true });
+      }
     };
     window.addEventListener(ASSISTANT_OPEN_EVENT, handler);
     return () => window.removeEventListener(ASSISTANT_OPEN_EVENT, handler);
+  }, [sendMessage]);
+
+  // Bascule demandee par le logo de la barre laterale : c'est le point d'entree
+  // unique de l'assistant, il doit aussi savoir le refermer.
+  useEffect(() => {
+    const handler = () => {
+      setOpen((wasOpen) => !wasOpen);
+      setView('panel');
+    };
+    window.addEventListener(ASSISTANT_TOGGLE_EVENT, handler);
+    return () => window.removeEventListener(ASSISTANT_TOGGLE_EVENT, handler);
   }, []);
 
   // Reponses rapides emises par les widgets du fil (ex. les chips Oui/Non du
@@ -172,9 +183,16 @@ const AssistantDockTab: React.FC = () => {
   // `dockRef` : le moindre clic dans la conversation tombait « a l'exterieur »
   // et fermait tout l'assistant. Le plein ecran a ses propres sorties (Reduire,
   // Fermer, Echap, clic sur le voile), gerees par le gabarit de modale.
+  //
+  // Le logo de la barre laterale est exclu : il porte la bascule, et sans cette
+  // exception il fermerait le panneau au `pointerdown` juste avant que son
+  // propre `click` ne le rouvre — la fermeture par le logo n'aurait jamais eu
+  // l'air de marcher.
   useEffect(() => {
     if (!open || view !== 'panel') return undefined;
     const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest?.('[data-assistant-launcher]')) return;
       const node = dockRef.current;
       if (node && !node.contains(event.target as Node)) handleClose();
     };
@@ -182,53 +200,29 @@ const AssistantDockTab: React.FC = () => {
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [open, view, handleClose]);
 
-  // ─── Rotation des phrases de l'encoche ──────────────────────────────────
-  const [phraseIndex, setPhraseIndex] = useState(0);
-  useEffect(() => {
-    // Panneau ouvert : l'encoche affiche un libelle fixe, pas besoin de cycler.
-    if (open) return undefined;
-    // prefers-reduced-motion : phrase statique, aucun defilement.
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-    const id = window.setInterval(
-      () => setPhraseIndex((i) => (i + 1) % DOCK_PHRASE_KEYS.length),
-      PHRASE_INTERVAL_MS,
-    );
-    return () => window.clearInterval(id);
-  }, [open]);
-
   return (
     <>
-      {/* Conteneur fixe bas-droite : panneau (deploye) au-dessus, encoche
-          en dessous, tous deux alignes sur le meme bord DROIT de l'ecran
-          (l'encoche est un onglet qui depasse du bord, pas un flottant).
+      {/* Conteneur fixe bas-droite, monte UNIQUEMENT panneau ouvert : ferme,
+          l'assistant ne laisse plus rien a l'ecran (le point d'entree est le
+          logo de la barre laterale).
           `pointer-events-none` : le conteneur ne doit pas bloquer les clics a
           cote du panneau ; ses enfants les reprennent.
-          Les deux z-index sont les valeurs du theme MUI par defaut, que ce
-          projet ne surcharge pas : modal = 1300, drawer + 1 = 1201. Ecrits en
-          litteraux car une classe Tailwind ne peut pas naitre d'une variable.
+          z-index = la valeur `modal` du theme MUI par defaut, que ce projet ne
+          surcharge pas (1300). Ecrit en litteral car une classe Tailwind ne peut
+          pas naitre d'une variable.
 
-          Demonte entierement en plein ecran : son z-index (1300) passait par
-          dessus la modale, et l'encoche « Assistant Baitly » restait collee en
-          bas de l'ecran par dessus la conversation agrandie. La vue plein ecran
-          porte ses propres commandes, l'encoche n'y a rien a faire. */}
-      {view === 'panel' && (
+          Demonte entierement en plein ecran : son z-index passait par dessus la
+          modale, et le panneau docke restait visible par dessus la conversation
+          agrandie. */}
+      {open && view === 'panel' && (
       <div
         ref={dockRef}
-        className={cn(
-          'fixed bottom-0 right-0 flex flex-col items-end pointer-events-none [&>*]:pointer-events-auto',
-          open ? 'z-[1300]' : 'z-[1201]',
-        )}
+        className="fixed bottom-0 right-0 z-[1300] flex flex-col items-end pointer-events-none [&>*]:pointer-events-auto"
       >
-          {/* ── Panneau de discussion (deploye au-dessus de l'encoche) ────
-              Colle DIRECTEMENT sur l'encoche (pas d'espace, pas de radius bas,
-              pas de bordure basse) : panneau + encoche forment une seule carte
-              continue docquee au bord de l'ecran. L'encoche s'elargit a la
-              largeur du panneau a l'ouverture (transition width ci-dessous).
-
-              Le panneau : mobile plein ecran (l'encoche est masquee, la fermeture
-              se fait via le bouton X du header) ; desktop docke au bord droit, ou
-              seul le coin haut-GAUCHE est arrondi. Ruptures ecrites en pixels :
-              le `sm` MUI vaut 600px, pas les 640px de Tailwind.
+          {/* ── Panneau de discussion ─────────────────────────────────────
+              Mobile plein ecran ; desktop docke au bord droit sur toute la
+              hauteur, ou seul le coin haut-GAUCHE est arrondi. Ruptures ecrites
+              en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind.
               Largeur du panneau ecrite en dur (560px) : une classe Tailwind ne
               peut pas naitre d'une constante JS. 560 et non 400 — en dessous,
               l'en-tete se serrait, les amorces s'empilaient une par ligne et les
@@ -237,15 +231,11 @@ const AssistantDockTab: React.FC = () => {
               conditionnel + l'animation d'entree de tw-animate-css : meme fondu,
               meme mise a l'echelle depuis le bas, meme duree. Seule la
               transition de SORTIE disparait, le panneau se demontant aussitot. */}
-          {open && view === 'panel' && (
             <div
               className={cn(
                 'w-screen max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-background',
                 'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--bui-primary)_28%,transparent)]',
-                // Pleine hauteur de l'ecran MOINS l'encoche (44 px) sur laquelle
-                // le panneau vient s'asseoir : les deux forment une colonne qui
-                // occupe exactement le viewport, sans debordement ni vide.
-                'min-[600px]:w-[560px] min-[600px]:h-[calc(100dvh-44px)] min-[600px]:rounded-tl-[22px]',
+                'min-[600px]:w-[560px] min-[600px]:rounded-tl-[22px]',
                 'min-[600px]:border min-[600px]:border-e-0 min-[600px]:border-b-0 min-[600px]:border-border',
                 'origin-bottom animate-in fade-in-0 zoom-in-75 duration-[220ms] motion-reduce:animate-none',
               )}
@@ -298,108 +288,6 @@ const AssistantDockTab: React.FC = () => {
                 }
               />
             </div>
-          )}
-
-          {/* ── Encoche « classeur » collee au bord bas ───────────────────
-              Fermee : onglet compact docke au bord droit, seul le coin haut-
-              GAUCHE arrondi, la base et le flanc droit se fondant dans les bords
-              de l'ecran. Ouverte : elle s'elargit a la largeur du panneau, perd
-              son arrondi et son ombre propre, et devient la barre de base du
-              panneau (une seule carte, fond aligne sur le sien, bordure haute
-              faisant hairline). Mobile ouvert : l'encoche disparait, le panneau
-              plein ecran a son propre bouton Fermer ; mobile ferme : logo seul.
-              Au survol, fermee seulement : leger soulevement en `transform`
-              (aucun layout shift). Largeurs en dur — 560px = largeur du panneau,
-              300px = largeur de l'onglet : une classe Tailwind ne peut pas naitre
-              d'une constante JS. Onglet FERME : compact (logo seul, 56px) jusqu'a
-              900px — au format tablette ses 300px mangeaient le bas de l'ecran, ou
-              le planning colle sa barre de pagination. OUVERT il suit le panneau,
-              docke des 600px (le `sm` de MUI). Marges et
-              arrondis restent PHYSIQUES, comme l'ancrage `right-0` du conteneur :
-              l'encoche est un bord d'ecran, pas un flux de lecture.
-
-              Vocabulaire Baitly UI : surface `card` sur filet `border`, pastille
-              d'icone `rounded-lg bg-primary-soft` (la meme que l'en-tete du
-              panneau et l'avatar des messages), libelle `text-sm`, chevron
-              `text-muted-foreground`. */}
-          <button
-            type="button"
-            onClick={handleToggle}
-            aria-expanded={open}
-            aria-label={
-              open
-                ? t('assistant.closeDock')
-                : notice
-                  ? `${t('assistant.openDock')} — ${t('assistant.briefingWaiting', 'une revue vous attend')}`
-                  : t('assistant.openDock')
-            }
-            className={cn(
-              'items-center gap-2 h-[44px] max-w-[100vw]',
-              'border border-solid border-border border-r-0 border-b-0',
-              'cursor-pointer [font-family:inherit] translate-y-0 bg-card',
-              '[transition:width_220ms_cubic-bezier(0.22,1,0.36,1),border-radius_220ms_ease-out,background-color_220ms_ease-out,transform_200ms_cubic-bezier(0.22,1,0.36,1),box-shadow_200ms_ease-out]',
-              'motion-reduce:[transition:none]',
-              'focus-visible:[outline:2px_solid_var(--bui-primary)] focus-visible:[outline-offset:-2px]',
-              open
-                ? cn(
-                    'hidden min-[600px]:flex w-[560px] rounded-none justify-start ps-2.5 pe-2',
-                    'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--bui-primary)_28%,transparent)]',
-                    'hover:bg-accent',
-                  )
-                : cn(
-                    'flex w-[56px] min-[900px]:w-[300px] rounded-tl-xl',
-                    'justify-center px-0 min-[900px]:justify-start min-[900px]:ps-2.5 min-[900px]:pe-2',
-                    'shadow-[0_-6px_18px_-8px_color-mix(in_srgb,var(--bui-primary)_24%,transparent)]',
-                    'hover:bg-accent hover:-translate-y-[3px] hover:shadow-[0_-10px_24px_-8px_color-mix(in_srgb,var(--bui-primary)_32%,transparent)]',
-                  ),
-            )}
-          >
-            {/* La pastille se pose sur l'icone, seul element visible quand
-                l'encoche est compacte (logo seul sous 900px). `ring-card` et non
-                le `ring-sidebar` par defaut : ici la surface est celle de la
-                carte, pas celle de la barre laterale. Elle disparait a
-                l'ouverture — le panneau montre alors la revue. */}
-            <span className="relative flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
-              <BaitlyMarkLogo variant="mark" size={16} idleAnimation={!open} active={isWorking} />
-              {!open && notice && (
-                <NavCornerCountBadge count={1} tone="primary" className="ring-card" />
-              )}
-            </span>
-
-            {/* Phrase animee — flex:1 pour occuper la largeur disponible (fermee
-                comme ouverte). key force le remontage → l'animation d'entree
-                rejoue a chaque phrase. Onglet ferme : logo seul jusqu'a 900px
-                (mobile ET tablette) ; ouvert, il est large des 600px. */}
-            <div
-              className={cn(
-                'hidden flex-1 min-w-0 overflow-hidden text-start',
-                open ? 'min-[600px]:block' : 'min-[900px]:block',
-              )}
-            >
-              {/* Les keyframes maison dockPhraseIn etaient declarees par le `sx`
-                  du Box supprime : tw-animate-css rend exactement le meme
-                  mouvement (fondu + montee de 6px sur 420 ms). */}
-              <p
-                key={open ? 'open' : phraseIndex}
-                className="truncate text-sm font-medium text-foreground animate-in fade-in-0 slide-in-from-bottom-[6px] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
-              >
-                {open ? t('assistant.dockLabel') : t(DOCK_PHRASE_KEYS[phraseIndex])}
-              </p>
-            </div>
-
-            {/* Chevron : pointe vers le haut (deplier), pivote a l'ouverture.
-                Masque tant que l'onglet est compact (logo seul). Ruptures ecrites
-                en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind. */}
-            <div
-              className={cn(
-                'hidden text-muted-foreground transition-transform duration-[220ms]',
-                'ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-                open ? 'min-[600px]:flex rotate-180' : 'min-[900px]:flex rotate-0',
-              )}
-            >
-              <ChevronUp size={16} />
-            </div>
-          </button>
       </div>
       )}
 

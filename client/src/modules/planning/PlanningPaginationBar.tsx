@@ -1,6 +1,5 @@
 import React from 'react';
 import PagePagination from '../../components/PagePagination';
-import { cn } from '../../utils/cn';
 import { PAGINATION_BAR_HEIGHT } from './constants';
 
 interface PlanningPaginationBarProps {
@@ -10,11 +9,6 @@ interface PlanningPaginationBarProps {
   rangeEnd: number;
   totalProperties: number;
   onPageChange: (page: number) => void;
-  /**
-   * Réserver à droite la place de l'encoche de l'assistant (`AssistantDockTab`,
-   * ancrée `bottom-0 right-0`). Faux en plein écran, où l'encoche est démontée.
-   */
-  reserveAssistantSlot?: boolean;
 }
 
 /**
@@ -35,20 +29,14 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
   rangeEnd,
   totalProperties,
   onPageChange,
-  reserveAssistantSlot = true,
 }) => {
   return (
+    // La barre reprend toute la largeur : l'encoche de l'assistant, ancrée
+    // `bottom-0 right-0`, lui volait 56 px à droite jusqu'à 900px pour ne pas
+    // recouvrir le bouton « Suivant ». Elle n'existe plus (l'assistant s'ouvre
+    // depuis le logo de la barre latérale), la réserve non plus.
     <div
-      className={cn(
-        'flex items-center px-3 bg-[var(--card)] shrink-0',
-        // 56px = largeur de l'encoche compacte (`w-[56px] min-[900px]:w-[300px]`),
-        // qu'elle garde jusqu'à 900px : sans cette réserve elle recouvrait le
-        // bouton « Suivant ». `pr` et non `pe` : l'encoche est ancrée `right-0`,
-        // bord physique, y compris en RTL. Au-delà de 900px la barre reprend son
-        // `px-3` — l'écran est assez large pour que la pagination centrée reste
-        // dégagée.
-        reserveAssistantSlot && 'pr-[56px] min-[900px]:pr-3',
-      )}
+      className="flex items-center px-3 bg-[var(--card)] shrink-0"
       style={{ height: PAGINATION_BAR_HEIGHT, minHeight: PAGINATION_BAR_HEIGHT, borderTop: '1px solid var(--line)' }}
     >
       <PagePagination

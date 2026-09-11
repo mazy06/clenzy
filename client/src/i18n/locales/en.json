@@ -850,6 +850,10 @@
     "openDock": "Open the assistant",
     "closeDock": "Close the assistant",
     "dockLabel": "Baitly assistant",
+    "launcher": {
+      "hint": "Ask me, for example:",
+      "ask": "Ask this question"
+    },
     "empty": {
       "title": "Ask your question",
       "body": "I use your Baitly data in real time.",
@@ -860,7 +864,17 @@
       "occupancy": "What is my occupancy rate?",
       "arrivals": "Prepare this week's arrivals",
       "guestMessage": "Draft a guest message",
-      "compare": "Compare my performance"
+      "compare": "Compare my performance",
+      "revenue": "How much did I earn this month?",
+      "pricing": "Are my weekend rates well positioned?",
+      "gaps": "Find the gaps in my calendar",
+      "cleaning": "Which cleanings still need scheduling?",
+      "unpaid": "Which payments are still outstanding?",
+      "maintenance": "Are any work orders overdue?",
+      "checkouts": "Who checks out tomorrow?",
+      "topProperty": "Which property performs best?",
+      "channels": "Are my listings properly synced?",
+      "lastMinute": "What should I do with this week's empty nights?"
     },
     "composer": {
       "placeholder": "Ask for an analysis, an action, a figure…",
