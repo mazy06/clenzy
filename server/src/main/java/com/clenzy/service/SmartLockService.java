@@ -309,8 +309,13 @@ public class SmartLockService {
         dto.setExternalDeviceId(device.getExternalDeviceId());
         dto.setBrand(device.getBrand() != null ? device.getBrand().name() : null);
         dto.setAccessCodeMode(device.getAccessCodeMode() != null ? device.getAccessCodeMode().name() : null);
-        dto.setStatus(device.getStatus().name());
-        dto.setLockState(device.getLockState().name());
+        // Statut et etat du verrou se gardent comme la marque et le mode juste
+        // au-dessus. Sans cela, une serrure dont l'etat n'a jamais ete remonte
+        // — jamais interrogee, ou marque sans retour d'etat — fait echouer sa
+        // lecture en NullPointerException, et l'ecran qui la demande n'affiche
+        // rien du tout plutot qu'une serrure a l'etat inconnu.
+        dto.setStatus(device.getStatus() != null ? device.getStatus().name() : null);
+        dto.setLockState(device.getLockState() != null ? device.getLockState().name() : null);
         dto.setBatteryLevel(device.getBatteryLevel());
         dto.setOnline(device.getOnline());
         dto.setCreatedAt(device.getCreatedAt());
