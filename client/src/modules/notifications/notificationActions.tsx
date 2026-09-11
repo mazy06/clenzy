@@ -20,6 +20,7 @@ import {
   Warning,
 } from '../../icons';
 import { verbFor } from '../supervision/components/actionVerbs';
+import { factId } from './notificationMeta';
 import type { Notification } from '../../services/api';
 
 /**
@@ -56,14 +57,6 @@ const own = (notification: Notification) => notification.actionUrl ?? null;
 
 /** Cible fixe (route verifiee du registre applicatif). */
 const at = (path: string) => () => path;
-
-/** Entier porte par les faits de la notification (identifiant de navigation). */
-function factId(notification: Notification, key: string): number | null {
-  const raw = notification.metadata?.[key];
-  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw);
-  return null;
-}
 
 /**
  * Un geste du catalogue. `intent` est un nom court, prefixe ici en cle i18n :

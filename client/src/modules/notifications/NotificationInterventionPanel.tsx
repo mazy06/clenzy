@@ -19,7 +19,7 @@ import {
   photoList,
   priorityTone,
 } from './NotificationFieldParts';
-import { formatFactDate } from './notificationMeta';
+import { deepLinkId, factId, formatFactDate } from './notificationMeta';
 import type { Property } from '../../services/api/propertiesApi';
 import type { Notification } from '../../services/api';
 
@@ -42,12 +42,20 @@ import type { Notification } from '../../services/api';
  * qualifie pas un champ, elle qualifie tout ce qui suit.</p>
  */
 
-/** Intervention designee par une notification, ou `null`. */
+/**
+ * Intervention designee par une notification, ou `null`.
+ *
+ * <p>Le fait d'abord ; a defaut, la fiche visee par le lien profond
+ * ({@code /interventions/97}), que ces notifications portent depuis toujours.
+ * Sans ce repli, aucune des fiches emises avant les faits structures ne
+ * s'ouvrirait — et rien ne les fera renotifier.</p>
+ */
 export function interventionIdOf(notification: Notification): number | null {
-  const raw = notification.metadata?.interventionId;
-  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw);
-  return null;
+  if (!notification.notificationKey?.startsWith('INTERVENTION_')) {
+    return factId(notification, 'interventionId');
+  }
+  return factId(notification, 'interventionId')
+    ?? deepLinkId(notification, { pathPrefix: '/interventions' });
 }
 
 export interface InterventionDossier {

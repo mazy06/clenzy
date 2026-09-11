@@ -102,6 +102,53 @@ export function startOfDay(dateStr: string): number {
   return d.getTime();
 }
 
+// ─── Identifiants portes par une notification ────────────────────────────────
+
+/**
+ * Entier lu dans les FAITS de la notification.
+ *
+ * <p>C'est la source de verite : l'emetteur l'a depose la exactement pour
+ * qu'on le lise.</p>
+ */
+export function factId(notification: Notification, key: string): number | null {
+  const raw = notification.metadata?.[key];
+  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
+  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw);
+  return null;
+}
+
+/**
+ * Entier repeche dans le LIEN PROFOND de la notification.
+ *
+ * <p>Les faits structures sont recents ; les notifications emises avant ne les
+ * portent pas, et rien ne les fera renotifier. Leur `actionUrl`, elle, a
+ * toujours designe l'objet — c'est un lien CHOISI par l'emetteur, pas de la
+ * prose, et le seul moyen de ne pas laisser ces fiches muettes a vie.</p>
+ *
+ * <p>Deux formes coexistent selon l'ecran vise : un parametre `highlight`
+ * (&laquo; ouvre cet onglet, surligne cette ligne &raquo;) ou un segment de
+ * chemin (&laquo; ouvre cette fiche &raquo;). Le segment doit etre entierement
+ * numerique : {@code /interventions/pending-payment} est une route, pas un
+ * identifiant.</p>
+ */
+export function deepLinkId(
+  notification: Notification,
+  source: { param: string } | { pathPrefix: string },
+): number | null {
+  const url = notification.actionUrl;
+  if (!url) return null;
+
+  if ('param' in source) {
+    const value = new URLSearchParams(url.split('?')[1] ?? '').get(source.param);
+    return value && /^\d+$/.test(value) ? Number(value) : null;
+  }
+
+  const path = url.split('?')[0].split('#')[0];
+  if (!path.startsWith(`${source.pathPrefix}/`)) return null;
+  const segment = path.slice(source.pathPrefix.length + 1).split('/')[0];
+  return /^\d+$/.test(segment) ? Number(segment) : null;
+}
+
 export interface NotificationDestination {
   /** Chemin complet (query comprise) passe a navigate(). */
   path: string;

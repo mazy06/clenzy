@@ -18,7 +18,7 @@ import {
   formatDuration,
   priorityTone,
 } from './NotificationFieldParts';
-import { formatFactDate } from './notificationMeta';
+import { deepLinkId, factId, formatFactDate } from './notificationMeta';
 import type { Notification } from '../../services/api';
 
 /**
@@ -37,22 +37,6 @@ import type { Notification } from '../../services/api';
  * constat pour l'autre.</p>
  */
 
-/** Identifiant porte par les faits, ou repeche dans le lien profond de l'emetteur. */
-function idFrom(notification: Notification, fact: string): number | null {
-  const raw = notification.metadata?.[fact];
-  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw);
-
-  // Repli pour les notifications emises avant que le fait n'existe. L'`actionUrl`
-  // est un lien CHOISI par l'emetteur, pas de la prose : `highlight` y designe
-  // l'objet depuis toujours, et c'est la seule facon de ne pas laisser ces
-  // fiches muettes a vie.
-  const url = notification.actionUrl;
-  if (!url) return null;
-  const highlight = new URLSearchParams(url.split('?')[1] ?? '').get('highlight');
-  return highlight && /^\d+$/.test(highlight) ? Number(highlight) : null;
-}
-
 /** Cles portant une DEMANDE de service. */
 const REQUEST_KEYS = /^SERVICE_REQUEST_/;
 /** Cles portant un SIGNALEMENT terrain. */
@@ -66,11 +50,12 @@ export type RequestSubject =
 export function requestSubjectOf(notification: Notification): RequestSubject | null {
   const key = notification.notificationKey ?? '';
   if (ISSUE_KEYS.has(key)) {
-    const id = idFrom(notification, 'issueId');
+    const id = factId(notification, 'issueId') ?? deepLinkId(notification, { param: 'highlight' });
     return id === null ? null : { kind: 'issue', id };
   }
   if (REQUEST_KEYS.test(key)) {
-    const id = idFrom(notification, 'serviceRequestId');
+    const id = factId(notification, 'serviceRequestId')
+      ?? deepLinkId(notification, { param: 'highlight' });
     return id === null ? null : { kind: 'request', id };
   }
   return null;
