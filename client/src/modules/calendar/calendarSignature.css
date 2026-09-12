@@ -6,30 +6,40 @@
    Scopé sous .cal-signature pour ne toucher que cet écran.
    ============================================================ */
 
-/* Week-end teinté — mêmes valeurs que la grille planning (constantes locales
-   validées planningUrgency.css : --pl-day-we / --pl-cell-we), redéclarées ici
-   car l'écran calendrier peut se charger sans le module planning. */
+/* Week-end teinté et surface d'entête — MÊMES dérivations que la grille planning
+   (planningUrgency.css : --pl-day-we / --pl-cell-we / --pl-surface-2),
+   redéclarées ici car l'écran calendrier peut se charger sans le module
+   planning.
+
+   En sombre elles sont DÉRIVÉES de la surface de la grille au lieu d'être
+   écrites en dur. Les valeurs figées (#121A21 / #131C23) venaient de l'ancienne
+   palette gris-ardoise ; la grille étant passée à l'encre de marque
+   (`--bui-card`), un week-end resté gris trahissait l'écart de teinte à chaque
+   colonne. Les proportions reproduisent les creux d'origine et suivront tout
+   réglage de la palette. */
 .cal-signature {
   --cal-day-we: #F2F6F7;
   --cal-cell-we: #F8FAFB;
+  --cal-surface-2: var(--surface-2);
 }
 [data-theme="dark"] .cal-signature {
-  --cal-day-we: #121A21;
-  --cal-cell-we: #131C23;
+  --cal-day-we: color-mix(in srgb, var(--bui-card) 85%, black);
+  --cal-cell-we: color-mix(in srgb, var(--bui-card) 91%, black);
+  --cal-surface-2: color-mix(in srgb, var(--bui-card) 85%, black);
 }
 
 .cal-signature .fc {
   /* Hairlines + fonds (tokens Signature) */
-  --fc-border-color: var(--line);
-  --fc-page-bg-color: var(--card);
-  --fc-neutral-bg-color: var(--surface-2);
+  --fc-border-color: var(--bui-border);
+  --fc-page-bg-color: var(--bui-card);
+  --fc-neutral-bg-color: var(--cal-surface-2);
   --fc-today-bg-color: transparent;        /* le « today » vit dans la pastille */
   --fc-now-indicator-color: #E5484D;       /* ligne « maintenant » (spec .pl-now) */
   --fc-list-event-hover-bg-color: var(--hover);
   --fc-event-border-color: transparent;
 
   /* Boutons toolbar — repris du pattern .s-btn (contour, jamais d'aplat) */
-  --fc-button-bg-color: var(--card);
+  --fc-button-bg-color: var(--bui-card);
   --fc-button-border-color: var(--line-2);
   --fc-button-text-color: var(--body);
   --fc-button-hover-bg-color: var(--hover);
@@ -73,7 +83,7 @@
 
 /* ── Entêtes de colonnes (jours) — overline planning (.pl-day .wd) ── */
 .cal-signature .fc .fc-col-header-cell {
-  background: var(--surface-2);
+  background: var(--cal-surface-2);
 }
 .cal-signature .fc .fc-col-header-cell-cushion {
   font-size: 10.5px;
@@ -173,7 +183,7 @@
   overflow: hidden;
 }
 .cal-signature .fc .fc-list-day-cushion {
-  background: var(--surface-2);
+  background: var(--cal-surface-2);
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: .06em;

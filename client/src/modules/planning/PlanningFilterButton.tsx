@@ -108,7 +108,7 @@ const ModalToggleChip: React.FC<{
       MODAL_CHIP_CLS,
       active
         ? 'text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)]'
-        : 'text-[var(--body)] bg-[var(--card)] border-[var(--line-2)] hover:border-[var(--faint)]',
+        : 'text-[var(--body)] bg-[var(--bui-card)] border-[var(--line-2)] hover:border-[var(--faint)]',
     )}
   >
     {icon && (
@@ -215,7 +215,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               </div>
             </div>
 
-            <Separator className="mb-3 bg-[var(--line)]" />
+            <Separator className="mb-3 bg-[var(--bui-border)]" />
 
             <div className="mb-3">
               <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
@@ -230,7 +230,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               </div>
             </div>
 
-            <Separator className="mb-3 bg-[var(--line)]" />
+            <Separator className="mb-3 bg-[var(--bui-border)]" />
           </>
         )}
 
@@ -285,7 +285,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
         {/* Clear all filters */}
         {(hasActiveFilters || activeFilterCount > 0) && (
-          <div className="mt-2 pt-2 border-t border-[var(--line)]">
+          <div className="mt-2 pt-2 border-t border-[var(--bui-border)]">
             <span className="cn-text-caption text-[var(--err)] cursor-pointer font-semibold text-[0.75rem] hover:decoration-[underline]" onClick={() => {
                 onClearFilters();
                 setFilterOpen(false);
@@ -345,7 +345,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="w-auto min-w-[300px] max-w-[360px] p-3 rounded-[var(--radius-lg)] border border-solid border-[var(--line-2)] bg-[var(--card)] shadow-[var(--shadow-pop)]"
+        className="w-auto min-w-[300px] max-w-[360px] p-3 rounded-[var(--radius-lg)] border border-solid border-[var(--line-2)] bg-[var(--bui-card)] shadow-[var(--shadow-pop)]"
       >
         {/* Un seul enfant : le `gap` en colonne du primitif ne s'applique alors
             a rien, et les marges d'origine des sections restent la reference. */}

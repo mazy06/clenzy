@@ -361,8 +361,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         // Maquette Signature : drawer droite ~480px (palier `sm` MUI = 600),
         // plein ecran en dessous. Filet accent 2px en haut.
         'w-screen max-w-[100vw] min-[600px]:w-[480px]',
-        'border-s border-t-2 border-solid border-s-[color:var(--line)] border-t-[color:var(--accent)]',
-        'bg-[var(--card)] shadow-[var(--shadow-drawer)]',
+        'border-s border-t-2 border-solid border-s-[color:var(--bui-border)] border-t-[color:var(--accent)]',
+        'bg-[var(--bui-card)] shadow-[var(--shadow-drawer)]',
         'transition-transform duration-200 ease-[var(--ease-out)] motion-reduce:transition-none',
         open
           ? 'translate-x-0'
@@ -370,7 +370,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
       )}
     >
       {/* ─── Entête : titre display + sous-titre séjour + ✕ pastille ──── */}
-      <div className="flex items-center justify-between gap-1.5 px-3 py-2 border-b border-[var(--line)]">
+      <div className="flex items-center justify-between gap-1.5 px-3 py-2 border-b border-[var(--bui-border)]">
         <div className="min-w-0 flex-1">
           <span className="block font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {headerTitle}

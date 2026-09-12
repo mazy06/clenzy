@@ -131,7 +131,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       </div>
 
       {/* Cost details */}
-      <div className="p-2 border border-[var(--line)] rounded-[10px] mb-3">
+      <div className="p-2 border border-[var(--bui-border)] rounded-[10px] mb-3">
         <div className="flex justify-between items-center mb-0.5">
           <div className="flex items-center gap-0.5">
             <span className="inline-flex text-[var(--muted)]"><Schedule size={14} strokeWidth={1.75} /></span>

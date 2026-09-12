@@ -51,7 +51,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
           <div
             key={url}
             onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
-            className="relative w-full pt-[75%] rounded-[10px] overflow-hidden cursor-pointer border border-solid border-[var(--line)] transition-[opacity,border-color] duration-150 hover:opacity-85 hover:border-[var(--line-2)] motion-reduce:transition-none"
+            className="relative w-full pt-[75%] rounded-[10px] overflow-hidden cursor-pointer border border-solid border-[var(--bui-border)] transition-[opacity,border-color] duration-150 hover:opacity-85 hover:border-[var(--line-2)] motion-reduce:transition-none"
           >
             <img className="absolute top-[0px] start-[0px] w-full h-full object-cover" src={url} alt={`${label} ${i + 1}`} />
             {/* "+N" overlay on last visible */}

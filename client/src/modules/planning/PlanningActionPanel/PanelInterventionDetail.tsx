@@ -66,7 +66,7 @@ const STATUS_HEX: Record<string, string> = {
 };
 
 /** Coque de l'accordeon : le liseré et le rayon que portait le `sx` MUI. */
-const ACCORDION_CLASS = 'rounded-[8px] border border-solid border-[var(--line)] overflow-hidden';
+const ACCORDION_CLASS = 'rounded-[8px] border border-solid border-[var(--bui-border)] overflow-hidden';
 /** En-tete d'accordeon : hauteur 36 et gouttieres reprises du gabarit MUI. */
 const ACCORDION_TRIGGER_CLASS = 'min-h-9 items-center px-2 py-1';
 
@@ -227,7 +227,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
 
       {/* Édition du montant : nouveau montant / remise € / remise % */}
       {amountEditOpen && (
-        <div className="mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--field)]">
+        <div className="mb-2 p-2 rounded-[10px] border border-[var(--bui-border)] bg-[var(--field)]">
           <div className="flex gap-0.5 mb-1.5 flex-wrap">
             {([
               ['SET', 'Nouveau montant'],
@@ -251,7 +251,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           <div className="flex items-center gap-1">
             {/* Le champ n'avait pas de libelle : les puces de mode au-dessus font
                 office d'intitule, d'ou l'aria-label qui reprend le mode actif. */}
-            <InputGroup className="flex-1 bg-[var(--card)]">
+            <InputGroup className="flex-1 bg-[var(--bui-card)]">
               <InputGroupInput
                 id="intervention-amount"
                 type="number"

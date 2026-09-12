@@ -813,7 +813,7 @@ const PlanningPage: React.FC = () => {
       className={cn(
         'flex flex-col',
         nav.isFullscreen
-          ? 'fixed inset-0 m-0 z-[1300] h-screen bg-[var(--bg)]'
+          ? 'fixed inset-0 m-0 z-[1300] h-screen bg-[var(--bui-background)]'
           : 'm-[-9px] min-[900px]:m-[-12px] h-svh min-[900px]:h-screen',
       )}
     >

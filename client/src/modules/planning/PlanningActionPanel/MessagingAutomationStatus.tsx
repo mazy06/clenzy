@@ -107,7 +107,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
           />
 
           {/* Destinataire */}
-          <div className="flex items-start gap-[4.5px] mt-[4.5px] pt-[4.5px]" style={{ borderTop: '1px dashed var(--line)' }}>
+          <div className="flex items-start gap-[4.5px] mt-[4.5px] pt-[4.5px]" style={{ borderTop: '1px dashed var(--bui-border)' }}>
             <span className={cn('inline-flex mt-px', hasEmail ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
               {hasEmail
                 ? <CheckCircle size={13} strokeWidth={2} />

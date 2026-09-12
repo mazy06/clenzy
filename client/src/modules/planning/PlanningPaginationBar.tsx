@@ -36,8 +36,8 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
     // recouvrir le bouton « Suivant ». Elle n'existe plus (l'assistant s'ouvre
     // depuis le logo de la barre latérale), la réserve non plus.
     <div
-      className="flex items-center px-3 bg-[var(--card)] shrink-0"
-      style={{ height: PAGINATION_BAR_HEIGHT, minHeight: PAGINATION_BAR_HEIGHT, borderTop: '1px solid var(--line)' }}
+      className="flex items-center px-3 bg-[var(--bui-card)] shrink-0"
+      style={{ height: PAGINATION_BAR_HEIGHT, minHeight: PAGINATION_BAR_HEIGHT, borderTop: '1px solid var(--bui-border)' }}
     >
       <PagePagination
         page={currentPage}

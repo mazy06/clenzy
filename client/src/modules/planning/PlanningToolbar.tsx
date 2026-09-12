@@ -55,16 +55,16 @@ interface PlanningToolbarProps {
 
 /** Fleches de navigation : carre 28 px filete, encre sourde qui vire accent au survol. */
 const NAV_BTN_CLS =
-  'size-[28px] rounded-[9px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] '
+  'size-[28px] rounded-[9px] border border-solid border-[var(--line-2)] bg-[var(--bui-card)] text-[var(--muted)] '
   + 'transition-[color,border-color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none '
-  + 'hover:bg-[var(--card)] hover:text-[var(--accent)] hover:border-[var(--accent)]';
+  + 'hover:bg-[var(--bui-card)] hover:text-[var(--accent)] hover:border-[var(--accent)]';
 
 /** Segment du selecteur de zoom — l'onglet actif se detache en carte encrée. */
 const ZOOM_ITEM_CLS =
   'inline-flex h-[22px] items-center rounded-[6px] border-0 px-[9px] min-[480px]:px-[13px] py-0 text-[0.75rem] font-semibold leading-none normal-case tracking-[0.01em] '
   + 'text-[var(--muted)] transition-[background-color,color] duration-[140ms] motion-reduce:transition-none '
   + 'hover:bg-transparent hover:text-[var(--body)] '
-  + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--ink)] '
+  + 'data-[state=on]:bg-[var(--bui-card)] data-[state=on]:text-[var(--ink)] '
   + 'data-[state=on]:shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)]';
 
 // ─── Navigation de dates + zoom (réutilisable) ───────────────────────────────
@@ -141,7 +141,7 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
       variant="outline"
       aria-label="Aller à aujourd'hui"
       onClick={onGoToday}
-      className="size-[28px] shrink-0 justify-center gap-0 p-0 min-[480px]:size-auto min-[480px]:gap-1 min-[480px]:px-2 min-[480px]:py-0 text-[0.6875rem] font-semibold min-[480px]:h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--brand-ink)]"
+      className="size-[28px] shrink-0 justify-center gap-0 p-0 min-[480px]:size-auto min-[480px]:gap-1 min-[480px]:px-2 min-[480px]:py-0 text-[0.6875rem] font-semibold min-[480px]:h-[28px] rounded-[9px] cursor-pointer bg-[var(--bui-card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--brand-ink)]"
     >
       <TodayOutlined size={13} strokeWidth={1.75} />
       <span className="hidden min-[480px]:inline">Aujourd'hui</span>

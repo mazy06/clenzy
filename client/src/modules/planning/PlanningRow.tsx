@@ -477,7 +477,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   }, [quickCreateOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="relative bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--line)' }} onMouseDown={handleMouseDown}>
+    <div className="relative bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--bui-border)' }} onMouseDown={handleMouseDown}>
       {/* Day column backgrounds (weekends + today) */}
       {days.map((day, idx) => {
         const weekend = isWeekend(day);
@@ -506,7 +506,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
+          backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--bui-border) ${dayWidth - 1}px ${dayWidth}px)`,
           backgroundSize: `${totalGridWidth - 1}px 100%`,
           backgroundRepeat: 'no-repeat',
         }}

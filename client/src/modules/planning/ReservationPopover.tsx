@@ -30,7 +30,7 @@ import { toDate, daysBetween } from './utils/dateUtils';
 
 // ─── Popover réservation (maquette Signature) ────────────────────────────────
 //
-// Carte blanche radius 14, hairline var(--line), shadow-pop, ~290px, ouverte
+// Carte blanche radius 14, hairline var(--bui-border), shadow-pop, ~290px, ouverte
 // au clic sur une brique. Entête avatar + nom + canal ; lignes icône+libellé/
 // valeur séparées hairline ; pied : « Message » (messagerie existante) +
 // « Détail » (panneau de détail existant). N'affiche QUE des données déjà
@@ -136,7 +136,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
         align="center"
         aria-label="Récapitulatif de la réservation"
         collisionPadding={8}
-        className="w-[290px] max-w-[calc(100vw-16px)] gap-0 p-0 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
+        className="w-[290px] max-w-[calc(100vw-16px)] gap-0 p-0 rounded-[14px] border border-solid border-[var(--bui-border)] bg-[var(--bui-card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
       >
       {/* Entête : avatar 40 + nom + canal (logo + label) */}
       {/* `p-[12px 14px]` (espace = classe invalide, silencieusement ignoree)
@@ -164,7 +164,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       </div>
 
       {/* Lignes séparées hairline (la 1ère est séparée de l'entête) */}
-      <div className="[&>*]:border-t [&>*]:border-solid [&>*]:border-t-[var(--line)]">
+      <div className="[&>*]:border-t [&>*]:border-solid [&>*]:border-t-[var(--bui-border)]">
         <InfoRow
           icon={
             <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: statusColor }} />
@@ -211,7 +211,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       {/* Pied : Message (secondaire) + Détail (action principale du popover) */}
       {/* `p-[10px 14px]` (espace = classe invalide, silencieusement ignoree)
           remplace par les deux axes. */}
-      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
         <Button variant="outline" size="sm" className="w-full shrink" onClick={onMessage}>
           <ChatBubbleOutline size={ICON_SIZE} strokeWidth={1.75} />
           Message

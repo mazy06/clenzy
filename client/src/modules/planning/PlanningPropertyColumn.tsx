@@ -141,7 +141,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           → la poignée de resize (height:100%) est bornée à CETTE zone (les lignes)
           et NON à la hauteur totale — sinon sa ligne verte de hover/resig courait
           en pleine hauteur dans le vide (effet « 2 colonnes »). */}
-      <div className="relative bg-[var(--card)] border-e border-[var(--line)]">
+      <div className="relative bg-[var(--bui-card)] border-e border-[var(--bui-border)]">
       {/* Drag handle pour redimensionner la colonne (bord droit).
           Hit-area de 6px, visuel discret sauf au hover/drag ; borné aux lignes. */}
       {onColWidthChange && (
@@ -193,8 +193,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           return (
             <React.Fragment key={property.id}>
               <div
-                className="bg-[var(--card)]"
-                style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)' }}
+                className="bg-[var(--bui-card)]"
+                style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--bui-border)' }}
               >
                 <button
                   type="button"
@@ -216,8 +216,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               </div>
               {expandedPropertyId === property.id && (
                 <div
-                  className="bg-[var(--bg)]"
-                  style={{ height: accordionHeight, borderBottom: '1px solid var(--line)', width: 'calc(100% + 1px)' }}
+                  className="bg-[var(--bui-background)]"
+                  style={{ height: accordionHeight, borderBottom: '1px solid var(--bui-border)', width: 'calc(100% + 1px)' }}
                 />
               )}
             </React.Fragment>
@@ -225,7 +225,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         }
         return (
           <React.Fragment key={property.id}>
-          <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)', transition: 'background-color 0.15s ease' }} onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>
+          <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--bui-card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--bui-border)', transition: 'background-color 0.15s ease' }} onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>
             {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
                 nom + ville dessous. Les deux compteurs ont quitté la ligne du
                 nom : accrochés derrière un libellé de longueur variable, ils
@@ -369,8 +369,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             // de colonne sur sa hauteur — le tableau constellation est une
             // surface continue, le filet « 2 colonnes » ne doit pas le couper.
             <div
-              className="bg-[var(--bg)]"
-              style={{ height: accordionHeight, borderBottom: '1px solid var(--line)', width: 'calc(100% + 1px)' }}
+              className="bg-[var(--bui-background)]"
+              style={{ height: accordionHeight, borderBottom: '1px solid var(--bui-border)', width: 'calc(100% + 1px)' }}
             />
           )}
           </React.Fragment>

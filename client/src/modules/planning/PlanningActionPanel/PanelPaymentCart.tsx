@@ -71,7 +71,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
               'flex items-center gap-1 p-1 rounded-lg border border-solid cursor-pointer hover:bg-[var(--hover)] '
               + (item.selected
                 ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--ink)_8%,transparent)]'
-                : 'border-[var(--line)] bg-transparent')
+                : 'border-[var(--bui-border)] bg-transparent')
             }
           >
             <Checkbox

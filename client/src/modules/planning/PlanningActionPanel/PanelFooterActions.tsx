@@ -80,7 +80,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
   const canChangeProperty = Boolean(properties && onChangeProperty);
 
   return (
-    <div className="shrink-0 bg-[var(--card)] p-[12px 16px] grid grid-cols-[1fr_1fr] gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
+    <div className="shrink-0 bg-[var(--bui-card)] p-[12px 16px] grid grid-cols-[1fr_1fr] gap-1.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
       {canChangeProperty && (
         <Button variant="outline" size="sm" onClick={() => setChangePropertyOpen(true)}>
           <SwapHoriz size={13} strokeWidth={1.75} />

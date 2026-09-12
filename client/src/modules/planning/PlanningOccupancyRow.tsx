@@ -68,11 +68,11 @@ const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
     // `mt-auto` : pied de la carte. Le parent (contenu scrollable de
     // PlanningTimeline) est une colonne flex d'au moins la hauteur visible,
     // donc la marge automatique pousse la rangée au bas, sous les lignes.
-    <div className="mt-auto flex bg-[var(--surface-2)]" style={{ borderTop: '1px solid var(--line)' }}>
+    <div className="mt-auto flex bg-[var(--pl-surface-2)]" style={{ borderTop: '1px solid var(--bui-border)' }}>
       {/* Coin sticky aligné sur la colonne logements */}
       <div
         className={cn(
-          'sticky left-0 z-[11] flex shrink-0 items-center overflow-hidden border-r border-solid border-[var(--line)] bg-[var(--surface-2)] py-1.5',
+          'sticky left-0 z-[11] flex shrink-0 items-center overflow-hidden border-r border-solid border-[var(--bui-border)] bg-[var(--pl-surface-2)] py-1.5',
           collapsed ? 'px-0' : 'px-4',
         )}
         style={{ width: propertyColWidth, minWidth: propertyColWidth }}
@@ -90,7 +90,7 @@ const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
         {days.map((day, index) => (
           <div
             key={day.getTime()}
-            className="flex items-center justify-center py-1.5 border-e border-solid border-e-[var(--line)] last:border-e-0 select-none"
+            className="flex items-center justify-center py-1.5 border-e border-solid border-e-[var(--bui-border)] last:border-e-0 select-none"
             style={{
               width: dayWidth,
               minWidth: dayWidth,

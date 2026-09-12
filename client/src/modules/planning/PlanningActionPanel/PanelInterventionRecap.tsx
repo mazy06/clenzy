@@ -190,7 +190,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                 <AccordionItem
                   key={step}
                   value={step}
-                  className="border border-solid border-[var(--line)] rounded-[9px] bg-[var(--card)]"
+                  className="border border-solid border-[var(--bui-border)] rounded-[9px] bg-[var(--bui-card)]"
                 >
                   <AccordionTrigger className="min-h-8 items-center px-2 py-1">
                     <div className="flex items-center gap-0.5">
@@ -240,7 +240,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       ) : (
         <div className="flex flex-col gap-1">
           {signalements.map((s, i) => (
-            <div className="p-2 border border-[var(--line)] rounded-[10px] flex items-start gap-1.5" key={i}>
+            <div className="p-2 border border-[var(--bui-border)] rounded-[10px] flex items-start gap-1.5" key={i}>
               {(() => { const t = SEVERITY_TOKENS[s.severity] || SEVERITY_TOKENS.moyenne; return (
               <>
               <span className="inline-flex mt-[1.5px]" style={{ color: t.color }}><Warning size={16} strokeWidth={1.75} /></span>

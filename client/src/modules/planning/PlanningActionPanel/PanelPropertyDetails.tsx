@@ -258,7 +258,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
     <div>
       {/* ─── HÉRO : aperçu carte (propriété géolocalisée) sinon icône ─── */}
       {hasCoords ? (
-        <div className="rounded-[14px] overflow-hidden border border-[var(--line)] mb-2">
+        <div className="rounded-[14px] overflow-hidden border border-[var(--bui-border)] mb-2">
           <MapboxPropertyMap
             properties={[{
               lat: property.latitude as number,
@@ -304,7 +304,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {accessRows.length > 0 && (
         <div className="mb-2">
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Accès</p>
-          <div className="[&>*+*]:[border-top:1px_solid_var(--line)]">
+          <div className="[&>*+*]:[border-top:1px_solid_var(--bui-border)]">
             {accessRows.map((row) => (
               <div className="flex items-center gap-1.5 py-[7px]" key={row.label}>
                 <span className="inline-flex text-[var(--muted)] shrink-0">
@@ -328,7 +328,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {/* ─── STAT TILES : grid uniforme ────────────────────────────── */}
       <div className="grid gap-[3px] mb-[9px]" style={{ gridTemplateColumns: `repeat(${metrics.length}, 1fr)` }}>
         {metrics.map((m) => (
-          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[8px] min-w-0 gap-0" key={m.label}>
+          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--bui-border)] rounded-[8px] min-w-0 gap-0" key={m.label}>
             <span className="inline-flex text-muted-foreground">{m.icon}</span>
             <p className="cn-text-body1 font-bold leading-[1]" style={{ fontSize: BODY_FS }}>{m.value}</p>
             <p className="cn-text-body1 text-[var(--muted)] leading-[1.1]" style={{ fontSize: MICRO_FS }}>{m.label}</p>
@@ -381,7 +381,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       <Accordion
         type="single"
         collapsible
-        className="border border-solid border-[var(--line)] rounded-lg mb-[9px] px-[7.5px]"
+        className="border border-solid border-[var(--bui-border)] rounded-lg mb-[9px] px-[7.5px]"
       >
         <AccordionItem value="cleaning-config" className="border-b-0">
           <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
@@ -439,7 +439,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         <Accordion
           type="single"
           collapsible
-          className="border border-solid border-[var(--line)] rounded-lg mb-[9px] px-[7.5px]"
+          className="border border-solid border-[var(--bui-border)] rounded-lg mb-[9px] px-[7.5px]"
         >
           <AccordionItem value="cleaning-notes" className="border-b-0">
             <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
@@ -634,7 +634,7 @@ function ListItemCard({
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-1.5 px-1.5 py-[4.5px] border border-solid border-[var(--line)] rounded-lg cursor-pointer transition-[background-color,border-color] duration-150 hover:bg-[var(--hover)] hover:border-[var(--muted)]"
+      className="flex items-center gap-1.5 px-1.5 py-[4.5px] border border-solid border-[var(--bui-border)] rounded-lg cursor-pointer transition-[background-color,border-color] duration-150 hover:bg-[var(--hover)] hover:border-[var(--muted)]"
     >
       <span className="inline-flex text-muted-foreground shrink-0">
         {icon}

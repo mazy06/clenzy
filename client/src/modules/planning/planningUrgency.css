@@ -1,16 +1,44 @@
 /* ─── Tokens locaux de la grille Planning (planning-grid-reference.css) ─────
  *
- * Week-end : valeurs exactes clair/sombre de la référence (--day-we /
- * --cell-we). Consommées via les constantes WEEKEND_HEADER_BG /
- * WEEKEND_CELL_BG (constants.ts). Pas de token global : périmètre planning.
+ * Week-end : un creux dans la surface de la grille. Consommés via les
+ * constantes WEEKEND_HEADER_BG / WEEKEND_CELL_BG (constants.ts). Pas de token
+ * global : périmètre planning.
  */
 :root {
   --pl-day-we: #F2F6F7;  /* entête week-end */
   --pl-cell-we: #F8FAFB; /* cellule week-end */
 }
+
+/* En sombre, ils sont DÉRIVÉS de la surface de la grille au lieu d'être écrits
+ * en dur. Les valeurs figées (#121A21 / #131C23) venaient de l'ancienne palette
+ * gris-ardoise ; la grille étant passée à l'encre de marque (`--bui-card`), un
+ * week-end resté gris trahissait l'écart de teinte à chaque colonne. Les deux
+ * proportions reproduisent les creux d'origine — 9 % et 15 % de noir sous la
+ * surface — et suivront désormais tout réglage de la palette. */
 [data-theme="dark"] {
-  --pl-day-we: #121A21;
-  --pl-cell-we: #131C23;
+  --pl-day-we: color-mix(in srgb, var(--bui-card) 85%, black);
+  --pl-cell-we: color-mix(in srgb, var(--bui-card) 91%, black);
+}
+
+/* ─── Surface sur-élevée de la grille (entêtes de dates, colonne des biens) ──
+ *
+ * `--surface-2` est un jeton GLOBAL, que le Studio redéfinit pour son propre
+ * canevas : on ne le retouche pas, on en dérive un local. En clair il est repris
+ * tel quel ; en sombre il retombait sur l'ancienne palette gris-ardoise (#121A21,
+ * teinte 208) et posait une bande grise en travers d'une grille passée à l'encre
+ * de marque.
+ *
+ * <p>La valeur sombre reprend EXACTEMENT celle de `--pl-day-we` — comme
+ * auparavant, où les deux valaient #121A21. Conséquence héritée et assumée : le
+ * week-end ne se teinte pas dans l'entête en sombre, il ne s'y teintait pas
+ * davantage avant. Les deux se règlent ici, ensemble, le jour où on voudra l'y
+ * rendre visible.</p> */
+:root {
+  --pl-surface-2: var(--surface-2);
+}
+
+[data-theme="dark"] {
+  --pl-surface-2: color-mix(in srgb, var(--bui-card) 85%, black);
 }
 
 /* ─── Palette « Terre cuite » : couleurs de statut des briques ───────────────
@@ -101,14 +129,14 @@
  * et l'ordre d'injection des feuilles de module n'est pas garanti.
  */
 .pl-tip.pl-tip {
-  background-color: var(--card);
+  background-color: var(--bui-card);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--bui-border);
   box-shadow: 0 6px 18px rgba(0, 0, 0, .10);
 }
 .pl-tip .cn-tooltip-arrow {
-  background-color: var(--card);
-  fill: var(--card);
+  background-color: var(--bui-card);
+  fill: var(--bui-card);
 }
 
 /* Infobulle a deux etages (titre + explication). `cn-tooltip-content` est une

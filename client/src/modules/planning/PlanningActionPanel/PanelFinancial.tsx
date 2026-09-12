@@ -171,7 +171,7 @@ const SectionCard: React.FC<{
   badgeTokens: SoftTokens;
   children: React.ReactNode;
 }> = ({ icon, title, badge, badgeTokens, children }) => (
-  <div className="border border-[var(--line)] bg-[var(--card)] rounded-[12px] p-2">
+  <div className="border border-[var(--bui-border)] bg-[var(--bui-card)] rounded-[12px] p-2">
     <div className="flex items-center gap-1.5 mb-2">
       {icon}
       <p className={cn(OVERLINE_CLASS, 'cn-text-body2 flex-1')}>
@@ -1031,7 +1031,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     ? <span className="inline-flex text-muted-foreground"><CleaningServices size={14} strokeWidth={1.75} /></span>
                     : <span className="inline-flex text-muted-foreground"><Handyman size={14} strokeWidth={1.75} /></span>;
                   return (
-                    <div className="flex items-center gap-1 mb-0.5 p-1 rounded-[9px] border border-[var(--line)] bg-[var(--card)]" key={intv.id}>
+                    <div className="flex items-center gap-1 mb-0.5 p-1 rounded-[9px] border border-[var(--bui-border)] bg-[var(--bui-card)]" key={intv.id}>
                       {typeIcon}
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1317,7 +1317,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </div>
           )}
           {payments.length > 0 && (
-            <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
+            <div className="mt-2 pt-1.5 border-t border-[var(--bui-border)]">
               <div className="flex justify-between mb-0.5">
                 <span className="cn-text-caption font-semibold text-[0.75rem]">Total paye</span>
                 <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--ok)]">{fmtCurrency(totalPaid)}</span>

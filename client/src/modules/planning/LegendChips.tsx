@@ -48,7 +48,7 @@ export const sigChipSx = (active: boolean) => ({
   fontWeight: 600,
   lineHeight: 1,
   color: active ? 'var(--accent)' : 'var(--body)',
-  backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
+  backgroundColor: active ? 'var(--accent-soft)' : 'var(--bui-card)',
   border: '1px solid',
   borderColor: active ? 'var(--accent)' : 'var(--line-2)',
   borderRadius: '8px',
@@ -100,7 +100,7 @@ export type LegendChipVariant = 'legend' | 'toggle';
  *  gap: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet, pas 8). */
 const CHIP_BASE_CLS =
   'inline-flex shrink-0 items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
-const CHIP_IDLE_COLORS_CLS = 'text-[var(--body)] bg-[var(--card)] border-[var(--line-2)] hover:border-[var(--faint)]';
+const CHIP_IDLE_COLORS_CLS = 'text-[var(--body)] bg-[var(--bui-card)] border-[var(--line-2)] hover:border-[var(--faint)]';
 const CHIP_TOGGLE_TRANSITION_CLS =
   'transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)]';
 
