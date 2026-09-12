@@ -82,6 +82,12 @@
              (7.5) au seuil : la ligne semblait sous le seuil et bloquait bel et
              bien le build. -->
         <log4j2.version>2.25.5</log4j2.version>
+        <!-- 2.3.35 : CVE-2026-84939 (9.1), traversee de chemin dans le
+             chargement de modeles quand la recherche localisee est active
+             (elle l'est par defaut). Publiee le 2026-09-10, elle couvre 2.2.0
+             a 2.3.34 ; l'avis recommande explicitement 2.3.35. FreeMarker
+             arrive par xdocreport (generation de documents). -->
+        <freemarker.version>2.3.35</freemarker.version>
         <!-- httpcore5 / httpclient5 : plus d'override, ils ne sont plus dans
              l'arbre depuis le retrait de firebase-admin, qui les tirait seul. -->
     </properties>

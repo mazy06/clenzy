@@ -250,4 +250,44 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-.*$</packageUrl>
         <cve>CVE-2026-47841</cve>
     </suppress>
+
+    <!--
+        2026-09-12 — spring-core 6.2.19, cinq CVE publiees les 2026-08-27 et
+        suivantes. Toutes corrigees en **6.2.20**, qui n'est PAS publiee sur
+        Maven Central a ce jour (verifie : HTTP 404 sur
+        repo1.maven.org/.../spring-core/6.2.20/). 3.5.16 etant le dernier Spring
+        Boot de la branche 3.5, aucun correctif ne viendra par le parent.
+
+        Aucune des cinq n'est atteignable, chacune pour une raison verifiable
+        dans l'arbre de dependances ou le code :
+
+        - CVE-2026-47884 (9.8) — SSRF/RCE via `XsltView` dans une application
+          Spring MVC ayant un mapping `/**` qui rend une vue sans nom explicite.
+          Aucune occurrence de `XsltView` ni de `ViewResolver` dans le serveur :
+          l'application n'expose que du JSON, les vues sont rendues par le SPA.
+        - CVE-2026-47885 (7.5) — `PartEventHttpMessageReader` de Spring WebFlux.
+          WebFlux n'est pas dans l'arbre (aucun `spring-boot-starter-webflux`) ;
+          le serveur est servlet, sur Tomcat embarque.
+        - CVE-2026-47886 (7.5) — deni de service sur une expression **SpEL
+          fournie par l'utilisateur**. Aucun `SpelExpressionParser` ni
+          `ExpressionParser` dans le serveur : les seules expressions SpEL sont
+          les chaines litterales des `@PreAuthorize`, ecrites dans le code.
+        - CVE-2026-47888 (7.5) — fuite memoire via une trame SETUP RSocket
+          malformee. RSocket n'est pas dans l'arbre.
+        - CVE-2026-47889 (7.5) — cookies sans `SameSite` sur l'adaptateur
+          reactif Jetty 12 Core. Ni WebFlux ni Jetty dans l'arbre.
+
+        A lever des que 6.2.20 parait sur Maven Central — un simple
+        `<spring-framework.version>` dans le pom suffira alors —, au plus tard
+        a la montee vers Spring Boot 4 / Spring Framework 7.
+    -->
+    <suppress>
+        <notes>spring-core : XsltView, WebFlux, SpEL utilisateur, RSocket et Jetty — aucun de ces chemins n'existe ici ; 6.2.20 non publiee</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-core.*$</packageUrl>
+        <cve>CVE-2026-47884</cve>
+        <cve>CVE-2026-47885</cve>
+        <cve>CVE-2026-47886</cve>
+        <cve>CVE-2026-47888</cve>
+        <cve>CVE-2026-47889</cve>
+    </suppress>
 </suppressions>
