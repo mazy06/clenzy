@@ -14,6 +14,11 @@ const PREF_KEY = 'planning.propertyColWidth';
 export const PROPERTY_COL_MIN_WIDTH = 140;
 /** Max : evite que la colonne ne mange tout le viewport. */
 export const PROPERTY_COL_MAX_WIDTH = 480;
+/**
+ * Seuil a partir duquel la cellule logement montre le carrousel photos : en
+ * dessous, la vignette mangerait la place du nom et de la ville.
+ */
+export const PROPERTY_COL_THUMBNAIL_MIN_WIDTH = 230;
 
 function clampWidth(n: number): number {
   return Math.max(PROPERTY_COL_MIN_WIDTH, Math.min(PROPERTY_COL_MAX_WIDTH, Math.round(n)));

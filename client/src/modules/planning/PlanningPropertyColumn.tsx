@@ -3,6 +3,8 @@ import { cn } from '../../utils/cn';
 import { TooltipProvider, TooltipRoot, TooltipTrigger } from '../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
+import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
+import { PROPERTY_COL_THUMBNAIL_MIN_WIDTH } from './hooks/useResizablePropertyColWidth';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { PlanningProperty, DensityMode } from './types';
 
@@ -134,6 +136,19 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   }, [colWidth, onColWidthChange]);
 
 
+  /**
+   * Vignette photo : elle n'apparait qu'une fois la colonne assez large pour
+   * que le nom et la ville gardent leur place. Elle suit la hauteur de ligne
+   * (ratio paysage 1.45:1) et reste plafonnee a 30% de la colonne — elargir
+   * la colonne fait donc respirer le texte, pas grossir la photo.
+   */
+  const showThumbnail = !collapsed && colWidth >= PROPERTY_COL_THUMBNAIL_MIN_WIDTH;
+  const thumbHeight = Math.max(24, effectiveRowHeight - 12);
+  const thumbWidth = Math.max(
+    thumbHeight,
+    Math.min(Math.round(thumbHeight * 1.45), Math.round(colWidth * 0.3)),
+  );
+
   return (
     <div className="sticky start-0 z-[10] shrink-0" style={{ width: colWidth, minWidth: colWidth }}>
       {/* Colonne visible (fond + bordure droite) bornée aux lignes de propriété :
@@ -230,7 +245,23 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 nom + ville dessous. Les deux compteurs ont quitté la ligne du
                 nom : accrochés derrière un libellé de longueur variable, ils
                 ne s'alignaient d'une ligne à l'autre que par accident. */}
-            <div className="flex-1 min-w-0 flex flex-col gap-[0.75px] ps-4 pe-2">
+            {showThumbnail && (
+              <div className="shrink-0 ps-2">
+                <PropertyImageCarousel
+                  photoUrls={property.photoUrls}
+                  alt={property.name}
+                  width={thumbWidth}
+                  height={thumbHeight}
+                  sx={{ borderRadius: '6px' }}
+                />
+              </div>
+            )}
+            <div
+              className={cn(
+                'flex-1 min-w-0 flex flex-col gap-[0.75px] pe-2',
+                showThumbnail ? 'ps-2' : 'ps-4',
+              )}
+            >
               {/* span nu (et non Typography) : evite l'heritage du variant
                   body1, dont les fontSize responsive du theme MUI peuvent
                   surcharger la taille en breakpoint large. */}
