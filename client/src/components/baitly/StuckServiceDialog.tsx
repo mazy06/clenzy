@@ -1,30 +1,8 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClockIcon, CheckIcon, ClockIcon, TriangleAlertIcon, XCircleIcon } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-  Badge,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Calendar,
-  Card,
-  CardContent,
-  CardFooter,
-  Field,
-  FieldGroup,
-  FieldLabel,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  Label,
-  Spinner,
-} from '../ui';
+import { Alert, AlertDescription, Badge, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Card, CardContent, CardFooter, Field, FieldGroup, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput, Label, Spinner } from '../ui';
+import { Calendar } from '../ui/calendar';
 import { serviceRequestsApi } from '../../services/api/serviceRequestsApi';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { extractApiList } from '../../types';

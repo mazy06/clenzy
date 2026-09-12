@@ -26,17 +26,7 @@ import {
 } from "lucide-react"
 
 import { Button } from '../../../../components/ui'
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from '../../../../components/ui'
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from '../../../../components/ui/command';
 
 export function CommandManyItems() {
   const [open, setOpen] = React.useState(false)

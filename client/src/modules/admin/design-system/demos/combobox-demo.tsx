@@ -3,14 +3,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 
 import { cn } from '../../../../utils/cn'
 import { Button } from '../../../../components/ui'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '../../../../components/ui'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../../components/ui/command';
 import {
   Popover,
   PopoverContent,

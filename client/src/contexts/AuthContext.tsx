@@ -120,6 +120,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // instance, et un useRef garde-fou empecherait le 2e setup d'attacher les
     // listeners alors que la cleanup les a deja detaches.
     const loadUserInfo = async () => {
+      // ── Chemin RAPIDE : le cookie sait deja qui regarde ────────────────────
+      //
+      // `eagerMePromise` ne resout non-null que si le BACKEND a valide le cookie
+      // HttpOnly (`GET /api/auth/session`, Spring Security + TokenCookieFilter)
+      // puis rendu `/api/me`. C'est une session verifiee cote serveur : elle ne
+      // doit rien a Keycloak, et tous les appels d'API qui suivront porteront ce
+      // meme cookie.
+      //
+      // L'attendre DERRIERE `keycloakInitPromise` annulait donc le gain pour
+      // lequel il a ete ecrit : l'init passe par une iframe qui fait l'aller-
+      // retour jusqu'au serveur Keycloak, et l'ecran restait vide pendant tout
+      // ce temps alors que l'identite etait connue depuis longtemps. L'init
+      // continue en fond — c'est elle qui pose `keycloak.token` (WebSocket
+      // STOMP) et arme le refresh proactif —, mais elle ne retient plus le
+      // premier rendu.
+      if (!eagerMeUsedRef.current) {
+        eagerMeUsedRef.current = true;
+        const eagerData = await eagerMePromise.catch(() => null);
+        if (eagerData) {
+          await applyMeData(eagerData);
+          // Laisse l'init finir : on ne lit pas son verdict ici, elle se charge
+          // seule du mode degrade (cf. restoreSessionFromMetadata).
+          void keycloakInitPromise.catch(() => { /* gere dans keycloak.ts */ });
+          return;
+        }
+      }
+
+      // ── Chemin historique : pas de session confirmee par le cookie ─────────
+      //
       // CRITIQUE — await keycloakInitPromise AVANT de checker keycloak.authenticated.
       // Sans ce wait, ce useEffect s'execute AVANT que l'init Keycloak (qui inclut
       // la restauration du token via le cookie HttpOnly clenzy_auth) ait fini. On
@@ -198,20 +227,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
     };
 
+    // Le /me ANTICIPE est consomme en amont, dans `loadUserInfo` : c'est lui qui
+    // permet de rendre l'ecran sans attendre l'init Keycloak. Ici on ne trouve
+    // donc plus que le chemin normal — celui qui refetche avec le token.
     const loadUserFromKeycloak = async () => {
-      // /me ANTICIPÉ (perf boot) : keycloak.ts a lancé le fetch en parallèle du
-      // check-sso dès que la session cookie a été confirmée. On le consomme une
-      // seule fois ; s'il est null (pas de session, échec réseau, 401), on
-      // retombe sur le fetch normal ci-dessous.
-      if (!eagerMeUsedRef.current) {
-        eagerMeUsedRef.current = true;
-        const eagerData = await eagerMePromise.catch(() => null);
-        if (eagerData) {
-          await applyMeData(eagerData);
-          return;
-        }
-      }
-
       try {
         const token = keycloak.token;
         const response = await fetch(API_CONFIG.ENDPOINTS.ME, {

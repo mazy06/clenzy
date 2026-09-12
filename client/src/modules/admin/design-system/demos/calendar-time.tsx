@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Clock2Icon } from "lucide-react"
 
-import { Calendar } from '../../../../components/ui'
+import { Calendar } from '../../../../components/ui/calendar';
 import { Card, CardContent, CardFooter } from '../../../../components/ui'
 import { Field, FieldGroup, FieldLabel } from '../../../../components/ui'
 import {

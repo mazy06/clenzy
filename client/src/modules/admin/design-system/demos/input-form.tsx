@@ -4,15 +4,7 @@ import { z } from "zod"
 
 import { toast } from "sonner"
 import { Button } from '../../../../components/ui'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../../../../components/ui'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../../../../components/ui/form';
 import { Input } from '../../../../components/ui'
 
 const FormSchema = z.object({

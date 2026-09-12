@@ -8,12 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../../../../components/ui'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '../../../../components/ui'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../../../components/ui/chart';
 
 export const description = "An interactive bar chart"
 

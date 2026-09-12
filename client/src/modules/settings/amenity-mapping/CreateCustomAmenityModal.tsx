@@ -10,31 +10,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui';
-import {
-  Alert,
-  AlertDescription,
-  Checkbox,
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  FieldDescription,
-  FieldLabel,
-  Input,
-  NativeSelect,
-  NativeSelectOption,
-} from '../../../components/ui';
+import { Alert, AlertDescription, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldDescription, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../../components/ui';
+import { Combobox, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxLabel, ComboboxList } from '../../../components/ui/combobox';
 
 import {
   amenitiesManagementApi,

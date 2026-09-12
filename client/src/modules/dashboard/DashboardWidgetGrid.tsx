@@ -18,17 +18,8 @@ import {
   LayoutGridIcon as GridViewIcon,
   MoreHorizontalIcon,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '../../components/ui';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../../components/ui/resizable';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { MAX_WIDGETS_PER_ROW, type DashboardRow, type DropSide } from '../../hooks/useDashboardLayout';

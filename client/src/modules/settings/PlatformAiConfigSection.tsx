@@ -4,24 +4,8 @@ import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Field,
-  FieldLabel,
-  Input,
-  InputGroup,
-  InputGroupInput,
-  InputGroupAddon,
-  InputGroupButton,
-  NativeSelect,
-  NativeSelectOption,
-  NativeSelectOptGroup,
-} from '../../components/ui';
+import { Field, FieldLabel, Input, InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton, NativeSelect, NativeSelectOption, NativeSelectOptGroup } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import {
   Dialog,
   DialogContent,

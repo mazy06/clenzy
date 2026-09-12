@@ -1,18 +1,6 @@
 import React, { useId } from 'react';
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-  InputGroupAddon,
-  Spinner,
-} from './ui';
+import { Field, FieldDescription, FieldError, FieldLabel, InputGroupAddon, Spinner } from './ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from './ui/combobox';
 import { LocationOn as LocationOnIcon } from '../icons';
 import { useAddressAutocomplete } from '../hooks/useAddressAutocomplete';
 import type { GeocodedAddress } from '../services/geocoderApi';

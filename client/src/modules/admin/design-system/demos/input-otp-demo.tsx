@@ -1,9 +1,4 @@
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from '../../../../components/ui'
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '../../../../components/ui/input-otp';
 
 export default function InputOTPDemo() {
   return (

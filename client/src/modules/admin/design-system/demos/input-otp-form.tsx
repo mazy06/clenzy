@@ -4,20 +4,8 @@ import { z } from "zod"
 
 import { toast } from "sonner"
 import { Button } from '../../../../components/ui'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../../../../components/ui'
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '../../../../components/ui'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../../../../components/ui/form';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '../../../../components/ui/input-otp';
 
 const FormSchema = z.object({
   pin: z.string().min(6, {

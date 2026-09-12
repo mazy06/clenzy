@@ -3,6 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Depart ANTICIPE des traductions.
+         `main.tsx` bloque le premier rendu sur l'init i18next : rien n'est
+         peint, pas meme la coquille, tant que la locale n'est pas la. Or elle
+         ne pouvait commencer a se telecharger qu'une fois le chunk d'entree
+         recu ET parse — en serie derriere lui. Lancee ici, elle part avec le
+         reste, et le parse JSON remplace un parse de module JS.
+
+         La detection reproduit celle d'i18next-browser-languagedetector
+         (`order: ['localStorage','navigator']`, cle `i18nextLng`,
+         `load: 'languageOnly'`, repli `fr`). Se tromper ne casse rien : l'app
+         redemande la bonne locale, on aura seulement prefetche pour rien.
+
+         `__LOCALE_V__` est remplace au build par une empreinte du CONTENU des
+         trois fichiers (cf. vite.config.ts) : les traductions vivent dans
+         `public/`, donc sans hash dans leur nom, et sans ce jeton un deploiement
+         laisserait les anciennes en cache. -->
+    <script>
+      (function () {
+        var SUPPORTED = ['fr', 'en', 'ar'];
+        var lng = null;
+        try { lng = localStorage.getItem('i18nextLng'); } catch (e) { /* mode prive */ }
+        if (!lng && navigator.language) lng = navigator.language;
+        lng = String(lng || 'fr').split('-')[0].toLowerCase();
+        if (SUPPORTED.indexOf(lng) < 0) lng = 'fr';
+        var version = '__LOCALE_V__';
+        window.__baitlyLocale = {
+          lng: lng,
+          version: version,
+          promise: fetch('/locales/' + lng + '.json?v=' + version).then(function (r) {
+            if (!r.ok) throw new Error('locale ' + lng + ' HTTP ' + r.status);
+            return r.json();
+          }),
+        };
+        // Sans ce `catch`, un echec ici remonterait en rejet non gere avant meme
+        // que i18next ne s'abonne. Le vrai traitement est dans i18n/config.ts.
+        window.__baitlyLocale.promise.catch(function () { /* repris a l'init */ });
+      })();
+    </script>
     <title>Baitly — PMS pour locations courte durée</title>
     <meta name="description" content="Baitly est le Property Management System (PMS) pour gestionnaires de location courte durée : synchronisation multi-OTA, automation messaging WhatsApp/email, briefings IA, comptabilité multi-pays." />
     <meta name="author" content="Baitly" />
@@ -29,29 +68,60 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Plus Jakarta Sans : body/UI principal (humaniste, B2B-ready, terminaisons rondes).
-         Inter conservé pour les surfaces legacy + fallback.
-         Cormorant Garamond (+ italique) / Playfair Display : serifs pour les éléments éditoriaux
-         (booking engine landing + titres du livret d'accueil "welcome book"). -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-    <!-- Hanken Grotesk : police corps/UI du livret d'accueil numérique (identité chaude
-         "welcome book", indépendante du PMS). Chargée avec Cormorant Garamond ci-dessus. -->
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Space Grotesk : font du wordmark Baitly (rendu par ClenzyMarkLogo —
-         nom de composant interne historique, garde pour ne pas casser les imports).
-         Plus geometrique + plus caractere que Jakarta, ideal AI/tech-startup
-         per ui-ux-pro-max. Weights 500/600/700 utilises pour l'icone + le mark. -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <!-- Tajawal : police arabe moderne pour les reponses assistant + UI quand
-         contenu majoritairement arabe. Subset arabic+latin pour ~30KB. -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <!-- TOUTES les familles en UNE requete, et NON BLOQUANTE.
+         Deux defauts corriges ici, mesures sur le build de prod.
+
+         1. Elles etaient declarees en QUATRE feuilles distinctes, donc quatre
+            requetes avant le premier pixel. L'API css2 accepte plusieurs
+            `family=` dans la meme URL, a condition de les trier par ordre
+            alphabetique (sinon elle renvoie une erreur).
+
+         2. Une feuille de style BLOQUE le rendu. Chargement a froid mesure :
+            tous nos assets locaux etaient finis a 213 ms, et cette feuille-la
+            prenait 423 ms a elle seule — le premier bloqueur de l'ecran
+            n'etait plus notre code mais une ressource externe. En `preload`
+            elle est demandee avec la meme priorite mais ne retient plus rien ;
+            le script qui suit la promeut en feuille des qu'elle est la.
+
+         Le basculement de police est sans douleur ici : le premier ecran est un
+         squelette, qui ne porte AUCUN texte. Les polices ont donc tout le temps
+         d'arriver avant que la moindre lettre ne soit peinte. `display=swap`
+         gouverne le reste, comme avant.
+
+         Pas de `<noscript>` : sans JavaScript cette application ne rend rien du
+         tout, la question des polices ne se pose pas.
+
+         Plus Jakarta Sans : body/UI principal (humaniste, B2B-ready).
+         Inter : surfaces legacy + repli.
+         Space Grotesk : wordmark Baitly (rendu par le composant de logo).
+         Cormorant Garamond / Playfair Display : serifs editoriaux (landing du
+           booking engine + titres du livret d'accueil).
+         Hanken Grotesk : corps/UI du livret d'accueil numerique.
+         Tajawal : arabe moderne (reponses assistant + UI en contenu arabe). -->
+    <link id="baitly-fonts" rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap">
+    <script>
+      (function () {
+        var link = document.getElementById('baitly-fonts');
+        // Les scripts s'executent pendant l'analyse du document, alors que
+        // l'evenement `load` est mis en file : l'ecouteur est donc attache
+        // avant qu'il ne puisse partir, meme si la feuille vient du cache.
+        link.addEventListener('load', function () { link.rel = 'stylesheet'; }, { once: true });
+      })();
+    </script>
   </head>
 
 
   <body>
     <div id="root"></div>
-    <!-- Silent SSO check page for Keycloak (optional, harmless if unused) -->
-    <iframe style="display:none" src="/silent-check-sso.html"></iframe>
+    <!-- Pas d'iframe de check-sso ici : keycloak-js cree la SIENNE au moment de
+         l'init (`silentCheckSsoRedirectUri`), avec l'URL du serveur Keycloak, et
+         la retire des qu'elle a repondu. Celle qui vivait a cet endroit chargeait
+         /silent-check-sso.html EN DIRECT — donc sans passer par Keycloak : elle
+         postait son propre href a une page qui n'ecoutait pas encore, et que le
+         listener de keycloak-js aurait de toute facon rejete (il ne retient que
+         les messages de SON iframe). Une requete et un postMessage par
+         chargement, pour rien. `public/silent-check-sso.html` reste : c'est la
+         cible de redirection de la vraie. -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 

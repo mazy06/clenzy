@@ -5735,6 +5735,8 @@
         "dueInDays_other": "Dans {{count}} j"
       },
       "device": {
+        "stayAtRisk": "Un voyageur est sur place : une panne de pile le laisserait dehors.",
+        "noStay": "Le logement est vide : l'intervention peut être planifiée sans gêner personne.",
         "batteryCritical": "Batterie critique",
         "batteryLow": "Batterie faible",
         "batteryOk": "Batterie suffisante",
@@ -5769,12 +5771,37 @@
         "notes": "Notes",
         "cancelledBanner": "Séjour annulé — les nuits sont libérées"
       },
-      "accessCode": {
+      "lockCode": {
+        "actor": "Régénéré par",
+        "lock": "Serrure connectée",
         "current": "Code en vigueur",
+        "validUntil": "Valide jusqu’au",
+        "unknown": "Aucun code n'est en vigueur sur cette serrure : il a été révoqué depuis.",
+        "device": "La serrure",
+        "locked": "Verrouillée",
+        "unlocked": "Déverrouillée",
+        "stay": "Séjour en cours",
+        "guest": "Voyageur",
+        "guestNotified": "Son ancien code ne fonctionne plus. Le nouveau lui a été envoyé automatiquement.",
+        "noStay": "Le logement est vide : personne n'utilisait le code révoqué.",
+        "replaced": "Code remplacé",
+        "replacedLine": "En service depuis le",
+        "revokedAt": "révoqué le"
+      },
+      "accessCode": {
+        "current": "Digicode / boîte à clés en vigueur",
         "copy": "Copier le code",
         "copied": "Copié",
         "autoRotate": "Renouvellement auto",
-        "unknown": "Aucun code d'accès n'est enregistré sur ce logement."
+        "unknown": "Aucun code d'accès n'est enregistré sur ce logement.",
+        "visit": "Qui va s’en servir",
+        "team": "Équipe",
+        "unassigned": "Aucun intervenant assigné",
+        "awaitingAnswer": "En attente de réponse",
+        "visitHint": "C’est cette personne qui trouvera la boîte à clés : le nouveau code doit lui parvenir avant son passage.",
+        "unassignedHint": "La mission n’a pas encore d’intervenant : le nouveau code n’a été transmis à personne.",
+        "noVisit": "Aucune intervention n’est prévue sur ce logement : le nouveau code n’attend personne.",
+        "cancelledHint": "Cette mission a été annulée depuis : plus personne n’est attendu avec ce code."
       },
       "pricing": {
         "drop": "Baisse",
@@ -5860,6 +5887,15 @@
         "retry": "Réessayer"
       },
       "review": {
+        "property": "Le logement",
+        "stay": "Le séjour",
+        "totalReviews": "{{count}} avis",
+        "totalReviews_other": "{{count}} avis",
+        "nights": "{{count}} nuit",
+        "nights_other": "{{count}} nuits",
+        "guests": "{{count}} voyageur",
+        "guests_other": "{{count}} voyageurs",
+        "noStay": "Le canal n'a pas rattaché cet avis à une réservation.",
         "anonymous": "Voyageur",
         "awaitingReply": "Sans réponse",
         "hostReply": "Votre réponse"
@@ -5879,6 +5915,10 @@
         "SUPERVISION_AUTO_APPLIED": "Un agent a appliqué lui-même un geste que vous aviez autorisé en automatique. C'est un compte rendu : rien n'attend de décision.",
         "SUPERVISION_AUTO_RULE_SUGGESTED": "Le même geste revient assez souvent pour valoir une règle : l'agent propose de l'automatiser plutôt que de vous le redemander.",
         "ACCESS_CODE_ROTATED": "Le départ du voyageur a déclenché le renouvellement du code d'accès de ce logement. Le code montré ici est celui qui est EN VIGUEUR, relu à l'instant : une rotation plus récente aurait périmé celui du message.",
+        "SMART_LOCK_CODE_ROTATED_MANUALLY": "Quelqu'un a régénéré à la main le code de cette serrure — la fiche nomme l'auteur du geste. L'ancien code ne fonctionne plus, y compris pour les personnes à qui il avait été communiqué.",
+        "SMART_LOCK_CODE_ROTATED_MANUALLY_actor": "{{actor}} a régénéré à la main le code de cette serrure. L'ancien code ne fonctionne plus, y compris pour les personnes à qui il avait été communiqué.",
+        "SMART_LOCK_CODE_GENERATION_FAILED": "La serrure n'a pas accepté le code : aucun code n'a été posé. Le voyageur arrivera devant une porte qui ne s'ouvre pas.",
+        "SMART_LOCK_CODE_DELIVERY_FAILED": "Le code existe bien sur la serrure, mais le voyageur ne l'a pas reçu. Ce n'est pas un message manqué : c'est une arrivée qui va échouer.",
         "PAYMENT_CONFIRMED": "Le règlement de cette prestation est arrivé. Le dossier ci-dessus est celui qui vient d'être payé — il est rappelé ici pour vérifier que le montant correspond bien à ce qui a été commandé."
       },
       "nextStep": {
@@ -5896,7 +5936,26 @@
         "SUPERVISION_AUTO_APPLIED": "Rien à faire. Si le geste ne vous convient pas, la règle d'automatisation se règle dans Automatisations.",
         "SUPERVISION_AUTO_RULE_SUGGESTED": "Décidez si ce geste doit devenir automatique — l'agent continuera sinon à vous le proposer carte par carte.",
         "ACCESS_CODE_ROTATED": "Reportez le code sur la boîte à clés : c'est le seul endroit que la plateforme ne met pas à jour elle-même.",
+        "SMART_LOCK_CODE_ROTATED_MANUALLY": "Ouvrez la serrure dans Objets connectés pour lire le nouveau code. Si un séjour est en cours, le voyageur l'a déjà reçu par message.",
+        "SMART_LOCK_CODE_GENERATION_FAILED": "Ouvrez la serrure dans Objets connectés : son historique donne le motif exact de l'échec, et « Générer » retente une fois la cause levée.",
+        "SMART_LOCK_CODE_DELIVERY_FAILED": "Vérifiez qu'un modèle de message « Code d'accès » ou « Check-in » est actif, puis transmettez le code au voyageur sans attendre.",
         "PAYMENT_CONFIRMED": "Rien à faire : l'encaissement est enregistré. Ouvrez le dossier si le montant ne correspond pas à ce qui a été commandé."
+      },
+      "message": {
+        "email": "E-mail",
+        "sent": "Envoyé",
+        "failed": "Échec",
+        "template": "Modèle",
+        "preview": "Contenu du message",
+        "bodyUnavailable": "Le texte de ce message n'est plus relisible.",
+        "recipientUnknown": "L'adresse employée n'a pas pu être relue.",
+        "unknownGuest": "Destinataire inconnu",
+        "reason": "Motif du refus",
+        "reasonUnknown": "Le fournisseur n'a pas donné de motif.",
+        "resend": "Renvoyer le message",
+        "resentDone": "Renvoyé",
+        "resendFailed": "Le renvoi n'a pas abouti.",
+        "window": "du {{from}} au {{to}}"
       }
     }
   },

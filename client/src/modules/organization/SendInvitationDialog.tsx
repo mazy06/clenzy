@@ -5,33 +5,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  FieldLabel,
-  FieldDescription,
-  Input,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  NativeSelect,
-  NativeSelectOption,
-  ToggleGroup,
-  ToggleGroupItem,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../../components/ui';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, FieldDescription, Input, InputGroup, InputGroupAddon, InputGroupInput, NativeSelect, NativeSelectOption, ToggleGroup, ToggleGroupItem, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import {
   Send,
   ContentCopy,

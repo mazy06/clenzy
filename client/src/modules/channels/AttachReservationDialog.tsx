@@ -1,26 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TriangleAlert } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-  Button,
-  Spinner,
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  FieldLabel,
-  InputGroupAddon,
-} from '../../components/ui';
+import { Alert, AlertDescription, Button, Spinner, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, InputGroupAddon } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { useAttachToReservation } from '../../hooks/useConversations';
 import { formatPhoneNumber } from '../../utils/formatPhone';

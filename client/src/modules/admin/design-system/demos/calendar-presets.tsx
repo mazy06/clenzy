@@ -2,7 +2,7 @@ import * as React from "react"
 import { addDays } from "date-fns"
 
 import { Button } from '../../../../components/ui'
-import { Calendar } from '../../../../components/ui'
+import { Calendar } from '../../../../components/ui/calendar';
 import { Card, CardContent, CardFooter } from '../../../../components/ui'
 
 export function CalendarWithPresets() {

@@ -11,19 +11,8 @@ import { TriangleAlert } from 'lucide-react';
 import { Card, Skeleton, Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  NativeSelect,
-  NativeSelectOption,
-} from '../../components/ui';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, NativeSelect, NativeSelectOption } from '../../components/ui';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../components/ui/chart';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,

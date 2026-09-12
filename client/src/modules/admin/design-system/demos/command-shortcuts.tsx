@@ -2,16 +2,7 @@ import * as React from "react"
 import { CreditCardIcon, SettingsIcon, UserIcon } from "lucide-react"
 
 import { Button } from '../../../../components/ui'
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from '../../../../components/ui'
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from '../../../../components/ui/command';
 
 export function CommandWithShortcuts() {
   const [open, setOpen] = React.useState(false)

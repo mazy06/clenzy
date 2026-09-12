@@ -1,10 +1,6 @@
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '../../../../components/ui'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '../../../../components/ui/input-otp';
 
 export function InputOTPFourDigits() {
   return (

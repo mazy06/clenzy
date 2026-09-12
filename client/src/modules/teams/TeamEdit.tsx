@@ -5,26 +5,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-  Card,
-  CardContent,
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  NativeSelect,
-  NativeSelectOption,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui';
+import { Avatar, AvatarImage, AvatarFallback, Card, CardContent, NativeSelect, NativeSelectOption, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import {
   Save,
   Cancel,

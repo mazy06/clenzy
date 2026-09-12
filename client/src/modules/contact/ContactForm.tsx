@@ -1,27 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Alert,
-  AlertDescription,
-  Button,
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Field,
-  FieldError,
-  FieldLabel,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupTextarea,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui';
+import { Alert, AlertDescription, Button, Field, FieldError, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput, InputGroupTextarea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';

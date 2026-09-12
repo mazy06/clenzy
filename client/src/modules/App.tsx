@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { Spinner } from '../components/ui';
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
-import keycloak, { keycloakInitPromise } from '../keycloak';
+import keycloak, { authReadyPromise } from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
 import SmartRedirect from '../components/SmartRedirect';
 import { useTokenManagement } from '../hooks/useTokenManagement';
@@ -13,17 +12,24 @@ import { UserUiPreferencesProvider } from '../providers/UserUiPreferencesProvide
 import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHogProvider';
 import { useCrispIdentify } from '../hooks/useCrispIdentify';
 import Login from './auth/Login';
-import Inscription from './auth/Inscription';
 import MainLayoutFull from './layout/MainLayoutFull';
+import { prefetchRoute } from './routePrefetch';
 import AuthenticatedApp from './AuthenticatedApp';
 import RouteFallback from '../components/RouteFallback';
+import AppBootSkeleton from '../components/AppBootSkeleton';
 import { clearTokens } from '../services/storageService';
 
 // Pages publiques secondaires : lazy (code-splitting). Elles n'ont aucune raison
 // d'être dans le bundle d'entrée des utilisateurs authentifiés du PMS —
 // PublicBookingPage tire tout le SDK booking, PublicGuide tire mapbox-gl,
-// SupervisionDemo tire le module supervision + framer-motion. Seuls Login et
-// Inscription restent statiques (chemin d'auth chaud).
+// SupervisionDemo tire le module supervision + framer-motion. Seul Login reste
+// statique (chemin d'auth chaud).
+//
+// Inscription en a été SORTIE : elle monte un formulaire de paiement, donc
+// elle importait `@stripe/react-stripe-js` + `@stripe/stripe-js`, qui
+// atterrissaient dans le chunk d'entrée et se faisaient préloader au boot de
+// TOUS les utilisateurs du PMS — dont aucun ne repasse jamais par l'inscription.
+const Inscription = lazy(() => import('./auth/Inscription'));
 const InscriptionSuccess = lazy(() => import('./auth/InscriptionSuccess'));
 const InscriptionConfirm = lazy(() => import('./auth/InscriptionConfirm'));
 const ForgotPassword = lazy(() => import('./auth/ForgotPassword'));
@@ -91,19 +97,20 @@ function HardRedirectToLogin(): null {
 }
 
 /**
- * Ecran d'attente plein cadre du chemin d'authentification.
+ * Ecran d'attente du chemin d'authentification.
  *
  * <p>Meme forme aux trois moments ou l'app n'a pas encore de quoi rendre une
  * page (init Keycloak, chargement du profil, profil absent) : la triplication
  * du meme bloc garantissait qu'ils divergent au premier retouche.</p>
+ *
+ * <p>Ce n'est plus un sursis tournant mais la COQUILLE, dessinee tout de suite
+ * dans sa geometrie definitive : c'est la seule facon de ne pas sauter quand
+ * l'authentification arrive. Le libelle n'a plus ou se poser — un squelette
+ * qui bat dit deja ce qu'il fait, et la phrase qu'il remplace (« Chargement de
+ * l'authentification... ») ne decrivait qu'une plomberie.</p>
  */
-function AuthLoadingScreen({ label }: { label: string }) {
-  return (
-    <div className="flex h-svh flex-col items-center justify-center gap-3">
-      <Spinner className="size-[60px]" />
-      <p className="text-sm font-semibold text-muted-foreground">{label}</p>
-    </div>
-  );
+function AuthLoadingScreen() {
+  return <AppBootSkeleton />;
 }
 
 // Routes publiques accessibles sans authentification
@@ -142,6 +149,24 @@ const App: React.FC = () => {
   // Déterminer si on est sur une route publique
   const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname)
     || PUBLIC_ROUTE_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
+
+  // Le chunk de la page DEMANDEE part maintenant, pendant l'attente d'auth.
+  //
+  // Il partait jusqu'ici de l'effet de montage d'`AuthenticatedApp`, que
+  // `MainLayoutFull` ne montait qu'une fois sa coquille prete : sur un
+  // rechargement direct d'une route profonde, son telechargement ne commencait
+  // donc qu'APRES l'init Keycloak et `/api/me`. Trois attentes en file, la
+  // troisieme etant sa frontiere Suspense. Ici elle recouvre les deux autres.
+  //
+  // `warmHotRoutes` reste ou il est : programme a l'idle avec 5 s de sursis, il
+  // sert les navigations SUIVANTES et arrive trop tard pour celle-ci.
+  useEffect(() => {
+    if (isPublicRoute) return;
+    prefetchRoute(location.pathname);
+    // Au montage seulement : les navigations ulterieures ont leur propre
+    // prechargement (survol des entrees de la sidebar).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Refs pour les fonctions de token management
   const stopTokenMonitoringRef = useRef<(() => void) | null>(null);
@@ -260,10 +285,10 @@ const App: React.FC = () => {
 
   // Initialisation de Keycloak
   //
-  // CRITIQUE — await keycloakInitPromise AVANT de checker keycloak.authenticated.
+  // CRITIQUE — attendre `authReadyPromise` AVANT de checker keycloak.authenticated.
   // keycloak.init() est lancee dans keycloak.ts au load du module (async,
-  // ~200-500ms le temps du check SSO contre le serveur). Sans l'await, ce
-  // useEffect s'execute AVANT que init() ait fini -> keycloak.authenticated
+  // ~200-500ms le temps du check SSO contre le serveur). Sans cet await, ce
+  // useEffect s'execute AVANT que la session soit tranchee -> keycloak.authenticated
   // est `undefined`/false -> setAuthenticated(false) -> HardRedirectToLogin
   // meme si le user a un cookie HttpOnly valide. C'est le bug du hard refresh
   // qui deconnecte l'user.
@@ -271,11 +296,15 @@ const App: React.FC = () => {
     if (!initialized) {
       const initKeycloak = async () => {
         try {
-          // ATTENDRE la fin du check SSO Keycloak avant toute decision auth.
-          // La promise resolve avec un boolean (authenticated) — on garde
-          // keycloak.authenticated comme source de verite pour rester coherent
-          // avec le reste du code (qui fait `if (keycloak.authenticated)`).
-          await keycloakInitPromise;
+          // ATTENDRE d'avoir de quoi DECIDER — pas la fin du check-sso.
+          //
+          // `authReadyPromise` tranche des que le backend a valide le cookie
+          // HttpOnly (le cas courant d'un rechargement), et ne retombe sur
+          // l'init Keycloak que s'il n'y a pas de cookie a valider. On gagne
+          // ainsi l'aller-retour complet de l'iframe sur le chemin critique,
+          // sans changer la source de verite : `restoreSessionFromMetadata` a
+          // deja pose `keycloak.authenticated`, que le reste du code lit.
+          await authReadyPromise;
 
           if (keycloak.authenticated) {
             setAuthenticated(true);
@@ -305,7 +334,7 @@ const App: React.FC = () => {
   // Affichage du composant de chargement (uniquement pour les routes protégées)
   // Les routes publiques (/login, /inscription) ne doivent pas être bloquées par le loading
   if ((!initialized || authLoading) && !isPublicRoute) {
-    return <AuthLoadingScreen label="Chargement de l'authentification..." />;
+    return <AuthLoadingScreen />;
   }
 
   // Rendu de l'application avec routage
@@ -404,14 +433,14 @@ const App: React.FC = () => {
             ) : (
               // Si authentifié, afficher soit le chargement soit l'app
               authLoading ? (
-                <AuthLoadingScreen label="Chargement de l'utilisateur..." />
+                <AuthLoadingScreen />
               ) : user ? (
                 <MainLayoutFull>
                   <AuthenticatedApp />
                 </MainLayoutFull>
               ) : (
                 // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
-                <AuthLoadingScreen label="Chargement des données utilisateur..." />
+                <AuthLoadingScreen />
               )
             )
           } 

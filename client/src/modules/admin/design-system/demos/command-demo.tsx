@@ -7,16 +7,7 @@ import {
   User,
 } from "lucide-react"
 
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from '../../../../components/ui'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from '../../../../components/ui/command';
 
 export default function CommandDemo() {
   return (
