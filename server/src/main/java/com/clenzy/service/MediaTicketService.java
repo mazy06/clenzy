@@ -29,6 +29,24 @@ public class MediaTicketService {
 
     /** Fenetre de stabilite/rotation du ticket (s). TTL effectif entre WINDOW et 2*WINDOW. */
     private static final long WINDOW_SECONDS = 900; // 15 min
+
+    /**
+     * Fenetre des IMAGES IMMUABLES (avatars, photos de voyageur).
+     *
+     * <p>Une photo de profil ne change jamais, mais son URL portait une fenetre
+     * de 15 minutes : toutes les URL de la page tournaient ensemble quatre fois
+     * par heure, et le navigateur retelechargeait l'ensemble — mesure sur le
+     * planning : cinquante et une images, a chaque franchissement de fenetre.
+     * Une demi-journee ramene cela a un retelechargement par session de travail.
+     *
+     * <p><b>Contrepartie assumee.</b> Une URL qui fuite reste exploitable 12 a
+     * 24 h au lieu de 15 a 30 min. Elle n'ouvre qu'UNE image, dont le porteur
+     * connait deja l'existence puisqu'il en a l'URL signee ; c'est le prix d'un
+     * cache qui tient. Les flux VIDEO gardent la fenetre courte : la, le ticket
+     * garde une source live, pas un portrait.</p>
+     */
+    private static final long IMMUTABLE_WINDOW_SECONDS = 12 * 3600; // 12 h
+
     private static final String HMAC_ALGO = "HmacSHA256";
 
     private final byte[] key;
@@ -39,10 +57,25 @@ public class MediaTicketService {
 
     /** Emet un ticket pour ce flux (null si streamName vide). */
     public String mint(String streamName) {
+        return mint(streamName, WINDOW_SECONDS);
+    }
+
+    /**
+     * Emet un ticket pour une ressource IMMUABLE : meme signature, fenetre longue.
+     *
+     * <p>{@link #verify} lit l'expiration DANS le ticket, il n'a donc aucune
+     * fenetre a connaitre : les deux durees cohabitent sans qu'il change, et les
+     * tickets deja en circulation restent valides.</p>
+     */
+    public String mintForImmutable(String streamName) {
+        return mint(streamName, IMMUTABLE_WINDOW_SECONDS);
+    }
+
+    private String mint(String streamName, long windowSeconds) {
         if (streamName == null || streamName.isBlank()) {
             return null;
         }
-        long exp = expForWindow(Instant.now().getEpochSecond());
+        long exp = expForWindow(Instant.now().getEpochSecond(), windowSeconds);
         return exp + "." + sign(streamName, exp);
     }
 
@@ -70,8 +103,8 @@ public class MediaTicketService {
     }
 
     /** Expiration quantifiee : meme valeur pour toute la fenetre courante (URL stable/cacheable). */
-    private static long expForWindow(long nowSec) {
-        return ((nowSec / WINDOW_SECONDS) + 2) * WINDOW_SECONDS;
+    private static long expForWindow(long nowSec, long windowSeconds) {
+        return ((nowSec / windowSeconds) + 2) * windowSeconds;
     }
 
     /** Signature HMAC-SHA256 base64url (sans padding). Package-private : seam de test. */

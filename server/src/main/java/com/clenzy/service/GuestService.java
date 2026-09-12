@@ -85,8 +85,11 @@ public class GuestService {
                 .filter(g -> organizationId == null || organizationId.equals(g.getOrganizationId()))
                 .map(Guest::getAvatarUrl)
                 .filter(key -> key != null && !key.isBlank() && !key.startsWith("http"))
-                .flatMap(key -> photoStorage.load(key)
-                        .map(res -> new GuestPhoto(res, photoStorage.contentTypeFor(key))));
+                // `loadForDisplay` et non `load` : ce qui part sur le reseau est la
+                // vignette a la taille d'affichage, pas l'original 192x192 dont un
+                // planning envoyait cinquante exemplaires.
+                .flatMap(photoStorage::loadForDisplay)
+                .map(photo -> new GuestPhoto(photo.resource(), photo.contentType()));
     }
 
     /** URL publique de la photo d'un voyageur, ou {@code null} s'il n'en a pas. */

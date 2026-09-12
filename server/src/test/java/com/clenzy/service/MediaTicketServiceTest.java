@@ -62,4 +62,31 @@ class MediaTicketServiceTest {
         MediaTicketService other = new MediaTicketService("another-secret");
         assertThat(other.verify("cam_abc", ticket)).isFalse();
     }
+
+    @Test
+    @DisplayName("mintForImmutable : verifiable, et beaucoup plus stable que la fenetre courte")
+    void immutableTicketIsLongLived() {
+        // Une photo de profil ne change pas : son URL ne doit pas tourner quatre
+        // fois par heure, sinon le navigateur rejette tout son cache d'avatars.
+        String court = service.mint("guest-photo:42");
+        String long_ = service.mintForImmutable("guest-photo:42");
+
+        assertThat(service.verify("guest-photo:42", long_)).isTrue();
+
+        long expCourt = Long.parseLong(court.substring(0, court.indexOf('.')));
+        long expLong = Long.parseLong(long_.substring(0, long_.indexOf('.')));
+        long now = Instant.now().getEpochSecond();
+
+        assertThat(expCourt - now).isLessThanOrEqualTo(1800);      // 2 x 15 min
+        assertThat(expLong - now).isGreaterThan(12 * 3600);        // au moins 12 h
+    }
+
+    @Test
+    @DisplayName("verify ignore la fenetre : il lit l'expiration DANS le ticket")
+    void verifyIsWindowAgnostic() {
+        // C'est ce qui permet aux deux durees de cohabiter sans toucher a verify,
+        // et aux tickets deja en circulation de rester valides.
+        assertThat(service.verify("s", service.mint("s"))).isTrue();
+        assertThat(service.verify("s", service.mintForImmutable("s"))).isTrue();
+    }
 }
