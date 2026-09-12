@@ -277,13 +277,20 @@
         - CVE-2026-47889 (7.5) — cookies sans `SameSite` sur l'adaptateur
           reactif Jetty 12 Core. Ni WebFlux ni Jetty dans l'arbre.
 
+        La suppression couvre TOUT le groupe `org.springframework` : le CPE
+        `spring_framework` est rattache a chaque artefact du framework, pas au
+        seul spring-core. Une entree limitee a spring-core a fait ressortir les
+        memes cinq CVE sur spring-tx au passage suivant du scan. Le groupe
+        `org.springframework` ne contient que le framework — Boot et Security
+        vivent sous `org.springframework.boot` et `org.springframework.security`.
+
         A lever des que 6.2.20 parait sur Maven Central — un simple
         `<spring-framework.version>` dans le pom suffira alors —, au plus tard
         a la montee vers Spring Boot 4 / Spring Framework 7.
     -->
     <suppress>
-        <notes>spring-core : XsltView, WebFlux, SpEL utilisateur, RSocket et Jetty — aucun de ces chemins n'existe ici ; 6.2.20 non publiee</notes>
-        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-core.*$</packageUrl>
+        <notes>spring-framework : XsltView, WebFlux, SpEL utilisateur, RSocket et Jetty — aucun de ces chemins n'existe ici ; 6.2.20 non publiee</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring-.*$</packageUrl>
         <cve>CVE-2026-47884</cve>
         <cve>CVE-2026-47885</cve>
         <cve>CVE-2026-47886</cve>
