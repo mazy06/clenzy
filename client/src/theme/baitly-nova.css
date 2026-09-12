@@ -2035,6 +2035,239 @@
   transform: translateX(calc(-1 * var(--bui-flyout-reveal)));
 }
 
+/* ── La couture d'un tiroir d'onglets avec le volet qui le porte ─────────────
+   Le TROISIÈME tiroir (cf. `SidebarTabsDrawer`) ne sort pas de la barre mais du
+   volet d'un hub — un panneau flottant de quelques centaines de pixels, dont le
+   bord s'ARRÊTE. Toute la difficulté est là : un congé raccorde deux lignes, et
+   il faut donc savoir, en bas, s'il y a encore une ligne à raccorder.
+
+   En HAUT, jamais de question : le tiroir sort au ras du haut du volet, les deux
+   bords hauts sont alignés donc colinéaires. Pas de coin, pas de congé.
+
+   En BAS, quatre cas selon l'écart entre les deux (`data-seam`, mesuré à
+   l'ouverture) :
+
+     `full`      le tiroir s'arrête assez HAUT pour que le bord du volet coure
+                 encore un rayon sous lui : congé classique, celui du volet.
+     `butt`      les deux bas se rejoignent, ou presque : rien à raccorder, la
+                 ligne passe de l'un à l'autre — ou forme un angle droit franc,
+                 qui vaut mieux qu'un arc écrasé.
+     `overhang`  le tiroir dépasse de quelques pixels : trop peu pour loger un
+                 congé, assez pour qu'il lui faille un bord de ce côté-là.
+     `bounded`   le tiroir dépasse franchement : congé INVERSÉ, porté par la
+                 bande de couture, qui raccorde le bas du VOLET au flanc du
+                 tiroir.
+
+   `free` est le repli : aucun bord exploitable (le tiroir a été repoussé hors de
+   la bande du volet), un panneau franchement détaché vaut mieux qu'un raccord
+   faux. */
+
+/* La boîte, commune à tous les modes accolés. La bordure du côté de la couture
+   EXISTE — elle sert partout où le tiroir dépasse le volet — et le pixel de
+   marge la met d'aplomb sur celle du volet : les deux occupent exactement les
+   mêmes pixels, sans quoi les segments visibles de part et d'autre seraient
+   décalés d'un pixel et aucun congé ne pourrait les rejoindre. La bande de
+   couture l'efface sur toute la hauteur partagée. */
+.bui-sidebar-flyout[data-side='right'][data-seam] {
+  border-left: 1px solid var(--bui-sidebar-border);
+  margin-left: 1px;
+  border-top-left-radius: 0;
+  border-top-right-radius: var(--bui-flyout-radius);
+  border-bottom-right-radius: var(--bui-flyout-radius);
+  /* Côté couture, en bas : pris dans la jonction par défaut. */
+  border-bottom-left-radius: 0;
+}
+
+.bui-sidebar-flyout[data-side='left'][data-seam] {
+  border-right: 1px solid var(--bui-sidebar-border);
+  margin-right: 1px;
+  border-top-right-radius: 0;
+  border-top-left-radius: var(--bui-flyout-radius);
+  border-bottom-left-radius: var(--bui-flyout-radius);
+  border-bottom-right-radius: 0;
+}
+
+/* Sauf quand le tiroir descend plus bas que le volet : ce coin redevient LIBRE. */
+.bui-sidebar-flyout[data-side='right'][data-seam='overhang'],
+.bui-sidebar-flyout[data-side='right'][data-seam='bounded'] {
+  border-bottom-left-radius: var(--bui-flyout-radius);
+}
+
+.bui-sidebar-flyout[data-side='left'][data-seam='overhang'],
+.bui-sidebar-flyout[data-side='left'][data-seam='bounded'] {
+  border-bottom-right-radius: var(--bui-flyout-radius);
+}
+
+/* Repli : panneau flottant ordinaire, sans raccord ni marge. */
+.bui-sidebar-flyout[data-side][data-seam='free'] {
+  border: 1px solid var(--bui-sidebar-border);
+  border-radius: var(--bui-flyout-radius);
+  margin: 0;
+}
+
+.bui-sidebar-flyout[data-side][data-seam='free']::before,
+.bui-sidebar-flyout[data-side][data-seam='free']::after {
+  content: none;
+}
+
+/* Les congés du volet se repèrent sur sa boîte de REMPLISSAGE, que la bordure
+   et la marge décalent de 2 px. Ils le rattrapent — et gagnent au passage la
+   tangence EXACTE : leur cercle était calé à un rayon plus un pixel de la
+   médiane, ce pixel étant la morsure qu'il fallait franchir ; sans morsure à
+   franchir, il n'a plus lieu d'être. */
+.bui-sidebar-flyout[data-side='right'][data-seam]::before,
+.bui-sidebar-flyout[data-side='right'][data-seam]::after {
+  left: -3px;
+}
+
+.bui-sidebar-flyout[data-side='left'][data-seam]::before,
+.bui-sidebar-flyout[data-side='left'][data-seam]::after {
+  right: -3px;
+}
+
+/* Haut affleurant : bords colinéaires, aucun coin à évaser. */
+.bui-sidebar-flyout[data-side][data-seam-top='flush']::before {
+  content: none;
+}
+
+/* Le congé du BAS n'appartient au volet que si la ligne du porteur continue
+   sous lui. Ailleurs il n'a rien à raccorder — ou c'est la bande qui le porte. */
+.bui-sidebar-flyout[data-side][data-seam='butt']::after,
+.bui-sidebar-flyout[data-side][data-seam='overhang']::after,
+.bui-sidebar-flyout[data-side][data-seam='bounded']::after {
+  content: none;
+}
+
+/* Le congé inversé vit HORS de la boîte, du côté de la couture — là même où la
+   fenêtre de découpe rogne pendant la course du tiroir. Il faut donc lui ouvrir
+   le passage, mais PAS UNE IMAGE avant que le tiroir soit arrivé : tout ce que
+   la découpe laisse passer de ce côté-là, c'est du corps de tiroir posé à gauche
+   de la couture. Au-dessus du bas du volet cela ne se voit pas (même fond), mais
+   EN DESSOUS, là où le tiroir dépasse, cela faisait apparaître son coin jusqu'à
+   17 px avant sa position finale, qui rejoignait ensuite le reste.
+
+   D'où l'ouverture au FRONT : `data-seam-ready` est posé par
+   `SidebarTabsDrawer` quand l'animation d'ouverture se termine, jamais pendant.
+   Une progression n'aurait pas suffi — elle rampe sur la fin de la courbe, et le
+   passage se serait entrouvert bien avant l'arrivée. */
+.bui-sidebar-flyout[data-seam='bounded'] {
+  --bui-flyout-seam-clearance: 0px;
+}
+
+.bui-sidebar-flyout[data-seam='bounded'][data-seam-ready] {
+  --bui-flyout-seam-clearance: calc(var(--bui-flyout-radius) + 3px);
+}
+
+.bui-sidebar-flyout[data-seam='bounded'][data-side='right'] {
+  clip-path: inset(
+    -30px -40px -30px
+      calc(var(--bui-flyout-cut) - var(--bui-flyout-seam-clearance))
+  );
+}
+
+.bui-sidebar-flyout[data-seam='bounded'][data-side='left'] {
+  clip-path: inset(
+    -30px calc(var(--bui-flyout-cut) - var(--bui-flyout-seam-clearance)) -30px
+      -40px
+  );
+}
+
+/* Les coins du VOLET, côté couture, cessent d'être des coins LIBRES : ce sont
+   des jonctions. Posés par `SidebarTabsDrawer` sur le volet porteur pendant que
+   le tiroir est ouvert, et retirés avec lui.
+
+   En HAUT (toujours) : le tiroir affleure ce bord. Un coin arrondi y creuserait
+   une encoche au milieu de ce qui doit se lire comme une seule ligne.
+
+   En BAS (`both`, dès que le tiroir atteint ou dépasse le bas du volet) : tant
+   qu'il s'arrondissait, le bord bas s'échappait 14 px avant d'atteindre le
+   tiroir — et le congé inversé, lui, ne rencontrait rien. */
+.bui-sidebar-flyout[data-side='right'][data-seam-cut] {
+  border-top-right-radius: 0;
+}
+
+.bui-sidebar-flyout[data-side='left'][data-seam-cut] {
+  border-top-left-radius: 0;
+}
+
+.bui-sidebar-flyout[data-side='right'][data-seam-cut='both'] {
+  border-bottom-right-radius: 0;
+}
+
+.bui-sidebar-flyout[data-side='left'][data-seam-cut='both'] {
+  border-bottom-left-radius: 0;
+}
+
+/* La bande de couture EFFACE la bordure latérale du tiroir sur la seule hauteur
+   partagée avec le volet. Elle voyage avec le corps, contrairement aux congés du
+   volet : c'est la bordure du TIROIR qu'elle recouvre, pas la ligne d'en face.
+   Le `min()` la borne à la boîte : quand le tiroir est plus COURT que le volet,
+   la hauteur partagée est la sienne, et une bande plus longue dépasserait sous
+   lui en barre de fond. */
+.bui-flyout-seam {
+  position: absolute;
+  top: 0;
+  height: min(var(--bui-flyout-seam-end, 100%), 100%);
+  /* 4 px : la ligne partagée, plus un pixel de marge de chaque côté — l'arrondi
+     de position à la densité de l'écran ne doit pas la laisser reparaître. */
+  width: 4px;
+  background: var(--bui-sidebar);
+  pointer-events: none;
+}
+
+.bui-sidebar-flyout[data-side='right'] .bui-flyout-seam {
+  left: -2px;
+}
+
+.bui-sidebar-flyout[data-side='left'] .bui-flyout-seam {
+  right: -2px;
+}
+
+/* Congé INVERSÉ, porté par la bande : il ne raccorde plus le bas du tiroir à une
+   ligne verticale, mais le bas du VOLET au flanc du tiroir. Même arc, autre
+   quadrant — celui du vide, sous le volet et contre le tiroir. */
+.bui-flyout-seam::after {
+  content: '';
+  position: absolute;
+  /* Il MORD d'un pixel sur le bord bas du volet : c'est la rangée de cette
+     bordure. Sans elle dans la boîte, la droite continuait tout son soûl jusqu'à
+     la couture pendant que l'arc s'en écartait — on voyait les deux, et le bout
+     de trait qui dépassait le point de tangence. */
+  top: calc(100% - 1px);
+  /* La boîte part du CENTRE du cercle, qui tombe sur le point de tangence du
+     bord bas : à gauche de ce point la droite doit rester intacte, à droite elle
+     doit disparaître. Le congé ne mord donc jamais au-delà. */
+  width: calc(var(--bui-flyout-radius) + 0.5px);
+  height: calc(var(--bui-flyout-radius) + 1.5px);
+  pointer-events: none;
+  --bui-flyout-cy: calc(var(--bui-flyout-radius) + 0.5px);
+  background: radial-gradient(
+    circle at var(--bui-flyout-cx) var(--bui-flyout-cy),
+    transparent 0 calc(var(--bui-flyout-radius) - 0.75px),
+    var(--bui-sidebar-border) calc(var(--bui-flyout-radius) - 0.25px)
+      calc(var(--bui-flyout-radius) + 0.25px),
+    var(--bui-sidebar) calc(var(--bui-flyout-radius) + 0.75px)
+  );
+}
+
+/* L'arc inversé n'appartient qu'au tiroir qui dépasse franchement. Partout
+   ailleurs la bande se contente d'effacer la bordure : il n'y a pas la place de
+   le déployer (`overhang`), ou rien sous quoi le déployer — il s'évaserait dans
+   le vide, sous le bas du tiroir (`butt`, `full`). */
+.bui-sidebar-flyout[data-seam]:not([data-seam='bounded']) .bui-flyout-seam::after {
+  content: none;
+}
+
+.bui-sidebar-flyout[data-side='right'] .bui-flyout-seam::after {
+  left: calc(1.5px - var(--bui-flyout-radius));
+  --bui-flyout-cx: 0px;
+}
+
+.bui-sidebar-flyout[data-side='left'] .bui-flyout-seam::after {
+  right: calc(1.5px - var(--bui-flyout-radius));
+  --bui-flyout-cx: 100%;
+}
+
 /* ── Ouverture, maintien, fermeture : le TIROIR ───────────────────────────────
    Le volet ne grandit plus sur place : il SORT de la barre. Le corps se
    translate hors d'elle pendant que la fenêtre de découpe se referme d'autant du

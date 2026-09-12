@@ -1,16 +1,9 @@
 import React, { useState, useMemo, useEffect, createContext, useContext } from 'react';
-import {
-  Cable,
-  Sync,
-  Outbox,
-  CalendarMonth,
-  AccountTree,
-  BugReport,
-  CompareArrows,
-} from '../../icons';
+import { Sync } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
 import {
   resolveTabHeader,
   type TabHeaderMeta,
@@ -41,33 +34,15 @@ const SyncAdminHeaderContext = createContext<SyncAdminHeaderApi>({
 
 export const useSyncAdminHeader = (): SyncAdminHeaderApi => useContext(SyncAdminHeaderContext);
 
-// ─── Tab definitions (source of truth) ──────────────────────────────────────
-// Les labels et la metadata sont construits dans le composant via t() pour
-// reagir au changement de langue.
-const TAB_ICONS = [
-  <Cable />,
-  <Sync />,
-  <Outbox />,
-  <CalendarMonth />,
-  <AccountTree />,
-  <BugReport />,
-  <CompareArrows />,
-] as const;
 
 const SyncAdminPage: React.FC = () => {
   const { t } = useTranslation();
 
-  // Source de verite des tabs (avec `key` stable pour l'URL ?tab=<key>). Definie AVANT useTabKeyParam,
-  // dont le resultat (tabValue) est consomme par le useEffect ci-dessous (TDZ).
-  const syncAdminTabs = [
-    { key: 'connections', label: t('tabHeaders.syncAdmin.tabs.connections', 'Connexions'), icon: TAB_ICONS[0] },
-    { key: 'sync-events', label: t('tabHeaders.syncAdmin.tabs.syncEvents', 'Sync Events'), icon: TAB_ICONS[1] },
-    { key: 'outbox', label: t('tabHeaders.syncAdmin.tabs.outbox', 'Outbox'), icon: TAB_ICONS[2] },
-    { key: 'calendar', label: t('tabHeaders.syncAdmin.tabs.calendar', 'Calendrier'), icon: TAB_ICONS[3] },
-    { key: 'mappings', label: t('tabHeaders.syncAdmin.tabs.mappings', 'Mappings'), icon: TAB_ICONS[4] },
-    { key: 'diagnostics', label: t('tabHeaders.syncAdmin.tabs.diagnostics', 'Diagnostics'), icon: TAB_ICONS[5] },
-    { key: 'reconciliation', label: t('tabHeaders.syncAdmin.tabs.reconciliation', 'Reconciliation'), icon: TAB_ICONS[6] },
-  ];
+  // Onglets lus dans le registre partage (config/screenTabs.tsx) — meme liste
+  // que celle que la barre laterale deplie dans son troisieme tiroir. Definie
+  // AVANT useTabKeyParam, dont le resultat (tabValue) est consomme par le
+  // useEffect ci-dessous (TDZ).
+  const syncAdminTabs = useScreenTabs('/admin/sync');
   const [tabValue, setTabValue] = useTabKeyParam(syncAdminTabs);
   const [headerFilters, setHeaderFilters] = useState<React.ReactNode>(null);
   const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);

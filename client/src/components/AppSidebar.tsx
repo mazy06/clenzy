@@ -53,7 +53,8 @@ import { userAvatarSrc } from '../services/api/usersApi';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
 import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
-import type { MenuItem, NavGroup } from '../hooks/useNavigationMenu';
+import type { MenuItem, MenuSubItem, NavGroup } from '../hooks/useNavigationMenu';
+import { useVisibleScreenTabs } from '../hooks/useScreenTabs';
 import { prefetchRoute } from '../modules/routePrefetch';
 import SidebarAssistantLauncher from './SidebarAssistantLauncher';
 import {
@@ -65,6 +66,7 @@ import {
   SidebarFlyoutSeparator,
   sidebarFlyoutClass,
 } from './SidebarFlyout';
+import { SidebarTabsFlyoutRow, SidebarTabsSubRow } from './SidebarTabsDrawer';
 import { cn } from '../utils/cn';
 
 /**
@@ -128,6 +130,91 @@ function NavBadgeDot({ item }: { item: MenuItem }) {
       tone={item.badgeColor}
       className="hidden group-data-[collapsible=icon]:inline-flex"
     />
+  );
+}
+
+/**
+ * Une ligne d'ÉCRAN du sous-menu d'un hub — dans le volet (barre repliée) ou
+ * dans le sous-menu déplié.
+ *
+ * <p>Quand l'écran porte lui-même des onglets, la ligne devient le seuil d'un
+ * TROISIÈME tiroir qui les déplie au survol (cf. {@code SidebarTabsDrawer}).
+ * Sinon, c'est exactement la ligne d'avant : un écran sans onglets — ou dont un
+ * seul onglet est accessible, auquel cas la page ne dessine même pas de barre
+ * d'onglets — n'a rien à déplier.</p>
+ */
+function NavScreenRow({
+  child,
+  variant,
+  isActive,
+  onNavigate,
+  onDone,
+  side,
+}: {
+  child: MenuSubItem;
+  /** Où vit la ligne : dans le volet du hub, ou dans le sous-menu déplié. */
+  variant: 'flyout' | 'sub';
+  isActive: boolean;
+  onNavigate: (path: string) => void;
+  /** Referme le volet du hub après un choix (mode replié). */
+  onDone?: () => void;
+  side: 'left' | 'right';
+}) {
+  const location = useLocation();
+  const tabs = useVisibleScreenTabs(child.path);
+
+  const prefetch = () => prefetchRoute(child.path);
+  const go = (path: string) => {
+    onNavigate(path);
+    onDone?.();
+  };
+
+  if (tabs.length < 2) {
+    if (variant === 'flyout') {
+      return (
+        <SidebarFlyoutRow choice={false} selected={isActive} onSelect={() => go(child.path)}>
+          <span className="truncate">{child.text}</span>
+        </SidebarFlyoutRow>
+      );
+    }
+    return (
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          isActive={isActive}
+          onClick={() => go(child.path)}
+          onMouseEnter={prefetch}
+          onFocus={prefetch}
+          className="max-lg:h-9"
+        >
+          <span className="truncate">{child.text}</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    );
+  }
+
+  // Onglet courant — seulement si c'est l'écran affiché. Même résolution que
+  // `tabIndexFromKey` : une clé d'URL inconnue replie sur l'onglet d'entrée,
+  // sans quoi la barre ne marquerait aucune ligne là où la page en marque une.
+  const raw = new URLSearchParams(location.search).get('tab');
+  const activeKey = location.pathname === child.path
+    ? (tabs.some((tab) => tab.key === raw) ? (raw as string) : tabs[0].key)
+    : undefined;
+
+  const Row = variant === 'flyout' ? SidebarTabsFlyoutRow : SidebarTabsSubRow;
+
+  return (
+    <Row
+      screenLabel={child.text}
+      tabs={tabs}
+      activeKey={activeKey}
+      side={side}
+      isActive={isActive}
+      onNavigate={() => go(child.path)}
+      onPrefetch={prefetch}
+      onSelect={(key) => go(`${child.path}?tab=${key}`)}
+    >
+      <span className="truncate">{child.text}</span>
+    </Row>
   );
 }
 
@@ -220,19 +307,15 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
           >
             <SidebarFlyoutGroup label={item.text}>
               {item.children!.map((child) => (
-                <SidebarFlyoutRow
+                <NavScreenRow
                   key={child.path}
-                  // Une DESTINATION, pas un choix : pas de coche, l'aplat de la
-                  // barre suffit à dire quelle page est ouverte.
-                  choice={false}
-                  selected={isSubActive(child.matchPaths, child.path)}
-                  onSelect={() => {
-                    onNavigate(child.path);
-                    setFlyoutOpen(false);
-                  }}
-                >
-                  <span className="truncate">{child.text}</span>
-                </SidebarFlyoutRow>
+                  child={child}
+                  variant="flyout"
+                  isActive={isSubActive(child.matchPaths, child.path)}
+                  onNavigate={onNavigate}
+                  onDone={() => setFlyoutOpen(false)}
+                  side={tooltipSide}
+                />
               ))}
             </SidebarFlyoutGroup>
           </PopoverContent>
@@ -265,17 +348,14 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
         <CollapsibleContent>
           <SidebarMenuSub>
             {item.children!.map((child) => (
-              <SidebarMenuSubItem key={child.path}>
-                <SidebarMenuSubButton
-                  isActive={isSubActive(child.matchPaths, child.path)}
-                  onClick={() => onNavigate(child.path)}
-                  onMouseEnter={() => prefetchRoute(child.path)}
-                  onFocus={() => prefetchRoute(child.path)}
-                  className="max-lg:h-9"
-                >
-                  <span className="truncate">{child.text}</span>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
+              <NavScreenRow
+                key={child.path}
+                child={child}
+                variant="sub"
+                isActive={isSubActive(child.matchPaths, child.path)}
+                onNavigate={onNavigate}
+                side={tooltipSide}
+              />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>

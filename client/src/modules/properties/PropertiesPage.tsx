@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
-import {
-  Home,
-  TrendingUp,
-  LocalOffer,
-  Inventory2,
-} from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
+import { Home } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import {
@@ -25,10 +21,6 @@ const PORTAL_STYLE = { display: 'contents' } as const;
 
 // ─── Tab indices ────────────────────────────────────────────────────────────
 
-const TAB_PROPERTIES = 0;
-const TAB_PRICING = 1;
-const TAB_VOUCHERS = 2;
-const TAB_CONNECTED_OBJECTS = 3;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. propertiesTabMeta plus bas).
@@ -40,15 +32,13 @@ const PropertiesPage: React.FC = () => {
 
   // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
   // Definie AVANT useTabKeyParam (qui en derive l'onglet actif) et AVANT tout early return.
-  const tabs = [
-    { value: TAB_PROPERTIES, key: 'properties', label: t('propertiesPage.tabs.properties'), icon: <Home /> },
-    { value: TAB_PRICING,    key: 'pricing',    label: t('propertiesPage.tabs.pricing'),    icon: <TrendingUp /> },
-    { value: TAB_VOUCHERS,   key: 'vouchers',   label: t('propertiesPage.tabs.vouchers', 'Codes promo'), icon: <LocalOffer /> },
-    { value: TAB_CONNECTED_OBJECTS, key: 'connected-objects', label: t('propertiesPage.tabs.connectedObjects', 'Objets connectés'), icon: <Inventory2 /> },
-  ];
-  const visibleTabs = tabs.filter((tab) => !(tab as { hidden?: boolean }).hidden);
+  const tabs = useScreenTabs('/properties');
+  const visibleTabs = tabs.filter((tab) => !tab.hidden);
   // useTabKeyParam derive l'onglet actif de l'URL (?tab=<key>) — source de verite, pas de useState/useEffect.
   const [activeTab, setActiveTab] = useTabKeyParam(tabs);
+  // Contenu resolu par CLE : `activeTab` est un index VISIBLE, il ne coincide
+  // avec le rang du registre que tant qu'aucun onglet n'est masque.
+  const activeKey = visibleTabs[activeTab]?.key;
   const handleTabChange = setActiveTab;
 
   // Portal containers: child components render their actions/filters into these DOM elements
@@ -109,16 +99,16 @@ const PropertiesPage: React.FC = () => {
         </div>
 
         {/* ── Tab content ── */}
-        {activeTab === TAB_PROPERTIES && (
+        {activeKey === 'properties' && (
           <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
-        {activeTab === TAB_PRICING && (
+        {activeKey === 'pricing' && (
           <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} tabInlineContainer={tabInlineContainer} />
         )}
-        {activeTab === TAB_VOUCHERS && (
+        {activeKey === 'vouchers' && (
           <VouchersPage embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
-        {activeTab === TAB_CONNECTED_OBJECTS && (
+        {activeKey === 'connected-objects' && (
           <ConnectedObjectsHub embedded actionsContainer={actionsContainer} />
         )}
       </div>

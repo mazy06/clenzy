@@ -1,15 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import {
-  People,
-  Business,
-  PersonSearch,
-  ManageAccounts,
-  CorporateFare,
-  TrendingUp,
-} from '../../icons';
+import React, { useState } from 'react';
 import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useVisibleScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useAuth } from '../../hooks/useAuth';
+import { PersonSearch } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import {
@@ -28,26 +21,6 @@ import ProspectionPage from '../prospection/ProspectionPage';
 // ─── Portal container for child actions in PageHeader ────────────────────────
 const PORTAL_STYLE = { display: 'contents' } as const;
 
-// ─── Tab config ──────────────────────────────────────────────────────────────
-
-interface TabDef {
-  key: string;
-  labelKey: string;
-  icon: React.ReactElement;
-  permission: string;
-  /** If set, user must also have one of these roles */
-  roles?: string[];
-}
-
-const ALL_TABS: TabDef[] = [
-  { key: 'users', labelKey: 'directoryPage.tabs.users', icon: <ManageAccounts />, permission: 'users:manage' },
-  { key: 'teams', labelKey: 'directoryPage.tabs.teams', icon: <People />, permission: 'teams:view' },
-  { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business />, permission: 'portfolios:view' },
-  { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare />, permission: 'users:manage' },
-  { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch />, permission: 'guests:view' },
-  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
-];
-
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. directoryTabMeta plus bas).
 
@@ -55,21 +28,14 @@ const ALL_TABS: TabDef[] = [
 
 const DirectoryPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
 
-  // Build visible tabs based on user permissions
-  const visibleTabs = useMemo(() => {
-    if (!user?.permissions) return [];
-    const userRoles = new Set(user.roles ?? []);
-    return ALL_TABS.filter((tab) => {
-      if (!user.permissions!.includes(tab.permission)) return false;
-      if (tab.roles && !tab.roles.some((r) => userRoles.has(r))) return false;
-      return true;
-    });
-  }, [user?.permissions, user?.roles]);
+  // Onglets lus dans le registre partage (config/screenTabs.tsx), deja filtres
+  // par les droits : la barre laterale deplie EXACTEMENT cette liste dans son
+  // troisieme tiroir.
+  const visibleTabs = useVisibleScreenTabs('/directory');
 
   // useTabKeyParam derive l'onglet actif de l'URL (?tab=<key>) via la `key` stable de chaque
-  // TabDef — robuste aux onglets filtres par permission (l'index visible shifte, jamais la cle).
+  // onglet — robuste aux onglets filtres par permission (l'index visible shifte, jamais la cle).
   const [activeTab, setActiveTab] = useTabKeyParam(visibleTabs);
   const handleTabChange = setActiveTab;
 
@@ -100,7 +66,7 @@ const DirectoryPage: React.FC = () => {
 
   // ── Multiple tabs visible ──
   const activeTabDef = visibleTabs[activeTab];
-  const visibleTabLabels = visibleTabs.map((tab) => t(tab.labelKey));
+  const visibleTabLabels = visibleTabs.map((tab) => tab.label);
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const directoryTabMeta: Record<string, TabHeaderMeta> = {
     [t('directoryPage.tabs.users')]: {
@@ -148,10 +114,7 @@ const DirectoryPage: React.FC = () => {
           filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
         <PageTabs
-          options={visibleTabs.map((tab) => ({
-            label: t(tab.labelKey),
-            icon: tab.icon,
-          }))}
+          options={visibleTabs}
           value={activeTab}
           onChange={handleTabChange}
         />

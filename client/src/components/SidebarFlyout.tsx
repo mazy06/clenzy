@@ -85,6 +85,25 @@ export const SIDEBAR_FLYOUT_SEAM_OFFSET = 6;
 export const SIDEBAR_FLYOUT_ALIGN_OFFSET = 16;
 
 /**
+ * Débord des congés hors du volet — ce qui dépasse de sa boîte, en haut comme
+ * en bas.
+ *
+ * <p>Les congés sont des pseudo-éléments posés à {@code -1px - rayon} du bord :
+ * ils vivent au-DESSUS et au-DESSOUS du volet, pas dedans. Le bord de la pièce
+ * réellement dessinée n'est donc pas celui de la boîte, mais celui-ci plus 15 px
+ * (le rayon) plus la bordure.</p>
+ *
+ * <p>Tant que le volet est accolé à la BARRE, qui court sur toute la hauteur de
+ * l'écran, ce débord est sans conséquence : le congé trouve toujours de la ligne
+ * où s'appuyer. Accolé à un autre volet — un panneau flottant de 400 px —, il
+ * peut tomber dans le vide sous son bord inférieur, et l'arc se referme alors
+ * sur rien. {@code SidebarTabsDrawer} s'en sert pour borner la hauteur du
+ * tiroir de façon que ses deux congés restent DANS la bande du panneau qui le
+ * porte.</p>
+ */
+export const SIDEBAR_FLYOUT_SEAM_REACH = 16;
+
+/**
  * Classe de la coquille, à passer en {@code className} d'un
  * {@code PopoverContent} / {@code HoverCardContent}, avec {@code gap-0 p-0} : le
  * rythme intérieur vient des groupes, comme dans la barre.

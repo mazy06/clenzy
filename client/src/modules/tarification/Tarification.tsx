@@ -6,13 +6,6 @@ import { useNotification } from '../../hooks/useNotification';
 import {
   Save,
   Refresh,
-  Devices,
-  CleaningServices,
-  Timer,
-  Build,
-  Yard,
-  LocalLaundryService,
-  VolumeUp,
   Euro,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -20,6 +13,7 @@ import { useTarification } from '../../hooks/useTarification';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
 import {
   PageHeaderActionsProvider,
   usePageHeaderActionsSlot,
@@ -33,18 +27,6 @@ import TabTravaux from './TabTravaux';
 import TabExterieur from './TabExterieur';
 import TabBlanchisserie from './TabBlanchisserie';
 import TabMonitoring from './TabMonitoring';
-
-// ─── Tab config ──────────────────────────────────────────────────────────────
-
-const TAB_DEFS = [
-  { key: 'pms',           icon: <Devices /> },
-  { key: 'entretien',     icon: <CleaningServices /> },
-  { key: 'menage',        icon: <Timer /> },
-  { key: 'travaux',       icon: <Build /> },
-  { key: 'exterieur',     icon: <Yard /> },
-  { key: 'blanchisserie', icon: <LocalLaundryService /> },
-  { key: 'monitoring',    icon: <VolumeUp /> },
-] as const;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. tarificationTabMeta plus bas).
@@ -77,8 +59,11 @@ export default function Tarification() {
     closeSnackbar();
   }, [snackbar, notify, closeSnackbar]);
 
-  // TAB_DEFS porte deja les `key` stables : on le passe directement au hook (URL ?tab=<key>).
-  const [activeTab, setActiveTab] = useTabKeyParam(TAB_DEFS);
+  // Onglets lus dans le registre partage (config/screenTabs.tsx) : la barre
+  // laterale deplie EXACTEMENT cette liste dans son troisieme tiroir. Les `key`
+  // y sont stables, on passe donc la liste telle quelle au hook (URL ?tab=<key>).
+  const tabs = useScreenTabs('/tarification');
+  const [activeTab, setActiveTab] = useTabKeyParam(tabs);
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -86,10 +71,6 @@ export default function Tarification() {
 
   // Source de verite des tabs — utilisee pour PageTabs ET pour la resolution
   // {title, subtitle} via resolveTabHeader (indexe par label).
-  const tabs = TAB_DEFS.map((tab) => ({
-    label: t(`tarification.tabs.${tab.key}`),
-    icon: tab.icon,
-  }));
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const tarificationTabMeta: Record<string, TabHeaderMeta> = {
     [t('tarification.tabs.pms')]: {
