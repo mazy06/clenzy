@@ -42,6 +42,7 @@ public class InterventionMapper {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final InterventionPhotoService photoService;
+    private final UserAvatarUrlResolver avatarUrls;
 
     public InterventionMapper(PropertyRepository propertyRepository,
                               UserRepository userRepository,
@@ -49,7 +50,8 @@ public class InterventionMapper {
                               InterventionPhotoService photoService,
                               ObjectMapper objectMapper,
                               IssueRepository issueRepository,
-                              IssuePhotoRepository issuePhotoRepository) {
+                              IssuePhotoRepository issuePhotoRepository,
+                              UserAvatarUrlResolver avatarUrls) {
         this.propertyRepository = propertyRepository;
         this.objectMapper = objectMapper;
         this.issueRepository = issueRepository;
@@ -57,6 +59,7 @@ public class InterventionMapper {
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.photoService = photoService;
+        this.avatarUrls = avatarUrls;
     }
 
     /**
@@ -268,9 +271,15 @@ public class InterventionMapper {
                    .assignedToId(intervention.getAssignedToId());
 
             if ("user".equals(intervention.getAssignedToType()) && intervention.getAssignedUser() != null) {
-                builder.assignedToName(intervention.getAssignedUser().getFullName());
-                if (intervention.getAssignedUser().getRole() != null) {
-                    builder.assignedUserRole(intervention.getAssignedUser().getRole().name());
+                User assignee = intervention.getAssignedUser();
+                builder.assignedToName(assignee.getFullName())
+                       // Un intervenant se reconnait a son visage avant son nom : les
+                       // surfaces qui le citent (fiche, planning, notification de code)
+                       // recoivent donc son avatar avec lui, plutot que de le rechercher
+                       // chacune par une requete de plus.
+                       .assignedToAvatarUrl(avatarUrls.publicUrl(assignee.getId(), assignee.getProfilePictureUrl()));
+                if (assignee.getRole() != null) {
+                    builder.assignedUserRole(assignee.getRole().name());
                 }
             } else if ("team".equals(intervention.getAssignedToType()) && intervention.getTeamId() != null) {
                 // Use pre-loaded team name map when available (list conversions) to avoid N+1

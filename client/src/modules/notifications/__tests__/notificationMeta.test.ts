@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FACT_ICON, resolveDestination, resolveMetadataFacts } from '../notificationMeta';
+import { FACT_ICON, deepLinkId, resolveDestination, resolveMetadataFacts } from '../notificationMeta';
 import { SCREEN_ICON } from '../../../config/navigationIcons';
 
 describe('resolveMetadataFacts — faits affichables d\'une notification', () => {
@@ -136,5 +136,39 @@ describe('FACT_ICON — vocabulaire d\'icônes emprunté au PMS', () => {
     expect(FACT_ICON.amount).toBe(SCREEN_ICON['/billing']);
     expect(FACT_ICON.intervention).toBe(SCREEN_ICON['/interventions']);
     expect(FACT_ICON.stay).toBe(SCREEN_ICON['/reservations']);
+  });
+});
+
+describe('deepLinkId — repecher un identifiant dans le lien profond', () => {
+  const notif = (actionUrl?: string): Notification =>
+    ({ id: 1, title: '', message: '', type: 'info', category: 'system', read: false,
+       createdAt: '2026-09-11T10:00:00Z', actionUrl } as Notification);
+
+  it('whenTheLinkOpensARecord_thenThePathSegmentIsTheIdentifier', () => {
+    expect(deepLinkId(notif('/interventions/97'), { pathPrefix: '/interventions' })).toBe(97);
+    expect(deepLinkId(notif('/interventions/97/suivi'), { pathPrefix: '/interventions' })).toBe(97);
+  });
+
+  it('whenTheSegmentIsARoute_thenNothingIsInvented', () => {
+    // « pending-payment » est un ecran, pas une intervention.
+    expect(deepLinkId(notif('/interventions/pending-payment'), { pathPrefix: '/interventions' }))
+      .toBeNull();
+    expect(deepLinkId(notif('/interventions'), { pathPrefix: '/interventions' })).toBeNull();
+  });
+
+  it('whenTheLinkHighlightsARow_thenTheQueryParameterIsTheIdentifier', () => {
+    expect(deepLinkId(notif('/interventions?tab=issues&highlight=42'), { param: 'highlight' }))
+      .toBe(42);
+  });
+
+  it('whenThereIsNoLinkOrNoIdentifier_thenNull', () => {
+    expect(deepLinkId(notif(), { param: 'highlight' })).toBeNull();
+    expect(deepLinkId(notif('/planning'), { param: 'highlight' })).toBeNull();
+    expect(deepLinkId(notif('/interventions?highlight=abc'), { param: 'highlight' })).toBeNull();
+  });
+
+  it('whenTheLinkPointsElsewhere_thenThePrefixIsNotBorrowed', () => {
+    expect(deepLinkId(notif('/interventions-archive/97'), { pathPrefix: '/interventions' }))
+      .toBeNull();
   });
 });

@@ -1,14 +1,5 @@
 import { Button } from '../../../../components/ui'
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '../../../../components/ui'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '../../../../components/ui/drawer';
 
 export function DrawerScrollableContent() {
   return (

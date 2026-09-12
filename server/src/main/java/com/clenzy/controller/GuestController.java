@@ -193,9 +193,14 @@ public class GuestController {
                 .map(photo -> ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(photo.contentType()))
                         // Privee : la photo n'est pas publique, aucun cache
-                        // partage ne doit la garder. La fenetre suit celle du
-                        // ticket, pour qu'une URL cachee reste valide.
-                        .cacheControl(CacheControl.maxAge(15, TimeUnit.MINUTES).cachePrivate())
+                        // partage ne doit la garder.
+                        //
+                        // Six heures, soit la MOITIE de la fenetre du ticket
+                        // (12 h, validite effective 12 a 24 h) : une entree
+                        // servie depuis le cache porte ainsi toujours un ticket
+                        // encore valide. A egalite on risquerait de servir une
+                        // URL peremptoire, et l'avatar disparaitrait sur un 401.
+                        .cacheControl(CacheControl.maxAge(6, TimeUnit.HOURS).cachePrivate())
                         .body(photo.resource()))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

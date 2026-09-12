@@ -4,27 +4,8 @@ import { Badge, Button, Field, FieldLabel, FieldError, Input, Textarea } from '.
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-  Card,
-  CardContent,
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  NativeSelect,
-  NativeSelectOption,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Separator,
-} from '../../components/ui';
+import { Avatar, AvatarImage, AvatarFallback, Card, CardContent, NativeSelect, NativeSelectOption, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {

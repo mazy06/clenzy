@@ -53,7 +53,8 @@ import { userAvatarSrc } from '../services/api/usersApi';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
 import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
-import type { MenuItem, NavGroup } from '../hooks/useNavigationMenu';
+import type { MenuItem, MenuSubItem, NavGroup } from '../hooks/useNavigationMenu';
+import { useVisibleScreenTabs } from '../hooks/useScreenTabs';
 import { prefetchRoute } from '../modules/routePrefetch';
 import SidebarAssistantLauncher from './SidebarAssistantLauncher';
 import {
@@ -65,6 +66,7 @@ import {
   SidebarFlyoutSeparator,
   sidebarFlyoutClass,
 } from './SidebarFlyout';
+import { SidebarTabsFlyoutRow, SidebarTabsSubRow } from './SidebarTabsDrawer';
 import { cn } from '../utils/cn';
 
 /**
@@ -80,8 +82,8 @@ import { cn } from '../utils/cn';
  *  - palette `--bui-sidebar-*` en remplacement des `--nav-*` ;
  *  - un clic sur une entrée de hub **déplie** son sous-menu, la navigation se
  *    fait par les onglets. Exception en mode icônes, où le sous-menu est masqué
- *    par le kit : le clic navigue alors vers le premier onglet, sinon il ne
- *    ferait rien.
+ *    par le kit : le hub ouvre alors ses onglets dans un VOLET accolé à la barre
+ *    (cf. `SidebarFlyout`), le même que les préférences du pied.
  */
 
 const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
@@ -131,6 +133,91 @@ function NavBadgeDot({ item }: { item: MenuItem }) {
   );
 }
 
+/**
+ * Une ligne d'ÉCRAN du sous-menu d'un hub — dans le volet (barre repliée) ou
+ * dans le sous-menu déplié.
+ *
+ * <p>Quand l'écran porte lui-même des onglets, la ligne devient le seuil d'un
+ * TROISIÈME tiroir qui les déplie au survol (cf. {@code SidebarTabsDrawer}).
+ * Sinon, c'est exactement la ligne d'avant : un écran sans onglets — ou dont un
+ * seul onglet est accessible, auquel cas la page ne dessine même pas de barre
+ * d'onglets — n'a rien à déplier.</p>
+ */
+function NavScreenRow({
+  child,
+  variant,
+  isActive,
+  onNavigate,
+  onDone,
+  side,
+}: {
+  child: MenuSubItem;
+  /** Où vit la ligne : dans le volet du hub, ou dans le sous-menu déplié. */
+  variant: 'flyout' | 'sub';
+  isActive: boolean;
+  onNavigate: (path: string) => void;
+  /** Referme le volet du hub après un choix (mode replié). */
+  onDone?: () => void;
+  side: 'left' | 'right';
+}) {
+  const location = useLocation();
+  const tabs = useVisibleScreenTabs(child.path);
+
+  const prefetch = () => prefetchRoute(child.path);
+  const go = (path: string) => {
+    onNavigate(path);
+    onDone?.();
+  };
+
+  if (tabs.length < 2) {
+    if (variant === 'flyout') {
+      return (
+        <SidebarFlyoutRow choice={false} selected={isActive} onSelect={() => go(child.path)}>
+          <span className="truncate">{child.text}</span>
+        </SidebarFlyoutRow>
+      );
+    }
+    return (
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          isActive={isActive}
+          onClick={() => go(child.path)}
+          onMouseEnter={prefetch}
+          onFocus={prefetch}
+          className="max-lg:h-9"
+        >
+          <span className="truncate">{child.text}</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    );
+  }
+
+  // Onglet courant — seulement si c'est l'écran affiché. Même résolution que
+  // `tabIndexFromKey` : une clé d'URL inconnue replie sur l'onglet d'entrée,
+  // sans quoi la barre ne marquerait aucune ligne là où la page en marque une.
+  const raw = new URLSearchParams(location.search).get('tab');
+  const activeKey = location.pathname === child.path
+    ? (tabs.some((tab) => tab.key === raw) ? (raw as string) : tabs[0].key)
+    : undefined;
+
+  const Row = variant === 'flyout' ? SidebarTabsFlyoutRow : SidebarTabsSubRow;
+
+  return (
+    <Row
+      screenLabel={child.text}
+      tabs={tabs}
+      activeKey={activeKey}
+      side={side}
+      isActive={isActive}
+      onNavigate={() => go(child.path)}
+      onPrefetch={prefetch}
+      onSelect={(key) => go(`${child.path}?tab=${key}`)}
+    >
+      <span className="truncate">{child.text}</span>
+    </Row>
+  );
+}
+
 interface NavEntryProps {
   item: MenuItem;
   isActive: boolean;
@@ -143,6 +230,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
   const { state, isMobile } = useSidebar();
   const iconOnly = state === 'collapsed' && !isMobile;
   const hasChildren = (item.children?.length ?? 0) > 0;
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
 
   const prefetch = () => prefetchRoute(item.path);
 
@@ -156,9 +244,8 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
     </>
   );
 
-  // Entrée simple, ou mode icônes : le clic navigue. En mode icônes le
-  // sous-menu est masqué par le kit — déplier n'aurait aucun effet visible.
-  if (!hasChildren || iconOnly) {
+  // Entrée simple : le clic navigue.
+  if (!hasChildren) {
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -172,6 +259,67 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
           {label}
           <NavBadge item={item} />
         </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  /* ── Hub en mode icônes : ses onglets dans un VOLET ────────────────────────
+     Le kit masque les sous-menus dans le rail : déplier n'y aurait aucun effet
+     visible. Le clic envoyait donc vers le premier onglet, ce qui faisait
+     disparaître les autres du rail — on ne pouvait plus atteindre « Propriétés »
+     sans passer par « Exploitation » puis ses onglets. Le hub ouvre maintenant
+     ses onglets dans le même volet que les préférences (cf. `SidebarFlyout`).
+
+     L'ANCRE est le `div` pleine largeur, pas le bouton : dans le rail le kit
+     réduit celui-ci à un carré de 32 px, alors que le `div` occupe la boîte de
+     contenu du groupe — son bord est donc à 8 px de la ligne de la barre, comme
+     la rangée du pied, et `SIDEBAR_FLYOUT_SEAM_OFFSET` vaut pour les deux.
+
+     `SidebarMenuButton asChild` autour du `PopoverTrigger`, et non l'inverse :
+     Radix pose sur son enfant la ref qui sert d'ancre, et `SidebarMenuButton`
+     est un composant fonction sans `forwardRef` — en React 18 la ref se perd en
+     silence. Dans ce sens-là c'est le `Slot` du kit qui la transmet au trigger,
+     qui lui est bien `forwardRef`. */
+  if (iconOnly) {
+    return (
+      <SidebarMenuItem>
+        <Popover open={flyoutOpen} onOpenChange={setFlyoutOpen}>
+          <PopoverAnchor asChild>
+            <div className="w-full">
+              <SidebarMenuButton
+                asChild
+                isActive={isActive}
+                tooltip={{ children: item.text, side: tooltipSide }}
+                className={cn(flyoutOpen && 'bg-sidebar-accent text-sidebar-accent-foreground')}
+              >
+                <PopoverTrigger onMouseEnter={prefetch} onFocus={prefetch}>
+                  {label}
+                  <NavBadge item={item} />
+                </PopoverTrigger>
+              </SidebarMenuButton>
+            </div>
+          </PopoverAnchor>
+          <PopoverContent
+            side={tooltipSide}
+            align="start"
+            sideOffset={SIDEBAR_FLYOUT_SEAM_OFFSET}
+            className={cn('w-56 gap-0 p-0', sidebarFlyoutClass)}
+          >
+            <SidebarFlyoutGroup label={item.text}>
+              {item.children!.map((child) => (
+                <NavScreenRow
+                  key={child.path}
+                  child={child}
+                  variant="flyout"
+                  isActive={isSubActive(child.matchPaths, child.path)}
+                  onNavigate={onNavigate}
+                  onDone={() => setFlyoutOpen(false)}
+                  side={tooltipSide}
+                />
+              ))}
+            </SidebarFlyoutGroup>
+          </PopoverContent>
+        </Popover>
       </SidebarMenuItem>
     );
   }
@@ -200,17 +348,14 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
         <CollapsibleContent>
           <SidebarMenuSub>
             {item.children!.map((child) => (
-              <SidebarMenuSubItem key={child.path}>
-                <SidebarMenuSubButton
-                  isActive={isSubActive(child.matchPaths, child.path)}
-                  onClick={() => onNavigate(child.path)}
-                  onMouseEnter={() => prefetchRoute(child.path)}
-                  onFocus={() => prefetchRoute(child.path)}
-                  className="max-lg:h-9"
-                >
-                  <span className="truncate">{child.text}</span>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
+              <NavScreenRow
+                key={child.path}
+                child={child}
+                variant="sub"
+                isActive={isSubActive(child.matchPaths, child.path)}
+                onNavigate={onNavigate}
+                side={tooltipSide}
+              />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>

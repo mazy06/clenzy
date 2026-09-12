@@ -1,11 +1,40 @@
-import { defineConfig } from 'vite'
+import { createHash } from 'node:crypto'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
 
+/**
+ * Empreinte du CONTENU des locales, injectee dans index.html a la place de
+ * `__LOCALE_V__`.
+ *
+ * <p>Les traductions vivent dans `public/` — servies telles quelles, donc sans
+ * hash dans leur nom : deux deploiements successifs reutiliseraient l'URL, et
+ * le navigateur garderait les anciennes chaines. Le jeton est une empreinte du
+ * contenu, pas un horodatage : un build qui ne touche pas aux traductions rend
+ * la meme URL, donc le cache tient.</p>
+ */
+function localeVersionPlugin(): Plugin {
+  return {
+    name: 'baitly-locale-version',
+    transformIndexHtml(html) {
+      const dir = join(__dirname, 'public', 'locales')
+      const hash = createHash('sha256')
+      for (const file of readdirSync(dir).sort()) {
+        hash.update(file)
+        hash.update(readFileSync(join(dir, file)))
+      }
+      return html.replace(/__LOCALE_V__/g, hash.digest('hex').slice(0, 12))
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(),
+    localeVersionPlugin(),
     // Tailwind v4 — moteur de style de la bibliothèque Baitly UI (components/ui).
     // Preflight DÉSACTIVÉ (cf. theme/baitly-ui.css) : coexistence avec MUI,
     // le reset Tailwind casserait la baseline Emotion/CssBaseline.
@@ -108,6 +137,25 @@ export default defineConfig({
             },
           },
           {
+            // Traductions : hors precache (globPatterns n'inclut pas `json`, et
+            // pre-cacher les TROIS langues couterait 1,1 Mo pour une seule
+            // utilisee). StaleWhileRevalidate : servie depuis le cache donc
+            // instantanee au refresh simple, revalidee en fond. L'URL portant
+            // une empreinte du contenu (`?v=`), un deploiement qui change les
+            // traductions cree une nouvelle entree — pas de rance possible.
+            urlPattern: ({ url, request }) =>
+              request.method === 'GET' && url.pathname.startsWith('/locales/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'locales-cache',
+              expiration: {
+                maxEntries: 6,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -158,6 +206,13 @@ export default defineConfig({
             '@emotion/cache',
           ],
           'vendor-icons': ['lucide-react', '@iconify/react'],
+          // clsx + tailwind-merge sont les deux briques de `utils/cn`, donc
+          // presents dans a peu pres CHAQUE composant. Sans cette entree, Rollup
+          // les rangeait avec recharts (qui depend de clsx) : le chunk d'entree
+          // importait alors `vendor-charts` pour une fonction de 400 octets, et
+          // Vite en emettait un `modulepreload` — 491 Ko telecharges et parses au
+          // boot de tout le monde, pour une utilitaire de classes CSS.
+          'vendor-classnames': ['clsx', 'tailwind-merge'],
           'vendor-charts': ['recharts'],
           'vendor-calendar': [
             '@fullcalendar/react',
@@ -202,7 +257,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
-    setupFiles: ['./src/test/setup.ts'],
+    // `localeFetchStub` AVANT `setup.ts` : ce dernier attend `i18nInitPromise`,
+    // dont le backend passe desormais par `fetch('/locales/...')` — sans serveur
+    // sous jsdom. Le stub sert les memes fichiers depuis le disque.
+    setupFiles: ['./src/test/localeFetchStub.ts', './src/test/setup.ts'],
     // Les ecrans de supervision montent framer-motion, un fournisseur simule et
     // un arbre de plusieurs centaines de noeuds. Seuls, ils rendent en ~1 s ;
     // quand la suite tourne en parallele, les memes attentes depassaient les

@@ -1,14 +1,5 @@
 import { Button } from '../../../../components/ui'
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-  ComboboxValue,
-} from '../../../../components/ui'
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList, ComboboxTrigger, ComboboxValue } from '../../../../components/ui/combobox';
 
 const countries = [
   { code: "", value: "", continent: "", label: "Select country" },

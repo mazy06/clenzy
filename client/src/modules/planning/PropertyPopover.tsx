@@ -93,7 +93,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
         align={isNarrow ? 'start' : 'center'}
         sideOffset={8}
         collisionPadding={8}
-        className="w-[270px] max-w-[calc(100vw-16px)] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
+        className="w-[270px] max-w-[calc(100vw-16px)] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--bui-border)] bg-[var(--bui-card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
       >
       {/* Héro : fond accent-soft, icône bâtiment à l'encre de marque, nom en overlay */}
       <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
@@ -107,7 +107,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
 
       {/* Type + adresse + propriétaire */}
       {(property.type || address || property.ownerName) && (
-        <div className="px-3.5 py-2 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="px-3.5 py-2 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
           {property.type && (
             <StatusChip
               tone="accent"
@@ -141,7 +141,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
 
       {/* Stats + heures + fréquence ménage */}
       {(hasStats || hasTimes || property.cleaningFrequency) && (
-        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
           {hasStats && (
             <div className="grid grid-cols-2 gap-1.5">
               {property.maxGuests != null && (
@@ -217,7 +217,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       {/* Performance sur fenêtre glissante — même représentation que la carte
           « Performance par logement » (score /100 + barre + lignes label/valeur). */}
       {perf && (
-        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
           <div className="flex items-center gap-[4.5px] mb-2">
             <div className="inline-flex text-[var(--brand-ink)]">
               <Speed size={STAT_ICON_SIZE} strokeWidth={1.75} />
@@ -239,7 +239,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           <Progress
             value={Math.max(0, Math.min(100, perf.score))}
             style={{ '--score-tint': scoreColor(perf.score) } as React.CSSProperties}
-            className="h-1 rounded-[2px] mb-[10px] bg-[var(--line)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--score-tint)] [&>[data-slot=progress-indicator]]:motion-reduce:transition-none"
+            className="h-1 rounded-[2px] mb-[10px] bg-[var(--bui-border)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--score-tint)] [&>[data-slot=progress-indicator]]:motion-reduce:transition-none"
           />
 
           {/* Lignes label / valeur */}
@@ -261,7 +261,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           etaient outlined en MUI, ce qui mettait la sortie au meme poids que l'entree. */}
       {/* `flex-1` sur deux boutons freres : le Button du kit porte shrink-0, on
           remet `shrink` pour qu'ils se partagent la largeur au lieu de deborder. */}
-      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
         <Button size="sm" variant="outline" className="flex-1 shrink" onClick={onClose}>
           <Close size={ICON_SIZE} strokeWidth={1.75} />
           Fermer
@@ -317,7 +317,7 @@ function StatPill({
   highlight?: boolean;
 }) {
   return (
-    <div className={cn('p-[5.25px] rounded-[8px] border border-solid min-w-0', highlight ? 'bg-[var(--ok-soft)]' : 'bg-[color-mix(in_srgb,_var(--ink)_2.5%,_transparent)]', highlight ? 'border-[var(--ok)]' : 'border-[var(--line)]')}>
+    <div className={cn('p-[5.25px] rounded-[8px] border border-solid min-w-0', highlight ? 'bg-[var(--ok-soft)]' : 'bg-[color-mix(in_srgb,_var(--ink)_2.5%,_transparent)]', highlight ? 'border-[var(--ok)]' : 'border-[var(--bui-border)]')}>
       <div className={cn('flex items-center gap-[3.75px] mb-[2.25px]', highlight ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
         {icon}
         <span className="font-bold uppercase tracking-[0.3px] text-[inherit] leading-[1]" style={{ fontSize: LABEL_FS }}>

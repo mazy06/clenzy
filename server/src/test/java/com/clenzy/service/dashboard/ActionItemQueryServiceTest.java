@@ -3,9 +3,13 @@ package com.clenzy.service.dashboard;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemsDto;
 import com.clenzy.model.ActionItem;
+import com.clenzy.model.Guest;
+import com.clenzy.model.Reservation;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.ActionItemRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.GuestPhotoUrlResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +21,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -34,13 +40,17 @@ class ActionItemQueryServiceTest {
 
     private ActionItemRepository actionItemRepository;
     private PropertyRepository propertyRepository;
+    private ReservationRepository reservationRepository;
     private ActionItemQueryService service;
 
     @BeforeEach
     void setUp() {
         actionItemRepository = mock(ActionItemRepository.class);
         propertyRepository = mock(PropertyRepository.class);
+        reservationRepository = mock(ReservationRepository.class);
+        when(reservationRepository.findAllWithGuestByIdIn(any())).thenReturn(List.of());
         service = new ActionItemQueryService(actionItemRepository, propertyRepository,
+                reservationRepository, mock(GuestPhotoUrlResolver.class),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -57,6 +67,69 @@ class ActionItemQueryServiceTest {
 
     private void queueContains(ActionItem... rows) {
         when(actionItemRepository.findOpenForOrg(any(), any())).thenReturn(List.of(rows));
+    }
+
+    /** Une ligne visant une réservation : c'est par elle qu'on remonte au voyageur. */
+    private static ActionItem rowOnReservation(ActionItemKind kind, String subjectRef, Long reservationId) {
+        final ActionItem item = row(kind, subjectRef, 300L);
+        item.setTargetId(reservationId);
+        return item;
+    }
+
+    private static Reservation reservation(Long id, Long orgId, Long guestId) {
+        final Guest guest = new Guest();
+        guest.setId(guestId);
+        guest.setAvatarUrl("guests/" + guestId + "/photo.jpg");
+        final Reservation reservation = new Reservation();
+        reservation.setId(id);
+        reservation.setOrganizationId(orgId);
+        reservation.setGuest(guest);
+        return reservation;
+    }
+
+    @Test
+    void whenTheSubjectIsTheGuestOfTheStay_thenTheirPhotoIsAttached() {
+        final GuestPhotoUrlResolver photos = mock(GuestPhotoUrlResolver.class);
+        when(photos.publicUrl(76L, "guests/76/photo.jpg")).thenReturn("/api/guests/76/photo?ticket=t");
+        when(reservationRepository.findAllWithGuestByIdIn(any()))
+                .thenReturn(List.of(reservation(455L, ORG, 76L)));
+        service = new ActionItemQueryService(actionItemRepository, propertyRepository,
+                reservationRepository, photos, Clock.fixed(NOW, ZoneOffset.UTC));
+        queueContains(rowOnReservation(ActionItemKind.RESERVATION_PENDING, "pending:455", 455L));
+
+        assertThat(service.getActionItems(ORG, UserRole.SUPER_MANAGER, "kc-staff").items())
+                .extracting(item -> item.subjectAvatarUrl())
+                .containsExactly("/api/guests/76/photo?ticket=t");
+    }
+
+    @Test
+    void whenTheStayBelongsToAnotherOrganization_thenNoPhotoCrossesOver() {
+        final GuestPhotoUrlResolver photos = mock(GuestPhotoUrlResolver.class);
+        // La requête ne filtre pas sur l'organisation : c'est la lecture qui doit
+        // comparer. Sans ce garde, une ligne dont le targetId vise le séjour d'une
+        // AUTRE organisation en servirait la photo.
+        when(reservationRepository.findAllWithGuestByIdIn(any()))
+                .thenReturn(List.of(reservation(455L, 99L, 76L)));
+        service = new ActionItemQueryService(actionItemRepository, propertyRepository,
+                reservationRepository, photos, Clock.fixed(NOW, ZoneOffset.UTC));
+        queueContains(rowOnReservation(ActionItemKind.RESERVATION_PENDING, "pending:455", 455L));
+
+        assertThat(service.getActionItems(ORG, UserRole.SUPER_MANAGER, "kc-staff").items())
+                .extracting(item -> item.subjectAvatarUrl())
+                .containsOnlyNulls();
+    }
+
+    @Test
+    void whenTheKindHasNoGuestSubject_thenTheStayIsNotEvenLookedUp() {
+        // `targetId` ne désigne une réservation que pour certaines natures : pour
+        // un ménage en retard, c'est l'intervention. Y chercher un voyageur
+        // afficherait la photo de quelqu'un qui n'a rien à voir avec la ligne.
+        queueContains(rowOnReservation(ActionItemKind.INTERVENTION_OVERDUE, "overdue:455", 455L));
+
+        assertThat(service.getActionItems(ORG, UserRole.SUPER_MANAGER, "kc-staff").items())
+                .extracting(item -> item.subjectAvatarUrl())
+                .containsOnlyNulls();
+        verify(reservationRepository, never()).findAllWithGuestByIdIn(any());
     }
 
     @Test

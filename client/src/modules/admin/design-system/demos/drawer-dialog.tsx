@@ -11,16 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../../../components/ui'
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '../../../../components/ui'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '../../../../components/ui/drawer';
 import { Input } from '../../../../components/ui'
 import { Label } from '../../../../components/ui'
 

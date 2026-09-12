@@ -1,14 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from '../ui';
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '../ui/command';
 import { Search } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useScreenChrome } from '../ScreenChrome';

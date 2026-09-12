@@ -1,5 +1,6 @@
 
 import AccessCodeSection from '../components/AccessCodeSection';
+import LockAccessCodeHistory from '../components/LockAccessCodeHistory';
 import { Card } from '../../../components/ui';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { ConnectedDevice } from '../types';
@@ -23,7 +24,12 @@ export default function LockDetail({ device }: { device: ConnectedDevice }) {
     <div className="flex flex-col gap-3">
       <Card className="gap-0 py-0 p-3">
         <h6 className="text-xs font-semibold mb-0.5">Code d'accès</h6>
-        <AccessCodeSection deviceId={device.id} />
+        <AccessCodeSection deviceId={device.id} propertyId={device.propertyId} />
+      </Card>
+
+      <Card className="gap-0 py-0 p-3">
+        <h6 className="text-xs font-semibold mb-1.5">Historique des codes</h6>
+        <LockAccessCodeHistory deviceId={device.id} />
       </Card>
 
       <Card className="gap-0 py-0 p-3">

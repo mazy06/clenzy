@@ -1,17 +1,9 @@
 import React, { useState } from 'react';
 import { ToggleGroup, ToggleGroupItem } from '../../components/ui';
-import {
-  Payment,
-  Receipt,
-  AccountBalanceWallet,
-  AccountBalance,
-  Category,
-  Assessment,
-  Payments,
-} from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useAuth } from '../../hooks/useAuth';
+import { AccountBalance } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import {
@@ -68,28 +60,17 @@ const ReportsExportsTab: React.FC = () => {
 
 const BillingPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user, hasAnyRole } = useAuth();
 
-  const canViewInvoices = user?.permissions?.includes('reports:view') ?? false;
-  const canViewWallets = user?.permissions?.includes('payments:manage') ?? false;
-  const canViewAccounting = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
-  // Source de verite des tabs (avec `key` stable + `hidden`). Definie AVANT useTabKeyParam,
-  // qui derive l'onglet actif de l'URL (?tab=<key>) — robuste au role (l'index visible shifte,
-  // jamais la cle). Le filtre `hidden` matche les permissions ci-dessus.
-  const tabs = [
-    { key: 'payments', label: t('billing.tabs.payments'),                             icon: <Payment />,                hidden: false },
-    { key: 'invoices', label: t('billing.tabs.invoices'),                             icon: <Receipt />,                hidden: !canViewInvoices },
-    { key: 'wallets',  label: t('navigation.wallets'),                                icon: <AccountBalanceWallet />,   hidden: !canViewWallets },
-    { key: 'payouts',  label: t('billing.tabs.payouts', 'Reversements'),              icon: <AccountBalance />,         hidden: !canViewAccounting },
-    { key: 'expenses', label: t('billing.tabs.expenses', 'Depenses'),                 icon: <Category />,               hidden: !canViewAccounting },
-    { key: 'housekeeper-payouts', label: t('billing.tabs.housekeeperPayouts', 'Versements prestataires'), icon: <Payments />, hidden: !canViewAccounting },
-    { key: 'reports',  label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />,             hidden: !canViewAccounting },
-  ];
+  // Onglets lus dans le registre partage (config/screenTabs.tsx), droits
+  // compris : la barre laterale deplie EXACTEMENT cette liste dans son
+  // troisieme tiroir. Definie AVANT useTabKeyParam, qui derive l'onglet actif
+  // de l'URL (?tab=<key>) — robuste au role : l'index visible shifte, jamais la cle.
+  const tabs = useScreenTabs('/billing');
   const visibleTabs = tabs.filter((tab) => !tab.hidden);
   const [activePos, setActivePos] = useTabKeyParam(tabs);
   const handleTabChange = setActivePos;
@@ -147,12 +128,15 @@ const BillingPage: React.FC = () => {
 
         {/* ── Tab content (rendu par cle stable, independante du role) ── */}
         {activeKey === 'payments' && <PaymentHistoryPage embedded />}
-        {activeKey === 'invoices' && canViewInvoices && <InvoicesList embedded />}
-        {activeKey === 'wallets' && canViewWallets && <WalletDashboard embedded />}
-        {activeKey === 'payouts' && canViewAccounting && <PayoutsTab />}
-        {activeKey === 'expenses' && canViewAccounting && <ExpensesTab />}
-        {activeKey === 'housekeeper-payouts' && canViewAccounting && <HousekeeperPayoutsTab />}
-        {activeKey === 'reports' && canViewAccounting && <ReportsExportsTab />}
+        {/* Pas de second garde par permission : `activeKey` est lu dans les
+            onglets VISIBLES, un onglet masque ne peut donc jamais etre actif.
+            Le registre (config/screenTabs.tsx) porte ce filtrage, une fois. */}
+        {activeKey === 'invoices' && <InvoicesList embedded />}
+        {activeKey === 'wallets' && <WalletDashboard embedded />}
+        {activeKey === 'payouts' && <PayoutsTab />}
+        {activeKey === 'expenses' && <ExpensesTab />}
+        {activeKey === 'housekeeper-payouts' && <HousekeeperPayoutsTab />}
+        {activeKey === 'reports' && <ReportsExportsTab />}
       </div>
     </PageHeaderActionsProvider>
   );

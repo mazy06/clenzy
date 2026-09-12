@@ -45,6 +45,11 @@ public class GuestPhotoUrlResolver {
     public String publicUrl(Long guestId, String storageKey) {
         if (guestId == null || storageKey == null || storageKey.isBlank()) return null;
         if (storageKey.startsWith("http://") || storageKey.startsWith("https://")) return storageKey;
-        return "/api/guests/" + guestId + "/photo?ticket=" + mediaTicketService.mint(scopeFor(guestId));
+        // `mintForImmutable` : une photo de profil ne change pas, son URL n'a
+        // donc aucune raison de tourner quatre fois par heure — c'etait ce qui
+        // faisait retelecharger les cinquante avatars d'un planning a chaque
+        // franchissement de fenetre.
+        return "/api/guests/" + guestId + "/photo?ticket="
+                + mediaTicketService.mintForImmutable(scopeFor(guestId));
     }
 }

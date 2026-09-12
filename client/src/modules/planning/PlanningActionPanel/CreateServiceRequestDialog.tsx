@@ -837,7 +837,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
         <div className="px-[15px] flex-1 min-h-0 overflow-y-auto">
         {/* ── Header: Property info + Title + Requestor ── */}
-        <div className="mb-3 pb-3 border-b border-[var(--line)]">
+        <div className="mb-3 pb-3 border-b border-[var(--bui-border)]">
           {/* Property name + address */}
           <div className="flex items-center gap-1 mb-1.5">
             <span className="inline-flex text-[var(--brand-ink)]"><Home size={16} strokeWidth={1.75} /></span>
@@ -960,7 +960,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                             porte la puce est deja en accent-soft. */}
                         {selectedForfait && (
                           <StatusChip
-                            tokens={{ color: 'var(--accent)', bg: 'var(--card)' }}
+                            tokens={{ color: 'var(--accent)', bg: 'var(--bui-card)' }}
                             label={selectedForfait.label}
                             className="self-start border border-solid border-[var(--accent)] text-[0.625rem]"
                           />

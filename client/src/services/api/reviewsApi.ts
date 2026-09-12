@@ -29,6 +29,19 @@ export interface GuestReview {
    * `guestPhotoSrc` avant tout `<img>`.
    */
   guestAvatarUrl?: string | null;
+  /**
+   * Séjour à l'origine de l'avis, ou `null` quand le canal ne l'a pas rattaché.
+   *
+   * Émis par `GuestReviewDto` depuis toujours ; il manquait simplement ici, et
+   * ce qu'une interface ne déclare pas n'atteint jamais l'écran.
+   */
+  reservationId?: number | null;
+  /** POSITIVE | NEUTRAL | NEGATIVE — analyse de sentiment du texte. */
+  sentimentLabel?: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | null;
+  sentimentScore?: number | null;
+  /** Thèmes détectés : CLEANLINESS, LOCATION, VALUE, COMMUNICATION… */
+  tags?: string[] | null;
+  language?: string | null;
 }
 
 interface Page<T> {

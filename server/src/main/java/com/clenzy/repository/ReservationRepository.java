@@ -200,6 +200,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest WHERE r.id IN :ids")
     List<Reservation> findAllWithGuestByIdIn(@Param("ids") Collection<Long> ids);
 
+    /**
+     * Sejours d'une organisation retrouves par leur code de confirmation.
+     *
+     * <p>Le pendant de {@link #findAllWithGuestByIdIn} pour les evenements qui
+     * n'ont garde du sejour que sa REFERENCE affichable — une notification
+     * emise avant que l'identifiant n'y soit joint. Org-scope dans la requete :
+     * un code n'est unique qu'a l'interieur d'une organisation.</p>
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest "
+        + "WHERE r.organizationId = :orgId AND r.confirmationCode IN :codes")
+    List<Reservation> findAllWithGuestByConfirmationCodeIn(@Param("orgId") Long orgId,
+                                                           @Param("codes") Collection<String> codes);
+
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE LOWER(r.guestName) LIKE LOWER(CONCAT('%', :q, '%')) " +
            "OR LOWER(r.property.name) LIKE LOWER(CONCAT('%', :q, '%')) " +
@@ -433,6 +446,24 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * Réservations d'une propriété dont la date de départ tombe dans [from, to] (non annulées),
      * la plus récente d'abord. Utilisé par la rotation auto du code d'accès après checkout.
      */
+    /**
+     * Séjours d'un logement qui CHEVAUCHENT la fenêtre [from, to] (non annulés),
+     * le plus récent d'abord.
+     *
+     * <p>Bornes volontairement larges : l'appelant tranche ensuite à l'heure près
+     * avec {@code StayTimes.isDuringStay}, dans le fuseau du LOGEMENT (règle audit
+     * n°9). Un séjour en cours ne se reconnaît pas à sa date de départ — celle-ci
+     * peut être à une semaine.</p>
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE r.property.id = :propertyId AND r.checkIn <= :to AND r.checkOut >= :from " +
+           "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkIn DESC")
+    List<Reservation> findStaysOverlapping(
+            @Param("propertyId") Long propertyId,
+            @Param("from") java.time.LocalDate from,
+            @Param("to") java.time.LocalDate to,
+            @Param("orgId") Long orgId);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property " +
            "WHERE r.property.id = :propertyId AND r.checkOut >= :from AND r.checkOut <= :to " +
            "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkOut DESC")

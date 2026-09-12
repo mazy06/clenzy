@@ -1,14 +1,5 @@
 import { Button } from '../../../../components/ui'
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '../../../../components/ui'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '../../../../components/ui/drawer';
 
 const DRAWER_SIDES = ["top", "right", "bottom", "left"] as const
 

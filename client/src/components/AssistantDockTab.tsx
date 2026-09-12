@@ -16,17 +16,11 @@ import {
   type AssistantOpenDetail,
 } from './command-center/assistantBridge';
 
-/**
- * Paramètre d'URL qui ouvre l'assistant sur une conversation précise
- * (ex. {@code /dashboard?assistantConversation=42}).
- *
- * <p>C'est la cible du lien profond porté par les notifications et les emails
- * de briefing : la page dédiée `/assistant` n'existe plus, mais le CTA
- * « Ouvrir dans l'assistant » doit continuer à mener à la bonne conversation.
- * Le paramètre est retiré de l'URL une fois consommé, pour que le panneau ne se
- * rouvre pas à chaque retour en arrière.</p>
- */
-export const ASSISTANT_CONVERSATION_PARAM = 'assistantConversation';
+// La constante du lien profond vit dans son PROPRE module : l'importer d'ici
+// depuis le graphe d'entree annulait le lazy de ce composant (cf. le commentaire
+// de assistantDeepLink.ts). Re-exportee pour les appelants deja lazy.
+export { ASSISTANT_CONVERSATION_PARAM } from './assistantDeepLink';
+import { ASSISTANT_CONVERSATION_PARAM } from './assistantDeepLink';
 
 /**
  * Panneau de discussion de l'assistant, docke au bord droit de l'ecran.

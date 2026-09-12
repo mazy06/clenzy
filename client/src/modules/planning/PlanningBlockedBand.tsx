@@ -109,8 +109,8 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
           className={
             'absolute top-0 z-[2] cursor-pointer flex items-center justify-center gap-[3px] text-[var(--muted)] ' +
             // Cellules grisées + hachures diagonales = convention « indisponible ».
-            'bg-[color-mix(in_srgb,var(--muted)_8%,var(--card))] ' +
-            'hover:bg-[color-mix(in_srgb,var(--muted)_14%,var(--card))] ' +
+            'bg-[color-mix(in_srgb,var(--muted)_8%,var(--bui-card))] ' +
+            'hover:bg-[color-mix(in_srgb,var(--muted)_14%,var(--bui-card))] ' +
             'shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--muted)_14%,transparent)] ' +
             'transition-[background-color] duration-150 ease-out'
           }

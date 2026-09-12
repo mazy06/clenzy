@@ -1038,7 +1038,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   return (
                     <div
                       key={sr.id}
-                      className="mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid border-[var(--line)] transition-all duration-150 ease-[ease]"
+                      className="mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid border-[var(--bui-border)] transition-all duration-150 ease-[ease]"
                     >
                       {/* Header: icône type + titre + assigné en sous-ligne + lien */}
                       {/* La fleche est convertie en meme temps que ce parent : un
@@ -1236,7 +1236,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         'mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid transition-all duration-150 ease-[ease]',
                         isOnPlanning
                           ? 'border-[color-mix(in_srgb,var(--ok)_22%,transparent)] bg-[color-mix(in_srgb,var(--ok)_6%,transparent)]'
-                          : 'border-[var(--line)] bg-transparent',
+                          : 'border-[var(--bui-border)] bg-transparent',
                       )}
                     >
                       {/* Header: icône type + titre + assigné en sous-ligne + flèche */}
@@ -1490,7 +1490,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             <div
               className={cn(
                 'flex items-center justify-between p-[9px] mb-[9px] rounded-[12px] border border-solid transition-all duration-200 ease-[ease]',
-                assignAutoMode ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-transparent',
+                assignAutoMode ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--bui-border)] bg-transparent',
               )}
             >
               <div className="flex items-center gap-1.5">
@@ -1617,13 +1617,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       </AlertDescription>
                     </UiAlert>
                   )}
-                  <div className="border border-[var(--line)] rounded-[12px] overflow-hidden">
+                  <div className="border border-[var(--bui-border)] rounded-[12px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
                       <div
                         key={member.userId}
                         className={cn(
                           'flex items-center justify-between px-[9px] py-[4.5px]',
-                          idx < teamMembers.length - 1 && 'border-b border-solid border-b-[var(--line)]',
+                          idx < teamMembers.length - 1 && 'border-b border-solid border-b-[var(--bui-border)]',
                           member.available ? 'bg-transparent' : 'bg-[var(--hover)]',
                         )}
                       >

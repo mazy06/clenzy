@@ -73,17 +73,22 @@ public class DashboardOperationsService {
     /** La base ne stocke qu'une cle opaque : l'URL servable se fabrique ici. */
     private final GuestPhotoUrlResolver guestPhotoUrls;
 
+    /** Même rôle, côté équipe : la photo d'un intervenant est ticketée aussi. */
+    private final UserAvatarUrlResolver userAvatarUrls;
+
     public DashboardOperationsService(ReservationRepository reservationRepository,
                                       InterventionRepository interventionRepository,
                                       SecurityDepositRepository securityDepositRepository,
                                       UserRepository userRepository,
                                       GuestPhotoUrlResolver guestPhotoUrls,
+                                      UserAvatarUrlResolver userAvatarUrls,
                                       Clock clock) {
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.securityDepositRepository = securityDepositRepository;
         this.userRepository = userRepository;
         this.guestPhotoUrls = guestPhotoUrls;
+        this.userAvatarUrls = userAvatarUrls;
         this.clock = clock;
     }
 
@@ -119,6 +124,7 @@ public class DashboardOperationsService {
                 .map(r -> new ArrivalDto(
                         r.getId(),
                         r.getGuestName(),
+                        guestAvatarUrl(r),
                         propertyId(r.getProperty()),
                         propertyName(r.getProperty()),
                         checkInTimeOf(r),
@@ -146,6 +152,7 @@ public class DashboardOperationsService {
                     return new DepartureDto(
                             r.getId(),
                             r.getGuestName(),
+                            guestAvatarUrl(r),
                             propertyId(r.getProperty()),
                             propertyName(r.getProperty()),
                             checkOutTimeOf(r),
@@ -153,6 +160,24 @@ public class DashboardOperationsService {
                             deposit == null ? null : remainingDeposit(deposit));
                 })
                 .toList();
+    }
+
+    /**
+     * Photo du voyageur rattaché au séjour.
+     *
+     * <p>La base ne stocke qu'une clé opaque : l'URL servable — ticketée — se
+     * fabrique ici. {@code null} quand le séjour n'a pas de voyageur en fiche
+     * (import iCal sans identité) : la vignette retombe sur les initiales.</p>
+     */
+    private String guestAvatarUrl(Reservation r) {
+        return r.getGuest() == null ? null
+                : guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl());
+    }
+
+    /** Photo de l'intervenant, même principe que celle du voyageur. */
+    private String assigneeAvatarUrl(User assignee) {
+        return assignee == null ? null
+                : userAvatarUrls.publicUrl(assignee.getId(), assignee.getProfilePictureUrl());
     }
 
     /** Montant encore retenu : le capturé n'est plus libérable. */
@@ -183,6 +208,7 @@ public class DashboardOperationsService {
                         propertyId(i.getProperty()),
                         propertyName(i.getProperty()),
                         assigneeName(i.getAssignedUser()),
+                        assigneeAvatarUrl(i.getAssignedUser()),
                         formatTime(i.getStartTime()),
                         formatTime(i.getEndTime()),
                         i.getStatus() == null ? null : i.getStatus().name()))
@@ -212,8 +238,7 @@ public class DashboardOperationsService {
                 .map(r -> new UpcomingArrivalDto(
                         r.getId(),
                         r.getGuestName(),
-                        r.getGuest() == null ? null
-                            : guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl()),
+                        guestAvatarUrl(r),
                         propertyId(r.getProperty()),
                         propertyName(r.getProperty()),
                         r.getCheckIn(),
@@ -264,8 +289,7 @@ public class DashboardOperationsService {
                 .map(r -> new UpcomingDepartureDto(
                         r.getId(),
                         r.getGuestName(),
-                        r.getGuest() == null ? null
-                            : guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl()),
+                        guestAvatarUrl(r),
                         propertyId(r.getProperty()),
                         propertyName(r.getProperty()),
                         r.getCheckOut(),

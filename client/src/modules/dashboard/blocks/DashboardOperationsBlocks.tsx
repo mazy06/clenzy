@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { guestPhotoSrc } from '../../../services/api/guestsApi';
+import { resolveMediaUrl } from '../../../config/api';
 import { useNavigate } from 'react-router-dom';
 import {
   BanknoteIcon,
@@ -218,7 +219,11 @@ export function TodayOperationsSection() {
                 }
                 className="flex cursor-pointer items-center gap-2.5 rounded-md text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
-                <GuestAvatar name={arrival.guestName ?? '?'} size={30} />
+                <GuestAvatar
+                  name={arrival.guestName ?? '?'}
+                  photoUrl={guestPhotoSrc(arrival.guestAvatarUrl)}
+                  size={30}
+                />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
                     <span className="truncate text-sm font-medium text-foreground">
@@ -258,7 +263,11 @@ export function TodayOperationsSection() {
             <div data-fit-list className="flex flex-col gap-2.5">
               {departures.map((departure) => (
                 <div key={departure.reservationId} className="flex items-center gap-2.5">
-                  <GuestAvatar name={departure.guestName ?? '?'} size={30} />
+                  <GuestAvatar
+                    name={departure.guestName ?? '?'}
+                    photoUrl={guestPhotoSrc(departure.guestAvatarUrl)}
+                    size={30}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-foreground">
                       {departure.guestName}
@@ -305,7 +314,11 @@ export function TodayOperationsSection() {
           <div data-fit-list className="flex flex-col gap-2.5">
             {cleanings.map((cleaning) => (
               <div key={cleaning.interventionId} className="flex items-center gap-2.5">
-                <GuestAvatar name={cleaning.assigneeName ?? '?'} size={30} />
+                <GuestAvatar
+                  name={cleaning.assigneeName ?? '?'}
+                  photoUrl={resolveMediaUrl(cleaning.assigneeAvatarUrl)}
+                  size={30}
+                />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-foreground">
                     {cleaning.propertyName}
@@ -790,7 +803,15 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
                   key={item.id}
                   /* On agit envers quelqu'un, pas envers une ligne de texte :
                      quand l'action concerne une personne, elle ouvre la ligne. */
-                  leading={item.subject ? <GuestAvatar name={item.subject} size={30} /> : undefined}
+                  leading={
+                    item.subject ? (
+                      <GuestAvatar
+                        name={item.subject}
+                        photoUrl={guestPhotoSrc(item.subjectAvatarUrl)}
+                        size={30}
+                      />
+                    ) : undefined
+                  }
                   primary={actionPrimary(item, t)}
                   secondary={actionSecondary(item, t)}
                   age={waitingFor(item.waitingSince, t)}

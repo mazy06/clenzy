@@ -215,7 +215,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
     // Sous 900px la carte est a fleur d'ecran : ni arrondi ni filet lateral —
     // sur 375px, 8px de marge de chaque cote + un rayon de 14px coutaient une
     // colonne de jour. Au-dela, la carte reprend l'aspect du kit.
-    <Card className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--card)] overflow-hidden rounded-none ring-0 min-[900px]:rounded-xl min-[900px]:ring-1">
+    <Card className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--bui-card)] overflow-hidden rounded-none ring-0 min-[900px]:rounded-xl min-[900px]:ring-1">
       <DndContext
         sensors={drag.sensors}
         modifiers={drag.modifiers}
@@ -325,7 +325,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       loadedReservations={loadedReservations}
                     />
                     {expandedPropertyId === property.id && renderExpanded && (
-                      <div className="relative bg-[var(--bg)]" style={{ width: totalGridWidth, height: accordionHeight, borderBottom: '1px solid var(--line)' }}>
+                      <div className="relative bg-[var(--bui-background)]" style={{ width: totalGridWidth, height: accordionHeight, borderBottom: '1px solid var(--bui-border)' }}>
                         {/* Panneau calé sur le viewport (sticky-left) + tiré sous la
                             colonne sticky (ml négatif) → plein largeur, ne défile pas.
                             Pas de padding : le canvas sombre (flush) couvre TOUT

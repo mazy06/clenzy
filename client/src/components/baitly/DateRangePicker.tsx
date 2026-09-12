@@ -3,7 +3,8 @@ import { CalendarIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
-import { Button, Calendar, Label, Popover, PopoverContent, PopoverTrigger } from '../ui';
+import { Button, Label, Popover, PopoverContent, PopoverTrigger } from '../ui';
+import { Calendar } from '../ui/calendar';
 
 /**
  * Baitly — remaster de components/MiniDateRangePicker.tsx (MUI).

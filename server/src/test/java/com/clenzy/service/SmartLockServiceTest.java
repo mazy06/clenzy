@@ -315,6 +315,26 @@ class SmartLockServiceTest {
         }
 
         @Test
+        void whenTheLockStateWasNeverReported_thenTheDeviceIsStillReadable() {
+            // Une serrure jamais interrogee — ou marquee sans retour d'etat —
+            // a `lock_state` NULL en base. La conversion y appelait `.name()`
+            // sans garde : la lecture echouait en NullPointerException, et
+            // l'ecran qui la demandait n'affichait RIEN plutot qu'une serrure
+            // a l'etat inconnu. Cas reel : la fiche d'une alerte de batterie.
+            SmartLockDevice device = buildDevice(1L, "tuya-1");
+            device.setLockState(null);
+            device.setStatus(null);
+            when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            SmartLockDeviceDto dto = service.getDevice(1L);
+
+            assertThat(dto.getId()).isEqualTo(1L);
+            assertThat(dto.getLockState()).isNull();
+            assertThat(dto.getStatus()).isNull();
+        }
+
+        @Test
         void whenReadingADeviceFromOtherOrganization_thenAccessDenied() {
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(buildForeignDevice()));
             when(tenantContext.getOrganizationId()).thenReturn(1L);

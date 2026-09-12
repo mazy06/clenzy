@@ -140,6 +140,36 @@ class DocumentControllerTest {
         }
 
         @Test
+        void whenGetGeneration_thenConversionIsDelegatedToTheService() {
+            // `template` est une association LAZY et `open-in-view` vaut false :
+            // convertir dans le CONTROLEUR touche le proxy une fois la session
+            // fermee (LazyInitializationException, 500 a l'appel). La conversion
+            // doit donc repasser par le service, qui la fait sous transaction.
+            Jwt jwt = createJwt();
+            DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L);
+            when(generatorService.getGeneration(7L)).thenReturn(gen);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            controller.getGeneration(jwt, 7L);
+
+            verify(generatorService).getGenerationDto(7L);
+        }
+
+        @Test
+        void whenGenerationBelongsToAnotherOrganization_thenItIsNeverConverted() {
+            Jwt jwt = createJwt();
+            DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(999L);
+            when(generatorService.getGeneration(7L)).thenReturn(gen);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.getGeneration(jwt, 7L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verify(generatorService, never()).getGenerationDto(anyLong());
+        }
+
+        @Test
         void whenDownloadGeneration_thenReturnsResource() {
             Jwt jwt = createJwt();
             DocumentGeneration gen = new DocumentGeneration();

@@ -25,4 +25,7 @@ public interface SmartLockAccessCodeRepository extends JpaRepository<SmartLockAc
     List<SmartLockAccessCode> findByReservationIdAndStatus(Long reservationId, CodeStatus status);
 
     List<SmartLockAccessCode> findByDeviceIdAndStatus(Long deviceId, CodeStatus status);
+
+    /** Tous les codes d'une serrure, du plus recent au plus ancien (historique). */
+    List<SmartLockAccessCode> findByDeviceIdOrderByCreatedAtDesc(Long deviceId);
 }

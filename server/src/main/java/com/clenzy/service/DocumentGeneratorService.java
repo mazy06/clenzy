@@ -288,6 +288,23 @@ public class DocumentGeneratorService {
                 .orElseThrow(() -> new DocumentNotFoundException("Generation introuvable: " + id));
     }
 
+    /**
+     * Une generation, deja convertie — le mapping se fait DANS la transaction.
+     *
+     * <p>{@code template} est une association LAZY et {@code open-in-view} vaut
+     * false : convertir chez l'appelant touche le proxy une fois la session
+     * fermee, et leve {@code LazyInitializationException}. C'est pour cela que
+     * {@link #listGenerations} convertit ici aussi, et pas dans le controleur.</p>
+     *
+     * <p>Le controle d'acces reste a l'appelant : il connait le jeton, et
+     * l'entite brute lui est rendue par {@link #getGeneration} pour qu'il le
+     * fasse avant de servir quoi que ce soit.</p>
+     */
+    @Transactional(readOnly = true)
+    public DocumentGenerationDto getGenerationDto(Long id) {
+        return DocumentGenerationDto.fromEntity(getGeneration(id));
+    }
+
     @Transactional(readOnly = true)
     public DocumentGeneration getGenerationByLegalNumber(String legalNumber) {
         return generationRepository.findByLegalNumber(legalNumber)

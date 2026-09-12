@@ -1,8 +1,4 @@
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '../../../../components/ui'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../../../../components/ui/resizable';
 
 export default function ResizableDemo() {
   return (

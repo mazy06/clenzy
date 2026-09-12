@@ -1,4 +1,4 @@
-import { Calendar } from '../../../../components/ui'
+import { Calendar } from '../../../../components/ui/calendar';
 
 export function CalendarCaption() {
   return (

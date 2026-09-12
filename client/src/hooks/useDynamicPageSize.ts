@@ -16,7 +16,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  *
  * La carte est `flex-1 min-h-0 overflow-hidden` : sa hauteur vient de son
  * parent, pas de ses lignes. La mesure est donc stable — pas de boucle entre le
- * nombre de lignes et la hauteur disponible.
+ * nombre de lignes et la hauteur disponible. Une seule piece du calcul pouvait
+ * dependre de son propre resultat, la barre de pagination qui s'efface a une
+ * seule page : voir `footerHeightRef`.
  *
  * Le calcul est :
  *   rowsPerPage = floor((hauteur carte - pagination - en-tete) / hauteur ligne)
@@ -63,6 +65,18 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [pageSize, setPageSize] = useState(fallback);
+  /**
+   * Derniere hauteur REELLE de la barre de pagination. Elle survit a sa
+   * disparition : `PagePagination` s'efface quand il ne reste qu'une page
+   * (`hideOnSinglePage`), et sans cette memoire la mesure repartait sur le
+   * repli `bottomChrome`, plus haut que la barre reelle. La carte semblait
+   * alors RETRECIR au moment meme ou elle gagnait de la place, et le compte
+   * de lignes basculait sans fin entre les deux etats — chaque bascule
+   * remontant/retirant la barre, donc relancant la mesure. Reserver toujours
+   * la meme hauteur casse ce cycle : le calcul ne depend plus de ce qu'il
+   * vient lui-meme de provoquer.
+   */
+  const footerHeightRef = useRef<number | null>(null);
 
   const compute = useCallback(() => {
     const el = containerRef.current;
@@ -87,7 +101,8 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
       : headerHeight;
 
     const footer = findFooter(el);
-    const measuredFooter = footer && footer.offsetHeight > 0 ? footer.offsetHeight : bottomChrome;
+    if (footer && footer.offsetHeight > 0) footerHeightRef.current = footer.offsetHeight;
+    const measuredFooter = footerHeightRef.current ?? bottomChrome;
 
     // Barre de defilement horizontale du conteneur de tableau (`overflow-x-auto`) :
     // nulle avec les barres flottantes de macOS, ~15 px ailleurs, et elle mange

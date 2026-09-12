@@ -1,20 +1,7 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Field,
-  FieldLabel,
-  Input,
-  InputGroupAddon,
-  Textarea,
-  NativeSelect,
-  NativeSelectOption,
-} from '../ui';
+import { Field, FieldLabel, Input, InputGroupAddon, Textarea, NativeSelect, NativeSelectOption } from '../ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../ui/combobox';
 import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';

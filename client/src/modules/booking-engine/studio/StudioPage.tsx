@@ -137,7 +137,7 @@ export default function StudioPage() {
         onOpenCommand={() => openCenter()}
         onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
         onOpenAssistant={openAssistant}
-        onBack={() => navigate('/booking-engine', { state: { tab: 2 } })}
+        onBack={() => navigate('/booking-engine?tab=booking-engine')}
       >
         {active.key === 'design' && <GrapesStudio cfg={cfg} breakpoint={breakpoint} mode={studioMode} />}
         {active.key === 'embed' && <SiteEmbedPreview config={cfg.config} breakpoint={breakpoint} />}

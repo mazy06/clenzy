@@ -1,21 +1,6 @@
 import React from 'react';
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-  Field,
-  FieldLabel,
-  Input,
-  NativeSelect,
-  NativeSelectOption,
-  useComboboxAnchor,
-} from '../../components/ui';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
+import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from '../../components/ui/combobox';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {

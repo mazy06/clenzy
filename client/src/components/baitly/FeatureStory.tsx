@@ -240,9 +240,15 @@ export function StoryNote({ children }: { children: React.ReactNode }) {
   return <p className="m-0 text-xs text-muted-foreground">{children}</p>;
 }
 
-/** Conteneur de page longue : rythme vertical et séparateurs cohérents. */
-export function StoryPage({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col gap-14 pb-4">{children}</div>;
+/**
+ * Conteneur de page longue : rythme vertical et séparateurs cohérents.
+ *
+ * `className` permet de resserrer ce rythme quand la page tient en peu de
+ * blocs — un `gap-14` entre deux sections denses ajoute un écran de défilement
+ * sans rien séparer de plus.
+ */
+export function StoryPage({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('flex flex-col gap-14 pb-4', className)}>{children}</div>;
 }
 
 export { Separator as StorySeparator };

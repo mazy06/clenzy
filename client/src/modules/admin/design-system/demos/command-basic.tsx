@@ -1,15 +1,7 @@
 import * as React from "react"
 
 import { Button } from '../../../../components/ui'
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '../../../../components/ui'
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../../components/ui/command';
 
 export function CommandBasic() {
   const [open, setOpen] = React.useState(false)

@@ -436,6 +436,9 @@ public class GuestMessagingService {
         return NotificationMetadata.of()
             .property(property != null ? property.getName() : null)
             .guest(reservation != null ? reservation.getGuestName() : null)
+            // Le sejour porte la photo du voyageur, frappee a la lecture : sans
+            // lui, la fiche n'avait que des initiales la ou un visage existe.
+            .reservationId(reservation != null ? reservation.getId() : null)
             .reservationReference(reservation != null ? reservation.getConfirmationCode() : null)
             .stay(reservation != null ? reservation.getCheckIn() : null,
                   reservation != null ? reservation.getCheckOut() : null)

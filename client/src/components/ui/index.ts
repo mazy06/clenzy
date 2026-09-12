@@ -19,26 +19,24 @@ export { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbP
 export { BubbleGroup, Bubble, BubbleContent, BubbleReactions } from './bubble';
 export { ButtonGroup, ButtonGroupSeparator, ButtonGroupText, buttonGroupVariants } from './button-group';
 export { Button, buttonVariants } from './button';
-export { Calendar, CalendarDayButton } from './calendar';
 export { Card, CardHeader, CardFooter, CardTitle, CardAction, CardDescription, CardContent } from './card';
-export { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, useCarousel } from './carousel';
-export { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle, type ChartConfig } from './chart';
+// `chart` N'EST PAS re-exporte ici, et ne doit pas l'etre : il importe recharts
+// (491 Ko bruts). Un baril est un import STATIQUE — le re-exporter mettait
+// recharts dans le graphe d'entree de tout module touchant `components/ui`,
+// donc de l'application entiere, donc en preload au boot. Les quinze ecrans qui
+// font des graphiques importent `components/ui/chart` directement ; eux seuls
+// paient recharts, dans leur propre chunk.
 export { Checkbox } from './checkbox';
 export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './collapsible';
-export { Combobox, ComboboxInput, ComboboxContent, ComboboxList, ComboboxItem, ComboboxGroup, ComboboxLabel, ComboboxCollection, ComboboxEmpty, ComboboxSeparator, ComboboxChips, ComboboxChip, ComboboxChipsInput, ComboboxTrigger, ComboboxValue, useComboboxAnchor } from './combobox';
-export { Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut, CommandSeparator } from './command';
 export { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuCheckboxItem, ContextMenuRadioItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuShortcut, ContextMenuGroup, ContextMenuPortal, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuRadioGroup } from './context-menu';
 export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger } from './dialog';
 export { DirectionProvider, useDirection } from './direction';
-export { Drawer, DrawerPortal, DrawerOverlay, DrawerTrigger, DrawerClose, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle, DrawerDescription } from './drawer';
 export { DropdownMenu, DropdownMenuPortal, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuItem, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './dropdown-menu';
 export { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from './empty';
 export { Field, FieldLabel, FieldDescription, FieldError, FieldGroup, FieldLegend, FieldSeparator, FieldSet, FieldContent, FieldTitle } from './field';
-export { useFormField, Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField } from './form';
 export { HoverCard, HoverCardTrigger, HoverCardContent } from './hover-card';
 export { type IconPlaceholderProps, IconPlaceholder } from './icon-placeholder';
 export { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupInput, InputGroupTextarea } from './input-group';
-export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from './input-otp';
 export { Input } from './input';
 export { Item, ItemMedia, ItemContent, ItemActions, ItemGroup, ItemSeparator, ItemTitle, ItemDescription, ItemHeader, ItemFooter } from './item';
 export { Kbd, KbdGroup } from './kbd';
@@ -52,7 +50,6 @@ export { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, Pagi
 export { Popover, PopoverAnchor, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from './popover';
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
-export { ResizableHandle, ResizablePanel, ResizablePanelGroup } from './resizable';
 export { ScrollArea, ScrollBar } from './scroll-area';
 export { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectScrollDownButton, SelectScrollUpButton, SelectSeparator, SelectTrigger, SelectValue } from './select';
 export { Separator } from './separator';
@@ -70,3 +67,27 @@ export { ToggleGroup, ToggleGroupItem } from './toggle-group';
 export { Toggle, toggleVariants } from './toggle';
 export { Tooltip, TooltipRoot, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 export { Stepper, Step, StepLabel } from './stepper';
+
+// ─── Feuilles LOURDES : volontairement ABSENTES de ce baril ──────────────────
+//
+// Un baril est un import STATIQUE : re-exporter une feuille la met dans le
+// graphe de TOUT module qui touche `components/ui` — c'est-a-dire de
+// l'application entiere, donc du chunk d'entree, donc du preload au boot.
+// Importer un `Button` tirait ainsi le selecteur de dates, la palette de
+// commandes, le tiroir, le champ OTP et la couche de formulaires.
+//
+// Ces huit-la s'importent donc par leur chemin propre, et seuls les ecrans qui
+// s'en servent les paient, dans leur propre chunk :
+//
+//   import { Calendar } from '../../components/ui/calendar';     // react-day-picker (+ /hijri)
+//   import { Carousel } from '../../components/ui/carousel';     // embla-carousel-react
+//   import { Combobox } from '../../components/ui/combobox';     // @base-ui/react
+//   import { Command } from '../../components/ui/command';       // cmdk
+//   import { Drawer } from '../../components/ui/drawer';         // vaul
+//   import { Form } from '../../components/ui/form';             // react-hook-form + zod
+//   import { InputOTP } from '../../components/ui/input-otp';    // input-otp
+//   import { ResizablePanel } from '../../components/ui/resizable'; // react-resizable-panels
+//   import { ChartContainer } from '../../components/ui/chart';  // recharts
+//
+// Avant d'ajouter un `export ... from` ici, verifier que la feuille n'importe
+// aucun paquet npm lourd. Sinon, c'est tout le monde qui le telecharge.

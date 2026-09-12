@@ -20,6 +20,7 @@ import {
   Warning,
 } from '../../icons';
 import { verbFor } from '../supervision/components/actionVerbs';
+import { factId } from './notificationMeta';
 import type { Notification } from '../../services/api';
 
 /**
@@ -56,14 +57,6 @@ const own = (notification: Notification) => notification.actionUrl ?? null;
 
 /** Cible fixe (route verifiee du registre applicatif). */
 const at = (path: string) => () => path;
-
-/** Entier porte par les faits de la notification (identifiant de navigation). */
-function factId(notification: Notification, key: string): number | null {
-  const raw = notification.metadata?.[key];
-  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw);
-  return null;
-}
 
 /**
  * Un geste du catalogue. `intent` est un nom court, prefixe ici en cle i18n :
@@ -165,6 +158,18 @@ const ACTIONS: Record<string, NotificationBusinessAction[]> = {
   BOOKING_FRAUD_REVIEW: [act('reviewFraud', 'Examiner la réservation à risque', Warning)],
   BOOKING_INQUIRY_RECEIVED: [act('answerInquiry', 'Répondre à la demande', Send)],
   ACCESS_CODE_ROTATED: [act('updateKeybox', 'Mettre à jour la boîte à clés', Info)],
+  SMART_LOCK_CODE_ROTATED_MANUALLY: [
+    act('openLock', 'Ouvrir la serrure', Info, at('/connected-objects')),
+  ],
+  // Échecs de code de serrure : la serrure porte son historique, qui donne le
+  // motif exact — c'est là qu'on retente, pas dans la notification.
+  SMART_LOCK_CODE_GENERATION_FAILED: [
+    act('openLock', 'Ouvrir la serrure', Warning, at('/connected-objects')),
+  ],
+  SMART_LOCK_CODE_DELIVERY_FAILED: [
+    act('openLock', 'Ouvrir la serrure', Warning, at('/connected-objects')),
+    act('checkTemplates', 'Vérifier les modèles de message', Send, at('/messaging/templates')),
+  ],
   GUEST_NO_EMAIL_FOR_CHECKIN: [
     act('completeGuest', 'Compléter la fiche voyageur', Assignment, at('/guests')),
   ],

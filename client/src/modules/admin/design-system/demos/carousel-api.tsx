@@ -1,14 +1,7 @@
 import * as React from "react"
 
 import { Card, CardContent } from '../../../../components/ui'
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from '../../../../components/ui'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../../../../components/ui/carousel';
 
 export default function CarouselDApiDemo() {
   const [api, setApi] = React.useState<CarouselApi>()

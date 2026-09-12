@@ -460,6 +460,7 @@ public class ChannexBookingService {
         return NotificationMetadata.of()
             .property(property != null ? property.getName() : null)
             .guest(reservation != null ? reservation.getGuestName() : null)
+            .reservationId(reservation != null ? reservation.getId() : null)
             .reservationReference(reservation != null ? reservation.getConfirmationCode() : null)
             .stay(booking.arrivalDate(), booking.departureDate())
             .amount(booking.amount(), booking.currency())

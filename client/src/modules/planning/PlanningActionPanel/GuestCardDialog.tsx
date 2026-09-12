@@ -393,7 +393,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 <div className="flex flex-col gap-0.5">
                   {guestReservations
                     .flatMap((r) => (r.id !== reservation.id ? [(
-                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
+                      <div className="flex justify-between items-center border border-[var(--bui-border)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
                         <div>
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             {r.propertyName}
@@ -448,7 +448,7 @@ function formatDate(dateStr: string): string {
 
 function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex-1 border border-[var(--line)] rounded-[10px] px-1.5 py-1 text-center">
+    <div className="flex-1 border border-[var(--bui-border)] rounded-[10px] px-1.5 py-1 text-center">
       <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] font-bold">
         {label}
       </p>

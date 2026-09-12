@@ -14,29 +14,9 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Avatar,
-  AvatarFallback,
-  Button,
-  Calendar,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  FieldLabel,
-  Input,
-  Spinner,
-} from '../../../components/ui';
+import { Avatar, AvatarFallback, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, Spinner } from '../../../components/ui';
+import { Calendar } from '../../../components/ui/calendar';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '../../../components/ui/command';
 import { Check, UserRound, UserRoundX } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { ar, enUS, fr } from 'date-fns/locale';

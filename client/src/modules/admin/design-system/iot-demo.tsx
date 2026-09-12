@@ -23,27 +23,8 @@ import {
   WifiOffIcon,
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  Input,
-  Label,
-  NativeSelect,
-  NativeSelectOption,
-  Progress,
-  Slider,
-  Switch,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '../../../components/ui';
+import { Badge, Button, Dialog, DialogContent, DialogTitle, Input, Label, NativeSelect, NativeSelectOption, Progress, Slider, Switch, Tabs, TabsList, TabsTrigger } from '../../../components/ui';
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';
 import PageHeader from '../../../components/baitly/PageHeader';
 import StatTile from '../../../components/baitly/StatTile';
 import StatusChip from '../../../components/baitly/StatusChip';

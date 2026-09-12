@@ -1,16 +1,8 @@
 import React from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import StatusChip from '../../components/StatusChip';
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  Progress,
-  Spinner,
-  type ChartConfig,
-} from '../../components/ui';
+import { Progress, Spinner } from '../../components/ui';
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../components/ui/chart';
 import {
   HighlightList,
   StatsBand,

@@ -52,7 +52,7 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
       }}
       style={{ '--choice-accent': iconColor } as React.CSSProperties}
       className={
-        'flex-1 min-w-0 flex flex-col gap-[7.5px] p-3 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] cursor-pointer '
+        'flex-1 min-w-0 flex flex-col gap-[7.5px] p-3 rounded-[14px] border border-solid border-[var(--bui-border)] bg-[var(--bui-card)] cursor-pointer '
         + 'transition-[border-color,background,box-shadow] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none '
         + 'hover:border-[var(--choice-accent)] hover:shadow-[0_8px_24px_-16px_color-mix(in_srgb,var(--choice-accent)_55%,transparent)] '
         + 'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'

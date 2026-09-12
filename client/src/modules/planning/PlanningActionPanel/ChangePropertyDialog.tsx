@@ -127,7 +127,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
 
         <div className="min-h-0 overflow-y-auto">
         {/* Current reservation summary */}
-        <div className="p-2 rounded-[10px] bg-[var(--surface-2)] border border-[var(--line)] mb-3">
+        <div className="p-2 rounded-[10px] bg-[var(--pl-surface-2)] border border-[var(--bui-border)] mb-3">
           <span className="cn-text-caption font-bold text-[10.5px] uppercase tracking-[0.05em] text-[var(--faint)]">
             Reservation actuelle
           </span>
@@ -185,7 +185,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                     // Selectionne : le survol ne change rien, donc pas de variante hover.
                     isSelected
                       ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-                      : 'border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                      : 'border-[var(--line-2)] bg-[var(--bui-card)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
                   )}
                 >
                   <div className="flex items-center justify-between">

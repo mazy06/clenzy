@@ -74,13 +74,16 @@ export default function StatTile({
         {loading ? (
           <Skeleton className="h-5 w-16" />
         ) : (
-          <>
+          // Chiffre et unite forment l'ANCRE de la variation : celle-ci s'y
+          // accroche hors flux (cf. `Delta`), donc « 44,7 % » et « Occupation »
+          // restent colles au lieu d'etre ecartes par un « +212,6 pts ».
+          <span className="relative inline-flex items-baseline gap-1">
             <b className="cn-font-heading text-lg font-bold tabular-nums text-foreground">{value}</b>
             {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
-          </>
+            {delta != null && <Delta value={delta} unit={deltaUnit} />}
+          </span>
         )}
         <span className="text-xs text-muted-foreground">{label}</span>
-        {delta != null && <Delta value={delta} unit={deltaUnit} />}
       </Comp>
     );
   }
@@ -113,7 +116,9 @@ export default function StatTile({
       )}
       {delta != null && (
         <span className="flex items-center">
-          <Delta value={delta} unit={deltaUnit} />
+          {/* La tuile haute donne sa propre ligne a la variation : aucun
+              chiffre a cote, donc rien a mettre en exposant. */}
+          <Delta value={delta} unit={deltaUnit} offset={false} />
         </span>
       )}
       {hint && <span className="text-xs text-muted-foreground [&_b]:font-semibold [&_b]:text-success-ink">{hint}</span>}

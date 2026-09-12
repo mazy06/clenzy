@@ -114,7 +114,7 @@ const RadarPastille: React.FC<{
           style={{ backgroundColor: color }}
         />
         {/* Point central solide */}
-        <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
+        <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--bui-card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
       </div>
     </TooltipTrigger>
     <PlanningTooltipContent>{tooltip}</PlanningTooltipContent>
@@ -264,14 +264,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           className={cn(
             'absolute',
             BAR_BADGE_CLS,
-            'border border-solid border-[var(--line)] cursor-pointer touch-none select-none',
+            'border border-solid border-[var(--bui-border)] cursor-pointer touch-none select-none',
             // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5
             'hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5]',
             'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
             isDragging ? 'opacity-30 transition-none' : 'opacity-100 transition-[transform,box-shadow] duration-[120ms]',
             // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
             isSelected ? 'z-[7]' : 'z-[2]',
-            isSelected && 'shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent)]',
+            isSelected && 'shadow-[0_0_0_2px_var(--bui-card),0_0_0_4px_var(--accent)]',
             isConflict && 'shadow-[0_0_0_2px_var(--err)]',
           )}
         >
@@ -535,7 +535,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         urgencyClass,
         'absolute flex touch-none select-none overflow-visible',
         isCancelled
-          ? 'bg-[var(--surface-2)] border-[1.5px] border-dashed border-[var(--line-2)]'
+          ? 'bg-[var(--pl-surface-2)] border-[1.5px] border-dashed border-[var(--line-2)]'
           : 'border-none',
         isResizing ? 'cursor-col-resize' : 'cursor-pointer',
         // Reservations en COLUMN (nuits + nom), interventions ROW.
@@ -552,8 +552,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5.
         'hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5] motion-reduce:hover:translate-y-0',
         // Brique active (popover ouvert) : anneau accent + offset blanc.
-        (isPopoverActive && !isSelected) && 'shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent)]',
-        isSelected && 'shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent)] -translate-y-px animate-[select-pop_0.3s_ease-out] motion-reduce:animate-none motion-reduce:translate-y-0',
+        (isPopoverActive && !isSelected) && 'shadow-[0_0_0_2px_var(--bui-card),0_0_0_4px_var(--accent)]',
+        isSelected && 'shadow-[0_0_0_2px_var(--bui-card),0_0_0_4px_var(--accent)] -translate-y-px animate-[select-pop_0.3s_ease-out] motion-reduce:animate-none motion-reduce:translate-y-0',
         (isConflict || resizeConflict) && 'shadow-[0_0_0_2px_var(--err)] animate-[pulse-conflict_2s_ease-in-out_infinite] motion-reduce:animate-none',
         // Spec .pl-bar.cancelled:hover : brique fantome inerte (ni lift ni ombre).
         isCancelled && 'hover:translate-y-0 hover:shadow-none',
@@ -660,7 +660,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   priceUnpaid
                     ? 'bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.14)]'
                     : isCancelled
-                      ? 'bg-[var(--surface-2)] text-[var(--muted)] shadow-[inset_0_0_0_1px_var(--line-2)]'
+                      ? 'bg-[var(--pl-surface-2)] text-[var(--muted)] shadow-[inset_0_0_0_1px_var(--line-2)]'
                       // Le verre suit l'encre de la brique. Un verre sombre +
                       // texte blanc tenait sur les fonds soutenus ; sur le
                       // beige et le taupe de la palette « Terre cuite » le
@@ -841,7 +841,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               }}
               className={
                 'absolute top-[-6px] right-[-6px] w-[16px] h-[16px] rounded-[50%] bg-[var(--muted)] flex items-center justify-center cursor-pointer z-[12] '
-                + 'shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_30%,transparent)] border-[1.5px] border-solid border-[var(--card)] text-[var(--on-accent)] '
+                + 'shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_30%,transparent)] border-[1.5px] border-solid border-[var(--bui-card)] text-[var(--on-accent)] '
                 + 'transition-[transform,background-color] duration-150 ease-[ease] hover:bg-[var(--body)] hover:scale-110 '
                 + 'motion-reduce:transition-none motion-reduce:hover:scale-100'
               }

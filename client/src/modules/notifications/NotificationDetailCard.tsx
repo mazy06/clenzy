@@ -35,12 +35,54 @@ import NotificationReviewPanel, {
   reviewIdOf,
   useNotificationReview,
 } from './NotificationReviewPanel';
+import NotificationAccessCodePanel, {
+  NotificationAccessCodeSkeleton,
+  accessCodePropertyIdOf,
+  accessCodeVisitIdOf,
+  useNotificationAccessCode,
+} from './NotificationAccessCodePanel';
+import NotificationLockCodePanel, {
+  NotificationLockCodeSkeleton,
+  lockCodeDeviceIdOf,
+  useNotificationLockCode,
+} from './NotificationLockCodePanel';
+import NotificationDocumentPanel, {
+  NotificationDocumentSkeleton,
+  documentGenerationIdOf,
+  useNotificationDocument,
+} from './NotificationDocumentPanel';
+import NotificationInterventionPanel, {
+  NotificationInterventionSkeleton,
+  interventionIdOf,
+  useNotificationIntervention,
+} from './NotificationInterventionPanel';
+import NotificationMoneyPanel, {
+  NotificationMoneySkeleton,
+  moneySubjectOf,
+  useNotificationMoney,
+} from './NotificationMoneyPanel';
+import NotificationPricingPanel, {
+  NotificationPricingSkeleton,
+  pricingCardOf,
+  useNotificationPricing,
+} from './NotificationPricingPanel';
+import NotificationRequestPanel, {
+  NotificationRequestSkeleton,
+  requestSubjectOf,
+  useNotificationRequest,
+} from './NotificationRequestPanel';
 import NotificationStayPanel, {
   NotificationStayActions,
   NotificationStaySkeleton,
   reservationIdOf,
+  stayActionsApply,
   useNotificationStay,
 } from './NotificationStayPanel';
+import NotificationMessagePanel, {
+  guestMessageOf,
+  NotificationMessageSkeleton,
+  useNotificationMessage,
+} from './NotificationMessagePanel';
 import { resolveSubject } from './NotificationSubjectPanel';
 import type { Notification } from '../../services/api';
 import {
@@ -49,6 +91,7 @@ import {
   categoryStyle,
   formatFactDate,
   fullTimestamp,
+  notificationActorOf,
   resolveDestination,
   resolveMetadataFacts,
   timeAgo,
@@ -159,8 +202,8 @@ export default function NotificationDetailCard({
   // laisser lire la phrase qui le resume. Tant que l'avis n'est pas la (ou s'il
   // ne se charge pas), c'est bien cette phrase qui reste affichee.
   const reviewId = reviewIdOf(notification);
-  const { review, loading: reviewLoading } = useNotificationReview(reviewId);
-  const showsReview = reviewId !== null && (reviewLoading || review !== null);
+  const { dossier: reviewDossier, loading: reviewLoading } = useNotificationReview(reviewId);
+  const showsReview = reviewId !== null && (reviewLoading || reviewDossier !== null);
 
   // Meme principe pour un objet connecte : « Batterie serrure a 12 % » se lit,
   // mais ne se voit pas. Le panneau vient ICI EN PLUS du message — contrairement
@@ -168,10 +211,53 @@ export default function NotificationDetailCard({
   // il nomme le geste (« Planifier » cree l'intervention), ce que l'etat du
   // materiel ne dit pas.
   const deviceId = deviceIdOf(notification);
-  const { device, loading: deviceLoading } = useNotificationDevice(deviceId);
+  const { dossier: deviceDossier, loading: deviceLoading } = useNotificationDevice(deviceId);
 
-  const reservationId = reservationIdOf(notification);
+  // Un message envoye designe un sejour, mais ne PARLE pas de lui : sa fiche
+  // montre ce qui est parti et a quelle adresse, pas le dossier de la
+  // reservation. Le dossier lui cede donc la place.
+  const guestMessage = React.useMemo(() => guestMessageOf(notification), [notification]);
+  const {
+    log: messageLog,
+    body: messageBody,
+    loading: messageLoading,
+  } = useNotificationMessage(guestMessage, notification.createdAt);
+
+  const reservationId = guestMessage ? null : reservationIdOf(notification);
   const { stay, loading: stayLoading, reload: reloadStay } = useNotificationStay(reservationId);
+
+  const accessCodePropertyId = accessCodePropertyIdOf(notification);
+  const accessCodeVisitId = accessCodeVisitIdOf(notification);
+  const {
+    instructions,
+    visit: accessCodeVisit,
+    loading: accessCodeLoading,
+  } = useNotificationAccessCode(accessCodePropertyId, accessCodeVisitId, notification.createdAt);
+
+  // Rotation manuelle du code d'une serrure : la fiche relit le code EN VIGUEUR
+  // sur l'objet, le message ne le porte pas.
+  const lockCodeDeviceId = lockCodeDeviceIdOf(notification);
+  const { dossier: lockCodeDossier, loading: lockCodeLoading } = useNotificationLockCode(lockCodeDeviceId);
+
+  const pricingCard = React.useMemo(() => pricingCardOf(notification), [notification]);
+  const { plan, loading: pricingLoading } = useNotificationPricing(pricingCard);
+
+  const interventionId = interventionIdOf(notification);
+  const { dossier, loading: dossierLoading } = useNotificationIntervention(interventionId);
+
+  const documentGenerationId = documentGenerationIdOf(notification);
+  const documentFailed = notification.notificationKey === 'DOCUMENT_GENERATION_FAILED';
+  const { generation, loading: generationLoading } = useNotificationDocument(documentGenerationId);
+
+  const moneySubject = React.useMemo(() => moneySubjectOf(notification), [notification]);
+  const { dossier: moneyDossier, loading: moneyLoading } = useNotificationMoney(moneySubject);
+
+  const requestSubject = React.useMemo(() => requestSubjectOf(notification), [notification]);
+  const {
+    dossier: requestDossier,
+    property: requestProperty,
+    loading: requestLoading,
+  } = useNotificationRequest(requestSubject);
 
   const destination = resolveDestination(notification.actionUrl);
   const destinationLabel = destination?.translationKey
@@ -188,15 +274,43 @@ export default function NotificationDetailCard({
 
   // Le reste des notifications n'a pas d'objet a aller chercher : leurs faits
   // suffisent a en dessiner un — un sejour, un montant, une mission.
-  const subject = resolveSubject(facts, notification);
+  // La fiche d'un message a deja son panneau : son sejour n'y entre qu'en repere.
+  const subject = guestMessage ? null : resolveSubject(facts, notification);
+
+  /**
+   * Ou se situe ce message : logement, reference, dates — en UNE ligne.
+   *
+   * <p>Le sejour n'est pas le sujet de la fiche, il en est le decor. Ecrit en
+   * toutes lettres plutot qu'avec une fleche entre deux dates : une fleche
+   * pointe du mauvais cote en arabe.</p>
+   */
+  const messageStayLine = React.useMemo(() => {
+    if (!guestMessage) return null;
+    const reference = facts.find((fact) => fact.key === 'reservationReference');
+    const window = facts.find((fact) => fact.kind === 'stay');
+    return [
+      propertyName,
+      reference?.kind === 'text' ? reference.value : null,
+      window?.kind === 'stay'
+        ? t('notifications.detail.message.window', 'du {{from}} au {{to}}', {
+            from: formatFactDate(window.from, currentLanguage),
+            to: formatFactDate(window.to, currentLanguage),
+          })
+        : null,
+    ].filter(Boolean).join(' · ') || null;
+  }, [guestMessage, facts, propertyName, t, currentLanguage]);
 
   // Un fait deja dit par un panneau ne se redit pas dans le releve. La fiche de
   // l'avis absorbe le voyageur et la note ; le panneau de sujet declare ce qu'il
   // consomme. Quand il ne reste rien, la section entiere disparait.
   const spoken = new Set<string>(subject?.consumed ?? []);
-  if (review) {
+  if (reviewDossier) {
     spoken.add('guest');
     spoken.add('rating');
+  }
+  if (guestMessage) {
+    ['guest', 'template', 'channel', 'error', 'reservationReference', 'stay', 'checkIn', 'checkOut']
+      .forEach((key) => spoken.add(key));
   }
   const remainingFacts = facts.filter((fact) => !spoken.has(fact.key));
 
@@ -219,7 +333,28 @@ export default function NotificationDetailCard({
       ? t(`notifications.detail.${kind}.${notification.notificationKey}`, byCategory)
       : byCategory;
   };
-  const explanation = byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
+  /** Un panneau porte deja le motif : la fiche ne le redit pas au-dessus de lui. */
+  const messageTakenOver = guestMessage !== null || stay !== null || instructions !== null || plan !== null
+    || lockCodeDossier !== null || deviceDossier !== null
+    || dossier !== null || requestDossier !== null || moneyDossier !== null
+    || generation !== null || documentFailed;
+
+  /**
+   * Quand les faits nomment l'auteur du geste, l'explication le nomme aussi.
+   *
+   * <p>« Quelqu'un a régénéré le code — la fiche nomme l'auteur » obligeait à
+   * aller chercher plus bas un nom que la notification portait déjà. La variante
+   * `…_actor` d'une clé sert exactement a ca : elle prend le relais des que
+   * `metadata.actor` est renseigné, et la formulation impersonnelle reste pour
+   * les gestes automatiques, qui n'ont pas d'auteur.</p>
+   */
+  const explainActor = notificationActorOf(notification);
+  const explanation = explainActor && notification.notificationKey
+    ? t(`notifications.detail.explain.${notification.notificationKey}_actor`, {
+        actor: explainActor,
+        defaultValue: byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.'),
+      })
+    : byKeyThenCategory('explain', 'Cet événement a été enregistré par la plateforme.');
   const nextStep = byKeyThenCategory(
     'nextStep',
     "Ouvrez l'écran concerné pour agir sur l'élément à l'origine de cette notification.",
@@ -295,28 +430,142 @@ export default function NotificationDetailCard({
       {/* ── Corps : le metier ──────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
         {deviceId !== null &&
-          (device ? (
-            <NotificationDevicePanel device={device} />
+          (deviceDossier ? (
+            <NotificationDevicePanel
+              dossier={deviceDossier}
+              observation={notification.message}
+              observedAt={notification.createdAt}
+            />
           ) : deviceLoading ? (
             <NotificationDeviceSkeleton />
           ) : null)}
 
+        {guestMessage &&
+          (messageLoading ? (
+            <NotificationMessageSkeleton />
+          ) : (
+            <NotificationMessagePanel
+              subject={guestMessage}
+              log={messageLog}
+              body={messageBody}
+              at={notification.createdAt}
+              stayLine={messageStayLine}
+            />
+          ))}
+
         {reservationId !== null &&
           (stay ? (
-            <NotificationStayPanel stay={stay} />
+            <NotificationStayPanel
+              stay={stay}
+              observation={notification.message}
+              observedAt={notification.createdAt}
+            />
           ) : stayLoading ? (
             <NotificationStaySkeleton />
           ) : null)}
 
+        {/* Un ECHEC s'affiche meme sans la piece : son motif est dans le
+            message, et c'est quand la production documentaire va mal qu'on lit
+            ces fiches. Un succes sans sa piece n'aurait, lui, rien a ajouter. */}
+        {documentGenerationId !== null && (generation || documentFailed) &&
+          (generationLoading ? (
+            <NotificationDocumentSkeleton />
+          ) : (
+            <NotificationDocumentPanel
+              generation={generation}
+              message={notification.message}
+              failedEvent={documentFailed}
+            />
+          ))}
+
+        {moneySubject &&
+          (moneyDossier ? (
+            <NotificationMoneyPanel
+              dossier={moneyDossier}
+              // Le montant CONFIRME par le fournisseur, quand les faits le
+              // portent : c'est lui qui fait foi, pas le cout de l'objet.
+              confirmedAmount={typeof notification.metadata?.amount === 'number'
+                ? notification.metadata.amount : null}
+              confirmedAt={notification.createdAt}
+              observation={notification.message}
+            />
+          ) : moneyLoading ? (
+            <NotificationMoneySkeleton />
+          ) : null)}
+
+        {requestSubject &&
+          (requestDossier ? (
+            <NotificationRequestPanel
+              dossier={requestDossier}
+              property={requestProperty}
+              observation={notification.message}
+            />
+          ) : requestLoading ? (
+            <NotificationRequestSkeleton />
+          ) : null)}
+
+        {interventionId !== null &&
+          (dossier ? (
+            <NotificationInterventionPanel dossier={dossier} observation={notification.message} />
+          ) : dossierLoading ? (
+            <NotificationInterventionSkeleton />
+          ) : null)}
+
+        {pricingCard &&
+          (plan ? (
+            <NotificationPricingPanel
+              plan={plan}
+              propertyId={pricingCard.propertyId}
+              propertyName={propertyName}
+              observation={notification.message}
+            />
+          ) : pricingLoading ? (
+            <NotificationPricingSkeleton />
+          ) : null)}
+
+        {lockCodeDeviceId !== null &&
+          (lockCodeDossier ? (
+            <NotificationLockCodePanel
+              dossier={lockCodeDossier}
+              propertyName={propertyName}
+              actor={notificationActorOf(notification)}
+              observation={notification.message}
+            />
+          ) : lockCodeLoading ? (
+            <NotificationLockCodeSkeleton />
+          ) : null)}
+
+        {accessCodePropertyId !== null &&
+          (instructions ? (
+            <NotificationAccessCodePanel
+              instructions={instructions}
+              visit={accessCodeVisit}
+              propertyName={propertyName}
+              observation={notification.message}
+            />
+          ) : accessCodeLoading ? (
+            <NotificationAccessCodeSkeleton />
+          ) : null)}
+
         {showsReview ? (
-          review ? <NotificationReviewPanel review={review} /> : <NotificationReviewSkeleton />
+          reviewDossier
+            ? <NotificationReviewPanel dossier={reviewDossier} />
+            : <NotificationReviewSkeleton />
         ) : (
-          <p className="m-0 text-[15px] leading-relaxed whitespace-pre-line text-foreground">
-            {notification.message}
-          </p>
+          /* Le motif n'est rendu ici que si aucun panneau ne l'a PRIS : ceux qui
+             ouvrent un dossier le portent desormais en pied de carte, et le lire
+             deux fois au meme ecran n'apprenait rien. */
+          !messageTakenOver && (
+            <p className="m-0 text-[15px] leading-relaxed whitespace-pre-line text-foreground">
+              {notification.message}
+            </p>
+          )
         )}
 
-        {subject?.node}
+        {/* Le panneau de sujet cede au DOSSIER quand il y en a un : tous deux
+            racontent le sejour, l'un en resume des faits, l'autre en allant le
+            lire. Les afficher ensemble le dirait deux fois. */}
+        {!stay && subject?.node}
 
         {remainingFacts.length > 0 && (
           <section className="flex flex-col gap-2.5">
@@ -406,7 +655,11 @@ export default function NotificationDetailCard({
             </Button>
           ))}
 
-          {stay && <NotificationStayActions stay={stay} onChanged={reloadStay} />}
+          {/* Les gestes de no-show ne valent que pour la carte qui les propose ;
+              le dossier, lui, s'ouvre sur toute notification de sejour. */}
+          {stay && stayActionsApply(notification) && (
+            <NotificationStayActions stay={stay} onChanged={reloadStay} />
+          )}
 
           {destination && businessActions.length === 0 && (
             <Button onClick={() => navigate(destination.path)}>

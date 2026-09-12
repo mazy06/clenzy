@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import fr from '../locales/fr.json';
-import en from '../locales/en.json';
-import ar from '../locales/ar.json';
+// Les traductions vivent dans `public/` : elles sont SERVIES, plus bundlees
+// (cf. i18n/config.ts). Ce test les lit toujours en direct — c'est leur
+// contenu qu'il verifie, pas la facon dont l'app les charge.
+import fr from '../../../public/locales/fr.json';
+import en from '../../../public/locales/en.json';
+import ar from '../../../public/locales/ar.json';
 
 /**
  * Garde-fou de traduction du Dashboard.

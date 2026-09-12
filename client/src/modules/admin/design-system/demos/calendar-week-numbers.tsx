@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { Calendar } from '../../../../components/ui'
+import { Calendar } from '../../../../components/ui/calendar';
 import { Card, CardContent } from '../../../../components/ui'
 
 export function CalendarWeekNumbers() {

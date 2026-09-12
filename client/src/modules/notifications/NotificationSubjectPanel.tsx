@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
 import GuestAvatar from '../../components/baitly/GuestAvatar';
+import { guestPhotoSrc } from '../../services/api/guestsApi';
 import ChannelTag from '../../components/baitly/ChannelTag';
 import { Money } from '../../components/baitly/Money';
 import NoiseGauge from '../../components/baitly/NoiseGauge';
@@ -39,6 +40,20 @@ export interface NotificationSubject {
 
 function byKey(facts: NotificationFact[]) {
   return new Map(facts.map((fact) => [fact.key, fact]));
+}
+
+/**
+ * Photo du voyageur, quand l'evenement en designe un.
+ *
+ * <p>Elle ne passe PAS par le releve de faits : ce n'est pas une ligne a
+ * afficher, c'est un attribut du voyageur — et son URL est signee a la lecture
+ * par le serveur, pas ecrite a l'emission (un ticket ne vaut qu'un quart
+ * d'heure). Absente, l'avatar retombe sur les initiales, ce qui reste le cas
+ * courant.</p>
+ */
+function guestAvatarOf(notification: Notification): string | undefined {
+  const raw = notification.metadata?.guestAvatarUrl;
+  return typeof raw === 'string' ? guestPhotoSrc(raw) : undefined;
 }
 
 /** Intitulé de champ à l'intérieur d'un panneau. */
@@ -86,7 +101,13 @@ function Panel({ children, className }: { children: React.ReactNode; className?:
  * 15 septembre, 3 nuits » est une seule information, pas trois. Pas de flèche
  * entre les dates : elle pointerait du mauvais côté en arabe.</p>
  */
-function StayPanel({ facts }: { facts: Map<string, NotificationFact> }) {
+function StayPanel({
+  facts,
+  notification,
+}: {
+  facts: Map<string, NotificationFact>;
+  notification: Notification;
+}) {
   const { t, currentLanguage } = useTranslation();
   const guest = facts.get('guest');
   const stay = facts.get('stay');
@@ -100,7 +121,14 @@ function StayPanel({ facts }: { facts: Map<string, NotificationFact> }) {
   return (
     <Panel className="flex flex-col gap-3">
       <header className="flex items-start gap-3">
-        {guestName && <GuestAvatar name={guestName} size={36} className="mt-0.5" />}
+        {guestName && (
+          <GuestAvatar
+            name={guestName}
+            photoUrl={guestAvatarOf(notification)}
+            size={36}
+            className="mt-0.5"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <p className="m-0 truncate text-sm font-medium text-foreground">
             {guestName ?? t('notifications.detail.subjectPanel.stay', 'Séjour')}
@@ -329,7 +357,7 @@ export function resolveSubject(
   if (map.has('guest') && (map.has('stay') || map.has('reservationReference'))) {
     return {
       kind: 'stay',
-      node: <StayPanel facts={map} />,
+      node: <StayPanel facts={map} notification={notification} />,
       consumed: ['guest', 'stay', 'reservationReference', 'channel', 'amount'],
     };
   }

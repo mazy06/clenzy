@@ -3,17 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  Field,
-  FieldDescription,
-  FieldLabel,
-} from '../../components/ui';
+import { Field, FieldDescription, FieldLabel } from '../../components/ui';
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import {
   Business,
   PersonAdd,

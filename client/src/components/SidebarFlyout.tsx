@@ -85,6 +85,25 @@ export const SIDEBAR_FLYOUT_SEAM_OFFSET = 6;
 export const SIDEBAR_FLYOUT_ALIGN_OFFSET = 16;
 
 /**
+ * Débord des congés hors du volet — ce qui dépasse de sa boîte, en haut comme
+ * en bas.
+ *
+ * <p>Les congés sont des pseudo-éléments posés à {@code -1px - rayon} du bord :
+ * ils vivent au-DESSUS et au-DESSOUS du volet, pas dedans. Le bord de la pièce
+ * réellement dessinée n'est donc pas celui de la boîte, mais celui-ci plus 15 px
+ * (le rayon) plus la bordure.</p>
+ *
+ * <p>Tant que le volet est accolé à la BARRE, qui court sur toute la hauteur de
+ * l'écran, ce débord est sans conséquence : le congé trouve toujours de la ligne
+ * où s'appuyer. Accolé à un autre volet — un panneau flottant de 400 px —, il
+ * peut tomber dans le vide sous son bord inférieur, et l'arc se referme alors
+ * sur rien. {@code SidebarTabsDrawer} s'en sert pour borner la hauteur du
+ * tiroir de façon que ses deux congés restent DANS la bande du panneau qui le
+ * porte.</p>
+ */
+export const SIDEBAR_FLYOUT_SEAM_REACH = 16;
+
+/**
  * Classe de la coquille, à passer en {@code className} d'un
  * {@code PopoverContent} / {@code HoverCardContent}, avec {@code gap-0 p-0} : le
  * rythme intérieur vient des groupes, comme dans la barre.
@@ -126,27 +145,49 @@ export function SidebarFlyoutGroup({ label, children }: SidebarFlyoutGroupProps)
 }
 
 interface SidebarFlyoutRowProps {
-  /** Valeur courante de la rubrique. */
+  /** Valeur courante de la rubrique, ou page courante pour une destination. */
   selected: boolean;
+  /**
+   * La ligne est-elle un CHOIX (une valeur qu'on coche) ou une DESTINATION ?
+   *
+   * <p>Une valeur choisie porte une coche ; une page courante, non — la barre la
+   * marque par son aplat, et une coche sur « Propriétés » se lirait comme une
+   * case à cocher. `aria-pressed` suit la même logique : il ne veut rien dire
+   * sur un lien.</p>
+   */
+  choice?: boolean;
   onSelect: () => void;
   children: React.ReactNode;
 }
 
 /**
- * Ligne de choix d'un volet : l'entrée de navigation de la barre, cochée.
+ * Ligne d'un volet : l'entrée de navigation de la barre, cochée si c'est un
+ * choix.
  *
  * <p>La coche s'ajoute à la surface active, elle ne la remplace pas. Le survol
  * de la barre et son état actif partagent le même {@code bg-sidebar-accent} :
  * sans la coche, passer la souris sur une ligne la rendrait indiscernable de la
  * ligne choisie. Et sur trois rubriques empilées, une coche se balaye du regard
- * bien plus vite qu'un aplat très pâle.</p>
+ * bien plus vite qu'un aplat très pâle. Pour une destination, en revanche, une
+ * seule ligne est jamais « courante » et le survol se lit sans ambiguïté.</p>
  */
-export function SidebarFlyoutRow({ selected, onSelect, children }: SidebarFlyoutRowProps) {
+export function SidebarFlyoutRow({
+  selected,
+  choice = true,
+  onSelect,
+  children,
+}: SidebarFlyoutRowProps) {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={selected} aria-pressed={selected} onClick={onSelect}>
+      <SidebarMenuButton
+        isActive={selected}
+        aria-pressed={choice ? selected : undefined}
+        onClick={onSelect}
+      >
         {children}
-        {selected && <Check size={16} strokeWidth={2} className="ms-auto text-primary" />}
+        {choice && selected && (
+          <Check size={16} strokeWidth={2} className="ms-auto text-primary" />
+        )}
       </SidebarMenuButton>
     </SidebarMenuItem>
   );

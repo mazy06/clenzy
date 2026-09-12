@@ -7,7 +7,7 @@ import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
 import { useAuth } from '../hooks/useAuth';
 import { warmHotRoutes } from './routePrefetch';
-import { ASSISTANT_CONVERSATION_PARAM } from '../components/AssistantDockTab';
+import { ASSISTANT_CONVERSATION_PARAM } from '../components/assistantDeepLink';
 
 /**
  * Ancien lien profond des notifications et emails de briefing

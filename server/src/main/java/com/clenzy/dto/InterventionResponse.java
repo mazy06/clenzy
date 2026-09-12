@@ -35,6 +35,12 @@ public record InterventionResponse(
     String assignedToType,
     Long assignedToId,
     String assignedToName,
+    /**
+     * Photo de l'intervenant, URL ticketee prete pour une balise {@code <img>}.
+     * {@code null} pour une equipe, ou pour un intervenant sans photo — la
+     * vignette retombe alors sur ses initiales.
+     */
+    String assignedToAvatarUrl,
     String assignedUserRole,
     Integer estimatedDurationHours,
     Integer actualDurationMinutes,
@@ -100,6 +106,7 @@ public record InterventionResponse(
         private String assignedToType;
         private Long assignedToId;
         private String assignedToName;
+        private String assignedToAvatarUrl;
         private String assignedUserRole;
         private Integer estimatedDurationHours;
         private Integer actualDurationMinutes;
@@ -151,6 +158,7 @@ public record InterventionResponse(
         public Builder assignedToType(String assignedToType) { this.assignedToType = assignedToType; return this; }
         public Builder assignedToId(Long assignedToId) { this.assignedToId = assignedToId; return this; }
         public Builder assignedToName(String assignedToName) { this.assignedToName = assignedToName; return this; }
+        public Builder assignedToAvatarUrl(String assignedToAvatarUrl) { this.assignedToAvatarUrl = assignedToAvatarUrl; return this; }
         public Builder assignedUserRole(String assignedUserRole) { this.assignedUserRole = assignedUserRole; return this; }
         public Builder estimatedDurationHours(Integer estimatedDurationHours) { this.estimatedDurationHours = estimatedDurationHours; return this; }
         public Builder actualDurationMinutes(Integer actualDurationMinutes) { this.actualDurationMinutes = actualDurationMinutes; return this; }
@@ -188,7 +196,7 @@ public record InterventionResponse(
                 propertyCoverPhotoUrl, propertyOwnerName, quoteLines, sourceIssue,
                 propertyLatitude, propertyLongitude,
                 requestorId, requestorName,
-                assignedToType, assignedToId, assignedToName, assignedUserRole,
+                assignedToType, assignedToId, assignedToName, assignedToAvatarUrl, assignedUserRole,
                 estimatedDurationHours, actualDurationMinutes,
                 estimatedCost, recommendedCost, actualCost,
                 scheduledDate, startTime, endTime, completedAt,

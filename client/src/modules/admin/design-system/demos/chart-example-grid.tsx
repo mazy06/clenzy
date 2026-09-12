@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid } from "recharts"
 
-import { ChartContainer, type ChartConfig } from '../../../../components/ui'
+import { ChartContainer, type ChartConfig } from '../../../../components/ui/chart';
 
 const chartData = [
   { month: "January", desktop: 186, mobile: 80 },

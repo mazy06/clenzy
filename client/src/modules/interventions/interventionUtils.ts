@@ -107,6 +107,8 @@ export interface InterventionDetailsData {
   assignedToId?: number;
   assignedToType: 'user' | 'team';
   assignedToName: string;
+  /** Photo de l'intervenant, URL ticketée. Absente pour une équipe. */
+  assignedToAvatarUrl?: string | null;
   assignedUserRole?: string;
   scheduledDate: string;
   estimatedDurationHours: number;

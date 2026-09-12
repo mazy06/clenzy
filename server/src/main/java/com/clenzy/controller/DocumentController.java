@@ -267,6 +267,36 @@ public class DocumentController {
         return ResponseEntity.ok(generatorService.listGenerations(pageable));
     }
 
+    /**
+     * Une generation, par son identifiant.
+     *
+     * <p>L'historique se lit par pages de vingt ; retrouver une ligne precise y
+     * demandait de parcourir des centaines de pages. La fiche d'une notification
+     * de document, elle, sait exactement laquelle elle veut.</p>
+     *
+     * <p>Meme controle d'acces que le telechargement du binaire : {@code findById}
+     * contourne le filtre Hibernate, l'organisation est donc validee ICI, et
+     * l'appartenance de l'intervention referencee avec (regle #3 de l'audit
+     * 2026-06).</p>
+     */
+    @GetMapping("/generations/{id}")
+    @Operation(summary = "Une generation de document")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DocumentGenerationDto> getGeneration(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id
+    ) {
+        DocumentGeneration generation = generatorService.getGeneration(id);
+        documentAccessService.requireSameOrganization(generation);
+        if (generation.getReferenceType() == ReferenceType.INTERVENTION && generation.getReferenceId() != null) {
+            documentAccessService.validateInterventionOwnership(jwt, generation.getReferenceId());
+        }
+        // La conversion repasse par le service : `template` est LAZY et
+        // `open-in-view` vaut false — la faire ici toucherait le proxy hors
+        // session.
+        return ResponseEntity.ok(generatorService.getGenerationDto(id));
+    }
+
     @GetMapping("/generations/by-reference")
     @Operation(summary = "Generations de documents par type de reference et ID")
     @PreAuthorize("isAuthenticated()")

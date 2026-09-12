@@ -200,6 +200,34 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
 })()
 
 /**
+ * Resout des que l'application a de quoi DECIDER si elle rend l'ecran.
+ *
+ * <p>`keycloakInitPromise` n'est pas ce moment-la : elle attend l'aller-retour
+ * complet de l'iframe de check-sso jusqu'au serveur Keycloak. Or dans le cas
+ * courant — un rechargement avec un cookie `clenzy_auth` valide — le BACKEND a
+ * deja tranche bien avant, via `GET /api/auth/session`. Attendre l'init pour
+ * peindre le premier pixel, c'est payer ce round-trip pour rien : la session
+ * est verifiee cote serveur, et tous les appels d'API qui suivront porteront ce
+ * meme cookie.</p>
+ *
+ * <p>On restaure donc l'etat UI des que le cookie est confirme, et on LAISSE
+ * l'init finir en fond : si le check-sso aboutit, elle remplace ces metadonnees
+ * par le vrai token (necessaire au WebSocket STOMP) ; s'il echoue, elle
+ * retombe d'elle-meme sur ces memes metadonnees.</p>
+ *
+ * <p>Sans cookie confirme, il n'y a rien a decider plus tot : on attend l'init,
+ * exactement comme avant.</p>
+ */
+export const authReadyPromise: Promise<boolean> = (async () => {
+  const session = await bootstrapSessionPromise
+  if (session) {
+    restoreSessionFromMetadata(session)
+    return true
+  }
+  return keycloakInitPromise
+})()
+
+/**
  * Restaure l'etat "authentifie" de Keycloak a partir des metadonnees de
  * session renvoyees par GET /api/auth/session (cookie HttpOnly valide cote
  * backend).

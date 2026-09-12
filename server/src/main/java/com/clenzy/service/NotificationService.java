@@ -60,19 +60,22 @@ public class NotificationService {
 
     private final OutboxPublisher outboxPublisher;
     private final ObjectMapper objectMapper;
+    private final NotificationFactsResolver readFacts;
 
     public NotificationService(NotificationRepository notificationRepository,
                                NotificationPreferenceService preferenceService,
                                UserRepository userRepository,
                                TenantContext tenantContext,
                                OutboxPublisher outboxPublisher,
-                               ObjectMapper objectMapper) {
+                               ObjectMapper objectMapper,
+                               NotificationFactsResolver readFacts) {
         this.notificationRepository = notificationRepository;
         this.preferenceService = preferenceService;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.outboxPublisher = outboxPublisher;
         this.objectMapper = objectMapper;
+        this.readFacts = readFacts;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────────
@@ -85,11 +88,8 @@ public class NotificationService {
      */
     @Transactional(readOnly = true)
     public List<NotificationDto> getAllForUser(String userId) {
-        return notificationRepository
-                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, MAX_NOTIFICATIONS_RETURNED))
-                .stream()
-                .map(NotificationDto::fromEntity)
-                .toList();
+        return withReadFacts(notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, MAX_NOTIFICATIONS_RETURNED)));
     }
 
     /**
@@ -122,9 +122,18 @@ public class NotificationService {
             total = notificationRepository.countByUserId(userId);
         }
 
-        return new NotificationPageDto(
-                rows.stream().map(NotificationDto::fromEntity).toList(),
-                page, size, total);
+        return new NotificationPageDto(withReadFacts(rows), page, size, total);
+    }
+
+    /**
+     * Converti en DTO, faits de lecture compris — resolus pour tout le lot,
+     * jamais ligne par ligne : l'ecran des notifications se recharge en continu.
+     */
+    private List<NotificationDto> withReadFacts(List<Notification> rows) {
+        Map<Long, NotificationFactsResolver.ReadFacts> resolved = readFacts.forNotifications(rows);
+        return rows.stream()
+                .map(row -> NotificationDto.fromEntity(row, resolved.get(row.getId())))
+                .toList();
     }
 
     /**

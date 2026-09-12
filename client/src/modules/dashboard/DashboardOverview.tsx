@@ -5,8 +5,7 @@ import {
   CalendarCheckIcon,
   FileTextIcon,
   ClipboardCheckIcon,
-  EuroIcon,
-  PercentIcon,
+  GaugeIcon,
   StarIcon,
   TrendingUpIcon,
   WalletIcon,
@@ -180,16 +179,22 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <DashboardErrorBoundary widgetName="KPIs">
           <StatTileRow compact>
             <StatTile
-              icon={<PercentIcon />}
+              // L'icone dit le SUJET (un taux de remplissage), pas l'unite :
+              // un « % » en pastille a cote d'un « 44,7 % » ne redit que lui-meme.
+              icon={<GaugeIcon />}
               label={t('dashboard.analytics.occupancyShort', 'Occupation')}
-              value={kpis ? kpis.occupancyRate.value : '—'}
+              value={
+                kpis
+                  ? kpis.occupancyRate.value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+                  : '—'
+              }
               unit="%"
               loading={loading}
               delta={kpis ? kpis.occupancyRate.growth : null}
               deltaUnit="pts"
             />
             <StatTile
-              icon={<EuroIcon />}
+              icon={<WalletIcon />}
               label={t('dashboard.analytics.revenueShort', 'Revenus')}
               value={kpis ? <Money value={kpis.totalRevenue.value} decimals={0} /> : '—'}
               iconClassName="text-success"

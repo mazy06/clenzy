@@ -1,19 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Badge, Button } from '../../components/ui';
 import {
-  ViewList,
-  ChatBubbleOutline,
-  Description,
-  History,
-  LocalOffer,
-  GppGood,
   Refresh,
   Add,
   Send,
   Search,
-  Forum,
 } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
+import { Description } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import HeaderSearchField from '../../components/HeaderSearchField';
@@ -60,16 +55,15 @@ const DocumentsPage: React.FC = () => {
   const failedCount = useDocumentsFailedCount(true);
   // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
   // Defini ICI car activeTab/setActiveTab sont consommes tot (callbacks, inlineActions).
-  const tabs = [
-    { value: TAB_CATALOG,            key: 'catalog',            label: t('documents.tabs.catalog'),            icon: <ViewList /> },
-    { value: TAB_MSG_TEMPLATES,      key: 'message-templates',  label: t('documents.tabs.messageTemplates'),   icon: <ChatBubbleOutline /> },
-    { value: TAB_WHATSAPP_TEMPLATES, key: 'whatsapp-templates', label: t('documents.tabs.whatsappTemplates'),  icon: <Forum /> },
-    { value: TAB_DOC_TEMPLATES,      key: 'document-templates', label: t('documents.tabs.documentTemplates'),  icon: <Description /> },
-    { value: TAB_HISTORY,            key: 'history',            label: t('documents.tabs.history'),            icon: <History />,
-      ...(failedCount > 0 ? { badge: failedCount, badgeColor: 'error' as const } : {}) },
-    { value: TAB_VARIABLES,          key: 'variables',          label: t('documents.tabs.variablesAndTags'),   icon: <LocalOffer /> },
-    { value: TAB_COMPLIANCE,         key: 'compliance',         label: t('documents.tabs.compliance'),         icon: <GppGood /> },
-  ];
+  // Le registre (config/screenTabs.tsx) porte la liste ; la page n'y ajoute que
+  // ce qui ne peut venir que d'elle — la pastille d'echecs de l'Historique. Les
+  // constantes TAB_* ci-dessus restent le RANG dans cette liste : aucun onglet
+  // de cet ecran n'est masque par role, l'index visible est donc le rang.
+  const tabs = useScreenTabs('/documents').map((tab) =>
+    tab.key === 'history' && failedCount > 0
+      ? { ...tab, badge: failedCount, badgeColor: 'error' as const }
+      : tab,
+  );
   const [activeTab, setActiveTab] = useTabKeyParam(tabs);
 
   const [tagsSearch, setTagsSearch] = useState('');

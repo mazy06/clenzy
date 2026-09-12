@@ -41,6 +41,12 @@ export interface Intervention {
   assignedToId: number;
   assignedToType: 'user' | 'team';
   assignedToName: string;
+  /**
+   * Photo de l'intervenant, URL ticketée prête pour un `<img>` (la passer par
+   * `resolveMediaUrl` pour l'origine). Absente pour une équipe ou pour qui n'a
+   * pas de photo — la vignette retombe sur les initiales.
+   */
+  assignedToAvatarUrl?: string | null;
   scheduledDate: string;
   estimatedDurationHours: number;
   actualDurationMinutes?: number;

@@ -21,26 +21,8 @@ import {
   WrenchIcon,
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
-import {
-  Badge,
-  Button,
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../../components/ui';
+import { Badge, Button, Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui';
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';
 import PageHeader from '../../../components/baitly/PageHeader';
 import TeamCard from '../../../components/baitly/TeamCard';
 import AppUpdateBanner from '../../../components/baitly/AppUpdateBanner';

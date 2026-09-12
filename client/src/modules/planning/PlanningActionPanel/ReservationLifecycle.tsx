@@ -143,7 +143,7 @@ const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({
   const currentIndex = steps.findIndex((step) => !step.done);
 
   return (
-    <div className="flex items-center rounded-[12px] border border-solid border-[var(--line)] bg-[var(--field)] px-2 py-2">
+    <div className="flex items-center rounded-[12px] border border-solid border-[var(--bui-border)] bg-[var(--field)] px-2 py-2">
       {steps.map((step, index) => {
         const state: StepState = step.done ? 'done' : index === currentIndex ? 'current' : 'todo';
         // Un jalon n'est actionnable que s'il mène à un onglet ET que le parent
@@ -156,7 +156,7 @@ const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({
             {index > 0 && (
               <div
                 className="h-px flex-1 min-w-[8px]"
-                style={{ backgroundColor: state === 'todo' ? 'var(--line)' : 'var(--accent)' }}
+                style={{ backgroundColor: state === 'todo' ? 'var(--bui-border)' : 'var(--accent)' }}
               />
             )}
             {interactive ? (

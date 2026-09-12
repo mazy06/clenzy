@@ -65,7 +65,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     || pathname.startsWith('/booking-engine/sites/');
 
   const layoutState = useLayoutState();
-  const { menuItems, loading: menuLoading, error: menuError, refreshMenu } = useNavigationMenu();
+  const { menuItems, error: menuError, refreshMenu } = useNavigationMenu();
 
   // Compteur global de formulaires recus en attente (NEW) — injecte sur l'item /contact
   const { user } = useAuth();
@@ -86,16 +86,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   // Sous 1024 px, le provider du kit prend le relais en feuille latérale.
   const { isCollapsed, toggleCollapsed } = useSidebarState();
 
-  // Determiner l'etat de chargement
-  const loadingState = useMemo(() => {
-    if (layoutState.loading) return 'loading';
-    if (!layoutState.user) return 'user-loading';
-    if (!layoutState.functionsDefined) return 'permissions-loading';
-    if (layoutState.error) return 'error-loading';
-    if (menuLoading) return 'permissions-loading';
-    return 'ready';
-  }, [layoutState, menuLoading]);
-
   // Gestion des erreurs
   const handleRetry = useCallback(async () => {
     await layoutState.refreshUser();
@@ -106,12 +96,27 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     layoutState.clearError();
   }, [layoutState.clearError]);
 
-  // Afficher les etats de chargement
-  if (loadingState !== 'ready') {
+  // La coquille ne se laisse plus garder par un etat de CHARGEMENT.
+  //
+  // Elle l'etait par quatre conditions dont aucune ne decrivait une attente
+  // reelle : `MainLayoutFull` n'est monte que dans la branche `user ?` d'App,
+  // `checkRoleFunctions` rend `true` en dur, et la construction du menu est
+  // purement synchrone. Les quatre n'etaient vraies que le temps d'UNE frame —
+  // celle qui separe le premier rendu de ses effets — mais cette frame etait
+  // peinte : un sursis plein ecran de plus, au milieu d'une file qui en
+  // comptait deja trois, et qui RETARDAIT les suivants puisque `children`
+  // (donc le chunk de la page, donc ses donnees) n'etait pas monte tant qu'il
+  // durait. La coquille se dessine maintenant tout de suite ; la sidebar passe
+  // une frame sans ses entrees, dans sa geometrie definitive.
+  //
+  // L'erreur, elle, garde sa porte : c'est la seule des cinq qui demande un
+  // geste a l'utilisateur.
+  const bootError = layoutState.error || menuError;
+  if (bootError) {
     return (
       <LoadingStates
-        state={loadingState}
-        error={layoutState.error || menuError}
+        state="error-loading"
+        error={bootError}
         onRetry={handleRetry}
         onClearError={handleClearError}
       />

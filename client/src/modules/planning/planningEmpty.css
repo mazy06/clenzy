@@ -1,0 +1,91 @@
+/* ─── Démonstration animée de l'état vide du Planning ────────────────────────
+ *
+ * L'écran vide du planning ne peut pas se contenter d'une image : ce qui se
+ * vend ici est un MÉCANISME (une nuit vendue sur un canal se ferme sur tous les
+ * autres, un ménage s'intercale, un prix se lit sans changer d'écran). Le
+ * mouvement sert donc la démonstration, jamais la décoration.
+ *
+ * Règles tenues :
+ *  - `transform` / `opacity` uniquement — jamais width/height (pas de reflow,
+ *    pas de saut de mise en page) ;
+ *  - easing sortant exponentiel, comme le reste de l'app ;
+ *  - `prefers-reduced-motion: reduce` coupe TOUT, et l'état final reste lisible
+ *    (les barres, pastilles et prix sont rendus, simplement sans entrée).
+ */
+
+@keyframes plEmptyBarIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes plEmptyPop {
+  from { opacity: 0; transform: scale(.6); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes plEmptyRise {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Halo pulsé sur le logo du canal : dit « ça synchronise en ce moment ». */
+@keyframes plEmptyHalo {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+}
+
+.pl-empty-bar { animation: plEmptyBarIn 520ms cubic-bezier(.22, 1, .36, 1) both; }
+
+/* Déplacement d'un séjour (jalon « glisser-déposer ») — porté par un enrobage
+ * SÉPARÉ de la barre : l'entrée en scène est une animation `fill-mode: both`,
+ * qui fige le `transform` de l'élément et écraserait toute transition posée sur
+ * le même nœud.
+ *
+ * Le décalage s'exprime en colonnes : la barre occupe `--span` colonnes, donc
+ * sa largeur vaut `span·col + (span-1)·gap` ; avancer de `--shift` colonnes
+ * revient à translater de `(100% + gap) · shift / span`. Aucune largeur en dur,
+ * la grille reste fluide. */
+.pl-empty-slide {
+  --shift: 0;
+  --span: 1;
+  transform: translateX(calc((100% + 3px) * var(--shift) / var(--span)));
+  transition: transform 900ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.pl-empty-pop  { animation: plEmptyPop 420ms cubic-bezier(.22, 1, .36, 1) both; }
+.pl-empty-rise { animation: plEmptyRise 420ms ease-out both; }
+.pl-empty-halo { animation: plEmptyHalo 2.2s ease-in-out infinite; }
+
+/* Bande d'occupation : elle grandit par le bas, donc `scaleY` + origine basse
+   (une hauteur animée ferait respirer toute la grille). */
+.pl-empty-occ {
+  transform-origin: bottom;
+  transition: transform 700ms cubic-bezier(.22, 1, .36, 1), opacity 400ms ease-out;
+}
+
+/* Detail d'un jalon : seul celui qui pilote la demonstration est deplie. Le
+   grid-template-rows anime une hauteur qu'on ne connait pas d'avance, sans
+   max-height arbitraire qui saccaderait la fermeture. */
+.pl-empty-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 320ms cubic-bezier(.22, 1, .36, 1), opacity 200ms ease-out;
+}
+
+.pl-empty-detail > * { overflow: hidden; }
+
+.pl-empty-detail[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-empty-bar,
+  .pl-empty-pop,
+  .pl-empty-rise,
+  .pl-empty-halo { animation: none !important; }
+  .pl-empty-slide,
+  .pl-empty-occ,
+  .pl-empty-detail { transition: none !important; }
+}

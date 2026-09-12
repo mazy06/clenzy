@@ -34,7 +34,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   // ailleurs il reste la cellule inerte qu'il a toujours ete.
   const CornerTag = onToggleCollapse ? 'button' : 'div';
   return (
-    <div className="sticky top-0 z-[12] flex bg-[var(--surface-2)]" style={{ borderBottom: '1px solid var(--line)', minHeight: DATE_HEADER_HEIGHT }}>
+    <div className="sticky top-0 z-[12] flex bg-[var(--pl-surface-2)]" style={{ borderBottom: '1px solid var(--bui-border)', minHeight: DATE_HEADER_HEIGHT }}>
       {/* Coin « LOGEMENT » (spec .pl-corner) : cellule unique sur toute la
           hauteur de l'entête — overline 10.5px fw700, centrée verticalement
           (la hauteur vient de la rangée, pas de ce padding). */}
@@ -50,7 +50,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             : undefined
         }
         className={cn(
-          'sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] py-1',
+          'sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--bui-border)] bg-[var(--pl-surface-2)] py-1',
           collapsed ? 'justify-center px-0' : 'px-4',
           onToggleCollapse && 'cursor-pointer text-start hover:bg-[var(--hover)]',
         )}
@@ -79,9 +79,9 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 {/* Le trigger cible directement la cellule : un <div> natif accepte
                     la ref d'ancrage de Radix, aucun span intermediaire requis. */}
                 <TooltipTrigger asChild>
-                {/* border-e-[1px_solid_var(--line)] laisse par le codemod ne produisait
+                {/* border-e-[1px_solid_var(--bui-border)] laisse par le codemod ne produisait
                     rien : une largeur de bordure n'accepte pas une valeur raccourcie. */}
-                <div className="flex flex-col items-center justify-center gap-px py-1 border-e border-solid border-e-[var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
+                <div className="flex flex-col items-center justify-center gap-px py-1 border-e border-solid border-e-[var(--bui-border)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
                     <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--brand-ink)]' : 'text-[var(--faint)]')}>

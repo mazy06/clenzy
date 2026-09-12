@@ -5,9 +5,12 @@ import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemsDto;
 import com.clenzy.model.ActionItem;
+import com.clenzy.model.Reservation;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.ActionItemRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.GuestPhotoUrlResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,13 +58,19 @@ public class ActionItemQueryService {
 
     private final ActionItemRepository actionItemRepository;
     private final PropertyRepository propertyRepository;
+    private final ReservationRepository reservationRepository;
+    private final GuestPhotoUrlResolver guestPhotoUrls;
     private final Clock clock;
 
     public ActionItemQueryService(ActionItemRepository actionItemRepository,
                                   PropertyRepository propertyRepository,
+                                  ReservationRepository reservationRepository,
+                                  GuestPhotoUrlResolver guestPhotoUrls,
                                   Clock clock) {
         this.actionItemRepository = actionItemRepository;
         this.propertyRepository = propertyRepository;
+        this.reservationRepository = reservationRepository;
+        this.guestPhotoUrls = guestPhotoUrls;
         this.clock = clock;
     }
 
@@ -110,10 +119,10 @@ public class ActionItemQueryService {
                 .collect(Collectors.groupingBy(ActionItemDto::kind, LinkedHashMap::new,
                         Collectors.toList()));
 
-        final List<ActionItemDto> shown = byKind.values().stream()
+        final List<ActionItemDto> shown = withSubjectPhotos(orgId, byKind.values().stream()
                 .flatMap(rows -> rows.stream().limit(MAX_PER_KIND))
                 .limit(MAX_ROWS)
-                .toList();
+                .toList());
 
         // Les décomptes portent sur AVANT plafonnement : c'est ce qui permet à
         // l'écran d'écrire « Avis sans réponse (12) » en n'en affichant que trois.
@@ -135,6 +144,66 @@ public class ActionItemQueryService {
                         (a, b) -> a, LinkedHashMap::new));
 
         return new ActionItemsDto(shown, all.size(), totals, amounts);
+    }
+
+    /**
+     * Natures dont la personne concernée est le voyageur du séjour visé par
+     * {@code targetId} — les seules pour lesquelles une photo est retrouvable.
+     *
+     * <p>Ailleurs, {@code subject} est soit vide, soit une personne dont la
+     * ligne ne porte pas l'identité (le destinataire d'un message n'est qu'une
+     * adresse) : la vignette reste sur les initiales.</p>
+     */
+    private static final EnumSet<ActionItemKind> GUEST_SUBJECT_KINDS = EnumSet.of(
+            ActionItemKind.RESERVATION_PENDING,
+            ActionItemKind.GUEST_DECLARATION_MISSING,
+            ActionItemKind.BALANCE_DUE,
+            ActionItemKind.BALANCE_ABANDONED,
+            ActionItemKind.WELCOME_GUIDE_MISSING,
+            ActionItemKind.CHECKIN_NOT_STARTED);
+
+    /**
+     * Rattache sa photo à chaque ligne dont le sujet est un voyageur.
+     *
+     * <p>Résolu <b>à la lecture</b> et non à l'écriture : l'URL porte un ticket
+     * de courte durée, qu'une file constituée la veille servirait déjà périmé.
+     * Une seule requête pour tout le lot — les lignes sont déjà plafonnées à
+     * quarante, et la requête ramène le voyageur avec le séjour.</p>
+     */
+    private List<ActionItemDto> withSubjectPhotos(Long orgId, List<ActionItemDto> rows) {
+        final Set<Long> reservationIds = rows.stream()
+                .filter(row -> GUEST_SUBJECT_KINDS.contains(row.kind()))
+                .map(ActionItemDto::targetId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (reservationIds.isEmpty()) return rows;
+
+        // La requête ne filtre pas sur l'organisation : c'est à l'appelant de
+        // comparer, ligne par ligne (règle #3 de l'audit 2026-06).
+        final Map<Long, String> photoByReservation = reservationRepository
+                .findAllWithGuestByIdIn(reservationIds).stream()
+                .filter(r -> Objects.equals(r.getOrganizationId(), orgId))
+                .filter(r -> r.getGuest() != null)
+                .collect(Collectors.toMap(Reservation::getId,
+                        r -> guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl()),
+                        (a, b) -> a));
+
+        return rows.stream()
+                .map(row -> {
+                    final String photo = GUEST_SUBJECT_KINDS.contains(row.kind()) && row.targetId() != null
+                            ? photoByReservation.get(row.targetId())
+                            : null;
+                    return photo == null ? row : withSubjectAvatar(row, photo);
+                })
+                .toList();
+    }
+
+    private static ActionItemDto withSubjectAvatar(ActionItemDto row, String photoUrl) {
+        return new ActionItemDto(
+                row.id(), row.kind(), row.severity(), row.title(), row.detail(), row.subject(),
+                row.targetId(), row.propertyId(), row.propertyName(), row.amount(), row.badge(),
+                row.actionType(), row.actionParams(), row.currency(), row.actionItemId(),
+                row.waitingSince(), photoUrl);
     }
 
     /**
@@ -211,6 +280,8 @@ public class ActionItemQueryService {
                 // L'échéance quand la source en a posé une — « en retard depuis
                 // la fin du créneau » est ce que l'utilisateur veut lire. Sinon
                 // l'âge de la ligne dans la file, seul repère qui reste.
-                item.getDeadlineAt() != null ? item.getDeadlineAt() : item.getFirstSeenAt());
+                item.getDeadlineAt() != null ? item.getDeadlineAt() : item.getFirstSeenAt(),
+                // La photo se résout après coup, sur le lot retenu : cf. withSubjectPhotos.
+                null);
     }
 }

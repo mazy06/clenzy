@@ -159,7 +159,13 @@ public class ConversationService {
                 "Nouveau message de " + senderName,
                 truncate(content, 100),
                 "/contact?highlight=" + conversation.getId(),
-                NotificationMetadata.of().guest(senderName).build()
+                // Le fil porte souvent son sejour : il donne au responsable le
+                // visage de son interlocuteur, pas seulement son nom.
+                NotificationMetadata.of()
+                        .guest(senderName)
+                        .reservationId(conversation.getReservation() != null
+                                ? conversation.getReservation().getId() : null)
+                        .build()
             );
         }
 

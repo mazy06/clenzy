@@ -7,6 +7,7 @@ import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { useConnectedObjects } from './useConnectedObjects';
 import DeviceCard from './components/DeviceCard';
+import PropertyAccessCodeChip from './components/PropertyAccessCodeChip';
 import AddDeviceWizard from './components/AddDeviceWizard';
 import type { DeviceAction } from './types';
 
@@ -61,6 +62,14 @@ export default function PropertyDevicesView() {
           </Button>
         }
       />
+
+      {/* Digicode du logement : au niveau du logement, pas repete sur chaque
+          serrure. Cf. PropertyAccessCodeChip. */}
+      {propertyDevices.some((d) => d.kind === 'lock') && (
+        <div className="mb-[9px]">
+          <PropertyAccessCodeChip propertyId={propertyId} />
+        </div>
+      )}
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-[9px]">
         <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} iconClassName="text-primary" loading={loading} />

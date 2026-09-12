@@ -16,6 +16,7 @@ import FilterChipRow from '../../components/baitly/FilterChipRow';
 import { useConnectedObjects } from './useConnectedObjects';
 import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
 import DeviceCard from './components/DeviceCard';
+import PropertyAccessCodeChip from './components/PropertyAccessCodeChip';
 import AddDeviceWizard from './components/AddDeviceWizard';
 import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
@@ -253,27 +254,37 @@ export default function ConnectedObjectsHub({
       ) : (
         filteredGroups.map((group) => (
           <div className="mb-3" key={group.propertyId ?? 'none'}>
-            <div
-              onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
-              className={cn(
-                'group flex items-center gap-[4.5px] mb-[5.25px] w-fit',
-                group.propertyId != null ? 'cursor-pointer' : 'cursor-default',
-              )}
-            >
-              <span className="text-muted-foreground inline-flex">
-                <Home size={15} strokeWidth={1.75} />
-              </span>
-              <p
+            <div className="mb-[5.25px] flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div
+                onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
                 className={cn(
-                  'text-[0.9375rem] font-semibold text-foreground transition-colors duration-150',
-                  group.propertyId != null && 'group-hover:text-primary',
+                  'group flex items-center gap-[4.5px] w-fit',
+                  group.propertyId != null ? 'cursor-pointer' : 'cursor-default',
                 )}
-              >{group.propertyName}</p>
-              <span className="text-xs text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
-              {group.propertyId != null && (
-                <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
-                  <ChevronRight size={15} strokeWidth={1.75} />
+              >
+                <span className="text-muted-foreground inline-flex">
+                  <Home size={15} strokeWidth={1.75} />
                 </span>
+                <p
+                  className={cn(
+                    'text-[0.9375rem] font-semibold text-foreground transition-colors duration-150',
+                    group.propertyId != null && 'group-hover:text-primary',
+                  )}
+                >{group.propertyName}</p>
+                <span className="text-xs text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
+                {group.propertyId != null && (
+                  <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
+                    <ChevronRight size={15} strokeWidth={1.75} />
+                  </span>
+                )}
+              </div>
+
+              {/* Le digicode appartient au LOGEMENT : une seule fois ici, plutôt
+                  qu'une fois par serrure. Rendu hors de la rangée cliquable
+                  (qui navigue), et seulement si le groupe porte au moins une
+                  serrure — c'est le code qui complète leurs codes de séjour. */}
+              {group.propertyId != null && group.devices.some((d) => d.kind === 'lock') && (
+                <PropertyAccessCodeChip propertyId={group.propertyId} />
               )}
             </div>
             <div className={GRID}>

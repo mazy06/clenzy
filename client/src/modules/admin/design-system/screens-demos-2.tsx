@@ -29,35 +29,9 @@ import {
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, Pie, PieChart, XAxis } from 'recharts';
 import type { DateRange } from 'react-day-picker';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Badge,
-  Button,
-  Calendar,
-  CalendarDayButton,
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  Input,
-  NativeSelect,
-  NativeSelectOption,
-  Progress,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../../components/ui';
+import { Alert, AlertDescription, AlertTitle, Badge, Button, Field, FieldDescription, FieldGroup, FieldLabel, Input, NativeSelect, NativeSelectOption, Progress, Switch, Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../../../components/ui';
+import { Calendar, CalendarDayButton } from '../../../components/ui/calendar';
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';
 import PageHeader from '../../../components/baitly/PageHeader';
 import StatTile from '../../../components/baitly/StatTile';
 import StatusChip from '../../../components/baitly/StatusChip';

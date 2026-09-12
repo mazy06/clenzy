@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
+  isPlanningSettled,
   computeEffectiveStatus,
   reservationToEvent,
   interventionToEvent,
@@ -297,5 +298,42 @@ describe('transformations du planning', () => {
       expect(dedup([])).toEqual([]);
       expect(dedup([[], []])).toEqual([]);
     });
+  });
+});
+
+describe('isPlanningSettled — quand ce qui se DEDUIT des sejours est complet', () => {
+  const settled = {
+    propertiesLoading: false,
+    chunksLoading: false,
+    propertyCount: 4,
+    hasAnyData: true,
+  };
+
+  it('whenEveryChunkHasLanded_thenItIsSettled', () => {
+    expect(isPlanningSettled(settled)).toBe(true);
+  });
+
+  it('whenAChunkIsStillInFlight_thenItIsNot', () => {
+    // C'est le coeur du symptome : la grille est deja peinte (loading est
+    // retombe des la premiere tranche) mais les canaux presents grandissent
+    // encore a chaque tranche qui arrive.
+    expect(isPlanningSettled({ ...settled, chunksLoading: true })).toBe(false);
+  });
+
+  it('whenThePropertiesAreStillLoading_thenItIsNot', () => {
+    expect(isPlanningSettled({ ...settled, propertiesLoading: true })).toBe(false);
+  });
+
+  it('whenNoStayHasComeBackYet_thenItIsNot', () => {
+    // Logements deja en cache (preches au boot) et aucune tranche encore
+    // demandee : rien n'est « en vol », et sans cette clause la regle serait
+    // vraie avant le premier sejour.
+    expect(isPlanningSettled({ ...settled, hasAnyData: false })).toBe(false);
+  });
+
+  it('whenThePortfolioIsEmpty_thenItIsSettledWithoutAnyStay', () => {
+    // Personne a interroger : attendre des donnees qui ne viendront jamais
+    // garderait la rangee de filtres cachee a vie.
+    expect(isPlanningSettled({ ...settled, propertyCount: 0, hasAnyData: false })).toBe(true);
   });
 });
