@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.smartlock.CreateSmartLockDeviceDto;
 import com.clenzy.dto.smartlock.RotateAccessCodeRequest;
 import com.clenzy.dto.smartlock.SmartLockAccessCodeDto;
+import com.clenzy.dto.smartlock.SmartLockAccessCodeHistoryDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
 import com.clenzy.model.SmartLockAccessCode;
 import com.clenzy.service.SmartLockService;
@@ -33,6 +34,8 @@ import java.util.Map;
  * - GET    /api/smart-locks/{id}/status : statut live Tuya
  * - POST   /api/smart-locks/{id}/lock   : verrouiller
  * - POST   /api/smart-locks/{id}/unlock : deverrouiller
+ * - GET    /api/smart-locks/{id}/access-code  : code en vigueur (204 si aucun)
+ * - GET    /api/smart-locks/{id}/access-codes : code en vigueur + historique + journal
  */
 @RestController
 @RequestMapping("/api/smart-locks")
@@ -226,6 +229,18 @@ public class SmartLockController {
         return accessCodeService.getCurrentForDevice(id)
                 .<ResponseEntity<?>>map(c -> ResponseEntity.ok(SmartLockAccessCodeDto.from(c)))
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/{id}/access-codes")
+    @Operation(summary = "Etat complet des codes d'acces d'une serrure",
+            description = "Code en vigueur + codes passes + journal des evenements "
+                    + "(generations, envois au voyageur, echecs, revocations). Le PIN "
+                    + "des codes passes n'est pas renvoye.")
+    public ResponseEntity<SmartLockAccessCodeHistoryDto> getAccessCodeHistory(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return accessCodeService.getHistoryForDevice(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/access-code/rotate")

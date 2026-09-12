@@ -59,11 +59,26 @@ class SmartLockAccessCodeServiceTest {
                 org.mockito.Mockito.mock(com.clenzy.tenant.TenantContext.class);
         lenient().when(tenantContext.getOrganizationId()).thenReturn(99L);
 
-        service = new SmartLockAccessCodeService(codeRepo, eventRepo, deviceRepo, tuyaApiService,
-                outboxPublisher, guestMessagingService, templateRepository, new ObjectMapper(), propertyRepository,
-                checkInInstructionsRepository, new com.clenzy.service.access.AccessCodeGenerator(),
+        // Les collaborateurs sont REELS et construits sur les memes mocks : le
+        // service a ete decoupe, pas son comportement — chaque verify() de ce
+        // fichier porte donc toujours sur la meme dependance qu'avant.
+        var journal = new SmartLockAccessCodeJournal(
+                eventRepo, outboxPublisher, new ObjectMapper(),
+                org.mockito.Mockito.mock(com.clenzy.service.NotificationService.class),
+                org.mockito.Mockito.mock(com.clenzy.repository.UserRepository.class));
+        var pinPolicy = new SmartLockPinPolicy(
+                checkInInstructionsRepository, new com.clenzy.service.access.AccessCodeGenerator());
+        var provisioner = new SmartLockCodeProvisioner(
+                tuyaApiService,
                 org.mockito.Mockito.mock(com.clenzy.service.smartlock.SmartLockProviderRegistry.class),
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                pinPolicy);
+        var delivery = new SmartLockCodeDelivery(templateRepository, guestMessagingService, journal);
+        var stayContext = new SmartLockStayContext(
+                propertyRepository, org.mockito.Mockito.mock(com.clenzy.repository.ReservationRepository.class));
+
+        service = new SmartLockAccessCodeService(codeRepo, deviceRepo,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
+                provisioner, journal, delivery, stayContext);
     }
 
     private SmartLockDevice device() {

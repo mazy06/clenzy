@@ -220,7 +220,7 @@ public class RevokeAccessCodeExecutor implements AutomationActionExecutor {
         notificationService.notifyAdminsAndManagersByOrgId(
                 orgId,
                 NotificationKey.ACCESS_CODE_ROTATED,
-                "Nouveau code d'acces — " + property.getName(),
+                "Nouveau digicode / boite a cles — " + property.getName(),
                 "Le voyageur est parti : le code d'acces de « " + property.getName()
                         + " » a ete regenere (" + newCode + "). Pensez a mettre a jour "
                         + "le code de la boite a cle.",

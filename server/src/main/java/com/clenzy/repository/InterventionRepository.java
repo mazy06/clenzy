@@ -621,6 +621,31 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     List<Intervention> findUnassignedForOrg(@Param("orgId") Long orgId,
                                             @Param("horizon") LocalDateTime horizon);
 
+    /**
+     * Visites encore attendues sur un logement à partir d'un instant, la plus
+     * proche d'abord.
+     *
+     * <p>Sert à nommer l'intervention pour laquelle un code d'accès vient de
+     * tourner : au départ du voyageur, c'est le ménage qui trouvera la boîte à
+     * clés. Les missions annulées sont exclues — personne n'y viendra, et les
+     * désigner reviendrait à envoyer le code à un absent.</p>
+     *
+     * <p>{@code orgId} est passé explicitement : l'appelant est un scheduler,
+     * hors requête HTTP, où le filtre Hibernate de tenant est inerte.</p>
+     */
+    @Query("""
+            SELECT i FROM Intervention i
+            WHERE i.property.id = :propertyId
+              AND i.organizationId = :orgId
+              AND i.status <> com.clenzy.model.InterventionStatus.CANCELLED
+              AND i.scheduledDate >= :from
+            ORDER BY i.scheduledDate ASC
+            """)
+    List<Intervention> findUpcomingByProperty(@Param("propertyId") Long propertyId,
+                                              @Param("from") LocalDateTime from,
+                                              @Param("orgId") Long orgId,
+                                              Pageable pageable);
+
     /** Interventions à l'arrêt faute de règlement depuis un certain temps. */
     @Query("""
             SELECT i FROM Intervention i

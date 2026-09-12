@@ -276,7 +276,7 @@ export default function NotificationStayPanel({
   return (
     <section
       className={cn(
-        'flex flex-col gap-4 rounded-xl px-4 py-4',
+        '@container flex flex-col gap-4 rounded-xl px-4 py-4',
         // L'annulation teinte TOUT le dossier : une pastille de huit caracteres
         // en haut a droite se rate, et c'est l'information qui commande.
         cancelled ? 'bg-destructive-soft' : 'bg-muted',
@@ -302,152 +302,163 @@ export default function NotificationStayPanel({
         trailing={reservation.source ? <ChannelTag channel={reservation.source} /> : undefined}
       />
 
-      <div className="flex items-center gap-3 border-t border-border pt-4">
-        <GuestAvatar
-          name={guestName}
-          photoUrl={guestPhotoSrc(reservation.guestAvatarUrl)}
-          size={36}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="m-0 truncate text-sm font-medium text-foreground">{guestName}</p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-0.5">
-            <ContactLine icon={<Email />} value={reservation.guestEmail} href="mailto:" />
-            <ContactLine icon={<Phone />} value={reservation.guestPhone} href="tel:" />
-            {!reservation.guestEmail?.trim() && !reservation.guestPhone?.trim() && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-warning-ink">
-                <span className="inline-flex shrink-0">{sizedIcon(<Person />, 13, 1.75)}</span>
-                {t('notifications.detail.stay.noContact', 'Aucun moyen de le joindre')}
-              </span>
-            )}
-          </div>
-        </div>
-        <Badge variant={STATUS_BADGE[reservation.status] ?? 'secondary'}>
-          {t(`reservations.status.${reservation.status}`, reservation.status)}
-        </Badge>
-      </div>
-
-      <div className="rounded-lg bg-card px-3.5 py-3">
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <div className="min-w-0">
-            <Caption>{t('notifications.detail.metadata.checkIn', 'Arrivée')}</Caption>
-            <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
-              {formatFactDate(reservation.checkIn, currentLanguage)}
-              {reservation.checkInTime && (
-                <span className="ms-1.5 font-normal text-muted-foreground">
-                  {reservation.checkInTime}
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="min-w-0">
-            <Caption>{t('notifications.detail.metadata.checkOut', 'Départ')}</Caption>
-            <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
-              {formatFactDate(reservation.checkOut, currentLanguage)}
-              {reservation.checkOutTime && (
-                <span className="ms-1.5 font-normal text-muted-foreground">
-                  {reservation.checkOutTime}
-                </span>
-              )}
-            </p>
-          </div>
-          {resellable && remaining !== null && nights !== null && (
-            <div className="ms-auto text-end">
-              <Caption>{t('notifications.detail.stay.releasable', 'Encore revendable')}</Caption>
-              <p
-                className={cn(
-                  'm-0 mt-1 text-sm font-semibold tabular-nums',
-                  remaining > 0 ? 'text-warning-ink' : 'text-muted-foreground',
+      {/* Le calendrier a une largeur PROPRE — sept colonnes de jours — et laissait
+          tout le reste de la ligne vide. Il passe donc a gauche, en colonne
+          `auto`, et le dossier occupe la place rendue. Sous 44rem de PANNEAU (et
+          non de fenetre : la fiche partage l'ecran avec la liste), tout se
+          rempile, et `order-first` garde alors le dossier avant le calendrier —
+          on lit qui et quand avant de voir le mois. */}
+      <div className="grid gap-4 border-t border-border pt-4 @[44rem]:grid-cols-[auto_minmax(0,1fr)] @[44rem]:items-start">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <GuestAvatar
+              name={guestName}
+              photoUrl={guestPhotoSrc(reservation.guestAvatarUrl)}
+              size={36}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="m-0 truncate text-sm font-medium text-foreground">{guestName}</p>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-0.5">
+                <ContactLine icon={<Email />} value={reservation.guestEmail} href="mailto:" />
+                <ContactLine icon={<Phone />} value={reservation.guestPhone} href="tel:" />
+                {!reservation.guestEmail?.trim() && !reservation.guestPhone?.trim() && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-warning-ink">
+                    <span className="inline-flex shrink-0">{sizedIcon(<Person />, 13, 1.75)}</span>
+                    {t('notifications.detail.stay.noContact', 'Aucun moyen de le joindre')}
+                  </span>
                 )}
-              >
-                {t('notifications.detail.stay.remainingOfTotal', '{{count}} nuit sur {{total}}', {
+              </div>
+            </div>
+            <Badge variant={STATUS_BADGE[reservation.status] ?? 'secondary'}>
+              {t(`reservations.status.${reservation.status}`, reservation.status)}
+            </Badge>
+          </div>
+
+          <div className="rounded-lg bg-card px-3.5 py-3">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+              <div className="min-w-0">
+                <Caption>{t('notifications.detail.metadata.checkIn', 'Arrivée')}</Caption>
+                <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
+                  {formatFactDate(reservation.checkIn, currentLanguage)}
+                  {reservation.checkInTime && (
+                    <span className="ms-1.5 font-normal text-muted-foreground">
+                      {reservation.checkInTime}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <Caption>{t('notifications.detail.metadata.checkOut', 'Départ')}</Caption>
+                <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
+                  {formatFactDate(reservation.checkOut, currentLanguage)}
+                  {reservation.checkOutTime && (
+                    <span className="ms-1.5 font-normal text-muted-foreground">
+                      {reservation.checkOutTime}
+                    </span>
+                  )}
+                </p>
+              </div>
+              {resellable && remaining !== null && nights !== null && (
+                <div className="ms-auto text-end">
+                  <Caption>{t('notifications.detail.stay.releasable', 'Encore revendable')}</Caption>
+                  <p
+                    className={cn(
+                      'm-0 mt-1 text-sm font-semibold tabular-nums',
+                      remaining > 0 ? 'text-warning-ink' : 'text-muted-foreground',
+                    )}
+                  >
+                    {t('notifications.detail.stay.remainingOfTotal', '{{count}} nuit sur {{total}}', {
+                      count: remaining,
+                      total: nights,
+                    })}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {resellable && nights !== null && remaining !== null && (
+              <div
+                className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-border"
+                role="img"
+                aria-label={t('notifications.detail.stay.remainingOfTotal', '{{count}} nuit sur {{total}}', {
                   count: remaining,
                   total: nights,
                 })}
+              >
+                {/* La part consommee est FIXE, la part revendable prend le reste :
+                    sans `shrink-0` les deux segments se partageaient la barre
+                    lorsque plus rien n'etait a liberer. */}
+                <span
+                  className="block shrink-0 bg-muted-foreground/50"
+                  style={{ width: `${consumedRatio * 100}%` }}
+                />
+                <span className="block flex-1 bg-warning" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+            {typeof reservation.guestCount === 'number' && reservation.guestCount > 0 && (
+              <div className="min-w-0">
+                <Caption>{t('notifications.detail.stay.guests', 'Voyageurs')}</Caption>
+                <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
+                  {reservation.guestCount}
+                  {/* La ventilation quand elle est connue : un menage et une taxe de
+                      sejour ne se calculent pas pareil avec des enfants. */}
+                  {typeof reservation.adultsCount === 'number' && (
+                    <span className="ms-1.5 text-xs font-normal text-muted-foreground">
+                      {t('notifications.detail.stay.guestSplit', '{{adults}} ad. · {{children}} enf.', {
+                        adults: reservation.adultsCount,
+                        children: reservation.childrenCount ?? 0,
+                      })}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {typeof reservation.totalPrice === 'number' && reservation.totalPrice > 0 && (
+              <div className="ms-auto min-w-0 text-end">
+                <Caption>{t('notifications.detail.stay.stayAmount', 'Montant du séjour')}</Caption>
+                <p className="m-0 mt-1 text-sm font-semibold tabular-nums text-foreground">
+                  <Money value={reservation.totalPrice} />
+                </p>
+                {/* Qui a encaisse decide de ce qu'il reste a faire : rien quand le
+                    canal a deja pris l'argent, relancer sinon. */}
+                {/* « En attente de reglement » sur un sejour annule fait croire
+                    qu'il reste a encaisser. Rien n'est du. */}
+                {!cancelled && (
+                  <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+                    {reservation.collectedByChannel
+                      ? t('notifications.detail.stay.collectedByChannel', 'Encaissé par le canal')
+                      : reservation.paymentStatus?.toUpperCase() === 'PAID'
+                        ? t('notifications.detail.stay.paid', 'Réglé')
+                        : t('notifications.detail.stay.unpaid', 'En attente de règlement')}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {reservation.notes?.trim() && (
+            <div>
+              <Caption>{t('notifications.detail.stay.notes', 'Notes')}</Caption>
+              <p className="m-0 mt-1 text-sm leading-relaxed text-pretty whitespace-pre-line text-muted-foreground">
+                {reservation.notes}
               </p>
             </div>
           )}
         </div>
 
-        {resellable && nights !== null && remaining !== null && (
-          <div
-            className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-border"
-            role="img"
-            aria-label={t('notifications.detail.stay.remainingOfTotal', '{{count}} nuit sur {{total}}', {
-              count: remaining,
-              total: nights,
-            })}
-          >
-            {/* La part consommee est FIXE, la part revendable prend le reste :
-                sans `shrink-0` les deux segments se partageaient la barre
-                lorsque plus rien n'etait a liberer. */}
-            <span
-              className="block shrink-0 bg-muted-foreground/50"
-              style={{ width: `${consumedRatio * 100}%` }}
-            />
-            <span className="block flex-1 bg-warning" />
+        {/* Les bornes se LISENT dans la grille d'un mois : « du 23 au 25 aout »
+            ne dit pas quel week-end tombe dedans, ni ce qui reste apres
+            aujourd'hui. */}
+        {calendarRanges.length > 0 && (
+          <div className="rounded-lg bg-card px-3.5 py-3 @[44rem]:order-first">
+            <RangeCalendar ranges={calendarRanges} locale={calendarLocale} />
           </div>
         )}
       </div>
-
-      {/* Les bornes se LISENT dans la grille d'un mois : « du 23 au 25 aout » ne
-          dit pas quel week-end tombe dedans, ni ce qui reste apres aujourd'hui. */}
-      {calendarRanges.length > 0 && (
-        <div className="rounded-lg bg-card px-3.5 py-3">
-          <RangeCalendar ranges={calendarRanges} locale={calendarLocale} />
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
-        {typeof reservation.guestCount === 'number' && reservation.guestCount > 0 && (
-          <div className="min-w-0">
-            <Caption>{t('notifications.detail.stay.guests', 'Voyageurs')}</Caption>
-            <p className="m-0 mt-1 text-sm font-medium tabular-nums text-foreground">
-              {reservation.guestCount}
-              {/* La ventilation quand elle est connue : un menage et une taxe de
-                  sejour ne se calculent pas pareil avec des enfants. */}
-              {typeof reservation.adultsCount === 'number' && (
-                <span className="ms-1.5 text-xs font-normal text-muted-foreground">
-                  {t('notifications.detail.stay.guestSplit', '{{adults}} ad. · {{children}} enf.', {
-                    adults: reservation.adultsCount,
-                    children: reservation.childrenCount ?? 0,
-                  })}
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-
-        {typeof reservation.totalPrice === 'number' && reservation.totalPrice > 0 && (
-          <div className="ms-auto min-w-0 text-end">
-            <Caption>{t('notifications.detail.stay.stayAmount', 'Montant du séjour')}</Caption>
-            <p className="m-0 mt-1 text-sm font-semibold tabular-nums text-foreground">
-              <Money value={reservation.totalPrice} />
-            </p>
-            {/* Qui a encaisse decide de ce qu'il reste a faire : rien quand le
-                canal a deja pris l'argent, relancer sinon. */}
-            {/* « En attente de reglement » sur un sejour annule fait croire
-                qu'il reste a encaisser. Rien n'est du. */}
-            {!cancelled && (
-              <p className="m-0 mt-0.5 text-xs text-muted-foreground">
-                {reservation.collectedByChannel
-                  ? t('notifications.detail.stay.collectedByChannel', 'Encaissé par le canal')
-                  : reservation.paymentStatus?.toUpperCase() === 'PAID'
-                    ? t('notifications.detail.stay.paid', 'Réglé')
-                    : t('notifications.detail.stay.unpaid', 'En attente de règlement')}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {reservation.notes?.trim() && (
-        <div>
-          <Caption>{t('notifications.detail.stay.notes', 'Notes')}</Caption>
-          <p className="m-0 mt-1 text-sm leading-relaxed text-pretty whitespace-pre-line text-muted-foreground">
-            {reservation.notes}
-          </p>
-        </div>
-      )}
 
       {/* Le motif CLOT le dossier au lieu de flotter en dessous : la carte se lit
           alors de haut en bas — quel logement, qui, quand, combien, et pourquoi

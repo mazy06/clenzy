@@ -12,6 +12,8 @@ import apiClient from '../apiClient';
 export interface DashboardArrival {
   reservationId: number;
   guestName: string | null;
+  /** Photo de profil du voyageur. Absente -> repli sur les initiales. */
+  guestAvatarUrl?: string | null;
   propertyId: number | null;
   propertyName: string | null;
   /** Heure de la réservation, à défaut celle du logement. `null` si aucune. */
@@ -27,6 +29,8 @@ export interface DashboardArrival {
 export interface DashboardDeparture {
   reservationId: number;
   guestName: string | null;
+  /** Photo de profil du voyageur. Absente -> repli sur les initiales. */
+  guestAvatarUrl?: string | null;
   propertyId: number | null;
   propertyName: string | null;
   checkOutTime: string | null;
@@ -40,6 +44,8 @@ export interface DashboardCleaning {
   propertyId: number | null;
   propertyName: string | null;
   assigneeName: string | null;
+  /** Photo de l'intervenant. Absente -> repli sur les initiales. */
+  assigneeAvatarUrl?: string | null;
   /** Bornes `HH:mm` de la fenêtre d'intervention ; `null` si non planifiées. */
   windowStart: string | null;
   windowEnd: string | null;
@@ -150,6 +156,12 @@ export interface DashboardActionItem {
   detail: string | null;
   /** Personne concernée, s'il y en a une — porte l'avatar de la ligne. */
   subject: string | null;
+  /**
+   * Photo de cette personne, résolue à la lecture côté serveur. Présente pour
+   * les lignes dont le sujet est le voyageur du séjour visé ; ailleurs,
+   * absente — la vignette retombe sur les initiales.
+   */
+  subjectAvatarUrl?: string | null;
   /** Identifiant de l'objet visé, pour agir dessus. */
   targetId: number | null;
   /** Logement concerné — la replanification propose les séjours de ce logement. */

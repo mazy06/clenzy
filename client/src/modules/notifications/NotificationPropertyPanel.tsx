@@ -90,10 +90,17 @@ export function propertyPlace(property: Property | null): string | null {
   return place || null;
 }
 
-/** Une ligne de contexte sous le nom du logement : icone discrete, texte tronque. */
+/**
+ * Une ligne de contexte sous le nom du logement : icone discrete, texte tronque.
+ *
+ * <p>`flex` et non `inline-flex` : deux lignes de contexte — un lieu PUIS une
+ * reference, une piece, un prix de base — se retrouvaient cote a cote et
+ * collees (« 33200, Bordeaux🏠 Entrée »). C'est une LIGNE, elle prend la
+ * sienne.</p>
+ */
 export function PropertyLine({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <p className="m-0 mt-1 inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground">
+    <p className="m-0 mt-1 flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground">
       <span className="inline-flex shrink-0">{sizedIcon(icon, 13, 1.75)}</span>
       <span className="truncate">{children}</span>
     </p>

@@ -42,12 +42,14 @@ class InterventionMapperTest {
     private TeamRepository teamRepository;
     @Mock
     private InterventionPhotoService photoService;
+    @Mock
+    private UserAvatarUrlResolver avatarUrls;
 
     private InterventionMapper mapper;
 
     @BeforeEach
     void setUp() {
-        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService, new com.fasterxml.jackson.databind.ObjectMapper(), issueRepository, issuePhotoRepository);
+        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService, new com.fasterxml.jackson.databind.ObjectMapper(), issueRepository, issuePhotoRepository, avatarUrls);
     }
 
     private Intervention createIntervention() {

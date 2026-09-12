@@ -3,6 +3,7 @@ import { Badge, Progress, Skeleton } from '../../components/ui';
 import GuestAvatar from '../../components/baitly/GuestAvatar';
 import { Money } from '../../components/baitly/Money';
 import { useTranslation } from '../../hooks/useTranslation';
+import { resolveMediaUrl } from '../../config/api';
 import { getInterventionTypeLabel } from '../../utils/statusUtils';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import type { InterventionDetailsData } from '../interventions/interventionUtils';
@@ -50,6 +51,11 @@ import type { Notification } from '../../services/api';
  * s'ouvrirait — et rien ne les fera renotifier.</p>
  */
 export function interventionIdOf(notification: Notification): number | null {
+  // Une rotation de code NOMME desormais la mission qui va s'en servir, mais son
+  // sujet reste le CODE : c'est le panneau du code d'acces qui la montre, en une
+  // ligne. Ouvrir ici le dossier complet dirait la meme mission deux fois.
+  if (notification.notificationKey === 'ACCESS_CODE_ROTATED') return null;
+
   const fact = factId(notification, 'interventionId');
   if (fact !== null) return fact;
 
@@ -214,7 +220,13 @@ export default function NotificationInterventionPanel({
             <div className="min-w-0">
               <Caption>{t('notifications.detail.metadata.assignee', 'Intervenant')}</Caption>
               <span className="mt-1 inline-flex min-w-0 items-center gap-1.5">
-                <GuestAvatar name={intervention.assignedToName} size={20} />
+                <GuestAvatar
+                  name={intervention.assignedToName}
+                  // URL ticketee servie par l'API : il ne lui manque que
+                  // l'origine — front et API sont sur deux ports en dev.
+                  photoUrl={resolveMediaUrl(intervention.assignedToAvatarUrl)}
+                  size={20}
+                />
                 <span className="truncate text-sm font-medium text-foreground">
                   {intervention.assignedToName}
                 </span>

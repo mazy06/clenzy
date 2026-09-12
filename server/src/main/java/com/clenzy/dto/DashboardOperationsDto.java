@@ -33,6 +33,12 @@ public record DashboardOperationsDto(
     public record ArrivalDto(
             Long reservationId,
             String guestName,
+            /**
+             * Photo de profil du voyageur, en sortie seule. {@code null} quand le
+             * séjour n'est rattaché à aucun voyageur ou que celui-ci n'a pas de
+             * photo — la vignette retombe alors sur ses initiales.
+             */
+            String guestAvatarUrl,
             Long propertyId,
             String propertyName,
             String checkInTime,
@@ -50,6 +56,8 @@ public record DashboardOperationsDto(
     public record DepartureDto(
             Long reservationId,
             String guestName,
+            /** Photo du voyageur ; {@code null} → repli sur les initiales. */
+            String guestAvatarUrl,
             Long propertyId,
             String propertyName,
             String checkOutTime,
@@ -67,6 +75,8 @@ public record DashboardOperationsDto(
             Long propertyId,
             String propertyName,
             String assigneeName,
+            /** Photo de l'intervenant ; {@code null} → repli sur les initiales. */
+            String assigneeAvatarUrl,
             String windowStart,
             String windowEnd,
             String status) {}
@@ -204,7 +214,15 @@ public record DashboardOperationsDto(
              * <p>{@code null} pour une action candidate : elle n'attend pas
              * encore, elle vient d'être constatée.</p>
              */
-            Instant waitingSince) {
+            Instant waitingSince,
+            /**
+             * Photo de la personne concernée, résolue <b>à la lecture</b>.
+             *
+             * <p>Elle n'est pas persistée avec la ligne : une URL de photo porte
+             * un ticket à durée de vie courte, qu'une file écrite la veille
+             * servirait déjà périmé. {@code null} → repli sur les initiales.</p>
+             */
+            String subjectAvatarUrl) {
 
         /**
          * Forme employée par les sources : une action candidate, pas encore
@@ -215,7 +233,7 @@ public record DashboardOperationsDto(
                              String propertyName, BigDecimal amount, String badge,
                              String actionType, String actionParams) {
             this(id, kind, severity, title, detail, subject, targetId, propertyId, propertyName,
-                    amount, badge, actionType, actionParams, null, null, null);
+                    amount, badge, actionType, actionParams, null, null, null, null);
         }
     }
 

@@ -1,10 +1,12 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.model.CheckInInstructions;
+import com.clenzy.model.Intervention;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.CheckInInstructionsRepository;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
@@ -13,6 +15,7 @@ import com.clenzy.service.access.StayTimes;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
@@ -34,15 +37,24 @@ import java.util.List;
  * <p>Idempotence : {@code accessCodeRotatedAt} empêche de régénérer plusieurs fois pour le même
  * départ. Fenêtre de 2 jours pour ne pas tourner sur d'anciens départs à l'activation. Les serrures
  * connectées ne sont pas concernées (codes par réservation déjà gérés par leur intégration).</p>
+ *
+ * <p><b>Le code tourne POUR QUELQU'UN.</b> C'est le ménage qui suit le départ qui trouvera la
+ * boîte à clés : la notification porte donc l'identifiant de cette mission, pour que la fiche
+ * nomme l'intervenant attendu au lieu de laisser deviner à qui transmettre le code. Le lien est
+ * facultatif — quand la mission n'existe pas encore à l'heure de la rotation, le fait est
+ * simplement absent.</p>
  */
 @Service
 public class AccessCodeRotationScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(AccessCodeRotationScheduler.class);
     private static final int LOOKBACK_DAYS = 2;
+    /** Nombre de visites lues pour designer celle qui se servira du code. */
+    private static final int VISIT_LOOKAHEAD = 10;
 
     private final CheckInInstructionsRepository instructionsRepository;
     private final ReservationRepository reservationRepository;
+    private final InterventionRepository interventionRepository;
     private final AccessCodeGenerator accessCodeGenerator;
     private final NotificationService notificationService;
     private final SupervisionActivityService supervisionActivityService;
@@ -50,11 +62,13 @@ public class AccessCodeRotationScheduler {
     public AccessCodeRotationScheduler(
             CheckInInstructionsRepository instructionsRepository,
             ReservationRepository reservationRepository,
+            InterventionRepository interventionRepository,
             AccessCodeGenerator accessCodeGenerator,
             NotificationService notificationService,
             SupervisionActivityService supervisionActivityService) {
         this.instructionsRepository = instructionsRepository;
         this.reservationRepository = reservationRepository;
+        this.interventionRepository = interventionRepository;
         this.accessCodeGenerator = accessCodeGenerator;
         this.notificationService = notificationService;
         this.supervisionActivityService = supervisionActivityService;
@@ -118,10 +132,12 @@ public class AccessCodeRotationScheduler {
         ci.setAccessCodeRotatedAt(LocalDateTime.now());
         instructionsRepository.save(ci);
 
+        Intervention nextVisit = nextVisitAfter(propertyId, orgId, lastCheckout);
+
         notificationService.notifyAdminsAndManagersByOrgId(
                 orgId,
                 NotificationKey.ACCESS_CODE_ROTATED,
-                "Nouveau code d'accès — " + property.getName(),
+                "Nouveau digicode / boîte à clés — " + property.getName(),
                 "Le voyageur est parti : le code d'accès de « " + property.getName()
                         + " » a été régénéré (" + newCode + "). Pensez à mettre à jour le code de la boîte à clé.",
                 "/properties/" + propertyId,
@@ -130,9 +146,14 @@ public class AccessCodeRotationScheduler {
                 // Le LOGEMENT, lui, y entre : c'est par lui que la fiche va lire
                 // le code EN VIGUEUR — celui du message vieillit a la premiere
                 // rotation suivante, et c'est l'ancien qu'on irait recopier.
+                // La MISSION qui va s'en servir, quand elle existe deja : au depart
+                // du voyageur, c'est le menage qui trouvera la boite a cles. Sans
+                // elle, « pensez a mettre a jour le code » ne dit ni pour quand, ni
+                // a qui le transmettre.
                 NotificationMetadata.of()
                         .property(property.getName())
                         .propertyId(propertyId)
+                        .interventionId(nextVisit != null ? nextVisit.getId() : null)
                         .build());
 
         // Feed « En direct » de la constellation du logement (agent Opérations « ops ») : best-effort,
@@ -145,6 +166,46 @@ public class AccessCodeRotationScheduler {
                     propertyId, e.getMessage());
         }
         return true;
+    }
+
+    /**
+     * La mission qui va se servir du nouveau code, ou {@code null}.
+     *
+     * <p>Le ménage d'abord : c'est POUR LUI que le code tourne au départ du voyageur. À défaut,
+     * la première visite prévue — quelle qu'elle soit, c'est elle qui trouvera la boîte à clés.
+     * Quelques lignes suffisent : au-delà des toutes prochaines visites, plus rien ne se rattache
+     * à ce départ-là.</p>
+     *
+     * <p>Une résolution impossible ne fait rien échouer : le code est déjà tourné et sauvegardé,
+     * et la notification reste juste sans ce fait — c'est la fiche qui retombera sur sa propre
+     * déduction.</p>
+     */
+    private Intervention nextVisitAfter(Long propertyId, Long orgId, ZonedDateTime lastCheckout) {
+        try {
+            List<Intervention> upcoming = interventionRepository.findUpcomingByProperty(
+                    propertyId, lastCheckout.toLocalDateTime(), orgId, PageRequest.of(0, VISIT_LOOKAHEAD));
+            if (upcoming.isEmpty()) return null;
+            return upcoming.stream()
+                    .filter(visit -> isCleaning(visit.getType()))
+                    .findFirst()
+                    .orElse(upcoming.get(0));
+        } catch (Exception e) {
+            log.debug("Rotation code: mission suivante non resolue (property={}): {}", propertyId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Un ménage se reconnaît à son type.
+     *
+     * <p>Le type n'est pas contraint en base : on lit le MOT plutôt qu'une liste close qui
+     * laisserait passer le prochain libellé ajouté. Même règle que
+     * {@code OpsAnalyticsService.categorize}.</p>
+     */
+    private static boolean isCleaning(String type) {
+        if (type == null) return false;
+        String upper = type.toUpperCase();
+        return upper.contains("CLEAN") || upper.contains("HOUSEKEEP") || upper.contains("MENAGE");
     }
 
 }

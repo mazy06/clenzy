@@ -209,6 +209,31 @@ public enum NotificationKey {
     // ─── ACCÈS ──────────────────────────────────────────────────────────────
     ACCESS_CODE_ROTATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     GUEST_DOOR_UNLOCKED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
+    /**
+     * Un code de serrure n'a pas pu être posé : le voyageur arrivera devant une
+     * porte qui ne s'ouvre pas.
+     *
+     * <p>Seuls les ÉCHECS notifient. Générations, envois et révocations normaux
+     * restent dans le journal de la serrure ({@code smart_lock_access_code_event}),
+     * consultable sur sa fiche : un logement à trois serrures produirait sinon
+     * trois notifications par réservation, puis trois de plus à chaque départ.</p>
+     */
+    /**
+     * Un humain a régénéré à la main le code d'une serrure.
+     *
+     * <p>Seule rotation de code à notifier sans être un échec : elle est rare,
+     * jamais déclenchée par un automatisme, et elle révoque un accès physique en
+     * cours de validité. C'est une action qui mérite une trace dans le fil, pas
+     * seulement dans un journal qu'il faut aller ouvrir.</p>
+     */
+    SMART_LOCK_CODE_ROTATED_MANUALLY(NotificationType.INFO, NotificationCategory.RESERVATION, true),
+    SMART_LOCK_CODE_GENERATION_FAILED(NotificationType.ERROR, NotificationCategory.RESERVATION, true),
+    /**
+     * Le code existe et la serrure l'a accepté, mais le voyageur ne l'a pas reçu.
+     * Rangé avec les accès et non avec la messagerie : ce qui est en jeu n'est pas
+     * un message manqué, c'est une arrivée qui va échouer.
+     */
+    SMART_LOCK_CODE_DELIVERY_FAILED(NotificationType.ERROR, NotificationCategory.RESERVATION, true),
 
     // ─── NOISE ALERT (4 cles) ──────────────────────────────────────────────
     NOISE_ALERT_WARNING(NotificationType.WARNING, NotificationCategory.NOISE_ALERT, true),

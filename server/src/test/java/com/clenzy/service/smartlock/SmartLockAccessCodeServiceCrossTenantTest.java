@@ -83,11 +83,23 @@ class SmartLockAccessCodeServiceCrossTenantTest {
         when(tenantContext.isSuperAdmin()).thenReturn(false);
         when(tenantContext.isSystemOrg()).thenReturn(false);
 
+        // Ce test verifie le REFUS d'acces : aucun collaborateur n'est atteint,
+        // l'isolation se joue avant eux. Des mocks suffisent donc ici, la ou le
+        // test de comportement les construit pour de vrai.
+        var journal = new SmartLockAccessCodeJournal(
+                eventRepo, outboxPublisher, new ObjectMapper(),
+                org.mockito.Mockito.mock(com.clenzy.service.NotificationService.class),
+                org.mockito.Mockito.mock(com.clenzy.repository.UserRepository.class));
+        var provisioner = new SmartLockCodeProvisioner(
+                tuyaApiService, providerRegistry,
+                new SmartLockPinPolicy(checkInInstructionsRepository, accessCodeGenerator));
+        var delivery = new SmartLockCodeDelivery(templateRepository, guestMessagingService, journal);
+        var stayContext = new SmartLockStayContext(
+                propertyRepository, org.mockito.Mockito.mock(com.clenzy.repository.ReservationRepository.class));
+
         service = new SmartLockAccessCodeService(
-                codeRepo, eventRepo, deviceRepo, tuyaApiService, outboxPublisher,
-                guestMessagingService, templateRepository, new ObjectMapper(),
-                propertyRepository, checkInInstructionsRepository, accessCodeGenerator,
-                providerRegistry, new OrganizationAccessGuard(tenantContext));
+                codeRepo, deviceRepo, new OrganizationAccessGuard(tenantContext),
+                provisioner, journal, delivery, stayContext);
 
         // La serrure ciblee appartient a une AUTRE organisation.
         SmartLockDevice deviceVictime = new SmartLockDevice();

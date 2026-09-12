@@ -90,6 +90,8 @@ public final class NotificationMetadata {
     public static final String REVIEW_ID = "reviewId";
     /** Objet connecte concerne (serrure, capteur) — la fiche va y lire son etat. */
     public static final String DEVICE_ID = "deviceId";
+    /** Personne a l'origine de l'evenement, quand c'est un geste humain. */
+    public static final String ACTOR = "actor";
 
     private NotificationMetadata() {}
 
@@ -149,6 +151,7 @@ public final class NotificationMetadata {
         public Builder issueId(Long id) { return put(ISSUE_ID, id); }
         public Builder reviewId(Long id) { return put(REVIEW_ID, id); }
         public Builder deviceId(Long id) { return put(DEVICE_ID, id); }
+        public Builder actor(String name) { return put(ACTOR, name); }
 
         /** Repere d'une carte HITL : d'ou elle vient, et quel geste elle propose. */
         public Builder supervision(Long suggestionId, String module, String actionType) {

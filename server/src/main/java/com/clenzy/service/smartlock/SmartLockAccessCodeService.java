@@ -1,12 +1,7 @@
 package com.clenzy.service.smartlock;
 
-import com.clenzy.config.KafkaConfig;
-import com.clenzy.integration.tuya.service.TuyaApiService;
-import com.clenzy.model.CheckInInstructions;
-import com.clenzy.model.MessageChannelType;
-import com.clenzy.model.MessageTemplate;
-import com.clenzy.model.MessageTemplateType;
-import com.clenzy.model.Property;
+import com.clenzy.dto.smartlock.SmartLockAccessCodeDto;
+import com.clenzy.dto.smartlock.SmartLockAccessCodeHistoryDto;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SmartLockAccessCode;
 import com.clenzy.model.SmartLockAccessCode.CodeSource;
@@ -14,36 +9,40 @@ import com.clenzy.model.SmartLockAccessCode.CodeStatus;
 import com.clenzy.model.SmartLockAccessCodeEvent;
 import com.clenzy.model.SmartLockAccessCodeEvent.EventType;
 import com.clenzy.model.SmartLockDevice;
-import com.clenzy.repository.CheckInInstructionsRepository;
-import com.clenzy.repository.MessageTemplateRepository;
-import com.clenzy.repository.PropertyRepository;
-import com.clenzy.repository.SmartLockAccessCodeEventRepository;
 import com.clenzy.repository.SmartLockAccessCodeRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
-import com.clenzy.service.OutboxPublisher;
-import com.clenzy.service.access.AccessCodeGenerator;
 import com.clenzy.service.access.OrganizationAccessGuard;
-import com.clenzy.service.messaging.GuestMessagingService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * Cycle de vie des codes d'acces de serrures (mots de passe temporaires Tuya) :
- * generation auto par reservation, rotation manuelle, revocation. Chaque mutation
- * persiste le code, ecrit un evenement d'audit, publie un event Outbox (audit.events)
- * et — pour la generation par reservation — notifie le voyageur.
+ * Cycle de vie des codes d'acces de serrures : generation auto par reservation,
+ * rotation manuelle, revocation, lecture.
  *
- * <p><b>Securite</b> : le PIN est chiffre au repos (entite) et n'apparait JAMAIS dans
- * les logs, l'audit {@code notes}, ni les payloads Outbox (seul l'id du code y figure).
+ * <p>Ce service ORCHESTRE et ne fait plus rien lui-meme. Il portait seize
+ * dependances et cinq metiers — le cycle de vie, la messagerie voyageur, les
+ * notifications, la lecture des sejours et l'annuaire des comptes. Chacun vit
+ * desormais chez un collaborateur dont le nom dit la responsabilite :</p>
+ * <ul>
+ *   <li>{@link SmartLockCodeProvisioner} — poser et retirer un code sur la
+ *       serrure physique (Tuya, Web API) ;</li>
+ *   <li>{@link SmartLockPinPolicy} — quel PIN, selon le logement et la marque
+ *       (via le provisioner) ;</li>
+ *   <li>{@link SmartLockAccessCodeJournal} — ce qui est enregistre, diffuse et
+ *       annonce quand un code change d'etat ;</li>
+ *   <li>{@link SmartLockCodeDelivery} — faire parvenir le code a son voyageur ;</li>
+ *   <li>{@link SmartLockStayContext} — le logement, son fuseau, son sejour en cours.</li>
+ * </ul>
+ *
+ * <p><b>Securite</b> : le PIN est chiffre au repos (entite) et n'apparait JAMAIS
+ * dans les logs, les {@code notes} du journal, les payloads Outbox ni les
+ * notifications (seul l'id du code y figure).
  *
  * <p><b>Idempotence</b> : {@link com.clenzy.service.access.AccessCodeResolverService}
  * lit le code persiste (au lieu d'en creer un nouveau a chaque envoi de message), de
@@ -57,49 +56,28 @@ public class SmartLockAccessCodeService {
     /** Validite par defaut d'un code cree manuellement sans fenetre fournie. */
     private static final int MANUAL_DEFAULT_DAYS = 7;
 
-    /** Fuseau par defaut si le logement n'en definit pas (ou invalide). */
-    private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Paris");
-
     private final SmartLockAccessCodeRepository codeRepo;
-    private final SmartLockAccessCodeEventRepository eventRepo;
     private final SmartLockDeviceRepository deviceRepo;
-    private final TuyaApiService tuyaApiService;
-    private final OutboxPublisher outboxPublisher;
-    private final GuestMessagingService guestMessagingService;
-    private final MessageTemplateRepository templateRepository;
-    private final ObjectMapper objectMapper;
-    private final PropertyRepository propertyRepository;
-    private final CheckInInstructionsRepository checkInInstructionsRepository;
-    private final AccessCodeGenerator accessCodeGenerator;
-    private final SmartLockProviderRegistry providerRegistry;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final SmartLockCodeProvisioner provisioner;
+    private final SmartLockAccessCodeJournal journal;
+    private final SmartLockCodeDelivery delivery;
+    private final SmartLockStayContext stayContext;
 
     public SmartLockAccessCodeService(SmartLockAccessCodeRepository codeRepo,
-                                      SmartLockAccessCodeEventRepository eventRepo,
                                       SmartLockDeviceRepository deviceRepo,
-                                      TuyaApiService tuyaApiService,
-                                      OutboxPublisher outboxPublisher,
-                                      GuestMessagingService guestMessagingService,
-                                      MessageTemplateRepository templateRepository,
-                                      ObjectMapper objectMapper,
-                                      PropertyRepository propertyRepository,
-                                      CheckInInstructionsRepository checkInInstructionsRepository,
-                                      AccessCodeGenerator accessCodeGenerator,
-                                      SmartLockProviderRegistry providerRegistry,
-                                      OrganizationAccessGuard organizationAccessGuard) {
+                                      OrganizationAccessGuard organizationAccessGuard,
+                                      SmartLockCodeProvisioner provisioner,
+                                      SmartLockAccessCodeJournal journal,
+                                      SmartLockCodeDelivery delivery,
+                                      SmartLockStayContext stayContext) {
         this.codeRepo = codeRepo;
-        this.eventRepo = eventRepo;
         this.deviceRepo = deviceRepo;
-        this.tuyaApiService = tuyaApiService;
-        this.outboxPublisher = outboxPublisher;
-        this.guestMessagingService = guestMessagingService;
-        this.templateRepository = templateRepository;
-        this.objectMapper = objectMapper;
-        this.propertyRepository = propertyRepository;
-        this.checkInInstructionsRepository = checkInInstructionsRepository;
-        this.accessCodeGenerator = accessCodeGenerator;
-        this.providerRegistry = providerRegistry;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.provisioner = provisioner;
+        this.journal = journal;
+        this.delivery = delivery;
+        this.stayContext = stayContext;
     }
 
     // ─── Isolation multi-tenant ─────────────────────────────────
@@ -129,8 +107,8 @@ public class SmartLockAccessCodeService {
 
     /**
      * Genere un code pour une reservation (fenetre check-in -> check-out+1) et
-     * notifie le voyageur. Ne JETTE PAS : un echec Tuya est trace (GENERATION_FAILED)
-     * mais ne doit pas bloquer la creation de la reservation.
+     * notifie le voyageur. Ne JETTE PAS : un echec provider est trace
+     * (GENERATION_FAILED) mais ne doit pas bloquer la creation de la reservation.
      */
     @Transactional
     public SmartLockAccessCode generateForReservation(Reservation reservation, SmartLockDevice device, CodeSource source) {
@@ -141,7 +119,8 @@ public class SmartLockAccessCodeService {
         SmartLockAccessCode created = createAndPersist(
                 device, reservation.getId(), from, until, source, "system", "Clenzy-" + guestName);
         if (created != null) {
-            notifyGuest(reservation, created, device.getOrganizationId());
+            delivery.deliver(reservation, created, device.getOrganizationId(),
+                    stayContext.nameOf(device.getPropertyId()));
         }
         return created;
     }
@@ -150,7 +129,10 @@ public class SmartLockAccessCodeService {
 
     /**
      * Revoque le code actif courant de la serrure et en genere un nouveau (manuel).
-     * N'envoie pas de notification voyageur (le code s'affiche dans le hub).
+     *
+     * <p>Un voyageur est peut-etre DERRIERE cette porte : la revocation coupe son
+     * code. Le nouveau code est donc rattache a son sejour et lui est envoye —
+     * sans quoi la rotation le laisse dehors, en silence.</p>
      */
     @Transactional
     public SmartLockAccessCode rotateManual(Long deviceId, LocalDateTime validFrom, LocalDateTime validUntil,
@@ -166,11 +148,22 @@ public class SmartLockAccessCodeService {
         LocalDateTime from = validFrom != null ? validFrom : LocalDateTime.now();
         LocalDateTime until = validUntil != null ? validUntil : from.plusDays(MANUAL_DEFAULT_DAYS);
 
+        Reservation ongoing = reservationId != null ? null : stayContext.ongoingStayOf(device);
+        Long effectiveReservationId = reservationId != null ? reservationId
+                : (ongoing != null ? ongoing.getId() : null);
+
         SmartLockAccessCode created = createAndPersist(
-                device, reservationId, from, until, CodeSource.MANUAL, actor, "Clenzy-Manuel");
+                device, effectiveReservationId, from, until, CodeSource.MANUAL, actor, "Clenzy-Manuel");
         if (created == null) {
             throw new IllegalStateException("Echec de la generation du code Tuya");
         }
+
+        String propertyName = stayContext.nameOf(device.getPropertyId());
+        if (ongoing != null) {
+            delivery.deliver(ongoing, created, device.getOrganizationId(), propertyName);
+        }
+        journal.announceManualRotation(device.getOrganizationId(), device.getId(), device.getName(),
+                device.getPropertyId(), propertyName, journal.displayNameOf(actor), ongoing != null);
         return created;
     }
 
@@ -198,37 +191,35 @@ public class SmartLockAccessCodeService {
         }
     }
 
+    /**
+     * Revocation d'un code : la serrure d'abord, l'etat local ensuite.
+     *
+     * <p>Un echec cote fournisseur ne fait PAS echouer la revocation locale — le
+     * code expire de toute facon a la fin de sa fenetre, et laisser l'etat local
+     * mentir serait pire que le laisser en avance.</p>
+     */
     private void revoke(SmartLockAccessCode code, String actor, SmartLockAccessCodeEvent.EventSource source) {
         if (code.getStatus() != CodeStatus.ACTIVE) {
             return;
         }
         SmartLockDevice device = deviceRepo.findById(code.getDeviceId()).orElse(null);
-        if (device != null && code.getTuyaPasswordId() != null
-                && device.getExternalDeviceId() != null && !device.getExternalDeviceId().isBlank()) {
-            try {
-                SmartLockBrand brand = device.getBrand() != null ? device.getBrand() : SmartLockBrand.TUYA;
-                if (brand == SmartLockBrand.TUYA) {
-                    tuyaApiService.deleteTemporaryPassword(device.getExternalDeviceId(), code.getTuyaPasswordId());
-                } else {
-                    providerRegistry.getRequiredProvider(brand)
-                            .revokeAccessCode(device.getExternalDeviceId(), code.getTuyaPasswordId(),
-                                    device.getOrganizationId());
-                }
-            } catch (Exception e) {
-                // Echec provider → on conserve la revocation locale (le code expire de toute facon).
-                log.warn("Revocation provider echouee pour code={} (revocation locale conservee): {}",
-                        code.getId(), e.getMessage());
-            }
-        }
+        provisioner.remove(device, code.getTuyaPasswordId());
+
         code.setStatus(CodeStatus.REVOKED);
         code.setRevokedAt(LocalDateTime.now());
-        code.setCreatedBy(code.getCreatedBy());
         codeRepo.save(code);
-        recordEvent(code, EventType.CODE_REVOKED, source, "Code revoque par " + (actor != null ? actor : "system"));
-        publishOutbox(code, "CODE_REVOKED");
+
+        // Le journal garde un NOM quand il y en a un : « Code revoque par
+        // 44bfc16a-5ceb-… » ne dit a personne QUI a agi. L'identifiant reste le
+        // repli quand l'auteur n'est pas un utilisateur connu (« system »).
+        String actorName = journal.displayNameOf(actor);
+        journal.record(code, EventType.CODE_REVOKED, source,
+                "Code revoque par " + (actorName != null ? actorName : (actor != null ? actor : "system")),
+                actorName);
+        journal.publish(code, "CODE_REVOKED");
     }
 
-    // ─── Lecture (code courant) ─────────────────────────────────
+    // ─── Lecture ────────────────────────────────────────────────
 
     /**
      * Code actif courant d'une serrure, ou vide (avec bascule paresseuse en EXPIRED).
@@ -244,6 +235,49 @@ public class SmartLockAccessCodeService {
         return activeOrExpire(codeRepo.findFirstByDeviceIdAndStatusOrderByCreatedAtDesc(deviceId, CodeStatus.ACTIVE));
     }
 
+    /**
+     * Etat complet des codes d'une serrure : code en vigueur, codes passes, journal.
+     *
+     * <p>La bascule paresseuse en EXPIRED passe AVANT la relecture de
+     * l'historique : sans cela le code qui vient d'expirer apparaitrait a la fois
+     * comme « en vigueur » et dans les codes passes.</p>
+     *
+     * <p>Le PIN des codes passes n'est pas transporte — voir
+     * {@link com.clenzy.dto.smartlock.SmartLockAccessCodeHistoryDto}.</p>
+     *
+     * @return vide si la serrure n'existe pas (un identifiant inconnu ne doit pas
+     *         se distinguer d'un identifiant interdit)
+     */
+    @Transactional
+    public Optional<SmartLockAccessCodeHistoryDto> getHistoryForDevice(Long deviceId) {
+        Optional<SmartLockDevice> deviceOpt = loadDeviceForCurrentOrg(deviceId);
+        if (deviceOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Optional<SmartLockAccessCode> current = activeOrExpire(
+                codeRepo.findFirstByDeviceIdAndStatusOrderByCreatedAtDesc(deviceId, CodeStatus.ACTIVE));
+        Long currentId = current.map(SmartLockAccessCode::getId).orElse(null);
+
+        List<SmartLockAccessCodeHistoryDto.PastCode> past = codeRepo
+                .findByDeviceIdOrderByCreatedAtDesc(deviceId).stream()
+                .filter(c -> !c.getId().equals(currentId))
+                .map(SmartLockAccessCodeHistoryDto.PastCode::from)
+                .toList();
+
+        List<SmartLockAccessCodeHistoryDto.Event> events = journal.eventsOf(deviceId).stream()
+                .map(SmartLockAccessCodeHistoryDto.Event::from)
+                .toList();
+
+        Reservation ongoing = stayContext.ongoingStayOf(deviceOpt.get());
+        SmartLockAccessCodeHistoryDto.OngoingStay stay = ongoing == null ? null
+                : new SmartLockAccessCodeHistoryDto.OngoingStay(
+                        ongoing.getId(), ongoing.getCheckIn(), ongoing.getCheckOut());
+
+        return Optional.of(new SmartLockAccessCodeHistoryDto(
+                current.map(SmartLockAccessCodeDto::from).orElse(null), past, events, stay));
+    }
+
     /** Code actif courant d'une reservation, ou vide. */
     @Transactional
     public Optional<SmartLockAccessCode> getCurrentForReservation(Long reservationId) {
@@ -252,57 +286,28 @@ public class SmartLockAccessCodeService {
 
     // ─── Internes ───────────────────────────────────────────────
 
+    /**
+     * Pose un code sur la serrure, le persiste, le journalise et le diffuse.
+     *
+     * <p>Retourne {@code null} plutot que de jeter : l'appelant automatique
+     * (creation de reservation) ne doit pas echouer parce qu'une serrure est
+     * injoignable. L'echec n'est pas silencieux pour autant — il est journalise
+     * ET notifie.</p>
+     */
     private SmartLockAccessCode createAndPersist(SmartLockDevice device, Long reservationId,
                                                  LocalDateTime validFrom, LocalDateTime validUntil,
                                                  CodeSource source, String createdBy, String name) {
         Long orgId = device.getOrganizationId();
+        SmartLockAccessCodeEvent.EventSource eventSource = SmartLockCodeDelivery.eventSource(source);
+
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isBlank()) {
-            recordFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
-                    eventSource(source), "Pas d'ID device Tuya configure");
+            journal.recordGenerationFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
+                    eventSource, "Pas d'ID device Tuya configure", stayContext.nameOf(device.getPropertyId()));
             return null;
         }
         try {
-            SmartLockBrand brand = device.getBrand() != null ? device.getBrand() : SmartLockBrand.TUYA;
-            // Mode PMS_GENERATED : PIN généré selon le format du logement (chiffres) et poussé à la serrure.
-            // Mode LOCK_GENERATED : requestedPin null → la serrure génère elle-même (Tuya uniquement —
-            // les providers Web API comme Nuki exigent un code fourni, on en génère alors un aléatoire).
-            String requestedPin = null;
-            if (device.getAccessCodeMode() == SmartLockDevice.AccessCodeMode.PMS_GENERATED) {
-                String formatJson = checkInInstructionsRepository
-                        .findByPropertyIdAndOrganizationId(device.getPropertyId(), orgId)
-                        .map(CheckInInstructions::getAccessCodeFormat).orElse(null);
-                requestedPin = accessCodeGenerator.generateNumeric(formatJson, 6);
-            }
-
-            String pinValue;
-            String externalCodeId;
-            if (brand == SmartLockBrand.TUYA) {
-                ZoneId zone = resolveZone(device.getPropertyId());
-                Map<String, Object> result = tuyaApiService.createTemporaryPassword(
-                        device.getExternalDeviceId(), epoch(validFrom, zone), epoch(validUntil, zone), name, requestedPin);
-                Object pin = result.get("password");
-                Object tuyaId = result.get("tuyaPasswordId");
-                pinValue = pin != null ? pin.toString() : null;
-                externalCodeId = tuyaId != null ? tuyaId.toString() : null;
-            } else {
-                // Web API (Nuki...) : le code est toujours défini par l'appelant.
-                // Keypad Nuki : exactement 6 chiffres, sans 0 → on ignore la longueur du format.
-                String pin;
-                if (brand == SmartLockBrand.NUKI) {
-                    pin = accessCodeGenerator.withoutZeros(accessCodeGenerator.generateNumeric(null, 6));
-                } else {
-                    pin = requestedPin != null ? requestedPin : accessCodeGenerator.generateNumeric(null, 6);
-                }
-                SmartLockCommandResult result = providerRegistry.getRequiredProvider(brand).generateAccessCode(
-                        device.getExternalDeviceId(),
-                        new AccessCodeParams(pin, name, validFrom, validUntil, AccessCodeParams.AccessCodeType.TEMPORARY),
-                        orgId);
-                if (!result.success()) {
-                    throw new IllegalStateException(result.message());
-                }
-                pinValue = pin;
-                externalCodeId = result.externalId();
-            }
+            SmartLockCodeProvisioner.PlacedCode placed = provisioner.place(
+                    device, name, validFrom, validUntil, stayContext.zoneOf(device.getPropertyId()));
 
             SmartLockAccessCode code = new SmartLockAccessCode();
             code.setOrganizationId(orgId);
@@ -310,9 +315,9 @@ public class SmartLockAccessCodeService {
             code.setReservationId(reservationId);
             code.setPropertyId(device.getPropertyId());
             code.setName(name);
-            code.setCode(pinValue);
+            code.setCode(placed.pin());
             // Id externe du code chez le provider (mot de passe Tuya OU code Web API Nuki) — requis pour la révocation.
-            code.setTuyaPasswordId(externalCodeId);
+            code.setTuyaPasswordId(placed.externalCodeId());
             code.setValidFrom(validFrom);
             code.setValidUntil(validUntil);
             code.setStatus(CodeStatus.ACTIVE);
@@ -320,45 +325,27 @@ public class SmartLockAccessCodeService {
             code.setCreatedBy(createdBy);
             SmartLockAccessCode saved = codeRepo.save(code);
 
-            recordEvent(saved, EventType.CODE_GENERATED, eventSource(source), "Code genere");
-            publishOutbox(saved, "CODE_GENERATED");
+            journal.record(saved, EventType.CODE_GENERATED, eventSource, "Code genere",
+                    journal.displayNameOf(createdBy));
+            journal.publish(saved, "CODE_GENERATED");
             log.info("Code d'acces genere (code={}, device={}, reservation={}, source={})",
                     saved.getId(), device.getId(), reservationId, source);
             return saved;
         } catch (Exception e) {
             log.error("Echec generation code serrure device={} reservation={}: {}",
                     device.getId(), reservationId, e.getMessage());
-            recordFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
-                    eventSource(source), "Echec provider: " + e.getMessage());
+            journal.recordGenerationFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
+                    eventSource, "Echec provider: " + e.getMessage(), stayContext.nameOf(device.getPropertyId()));
             return null;
         }
     }
 
-    private void notifyGuest(Reservation reservation, SmartLockAccessCode code, Long orgId) {
-        // Prefere le template dedie ACCESS_CODE ; repli sur CHECK_IN (qui porte deja {accessCode}).
-        List<MessageTemplate> templates = templateRepository
-                .findByOrganizationIdAndTypeAndIsActiveTrue(orgId, MessageTemplateType.ACCESS_CODE);
-        if (templates.isEmpty()) {
-            templates = templateRepository
-                    .findByOrganizationIdAndTypeAndIsActiveTrue(orgId, MessageTemplateType.CHECK_IN);
-        }
-        if (templates.isEmpty()) {
-            log.info("Pas de template CHECK_IN actif (org={}) — code non envoye au voyageur (reservation={})",
-                    orgId, reservation.getId());
-            recordEvent(code, EventType.DELIVERY_FAILED, eventSource(code.getSource()), "Aucun template CHECK_IN actif");
-            return;
-        }
-        try {
-            // extraVars vide : le resolver injecte {accessCode} depuis le code persiste (idempotent).
-            guestMessagingService.sendForReservationViaChannel(
-                    reservation, templates.get(0), orgId, MessageChannelType.EMAIL, Map.of());
-            recordEvent(code, EventType.CODE_DELIVERED, eventSource(code.getSource()), "Code envoye au voyageur (EMAIL)");
-        } catch (Exception e) {
-            log.warn("Envoi du code au voyageur echoue (reservation={}): {}", reservation.getId(), e.getMessage());
-            recordEvent(code, EventType.DELIVERY_FAILED, eventSource(code.getSource()), "Echec envoi: " + e.getMessage());
-        }
-    }
-
+    /**
+     * Rend le code s'il est encore valide, et le fait basculer en EXPIRED sinon.
+     *
+     * <p>La bascule est PARESSEUSE : aucun scheduler ne repasse sur les codes, ils
+     * expirent a la premiere lecture qui les depasse.</p>
+     */
     private Optional<SmartLockAccessCode> activeOrExpire(Optional<SmartLockAccessCode> opt) {
         if (opt.isEmpty()) {
             return opt;
@@ -367,78 +354,10 @@ public class SmartLockAccessCodeService {
         if (code.getValidUntil() != null && code.getValidUntil().isBefore(LocalDateTime.now())) {
             code.setStatus(CodeStatus.EXPIRED);
             codeRepo.save(code);
-            recordEvent(code, EventType.CODE_EXPIRED, eventSource(code.getSource()), "Code expire");
+            journal.record(code, EventType.CODE_EXPIRED, SmartLockCodeDelivery.eventSource(code.getSource()),
+                    "Code expire");
             return Optional.empty();
         }
         return opt;
-    }
-
-    private void recordEvent(SmartLockAccessCode code, EventType type,
-                             SmartLockAccessCodeEvent.EventSource source, String notes) {
-        SmartLockAccessCodeEvent ev = new SmartLockAccessCodeEvent();
-        ev.setOrganizationId(code.getOrganizationId());
-        ev.setCodeId(code.getId());
-        ev.setDeviceId(code.getDeviceId());
-        ev.setReservationId(code.getReservationId());
-        ev.setPropertyId(code.getPropertyId());
-        ev.setEventType(type);
-        ev.setSource(source);
-        ev.setNotes(notes); // jamais le PIN
-        eventRepo.save(ev);
-    }
-
-    private void recordFailure(Long orgId, Long deviceId, Long reservationId, Long propertyId,
-                               SmartLockAccessCodeEvent.EventSource source, String notes) {
-        SmartLockAccessCodeEvent ev = new SmartLockAccessCodeEvent();
-        ev.setOrganizationId(orgId);
-        ev.setDeviceId(deviceId);
-        ev.setReservationId(reservationId);
-        ev.setPropertyId(propertyId);
-        ev.setEventType(EventType.GENERATION_FAILED);
-        ev.setSource(source);
-        ev.setNotes(notes);
-        eventRepo.save(ev);
-    }
-
-    private void publishOutbox(SmartLockAccessCode code, String eventType) {
-        try {
-            // Payload SANS le PIN (secret d'acces) — uniquement l'id et la fenetre.
-            Map<String, Object> payload = new java.util.LinkedHashMap<>();
-            payload.put("codeId", code.getId());
-            payload.put("deviceId", code.getDeviceId());
-            payload.put("reservationId", code.getReservationId());
-            payload.put("propertyId", code.getPropertyId());
-            payload.put("validFrom", String.valueOf(code.getValidFrom()));
-            payload.put("validUntil", String.valueOf(code.getValidUntil()));
-            outboxPublisher.publish("SMART_LOCK_ACCESS_CODE", String.valueOf(code.getId()), eventType,
-                    KafkaConfig.TOPIC_AUDIT_EVENTS, String.valueOf(code.getPropertyId()),
-                    objectMapper.writeValueAsString(payload), code.getOrganizationId());
-        } catch (Exception e) {
-            log.warn("Publication Outbox echouee pour code={}: {}", code.getId(), e.getMessage());
-        }
-    }
-
-    private static long epoch(LocalDateTime dt, ZoneId zone) {
-        return dt.atZone(zone).toEpochSecond();
-    }
-
-    /** Fuseau du logement (repli {@link #DEFAULT_ZONE} si absent/invalide). */
-    private ZoneId resolveZone(Long propertyId) {
-        String tz = propertyRepository.findById(propertyId).map(Property::getTimezone).orElse(null);
-        if (tz == null || tz.isBlank()) {
-            return DEFAULT_ZONE;
-        }
-        try {
-            return ZoneId.of(tz);
-        } catch (Exception e) {
-            log.warn("Fuseau invalide '{}' pour property={}, repli Europe/Paris", tz, propertyId);
-            return DEFAULT_ZONE;
-        }
-    }
-
-    private static SmartLockAccessCodeEvent.EventSource eventSource(CodeSource source) {
-        return source == CodeSource.MANUAL
-                ? SmartLockAccessCodeEvent.EventSource.MANUAL
-                : SmartLockAccessCodeEvent.EventSource.AUTO_RESERVATION;
     }
 }

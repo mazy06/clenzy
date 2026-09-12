@@ -267,6 +267,22 @@ function asNumber(value: unknown): number | null {
  * Les deux bornes du sejour se disent en UN fait — « du 12 au 15 septembre »
  * plutot que deux lignes qu'il faut recoller soi-meme.
  */
+/**
+ * Auteur d'un geste humain, tel que la notification l'a enregistre.
+ *
+ * <p>Pris dans les FAITS et jamais relu : qui a fait CE geste-la ne change pas,
+ * alors que l'objet sur lequel il portait a pu etre retouche depuis par
+ * quelqu'un d'autre. C'est l'inverse exact d'un code d'acces, qui lui doit etre
+ * relu a chaque ouverture de fiche.</p>
+ *
+ * <p>`null` pour un geste automatique : les acteurs techniques n'ont pas de nom,
+ * et c'est ainsi qu'on les reconnait.</p>
+ */
+export function notificationActorOf(notification: Notification): string | null {
+  const raw = notification.metadata?.actor;
+  return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+}
+
 export function resolveMetadataFacts(metadata: Record<string, unknown> | null | undefined): NotificationFact[] {
   if (!metadata || typeof metadata !== 'object') return [];
 
