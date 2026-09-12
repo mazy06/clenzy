@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
+import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import { Button, Popover, PopoverAnchor, PopoverContent, Progress } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -77,6 +78,15 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
     || (property.cleaningBasePrice != null && property.cleaningBasePrice > 0);
   const hasTimes = Boolean(property.defaultCheckInTime || property.defaultCheckOutTime);
 
+  /**
+   * Hero : les photos du logement quand il en a. Sans photo on garde le hero
+   * de marque (accent-soft + batiment) plutot que le placeholder gris du
+   * carrousel. Sur une photo, le nom passe en blanc sur un voile degrade —
+   * l'encre du theme ne tient aucun contraste sur une image quelconque.
+   */
+  const heroPhotos = (property.photoUrls ?? []).filter(Boolean);
+  const hasHeroPhoto = heroPhotos.length > 0;
+
   return (
     <Popover open onOpenChange={(next) => { if (!next) onClose(); }}>
       <PopoverAnchor virtualRef={anchorRef} />
@@ -95,15 +105,36 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
         collisionPadding={8}
         className="w-[270px] max-w-[calc(100vw-16px)] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--bui-border)] bg-[var(--bui-card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
       >
-      {/* Héro : fond accent-soft, icône bâtiment à l'encre de marque, nom en overlay */}
-      <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
-        <div className="inline-flex text-[var(--brand-ink)] opacity-55 mb-3.5">
-          <Business size={26} strokeWidth={1.5} />
+      {/* Héro : photos du logement, sinon fond accent-soft + icône bâtiment. Nom en overlay dans les deux cas. */}
+      {hasHeroPhoto ? (
+        <div className="relative m-2.5 h-[132px] rounded-[10px] overflow-hidden">
+          <PropertyImageCarousel
+            photoUrls={heroPhotos}
+            alt={property.name}
+            width="100%"
+            height={132}
+            showCounter
+          />
+          {/* Voile : porte le contraste du nom. Transparent aux clics pour
+              laisser passer les fleches du carrousel. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.74), rgba(0,0,0,0))' }}
+          />
+          <span className="pointer-events-none absolute start-[10px] end-[10px] bottom-[10px] text-[0.8125rem] font-bold text-white leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+            {property.name}
+          </span>
         </div>
-        <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
-          {property.name}
-        </span>
-      </div>
+      ) : (
+        <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
+          <div className="inline-flex text-[var(--brand-ink)] opacity-55 mb-3.5">
+            <Business size={26} strokeWidth={1.5} />
+          </div>
+          <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+            {property.name}
+          </span>
+        </div>
+      )}
 
       {/* Type + adresse + propriétaire */}
       {(property.type || address || property.ownerName) && (
