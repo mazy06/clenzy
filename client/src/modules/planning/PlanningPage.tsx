@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Spinner,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -25,6 +24,7 @@ import PlanningToolbar, { PlanningDateNav } from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
 import PlanningEmptyShowcase from './PlanningEmptyShowcase';
 import PlanningTimeline from './PlanningTimeline';
+import PlanningGridSkeleton from './PlanningGridSkeleton';
 import { computeDayOccupancy } from './PlanningOccupancyRow';
 import PlanningActionPanel from './PlanningActionPanel';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
@@ -211,7 +211,7 @@ const PlanningPage: React.FC = () => {
   const fetchRange = useSettledRange(timeline.bufferStart, timeline.bufferEnd);
 
   // Data fetching (chunked by 30-day aligned windows)
-  const { properties, events, reservations, interventions, loading, error } = usePlanningData(
+  const { properties, events, reservations, interventions, loading, settled, error } = usePlanningData(
     fetchRange.start,
     fetchRange.end,
   );
@@ -285,6 +285,21 @@ const PlanningPage: React.FC = () => {
     }
     return present;
   }, [filteredEvents]);
+
+  // La rangée de filtres attend d'être COMPLETE pour paraître.
+  //
+  // Les canaux présents se déduisent des séjours chargés, or ceux-ci arrivent
+  // par tranches — les prioritaires d'abord, le reste en arrière-plan. Chaque
+  // tranche ajoutait donc une pastille, et la rangée poussait les suivantes
+  // vers la droite, quatre ou cinq fois de suite. On la garde en réserve (sa
+  // hauteur est tenue, cf. PlanningToolbar) jusqu'à ce que plus rien ne soit
+  // en vol, puis elle paraît d'un coup.
+  //
+  // Verrou : une fois montrée, elle ne se cache plus. Faire défiler charge de
+  // nouvelles tranches, et la rangée disparaîtrait à chaque geste.
+  const filtersShown = useRef(false);
+  if (settled) filtersShown.current = true;
+  const filtersReady = filtersShown.current;
 
   // Masquage client-side des briques réservation selon les toggles légende.
   // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
@@ -982,6 +997,7 @@ const PlanningPage: React.FC = () => {
             activeChannels={activeChannels}
             onToggleChannel={toggleChannel}
                   presentChannels={presentChannels}
+            filtersReady={filtersReady}
             activeStatuses={activeStatuses}
             onToggleStatus={toggleStatus}
           />
@@ -1001,11 +1017,20 @@ const PlanningPage: React.FC = () => {
           <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
         </div>
       ) : loading ? (
-        <div className="flex justify-center items-center flex-1 gap-2">
-          <Spinner className="size-7" />
-          <p className="cn-text-body2 text-muted-foreground">
-            Chargement du planning...
-          </p>
+        /* Pas un sursis tournant : la grille a venir, vide. Elle occupe deja sa
+           place — memes largeurs de colonne, meme hauteur de rangee —, donc
+           rien ne se deplace quand les donnees arrivent. */
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden px-0 min-[900px]:px-2 flex flex-col">
+          <PlanningGridSkeleton
+            days={timeline.days}
+            dayWidth={nav.dayWidth}
+            zoom={nav.zoom}
+            density={nav.density}
+            anchorDate={nav.currentDate}
+            propertyColWidth={effectivePropertyColWidth}
+            totalGridWidth={totalGridWidth}
+            collapsed={propertyColCollapsed}
+          />
         </div>
       ) : properties.length === 0 ? (
         /* Aucun logement dans l'organisation : l'utilisateur découvre l'écran,

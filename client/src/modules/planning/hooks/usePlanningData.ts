@@ -372,6 +372,31 @@ export function dedup<T extends { id: number }>(arrays: T[][]): T[] {
   return Array.from(seen.values());
 }
 
+/**
+ * La premiere vague de chargement est-elle retombee ?
+ *
+ * <p>Exporte pour etre teste : la regle a une arete. « Plus rien en vol » ne
+ * suffit pas — quand les logements sont deja en cache (ils sont prechargees au
+ * boot) et que la page n'en designe encore aucun, AUCUNE requete n'est en vol
+ * au premier rendu, et la condition serait vraie avant que le moindre sejour
+ * n'ait ete demande. D'ou la troisieme clause : soit des donnees sont la, soit
+ * il n'y a personne a interroger.</p>
+ */
+export function isPlanningSettled({
+  propertiesLoading,
+  chunksLoading,
+  propertyCount,
+  hasAnyData,
+}: {
+  propertiesLoading: boolean;
+  chunksLoading: boolean;
+  propertyCount: number;
+  hasAnyData: boolean;
+}): boolean {
+  if (propertiesLoading || chunksLoading) return false;
+  return propertyCount === 0 || hasAnyData;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export interface UsePlanningDataReturn {
@@ -380,6 +405,17 @@ export interface UsePlanningDataReturn {
   reservations: Reservation[];
   interventions: PlanningIntervention[];
   loading: boolean;
+  /**
+   * La premiere vague est retombee : plus aucune tranche en vol, et soit des
+   * donnees, soit aucun logement a interroger.
+   *
+   * <p>A distinguer de `loading`, qui tombe des la PREMIERE tranche pour que la
+   * grille se peigne au plus tot — les suivantes arrivent ensuite en
+   * arriere-plan. Ce qui se DEDUIT des sejours charges (les canaux presents,
+   * par exemple) n'est complet qu'ici : le lire plus tot, c'est le voir
+   * grandir tranche par tranche.</p>
+   */
+  settled: boolean;
   error: string | null;
 }
 
@@ -567,6 +603,12 @@ export function usePlanningData(
     reservations,
     interventions,
     loading,
+    settled: isPlanningSettled({
+      propertiesLoading: propertiesQuery.isLoading,
+      chunksLoading: planningResult.isLoading,
+      propertyCount: propertyIds.length,
+      hasAnyData: planningResult.hasAnyData,
+    }),
     error,
   };
 }

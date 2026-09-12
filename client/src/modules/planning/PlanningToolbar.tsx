@@ -48,6 +48,12 @@ interface PlanningToolbarProps {
   onToggleChannel: (key: PlanningChannelKey) => void;
   /** Canaux presents dans les donnees — la legende ne montre que ceux-la. */
   presentChannels?: ReadonlySet<PlanningChannelKey>;
+  /**
+   * La rangee de filtres est-elle COMPLETE ? Tant que non, elle occupe sa place
+   * sans se montrer : les canaux se deduisent des sejours charges, qui arrivent
+   * par tranches.
+   */
+  filtersReady?: boolean;
   /** Statuts visibles (rangée Statuts) — tout sélectionné par défaut. */
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
@@ -188,6 +194,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   activeChannels,
   onToggleChannel,
   presentChannels,
+  filtersReady = true,
   activeStatuses,
   onToggleStatus,
 }) => {
@@ -249,7 +256,16 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           modale de filtres quand `legendInModal` (viewport compact OU
           constellation d'agents déployée) pour ne jamais dupliquer les chips. */}
       {!legendInModal && (
-        <div className="pl-filter-row">
+        // `visibility` et non un montage conditionnel : la rangee GARDE sa
+        // place et ses chips prennent leur largeur definitive pendant qu'elle
+        // est en reserve. Elle parait donc d'un coup, sans rien pousser — et
+        // ses chips sortent du parcours clavier tant qu'elles sont cachees,
+        // ce que `visibility: hidden` fait de lui-meme.
+        <div
+          className="pl-filter-row"
+          style={filtersReady ? undefined : { visibility: 'hidden' }}
+          aria-hidden={filtersReady ? undefined : true}
+        >
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
           <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel}
             presentChannels={presentChannels} />

@@ -2,8 +2,9 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
-import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_CELL_BG } from './constants';
-import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
+import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
+import PlanningRowBackdrop from './PlanningRowBackdrop';
+import { toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -478,39 +479,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
   return (
     <div className="relative bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--bui-border)' }} onMouseDown={handleMouseDown}>
-      {/* Day column backgrounds (weekends + today) */}
-      {days.map((day, idx) => {
-        const weekend = isWeekend(day);
-        const today = isToday(day);
-        if (!weekend && !today) return null;
-        // `inset-y-0` et non `height: effectiveRowHeight` : en box-sizing
-        // border-box cette hauteur inclut le filet du bas de la ligne, que le
-        // fond recouvrait — les cellules week-end et celle du jour perdaient
-        // leur bordure horizontale. Un absolu se cale sur le padding box, donc
-        // s'arrête juste avant le filet.
-        return (
-          <div className="absolute inset-y-0 pointer-events-none" style={{ left: idx * dayWidth, width: dayWidth, backgroundColor: today
-                ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
-                : weekend
-                  ? WEEKEND_CELL_BG
-                  : 'transparent' }} key={day.getTime()} />
-        );
-      })}
-
-      {/* Hairlines verticales entre jours — couche AU-DESSUS des fonds
-          week-end/today (posés juste avant) pour que les séparateurs restent
-          visibles sur les colonnes teintées. Clip 1px avant le bord droit
-          (dernier jour sans séparateur). pointer-events:none → n'intercepte
-          pas les clics ; sous les briques (rendues après dans le DOM). */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--bui-border) ${dayWidth - 1}px ${dayWidth}px)`,
-          backgroundSize: `${totalGridWidth - 1}px 100%`,
-          backgroundRepeat: 'no-repeat',
-        }}
-      />
+      {/* Fond de la rangee (colonnes teintees + filets) : partage avec le
+          squelette de chargement, pour qu'ils ne puissent pas diverger. */}
+      <PlanningRowBackdrop days={days} dayWidth={dayWidth} totalGridWidth={totalGridWidth} />
 
       {/* Cursor zone for empty areas (pointer-events off — parent handles mouseDown) */}
       <div

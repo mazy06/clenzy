@@ -50,6 +50,25 @@ function firstVisibleIndex(scrollLeft: number, dayWidth: number): number {
  * defilement pres d'un bord faisait sauter la grille d'une fenetre entiere,
  * en boucle : d'ou les sauts de plusieurs mois et le defilement fige.</p>
  */
+/**
+ * Decalage horizontal qui pose `targetDate` en 3e colonne de la grille, ou
+ * `null` si ce jour n'est pas dans le buffer.
+ *
+ * <p>Pur et exporte : le squelette de chargement s'ouvre sur cette meme
+ * fenetre, faute de quoi la grille sauterait lateralement en apparaissant.</p>
+ */
+export function scrollLeftForDateIn(days: Date[], targetDate: Date, dayWidth: number): number | null {
+  const targetIndex = days.findIndex(
+    (d) =>
+      d.getFullYear() === targetDate.getFullYear() &&
+      d.getMonth() === targetDate.getMonth() &&
+      d.getDate() === targetDate.getDate(),
+  );
+  if (targetIndex < 0) return null;
+  // Le jour vise se pose en 3e colonne (2 colonnes de marge a gauche).
+  return Math.max(0, (targetIndex - 2) * dayWidth);
+}
+
 export function useInfiniteTimeline({
   anchorDate,
   zoom,
@@ -214,17 +233,7 @@ export function useInfiniteTimeline({
   // ── Defilement vers une date ─────────────────────────────────────────────
 
   const scrollLeftForDate = useCallback(
-    (targetDate: Date): number | null => {
-      const targetIndex = days.findIndex(
-        (d) =>
-          d.getFullYear() === targetDate.getFullYear() &&
-          d.getMonth() === targetDate.getMonth() &&
-          d.getDate() === targetDate.getDate(),
-      );
-      if (targetIndex < 0) return null;
-      // Le jour vise se pose en 3e colonne (2 colonnes de marge a gauche).
-      return Math.max(0, (targetIndex - 2) * dayWidth);
-    },
+    (targetDate: Date): number | null => scrollLeftForDateIn(days, targetDate, dayWidth),
     [days, dayWidth],
   );
 
