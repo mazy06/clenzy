@@ -161,7 +161,7 @@ export function usePulseGrowth(): ReportContent {
     },
   ].filter(Boolean) as StatFigure[];
 
-  return { figures, items, loading: funnel.isLoading || positioning.isLoading, fill: false };
+  return { figures, items, loading: funnel.isLoading || positioning.isLoading };
 }
 
 // ─── Opérations ──────────────────────────────────────────────────────────────
@@ -303,7 +303,6 @@ export function usePulseOperations(): ReportContent {
     figures,
     items,
     loading: devicesLoading || reorder.isLoading || departures.isLoading,
-    fill: false,
   };
 }
 
@@ -430,7 +429,6 @@ export function usePulseCompliance(): ReportContent {
     figures,
     items,
     loading: compliance.isLoading || contracts.isLoading || filings.isLoading || documentTypes.isLoading,
-    fill: false,
   };
 }
 
@@ -505,7 +503,7 @@ export function usePulseFinance(): ReportContent {
     },
   ];
 
-  return { figures, items, loading: wallets.isLoading || payouts.isLoading, fill: false };
+  return { figures, items, loading: wallets.isLoading || payouts.isLoading };
 }
 
 // ─── Voyageurs ───────────────────────────────────────────────────────────────
@@ -609,5 +607,5 @@ export function usePulseGuest(): ReportContent {
     },
   ].filter(Boolean) as StatFigure[];
 
-  return { figures, items, loading: reviews.isLoading || inbox.isLoading, fill: false };
+  return { figures, items, loading: reviews.isLoading || inbox.isLoading };
 }

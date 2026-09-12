@@ -311,7 +311,7 @@ export function usePaceReport(): ReportContent {
     },
   ] as TileOrNothing[]);
 
-  return { figures, items, loading: summaryQuery.isLoading, error: summaryQuery.isError ? t('reports.pace.loadError', 'Impossible de charger le pace.') : null, retry: () => { void summaryQuery.refetch(); }, fill: false };
+  return { figures, items, loading: summaryQuery.isLoading, error: summaryQuery.isError ? t('reports.pace.loadError', 'Impossible de charger le pace.') : null, retry: () => { void summaryQuery.refetch(); } };
 }
 
 const PaceReport: React.FC = () => {

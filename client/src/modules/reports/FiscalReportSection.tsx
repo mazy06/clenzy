@@ -179,7 +179,6 @@ export function useFiscalReport(period: DashboardPeriod = 'month'): ReportConten
     loading: activeQuery.isLoading,
     error: activeQuery.error ? 'Erreur lors du chargement du rapport fiscal' : null,
     retry: () => { void activeQuery.refetch(); },
-    fill: false,
   };
 }
 
