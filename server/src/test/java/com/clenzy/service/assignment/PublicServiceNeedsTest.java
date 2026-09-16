@@ -48,7 +48,12 @@ class PublicServiceNeedsTest {
         when(documents.assignmentEligible(any())).thenReturn(true);
         when(catalog.doesNotReserveSlot(item.getCode())).thenReturn(true);
         when(catalog.isRemote(item.getCode())).thenReturn(true);
-        when(db.queryForList(anyString(),eq(Long.class),any())).thenReturn(List.of(1L));
+        // Le depistage lit les regles d'exposition une fois pour toute la page,
+        // et charge le lot de besoins en une requete.
+        when(exposure.visibilityOf(provider)).thenReturn(new MarketplaceExposureService.Visibility(
+            provider.getHomeOrganizationId(),true,Map.of(),null));
+        when(db.queryForList(anyString(),eq(Long.class),any(),any())).thenReturn(List.of(1L));
+        when(needs.findAllById(List.of(1L))).thenReturn(List.of(need));
         when(needs.findById(1L)).thenReturn(Optional.of(need));
         when(assignments.lock(1L)).thenReturn(need);
     }
@@ -58,6 +63,29 @@ class PublicServiceNeedsTest {
         var json=new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(page);
         assertThat(json).contains("Paris").doesNotContain("Confidentiel","Adresse privée","Code privé","Voyageur privé");
     }
+    @Test void aPageOfNeedsSharesItsChecksInsteadOfRepeatingThemPerNeed() {
+        var batch=new ArrayList<ServiceRequest>();
+        var ids=new ArrayList<Long>();
+        for (long id=1; id<=30; id++) {
+            var other=new ServiceRequest();
+            other.setId(id); other.setOrganizationId(2L); other.setServiceItemCode("cleaning-turnover");
+            other.setAssignmentPhase("PUBLIC"); other.setProperty(need.getProperty());
+            batch.add(other); ids.add(id);
+        }
+        when(db.queryForList(anyString(),eq(Long.class),any(),any())).thenReturn(ids);
+        when(needs.findAllById(ids)).thenReturn(batch);
+
+        assertThat(service.list(jwt,null).items()).hasSize(20);
+
+        // Une seule lecture du lot : plus de findById par ligne examinee.
+        verify(needs).findAllById(ids);
+        verify(needs,never()).findById(any());
+        // Les verifications communes a la page ne sont plus refaites par besoin.
+        verify(exposure).visibilityOf(provider);
+        verify(catalog,times(1)).isRemote("cleaning-turnover");
+        verify(documents,times(1)).assignmentEligible(any());
+    }
+
     @Test void internalProposalCannotReceiveAPublicOffer() {
         need.setAssignmentPhase("PROPOSED");
         assertThatThrownBy(() -> service.offer(1L,null,jwt)).isInstanceOf(AccessDeniedException.class);

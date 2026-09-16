@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { OPERATIONAL_ROLES, MANAGER_ROLES } from '../../constants/roles';
 import { invalidateMissionWorkflow } from '../../hooks/invalidateMissionWorkflow';
+import { useSecondTicker } from '../../hooks/useSecondTicker';
 import { serviceAssignmentsApi, type AssignmentCard } from '../../services/api/serviceAssignmentsApi';
 import ServiceOfferForm from './ServiceOfferForm';
 import ServicePriceComparison, { ServicePriceDifference } from './ServicePriceComparison';
@@ -31,7 +32,7 @@ export default function RequestCommercialDetails({ id, interventionId, estimate,
   const {t,currentLanguage}=useTranslation();
   const navigate=useNavigate();
   const cache=useQueryClient();
-  const [now,setNow]=useState(Date.now);
+
   const [selection,setSelection]=useState<{id:number;amount:string;currency:string} | null>(null);
   const [quotePending,setQuotePending]=useState(false);
   const proposal=card?.proposal;
@@ -42,12 +43,7 @@ export default function RequestCommercialDetails({ id, interventionId, estimate,
   const validAmount=selectedAmount!=='' && Number.isFinite(Number(selectedAmount)) && Number(selectedAmount)>=0 && Number(selectedAmount)<=1_000_000
     && Math.abs(Number(selectedAmount)*100-Math.round(Number(selectedAmount)*100))<0.000001 && /^[A-Z]{3}$/.test(currency);
   const matchesOffer=!!offered && validAmount && currency===offered.currency && Math.round(Number(selectedAmount)*100)===Math.round(offered.amount*100);
-  useEffect(()=>{
-    if (!proposal) return;
-    setNow(Date.now());
-    const timer=setInterval(()=>setNow(Date.now()),1000);
-    return ()=>clearInterval(timer);
-  },[proposal?.id]);
+  const now=useSecondTicker(!!proposal);
   const accept=useMutation({mutationFn:()=>serviceAssignmentsApi.respond(proposal!,true),
     onSuccess:async result=>{
       await invalidateMissionWorkflow(cache);

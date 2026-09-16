@@ -10,6 +10,7 @@ import { Alert, AlertDescription, Button, Input, Label, Skeleton } from '../../c
 import { useTranslation } from '../../hooks/useTranslation';
 import { serviceAssignmentsApi, type ProposalInboxItem, type PublicNeed } from '../../services/api/serviceAssignmentsApi';
 import { invalidateMissionWorkflow } from '../../hooks/invalidateMissionWorkflow';
+import { useSecondTicker } from '../../hooks/useSecondTicker';
 import { formatDateTime } from '../../utils/formatUtils';
 
 export default function ProviderServiceRequests({ embedded = false, children }: { embedded?: boolean; children: ReactNode }) {
@@ -55,8 +56,7 @@ function ProposalRow({ item }: { item: ProposalInboxItem }) {
   const [reason, setReason] = useState('');
   const [notice, setNotice] = useState('');
   const [editingOffer,setEditingOffer] = useState(false);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  const now = useSecondTicker();
   const serviceLabel = useServiceReferenceLabel(item.serviceItemCode);
   const expired = now >= Date.parse(item.proposal.expiresAt);
   const reply = useMutation({ mutationFn: (accept: boolean) => serviceAssignmentsApi.respond(item.proposal, accept, reason),

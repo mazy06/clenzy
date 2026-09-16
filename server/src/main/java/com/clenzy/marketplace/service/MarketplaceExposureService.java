@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -76,6 +77,58 @@ public class MarketplaceExposureService {
             return false;
         }
         return !isHidden(provider.getId(), organizationId);
+    }
+
+    /**
+     * Visibilite d'UNE fiche pour PLUSIEURS organisations, en une seule lecture des regles.
+     *
+     * <p>Dual de {@link #hiddenProviderIdsFor} : la recherche du catalogue fixe
+     * l'organisation et parcourt les fiches ; le depistage d'un prestataire sur
+     * les besoins publics fixe la fiche et parcourt les organisations. Appeler
+     * {@link #isVisibleTo} par besoin faisait deux requetes par ligne examinee.</p>
+     */
+    @Transactional(readOnly = true)
+    public Visibility visibilityOf(MarketplaceProvider provider) {
+        if (provider == null) {
+            return Visibility.NONE;
+        }
+        boolean exposable = provider.isExposable() && documentary.eligible(
+            provider.getId(), provider.getBaseCountryCode(), "*", java.time.LocalDate.now(clock));
+        var named = new java.util.HashMap<Long, ExposureEffect>();
+        ExposureEffect global = null;
+        for (MarketplaceExposureRule rule : ruleRepository.findByProviderIdOrderByOrganizationIdAscIdAsc(provider.getId())) {
+            if (rule.getOrganizationId() == null) {
+                global = rule.getEffect();
+            } else {
+                named.put(rule.getOrganizationId(), rule.getEffect());
+            }
+        }
+        return new Visibility(provider.getHomeOrganizationId(), exposable, Map.copyOf(named), global);
+    }
+
+    /**
+     * Reponse de {@link #visibilityOf}, evaluable hors transaction.
+     *
+     * <p>Meme ordre de resolution que {@link #isVisibleTo} : organisation
+     * porteuse, puis exposabilite, puis regle nominative, puis regle globale.</p>
+     */
+    public record Visibility(Long homeOrganizationId, boolean exposable,
+                             Map<Long, ExposureEffect> named, ExposureEffect global) {
+        public static final Visibility NONE = new Visibility(null, false, Map.of(), null);
+
+        public boolean allows(Long organizationId) {
+            if (organizationId == null) {
+                return false;
+            }
+            if (organizationId.equals(homeOrganizationId)) {
+                return true;
+            }
+            if (!exposable) {
+                return false;
+            }
+            ExposureEffect rule = named.get(organizationId);
+            return rule != null ? rule != ExposureEffect.DENY : global != ExposureEffect.DENY;
+        }
     }
 
     /** Fiches a exclure d'une recherche pour cette organisation. */

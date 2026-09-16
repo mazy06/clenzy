@@ -100,7 +100,7 @@ export default function MapWithSheet({
             <span className="min-w-0 flex-1 truncate">{listTitle}</span>
             {listIndicators}
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pe-0.5">
+          <div ref={scrollRef} data-map-list-scroll className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pe-0.5">
             {list}
           </div>
         </div>

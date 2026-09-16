@@ -4317,3 +4317,13 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  - changeSet:
+      id: "0477-assignment-job-backlog"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0477__assignment_job_backlog.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
