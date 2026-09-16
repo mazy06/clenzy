@@ -31,12 +31,6 @@ public class PropertyTeamService {
 
     private static final Logger log = LoggerFactory.getLogger(PropertyTeamService.class);
     private static final int DEFAULT_DURATION_HOURS = 4;
-    private static final List<InterventionStatus> ACTIVE_STATUSES = List.of(
-        InterventionStatus.PENDING,
-        InterventionStatus.AWAITING_VALIDATION,
-        InterventionStatus.AWAITING_PAYMENT,
-        InterventionStatus.IN_PROGRESS
-    );
 
     private final PropertyTeamRepository propertyTeamRepository;
     private final InterventionRepository interventionRepository;
@@ -46,6 +40,7 @@ public class PropertyTeamService {
     private final OrganizationRepository organizationRepository;
     private final TenantContext tenantContext;
     private final ProviderAvailabilityService availabilityService;
+    private final com.clenzy.repository.ServiceRequestRepository assignments;
 
     public PropertyTeamService(PropertyTeamRepository propertyTeamRepository,
                                InterventionRepository interventionRepository,
@@ -54,7 +49,8 @@ public class PropertyTeamService {
                                PropertyRepository propertyRepository,
                                OrganizationRepository organizationRepository,
                                TenantContext tenantContext,
-                               ProviderAvailabilityService availabilityService) {
+                               ProviderAvailabilityService availabilityService,
+                               com.clenzy.repository.ServiceRequestRepository assignments) {
         this.propertyTeamRepository = propertyTeamRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
@@ -63,6 +59,7 @@ public class PropertyTeamService {
         this.organizationRepository = organizationRepository;
         this.tenantContext = tenantContext;
         this.availabilityService = availabilityService;
+        this.assignments = assignments;
     }
 
     /**
@@ -149,6 +146,12 @@ public class PropertyTeamService {
     public Optional<Long> findAvailableTeamForProperty(Long propertyId, LocalDateTime scheduledDate,
                                                         Integer estimatedDurationHours, String serviceType,
                                                         Long orgId) {
+        return findAvailableTeamForProperty(propertyId, scheduledDate, estimatedDurationHours, serviceType, orgId, Set.of());
+    }
+
+    public Optional<Long> findAvailableTeamForProperty(Long propertyId, LocalDateTime scheduledDate,
+                                                        Integer estimatedDurationHours, String serviceType,
+                                                        Long orgId, Set<Long> excludedTeamIds) {
         int duration = (estimatedDurationHours != null && estimatedDurationHours > 0)
             ? estimatedDurationHours
             : DEFAULT_DURATION_HOURS;
@@ -164,7 +167,7 @@ public class PropertyTeamService {
             orgId, getOrgTypeLabel(orgId), searchOrgIds);
 
         // Equipes deja testees (eviter les doublons entre couches)
-        Set<Long> testedTeamIds = new HashSet<>();
+        Set<Long> testedTeamIds = new HashSet<>(excludedTeamIds);
 
         boolean canDoGeoSearch = property != null && (
                 (property.getDepartment() != null && !property.getDepartment().isBlank())
@@ -212,6 +215,13 @@ public class PropertyTeamService {
     public List<AssignableTeam> findAssignableTeams(Long propertyId, LocalDateTime scheduledDate,
                                                     Integer estimatedDurationHours, String serviceType,
                                                     Long orgId) {
+        return findAssignableTeams(propertyId, scheduledDate, estimatedDurationHours, serviceType, orgId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AssignableTeam> findAssignableTeams(Long propertyId, LocalDateTime scheduledDate,
+                                                    Integer estimatedDurationHours, String serviceType,
+                                                    Long orgId, Long requestId, Long interventionId) {
         final int duration = (estimatedDurationHours != null && estimatedDurationHours > 0)
                 ? estimatedDurationHours : DEFAULT_DURATION_HOURS;
         final LocalDateTime rangeStart = scheduledDate;
@@ -222,13 +232,13 @@ public class PropertyTeamService {
         final List<AssignableTeam> found = new ArrayList<>();
 
         for (Long searchOrgId : buildSearchOrgIds(orgId)) {
-            propertyTeamRepository.findByPropertyId(propertyId, searchOrgId)
+            propertyTeamRepository.findAllByPropertyId(propertyId, searchOrgId).stream()
                     .map(PropertyTeam::getTeamId)
-                    .ifPresent(teamId -> collect(teamId, "DEFAULT", serviceType, rangeStart, rangeEnd, seen, found));
+                    .forEach(teamId -> collect(teamId, "DEFAULT", serviceType, rangeStart, rangeEnd, requestId, interventionId, duration, property, seen, found));
 
             if (property != null) {
                 for (Long teamId : geographicCandidates(property, searchOrgId)) {
-                    collect(teamId, "ZONE", serviceType, rangeStart, rangeEnd, seen, found);
+                    collect(teamId, "ZONE", serviceType, rangeStart, rangeEnd, requestId, interventionId, duration, property, seen, found);
                 }
             }
         }
@@ -238,7 +248,7 @@ public class PropertyTeamService {
         // par construction, aucune équipe couvrante : s'en tenir aux suggestions
         // laisserait l'opérateur devant une liste vide, sans recours.
         for (Team team : teamRepository.findAllForOrg(orgId)) {
-            collect(team.getId(), "OTHER", serviceType, rangeStart, rangeEnd, seen, found);
+            collect(team.getId(), "OTHER", serviceType, rangeStart, rangeEnd, requestId, interventionId, duration, property, seen, found);
         }
 
         // Disponibles d'abord ; à disponibilité égale, l'équipe attitrée, puis
@@ -252,40 +262,42 @@ public class PropertyTeamService {
     /** Ajoute l'équipe aux candidats si son type convient et qu'on ne l'a pas déjà vue. */
     private void collect(Long teamId, String origin, String serviceType,
                          LocalDateTime rangeStart, LocalDateTime rangeEnd,
+                         Long requestId, Long interventionId, int duration, Property property,
                          Set<Long> seen, List<AssignableTeam> found) {
         if (teamId == null || !seen.add(teamId)) return;
+        if (rejectsPropertyType(teamId, property)) return;
         final Team team = teamRepository.findById(teamId).orElse(null);
         if (team == null) return;
         if (!InterventionTypeMatcher.isCompatible(team.getInterventionType(), serviceType)) return;
 
-        final long conflicts = interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
-                teamId, ACTIVE_STATUSES, rangeStart, rangeEnd);
+        final boolean occupied = assignments.previewAssignmentConflicts(
+                requestId, interventionId, "team", teamId, rangeStart, duration);
         // Hors creneaux declares : le prestataire reste PROPOSE, marque
         // indisponible. Le masquer laisserait croire qu'il n'existe pas, alors
         // qu'un operateur peut vouloir le solliciter quand meme.
         final boolean withinDeclared = availabilityService.isAvailable(teamId, rangeStart, rangeEnd);
         found.add(new AssignableTeam(teamId, team.getName(), origin,
-                conflicts == 0 && withinDeclared, conflicts));
+                !occupied && withinDeclared, occupied ? 1L : 0L));
     }
 
     /** Équipes dont une zone de couverture contient le logement. */
     private List<Long> geographicCandidates(Property property, Long searchOrgId) {
         String countryCode = property.getCountryCode();
         if (countryCode == null || countryCode.isBlank()) countryCode = "FR";
-        countryCode = countryCode.toUpperCase();
+        countryCode = countryCode.trim().toUpperCase(java.util.Locale.ROOT);
 
         if ("FR".equals(countryCode)) {
             final String department = property.getDepartment();
             if (department == null || department.isBlank()) return List.of();
             final String arrondissement = property.getArrondissement();
-            return (arrondissement != null && !arrondissement.isEmpty())
+            return (arrondissement != null && !arrondissement.isBlank())
                     ? teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(
-                            department, arrondissement, searchOrgId)
-                    : teamCoverageZoneRepository.findTeamIdsByDepartment(department, searchOrgId);
+                            department.trim(), arrondissement.trim(), searchOrgId)
+                    : teamCoverageZoneRepository.findTeamIdsByDepartment(department.trim(), searchOrgId);
         }
         final String city = property.getCity();
         if (city == null || city.isBlank()) return List.of();
-        return teamCoverageZoneRepository.findTeamIdsByCountryAndCity(countryCode, city, searchOrgId);
+        return teamCoverageZoneRepository.findTeamIdsByCountryAndCity(countryCode, city.trim(), searchOrgId);
     }
 
     /**
@@ -295,7 +307,7 @@ public class PropertyTeamService {
      *                  {@code ZONE} = couvre la zone géographique,
      *                  {@code OTHER} = même organisation, hors zone
      * @param available libre sur le créneau demandé
-     * @param conflicts nombre d'interventions qui se chevauchent, pour l'expliquer
+     * @param conflicts indicateur de conflit (0 ou 1), sans détail sur les engagements externes
      */
     public record AssignableTeam(Long teamId, String name, String origin,
                                  boolean available, long conflicts) {}
@@ -354,40 +366,19 @@ public class PropertyTeamService {
     private Optional<Long> tryDefaultTeam(Long propertyId, Long searchOrgId, String serviceType,
                                            LocalDateTime rangeStart, LocalDateTime rangeEnd,
                                            Set<Long> testedTeamIds) {
-        Optional<PropertyTeam> mapping = propertyTeamRepository.findByPropertyId(propertyId, searchOrgId);
-        if (mapping.isEmpty()) return Optional.empty();
-
-        Long defaultTeamId = mapping.get().getTeamId();
-        if (testedTeamIds.contains(defaultTeamId)) return Optional.empty();
-        testedTeamIds.add(defaultTeamId);
-
-        Team defaultTeam = teamRepository.findById(defaultTeamId).orElse(null);
-        if (defaultTeam == null) return Optional.empty();
-
-        if (!InterventionTypeMatcher.isCompatible(defaultTeam.getInterventionType(), serviceType)) {
-            log.debug("Equipe par defaut {} (org={}) incompatible type: {} vs {}",
-                defaultTeamId, searchOrgId, defaultTeam.getInterventionType(), serviceType);
-            return Optional.empty();
+        var property = propertyRepository.findById(propertyId).orElse(null);
+        for (PropertyTeam mapping : propertyTeamRepository.findAllByPropertyId(propertyId, searchOrgId)) {
+            Long teamId = mapping.getTeamId();
+            if (!testedTeamIds.add(teamId)) continue;
+            Team team = teamRepository.findById(teamId).orElse(null);
+            if (team == null || !InterventionTypeMatcher.isCompatible(team.getInterventionType(), serviceType)) continue;
+            if (rejectsPropertyType(teamId, property)) continue;
+            if (hasAssignmentConflict(teamId, rangeStart, rangeEnd)) continue;
+            if (!availabilityService.isAvailable(teamId, rangeStart, rangeEnd)) continue;
+            log.debug("Auto-assignation: equipe liee {} (org={}, type OK, disponible)", teamId, searchOrgId);
+            return Optional.of(teamId);
         }
-
-        // Verifier disponibilite TOUTES orgs (une equipe SYSTEM sert plusieurs orgs)
-        long conflictCount = interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
-            defaultTeamId, ACTIVE_STATUSES, rangeStart, rangeEnd
-        );
-        if (conflictCount > 0) {
-            log.debug("Equipe par defaut {} (org={}) occupee ({} conflits)", defaultTeamId, searchOrgId, conflictCount);
-            return Optional.empty();
-        }
-
-        // « Libre » ne suffit pas : encore faut-il que le prestataire travaille
-        // a ce moment-la. Sans declaration, il reste disponible par defaut.
-        if (!availabilityService.isAvailable(defaultTeamId, rangeStart, rangeEnd)) {
-            log.debug("Equipe par defaut {} (org={}) hors de ses disponibilites declarees", defaultTeamId, searchOrgId);
-            return Optional.empty();
-        }
-
-        log.debug("Auto-assignation: equipe par defaut {} (org={}, type OK, disponible)", defaultTeamId, searchOrgId);
-        return Optional.of(defaultTeamId);
+        return Optional.empty();
     }
 
     /**
@@ -399,43 +390,11 @@ public class PropertyTeamService {
     private Optional<Long> tryGeographicSearch(Property property, Long searchOrgId, String serviceType,
                                                 LocalDateTime rangeStart, LocalDateTime rangeEnd,
                                                 Set<Long> testedTeamIds) {
-        String countryCode = property.getCountryCode();
-        if (countryCode == null || countryCode.isBlank()) {
-            countryCode = "FR";
-        }
-        countryCode = countryCode.toUpperCase();
-
-        List<Long> candidateTeamIds;
-        if ("FR".equals(countryCode)) {
-            String department = property.getDepartment();
-            if (department == null || department.isBlank()) {
-                return Optional.empty();
-            }
-            String arrondissement = property.getArrondissement();
-            if (arrondissement != null && !arrondissement.isEmpty()) {
-                candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(
-                    department, arrondissement, searchOrgId);
-            } else {
-                candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartment(department, searchOrgId);
-            }
-        } else {
-            String city = property.getCity();
-            if (city == null || city.isBlank()) {
-                log.debug("Auto-assignation: propriete pays={} sans city, recherche impossible", countryCode);
-                return Optional.empty();
-            }
-            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByCountryAndCity(
-                countryCode, city, searchOrgId);
-        }
-
-        if (candidateTeamIds.isEmpty()) {
-            log.debug("Auto-assignation: aucune equipe couvrant {}/{} dans org {}",
-                countryCode, "FR".equals(countryCode) ? property.getDepartment() : property.getCity(), searchOrgId);
-            return Optional.empty();
-        }
+        List<Long> candidateTeamIds = geographicCandidates(property, searchOrgId);
 
         for (Long candidateId : candidateTeamIds) {
             if (testedTeamIds.contains(candidateId)) continue;
+            if (rejectsPropertyType(candidateId, property)) continue;
             testedTeamIds.add(candidateId);
 
             Team candidate = teamRepository.findById(candidateId).orElse(null);
@@ -445,18 +404,26 @@ public class PropertyTeamService {
                 continue;
             }
 
-            // Disponibilite TOUTES orgs confondues
-            long conflictCount = interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
-                candidateId, ACTIVE_STATUSES, rangeStart, rangeEnd
-            );
-            if (conflictCount == 0 && availabilityService.isAvailable(candidateId, rangeStart, rangeEnd)) {
+            if (!hasAssignmentConflict(candidateId, rangeStart, rangeEnd)
+                    && availabilityService.isAvailable(candidateId, rangeStart, rangeEnd)) {
                 log.debug("Auto-assignation geo: equipe {} (org={}, country={}, type OK, disponible)",
-                    candidateId, searchOrgId, countryCode);
+                    candidateId, searchOrgId, property.getCountryCode());
                 return Optional.of(candidateId);
             }
         }
 
         return Optional.empty();
+    }
+
+    private boolean rejectsPropertyType(Long teamId, Property property) {
+        return teamCoverageZoneRepository.rejectsPropertyType(teamId,
+            property == null || property.getType() == null ? null : property.getType().name());
+    }
+
+    /** Même aperçu global des réservations que les suggestions manuelles ; la mutation reverrouille ensuite. */
+    private boolean hasAssignmentConflict(Long teamId, LocalDateTime start, LocalDateTime end) {
+        return assignments.previewAssignmentConflicts(null, null, "team", teamId, start,
+            Math.toIntExact(java.time.Duration.between(start, end).toHours()));
     }
 
     /**

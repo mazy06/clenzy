@@ -1,7 +1,7 @@
 package com.clenzy.service.tags;
 
 import com.clenzy.model.Property;
-import com.clenzy.repository.HousekeeperRateRepository;
+import com.clenzy.repository.ProviderTariffRepository;
 import com.clenzy.service.PricingConfigService;
 import com.clenzy.service.pricing.CleaningPricingEngine;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class CleaningQuoteTagBuilderTest {
 
     @Mock private PricingConfigService pricingConfigService;
-    @Mock private HousekeeperRateRepository housekeeperRateRepository;
+    @Mock private ProviderTariffRepository housekeeperRateRepository;
 
     private CleaningQuoteTagBuilder builder() {
         return new CleaningQuoteTagBuilder(

@@ -7,7 +7,10 @@ import com.clenzy.dto.UpsellOfferRequest;
 import com.clenzy.dto.UpsellOrderDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.model.UpsellTypes;
 import com.clenzy.repository.UpsellOfferRepository;
+import com.clenzy.repository.UpsellTypeDefRepository;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.repository.UpsellOrderRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
@@ -63,6 +66,9 @@ public class UpsellService {
     private final ManagementContractService managementContractService;
     private final Clock clock;
     private final PaymentOrchestrationService orchestrationService;
+    /** Referentiel des types : c'est lui qui valide un code, plus un enum. */
+    private final UpsellTypeDefRepository upsellTypeRepository;
+    private final TenantContext tenantContext;
     /** Préparation commande + rattachement session en transactions courtes (appel provider hors tx). */
     private final TransactionTemplate writeTx;
 
@@ -78,7 +84,9 @@ public class UpsellService {
                          ManagementContractService managementContractService,
                          Clock clock,
                          PaymentOrchestrationService orchestrationService,
-                         PlatformTransactionManager transactionManager) {
+                         PlatformTransactionManager transactionManager,
+                         UpsellTypeDefRepository upsellTypeRepository,
+                         TenantContext tenantContext) {
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
@@ -92,6 +100,8 @@ public class UpsellService {
         this.clock = clock;
         this.orchestrationService = orchestrationService;
         this.writeTx = new TransactionTemplate(transactionManager);
+        this.upsellTypeRepository = upsellTypeRepository;
+        this.tenantContext = tenantContext;
     }
 
     /** Primitives d'une commande upsell préparée (extraites en tx pour l'appel provider hors tx). */
@@ -205,13 +215,33 @@ public class UpsellService {
         return LocalTime.of(15, 0);
     }
 
-    private static UpsellType parseType(String raw) {
-        if (raw == null || raw.isBlank()) return UpsellType.OTHER;
-        try {
-            return UpsellType.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return UpsellType.OTHER;
+    /**
+     * Normalise le code de type soumis.
+     *
+     * <p>Le code est verifie contre le REFERENTIEL et non contre un enum : c'est
+     * ce qui permet a une organisation d'ajouter ses propres types sans
+     * deploiement. Un code inconnu retombe sur {@code OTHER} plutot que de faire
+     * echouer la creation — un referentiel qui evolue ne doit pas casser un
+     * formulaire garde en cache.</p>
+     *
+     * <p>La casse d'origine est conservee : les codes du catalogue sont en
+     * minuscules a tirets ({@code wellness-massage}), les neuf historiques en
+     * majuscules. Forcer une casse aurait rendu les premiers introuvables.</p>
+     */
+    private String parseType(String raw) {
+        if (raw == null || raw.isBlank()) return UpsellTypes.OTHER;
+        String code = raw.trim();
+        Long orgId = tenantContext.getOrganizationId();
+        if (!upsellTypeRepository.findByCodeInScope(code, orgId).isEmpty()) {
+            return code;
         }
+        // Tolerance a la casse pour les neuf codes historiques, qu'une interface
+        // ancienne peut encore envoyer en minuscules.
+        String upper = code.toUpperCase(java.util.Locale.ROOT);
+        if (!upper.equals(code) && !upsellTypeRepository.findByCodeInScope(upper, orgId).isEmpty()) {
+            return upper;
+        }
+        return UpsellTypes.OTHER;
     }
 
     // ─── Guest ─────────────────────────────────────────────────────────────────

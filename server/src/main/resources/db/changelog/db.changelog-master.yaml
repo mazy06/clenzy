@@ -1,7 +1,7 @@
 databaseChangeLog:
 
   # ============================================================================
-  # Clenzy — Master Changelog
+  # Baitly — Master Changelog
   # ============================================================================
   # Converti depuis les migrations Flyway V2→V58 (54 changesets).
   # Les fichiers SQL originaux sont conserves dans db/migration/ (archive).
@@ -1462,7 +1462,7 @@ databaseChangeLog:
         splitStatements: true
         stripComments: false
 
-  # --- 0152 : Table platform_promo_codes (codes inscription Clenzy, distinct de promo_codes booking engine) ---
+  # --- 0152 : Table platform_promo_codes (codes inscription Baitly, distinct de promo_codes booking engine) ---
   - changeSet:
       id: "0152-add-platform-promo-codes-table"
       author: clenzy-team
@@ -1578,7 +1578,7 @@ databaseChangeLog:
         splitStatements: true
         stripComments: false
 
-  # --- 0163 : Seed config Clenzy v3 (align schema + tax + templates) ---
+  # --- 0163 : Seed config Baitly v3 (align schema + tax + templates) ---
   # 3e tentative apres rollback 0161 (base64 broken) + 0162 (file_path NOT NULL).
   # Cette version aligne d'abord le schema prod sur dev (DROP NOT NULL sur
   # document_templates.file_path - idempotent en PG), puis injecte le seed.
@@ -2333,7 +2333,7 @@ databaseChangeLog:
 
   # Verrou structurel NOT NULL sur organization_id (audit SECU9, étape 2 — suite du
   # backfill 0231). Étape 0 : complète le backfill document_generations (4 reference_type
-  # non couverts + repli org Clenzy) ; puis pose NOT NULL sur 15 tables où NULL est
+  # non couverts + repli org Baitly) ; puis pose NOT NULL sur 15 tables où NULL est
   # illégitime, avec pré-check RAISE EXCEPTION lisible si une ligne NULL subsiste.
   # Exclut users/notifications/templates globaux. Bloc PL/pgSQL DO $$ -> splitStatements: false.
   - changeSet:
@@ -2538,7 +2538,7 @@ databaseChangeLog:
         path: changes/0253__add_deposit_installment_to_booking.sql
         relativeToChangelogFile: true
 
-  # Clenzy Sites (P1.1) : fondation des sites heberges SSR (sites + site_pages + site_domains).
+  # Baitly Sites (P1.1) : fondation des sites heberges SSR (sites + site_pages + site_domains).
   - changeSet:
       id: "0254-create-hosted-sites"
       author: clenzy-team
@@ -2546,7 +2546,7 @@ databaseChangeLog:
         path: changes/0254__create_hosted_sites.sql
         relativeToChangelogFile: true
 
-  # Clenzy Sites (P1.3) : blog / CMS des sites heberges (articles rendus SSR + RSS + schema Article).
+  # Baitly Sites (P1.3) : blog / CMS des sites heberges (articles rendus SSR + RSS + schema Article).
   - changeSet:
       id: "0255-create-blog-posts"
       author: clenzy-team
@@ -2667,7 +2667,7 @@ databaseChangeLog:
         path: changes/0269__add_pending_hold_minutes.sql
         relativeToChangelogFile: true
 
-  # Catalogue de templates de site (galerie « Choisir un design ») : global Clenzy + privés par org.
+  # Catalogue de templates de site (galerie « Choisir un design ») : global Baitly + privés par org.
   - changeSet:
       id: "0270-create-site-templates"
       author: clenzy-team
@@ -3876,3 +3876,302 @@ databaseChangeLog:
       sqlFile:
         path: changes/0417__notification_metadata.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0418-marketplace-providers"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0418__marketplace_providers.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0419-marketplace-provider-encrypt-pii"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0419__marketplace_provider_encrypt_pii.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0420-marketplace-service-catalog"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0420__marketplace_service_catalog.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0421-upsell-types-referential"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0421__upsell_types_referential.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0422-marketplace-purge-storage-key-avatars"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0422__marketplace_purge_storage_key_avatars.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0423-fix-service-item-pricing-model"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0423__fix_service_item_pricing_model.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0424-marketplace-common-categories"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0424__marketplace_common_categories.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0425-marketplace-provider-terms-proof"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0425__marketplace_provider_terms_proof.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0426-marketplace-application-documents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0426__marketplace_application_documents.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0427-marketplace-decision-message"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0427__marketplace_decision_message.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0428-marketplace-email-confirmation"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0428__marketplace_email_confirmation.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0429-marketplace-activation-token"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0429__marketplace_activation_token.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0430-marketplace-email-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0430__marketplace_email_templates.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0431-marketplace-exposure-rules"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0431__marketplace_exposure_rules.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0432-marketplace-quote-requests"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0432__marketplace_quote_requests.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0433-mission-workflow-consistency"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0433__mission_workflow_consistency.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0434-marketplace-quote-discussions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0434__marketplace_quote_discussions.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0435-service-quote-marketplace-origin"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0435__service_quote_marketplace_origin.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0436-general-marketplace-quotes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0436__general_marketplace_quotes.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0437-marketplace-provisioning-jobs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0437__marketplace_provisioning_jobs.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0438-marketplace-provisioning-identity"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0438__marketplace_provisioning_identity.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0439-marketplace-provisioning-attempts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0439__marketplace_provisioning_attempts.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0440-marketplace-activation-deliveries"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0440__marketplace_activation_deliveries.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0441-assignment-availability-rls"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0441__assignment_availability_rls.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+  - changeSet:
+      id: "0442-service-quote-amendments"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0442__service_quote_amendments.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0443-service-quote-amendment-archives"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0443__service_quote_amendment_archives.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0444-team-declared-availability"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0444__team_declared_availability.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+  - changeSet:
+      id: "0445-individual-declared-availability"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0445__individual_declared_availability.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+  - changeSet:
+      id: "0446-marketplace-recurrences"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0446__marketplace_recurrences.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0447-marketplace-reviews"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0447__marketplace_reviews.sql
+        relativeToChangelogFile: true
+  - changeSet:
+      id: "0448-marketplace-effective-availability"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0448__marketplace_effective_availability.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+  - changeSet:
+      id: "0449-canonical-individual-calendar"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0449__canonical_individual_calendar.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+  - changeSet:
+      id: "0450-canonical-provider-coverage"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0450__canonical_provider_coverage.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  - changeSet:
+      id: "0451-canonical-provider-tariffs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0451__canonical_provider_tariffs.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0452-shared-geographic-eligibility"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0452__shared_geographic_eligibility.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  - changeSet:
+      id: "0453-marketplace-observed-metrics"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0453__marketplace_observed_metrics.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  - changeSet:
+      id: "0454-marketplace-notification-outbox"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0454__marketplace_notification_outbox.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0455-provider-property-eligibility"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0455__provider_property_eligibility.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  - changeSet:
+      id: "0456-service-quote-cancellations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0456__service_quote_cancellations.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0457-marketplace-application-retention"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0457__marketplace_application_retention.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0458-service-quote-replacements"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0458__service_quote_replacements.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0459-mission-financial-cases"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0459__mission_financial_cases.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0460-provider-documentary-reviews"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0460__provider_documentary_reviews.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

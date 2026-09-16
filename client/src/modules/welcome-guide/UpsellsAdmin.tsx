@@ -58,7 +58,17 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
 import { useScreenSearch } from '../../components/ScreenChrome';
+import { useUpsellTypes } from '../../hooks/useUpsellTypes';
+import UpsellTypesManager from './UpsellTypesManager';
 
+/**
+ * Libellés de repli des neuf types historiques.
+ *
+ * Le référentiel vit en base (`GET /upsells/types`) et porte les libellés à
+ * jour. Ceux-ci ne servent plus qu'au premier rendu, avant que la requête ne
+ * réponde — sans eux, l'écran afficherait des codes bruts une fraction de
+ * seconde. Ils ne définissent plus la liste : c'est le serveur qui la donne.
+ */
 const TYPE_FALLBACK: Record<string, string> = {
   EARLY_CHECKIN: 'Arrivée anticipée',
   LATE_CHECKOUT: 'Départ tardif',
@@ -70,7 +80,6 @@ const TYPE_FALLBACK: Record<string, string> = {
   EXPERIENCE: 'Expérience',
   OTHER: 'Autre',
 };
-const TYPES = Object.keys(TYPE_FALLBACK);
 const DEFAULT_CURRENCY = 'EUR';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -209,7 +218,17 @@ const UpsellsAdmin: React.FC = () => {
     queryFn: () => activitiesApi.commissionSummary(),
   });
 
-  const typeLabel = (id: string) => t(`upsells.types.${id}`, TYPE_FALLBACK[id] ?? id);
+  const { data: upsellTypes = [] } = useUpsellTypes();
+  const [typesManagerOpen, setTypesManagerOpen] = useState(false);
+  const typeMap = useMemo(
+    () => new Map(upsellTypes.map((type) => [type.code, type.labelFr])),
+    [upsellTypes],
+  );
+
+  // Le référentiel prime, le repli couvre le premier rendu et les codes retirés
+  // qu'une offre ancienne porte encore.
+  const typeLabel = (id: string) =>
+    typeMap.get(id) ?? t(`upsells.types.${id}`, TYPE_FALLBACK[id] ?? id);
 
   // ── KPIs + performance (30 j), branchés sur les ventes réelles ─────────────
   const paidLast30 = useMemo(() => {
@@ -778,14 +797,32 @@ const UpsellsAdmin: React.FC = () => {
           <div className="flex flex-col gap-3 mt-[3px]">
             <div className="flex gap-2 flex-wrap">
               <Field className="w-auto min-w-[180px]">
-                <FieldLabel htmlFor="upsell-type">{t('upsells.fields.type', 'Catégorie')}</FieldLabel>
+                {/*
+                  Le référentiel s'administre ICI, au moment où l'on cherche un
+                  type et qu'aucun ne convient. Enterré sous deux niveaux de
+                  menu de filtres, il était introuvable — et un référentiel
+                  extensible que personne ne trouve reste un référentiel figé.
+                */}
+                <div className="flex items-baseline justify-between gap-2">
+                  <FieldLabel htmlFor="upsell-type">{t('upsells.fields.type', 'Catégorie')}</FieldLabel>
+                  <button
+                    type="button"
+                    onClick={() => setTypesManagerOpen(true)}
+                    className="cursor-pointer rounded-sm text-[11px] text-muted-foreground underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-[2px] focus-visible:ring-ring/50"
+                  >
+                    {t('upsells.types.manage', 'Gérer les types')}
+                  </button>
+                </div>
                 <NativeSelect
                   id="upsell-type"
                   className="w-full"
                   value={edit.type}
                   onChange={(e) => setEdit((s) => ({ ...s, type: e.target.value }))}
                 >
-                  {TYPES.map((id) => (
+                  {(upsellTypes.length > 0
+                    ? upsellTypes.map((type) => type.code)
+                    : Object.keys(TYPE_FALLBACK)
+                  ).map((id) => (
                     <option key={id} value={id}>
                       {typeLabel(id)}
                     </option>
@@ -1046,6 +1083,8 @@ const UpsellsAdmin: React.FC = () => {
         severity="error"
         loading={deleting}
       />
+
+      <UpsellTypesManager open={typesManagerOpen} onOpenChange={setTypesManagerOpen} />
     </div>
   );
 };

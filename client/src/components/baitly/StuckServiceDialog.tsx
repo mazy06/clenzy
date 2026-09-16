@@ -311,8 +311,7 @@ export default function StuckServiceDialog({
                         team.available
                           ? t('dashboard.stuckService.free', 'Disponible')
                           : t('dashboard.stuckService.busy', {
-                              count: team.conflicts,
-                              defaultValue: 'Occupée ({{count}})',
+                              defaultValue: 'Indisponible sur ce créneau',
                             })
                       }
                       muted={!team.available}

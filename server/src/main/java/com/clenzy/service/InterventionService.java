@@ -44,6 +44,7 @@ public class InterventionService {
     private static final Logger log = LoggerFactory.getLogger(InterventionService.class);
     private static final int MAX_PHOTOS_PER_INTERVENTION = 20;
 
+    private final InterventionAllocationGuard allocationGuard;
     private final InterventionRepository interventionRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
     private final UserRepository userRepository;
@@ -53,6 +54,7 @@ public class InterventionService {
     private final InterventionPhotoService photoService;
     private final InterventionMapper interventionMapper;
     private final InterventionAccessPolicy accessPolicy;
+    private final com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     private final com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
     private final com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
     private final com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
@@ -68,7 +70,10 @@ public class InterventionService {
                                com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine,
                                com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer,
                                PropertyPhotoRepository propertyPhotoRepository,
-                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService) {
+                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService,
+                               com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository, InterventionAllocationGuard allocationGuard) {
+        this.allocationGuard = allocationGuard;
+        this.serviceQuoteRepository = serviceQuoteRepository;
         this.interventionRepository = interventionRepository;
         this.propertyPhotoRepository = propertyPhotoRepository;
         this.userRepository = userRepository;
@@ -81,6 +86,11 @@ public class InterventionService {
         this.cleaningPricingEngine = cleaningPricingEngine;
         this.missionAssignmentEmailComposer = missionAssignmentEmailComposer;
         this.supervisionTriggerService = supervisionTriggerService;
+    }
+
+    private Intervention saveWithAllocation(Intervention intervention) {
+        allocationGuard.requireAvailable(intervention);
+        return interventionRepository.save(intervention);
     }
 
     public InterventionResponse create(CreateInterventionRequest request, Jwt jwt) {
@@ -101,7 +111,7 @@ public class InterventionService {
             throw new UnauthorizedException("Vous n'avez pas le droit de creer des interventions");
         }
 
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         try {
             String actionUrl = "/interventions/" + intervention.getId();
@@ -140,12 +150,29 @@ public class InterventionService {
         log.debug("update - before: assignedTechnicianId={}, teamId={}", intervention.getAssignedTechnicianId(), intervention.getTeamId());
 
         accessPolicy.assertCanAccess(intervention, jwt);
+        if (protectApprovedAgreement(intervention, null, null)) {
+            boolean priceChanged = request.estimatedCost() != null
+                    && (intervention.getEstimatedCost() == null
+                        || request.estimatedCost().compareTo(intervention.getEstimatedCost()) != 0);
+            boolean serviceChanged = request.type() != null
+                    && !request.type().equals(intervention.getType());
+            if (priceChanged || serviceChanged) {
+                throw new IllegalStateException("Le prix et la prestation sont couverts par un devis accepté. Révisez l'accord avant de les modifier.");
+            }
+        }
 
-        interventionMapper.applyUpdate(request, intervention);
+        interventionMapper.applyUpdateDetails(request, intervention);
+        if (request.assignedToId() != null && request.assignedToType() != null) {
+            if (!"user".equals(request.assignedToType()) && !"team".equals(request.assignedToType())) {
+                throw new IllegalArgumentException("Type d'affectation inconnu");
+            }
+            assign(id, "user".equals(request.assignedToType()) ? request.assignedToId() : null,
+                    "team".equals(request.assignedToType()) ? request.assignedToId() : null, jwt);
+        }
 
         log.debug("update - after: assignedTechnicianId={}, teamId={}", intervention.getAssignedTechnicianId(), intervention.getTeamId());
 
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         try {
             String actionUrl = "/interventions/" + intervention.getId();
@@ -254,10 +281,11 @@ public class InterventionService {
                     return Page.empty(pageable);
                 }
 
-                Long orgIdForQuery = tenantContext.isSystemOrg() ? null : tenantContext.getRequiredOrganizationId();
+                Long orgIdForQuery = null; // La requête est bornée par l’utilisateur affecté.
 
                 interventionPage = interventionRepository.findByAssignedUserOrTeamWithFilters(
-                        currentUser.getId(), propertyId, type, statusEnum, priority, pageable, orgIdForQuery,
+                        currentUser.getId(), propertyId, type, statusEnum, priority,
+                        org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()), orgIdForQuery,
                         startDateTime, endDateTime);
             } else {
                 interventionPage = interventionRepository.findByFiltersWithRelations(
@@ -337,12 +365,22 @@ public class InterventionService {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
+        accessPolicy.assertCanAccess(intervention, jwt);
+        if (userId != null && teamId != null) {
+            throw new IllegalArgumentException("Désignez un utilisateur ou une équipe");
+        }
+        if (intervention.getStatus() == InterventionStatus.COMPLETED
+                || intervention.getStatus() == InterventionStatus.CANCELLED) {
+            throw new IllegalStateException("Cette intervention ne peut plus être réaffectée");
+        }
+
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         if (!userRole.isPlatformStaff()) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent assigner des interventions");
         }
 
         Team assignedTeam = null;
+        boolean approvedAgreement = protectApprovedAgreement(intervention, userId, teamId);
         if (userId != null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException("Utilisateur non trouve"));
@@ -354,26 +392,15 @@ public class InterventionService {
                 throw new IllegalArgumentException(
                         InterventionRoleFit.rejectionMessage(user.getRole(), intervention.getType()));
             }
-            intervention.setAssignedUser(user);
-            intervention.setTeamId(null);
-            applyHousekeeperRateIfSafe(intervention, userId);
+            intervention.proposeAssignment(user, null);
+            if (!approvedAgreement) applyHousekeeperRateIfSafe(intervention, userId);
         } else if (teamId != null) {
             assignedTeam = teamRepository.findById(teamId)
                     .orElseThrow(() -> new NotFoundException("Equipe non trouvee"));
-            intervention.setTeamId(assignedTeam.getId());
-            intervention.setAssignedUser(null);
+            intervention.proposeAssignment(null, assignedTeam.getId());
         }
 
-        // Une assignation est desormais une PROPOSITION : l'intervenant peut
-        // repondre. On repart d'une ardoise vierge a chaque reassignation, sinon
-        // un refus precedent condamnerait la mission pour le suivant.
-        if (userId != null || teamId != null) {
-            intervention.setAssignmentResponse(InterventionAssignmentResponse.PENDING);
-            intervention.setAssignmentRespondedAt(null);
-            intervention.setAssignmentDeclineReason(null);
-        }
-
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         // Une mission proposee et sans reponse n'est visible que du destinataire :
         // cote gestion elle ressemble a une mission planifiee, jusqu'au jour ou
@@ -437,6 +464,25 @@ public class InterventionService {
      * payée (paymentStatus PAID/PARTIALLY_PAID/REFUNDED exclus, paidAt null).
      * Le snapshot conseil (recommendedCost) reste INCHANGÉ.
      */
+    private boolean protectApprovedAgreement(Intervention intervention, Long userId, Long teamId) {
+        var approved = serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                intervention.getId(), intervention.getOrganizationId()).stream()
+                .filter(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
+                .findFirst();
+        if (approved.isEmpty()) return false;
+        if (userId == null && teamId == null) return true;
+        var quote = approved.get();
+        boolean sameProvider = quote.getProviderTeamId() != null
+                ? java.util.Objects.equals(quote.getProviderTeamId(), teamId)
+                    || (userId != null && teamRepository.findRealTeamsForMember(userId).stream()
+                        .anyMatch(team -> quote.getProviderTeamId().equals(team.getId())))
+                : userId != null && userId.equals(quote.getProviderUserId());
+        if (!sameProvider) {
+            throw new IllegalStateException("Un devis accepté engage déjà ce prestataire. Révisez l'accord avant de réattribuer la mission.");
+        }
+        return true;
+    }
+
     private void applyHousekeeperRateIfSafe(Intervention intervention, Long userId) {
         if (intervention.getProperty() == null) return;
         if (intervention.getStatus() != InterventionStatus.PENDING) return;

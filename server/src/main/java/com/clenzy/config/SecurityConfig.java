@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 // EnvironmentValidator.DEV_SECURITY_PROFILES.
 @Profile({"dev", "local", "test", "ci", "performance"})
 public class SecurityConfig {
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://localhost:3005,http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:4173}")
+    private String allowedOrigins = "http://localhost:3000,http://localhost:3001,http://localhost:3005,http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:4173";
 
     /**
      * Cree le TenantFilter comme @Bean Spring.
@@ -234,12 +236,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("http://localhost:3001");
-        config.addAllowedOrigin("http://localhost:8080"); // Landing page (Vite dev — port par défaut config projet)
-        config.addAllowedOrigin("http://localhost:5173"); // Landing page (Vite dev — port par défaut Vite)
-        config.addAllowedOrigin("http://localhost:5174"); // Landing page (Vite dev — autoPort fallback)
-        config.addAllowedOrigin("http://localhost:4173"); // Landing page (Vite preview)
+        java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim).filter(origin -> !origin.isEmpty()).forEach(config::addAllowedOrigin);
         // Reseau local : l'app dev est aussi ouverte depuis un telephone du meme
         // LAN (http://192.168.x.y:3000), ou "localhost" designe le telephone.
         // L'adresse change au gre du bail DHCP, d'ou des motifs plutot que des
@@ -258,6 +256,7 @@ public class SecurityConfig {
         config.addAllowedHeader("Authorization");
         config.addAllowedHeader("Content-Type");
         config.addAllowedHeader("Accept");
+        config.addAllowedHeader("X-Requested-With");
         config.addAllowedHeader("X-Organization-Id");
         config.addAllowedHeader("X-Booking-Key");
         config.addAllowedHeader("X-Refresh-Token");

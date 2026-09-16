@@ -4,7 +4,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput, Switch } from '../../comp
 import { Save, Build } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
 import { CurrencySymbol } from '../../components/Money';
 import PageHeader from '../../components/PageHeader';
 import { technicianPrestationsApi } from '../../services/api/technicianPrestationsApi';
@@ -13,7 +12,7 @@ import type { ServicePriceConfig } from '../../services/api/pricingConfigApi';
 /**
  * Écran « Mes tarifs travaux » du technicien : le catalogue org (services actifs)
  * est PRÉ-LISTÉ, le technicien coche ce qu'il propose et fixe SON prix. Sa
- * surcouche (org + user, côté serveur) n'est visible que de lui.
+ * tarif global s’applique à toutes les conciergeries.
  */
 interface Row {
   interventionType: string;
@@ -21,11 +20,12 @@ interface Row {
   domain: string;
   offered: boolean;
   price: number;
+  currency: string;
+  needsReview: boolean;
 }
 
 export default function TechnicianTravaux() {
   const { t } = useTranslation();
-  const { currency } = useCurrency();
   const { notify } = useNotification();
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -45,6 +45,8 @@ export default function TechnicianTravaux() {
         domain: c.domain || otherDomain,
         offered: !!m?.enabled,
         price: m?.basePrice ?? 0,
+        currency: m?.currency ?? 'EUR',
+        needsReview: m?.basePrice == null,
       };
     });
     // Prestations propres hors catalogue (services personnalisés ou désactivés côté org).
@@ -56,6 +58,8 @@ export default function TechnicianTravaux() {
           domain: m.domain || otherDomain,
           offered: !!m.enabled,
           price: m.basePrice ?? 0,
+          currency: m.currency ?? 'EUR',
+          needsReview: m.basePrice == null,
         });
       }
     }
@@ -89,7 +93,7 @@ export default function TechnicianTravaux() {
     setSaving(true);
     try {
       const payload: ServicePriceConfig[] = rows.flatMap((r) =>
-        r.offered ? [{ interventionType: r.interventionType, basePrice: r.price, enabled: true }] : [],
+        r.offered ? [{ interventionType: r.interventionType, basePrice: r.price, currency: r.currency, enabled: true }] : [],
       );
       const saved = await technicianPrestationsApi.updateMine(payload);
       // Re-merge avec le catalogue courant pour rester pré-listé.
@@ -115,11 +119,11 @@ export default function TechnicianTravaux() {
     <div>
       <PageHeader
         title={t('technicianPrestations.title', 'Mes tarifs travaux')}
-        subtitle={t('technicianPrestations.subtitle', 'Cochez les prestations que vous proposez et fixez vos prix — visibles de vous seul.')}
+        subtitle={t('providerTariff.shared')}
         iconBadge={<Build />}
         backPath="/dashboard"
         actions={
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          <Button size="sm" onClick={handleSave} disabled={saving || rows.some((row) => row.offered && row.needsReview)}>
             {saving ? <Spinner className="size-4" /> : <Save />}
             {t('tarification.save', 'Enregistrer')}
           </Button>
@@ -165,17 +169,18 @@ export default function TechnicianTravaux() {
                           type="number"
                           step={1}
                           min={0}
-                          className="text-end"
+                          className="text-end tabular-nums"
                           aria-label={row.label}
-                          value={row.price}
+                          value={row.needsReview ? '' : row.price}
+                          placeholder={t('providerTariff.confirm', 'À renseigner')}
                           onChange={(e) => {
                             const num = parseFloat(e.target.value);
-                            if (!isNaN(num)) updateRow(index, { price: num });
+                            updateRow(index, { price: Number.isFinite(num) ? num : 0, needsReview: !Number.isFinite(num) });
                           }}
                           disabled={!row.offered}
                         />
                         <InputGroupAddon align="inline-end">
-                          <CurrencySymbol code={currency} />
+                          <CurrencySymbol code={row.currency} />
                         </InputGroupAddon>
                       </InputGroup>
                     </TableCell>

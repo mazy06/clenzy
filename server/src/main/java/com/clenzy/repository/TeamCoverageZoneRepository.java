@@ -14,45 +14,27 @@ public interface TeamCoverageZoneRepository extends JpaRepository<TeamCoverageZo
 
     List<TeamCoverageZone> findByTeamId(Long teamId);
 
+    /** Même règle que l'attribution verrouillée, en lecture pour les suggestions. */
+    @Query(value = "SELECT NOT public.baitly_assignee_accepts_property('team', :teamId, :propertyType)", nativeQuery = true)
+    boolean rejectsPropertyType(@Param("teamId") Long teamId, @Param("propertyType") String propertyType);
+
+
     @Modifying
     @Query("DELETE FROM TeamCoverageZone tcz WHERE tcz.teamId = :teamId AND tcz.organizationId = :orgId")
     void deleteByTeamIdAndOrganizationId(@Param("teamId") Long teamId, @Param("orgId") Long orgId);
 
-    /**
-     * Trouver les IDs des equipes couvrant un departement (France uniquement).
-     */
-    @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz " +
-           "WHERE tcz.country = 'FR' " +
-           "AND tcz.department = :dept " +
-           "AND tcz.organizationId = :orgId")
+
+    @Query(value = "SELECT t.id FROM teams t WHERE t.organization_id = :orgId "
+        + "AND public.baitly_team_covers(t.id, 'FR', :dept, NULL, NULL)", nativeQuery = true)
     List<Long> findTeamIdsByDepartment(@Param("dept") String department, @Param("orgId") Long orgId);
 
-    /**
-     * Trouver les IDs des equipes couvrant un departement et un arrondissement (France uniquement).
-     * Retourne aussi les equipes qui couvrent le departement entier (arrondissement IS NULL).
-     */
-    @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz " +
-           "WHERE tcz.country = 'FR' " +
-           "AND tcz.department = :dept " +
-           "AND (tcz.arrondissement IS NULL OR tcz.arrondissement = :arr) " +
-           "AND tcz.organizationId = :orgId")
+    @Query(value = "SELECT t.id FROM teams t WHERE t.organization_id = :orgId "
+        + "AND public.baitly_team_covers(t.id, 'FR', :dept, :arr, NULL)", nativeQuery = true)
     List<Long> findTeamIdsByDepartmentAndArrondissement(
-        @Param("dept") String department,
-        @Param("arr") String arrondissement,
-        @Param("orgId") Long orgId
-    );
+        @Param("dept") String department, @Param("arr") String arrondissement, @Param("orgId") Long orgId);
 
-    /**
-     * Trouver les IDs des equipes couvrant un pays et une ville (matching insensible a la casse).
-     * Utilise pour les zones hors France (Maroc, Arabie Saoudite, ...).
-     */
-    @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz " +
-           "WHERE UPPER(tcz.country) = UPPER(:country) " +
-           "AND LOWER(tcz.city) = LOWER(:city) " +
-           "AND tcz.organizationId = :orgId")
+    @Query(value = "SELECT t.id FROM teams t WHERE t.organization_id = :orgId "
+        + "AND public.baitly_team_covers(t.id, :country, NULL, NULL, :city)", nativeQuery = true)
     List<Long> findTeamIdsByCountryAndCity(
-        @Param("country") String country,
-        @Param("city") String city,
-        @Param("orgId") Long orgId
-    );
+        @Param("country") String country, @Param("city") String city, @Param("orgId") Long orgId);
 }

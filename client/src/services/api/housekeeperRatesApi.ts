@@ -1,9 +1,11 @@
 import apiClient from '../apiClient';
 
 // ─── Tarifs prestataire ménage (Moteur Ménage 2A) ────────────────────────────
-// Taux horaire général (property null) + forfaits par logement (priment).
+// Tarif unique global ; les anciens forfaits par logement sont refusés.
 // Chaque logement porte la fourchette CONSEIL (quote CLEANING) pour le nudge
 // « dans le marché » — ancre médiane, jamais de blocage.
+
+export type PublishedPricingModel = 'HOURLY' | 'FLAT' | 'PER_UNIT' | 'PER_SQM';
 
 export interface HousekeeperPropertyRate {
   propertyId: number;
@@ -23,6 +25,11 @@ export interface HousekeeperScore {
 }
 
 export interface HousekeeperRates {
+  currency?: string;
+  pricingModel?: PublishedPricingModel | 'ON_QUOTE';
+  unitLabel?: string | null;
+  amount?: number | null;
+  needsReview?: boolean;
   /** Taux horaire de référence de l'org (contexte). */
   referenceHourlyRate: number;
   /** Taux horaire général du pro — null si non défini. */
@@ -33,6 +40,9 @@ export interface HousekeeperRates {
 }
 
 export interface UpdateHousekeeperRates {
+  currency?: string;
+  pricingModel?: PublishedPricingModel;
+  unitLabel?: string;
   /** null = supprimer le taux horaire général. */
   hourlyAmount: number | null;
   /** État complet des forfaits (absents = supprimés). */

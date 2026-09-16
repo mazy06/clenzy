@@ -60,7 +60,7 @@ class CreateMaintenanceInterventionExecutorTest {
     void setUp() {
         executor = new CreateMaintenanceInterventionExecutor(
                 deviceRepository, interventionRepository, propertyRepository, noiseAlertRepository,
-                userRepository, organizationMemberRepository);
+                userRepository, organizationMemberRepository, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class));
     }
 
     private static AutomationRule rule() {

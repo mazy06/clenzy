@@ -125,6 +125,12 @@ public class PricingConfigDto {
     // ─── Inner class for service price config (Travaux & Extérieur) ──
 
     public static class ServicePriceConfig {
+        private String currency;
+        private boolean needsReview;
+        public String getCurrency() { return currency; }
+        public void setCurrency(String value) { currency = value; }
+        public boolean isNeedsReview() { return needsReview; }
+        public void setNeedsReview(boolean value) { needsReview = value; }
         private String interventionType;
         private Double basePrice;
         private boolean enabled;

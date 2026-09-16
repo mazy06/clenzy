@@ -34,12 +34,15 @@ public class ICalReservationCanceller {
     private final InvoiceRepository invoiceRepository;
     private final ServiceRequestRepository serviceRequestRepository;
     private final CalendarEngine calendarEngine;
+    private final com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy;
 
     public ICalReservationCanceller(ReservationRepository reservationRepository,
                                     InterventionRepository interventionRepository,
                                     InvoiceRepository invoiceRepository,
                                     ServiceRequestRepository serviceRequestRepository,
-                                    CalendarEngine calendarEngine) {
+                                    CalendarEngine calendarEngine,
+                                    com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy) {
+        this.cancellationPolicy = cancellationPolicy;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.invoiceRepository = invoiceRepository;
@@ -76,7 +79,7 @@ public class ICalReservationCanceller {
         }
 
         // Annuler les interventions (menage) liees
-        cancelLinkedInterventions(reservation.getId(), session.orgId);
+        cancelLinkedInterventions(reservation.getId(), session.orgId, session);
 
         // Annuler la facture brouillon liee
         cancelLinkedDraftInvoice(reservation.getId());
@@ -90,12 +93,22 @@ public class ICalReservationCanceller {
      * Les interventions deja COMPLETED ou deja CANCELLED ne sont pas touchees.
      * Les paiements d'interventions non encore regles sont annules.
      */
-    private void cancelLinkedInterventions(Long reservationId, Long orgId) {
+    private void cancelLinkedInterventions(Long reservationId, Long orgId, ICalImportSession session) {
         // Annuler les interventions
         List<Intervention> interventions = interventionRepository.findByReservationId(reservationId, orgId);
+        var protectedRequests = new java.util.HashSet<Long>();
         for (Intervention intervention : interventions) {
             if (intervention.getStatus() != InterventionStatus.CANCELLED
                     && intervention.getStatus() != InterventionStatus.COMPLETED) {
+                String blocker = cancellationPolicy.blocker(intervention);
+                if (blocker != null) {
+                    if (intervention.getServiceRequest() != null) protectedRequests.add(intervention.getServiceRequest().getId());
+                    if (!"CLOSED".equals(blocker)) {
+                        session.errors.add("Mission #" + intervention.getId()
+                                + " conservée après annulation du séjour : décision du gestionnaire requise (" + blocker + ")");
+                    }
+                    continue;
+                }
                 intervention.setStatus(InterventionStatus.CANCELLED);
                 if (intervention.getPaymentStatus() != null
                         && intervention.getPaymentStatus() != PaymentStatus.PAID
@@ -111,6 +124,7 @@ public class ICalReservationCanceller {
         // Annuler les ServiceRequests liees
         List<ServiceRequest> srs = serviceRequestRepository.findByReservationId(reservationId, orgId);
         for (ServiceRequest sr : srs) {
+            if (protectedRequests.contains(sr.getId())) continue;
             if (sr.getStatus() != RequestStatus.CANCELLED && sr.getStatus() != RequestStatus.COMPLETED) {
                 sr.setStatus(RequestStatus.CANCELLED);
                 serviceRequestRepository.save(sr);

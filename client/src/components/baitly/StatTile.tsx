@@ -71,18 +71,29 @@ export default function StatTile({
         >
           {icon}
         </span>
-        {loading ? (
-          <Skeleton className="h-5 w-16" />
-        ) : (
-          // Chiffre et unite forment l'ANCRE de la variation : celle-ci s'y
-          // accroche hors flux (cf. `Delta`), donc « 44,7 % » et « Occupation »
-          // restent colles au lieu d'etre ecartes par un « +212,6 pts ».
-          <span className="relative inline-flex items-baseline gap-1">
-            <b className="cn-font-heading text-lg font-bold tabular-nums text-foreground">{value}</b>
-            {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
-            {delta != null && <Delta value={delta} unit={deltaUnit} />}
-          </span>
-        )}
+        {/* Chiffre et unite forment l'ANCRE de la variation : celle-ci s'y
+            accroche hors flux (cf. `Delta`), donc « 44,7 % » et « Occupation »
+            restent colles au lieu d'etre ecartes par un « +212,6 pts ». */}
+        <span className="relative inline-flex items-baseline gap-1">
+          {/*
+            Le squelette vit DANS la boite du chiffre, et cette boite garde une
+            largeur minimale dans les deux etats.
+
+            Avant, il occupait soixante-quatre pixels puis cedait la place a
+            « 54 » : le libelle qui suit sautait de pres de cinquante pixels vers
+            la gauche, une fraction de seconde apres le chargement. `2.5ch` se
+            mesure sur la fonte du chiffre lui-meme — la boite vide et la boite
+            pleine ont donc la meme largeur tant que la valeur tient sur deux a
+            trois caracteres, c'est-a-dire presque toujours.
+          */}
+          <b className="cn-font-heading inline-block min-w-[2.5ch] text-lg font-bold tabular-nums text-foreground">
+            {loading
+              ? <Skeleton className="inline-block h-[1em] w-full align-baseline rounded-sm" />
+              : value}
+          </b>
+          {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+          {delta != null && !loading && <Delta value={delta} unit={deltaUnit} />}
+        </span>
         <span className="text-xs text-muted-foreground">{label}</span>
       </Comp>
     );
@@ -104,16 +115,21 @@ export default function StatTile({
         </span>
         <span className="truncate">{label}</span>
       </span>
-      {loading ? (
-        <Skeleton className="h-7 w-24" />
-      ) : (
-        <span className="flex items-baseline gap-1">
-          <span className="cn-font-heading text-[1.375rem] min-[900px]:text-[1.6875rem] font-semibold text-foreground tabular-nums">
-            {value}
-          </span>
-          {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+      {/*
+        Meme principe que la rangee compacte : le squelette se loge dans la boite
+        du chiffre plutot que de la remplacer. Un bloc de vingt-huit pixels
+        remplace par un texte d'une trentaine faisait remonter la variation et le
+        hint au chargement. `1em` se mesure sur la fonte du chiffre, donc la
+        hauteur est la meme avant et apres, aux deux paliers responsifs.
+      */}
+      <span className="flex items-baseline gap-1">
+        <span className="cn-font-heading inline-block min-w-[3ch] text-[1.375rem] min-[900px]:text-[1.6875rem] font-semibold text-foreground tabular-nums">
+          {loading
+            ? <Skeleton className="inline-block h-[1em] w-full align-baseline rounded-sm" />
+            : value}
         </span>
-      )}
+        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+      </span>
       {delta != null && (
         <span className="flex items-center">
           {/* La tuile haute donne sa propre ligne a la variation : aucun

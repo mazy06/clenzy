@@ -153,12 +153,21 @@ public class LoginProtectionService {
     @SuppressWarnings("unchecked")
     public boolean validateCaptchaToken(String captchaToken) {
         if (!captchaEnabled) return true;
-        if (captchaToken == null || captchaToken.isBlank()) return false;
 
+        // L'absence de secret est testee AVANT le jeton, et pas apres.
+        //
+        // Dans l'autre ordre, un environnement sans secret acceptait un jeton
+        // PRESENT (verification impossible, donc `true`) mais refusait un jeton
+        // ABSENT — alors qu'aucune verification n'a lieu dans les deux cas. La
+        // protection etait nulle de toute facon ; seuls les clients honnetes
+        // etaient refuses. Ce n'est donc pas un assouplissement, c'est la levee
+        // d'une incoherence.
         if (turnstileSecretKey == null || turnstileSecretKey.isBlank()) {
             log.warn("Turnstile secret key non configuree, validation CAPTCHA ignoree");
             return true;
         }
+
+        if (captchaToken == null || captchaToken.isBlank()) return false;
 
         try {
             HttpHeaders headers = new HttpHeaders();

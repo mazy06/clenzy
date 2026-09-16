@@ -48,6 +48,7 @@ class AuthControllerTest {
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
                 .claim("email", "test@example.com")
+                .claim("email_verified", true)
                 .claim("preferred_username", "testuser")
                 .claim("given_name", "Jean")
                 .claim("family_name", "Dupont")
@@ -265,27 +266,37 @@ class AuthControllerTest {
             verify(invitationService, times(2)).autoAcceptPendingInvitations(eq("test@example.com"), any(User.class));
         }
 
-        @Test
-        void whenUserFoundByEmail_thenAutoLinks() {
-            Jwt jwt = createJwt();
-            when(userService.findByKeycloakId("user-123")).thenReturn(null);
-
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"", "previous-subject"})
+        void matchingEmailNeverReplacesAnExistingIdentity(String previousSubject) {
             User existing = new User();
             existing.setId(5L);
-            existing.setRole(UserRole.HOST);
-            existing.setStatus(UserStatus.ACTIVE);
-            existing.setEmail("test@example.com");
+            existing.setKeycloakId(previousSubject);
             when(userService.findByEmail("test@example.com")).thenReturn(existing);
 
-            RolePermissionsDto perms = new RolePermissionsDto();
-            perms.setPermissions(List.of("properties.read"));
-            when(permissionService.getRolePermissions("HOST")).thenReturn(perms);
-
-            Map<String, Object> result = controller.me(jwt);
-
-            assertThat(result.get("id")).isEqualTo(5L);
-            verify(userService).updateKeycloakId(5L, "user-123");
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.me(createJwt()))
+                .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
+                    error -> assertThat(error.getStatusCode().value()).isEqualTo(409));
+            assertThat(existing.getKeycloakId()).isEqualTo(previousSubject);
+            verify(userService, never()).updateKeycloakId(any(), any());
+            verify(userService, never()).autoProvisionUser(any(), any(), any(), any(), any());
+            verifyNoInteractions(invitationService, permissionService);
         }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+        void unverifiedOrMissingEmailProofCannotCreateAProfile(boolean omitClaim) {
+            var builder = Jwt.withTokenValue("token").header("alg", "RS256")
+                .subject("unknown").claim("email", "test@example.com");
+            if (!omitClaim) builder.claim("email_verified", false);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.me(builder.build()))
+                .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
+                    error -> assertThat(error.getStatusCode().value()).isEqualTo(403));
+            verify(userService, never()).findByEmail(any());
+            verify(userService, never()).autoProvisionUser(any(), any(), any(), any(), any());
+            verifyNoInteractions(invitationService, permissionService);
+        }
+
     }
 
     @Nested

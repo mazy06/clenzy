@@ -25,6 +25,7 @@ public class ServiceRequestDto {
 
     public Priority priority;
     public RequestStatus status;
+    public Long version;
 
     @NotNull(groups = Create.class)
     public LocalDateTime desiredDate;

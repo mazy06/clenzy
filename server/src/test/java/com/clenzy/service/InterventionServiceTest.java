@@ -45,10 +45,12 @@ class InterventionServiceTest {
     @Mock private InterventionPhotoService photoService;
     @Mock private InterventionMapper interventionMapper;
     @Mock private InterventionAccessPolicy accessPolicy;
+    @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     @Mock private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
     @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
     @Mock private com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
+    @Mock private InterventionAllocationGuard allocationGuard;
     private InterventionService service;
 
     private Property property;
@@ -62,7 +64,7 @@ class InterventionServiceTest {
                 notificationService, tenantContext,
                 photoService, interventionMapper, accessPolicy,
                 cleaningPricingEngine, missionAssignmentEmailComposer, propertyPhotoRepository,
-                supervisionTriggerService);
+                supervisionTriggerService, serviceQuoteRepository, allocationGuard);
 
         owner = new User();
         owner.setId(10L);
@@ -125,6 +127,27 @@ class InterventionServiceTest {
         intervention.setProperty(property);
         intervention.setRequestor(owner);
         return intervention;
+    }
+
+    @Test
+    void assignmentUsesFinalDurationAndConflictPreventsSaveAndNotification() {
+        var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+        intervention.setEstimatedDurationHours(1);
+        var team = new Team(); team.setId(7L);
+        var request = new UpdateInterventionRequest(null, null, null, null, 3, null, null, "team", 7L);
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+        when(teamRepository.findById(7L)).thenReturn(Optional.of(team));
+        doAnswer(inv -> { intervention.setEstimatedDurationHours(3); return null; })
+                .when(interventionMapper).applyUpdateDetails(request, intervention);
+        doAnswer(inv -> {
+            assertThat(intervention.getEstimatedDurationHours()).isEqualTo(3);
+            throw new com.clenzy.exception.AssignmentConflictException();
+        }).when(allocationGuard).requireAvailable(intervention);
+
+        assertThatThrownBy(() -> service.update(1L, request, mockJwtWithRole("SUPER_MANAGER")))
+                .isInstanceOf(com.clenzy.exception.AssignmentConflictException.class);
+        verify(interventionRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
     }
 
     @Nested
@@ -212,7 +235,7 @@ class InterventionServiceTest {
             InterventionResponse result = service.update(1L, updateRequest, jwt);
 
             assertThat(result.title()).isEqualTo("Updated Title");
-            verify(interventionMapper).applyUpdate(eq(updateRequest), eq(intervention));
+            verify(interventionMapper).applyUpdateDetails(eq(updateRequest), eq(intervention));
             verify(interventionRepository).save(intervention);
         }
 
@@ -308,6 +331,22 @@ class InterventionServiceTest {
     @Nested
     @DisplayName("assign(id, userId, teamId, jwt)")
     class Assign {
+
+        @Test
+        void acceptedQuotePreventsAssigningACompetitor() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            var quote = new com.clenzy.model.ServiceQuote();
+            quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+            quote.setProviderUserId(99L);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                    1L, intervention.getOrganizationId())).thenReturn(List.of(quote));
+
+            assertThatThrownBy(() -> service.assign(1L, technician.getId(), null, jwt))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("devis accepté");
+            verify(interventionRepository, never()).save(any());
+        }
 
         @Test
         @DisplayName("assigns user and clears team")

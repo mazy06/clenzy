@@ -16,6 +16,11 @@ import java.util.Optional;
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
 
+    /** Appartenance explicite : une équipe peut servir une autre organisation. */
+    @Query(value = "SELECT t.* FROM teams t JOIN team_members m ON m.team_id = t.id "
+            + "WHERE m.user_id = :userId AND t.personal_user_id IS NULL", nativeQuery = true)
+    List<Team> findRealTeamsForMember(@Param("userId") Long userId);
+
     /**
      * Id + nom des équipes de l'org (Rapports Baitly) — projection légère,
      * sans fetch des membres. Lignes {@code [Long id, String name]}.

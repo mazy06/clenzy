@@ -16,7 +16,9 @@ export interface ContactAttachment {
 export interface QuoteCardPayload {
   kind: 'SERVICE_QUOTE';
   quoteId: number;
-  interventionId: number;
+  interventionId?: number | null;
+  /** Demande marketplace : décisions servies par le même endpoint que l'écran Devis. */
+  marketplaceRequestId?: number;
   interventionTitle: string;
   interventionType?: string | null;
   propertyName?: string | null;

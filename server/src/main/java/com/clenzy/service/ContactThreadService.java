@@ -61,13 +61,16 @@ public class ContactThreadService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final ContactMessageEventPublisher eventPublisher;
+    private final QuoteThreadAccessPolicy quoteAccess;
 
     public ContactThreadService(ContactThreadRepository threadRepository,
                                 ContactThreadParticipantRepository participantRepository,
                                 ContactMessageRepository messageRepository,
                                 UserRepository userRepository,
                                 NotificationService notificationService,
-                                ContactMessageEventPublisher eventPublisher) {
+                                ContactMessageEventPublisher eventPublisher,
+                                QuoteThreadAccessPolicy quoteAccess) {
+        this.quoteAccess = quoteAccess;
         this.threadRepository = threadRepository;
         this.participantRepository = participantRepository;
         this.messageRepository = messageRepository;
@@ -160,7 +163,8 @@ public class ContactThreadService {
     public ContactMessage post(ContactThread thread, String senderKeycloakId,
                                String subject, String body, ContactMessagePriority priority,
                                String payload) {
-        if (!participantRepository.existsByThreadIdAndKeycloakId(thread.getId(), senderKeycloakId)) {
+        if (!participantRepository.existsByThreadIdAndKeycloakId(thread.getId(), senderKeycloakId)
+                || !quoteAccess.canAccess(thread, senderKeycloakId)) {
             throw new AccessDeniedException("Vous ne participez pas a cette discussion");
         }
         User sender = userRepository.findByKeycloakId(senderKeycloakId).orElse(null);
@@ -195,6 +199,7 @@ public class ContactThreadService {
         eventPublisher.publishToParticipants(message, ContactMessageDto.fromEntity(message),
                 participantRepository.findByThreadId(thread.getId()).stream()
                         .map(ContactThreadParticipant::getKeycloakId)
+                        .filter(id -> quoteAccess.canAccess(thread, id))
                         .toList());
         return message;
     }
@@ -205,6 +210,7 @@ public class ContactThreadService {
                 : "";
         for (ContactThreadParticipant participant : participantRepository.findByThreadId(thread.getId())) {
             if (participant.getKeycloakId().equals(senderKeycloakId)) continue;
+            if (!quoteAccess.canAccess(thread, participant.getKeycloakId())) continue;
             try {
                 notificationService.notify(participant.getKeycloakId(),
                         NotificationKey.CONTACT_MESSAGE_RECEIVED,
@@ -237,6 +243,7 @@ public class ContactThreadService {
 
         List<ContactThreadSummaryDto> summaries = new ArrayList<>();
         for (ContactThread thread : threadRepository.findByIdInOrderByLastMessageAtDesc(threadIds)) {
+            if (!quoteAccess.canAccess(thread, userId)) continue;
             List<ContactMessage> messages = messageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId());
             ContactMessage last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
             ContactThreadParticipant me = myParticipation.get(thread.getId());
@@ -261,6 +268,8 @@ public class ContactThreadService {
     @Transactional(readOnly = true)
     public long countMyUnread(String userId) {
         return participantRepository.findByKeycloakIdAndArchived(userId, false).stream()
+                .filter(p -> threadRepository.findById(p.getThreadId())
+                        .map(thread -> quoteAccess.canAccess(thread, userId)).orElse(false))
                 .mapToLong(participant -> messageRepository.countUnreadInThread(
                         participant.getThreadId(), userId,
                         participant.getLastReadAt() != null ? participant.getLastReadAt() : NEVER_READ))
@@ -304,6 +313,9 @@ public class ContactThreadService {
     }
 
     private ContactThreadParticipant requireParticipant(Long threadId, String userId) {
+        if (!quoteAccess.canAccess(requireThread(threadId), userId)) {
+            throw new AccessDeniedException("Cette discussion appartient à une autre équipe");
+        }
         return participantRepository.findByThreadIdAndKeycloakId(threadId, userId)
                 .orElseThrow(() -> new AccessDeniedException("Vous ne participez pas a cette discussion"));
     }

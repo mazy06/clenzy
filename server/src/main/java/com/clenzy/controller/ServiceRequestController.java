@@ -58,6 +58,14 @@ public class ServiceRequestController {
         return service.update(id, dto);
     }
 
+    public record StatusChange(Long version, com.clenzy.model.RequestStatus status) {}
+
+    @PostMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ServiceRequestDto changeStatus(@PathVariable Long id, @RequestBody StatusChange command) {
+        return service.changeStatus(id, command.version(), command.status());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     @Operation(summary = "Obtenir une demande de service par ID")
@@ -95,6 +103,7 @@ public class ServiceRequestController {
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     @Operation(summary = "Cloturer une demande de service",
                description = "Marque la demande CANCELLED : elle n'aura pas lieu. La demande est "
                            + "conservee avec son historique, contrairement a la suppression.")
@@ -119,6 +128,7 @@ public class ServiceRequestController {
     }
 
     @PostMapping("/{id}/reschedule")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     @Operation(summary = "Replanifier une prestation",
                description = "Cloture la demande et en cree une neuve : nouvelle date, prestataire "
                            + "au choix, rattachee a un sejour precis ou a aucun.")
@@ -149,6 +159,12 @@ public class ServiceRequestController {
             @RequestParam String assignedToType) {
         ServiceRequestDto result = service.manualAssign(id, assignedToId, assignedToType);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/unassign")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<ServiceRequestDto> unassign(@PathVariable Long id) {
+        return ResponseEntity.ok(service.unassign(id));
     }
 
     @GetMapping("/planning")

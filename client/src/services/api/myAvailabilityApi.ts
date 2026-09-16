@@ -1,11 +1,7 @@
 import apiClient from '../apiClient';
 
 // ─── Disponibilites declarees par l'intervenant ─────────────────────────────
-// Semaine type + absences datees. Elles vivent sur son equipe PERSONNELLE cote
-// serveur : le moteur d'affectation ne raisonne qu'en equipes.
-//
-// REGLE : aucune declaration = disponible. Ne rien saisir laisse le prestataire
-// eligible, exactement comme avant l'existence de cette fonctionnalite.
+// Calendrier individuel unique, partagé par toutes les organisations clientes.
 
 export interface WeeklySlot {
   id: number;
@@ -21,10 +17,12 @@ export interface Absence {
   startDate: string;
   endDate: string;
   reason: string | null;
+  assignmentConflict?: boolean;
 }
 
 export interface MyAvailability {
   weekly: WeeklySlot[];
+  weeklyRestricted?: boolean;
   absences: Absence[];
 }
 

@@ -7,6 +7,7 @@ import { interventionsApi } from '../../services/api/interventionsApi';
 import type { Team, Intervention } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
 // ─── Query keys (exported for cross-module invalidation) ──────────────────────
 
@@ -112,6 +113,10 @@ export function useTeamsList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: teamsKeys.all });
     },
+    onError: () => {
+      setDeleteDialogOpen(false);
+      setSelectedTeam(null);
+    },
   });
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
@@ -155,7 +160,7 @@ export function useTeamsList() {
   }, []);
 
   const confirmDelete = useCallback(() => {
-    if (!selectedTeam) return;
+    if (!selectedTeam || deleteMutation.isPending) return;
     deleteMutation.mutate(selectedTeam.id, {
       onSuccess: () => {
         handleCloseDeleteDialog();
@@ -205,7 +210,7 @@ export function useTeamsList() {
     // State
     teams,
     loading,
-    error,
+    error: deleteMutation.isError ? getErrorMessage(deleteMutation.error) : error,
     selectedTeam,
     anchorEl,
     searchTerm,

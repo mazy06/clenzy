@@ -178,6 +178,18 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      * Requête optimisée avec FETCH JOIN pour charger la propriété avec son owner
      * Évite les LazyInitializationException
      */
+    interface MarketplaceLocation {
+        String getType();
+        String getCountryCode();
+        String getDepartment();
+        String getArrondissement();
+        String getCity();
+    }
+
+    @Query(value = "SELECT country_code AS countryCode, department, arrondissement, city, type FROM properties "
+        + "WHERE id=:id AND organization_id=:orgId FOR SHARE", nativeQuery = true)
+    java.util.Optional<MarketplaceLocation> lockMarketplaceLocation(Long id, Long orgId);
+
     @Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE p.id = :id AND p.organizationId = :orgId")
     java.util.Optional<Property> findByIdWithOwner(@Param("id") Long id, @Param("orgId") Long orgId);
 

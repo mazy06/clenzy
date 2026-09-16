@@ -18,6 +18,26 @@ public interface PhotoStorageService {
     String store(byte[] data, String contentType, String originalFilename);
 
     /**
+     * Stocke un binaire qui n'appartient a AUCUNE organisation.
+     *
+     * <p>{@link #store} exige un tenant et produit une cle {@code org/{id}/...}.
+     * Certains binaires n'ont pas d'organisation et n'en auront peut-etre
+     * jamais : les justificatifs d'un candidat de la place de marche arrivent
+     * d'une surface publique, avant tout compte. Les ranger sous une
+     * organisation arbitraire aurait ete un mensonge de plus dans la cle.</p>
+     *
+     * <p>La cle produite ne correspond PAS au motif org-scope, et
+     * {@link #assertReadableInCurrentOrg} la refuse donc systematiquement :
+     * un binaire plateforme ne se lit jamais par un chemin ou la cle vient du
+     * client. Les appelants legitimes verifient eux-memes leur autorisation.</p>
+     *
+     * @param namespace famille du binaire, en minuscules et tirets
+     *                  (ex. {@code marketplace-applications})
+     */
+    String storePlatformAsset(String namespace, byte[] data, String contentType,
+                              String originalFilename);
+
+    /**
      * Retrieve photo binary data by storage key.
      *
      * @param storageKey the key returned by {@link #store}

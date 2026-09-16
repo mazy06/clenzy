@@ -68,6 +68,14 @@ public class StripeGateway {
         return Session.retrieve(sessionId, requestOptions(null));
     }
 
+    public Session expireSession(Session session, String idempotencyKey) throws StripeException {
+        return session.expire(com.stripe.param.checkout.SessionExpireParams.builder().build(), requestOptions(idempotencyKey));
+    }
+
+    public com.stripe.model.Charge retrieveCharge(String chargeId) throws StripeException {
+        return com.stripe.model.Charge.retrieve(chargeId, requestOptions(null));
+    }
+
     /**
      * Dépose les preuves d'un litige ({@code CHARGEBACK_SUBMIT}) — retrieve puis update
      * avec RequestOptions par appel (jamais de clé statique) et idempotency key.
@@ -81,6 +89,18 @@ public class StripeGateway {
 
     public Refund createRefund(RefundCreateParams params, String idempotencyKey) throws StripeException {
         return Refund.create(params, requestOptions(idempotencyKey));
+    }
+
+    public Refund retrieveRefund(String refundId) throws StripeException {
+        return Refund.retrieve(refundId, requestOptions(null));
+    }
+
+    public Refund findFinancialRefund(String paymentIntent, String decisionId) throws StripeException {
+        var params = com.stripe.param.RefundListParams.builder().setPaymentIntent(paymentIntent).setLimit(100L).build();
+        for (Refund refund : Refund.list(params, requestOptions(null)).autoPagingIterable()) {
+            if (refund.getMetadata() != null && decisionId.equals(refund.getMetadata().get("baitly_financial_decision"))) return refund;
+        }
+        return null;
     }
 
     public Transfer createTransfer(TransferCreateParams params, String idempotencyKey) throws StripeException {

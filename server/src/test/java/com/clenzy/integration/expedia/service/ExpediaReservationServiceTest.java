@@ -50,6 +50,7 @@ class ExpediaReservationServiceTest {
     @Mock private ExpediaWebhookService webhookService;
     @Mock private AuditLogService auditLogService;
 
+    @Mock private com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy;
     private ExpediaReservationService service;
 
     private static final String EVENT_ID = "evt-1";
@@ -62,7 +63,7 @@ class ExpediaReservationServiceTest {
     void setUp() {
         service = new ExpediaReservationService(
                 channelMappingRepository, interventionRepository, propertyRepository,
-                webhookService, auditLogService);
+                webhookService, auditLogService, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), cancellationPolicy);
     }
 
     private ChannelMapping buildMapping() {
@@ -425,6 +426,19 @@ class ExpediaReservationServiceTest {
     @Nested
     @DisplayName("handleReservationCancelled")
     class HandleReservationCancelled {
+        @Test void contractedMissionIsPreservedAndRecordedForReview() {
+            stubMappingFound();
+            Intervention intervention = new Intervention();
+            intervention.setId(100L); intervention.setStatus(InterventionStatus.PENDING);
+            intervention.setSpecialInstructions("[VRBO:" + RESERVATION_ID + "]");
+            when(interventionRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(List.of(intervention));
+            when(cancellationPolicy.blocker(intervention)).thenReturn("AGREEMENT_REQUIRES_REASON");
+            service.handleReservationCancelled(buildReservationData());
+            verify(interventionRepository, never()).save(any());
+            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.PENDING);
+            verify(auditLogService).logSync("ExpediaReservation", RESERVATION_ID,
+                    "Mission #100 conservée : AGREEMENT_REQUIRES_REASON");
+        }
 
         @Test
         @DisplayName("when no mapping, exits silently")

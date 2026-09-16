@@ -69,6 +69,14 @@ class NotificationServiceTest {
 
     // ─── getAllForUser ─────────────────────────────────────────────────────────
 
+    @Test
+    void durableDeliveryPropagatesStorageFailureForRetry() {
+        when(preferenceService.isEnabled(USER_ID, NotificationKey.MARKETPLACE_APPLICATION_RECEIVED)).thenReturn(true);
+        when(notificationRepository.save(any(Notification.class))).thenThrow(new IllegalStateException("storage unavailable"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.sendByOrgIdStrict(USER_ID, NotificationKey.MARKETPLACE_APPLICATION_RECEIVED,
+            "Candidature", "Message", "/marketplace", ORG_ID, null)).isInstanceOf(IllegalStateException.class);
+    }
+
     @Nested
     class GetAllForUser {
 

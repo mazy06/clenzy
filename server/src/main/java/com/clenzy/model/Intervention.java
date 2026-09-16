@@ -329,6 +329,23 @@ public class Intervention {
     public void setAssignedUser(User assignedUser) {
         this.assignedUser = assignedUser;
     }
+
+    /** Une nouvelle affectation exige une réponse propre à son destinataire. */
+    public void proposeAssignment(User user, Long newTeamId) {
+        if ((user == null) == (newTeamId == null)) {
+            throw new IllegalArgumentException("Désignez un utilisateur ou une équipe");
+        }
+        Long oldUserId = assignedUser == null ? null : assignedUser.getId();
+        Long newUserId = user == null ? null : user.getId();
+        if (java.util.Objects.equals(oldUserId, newUserId)
+                && java.util.Objects.equals(teamId, newTeamId) && assignmentResponse != null) return;
+        assignedUser = user;
+        assignedTechnicianId = newUserId;
+        teamId = newTeamId;
+        assignmentResponse = InterventionAssignmentResponse.PENDING;
+        assignmentRespondedAt = null;
+        assignmentDeclineReason = null;
+    }
     
 
     

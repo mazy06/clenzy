@@ -66,7 +66,7 @@ public class ServiceQuoteController {
                                   /** Acompte exigible a la validation (maintenance). */
                                   BigDecimal depositPercent,
                                   BigDecimal depositAmount) {
-        static ServiceQuoteDto from(ServiceQuote q) {
+        public static ServiceQuoteDto from(ServiceQuote q) {
             return new ServiceQuoteDto(q.getId(), q.getInterventionId(), q.getProviderName(),
                     q.getProviderEmail(), q.getProviderPhone(), q.getAmount(), q.getCurrency(),
                     q.getValidUntil(), q.getEarliestStartDate(), q.getDescription(),
@@ -115,13 +115,15 @@ public class ServiceQuoteController {
 
     @GetMapping("/interventions/{interventionId}/quotes")
     @Operation(summary = "Lister les devis d'une intervention")
-    public ResponseEntity<List<ServiceQuoteDto>> list(@PathVariable Long interventionId) {
+    public ResponseEntity<List<ServiceQuoteDto>> list(@PathVariable Long interventionId,
+                                                     @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(serviceQuoteService
-                .listForIntervention(interventionId, tenantContext.getRequiredOrganizationId())
+                .listForIntervention(interventionId, tenantContext.getRequiredOrganizationId(), jwt)
                 .stream().map(ServiceQuoteDto::from).toList());
     }
 
     @PostMapping("/interventions/{interventionId}/quotes")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER', 'HOST')")
     @Operation(summary = "Saisir un devis reçu (l'intervention est re-validée org)")
     public ResponseEntity<ServiceQuoteDto> create(@PathVariable Long interventionId,
                                                   @RequestBody ServiceQuoteDto request) {
@@ -197,6 +199,7 @@ public class ServiceQuoteController {
     }
 
     @DeleteMapping("/service-quotes/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
     @Operation(summary = "Supprimer un devis non approuvé")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         serviceQuoteService.delete(id, tenantContext.getRequiredOrganizationId());

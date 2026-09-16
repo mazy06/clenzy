@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.config.KafkaConfig;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
@@ -19,7 +18,6 @@ import com.clenzy.service.email.BookingConfirmationEmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -52,7 +50,7 @@ public class StripePaymentConfirmationService {
     private final LedgerService ledgerService;
     private final SplitPaymentService splitPaymentService;
     private final AutoInvoiceService autoInvoiceService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final DocumentGenerationOutbox documentOutbox;
     private final PaymentStatusTransitionService paymentStatusTransitionService;
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
     private final WebhookEventPublisher webhookEventPublisher;
@@ -69,7 +67,7 @@ public class StripePaymentConfirmationService {
                                             LedgerService ledgerService,
                                             SplitPaymentService splitPaymentService,
                                             AutoInvoiceService autoInvoiceService,
-                                            KafkaTemplate<String, Object> kafkaTemplate,
+                                            DocumentGenerationOutbox documentOutbox,
                                             PaymentStatusTransitionService paymentStatusTransitionService,
                                             BookingConfirmationEmailService bookingConfirmationEmailService,
                                             WebhookEventPublisher webhookEventPublisher) {
@@ -82,25 +80,39 @@ public class StripePaymentConfirmationService {
         this.ledgerService = ledgerService;
         this.splitPaymentService = splitPaymentService;
         this.autoInvoiceService = autoInvoiceService;
-        this.kafkaTemplate = kafkaTemplate;
+        this.documentOutbox = documentOutbox;
         this.paymentStatusTransitionService = paymentStatusTransitionService;
         this.bookingConfirmationEmailService = bookingConfirmationEmailService;
         this.webhookEventPublisher = webhookEventPublisher;
     }
 
+    /** Un règlement ne remet pas à planifier du travail déjà livré. */
+    private void settleWorkState(Intervention intervention) {
+        if (intervention.getStatus() != InterventionStatus.AWAITING_PAYMENT) return;
+        boolean workDelivered = intervention.getCompletedAt() != null;
+        intervention.setStatus(workDelivered ? InterventionStatus.COMPLETED : InterventionStatus.PENDING);
+        if (workDelivered && intervention.getServiceRequest() != null) {
+            ServiceRequest request = intervention.getServiceRequest();
+            if (request.getStatus() != RequestStatus.CANCELLED) {
+                request.setStatus(RequestStatus.COMPLETED);
+                serviceRequestRepository.save(request);
+            }
+        }
+    }
+
     /**
      * Confirme le paiement d'une intervention après réception du webhook.
-     *
-     * <p>Idempotent (Z3-BUGS-01) : si l'intervention est déjà PAID, ou si une
-     * confirmation concurrente a gagné la transition gardée, le traitement est
-     * abandonné sans nouvelle écriture ledger/split.</p>
+     * Une confirmation déjà traitée n'ajoute pas d'écriture au grand livre.
      */
     public void confirmPayment(String sessionId) {
         // Use the no-orgId variant because this is called from the Stripe webhook (no tenant context)
         Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
             .orElseThrow(() -> new NotFoundException("Intervention non trouvee pour la session: " + sessionId));
 
-        if (intervention.getPaymentStatus() == PaymentStatus.PAID) {
+        paymentStatusTransitionService.lockInterventionPayments(java.util.List.of(intervention));
+        requireCurrentSession(intervention, sessionId);
+        if (intervention.getPaymentStatus() == PaymentStatus.PAID
+                || intervention.getPaymentStatus() == PaymentStatus.REFUNDED) {
             log.info("Paiement deja confirme pour la session {} — traitement ignore (idempotence)", sessionId);
             return;
         }
@@ -112,11 +124,9 @@ public class StripePaymentConfirmationService {
 
         intervention.setPaymentStatus(PaymentStatus.PAID);
         intervention.setPaidAt(LocalDateTime.now());
-        // Changer le statut de l'intervention de AWAITING_PAYMENT à PENDING (prête à être planifiée)
-        if (intervention.getStatus() == InterventionStatus.AWAITING_PAYMENT) {
-            intervention.setStatus(InterventionStatus.PENDING);
-        }
+        settleWorkState(intervention);
         interventionRepository.save(intervention);
+        publishInterventionPaymentDocuments(intervention);
 
         // ─── Wallet creation + ledger entry ──────────────────────────────────
         Long ownerId = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
@@ -158,8 +168,10 @@ public class StripePaymentConfirmationService {
                 interventionPaymentFacts(intervention)
             );
 
-            // Notifier les admins/managers qu'une action d'assignation est requise
-            notificationService.notifyAdminsAndManagers(
+            // Le paiement anticipé historique peut précéder l'affectation.
+            if (intervention.getStatus() != InterventionStatus.CANCELLED
+                    && intervention.getCompletedAt() == null && intervention.getAssignedUser() == null
+                    && intervention.getTeamId() == null) notificationService.notifyAdminsAndManagers(
                 NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                 "Action requise : assignation",
                 "L'intervention \"" + intervention.getTitle() + "\" est payee et en attente d'assignation d'equipe.",
@@ -169,7 +181,6 @@ public class StripePaymentConfirmationService {
             log.warn("Erreur notification PAYMENT_CONFIRMED: {}", e.getMessage());
         }
 
-        publishInterventionPaymentDocuments(intervention);
 
         // ─── Auto-generation facture fiscale (entite Invoice) ──────────────
         try {
@@ -188,6 +199,8 @@ public class StripePaymentConfirmationService {
             .orElse(null);
 
         if (intervention != null) {
+            paymentStatusTransitionService.lockInterventionPayments(java.util.List.of(intervention));
+            if (!java.util.Objects.equals(sessionId, intervention.getStripeSessionId()) || !canFail(intervention)) return;
             intervention.setPaymentStatus(PaymentStatus.FAILED);
             interventionRepository.save(intervention);
 
@@ -247,6 +260,8 @@ public class StripePaymentConfirmationService {
             reservation.setStatus("confirmed");
         }
         reservationRepository.save(reservation);
+        documentOutbox.requestPaymentDocuments(reservation.getId(), reservation.getOrganizationId(),
+                "reservation", reservation.getPaymentLinkEmail());
 
         log.info("Paiement de reservation confirme: reservationId={}, sessionId={}", reservation.getId(), sessionId);
 
@@ -301,38 +316,6 @@ public class StripePaymentConfirmationService {
             log.warn("Erreur notification PAYMENT_CONFIRMED (reservation): {}", e.getMessage());
         }
 
-        // Generation automatique FACTURE + JUSTIFICATIF_PAIEMENT
-        try {
-            String emailTo = "";
-            if (reservation.getPaymentLinkEmail() != null) {
-                emailTo = reservation.getPaymentLinkEmail();
-            }
-
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "facture-resa-" + reservation.getId(),
-                Map.of(
-                    "documentType", "FACTURE",
-                    "referenceId", reservation.getId(),
-                    "referenceType", "reservation",
-                    "emailTo", emailTo
-                )
-            );
-
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "justif-paiement-resa-" + reservation.getId(),
-                Map.of(
-                    "documentType", "JUSTIFICATIF_PAIEMENT",
-                    "referenceId", reservation.getId(),
-                    "referenceType", "reservation",
-                    "emailTo", emailTo
-                )
-            );
-            log.debug("Evenements FACTURE + JUSTIFICATIF_PAIEMENT publies sur Kafka pour la reservation: {}", reservation.getId());
-        } catch (Exception e) {
-            log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT (reservation): {}", e.getMessage());
-        }
 
         // ─── Auto-generation facture fiscale (entite Invoice) ──────────────
         try {
@@ -392,29 +375,17 @@ public class StripePaymentConfirmationService {
      * sont ignorees (idempotence).
      */
     public void confirmGroupedPayment(String sessionId, String interventionIds) {
-        if (interventionIds == null || interventionIds.isBlank()) return;
-
-        String[] ids = interventionIds.split(",");
-        for (String idStr : ids) {
-            try {
-                Long id = Long.parseLong(idStr.trim());
-                confirmGroupedIntervention(sessionId, id);
-            } catch (NumberFormatException e) {
-                // T-BP-04 : un id corrompu dans les metadata Stripe laisse
-                // l'intervention non confirmee alors que le paiement est encaisse —
-                // tracer pour permettre la reconciliation manuelle.
-                log.error("Paiement groupe session {} : id d'intervention invalide '{}' dans les metadata "
-                    + "Stripe — intervention non confirmee, reconciliation manuelle requise", sessionId, idStr);
-            }
-        }
+        var missions = groupedMissions(interventionIds);
+        paymentStatusTransitionService.lockInterventionPayments(missions);
+        // Valider tout le lot avant la moindre écriture ou notification.
+        missions.forEach(mission -> requireCurrentSession(mission, sessionId));
+        missions.forEach(this::confirmGroupedIntervention);
     }
 
-    private void confirmGroupedIntervention(String sessionId, Long id) {
-        Intervention intervention = interventionRepository.findById(id).orElse(null);
-        if (intervention == null) {
-            return;
-        }
-        if (intervention.getPaymentStatus() == PaymentStatus.PAID) {
+    private void confirmGroupedIntervention(Intervention intervention) {
+        Long id = intervention.getId();
+        if (intervention.getPaymentStatus() == PaymentStatus.PAID
+                || intervention.getPaymentStatus() == PaymentStatus.REFUNDED) {
             log.info("Intervention {} deja payee — ignoree (idempotence, paiement groupe)", id);
             return;
         }
@@ -425,8 +396,9 @@ public class StripePaymentConfirmationService {
 
         intervention.setPaymentStatus(PaymentStatus.PAID);
         intervention.setPaidAt(LocalDateTime.now());
-        intervention.setStripeSessionId(sessionId);
+        settleWorkState(intervention);
         interventionRepository.save(intervention);
+        publishInterventionPaymentDocuments(intervention);
 
         // ─── Wallet creation + ledger entry ──────────────────────────────────
         // Les sessions groupees sont facturees dans la devise de config (DeferredPaymentService).
@@ -441,7 +413,6 @@ public class StripePaymentConfirmationService {
             "Paiement intervention (groupe): " + intervention.getTitle()
         );
 
-        publishInterventionPaymentDocuments(intervention);
 
         // ─── Auto-generation facture fiscale (entite Invoice) ──────────────
         try {
@@ -454,25 +425,45 @@ public class StripePaymentConfirmationService {
     /**
      * Marque le paiement groupe comme echoue pour toutes les interventions incluses.
      */
-    public void markGroupedPaymentAsFailed(String interventionIds) {
-        if (interventionIds == null || interventionIds.isBlank()) return;
-
-        String[] ids = interventionIds.split(",");
-        for (String idStr : ids) {
-            try {
-                Long id = Long.parseLong(idStr.trim());
-                Intervention intervention = interventionRepository.findById(id).orElse(null);
-                if (intervention != null) {
-                    intervention.setPaymentStatus(PaymentStatus.FAILED);
-                    interventionRepository.save(intervention);
-                }
-            } catch (NumberFormatException e) {
-                // T-BP-04 : tracer l'id corrompu — l'intervention concernee reste
-                // dans son statut precedent au lieu de passer FAILED.
-                log.warn("Echec paiement groupe : id d'intervention invalide '{}' dans les metadata Stripe "
-                    + "— statut FAILED non applique", idStr);
+    public void markGroupedPaymentAsFailed(String sessionId, String interventionIds) {
+        if (sessionId == null || sessionId.isBlank()) return;
+        var missions = groupedMissions(interventionIds);
+        paymentStatusTransitionService.lockInterventionPayments(missions);
+        for (var mission : missions) {
+            if (java.util.Objects.equals(sessionId, mission.getStripeSessionId()) && canFail(mission)) {
+                mission.setPaymentStatus(PaymentStatus.FAILED);
+                interventionRepository.save(mission);
             }
         }
+    }
+
+    private boolean canFail(Intervention mission) {
+        return mission.getStatus() != InterventionStatus.CANCELLED
+                && mission.getPaymentStatus() != PaymentStatus.PAID
+                && mission.getPaymentStatus() != PaymentStatus.PARTIALLY_PAID
+                && mission.getPaymentStatus() != PaymentStatus.REFUNDED;
+    }
+
+    private void requireCurrentSession(Intervention mission, String sessionId) {
+        if (sessionId == null || sessionId.isBlank() || !sessionId.equals(mission.getStripeSessionId())) {
+            throw new IllegalStateException("La session de paiement de la mission a changé ; rapprochement requis");
+        }
+    }
+
+    private java.util.List<Intervention> groupedMissions(String interventionIds) {
+        if (interventionIds == null || interventionIds.isBlank()) return java.util.List.of();
+        var ids = new java.util.TreeSet<Long>();
+        for (String raw : interventionIds.split(",")) {
+            try {
+                long id = Long.parseLong(raw.trim());
+                if (id <= 0) throw new NumberFormatException();
+                ids.add(id);
+            } catch (NumberFormatException e) {
+                log.error("Paiement groupé : identifiant invalide '{}' ; rapprochement requis", raw);
+            }
+        }
+        return ids.stream().map(id -> interventionRepository.findById(id).orElse(null))
+                .filter(java.util.Objects::nonNull).toList();
     }
 
     /**
@@ -485,7 +476,11 @@ public class StripePaymentConfirmationService {
         ServiceRequest sr = serviceRequestRepository.findByStripeSessionId(sessionId)
             .orElseThrow(() -> new NotFoundException("Demande de service non trouvee pour la session: " + sessionId));
 
-        if (sr.getPaymentStatus() == PaymentStatus.PAID) {
+        paymentStatusTransitionService.lockServiceRequestPayment(sr);
+        if (!java.util.Objects.equals(sessionId, sr.getStripeSessionId()))
+            throw new IllegalStateException("La session de paiement de la demande a changé");
+
+        if (sr.getPaymentStatus() == PaymentStatus.PAID || sr.getPaymentStatus() == PaymentStatus.REFUNDED) {
             log.info("Paiement SR deja confirme pour la session {} — traitement ignore (idempotence)", sessionId);
             return;
         }
@@ -496,7 +491,8 @@ public class StripePaymentConfirmationService {
 
         sr.setPaymentStatus(PaymentStatus.PAID);
         sr.setPaidAt(LocalDateTime.now());
-        sr.setStatus(RequestStatus.IN_PROGRESS);
+        boolean cancelled = sr.getStatus() == RequestStatus.CANCELLED;
+        if (!cancelled) sr.setStatus(RequestStatus.IN_PROGRESS);
         serviceRequestRepository.save(sr);
 
         log.info("Paiement SR confirme: srId={}, sessionId={}", sr.getId(), sessionId);
@@ -515,7 +511,7 @@ public class StripePaymentConfirmationService {
 
         // Creer l'intervention automatiquement
         try {
-            serviceRequestService.createInterventionFromPaidServiceRequest(sr);
+            if (!cancelled) serviceRequestService.createInterventionFromPaidServiceRequest(sr);
         } catch (Exception e) {
             log.error("Erreur creation intervention apres paiement SR {}: {}", sr.getId(), e.getMessage(), e);
         }
@@ -531,7 +527,8 @@ public class StripePaymentConfirmationService {
                         + (sr.getEstimatedCost() != null
                             ? " Montant: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
                             : "")
-                        + " L'intervention sera creee automatiquement.",
+                        + (cancelled ? " La demande reste annulée. Un examen financier est nécessaire."
+                                     : " L'intervention sera creee automatiquement."),
                     "/interventions?tab=service-requests&highlight=" + sr.getId()
                 );
             }
@@ -542,7 +539,8 @@ public class StripePaymentConfirmationService {
                     + (sr.getEstimatedCost() != null
                         ? " Montant: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
                         : "")
-                    + " Intervention creee.",
+                    + (cancelled ? " La demande reste annulée. Un examen financier est nécessaire."
+                                 : " Intervention creee."),
                 "/interventions?tab=service-requests&highlight=" + sr.getId()
             );
         } catch (Exception e) {
@@ -558,6 +556,10 @@ public class StripePaymentConfirmationService {
             .orElse(null);
 
         if (sr != null) {
+            paymentStatusTransitionService.lockServiceRequestPayment(sr);
+            if (!java.util.Objects.equals(sessionId, sr.getStripeSessionId())) return;
+            if (sr.getStatus() == RequestStatus.CANCELLED || sr.getPaymentStatus() == PaymentStatus.PAID
+                    || sr.getPaymentStatus() == PaymentStatus.REFUNDED || sr.getPaymentStatus() == PaymentStatus.PARTIALLY_PAID) return;
             sr.setPaymentStatus(PaymentStatus.FAILED);
             // Revenir en AWAITING_PAYMENT pour que le demandeur puisse re-tenter le paiement
             sr.setStatus(RequestStatus.AWAITING_PAYMENT);
@@ -741,37 +743,11 @@ public class StripePaymentConfirmationService {
         return currency;
     }
 
-    /** Publie les evenements Kafka FACTURE + JUSTIFICATIF_PAIEMENT d'une intervention. */
+    /** Enregistre facture et justificatif dans la transaction de confirmation. */
     private void publishInterventionPaymentDocuments(Intervention intervention) {
-        try {
-            String emailTo = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
-                    ? intervention.getProperty().getOwner().getEmail() : "";
-
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "facture-int-" + intervention.getId(),
-                Map.of(
-                    "documentType", "FACTURE",
-                    "referenceId", intervention.getId(),
-                    "referenceType", "intervention",
-                    "emailTo", emailTo != null ? emailTo : ""
-                )
-            );
-
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "justif-paiement-int-" + intervention.getId(),
-                Map.of(
-                    "documentType", "JUSTIFICATIF_PAIEMENT",
-                    "referenceId", intervention.getId(),
-                    "referenceType", "intervention",
-                    "emailTo", emailTo != null ? emailTo : ""
-                )
-            );
-            log.debug("Evenements FACTURE + JUSTIFICATIF_PAIEMENT publies sur Kafka pour l'intervention: {}", intervention.getId());
-        } catch (Exception e) {
-            log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT: {}", e.getMessage());
-        }
+        String email = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
+                ? intervention.getProperty().getOwner().getEmail() : null;
+        documentOutbox.requestPaymentDocuments(intervention.getId(), intervention.getOrganizationId(), "intervention", email);
     }
 
     /**

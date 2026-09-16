@@ -1,8 +1,9 @@
 package com.clenzy.service.pricing;
 
-import com.clenzy.model.HousekeeperRate;
 import com.clenzy.model.Property;
-import com.clenzy.repository.HousekeeperRateRepository;
+import com.clenzy.repository.ProviderTariffRepository;
+import com.clenzy.model.ProviderTariff;
+import com.clenzy.marketplace.model.PricingModel;
 import com.clenzy.service.PricingConfigService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,9 +33,7 @@ import java.util.Map;
  * prix CLEANING = 135/60 h × 42 €/h × 1.0 = 94,50 € → arrondi au multiple de 5 → <b>95 €</b>.
  * D'où DEFAULT_HOURLY_RATE = 42.0.</p>
  *
- * <p>Point d'extension Phase 2 : l'étage tarif prestataire (housekeeper_rate, forfait
- * par propriété prioritaire) s'insérera dans {@link #resolveCleaningPrice} AVANT
- * l'override logement — voir l'ordre de résolution du plan.</p>
+ * <p>Le tarif individuel unique est résolu séparément du prix conseil de la conciergerie.</p>
  */
 @Service
 public class CleaningPricingEngine {
@@ -167,11 +166,11 @@ public class CleaningPricingEngine {
 
     private final PricingConfigService pricingConfigService;
     private final ObjectMapper objectMapper;
-    private final HousekeeperRateRepository housekeeperRateRepository;
+    private final ProviderTariffRepository housekeeperRateRepository;
 
     public CleaningPricingEngine(PricingConfigService pricingConfigService,
                                  ObjectMapper objectMapper,
-                                 HousekeeperRateRepository housekeeperRateRepository) {
+                                 ProviderTariffRepository housekeeperRateRepository) {
         this.pricingConfigService = pricingConfigService;
         this.objectMapper = objectMapper;
         this.housekeeperRateRepository = housekeeperRateRepository;
@@ -228,78 +227,48 @@ public class CleaningPricingEngine {
         return resolveCleaningPrice(property, cleaningType, null);
     }
 
-    /**
-     * Prix résolu avec l'étage tarif PRESTATAIRE (Phase 2A, pattern Turno) :
-     * 1) forfait (user, property) — exprimé pour le ménage STANDARD, dérivé par le
-     *    ratio des multiplicateurs si {@code cleaningType} ≠ CLEANING ;
-     * 2) taux horaire général du pro × durée normée du logement × multiplicateur type
-     *    (arrondi/plancher moteur) ;
-     * 3) sinon résolution existante : override logement → conseil moteur.
-     */
+    /** Tarif unique du prestataire ; sans prestataire, renvoie uniquement une estimation. */
     public ResolvedCleaningPrice resolveCleaningPrice(Property property, String cleaningType, Long housekeeperUserId) {
         return resolveCleaningPrice(property, cleaningType, housekeeperUserId, null);
     }
 
-    /**
-     * Variante DATÉE (MM-3D) : la majoration saisonnière s'applique UNIQUEMENT au
-     * CONSEIL moteur (quote → recommended_cost, et prix résolu quand la source est
-     * ENGINE). Les tarifs négociés ne bougent pas sans accord : le forfait FLAT du
-     * pro est versé tel quel, son taux HOURLY suit la durée normée (non majorée),
-     * et l'override logement (cleaningBasePrice) reste le prix convenu.
-     */
+    /** Le tarif publié prime ; aucune majoration ou remise propre au client n'est appliquée. */
     public ResolvedCleaningPrice resolveCleaningPrice(Property property, String cleaningType,
                                                       Long housekeeperUserId, java.time.LocalDate serviceDate) {
         CleaningQuote quote = quote(property, cleaningType, serviceDate);
 
         if (housekeeperUserId != null && property.getOrganizationId() != null) {
-            EngineConfig config = currentConfig();
-
-            // 1) Forfait par logement (prime sur le taux horaire).
-            HousekeeperRate flat = housekeeperRateRepository
-                    .findByOrganizationIdAndUserIdAndPropertyId(property.getOrganizationId(), housekeeperUserId, property.getId())
-                    .filter(r -> r.getUnit() == HousekeeperRate.RateUnit.FLAT)
-                    .orElse(null);
-            if (flat != null && flat.getAmount() != null && flat.getAmount().compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal amount = flat.getAmount();
-                double ratio = typeMultiplierRatio(config, cleaningType);
-                if (ratio != 1.0) {
-                    // Forfait standard × ratio (ex. express 0.65/1.0) puis arrondi moteur.
-                    amount = roundAndFloor(amount.doubleValue() * ratio, config);
+            String key = ProviderTariffService.keyForType(cleaningType == null ? STANDARD_CLEANING : cleaningType);
+            ProviderTariff tariff = housekeeperRateRepository
+                    .findByUserIdAndServiceKey(housekeeperUserId, key).orElse(null);
+            if (tariff == null && !ProviderTariffService.CLEANING.equals(key)) {
+                tariff = housekeeperRateRepository.findByUserIdAndServiceKey(housekeeperUserId, ProviderTariffService.CLEANING)
+                        .filter(t -> t.getPricingModel() == PricingModel.HOURLY).orElse(null);
+            }
+            if (tariff != null && tariff.isEnabled()) {
+                if (tariff.isNeedsReview() || tariff.getAmount() == null)
+                    throw new IllegalStateException("Le prestataire doit confirmer son tarif unique avant attribution.");
+                String currency = property.getDefaultCurrency();
+                if (currency == null || !tariff.getCurrency().equalsIgnoreCase(currency))
+                    throw new IllegalStateException("La devise du tarif prestataire diffère de celle de la mission. Un devis est requis.");
+                if (tariff.getPricingModel() == PricingModel.FLAT)
+                    return new ResolvedCleaningPrice(tariff.getAmount(), CleaningPriceSource.HOUSEKEEPER_RATE, quote);
+                if (tariff.getPricingModel() == PricingModel.HOURLY) {
+                    BigDecimal amount = tariff.getAmount().multiply(BigDecimal.valueOf(quote.durationMinutes()))
+                            .divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
+                    return new ResolvedCleaningPrice(amount, CleaningPriceSource.HOUSEKEEPER_RATE, quote);
                 }
-                return new ResolvedCleaningPrice(amount, CleaningPriceSource.HOUSEKEEPER_RATE, quote);
+                throw new IllegalStateException("Cette prestation nécessite un devis.");
             }
-
-            // 2) Taux horaire général : durée normée × taux pro × multiplicateur type.
-            HousekeeperRate hourly = housekeeperRateRepository
-                    .findByOrganizationIdAndUserIdAndPropertyIdIsNull(property.getOrganizationId(), housekeeperUserId)
-                    .filter(r -> r.getUnit() == HousekeeperRate.RateUnit.HOURLY)
-                    .orElse(null);
-            if (hourly != null && hourly.getAmount() != null && hourly.getAmount().compareTo(BigDecimal.ZERO) > 0) {
-                double multiplier = config.typeMultipliers()
-                        .getOrDefault(cleaningType != null ? cleaningType : STANDARD_CLEANING,
-                                config.typeMultipliers().getOrDefault(STANDARD_CLEANING, 1.0));
-                double raw = (quote.durationMinutes() / 60.0) * hourly.getAmount().doubleValue() * multiplier;
-                return new ResolvedCleaningPrice(roundAndFloor(raw, config), CleaningPriceSource.HOUSEKEEPER_RATE, quote);
-            }
+            throw new IllegalStateException("Aucun tarif actif pour ce prestataire et cette prestation. Un devis est requis.");
         }
 
-        // 3) Résolution existante : override logement → conseil moteur.
         BigDecimal basePrice = property.getCleaningBasePrice();
         if (basePrice != null && basePrice.compareTo(BigDecimal.ZERO) > 0) {
             return new ResolvedCleaningPrice(basePrice, CleaningPriceSource.PROPERTY_OVERRIDE, quote);
         }
         return new ResolvedCleaningPrice(quote.recommended(), CleaningPriceSource.ENGINE, quote);
     }
-
-    /** Ratio multiplicateur(type) / multiplicateur(CLEANING) — dérive un forfait standard vers un autre type. */
-    private double typeMultiplierRatio(EngineConfig config, String cleaningType) {
-        double standard = config.typeMultipliers().getOrDefault(STANDARD_CLEANING, 1.0);
-        double target = config.typeMultipliers()
-                .getOrDefault(cleaningType != null ? cleaningType : STANDARD_CLEANING, standard);
-        return standard != 0 ? target / standard : 1.0;
-    }
-
-    // ─── Calcul ────────────────────────────────────────────────────────────────
 
     CleaningQuote quoteWith(EngineConfig config, CleaningInputs inputs, String cleaningType) {
         return quoteWith(config, inputs, cleaningType, null);

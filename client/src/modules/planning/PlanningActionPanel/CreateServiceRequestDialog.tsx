@@ -1,3 +1,7 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateMissionWorkflow } from "../../../hooks/invalidateMissionWorkflow";
+import { serviceRequestsListKeys } from "../../../hooks/useServiceRequestsList";
+import { getErrorMessage } from "../../../utils/getErrorMessage";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
@@ -158,6 +162,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const [loadingData, setLoadingData] = useState(false);
 
   // ── UI state ────────────────────────────────────────────────────────────
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<number | null>(null);
@@ -742,6 +747,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       // par le formulaire (accessNotes, urgent, actualCost…) et le statut courant.
       const backendData: Record<string, unknown> = {
         ...(isEditMode && editingRawRef.current ? editingRawRef.current : {}),
+        version: isEditMode ? editingRawRef.current?.version : undefined,
         title: formData.title,
         description: formData.description,
         propertyId,
@@ -781,7 +787,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
       let savedId: number | undefined;
       if (isEditMode && editingServiceRequestId) {
-        const updated = await serviceRequestsApi.update(editingServiceRequestId, backendData as never);
+        const updated = await serviceRequestsApi.update(editingServiceRequestId, backendData);
         savedId = updated?.id ?? editingServiceRequestId;
       } else {
         const result = await apiClient.post<{ id: number }>('/service-requests', backendData);
@@ -791,12 +797,16 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       onCreated?.(savedId as number);
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : (isEditMode ? 'Erreur lors de l\'enregistrement' : 'Erreur lors de la création');
+      const message = getErrorMessage(err, "Impossible d’enregistrer la demande");
       setError(message);
     } finally {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: serviceRequestsListKeys.all }),
+        invalidateMissionWorkflow(queryClient),
+      ]);
       setSaving(false);
     }
-  }, [propertyId, reservationId, user?.databaseId, canAssignForProperty, isCleaningCategory, isEditMode, editingServiceRequestId, onCreated, onClose]);
+  }, [queryClient, propertyId, reservationId, user?.databaseId, canAssignForProperty, isCleaningCategory, isEditMode, editingServiceRequestId, onCreated, onClose]);
 
   const handleConfirm = useCallback(() => {
     rhfHandleSubmit(onSubmit)();

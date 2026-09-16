@@ -217,8 +217,8 @@ public class StripeService {
     /**
      * Marque le paiement groupe comme echoue pour toutes les interventions incluses.
      */
-    public void markGroupedPaymentAsFailed(String interventionIds) {
-        paymentConfirmationService.markGroupedPaymentAsFailed(interventionIds);
+    public void markGroupedPaymentAsFailed(String sessionId, String interventionIds) {
+        paymentConfirmationService.markGroupedPaymentAsFailed(sessionId, interventionIds);
     }
 
     /**

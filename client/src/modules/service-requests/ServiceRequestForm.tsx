@@ -1,3 +1,7 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateMissionWorkflow } from "../../hooks/invalidateMissionWorkflow";
+import { serviceRequestsListKeys } from "../../hooks/useServiceRequestsList";
+import { getErrorMessage } from "../../utils/getErrorMessage";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, Button } from '../../components/ui';
@@ -146,7 +150,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [isLoading, setIsLoading] = useState(false);
   // Flag de sauvegarde jamais lu au render : ref servant de garde anti-double-submit
   // (un double-clic creerait une demande de service en doublon).
+  const queryClient = useQueryClient();
   const savingRef = useRef(false);
+  const originalRequest = useRef<Awaited<ReturnType<typeof serviceRequestsApi.getById>> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -193,6 +199,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       setLoadingServiceRequest(true);
       try {
         const sr = await serviceRequestsApi.getById(serviceRequestId);
+        originalRequest.current = sr;
 
         // Check if ASSIGNED or beyond - prevent editing
         if (['ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'COMPLETED'].includes(sr.status)) {
@@ -429,7 +436,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       const desiredDate = formData.desiredDate || null;
 
       // Préparer les données pour le backend
-      const backendData: Record<string, string | number | boolean | null> = {
+      const backendData: Record<string, unknown> = {
+        ...(isEditMode ? originalRequest.current : {}),
         title: formData.title,
         description: formData.description,
         propertyId: formData.propertyId,
@@ -484,10 +492,14 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         }
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : (isEditMode ? t('serviceRequests.updateError') : t('serviceRequests.errors.createError'));
+      const message = getErrorMessage(err, t("serviceRequests.updateError"));
       const errorPrefix = isEditMode ? t('serviceRequests.updateErrorDetails') : t('serviceRequests.errors.createErrorDetails');
       setError(errorPrefix + ': ' + message);
     } finally {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: serviceRequestsListKeys.all }),
+        invalidateMissionWorkflow(queryClient),
+      ]);
       savingRef.current = false;
     }
   };

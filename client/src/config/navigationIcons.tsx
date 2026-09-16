@@ -1,5 +1,8 @@
 import React from 'react';
 import {
+  RequestQuote,
+  PersonSearch,
+  ConciergeBell,
   Home,
   EventNote,
   Build,
@@ -52,6 +55,9 @@ export const SCREEN_ICON: Record<string, React.ReactNode> = {
   '/interventions': <Build />,
   '/contact': <Mail />,
   '/directory': <Contacts />,
+  '/prestataires': <PersonSearch />,
+  '/devis': <RequestQuote />,
+  '/marketplace/providers': <ConciergeBell />,
   '/documents': <Description />,
   '/contracts': <Handshake />,
   '/billing': <Payment />,

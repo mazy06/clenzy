@@ -232,6 +232,13 @@ public class SecurityConfigProd {
                         // match gagne). Les roles operationnels (TECHNICIAN/HOUSEKEEPER/LAUNDRY/
                         // EXTERIOR_TECH) n'ont PAS acces au panneau Superviseur.
                         .requestMatchers("/api/agui/**").hasAnyRole("SUPER_ADMIN","SUPER_MANAGER","HOST","SUPERVISOR")
+                        // Place de marche des professionnels : RBAC explicite au niveau URL
+                        // (defense-in-depth, aligne sur le @PreAuthorize de
+                        // MarketplaceProviderAdminController). DOIT preceder /api/** (1er match
+                        // gagne). Ces tables sont PLATEFORME — aucun filtre tenant ne les borne —
+                        // donc un HOST qui atteindrait ces routes verrait le catalogue entier,
+                        // coordonnees comprises. La regle generale /api/** l'autoriserait.
+                        .requestMatchers("/api/admin/marketplace/**").hasAnyRole("SUPER_ADMIN","SUPER_MANAGER")
                         .requestMatchers("/api/**").hasAnyRole("SUPER_ADMIN","SUPER_MANAGER","HOST","TECHNICIAN","HOUSEKEEPER","SUPERVISOR","LAUNDRY","EXTERIOR_TECH")
                         .anyRequest().denyAll()
                 )

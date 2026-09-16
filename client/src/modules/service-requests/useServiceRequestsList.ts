@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import { invalidateMissionWorkflow } from "../../hooks/invalidateMissionWorkflow";
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -60,6 +62,8 @@ export function useServiceRequestsList() {
   const [assignSelectedUserId, setAssignSelectedUserId] = useState<number | null>(null);
   const [assignTeams, setAssignTeams] = useState<AssignTeam[]>([]);
   const [assignUsers, setAssignUsers] = useState<AssignUser[]>([]);
+  const assignmentPending = useRef(false);
+  const [assigning, setAssigning] = useState(false);
   const [loadingAssignData, setLoadingAssignData] = useState(false);
 
   // Etats pour la validation
@@ -164,32 +168,38 @@ export function useServiceRequestsList() {
     setValidateDialogOpen(true);
   };
 
+  const statusPending = useRef(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   const confirmStatusChange = async () => {
-    if (!selectedRequestForStatusChange || !newStatus) return;
+    if (!selectedRequestForStatusChange || !newStatus || statusPending.current) return;
+    statusPending.current = true;
+    setChangingStatus(true);
     try {
-      const updateData = {
-        id: parseInt(selectedRequestForStatusChange.id),
-        title: selectedRequestForStatusChange.title,
-        description: selectedRequestForStatusChange.description,
-        serviceType: selectedRequestForStatusChange.type.toUpperCase(),
-        priority: selectedRequestForStatusChange.priority.toUpperCase(),
-        status: newStatus.toUpperCase(),
-        desiredDate: selectedRequestForStatusChange.dueDate,
-        estimatedDurationHours: selectedRequestForStatusChange.estimatedDuration,
-        userId: selectedRequestForStatusChange.requestorId,
-        propertyId: selectedRequestForStatusChange.propertyId,
-      };
-      await serviceRequestsApi.update(parseInt(selectedRequestForStatusChange.id), updateData);
+      await serviceRequestsApi.changeStatus(
+        Number(selectedRequestForStatusChange.id),
+        selectedRequestForStatusChange.version,
+        newStatus.toUpperCase(),
+      );
 
       invalidateList();
       setStatusChangeDialogOpen(false);
       setSelectedRequestForStatusChange(null);
       setNewStatus('');
     } catch (error) {
+      setErrorMessage(getErrorMessage(error, t("serviceRequests.updateError")));
+      setErrorDialogOpen(true);
+    } finally {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: serviceRequestsListKeys.all }),
+        invalidateMissionWorkflow(queryClient),
+      ]);
+      statusPending.current = false;
+      setChangingStatus(false);
     }
   };
 
   const handleAssignServiceRequest = (request: ServiceRequest) => {
+    if (assignmentPending.current) return;
     setSelectedRequestForAssignment(request);
     setAssignAssignmentType(request.assignedToType || 'none');
     setAssignSelectedTeamId(request.assignedToType === 'team' ? request.assignedToId || null : null);
@@ -198,44 +208,38 @@ export function useServiceRequestsList() {
   };
 
   const confirmAssignment = async () => {
-    if (!selectedRequestForAssignment) return;
+    if (!selectedRequestForAssignment || assignmentPending.current) return;
+    const targetId = assignAssignmentType === "team" ? assignSelectedTeamId : assignSelectedUserId;
+    if (assignAssignmentType !== "none" && (!targetId || targetId <= 0)) return;
+    assignmentPending.current = true;
+    setAssigning(true);
     try {
-      const updateData: Record<string, string | number | null> = {
-        id: parseInt(selectedRequestForAssignment.id),
-        title: selectedRequestForAssignment.title,
-        description: selectedRequestForAssignment.description,
-        serviceType: selectedRequestForAssignment.type.toUpperCase(),
-        priority: selectedRequestForAssignment.priority.toUpperCase(),
-        status: selectedRequestForAssignment.status,
-        desiredDate: selectedRequestForAssignment.dueDate,
-        estimatedDurationHours: selectedRequestForAssignment.estimatedDuration,
-        userId: selectedRequestForAssignment.requestorId,
-        propertyId: selectedRequestForAssignment.propertyId,
-      };
-      if (assignSelectedTeamId) {
-        updateData.assignedToId = assignSelectedTeamId;
-        updateData.assignedToType = 'team';
-      } else if (assignSelectedUserId) {
-        updateData.assignedToId = assignSelectedUserId;
-        updateData.assignedToType = 'user';
+      const id = Number(selectedRequestForAssignment.id);
+      if (assignAssignmentType === "none") {
+        await serviceRequestsApi.unassign(id);
       } else {
-        updateData.assignedToId = null;
-        updateData.assignedToType = null;
+        await serviceRequestsApi.manualAssign(id, targetId!, assignAssignmentType);
       }
-      await serviceRequestsApi.update(parseInt(selectedRequestForAssignment.id), updateData);
-      invalidateList();
       setAssignDialogOpen(false);
       setSelectedRequestForAssignment(null);
       setAssignAssignmentType('none');
       setAssignSelectedTeamId(null);
       setAssignSelectedUserId(null);
     } catch (error) {
-      setErrorMessage(t('serviceRequests.assignError', { defaultValue: 'Erreur lors de l\'assignation' }));
+      setErrorMessage(getErrorMessage(error, t("serviceRequests.assignError")));
       setErrorDialogOpen(true);
+    } finally {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: serviceRequestsListKeys.all }),
+        invalidateMissionWorkflow(queryClient),
+      ]);
+      assignmentPending.current = false;
+      setAssigning(false);
     }
   };
 
   const closeAssignDialog = () => {
+    if (assignmentPending.current) return;
     setAssignDialogOpen(false);
     setSelectedRequestForAssignment(null);
     setAssignAssignmentType('none');
@@ -368,12 +372,12 @@ export function useServiceRequestsList() {
     selectedRequestForDeletion,
     statusChangeDialogOpen, setStatusChangeDialogOpen,
     selectedRequestForStatusChange, setSelectedRequestForStatusChange,
-    newStatus, setNewStatus,
+    newStatus, setNewStatus, changingStatus,
     assignDialogOpen, selectedRequestForAssignment,
     assignAssignmentType, setAssignAssignmentType,
     assignSelectedTeamId, setAssignSelectedTeamId,
     assignSelectedUserId, setAssignSelectedUserId,
-    assignTeams, assignUsers, loadingAssignData,
+    assignTeams, assignUsers, loadingAssignData, assigning,
     validateDialogOpen, setValidateDialogOpen,
     selectedRequestForValidation, setSelectedRequestForValidation,
     validating,

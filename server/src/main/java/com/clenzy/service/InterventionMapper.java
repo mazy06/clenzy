@@ -95,6 +95,14 @@ public class InterventionMapper {
      * Status changes must go through dedicated lifecycle endpoints.
      */
     public void applyUpdate(UpdateInterventionRequest request, Intervention intervention) {
+        applyUpdateDetails(request, intervention);
+        if (request.assignedToType() != null && request.assignedToId() != null) {
+            applyAssignment(request.assignedToType(), request.assignedToId(), intervention);
+        }
+    }
+
+    /** Les détails sont appliqués avant la commande d'affectation et son contrôle de créneau. */
+    public void applyUpdateDetails(UpdateInterventionRequest request, Intervention intervention) {
         if (request.title() != null) intervention.setTitle(request.title());
         if (request.description() != null) intervention.setDescription(request.description());
         if (request.type() != null) intervention.setType(request.type());
@@ -103,10 +111,6 @@ public class InterventionMapper {
         if (request.estimatedCost() != null) intervention.setEstimatedCost(request.estimatedCost());
         if (request.notes() != null) intervention.setNotes(request.notes());
 
-        // Assignment handling
-        if (request.assignedToType() != null && request.assignedToId() != null) {
-            applyAssignment(request.assignedToType(), request.assignedToId(), intervention);
-        }
     }
 
     /**
@@ -318,25 +322,13 @@ public class InterventionMapper {
 
     private void applyAssignment(String assignedToType, Long assignedToId, Intervention intervention) {
         if ("user".equals(assignedToType)) {
-            intervention.setAssignedTechnicianId(assignedToId);
-            intervention.setTeamId(null);
-
-            User assignedUser = userRepository.findById(assignedToId).orElse(null);
-            if (assignedUser != null) {
-                intervention.setAssignedUser(assignedUser);
-                log.debug("apply - user assigned: {}", assignedUser.getFullName());
-            }
+            User assignedUser = userRepository.findById(assignedToId)
+                    .orElseThrow(() -> new IllegalArgumentException("Intervenant introuvable"));
+            intervention.proposeAssignment(assignedUser, null);
         } else if ("team".equals(assignedToType)) {
-            intervention.setTeamId(assignedToId);
-            intervention.setAssignedTechnicianId(null);
-            intervention.setAssignedUser(null);
-
-            Team assignedTeam = teamRepository.findById(assignedToId).orElse(null);
-            if (assignedTeam != null) {
-                log.debug("apply - team assigned: {}", assignedTeam.getName());
-            } else {
-                log.warn("apply - team not found for id: {}", assignedToId);
-            }
+            Team assignedTeam = teamRepository.findById(assignedToId)
+                    .orElseThrow(() -> new IllegalArgumentException("Équipe introuvable"));
+            intervention.proposeAssignment(null, assignedTeam.getId());
         } else {
             throw new IllegalArgumentException("assignedToType doit etre 'user' ou 'team', recu: " + assignedToType);
         }

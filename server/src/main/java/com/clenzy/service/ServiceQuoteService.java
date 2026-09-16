@@ -62,6 +62,9 @@ public class ServiceQuoteService {
                     .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private final ServiceQuoteRepository quoteRepository;
+    private final InterventionAllocationGuard allocationGuard;
+    private final QuoteDiscussionScope discussionScope;
+    private final com.clenzy.marketplace.service.MarketplaceQuoteMissionFactory marketplaceMissions;
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
     private final ProviderAgreedRateRepository agreedRateRepository;
@@ -89,7 +92,13 @@ public class ServiceQuoteService {
                                com.clenzy.repository.PaymentTransactionRepository paymentTransactionRepository,
                                com.clenzy.repository.DocumentGenerationRepository documentGenerationRepository,
                                com.clenzy.repository.OrganizationRepository organizationRepository,
-                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService) {
+                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService,
+                               QuoteDiscussionScope discussionScope,
+                               com.clenzy.marketplace.service.MarketplaceQuoteMissionFactory marketplaceMissions,
+                               InterventionAllocationGuard allocationGuard) {
+        this.allocationGuard = allocationGuard;
+        this.marketplaceMissions = marketplaceMissions;
+        this.discussionScope = discussionScope;
         this.quoteRepository = quoteRepository;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
@@ -107,8 +116,22 @@ public class ServiceQuoteService {
     }
 
     @Transactional(readOnly = true)
-    public List<ServiceQuote> listForIntervention(Long interventionId, Long orgId) {
-        return quoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(interventionId, orgId);
+    public List<ServiceQuote> listForIntervention(Long interventionId, Long orgId, Jwt jwt) {
+        Intervention intervention = interventionRepository.findById(interventionId)
+                .orElseThrow(() -> new NotFoundException("Intervention introuvable"));
+        User viewer = userRepository.findByKeycloakId(jwt.getSubject())
+                .orElseThrow(() -> new AccessDeniedException("Compte introuvable"));
+        List<ServiceQuote> quotes = quoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                interventionId, intervention.getOrganizationId());
+        var role = JwtRoleExtractor.extractUserRole(jwt);
+        boolean customer = role != null && role.isPlatformStaff() && orgId.equals(intervention.getOrganizationId());
+        if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
+            customer |= viewer.getId().equals(intervention.getProperty().getOwner().getId());
+        }
+        if (customer) return quotes;
+        Set<Long> teams = discussionScope.teamsOf(viewer);
+        return quotes.stream().filter(q -> viewer.getId().equals(q.getProviderUserId())
+                || q.getProviderTeamId() != null && teams.contains(q.getProviderTeamId())).toList();
     }
 
     /**
@@ -218,11 +241,19 @@ public class ServiceQuoteService {
     public ServiceQuote submitAsProvider(Long orgId, ServiceQuote quote, String keycloakId) {
         User me = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+        Intervention intervention = interventionRepository.findById(quote.getInterventionId())
+                .orElseThrow(() -> new NotFoundException("Intervention introuvable"));
+        boolean assigned = intervention.getAssignedUser() != null
+                && me.getId().equals(intervention.getAssignedUser().getId());
+        assigned |= intervention.getTeamId() != null && discussionScope.teamsOf(me).contains(intervention.getTeamId());
+        if (!assigned) throw new AccessDeniedException("Cette mission ne vous est pas proposée");
+        final Long targetOrgId = intervention.getOrganizationId();
         quote.setProviderUserId(me.getId());
         quote.setProviderName(me.getFullName());
         quote.setProviderEmail(me.getEmail());
+        discussionScope.resolve(quote, intervention, me);
         applyMaintenanceDeposit(quote);
-        ServiceQuote saved = create(orgId, quote);
+        ServiceQuote saved = create(targetOrgId, quote);
 
         // PDF, discussion et notifications sont des effets APRES COMMIT. Places
         // dans la transaction, la moindre erreur la marquait rollback-only : le
@@ -230,7 +261,7 @@ public class ServiceQuoteService {
         // (regle audit n°2).
         final ServiceQuote persisted = saved;
         afterCommit(() -> publisher.publish(persisted, me,
-                (q, p) -> publishQuote(q, p, orgId)));
+                (q, p) -> publishQuote(q, p, targetOrgId)));
         return saved;
     }
 
@@ -251,7 +282,11 @@ public class ServiceQuoteService {
 
     /** Effets externes d'un devis soumis : document, discussion, notifications. */
     private void publishQuote(ServiceQuote saved, User me, Long orgId) {
-        generateQuoteDocument(saved);
+        if (saved.getMarketplaceRequestId() == null) generateQuoteDocument(saved);
+        if (saved.getMarketplaceRequestId() != null) {
+            openQuoteDiscussion(saved, me);
+            return;
+        }
         try {
             String amount = saved.getAmount() != null
                     ? saved.getAmount().stripTrailingZeros().toPlainString() : "?";
@@ -296,9 +331,9 @@ public class ServiceQuoteService {
      * l'acompte a regler quand il y en a un.</p>
      */
     private void announceApproval(ServiceQuote quote, Long orgId) {
-        if (quote.getInterventionId() == null) return;
+        if (quote.getInterventionId() == null || quote.getProviderUserId() == null) return;
         ContactThread thread = contactThreadService
-                .findByReference(orgId, "SERVICE_QUOTE_INTERVENTION", quote.getInterventionId())
+                .findByReference(orgId, QuoteDiscussionScope.referenceType(quote), QuoteDiscussionScope.referenceId(quote))
                 .orElse(null);
         if (thread == null) return;
 
@@ -309,10 +344,10 @@ public class ServiceQuoteService {
         boolean hasDeposit = quote.getDepositAmount() != null
                 && quote.getDepositAmount().compareTo(BigDecimal.ZERO) > 0;
 
-        StringBuilder reply = new StringBuilder("Merci pour votre validation. ");
+        StringBuilder reply = new StringBuilder("Le devis a été accepté. ");
         reply.append(hasDeposit
-                ? "Je bloque la date une fois l'acompte regle."
-                : "Je vous confirme mon intervention ; le reglement se fera une fois le travail termine.");
+                ? "L'acompte reste à régler. Consultez la mission pour suivre sa confirmation et son exécution."
+                : "Consultez la mission pour suivre sa confirmation et son exécution ; le règlement se fera une fois le travail terminé.");
 
         try {
             contactThreadService.post(thread, provider.getKeycloakId(), null,
@@ -367,6 +402,10 @@ public class ServiceQuoteService {
         }
         if (!type.isMaintenance()) return;
 
+        applyDepositRate(quote);
+    }
+
+    private void applyDepositRate(ServiceQuote quote) {
         BigDecimal percent = platformSettingsService.getOrDefault().getMaintenanceDepositPercent();
         if (percent == null || percent.compareTo(BigDecimal.ZERO) <= 0) return;
 
@@ -386,10 +425,12 @@ public class ServiceQuoteService {
      */
     private void openQuoteDiscussion(ServiceQuote quote, User provider) {
         if (quote.getInterventionId() == null) return;
+        discussionScope.lockPublication(quote);
         Intervention intervention = interventionRepository.findById(quote.getInterventionId()).orElse(null);
         if (intervention == null) return;
 
         Set<String> participants = new LinkedHashSet<>();
+        participants.addAll(discussionScope.members(quote.getProviderTeamId()));
         if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
             String ownerKeycloakId = intervention.getProperty().getOwner().getKeycloakId();
             if (ownerKeycloakId != null) participants.add(ownerKeycloakId);
@@ -409,7 +450,7 @@ public class ServiceQuoteService {
 
         ContactThread thread = contactThreadService.openThread(
                 quote.getOrganizationId(), subject, ContactMessageCategory.MAINTENANCE,
-                provider.getKeycloakId(), "SERVICE_QUOTE_INTERVENTION", quote.getInterventionId(),
+                provider.getKeycloakId(), QuoteDiscussionScope.referenceType(quote), QuoteDiscussionScope.referenceId(quote),
                 participants);
 
         contactThreadService.post(thread, provider.getKeycloakId(), subject,
@@ -528,6 +569,23 @@ public class ServiceQuoteService {
         return quoteRepository.save(quote);
     }
 
+    /** Le devis existe dès le chiffrage, sous le verrou de la demande. */
+    @Transactional
+    public ServiceQuote ensureMarketplaceQuote(com.clenzy.marketplace.model.MarketplaceQuoteRequest source) {
+        var request = marketplaceMissions.lock(source.getId(), source.getRequesterOrganizationId());
+        return quoteRepository.findMarketplaceQuote(request.getId(), request.getRequesterOrganizationId())
+                .orElseGet(() -> {
+                    if (request.getStatus() != com.clenzy.marketplace.model.QuoteRequestStatus.QUOTED)
+                        throw new IllegalStateException("Cette demande n'a pas de devis à décider");
+                    ServiceQuote quote = marketplaceMissions.draft(request);
+                    if (java.util.Set.of("MAINTENANCE", "LOCKSMITH", "REGULATORY").contains(
+                            java.util.Objects.toString(request.getCategoryCode(), ""))) applyDepositRate(quote);
+                    ServiceQuote saved = quoteRepository.save(quote);
+                    afterCommit(() -> publisher.publish(saved, null, (q, ignored) -> generateQuoteDocument(q)));
+                    return saved;
+                });
+    }
+
     /**
      * Produit le PDF du devis et retient sa generation sur le devis.
      *
@@ -557,7 +615,7 @@ public class ServiceQuoteService {
             DocumentGenerationDto generation = documentGeneratorService.generateDocument(request, null);
             if (generation != null && generation.id() != null) {
                 quote.setDocumentRef(String.valueOf(generation.id()));
-                quoteRepository.save(quote);
+                quoteRepository.attachDocument(quote.getId(), quote.getDocumentRef());
             }
         } catch (Exception e) {
             log.warn("Devis {} : generation du PDF impossible ({}) — le devis reste enregistre",
@@ -569,10 +627,14 @@ public class ServiceQuoteService {
     public void delete(Long id, Long orgId) {
         final ServiceQuote quote = quoteRepository.findByIdAndOrganizationId(id, orgId)
                 .orElseThrow(() -> new NotFoundException("Devis introuvable : " + id));
+        if (quote.getMarketplaceRequestId() != null)
+            throw new IllegalStateException("Refusez le devis marketplace pour conserver l'historique de la demande");
         if (quote.getStatus() == ServiceQuote.Status.APPROVED) {
             throw new IllegalStateException("Un devis approuvé ne se supprime pas — il se remplace");
         }
-        quoteRepository.delete(quote);
+        if (quoteRepository.deleteUnapproved(id, orgId) == 0) {
+            throw new IllegalStateException("Le devis a été approuvé entre-temps");
+        }
     }
 
     /**
@@ -590,6 +652,11 @@ public class ServiceQuoteService {
      * proprietaire du logement (regle audit n°2, validation d'ownership).</p>
      */
     private void assertCanDecide(ServiceQuote quote, Jwt jwt) {
+        if (quote.getMarketplaceRequestId() != null) {
+            var request = marketplaceMissions.lock(quote.getMarketplaceRequestId(), quote.getOrganizationId());
+            marketplaceMissions.assertCanDecide(request, quote.getOrganizationId(), jwt);
+            return;
+        }
         UserRole role = JwtRoleExtractor.extractUserRole(jwt);
         if (role != null && role.isPlatformStaff()) {
             return;
@@ -617,14 +684,20 @@ public class ServiceQuoteService {
      */
     @Transactional
     public ServiceQuote reject(Long id, Long orgId, Jwt jwt) {
+        return rejectMarketplace(id, orgId, jwt, null);
+    }
+
+    @Transactional
+    public ServiceQuote rejectMarketplace(Long id, Long orgId, Jwt jwt, String reason) {
         final ServiceQuote quote = quoteRepository.findByIdAndOrganizationId(id, orgId)
                 .orElseThrow(() -> new NotFoundException("Devis introuvable : " + id));
         assertCanDecide(quote, jwt);
-        if (quote.getStatus() != ServiceQuote.Status.RECEIVED) {
-            throw new IllegalStateException("Devis déjà " + quote.getStatus() + " — refus impossible");
+        if (quote.getMarketplaceRequestId() != null) marketplaceMissions.decide(quote, orgId, false, reason);
+        if (quoteRepository.markRejected(id, orgId) == 0) {
+            throw new IllegalStateException("Ce devis a déjà été traité — refus impossible");
         }
-        quote.setStatus(ServiceQuote.Status.REJECTED);
-        return quoteRepository.save(quote);
+        return quoteRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new NotFoundException("Devis introuvable : " + id));
     }
 
     @Transactional
@@ -650,6 +723,28 @@ public class ServiceQuoteService {
     }
 
     private ServiceQuote applyApproval(ServiceQuote quote, Long id, Long orgId, String approvedBy) {
+        return applyApproval(quote, id, orgId, approvedBy, false);
+    }
+
+    private ServiceQuote applyApproval(ServiceQuote quote, Long id, Long orgId, String approvedBy,
+                                       boolean publishQuote) {
+        if (quote.getValidUntil() != null && quote.getValidUntil().isBefore(java.time.LocalDate.now(clock))) {
+            throw new IllegalStateException("Ce devis a expiré");
+        }
+        if (quote.getMarketplaceRequestId() != null) {
+            Long missionId = marketplaceMissions.decide(quote, orgId, true, null).orElse(null);
+            if (quoteRepository.linkMarketplaceMission(id, orgId, missionId) != 1)
+                throw new IllegalStateException("Ce devis a déjà été traité");
+            quote.setInterventionId(missionId);
+            publishQuote = true;
+        }
+        if (quote.getInterventionId() != null) {
+            Intervention mission = requireOwnedIntervention(quote.getInterventionId(), orgId);
+            if (mission.getStatus() != com.clenzy.model.InterventionStatus.PENDING
+                    && mission.getStatus() != com.clenzy.model.InterventionStatus.AWAITING_VALIDATION) {
+                throw new IllegalStateException("Le travail a déjà commencé ou la mission est close ; ce devis ne peut plus être accepté.");
+            }
+        }
         if (quoteRepository.markApproved(id, orgId, approvedBy, clock.instant()) == 0) {
             throw new IllegalStateException("Devis déjà " + quote.getStatus()
                     + " — approbation impossible");
@@ -658,6 +753,15 @@ public class ServiceQuoteService {
             quoteRepository.rejectSiblings(quote.getInterventionId(), orgId, id);
             final Intervention intervention = requireOwnedIntervention(quote.getInterventionId(), orgId);
             intervention.setEstimatedCost(quote.getAmount());
+            intervention.setCurrency(quote.getCurrency());
+            if (quote.getProviderTeamId() != null) {
+                intervention.proposeAssignment(null, quote.getProviderTeamId());
+            } else if (quote.getProviderUserId() != null) {
+                User provider = userRepository.findById(quote.getProviderUserId())
+                        .orElseThrow(() -> new NotFoundException("Prestataire introuvable"));
+                intervention.proposeAssignment(provider, null);
+            }
+            allocationGuard.requireAvailable(intervention);
             interventionRepository.save(intervention);
         }
         // L'accord se memorise : c'est lui qui evite de redemander un devis a
@@ -692,10 +796,17 @@ public class ServiceQuoteService {
         // Effets APRES commit : ecrire dans la discussion pendant la
         // transaction d'approbation la remettrait en cause si l'ecriture
         // echoue (regle audit n°2).
-        final ServiceQuote approved = quote;
+        final boolean shouldPublishQuote = publishQuote;
+        final ServiceQuote approved = quoteRepository.findByIdAndOrganizationId(id, orgId).orElseThrow();
         afterCommit(() -> publisher.publish(approved, null,
-                (q, ignored) -> announceApproval(q, orgId)));
-        return quoteRepository.findByIdAndOrganizationId(id, orgId).orElse(quote);
+                (q, ignored) -> {
+                    if (shouldPublishQuote && q.getProviderUserId() != null) {
+                        User author = userRepository.findById(q.getProviderUserId()).orElseThrow();
+                        publishQuote(q, author, orgId);
+                    }
+                    announceApproval(q, orgId);
+                }));
+        return approved;
     }
 
     private Intervention requireOwnedIntervention(Long interventionId, Long orgId) {

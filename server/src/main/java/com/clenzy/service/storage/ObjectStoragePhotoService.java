@@ -70,6 +70,15 @@ public class ObjectStoragePhotoService implements PhotoStorageService {
     }
 
     @Override
+    public String storePlatformAsset(String namespace, byte[] data, String contentType,
+                                     String originalFilename) {
+        final String key = com.clenzy.service.PlatformAssetKeys.build(namespace);
+        client.put(key, data, contentType);
+        log.info("Stored platform asset in object storage: key={}, size={}", key, data.length);
+        return key;
+    }
+
+    @Override
     public byte[] retrieve(String storageKey) {
         return client.get(storageKey);
     }

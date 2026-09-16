@@ -106,7 +106,7 @@ class ICalImportServiceImportFlowTest {
 
         var canceller = new com.clenzy.service.ical.ICalReservationCanceller(
             reservationRepository2, interventionRepository, invoiceRepository,
-            serviceRequestRepository, calendarEngine);
+            serviceRequestRepository, calendarEngine, org.mockito.Mockito.mock(AutomaticInterventionCancellationPolicy.class));
         @SuppressWarnings("unchecked")
         org.springframework.beans.factory.ObjectProvider<ICalImportService> selfProvider =
             org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
@@ -121,7 +121,7 @@ class ICalImportServiceImportFlowTest {
             new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
             new com.clenzy.service.ical.ICalCleaningScheduler(
                 serviceRequestRepository,
-                new com.clenzy.service.pricing.CleaningPricingEngine(pricingConfigService, new com.fasterxml.jackson.databind.ObjectMapper(), org.mockito.Mockito.mock(com.clenzy.repository.HousekeeperRateRepository.class)),
+                new com.clenzy.service.pricing.CleaningPricingEngine(pricingConfigService, new com.fasterxml.jackson.databind.ObjectMapper(), org.mockito.Mockito.mock(com.clenzy.repository.ProviderTariffRepository.class)),
                 tenantContext),
             org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionActivityService.class),
             org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),

@@ -185,6 +185,18 @@ resilience4j:
 
 # ─── AI Module ────────────────────────────────────────────────────────────────
 clenzy:
+  retention:
+    purge:
+      # Politique métier validée : seule cette cible est configurée ici.
+      enabled: true
+      scheduler-enabled: true
+      dry-run-default: true
+      batch-size: 100
+      targets:
+        - name: marketplace-applications
+          description: Candidatures refusées et justificatifs
+          retention-days: 90
+          legal-basis: Politique Baitly de minimisation après notification du refus
   # Constellation d'agents — balayage autonome des logements.
   # Le déclenchement nominal est événementiel (arrivée d'un avis, d'une
   # réservation… → marquage « dirty » → scan du seul logement concerné) ; le

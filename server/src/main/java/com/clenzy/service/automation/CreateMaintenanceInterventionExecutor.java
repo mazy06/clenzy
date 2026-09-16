@@ -45,6 +45,7 @@ import java.util.List;
  * l'intervention terminee, un nouvel episode pourra en recreer une.</p>
  */
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class CreateMaintenanceInterventionExecutor implements AutomationActionExecutor {
 
     /**
@@ -77,12 +78,15 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
     private final com.clenzy.repository.UserRepository userRepository;
     private final com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository;
 
+    private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
+
     public CreateMaintenanceInterventionExecutor(SmartLockDeviceRepository deviceRepository,
                                                  InterventionRepository interventionRepository,
                                                  PropertyRepository propertyRepository,
                                                  NoiseAlertRepository noiseAlertRepository,
                                                  com.clenzy.repository.UserRepository userRepository,
-                                                 com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository) {
+                                                 com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository, com.clenzy.service.InterventionAllocationGuard allocationGuard) {
+        this.allocationGuard = allocationGuard;
         this.deviceRepository = deviceRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
@@ -150,6 +154,7 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                             ? " Niveau releve : " + device.getBatteryLevel() + "%." : ""),
                 marker + " Intervention validée depuis la constellation (batterie serrure).",
                 plan);
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
         return true;
     }
@@ -181,6 +186,7 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 plan);
         intervention.setType("PREVENTIVE_MAINTENANCE");
         intervention.setPriority("MEDIUM");
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
         return true;
     }
@@ -247,6 +253,7 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 marker + " Intervention generee automatiquement (batterie critique serrure connectee).",
                 null); // chemin automatique : aucun humain pour choisir
 
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
         log.info("Batterie critique serrure {} : intervention preventive #{} creee (propriete {}, prevue {})",
                 device.getId(), intervention.getId(), property.getId(), intervention.getScheduledDate());
@@ -297,6 +304,7 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 marker + " Intervention generee automatiquement (escalade alertes bruit).",
                 null); // chemin automatique : aucun humain pour choisir
 
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
         log.info("Escalade bruit propriete {} : intervention de verification #{} creee (prevue {})",
                 property.getId(), intervention.getId(), intervention.getScheduledDate());

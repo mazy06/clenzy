@@ -648,7 +648,7 @@ class EmailServiceTest {
             verify(mailSender).send(mimeMessage);
             assertThat(mimeMessage.getSubject()).contains("Invitation a rejoindre");
             assertThat(mimeMessage.getSubject()).contains("Mon Organisation");
-            // Rebrand Clenzy → Baitly : le subject reference desormais Baitly via
+            // Le sujet référence désormais Baitly via
             // le template DB (cf. migration 0155 seed invitation_organization).
             assertThat(mimeMessage.getSubject()).contains("Baitly");
             assertThat(mimeMessage.getAllRecipients()[0].toString()).contains("invite@example.com");
@@ -933,7 +933,7 @@ class EmailServiceTest {
                     "HOST", "https://app.clenzy.fr/login");
 
             verify(mailSender).send(mimeMessage);
-            assertThat(mimeMessage.getSubject()).contains("Bienvenue sur Clenzy");
+            assertThat(mimeMessage.getSubject()).contains("Bienvenue sur Baitly");
             assertThat(mimeMessage.getAllRecipients()[0].toString()).contains("new@example.com");
         }
 

@@ -575,7 +575,7 @@ class StripeWebhookControllerTest {
                 ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService).markGroupedPaymentAsFailed("5,6");
+                verify(stripeService).markGroupedPaymentAsFailed("sess_gf", "5,6");
             }
         }
 

@@ -45,15 +45,18 @@ public class PaymentPersistence {
     private final OutboxPublisher outboxPublisher;
     private final ObjectMapper objectMapper;
     private final DepositReconciler depositReconciler;
+    private final InterventionPaymentCoordination interventionPayments;
 
     public PaymentPersistence(PaymentTransactionRepository transactionRepository,
                               OutboxPublisher outboxPublisher,
                               ObjectMapper objectMapper,
-                              DepositReconciler depositReconciler) {
+                              DepositReconciler depositReconciler,
+                              InterventionPaymentCoordination interventionPayments) {
         this.transactionRepository = transactionRepository;
         this.outboxPublisher = outboxPublisher;
         this.objectMapper = objectMapper;
         this.depositReconciler = depositReconciler;
+        this.interventionPayments = interventionPayments;
     }
 
     // ─── Initiation ───────────────────────────────────────────────────────────
@@ -90,6 +93,7 @@ public class PaymentPersistence {
     @Transactional
     public PaymentTransaction createPending(Long orgId, PaymentProviderType providerType,
                                             PaymentOrchestrationRequest request, String idempotencyKey) {
+        interventionPayments.lockPaymentMissions(orgId, request);
         PaymentTransaction tx = new PaymentTransaction();
         tx.setOrganizationId(orgId);
         tx.setTransactionRef("TX-" + UUID.randomUUID().toString().substring(0, 12));
@@ -146,6 +150,7 @@ public class PaymentPersistence {
         if (!originalTx.getOrganizationId().equals(orgId)) {
             throw new RuntimeException("Transaction not found: " + originalTransactionRef);
         }
+        interventionPayments.requireRefundOutsideCancellationCase(originalTx);
         PaymentTransaction refundTx = new PaymentTransaction();
         refundTx.setOrganizationId(orgId);
         refundTx.setTransactionRef("REF-" + UUID.randomUUID().toString().substring(0, 8));

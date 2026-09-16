@@ -54,9 +54,8 @@ class UserOnboardingServiceTest {
     @Mock private PaymentMethodConfigRepository paymentMethodConfigRepository;
     @Mock private ICalFeedRepository icalFeedRepository;
     @Mock private ProviderDocumentService providerDocumentService;
-    @Mock private PersonalTeamService personalTeamService;
-    @Mock private com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository;
-    @Mock private com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository;
+    @Mock private com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones;
+    @Mock private com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository;
 
     private UserOnboardingService service;
 
@@ -71,8 +70,8 @@ class UserOnboardingServiceTest {
                 organizationMemberRepository, fiscalProfileRepository,
                 propertyRepository, notificationPreferenceRepository,
                 messagingAutomationConfigRepository, paymentMethodConfigRepository,
-                icalFeedRepository, providerDocumentService, personalTeamService,
-                teamCoverageZoneRepository, weeklyAvailabilityRepository);
+                icalFeedRepository, providerDocumentService,
+                providerZones, weeklyAvailabilityRepository);
     }
 
     private User buildUser(String firstName, String lastName, String phone) {

@@ -58,6 +58,19 @@ const TeamEdit = lazy(() => import('./teams/TeamEdit'));
 // Directory (Annuaire — merged Teams + Portfolios + Guests)
 const DirectoryPage = lazy(() => import('./directory/DirectoryPage'));
 
+// Place de marché des professionnels (équipe plateforme uniquement)
+const MarketplaceProvidersPage = lazy(() => import('./marketplace/MarketplaceProvidersPage'));
+// Catalogue vu par une ORGANISATION : sans coordonnees, sans etat de
+// moderation. Distinct de /marketplace/providers, reserve a la plateforme.
+const ProviderCatalogPage = lazy(() => import('./provider-catalog/ProviderCatalogPage'));
+const ProviderCatalogDetailPage = lazy(() => import('./provider-catalog/ProviderCatalogDetailPage'));
+// Devis : les deux cotes. `/devis` pour ce que l'organisation a demande,
+// `/devis/recus` pour ce qui est adresse a la fiche du compte connecte.
+const SentQuotesPage = lazy(() => import('./quotes/SentQuotesPage'));
+const ReceivedQuotesPage = lazy(() => import('./quotes/ReceivedQuotesPage'));
+const MarketplaceProviderDetailPage = lazy(() => import('./marketplace/MarketplaceProviderDetailPage'));
+const MarketplaceAccountReconciliationPage = lazy(() => import('./marketplace/MarketplaceAccountReconciliationPage'));
+
 // Reports
 const Reports = lazy(() => import('./reports/Reports'));
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -361,6 +374,45 @@ const AuthenticatedApp: React.FC = () => {
 
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
+
+        {/* Place de marché — tables PLATEFORME, sans cloisonnement par
+            organisation : l'accès se décide sur le RÔLE et non sur une
+            permission, qu'un compte client pourrait recevoir. Le serveur
+            applique la même règle (SecurityConfigProd + @PreAuthorize) ; ce
+            garde n'est que la moitié visible. */}
+        <Route path="/marketplace/providers" element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER']}>
+            <MarketplaceProvidersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/marketplace/providers/:id" element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER']}>
+            <MarketplaceProviderDetailPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/marketplace" element={<Navigate to="/marketplace/providers" replace />} />
+        <Route path="/marketplace/account-reconciliation/:providerId" element={<MarketplaceAccountReconciliationPage />} />
+
+        {/* Catalogue vu par une ORGANISATION. Pas de `requiredRoles` : un
+            technicien comme un gestionnaire ont des raisons légitimes de
+            consulter les prestataires de leur organisation. Ce qui borne la
+            vue, c'est l'organisation — résolue par le serveur, jamais par
+            l'écran. */}
+        <Route path="/prestataires" element={
+          <ProtectedRoute><ProviderCatalogPage /></ProtectedRoute>
+        } />
+        <Route path="/prestataires/:id" element={
+          <ProtectedRoute><ProviderCatalogDetailPage /></ProtectedRoute>
+        } />
+        <Route path="/devis" element={
+          <ProtectedRoute><SentQuotesPage /></ProtectedRoute>
+        } />
+        {/* L'acces est borne par le SERVEUR : un compte sans fiche prestataire
+            recoit un refus, et l'ecran le dit. Un `requiredRoles` ici serait
+            faux — c'est le rattachement a une fiche qui compte, pas le role. */}
+        <Route path="/devis/recus" element={
+          <ProtectedRoute><ReceivedQuotesPage /></ProtectedRoute>
+        } />
         {/* Backward-compat redirects for old URLs */}
         <Route path="/guests" element={<Navigate to="/directory?tab=guests" replace />} />
 

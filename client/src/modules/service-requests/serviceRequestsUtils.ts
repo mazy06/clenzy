@@ -12,6 +12,7 @@ import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } fro
 
 export interface ServiceRequest {
   id: string;
+  version?: number;
   title: string;
   description: string;
   type: string;
@@ -48,6 +49,7 @@ export interface AssignUser {
 
 export interface ServiceRequestApiResponse {
   id: number;
+  version?: number;
   title: string;
   description: string;
   type?: string;

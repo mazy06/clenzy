@@ -19,6 +19,7 @@ export const serviceRequestsListKeys = {
 function convertServiceRequest(req: ServiceRequestApiResponse): ServiceRequest {
   return {
     id: req.id.toString(),
+    version: req.version,
     title: req.title,
     description: req.description,
     type: req.type?.toLowerCase() || req.serviceType?.toLowerCase() || 'other',

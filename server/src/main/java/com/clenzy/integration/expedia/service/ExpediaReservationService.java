@@ -37,6 +37,7 @@ import java.util.Optional;
  * Suit le meme pattern que AirbnbReservationService.
  */
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class ExpediaReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(ExpediaReservationService.class);
@@ -49,11 +50,17 @@ public class ExpediaReservationService {
     private final ExpediaWebhookService webhookService;
     private final AuditLogService auditLogService;
 
+    private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
+    private final com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy;
+
     public ExpediaReservationService(ChannelMappingRepository channelMappingRepository,
                                      InterventionRepository interventionRepository,
                                      PropertyRepository propertyRepository,
                                      ExpediaWebhookService webhookService,
-                                     AuditLogService auditLogService) {
+                                     AuditLogService auditLogService, com.clenzy.service.InterventionAllocationGuard allocationGuard,
+                                     com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy) {
+        this.cancellationPolicy = cancellationPolicy;
+        this.allocationGuard = allocationGuard;
         this.channelMappingRepository = channelMappingRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
@@ -116,7 +123,7 @@ public class ExpediaReservationService {
             return;
         }
         if (mappingOpt.isEmpty()) {
-            log.warn("Propriete Expedia {} non liee a une propriete Clenzy, evenement ignore",
+            log.warn("Propriete Expedia {} non liee a une propriete Baitly, evenement ignore",
                     expediaPropertyId);
             return;
         }
@@ -124,7 +131,7 @@ public class ExpediaReservationService {
         ChannelMapping mapping = mappingOpt.get();
         Property property = propertyRepository.findById(mapping.getInternalId()).orElse(null);
         if (property == null) {
-            log.warn("Propriete Clenzy {} introuvable pour mapping Expedia", mapping.getInternalId());
+            log.warn("Propriete Baitly {} introuvable pour mapping Expedia", mapping.getInternalId());
             return;
         }
 
@@ -185,6 +192,7 @@ public class ExpediaReservationService {
                             estimateCleaningDuration(mapping.getInternalId(), guestCount).intValue());
                 }
 
+                allocationGuard.requireAvailable(intervention);
                 interventionRepository.save(intervention);
 
                 log.info("Intervention {} mise a jour suite a modification reservation Expedia {}",
@@ -226,8 +234,15 @@ public class ExpediaReservationService {
             if (intervention.getSpecialInstructions() != null
                     && intervention.getSpecialInstructions().contains(reservationId)
                     && !"CANCELLED".equals(intervention.getStatus().name())) {
+                String blocker = cancellationPolicy.blocker(intervention);
+                if (blocker != null) {
+                    auditLogService.logSync("ExpediaReservation", reservationId,
+                            "Mission #" + intervention.getId() + " conservée : " + blocker);
+                    continue;
+                }
 
                 intervention.setStatus(InterventionStatus.CANCELLED);
+                allocationGuard.requireAvailable(intervention);
                 interventionRepository.save(intervention);
 
                 log.info("Intervention {} annulee suite a annulation reservation Expedia {}",
@@ -236,7 +251,7 @@ public class ExpediaReservationService {
         }
 
         auditLogService.logSync("ExpediaReservation", reservationId,
-                "Reservation Expedia/VRBO annulee — interventions liees annulees");
+                "Reservation Expedia/VRBO annulee ; les missions engagées nécessitent une décision distincte");
     }
 
     // ================================================================
@@ -290,6 +305,7 @@ public class ExpediaReservationService {
             intervention.setRequestor(property.getOwner());
         }
 
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
 
         log.info("Intervention de menage #{} auto-generee pour propriete {} (reservation {} {})",

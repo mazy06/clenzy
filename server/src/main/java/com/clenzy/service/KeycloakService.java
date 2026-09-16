@@ -142,22 +142,46 @@ public class KeycloakService {
 
             logger.info("✅ Utilisateur créé dans Keycloak: {}", userId);
 
-            // Étape 2 : Définir le mot de passe
-            withTokenRetryVoid(() -> {
-                CredentialRepresentation credential = new CredentialRepresentation();
-                credential.setType(CredentialRepresentation.PASSWORD);
-                credential.setValue(createUserDto.getPassword());
-                credential.setTemporary(false);
+            // Les étapes suivantes sont compensées : sans cela, un échec après
+            // l'étape 1 laisse un compte Keycloak ORPHELIN qui garde l'adresse
+            // et fait échouer toutes les tentatives suivantes — sans que rien
+            // ne dise pourquoi.
+            try {
+                // Étape 2 : Définir le mot de passe, S'IL Y EN A UN.
+                //
+                // Un mot de passe absent est un cas légitime : certains parcours
+                // créent le compte et laissent Keycloak inviter la personne à
+                // en choisir un. Envoyer une valeur nulle ici faisait répondre
+                // 400 à Keycloak, après création — d'où l'orphelin.
+                if (createUserDto.getPassword() != null && !createUserDto.getPassword().isBlank()) {
+                    withTokenRetryVoid(() -> {
+                        CredentialRepresentation credential = new CredentialRepresentation();
+                        credential.setType(CredentialRepresentation.PASSWORD);
+                        credential.setValue(createUserDto.getPassword());
+                        credential.setTemporary(false);
 
-                keycloak.realm(realm)
-                    .users()
-                    .get(userId)
-                    .resetPassword(credential);
-            }, "setPassword");
+                        keycloak.realm(realm)
+                            .users()
+                            .get(userId)
+                            .resetPassword(credential);
+                    }, "setPassword");
+                } else {
+                    logger.info("Compte {} créé sans mot de passe : il sera défini par la personne", userId);
+                }
 
-            // Étape 3 : Assigner le rôle par défaut
-            if (createUserDto.getRole() != null) {
-                assignRoleToUser(userId, createUserDto.getRole());
+                // Étape 3 : Assigner le rôle par défaut
+                if (createUserDto.getRole() != null) {
+                    assignRoleToUser(userId, createUserDto.getRole());
+                }
+            } catch (RuntimeException e) {
+                logger.error("❌ Compte {} incomplet, retrait pour ne pas bloquer l'adresse", userId, e);
+                try {
+                    keycloak.realm(realm).users().get(userId).remove();
+                } catch (Exception cleanup) {
+                    logger.error("❌ Compte Keycloak {} orphelin — à supprimer à la main : {}",
+                        userId, cleanup.getMessage());
+                }
+                throw e;
             }
 
             return userId;
@@ -169,9 +193,86 @@ public class KeycloakService {
         }
     }
 
-    /**
-     * Mettre à jour un utilisateur dans Keycloak
-     */
+    /** Attribut réservé au provisionnement serveur ; à autoriser uniquement au contexte administrateur. */
+    private static final String MARKETPLACE_OPERATION = "baitly_marketplace_operation";
+
+    /** Création reprenable : ne reprend que le compte portant la preuve de cette opération serveur. */
+    @CircuitBreaker(name = "keycloak-admin")
+    public String createMarketplaceUser(CreateUserDto request, String operationKey) {
+        // La clé est générée en base, jamais choisie par un candidat ou un appelant HTTP.
+        java.util.UUID.fromString(operationKey);
+        if (request.getPassword() != null) {
+            throw new IllegalArgumentException("Le provisionnement marketplace ne définit pas de mot de passe");
+        }
+        String existing = findMarketplaceIdentity(request.getEmail(), operationKey);
+        String id = existing;
+        if (id == null) {
+            UserRepresentation user = new UserRepresentation();
+            user.setUsername(request.getEmail());
+            user.setEmail(request.getEmail());
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEnabled(true);
+            user.setEmailVerified(false);
+            user.setAttributes(java.util.Map.of(MARKETPLACE_OPERATION, List.of(operationKey)));
+            id = withTokenRetry(() -> {
+                try (Response response = keycloak.realm(realm).users().create(user)) {
+                    if (response.getStatus() == 201) return CreatedResponseUtil.getCreatedId(response);
+                    if (response.getStatus() == 409) {
+                        String recovered = findMarketplaceIdentity(request.getEmail(), operationKey);
+                        if (recovered != null) return recovered;
+                    }
+                    throw new KeycloakOperationException("Création marketplace non confirmée : HTTP " + response.getStatus());
+                }
+            }, "createMarketplaceUser");
+            String createdId = id;
+            var persisted = withTokenRetry(() -> keycloak.realm(realm).users().get(createdId).toRepresentation(),
+                    "verifyMarketplaceIdentity");
+            if (persisted == null || !createdId.equals(persisted.getId())
+                    || !matchesMarketplaceIdentity(persisted, request.getEmail(), operationKey)) {
+                throw new KeycloakOperationException("Keycloak n'a pas conservé la preuve de provisionnement ; vérifier le profil utilisateur");
+            }
+        }
+        // Cette étape est idempotente. En cas d'échec, conserver la preuve pour la prochaine reprise.
+        if (request.getRole() != null) assignRoleToUser(id, request.getRole());
+        return id;
+    }
+
+    private String findMarketplaceIdentity(String email, String operationKey) {
+        List<UserRepresentation> matches = withTokenRetry(
+                () -> keycloak.realm(realm).users().searchByEmail(email, true), "findMarketplaceIdentity");
+        if (matches == null) throw new KeycloakOperationException("Recherche d'identité indisponible");
+        if (matches.isEmpty()) return null;
+        if (matches.size() == 1) {
+            UserRepresentation match = matches.get(0);
+            if (matchesMarketplaceIdentity(match, email, operationKey)) {
+                return match.getId();
+            }
+        }
+        throw new KeycloakOperationException("Un compte existe sans preuve de ce provisionnement ; réconciliation requise");
+    }
+
+    /** Vérifie une session propriétaire contre l'identité distante actuelle, sans rapprochement par email seul. */
+    public void verifyMarketplaceAccountOwner(String subject, String email) {
+        var user = withTokenRetry(() -> keycloak.realm(realm).users().get(subject).toRepresentation(),
+            "verifyMarketplaceAccountOwner");
+        var matches = withTokenRetry(() -> keycloak.realm(realm).users().searchByEmail(email, true),
+            "verifyMarketplaceAccountUniqueness");
+        if (user == null || !subject.equals(user.getId()) || !Boolean.TRUE.equals(user.isEnabled())
+            || !Boolean.TRUE.equals(user.isEmailVerified()) || !email.equalsIgnoreCase(user.getEmail())
+            || matches == null || matches.size() != 1 || !subject.equals(matches.getFirst().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Identité du prestataire non confirmée");
+        }
+    }
+
+    private boolean matchesMarketplaceIdentity(UserRepresentation user, String email, String operationKey) {
+        var attributes = user.getAttributes();
+        return user.getId() != null && email.equalsIgnoreCase(user.getEmail())
+                && email.equalsIgnoreCase(user.getUsername()) && Boolean.TRUE.equals(user.isEnabled())
+                && attributes != null && List.of(operationKey).equals(attributes.get(MARKETPLACE_OPERATION));
+    }
+
+    /** Mettre à jour un utilisateur dans Keycloak. */
     @CircuitBreaker(name = "keycloak-admin")
     public void updateUser(String externalId, UpdateUserDto updateUserDto) {
         try {
@@ -288,10 +389,23 @@ public class KeycloakService {
     public void assignRoleToUser(String externalId, String roleName) {
         try {
             withTokenRetryVoid(() -> {
+                // Le role est resolu par la LISTE, et non par
+                // `roles().get(nom).toRepresentation()`.
+                //
+                // Pourquoi : sur le Keycloak 24.0.5 de l'environnement,
+                // `GET /admin/realms/{realm}/roles/{nom}` repond 404 pour TOUS
+                // les roles — y compris ceux que `GET .../roles` renvoie juste
+                // apres. L'assignation echouait donc systematiquement, quel que
+                // soit le parcours. `roles().list()` et `roles-by-id` repondent,
+                // eux, correctement.
                 RoleRepresentation role = keycloak.realm(realm)
                     .roles()
-                    .get(roleName)
-                    .toRepresentation();
+                    .list()
+                    .stream()
+                    .filter(r -> roleName.equals(r.getName()))
+                    .findFirst()
+                    .orElseThrow(() -> new KeycloakOperationException(
+                        "Role introuvable dans le realm : " + roleName));
 
                 keycloak.realm(realm)
                     .users()

@@ -63,7 +63,9 @@ public class InterventionActionContextService {
                         intervention.getScheduledDate(),
                         intervention.getEstimatedDurationHours(),
                         intervention.getType(),
-                        orgId),
+                        orgId,
+                        intervention.getServiceRequest() == null ? null : intervention.getServiceRequest().getId(),
+                        intervention.getId()),
                 InterventionTypeMatcher.requiredTeamType(intervention.getType()));
     }
 

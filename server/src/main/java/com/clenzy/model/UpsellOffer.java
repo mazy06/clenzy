@@ -30,9 +30,16 @@ public class UpsellOffer {
     @Column(name = "property_id")
     private Long propertyId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private UpsellType type = UpsellType.OTHER;
+    /**
+     * Code d'un {@link UpsellTypeDef}.
+     *
+     * <p>Une CHAINE et non une association : le referentiel s'enrichit sans
+     * deploiement, et une offre doit survivre au retrait de son type. Sur un
+     * livret deja diffuse, une offre qui s'evapore parce que son type a ete
+     * desactive est pire qu'une offre au libelle technique.</p>
+     */
+    @Column(nullable = false, length = 60)
+    private String type = UpsellTypes.OTHER;
 
     @Column(nullable = false, length = 200)
     private String title;
@@ -90,8 +97,8 @@ public class UpsellOffer {
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
     public Long getPropertyId() { return propertyId; }
     public void setPropertyId(Long propertyId) { this.propertyId = propertyId; }
-    public UpsellType getType() { return type; }
-    public void setType(UpsellType type) { this.type = type; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }

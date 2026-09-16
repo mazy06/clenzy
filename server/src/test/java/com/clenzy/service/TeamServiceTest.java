@@ -42,6 +42,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,6 +67,7 @@ class TeamServiceTest {
     private com.clenzy.service.UserAvatarUrlResolver avatarUrls;
 
     private TenantContext tenantContext;
+    @Mock private com.clenzy.repository.ServiceRequestRepository assignments;
     private TeamService teamService;
 
     private static final Long ORG_ID = 1L;
@@ -73,6 +75,7 @@ class TeamServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(assignments.findTeamForCompositionMutation(any())).thenAnswer(i -> teamRepository.findById(i.getArgument(0)));
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
 
@@ -83,11 +86,64 @@ class TeamServiceTest {
                 managerTeamRepository,
                 notificationService,
                 tenantContext,
-                avatarUrls
-        );
+                avatarUrls,
+                assignments);
+    }
+
+    @Test
+    void activeAssignmentsPreventChangingMembersBeforeAnyWrite() {
+        var team = buildTeam(1L, "Team");
+        when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+        when(assignments.teamHasActiveAssignments(1L)).thenReturn(true);
+        var dto = new TeamDto();
+        var member = new TeamDto.TeamMemberDto(); member.userId = 9L;
+        dto.members = List.of(member);
+        assertThatThrownBy(() -> teamService.update(1L, dto))
+                .isInstanceOf(com.clenzy.exception.TeamCompositionConflictException.class);
+        verify(teamRepository, never()).save(any());
+        verifyNoInteractions(userRepository, notificationService);
+        assertThat(team.getMembers()).isEmpty();
+    }
+
+    @Test
+    void activeAssignmentsPreventDeletingTeam() {
+        when(teamRepository.findById(1L)).thenReturn(Optional.of(buildTeam(1L, "Team")));
+        when(assignments.teamHasActiveAssignments(1L)).thenReturn(true);
+        assertThatThrownBy(() -> teamService.delete(1L))
+                .isInstanceOf(com.clenzy.exception.TeamCompositionConflictException.class);
+        verify(teamRepository, never()).deleteById(any());
+        verifyNoInteractions(notificationService);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    @Test
+    void otherOrganizationCannotModifyOrDeleteLockedTeam() {
+        var team = buildTeam(1L, "Other organization");
+        team.setOrganizationId(2L);
+        when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+        assertThatThrownBy(() -> teamService.update(1L, new TeamDto()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        assertThatThrownBy(() -> teamService.delete(1L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(assignments, never()).teamHasActiveAssignments(any());
+        verify(teamRepository, never()).save(any());
+        verify(teamRepository, never()).deleteById(any());
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    void unchangedMembershipAllowsRenamingWithoutAssignmentCheck() {
+        var team = buildTeam(1L, "Old name");
+        var user = buildUser(9L, "Member", "Test", "member@test.com");
+        team.getMembers().add(new TeamMember(team, user, "MEMBER"));
+        when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+        when(userRepository.findById(9L)).thenReturn(Optional.of(user));
+        when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        var dto = buildTeamDto("New name", List.of(buildMemberDto(9L, "MEMBER")), null);
+        assertThat(teamService.update(1L, dto).name).isEqualTo("New name");
+        verify(assignments, never()).teamHasActiveAssignments(any());
+    }
 
     private Jwt buildJwtWithRole(String role) {
         return Jwt.withTokenValue("mock-token")
@@ -639,7 +695,7 @@ class TeamServiceTest {
 
         @Test
         void delete_notFound_throwsNotFoundException() {
-            when(teamRepository.existsById(77L)).thenReturn(false);
+            when(teamRepository.findById(77L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> teamService.delete(77L))
                     .isInstanceOf(NotFoundException.class)
@@ -648,7 +704,7 @@ class TeamServiceTest {
 
         @Test
         void delete_exists_deletesAndNotifies() {
-            when(teamRepository.existsById(1L)).thenReturn(true);
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(buildTeam(1L, "Team")));
 
             teamService.delete(1L);
 
@@ -659,7 +715,7 @@ class TeamServiceTest {
 
         @Test
         void delete_notificationFailure_doesNotPreventDeletion() {
-            when(teamRepository.existsById(1L)).thenReturn(true);
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(buildTeam(1L, "Team")));
             org.mockito.Mockito.doThrow(new RuntimeException("Kafka down"))
                     .when(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
 

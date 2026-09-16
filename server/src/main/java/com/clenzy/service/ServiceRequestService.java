@@ -29,13 +29,11 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
 import com.clenzy.model.NotificationKey;
-import com.clenzy.config.KafkaConfig;
 import com.clenzy.service.pricing.CleaningPricingEngine;
 import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.InterventionTypeMatcher;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -61,6 +59,7 @@ public class ServiceRequestService {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceRequestService.class);
     public static final int MAX_AUTO_ASSIGN_RETRIES = 10;
+    public static final String MANUAL_ASSIGNMENT_HOLD = "manual_hold";
 
     /** Prefixe de la cle d'idempotence des menages auto post-checkout (fiche 08, F1a). */
     public static final String AUTO_CLEANING_KEY_PREFIX = "AUTO_CLEANING";
@@ -74,7 +73,7 @@ public class ServiceRequestService {
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
     private final PropertyTeamService propertyTeamService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final DocumentGenerationOutbox documentOutbox;
     private final TenantContext tenantContext;
     private final ServiceRequestMapper serviceRequestMapper;
     private final AssignmentEventRepository assignmentEventRepository;
@@ -88,6 +87,9 @@ public class ServiceRequestService {
     private final com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
     private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
+    private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
+    private final ServiceRequestCancellationCoordination cancellationCoordination;
+
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                   UserRepository userRepository,
                                   PropertyRepository propertyRepository,
@@ -96,7 +98,7 @@ public class ServiceRequestService {
                                   TeamRepository teamRepository,
                                   NotificationService notificationService,
                                   PropertyTeamService propertyTeamService,
-                                  KafkaTemplate<String, Object> kafkaTemplate,
+                                  DocumentGenerationOutbox documentOutbox,
                                   TenantContext tenantContext,
                                   ServiceRequestMapper serviceRequestMapper,
                                   AssignmentEventRepository assignmentEventRepository,
@@ -108,7 +110,10 @@ public class ServiceRequestService {
                                   @org.springframework.context.annotation.Lazy
                                   com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService,
                                   com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate,
-                                  com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
+                                  com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard, com.clenzy.service.InterventionAllocationGuard allocationGuard,
+                                  ServiceRequestCancellationCoordination cancellationCoordination) {
+        this.cancellationCoordination = cancellationCoordination;
+        this.allocationGuard = allocationGuard;
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -117,7 +122,7 @@ public class ServiceRequestService {
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
         this.propertyTeamService = propertyTeamService;
-        this.kafkaTemplate = kafkaTemplate;
+        this.documentOutbox = documentOutbox;
         this.tenantContext = tenantContext;
         this.serviceRequestMapper = serviceRequestMapper;
         this.assignmentEventRepository = assignmentEventRepository;
@@ -141,9 +146,25 @@ public class ServiceRequestService {
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
+        return createWithFlowKey(dto, null);
+    }
+
+    /** Réutilise le parcours PMS, dans la transaction de l'échéancier. */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Long createRecurringRequest(ServiceRequestDto dto, Long sourceQuoteId) {
+        String key = "MARKETPLACE_RECURRENCE:" + sourceQuoteId + ":" + dto.desiredDate.toLocalDate();
+        serviceRequestRepository.acquireAutoFlowKeyLock(key);
+        var existing = serviceRequestRepository.findByAutoFlowKey(key, tenantContext.getRequiredOrganizationId());
+        if (existing.isPresent()) return existing.get().getId();
+        return createWithFlowKey(dto, key).id;
+    }
+
+    private ServiceRequestDto createWithFlowKey(ServiceRequestDto dto, String flowKey) {
         ServiceRequest entity = new ServiceRequest();
         serviceRequestMapper.apply(dto, entity);
+        entity.setAutoFlowKey(flowKey);
         entity.setOrganizationId(tenantContext.getRequiredOrganizationId());
+        if (entity.getAssignedToId() != null) requireAvailableAssignment(entity, entity.getAssignedToId(), entity.getAssignedToType());
         entity = serviceRequestRepository.save(entity);
 
         try {
@@ -168,7 +189,7 @@ public class ServiceRequestService {
      * Remet la SR en PENDING pour reassignation.
      */
     public ServiceRequestDto refuse(Long serviceRequestId) {
-        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+        ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
 
@@ -263,7 +284,7 @@ public class ServiceRequestService {
      * @return true si la demande est assignée (déjà ou suite à cette tentative)
      */
     public boolean retryAutoAssignForSupervision(Long organizationId, Long serviceRequestId) {
-        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+        ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         // findById contourne le filtre org (règle audit n°3) → garde explicite.
         if (organizationId == null || !organizationId.equals(sr.getOrganizationId())) {
@@ -307,7 +328,8 @@ public class ServiceRequestService {
         return new PropertyTeamService.AssignableTeams(
                 propertyTeamService.findAssignableTeams(
                         sr.getProperty().getId(), date, sr.getEstimatedDurationHours(),
-                        serviceType, sr.getOrganizationId()),
+                        serviceType, sr.getOrganizationId(), sr.getId(),
+                        null),
                 requiredTeamType);
     }
 
@@ -324,7 +346,7 @@ public class ServiceRequestService {
      * réservé au staff plateforme.</p>
      */
     public ServiceRequestDto cancel(Long serviceRequestId, String reason) {
-        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+        ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
 
@@ -333,6 +355,8 @@ public class ServiceRequestService {
                     "Une demande " + sr.getStatus() + " ne peut plus etre annulee.");
         }
 
+        var linkedMission = cancellationCoordination.requireLegacyCancellationAllowed(sr);
+        if (linkedMission != null) linkedMission.setStatus(InterventionStatus.CANCELLED);
         sr.setStatus(RequestStatus.CANCELLED);
         // La recherche d'équipe s'arrête avec elle : sans ce reset, le scheduler
         // continuerait de la compter dans ses tentatives.
@@ -373,9 +397,10 @@ public class ServiceRequestService {
         if (desiredDate == null) {
             throw new IllegalArgumentException("Une date d'intervention est requise.");
         }
-        ServiceRequest previous = serviceRequestRepository.findById(serviceRequestId)
+        ServiceRequest previous = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(previous);
+        cancellationCoordination.requireLegacyCancellationAllowed(previous);
 
         ServiceRequest next = new ServiceRequest();
         next.setOrganizationId(previous.getOrganizationId());
@@ -399,7 +424,7 @@ public class ServiceRequestService {
         next = serviceRequestRepository.save(next);
 
         // Le prestataire choisi vaut assignation : la demande part directement en
-        // attente de paiement, sans repasser par la recherche automatique.
+        // état ASSIGNED, sans repasser par la recherche automatique.
         if (assignedToId != null && assignedToType != null) {
             manualAssign(next.getId(), assignedToId, assignedToType);
             next = serviceRequestRepository.findById(next.getId()).orElse(next);
@@ -418,8 +443,51 @@ public class ServiceRequestService {
     /**
      * Assignation manuelle par un admin/manager.
      */
+    private Optional<Long> findUnreservedTeam(ServiceRequest request, Long orgId, boolean explicitOrganization) {
+        String type = request.getServiceType() != null ? request.getServiceType().name() : null;
+        Optional<Long> candidate = explicitOrganization
+                ? propertyTeamService.findAvailableTeamForProperty(request.getProperty().getId(), request.getDesiredDate(),
+                    request.getEstimatedDurationHours(), type, orgId)
+                : propertyTeamService.findAvailableTeamForProperty(request.getProperty().getId(), request.getDesiredDate(),
+                    request.getEstimatedDurationHours(), type);
+        var excluded = new java.util.HashSet<Long>();
+        while (candidate.isPresent() && excluded.add(candidate.get())) {
+            if (!serviceRequestRepository.assignmentConflicts(request.getId(), "team", candidate.get(),
+                    request.getDesiredDate(), request.getEstimatedDurationHours())
+                    && allocationGuard.isTeamDeclaredAvailable(candidate.get(), request.getDesiredDate(),
+                        request.getEstimatedDurationHours())) {
+                try { allocationGuard.requirePropertyAllowed("team",candidate.get(),request.getProperty()); return candidate; }
+                catch (com.clenzy.exception.AssignmentConflictException incompatible) { /* Essayer la prochaine équipe. */ }
+            }
+            candidate = propertyTeamService.findAvailableTeamForProperty(request.getProperty().getId(),
+                    request.getDesiredDate(), request.getEstimatedDurationHours(), type, orgId, excluded);
+        }
+        return Optional.empty();
+    }
+
+    private void requireAvailableAssignment(ServiceRequest request, Long targetId, String targetType) {
+        if (serviceRequestRepository.assignmentConflicts(request.getId(), targetType, targetId,
+                request.getDesiredDate(), request.getEstimatedDurationHours())) {
+            throw new com.clenzy.exception.AssignmentConflictException();
+        }
+        allocationGuard.requirePropertyAllowed(targetType, targetId, request.getProperty());
+        if ("team".equals(targetType) && !allocationGuard.isTeamDeclaredAvailable(targetId,
+                request.getDesiredDate(), request.getEstimatedDurationHours())) {
+            throw new com.clenzy.exception.AssignmentConflictException(
+                    "L'équipe est indisponible sur ce créneau. Choisissez un autre créneau ou prestataire.");
+        }
+        if ("user".equals(targetType) && !allocationGuard.isUserDeclaredAvailable(targetId,
+                request.getDesiredDate(), request.getEstimatedDurationHours())) {
+            throw new com.clenzy.exception.AssignmentConflictException("Le prestataire est indisponible sur ce créneau.");
+        }
+        allocationGuard.requireDocumentaryAssignment(request, targetType, targetId);
+    }
+
     public ServiceRequestDto manualAssign(Long serviceRequestId, Long assignedToId, String assignedToType) {
-        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+        if (assignedToId == null || assignedToId <= 0 || !("team".equals(assignedToType) || "user".equals(assignedToType))) {
+            throw new IllegalArgumentException("Choisissez une équipe ou un prestataire valide");
+        }
+        ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
 
@@ -427,6 +495,7 @@ public class ServiceRequestService {
             throw new IllegalStateException("Seules les demandes en attente ou en attente de paiement peuvent etre (re)assignees manuellement. Statut actuel: " + sr.getStatus());
         }
 
+        requireAvailableAssignment(sr, assignedToId, assignedToType);
         sr.setAssignedToId(assignedToId);
         sr.setAssignedToType(assignedToType);
         // Moteur Ménage 2A : assignation d'un PRO sur une SR ménage non payée
@@ -461,6 +530,31 @@ public class ServiceRequestService {
 
         log.info("Manual assignment: {} {} for SR {}", assignedToType, assignedToId, sr.getId());
 
+        return serviceRequestMapper.toDto(sr);
+    }
+
+    /** Retrait volontaire : l'automatisation ne doit pas annuler la décision humaine. */
+    public ServiceRequestDto unassign(Long serviceRequestId) {
+        ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
+        if (sr.getStatus() != RequestStatus.PENDING && sr.getStatus() != RequestStatus.ASSIGNED) {
+            throw new IllegalStateException("Seule une demande en attente ou assignée peut être désaffectée");
+        }
+        if (sr.getPaidAt() != null || interventionRepository.existsByServiceRequestId(sr.getId())) {
+            throw new IllegalStateException("Une mission créée ou payée nécessite une révision de son affectation");
+        }
+        if (MANUAL_ASSIGNMENT_HOLD.equals(sr.getAutoAssignStatus()) && sr.getAssignedToId() == null) {
+            return serviceRequestMapper.toDto(sr);
+        }
+        Long previousId = sr.getAssignedToId();
+        String previousType = sr.getAssignedToType();
+        sr.setAssignedToId(null);
+        sr.setAssignedToType(null);
+        sr.setStatus(RequestStatus.PENDING);
+        sr.setAutoAssignStatus(MANUAL_ASSIGNMENT_HOLD);
+        sr = serviceRequestRepository.save(sr);
+        logAssignmentEvent(sr, "MANUAL_UNASSIGN", previousId, previousType, "Affectation retirée ; recherche automatique suspendue");
         return serviceRequestMapper.toDto(sr);
     }
 
@@ -510,6 +604,7 @@ public class ServiceRequestService {
         }
 
         intervention.setOrganizationId(sr.getOrganizationId());
+        allocationGuard.requireAvailable(intervention);
         intervention = interventionRepository.save(intervention);
         log.info("Intervention {} created from paid SR {}", intervention.getId(), sr.getId());
 
@@ -527,22 +622,9 @@ public class ServiceRequestService {
             }
         }
 
-        // Generation FACTURE via Kafka
-        try {
-            String emailTo = sr.getUser() != null ? sr.getUser().getEmail() : null;
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "facture-sr-" + sr.getId(),
-                Map.of(
-                    "documentType", "FACTURE",
-                    "referenceId", sr.getId(),
-                    "referenceType", "service_request",
-                    "emailTo", emailTo != null ? emailTo : ""
-                )
-            );
-        } catch (Exception e) {
-            log.warn("Kafka publish error FACTURE for SR {}: {}", sr.getId(), e.getMessage());
-        }
+        // Intention durable dans la transaction de paiement ; Kafka seulement après commit.
+        documentOutbox.requestInvoice(sr.getId(), sr.getOrganizationId(),
+                sr.getUser() == null ? null : sr.getUser().getEmail());
 
         // Notifier les admins
         try {
@@ -571,12 +653,77 @@ public class ServiceRequestService {
         return intervention;
     }
 
-    public ServiceRequestDto update(Long id, ServiceRequestDto dto) {
-        ServiceRequest entity = serviceRequestRepository.findById(id).orElseThrow(() -> new NotFoundException("Service request not found"));
-        serviceRequestMapper.apply(dto, entity);
-        entity = serviceRequestRepository.save(entity);
-        ServiceRequestDto result = serviceRequestMapper.toDto(entity);
+    private void requireCurrentVersion(ServiceRequest entity, Long version) {
+        if (version == null || version.longValue() != entity.getVersion()) {
+            throw new org.springframework.orm.ObjectOptimisticLockingFailureException(ServiceRequest.class, entity.getId());
+        }
+    }
 
+    private void requireEditableStatusChange(ServiceRequest entity, RequestStatus status) {
+        if (status == null || status == entity.getStatus()) return;
+        if (!entity.getStatus().canTransitionTo(status)
+                || (status != RequestStatus.REJECTED && status != RequestStatus.CANCELLED)) {
+            throw new IllegalStateException("Utilisez les actions de la mission pour modifier son avancement");
+        }
+        if (entity.getPaidAt() != null || interventionRepository.existsByServiceRequestId(entity.getId())) {
+            throw new IllegalStateException("Une mission créée ou payée nécessite une révision dédiée");
+        }
+    }
+
+    public ServiceRequestDto changeStatus(Long id, Long version, RequestStatus status) {
+        ServiceRequest entity = serviceRequestRepository.findForMutation(id)
+                .orElseThrow(() -> new NotFoundException("Service request not found"));
+        requireOwnedServiceRequest(entity);
+        requireCurrentVersion(entity, version);
+        if (status == null) throw new IllegalArgumentException("Statut requis");
+        requireEditableStatusChange(entity, status);
+        if (status == entity.getStatus()) return serviceRequestMapper.toDto(entity);
+        if (status == RequestStatus.CANCELLED) {
+            cancel(id, null);
+            serviceRequestRepository.flush();
+            return serviceRequestMapper.toDto(entity);
+        }
+        entity.setStatus(status);
+        entity.setAutoAssignStatus(null);
+        entity = serviceRequestRepository.save(entity);
+        serviceRequestRepository.flush();
+        notifyRequestRejected(entity);
+        return serviceRequestMapper.toDto(entity);
+    }
+
+    public ServiceRequestDto update(Long id, ServiceRequestDto dto) {
+        ServiceRequest entity = serviceRequestRepository.findForMutation(id).orElseThrow(() -> new NotFoundException("Service request not found"));
+        requireOwnedServiceRequest(entity);
+        requireCurrentVersion(entity, dto.version);
+        if (entity.getPaidAt() != null || interventionRepository.existsByServiceRequestId(id)) {
+            throw new IllegalStateException("Une mission créée ou payée nécessite une révision dédiée");
+        }
+        requireEditableStatusChange(entity, dto.status);
+        RequestStatus previousStatus = entity.getStatus();
+        Long previousAssignee = entity.getAssignedToId();
+        String previousType = entity.getAssignedToType();
+        serviceRequestMapper.apply(dto, entity);
+        // Les changements de cible passent par les mêmes règles que le dialogue dédié.
+        entity.setAssignedToId(previousAssignee);
+        entity.setAssignedToType(previousType);
+        boolean assignmentChanged = !java.util.Objects.equals(dto.assignedToId, previousAssignee)
+                || !java.util.Objects.equals(dto.assignedToType, previousType);
+        if (assignmentChanged) {
+            if (dto.assignedToId == null) unassign(id);
+            else manualAssign(id, dto.assignedToId, dto.assignedToType);
+        } else if (entity.getAssignedToId() != null) {
+            requireAvailableAssignment(entity, entity.getAssignedToId(), entity.getAssignedToType());
+        }
+        if (entity.getStatus() == RequestStatus.REJECTED || entity.getStatus() == RequestStatus.CANCELLED) {
+            entity.setAutoAssignStatus(null);
+        }
+        entity = serviceRequestRepository.save(entity);
+        serviceRequestRepository.flush();
+        if (previousStatus != entity.getStatus()) notifyRequestRejected(entity);
+        return serviceRequestMapper.toDto(entity);
+    }
+
+    private void notifyRequestRejected(ServiceRequest entity) {
         // Notify requester if the status changed to REJECTED
         try {
             if (RequestStatus.REJECTED.equals(entity.getStatus()) && entity.getUser() != null && entity.getUser().getKeycloakId() != null) {
@@ -592,7 +739,6 @@ public class ServiceRequestService {
             log.warn("Notification error SERVICE_REQUEST_REJECTED: {}", e.getMessage());
         }
 
-        return result;
     }
 
     @Transactional(readOnly = true)
@@ -860,24 +1006,30 @@ public class ServiceRequestService {
             for (var member : team.getMembers()) {
                 User user = member.getUser();
                 if (user == null || user.getRole() != UserRole.HOUSEKEEPER) continue;
+                if (!allocationGuard.isUserDeclaredAvailable(user.getId(), day, sr.getEstimatedDurationHours())) continue;
+                try { allocationGuard.requirePropertyAllowed("user", user.getId(), sr.getProperty()); }
+                catch (com.clenzy.exception.AssignmentConflictException incompatible) { continue; }
                 int score = housekeeperScoreService.computeScore(user.getId(), orgId).score();
-                var resolved = cleaningPricingEngine.resolveCleaningPrice(
-                        sr.getProperty(), sr.getServiceType().name(), user.getId());
+                com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice resolved;
+                try {
+                    resolved = cleaningPricingEngine.resolveCleaningPrice(
+                            sr.getProperty(), sr.getServiceType().name(), user.getId());
+                } catch (IllegalStateException unpriced) {
+                    log.debug("Prestataire {} sans tarif applicable : {}", user.getId(), unpriced.getMessage());
+                    continue;
+                }
                 java.math.BigDecimal distance = resolved.amount().subtract(median).abs();
                 long open = interventionRepository.countOpenOnDay(user.getId(), orgId, dayStart, dayEnd);
                 candidates.add(new Candidate(user, score, distance, open));
             }
             if (candidates.isEmpty()) return;
 
-            // Classement : score desc ; à ±10 pts, distance à la médiane asc ; puis charge asc.
-            candidates.sort((a, b) -> {
-                if (Math.abs(a.score() - b.score()) > 10) {
-                    return Integer.compare(b.score(), a.score());
-                }
-                int byDistance = a.rateDistance().compareTo(b.rateDistance());
-                if (byDistance != 0) return byDistance;
-                return Long.compare(a.openCount(), b.openCount());
-            });
+            // Une tolérance paire à paire n'est pas transitive. Comparer au meilleur score
+            // fixe une fenêtre stable, puis départager prix, charge et identifiant.
+            int bestScore = candidates.stream().mapToInt(Candidate::score).max().orElseThrow();
+            candidates.removeIf(candidate -> candidate.score() < bestScore - 10);
+            candidates.sort(java.util.Comparator.comparing(Candidate::rateDistance)
+                    .thenComparingLong(Candidate::openCount).thenComparing(candidate -> candidate.user().getId()));
             User best = candidates.get(0).user();
 
             // Garde absolue : jamais écraser une assignation USER existante.
@@ -986,9 +1138,15 @@ public class ServiceRequestService {
      * @return true si une equipe a ete trouvee et assignee
      */
     public boolean attemptAutoAssign(ServiceRequest sr) {
+        if (sr.getId() != null) {
+            sr = serviceRequestRepository.findForMutation(sr.getId())
+                    .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        }
         try {
             // Verifier les preconditions
-            if (sr.getAssignedToId() != null || sr.getProperty() == null || sr.getDesiredDate() == null) {
+            if (MANUAL_ASSIGNMENT_HOLD.equals(sr.getAutoAssignStatus())
+                    || !RequestStatus.PENDING.equals(sr.getStatus()) || sr.getAssignedToId() != null
+                    || sr.getProperty() == null || sr.getDesiredDate() == null) {
                 return false;
             }
 
@@ -1000,10 +1158,7 @@ public class ServiceRequestService {
                 return false;
             }
 
-            String svcType = sr.getServiceType() != null ? sr.getServiceType().name() : null;
-            Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
-                sr.getProperty().getId(), sr.getDesiredDate(), sr.getEstimatedDurationHours(), svcType
-            );
+            Optional<Long> availableTeamId = findUnreservedTeam(sr, orgId, false);
 
             sr.setLastAutoAssignAttempt(LocalDateTime.now());
 
@@ -1037,7 +1192,7 @@ public class ServiceRequestService {
                         requestFacts(sr));
                     notifyHost(sr, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Equipe assignee",
-                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\" — en attente de paiement");
+                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\"");
                 } catch (Exception notifErr) {
                     log.warn("Notification error auto-assignment: {}", notifErr.getMessage());
                 }
@@ -1105,15 +1260,30 @@ public class ServiceRequestService {
      * Utilise la surcharge PropertyTeamService avec orgId explicite.
      */
     public boolean attemptAutoAssignByOrgId(ServiceRequest sr, Long orgId) {
+        // Le scheduler, l'import iCal et la supervision partagent cette entrée :
+        // aucun appelant ne peut fournir une autre organisation ni contourner le réglage.
+        if (orgId == null || !orgId.equals(sr.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Demande hors de votre organisation");
+        }
+        // Les listes du scheduler/iCal peuvent être détachées et périmées.
+        // Ne jamais fusionner leur contenu : relire sous le verrou des décisions humaines.
+        sr = serviceRequestRepository.findForMutation(sr.getId())
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        if (!orgId.equals(sr.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Demande hors de votre organisation");
+        }
         try {
-            if (sr.getAssignedToId() != null || sr.getProperty() == null || sr.getDesiredDate() == null) {
+            if (MANUAL_ASSIGNMENT_HOLD.equals(sr.getAutoAssignStatus())
+                    || !RequestStatus.PENDING.equals(sr.getStatus()) || sr.getAssignedToId() != null
+                    || sr.getProperty() == null || sr.getDesiredDate() == null) {
+                return false;
+            }
+            WorkflowSettings settings = workflowSettingsRepository.findByOrganizationId(orgId).orElse(null);
+            if (settings != null && !settings.isAutoAssignInterventions()) {
                 return false;
             }
 
-            String svcType = sr.getServiceType() != null ? sr.getServiceType().name() : null;
-            Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
-                sr.getProperty().getId(), sr.getDesiredDate(), sr.getEstimatedDurationHours(), svcType, orgId
-            );
+            Optional<Long> availableTeamId = findUnreservedTeam(sr, orgId, true);
 
             sr.setLastAutoAssignAttempt(LocalDateTime.now());
 
@@ -1146,7 +1316,7 @@ public class ServiceRequestService {
                         requestFacts(sr));
                     notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Equipe assignee",
-                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\" — en attente de paiement");
+                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\"");
                 } catch (Exception notifErr) {
                     log.warn("Notification error auto-assignment scheduler: {}", notifErr.getMessage());
                 }
@@ -1346,6 +1516,10 @@ public class ServiceRequestService {
             log.debug("Annulation menage auto: aucune demande pour {} — no-op", autoFlowKey);
             return AutoCleaningOutcome.skipped("aucune demande de menage auto pour ce sejour");
         }
+        sr = serviceRequestRepository.findForMutation(sr.getId()).orElse(null);
+        if (sr == null || !orgId.equals(sr.getOrganizationId()) || !autoFlowKey.equals(sr.getAutoFlowKey())) {
+            return AutoCleaningOutcome.skipped("demande modifiée pendant l'annulation du séjour");
+        }
         if (RequestStatus.IN_PROGRESS.equals(sr.getStatus())) {
             log.info("Annulation menage auto: demande {} deja commencee — laissee en l'etat", sr.getId());
             return AutoCleaningOutcome.skipped("demande " + sr.getId() + " deja commencee");
@@ -1355,7 +1529,15 @@ public class ServiceRequestService {
             return AutoCleaningOutcome.skipped("demande " + sr.getId() + " en statut " + sr.getStatus());
         }
 
+        var cancellation = cancellationCoordination.inspectLegacyCancellation(sr);
+        if (cancellation.blocker() != null) return AutoCleaningOutcome.skipped(cancellation.blocker());
+        var linkedMission = cancellation.mission();
+        if (linkedMission != null && linkedMission.getStatus() != InterventionStatus.PENDING
+                && linkedMission.getStatus() != InterventionStatus.CANCELLED)
+            return AutoCleaningOutcome.skipped("La mission liée exige une décision du gestionnaire");
+        if (linkedMission != null) linkedMission.setStatus(InterventionStatus.CANCELLED);
         sr.setStatus(RequestStatus.CANCELLED);
+        sr.setAutoAssignStatus(null);
         // Libere la cle : une re-reservation des memes dates recree un menage.
         sr.setAutoFlowKey(truncate(autoFlowKey + ":CANCELLED:" + sr.getId(), 120));
         serviceRequestRepository.save(sr);

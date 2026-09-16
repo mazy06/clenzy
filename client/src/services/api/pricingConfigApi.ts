@@ -27,6 +27,8 @@ export interface ForfaitConfig {
 }
 
 export interface ServicePriceConfig {
+  currency?: string;
+  needsReview?: boolean;
   interventionType: string;           // ex: "ELECTRICAL_REPAIR"
   basePrice: number;                  // prix fixe de base en €
   enabled: boolean;

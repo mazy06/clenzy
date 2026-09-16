@@ -66,6 +66,7 @@ interface StatusChangeDialogProps {
   onConfirm: () => void;
   requestTitle?: string;
   newStatus: string;
+  pending: boolean;
   onStatusChange: (status: string) => void;
   statuses: Array<{ value: string; label: string }>;
   t: (key: string, params?: Record<string, unknown>) => string;
@@ -77,6 +78,7 @@ export function StatusChangeDialog({
   onConfirm,
   requestTitle,
   newStatus,
+  pending,
   onStatusChange,
   statuses,
   t,
@@ -97,6 +99,7 @@ export function StatusChangeDialog({
             className="w-full"
             size="sm"
             value={newStatus}
+            disabled={pending}
             onChange={(e) => onStatusChange(e.target.value)}
           >
             {statuses.flatMap((status) =>
@@ -111,8 +114,8 @@ export function StatusChangeDialog({
           </NativeSelect>
         </Field>
         <DialogFooter>
-          <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
-          <Button onClick={onConfirm} size="sm">
+          <Button disabled={pending} onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
+          <Button disabled={pending} onClick={onConfirm} size="sm">
             {t('common.confirm')}
           </Button>
         </DialogFooter>
@@ -139,6 +142,7 @@ interface AssignDialogProps {
   teams: AssignTeam[];
   users: AssignUser[];
   loadingData: boolean;
+  assigning: boolean;
   t: (key: string, params?: Record<string, unknown>) => string;
 }
 
@@ -156,6 +160,7 @@ export function AssignDialog({
   teams,
   users,
   loadingData,
+  assigning,
   t,
 }: AssignDialogProps) {
   return (
@@ -170,7 +175,7 @@ export function AssignDialog({
 
         {selectedRequest && (
           <p className="text-xs text-muted-foreground">
-            {t('serviceRequests.assign')}: <strong>{selectedRequest.title}</strong>
+            {t("serviceRequests.assign")}: <strong>{selectedRequest.title}</strong>
           </p>
         )}
 
@@ -181,7 +186,7 @@ export function AssignDialog({
             onValueChange={(value) => onAssignmentTypeChange(value as 'team' | 'user' | 'none')}
           >
             <Field orientation="horizontal">
-              <RadioGroupItem value="team" id="assign-type-team" />
+              <RadioGroupItem disabled={assigning} value="team" id="assign-type-team" />
               <FieldLabel htmlFor="assign-type-team" className="font-normal">
                 {t('serviceRequests.fields.team')}
               </FieldLabel>
@@ -196,7 +201,7 @@ export function AssignDialog({
                   // Le choix vide est le placeholder : on ignore la selection plutot
                   // que de remonter un identifiant 0 au parent (prop typee `number`).
                   onChange={(e) => { if (e.target.value) onTeamChange(Number(e.target.value)); }}
-                  disabled={loadingData}
+                  disabled={loadingData || assigning}
                 >
                   <NativeSelectOption value="">
                     {teams.length === 0 && !loadingData ? t('serviceRequests.noTeamsAvailable') : '—'}
@@ -211,7 +216,7 @@ export function AssignDialog({
             )}
 
             <Field orientation="horizontal">
-              <RadioGroupItem value="user" id="assign-type-user" />
+              <RadioGroupItem disabled={assigning} value="user" id="assign-type-user" />
               <FieldLabel htmlFor="assign-type-user" className="font-normal">
                 {t('serviceRequests.fields.assignedToUser')}
               </FieldLabel>
@@ -224,7 +229,7 @@ export function AssignDialog({
                   className="w-full"
                   value={selectedUserId ?? ''}
                   onChange={(e) => { if (e.target.value) onUserChange(Number(e.target.value)); }}
-                  disabled={loadingData}
+                  disabled={loadingData || assigning}
                 >
                   <NativeSelectOption value="">
                     {users.length === 0 && !loadingData ? t('serviceRequests.noUsersAvailable') : '—'}
@@ -239,13 +244,17 @@ export function AssignDialog({
             )}
 
             <Field orientation="horizontal">
-              <RadioGroupItem value="none" id="assign-type-none" />
+              <RadioGroupItem disabled={assigning} value="none" id="assign-type-none" />
               <FieldLabel htmlFor="assign-type-none" className="font-normal">
                 {t('serviceRequests.fields.noAssignment')}
               </FieldLabel>
             </Field>
           </RadioGroup>
         </FieldSet>
+
+        {assignmentType === "none" && (
+          <p className="text-sm text-muted-foreground">{t("serviceRequests.manualHoldHint")}</p>
+        )}
 
         {loadingData && (
           <div className="flex justify-center py-3">
@@ -254,14 +263,15 @@ export function AssignDialog({
         )}
 
         <DialogFooter>
-          <Button onClick={onClose} variant="ghost">
+          <Button onClick={onClose} variant="ghost" disabled={assigning}>
             {t('common.cancel')}
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={loadingData || (assignmentType === 'team' && !selectedTeamId) || (assignmentType === 'user' && !selectedUserId)}
+            disabled={assigning || loadingData || (assignmentType === 'team' && !selectedTeamId) || (assignmentType === 'user' && !selectedUserId)}
           >
-            {t('serviceRequests.assign')}
+            {assigning ? <Spinner className="size-4" /> : null}
+            {t(assignmentType === "none" ? "serviceRequests.removeAssignment" : "serviceRequests.assign")}
           </Button>
         </DialogFooter>
       </DialogContent>

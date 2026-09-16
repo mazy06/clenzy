@@ -5,9 +5,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.FieldError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -184,6 +187,61 @@ class GlobalExceptionHandlerTest {
             Map<String, Object> body = response.getBody();
             assertThat(body).isNotNull();
             assertThat(body.get("message")).isEqualTo("Une erreur inattendue s'est produite");
+        }
+    }
+
+    @Nested
+    @DisplayName("Corps invalide → 400 avec le message du champ")
+    class ValidationHandler {
+
+        @Test
+        void whenAFieldIsInvalid_thenItsOwnMessageIsReturned() throws Exception {
+            // Sans ce traitement l'utilisateur recevait « Validation failed for
+            // argument [0] in public org.springframework... » : la signature
+            // Java de la methode, pour une erreur de saisie.
+            var target = new Object();
+            var binding = new org.springframework.validation.BeanPropertyBindingResult(target, "requete");
+            binding.addError(new FieldError(
+                "requete", "password", "Le mot de passe doit contenir au moins 8 caractères."));
+            var ex = new MethodArgumentNotValidException(
+                new org.springframework.core.MethodParameter(
+                    ValidationHandler.class.getDeclaredMethod("stub", String.class), 0),
+                binding);
+
+            ResponseEntity<Map<String, Object>> response = handler.handleValidation(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            Map<String, Object> body = response.getBody();
+            assertThat(body).isNotNull();
+            assertThat(body.get("message"))
+                .isEqualTo("Le mot de passe doit contenir au moins 8 caractères.");
+            assertThat(body.get("message").toString()).doesNotContain("org.springframework");
+            @SuppressWarnings("unchecked")
+            Map<String, String> fields = (Map<String, String>) body.get("fields");
+            assertThat(fields).containsKey("password");
+        }
+
+        @SuppressWarnings("unused")
+        private void stub(String value) { }
+    }
+
+    @Nested
+    @DisplayName("Fichier trop volumineux → 413")
+    class MaxUploadSizeHandler {
+
+        @Test
+        void whenFileExceedsTheLimit_thenReturns413WithAnActionableMessage() {
+            // Sans ce traitement l'utilisateur recevait un 500 « Erreur lors du
+            // traitement de la requete » : ni le bon code, ni de quoi corriger.
+            MaxUploadSizeExceededException ex = new MaxUploadSizeExceededException(10_485_760L);
+
+            ResponseEntity<Map<String, Object>> response = handler.handleMaxUploadSize(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE);
+            Map<String, Object> body = response.getBody();
+            assertThat(body).isNotNull();
+            assertThat(body.get("message")).isEqualTo("Fichier trop volumineux (10 Mo maximum)");
+            assertThat(body.get("status")).isEqualTo(413);
         }
     }
 

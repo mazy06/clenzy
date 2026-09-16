@@ -19,4 +19,10 @@ public interface ProviderDocumentRepository extends JpaRepository<ProviderDocume
      */
     List<ProviderDocument> findByUserIdAndDocumentTypeOrderByCreatedAtDesc(
             Long userId, ProviderDocument.DocumentType documentType);
+
+    /** Pieces deposees par une candidature qui n'a pas encore de compte. */
+    List<ProviderDocument> findByMarketplaceProviderIdOrderByCreatedAtDesc(Long marketplaceProviderId);
+
+    /** Borne le depot d'une surface non authentifiee. */
+    long countByMarketplaceProviderId(Long marketplaceProviderId);
 }

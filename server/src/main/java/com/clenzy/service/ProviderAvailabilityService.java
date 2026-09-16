@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.model.Team;
 import com.clenzy.model.TeamAbsence;
 import com.clenzy.model.TeamWeeklyAvailability;
 import com.clenzy.repository.TeamAbsenceRepository;
@@ -34,13 +33,16 @@ public class ProviderAvailabilityService {
     private final TeamWeeklyAvailabilityRepository weeklyRepository;
     private final TeamAbsenceRepository absenceRepository;
     private final TenantContext tenantContext;
+    private final com.clenzy.repository.ServiceRequestRepository assignments;
 
     public ProviderAvailabilityService(TeamWeeklyAvailabilityRepository weeklyRepository,
                                        TeamAbsenceRepository absenceRepository,
-                                       TenantContext tenantContext) {
+                                       TenantContext tenantContext,
+                                       com.clenzy.repository.ServiceRequestRepository assignments) {
         this.weeklyRepository = weeklyRepository;
         this.absenceRepository = absenceRepository;
         this.tenantContext = tenantContext;
+        this.assignments = assignments;
     }
 
     @Transactional(readOnly = true)
@@ -50,7 +52,9 @@ public class ProviderAvailabilityService {
 
     @Transactional(readOnly = true)
     public List<TeamAbsence> getAbsences(Long teamId) {
-        return absenceRepository.findByTeamIdOrderByStartDateAsc(teamId);
+        var absences = absenceRepository.findByTeamIdOrderByStartDateAsc(teamId);
+        absences.forEach(this::markAssignmentConflict);
+        return absences;
     }
 
     /**
@@ -61,6 +65,7 @@ public class ProviderAvailabilityService {
     @Transactional
     public List<TeamWeeklyAvailability> replaceWeekly(Long teamId, List<WeeklySlotInput> slots) {
         final Long orgId = tenantContext.getRequiredOrganizationId();
+        assignments.lockTeamAvailability(teamId);
         weeklyRepository.deleteByTeamIdAndOrganizationId(teamId, orgId);
         return slots.stream().map(slot -> {
             TeamWeeklyAvailability entity = new TeamWeeklyAvailability(
@@ -77,47 +82,50 @@ public class ProviderAvailabilityService {
         }
         TeamAbsence absence = new TeamAbsence(teamId, start, end, reason);
         absence.setOrganizationId(tenantContext.getRequiredOrganizationId());
-        return absenceRepository.save(absence);
+        assignments.lockTeamAvailability(teamId);
+        var saved = absenceRepository.save(absence);
+        markAssignmentConflict(saved);
+        return saved;
+    }
+
+    private void markAssignmentConflict(TeamAbsence absence) {
+        int hours = Math.toIntExact(java.time.temporal.ChronoUnit.DAYS.between(
+                absence.getStartDate(), absence.getEndDate()) * 24 + 24);
+        absence.setAssignmentConflict(assignments.previewAssignmentConflicts(null, null, "team",
+                absence.getTeamId(), absence.getStartDate().atStartOfDay(), hours));
     }
 
     @Transactional
     public void removeAbsence(Long teamId, Long absenceId) {
+        assignments.lockTeamAvailability(teamId);
         absenceRepository.findById(absenceId)
                 .filter(absence -> absence.getTeamId().equals(teamId))
                 .ifPresent(absenceRepository::delete);
     }
 
     /**
-     * Le prestataire est-il disponible sur [from, to] ?
+     * Le prestataire est-il disponible sur [from, to[ ?
      *
      * <p>Deux verdicts independants : une absence datee ecarte le creneau quelle
      * que soit la semaine type, et un creneau doit etre COUVERT par une plage
-     * declaree. Une mission a cheval sur deux jours n'est pas evaluee finement —
-     * on refuse, faute de savoir dire oui avec certitude.</p>
+     * declaree. Si une semaine type existe, une mission à cheval sur deux jours
+     * est refusée faute de couverture horaire vérifiée. Sans semaine type,
+     * toutes les dates occupées restent contrôlées contre les absences.</p>
      */
     @Transactional(readOnly = true)
     public boolean isAvailable(Long teamId, LocalDateTime from, LocalDateTime to) {
-        final LocalDate date = from.toLocalDate();
-
-        if (!absenceRepository.findCovering(teamId, date).isEmpty()) {
-            return false;
+        if (from == null || to == null || !to.isAfter(from)) {
+            throw new IllegalArgumentException("Le créneau doit avoir un début et une fin postérieure au début");
         }
+        return weeklyRepository.isDeclaredAvailable(teamId, from, to);
+    }
 
-        List<TeamWeeklyAvailability> slots = weeklyRepository
-                .findByTeamIdOrderByDayOfWeekAscStartTimeAsc(teamId);
-        // Silence = disponible : c'est ce qui preserve les equipes existantes.
-        if (slots.isEmpty()) {
-            return true;
+    @Transactional(readOnly = true)
+    public boolean isUserAvailable(Long userId, LocalDateTime from, LocalDateTime to) {
+        if (from == null || to == null || !to.isAfter(from)) {
+            throw new IllegalArgumentException("Le créneau doit avoir un début et une fin postérieure au début");
         }
-
-        // Chevauchement de journee : la semaine type ne sait pas repondre.
-        if (!to.toLocalDate().equals(date)) {
-            return false;
-        }
-
-        final LocalTime start = from.toLocalTime();
-        final LocalTime end = to.toLocalTime();
-        return slots.stream().anyMatch(slot -> slot.covers(date.getDayOfWeek(), start, end));
+        return weeklyRepository.isUserDeclaredAvailable(userId, from, to);
     }
 
     /** Un creneau de la semaine type. */

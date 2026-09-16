@@ -94,6 +94,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     selectedRequestForStatusChange,
     setSelectedRequestForStatusChange,
     newStatus,
+    changingStatus,
     setNewStatus,
 
     // Assign dialog
@@ -108,6 +109,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     assignTeams,
     assignUsers,
     loadingAssignData,
+    assigning,
 
     // Validate dialog
     validateDialogOpen,
@@ -627,12 +629,17 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
       <StatusChangeDialog
         open={statusChangeDialogOpen}
-        onClose={() => setStatusChangeDialogOpen(false)}
+        onClose={() => { if (!changingStatus) setStatusChangeDialogOpen(false); }}
         onConfirm={confirmStatusChange}
         requestTitle={selectedRequestForStatusChange?.title}
         newStatus={newStatus}
+        pending={changingStatus}
         onStatusChange={setNewStatus}
-        statuses={statuses}
+        statuses={statuses.filter(s =>
+          s.value === selectedRequestForStatusChange?.status ||
+          (s.value === "REJECTED" && selectedRequestForStatusChange?.status === "PENDING") ||
+          (s.value === "CANCELLED" && ["PENDING", "ASSIGNED", "AWAITING_PAYMENT", "IN_PROGRESS"].includes(selectedRequestForStatusChange?.status ?? ""))
+        )}
         t={t}
       />
 
@@ -650,6 +657,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         teams={assignTeams}
         users={assignUsers}
         loadingData={loadingAssignData}
+        assigning={assigning}
         t={t}
       />
 

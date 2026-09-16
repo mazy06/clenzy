@@ -44,7 +44,7 @@ export default function ProvidersPage() {
             <Reveal delay={3}>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Button size="lg" asChild>
-                  <Link to="/demo">
+                  <Link to="/prestataires/inscription">
                     Devenir prestataire <ArrowRightIcon />
                   </Link>
                 </Button>
@@ -229,7 +229,7 @@ export default function ProvidersPage() {
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <Button size="lg" variant="secondary" asChild>
-                  <Link to="/demo">
+                  <Link to="/prestataires/inscription">
                     Devenir prestataire <ArrowRightIcon />
                   </Link>
                 </Button>

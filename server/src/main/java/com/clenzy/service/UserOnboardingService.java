@@ -26,9 +26,8 @@ public class UserOnboardingService {
 
     private final UserOnboardingRepository repository;
     private final ProviderDocumentService providerDocumentService;
-    private final PersonalTeamService personalTeamService;
-    private final com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository;
-    private final com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository;
+    private final com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones;
+    private final com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
@@ -97,14 +96,12 @@ public class UserOnboardingService {
                                   PaymentMethodConfigRepository paymentMethodConfigRepository,
                                   ICalFeedRepository icalFeedRepository,
                                   ProviderDocumentService providerDocumentService,
-                                  PersonalTeamService personalTeamService,
-                                  com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository,
-                                  com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository) {
+                                  com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones,
+                                  com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.providerDocumentService = providerDocumentService;
-        this.personalTeamService = personalTeamService;
-        this.teamCoverageZoneRepository = teamCoverageZoneRepository;
+        this.providerZones = providerZones;
         this.weeklyAvailabilityRepository = weeklyAvailabilityRepository;
         this.organizationRepository = organizationRepository;
         this.organizationMemberRepository = organizationMemberRepository;
@@ -250,21 +247,15 @@ public class UserOnboardingService {
                 // automatique ici (une auto-completion prematurée ferait croire
                 // l'intervenant paye alors que son compte Stripe n'existe pas).
                 case "setup_payout_account", "setup_rates" -> false;
-                // La zone se DEDUIT : elle vit dans team_coverage_zones, portee
-                // par l'equipe personnelle de l'intervenant. Rien a declarer.
+                // La zone et les horaires sont lus sur les référentiels individuels.
                 // Les disponibilites sont OPTIONNELLES : ne rien declarer laisse
                 // disponible. L'etape se coche donc des qu'un creneau existe, et
                 // reste passable sinon.
                 case "setup_availability" -> userOpt
-                        .map(u -> personalTeamService.find(u.getId())
-                                .map(team -> !weeklyAvailabilityRepository
-                                        .findByTeamIdOrderByDayOfWeekAscStartTimeAsc(team.getId()).isEmpty())
-                                .orElse(false))
+                        .map(u -> weeklyAvailabilityRepository.restricted(u.getId()))
                         .orElse(false);
                 case "setup_coverage_zone" -> userOpt
-                        .map(u -> personalTeamService.find(u.getId())
-                                .map(team -> !teamCoverageZoneRepository.findByTeamId(team.getId()).isEmpty())
-                                .orElse(false))
+                        .map(u -> providerZones.existsByUserId(u.getId()))
                         .orElse(false);
                 // Celle-ci se deduit : l'acceptation est en base, inutile
                 // d'attendre un appel /complete que l'ecran pourrait rater.

@@ -34,6 +34,7 @@ public class TeamService {
 
     private static final Logger log = LoggerFactory.getLogger(TeamService.class);
 
+    private final com.clenzy.repository.ServiceRequestRepository assignments;
     private final TeamRepository teamRepository;
     private final TeamCoverageZoneRepository teamCoverageZoneRepository;
     private final UserRepository userRepository;
@@ -43,7 +44,8 @@ public class TeamService {
     private final UserAvatarUrlResolver avatarUrls;
 
     public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService, TenantContext tenantContext,
-                       UserAvatarUrlResolver avatarUrls) {
+                       UserAvatarUrlResolver avatarUrls, com.clenzy.repository.ServiceRequestRepository assignments) {
+        this.assignments = assignments;
         this.teamRepository = teamRepository;
         this.teamCoverageZoneRepository = teamCoverageZoneRepository;
         this.userRepository = userRepository;
@@ -126,8 +128,17 @@ public class TeamService {
     }
 
     public TeamDto update(Long id, TeamDto dto) {
-        Team team = teamRepository.findById(id)
+        Team team = assignments.findTeamForCompositionMutation(id)
             .orElseThrow(() -> new NotFoundException("Équipe non trouvée avec l'ID: " + id));
+        requireCurrentOrganization(team);
+
+        if (dto.members != null) {
+            var previous = team.getMembers().stream().map(m -> m.getUser().getId()).collect(java.util.stream.Collectors.toSet());
+            var next = dto.members.stream().map(m -> m.userId).collect(java.util.stream.Collectors.toSet());
+            if (!previous.equals(next) && assignments.teamHasActiveAssignments(id)) {
+                throw new com.clenzy.exception.TeamCompositionConflictException();
+            }
+        }
 
         // Mise à jour des champs simples
         team.setName(dto.name);
@@ -272,8 +283,11 @@ public class TeamService {
     }
 
     public void delete(Long id) {
-        if (!teamRepository.existsById(id)) {
-            throw new NotFoundException("Équipe non trouvée avec l'ID: " + id);
+        Team team = assignments.findTeamForCompositionMutation(id)
+            .orElseThrow(() -> new NotFoundException("Équipe non trouvée avec l'ID: " + id));
+        requireCurrentOrganization(team);
+        if (assignments.teamHasActiveAssignments(id)) {
+            throw new com.clenzy.exception.TeamCompositionConflictException();
         }
         teamRepository.deleteById(id);
 
@@ -286,6 +300,12 @@ public class TeamService {
             );
         } catch (Exception e) {
             log.warn("Notification error TEAM_DELETED: {}", e.getMessage());
+        }
+    }
+
+    private void requireCurrentOrganization(Team team) {
+        if (!tenantContext.getRequiredOrganizationId().equals(team.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Cette équipe appartient à une autre organisation");
         }
     }
 

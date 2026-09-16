@@ -12,7 +12,6 @@ import com.clenzy.service.agent.supervision.SupervisionActionType;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -52,7 +51,8 @@ public class AutoAssignScheduler {
      * l'auto-assignation pour chaque organisation concernee.
      */
     @Scheduled(fixedDelay = 900_000) // 15 min
-    @Transactional
+    // Chaque appel au service ouvre sa propre transaction : un échec ne peut
+    // annuler les affectations déjà validées pour les autres demandes.
     @SchedulerLock(name = "auto-assign-retry", lockAtMostFor = "PT10M")
     public void retryPendingAutoAssignment() {
         List<Long> orgIds = serviceRequestRepository

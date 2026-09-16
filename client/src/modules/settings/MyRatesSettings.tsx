@@ -1,16 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { PublishedPricingModel } from '../../services/api/housekeeperRatesApi';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Badge, Card, Button, Skeleton } from '../../components/ui';
+import { Card, Button, Skeleton } from '../../components/ui';
 import {
   Field,
   FieldLabel,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -22,40 +18,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
-import type { HousekeeperRates, HousekeeperPropertyRate } from '../../services/api/housekeeperRatesApi';
+import type { HousekeeperRates } from '../../services/api/housekeeperRatesApi';
 
 // ─── « Mes tarifs » (Moteur Ménage 2A) — HOUSEKEEPER / TECHNICIAN ────────────
-// Taux horaire général + forfait optionnel par logement (le forfait PRIME).
-// Nudge à la saisie : fourchette conseil du logement (ancre = MÉDIANE), badge
-// « dans le marché » si dedans, sinon écart % NEUTRE — jamais de blocage.
+// Tarif horaire unique pour toutes les conciergeries.
+// Le formulaire modifie le tarif global, sans variante propre à un client.
 
 const ratesKeys = { my: ['housekeeper-rates', 'me'] as const };
 
 /** Surtitre de section (registre « overline » du contrat Baitly UI §3). */
 const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-[0.06em] text-faint mb-[9px]';
-
-/** Chip d'état du nudge — vert doux si dans la fourchette, neutre sinon. */
-function NudgeBadge({ amount, rate }: { amount: number | null; rate: HousekeeperPropertyRate }) {
-  const { t } = useTranslation();
-  if (amount == null || amount <= 0) return null;
-
-  const inMarket = amount >= rate.advisoryMin && amount <= rate.advisoryMax;
-  if (inMarket) {
-    return (
-      <Badge variant="success" className="font-semibold">
-        <CheckCircle size={11} strokeWidth={2} />
-        {t('settings.myRates.inMarket')}
-      </Badge>
-    );
-  }
-
-  const deltaPct = Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100);
-  return (
-    <Badge variant="outline" className="border-field-line bg-field font-semibold tabular-nums text-muted-foreground">
-      {deltaPct > 0 ? '+' : ''}{deltaPct} % {t('settings.myRates.vsAdvisory')}
-    </Badge>
-  );
-}
 
 export default function MyRatesSettings() {
   const { t } = useTranslation();
@@ -70,19 +42,19 @@ export default function MyRatesSettings() {
 
   // ── État éditable local (hydraté depuis la query) ──
   const [hourly, setHourly] = useState<string>('');
-  const [flats, setFlats] = useState<Record<number, string>>({});
+  const [unitLabel, setUnitLabel] = useState('');
+  const [currency, setCurrency] = useState('EUR');
+  const [pricingModel, setPricingModel] = useState<PublishedPricingModel>('HOURLY');
   // Gate d'hydratation one-shot (jamais lu au render) : ref, pas de re-render.
   const hydratedRef = useRef(false);
 
   useEffect(() => {
     const data = ratesQuery.data;
     if (!data || hydratedRef.current) return;
-    setHourly(data.hourlyAmount != null ? String(data.hourlyAmount) : '');
-    const map: Record<number, string> = {};
-    for (const p of data.properties) {
-      if (p.flatAmount != null) map[p.propertyId] = String(p.flatAmount);
-    }
-    setFlats(map);
+    setHourly((data.amount ?? data.hourlyAmount) != null ? String(data.amount ?? data.hourlyAmount) : '');
+    setPricingModel(data.pricingModel && data.pricingModel !== 'ON_QUOTE' ? data.pricingModel : 'HOURLY');
+    setUnitLabel(data.unitLabel ?? '');
+    setCurrency(data.currency ?? 'EUR');
     hydratedRef.current = true;
   }, [ratesQuery.data]);
 
@@ -100,16 +72,10 @@ export default function MyRatesSettings() {
 
   const handleSave = () => {
     const hourlyAmount = hourly.trim() !== '' && !isNaN(parseFloat(hourly)) ? parseFloat(hourly) : null;
-    const flatRates = Object.entries(flats).flatMap(([propertyId, value]) => {
-      const amount = parseFloat(value);
-      return !isNaN(amount) && amount > 0 ? [{ propertyId: Number(propertyId), amount }] : [];
-    });
-    saveMutation.mutate({ hourlyAmount, flatRates });
+    saveMutation.mutate({ hourlyAmount, flatRates: [], currency, pricingModel, ...(pricingModel === 'PER_UNIT' ? { unitLabel } : {}) });
   };
 
-  const referenceRate = ratesQuery.data?.referenceHourlyRate;
   const score = ratesQuery.data?.score;
-  const properties = useMemo(() => ratesQuery.data?.properties ?? [], [ratesQuery.data]);
 
   if (ratesQuery.isLoading) {
     return (
@@ -159,10 +125,10 @@ export default function MyRatesSettings() {
 
       {/* ── Taux horaire général ─────────────────────────────────────────── */}
       <Card className="gap-0 py-0 p-3.5">
-        <p className={SECTION_TITLE_CLASS}>{t('settings.myRates.hourlySection')}</p>
+        <p className={SECTION_TITLE_CLASS}>{t('providerTariff.title')}</p>
         <div className="flex items-center gap-3 flex-wrap">
           <Field className="w-[220px]">
-            <FieldLabel htmlFor="my-rates-hourly">{t('settings.myRates.hourlyRate')}</FieldLabel>
+            <FieldLabel htmlFor="my-rates-hourly">{t('providerTariff.amount')}</FieldLabel>
             <InputGroup>
               <InputGroupInput
                 id="my-rates-hourly"
@@ -174,82 +140,38 @@ export default function MyRatesSettings() {
                 onChange={(e) => setHourly(e.target.value)}
               />
               <InputGroupAddon align="inline-end">
-                <InputGroupText>€/h</InputGroupText>
+                <InputGroupText>{currency}{pricingModel === 'HOURLY' ? '/h' : pricingModel === 'PER_SQM' ? '/m²' : ''}</InputGroupText>
               </InputGroupAddon>
             </InputGroup>
           </Field>
-          {referenceRate != null && (
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {t('settings.myRates.referenceRate')} : {referenceRate} €/h
-            </p>
-          )}
+          <Field className="w-[160px]">
+            <FieldLabel htmlFor="tariff-model-mine">{t('providerTariff.model')}</FieldLabel>
+            <select id="tariff-model-mine" className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+              value={pricingModel} onChange={(event) => setPricingModel(event.target.value as PublishedPricingModel)}>
+              <option value="HOURLY">{t('providerTariff.hourly')}</option>
+              <option value="FLAT">{t('providerTariff.flat')}</option>
+              <option value="PER_UNIT">{t('providerTariff.perUnit')}</option>
+              <option value="PER_SQM">{t('providerTariff.perSqm')}</option>
+            </select>
+          </Field>
+          {pricingModel === 'PER_UNIT' && <Field className="w-[160px]">
+            <FieldLabel htmlFor="tariff-unit-mine">{t('providerTariff.unit')}</FieldLabel>
+            <InputGroup><InputGroupInput id="tariff-unit-mine" value={unitLabel} maxLength={40}
+              onChange={(event) => setUnitLabel(event.target.value)} /></InputGroup>
+          </Field>}
+          <Field className="w-[110px]">
+            <FieldLabel htmlFor="tariff-currency-mine">{t('providerTariff.currency')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput id="tariff-currency-mine" value={currency} maxLength={3}
+                onChange={(event) => setCurrency(event.target.value.toUpperCase())} />
+            </InputGroup>
+          </Field>
+
         </div>
         <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-          {t('settings.myRates.hourlyHint')}
+          {t('providerTariff.shared')}
+          {ratesQuery.data?.needsReview && <span className="block">{t('providerTariff.review')}</span>}
         </p>
-      </Card>
-
-      {/* ── Forfaits par logement ────────────────────────────────────────── */}
-      <Card className="gap-0 py-0 p-3.5">
-        <p className={SECTION_TITLE_CLASS}>{t('settings.myRates.flatSection')}</p>
-        <p className="mb-3 text-[11.5px] text-muted-foreground">
-          {t('settings.myRates.flatHint')}
-        </p>
-
-        {properties.length === 0 ? (
-          <p className="text-xs italic text-muted-foreground">
-            {t('settings.myRates.noProperties')}
-          </p>
-        ) : (
-          <div className="flex flex-col">
-            {properties.map((property) => {
-              const raw = flats[property.propertyId] ?? '';
-              const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
-              return (
-                <Item
-                  key={property.propertyId}
-                  size="sm"
-                  className="px-0 border-t border-solid border-t-border first:border-t-0"
-                >
-                  <ItemContent>
-                    <ItemTitle>{property.propertyName}</ItemTitle>
-                    {/* Nudge : fourchette conseil, ancre mediane. Elle se lit
-                        SOUS le nom du logement qu'elle concerne — alignee a
-                        droite, elle formait une colonne de texte en drapeau. */}
-                    <ItemDescription className="tabular-nums">
-                      {t('settings.myRates.advisoryLine', {
-                        min: property.advisoryMin,
-                        max: property.advisoryMax,
-                      })}{' '}
-                      · {t('settings.myRates.advisoryMedian')} <b>{property.advisoryRecommended} €</b>
-                    </ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <NudgeBadge amount={amount} rate={property} />
-                    {/* Champ sans libelle visible (le nom du logement est a
-                        gauche) : l'aria-label reste la seule etiquette. */}
-                    <InputGroup className="w-[130px]">
-                      <InputGroupInput
-                        id={`my-rates-flat-${property.propertyId}`}
-                        type="number"
-                        min={0}
-                        step={5}
-                        className="tabular-nums"
-                        aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
-                        placeholder={String(property.advisoryRecommended)}
-                        value={raw}
-                        onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                      />
-                      <InputGroupAddon align="inline-end">
-                        <InputGroupText>€</InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-                  </ItemActions>
-                </Item>
-              );
-            })}
-          </div>
-        )}
       </Card>
 
       {/* ── Enregistrer ──────────────────────────────────────────────────── */}

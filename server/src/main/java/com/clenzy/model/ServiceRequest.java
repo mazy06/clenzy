@@ -19,6 +19,13 @@ import java.util.Set;
     condition = "organization_id = :orgId"
 )
 public class ServiceRequest {
+
+    // Le scheduler et les décisions humaines doivent détecter une écriture périmée.
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    public long getVersion() { return version; }
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

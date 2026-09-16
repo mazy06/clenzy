@@ -14,6 +14,17 @@ public interface TeamWeeklyAvailabilityRepository extends JpaRepository<TeamWeek
 
     List<TeamWeeklyAvailability> findByTeamIdOrderByDayOfWeekAscStartTimeAsc(Long teamId);
 
+    /** Verdict seul : ni horaires ni motifs d'absence d'une autre organisation. */
+    @Query(value = "SELECT public.baitly_team_declared_available(:teamId, :start, :finish)", nativeQuery = true)
+    boolean isDeclaredAvailable(@Param("teamId") Long teamId,
+                               @Param("start") java.time.LocalDateTime start,
+                               @Param("finish") java.time.LocalDateTime finish);
+
+    @Query(value = "SELECT public.baitly_user_declared_available(:userId, :start, :finish)", nativeQuery = true)
+    boolean isUserDeclaredAvailable(@Param("userId") Long userId,
+                                   @Param("start") java.time.LocalDateTime start,
+                                   @Param("finish") java.time.LocalDateTime finish);
+
     @Modifying
     @Query("DELETE FROM TeamWeeklyAvailability a WHERE a.teamId = :teamId AND a.organizationId = :orgId")
     void deleteByTeamIdAndOrganizationId(@Param("teamId") Long teamId, @Param("orgId") Long orgId);

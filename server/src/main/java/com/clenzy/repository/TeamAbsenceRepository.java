@@ -21,4 +21,10 @@ public interface TeamAbsenceRepository extends JpaRepository<TeamAbsence, Long> 
     @Query("SELECT a FROM TeamAbsence a WHERE a.teamId = :teamId "
             + "AND a.startDate <= :date AND a.endDate >= :date")
     List<TeamAbsence> findCovering(@Param("teamId") Long teamId, @Param("date") LocalDate date);
+
+    /** Absence recoupant au moins une des dates occupées par une mission. */
+    @Query("SELECT (COUNT(a) > 0) FROM TeamAbsence a WHERE a.teamId = :teamId "
+            + "AND a.startDate <= :lastDate AND a.endDate >= :firstDate")
+    boolean overlaps(@Param("teamId") Long teamId, @Param("firstDate") LocalDate firstDate,
+                     @Param("lastDate") LocalDate lastDate);
 }

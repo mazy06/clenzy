@@ -104,22 +104,8 @@ public class InterventionPaymentService {
      * traite comme un montant indisponible, et refuse le paiement.</p>
      */
     private BigDecimal subtractPaidDeposit(Intervention intervention) {
-        BigDecimal cost = intervention.getEstimatedCost();
-        if (cost == null) return null;
-
-        BigDecimal paidDeposit = serviceQuoteRepository
-                .findByInterventionIdAndOrganizationIdOrderByAmountAsc(
-                        intervention.getId(), intervention.getOrganizationId())
-                .stream()
-                .filter(quote -> quote.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
-                .filter(quote -> quote.getDepositPaidAt() != null)
-                .map(com.clenzy.model.ServiceQuote::getDepositAmount)
-                .filter(java.util.Objects::nonNull)
-                .findFirst()
-                .orElse(BigDecimal.ZERO);
-
-        BigDecimal balance = cost.subtract(paidDeposit);
-        return balance.compareTo(BigDecimal.ZERO) > 0 ? balance : BigDecimal.ZERO;
+        return InterventionPaymentAmounts.payable(intervention, serviceQuoteRepository
+                .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), intervention.getOrganizationId()), false);
     }
 
     /**
@@ -130,16 +116,28 @@ public class InterventionPaymentService {
      * personne.</p>
      */
     private BigDecimal resolveDepositAmount(Intervention intervention) {
-        return serviceQuoteRepository
-                .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), intervention.getOrganizationId())
-                .stream()
-                .filter(quote -> quote.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
-                // Un acompte deja regle ne se represente pas au paiement.
-                .filter(quote -> quote.getDepositPaidAt() == null)
-                .map(com.clenzy.model.ServiceQuote::getDepositAmount)
-                .filter(java.util.Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+        return InterventionPaymentAmounts.payable(intervention, serviceQuoteRepository
+                .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), intervention.getOrganizationId()), true);
+    }
+
+    /** Même montant exigible pour Checkout hébergé et intégré. */
+    private BigDecimal resolvePayableAmount(Intervention intervention, PaymentSessionRequest request,
+                                             boolean isDeposit) {
+        BigDecimal serverAmount = isDeposit
+                ? resolveDepositAmount(intervention)
+                : subtractPaidDeposit(intervention);
+        if (serverAmount == null || serverAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new PaymentValidationException(isDeposit
+                    ? "Aucun acompte exigible sur cette intervention"
+                    : intervention.getEstimatedCost() != null
+                        ? "Cette intervention est deja soldee par l'acompte"
+                        : "Montant de l'intervention indisponible — paiement impossible");
+        }
+        if (request.getAmount() != null && request.getAmount().compareTo(serverAmount) != 0) {
+            throw new PaymentValidationException("Le montant fourni ne correspond pas au montant attendu");
+        }
+
+        return serverAmount;
     }
 
     /**
@@ -275,19 +273,7 @@ public class InterventionPaymentService {
         // Le SOLDE deduit l'acompte deja encaisse. Sans cela, le reglement
         // final refacturait la totalite : le proprietaire ayant verse 40 EUR
         // d'acompte sur un devis de 200 se voyait redemander 200.
-        BigDecimal serverAmount = isDeposit
-                ? resolveDepositAmount(intervention)
-                : subtractPaidDeposit(intervention);
-        if (serverAmount == null || serverAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new PaymentValidationException(isDeposit
-                    ? "Aucun acompte exigible sur cette intervention"
-                    : intervention.getEstimatedCost() != null
-                        ? "Cette intervention est deja soldee par l'acompte"
-                        : "Montant de l'intervention indisponible — paiement impossible");
-        }
-        if (request.getAmount() != null && request.getAmount().compareTo(serverAmount) != 0) {
-            throw new PaymentValidationException("Le montant fourni ne correspond pas au montant attendu");
-        }
+        BigDecimal serverAmount = resolvePayableAmount(intervention, request, isDeposit);
 
         // Route all payments through the orchestrator (multi-provider)
         String currency = intervention.getCurrency() != null ? intervention.getCurrency() : "EUR";
@@ -372,14 +358,8 @@ public class InterventionPaymentService {
             throw new PaymentValidationException("Email utilisateur non trouve");
         }
 
-        // Z3-SEC-01 : montant resolu cote serveur, montant client = cross-check
-        BigDecimal serverAmount = intervention.getEstimatedCost();
-        if (serverAmount == null || serverAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new PaymentValidationException("Montant de l'intervention indisponible — paiement impossible");
-        }
-        if (request.getAmount() != null && request.getAmount().compareTo(serverAmount) != 0) {
-            throw new PaymentValidationException("Le montant fourni ne correspond pas au montant de l'intervention");
-        }
+        boolean isDeposit = "DEPOSIT".equalsIgnoreCase(request.getPurpose());
+        BigDecimal serverAmount = resolvePayableAmount(intervention, request, isDeposit);
 
         // Route via l'orchestrateur en mode EMBEDDED (miroir de createPaymentSession) :
         // l'embedded reste intrinsèquement Stripe (capacité EMBEDDED_CHECKOUT), mais le
@@ -389,10 +369,13 @@ public class InterventionPaymentService {
         String currency = intervention.getCurrency() != null ? intervention.getCurrency() : "EUR";
         PaymentOrchestrationRequest orchRequest = new PaymentOrchestrationRequest(
             serverAmount, currency, "INTERVENTION", request.getInterventionId(),
-            "Paiement intervention #" + request.getInterventionId(), customerEmail,
+            (isDeposit ? "Acompte intervention #" : "Paiement intervention #")
+                    + request.getInterventionId(), customerEmail,
             null, null, null,
-            Map.of("interventionId", String.valueOf(request.getInterventionId())),
-            "INT-" + request.getInterventionId(),
+            Map.of("interventionId", String.valueOf(request.getInterventionId()),
+                   "purpose", isDeposit ? "DEPOSIT" : "FULL"),
+            "INT-" + request.getInterventionId()
+                    + (isDeposit ? "-DEPOSIT-" + currentIdempotencyWindow() : ""),
             true,   // embedded
             null,   // expiresAtEpochSeconds — défaut provider
             false); // saveCardForFutureUse
@@ -409,7 +392,9 @@ public class InterventionPaymentService {
         if (providerTxId != null) {
             intervention.setStripeSessionId(providerTxId);
         }
-        intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+        if (!isDeposit) {
+            intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+        }
         interventionRepository.save(intervention);
 
         PaymentSessionResponse response = new PaymentSessionResponse();

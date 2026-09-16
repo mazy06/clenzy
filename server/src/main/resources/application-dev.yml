@@ -199,7 +199,7 @@ jasypt:
 # DEV UNIQUEMENT — autoriser localhost en production ouvrirait une redirection
 # de paiement vers une machine tierce.
 cors:
-  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:4173}
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:3005,http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:4173}
 
 stripe:
   secret-key: ${STRIPE_SECRET_KEY}
@@ -276,4 +276,3 @@ clenzy:
     access-token: ${MAPBOX_ACCESS_TOKEN:}
   libreoffice:
     url: ${LIBREOFFICE_URL:http://clenzy-libreoffice:3000}
-

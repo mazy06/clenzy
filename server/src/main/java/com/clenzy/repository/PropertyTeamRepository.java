@@ -13,8 +13,13 @@ import java.util.Optional;
 @Repository
 public interface PropertyTeamRepository extends JpaRepository<PropertyTeam, Long> {
 
-    @Query("SELECT pt FROM PropertyTeam pt LEFT JOIN FETCH pt.team WHERE pt.propertyId = :propertyId AND pt.organizationId = :orgId")
-    Optional<PropertyTeam> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+    @Query("SELECT pt FROM PropertyTeam pt LEFT JOIN FETCH pt.team WHERE pt.propertyId = :propertyId AND pt.organizationId = :orgId ORDER BY pt.assignedAt DESC, pt.id DESC")
+    List<PropertyTeam> findAllByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    /** Compatibilité de la fiche historique : dernière liaison, sans limiter les candidats métier. */
+    default Optional<PropertyTeam> findByPropertyId(Long propertyId, Long orgId) {
+        return findAllByPropertyId(propertyId, orgId).stream().findFirst();
+    }
 
     @Query("SELECT pt FROM PropertyTeam pt LEFT JOIN FETCH pt.team WHERE pt.propertyId IN :propertyIds AND pt.organizationId = :orgId")
     List<PropertyTeam> findByPropertyIdIn(@Param("propertyIds") List<Long> propertyIds, @Param("orgId") Long orgId);

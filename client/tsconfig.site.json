@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["site", "src/vite-env.d.ts"],
+  "exclude": ["site/**/*.test.ts", "site/**/*.test.tsx"]
+}

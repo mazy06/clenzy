@@ -32,6 +32,9 @@ public class InterventionLifecycleService {
     /** Max progress on reopen -- below 100% to prevent auto-completion triggers */
     private static final int REOPEN_MAX_PROGRESS = 89;
 
+    private final com.clenzy.repository.ServiceQuoteRepository serviceQuotes;
+    private final ServiceQuoteAgreementService agreements;
+    private final InterventionAllocationGuard allocationGuard;
     private final InterventionRepository interventionRepository;
     private final InterventionMapper interventionMapper;
     private final InterventionAccessPolicy accessPolicy;
@@ -50,7 +53,11 @@ public class InterventionLifecycleService {
                                         ObjectMapper objectMapper,
                                         TenantContext tenantContext,
                                         com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService,
-                                        PropertyStockService propertyStockService) {
+                                        PropertyStockService propertyStockService, InterventionAllocationGuard allocationGuard,
+                                        com.clenzy.repository.ServiceQuoteRepository serviceQuotes, ServiceQuoteAgreementService agreements) {
+        this.serviceQuotes = serviceQuotes;
+        this.agreements = agreements;
+        this.allocationGuard = allocationGuard;
         this.interventionRepository = interventionRepository;
         this.interventionMapper = interventionMapper;
         this.accessPolicy = accessPolicy;
@@ -68,13 +75,18 @@ public class InterventionLifecycleService {
      * <p>Geste strictement personnel : {@code requireAssignee} refuse un
      * gestionnaire qui repondrait a la place de l'intervenant.</p>
      */
+    private Intervention saveWithAllocation(Intervention intervention) {
+        allocationGuard.requireAvailable(intervention);
+        return interventionRepository.save(intervention);
+    }
+
     public InterventionResponse acceptAssignment(Long id, Jwt jwt) {
         Intervention intervention = loadRespondable(id, jwt);
 
         intervention.setAssignmentResponse(InterventionAssignmentResponse.ACCEPTED);
         intervention.setAssignmentRespondedAt(LocalDateTime.now());
         intervention.setAssignmentDeclineReason(null);
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         notifyManagers(intervention, "Mission acceptee",
                 "La mission '" + intervention.getTitle() + "' a ete acceptee.");
@@ -100,8 +112,9 @@ public class InterventionLifecycleService {
         intervention.setAssignmentRespondedAt(LocalDateTime.now());
         intervention.setAssignmentDeclineReason(reason != null && !reason.isBlank() ? reason.trim() : null);
         intervention.setAssignedUser(null);
+        intervention.setAssignedTechnicianId(null);
         intervention.setTeamId(null);
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         String motif = intervention.getAssignmentDeclineReason() != null
                 ? " Motif : " + intervention.getAssignmentDeclineReason()
@@ -181,25 +194,8 @@ public class InterventionLifecycleService {
             intervention.setProgressPercentage(0);
         }
 
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
         log.debug("Intervention started: id={}, status={}", intervention.getId(), intervention.getStatus());
-
-        // Notifications
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_STARTED,
-                    "Intervention demarree",
-                    "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
-                    actionUrl, interventionFacts(intervention));
-            notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_STARTED,
-                    "Intervention demarree",
-                    "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
-                    actionUrl, interventionFacts(intervention));
-        } catch (Exception e) {
-            log.warn("Notification error startIntervention: {}", e.getMessage());
-        }
 
         // Generation automatique du BON_INTERVENTION via outbox (post-commit safe)
         try {
@@ -226,18 +222,26 @@ public class InterventionLifecycleService {
             );
             log.debug("Outbox BON_INTERVENTION event persisted for intervention: {}", intervention.getId());
         } catch (Exception e) {
-            log.error("Outbox persist error BON_INTERVENTION: {}", e.getMessage(), e);
-            try {
-                notificationService.notifyAdminsAndManagers(
-                    NotificationKey.DOCUMENT_GENERATION_FAILED,
-                    "Erreur generation document",
-                    "Le document BON_INTERVENTION pour l'intervention #" + intervention.getId() + " n'a pas pu etre genere. Erreur: " + e.getMessage(),
-                    "/interventions/" + intervention.getId(),
-                    interventionFacts(intervention));
-            } catch (Exception ignored) {
-                // Best-effort notification
-            }
+            throw new IllegalStateException("Impossible de programmer le bon d’intervention", e);
         }
+
+        // Notifications
+        try {
+            String actionUrl = "/interventions/" + intervention.getId();
+            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
+                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
+            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_STARTED,
+                    "Intervention demarree",
+                    "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
+                    actionUrl, interventionFacts(intervention));
+            notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_STARTED,
+                    "Intervention demarree",
+                    "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
+                    actionUrl, interventionFacts(intervention));
+        } catch (Exception e) {
+            log.warn("Notification error startIntervention: {}", e.getMessage());
+        }
+
 
         return interventionMapper.convertToResponse(intervention);
     }
@@ -269,12 +273,12 @@ public class InterventionLifecycleService {
             intervention.setEndTime(LocalDateTime.now());
         }
 
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
         log.debug("Intervention completed: id={}", intervention.getId());
 
-        // Notifications and outbox events AFTER save (entity has ID and state committed to JPA context)
-        notifyInterventionCompleted(intervention);
+        // Toute intention documentaire doit être enregistrée avant les effets de complétion.
         publishValidationFinMissionDocuments(intervention);
+        notifyInterventionCompleted(intervention);
 
         // Moteur Ménage 3B (P9) : payout du prestataire à la complétion validée par la
         // preuve photo. Le service gère ses propres transactions + transfert post-commit ;
@@ -331,7 +335,7 @@ public class InterventionLifecycleService {
             intervention.setEndTime(minutes > 0 ? newDate.plusMinutes(minutes) : null);
         }
 
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
         log.info("Intervention {} replanifiee au {}", id, newDate);
         return interventionMapper.convertToResponse(intervention);
     }
@@ -363,7 +367,7 @@ public class InterventionLifecycleService {
             log.debug("Progress capped at 89% on reopen (after_photos step removed)");
         }
 
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
         log.debug("Intervention reopened: id={}, status={}, progress={}%", intervention.getId(), intervention.getStatus(), intervention.getProgressPercentage());
 
         // Notifications
@@ -387,15 +391,19 @@ public class InterventionLifecycleService {
     }
 
     public InterventionResponse updateStatus(Long id, String status, Jwt jwt) {
-        Intervention intervention = interventionRepository.findById(id)
+        InterventionStatus newStatus = InterventionStatus.fromString(status);
+        Intervention intervention = (newStatus == InterventionStatus.CANCELLED
+                ? interventionRepository.findForReview(id, tenantContext.getRequiredOrganizationId())
+                : interventionRepository.findById(id))
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
         accessPolicy.assertCanAccess(intervention, jwt);
 
-        InterventionStatus newStatus = InterventionStatus.fromString(status);
-
         // Only ADMIN, MANAGER, or SUPER_ADMIN can cancel an intervention
         if (newStatus == InterventionStatus.CANCELLED) {
+            if (serviceQuotes.hasApprovedAgreement(id, intervention.getOrganizationId())) {
+                throw new IllegalStateException("Annulez depuis le devis accepté avec un motif et une notification au prestataire");
+            }
             UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
             if (!userRole.isPlatformStaff()) {
                 throw new org.springframework.security.access.AccessDeniedException(
@@ -417,7 +425,7 @@ public class InterventionLifecycleService {
         }
 
         intervention.setStatus(newStatus);
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         // Notifications
         try {
@@ -452,7 +460,7 @@ public class InterventionLifecycleService {
      * Change le statut de AWAITING_VALIDATION a AWAITING_PAYMENT.
      */
     /**
-     * Édite le montant d'une intervention à tout moment : nouveau montant (SET),
+     * Édite le montant d'une intervention hors modification d’un devis accepté : nouveau montant (SET),
      * remise en euros (DISCOUNT_AMOUNT) ou en pourcentage (DISCOUNT_PERCENT). Le
      * montant final (actualCost) est recalculé côté SERVEUR à partir de la
      * référence (estimatedCost) — jamais de confiance au montant client. Autorisé
@@ -480,7 +488,6 @@ public class InterventionLifecycleService {
         switch (mode == null ? "" : mode.toUpperCase()) {
             case "SET" -> {
                 finalAmount = value;
-                intervention.setEstimatedCost(value); // nouvelle reference
             }
             case "DISCOUNT_AMOUNT" -> finalAmount = base.subtract(value).max(java.math.BigDecimal.ZERO);
             case "DISCOUNT_PERCENT" -> {
@@ -492,8 +499,11 @@ public class InterventionLifecycleService {
             }
             default -> throw new IllegalArgumentException("Mode invalide: " + mode);
         }
-        intervention.setActualCost(finalAmount.setScale(2, java.math.RoundingMode.HALF_UP));
-        intervention = interventionRepository.save(intervention);
+        finalAmount = finalAmount.setScale(2, java.math.RoundingMode.HALF_UP);
+        requireAgreedAmount(intervention, "SET".equalsIgnoreCase(mode) ? value : finalAmount);
+        if ("SET".equalsIgnoreCase(mode)) intervention.setEstimatedCost(value);
+        intervention.setActualCost(finalAmount);
+        intervention = saveWithAllocation(intervention);
         return interventionMapper.convertToResponse(intervention);
     }
 
@@ -525,7 +535,7 @@ public class InterventionLifecycleService {
         }
         intervention.setCompletedAt(java.time.LocalDateTime.now());
         intervention.setStatus(InterventionStatus.AWAITING_VALIDATION);
-        final Intervention saved = interventionRepository.save(intervention);
+        final Intervention saved = saveWithAllocation(intervention);
 
         try {
             notificationService.notifyAdminsAndManagersByOrgId(
@@ -567,7 +577,7 @@ public class InterventionLifecycleService {
         intervention.setCompletedAt(null);
         intervention.setFollowUpNotes(reason.strip());
         intervention.setRequiresFollowUp(true);
-        final Intervention saved = interventionRepository.save(intervention);
+        final Intervention saved = saveWithAllocation(intervention);
 
         try {
             if (intervention.getAssignedUser() != null
@@ -605,7 +615,7 @@ public class InterventionLifecycleService {
         }
         intervention.getStatus().assertCanTransitionTo(InterventionStatus.AWAITING_PAYMENT);
         intervention.setStatus(InterventionStatus.AWAITING_PAYMENT);
-        interventionRepository.save(intervention);
+        saveWithAllocation(intervention);
 
         // La demande de service suit : c'est elle qui porte la carte de paiement,
         // et son statut est ce qui rend le solde exigible.
@@ -613,6 +623,17 @@ public class InterventionLifecycleService {
             intervention.getServiceRequest().setStatus(
                     com.clenzy.model.RequestStatus.AWAITING_PAYMENT);
         }
+    }
+
+    private void requireAgreedAmount(Intervention intervention, java.math.BigDecimal amount) {
+        serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                intervention.getId(), intervention.getOrganizationId()).stream()
+                .filter(quote -> quote.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
+                .findFirst().ifPresent(quote -> {
+                    if (agreements.current(quote).agreedAmount().compareTo(amount) != 0) {
+                        throw new IllegalStateException("Un devis accepté fixe le montant de cette mission. Un avenant est nécessaire pour le modifier.");
+                    }
+                });
     }
 
     public InterventionResponse validateIntervention(Long id, java.math.BigDecimal estimatedCost, Jwt jwt) {
@@ -632,9 +653,10 @@ public class InterventionLifecycleService {
             throw new IllegalArgumentException("Le cout estime doit etre un montant positif");
         }
 
+        requireAgreedAmount(intervention, estimatedCost);
         intervention.setEstimatedCost(estimatedCost);
         intervention.setStatus(InterventionStatus.AWAITING_PAYMENT);
-        intervention = interventionRepository.save(intervention);
+        intervention = saveWithAllocation(intervention);
 
         // Notifications
         try {
@@ -723,17 +745,7 @@ public class InterventionLifecycleService {
             }
             log.debug("Outbox VALIDATION_FIN_MISSION event(s) persisted for intervention: {}", intervention.getId());
         } catch (Exception e) {
-            log.error("Outbox persist error VALIDATION_FIN_MISSION: {}", e.getMessage(), e);
-            try {
-                notificationService.notifyAdminsAndManagers(
-                    NotificationKey.DOCUMENT_GENERATION_FAILED,
-                    "Erreur generation document",
-                    "Le document VALIDATION_FIN_MISSION pour l'intervention #" + intervention.getId() + " n'a pas pu etre genere. Erreur: " + e.getMessage(),
-                    "/interventions/" + intervention.getId(),
-                    interventionFacts(intervention));
-            } catch (Exception ignored) {
-                // Best-effort notification
-            }
+            throw new IllegalStateException("Impossible de programmer les documents de fin de mission", e);
         }
     }
 

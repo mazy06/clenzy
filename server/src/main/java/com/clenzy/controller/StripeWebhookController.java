@@ -486,7 +486,7 @@ public class StripeWebhookController {
         } else if ("grouped_deferred".equals(type)) {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
             logger.warn("Paiement groupe differe echoue pour session: {}", sessionId);
-            stripeService.markGroupedPaymentAsFailed(interventionIds);
+            stripeService.markGroupedPaymentAsFailed(sessionId, interventionIds);
         } else if ("reservation".equals(type)) {
             logger.warn("Paiement de reservation echoue pour session: {}", sessionId);
             stripeService.markReservationPaymentFailed(sessionId);

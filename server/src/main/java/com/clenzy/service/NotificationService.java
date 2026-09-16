@@ -472,25 +472,26 @@ public class NotificationService {
     public NotificationDto sendByOrgId(String userId, NotificationKey key, String title,
                                         String message, String actionUrl, Long orgId,
                                         Map<String, Object> metadata) {
-        if (userId == null || key == null) {
-            return null;
-        }
+        if (userId == null || key == null) return null;
         try {
-            if (!preferenceService.isEnabled(userId, key)) {
-                return null;
-            }
-            Notification notification = new Notification(userId, title, message, key.getDefaultType(), key.getCategory());
-            notification.setNotificationKey(key);
-            notification.setActionUrl(actionUrl);
-            notification.setMetadata(serializeMetadata(metadata, key));
-            notification.setOrganizationId(orgId);
-            notification = notificationRepository.save(notification);
-            log.info("Notification {} creee (ID: {}) pour utilisateur {} (org={})", key, notification.getId(), userId, orgId);
-            return NotificationDto.fromEntity(notification);
+            return sendByOrgIdStrict(userId,key,title,message,actionUrl,orgId,metadata);
         } catch (Exception e) {
             log.error("Erreur notification {} pour {} (org={}): {}", key, userId, orgId, e.getMessage());
             return null;
         }
+    }
+
+    /** Pour les files durables : une panne de stockage doit laisser l'intention à reprendre. */
+    public NotificationDto sendByOrgIdStrict(String userId, NotificationKey key, String title,
+            String message, String actionUrl, Long orgId, Map<String,Object> metadata) {
+        if (userId == null || key == null) throw new IllegalArgumentException("Destinataire et type requis");
+        if (!preferenceService.isEnabled(userId,key)) return null;
+        Notification notification = new Notification(userId,title,message,key.getDefaultType(),key.getCategory());
+        notification.setNotificationKey(key);
+        notification.setActionUrl(actionUrl);
+        notification.setMetadata(serializeMetadata(metadata,key));
+        notification.setOrganizationId(orgId);
+        return NotificationDto.fromEntity(notificationRepository.save(notification));
     }
 
     /**

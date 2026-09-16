@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long>, JpaSpecificationExecutor<ServiceRequest> {
+public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long>, JpaSpecificationExecutor<ServiceRequest>, ServiceRequestMutationRepository {
 
     /**
      * Compteurs du dashboard overview sur la fenêtre de la période (créées dans
@@ -336,6 +336,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
      */
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
            "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
+           "AND (sr.autoAssignStatus IS NULL OR sr.autoAssignStatus <> 'manual_hold') " +
            "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries " +
            "AND sr.organizationId = :orgId")
     List<ServiceRequest> findPendingUnassignedForRetry(
@@ -346,6 +347,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
      */
     @Query("SELECT DISTINCT sr.organizationId FROM ServiceRequest sr " +
            "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
+           "AND (sr.autoAssignStatus IS NULL OR sr.autoAssignStatus <> 'manual_hold') " +
            "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries")
     List<Long> findOrganizationIdsWithPendingUnassigned(@Param("maxRetries") int maxRetries);
 

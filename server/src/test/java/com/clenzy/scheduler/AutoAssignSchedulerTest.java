@@ -153,4 +153,39 @@ class AutoAssignSchedulerTest {
         verify(workflowSettingsRepository).findByOrganizationId(2L);
         verify(workflowSettingsRepository).findByOrganizationId(3L);
     }
+    @Test
+    void failedRequestRollsBackAloneAndNextRequestCommits() {
+        var manager = new org.springframework.transaction.support.AbstractPlatformTransactionManager() {
+            int begun, committed, rolledBack;
+            @Override protected Object doGetTransaction() { return new Object(); }
+            @Override protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition definition) { begun++; }
+            @Override protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) { committed++; }
+            @Override protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) { rolledBack++; }
+        };
+        var serviceFactory = new org.springframework.aop.framework.ProxyFactory(serviceRequestService);
+        serviceFactory.setProxyTargetClass(true);
+        serviceFactory.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(manager,
+                new org.springframework.transaction.interceptor.MatchAlwaysTransactionAttributeSource()));
+        var isolatedScheduler = new AutoAssignScheduler(serviceRequestRepository, workflowSettingsRepository,
+                (ServiceRequestService) serviceFactory.getProxy(), supervisionActivityService, suggestionService);
+        var schedulerFactory = new org.springframework.aop.framework.ProxyFactory(isolatedScheduler);
+        schedulerFactory.setProxyTargetClass(true);
+        schedulerFactory.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(manager,
+                new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+
+        when(serviceRequestRepository.findOrganizationIdsWithPendingUnassigned(anyInt())).thenReturn(List.of(1L));
+        var first = new ServiceRequest(); first.setId(1L);
+        var second = new ServiceRequest(); second.setId(2L);
+        when(serviceRequestRepository.findPendingUnassignedForRetry(anyInt(), eq(1L))).thenReturn(List.of(first, second));
+        when(serviceRequestService.attemptAutoAssignByOrgId(first, 1L)).thenThrow(new IllegalStateException("Échec de la première demande"));
+        when(serviceRequestService.attemptAutoAssignByOrgId(second, 1L)).thenReturn(true);
+
+        ((AutoAssignScheduler) schedulerFactory.getProxy()).retryPendingAutoAssignment();
+
+        org.assertj.core.api.Assertions.assertThat(manager.begun).isEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(manager.rolledBack).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(manager.committed).isEqualTo(1);
+        verify(serviceRequestService).attemptAutoAssignByOrgId(second, 1L);
+    }
+
 }

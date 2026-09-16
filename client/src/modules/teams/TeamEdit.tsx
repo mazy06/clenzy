@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../utils/getErrorMessage';
 import { resolveMediaUrl } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
@@ -175,7 +176,7 @@ const TeamEdit: React.FC = () => {
       }, 1500);
     },
     onError: (err: Error) => {
-      setError(err?.message || 'Erreur lors de la mise à jour');
+      setError(getErrorMessage(err, 'Erreur lors de la mise à jour'));
     },
   });
 

@@ -89,7 +89,7 @@ class ReservationServiceUpdateTest {
                 propertyRepository, guestRepository, stripeService,
                 webhookEventPublisher,
                 cleaningPricingEngine
-        );
+        , org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class));
 
         property = new Property();
         property.setId(1L);

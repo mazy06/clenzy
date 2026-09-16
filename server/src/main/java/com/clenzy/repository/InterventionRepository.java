@@ -19,6 +19,10 @@ import java.util.List;
 @Repository
 public interface InterventionRepository extends JpaRepository<Intervention, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Intervention i WHERE i.id = :id AND i.organizationId = :orgId")
+    java.util.Optional<Intervention> findForReview(@Param("id") Long id, @Param("orgId") Long orgId);
+
     /**
      * Requêtes optimisées avec FETCH JOIN et cache
      */
@@ -234,20 +238,21 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Trouver les interventions assignées à un utilisateur (individuellement ou via une équipe)
      */
-    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor", "serviceRequest"})
-    @Query("SELECT DISTINCT i FROM Intervention i " +
-           "WHERE (i.assignedUser.id = :userId OR " +
-           "EXISTS (SELECT 1 FROM TeamMember tm WHERE tm.team.id = i.teamId AND tm.user.id = :userId)) AND " +
-           "(:propertyId IS NULL OR i.property.id = :propertyId) AND " +
-           "(:type IS NULL OR i.type = :type) AND " +
-           "(:status IS NULL OR i.status = :status) AND " +
-           "(:priority IS NULL OR i.priority = :priority) AND " +
-           "(CAST(:startDate AS timestamp) IS NULL OR i.scheduledDate >= :startDate) AND " +
-           "(CAST(:endDate AS timestamp) IS NULL OR i.scheduledDate < :endDate) AND " +
-           "(:orgId IS NULL OR i.organizationId = :orgId)")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
+    // Le périmètre est l’affectation explicite, pas l’organisation du prestataire.
+    @Query(value = """
+        SELECT i.* FROM interventions i
+        WHERE (i.assigned_user_id = :userId OR EXISTS
+            (SELECT 1 FROM team_members m WHERE m.team_id = i.team_id AND m.user_id = :userId))
+          AND (CAST(:propertyId AS bigint) IS NULL OR i.property_id = :propertyId)
+          AND (CAST(:type AS varchar) IS NULL OR i.type = :type)
+          AND (CAST(:#{#status == null ? null : #status.name()} AS varchar) IS NULL
+               OR i.status = :#{#status == null ? null : #status.name()})
+          AND (CAST(:priority AS varchar) IS NULL OR i.priority = :priority)
+          AND (CAST(:startDate AS timestamp) IS NULL OR i.scheduled_date >= :startDate)
+          AND (CAST(:endDate AS timestamp) IS NULL OR i.scheduled_date < :endDate)
+          AND (CAST(:orgId AS bigint) IS NULL OR i.organization_id = :orgId)
+        ORDER BY i.scheduled_date DESC, i.id DESC
+        """, nativeQuery = true)
     Page<Intervention> findByAssignedUserOrTeamWithFilters(@Param("userId") Long userId,
                                                           @Param("propertyId") Long propertyId,
                                                           @Param("type") String type,
@@ -330,6 +335,8 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     @EntityGraph(attributePaths = {"property", "property.owner", "requestor"})
     @Query("SELECT i FROM Intervention i WHERE i.stripeSessionId = :sessionId")
     java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId);
+
+    boolean existsByStripeSessionIdAndIdNot(String stripeSessionId, Long id);
 
     /**
      * Interventions impayees d'un host (paymentStatus != PAID et estimatedCost > 0)
@@ -463,7 +470,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      */
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.teamId = :teamId " +
            "AND i.status IN :activeStatuses " +
-           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd " +
+           "AND i.scheduledDate < :rangeEnd AND timestampadd(HOUR, CASE WHEN i.estimatedDurationHours IS NULL OR i.estimatedDurationHours <= 0 THEN 4 ELSE i.estimatedDurationHours END, i.scheduledDate) > :rangeStart " +
            "AND i.organizationId = :orgId")
     long countActiveByTeamIdAndDateRange(
             @Param("teamId") Long teamId,
@@ -479,7 +486,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      */
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.teamId = :teamId " +
            "AND i.status IN :activeStatuses " +
-           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd")
+           "AND i.scheduledDate < :rangeEnd AND timestampadd(HOUR, CASE WHEN i.estimatedDurationHours IS NULL OR i.estimatedDurationHours <= 0 THEN 4 ELSE i.estimatedDurationHours END, i.scheduledDate) > :rangeStart")
     long countActiveByTeamIdAndDateRangeAnyOrg(
             @Param("teamId") Long teamId,
             @Param("activeStatuses") List<InterventionStatus> activeStatuses,
@@ -492,7 +499,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      */
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.assignedUser.id = :userId " +
            "AND i.status IN :activeStatuses " +
-           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd " +
+           "AND i.scheduledDate < :rangeEnd AND timestampadd(HOUR, CASE WHEN i.estimatedDurationHours IS NULL OR i.estimatedDurationHours <= 0 THEN 4 ELSE i.estimatedDurationHours END, i.scheduledDate) > :rangeStart " +
            "AND i.organizationId = :orgId")
     long countActiveByUserIdAndDateRange(
             @Param("userId") Long userId,
@@ -507,7 +514,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      */
     @Query("SELECT i.assignedUser.id, COUNT(i) FROM Intervention i WHERE i.assignedUser.id IN :userIds " +
            "AND i.status IN :activeStatuses " +
-           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd " +
+           "AND i.scheduledDate < :rangeEnd AND timestampadd(HOUR, CASE WHEN i.estimatedDurationHours IS NULL OR i.estimatedDurationHours <= 0 THEN 4 ELSE i.estimatedDurationHours END, i.scheduledDate) > :rangeStart " +
            "AND i.organizationId = :orgId " +
            "GROUP BY i.assignedUser.id")
     List<Object[]> countActiveByUserIdsAndDateRange(

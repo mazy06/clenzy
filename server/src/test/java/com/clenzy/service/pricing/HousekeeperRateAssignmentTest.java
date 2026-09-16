@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
@@ -55,6 +54,7 @@ class HousekeeperRateAssignmentTest {
         @Mock private InterventionPhotoService photoService;
         @Mock private InterventionMapper interventionMapper;
         @Mock private InterventionAccessPolicy accessPolicy;
+        @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
         @Mock private CleaningPricingEngine cleaningPricingEngine;
         @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
         @Mock private com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
@@ -63,7 +63,7 @@ class HousekeeperRateAssignmentTest {
             return new InterventionService(interventionRepository, userRepository, teamRepository,
                     notificationService, tenantContext, photoService, interventionMapper, accessPolicy,
                     cleaningPricingEngine, missionAssignmentEmailComposer, propertyPhotoRepository,
-                    supervisionTriggerService);
+                    supervisionTriggerService, serviceQuoteRepository, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class));
         }
 
         private Jwt adminJwt() {
@@ -160,7 +160,7 @@ class HousekeeperRateAssignmentTest {
         @Mock private TeamRepository teamRepository;
         @Mock private NotificationService notificationService;
         @Mock private PropertyTeamService propertyTeamService;
-        @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+        @Mock private com.clenzy.service.DocumentGenerationOutbox documentOutbox;
         @Mock private ServiceRequestMapper serviceRequestMapper;
         @Mock private AssignmentEventRepository assignmentEventRepository;
         @Mock private WorkflowSettingsRepository workflowSettingsRepository;
@@ -172,12 +172,15 @@ class HousekeeperRateAssignmentTest {
         @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
         private ServiceRequestService service() {
+            var guard = org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class);
+            org.mockito.Mockito.lenient().when(guard.isUserDeclaredAvailable(any(), any(), any())).thenReturn(true);
+            org.mockito.Mockito.lenient().when(guard.isTeamDeclaredAvailable(any(), any(), any())).thenReturn(true);
             return new ServiceRequestService(serviceRequestRepository, userRepository, propertyRepository,
                     interventionRepository, reservationRepository, teamRepository, notificationService,
-                    propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
+                    propertyTeamService, documentOutbox, new TenantContext(), serviceRequestMapper,
                     assignmentEventRepository, workflowSettingsRepository, cleaningPricingEngine, housekeeperScoreService,
                     supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
-                    organizationAccessGuard);
+                    organizationAccessGuard, guard, org.mockito.Mockito.mock(com.clenzy.service.ServiceRequestCancellationCoordination.class));
         }
 
         private ServiceRequest cleaningSr(RequestStatus status) {
@@ -197,7 +200,7 @@ class HousekeeperRateAssignmentTest {
         @Test
         void whenUserAssignedOnUnpaidCleaningSr_thenEstimatedCostFollowsProRate() {
             ServiceRequest sr = cleaningSr(RequestStatus.PENDING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+            when(serviceRequestRepository.findForMutation(1L)).thenReturn(Optional.of(sr));
             when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(serviceRequestMapper.toDto(any())).thenReturn(new com.clenzy.dto.ServiceRequestDto());
             when(cleaningPricingEngine.resolveCleaningPrice(any(), eq("CLEANING"), eq(42L))).thenReturn(PRO_PRICE);
@@ -211,7 +214,7 @@ class HousekeeperRateAssignmentTest {
         @Test
         void whenTeamAssigned_thenNoRateLookup() {
             ServiceRequest sr = cleaningSr(RequestStatus.PENDING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+            when(serviceRequestRepository.findForMutation(1L)).thenReturn(Optional.of(sr));
             when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(serviceRequestMapper.toDto(any())).thenReturn(new com.clenzy.dto.ServiceRequestDto());
 
@@ -225,7 +228,7 @@ class HousekeeperRateAssignmentTest {
         void whenSrAlreadyPaid_thenAmountUntouched() {
             ServiceRequest sr = cleaningSr(RequestStatus.AWAITING_PAYMENT);
             sr.setPaidAt(java.time.LocalDateTime.now());
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+            when(serviceRequestRepository.findForMutation(1L)).thenReturn(Optional.of(sr));
             when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(serviceRequestMapper.toDto(any())).thenReturn(new com.clenzy.dto.ServiceRequestDto());
 

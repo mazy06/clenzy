@@ -139,6 +139,25 @@ class SecurityConfigTest {
     @DisplayName("corsConfigurationSource")
     class CorsConfigSource {
         @Test
+        void publicApplicationPreflightAcceptsConfiguredSiteAndSessionHeaderOnly() throws Exception {
+            var request = new org.springframework.mock.web.MockHttpServletRequest("OPTIONS", "/api/public/marketplace/applications/session");
+            request.addHeader("Origin", "http://localhost:3005");
+            request.addHeader("Access-Control-Request-Method", "POST");
+            request.addHeader("Access-Control-Request-Headers", "content-type,x-requested-with");
+            var response = new org.springframework.mock.web.MockHttpServletResponse();
+            assertThat(new org.springframework.web.cors.DefaultCorsProcessor().processRequest(
+                    config.corsConfigurationSource().getCorsConfiguration(request), request, response)).isTrue();
+            assertThat(response.getHeader("Access-Control-Allow-Origin")).isEqualTo("http://localhost:3005");
+            assertThat(response.getHeader("Access-Control-Allow-Credentials")).isEqualTo("true");
+            var cors = config.corsConfigurationSource().getCorsConfiguration(request);
+            assertThat(cors.checkOrigin("https://attacker.example")).isNull();
+            org.springframework.test.util.ReflectionTestUtils.setField(config, "allowedOrigins", "https://dev.baitly.example");
+            var custom = config.corsConfigurationSource().getCorsConfiguration(request);
+            assertThat(custom.checkOrigin("http://localhost:3005")).isNull();
+            assertThat(custom.checkOrigin("https://dev.baitly.example")).isEqualTo("https://dev.baitly.example");
+        }
+
+        @Test
         @DisplayName("returns an UrlBasedCorsConfigurationSource with localhost origins for admin path")
         void corsConfigurationSource_adminPath() {
             CorsConfigurationSource source = config.corsConfigurationSource();

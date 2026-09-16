@@ -19,6 +19,19 @@ interface ProtectedRouteProps {
    * quelle que soit la permission — c'est ce que ce garde-fou exprime.</p>
    */
   deniedRoles?: string[];
+  /**
+   * Roles STRICTEMENT requis, en plus de la permission eventuelle.
+   *
+   * <p>Certains ecrans ne se decrivent pas par une permission metier : la place
+   * de marche lit des tables PLATEFORME, sans cloisonnement par organisation,
+   * et ne s'ouvre qu'a l'equipe Baitly. Aucune permission accordee a un compte
+   * client ne doit pouvoir y donner acces — d'ou un test sur le role et non sur
+   * la permission.</p>
+   *
+   * <p>Absent, le garde ne change rien : les routes existantes gardent leur
+   * comportement exact.</p>
+   */
+  requiredRoles?: string[];
   fallbackPath?: string;
   fallbackMessage?: string;
 }
@@ -27,6 +40,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredPermission,
   deniedRoles,
+  requiredRoles,
   fallbackPath = '/',
   fallbackMessage
 }) => {
@@ -39,13 +53,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return deniedRoles.some((role) => userRoles.has(role));
   }, [deniedRoles, user]);
 
+  const missingRole = useMemo(() => {
+    if (!requiredRoles || requiredRoles.length === 0) return false;
+    if (!user) return true;
+    const userRoles = new Set(user.roles ?? []);
+    return !requiredRoles.some((role) => userRoles.has(role));
+  }, [requiredRoles, user]);
+
   // Vérification synchrone — pas de useEffect, pas de state intermédiaire
   const hasAccess = useMemo(() => {
-    if (isDenied) return false;
+    if (isDenied || missingRole) return false;
     if (!requiredPermission) return true;
     if (!user) return false;
     return user.permissions?.includes(requiredPermission) || false;
-  }, [isDenied, requiredPermission, user]);
+  }, [isDenied, missingRole, requiredPermission, user]);
 
   // Si l'auth charge encore, ne rien afficher (évite le flash d'accès refusé).
   if (loading) {
@@ -53,7 +74,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Aucune restriction déclarée → afficher directement.
-  if (!requiredPermission && !isDenied) {
+  if (!requiredPermission && !isDenied && !missingRole) {
     return <>{children}</>;
   }
 

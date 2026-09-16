@@ -383,16 +383,19 @@ public class AuthController {
             String keycloakId = jwt.getSubject();
             User user = userService.findByKeycloakId(keycloakId);
 
-            // Auto-liaison : si l'utilisateur n'est pas trouve par keycloakId,
-            // chercher par email et lier automatiquement le keycloakId
+            // Le sujet signé est l’identité. Une adresse identique ne prouve pas
+            // que cette session possède un ancien compte local.
             if (user == null) {
                 String email = jwt.getClaim("email");
                 if (email != null && !email.isBlank()) {
+                    if (!Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified"))) {
+                        throw new org.springframework.web.server.ResponseStatusException(
+                            org.springframework.http.HttpStatus.FORBIDDEN, "Confirmez votre adresse email avant de créer votre profil");
+                    }
                     user = userService.findByEmail(email);
                     if (user != null) {
-                        log.info("/me - Auto-liaison keycloakId {} -> utilisateur {} (email: {})",
-                                keycloakId, user.getId(), email);
-                        userService.updateKeycloakId(user.getId(), keycloakId);
+                        throw new org.springframework.web.server.ResponseStatusException(
+                            org.springframework.http.HttpStatus.CONFLICT, "Ce compte nécessite une réconciliation d’identité vérifiée");
                     } else {
                         // Auto-provisioning : creer l'utilisateur en base a partir du JWT
                         log.warn("/me - Aucun utilisateur trouve, auto-provisioning depuis le JWT...");
@@ -525,6 +528,8 @@ public class AuthController {
 
             return claims;
 
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Erreur dans /me: {}", e.getMessage(), e);
             return Map.of("authenticated", true, "error", "Erreur lors de la recuperation des donnees");

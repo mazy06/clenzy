@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,6 +37,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ServiceRequestBestProAssignTest {
+    private final InterventionAllocationGuard allocationGuard = org.mockito.Mockito.mock(InterventionAllocationGuard.class);
 
     private static final Long ORG_ID = 1L;
     private static final Long TEAM_ID = 5L;
@@ -50,7 +50,7 @@ class ServiceRequestBestProAssignTest {
     @Mock private TeamRepository teamRepository;
     @Mock private NotificationService notificationService;
     @Mock private PropertyTeamService propertyTeamService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private com.clenzy.service.DocumentGenerationOutbox documentOutbox;
     @Mock private ServiceRequestMapper serviceRequestMapper;
     @Mock private AssignmentEventRepository assignmentEventRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
@@ -68,14 +68,18 @@ class ServiceRequestBestProAssignTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(allocationGuard.isUserDeclaredAvailable(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.lenient().when(allocationGuard.isTeamDeclaredAvailable(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
         service = new ServiceRequestService(
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
-                propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
+                propertyTeamService, documentOutbox, new TenantContext(), serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
                 supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
-                organizationAccessGuard);
+                organizationAccessGuard, allocationGuard, org.mockito.Mockito.mock(ServiceRequestCancellationCoordination.class));
 
         property = new Property();
         property.setId(100L);
@@ -83,6 +87,7 @@ class ServiceRequestBestProAssignTest {
 
         sr = new ServiceRequest();
         sr.setId(55L);
+        lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
         sr.setTitle("Menage post-checkout");
         sr.setOrganizationId(ORG_ID);
         sr.setProperty(property);
@@ -127,6 +132,26 @@ class ServiceRequestBestProAssignTest {
     }
 
     // ── Toggle OFF (défaut) : zéro changement ────────────────────────────────
+
+    @Test void anUnavailableMemberIsNeverPromotedToIndividualAssignment() {
+        when(cleaningPricingEngine.isAutoAssignBestProEnabled()).thenReturn(true);
+        addHousekeeper(10L, "kc-10"); addHousekeeper(20L, "kc-20");
+        when(allocationGuard.isUserDeclaredAvailable(eq(10L), any(), any())).thenReturn(false);
+        stubCandidate(20L, 60, BigDecimal.valueOf(100), CleaningPriceSource.HOUSEKEEPER_RATE, 0);
+        assertThat(service.attemptAutoAssign(sr)).isTrue();
+        assertThat(sr.getAssignedToId()).isEqualTo(20L);
+        verify(housekeeperScoreService, never()).computeScore(10L, ORG_ID);
+    }
+
+    @Test void scoreToleranceIsRelativeToTheBestCandidate() {
+        when(cleaningPricingEngine.isAutoAssignBestProEnabled()).thenReturn(true);
+        addHousekeeper(10L, "kc-10"); addHousekeeper(20L, "kc-20"); addHousekeeper(30L, "kc-30");
+        stubCandidate(10L, 90, BigDecimal.valueOf(120), CleaningPriceSource.HOUSEKEEPER_RATE, 0);
+        stubCandidate(20L, 81, BigDecimal.valueOf(100), CleaningPriceSource.HOUSEKEEPER_RATE, 0);
+        stubCandidate(30L, 72, BigDecimal.valueOf(95), CleaningPriceSource.HOUSEKEEPER_RATE, 0);
+        assertThat(service.attemptAutoAssign(sr)).isTrue();
+        assertThat(sr.getAssignedToId()).isEqualTo(20L);
+    }
 
     @Test
     void whenToggleOff_thenTeamAssignmentUntouched() {

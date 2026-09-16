@@ -4,8 +4,6 @@ import com.clenzy.model.Team;
 import com.clenzy.model.TeamMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
-import com.clenzy.model.TeamCoverageZone;
-import com.clenzy.repository.TeamCoverageZoneRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
@@ -23,17 +21,15 @@ import java.util.Optional;
  *
  * <h2>Le probleme</h2>
  * <p>Tout le moteur d'affectation ({@link PropertyTeamService}) raisonne en
- * equipes : les zones de couverture sont clefees par {@code team_id},
- * l'occupation se teste par {@code team_id}, et le metier vient du
+ * équipes : l’occupation se teste par {@code team_id}, et le métier vient du
  * {@code interventionType} de l'equipe. Un intervenant independant, sans
  * equipe, est donc invisible de l'auto-assignation — un gestionnaire doit le
  * choisir a la main.</p>
  *
  * <h2>Le choix</h2>
  * <p>Plutot que de dupliquer le moteur pour les personnes, on donne a chaque
- * independant une equipe d'un seul membre. Zones, disponibilites et
- * compatibilite de metier s'appliquent alors sans qu'une ligne du moteur
- * change.</p>
+ * independant une equipe d'un seul membre. Les zones et disponibilités se lisent sur l’identité de la personne ;
+ * l’équipe ne porte que son rattachement opérationnel à l’organisation.</p>
  *
  * <p>La creation est PARESSEUSE : l'equipe nait au premier besoin — quand
  * l'intervenant declare sa zone — et non a l'inscription. Creer une equipe pour
@@ -49,16 +45,13 @@ public class PersonalTeamService {
     private static final Logger log = LoggerFactory.getLogger(PersonalTeamService.class);
 
     private final TeamRepository teamRepository;
-    private final TeamCoverageZoneRepository zoneRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
     public PersonalTeamService(TeamRepository teamRepository,
-                               TeamCoverageZoneRepository zoneRepository,
                                UserRepository userRepository,
                                TenantContext tenantContext) {
         this.teamRepository = teamRepository;
-        this.zoneRepository = zoneRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
     }
@@ -87,7 +80,6 @@ public class PersonalTeamService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur non trouve : " + userId));
-
         Team team = new Team();
         team.setOrganizationId(orgId);
         team.setPersonalUserId(userId);
@@ -121,51 +113,6 @@ public class PersonalTeamService {
     public Team getOrCreateByKeycloakId(String keycloakId) {
         return getOrCreate(requireUser(keycloakId).getId());
     }
-
-    // ── Zone d'intervention declaree par l'intervenant ─────────────────────
-
-    /** Zone declaree, vide tant qu'aucune equipe personnelle n'existe. */
-    @Transactional(readOnly = true)
-    public List<TeamCoverageZone> getCoverageZones(String keycloakId) {
-        return find(requireUser(keycloakId).getId())
-                .map(team -> zoneRepository.findByTeamId(team.getId()))
-                .orElseGet(List::of);
-    }
-
-    /**
-     * REMPLACE la zone declaree — l'intervenant decrit ou il travaille
-     * AUJOURD'HUI. Empiler les declarations successives laisserait des secteurs
-     * qu'il a quittes le rendre eligible a des missions qu'il refusera.
-     *
-     * <p>C'est ici que l'equipe personnelle nait, si elle n'existait pas :
-     * declarer sa zone est exactement le moment ou elle devient utile.</p>
-     */
-    @Transactional
-    public List<TeamCoverageZone> replaceCoverageZones(String keycloakId, List<CoverageZoneInput> zones) {
-        final Long orgId = tenantContext.getRequiredOrganizationId();
-        Team team = getOrCreate(requireUser(keycloakId).getId());
-
-        zoneRepository.deleteByTeamIdAndOrganizationId(team.getId(), orgId);
-
-        return zones.stream().map(input -> {
-            TeamCoverageZone zone = new TeamCoverageZone(
-                    team.getId(),
-                    input.country().toUpperCase(),
-                    input.department(),
-                    input.arrondissement(),
-                    input.city());
-            zone.setOrganizationId(orgId);
-            return zoneRepository.save(zone);
-        }).toList();
-    }
-
-    /**
-     * Une zone declaree. La France se decrit par departement (et arrondissement
-     * pour Paris, Lyon, Marseille), le reste du monde par ville : c'est la
-     * maille dont dispose le moteur, et elle differe selon le pays.
-     */
-    public record CoverageZoneInput(String country, String department,
-                                    String arrondissement, String city) {}
 
     private User requireUser(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)

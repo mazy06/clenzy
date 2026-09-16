@@ -103,6 +103,7 @@ public class ServiceRequestMapper {
     public ServiceRequestDto toDto(ServiceRequest e) {
         ServiceRequestDto dto = new ServiceRequestDto();
         dto.id = e.getId();
+        dto.version = e.getVersion();
         dto.title = e.getTitle();
         dto.description = e.getDescription();
         dto.serviceType = e.getServiceType();
