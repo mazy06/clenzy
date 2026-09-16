@@ -85,6 +85,8 @@ public class InterventionAccessPolicy {
 
         if (userRole == UserRole.HOST) {
             Property prop = intervention.getProperty();
+            if (prop == null && intervention.getRequestor() != null
+                    && userId.equals(intervention.getRequestor().getId())) return;
             if (prop != null && prop.getOwner() != null && prop.getOwner().getId().equals(userId)) {
                 return;
             }

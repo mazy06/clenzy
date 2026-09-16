@@ -47,7 +47,7 @@ class HousekeeperRateServiceTest {
     @BeforeEach
     void setUp() {
         service = new HousekeeperRateService(rateRepository, propertyRepository, userRepository,
-                cleaningPricingEngine, tenantContext, housekeeperScoreService, new ProviderTariffService(rateRepository));
+                cleaningPricingEngine, tenantContext, housekeeperScoreService, new ProviderTariffService(rateRepository, com.clenzy.service.CatalogTestFixture.reference()));
         lenient().when(housekeeperScoreService.computeScore(any(), any()))
                 .thenReturn(com.clenzy.service.pricing.HousekeeperScoreService.HousekeeperScore.empty());
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);

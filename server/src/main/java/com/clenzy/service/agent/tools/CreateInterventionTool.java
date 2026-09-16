@@ -66,10 +66,13 @@ public class CreateInterventionTool implements ToolHandler {
         if (context.jwt() == null) {
             throw new ToolExecutionException(NAME, "JWT requis");
         }
-        Long propertyId = requireLong(args, "propertyId");
+        String serviceItemCode = args.path("serviceItemCode").asText(null);
+        Long propertyId = serviceItemCode == null ? requireLong(args,"propertyId")
+            : args.hasNonNull("propertyId") ? args.path("propertyId").asLong() : null;
         String title = requireString(args, "title");
-        String type = requireString(args, "type");
+        String type = serviceItemCode == null ? requireString(args,"type") : args.path("type").asText("OTHER");
         String scheduledDate = requireString(args, "scheduledDate");
+        if (scheduledDate.length() == 10) scheduledDate += "T09:00:00";
         String description = args.path("description").asText(null);
         String priority = args.path("priority").asText("MEDIUM");
         int duration = args.path("estimatedDurationHours").asInt(DEFAULT_DURATION_HOURS);
@@ -83,19 +86,20 @@ public class CreateInterventionTool implements ToolHandler {
             CreateInterventionRequest request = new CreateInterventionRequest(
                     title, description, type, priority,
                     propertyId, requestor.getId(), scheduledDate,
-                    duration, null, null);
+                    duration, null, null, serviceItemCode);
 
-            InterventionResponse created = interventionService.create(request, context.jwt());
+            com.clenzy.dto.ServiceRequestDto created = interventionService.create(request, context.jwt());
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("id", created.id());
-            payload.put("title", created.title());
-            payload.put("type", created.type());
-            payload.put("status", created.status());
-            payload.put("propertyId", created.propertyId());
-            payload.put("propertyName", created.propertyName());
-            payload.put("scheduledDate", created.scheduledDate());
-            payload.put("message", "Intervention #" + created.id() + " creee avec succes.");
+            payload.put("id", created.id);
+            payload.put("title", created.title);
+            payload.put("type", created.serviceType);
+            payload.put("serviceItemCode", created.serviceItemCode);
+            payload.put("status", created.status);
+            payload.put("propertyId", created.propertyId);
+            payload.put("resourceType", "service-request");
+            payload.put("scheduledDate", created.desiredDate);
+            payload.put("message", "Demande de service #" + created.id + " créée. Une intervention sera créée après accord.");
 
             return ToolResult.success(objectMapper.writeValueAsString(payload), "summary");
         } catch (JsonProcessingException e) {
@@ -131,21 +135,22 @@ public class CreateInterventionTool implements ToolHandler {
                     {
                       "type": "object",
                       "properties": {
-                        "propertyId":              {"type":"integer","description":"REQUIS : ID de la propriete"},
+                        "propertyId":              {"type":"integer","description":"ID du logement ; requis si propertyRequired vaut true dans list_service_reference"},
+                        "serviceItemCode":         {"type":"string","maxLength":60,"description":"Code exact obtenu via list_service_reference ; ne jamais inventer un code"},
                         "title":                   {"type":"string","minLength":5,"maxLength":100,"description":"REQUIS : Titre court de l'intervention"},
-                        "type":                    {"type":"string","enum":["HOUSEKEEPING","MAINTENANCE","CHECK_IN","CHECK_OUT","LAUNDRY","INSPECTION","OTHER"],"description":"REQUIS : Type d'intervention"},
-                        "scheduledDate":           {"type":"string","format":"date","description":"REQUIS : Date prevue (YYYY-MM-DD)"},
+                        "type":                    {"type":"string","description":"Projection historique facultative ; omettre pour utiliser OTHER"},
+                        "scheduledDate":           {"type":"string","description":"REQUIS : Date et heure locales prévues (YYYY-MM-DDTHH:mm:ss), ou échéance pour un service sans créneau"},
                         "description":             {"type":"string","maxLength":500,"description":"Description detaillee (optionnel)"},
                         "priority":                {"type":"string","enum":["LOW","MEDIUM","HIGH","URGENT"],"description":"Priorite (defaut MEDIUM)"},
                         "estimatedDurationHours":  {"type":"integer","minimum":1,"description":"Duree estimee en heures (defaut 2)"}
                       },
-                      "required": ["propertyId","title","type","scheduledDate"],
+                      "required": ["title","serviceItemCode","scheduledDate"],
                       "additionalProperties": false
                     }
                     """);
             return ToolDescriptor.write(
                     NAME,
-                    "Cree une intervention (menage, maintenance, check-in/out) sur une propriete. Requestor = utilisateur connecte. Confirmer avant d'executer.",
+                    "Crée une demande de service ; l’intervention naît après acceptation du prestataire. Utiliser list_service_reference avant de choisir le code. Demandeur = utilisateur connecté. Confirmer avant exécution.",
                     schema
             );
         } catch (JsonProcessingException e) {

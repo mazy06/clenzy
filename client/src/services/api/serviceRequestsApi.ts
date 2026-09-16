@@ -13,6 +13,9 @@ export interface ServiceRequest {
   userId: number;
   userName?: string;
   serviceType: string;
+  serviceItemCode?: string;
+  marketplaceRequestId?: number;
+  interventionId?: number;
   priority: string;
   status: string;
   estimatedDurationHours: number;
@@ -40,6 +43,7 @@ export interface ServiceRequestFormData {
   description: string;
   propertyId: number;
   serviceType: string;
+  serviceItemCode?: string;
   priority: string;
   estimatedDurationHours: number;
   desiredDate: string;
@@ -60,6 +64,7 @@ export interface AssignableTeam {
   available: boolean;
   /** Indicateur de conflit (0 ou 1), sans détail sur les engagements externes. */
   conflicts: number;
+  reason?: string | null;
 }
 
 /**
@@ -69,7 +74,7 @@ export interface AssignableTeam {
  */
 export interface AssignableTeams {
   teams: AssignableTeam[];
-  /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
+  /** Code canonique de prestation ; null si le besoin reste à qualifier. */
   requiredTeamType: string | null;
 }
 
@@ -83,7 +88,7 @@ export const serviceRequestsApi = {
    * `apiClient.get<T>`. Un appelant qui s'y fiait plantait sur
    * « .filter is not a function ».
    */
-  async getAll(params?: { propertyId?: number; reservationId?: number; userId?: number; status?: string; serviceType?: string }): Promise<ServiceRequest[]> {
+  async getAll(params?: { propertyId?: number; reservationId?: number; userId?: number; status?: string; serviceType?: string; activeOnly?: boolean }): Promise<ServiceRequest[]> {
     return extractApiList<ServiceRequest>(await apiClient.get<unknown>('/service-requests', { params }));
   },
   getById(id: number) {
@@ -175,6 +180,7 @@ export interface PlanningServiceRequest {
   propertyId: number;
   propertyName: string;
   serviceType: string;
+  serviceItemCode?: string;
   title: string;
   assignedToName?: string;
   startDate: string;

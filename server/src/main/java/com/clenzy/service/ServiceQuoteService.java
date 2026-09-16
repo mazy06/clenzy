@@ -63,6 +63,7 @@ public class ServiceQuoteService {
 
     private final ServiceQuoteRepository quoteRepository;
     private final InterventionAllocationGuard allocationGuard;
+    private final com.clenzy.service.assignment.AssignmentQuoteService assignmentQuotes;
     private final QuoteDiscussionScope discussionScope;
     private final com.clenzy.marketplace.service.MarketplaceQuoteMissionFactory marketplaceMissions;
     private final InterventionRepository interventionRepository;
@@ -95,7 +96,8 @@ public class ServiceQuoteService {
                                com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService,
                                QuoteDiscussionScope discussionScope,
                                com.clenzy.marketplace.service.MarketplaceQuoteMissionFactory marketplaceMissions,
-                               InterventionAllocationGuard allocationGuard) {
+                               InterventionAllocationGuard allocationGuard, com.clenzy.service.assignment.AssignmentQuoteService assignmentQuotes) {
+        this.assignmentQuotes=assignmentQuotes;
         this.allocationGuard = allocationGuard;
         this.marketplaceMissions = marketplaceMissions;
         this.discussionScope = discussionScope;
@@ -564,7 +566,7 @@ public class ServiceQuoteService {
         final Intervention intervention = requireOwnedIntervention(quote.getInterventionId(), orgId);
         quote.setId(null);
         quote.setOrganizationId(orgId);
-        quote.setPropertyId(intervention.getProperty().getId());
+        quote.setPropertyId(intervention.getProperty() == null ? null : intervention.getProperty().getId());
         quote.setStatus(ServiceQuote.Status.RECEIVED);
         return quoteRepository.save(quote);
     }
@@ -652,6 +654,10 @@ public class ServiceQuoteService {
      * proprietaire du logement (regle audit n°2, validation d'ownership).</p>
      */
     private void assertCanDecide(ServiceQuote quote, Jwt jwt) {
+        if (quote.getAssignmentProposalId()!=null) {
+            assignmentQuotes.requireManager(quote,jwt);
+            return;
+        }
         if (quote.getMarketplaceRequestId() != null) {
             var request = marketplaceMissions.lock(quote.getMarketplaceRequestId(), quote.getOrganizationId());
             marketplaceMissions.assertCanDecide(request, quote.getOrganizationId(), jwt);
@@ -731,6 +737,13 @@ public class ServiceQuoteService {
         if (quote.getValidUntil() != null && quote.getValidUntil().isBefore(java.time.LocalDate.now(clock))) {
             throw new IllegalStateException("Ce devis a expiré");
         }
+        if (quote.getAssignmentProposalId()!=null) {
+            Long missionId=assignmentQuotes.prepareAcceptance(quote);
+            if (quoteRepository.linkMarketplaceMission(id,orgId,missionId)!=1)
+                throw new IllegalStateException("Ce devis a déjà été traité");
+            quote.setInterventionId(missionId);
+            publishQuote=true;
+        }
         if (quote.getMarketplaceRequestId() != null) {
             Long missionId = marketplaceMissions.decide(quote, orgId, true, null).orElse(null);
             if (quoteRepository.linkMarketplaceMission(id, orgId, missionId) != 1)
@@ -749,6 +762,7 @@ public class ServiceQuoteService {
             throw new IllegalStateException("Devis déjà " + quote.getStatus()
                     + " — approbation impossible");
         }
+        if (quote.getServiceRequestId()!=null) quoteRepository.rejectNeedSiblings(quote.getServiceRequestId(),orgId,id);
         if (quote.getInterventionId() != null) {
             quoteRepository.rejectSiblings(quote.getInterventionId(), orgId, id);
             final Intervention intervention = requireOwnedIntervention(quote.getInterventionId(), orgId);
@@ -761,6 +775,8 @@ public class ServiceQuoteService {
                         .orElseThrow(() -> new NotFoundException("Prestataire introuvable"));
                 intervention.proposeAssignment(provider, null);
             }
+            intervention.setAssignmentResponse(com.clenzy.model.InterventionAssignmentResponse.ACCEPTED);
+            intervention.setAssignmentRespondedAt(java.time.LocalDateTime.now(clock));
             allocationGuard.requireAvailable(intervention);
             interventionRepository.save(intervention);
         }

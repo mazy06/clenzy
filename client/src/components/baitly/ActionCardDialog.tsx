@@ -1,3 +1,4 @@
+import { useServiceReferenceLabel } from '../ServiceReferenceLabels';
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -124,6 +125,8 @@ export default function ActionCardDialog({
     enabled: needsAssignee && item?.actionItemId != null,
   });
 
+  const requiredServiceLabel = useServiceReferenceLabel(teams.data?.requiredTeamType, teams.data?.requiredTeamType ? teamTypeLabel(teams.data.requiredTeamType,t) : "");
+
   if (!card) return null;
 
   const gestures = card.gestures ?? [];
@@ -234,7 +237,7 @@ export default function ActionCardDialog({
                     couverture de zone, ou une disponibilité. */}
                 {teams.data?.requiredTeamType
                   ? t('dashboard.actionCard.needsTeamType', {
-                      type: teamTypeLabel(teams.data.requiredTeamType, t),
+                      type: requiredServiceLabel,
                       defaultValue:
                         'Cette intervention demande une équipe de type « {{type}} ». '
                         + 'Votre organisation n’en a aucune.',
@@ -478,6 +481,7 @@ function teamAvailability(
   t: (key: string, fallback: string) => string,
 ): string {
   if (!team.available) {
+    if (team.reason) return t('serviceReference.reason.' + team.reason, team.reason);
     return t('dashboard.actionCard.teamBusy', 'Déjà prise sur ce créneau');
   }
   return team.origin === 'ZONE'
@@ -489,7 +493,7 @@ function teamAvailability(
 function teamTypeLabel(type: string, t: (key: string, fallback: string) => string): string {
   if (type === 'CLEANING') return t('teamType.cleaning', 'Ménage');
   if (type === 'MAINTENANCE') return t('teamType.maintenance', 'Maintenance');
-  return t('teamType.other', 'Autre');
+  return type === 'OTHER' ? t('teamType.other', 'Autre') : type;
 }
 
 /** Deux chiffres, pour composer une date locale sans passer par UTC. */

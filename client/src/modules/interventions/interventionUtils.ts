@@ -94,6 +94,7 @@ export interface InterventionDetailsData {
   title: string;
   description: string;
   type: string;
+  serviceItemCode?: string;
   status: string;
   priority: string;
   propertyId: number;

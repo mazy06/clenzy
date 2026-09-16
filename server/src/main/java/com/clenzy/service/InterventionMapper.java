@@ -43,6 +43,7 @@ public class InterventionMapper {
     private final TeamRepository teamRepository;
     private final InterventionPhotoService photoService;
     private final UserAvatarUrlResolver avatarUrls;
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog;
 
     public InterventionMapper(PropertyRepository propertyRepository,
                               UserRepository userRepository,
@@ -51,7 +52,8 @@ public class InterventionMapper {
                               ObjectMapper objectMapper,
                               IssueRepository issueRepository,
                               IssuePhotoRepository issuePhotoRepository,
-                              UserAvatarUrlResolver avatarUrls) {
+                              UserAvatarUrlResolver avatarUrls, com.clenzy.service.catalog.ServiceCatalogReference catalog) {
+        this.catalog = catalog;
         this.propertyRepository = propertyRepository;
         this.objectMapper = objectMapper;
         this.issueRepository = issueRepository;
@@ -68,6 +70,7 @@ public class InterventionMapper {
     public void apply(CreateInterventionRequest request, Intervention intervention) {
         intervention.setTitle(request.title());
         if (request.description() != null) intervention.setDescription(request.description());
+        intervention.setServiceItemCode(catalog.resolve(request.serviceItemCode(), request.type(), null, null));
         intervention.setType(request.type());
         intervention.setPriority(request.priority());
         if (request.estimatedDurationHours() != null) intervention.setEstimatedDurationHours(request.estimatedDurationHours());
@@ -77,8 +80,9 @@ public class InterventionMapper {
             applyAssignment(request.assignedToType(), request.assignedToId(), intervention);
         }
 
-        Property property = propertyRepository.findById(request.propertyId())
+        Property property = request.propertyId() == null ? null : propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new NotFoundException("Propriete non trouvee"));
+        catalog.requireLocation(intervention.getServiceItemCode(), property);
         intervention.setProperty(property);
 
         User requestor = userRepository.findById(request.requestorId())
@@ -88,6 +92,7 @@ public class InterventionMapper {
         LocalDateTime scheduledDate = LocalDateTime.parse(request.scheduledDate(),
                 DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         intervention.setScheduledDate(scheduledDate);
+        intervention.setStartTime(scheduledDate);
     }
 
     /**
@@ -105,6 +110,14 @@ public class InterventionMapper {
     public void applyUpdateDetails(UpdateInterventionRequest request, Intervention intervention) {
         if (request.title() != null) intervention.setTitle(request.title());
         if (request.description() != null) intervention.setDescription(request.description());
+        String code = catalog.resolve(request.serviceItemCode(), request.type(),
+                intervention.getServiceItemCode(), intervention.getType());
+        if (intervention.getServiceRequest() != null
+                && intervention.getServiceRequest().getServiceItemCode() != null
+                && !java.util.Objects.equals(code, intervention.getServiceRequest().getServiceItemCode())) {
+            throw new IllegalStateException("La prestation doit rester identique à celle de la demande source");
+        }
+        intervention.setServiceItemCode(code);
         if (request.type() != null) intervention.setType(request.type());
         if (request.priority() != null) intervention.setPriority(request.priority());
         if (request.estimatedDurationHours() != null) intervention.setEstimatedDurationHours(request.estimatedDurationHours());
@@ -171,11 +184,13 @@ public class InterventionMapper {
                .title(intervention.getTitle())
                .description(intervention.getDescription())
                .type(intervention.getType())
+               .serviceItemCode(intervention.getServiceItemCode())
                .status(intervention.getStatus().name())
                .priority(intervention.getPriority())
                .estimatedDurationHours(intervention.getEstimatedDurationHours())
                .actualDurationMinutes(intervention.getActualDurationMinutes())
                .estimatedCost(intervention.getEstimatedCost())
+               .currency(intervention.getCurrency())
                .recommendedCost(intervention.getRecommendedCost())
                .actualCost(intervention.getActualCost())
                .notes(intervention.getNotes());

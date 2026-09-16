@@ -492,7 +492,7 @@ public class StripePaymentConfirmationService {
         sr.setPaymentStatus(PaymentStatus.PAID);
         sr.setPaidAt(LocalDateTime.now());
         boolean cancelled = sr.getStatus() == RequestStatus.CANCELLED;
-        if (!cancelled) sr.setStatus(RequestStatus.IN_PROGRESS);
+        if (!cancelled && sr.getAssignmentPhase() == null) sr.setStatus(RequestStatus.IN_PROGRESS);
         serviceRequestRepository.save(sr);
 
         log.info("Paiement SR confirme: srId={}, sessionId={}", sr.getId(), sessionId);
@@ -509,12 +509,8 @@ public class StripePaymentConfirmationService {
             "Paiement demande de service: " + sr.getTitle()
         );
 
-        // Creer l'intervention automatiquement
-        try {
-            if (!cancelled) serviceRequestService.createInterventionFromPaidServiceRequest(sr);
-        } catch (Exception e) {
-            log.error("Erreur creation intervention apres paiement SR {}: {}", sr.getId(), e.getMessage(), e);
-        }
+        // Un paiement confirme le règlement, jamais le consentement du prestataire.
+        // L'intervention est créée par l'acceptation de la demande ou du devis.
 
         // Notifications
         try {

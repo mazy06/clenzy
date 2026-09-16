@@ -11,10 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MarketplaceGeographicEligibility {
     private final ProviderDocumentaryService documentary;
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog;
     private final PropertyRepository properties;
     private final MarketplaceProviderZoneRepository zones;
 
-    public MarketplaceGeographicEligibility(PropertyRepository properties, MarketplaceProviderZoneRepository zones, ProviderDocumentaryService documentary) {
+    public MarketplaceGeographicEligibility(PropertyRepository properties, MarketplaceProviderZoneRepository zones, ProviderDocumentaryService documentary, com.clenzy.service.catalog.ServiceCatalogReference catalog) {
+        this.catalog=catalog;
         this.documentary=documentary;
         this.properties = properties;
         this.zones = zones;
@@ -22,11 +24,25 @@ public class MarketplaceGeographicEligibility {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void requireService(Long providerId, Long propertyId, Long organizationId, String category, String item, java.time.LocalDate date) {
-        requireCoverage(providerId,propertyId,organizationId);
-        if(propertyId==null) { documentary.requirePublication(providerId); return; }
+        requireServiceCoverage(providerId,propertyId,organizationId,item);
+        if(propertyId==null) {
+            if (item != null && catalog.propertyOptional(item)) documentary.requireRemoteService(providerId,item,date);
+            else documentary.requirePublication(providerId);
+            return;
+        }
         var location=properties.lockMarketplaceLocation(propertyId,organizationId).orElseThrow();
         String scope=item!=null ? "ITEM:"+item : category!=null ? "CATEGORY:"+category : "TYPE:OTHER";
         documentary.require(providerId,location.getCountryCode(),scope,date==null ? java.time.LocalDate.now() : date);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void requireServiceCoverage(Long providerId, Long propertyId, Long organizationId, String item) {
+        if (catalog.isRemote(item)) {
+            if (propertyId != null && properties.lockMarketplaceLocation(propertyId,organizationId).isEmpty())
+                throw new AccessDeniedException("Logement introuvable");
+            return;
+        }
+        requireCoverage(providerId,propertyId,organizationId);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

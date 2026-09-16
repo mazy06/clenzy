@@ -13,6 +13,8 @@ import jakarta.validation.constraints.Size;
 public class TeamDto {
     public Long id;
 
+    public java.util.Set<String> serviceItemCodes;
+
     @NotBlank(groups = Create.class)
     @Size(min = 2, max = 100, groups = {Create.class, Update.class})
     public String name;
@@ -35,6 +37,7 @@ public class TeamDto {
 
     public static class CoverageZoneDto {
         public Long id;
+
         /** Code ISO 3166-1 alpha-2 ("FR", "MA", "SA"). Defaut "FR" pour la retro-compat. */
         public String country;
         /** France uniquement. */

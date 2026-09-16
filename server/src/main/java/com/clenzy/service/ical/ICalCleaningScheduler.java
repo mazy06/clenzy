@@ -31,13 +31,16 @@ public class ICalCleaningScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(ICalCleaningScheduler.class);
 
+    private final com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog;
+
     private final ServiceRequestRepository serviceRequestRepository;
     private final CleaningPricingEngine cleaningPricingEngine;
     private final TenantContext tenantContext;
 
     public ICalCleaningScheduler(ServiceRequestRepository serviceRequestRepository,
                                  CleaningPricingEngine cleaningPricingEngine,
-                                 TenantContext tenantContext) {
+                                 TenantContext tenantContext, com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog) {
+        this.serviceCatalog=serviceCatalog;
         this.serviceRequestRepository = serviceRequestRepository;
         this.cleaningPricingEngine = cleaningPricingEngine;
         this.tenantContext = tenantContext;
@@ -162,6 +165,7 @@ public class ICalCleaningScheduler {
                 owner != null ? owner : property.getOwner(),
                 property
         );
+        serviceRequest.setServiceItemCode(serviceCatalog.resolve(null, serviceRequest.getServiceType().name(), null, null));
         serviceRequest.setPriority(Priority.HIGH);
         serviceRequest.setStatus(RequestStatus.PENDING);
         serviceRequest.setEstimatedDurationHours(estimatedDuration);

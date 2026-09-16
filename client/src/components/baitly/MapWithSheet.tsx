@@ -45,39 +45,61 @@ export interface MapWithSheetProps {
   map: React.ReactNode;
   /** Ligne de titre de la liste (ex. « 10 demandes dans la zone visible »). */
   listTitle: React.ReactNode;
+  /** Indicateurs compacts alignés sur la même ligne que le titre. */
+  listIndicators?: React.ReactNode;
+  listResetKey?: string;
   /** La liste elle-même. */
   children: React.ReactNode;
   /** Rendu quand il n'y a rien à lister — remplace la liste, pas la carte. */
   emptyState?: React.ReactNode;
   /** Hauteur de la carte sur desktop (la mise en page d'origine y est figée). */
   desktopMapHeight?: number;
+  desktopLayout?: 'stack' | 'split';
   className?: string;
 }
 
 export default function MapWithSheet({
   map,
   listTitle,
+  listIndicators,
+  listResetKey,
   children,
   emptyState,
   desktopMapHeight = 400,
+  desktopLayout = 'stack',
   className,
 }: MapWithSheetProps) {
   const isNarrow = useIsMobile(640);
   const [snap, setSnap] = React.useState<number | string | null>(SNAP_POINTS[0]);
 
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [listResetKey]);
   const list = emptyState ?? children;
 
   // ── Desktop : mise en page d'origine, carte puis liste ─────────────────────
   if (!isNarrow) {
+    if (desktopLayout === 'split') {
+      return <div className={cn('grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(300px,40%)] gap-3 overflow-hidden', className)}>
+        <div className="relative min-h-0 overflow-hidden rounded-xl border border-border bg-card">{map}</div>
+        <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card" aria-label={typeof listTitle === 'string' ? listTitle : undefined}>
+          <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-3 text-sm font-medium tabular-nums">
+            <span className="min-w-0 flex-1 truncate" title={typeof listTitle === "string" ? listTitle : undefined}>{listTitle}</span>
+            {listIndicators}
+          </div>
+          <div ref={scrollRef} data-map-list-scroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain divide-y divide-border">{list}</div>
+        </section>
+      </div>;
+    }
     return (
       <div className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto', className)}>
         <div className="shrink-0 overflow-hidden rounded-xl border border-border bg-card">
           <div style={{ height: desktopMapHeight }}>{map}</div>
         </div>
         <div className="mt-2 flex min-h-[320px] flex-1 flex-col">
-          <p className="mb-1.5 shrink-0 text-2xs font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
-            {listTitle}
-          </p>
+          <div className="mb-1.5 flex shrink-0 items-center gap-3 text-2xs font-semibold text-muted-foreground tabular-nums">
+            <span className="min-w-0 flex-1 truncate">{listTitle}</span>
+            {listIndicators}
+          </div>
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pe-0.5">
             {list}
           </div>
@@ -122,22 +144,25 @@ export default function MapWithSheet({
             style={{ paddingBottom: 'var(--snap-point-height, 0px)' }}
             className="fixed inset-x-0 bottom-0 z-40 flex h-full max-h-[92dvh] flex-col rounded-t-2xl border-t border-border bg-card shadow-[0_-8px_24px_-12px_rgba(27,42,53,.25)] outline-none"
           >
-            {/* Poignée + titre : un seul bouton, donc atteignable au clavier. */}
+            <div className="flex shrink-0 items-center gap-3 px-3">
+            {/* Le bouton de dépliage reste distinct des infobulles. */}
             <button
               type="button"
               onClick={cycleSnap}
               aria-label="Déplier ou replier la liste"
-              className="shrink-0 cursor-pointer rounded-t-2xl px-4 pt-2 pb-2.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="min-w-0 flex-1 cursor-pointer rounded-t-2xl pt-2 pb-2.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <span aria-hidden className="mx-auto mb-2 block h-1 w-9 rounded-full bg-border" />
-              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
+              <span className="block truncate text-2xs font-semibold text-muted-foreground tabular-nums">
                 {listTitle}
               </span>
             </button>
+            {listIndicators}
+            </div>
 
             {/* `overscroll-contain` : arrivé en bout de liste, le geste ne
                 repart pas dans la page derrière la feuille. */}
-            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-4">
+            <div ref={scrollRef} data-map-list-scroll className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-4">
               {list}
             </div>
           </Vaul.Content>

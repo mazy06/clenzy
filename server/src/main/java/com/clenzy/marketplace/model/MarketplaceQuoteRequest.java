@@ -32,6 +32,15 @@ import java.time.LocalDateTime;
 )
 public class MarketplaceQuoteRequest {
 
+    @Column(name = "service_request_id")
+    private Long serviceRequestId;
+    public Long getServiceRequestId() { return serviceRequestId; }
+    public void setServiceRequestId(Long value) { serviceRequestId = value; }
+    @Column(name = "service_request_cycle")
+    private Integer serviceRequestCycle;
+    public Integer getServiceRequestCycle() { return serviceRequestCycle; }
+    public void setServiceRequestCycle(Integer value) { serviceRequestCycle = value; }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -49,7 +49,7 @@ class InterventionMapperTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService, new com.fasterxml.jackson.databind.ObjectMapper(), issueRepository, issuePhotoRepository, avatarUrls);
+        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService, new com.fasterxml.jackson.databind.ObjectMapper(), issueRepository, issuePhotoRepository, avatarUrls, org.mockito.Mockito.mock(com.clenzy.service.catalog.ServiceCatalogReference.class));
     }
 
     private Intervention createIntervention() {
@@ -105,6 +105,7 @@ class InterventionMapperTest {
             assertThat(intervention.getPriority()).isEqualTo("LOW");
             assertThat(intervention.getEstimatedDurationHours()).isEqualTo(3);
             assertThat(intervention.getScheduledDate()).isEqualTo(LocalDateTime.of(2026, 3, 15, 10, 0));
+            assertThat(intervention.getStartTime()).isEqualTo(intervention.getScheduledDate());
             assertThat(intervention.getProperty()).isEqualTo(property);
             assertThat(intervention.getRequestor()).isEqualTo(requestor);
         }
@@ -252,6 +253,7 @@ class InterventionMapperTest {
             Intervention intervention = createIntervention();
             intervention.setEstimatedDurationHours(2);
             intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            intervention.setCurrency("MAD");
             intervention.setNotes("Test notes");
             intervention.setScheduledDate(LocalDateTime.of(2026, 3, 15, 14, 0));
             intervention.setProgressPercentage(75);
@@ -276,6 +278,7 @@ class InterventionMapperTest {
             assertThat(response.priority()).isEqualTo("HIGH");
             assertThat(response.estimatedDurationHours()).isEqualTo(2);
             assertThat(response.estimatedCost()).isEqualByComparingTo("100");
+            assertThat(response.currency()).isEqualTo("MAD");
             assertThat(response.notes()).isEqualTo("Test notes");
             assertThat(response.progressPercentage()).isEqualTo(75);
             assertThat(response.scheduledDate()).isEqualTo("2026-03-15T14:00:00");

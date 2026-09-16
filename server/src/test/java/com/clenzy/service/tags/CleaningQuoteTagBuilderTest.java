@@ -29,7 +29,7 @@ class CleaningQuoteTagBuilderTest {
 
     private CleaningQuoteTagBuilder builder() {
         return new CleaningQuoteTagBuilder(
-                new CleaningPricingEngine(pricingConfigService, new ObjectMapper(), housekeeperRateRepository));
+                new CleaningPricingEngine(pricingConfigService, new ObjectMapper(), housekeeperRateRepository, new com.clenzy.service.pricing.ProviderTariffService(housekeeperRateRepository, com.clenzy.service.CatalogTestFixture.reference())));
     }
 
     private static final String[] ALL_KEYS = {

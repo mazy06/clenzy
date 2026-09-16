@@ -93,6 +93,10 @@ public class ProviderDocumentaryService {
     public void require(Long id,String country,String scope,LocalDate date) {
         if(!eligible(id,country,scope,date)) throw new IllegalStateException("Revue documentaire requise pour ce pays, ce statut et cette prestation");
     }
+    public void requireRemoteService(Long id, String item, LocalDate date) {
+        var provider=providers.findForErasure(id).orElseThrow();
+        require(id,provider.getBaseCountryCode(),"ITEM:"+item,date==null ? LocalDate.now(clock) : date);
+    }
     public void requirePublication(Long id) {
         var p=providers.findForErasure(id).orElseThrow();
         require(id,p.getBaseCountryCode(),"*",LocalDate.now(clock));
@@ -102,12 +106,31 @@ public class ProviderDocumentaryService {
         return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM provider_documentary_reviews v WHERE provider_id=? AND service_scope=? AND baitly_provider_document_eligible(provider_id,country,service_scope,CAST(? AS date)))",
                 Boolean.class,id,scope,LocalDate.now(clock)));
     }
+    /** Même contrôle documentaire que la réservation, sans verrou ni mutation pour l'aperçu. */
+    @Transactional(readOnly=true)
+    public boolean assignmentEligible(com.clenzy.model.Intervention mission) {
+        if (mission.getServiceItemCode() == null) return false;
+        var ids = assignmentProviders(mission);
+        LocalDate date = mission.getScheduledDate() == null ? LocalDate.now(clock) : mission.getScheduledDate().toLocalDate();
+        return ids.stream().allMatch(id -> eligible(id, assignmentCountry(mission,id),
+            "ITEM:" + mission.getServiceItemCode(), date));
+    }
+
+    private String assignmentCountry(com.clenzy.model.Intervention mission, Long providerId) {
+        return mission.getProperty() != null ? mission.getProperty().getCountryCode()
+            : providers.findById(providerId).orElseThrow().getBaseCountryCode();
+    }
+
+    private SortedSet<Long> assignmentProviders(com.clenzy.model.Intervention mission) {
+        var ids = new TreeSet<Long>();
+        if (mission.getAssignedUser() != null) providers.findByUserId(mission.getAssignedUser().getId()).ifPresent(p -> ids.add(p.getId()));
+        if (mission.getTeamId() != null) ids.addAll(db.queryForList("SELECT DISTINCT p.id FROM marketplace_providers p JOIN team_members m ON m.user_id=p.user_id WHERE m.team_id=?", Long.class, mission.getTeamId()));
+        return ids;
+    }
+
     public void requireAssignment(com.clenzy.model.Intervention mission, String explicitScope) {
-        if(mission.getProperty()==null) return;
-        var ids=new TreeSet<Long>();
-        if(mission.getAssignedUser()!=null) providers.findByUserId(mission.getAssignedUser().getId()).ifPresent(p -> ids.add(p.getId()));
-        if(mission.getTeamId()!=null) ids.addAll(db.queryForList("SELECT DISTINCT p.id FROM marketplace_providers p JOIN team_members m ON m.user_id=p.user_id WHERE m.team_id=?",Long.class,mission.getTeamId()));
-        String service=explicitScope;
+        var ids=assignmentProviders(mission);
+        String service=mission.getServiceItemCode()!=null ? "ITEM:"+mission.getServiceItemCode() : explicitScope;
         if(service==null && mission.getId()!=null) {
             var scopes=db.queryForList("SELECT CASE WHEN service_item_code IS NOT NULL THEN 'ITEM:'||service_item_code ELSE 'CATEGORY:'||category_code END FROM marketplace_quote_requests WHERE intervention_id=?",String.class,mission.getId());
             if(!scopes.isEmpty()) service=scopes.getFirst();
@@ -117,7 +140,7 @@ public class ProviderDocumentaryService {
         if(service==null) service="TYPE:"+(mission.getType()==null ? "OTHER" : mission.getType());
         for(Long id:ids) {
             providers.findForErasure(id).orElseThrow();
-            require(id,mission.getProperty().getCountryCode(),service,mission.getScheduledDate()==null ? LocalDate.now(clock) : mission.getScheduledDate().toLocalDate());
+            require(id,assignmentCountry(mission,id),service,mission.getScheduledDate()==null ? LocalDate.now(clock) : mission.getScheduledDate().toLocalDate());
         }
     }
     @Transactional(readOnly=true)

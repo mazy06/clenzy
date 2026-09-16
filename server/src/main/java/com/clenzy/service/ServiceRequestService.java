@@ -32,7 +32,6 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.service.pricing.CleaningPricingEngine;
 import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
-import com.clenzy.util.InterventionTypeMatcher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +88,7 @@ public class ServiceRequestService {
 
     private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
     private final ServiceRequestCancellationCoordination cancellationCoordination;
+    private final com.clenzy.service.assignment.ServiceAssignmentService assignments;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                   UserRepository userRepository,
@@ -111,7 +111,9 @@ public class ServiceRequestService {
                                   com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService,
                                   com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate,
                                   com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard, com.clenzy.service.InterventionAllocationGuard allocationGuard,
-                                  ServiceRequestCancellationCoordination cancellationCoordination) {
+                                  ServiceRequestCancellationCoordination cancellationCoordination,
+                                  com.clenzy.service.assignment.ServiceAssignmentService assignments) {
+        this.assignments = assignments;
         this.cancellationCoordination = cancellationCoordination;
         this.allocationGuard = allocationGuard;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -149,6 +151,26 @@ public class ServiceRequestService {
         return createWithFlowKey(dto, null);
     }
 
+    /** Idempotent entry into the same workflow for a multi-service form submission. */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public ServiceRequestDto createComposedRequest(ServiceRequestDto dto, java.util.UUID submissionId) {
+        String key = "COMPOSER:" + submissionId + ":" + dto.serviceItemCode;
+        serviceRequestRepository.acquireAutoFlowKeyLock(key);
+        var existing = serviceRequestRepository.findByAutoFlowKey(key, tenantContext.getRequiredOrganizationId());
+        if (existing.isPresent()) {
+            var previous = existing.get();
+            if (!java.util.Objects.equals(previous.getUser().getId(), dto.userId)
+                    || !java.util.Objects.equals(previous.getProperty() == null ? null : previous.getProperty().getId(), dto.propertyId)
+                    || !java.util.Objects.equals(previous.getDesiredDate(), dto.desiredDate)
+                    || !java.util.Objects.equals(previous.getDescription(), dto.description)
+                    || !java.util.Objects.equals(previous.getEstimatedDurationHours(), dto.estimatedDurationHours)
+                    || !java.util.Objects.equals(previous.getPriority(), dto.priority))
+                throw new IllegalStateException("Cette demande a déjà été créée. Consultez-la avant de modifier les informations.");
+            return serviceRequestMapper.toDto(previous);
+        }
+        return createWithFlowKey(dto, key);
+    }
+
     /** Réutilise le parcours PMS, dans la transaction de l'échéancier. */
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public Long createRecurringRequest(ServiceRequestDto dto, Long sourceQuoteId) {
@@ -164,6 +186,8 @@ public class ServiceRequestService {
         serviceRequestMapper.apply(dto, entity);
         entity.setAutoFlowKey(flowKey);
         entity.setOrganizationId(tenantContext.getRequiredOrganizationId());
+        if (entity.getProperty() != null)
+            organizationAccessGuard.requireSameOrganization(entity.getProperty().getOrganizationId(),"Logement hors organisation");
         if (entity.getAssignedToId() != null) requireAvailableAssignment(entity, entity.getAssignedToId(), entity.getAssignedToType());
         entity = serviceRequestRepository.save(entity);
 
@@ -178,8 +202,13 @@ public class ServiceRequestService {
             log.warn("Notification error SERVICE_REQUEST_CREATED: {}", e.getMessage());
         }
 
-        // ── Auto-assignation basee sur zone geographique + disponibilite ──
-        attemptAutoAssign(entity);
+        Long initialTarget = entity.getAssignedToId();
+        String initialKind = entity.getAssignedToType();
+        entity.setAssignedToId(null);
+        entity.setAssignedToType(null);
+        entity.setStatus(RequestStatus.PENDING);
+        if (initialTarget != null) assignments.propose(entity.getId(),entity.getOrganizationId(),initialKind,initialTarget);
+        else assignments.initialize(entity);
 
         return serviceRequestMapper.toDto(entity);
     }
@@ -192,6 +221,12 @@ public class ServiceRequestService {
         ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
+        if (sr.getAssignmentPhase()!=null)
+            throw new IllegalStateException("Répondez à la proposition depuis l'écran des propositions de service");
+        requireDirectControl(sr);
+        if (sr.getPaidAt() != null || interventionRepository.existsByServiceRequestId(sr.getId()))
+            throw new IllegalStateException("La mission existante doit être modifiée depuis son parcours d'affectation");
+
 
         if (!RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
             throw new IllegalStateException("Seules les demandes assignees peuvent etre refusees. Statut actuel: " + sr.getStatus());
@@ -226,6 +261,16 @@ public class ServiceRequestService {
         }
 
         return serviceRequestMapper.toDto(sr);
+    }
+
+    public void requireRefusalRecipient(Long id,org.springframework.security.oauth2.jwt.Jwt jwt) {
+        var need=serviceRequestRepository.findForMutation(id).orElseThrow(() -> new NotFoundException("Demande introuvable"));
+        requireOwnedServiceRequest(need);
+        Long user=assignments.currentUser(jwt);
+        boolean recipient="user".equals(need.getAssignedToType()) ? java.util.Objects.equals(user,need.getAssignedToId())
+            : "team".equals(need.getAssignedToType()) && teamRepository.findById(need.getAssignedToId())
+                .map(team -> team.getMembers().stream().anyMatch(member -> member.getUser()!=null && user.equals(member.getUser().getId()))).orElse(false);
+        if (!recipient) throw new org.springframework.security.access.AccessDeniedException("Vous n'êtes pas destinataire de cette demande");
     }
 
     /**
@@ -316,18 +361,18 @@ public class ServiceRequestService {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
-        final String serviceType = sr.getServiceType() == null ? null : sr.getServiceType().name();
+        final String serviceType = sr.getServiceItemCode();
         // Le type requis accompagne TOUJOURS la reponse : c'est quand la liste
         // est vide qu'il compte le plus, et c'est precisement la que l'ecran
         // n'avait rien a dire.
-        final String requiredTeamType = InterventionTypeMatcher.requiredTeamType(serviceType);
+        final String requiredTeamType = serviceType;
 
-        if (sr.getProperty() == null || date == null) {
+        if ((sr.getProperty() == null && !allocationGuard.isRemote(serviceType)) || date == null) {
             return new PropertyTeamService.AssignableTeams(List.of(), requiredTeamType);
         }
         return new PropertyTeamService.AssignableTeams(
                 propertyTeamService.findAssignableTeams(
-                        sr.getProperty().getId(), date, sr.getEstimatedDurationHours(),
+                        sr.getProperty() == null ? null : sr.getProperty().getId(), date, sr.getEstimatedDurationHours(),
                         serviceType, sr.getOrganizationId(), sr.getId(),
                         null),
                 requiredTeamType);
@@ -349,6 +394,7 @@ public class ServiceRequestService {
         ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
+        requireDirectControl(sr);
 
         if (!sr.getStatus().canTransitionTo(RequestStatus.CANCELLED)) {
             throw new IllegalStateException(
@@ -356,6 +402,10 @@ public class ServiceRequestService {
         }
 
         var linkedMission = cancellationCoordination.requireLegacyCancellationAllowed(sr);
+        if (sr.getAssignmentPhase() != null && linkedMission == null) {
+            assignments.withdraw(sr.getId(),sr.getOrganizationId(),"Demande annulée");
+            sr.setAssignmentPhase("CANCELLED");
+        }
         if (linkedMission != null) linkedMission.setStatus(InterventionStatus.CANCELLED);
         sr.setStatus(RequestStatus.CANCELLED);
         // La recherche d'équipe s'arrête avec elle : sans ce reset, le scheduler
@@ -400,13 +450,26 @@ public class ServiceRequestService {
         ServiceRequest previous = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(previous);
+        requireDirectControl(previous);
         cancellationCoordination.requireLegacyCancellationAllowed(previous);
+        if (previous.getAssignmentPhase()!=null) {
+            assignments.withdraw(previous.getId(),previous.getOrganizationId(),
+                    reason==null || reason.isBlank()?"Créneau modifié":reason.strip());
+            previous.setAssignmentCycle(previous.getAssignmentCycle()+1);
+            previous.setDesiredDate(desiredDate);
+            previous.setReservationId(reservationId);
+            serviceRequestRepository.saveAndFlush(previous);
+            if (assignedToId!=null) assignments.propose(previous.getId(),previous.getOrganizationId(),assignedToType,assignedToId);
+            else assignments.resume(previous.getId(),previous.getOrganizationId());
+            return serviceRequestMapper.toDto(previous);
+        }
 
         ServiceRequest next = new ServiceRequest();
         next.setOrganizationId(previous.getOrganizationId());
         next.setTitle(previous.getTitle());
         next.setDescription(previous.getDescription());
         next.setServiceType(previous.getServiceType());
+        next.setServiceItemCode(previous.getServiceItemCode());
         next.setPriority(previous.getPriority());
         next.setEstimatedDurationHours(previous.getEstimatedDurationHours());
         next.setEstimatedCost(previous.getEstimatedCost());
@@ -423,13 +486,12 @@ public class ServiceRequestService {
         }
         next = serviceRequestRepository.save(next);
 
-        // Le prestataire choisi vaut assignation : la demande part directement en
-        // état ASSIGNED, sans repasser par la recherche automatique.
+        // Le prestataire choisi reçoit une proposition, sans nouvelle recherche automatique.
         if (assignedToId != null && assignedToType != null) {
             manualAssign(next.getId(), assignedToId, assignedToType);
             next = serviceRequestRepository.findById(next.getId()).orElse(next);
         } else {
-            attemptAutoAssign(next);
+            assignments.initialize(next);
         }
 
         cancel(previous.getId(), reason == null || reason.isBlank()
@@ -443,34 +505,17 @@ public class ServiceRequestService {
     /**
      * Assignation manuelle par un admin/manager.
      */
-    private Optional<Long> findUnreservedTeam(ServiceRequest request, Long orgId, boolean explicitOrganization) {
-        String type = request.getServiceType() != null ? request.getServiceType().name() : null;
-        Optional<Long> candidate = explicitOrganization
-                ? propertyTeamService.findAvailableTeamForProperty(request.getProperty().getId(), request.getDesiredDate(),
-                    request.getEstimatedDurationHours(), type, orgId)
-                : propertyTeamService.findAvailableTeamForProperty(request.getProperty().getId(), request.getDesiredDate(),
-                    request.getEstimatedDurationHours(), type);
-        var excluded = new java.util.HashSet<Long>();
-        while (candidate.isPresent() && excluded.add(candidate.get())) {
-            if (!serviceRequestRepository.assignmentConflicts(request.getId(), "team", candidate.get(),
-                    request.getDesiredDate(), request.getEstimatedDurationHours())
-                    && allocationGuard.isTeamDeclaredAvailable(candidate.get(), request.getDesiredDate(),
-                        request.getEstimatedDurationHours())) {
-                try { allocationGuard.requirePropertyAllowed("team",candidate.get(),request.getProperty()); return candidate; }
-                catch (com.clenzy.exception.AssignmentConflictException incompatible) { /* Essayer la prochaine équipe. */ }
-            }
-            candidate = propertyTeamService.findAvailableTeamForProperty(request.getProperty().getId(),
-                    request.getDesiredDate(), request.getEstimatedDurationHours(), type, orgId, excluded);
-        }
-        return Optional.empty();
-    }
-
     private void requireAvailableAssignment(ServiceRequest request, Long targetId, String targetType) {
+        if (allocationGuard.isUnscheduled(request.getServiceItemCode())) {
+            allocationGuard.requireUnscheduledAssignment(request,targetType,targetId);
+            return;
+        }
         if (serviceRequestRepository.assignmentConflicts(request.getId(), targetType, targetId,
                 request.getDesiredDate(), request.getEstimatedDurationHours())) {
             throw new com.clenzy.exception.AssignmentConflictException();
         }
-        allocationGuard.requirePropertyAllowed(targetType, targetId, request.getProperty());
+        if (!allocationGuard.isRemote(request.getServiceItemCode()))
+            allocationGuard.requirePropertyAllowed(targetType, targetId, request.getProperty());
         if ("team".equals(targetType) && !allocationGuard.isTeamDeclaredAvailable(targetId,
                 request.getDesiredDate(), request.getEstimatedDurationHours())) {
             throw new com.clenzy.exception.AssignmentConflictException(
@@ -484,52 +529,16 @@ public class ServiceRequestService {
     }
 
     public ServiceRequestDto manualAssign(Long serviceRequestId, Long assignedToId, String assignedToType) {
-        if (assignedToId == null || assignedToId <= 0 || !("team".equals(assignedToType) || "user".equals(assignedToType))) {
-            throw new IllegalArgumentException("Choisissez une équipe ou un prestataire valide");
-        }
+        if (assignedToId==null || assignedToId<=0 || assignedToType==null || !java.util.Set.of("team","user").contains(assignedToType))
+            throw new IllegalArgumentException("Prestataire invalide");
         ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
-                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+            .orElseThrow(() -> new NotFoundException("Demande introuvable"));
         requireOwnedServiceRequest(sr);
-
-        if (!RequestStatus.PENDING.equals(sr.getStatus()) && !RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
-            throw new IllegalStateException("Seules les demandes en attente ou en attente de paiement peuvent etre (re)assignees manuellement. Statut actuel: " + sr.getStatus());
-        }
-
-        requireAvailableAssignment(sr, assignedToId, assignedToType);
-        sr.setAssignedToId(assignedToId);
-        sr.setAssignedToType(assignedToType);
-        // Moteur Ménage 2A : assignation d'un PRO sur une SR ménage non payée
-        // (garde de statut ci-dessus : PENDING/AWAITING_PAYMENT/ASSIGNED) →
-        // le prix pratiqué suit son tarif. Le conseil (recommendedCost) est INCHANGÉ.
-        if ("user".equals(assignedToType) && sr.getPaidAt() == null
-                && sr.getProperty() != null
-                && sr.getServiceType() != null && sr.getServiceType().isCleaningService()) {
-            var resolved = cleaningPricingEngine.resolveCleaningPrice(
-                    sr.getProperty(), sr.getServiceType().name(), assignedToId);
-            if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
-                sr.setEstimatedCost(resolved.amount());
-                log.info("SR {} : cout reevalue au tarif du pro {} → {}", sr.getId(), assignedToId, resolved.amount());
-            }
-        }
-        // ASSIGNÉE — surtout pas « en attente de paiement ».
-        //
-        // Le statut basculait ici, à l'ASSIGNATION : la demande devenait payable
-        // avant que quiconque ait touché au chantier. Deux conséquences. On
-        // réclamait le solde d'un travail non commencé ; et la demande quittant
-        // PENDING, la carte d'ACOMPTE — qui n'a de sens qu'avant les travaux —
-        // disparaissait. Les deux échéances s'inversaient.
-        //
-        // Le solde ne devient dû qu'après le contrôle du travail rendu, quand un
-        // gestionnaire a vu les photos, la durée réelle et l'écart au créneau.
-        sr.setStatus(RequestStatus.ASSIGNED);
-        sr.setAutoAssignStatus("found");
-        sr = serviceRequestRepository.save(sr);
-
-        logAssignmentEvent(sr, "MANUAL_ASSIGN", assignedToId, assignedToType,
-            "Assignation manuelle par admin/manager");
-
-        log.info("Manual assignment: {} {} for SR {}", assignedToType, assignedToId, sr.getId());
-
+        requireDirectControl(sr);
+        if (sr.getPaidAt() != null || sr.getConvertedInterventionId() != null
+                || interventionRepository.existsByServiceRequestId(sr.getId()))
+            throw new IllegalStateException("La mission existante doit être modifiée depuis son parcours d'affectation");
+        assignments.propose(serviceRequestId,sr.getOrganizationId(),assignedToType,assignedToId);
         return serviceRequestMapper.toDto(sr);
     }
 
@@ -538,6 +547,11 @@ public class ServiceRequestService {
         ServiceRequest sr = serviceRequestRepository.findForMutation(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
+        requireDirectControl(sr);
+        if (sr.getAssignmentPhase() != null) {
+            assignments.withdraw(serviceRequestId,sr.getOrganizationId(),"Retrait par le gestionnaire");
+            return serviceRequestMapper.toDto(sr);
+        }
         if (sr.getStatus() != RequestStatus.PENDING && sr.getStatus() != RequestStatus.ASSIGNED) {
             throw new IllegalStateException("Seule une demande en attente ou assignée peut être désaffectée");
         }
@@ -563,94 +577,7 @@ public class ServiceRequestService {
      * Appelee apres confirmation du paiement Stripe.
      */
     public Intervention createInterventionFromPaidServiceRequest(ServiceRequest sr) {
-        if (interventionRepository.existsByServiceRequestId(sr.getId())) {
-            log.warn("Intervention already exists for SR {} — skipping creation", sr.getId());
-            return null;
-        }
-
-        Intervention intervention = new Intervention();
-        String title = sr.getTitle();
-        intervention.setTitle(title != null && title.length() > 255 ? title.substring(0, 255) : title);
-        String description = sr.getDescription();
-        intervention.setDescription(description != null && description.length() > 500 ? description.substring(0, 500) : description);
-
-        String interventionType = mapServiceTypeToInterventionType(sr.getServiceType());
-        intervention.setType(interventionType);
-
-        intervention.setStatus(InterventionStatus.PENDING);
-        intervention.setPaymentStatus(com.clenzy.model.PaymentStatus.PAID);
-        intervention.setPaidAt(sr.getPaidAt());
-        intervention.setPriority(sr.getPriority().name());
-        intervention.setProperty(sr.getProperty());
-        intervention.setRequestor(sr.getUser());
-        intervention.setServiceRequest(sr);
-        intervention.setScheduledDate(sr.getDesiredDate());
-        intervention.setEstimatedDurationHours(sr.getEstimatedDurationHours());
-        intervention.setEstimatedCost(sr.getEstimatedCost());
-        intervention.setRecommendedCost(sr.getRecommendedCost());
-        intervention.setIsUrgent(sr.isUrgent());
-        intervention.setStartTime(sr.getDesiredDate());
-        intervention.setRequiresFollowUp(false);
-
-        // Assigner la meme equipe/user que la SR
-        if ("team".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
-            intervention.setTeamId(sr.getAssignedToId());
-        } else if ("user".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
-            User assignedUser = userRepository.findById(sr.getAssignedToId()).orElse(null);
-            if (assignedUser != null) {
-                intervention.setAssignedUser(assignedUser);
-                intervention.setAssignedTechnicianId(sr.getAssignedToId());
-            }
-        }
-
-        intervention.setOrganizationId(sr.getOrganizationId());
-        allocationGuard.requireAvailable(intervention);
-        intervention = interventionRepository.save(intervention);
-        log.info("Intervention {} created from paid SR {}", intervention.getId(), sr.getId());
-
-        // Lier l'intervention a la reservation associee (pour affichage planning)
-        if (sr.getReservationId() != null) {
-            try {
-                Reservation reservation = reservationRepository.findById(sr.getReservationId()).orElse(null);
-                if (reservation != null) {
-                    reservation.setIntervention(intervention);
-                    reservationRepository.save(reservation);
-                    log.info("Intervention {} linked to reservation {}", intervention.getId(), sr.getReservationId());
-                }
-            } catch (Exception e) {
-                log.warn("Failed to link intervention {} to reservation {}: {}", intervention.getId(), sr.getReservationId(), e.getMessage());
-            }
-        }
-
-        // Intention durable dans la transaction de paiement ; Kafka seulement après commit.
-        documentOutbox.requestInvoice(sr.getId(), sr.getOrganizationId(),
-                sr.getUser() == null ? null : sr.getUser().getEmail());
-
-        // Notifier les admins
-        try {
-            notificationService.notifyAdminsAndManagers(
-                NotificationKey.INTERVENTION_AWAITING_VALIDATION,
-                "Intervention creee apres paiement",
-                "L'intervention \"" + intervention.getTitle() + "\" a ete creee suite au paiement de la demande de service."
-                    + (intervention.getEstimatedCost() != null
-                        ? " Cout estime: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
-                        : ""),
-                "/interventions/" + intervention.getId(),
-                // Ici la notification parle de l'INTERVENTION nee de la demande :
-                // ce sont ses reperes a elle qui doivent mener la fiche.
-                NotificationMetadata.of()
-                    .property(sr.getProperty() != null ? sr.getProperty().getName() : null)
-                    .propertyId(sr.getProperty() != null ? sr.getProperty().getId() : null)
-                    .request(sr.getTitle())
-                    .serviceRequestId(sr.getId())
-                    .intervention(intervention.getTitle())
-                    .interventionId(intervention.getId())
-                    .build());
-        } catch (Exception e) {
-            log.warn("Notification error INTERVENTION_CREATED_FROM_SR: {}", e.getMessage());
-        }
-
-        return intervention;
+        throw new IllegalStateException("La création d'une intervention nécessite l'accord du prestataire, pas un paiement");
     }
 
     private void requireCurrentVersion(ServiceRequest entity, Long version) {
@@ -674,6 +601,7 @@ public class ServiceRequestService {
         ServiceRequest entity = serviceRequestRepository.findForMutation(id)
                 .orElseThrow(() -> new NotFoundException("Service request not found"));
         requireOwnedServiceRequest(entity);
+        requireDirectControl(entity);
         requireCurrentVersion(entity, version);
         if (status == null) throw new IllegalArgumentException("Statut requis");
         requireEditableStatusChange(entity, status);
@@ -694,16 +622,26 @@ public class ServiceRequestService {
     public ServiceRequestDto update(Long id, ServiceRequestDto dto) {
         ServiceRequest entity = serviceRequestRepository.findForMutation(id).orElseThrow(() -> new NotFoundException("Service request not found"));
         requireOwnedServiceRequest(entity);
+        requireDirectControl(entity);
         requireCurrentVersion(entity, dto.version);
         if (entity.getPaidAt() != null || interventionRepository.existsByServiceRequestId(id)) {
             throw new IllegalStateException("Une mission créée ou payée nécessite une révision dédiée");
         }
         requireEditableStatusChange(entity, dto.status);
         RequestStatus previousStatus = entity.getStatus();
+        if (entity.getAssignmentPhase() != null) {
+            assignments.withdraw(id,entity.getOrganizationId(),"Informations de la demande modifiées");
+            entity.setAssignmentCycle(entity.getAssignmentCycle()+1);
+        }
         Long previousAssignee = entity.getAssignedToId();
         String previousType = entity.getAssignedToType();
         serviceRequestMapper.apply(dto, entity);
+        if (entity.getAssignmentPhase()!=null && entity.getStatus()!=RequestStatus.REJECTED
+                && entity.getStatus()!=RequestStatus.CANCELLED) entity.setStatus(RequestStatus.PENDING);
         // Les changements de cible passent par les mêmes règles que le dialogue dédié.
+        if (entity.getProperty() != null) {
+            organizationAccessGuard.requireSameOrganization(entity.getProperty().getOrganizationId(), "Logement hors organisation");
+        }
         entity.setAssignedToId(previousAssignee);
         entity.setAssignedToType(previousType);
         boolean assignmentChanged = !java.util.Objects.equals(dto.assignedToId, previousAssignee)
@@ -746,26 +684,27 @@ public class ServiceRequestService {
         ServiceRequest sr = serviceRequestRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Service request not found"));
         requireOwnedServiceRequest(sr);
-        return serviceRequestMapper.toDto(sr);
+        return readDtosWithMissionAssignment(List.of(sr)).get(0);
     }
 
     @Transactional(readOnly = true)
     public List<ServiceRequestDto> list() {
-        return serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId()).stream().map(serviceRequestMapper::toDto).collect(Collectors.toList());
+        return readDtosWithMissionAssignment(serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId())
+                .stream().filter(sr -> !"CONVERTED".equals(sr.getAssignmentPhase())).toList());
     }
 
     @Transactional(readOnly = true)
     public Page<ServiceRequestDto> list(Pageable pageable) {
         // Pour la pagination, on doit d'abord récupérer les IDs puis charger avec relations
-        Page<ServiceRequest> page = serviceRequestRepository.findAll(pageable);
-        List<ServiceRequest> withRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
+        List<ServiceRequest> withRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId())
+                .stream().filter(sr -> !"CONVERTED".equals(sr.getAssignmentPhase())).toList();
 
         // Filtrer selon la pagination
-        int start = (int) pageable.getOffset();
+        int start = (int) Math.min(pageable.getOffset(), withRelations.size());
         int end = Math.min(start + pageable.getPageSize(), withRelations.size());
         List<ServiceRequest> pageContent = withRelations.subList(start, end);
 
-        return new PageImpl<>(pageContent.stream().map(serviceRequestMapper::toDto).collect(Collectors.toList()), pageable, page.getTotalElements());
+        return new PageImpl<>(readDtosWithMissionAssignment(pageContent), pageable, withRelations.size());
     }
 
     @Transactional(readOnly = true)
@@ -774,7 +713,7 @@ public class ServiceRequestService {
         List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
 
         // Filtrer selon les critères
-        List<ServiceRequest> filtered = allWithRelations.stream()
+        List<ServiceRequest> filtered = allWithRelations.stream().filter(sr -> !"CONVERTED".equals(sr.getAssignmentPhase()))
             .filter(sr -> userId == null || (sr.getUser() != null && sr.getUser().getId().equals(userId)))
             .filter(sr -> propertyId == null || (sr.getProperty() != null && sr.getProperty().getId().equals(propertyId)))
             .filter(sr -> status == null || sr.getStatus().equals(status))
@@ -782,11 +721,11 @@ public class ServiceRequestService {
             .collect(Collectors.toList());
 
         // Appliquer la pagination
-        int start = (int) pageable.getOffset();
+        int start = (int) Math.min(pageable.getOffset(), filtered.size());
         int end = Math.min(start + pageable.getPageSize(), filtered.size());
         List<ServiceRequest> pageContent = filtered.subList(start, end);
 
-        return new PageImpl<>(pageContent.stream().map(serviceRequestMapper::toDto).collect(Collectors.toList()), pageable, filtered.size());
+        return new PageImpl<>(readDtosWithMissionAssignment(pageContent), pageable, filtered.size());
     }
 
     @Transactional(readOnly = true)
@@ -795,7 +734,14 @@ public class ServiceRequestService {
                                                              com.clenzy.model.RequestStatus status,
                                                              com.clenzy.model.ServiceType serviceType,
                                                              Jwt jwt) {
+        return searchWithRoleBasedAccess(pageable, userId, propertyId, reservationId, status, serviceType, jwt, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ServiceRequestDto> searchWithRoleBasedAccess(Pageable pageable, Long userId, Long propertyId,
+            Long reservationId, RequestStatus status, ServiceType serviceType, Jwt jwt, boolean activeOnly) {
         if (jwt == null) {
+            if (activeOnly) throw new org.springframework.security.access.AccessDeniedException("Authentification requise");
             // Si pas de JWT, utiliser la méthode standard
             return search(pageable, userId, propertyId, status, serviceType);
         }
@@ -804,10 +750,12 @@ public class ServiceRequestService {
         log.debug("searchWithRoleBasedAccess - Role: {}", userRole);
 
         // Utiliser la méthode avec relations et filtrer ensuite
-        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
+        List<ServiceRequest> allWithRelations = activeOnly
+                ? serviceRequestRepository.findOpenWithRelations(tenantContext.getRequiredOrganizationId())
+                : serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
 
         // Filtrer selon le rôle
-        List<ServiceRequest> filtered = allWithRelations.stream()
+        List<ServiceRequest> filtered = allWithRelations.stream().filter(sr -> !"CONVERTED".equals(sr.getAssignmentPhase()))
             .filter(sr -> {
                 // Filtre par rôle
                 if (userRole == UserRole.HOST) {
@@ -848,11 +796,31 @@ public class ServiceRequestService {
             .collect(Collectors.toList());
 
         // Appliquer la pagination
-        int start = (int) pageable.getOffset();
+        int start = (int) Math.min(pageable.getOffset(), filtered.size());
         int end = Math.min(start + pageable.getPageSize(), filtered.size());
         List<ServiceRequest> pageContent = filtered.subList(start, end);
 
-        return new PageImpl<>(pageContent.stream().map(serviceRequestMapper::toDto).collect(Collectors.toList()), pageable, filtered.size());
+        return new PageImpl<>(readDtosWithMissionAssignment(pageContent), pageable, filtered.size());
+    }
+
+    /** Même projection pour détail, liste et recherche, sans recopier l’affectation en base. */
+    List<ServiceRequestDto> readDtosWithMissionAssignment(List<ServiceRequest> requests) {
+        if (requests.isEmpty()) return List.of();
+        var deadlines=assignments.activeDeadlines(requests.stream().map(ServiceRequest::getId).toList());
+        var missions = new java.util.HashMap<Long, Intervention>();
+        requests.stream().collect(Collectors.groupingBy(ServiceRequest::getOrganizationId))
+                .forEach((orgId, group) -> interventionRepository.findLinkedForServiceRequests(
+                        orgId, group.stream().map(ServiceRequest::getId).toList())
+                        .forEach(mission -> missions.put(mission.getServiceRequest().getId(), mission)));
+        var result = requests.stream().map(request -> {
+            ServiceRequestDto dto = serviceRequestMapper.toDto(request);
+            dto.assignmentExpiresAt=deadlines.get(request.getId());
+            Intervention mission = missions.get(request.getId());
+            if (mission != null) serviceRequestMapper.projectMissionAssignment(dto, mission);
+            return dto;
+        }).toList();
+        serviceRequestMapper.enrichPropertyPhotos(result);
+        return result;
     }
 
     private boolean isUserInTeam(Long userId, Long teamId) {
@@ -921,6 +889,7 @@ public class ServiceRequestService {
                                               Map<Long, String> teamNameMap) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", sr.getId());
+        map.put("serviceItemCode", sr.getServiceItemCode());
         map.put("propertyId", sr.getProperty() != null ? sr.getProperty().getId() : null);
         map.put("propertyName", sr.getProperty() != null ? sr.getProperty().getName() : "");
         map.put("serviceType", sr.getServiceType() != null ? sr.getServiceType().name() : null);
@@ -961,137 +930,22 @@ public class ServiceRequestService {
         return map;
     }
 
+    private void requireDirectControl(ServiceRequest request) {
+        if (request.getMarketplaceRequestId() != null)
+            throw new IllegalStateException("Ce besoin est piloté par son devis marketplace ; utilisez la sollicitation liée");
+    }
+
     public void delete(Long id) {
-        if (!serviceRequestRepository.existsById(id)) throw new NotFoundException("Service request not found");
-        serviceRequestRepository.deleteById(id);
+        ServiceRequest request = serviceRequestRepository.findForMutation(id)
+            .orElseThrow(() -> new NotFoundException("Service request not found"));
+        requireOwnedServiceRequest(request);
+        requireDirectControl(request);
+        if (interventionRepository.existsByServiceRequestId(id))
+            throw new IllegalStateException("Une demande avec une mission conserve son historique");
+        serviceRequestRepository.delete(request);
     }
 
 
-
-    /**
-     * Mappe le type de service vers le type d'intervention
-     */
-    /**
-     * MM-3D — auto-assignation du meilleur pro (opt-in org, défaut FALSE).
-     * APRÈS la sélection d'équipe existante (le choix d'équipe ne change pas) :
-     * si la SR est un ménage, classe les membres HOUSEKEEPER de l'équipe et pose
-     * l'assignation sur le meilleur (assignedToType=user). Classement documenté :
-     *   1) score qualité 30 j décroissant ;
-     *   2) à score proche (±10 pts) : tarif résolu le plus PROCHE de la médiane
-     *      conseil (cohérent avec l'ancrage médiane — ni le moins cher ni le plus cher) ;
-     *   3) tie-break : le moins de missions ouvertes le jour de la demande (équilibrage).
-     * Gardes : jamais d'écrasement d'un user déjà assigné ; uniquement à la
-     * création auto. L'assignation user déclenche le tarif MM-2A (même logique
-     * que manualAssign) + push INTERVENTION_ASSIGNED_TO_USER (l'email MM-2B part
-     * à la création de l'intervention, hors périmètre SR).
-     */
-    private void maybeUpgradeToBestPro(ServiceRequest sr, Long teamId) {
-        try {
-            if (!cleaningPricingEngine.isAutoAssignBestProEnabled()) return;
-            if (sr.getServiceType() == null || !sr.getServiceType().isCleaningService()) return;
-            if (sr.getProperty() == null) return;
-
-            Team team = teamRepository.findById(teamId).orElse(null);
-            if (team == null || team.getMembers() == null || team.getMembers().isEmpty()) return;
-
-            Long orgId = sr.getOrganizationId();
-            java.time.LocalDateTime day = sr.getDesiredDate() != null ? sr.getDesiredDate() : LocalDateTime.now();
-            java.time.LocalDateTime dayStart = day.toLocalDate().atStartOfDay();
-            java.time.LocalDateTime dayEnd = dayStart.plusDays(1);
-            var median = cleaningPricingEngine
-                    .quote(sr.getProperty(), sr.getServiceType().name()).recommended();
-
-            record Candidate(User user, int score, java.math.BigDecimal rateDistance, long openCount) {}
-            java.util.List<Candidate> candidates = new java.util.ArrayList<>();
-            for (var member : team.getMembers()) {
-                User user = member.getUser();
-                if (user == null || user.getRole() != UserRole.HOUSEKEEPER) continue;
-                if (!allocationGuard.isUserDeclaredAvailable(user.getId(), day, sr.getEstimatedDurationHours())) continue;
-                try { allocationGuard.requirePropertyAllowed("user", user.getId(), sr.getProperty()); }
-                catch (com.clenzy.exception.AssignmentConflictException incompatible) { continue; }
-                int score = housekeeperScoreService.computeScore(user.getId(), orgId).score();
-                com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice resolved;
-                try {
-                    resolved = cleaningPricingEngine.resolveCleaningPrice(
-                            sr.getProperty(), sr.getServiceType().name(), user.getId());
-                } catch (IllegalStateException unpriced) {
-                    log.debug("Prestataire {} sans tarif applicable : {}", user.getId(), unpriced.getMessage());
-                    continue;
-                }
-                java.math.BigDecimal distance = resolved.amount().subtract(median).abs();
-                long open = interventionRepository.countOpenOnDay(user.getId(), orgId, dayStart, dayEnd);
-                candidates.add(new Candidate(user, score, distance, open));
-            }
-            if (candidates.isEmpty()) return;
-
-            // Une tolérance paire à paire n'est pas transitive. Comparer au meilleur score
-            // fixe une fenêtre stable, puis départager prix, charge et identifiant.
-            int bestScore = candidates.stream().mapToInt(Candidate::score).max().orElseThrow();
-            candidates.removeIf(candidate -> candidate.score() < bestScore - 10);
-            candidates.sort(java.util.Comparator.comparing(Candidate::rateDistance)
-                    .thenComparingLong(Candidate::openCount).thenComparing(candidate -> candidate.user().getId()));
-            User best = candidates.get(0).user();
-
-            // Garde absolue : jamais écraser une assignation USER existante.
-            if ("user".equals(sr.getAssignedToType())) return;
-
-            sr.setAssignedToType("user");
-            sr.setAssignedToId(best.getId());
-            // Tarif MM-2A : même logique que manualAssign (source HOUSEKEEPER_RATE seulement).
-            if (sr.getPaidAt() == null) {
-                var resolved = cleaningPricingEngine.resolveCleaningPrice(
-                        sr.getProperty(), sr.getServiceType().name(), best.getId());
-                if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
-                    sr.setEstimatedCost(resolved.amount());
-                }
-            }
-            logAssignmentEvent(sr, "AUTO_BEST_PRO", best.getId(), "user",
-                    "Meilleur pro de l'equipe " + teamId + " (score qualite)");
-            if (best.getKeycloakId() != null) {
-                String remuneration = sr.getEstimatedCost() != null
-                        ? " Remuneration: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
-                        : "";
-                notificationService.send(best.getKeycloakId(), NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
-                        "Mission assignee",
-                        "Vous etes assigne a la mission '" + sr.getTitle() + "'." + remuneration,
-                        "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId, requestFacts(sr));
-            }
-            log.info("Auto-assign best pro: user {} (team {}) for SR {}", best.getId(), teamId, sr.getId());
-        } catch (Exception e) {
-            // Best-effort : l'échec du sélecteur laisse l'assignation ÉQUIPE intacte.
-            log.warn("maybeUpgradeToBestPro failed for SR {}: {}", sr.getId(), e.getMessage());
-        }
-    }
-
-    private String mapServiceTypeToInterventionType(com.clenzy.model.ServiceType serviceType) {
-        if (serviceType == null) {
-            return InterventionType.PREVENTIVE_MAINTENANCE.name();
-        }
-
-        switch (serviceType) {
-            case CLEANING:
-            case EXPRESS_CLEANING:
-            case DEEP_CLEANING:
-            case WINDOW_CLEANING:
-            case FLOOR_CLEANING:
-            case KITCHEN_CLEANING:
-            case BATHROOM_CLEANING:
-            case EXTERIOR_CLEANING:
-            case DISINFECTION:
-                return InterventionType.CLEANING.name();
-            case PREVENTIVE_MAINTENANCE:
-            case EMERGENCY_REPAIR:
-            case ELECTRICAL_REPAIR:
-            case PLUMBING_REPAIR:
-            case HVAC_REPAIR:
-            case APPLIANCE_REPAIR:
-            case GARDENING:
-            case PEST_CONTROL:
-            case RESTORATION:
-            default:
-                return InterventionType.PREVENTIVE_MAINTENANCE.name();
-        }
-    }
 
     /**
      * Convertit une intervention en DTO
@@ -1104,7 +958,7 @@ public class ServiceRequestService {
         dto.type = intervention.getType();
         dto.status = intervention.getStatus().name();
         dto.priority = intervention.getPriority();
-        dto.propertyId = intervention.getProperty().getId();
+        dto.propertyId = intervention.getProperty() == null ? null : intervention.getProperty().getId();
         if (intervention.getProperty() != null && intervention.getProperty().getType() != null) {
             dto.propertyType = intervention.getProperty().getType().name().toLowerCase();
         }
@@ -1138,121 +992,7 @@ public class ServiceRequestService {
      * @return true si une equipe a ete trouvee et assignee
      */
     public boolean attemptAutoAssign(ServiceRequest sr) {
-        if (sr.getId() != null) {
-            sr = serviceRequestRepository.findForMutation(sr.getId())
-                    .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
-        }
-        try {
-            // Verifier les preconditions
-            if (MANUAL_ASSIGNMENT_HOLD.equals(sr.getAutoAssignStatus())
-                    || !RequestStatus.PENDING.equals(sr.getStatus()) || sr.getAssignedToId() != null
-                    || sr.getProperty() == null || sr.getDesiredDate() == null) {
-                return false;
-            }
-
-            // Verifier workflow settings de l'org
-            Long orgId = sr.getOrganizationId();
-            WorkflowSettings ws = workflowSettingsRepository.findByOrganizationId(orgId).orElse(null);
-            if (ws != null && !ws.isAutoAssignInterventions()) {
-                log.debug("Auto-assignation desactivee pour org={}", orgId);
-                return false;
-            }
-
-            Optional<Long> availableTeamId = findUnreservedTeam(sr, orgId, false);
-
-            sr.setLastAutoAssignAttempt(LocalDateTime.now());
-
-            if (availableTeamId.isPresent()) {
-                sr.setAssignedToId(availableTeamId.get());
-                sr.setAssignedToType("team");
-                // MM-3D : si l'org a activé autoAssignBestPro, promeut le MEILLEUR
-                // housekeeper de l'équipe retenue en assignation user (opt-in,
-                // défaut false = comportement actuel strictement intact).
-                maybeUpgradeToBestPro(sr, availableTeamId.get());
-                // ASSIGNÉE, pas « en attente de paiement » : personne n'a encore
-                // travaillé. Le solde ne devient dû qu'après la validation du
-                // travail rendu — cf. manualAssign pour le raisonnement complet.
-                sr.setStatus(RequestStatus.ASSIGNED);
-                sr.setAutoAssignStatus("found");
-                serviceRequestRepository.save(sr);
-
-                logAssignmentEvent(sr, "AUTO_SUCCESS", availableTeamId.get(), "team", null);
-
-                log.info("Auto-assignment: team {} assigned to SR {} for property {}",
-                    availableTeamId.get(), sr.getId(), sr.getProperty().getId());
-
-                try {
-                    Team assignedTeam = teamRepository.findById(availableTeamId.get()).orElse(null);
-                    String teamName = assignedTeam != null ? assignedTeam.getName() : "Equipe #" + availableTeamId.get();
-                    notificationService.notifyAdminsAndManagers(
-                        NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
-                        "Demande auto-assignee",
-                        "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
-                        "/interventions?tab=service-requests&highlight=" + sr.getId(),
-                        requestFacts(sr));
-                    notifyHost(sr, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
-                        "Equipe assignee",
-                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\"");
-                } catch (Exception notifErr) {
-                    log.warn("Notification error auto-assignment: {}", notifErr.getMessage());
-                }
-
-                return true;
-            } else {
-                // Pas d'equipe trouvee
-                int currentRetry = (sr.getAutoAssignRetryCount() != null ? sr.getAutoAssignRetryCount() : 0) + 1;
-                sr.setAutoAssignRetryCount(currentRetry);
-                sr.setAutoAssignStatus(currentRetry >= MAX_AUTO_ASSIGN_RETRIES ? "exhausted" : "searching");
-                serviceRequestRepository.save(sr);
-
-                logAssignmentEvent(sr, "AUTO_FAIL", null, null,
-                    "Aucune equipe disponible (tentative " + currentRetry + "/" + MAX_AUTO_ASSIGN_RETRIES + ")");
-
-                log.debug("Auto-assignment: no team available for SR {} (retry {}/{})",
-                    sr.getId(), currentRetry, MAX_AUTO_ASSIGN_RETRIES);
-
-                // Notification premiere tentative
-                if (currentRetry == 1) {
-                    try {
-                        notificationService.notifyAdminsAndManagers(
-                            NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
-                            "Aucune equipe disponible",
-                            "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee. Retry automatique dans 15 min.",
-                            "/interventions?tab=service-requests&highlight=" + sr.getId(),
-                            requestFacts(sr));
-                        notifyHost(sr, NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
-                            "Recherche en cours",
-                            "Nous recherchons une equipe pour votre demande \"" + sr.getTitle() + "\"");
-                    } catch (Exception e) {
-                        log.warn("Notification error NO_TEAM: {}", e.getMessage());
-                    }
-                }
-
-                // Escalade a MAX retries
-                if ("exhausted".equals(sr.getAutoAssignStatus())) {
-                    try {
-                        logAssignmentEvent(sr, "ESCALATION", null, null,
-                            "Retries epuises (" + MAX_AUTO_ASSIGN_RETRIES + ") — assignation manuelle requise");
-                        notificationService.notifyAdminsAndManagers(
-                            NotificationKey.SERVICE_REQUEST_ESCALATION,
-                            "ACTION REQUISE — Assignation manuelle",
-                            "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives. Assignation manuelle necessaire.",
-                            "/interventions?tab=service-requests&highlight=" + sr.getId(),
-                            requestFacts(sr));
-                        notifyHost(sr, NotificationKey.SERVICE_REQUEST_ESCALATION,
-                            "Assignation impossible",
-                            "Nous n'avons pas pu trouver d'equipe pour votre demande \"" + sr.getTitle() + "\". Un administrateur va intervenir.");
-                    } catch (Exception e) {
-                        log.warn("Notification error ESCALATION: {}", e.getMessage());
-                    }
-                }
-
-                return false;
-            }
-        } catch (Exception e) {
-            log.warn("Auto-assignment failed for SR {}: {} — SR stays PENDING", sr.getId(), e.getMessage());
-            return false;
-        }
+        return attemptAutoAssignByOrgId(sr, sr.getOrganizationId());
     }
 
     /**
@@ -1260,105 +1000,10 @@ public class ServiceRequestService {
      * Utilise la surcharge PropertyTeamService avec orgId explicite.
      */
     public boolean attemptAutoAssignByOrgId(ServiceRequest sr, Long orgId) {
-        // Le scheduler, l'import iCal et la supervision partagent cette entrée :
-        // aucun appelant ne peut fournir une autre organisation ni contourner le réglage.
-        if (orgId == null || !orgId.equals(sr.getOrganizationId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Demande hors de votre organisation");
-        }
-        // Les listes du scheduler/iCal peuvent être détachées et périmées.
-        // Ne jamais fusionner leur contenu : relire sous le verrou des décisions humaines.
-        sr = serviceRequestRepository.findForMutation(sr.getId())
-                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
-        if (!orgId.equals(sr.getOrganizationId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Demande hors de votre organisation");
-        }
-        try {
-            if (MANUAL_ASSIGNMENT_HOLD.equals(sr.getAutoAssignStatus())
-                    || !RequestStatus.PENDING.equals(sr.getStatus()) || sr.getAssignedToId() != null
-                    || sr.getProperty() == null || sr.getDesiredDate() == null) {
-                return false;
-            }
-            WorkflowSettings settings = workflowSettingsRepository.findByOrganizationId(orgId).orElse(null);
-            if (settings != null && !settings.isAutoAssignInterventions()) {
-                return false;
-            }
-
-            Optional<Long> availableTeamId = findUnreservedTeam(sr, orgId, true);
-
-            sr.setLastAutoAssignAttempt(LocalDateTime.now());
-
-            if (availableTeamId.isPresent()) {
-                sr.setAssignedToId(availableTeamId.get());
-                sr.setAssignedToType("team");
-                // MM-3D : si l'org a activé autoAssignBestPro, promeut le MEILLEUR
-                // housekeeper de l'équipe retenue en assignation user (opt-in,
-                // défaut false = comportement actuel strictement intact).
-                maybeUpgradeToBestPro(sr, availableTeamId.get());
-                // ASSIGNÉE, pas « en attente de paiement » : personne n'a encore
-                // travaillé. Le solde ne devient dû qu'après la validation du
-                // travail rendu — cf. manualAssign pour le raisonnement complet.
-                sr.setStatus(RequestStatus.ASSIGNED);
-                sr.setAutoAssignStatus("found");
-                serviceRequestRepository.save(sr);
-
-                logAssignmentEvent(sr, "AUTO_SUCCESS", availableTeamId.get(), "team", "Retry scheduler");
-
-                log.info("Auto-assignment (scheduler): team {} assigned to SR {}", availableTeamId.get(), sr.getId());
-
-                try {
-                    Team assignedTeam = teamRepository.findById(availableTeamId.get()).orElse(null);
-                    String teamName = assignedTeam != null ? assignedTeam.getName() : "Equipe #" + availableTeamId.get();
-                    notificationService.notifyAdminsAndManagersByOrgId(orgId,
-                        NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
-                        "Demande auto-assignee (retry)",
-                        "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
-                        "/interventions?tab=service-requests&highlight=" + sr.getId(),
-                        requestFacts(sr));
-                    notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
-                        "Equipe assignee",
-                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\"");
-                } catch (Exception notifErr) {
-                    log.warn("Notification error auto-assignment scheduler: {}", notifErr.getMessage());
-                }
-
-                return true;
-            } else {
-                int retryCount = (sr.getAutoAssignRetryCount() != null ? sr.getAutoAssignRetryCount() : 0) + 1;
-                sr.setAutoAssignRetryCount(retryCount);
-                sr.setAutoAssignStatus(retryCount >= MAX_AUTO_ASSIGN_RETRIES ? "exhausted" : "searching");
-                serviceRequestRepository.save(sr);
-
-                logAssignmentEvent(sr, "AUTO_FAIL", null, null,
-                    "Scheduler retry " + retryCount + "/" + MAX_AUTO_ASSIGN_RETRIES);
-
-                log.debug("Auto-assignment (scheduler): no team for SR {} (retry {}/{})",
-                    sr.getId(), retryCount, MAX_AUTO_ASSIGN_RETRIES);
-
-                // Escalade a MAX retries
-                if ("exhausted".equals(sr.getAutoAssignStatus())) {
-                    try {
-                        logAssignmentEvent(sr, "ESCALATION", null, null,
-                            "Retries epuises — assignation manuelle requise");
-                        notificationService.notifyAdminsAndManagersByOrgId(orgId,
-                            NotificationKey.SERVICE_REQUEST_ESCALATION,
-                            "ACTION REQUISE — Assignation manuelle",
-                            "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives.",
-                            "/interventions?tab=service-requests&highlight=" + sr.getId(),
-                            requestFacts(sr));
-                        notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_ESCALATION,
-                            "Assignation impossible",
-                            "Nous n'avons pas pu trouver d'equipe pour votre demande \"" + sr.getTitle() + "\". Un administrateur va intervenir.");
-                    } catch (Exception e) {
-                        log.warn("Notification error ESCALATION scheduler: {}", e.getMessage());
-                    }
-                }
-
-                return false;
-            }
-        } catch (Exception e) {
-            log.warn("Auto-assignment scheduler failed for SR {}: {}", sr.getId(), e.getMessage());
-            return false;
-        }
+        assignments.requireOrganization(sr,orgId);
+        // Les anciens dossiers restent à qualifier ; aucune échéance rétroactive.
+        if (sr.getAssignmentPhase() == null) return false;
+        return assignments.search(sr.getId(),orgId);
     }
 
     // ── Flux deterministe : menage automatique post-checkout (fiche 08, F1a/F2a/F4d) ──
@@ -1447,6 +1092,7 @@ public class ServiceRequestService {
             + (checkIn != null ? checkIn : "?") + " au " + checkOut + "."
             + (reservationId != null ? " Reservation #" + reservationId + "." : ""));
         sr.setServiceType(ServiceType.CLEANING);
+        sr.setServiceItemCode(com.clenzy.service.pricing.ProviderTariffService.CLEANING);
         sr.setPriority(Priority.NORMAL);
         sr.setStatus(RequestStatus.PENDING);
         sr.setDesiredDate(desiredDate);
@@ -1489,11 +1135,7 @@ public class ServiceRequestService {
             log.warn("Notification error menage auto SR {}: {}", sr.getId(), e.getMessage());
         }
 
-        // Auto-assignation : meme garde-fou d'org que le flux web (workflow settings).
-        WorkflowSettings ws = workflowSettingsRepository.findByOrganizationId(orgId).orElse(null);
-        if (ws == null || ws.isAutoAssignInterventions()) {
-            attemptAutoAssignByOrgId(sr, orgId);
-        }
+        assignments.initialize(sr);
 
         return AutoCleaningOutcome.done(sr);
     }

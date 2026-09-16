@@ -30,6 +30,7 @@ export const teamSchema = z.object({
   name: z.string().min(1, "Le nom de l'équipe est requis"),
   description: z.string().optional().default(''),
   interventionType: z.string().min(1, "Le type d'intervention est requis"),
+  serviceItemCodes: z.array(z.string()).default([]),
   members: z.array(teamMemberSchema).min(1, 'Au moins un membre est requis'),
   coverageZones: z.array(coverageZoneSchema).optional().default([]),
 });

@@ -85,6 +85,20 @@ public class MarketplaceServiceItem {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Column(name="execution_mode", nullable=false, length=20)
+    private String executionMode = "ON_SITE";
+    @Column(name="property_required", nullable=false)
+    private boolean propertyRequired = true;
+    @Column(name="slot_required", nullable=false)
+    private boolean slotRequired = true;
+
+    public String getExecutionMode() { return executionMode; }
+    public void setExecutionMode(String mode) { executionMode=mode; }
+    public boolean isPropertyRequired() { return propertyRequired; }
+    public void setPropertyRequired(boolean required) { propertyRequired=required; }
+    public boolean isSlotRequired() { return slotRequired; }
+    public void setSlotRequired(boolean required) { slotRequired=required; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

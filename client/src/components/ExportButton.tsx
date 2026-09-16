@@ -27,6 +27,8 @@ interface ExportButtonProps {
   variant?: 'button' | 'icon' | 'menu';
   formats?: ('csv')[];
   onExport?: () => void;
+  /** Les vues paginées ne chargent l'export complet qu'à la demande. */
+  loadData?: () => Promise<Record<string, any>[]>;
 }
 
 export default function ExportButton({
@@ -37,6 +39,7 @@ export default function ExportButton({
   variant = 'button',
   formats = ['csv'],
   onExport,
+  loadData,
 }: ExportButtonProps) {
   const { t } = useTranslation();
   const { notify } = useNotification();
@@ -45,13 +48,24 @@ export default function ExportButton({
   const compact = useHeaderCompact();
   const effectiveVariant = compact && variant === 'button' ? 'icon' : variant;
 
-  const isDataEmpty = !data || data.length === 0;
-  const isDisabled = disabled || isDataEmpty;
+  const [exporting, setExporting] = React.useState(false);
+  const isDataEmpty = !loadData && (!data || data.length === 0);
+  const isDisabled = disabled || isDataEmpty || exporting;
 
-  const handleExportCSV = () => {
-    exportToCSV(data, columns, fileName);
-    notify.success(t('export.success'), 3000);
-    onExport?.();
+  const handleExportCSV = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const rows = loadData ? await loadData() : data;
+      if (!rows.length) { notify.error(t('export.noData')); return; }
+      exportToCSV(rows, columns, fileName);
+      notify.success(t('export.success'), 3000);
+      onExport?.();
+    } catch {
+      notify.error(t('missionMap.loadError'));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const tooltipTitle = isDataEmpty ? t('export.noData') : '';

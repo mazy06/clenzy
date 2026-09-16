@@ -113,10 +113,10 @@ class ServiceRequestControllerTest {
             Jwt jwt = createJwt();
             var pageable = PageRequest.of(0, 10);
             Page<ServiceRequestDto> page = new PageImpl<>(List.of(new ServiceRequestDto()));
-            when(service.searchWithRoleBasedAccess(eq(pageable), isNull(), isNull(), isNull(), isNull(), isNull(), eq(jwt)))
+            when(service.searchWithRoleBasedAccess(eq(pageable), isNull(), isNull(), isNull(), isNull(), isNull(), eq(jwt), eq(true)))
                     .thenReturn(page);
 
-            Page<ServiceRequestDto> result = controller.list(pageable, null, null, null, null, null, jwt);
+            Page<ServiceRequestDto> result = controller.list(pageable, null, null, null, null, null, true, jwt);
             assertThat(result.getContent()).hasSize(1);
         }
     }
@@ -140,7 +140,7 @@ class ServiceRequestControllerTest {
             dto.id = 7L;
             when(service.refuse(7L)).thenReturn(dto);
 
-            ResponseEntity<ServiceRequestDto> result = controller.refuse(7L);
+            ResponseEntity<ServiceRequestDto> result = controller.refuse(7L, org.mockito.Mockito.mock(org.springframework.security.oauth2.jwt.Jwt.class));
             assertThat(result.getStatusCode().value()).isEqualTo(200);
             assertThat(result.getBody().id).isEqualTo(7L);
         }

@@ -35,12 +35,111 @@ class ServiceRequestMapperTest {
     private PropertyRepository propertyRepository;
     @Mock
     private TeamRepository teamRepository;
+    @Mock
+    private com.clenzy.repository.PropertyPhotoRepository photos;
 
     private ServiceRequestMapper mapper;
+    @Mock
+    private com.clenzy.service.catalog.ServiceCatalogReference catalog;
 
     @BeforeEach
     void setUp() {
-        mapper = new ServiceRequestMapper(userRepository, propertyRepository, teamRepository, new com.fasterxml.jackson.databind.ObjectMapper());
+        mapper = new ServiceRequestMapper(userRepository, propertyRepository, teamRepository, new com.fasterxml.jackson.databind.ObjectMapper(), catalog,
+            photos);
+    }
+
+    @Test
+    void detailIncludesPropertyInstructionsTimezoneAndPersonPhoto() {
+        var request = createServiceRequest();
+        var property = createProperty(3L, "Studio");
+        property.setTimezone("Africa/Casablanca");
+        property.setCleaningNotes("Nettoyer la terrasse");
+        request.setProperty(property);
+        var user = createUser(2L, "Marie", "Martin");
+        user.setProfilePictureUrl("/api/photos/avatar");
+        request.setUser(user);
+        var dto = mapper.toDto(request);
+        assertThat(dto.property.timezone).isEqualTo("Africa/Casablanca");
+        assertThat(dto.property.cleaningNotes).isEqualTo("Nettoyer la terrasse");
+        assertThat(dto.user.profilePictureUrl).isEqualTo("/api/photos/avatar");
+    }
+
+    @Test
+    void coversAreLoadedOnceForDistinctPropertiesAndUseFirstOrderedPhoto() {
+        var request = createServiceRequest();
+        request.setProperty(createProperty(3L, "Studio"));
+        var first = mapper.toDto(request);
+        var second = mapper.toDto(request);
+        var cover = org.mockito.Mockito.mock(PropertyPhoto.class);
+        var other = org.mockito.Mockito.mock(PropertyPhoto.class);
+        when(cover.getPropertyId()).thenReturn(3L);
+        when(cover.getUrl()).thenReturn("/cover.jpg");
+        when(other.getPropertyId()).thenReturn(3L);
+        when(other.getUrl()).thenReturn("/other.jpg");
+        when(photos.findByPropertyIdInOrderBySortOrderAscIdAsc(java.util.List.of(3L)))
+                .thenReturn(java.util.List.of(cover, other));
+        mapper.enrichPropertyPhotos(java.util.List.of(first, second));
+        assertThat(first.property.coverPhotoUrl).isEqualTo("/cover.jpg");
+        assertThat(second.property.coverPhotoUrl).isEqualTo("/cover.jpg");
+        org.mockito.Mockito.verify(photos).findByPropertyIdInOrderBySortOrderAscIdAsc(java.util.List.of(3L));
+    }
+
+    @Test
+    void preciseCatalogReferenceSurvivesDtoRoundTrip() {
+        ServiceRequest entity = createServiceRequest();
+        entity.setServiceType(ServiceType.OTHER);
+        entity.setServiceItemCode("photo-new-service");
+        ServiceRequestDto dto = mapper.toDto(entity);
+        assertThat(dto.serviceItemCode).isEqualTo("photo-new-service");
+        when(catalog.resolve("photo-new-service", "OTHER", "photo-new-service", "OTHER"))
+                .thenReturn("photo-new-service");
+        mapper.apply(dto, entity);
+        assertThat(entity.getServiceItemCode()).isEqualTo("photo-new-service");
+    }
+
+    @Test
+    void missionUserOverridesHistoricalRequestAssignmentWithoutWritingIt() {
+        ServiceRequest request = createServiceRequest();
+        request.setAssignedToId(99L);
+        request.setAssignedToType("team");
+        Intervention mission = new Intervention();
+        mission.setId(338L);
+        mission.setAssignedUser(createUser(12L, "Jean", "Martin"));
+        ServiceRequestDto dto = new ServiceRequestDto();
+        dto.assignedToTeam = new com.clenzy.dto.TeamDto();
+        dto.autoAssignStatus = "exhausted";
+        mapper.projectMissionAssignment(dto, mission);
+        assertThat(dto.interventionId).isEqualTo(338L);
+        assertThat(dto.assignedToId).isEqualTo(12L);
+        assertThat(dto.assignedToType).isEqualTo("user");
+        assertThat(dto.assignedToUser.firstName).isEqualTo("Jean");
+        assertThat(dto.assignedToTeam).isNull();
+        assertThat(dto.autoAssignStatus).isNull();
+        assertThat(request.getAssignedToId()).isEqualTo(99L);
+    }
+
+    @Test
+    void missionTeamOverridesUserAndUnassignmentClearsAllHistoricalFields() {
+        Intervention mission = new Intervention();
+        mission.setId(338L);
+        mission.setTeamId(7L);
+        Team team = new Team();
+        team.setId(7L);
+        team.setName("Équipe Tours");
+        when(teamRepository.findById(7L)).thenReturn(Optional.of(team));
+        ServiceRequestDto dto = new ServiceRequestDto();
+        dto.assignedToUser = new com.clenzy.dto.UserDto();
+        mapper.projectMissionAssignment(dto, mission);
+        assertThat(dto.assignedToId).isEqualTo(7L);
+        assertThat(dto.assignedToType).isEqualTo("team");
+        assertThat(dto.assignedToTeam.name).isEqualTo("Équipe Tours");
+        assertThat(dto.assignedToUser).isNull();
+        mission.setTeamId(null);
+        mapper.projectMissionAssignment(dto, mission);
+        assertThat(dto.assignedToId).isNull();
+        assertThat(dto.assignedToType).isNull();
+        assertThat(dto.assignedToTeam).isNull();
+        assertThat(dto.assignedToUser).isNull();
     }
 
     private User createUser(Long id, String firstName, String lastName) {

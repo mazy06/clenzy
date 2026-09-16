@@ -67,6 +67,7 @@ class ServiceQuoteDecisionTest {
         when(quoteRepository.findByIdAndOrganizationId(1L, 7L)).thenReturn(Optional.of(quote));
         when(interventionRepository.findById(4L)).thenReturn(Optional.of(mission));
         when(clock.instant()).thenReturn(java.time.Instant.EPOCH);
+        when(clock.getZone()).thenReturn(java.time.ZoneOffset.UTC);
         when(quoteRepository.markApproved(1L, 7L, "manager", java.time.Instant.EPOCH)).thenReturn(1);
         doAnswer(invocation -> {
             var assigned = (com.clenzy.model.Intervention) invocation.getArgument(0);

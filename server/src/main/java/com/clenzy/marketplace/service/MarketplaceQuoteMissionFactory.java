@@ -37,15 +37,19 @@ public class MarketplaceQuoteMissionFactory {
     private final UserRepository userRepository;
     private final com.clenzy.marketplace.repository.MarketplaceQuoteRequestRepository requests;
     private final Clock clock;
+    private final com.clenzy.service.assignment.AcceptedServiceRequestConverter converter;
+    private final com.clenzy.service.assignment.ServiceAssignmentService assignments;
     private final MarketplaceGeographicEligibility geography;
     private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
     private final MarketplaceExposureService exposure;
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog;
 
     public MarketplaceQuoteMissionFactory(InterventionRepository interventionRepository,
             PropertyRepository propertyRepository, MarketplaceProviderRepository providerRepository,
             UserRepository userRepository,
             com.clenzy.marketplace.repository.MarketplaceQuoteRequestRepository requests, Clock clock,
-            com.clenzy.service.InterventionAllocationGuard allocationGuard, MarketplaceExposureService exposure, MarketplaceGeographicEligibility geography) {
+            com.clenzy.service.InterventionAllocationGuard allocationGuard, MarketplaceExposureService exposure, MarketplaceGeographicEligibility geography, com.clenzy.service.catalog.ServiceCatalogReference catalog,com.clenzy.service.assignment.ServiceAssignmentService assignments, com.clenzy.service.assignment.AcceptedServiceRequestConverter converter) {
+        this.catalog=catalog; this.assignments=assignments; this.converter=converter;
         this.geography = geography;
         this.exposure = exposure;
         this.allocationGuard = allocationGuard;
@@ -56,6 +60,8 @@ public class MarketplaceQuoteMissionFactory {
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public MarketplaceQuoteRequest lock(Long id, Long orgId) {
+        var reference=requests.findById(id).orElseThrow();
+        if (reference.getServiceRequestId()!=null) allocationGuard.lockCommercialNeed(reference.getServiceRequestId(),orgId);
         var request = requests.findForDiscussion(id).orElseThrow();
         if (orgId == null || !orgId.equals(request.getRequesterOrganizationId())) throw new AccessDeniedException("Organisation incorrecte");
         return request;
@@ -67,6 +73,7 @@ public class MarketplaceQuoteMissionFactory {
         var author = userRepository.findById(provider.getUserId()).orElseThrow();
         var quote = new ServiceQuote();
         quote.setMarketplaceRequestId(request.getId());
+        quote.setServiceRequestId(request.getServiceRequestId());
         quote.setOrganizationId(request.getRequesterOrganizationId());
         quote.setPropertyId(request.getPropertyId());
         quote.setProviderUserId(author.getId()); quote.setProviderTeamId(request.getProviderTeamId());
@@ -75,6 +82,31 @@ public class MarketplaceQuoteMissionFactory {
         quote.setValidUntil(request.getQuoteValidUntil());
         quote.setDescription(abbreviate(request.getQuoteMessage(), 1000));
         return quote;
+    }
+
+    /** Une sollicitation qualifiée et datée prépare le besoin sans réserver ni facturer. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void prepareNeed(MarketplaceQuoteRequest request) {
+        if (request.getServiceRequestId() != null) return;
+        if (request.getServiceItemCode() == null || request.getDesiredDate() == null
+                || request.getRequestedByUserId() == null
+                || (request.getPropertyId() == null && !catalog.propertyOptional(request.getServiceItemCode()))) return;
+        var need = new Intervention();
+        need.setOrganizationId(request.getRequesterOrganizationId());
+        need.setServiceItemCode(catalog.resolve(request.getServiceItemCode(), null, null, null));
+        need.setTitle(request.getTitle());
+        need.setDescription(request.getMessage());
+        need.setScheduledDate(resolveStart(request));
+        need.setRequestor(userRepository.findById(request.getRequestedByUserId())
+            .orElseThrow(() -> new IllegalStateException("Demandeur introuvable")));
+        if (request.getPropertyId() != null) need.setProperty(propertyRepository
+            .findByIdWithOwner(request.getPropertyId(),request.getRequesterOrganizationId())
+            .orElseThrow(() -> new AccessDeniedException("Logement hors organisation")));
+        allocationGuard.prepareCommercialNeed(request.getId(), need);
+    }
+
+    public void closePreparedNeed(Long quoteRequestId) {
+        allocationGuard.closeCommercialPreparation(quoteRequestId);
     }
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
@@ -87,7 +119,6 @@ public class MarketplaceQuoteMissionFactory {
             throw new IllegalStateException("Ce devis a expiré");
         // Contrôle avant la décision, même sans logement ou avec une mission déjà liée.
         if (approve) {
-            geography.requireCoverage(request.getProviderId(), request.getPropertyId(), orgId);
         geography.requireService(request.getProviderId(), request.getPropertyId(), orgId, request.getCategoryCode(), request.getServiceItemCode(), request.getDesiredDate());
             User provider = requireActiveProvider(request);
             requireMatchingAgreement(quote, request, provider);
@@ -100,6 +131,7 @@ public class MarketplaceQuoteMissionFactory {
                 : com.clenzy.marketplace.model.QuoteRequestStatus.DECLINED;
         if (requests.decideIfStillQuoted(request.getId(), orgId, target, cleanedReason, LocalDateTime.now(clock)) != 1)
             throw new MarketplaceQuoteService.QuoteAlreadySettledException();
+        if (!approve) closePreparedNeed(request.getId());
         return approve ? createFrom(request) : Optional.empty();
     }
 
@@ -128,7 +160,7 @@ public class MarketplaceQuoteMissionFactory {
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public Optional<Long> createFrom(MarketplaceQuoteRequest quote) {
         if (quote.getInterventionId() != null) return Optional.of(quote.getInterventionId());
-        if (quote.getPropertyId() == null) {
+        if (quote.getPropertyId() == null && !catalog.propertyOptional(quote.getServiceItemCode())) {
             log.info("Devis {} accepte sans logement : accord commercial, sans intervention",
                 quote.getId());
             return Optional.empty();
@@ -137,14 +169,13 @@ public class MarketplaceQuoteMissionFactory {
         // Relu avec la borne d'organisation, meme si la demande l'a deja
         // validee a sa creation : un logement peut avoir change de main entre
         // les deux, et `findById` ne passe par aucun filtre.
-        Property property = propertyRepository
+        Property property = quote.getPropertyId() == null ? null : propertyRepository
             .findByIdWithOwner(quote.getPropertyId(), quote.getRequesterOrganizationId())
             .orElse(null);
-        if (property == null) {
+        if (property == null && quote.getPropertyId() != null) {
             throw new AccessDeniedException("Le logement n'appartient plus à cette organisation");
         }
 
-        geography.requireCoverage(quote.getProviderId(), quote.getPropertyId(), quote.getRequesterOrganizationId());
         geography.requireService(quote.getProviderId(), quote.getPropertyId(), quote.getRequesterOrganizationId(), quote.getCategoryCode(), quote.getServiceItemCode(), quote.getDesiredDate());
         User assignee = requireActiveProvider(quote);
         User requester = quote.getRequestedByUserId() == null ? null
@@ -164,6 +195,7 @@ public class MarketplaceQuoteMissionFactory {
         intervention.setTitle(quote.getTitle());
         intervention.setDescription(buildDescription(quote));
         intervention.setType(resolveType(quote));
+        intervention.setServiceItemCode(quote.getServiceItemCode());
         intervention.setPriority("NORMAL");
         // PENDING et non AWAITING_VALIDATION : la validation vient d'avoir lieu,
         // c'est l'acceptation du devis.
@@ -172,7 +204,7 @@ public class MarketplaceQuoteMissionFactory {
         intervention.setStartTime(scheduledStart);
         intervention.setScheduledDate(scheduledStart);
         if (quote.getRequestedDurationMinutes() != null) {
-            intervention.setEndTime(scheduledStart.plusMinutes(quote.getRequestedDurationMinutes()));
+            if (scheduledStart!=null) intervention.setEndTime(scheduledStart.plusMinutes(quote.getRequestedDurationMinutes()));
             // Le verrou d'attribution existant réserve des heures entières : arrondi supérieur,
             // jamais une réservation plus courte que le créneau demandé.
             intervention.setEstimatedDurationHours(Math.ceilDiv(quote.getRequestedDurationMinutes(), 60));
@@ -182,13 +214,41 @@ public class MarketplaceQuoteMissionFactory {
         intervention.setEstimatedCost(quote.getQuotedAmount());
         intervention.setCurrency(quote.getQuotedCurrency() == null ? "EUR" : quote.getQuotedCurrency());
 
+        intervention.setServiceRequest(quote.getServiceRequestId()==null
+            ? allocationGuard.prepareCommercialNeed(quote.getId(), intervention)
+            : allocationGuard.prepareExistingNeed(quote.getServiceRequestId(), intervention));
+        if (quote.getServiceRequestId()!=null && !java.util.Objects.equals(
+                quote.getServiceRequestCycle(),intervention.getServiceRequest().getAssignmentCycle()))
+            throw new IllegalStateException("Le besoin a été révisé : un nouveau devis est nécessaire");
+        if (quote.getServiceRequestId()!=null) {
+            var canonical=intervention.getServiceRequest();
+            assignments.requireTimelyAgreement(canonical);
+            intervention.setTitle(canonical.getTitle());
+            intervention.setSpecialInstructions(canonical.getSpecialInstructions());
+            intervention.setAccessNotes(canonical.getAccessNotes());
+            intervention.setGuestCheckoutTime(canonical.getGuestCheckoutTime());
+            intervention.setGuestCheckinTime(canonical.getGuestCheckinTime());
+            intervention.setPriority(canonical.getPriority().name());
+            canonical.setEstimatedCost(quote.getQuotedAmount());
+            canonical.setAssignedToType(quote.getProviderTeamId()!=null?"team":"user");
+            canonical.setAssignedToId(quote.getProviderTeamId()!=null?quote.getProviderTeamId():assignee.getId());
+        }
+        intervention.setAssignmentResponse(com.clenzy.model.InterventionAssignmentResponse.ACCEPTED);
+        intervention.setInitialAcceptanceRequestId(intervention.getServiceRequest().getId());
+        intervention.setAssignmentRespondedAt(LocalDateTime.now(clock));
         allocationGuard.requireAvailable(intervention, quote.getServiceItemCode()!=null ? "ITEM:"+quote.getServiceItemCode() : quote.getCategoryCode()!=null ? "CATEGORY:"+quote.getCategoryCode() : "TYPE:OTHER");
         Intervention saved = interventionRepository.save(intervention);
+        var need=saved.getServiceRequest();
+        need.setConvertedInterventionId(saved.getId());
+        need.setAssignmentPhase("CONVERTED");
+        need.setAutoAssignStatus("confirmed");
+        converter.linkReservation(need, saved);
+        if (quote.getServiceRequestId()!=null) requests.withdrawOtherOffers(quote.getServiceRequestId(),quote.getId(),LocalDateTime.now(clock));
         if (requests.attachIntervention(quote.getId(), saved.getId(), LocalDateTime.now(clock)) != 1)
             throw new MarketplaceQuoteService.QuoteAlreadySettledException();
 
         log.info("Devis {} : intervention {} creee sur le logement {}",
-            quote.getId(), saved.getId(), property.getId());
+            quote.getId(), saved.getId(), property == null ? null : property.getId());
         return Optional.of(saved.getId());
     }
 
@@ -256,26 +316,7 @@ public class MarketplaceQuoteMissionFactory {
      * planning et les statistiques, un type « autre » se corrige en un clic.</p>
      */
     private String resolveType(MarketplaceQuoteRequest quote) {
-        if (quote.getServiceItemCode() != null && !quote.getServiceItemCode().isBlank()) {
-            return ProviderCategoryMapper.interventionTypeForServiceItemCode(quote.getServiceItemCode()).name();
-        }
-        String category = quote.getCategoryCode();
-        if (category == null) return "OTHER";
-        // Les valeurs rendues sont celles d'InterventionType, verifiees une a
-        // une : « MAINTENANCE » et « LAUNDRY » n'y existent pas, et une valeur
-        // inconnue retomberait de toute facon sur OTHER — mais en silence, ce
-        // qui est exactement le genre d'ecart qu'on ne remarque jamais.
-        return switch (category) {
-            case "CLEANING" -> InterventionType.CLEANING.name();
-            case "MAINTENANCE" -> InterventionType.PREVENTIVE_MAINTENANCE.name();
-            case "LOCKSMITH" -> InterventionType.EMERGENCY_REPAIR.name();
-            case "POOL" -> InterventionType.EXTERIOR_CLEANING.name();
-            case "EXTERIOR" -> InterventionType.GARDENING.name();
-            case "REGULATORY" -> InterventionType.DISINFECTION.name();
-            // Blanchisserie et linge n'ont pas de type d'intervention : ils
-            // existent comme metier, pas comme travail sur un logement.
-            default -> InterventionType.OTHER.name();
-        };
+        return catalog.legacyType(quote.getServiceItemCode());
     }
 
     private LocalDateTime resolveStart(MarketplaceQuoteRequest quote) {

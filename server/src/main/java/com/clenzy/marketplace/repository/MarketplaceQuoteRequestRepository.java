@@ -22,6 +22,9 @@ import java.util.List;
  */
 @Repository
 public interface MarketplaceQuoteRequestRepository extends JpaRepository<MarketplaceQuoteRequest, Long> {
+    @Modifying(flushAutomatically=true)
+    @Query("UPDATE MarketplaceQuoteRequest q SET q.status=com.clenzy.marketplace.model.QuoteRequestStatus.WITHDRAWN, q.updatedAt=:now, q.decisionReason='Un autre devis a été accepté' WHERE q.serviceRequestId=:need AND q.id<>:winner AND q.status IN (com.clenzy.marketplace.model.QuoteRequestStatus.SENT,com.clenzy.marketplace.model.QuoteRequestStatus.QUOTED)")
+    int withdrawOtherOffers(@Param("need") Long need,@Param("winner") Long winner,@Param("now") LocalDateTime now);
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE MarketplaceQuoteRequest q SET q.providerTeamId = :teamId WHERE q.id = :id AND q.providerId = :providerId AND q.providerTeamId IS NULL AND q.status = com.clenzy.marketplace.model.QuoteRequestStatus.SENT")
     int selectTeam(@Param("id") Long id, @Param("providerId") Long providerId, @Param("teamId") Long teamId);

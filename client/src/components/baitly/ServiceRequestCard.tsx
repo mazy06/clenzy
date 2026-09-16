@@ -38,6 +38,7 @@ export interface ServiceRequestCardProps {
   statusColors: Record<string, string>;
   priorityColors: Record<string, string>;
   className?: string;
+  commercialDetails?: React.ReactNode;
 }
 
 const labelOf = (options: Array<{ value: string; label: string }>, value: string) =>
@@ -52,6 +53,7 @@ export default function ServiceRequestCard({
   statusColors,
   priorityColors,
   className,
+  commercialDetails,
 }: ServiceRequestCardProps) {
   const { t } = useTranslation();
   return (
@@ -87,12 +89,12 @@ export default function ServiceRequestCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 px-4">
-        <StatusChip
+        {request.status !== 'PENDING' && <StatusChip
           color={statusColors[request.status]}
           label={labelOf(statuses, request.status)}
           dot
           size="sm"
-        />
+        />}
         <StatusChip
           color={priorityColors[request.priority]}
           label={labelOf(priorities, request.priority)}
@@ -110,12 +112,12 @@ export default function ServiceRequestCard({
         {request.estimatedDuration != null && (
           <span className="flex items-center gap-1 tabular-nums">
             <TimerIcon className="size-3.5" />
-            {request.estimatedDuration} min
+            {request.estimatedDuration} h
           </span>
         )}
-        {request.estimatedCost != null && (
+        {!commercialDetails && request.estimatedCost != null && (
           <span className="font-semibold text-foreground tabular-nums">
-            <Money value={request.estimatedCost} decimals={0} />
+            <Money value={request.estimatedCost} from="EUR" decimals={0} />
           </span>
         )}
         {request.assignedToName ? (
@@ -129,6 +131,7 @@ export default function ServiceRequestCard({
           </span>
         )}
       </div>
+      {commercialDetails && <div className="px-4">{commercialDetails}</div>}
     </Card>
   );
 }

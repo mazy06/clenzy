@@ -87,7 +87,7 @@ class TeamServiceTest {
                 notificationService,
                 tenantContext,
                 avatarUrls,
-                assignments);
+                assignments, org.mockito.Mockito.mock(com.clenzy.service.catalog.ServiceCatalogReference.class));
     }
 
     @Test

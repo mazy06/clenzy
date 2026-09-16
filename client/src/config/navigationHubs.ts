@@ -102,23 +102,13 @@ export const NAVIGATION_HUBS: HubDef[] = [
       },
       {
         path: '/prestataires',
-        matchPrefixes: ['/prestataires'],
+        matchPrefixes: ['/prestataires', '/marketplace'],
         translationKey: 'navigation.providerCatalog',
         fallbackLabel: 'Prestataires',
         // Ouvert à tout compte de l'organisation : un technicien comme un
         // gestionnaire ont des raisons légitimes de consulter le catalogue.
         // Ce qui borne la vue, c'est l'ORGANISATION, résolue par le serveur.
         isAccessible: () => true,
-      },
-      {
-        path: '/marketplace/providers',
-        matchPrefixes: ['/marketplace'],
-        translationKey: 'navigation.marketplaceProviders',
-        fallbackLabel: 'Place de marché',
-        // Gardé sur le RÔLE et non sur une permission : ces tables sont
-        // PLATEFORME, sans cloisonnement par organisation, et aucune
-        // permission accordée à un compte client ne doit y donner accès.
-        isAccessible: (a) => a.isAdmin || a.isManager,
       },
     ],
   },

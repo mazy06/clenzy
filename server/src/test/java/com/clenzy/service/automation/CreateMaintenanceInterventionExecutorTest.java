@@ -54,13 +54,14 @@ class CreateMaintenanceInterventionExecutorTest {
     @Mock private com.clenzy.repository.UserRepository userRepository;
     @Mock private com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository;
 
+    private final com.clenzy.service.assignment.InterventionRequestIntake intake = org.mockito.Mockito.mock(com.clenzy.service.assignment.InterventionRequestIntake.class);
     private CreateMaintenanceInterventionExecutor executor;
 
     @BeforeEach
     void setUp() {
         executor = new CreateMaintenanceInterventionExecutor(
                 deviceRepository, interventionRepository, propertyRepository, noiseAlertRepository,
-                userRepository, organizationMemberRepository, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class));
+                userRepository, organizationMemberRepository, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), intake);
     }
 
     private static AutomationRule rule() {
@@ -180,7 +181,7 @@ class CreateMaintenanceInterventionExecutorTest {
 
         assertThat(result.skipped()).isFalse();
         ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-        verify(interventionRepository).save(captor.capture());
+        verify(intake).createRecurringDraft(captor.capture(), anyString());
         Intervention created = captor.getValue();
 
         assertThat(created.getType()).isEqualTo("MAINTENANCE");
@@ -284,7 +285,7 @@ class CreateMaintenanceInterventionExecutorTest {
 
         assertThat(result.skipped()).isFalse();
         ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-        verify(interventionRepository).save(captor.capture());
+        verify(intake).createRecurringDraft(captor.capture(), anyString());
         Intervention created = captor.getValue();
 
         assertThat(created.getType()).isEqualTo("MAINTENANCE");

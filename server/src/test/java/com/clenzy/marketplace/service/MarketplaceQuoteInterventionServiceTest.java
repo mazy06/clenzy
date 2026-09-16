@@ -182,8 +182,16 @@ class MarketplaceQuoteInterventionServiceTest {
         assertThat(saved.getValue().getTeamId()).isEqualTo(8L);
         assertThat(saved.getValue().getAssignedUser()).isNull();
         assertThat(saved.getValue().getAssignedTechnicianId()).isNull();
-        assertThat(saved.getValue().getAssignmentResponse()).isEqualTo(com.clenzy.model.InterventionAssignmentResponse.PENDING);
+        assertThat(saved.getValue().getAssignmentResponse()).isEqualTo(com.clenzy.model.InterventionAssignmentResponse.ACCEPTED);
         verify(allocationRequests).interventionAssignmentConflicts(isNull(), isNull(), eq("team"), eq(8L), any(), any());
+        var need = ArgumentCaptor.forClass(com.clenzy.model.ServiceRequest.class);
+        verify(allocationRequests).save(need.capture());
+        assertThat(need.getValue().getAssignedToType()).isNull();
+        assertThat(need.getValue().getAssignedToId()).isNull();
+        assertThat(need.getValue().getMarketplaceRequestId()).isEqualTo(request.getId());
+        assertThat(need.getValue().getAutoAssignStatus()).isEqualTo("confirmed");
+        assertThat(need.getValue().getServiceItemCode()).isEqualTo(saved.getValue().getServiceItemCode());
+        verify(allocationRequests).findByMarketplaceRequestId(request.getId());
         verifyNoMoreInteractions(allocationRequests);
     }
 
@@ -306,6 +314,7 @@ class MarketplaceQuoteInterventionServiceTest {
         var request = quote(); request.setPropertyId(null);
         request.setStatus(com.clenzy.marketplace.model.QuoteRequestStatus.QUOTED);
         when(requests.findForDiscussion(9L)).thenReturn(Optional.of(request));
+        lenient().when(requests.findById(9L)).thenReturn(Optional.of(request));
         return request;
     }
 
@@ -327,16 +336,18 @@ class MarketplaceQuoteInterventionServiceTest {
     @Mock private com.clenzy.service.ProviderAvailabilityService availability;
 
     private MarketplaceQuoteMissionFactory service;
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog = spy(com.clenzy.service.CatalogTestFixture.reference());
 
     private static final Instant NOW = Instant.parse("2026-09-13T10:00:00Z");
 
     @BeforeEach
     void setUp() {
+        lenient().when(allocationRequests.save(any())).thenAnswer(inv -> inv.getArgument(0));
         lenient().when(availability.isUserAvailable(any(), any(), any())).thenReturn(true);
         service = new MarketplaceQuoteMissionFactory(
             interventionRepository, propertyRepository, providerRepository, users, requests,
-            Clock.fixed(NOW, ZoneOffset.UTC), new com.clenzy.service.InterventionAllocationGuard(allocationRequests, availability, org.mockito.Mockito.mock(com.clenzy.service.ProviderPropertyEligibility.class), org.mockito.Mockito.mock(com.clenzy.marketplace.service.ProviderDocumentaryService.class)),
-            new MarketplaceExposureService(exposureRules, Clock.fixed(NOW, ZoneOffset.UTC), org.mockito.Mockito.mock(com.clenzy.marketplace.service.MarketplaceDecisionJournal.class), documentary()), mock(MarketplaceGeographicEligibility.class));
+            Clock.fixed(NOW, ZoneOffset.UTC), new com.clenzy.service.InterventionAllocationGuard(allocationRequests, availability, org.mockito.Mockito.mock(com.clenzy.service.ProviderPropertyEligibility.class), org.mockito.Mockito.mock(com.clenzy.marketplace.service.ProviderDocumentaryService.class), org.mockito.Mockito.mock(com.clenzy.service.catalog.ServiceCapabilityPolicy.class), catalog),
+            new MarketplaceExposureService(exposureRules, Clock.fixed(NOW, ZoneOffset.UTC), org.mockito.Mockito.mock(com.clenzy.marketplace.service.MarketplaceDecisionJournal.class), documentary()), mock(MarketplaceGeographicEligibility.class), catalog,org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class), mock(com.clenzy.service.assignment.AcceptedServiceRequestConverter.class));
     }
 
     @Test
@@ -422,7 +433,7 @@ class MarketplaceQuoteInterventionServiceTest {
 
         var saved = ArgumentCaptor.forClass(Intervention.class);
         verify(interventionRepository).save(saved.capture());
-        assertThat(saved.getValue().getType()).isEqualTo(InterventionType.GARDENING.name());
+        assertThat(saved.getValue().getType()).isEqualTo(InterventionType.OTHER.name());
     }
 
     @Test
@@ -456,7 +467,7 @@ class MarketplaceQuoteInterventionServiceTest {
         "EXTERIOR,exterior-garden,GARDENING",
         "EXTERIOR,exterior-terrace,EXTERIOR_CLEANING",
         "PEST,pest-insects,PEST_CONTROL",
-        "RENOVATION,renovation-painting,RESTORATION"
+        "RENOVATION,renovation-painting,OTHER"
     })
     void theSpecificServiceReachesTheCreatedMission(String category, String item, String expected) {
         givenProperty();
@@ -468,6 +479,7 @@ class MarketplaceQuoteInterventionServiceTest {
         var saved = ArgumentCaptor.forClass(Intervention.class);
         verify(interventionRepository).save(saved.capture());
         assertThat(saved.getValue().getType()).isEqualTo(expected);
+        assertThat(saved.getValue().getServiceItemCode()).isEqualTo(item);
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -484,6 +496,7 @@ class MarketplaceQuoteInterventionServiceTest {
         var saved = ArgumentCaptor.forClass(Intervention.class);
         verify(interventionRepository).save(saved.capture());
         assertThat(saved.getValue().getType()).isEqualTo(InterventionType.OTHER.name());
+        assertThat(saved.getValue().getServiceItemCode()).isEqualTo(item);
     }
 
     @Test
@@ -574,4 +587,26 @@ class MarketplaceQuoteInterventionServiceTest {
         org.mockito.Mockito.lenient().when(service.eligible(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any())).thenReturn(true);
         return service;
     }
+    @Test void remoteQuoteCreatesTheSameMissionAndNeedWithoutAPropertyOrTimeReservation() {
+        givenSavedIntervention(55L);
+        when(providerRepository.findById(1L)).thenReturn(Optional.of(provider()));
+        var author=new com.clenzy.model.User(); author.setId(11L);
+        var requester=new com.clenzy.model.User(); requester.setId(22L);
+        when(users.findById(11L)).thenReturn(Optional.of(author));
+        when(users.findById(22L)).thenReturn(Optional.of(requester));
+        doReturn(true).when(catalog).propertyOptional("accounting-lmnp");
+        doReturn(true).when(catalog).isRemote("accounting-lmnp");
+        doReturn(true).when(catalog).doesNotReserveSlot("accounting-lmnp");
+        when(allocationRequests.save(any(com.clenzy.model.ServiceRequest.class))).thenAnswer(call -> call.getArgument(0));
+        var quote=quote(); quote.setPropertyId(null); quote.setServiceItemCode("accounting-lmnp");
+        assertThat(service.createFrom(quote)).contains(55L);
+        var saved=ArgumentCaptor.forClass(Intervention.class);
+        verify(interventionRepository).save(saved.capture());
+        assertThat(saved.getValue().getProperty()).isNull();
+        assertThat(saved.getValue().getServiceRequest().getServiceItemCode()).isEqualTo("accounting-lmnp");
+        verify(allocationRequests).lockAssignee("user",11L);
+        verify(allocationRequests,never()).interventionAssignmentConflicts(any(),any(),any(),any(),any(),any());
+        verifyNoInteractions(propertyRepository,availability);
+    }
+
 }

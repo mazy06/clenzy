@@ -1,13 +1,7 @@
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import React, { useMemo, useState } from 'react';
 import {
-  Button,
   Input,
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
   Switch,
 } from '../../components/ui';
 import { Search } from '../../icons';
@@ -360,33 +354,9 @@ export function MarketplaceFilterPanel(props: MarketplaceFilterPanelProps) {
   );
 }
 
-/**
- * Coque mobile : le même panneau dans un tiroir.
- *
- * <p>N'existe qu'en dessous de `lg` — au-dessus, le panneau est monté en
- * colonne et ce tiroir n'est jamais rendu.</p>
- */
-export function MarketplaceFilterSheet({ open, onOpenChange, ...panel }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-} & MarketplaceFilterPanelProps) {
-  const { t, locale } = useMarketplacePresentation();
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={locale.startsWith("ar") ? "left" : "right"} className="flex w-full flex-col gap-0 px-4 py-3 sm:max-w-sm">
-        <SheetHeader className="p-0 pb-2">
-          <SheetTitle className="text-base">{t('marketplaceAdmin.filters')}</SheetTitle>
-          <SheetDescription className="sr-only">{t('marketplaceAdmin.filterHint')}</SheetDescription>
-        </SheetHeader>
-        <MarketplaceFilterPanel {...panel} />
-      </SheetContent>
-    </Sheet>
-  );
-}
-
 // ─── Pièces ─────────────────────────────────────────────────────────────────
 
-function Group({ title, aside, children }: {
+export function Group({ title, aside, children }: {
   title: string;
   aside?: string;
   children: React.ReactNode;
@@ -410,10 +380,11 @@ function Group({ title, aside, children }: {
  * <p>Le compteur reste lisible à zéro plutôt que masqué : « aucun professionnel
  * ici » est une réponse, et la masquer obligerait à cliquer pour l'obtenir.</p>
  */
-function FacetRow({ label, icon, count, active, onClick, title }: {
+export function FacetRow({ label, icon, count, active, onClick, title, disabled }: {
   label: string;
   icon?: React.ReactElement;
-  count: number;
+  count?: number;
+  disabled?: boolean;
   active: boolean;
   onClick: () => void;
   title?: string;
@@ -423,9 +394,10 @@ function FacetRow({ label, icon, count, active, onClick, title }: {
       type="button"
       onClick={onClick}
       title={title}
+      disabled={disabled}
       aria-pressed={active}
       className={cn(
-        'flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 text-start text-sm',
+        'flex w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 items-center justify-between gap-2 rounded-md px-1.5 py-1 text-start text-sm',
         'transition-colors duration-150 outline-none focus-visible:ring-[2px] focus-visible:ring-ring/50',
         active
           ? 'bg-primary-soft font-semibold text-primary'
@@ -438,18 +410,18 @@ function FacetRow({ label, icon, count, active, onClick, title }: {
         {icon && <span className="shrink-0 [&>svg]:size-3.5">{icon}</span>}
         <span className="truncate">{label}</span>
       </span>
-      <span className={cn(
+      {count !== undefined && <span className={cn(
         'shrink-0 text-xs tabular-nums',
         active ? 'text-primary' : 'text-muted-foreground',
         count === 0 && !active && 'opacity-60',
       )}>
         {count}
-      </span>
+      </span>}
     </button>
   );
 }
 
-function MoreButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+export function MoreButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -461,7 +433,7 @@ function MoreButton({ onClick, children }: { onClick: () => void; children: Reac
   );
 }
 
-function ToggleRow({ label, checked, onChange }: {
+export function ToggleRow({ label, checked, onChange }: {
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;

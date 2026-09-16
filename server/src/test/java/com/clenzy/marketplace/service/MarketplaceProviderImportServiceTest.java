@@ -428,7 +428,8 @@ class MarketplaceProviderImportServiceTest {
     private static ProviderTariff prestation(Long userId, String type, Double price) {
         var prestation = new ProviderTariff();
         prestation.setUserId(userId);
-        prestation.setServiceKey(com.clenzy.service.pricing.ProviderTariffService.keyForType(type));
+        String key = com.clenzy.service.CatalogTestFixture.reference().legacyCode(type);
+        prestation.setServiceKey(key == null ? "type:" + type : key);
         prestation.setAmount(BigDecimal.valueOf(price));
         prestation.setPricingModel(PricingModel.FLAT);
         prestation.setEnabled(true);

@@ -11,12 +11,7 @@ import java.util.Set;
  * marche.
  *
  * <h2>Pourquoi une traduction et pas une reutilisation</h2>
- * <p>{@code InterventionRoleFit} repond a une autre question : « ce role peut-il
- * PRENDRE cette intervention ? ». Ici on demande « dans quel rayon du catalogue
- * cette prestation se VEND-elle ? ». Les deux coincident souvent et divergent
- * parfois — la blanchisserie est un rayon a part entiere alors qu'elle releve du
- * nettoyage cote affectation. Fusionner les deux tables aurait force l'une des
- * deux reponses a mentir.</p>
+ * Les catégories classent les offres ; seules les capacités déclarées autorisent une attribution.
  */
 public final class ProviderCategoryMapper {
 
@@ -134,42 +129,4 @@ public final class ProviderCategoryMapper {
         };
     }
 
-    /** Inverse des correspondances certaines utilisées par l'import du catalogue. */
-    static InterventionType interventionTypeForServiceItemCode(String serviceItemCode) {
-        if (serviceItemCode == null || serviceItemCode.isBlank()) return InterventionType.OTHER;
-        for (InterventionType type : InterventionType.values()) {
-            if (serviceItemCode.equals(serviceItemCodeForInterventionType(type.name()))) return type;
-        }
-        return InterventionType.OTHER;
-    }
-
-    /**
-     * Prestation du catalogue correspondant a un type d'intervention declare.
-     *
-     * <p>Volontairement PARTIELLE : seuls les types dont la correspondance est
-     * certaine sont mappes. Un rattachement approximatif ferait apparaitre un
-     * professionnel sous une prestation qu'il ne vend pas — pire qu'un libelle
-     * libre, qui au moins ne ment pas.</p>
-     */
-    public static String serviceItemCodeForInterventionType(String rawType) {
-        InterventionType type = InterventionType.fromString(rawType);
-        if (type == null) return null;
-        return switch (type) {
-            case CLEANING -> "cleaning-turnover";
-            case DEEP_CLEANING -> "cleaning-deep";
-            case WINDOW_CLEANING -> "cleaning-windows";
-            case DISINFECTION -> "cleaning-disinfection";
-            case PLUMBING_REPAIR -> "maintenance-plumbing";
-            case ELECTRICAL_REPAIR -> "maintenance-electrical";
-            case HVAC_REPAIR -> "maintenance-hvac";
-            case APPLIANCE_REPAIR -> "maintenance-appliance";
-            case PREVENTIVE_MAINTENANCE -> "maintenance-preventive";
-            case EMERGENCY_REPAIR -> "maintenance-emergency";
-            case GARDENING -> "exterior-garden";
-            case EXTERIOR_CLEANING -> "exterior-terrace";
-            case PEST_CONTROL -> "pest-insects";
-            case RESTORATION -> "renovation-painting";
-            default -> null;
-        };
-    }
 }

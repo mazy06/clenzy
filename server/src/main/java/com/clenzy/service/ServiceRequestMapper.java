@@ -33,11 +33,16 @@ public class ServiceRequestMapper {
     private final PropertyRepository propertyRepository;
     private final TeamRepository teamRepository;
     private final ObjectMapper objectMapper;
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog;
+    private final com.clenzy.repository.PropertyPhotoRepository photos;
 
     public ServiceRequestMapper(UserRepository userRepository,
                                 PropertyRepository propertyRepository,
                                 TeamRepository teamRepository,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper, com.clenzy.service.catalog.ServiceCatalogReference catalog,
+                                com.clenzy.repository.PropertyPhotoRepository photos) {
+        this.photos = photos;
+        this.catalog = catalog;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.teamRepository = teamRepository;
@@ -47,6 +52,9 @@ public class ServiceRequestMapper {
     public void apply(ServiceRequestDto dto, ServiceRequest e) {
         if (dto.title != null) e.setTitle(dto.title);
         e.setDescription(dto.description);
+        e.setServiceItemCode(catalog.resolve(dto.serviceItemCode,
+                dto.serviceType == null ? null : dto.serviceType.name(),
+                e.getServiceItemCode(), e.getServiceType() == null ? null : e.getServiceType().name()));
         if (dto.serviceType != null) e.setServiceType(dto.serviceType);
         if (dto.priority != null) e.setPriority(dto.priority);
         if (dto.status != null) e.setStatus(dto.status);
@@ -93,6 +101,7 @@ public class ServiceRequestMapper {
             Property property = propertyRepository.findById(dto.propertyId).orElseThrow(() -> new NotFoundException("Property not found"));
             e.setProperty(property);
         }
+        catalog.requireLocation(e.getServiceItemCode(), e.getProperty());
         // Reservation link
         e.setReservationId(dto.reservationId);
         // Assignation
@@ -103,10 +112,14 @@ public class ServiceRequestMapper {
     public ServiceRequestDto toDto(ServiceRequest e) {
         ServiceRequestDto dto = new ServiceRequestDto();
         dto.id = e.getId();
+        dto.assignmentPhase = e.getAssignmentPhase();
+        dto.convertedInterventionId = e.getConvertedInterventionId();
         dto.version = e.getVersion();
         dto.title = e.getTitle();
         dto.description = e.getDescription();
         dto.serviceType = e.getServiceType();
+        dto.serviceItemCode = e.getServiceItemCode();
+        dto.marketplaceRequestId = e.getMarketplaceRequestId();
         dto.priority = e.getPriority();
         dto.status = e.getStatus();
         dto.desiredDate = e.getDesiredDate();
@@ -172,6 +185,21 @@ public class ServiceRequestMapper {
         return dto;
     }
 
+    /** Projection de lecture uniquement : la mission porte l’affectation, même quand elle est retirée. */
+    public void projectMissionAssignment(ServiceRequestDto dto, com.clenzy.model.Intervention mission) {
+        dto.interventionId = mission.getId();
+        dto.assignedToId = mission.getAssignedToId();
+        dto.assignedToType = mission.getAssignedToType();
+        dto.assignedToUser = null;
+        dto.assignedToTeam = null;
+        dto.autoAssignStatus = null;
+        if (mission.getAssignedUser() != null) {
+            dto.assignedToUser = userToDto(mission.getAssignedUser());
+        } else if (mission.getTeamId() != null) {
+            teamRepository.findById(mission.getTeamId()).ifPresent(team -> dto.assignedToTeam = teamToDto(team));
+        }
+    }
+
     private PropertyDto propertyToDto(Property property) {
         PropertyDto dto = new PropertyDto();
         dto.id = property.getId();
@@ -180,6 +208,7 @@ public class ServiceRequestMapper {
         dto.city = property.getCity();
         dto.postalCode = property.getPostalCode();
         dto.country = property.getCountry();
+        dto.timezone = property.getTimezone();
         dto.type = property.getType();
         dto.status = property.getStatus();
         dto.bedroomCount = property.getBedroomCount();
@@ -188,6 +217,15 @@ public class ServiceRequestMapper {
         dto.nightlyPrice = property.getNightlyPrice();
         dto.maxGuests = property.getMaxGuests();
         dto.description = property.getDescription();
+        dto.cleaningNotes = property.getCleaningNotes();
+        dto.cleaningDurationMinutes = property.getCleaningDurationMinutes();
+        dto.numberOfFloors = property.getNumberOfFloors();
+        dto.hasExterior = property.getHasExterior();
+        dto.hasLaundry = property.getHasLaundry();
+        dto.hasIroning = property.getHasIroning();
+        dto.hasDeepKitchen = property.getHasDeepKitchen();
+        dto.hasDisinfection = property.getHasDisinfection();
+        dto.windowCount = property.getWindowCount();
         dto.cleaningFrequency = property.getCleaningFrequency();
         dto.ownerId = property.getOwner() != null ? property.getOwner().getId() : null;
         dto.latitude = property.getLatitude();
@@ -206,6 +244,7 @@ public class ServiceRequestMapper {
         dto.role = user.getRole();
         dto.status = user.getStatus();
         dto.phoneNumber = user.getPhoneNumber();
+        dto.profilePictureUrl = user.getProfilePictureUrl();
         dto.createdAt = user.getCreatedAt();
         dto.updatedAt = user.getUpdatedAt();
         return dto;
@@ -221,5 +260,18 @@ public class ServiceRequestMapper {
         dto.createdAt = team.getCreatedAt();
         dto.updatedAt = team.getUpdatedAt();
         return dto;
+    }
+
+    /** Une seule lecture des couvertures pour toute la page, après contrôle d'accès des demandes. */
+    public void enrichPropertyPhotos(List<ServiceRequestDto> requests) {
+        var ids = requests.stream().filter(r -> r.property != null && r.property.id != null)
+                .map(r -> r.property.id).distinct().toList();
+        if (ids.isEmpty()) return;
+        var covers = new java.util.HashMap<Long,String>();
+        for (var photo : photos.findByPropertyIdInOrderBySortOrderAscIdAsc(ids)) {
+            if (photo.getPropertyId() != null && photo.getUrl() != null)
+                covers.putIfAbsent(photo.getPropertyId(), photo.getUrl());
+        }
+        requests.forEach(r -> { if (r.property != null) r.property.coverPhotoUrl = covers.get(r.property.id); });
     }
 }

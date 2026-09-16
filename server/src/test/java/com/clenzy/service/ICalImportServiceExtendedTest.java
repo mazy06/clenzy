@@ -105,8 +105,8 @@ class ICalImportServiceExtendedTest {
             new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
             new com.clenzy.service.ical.ICalCleaningScheduler(
                 serviceRequestRepository,
-                new com.clenzy.service.pricing.CleaningPricingEngine(pricingConfigService, new com.fasterxml.jackson.databind.ObjectMapper(), org.mockito.Mockito.mock(com.clenzy.repository.ProviderTariffRepository.class)),
-                tenantContext),
+                new com.clenzy.service.pricing.CleaningPricingEngine(pricingConfigService, new com.fasterxml.jackson.databind.ObjectMapper(), org.mockito.Mockito.mock(com.clenzy.repository.ProviderTariffRepository.class), new com.clenzy.service.pricing.ProviderTariffService(org.mockito.Mockito.mock(com.clenzy.repository.ProviderTariffRepository.class), com.clenzy.service.CatalogTestFixture.reference())),
+                tenantContext, com.clenzy.service.CatalogTestFixture.reference()),
             org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionActivityService.class),
             org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),
             selfProvider);

@@ -1,7 +1,7 @@
 package com.clenzy.service.agent.tools;
 
 import com.clenzy.dto.CreateInterventionRequest;
-import com.clenzy.dto.InterventionResponse;
+import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.model.User;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.InterventionService;
@@ -67,16 +67,14 @@ class CreateInterventionToolTest {
         return args;
     }
 
-    private static InterventionResponse response() {
-        return InterventionResponse.builder()
-                .id(42L)
-                .title("Nettoyage complet")
-                .type("HOUSEKEEPING")
-                .status("PENDING")
-                .propertyId(10L)
-                .propertyName("Loft")
-                .scheduledDate("2026-07-15")
-                .build();
+    private static ServiceRequestDto response() {
+        var result = new ServiceRequestDto();
+        result.id = 42L;
+        result.title = "Nettoyage complet";
+        result.serviceType = com.clenzy.model.ServiceType.CLEANING;
+        result.status = com.clenzy.model.RequestStatus.PENDING;
+        result.propertyId = 10L;
+        return result;
     }
 
     @Test
@@ -86,9 +84,9 @@ class CreateInterventionToolTest {
         assertTrue(tool.descriptor().requiresConfirmation(), "write tool requires confirmation");
         JsonNode schema = tool.descriptor().jsonSchema();
         assertEquals("object", schema.path("type").asText());
-        assertTrue(schema.path("required").toString().contains("propertyId"));
+        assertFalse(schema.path("required").toString().contains("propertyId"));
         assertTrue(schema.path("required").toString().contains("title"));
-        assertTrue(schema.path("required").toString().contains("type"));
+        assertTrue(schema.path("required").toString().contains("serviceItemCode"));
         assertTrue(schema.path("required").toString().contains("scheduledDate"));
     }
 
@@ -165,7 +163,7 @@ class CreateInterventionToolTest {
 
         JsonNode payload = om.readTree(result.content());
         assertEquals(42L, payload.path("id").asLong());
-        assertEquals("Loft", payload.path("propertyName").asText());
+        assertEquals("service-request", payload.path("resourceType").asText());
         assertTrue(payload.path("message").asText().contains("42"));
 
         ArgumentCaptor<CreateInterventionRequest> captor = ArgumentCaptor.forClass(CreateInterventionRequest.class);
@@ -212,4 +210,19 @@ class CreateInterventionToolTest {
         assertTrue(ex.getMessage().contains("permission denied"));
         assertEquals("create_intervention", ex.getToolName());
     }
+    @Test void canonicalRemoteServiceDoesNotInventAPropertyOrAUser() {
+        var args=validArgs(); args.remove("propertyId"); args.remove("type");
+        args.put("serviceItemCode","accounting-lmnp");
+        when(userRepository.findByKeycloakId("user-1")).thenReturn(Optional.of(user(7L)));
+        when(interventionService.create(any(),eq(jwt))).thenReturn(response());
+        tool.execute(args,ctx);
+        var command=ArgumentCaptor.forClass(CreateInterventionRequest.class);
+        verify(interventionService).create(command.capture(),eq(jwt));
+        assertNull(command.getValue().propertyId());
+        assertEquals(7L,command.getValue().requestorId());
+        assertEquals("accounting-lmnp",command.getValue().serviceItemCode());
+        assertEquals("OTHER",command.getValue().type());
+        assertEquals("2026-07-15T09:00:00",command.getValue().scheduledDate());
+    }
+
 }

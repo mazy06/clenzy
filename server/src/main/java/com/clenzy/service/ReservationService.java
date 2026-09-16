@@ -43,6 +43,8 @@ public class ReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(ReservationService.class);
 
+    private final com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog;
+
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
@@ -85,7 +87,8 @@ public class ReservationService {
                               // @Lazy : evite un cycle potentiel via les services de paiement.
                               @Lazy StripeService stripeService,
                               WebhookEventPublisher webhookEventPublisher,
-                              CleaningPricingEngine cleaningPricingEngine, com.clenzy.service.InterventionAllocationGuard allocationGuard) {
+                              CleaningPricingEngine cleaningPricingEngine, com.clenzy.service.InterventionAllocationGuard allocationGuard, com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog) {
+        this.serviceCatalog=serviceCatalog;
         this.allocationGuard = allocationGuard;
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
@@ -859,6 +862,7 @@ public class ReservationService {
                 requestor,
                 property
         );
+        sr.setServiceItemCode(serviceCatalog.resolve(null, sr.getServiceType().name(), null, null));
         sr.setOrganizationId(orgId);
         sr.setStatus(RequestStatus.PENDING);
         sr.setPriority(Priority.NORMAL);

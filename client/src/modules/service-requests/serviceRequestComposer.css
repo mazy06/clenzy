@@ -1,0 +1,62 @@
+/* Baitly composer: keep the workspace and actions within the desktop viewport. */
+.request-composer p,
+.request-composer h3,
+.request-composer h4 {
+  margin-block: 0;
+}
+
+.request-composer [data-slot="field"] {
+  gap: 0.375rem;
+}
+
+@media (min-width: 1024px) and (min-height: 650px) {
+  .request-composer {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .composer-columns {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .composer-services,
+  .composer-sidebar,
+  .composer-planning {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .composer-catalog,
+  .composer-picker {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .composer-results {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overscroll-behavior: contain;
+  }
+
+  .composer-selection {
+    max-height: 42%;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .composer-budget {
+    flex: 1;
+    min-height: 48px;
+    overflow-y: auto;
+  }
+
+  .composer-actions {
+    flex-shrink: 0;
+  }
+}

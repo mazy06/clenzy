@@ -1,6 +1,7 @@
 import apiClient from '../apiClient';
 import { extractApiList } from '../../types';
 import type { PaginatedResponse } from '../apiClient';
+import type { ServiceRequest } from './serviceRequestsApi';
 import type { InterventionDetailsData } from '../../modules/interventions/interventionUtils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -15,10 +16,12 @@ export interface QuoteLine {
 }
 
 export interface Intervention {
+  currency?: string;
   id: number;
   title: string;
   description: string;
   type: string;
+  serviceItemCode?: string;
   status: string;
   priority: string;
   propertyId: number;
@@ -80,9 +83,10 @@ export interface InterventionFormData {
   title: string;
   description: string;
   type: string;
+  serviceItemCode?: string;
   status: string;
   priority: string;
-  propertyId: number;
+  propertyId?: number;
   requestorId: number;
   assignedToId?: number;
   assignedToType?: 'user' | 'team';
@@ -142,7 +146,7 @@ export const interventionsApi = {
   },
 
   create(data: InterventionFormData) {
-    return apiClient.post<Intervention>('/interventions', data);
+    return apiClient.post<ServiceRequest>('/interventions', data);
   },
 
   update(id: number, data: Partial<InterventionFormData>) {

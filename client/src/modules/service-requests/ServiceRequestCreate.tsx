@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
 import { Cancel, Save } from "../../icons";
-import ServiceRequestForm from './ServiceRequestForm';
+import ServiceRequestComposer from './ServiceRequestComposer';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,7 +29,7 @@ const ServiceRequestCreate: React.FC = () => {
 
   const handleClose = () => navigate('/service-requests');
   const handleSuccess = () => {
-    setTimeout(() => navigate('/service-requests'), 1200);
+    navigate('/service-requests?success=true');
   };
 
   if (!canCreate) return null;
@@ -38,8 +38,8 @@ const ServiceRequestCreate: React.FC = () => {
     <div className="flex flex-col h-full min-h-0">
       <div className="shrink-0">
         <PageHeader
-          title={t('serviceRequests.create')}
-          subtitle={t('serviceRequests.createSubtitle')}
+        title={t('requestComposer.heading')}
+        subtitle={t('requestComposer.intro')}
           backPath="/service-requests"
           showBackButton={true}
           actions={
@@ -69,11 +69,10 @@ const ServiceRequestCreate: React.FC = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto">
-        <ServiceRequestForm
+        <ServiceRequestComposer
           onClose={handleClose}
           onSuccess={handleSuccess}
           setLoading={setLoading}
-          loading={loading}
           submitRef={submitRef}
         />
       </div>

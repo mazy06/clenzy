@@ -11,6 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ServiceQuoteRepository extends JpaRepository<ServiceQuote, Long> {
+    List<ServiceQuote> findByServiceRequestIdAndOrganizationIdOrderByCreatedAtDesc(Long requestId,Long organizationId);
+    @Modifying(flushAutomatically=true)
+    @Query("UPDATE ServiceQuote q SET q.status=com.clenzy.model.ServiceQuote.Status.REJECTED WHERE q.serviceRequestId=:requestId AND q.organizationId=:orgId AND q.id<>:winner AND q.status=com.clenzy.model.ServiceQuote.Status.RECEIVED")
+    int rejectNeedSiblings(@Param("requestId") Long requestId,@Param("orgId") Long orgId,@Param("winner") Long winner);
     @Query(value = "SELECT EXISTS (SELECT 1 FROM service_quotes WHERE intervention_id = :id "
             + "AND organization_id = :orgId AND status = 'APPROVED')", nativeQuery = true)
     boolean hasApprovedAgreement(@Param("id") Long interventionId, @Param("orgId") Long organizationId);

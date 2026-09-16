@@ -21,8 +21,7 @@ import java.util.Optional;
  *
  * <h2>Le probleme</h2>
  * <p>Tout le moteur d'affectation ({@link PropertyTeamService}) raisonne en
- * équipes : l’occupation se teste par {@code team_id}, et le métier vient du
- * {@code interventionType} de l'equipe. Un intervenant independant, sans
+ * équipes : l’occupation se teste par {@code team_id}, et les prestations viennent des capacités explicites de l’équipe. Un intervenant independant, sans
  * equipe, est donc invisible de l'auto-assignation — un gestionnaire doit le
  * choisir a la main.</p>
  *
@@ -114,26 +113,30 @@ public class PersonalTeamService {
         return getOrCreate(requireUser(keycloakId).getId());
     }
 
+    /** Les rattachements d'organisation ne créent pas plusieurs profils de compétences. */
+    @Transactional(readOnly = true)
+    public Optional<Team> findCanonicalByKeycloakId(String keycloakId) {
+        return teamRepository.findCanonicalPersonalTeam(requireUser(keycloakId).getId());
+    }
+
+    @Transactional
+    public Team getOrCreateCanonicalByKeycloakId(String keycloakId) {
+        User user = requireUser(keycloakId);
+        var existing = teamRepository.findCanonicalPersonalTeam(user.getId());
+        if (existing.isPresent()) return existing.get();
+        getOrCreate(user.getId());
+        teamRepository.flush();
+        teamRepository.registerPersonalCapabilityOwner(user.getId());
+        return teamRepository.findCanonicalPersonalTeam(user.getId()).orElseThrow();
+    }
+
     private User requireUser(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur non trouve"));
     }
 
-    /**
-     * Metier de l'equipe, deduit du ROLE de l'intervenant : c'est lui qui dit ce
-     * qu'il sait faire, et {@code InterventionTypeMatcher} raisonne sur ces
-     * memes libelles.
-     */
-    private String interventionTypeFor(User user) {
-        UserRole role = user.getRole();
-        if (role == null) return "CLEANING";
-        return switch (role) {
-            case TECHNICIAN -> "MAINTENANCE";
-            case LAUNDRY -> "LAUNDRY";
-            case EXTERIOR_TECH -> "EXTERIOR";
-            default -> "CLEANING";
-        };
-    }
+    /** Projection historique uniquement ; les capacités sont déclarées séparément. */
+    private String interventionTypeFor(User user) { return "OTHER"; }
 
     /** Nom lisible dans les ecrans de replanification, ou l'equipe apparait. */
     private String displayName(User user) {

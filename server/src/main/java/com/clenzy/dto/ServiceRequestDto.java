@@ -12,6 +12,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class ServiceRequestDto {
+    public String assignmentPhase;
+    public java.time.Instant assignmentExpiresAt;
+    public Long convertedInterventionId;
     public Long id;
 
     @NotBlank(groups = Create.class)
@@ -22,6 +25,11 @@ public class ServiceRequestDto {
 
     @NotNull(groups = Create.class)
     public ServiceType serviceType;
+
+    @Size(max = 60)
+    public String serviceItemCode;
+    public Long marketplaceRequestId;
+    public Long interventionId;
 
     public Priority priority;
     public RequestStatus status;
@@ -51,7 +59,6 @@ public class ServiceRequestDto {
     @NotNull(groups = Create.class)
     public Long userId;
 
-    @NotNull(groups = Create.class)
     public Long propertyId;
 
     public Long reservationId;
@@ -75,5 +82,3 @@ public class ServiceRequestDto {
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 }
-
-

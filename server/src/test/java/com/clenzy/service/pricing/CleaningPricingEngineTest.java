@@ -37,7 +37,7 @@ class CleaningPricingEngineTest {
     @Mock private ProviderTariffRepository housekeeperRateRepository;
 
     private CleaningPricingEngine engine() {
-        return new CleaningPricingEngine(pricingConfigService, new ObjectMapper(), housekeeperRateRepository);
+        return new CleaningPricingEngine(pricingConfigService, new ObjectMapper(), housekeeperRateRepository, new com.clenzy.service.pricing.ProviderTariffService(housekeeperRateRepository, com.clenzy.service.CatalogTestFixture.reference()));
     }
 
     private void withDefaults() {

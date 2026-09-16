@@ -68,15 +68,15 @@ class InterventionControllerTest {
         void whenCreate_thenReturns201() {
             CreateInterventionRequest request = new CreateInterventionRequest(
                     "Test title", null, "CLEANING", "HIGH", 1L, 1L, "2026-03-01T10:00:00", null, null, null);
-            InterventionResponse created = buildResponse(1L);
+            var created = new com.clenzy.dto.ServiceRequestDto(); created.id = 1L;
 
             Jwt jwt = createJwt();
             when(interventionService.create(any(CreateInterventionRequest.class), eq(jwt))).thenReturn(created);
 
-            ResponseEntity<InterventionResponse> response = controller.create(request, jwt);
+            ResponseEntity<com.clenzy.dto.ServiceRequestDto> response = controller.create(request, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(201);
-            assertThat(response.getBody().id()).isEqualTo(1L);
+            assertThat(response.getBody().id).isEqualTo(1L);
         }
     }
 

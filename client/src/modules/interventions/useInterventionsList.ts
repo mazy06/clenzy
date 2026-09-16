@@ -20,6 +20,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Intervention {
+  serviceItemCode?: string;
   id: number;
   title: string;
   description: string;
@@ -33,6 +34,8 @@ export interface Intervention {
   propertyLatitude?: number;
   propertyLongitude?: number;
   requestorName: string;
+  assignedToId?: number;
+  assignedToAvatarUrl?: string | null;
   assignedToName: string;
   assignedToType: 'user' | 'team';
   scheduledDate: string;
@@ -63,13 +66,6 @@ const assignDataKeys = {
 // ─── Pagination serveur ───────────────────────────────────────────────────────
 
 /**
- * Plafond de la vue carte : la carte a besoin de "toutes" les interventions
- * géocodées correspondant aux filtres, mais on borne côté serveur pour ne
- * jamais rapatrier des milliers de lignes (P1-6 audit perf 2026-07-21).
- */
-export const MAP_VIEW_PAGE_SIZE = 300;
-
-/**
  * Mappe les filtres UI ('all' = pas de filtre) vers les params serveur.
  * Exportée pour les tests. La recherche texte (searchTerm) reste volontairement
  * côté client sur la page courante : title/description ne sont pas indexées et
@@ -95,7 +91,7 @@ export function buildInterventionListParams(input: {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useInterventionsList() {
+export function useInterventionsList(enabled = true) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -163,7 +159,7 @@ export function useInterventionsList() {
   const interventionsQuery = useQuery({
     queryKey: interventionsKeys.list(listParams),
     queryFn: () => interventionsApi.getPage(listParams),
-    enabled: canViewInterventions && location.pathname === '/interventions',
+    enabled: enabled && canViewInterventions && location.pathname === '/interventions',
     staleTime: 30_000,
     // Conserve la page précédente pendant le fetch de la suivante (pas de flash vide).
     placeholderData: keepPreviousData,

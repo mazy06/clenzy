@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface PropertyTeamRepository extends JpaRepository<PropertyTeam, Long> {
 
-    @Query("SELECT pt FROM PropertyTeam pt LEFT JOIN FETCH pt.team WHERE pt.propertyId = :propertyId AND pt.organizationId = :orgId ORDER BY pt.assignedAt DESC, pt.id DESC")
+    @Query("SELECT pt FROM PropertyTeam pt LEFT JOIN FETCH pt.team WHERE pt.propertyId = :propertyId AND pt.organizationId = :orgId ORDER BY pt.priority ASC, pt.id ASC")
     List<PropertyTeam> findAllByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
     /** Compatibilité de la fiche historique : dernière liaison, sans limiter les candidats métier. */

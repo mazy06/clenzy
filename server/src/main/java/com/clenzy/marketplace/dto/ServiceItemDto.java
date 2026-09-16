@@ -25,13 +25,16 @@ public record ServiceItemDto(
     ServicePayer payer,
     boolean guestSellable,
     boolean regulated,
-    int sortOrder
+    int sortOrder,
+    String executionMode,
+    boolean propertyRequired,
+    boolean slotRequired
 ) {
     public static ServiceItemDto from(MarketplaceServiceItem item) {
         return new ServiceItemDto(
             item.getId(), item.getCode(), item.getCategory().getCode(),
             item.getLabelFr(), item.getLabelEn(), item.getDescription(),
             item.getDefaultPricingModel(), item.getRecurrence(), item.getPayer(),
-            item.isGuestSellable(), item.isRegulated(), item.getSortOrder());
+            item.isGuestSellable(), item.isRegulated(), item.getSortOrder(), item.getExecutionMode(), item.isPropertyRequired(), item.isSlotRequired());
     }
 }

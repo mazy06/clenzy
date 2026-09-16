@@ -1,3 +1,4 @@
+import ServiceItemSelect from '../../components/ServiceItemSelect';
 import React, { useMemo, useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
@@ -18,9 +19,8 @@ import {
   Sanitizer,
 } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
-import { INTERVENTION_TYPE_OPTIONS, InterventionTypeOption } from '../../types/interventionTypes';
+import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCustomServiceTypes } from '../../hooks/useCustomServiceTypes';
 import type { ServiceRequestFormValues } from '../../schemas';
 
 /** Catégories principales */
@@ -161,27 +161,9 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
     const { t } = useTranslation();
 
     // ─── Type de service personnalisé (« Autre » dans une catégorie) ───
-    // customCategory != null → l'utilisateur a cliqué « Autre » dans Nettoyage ou
-    // Maintenance : serviceType = OTHER, mais on garde la catégorie AFFICHÉE (chip
-    // + rangée de sous-types) pour l'orientation. Le libellé saisi devient le titre.
-    const [customCategory, setCustomCategory] = useState<ServiceCategory | null>(null);
-    const [customLabel, setCustomLabel] = useState('');
-    const [isAddingCustom, setIsAddingCustom] = useState(false);
-    const [newCustomText, setNewCustomText] = useState('');
-
-    // Catégorie RÉELLE (déduite du serviceType) → pilote le CONTENU (consignes vs
-    // tâches, prestations). OTHER → 'other' → blocs génériques.
     const contentCategory = getCategoryForType(watchedServiceType);
     const isCleaning = contentCategory === 'cleaning';
-    // Catégorie AFFICHÉE (chips + sous-types) : conserve Nettoyage/Maintenance même
-    // en « Autre » personnalisé.
-    const activeCategory = customCategory ?? contentCategory;
-    const isCustom = watchedServiceType === 'OTHER';
-
-    // Types personnalisés réutilisables (« Autre ») pour la catégorie affichée.
-    const customTypeCategory =
-      activeCategory === 'cleaning' || activeCategory === 'maintenance' ? activeCategory : null;
-    const { types: customTypes, createType } = useCustomServiceTypes(customTypeCategory);
+    const activeCategory = contentCategory;
 
     // ─── Prestations à la carte (toggles) ───
     const [activePrestations, setActivePrestations] = useState<Set<string>>(new Set());
@@ -224,93 +206,12 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
     const includedPrestationsSet = useMemo(() => new Set(includedPrestations || []), [includedPrestations]);
     const extraPrestationsSet = useMemo(() => new Set(extraPrestations || []), [extraPrestations]);
 
-    // Un type concret (non OTHER) — y compris après reset du formulaire — sort du
-    // mode « Autre » personnalisé.
-    React.useEffect(() => {
-      if (watchedServiceType !== 'OTHER') setCustomCategory(null);
-    }, [watchedServiceType]);
-
-    // Sous-types filtrés pour la catégorie active
-    const subTypes = useMemo(() => {
-      const cat = CATEGORIES.find(c => c.key === activeCategory);
-      if (!cat) return [];
-      return INTERVENTION_TYPE_OPTIONS.filter(o => cat.mappedCategories.includes(o.category));
-    }, [activeCategory]);
-
-    // Gestion du clic sur catégorie : sélectionner le premier sous-type
-    const handleCategoryClick = (cat: CategoryDef) => {
-      setCustomCategory(null);
-      setIsAddingCustom(false);
-      const firstOption = INTERVENTION_TYPE_OPTIONS.find(o => cat.mappedCategories.includes(o.category));
-      if (firstOption) {
-        setValue('serviceType', firstOption.value, { shouldValidate: true });
-      }
-    };
-
-    // Gestion du clic sur sous-type
-    const handleSubTypeClick = (option: InterventionTypeOption) => {
-      setCustomCategory(null);
-      setIsAddingCustom(false);
-      setValue('serviceType', option.value, { shouldValidate: true });
-    };
-
-    // Sélection d'un type personnalisé (existant ou fraîchement créé) :
-    // serviceType = OTHER, catégorie affichée conservée, libellé = titre BRUT.
-    // Le préfixe de catégorie (« Maintenance … ») est ajouté au RENDU (i18n),
-    // jamais figé dans la donnée — évite le français en dur et le double préfixe.
-    const selectCustomType = (cat: ServiceCategory, label: string) => {
-      setCustomCategory(cat);
-      setCustomLabel(label);
-      setIsAddingCustom(false);
-      setValue('serviceType', 'OTHER', { shouldValidate: true });
-      setValue('title', label);
-    };
-
-    const openAddCustom = () => {
-      setIsAddingCustom(true);
-      setNewCustomText('');
-    };
-
-    const cancelAddCustom = () => {
-      setIsAddingCustom(false);
-      setNewCustomText('');
-    };
-
-    // Confirme la saisie du chip : enregistre le type en base (réutilisable) puis
-    // le sélectionne. En cas d'échec réseau, on garde le champ ouvert.
-    const confirmAddCustom = async () => {
-      const label = newCustomText.trim();
-      if (!label) { cancelAddCustom(); return; }
-      const cat: ServiceCategory =
-        activeCategory === 'cleaning' || activeCategory === 'maintenance' ? activeCategory : 'maintenance';
-      try {
-        const created = await createType(label);
-        selectCustomType(cat, created ? created.label : label);
-      } catch {
-        // Laisse le champ ouvert pour un nouvel essai.
-      }
-    };
-
     // En maintenance, les sous-types sont remplacés par le CATALOGUE chiffré
     // (config travaux). Un clic sur une prestation ajoute une ligne de devis.
     const useWorkCatalogue = activeCategory === 'maintenance' && (workPrestations?.length ?? 0) > 0;
 
+    // Une ligne de chiffrage ne modifie pas la prestation canonique du besoin.
     const handleWorkPrestationClick = (wp: WorkPrestation) => {
-      setIsAddingCustom(false);
-      // À la SÉLECTION (pas à la désélection), on fixe le type primaire de la demande.
-      const isSelected = (selectedWorkTypes ?? []).includes(wp.interventionType);
-      if (!isSelected) {
-        const known = INTERVENTION_TYPE_OPTIONS.some(o => o.value === wp.interventionType);
-        if (known) {
-          setCustomCategory(null);
-          setValue('serviceType', wp.interventionType, { shouldValidate: true });
-        } else {
-          setCustomCategory('maintenance');
-          setCustomLabel(wp.label);
-          setValue('serviceType', 'OTHER', { shouldValidate: true });
-          setValue('title', wp.label);
-        }
-      }
       onToggleWorkPrestation?.(wp.label, wp.basePrice, wp.interventionType);
     };
 
@@ -386,160 +287,12 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
           </div>
         )}
 
-        {/* Type de service — Catégories principales */}
-        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-          {t('serviceRequests.fields.serviceType')} *
-        </p>
-
-        <Controller
-          name="serviceType"
-          control={control}
-          render={({ fieldState }) => (
-            <div>
-              {/* 3 catégories — chips sélecteurs : actif = texte couleur + fond -soft */}
-              <div className="flex gap-1.5 mb-2 flex-wrap">
-                {CATEGORIES.map((cat) => {
-                  const isActive = activeCategory === cat.key;
-                  return (
-                    <StatusChip
-                      key={cat.key}
-                      outlined
-                      selected={isActive}
-                      pressed={isActive}
-                      tokens={{ color: cat.fg, bg: cat.bg }}
-                      icon={cat.icon}
-                      label={cat.label}
-                      onClick={disabled ? undefined : () => handleCategoryClick(cat)}
-                      disabled={disabled}
-                      className={cn('h-[30px] text-[11.5px] font-semibold', disabled && 'opacity-45')}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Catalogue maintenance chiffré, regroupé par domaine */}
-              {useWorkCatalogue && (
-                <div className="flex flex-col gap-2">
-                  {workDomainGroups.map(([domain, items]) => (
-                    <div key={domain}>
-                      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                        {domain}
-                      </p>
-                      <div className="flex gap-1 flex-wrap">
-                        {items.map((wp) => renderWorkChip(wp))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Sous-types (sélecteur, non-maintenance) + types personnalisés */}
-              <div className="flex gap-1 flex-wrap">
-                {!useWorkCatalogue && subTypes.map((option) => {
-                  const isSelected = watchedServiceType === option.value;
-                  const activeCat = CATEGORIES.find(c => c.key === activeCategory);
-                  const catFg = activeCat?.fg || FALLBACK_FG;
-                  const catBg = activeCat?.bg || FALLBACK_BG;
-                  const IconComponent = option.icon;
-
-                  return (
-                    <StatusChip
-                      key={option.value}
-                      outlined
-                      selected={isSelected}
-                      pressed={isSelected}
-                      tokens={{ color: catFg, bg: catBg }}
-                      icon={<IconComponent size={14} strokeWidth={1.75} />}
-                      label={option.label}
-                      onClick={disabled ? undefined : () => handleSubTypeClick(option)}
-                      disabled={disabled}
-                      className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
-                    />
-                  );
-                })}
-                {/* Types personnalisés enregistrés + saisie d'un nouveau (Nettoyage & Maintenance) */}
-                {(activeCategory === 'cleaning' || activeCategory === 'maintenance') && (() => {
-                  const activeCat = CATEGORIES.find(c => c.key === activeCategory);
-                  const catFg = activeCat?.fg || FALLBACK_FG;
-                  const catBg = activeCat?.bg || FALLBACK_BG;
-                  return (
-                    <>
-                      {/* Chips des types déjà enregistrés (réutilisables) */}
-                      {customTypes.map((ct) => {
-                        const selected = isCustom && customLabel === ct.label;
-                        return (
-                          <StatusChip
-                            key={ct.id}
-                            outlined
-                            selected={selected}
-                            pressed={selected}
-                            tokens={{ color: catFg, bg: catBg }}
-                            icon={<MoreHoriz size={14} strokeWidth={1.75} />}
-                            label={ct.label}
-                            onClick={disabled ? undefined : () => selectCustomType(activeCategory, ct.label)}
-                            disabled={disabled}
-                            className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
-                          />
-                        );
-                      })}
-                      {/* « Autre » : la saisie se fait DANS le chip, validée par Entrée */}
-                      {isAddingCustom ? (
-                        <div className="inline-flex items-center gap-[1.5px] h-[30px] ps-1.5 pe-[1.5px] rounded-[15px]" style={{ border: `1px solid ${catFg}`, backgroundColor: catBg }}>
-                          <span className="inline-flex shrink-0" style={{ color: catFg }}><MoreHoriz size={14} strokeWidth={1.75} /></span>
-                          {/* Champ nu (ancien InputBase) : il vit DANS la puce,
-                              le gabarit du primitif Input casserait la pilule. */}
-                          <input
-                            autoFocus
-                            value={newCustomText}
-                            onChange={(e) => setNewCustomText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') { e.preventDefault(); confirmAddCustom(); }
-                              else if (e.key === 'Escape') { cancelAddCustom(); }
-                            }}
-                            onBlur={() => { if (!newCustomText.trim()) cancelAddCustom(); }}
-                            placeholder="Nouveau type…"
-                            className="w-[150px] p-0 border-none bg-transparent outline-none text-[11.5px] placeholder:text-faint placeholder:opacity-100"
-                            style={{ color: catFg }}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={confirmAddCustom}
-                            aria-label="Enregistrer le type de service"
-                            className="size-[22px] hover:bg-transparent"
-                            style={{ color: catFg }}
-                          >
-                            <EnterKey size={14} strokeWidth={1.75} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <StatusChip
-                          outlined
-                          tokens={{ color: catFg, bg: catBg }}
-                          icon={<Add size={14} strokeWidth={1.75} />}
-                          label="Autre"
-                          onClick={disabled ? undefined : openAddCustom}
-                          disabled={disabled}
-                          // Tiret : cette puce n'est pas un choix parmi d'autres,
-                          // elle en OUVRE un nouveau.
-                          className={cn(SELECT_CHIP_CLASS, 'border-dashed', disabled && 'opacity-45')}
-                        />
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-
-              {/* Erreur de validation */}
-              {fieldState.error && (
-                <FieldError className="mt-[3px]">
-                  {fieldState.error.message}
-                </FieldError>
-              )}
-            </div>
-          )}
-        />
+        <Controller name="serviceItemCode" control={control}
+          render={({ field }) => <ServiceItemSelect value={field.value} disabled={disabled}
+            onChange={item => {
+              field.onChange(item.code);
+              setValue('serviceType', item.legacyType, { shouldDirty: true });
+            }} />} />
 
         {/* ─── Prestations à la carte (ménage uniquement) ─── */}
         {isCleaning && availablePrestations.length > 0 && (

@@ -45,13 +45,14 @@ class MarketplaceQuoteWithdrawalTest {
         var clock = Clock.fixed(Instant.parse("2026-09-15T12:00:00Z"), ZoneOffset.UTC);
         var exposure = mock(MarketplaceExposureService.class);
         var missions = new MarketplaceQuoteMissionFactory(mock(InterventionRepository.class), properties,
-            providers, users, requests, clock, mock(InterventionAllocationGuard.class), exposure, mock(MarketplaceGeographicEligibility.class));
+            providers, users, requests, clock, mock(InterventionAllocationGuard.class), exposure, mock(MarketplaceGeographicEligibility.class), com.clenzy.service.CatalogTestFixture.reference(),org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class), mock(com.clenzy.service.assignment.AcceptedServiceRequestConverter.class));
         service = new MarketplaceQuoteService(requests, providers, exposure, properties, clock,
             mock(TeamRepository.class), mock(ServiceQuoteService.class), missions, mock(MarketplaceGeographicEligibility.class));
         request = new MarketplaceQuoteRequest();
         request.setId(9L); request.setRequesterOrganizationId(7L); request.setRequestedByUserId(22L);
         request.setStatus(QuoteRequestStatus.SENT);
         when(requests.findForDiscussion(9L)).thenReturn(Optional.of(request));
+        lenient().when(requests.findById(9L)).thenReturn(Optional.of(request));
     }
 
     @Test void anotherOwnerInTheSameOrganizationCannotWithdraw() {
@@ -124,7 +125,7 @@ class MarketplaceQuoteWithdrawalTest {
         // La transition SQL refuse tout état autre que SENT.
         assertThatThrownBy(() -> service.withdraw(9L, 7L, null, jwt("staff", "SUPER_ADMIN")))
             .isInstanceOf(MarketplaceQuoteService.QuoteAlreadySettledException.class);
-        verify(requests, never()).findById(any());
+        verify(requests, never()).attachIntervention(any(), any(), any());
     }
 
     private void propertyOwnedBy(String subject) {

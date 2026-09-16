@@ -1,197 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
-import { Button, Skeleton } from '../../components/ui';
-import {
-  Edit,
-  Assignment,
-  Login,
-  Logout,
-} from '../../icons';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ClipboardList, Pencil, TriangleAlert } from 'lucide-react';
+import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useServiceRequestDetails } from '../../hooks/useServiceRequestDetails';
-import type { ServiceRequestDetailsData } from '../../hooks/useServiceRequestDetails';
-import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { formatDateTime } from '../../utils/formatUtils';
-import { getServiceRequestStatusLabel } from '../../utils/statusUtils';
-import WorkOrderDetailLayout, { type WorkOrderViewModel, type WorkOrderTimeRow } from '../work-orders/WorkOrderDetailLayout';
+import { MANAGER_ROLES } from '../../constants/roles';
+import PageHeader from '../../components/PageHeader';
+import StuckServiceDialog from '../../components/baitly/StuckServiceDialog';
+import AssignmentHistory from './AssignmentHistory';
+import ServiceRequestDetailContent from './ServiceRequestDetailContent';
 
-// ─── Re-export type for backward compatibility ──────────────────────────────
+export type { ServiceRequestDetailsData } from '../../hooks/useServiceRequestDetails';
 
-export type { ServiceRequestDetailsData };
-
-// ─── Main component ──────────────────────────────────────────────────────────
-
-const ServiceRequestDetails: React.FC = () => {
+export default function ServiceRequestDetails() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { hasPermissionAsync } = useAuth();
+  const { hasPermissionAsync, hasAnyRole } = useAuth();
   const { t } = useTranslation();
-
-  const { serviceRequest, isLoading, isError, error } = useServiceRequestDetails(id);
-
+  const { serviceRequest: sr, isLoading, isError, error } = useServiceRequestDetails(id);
   const [canEdit, setCanEdit] = useState(false);
-
+  const [rescheduling, setRescheduling] = useState(false);
+  const manager = hasAnyRole([...MANAGER_ROLES]);
   useEffect(() => {
-    const checkPermissions = async () => {
-      const canEditPermission = await hasPermissionAsync('service-requests:edit');
-      setCanEdit(canEditPermission);
-    };
-    checkPermissions();
+    let active = true;
+    void hasPermissionAsync('service-requests:edit').then(value => { if (active) setCanEdit(value); }).catch(() => { if (active) setCanEdit(false); });
+    return () => { active = false; };
   }, [hasPermissionAsync]);
 
-  if (isLoading) {
-    return (
-      <div className="p-3 flex flex-col gap-2">
-        <Skeleton className="h-[64px] rounded-[14px]" />
-        <div className="flex gap-1.5">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-[72px] flex-1 rounded-[14px]" />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-[260px] flex-[7] rounded-[14px]" />
-          <Skeleton className="h-[260px] flex-[5] rounded-[14px]" />
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="space-y-5 p-4" aria-label={t('requestCommercial.loading')}>
+    <Skeleton className="h-16 w-full" /><Skeleton className="h-40 w-full" />
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3"><Skeleton className="h-80 lg:col-span-2" /><Skeleton className="h-80" /></div>
+  </div>;
+  if (isError || !sr) return <Alert variant={isError ? 'destructive' : 'warning'} className="m-4"><TriangleAlert />
+    <AlertDescription>{error || t(isError ? 'serviceRequests.loadError' : 'serviceRequests.notFound')}</AlertDescription>
+  </Alert>;
 
-  if (isError) {
-    return (
-      <div className="p-3">
-        <Alert variant="destructive" className="py-1 text-[0.8125rem]">
-          <TriangleAlert />
-          <AlertDescription>{error || t('serviceRequests.loadError')}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!serviceRequest) {
-    return (
-      <div className="p-3">
-        <Alert variant="warning" className="py-1 text-[0.8125rem]">
-          <TriangleAlert />
-          <AlertDescription>{t('serviceRequests.notFound')}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // ─── Map ServiceRequest → shared view-model ──────────────────────────────
-  const sr = serviceRequest;
-
-  const extraTimeRows: WorkOrderTimeRow[] = [];
-  if (sr.guestCheckoutTime) {
-    extraTimeRows.push({
-      icon: <Logout size={16} strokeWidth={1.75} />,
-      label: t('serviceRequests.details.guestCheckout'),
-      value: formatDateTime(sr.guestCheckoutTime),
-    });
-  }
-  if (sr.guestCheckinTime) {
-    extraTimeRows.push({
-      icon: <Login size={16} strokeWidth={1.75} />,
-      label: t('serviceRequests.details.guestCheckin'),
-      value: formatDateTime(sr.guestCheckinTime),
-    });
-  }
-
-  const vm: WorkOrderViewModel = {
-    type: sr.type,
-    status: sr.status,
-    statusLabel: getServiceRequestStatusLabel(sr.status, t),
-    description: sr.description || undefined,
-    importSource: sr.importSource,
-    estimatedDurationHours: sr.estimatedDuration,
-    dueDate: sr.dueDate,
-    estimatedCost: sr.estimatedCost,
-    recommendedCost: sr.recommendedCost,
-    actualCost: sr.actualCost,
-    createdAt: sr.createdAt,
-    property: {
-      id: sr.propertyId,
-      name: sr.propertyName,
-      address: sr.propertyAddress,
-      city: sr.propertyCity,
-      postalCode: sr.propertyPostalCode,
-      country: sr.propertyCountry,
-      type: sr.propertyType,
-      squareMeters: sr.propertySquareMeters,
-      bedroomCount: sr.propertyBedroomCount,
-      bathroomCount: sr.propertyBathroomCount,
-      maxGuests: sr.propertyMaxGuests,
-      numberOfFloors: sr.propertyNumberOfFloors,
-      hasExterior: sr.propertyHasExterior,
-      hasLaundry: sr.propertyHasLaundry,
-      cleaningDurationMinutes: sr.propertyCleaningDurationMinutes,
-      description: sr.propertyDescription,
-      cleaningNotes: sr.propertyCleaningNotes,
-    },
-    requestor: {
-      name: sr.requestorName,
-      email: sr.requestorEmail,
-      roleLabel: sr.requestorRole,
-    },
-    assignee: {
-      name: sr.assignedToName,
-      email: sr.assignedToEmail,
-      type: sr.assignedToType,
-      typeLabel: sr.assignedToType === 'team' ? t('serviceRequests.team') : undefined,
-    },
-    extraTimeRows,
-    specialInstructions: sr.specialInstructions,
-    accessNotes: sr.accessNotes,
-  };
-
-  // ─── Render ─────────────────────────────────────────────────────────────────
-
-  return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0">
-        <PageHeader
-          title={sr.title}
-          subtitle={`${t('serviceRequests.detail.contextLabel', 'Demande de service')} · ${sr.propertyName}`}
-          iconBadge={<Assignment />}
-          backPath="/service-requests"
-          actions={
-            canEdit ? (
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/service-requests/${id}/edit`)}
-                size="sm"
-                title={t('serviceRequests.modify')}
-              >
-                <Edit size={18} strokeWidth={1.75} />
-                {t('serviceRequests.modify')}
-              </Button>
-            ) : undefined
-          }
-        />
-      </div>
-
-      {/* ─── Content ─────────────────────────────────────────────────────── */}
-      <WorkOrderDetailLayout
-        vm={vm}
-        propertyAction={
-          // Taille xs (h24) et non sm : le `sx` d'origine bridait deja le
-          // bouton a 24 px de haut — c'est le gabarit que le kit nomme xs.
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => navigate(`/properties/${sr.propertyId}`)}
-            className="text-[0.6875rem]"
-          >
-            {t('serviceRequests.details.viewProperty')}
-          </Button>
-        }
-      />
+  const canReschedule = canEdit && !sr.interventionId && !sr.marketplaceRequestId && ['PENDING', 'ASSIGNED'].includes(sr.status);
+  return <div className="flex h-full min-h-0 flex-col">
+    <div className="shrink-0"><PageHeader title={sr.title}
+      subtitle={t('serviceRequests.detail.contextLabel', 'Demande de service')} iconBadge={<ClipboardList />}
+      backPath="/service-requests" actions={canEdit && !sr.interventionId && !sr.marketplaceRequestId ? <>
+        {canReschedule && <Button variant="outline" size="sm" onClick={() => setRescheduling(true)}>{t('dashboard.stuckService.reschedule', 'Replanifier')}</Button>}
+        <Button variant="outline" size="sm" asChild><Link to={`/service-requests/${id}/edit`}><Pencil className="size-4" aria-hidden />{t('serviceRequests.modify')}</Link></Button>
+      </> : undefined} /></div>
+    <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-3 sm:px-4">
+      {sr.marketplaceRequestId && <Alert className="mb-4"><AlertDescription>
+        {t('serviceReference.commercialNeed', { id: sr.marketplaceRequestId })}
+        <Button variant="link" asChild><Link to="/devis">{t('marketplaceQuotes.sent')}</Link></Button>
+      </AlertDescription></Alert>}
+      <ServiceRequestDetailContent request={sr} manager={manager} history={manager ?
+        <AssignmentHistory requestId={Number(id)} allowResume={canReschedule} /> : undefined} />
     </div>
-  );
-};
-
-export default ServiceRequestDetails;
+    <StuckServiceDialog schedulingOnly serviceRequestId={rescheduling ? Number(id) : null}
+      onClose={() => setRescheduling(false)} service={{ title: sr.title, propertyId: sr.propertyId, propertyName: sr.propertyName }}
+      invalidateKeys={[["service-request-details"], ["service-requests-list"]]} />
+  </div>;
+}

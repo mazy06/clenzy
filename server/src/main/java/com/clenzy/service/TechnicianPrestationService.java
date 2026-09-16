@@ -73,7 +73,7 @@ public class TechnicianPrestationService {
         Long userId = resolveUserId(keycloakId);
         return repository.findByUserIdOrderByServiceKeyAsc(userId).stream()
                 .filter(e -> e.getPricingModel() == PricingModel.FLAT || e.getPricingModel() == PricingModel.ON_QUOTE)
-                .map(TechnicianPrestationService::toConfig)
+                .map(this::toConfig)
                 .toList();
     }
 
@@ -109,7 +109,7 @@ public class TechnicianPrestationService {
             }
         }
         for (ServicePriceConfig item : byType.values()) {
-            String key = ProviderTariffService.keyForType(item.getInterventionType());
+            String key = tariffs.keyForType(item.getInterventionType());
             String currency = item.getCurrency() != null ? item.getCurrency() : repository.findByUserIdAndServiceKey(userId, key)
                     .map(ProviderTariff::getCurrency).orElse("EUR");
             tariffs.set(userId, key, PricingModel.FLAT,
@@ -127,7 +127,7 @@ public class TechnicianPrestationService {
             return List.of();
         }
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return repository.findOfferingInOrganization(orgId, interventionTypes.stream().map(ProviderTariffService::keyForType).toList());
+        return repository.findOfferingInOrganization(orgId, interventionTypes.stream().map(tariffs::keyForType).toList());
     }
 
     /** Prestations (actives) d'un technicien donné — pour appliquer ses tarifs (P3). */
@@ -139,11 +139,11 @@ public class TechnicianPrestationService {
         return repository.findByUserIdOrderByServiceKeyAsc(userId).stream()
                 .filter(ProviderTariff::isEnabled)
                 .filter(e -> e.getPricingModel() == PricingModel.FLAT || e.getPricingModel() == PricingModel.ON_QUOTE)
-                .map(TechnicianPrestationService::toConfig)
+                .map(this::toConfig)
                 .toList();
     }
 
-    private static ServicePriceConfig toConfig(ProviderTariff tariff) {
+    private ServicePriceConfig toConfig(ProviderTariff tariff) {
         var dto = new ServicePriceConfig(typeForKey(tariff.getServiceKey()),
                 tariff.getAmount() == null ? null : tariff.getAmount().doubleValue(), tariff.isEnabled());
         dto.setCurrency(tariff.getCurrency());
@@ -151,12 +151,7 @@ public class TechnicianPrestationService {
         return dto;
     }
 
-    private static String typeForKey(String key) {
-        if (key.startsWith("type:")) return key.substring(5);
-        for (InterventionType type : InterventionType.values())
-            if (ProviderTariffService.keyForType(type.name()).equals(key)) return type.name();
-        return "catalog:" + key;
-    }
+    private String typeForKey(String key) { return tariffs.legacyTypeForKey(key); }
 
     private Long resolveUserId(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)

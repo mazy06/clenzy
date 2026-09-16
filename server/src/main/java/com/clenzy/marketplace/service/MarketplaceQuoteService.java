@@ -95,6 +95,14 @@ public class MarketplaceQuoteService {
                                            String title, String message, Long propertyId,
                                            String categoryCode, String serviceItemCode,
                                            LocalDate desiredDate) {
+        return requestForNeed(providerId,organizationId,userId,title,message,propertyId,categoryCode,serviceItemCode,desiredDate,null);
+    }
+
+    @Transactional
+    public MarketplaceQuoteRequest requestForNeed(Long providerId, Long organizationId, Long userId,
+                                           String title, String message, Long propertyId,
+                                           String categoryCode, String serviceItemCode,
+                                           LocalDate desiredDate, Long serviceRequestId) {
         if (organizationId == null) {
             throw new AccessDeniedException("Organisation non résolue");
         }
@@ -116,7 +124,7 @@ public class MarketplaceQuoteService {
         }
         if (organizationId.equals(provider.getHomeOrganizationId())) {
             throw new IllegalArgumentException(
-                "Ce prestataire est le vôtre : créez directement une intervention.");
+                "Ce prestataire est le vôtre : proposez-lui une demande de service.");
         }
 
         // Le logement doit appartenir a l'organisation qui demande. Sans ce
@@ -127,10 +135,11 @@ public class MarketplaceQuoteService {
             && propertyRepository.findByIdWithOwner(propertyId, organizationId).isEmpty()) {
             throw new IllegalArgumentException("Logement introuvable");
         }
-        geography.requireCoverage(providerId, propertyId, organizationId);
+        geography.requireServiceCoverage(providerId, propertyId, organizationId, cleanedItem);
         String requestedCategory = MarketplaceOfferEligibility.requireOfferedService(provider, cleanedCategory, cleanedItem);
 
         var request = new MarketplaceQuoteRequest();
+        request.setServiceRequestId(serviceRequestId);
         request.setProviderId(providerId);
         if (provider.getUserId() != null) {
             var memberships = teams.findRealTeamsForMember(provider.getUserId());
@@ -150,6 +159,7 @@ public class MarketplaceQuoteService {
         request.setUpdatedAt(now);
 
         var saved = quoteRepository.save(request);
+        missions.prepareNeed(saved);
         log.info("Demande de devis {} : organisation {} vers fiche {}",
             saved.getId(), organizationId, providerId);
         return saved;
@@ -203,6 +213,7 @@ public class MarketplaceQuoteService {
         if (updated == 0) {
             throw new QuoteAlreadySettledException();
         }
+        missions.closePreparedNeed(quoteId);
         return quoteRepository.findById(quoteId).orElseThrow();
     }
 
@@ -251,7 +262,6 @@ public class MarketplaceQuoteService {
                 .orElseThrow(() -> new IllegalArgumentException("Prestataire introuvable"));
             MarketplaceOfferEligibility.requireOfferedService(provider, request.getCategoryCode(), request.getServiceItemCode());
         }
-        geography.requireCoverage(request.getProviderId(), request.getPropertyId(), request.getRequesterOrganizationId());
         geography.requireService(request.getProviderId(), request.getPropertyId(), request.getRequesterOrganizationId(), request.getCategoryCode(), request.getServiceItemCode(), request.getDesiredDate());
         Long effectiveTeamId = teamId != null ? teamId : request.getProviderTeamId();
         if (effectiveTeamId != null && teamOptions(quoteId, providerId).stream()
@@ -291,6 +301,7 @@ public class MarketplaceQuoteService {
         if (updated == 0) {
             throw new QuoteAlreadySettledException();
         }
+        missions.closePreparedNeed(quoteId);
         return quoteRepository.findById(quoteId).orElseThrow();
     }
 

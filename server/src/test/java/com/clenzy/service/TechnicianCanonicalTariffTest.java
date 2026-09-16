@@ -18,7 +18,7 @@ class TechnicianCanonicalTariffTest {
     final UserRepository users = mock(UserRepository.class);
     final TenantContext tenant = mock(TenantContext.class);
     final TechnicianPrestationService service = new TechnicianPrestationService(prices,users,tenant,
-            mock(PricingConfigService.class),new ProviderTariffService(prices));
+            mock(PricingConfigService.class),new ProviderTariffService(prices, com.clenzy.service.CatalogTestFixture.reference()));
     void authenticated() {
         var user=new User();user.setId(7L);
         when(users.findByKeycloakId("subject")).thenReturn(Optional.of(user));

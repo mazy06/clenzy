@@ -95,7 +95,7 @@ class MarketplaceQuoteServiceTest {
         when(providerRepository.findById(PROVIDER)).thenReturn(Optional.of(provider()));
         when(exposureService.isVisibleTo(any(), eq(ORG))).thenReturn(true);
         when(propertyRepository.findByIdWithOwner(42L, ORG)).thenReturn(Optional.of(new com.clenzy.model.Property()));
-        doThrow(new IllegalStateException("hors zone")).when(geography).requireCoverage(PROVIDER, 42L, ORG);
+        doThrow(new IllegalStateException("hors zone")).when(geography).requireServiceCoverage(PROVIDER, 42L, ORG, null);
         assertThatThrownBy(() -> service.request(PROVIDER, ORG, 3L, "Ménage", null, 42L, null, null, null))
             .isInstanceOf(IllegalStateException.class).hasMessage("hors zone");
         verify(quoteRepository, never()).save(any());
@@ -125,7 +125,7 @@ class MarketplaceQuoteServiceTest {
 
         assertThatThrownBy(() -> service.request(PROVIDER, ORG, 3L, "Ménage", null, null, null, null, null))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("intervention");
+            .hasMessageContaining("demande de service");
     }
 
     @Test

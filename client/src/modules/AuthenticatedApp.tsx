@@ -6,6 +6,7 @@ import { FIELD_ROLES } from '../utils/fieldRoles';
 import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
 import { useAuth } from '../hooks/useAuth';
+import { useAssignmentEventStream } from '../hooks/useAssignmentEventStream';
 import { warmHotRoutes } from './routePrefetch';
 import { ASSISTANT_CONVERSATION_PARAM } from '../components/assistantDeepLink';
 
@@ -58,11 +59,11 @@ const TeamEdit = lazy(() => import('./teams/TeamEdit'));
 // Directory (Annuaire — merged Teams + Portfolios + Guests)
 const DirectoryPage = lazy(() => import('./directory/DirectoryPage'));
 
-// Place de marché des professionnels (équipe plateforme uniquement)
-const MarketplaceProvidersPage = lazy(() => import('./marketplace/MarketplaceProvidersPage'));
-// Catalogue vu par une ORGANISATION : sans coordonnees, sans etat de
-// moderation. Distinct de /marketplace/providers, reserve a la plateforme.
-const ProviderCatalogPage = lazy(() => import('./provider-catalog/ProviderCatalogPage'));
+// Annuaire unifié des prestataires ; capacités selon le rôle.
+const ProvidersPage = lazy(() => import('./marketplace/ProvidersPage'));
+const ServiceProposalsRedirect = lazy(() => import('./service-requests/ServiceProposalsRedirect'));
+const LegacyProvidersRedirect = lazy(() => import('./marketplace/ProvidersPage').then(module => ({ default: module.LegacyProvidersRedirect })));
+// Les détails conservent leurs contrats d'accès catalogue / modération.
 const ProviderCatalogDetailPage = lazy(() => import('./provider-catalog/ProviderCatalogDetailPage'));
 // Devis : les deux cotes. `/devis` pour ce que l'organisation a demande,
 // `/devis/recus` pour ce qui est adresse a la fiche du compte connecte.
@@ -179,6 +180,7 @@ const ManagementContractsPage = lazy(() => import('./contracts/ManagementContrac
 
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
+  useAssignmentEventStream(user ? `${user.id}:${user.organizationId}` : null);
   const queryClient = useQueryClient();
 
   // Warm-up au montage : les données du Planning (route d'atterrissage) partent
@@ -308,7 +310,7 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/interventions/new" element={
           <ProtectedRoute requiredPermission="interventions:create">
             <ErrorBoundary>
-              <InterventionForm />
+              <ServiceRequestCreate />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
@@ -375,22 +377,15 @@ const AuthenticatedApp: React.FC = () => {
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
 
-        {/* Place de marché — tables PLATEFORME, sans cloisonnement par
-            organisation : l'accès se décide sur le RÔLE et non sur une
-            permission, qu'un compte client pourrait recevoir. Le serveur
-            applique la même règle (SecurityConfigProd + @PreAuthorize) ; ce
-            garde n'est que la moitié visible. */}
-        <Route path="/marketplace/providers" element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER']}>
-            <MarketplaceProvidersPage />
-          </ProtectedRoute>
-        } />
+        {/* Ancienne entrée conservée pour les favoris. Les fiches de gestion
+            restent réservées aux rôles plateforme, comme leurs API. */}
+        <Route path="/marketplace/providers" element={<ProtectedRoute><LegacyProvidersRedirect /></ProtectedRoute>} />
         <Route path="/marketplace/providers/:id" element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER']}>
             <MarketplaceProviderDetailPage />
           </ProtectedRoute>
         } />
-        <Route path="/marketplace" element={<Navigate to="/marketplace/providers" replace />} />
+        <Route path="/marketplace" element={<LegacyProvidersRedirect />} />
         <Route path="/marketplace/account-reconciliation/:providerId" element={<MarketplaceAccountReconciliationPage />} />
 
         {/* Catalogue vu par une ORGANISATION. Pas de `requiredRoles` : un
@@ -399,8 +394,9 @@ const AuthenticatedApp: React.FC = () => {
             vue, c'est l'organisation — résolue par le serveur, jamais par
             l'écran. */}
         <Route path="/prestataires" element={
-          <ProtectedRoute><ProviderCatalogPage /></ProtectedRoute>
+          <ProtectedRoute><ProvidersPage /></ProtectedRoute>
         } />
+        <Route path="/service-proposals" element={<ServiceProposalsRedirect />} />
         <Route path="/prestataires/:id" element={
           <ProtectedRoute><ProviderCatalogDetailPage /></ProtectedRoute>
         } />

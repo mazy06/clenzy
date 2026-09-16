@@ -52,13 +52,16 @@ public class ExpediaReservationService {
 
     private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
     private final com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy;
+    private final com.clenzy.service.assignment.InterventionRequestIntake intake;
 
     public ExpediaReservationService(ChannelMappingRepository channelMappingRepository,
                                      InterventionRepository interventionRepository,
                                      PropertyRepository propertyRepository,
                                      ExpediaWebhookService webhookService,
                                      AuditLogService auditLogService, com.clenzy.service.InterventionAllocationGuard allocationGuard,
-                                     com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy) {
+                                     com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy,
+                                     com.clenzy.service.assignment.InterventionRequestIntake intake) {
+        this.intake=intake;
         this.cancellationPolicy = cancellationPolicy;
         this.allocationGuard = allocationGuard;
         this.channelMappingRepository = channelMappingRepository;
@@ -162,6 +165,10 @@ public class ExpediaReservationService {
         ChannelMapping mapping = mappingOpt.get();
         Long resolvedOrgId = mapping.getOrganizationId();
 
+        String checkOutValue=(String)data.get("check_out");
+        if (checkOutValue!=null && intake.synchronize("EXPEDIA:"+resolvedOrgId+":"+reservationId,resolvedOrgId,
+                LocalDate.parse(checkOutValue).atTime(11,0),false)) return;
+
         // Rechercher l'intervention existante liee a cette reservation
         List<Intervention> interventions = interventionRepository
                 .findByPropertyId(mapping.getInternalId(), resolvedOrgId);
@@ -170,6 +177,11 @@ public class ExpediaReservationService {
             if (intervention.getSpecialInstructions() != null
                     && intervention.getSpecialInstructions().contains(reservationId)) {
 
+                if (intervention.getInitialAcceptanceRequestId()!=null) {
+                    auditLogService.logSync("ExpediaReservation",reservationId,
+                            "Accord confirmé conservé : révision de la mission #"+intervention.getId()+" requise");
+                    continue;
+                }
                 // Mettre a jour les dates si elles ont change
                 String checkOutStr = (String) data.get("check_out");
                 if (checkOutStr != null) {
@@ -225,6 +237,8 @@ public class ExpediaReservationService {
 
         ChannelMapping mapping = mappingOpt.get();
         Long resolvedOrgId = mapping.getOrganizationId();
+
+        intake.synchronize("EXPEDIA:"+resolvedOrgId+":"+reservationId,resolvedOrgId,null,true);
 
         // Annuler les interventions liees
         List<Intervention> interventions = interventionRepository
@@ -305,11 +319,10 @@ public class ExpediaReservationService {
             intervention.setRequestor(property.getOwner());
         }
 
-        allocationGuard.requireAvailable(intervention);
-        interventionRepository.save(intervention);
+        var need=intake.createDraft(intervention,"EXPEDIA:"+property.getOrganizationId()+":"+reservationId);
 
-        log.info("Intervention de menage #{} auto-generee pour propriete {} (reservation {} {})",
-                intervention.getId(), property.getName(), source, reservationId);
+        log.info("Demande de ménage créée pour propriété {} (réservation {} {})",
+                property.getId(), source, reservationId);
     }
 
     /**

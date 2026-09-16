@@ -52,6 +52,17 @@ public class Team {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @ElementCollection
+    @CollectionTable(name = "team_service_capabilities", joinColumns = @JoinColumn(name = "team_id"))
+    @Column(name = "service_item_code", nullable = false, length = 60)
+    private java.util.Set<String> serviceItemCodes = new java.util.LinkedHashSet<>();
+
+    public java.util.Set<String> getServiceItemCodes() { return serviceItemCodes; }
+    public void setServiceItemCodes(java.util.Set<String> codes) {
+        serviceItemCodes.clear();
+        serviceItemCodes.addAll(codes);
+    }
+
     // Constructeurs
     public Team() {
         this.createdAt = LocalDateTime.now();

@@ -61,7 +61,9 @@ public class MarketplaceQuoteDiscussionPublisher {
             payload.put("quoteId", id);
             payload.put("interventionTitle", request.getTitle());
             payload.put("providerName", provider.getDisplayName());
-            payload.put("propertyName", property == null ? null : property.getName());
+            payload.put("propertyName", property == null ? null
+                    : request.getServiceRequestId()!=null && request.getStatus()!=QuoteRequestStatus.ACCEPTED
+                        ? property.getCity() : property.getName());
             payload.put("amount", request.getQuotedAmount());
             payload.put("currency", request.getQuotedCurrency());
             payload.put("validUntil", request.getQuoteValidUntil() == null ? null : request.getQuoteValidUntil().toString());
@@ -72,7 +74,7 @@ public class MarketplaceQuoteDiscussionPublisher {
                     + "\nProposition de devis : " + Objects.toString(request.getQuoteMessage(), "");
             case ACCEPTED -> request.getPropertyId() == null
                     ? "Le devis a été accepté comme accord commercial, sans mission planifiée."
-                    : "Le devis a été accepté. Consultez la mission pour suivre sa confirmation et son exécution.";
+                    : "Le devis a été accepté. Consultez l’intervention pour suivre son exécution.";
             case DECLINED -> "Le devis a été refusé.";
             case TURNED_DOWN -> "Le prestataire ne donne pas suite à cette demande.";
             case WITHDRAWN -> "La demande a été retirée.";

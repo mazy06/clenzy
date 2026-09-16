@@ -44,6 +44,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ExpediaReservationServiceTest {
 
+    @Mock private com.clenzy.service.assignment.InterventionRequestIntake intake;
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private InterventionRepository interventionRepository;
     @Mock private PropertyRepository propertyRepository;
@@ -63,7 +64,7 @@ class ExpediaReservationServiceTest {
     void setUp() {
         service = new ExpediaReservationService(
                 channelMappingRepository, interventionRepository, propertyRepository,
-                webhookService, auditLogService, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), cancellationPolicy);
+                webhookService, auditLogService, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), cancellationPolicy, intake);
     }
 
     private ChannelMapping buildMapping() {
@@ -131,7 +132,7 @@ class ExpediaReservationServiceTest {
             Map<String, Object> event = buildEvent("reservation.created", buildReservationData());
             service.handleReservationEvent(event);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
             verify(webhookService).markAsProcessed(EVENT_ID);
         }
 
@@ -236,7 +237,7 @@ class ExpediaReservationServiceTest {
             service.handleReservationCreated(buildReservationData());
 
             ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            verify(intake).createDraft(captor.capture(), org.mockito.ArgumentMatchers.anyString());
             Intervention saved = captor.getValue();
 
             assertThat(saved.getOrganizationId()).isEqualTo(ORG_ID);
@@ -263,7 +264,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test
@@ -278,7 +279,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test
@@ -293,7 +294,7 @@ class ExpediaReservationServiceTest {
             service.handleReservationCreated(data);
 
             ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            verify(intake).createDraft(captor.capture(), org.mockito.ArgumentMatchers.anyString());
             assertThat(captor.getValue().getTitle()).contains("VRBO");
         }
 
@@ -308,7 +309,7 @@ class ExpediaReservationServiceTest {
             service.handleReservationCreated(buildReservationData());
 
             ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            verify(intake).createDraft(captor.capture(), org.mockito.ArgumentMatchers.anyString());
             assertThat(captor.getValue().getRequestor()).isNull();
         }
 
@@ -549,7 +550,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test
@@ -563,7 +564,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
     }
 }

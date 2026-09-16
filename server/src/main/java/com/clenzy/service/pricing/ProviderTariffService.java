@@ -1,7 +1,6 @@
 package com.clenzy.service.pricing;
 
 import com.clenzy.marketplace.model.PricingModel;
-import com.clenzy.marketplace.service.ProviderCategoryMapper;
 import com.clenzy.model.ProviderTariff;
 import com.clenzy.repository.ProviderTariffRepository;
 import org.springframework.stereotype.Service;
@@ -14,11 +13,19 @@ import java.util.List;
 public class ProviderTariffService {
     public static final String CLEANING = "cleaning-turnover";
     private final ProviderTariffRepository repository;
-    public ProviderTariffService(ProviderTariffRepository repository) { this.repository = repository; }
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog;
+    public ProviderTariffService(ProviderTariffRepository repository, com.clenzy.service.catalog.ServiceCatalogReference catalog) {
+        this.repository = repository; this.catalog = catalog;
+    }
+    public String legacyTypeForKey(String key) {
+        if (key.startsWith("type:")) return key.substring(5);
+        String legacy = catalog.legacyType(key);
+        return "OTHER".equals(legacy) ? "catalog:" + key : legacy;
+    }
 
-    public static String keyForType(String type) {
+    public String keyForType(String type) {
         if (type.startsWith("catalog:")) return type.substring(8);
-        String code = ProviderCategoryMapper.serviceItemCodeForInterventionType(type);
+        String code = catalog.legacyCode(type);
         return code != null ? code : "type:" + type;
     }
 

@@ -3,11 +3,11 @@ package com.clenzy.marketplace.service;
 import com.clenzy.marketplace.model.MarketplaceProvider;
 
 /** Compatibilité commune entre une demande et les offres actuelles du prestataire. */
-final class MarketplaceOfferEligibility {
+public final class MarketplaceOfferEligibility {
     private MarketplaceOfferEligibility() {}
 
     /** Une demande générale reste libre ; une sélection de catalogue doit appartenir à une offre active. */
-    static String requireOfferedService(MarketplaceProvider provider, String categoryCode, String itemCode) {
+    public static String requireOfferedService(MarketplaceProvider provider, String categoryCode, String itemCode) {
         if (categoryCode == null && itemCode == null) return null;
         for (var offer : provider.getOffers()) {
             var category = offer.getCategory();

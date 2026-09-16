@@ -119,4 +119,20 @@ class MarketplaceRecurrenceServiceTest {
                 .hasMessageContaining("séjours");
         verify(plans, never()).saveAndFlush(any());
     }
+    @Test void remoteRecurrenceKeepsTheRequesterAndExactServiceWithoutInventingAProperty() {
+        quote.setPropertyId(null); quote.setRequestedByUserId(11L);
+        var source=new Intervention(); source.setOrganizationId(7L); source.setType("OTHER");
+        source.setServiceItemCode("accounting-lmnp"); source.setStatus(InterventionStatus.COMPLETED);
+        when(interventions.findById(5L)).thenReturn(Optional.of(source));
+        when(requests.createRecurringRequest(any(),eq(9L))).thenReturn(77L);
+        service.generate(9L);
+        var dto=ArgumentCaptor.forClass(ServiceRequestDto.class);
+        verify(requests).createRecurringRequest(dto.capture(),eq(9L));
+        assertThat(dto.getValue().propertyId).isNull();
+        assertThat(dto.getValue().userId).isEqualTo(11L);
+        assertThat(dto.getValue().serviceItemCode).isEqualTo("accounting-lmnp");
+        assertThat(dto.getValue().estimatedCost).isNull();
+        verifyNoInteractions(properties);
+    }
+
 }

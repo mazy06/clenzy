@@ -177,7 +177,7 @@ export function useTeamsList() {
       if (!team || !team.id) return false;
 
       // Type filter
-      if (selectedType !== 'all' && team.interventionType !== selectedType) return false;
+      if (selectedType !== 'all' && !team.serviceItemCodes?.includes(selectedType)) return false;
 
       // Search filter
       if (searchTerm) {

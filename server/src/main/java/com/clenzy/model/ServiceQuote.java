@@ -39,6 +39,15 @@ public class ServiceQuote {
     @Column(name = "marketplace_request_id")
     private Long marketplaceRequestId;
 
+    @Column(name = "service_request_id")
+    private Long serviceRequestId;
+    @Column(name = "assignment_proposal_id")
+    private Long assignmentProposalId;
+    public Long getServiceRequestId() { return serviceRequestId; }
+    public void setServiceRequestId(Long value) { serviceRequestId=value; }
+    public Long getAssignmentProposalId() { return assignmentProposalId; }
+    public void setAssignmentProposalId(Long value) { assignmentProposalId=value; }
+
     public Long getMarketplaceRequestId() { return marketplaceRequestId; }
     public void setMarketplaceRequestId(Long value) { marketplaceRequestId = value; }
 

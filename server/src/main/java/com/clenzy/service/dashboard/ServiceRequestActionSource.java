@@ -25,8 +25,8 @@ public class ServiceRequestActionSource implements ActionItemSource {
     /**
      * Délai avant de considérer qu'une prestation ne trouvera pas preneur seule.
      *
-     * <p>Un cycle du planificateur d'assignation ({@code AutoAssignScheduler},
-     * toutes les 15 min) : au-delà, la recherche automatique a eu sa chance.</p>
+     * <p>Seuil de supervision des besoins sans proposition, indépendant du
+     * scheduler d'expiration qui passe chaque minute.</p>
      *
      * <p>Partagé avec la carte de constellation « demande sans prestataire »
      * ({@code OpsMaintenanceScanner}) : les deux surfaces montrent le MÊME

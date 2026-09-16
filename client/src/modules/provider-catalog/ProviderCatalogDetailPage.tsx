@@ -34,7 +34,7 @@ export default function ProviderCatalogDetailPage() {
   const { t } = useTranslation();
   const replacementId = searchParams.get('replaceQuoteId');
   const replacement = useQuoteReplacement(replacementId);
-  const back = replacementId ? `/prestataires?replaceQuoteId=${encodeURIComponent(replacementId)}` : '/prestataires';
+  const back = replacementId ? `/prestataires?replaceQuoteId=${encodeURIComponent(replacementId)}` : '/prestataires?view=catalog';
   const providerId = id ? Number(id) : undefined;
 
   const { data: provider, isLoading, isError } = useCatalogProvider(providerId);

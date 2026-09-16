@@ -1,11 +1,10 @@
+import ProviderDirectoryLayout from './ProviderDirectoryLayout';
 import { useMarketplaceFilterState } from './useMarketplaceFilterState';
 import { useUserUiPreferences } from '../../providers/UserUiPreferencesProvider';
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import PageHeader from '../../components/PageHeader';
-import EmptyState from '../../components/EmptyState';
-import PagePagination from '../../components/PagePagination';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import ProviderDirectoryResults, { PROVIDERS_PAGE_SIZE as PAGE_SIZE } from './ProviderDirectoryResults';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import {
   Button,
@@ -17,7 +16,7 @@ import {
   SelectValue,
   Skeleton,
 } from '../../components/ui';
-import { Close, FilterList, PersonSearch, Refresh } from '../../icons';
+import { Close, Refresh } from '../../icons';
 import { cn } from '../../utils/cn';
 import {
   useImportExistingProviders,
@@ -31,9 +30,8 @@ import type {
   ProviderSearchParams,
 } from '../../services/api/marketplaceProvidersApi';
 import MarketplaceProviderCard from './MarketplaceProviderCard';
-import { MarketplaceFilterPanel, MarketplaceFilterSheet } from './MarketplaceFilters';
+import { MarketplaceFilterPanel } from './MarketplaceFilters';
 
-const PAGE_SIZE = 24;
 
 /**
  * Vues de travail.
@@ -47,17 +45,16 @@ type ViewKey = 'all' | 'pending' | 'compliance';
 
 export default function MarketplaceProvidersPage() {
   const { t, catalogLabel, DAY_NAMES, ENGAGEMENT_LABELS } = useMarketplacePresentation();
-const VIEWS: Array<{ key: ViewKey; label: string }> = [
+  const VIEWS: Array<{ key: ViewKey; label: string }> = [
   { key: 'all', label: t('marketplaceAdmin.all') },
   { key: 'pending', label: t('marketplaceAdmin.pending') },
   { key: 'compliance', label: t('marketplaceAdmin.renewals') },
 ];
 
-  const navigate = useNavigate();
   const preferences = useUserUiPreferences();
 
   const [search, setSearch] = useState('');
-  useScreenSearch(search, setSearch, t('marketplaceAdmin.search'));
+  useScreenSearch(search, (value) => { setSearch(value); setPage(0); }, t('marketplaceAdmin.search'));
 
   const [view, setView] = useMarketplaceFilterState<ViewKey>('view', 'all');
   const [engagements, setEngagements] = useMarketplaceFilterState<EngagementMode[]>('engagements', []);
@@ -69,12 +66,6 @@ const VIEWS: Array<{ key: ViewKey; label: string }> = [
   const [verifiedOnly, setVerifiedOnly] = useMarketplaceFilterState('verified', false);
   const [acceptsUrgent, setAcceptsUrgent] = useMarketplaceFilterState('urgent', false);
   const [page, setPage] = useState(0);
-
-  // Volontairement NON persisté, contrairement à l'ancien panneau en ligne : un
-  // tiroir se rouvrirait par-dessus le contenu à chaque visite. Ce qui doit
-  // survivre, ce sont les filtres eux-mêmes — et ils se lisent dans les
-  // pastilles, panneau fermé.
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: categoryList = [] } = useMarketplaceCategories();
   const { data: facets } = useMarketplaceFacets();
@@ -238,35 +229,19 @@ const VIEWS: Array<{ key: ViewKey; label: string }> = [
   const showSkeletons = isLoading && providers.length === 0;
   const hasRestriction = activeFilterCount > 0 || search !== '' || view !== 'all';
 
+  const headerActions = usePageHeaderActions(
+          <>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              <Refresh className={cn('size-4', isFetching && 'animate-spin')} />{t('marketplaceAdmin.refresh')}</Button>
+          </>
+  );
+
   if (preferences.isLoading) return <Skeleton className="h-40 w-full" />;
 
   return (
     <>
       {!preferences.isLoaded && <p role="status">{t('marketplaceAdmin.preferencesUnavailable')}</p>}
-      <PageHeader
-        title={t('marketplaceAdmin.title')}
-        subtitle={t('marketplaceAdmin.subtitle')}
-        actions={
-          <>
-            {/* Le déclencheur n'existe qu'en mobile : au-dessus de `lg`, le
-                panneau est monté en colonne et n'a rien à ouvrir. */}
-            <Button
-              variant={activeFilterCount > 0 ? 'secondary' : 'outline'}
-              size="sm"
-              className="lg:hidden"
-              onClick={() => setDrawerOpen(true)}
-            >
-              <FilterList className="size-4" />{t('marketplaceAdmin.filters')}{activeFilterCount > 0 && (
-                <span className="ms-1 rounded-sm bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground">
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-              <Refresh className={cn('size-4', isFetching && 'animate-spin')} />{t('marketplaceAdmin.refresh')}</Button>
-          </>
-        }
-      />
+      {headerActions}
 
       {/* ─── Reprise des comptes existants ───────────────────────────── */}
       {(stats?.importableUsers ?? 0) > 0 && (
@@ -387,81 +362,15 @@ const VIEWS: Array<{ key: ViewKey; label: string }> = [
       )}
 
       {/* ─── Filtres et résultats ────────────────────────────────────── */}
-      <div className="grid shrink-0 grid-cols-1 gap-4 lg:grid-cols-[16rem_1fr]">
-        {/*
-          Colonne permanente à partir de `lg`. `sticky` avec sa propre zone de
-          défilement : les filtres restent sous les yeux pendant qu'on parcourt
-          une longue liste, sans quoi il faudrait remonter à chaque affinage.
-        */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-0 max-h-[calc(100svh-9rem)] overflow-hidden">
-            <MarketplaceFilterPanel {...filterPanelProps} />
-          </div>
-        </aside>
-
-        <div className="min-w-0">
-        {isError ? (<p role="alert">{t("marketplaceAdmin.failed")}</p>) : showSkeletons ? (
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <Skeleton key={index} className="h-56 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : providers.length === 0 ? (
-          <EmptyState
-            icon={<PersonSearch />}
-            title={hasRestriction ? t('marketplaceAdmin.noMatches') : t('marketplaceAdmin.empty')}
-            description={hasRestriction
-              ? t('marketplaceAdmin.widenSearch')
-              : t('marketplaceAdmin.emptyHint')}
-            action={hasRestriction ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { resetFilters(); setSearch(''); setView('all'); }}
-              >{t('marketplaceAdmin.clearFilters')}</Button>
-            ) : undefined}
-          />
-        ) : (
-          <>
-            <div
-              className={cn(
-                'grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4',
-                // La page précédente reste affichée pendant le chargement ;
-                // l'atténuer dit qu'elle n'est plus à jour sans faire sauter la grille.
-                isFetching && 'opacity-60 transition-opacity',
-              )}
-            >
-              {providers.map((provider) => (
-                <MarketplaceProviderCard
-                  key={provider.id}
-                  provider={provider}
-                  categoriesByCode={categoriesByCode}
-                  onOpen={(id) => navigate(`/marketplace/providers/${id}`)}
-                />
-              ))}
-            </div>
-
-            <PagePagination
-              className="mt-4"
-              page={data?.page ?? 0}
-              onPageChange={setPage}
-              count={data?.total}
-              rowsPerPage={PAGE_SIZE}
-              totalPages={data?.totalPages}
-            />
-          </>
-        )}
-        </div>
-      </div>
-
-      {/* Tiroir mobile uniquement : au-dessus de `lg` la colonne le remplace. */}
-      <div className="lg:hidden">
-        <MarketplaceFilterSheet
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-          {...filterPanelProps}
-        />
-      </div>
+      <ProviderDirectoryLayout filters={<MarketplaceFilterPanel {...filterPanelProps} />}>
+        <ProviderDirectoryResults items={providers} loading={showSkeletons} fetching={isFetching} error={isError}
+          errorLabel={t('marketplaceAdmin.failed')}
+          emptyTitle={t(hasRestriction ? 'marketplaceAdmin.noMatches' : 'marketplaceAdmin.empty')}
+          emptyDescription={t(hasRestriction ? 'marketplaceAdmin.widenSearch' : 'marketplaceAdmin.emptyHint')}
+          emptyAction={hasRestriction ? <Button variant="outline" size="sm" onClick={() => { resetFilters(); setSearch(''); setView('all'); }}>{t('marketplaceAdmin.clearFilters')}</Button> : undefined}
+          page={data?.page ?? page} total={data?.total ?? 0} onPageChange={setPage}
+          renderItem={provider => <MarketplaceProviderCard key={provider.id} provider={provider} categoriesByCode={categoriesByCode} />} />
+      </ProviderDirectoryLayout>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import ServiceCapabilitySelect from '../../components/ServiceCapabilitySelect';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,6 +21,12 @@ function Editor() {
   const client = useQueryClient();
   const queryKey = ['my-provider-services',user?.id,user?.organizationId];
   const query = useQuery({ queryKey, queryFn: () => apiClient.get<View>('/my-provider-services') });
+  const capabilityKey = ['my-service-capabilities', user?.id, user?.organizationId];
+  const capabilities = useQuery({ queryKey: capabilityKey, queryFn: () => apiClient.get<string[]>('/my-service-capabilities') });
+  const updateCapabilities = useMutation({
+    mutationFn: (codes: string[]) => apiClient.put<string[]>('/my-service-capabilities', codes),
+    onSuccess: codes => client.setQueryData(capabilityKey, codes),
+  });
   const [selection,setSelection] = useState('');
   const [draft,setDraft] = useState<Service|null>(null);
   const save = useMutation({
@@ -27,7 +34,7 @@ function Editor() {
       apiClient.put<Service>('/my-provider-services?key='+encodeURIComponent(key),{pricingModel,amount,currency,unitLabel,enabled}),
     onSuccess: () => {
       setDraft(null); setSelection('');
-      for (const key of [queryKey,['provider-catalog'],['marketplace-providers'],['housekeeper-rates'],['technician-prestations']])
+      for (const key of [queryKey,['provider-catalog'],['marketplace-providers'],['housekeeper-rates'],['technician-prestations'],['service-requests-list'],['service-proposals']])
         void client.invalidateQueries({queryKey:key});
     },
   });
@@ -45,6 +52,11 @@ function Editor() {
   if(query.isError) return <p role="alert">{t('marketplaceWorkflow.loadFailed')}</p>;
   return <section className="flex flex-col gap-4">
     {saveAction}
+    {capabilities.isPending ? <Skeleton className="h-10 w-full" /> : capabilities.isError
+      ? <p role="alert">{t('serviceReference.loadError')}</p>
+      : <ServiceCapabilitySelect value={capabilities.data ?? []} disabled={updateCapabilities.isPending}
+          onChange={codes => updateCapabilities.mutate(codes)} />}
+    {updateCapabilities.isError && <p role="alert" className="text-sm text-destructive-ink">{updateCapabilities.error.message}</p>}
     <p className="text-sm text-muted-foreground">{t('providerServices.help')}</p>
     <label className="flex flex-col gap-1 text-sm">{t('providerServices.choose')}
       <select value={selection} disabled={save.isPending} onChange={e=>choose(e.target.value)}
@@ -61,7 +73,7 @@ function Editor() {
           {PROVIDER_PRICING_MODELS.map(model=><option key={model} value={model}>{t('providerServices.models.'+model)}</option>)}
         </select></label>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {draft.pricingModel!=='ON_QUOTE' && <label className="flex flex-col gap-1 text-sm">{t('providerTariff.amount')}
+        {draft.pricingModel!=='ON_QUOTE' && <label className="flex flex-col gap-1 text-sm">{t(draft.pricingModel==='HOURLY'?'providerServices.hourlyAmount':draft.pricingModel==='FLAT'?'providerServices.missionAmount':'providerTariff.amount')}
           <Input type="number" min={0} max={1000000} step="0.01" value={draft.amount ?? ''} className="tabular-nums"
             onChange={e=>setDraft({...draft,amount:e.target.value==='' ? null : Number(e.target.value)})} /></label>}
         <label className="flex flex-col gap-1 text-sm">{t('providerTariff.currency')}
@@ -69,6 +81,7 @@ function Editor() {
         {draft.pricingModel==='PER_UNIT' && <label className="flex flex-col gap-1 text-sm">{t('providerTariff.unit')}
           <Input value={draft.unitLabel ?? ''} maxLength={40} onChange={e=>setDraft({...draft,unitLabel:e.target.value})} /></label>}
       </div>
+      {['HOURLY','FLAT'].includes(draft.pricingModel) && <p className="text-sm text-muted-foreground">{t(draft.pricingModel==='HOURLY'?'providerServices.hourlyHelp':'providerServices.missionHelp')}</p>}
       <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={draft.enabled}
         onChange={e=>setDraft({...draft,enabled:e.target.checked})} />{t('providerServices.enabled')}</label>
       {draft.needsReview && <p className="text-sm">{t('providerTariff.review')}</p>}

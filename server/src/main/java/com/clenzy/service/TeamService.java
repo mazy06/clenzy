@@ -35,6 +35,7 @@ public class TeamService {
     private static final Logger log = LoggerFactory.getLogger(TeamService.class);
 
     private final com.clenzy.repository.ServiceRequestRepository assignments;
+    private final com.clenzy.service.catalog.ServiceCatalogReference catalog;
     private final TeamRepository teamRepository;
     private final TeamCoverageZoneRepository teamCoverageZoneRepository;
     private final UserRepository userRepository;
@@ -44,7 +45,8 @@ public class TeamService {
     private final UserAvatarUrlResolver avatarUrls;
 
     public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService, TenantContext tenantContext,
-                       UserAvatarUrlResolver avatarUrls, com.clenzy.repository.ServiceRequestRepository assignments) {
+                       UserAvatarUrlResolver avatarUrls, com.clenzy.repository.ServiceRequestRepository assignments, com.clenzy.service.catalog.ServiceCatalogReference catalog) {
+        this.catalog = catalog;
         this.assignments = assignments;
         this.teamRepository = teamRepository;
         this.teamCoverageZoneRepository = teamCoverageZoneRepository;
@@ -94,6 +96,7 @@ public class TeamService {
             team.setMembers(members);
         }
 
+        applyCapabilities(team, dto.serviceItemCodes);
         Team savedTeam = teamRepository.save(team);
 
         // Creer les zones de couverture
@@ -187,6 +190,7 @@ public class TeamService {
             }
         }
 
+        applyCapabilities(team, dto.serviceItemCodes);
         Team updatedTeam = teamRepository.save(team);
         TeamDto result = convertToDto(updatedTeam);
 
@@ -286,6 +290,8 @@ public class TeamService {
         Team team = assignments.findTeamForCompositionMutation(id)
             .orElseThrow(() -> new NotFoundException("Équipe non trouvée avec l'ID: " + id));
         requireCurrentOrganization(team);
+        if (team.getPersonalUserId() != null)
+            throw new IllegalArgumentException("Le profil personnel se gère depuis le compte de l'intervenant");
         if (assignments.teamHasActiveAssignments(id)) {
             throw new com.clenzy.exception.TeamCompositionConflictException();
         }
@@ -303,6 +309,19 @@ public class TeamService {
         }
     }
 
+    private void applyCapabilities(Team team, java.util.Set<String> codes) {
+        if (codes == null) return; // Ancien formulaire : conserver les capacités déclarées.
+        if (team.getPersonalUserId() != null)
+            throw new IllegalArgumentException("Les capacités personnelles se déclarent depuis le profil de l'intervenant");
+        if (!codes.containsAll(team.getServiceItemCodes()) && team.getId() != null
+                && assignments.teamHasActiveAssignments(team.getId())) {
+            throw new com.clenzy.exception.TeamCompositionConflictException();
+        }
+        var validated = new java.util.LinkedHashSet<String>();
+        for (String code : codes) validated.add(catalog.resolve(code, "OTHER", team.getServiceItemCodes().contains(code) ? code : null, "OTHER"));
+        team.setServiceItemCodes(validated);
+    }
+
     private void requireCurrentOrganization(Team team) {
         if (!tenantContext.getRequiredOrganizationId().equals(team.getOrganizationId())) {
             throw new org.springframework.security.access.AccessDeniedException("Cette équipe appartient à une autre organisation");
@@ -315,6 +334,7 @@ public class TeamService {
         dto.name = team.getName();
         dto.description = team.getDescription();
         dto.interventionType = team.getInterventionType();
+        dto.serviceItemCodes = java.util.Set.copyOf(team.getServiceItemCodes());
         dto.memberCount = team.getMemberCount();
         dto.createdAt = team.getCreatedAt();
         dto.updatedAt = team.getUpdatedAt();

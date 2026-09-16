@@ -1,3 +1,4 @@
+import { fetchMissionMapExport, useMissionMapFilters, useMissionMapOverview } from '../../hooks/useMissionMap';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
@@ -18,7 +19,6 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import ListSkeleton from '../../components/ListSkeleton';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
-import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import {
   Add as AddIcon,
   Visibility as VisibilityIcon,
@@ -30,7 +30,7 @@ import {
 } from '../../icons';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import ExportButton from '../../components/ExportButton';
-import { useInterventionsList, MAP_VIEW_PAGE_SIZE } from './useInterventionsList';
+import { useInterventionsList } from './useInterventionsList';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import InterventionsMapView from './InterventionsMapView';
 import InterventionsGridView from './InterventionsGridView';
@@ -53,6 +53,9 @@ const ICON_BUTTON_ACCENT_CLASS =
   + 'hover:bg-primary-soft hover:border-primary hover:text-primary';
 
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
+  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
+    'interventions', 'map', ['grid', 'list', 'map'] as const,
+  );
   const {
     // State
     interventions,
@@ -112,24 +115,11 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     navigate,
     t,
     user,
-  } = useInterventionsList();
+  } = useInterventionsList(viewMode !== 'map');
 
-  // Auto default : map si au moins 1 intervention a une propriete geocodee, sinon list.
-  // undefined tant qu'on charge -> le hook conserve son fallback initial.
-  const autoDefaultMode = useMemo<'map' | 'list' | undefined>(() => {
-    if (loading) return undefined;
-    return interventions.some((i) => i.propertyLatitude && i.propertyLongitude)
-      ? 'map'
-      : 'list';
-  }, [loading, interventions]);
-  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
-    'interventions',
-    'map',
-    ['grid', 'list', 'map'] as const,
-    autoDefaultMode,
-  );
-  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
 
+  const mapFilters = useMissionMapFilters(searchTerm, selectedType, selectedStatus, selectedPriority);
+  const mapOverview = useMissionMapOverview('interventions', mapFilters, viewMode === 'map' && canViewInterventions);
   // Dynamic page size based on available viewport height
   const { containerRef: listContainerRef, pageSize: listRowsPerPage } = useDynamicPageSize({
     rowHeight: 49,
@@ -140,33 +130,15 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   });
 
   // Pagination SERVEUR : la taille de page suit la vue active
-  // (grille = 6 cartes, table = hauteur dynamique, carte = plafond serveur).
+  // (grille = 6 cartes, table = hauteur dynamique, carte = pagination indépendante par lots de 20).
   // setPageSize remet la page à 0 quand la taille change.
   useEffect(() => {
+    if (viewMode === 'map') return;
     const target = viewMode === 'grid'
       ? ITEMS_PER_PAGE
-      : viewMode === 'list'
-        ? listRowsPerPage
-        : MAP_VIEW_PAGE_SIZE;
+      : listRowsPerPage;
     if (target !== pageSize) setPageSize(target);
   }, [viewMode, listRowsPerPage, pageSize, setPageSize, ITEMS_PER_PAGE]);
-
-  // ─── Map bounds tracking (debounced) ──────────────────────────────────────
-  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleBoundsChange = useCallback((bounds: MapBounds) => {
-    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
-    boundsTimerRef.current = setTimeout(() => setMapBounds(bounds), 300);
-  }, []);
-
-  useEffect(() => {
-    return () => { if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current); };
-  }, []);
-
-  // Reset mapBounds when leaving map view
-  useEffect(() => {
-    if (viewMode !== 'map') setMapBounds(null);
-  }, [viewMode]);
 
   // Un DropdownMenuItem Radix referme le menu de lui-meme apres selection, la
   // ou le MenuItem MUI ne le faisait pas. Sans ce garde, `onOpenChange(false)`
@@ -186,39 +158,9 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     handleMenuClose();
   };
 
-  const mapMarkers: PropertyMarker[] = useMemo(
-    () =>
-      filteredInterventions
-        .flatMap((i) =>
-          i.propertyLatitude && i.propertyLongitude
-            ? [{
-                lat: i.propertyLatitude!,
-                lng: i.propertyLongitude!,
-                name: `${i.title} — ${i.propertyName}`,
-                id: i.id,
-                type: 'property' as const,
-              }]
-            : [],
-        ),
-    [filteredInterventions],
-  );
-
-  const viewportInterventions = useMemo(() => {
-    const withCoords = filteredInterventions.filter((i) => i.propertyLatitude && i.propertyLongitude);
-    if (!mapBounds) return withCoords;
-    // Small padding (~500m) so markers at the viewport edge are included
-    const pad = 0.005;
-    return withCoords.filter((i) => (
-      i.propertyLatitude! >= mapBounds.south - pad &&
-      i.propertyLatitude! <= mapBounds.north + pad &&
-      i.propertyLongitude! >= mapBounds.west - pad &&
-      i.propertyLongitude! <= mapBounds.east + pad
-    ));
-  }, [filteredInterventions, mapBounds]);
-
   // Compteur affiché : total serveur, sauf recherche active (filtre client
   // sur la page courante — cf. useInterventionsList).
-  const displayedCount = searchTerm ? filteredInterventions.length : totalCount;
+  const displayedCount = viewMode === 'map' ? mapOverview.data?.total ?? 0 : searchTerm ? filteredInterventions.length : totalCount;
 
   // Protection contre les données invalides
   if (!Array.isArray(interventions)) {
@@ -319,6 +261,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     <div className="flex gap-1 items-center">
       <ExportButton
         data={filteredInterventions}
+        loadData={viewMode === 'map' ? () => fetchMissionMapExport('interventions', mapFilters) : undefined}
         columns={exportColumns}
         fileName="interventions"
         variant="icon"
@@ -425,19 +368,19 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
         </div>
       )}
 
-      {error && (
+      {error && viewMode !== 'map' && (
         <UiAlert variant="destructive" className="mb-3 py-1.5 shrink-0">
           <TriangleAlert />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{t('interventions.errors.loadError')} <Button variant="outline" onClick={loadInterventions}>{t('common.retry')}</Button></AlertDescription>
         </UiAlert>
       )}
 
       {/* ─── Liste des interventions ─────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0">
 
-          {loading ? (
+          {viewMode === 'map' ? <InterventionsMapView filters={mapFilters} /> : loading ? (
             <ListSkeleton rows={6} variant="row" />
-          ) : filteredInterventions.length === 0 ? (
+          ) : error ? null : filteredInterventions.length === 0 ? (
             <EmptyState
               icon={<Build />}
               title={t('interventions.noInterventionFound')}
@@ -446,13 +389,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                   ? t('interventions.noInterventionValidated')
                   : t('interventions.noInterventionAssigned')
               } — ${t('interventions.interventionsDescription')}`}
-            />
-          ) : viewMode === 'map' ? (
-            <InterventionsMapView
-              mapMarkers={mapMarkers}
-              viewportInterventions={viewportInterventions}
-              onBoundsChange={handleBoundsChange}
-              navigate={navigate}
             />
           ) : viewMode === 'grid' ? (
             <InterventionsGridView

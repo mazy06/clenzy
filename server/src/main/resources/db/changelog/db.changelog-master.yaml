@@ -4175,3 +4175,145 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  - changeSet:
+      id: "0461-canonical-service-references"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0461__canonical_service_references.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0462-team-service-capabilities"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0462__team_service_capabilities.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0463-capability-assignment-lock"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0463__capability_assignment_lock.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  - changeSet:
+      id: "0464-canonical-documentary-scopes"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0464__canonical_documentary_scopes.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0465-service-execution-rules"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0465__service_execution_rules.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0466-service-execution-reservations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0466__service_execution_reservations.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0467-service-execution-documents"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0467__service_execution_documents.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0468-commercial-service-need"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0468__commercial_service_need.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0469-personal-capability-owner"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0469__personal_capability_owner.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0470-historical-service-needs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0470__historical_service_needs.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0471-service-request-urgent-invariant"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0471__service_request_urgent_invariant.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0472-precise-cleaning-references"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0472__precise_cleaning_references.sql
+            relativeToChangelogFile: true
+        - sqlFile:
+            path: changes/0470__historical_service_needs.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0473-service-assignment-proposals"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0473__service_assignment_proposals.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0474-proposal-slot-reservations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0474__proposal_slot_reservations.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0475-assignment-contact-preferences"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0475__assignment_contact_preferences.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0476-assignment-durable-jobs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0476__assignment_durable_jobs.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

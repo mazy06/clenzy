@@ -1,3 +1,4 @@
+import ServiceCapabilitySelect from '../../components/ServiceCapabilitySelect';
 import { userAvatarSrc } from '../../services/api/usersApi';
 import React, { useState, useEffect } from 'react';
 import { Badge, Button, Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
@@ -46,13 +47,6 @@ interface User {
   role: string;
 }
 
-// Catégories de services — une équipe est spécialisée par catégorie (pas par sous-type)
-const teamServiceCategories = [
-  { value: 'CLEANING', label: 'Nettoyage', description: 'Nettoyage, entretien ménager, désinfection', roles: ['HOUSEKEEPER', 'LAUNDRY', 'SUPERVISOR'], color: '#7BA3C2' },
-  { value: 'MAINTENANCE', label: 'Maintenance', description: 'Réparations, maintenance préventive, travaux', roles: ['TECHNICIAN', 'EXTERIOR_TECH', 'SUPERVISOR'], color: '#D4A574' },
-  { value: 'OTHER', label: 'Autre', description: 'Services divers, jardinage, remise en état', roles: ['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR', 'SUPER_MANAGER'], color: '#6B8A9A' },
-];
-
 /**
  * Option de Combobox. La forme `{ value, label }` est celle que Base UI sait
  * exploiter seul : il en deduit le libelle affiche et la valeur soumise, sans
@@ -72,15 +66,6 @@ const DEPARTMENT_OPTIONS: ComboOption[] = FRENCH_DEPARTMENTS.map((d) => ({
 // Les options sont reconstruites a chaque rendu pour les arrondissements : on
 // compare donc sur la valeur, jamais sur l'identite de l'objet.
 const sameOption = (a?: ComboOption | null, b?: ComboOption | null) => a?.value === b?.value;
-
-const getCategoryIcon = (value: string, size: number = 20) => {
-  const iconProps = { size, strokeWidth: 1.75 };
-  switch (value) {
-    case 'CLEANING': return <AutoAwesome {...iconProps} />;
-    case 'MAINTENANCE': return <Build {...iconProps} />;
-    default: return <Category {...iconProps} />;
-  }
-};
 
 const TeamForm: React.FC = () => {
   const navigate = useNavigate();
@@ -142,7 +127,8 @@ const TeamForm: React.FC = () => {
     defaultValues: {
       name: '',
       description: '',
-      interventionType: 'CLEANING',
+      interventionType: 'OTHER',
+      serviceItemCodes: [],
       members: [],
       coverageZones: [],
     },
@@ -158,12 +144,6 @@ const TeamForm: React.FC = () => {
     name: 'coverageZones',
   });
 
-  const watchedInterventionType = watch('interventionType');
-
-  // Si le type d'intervention change, vider la liste des membres
-  useEffect(() => {
-    replace([]);
-  }, [watchedInterventionType, replace]);
 
   // Vérifier les permissions APRÈS tous les hooks
   if (!canCreate) {
@@ -178,12 +158,7 @@ const TeamForm: React.FC = () => {
   }
 
   // Filtrer les utilisateurs selon la catégorie de service sélectionnée
-  const getFilteredUsers = () => {
-    const selectedCategory = teamServiceCategories.find(cat => cat.value === watchedInterventionType);
-    if (!selectedCategory) return users;
-    const roleSet = new Set(selectedCategory.roles);
-    return users.filter(user => roleSet.has(user.role?.toUpperCase()));
-  };
+  const getFilteredUsers = () => users;
 
   // Rôles disponibles dans l'équipe (en MAJUSCULES pour matcher le backend)
   const teamRoles = [
@@ -196,11 +171,7 @@ const TeamForm: React.FC = () => {
     { value: 'MANAGER', label: t('teams.roles.manager') },
   ];
 
-  const getAvailableRoles = () => {
-    const selectedCategory = teamServiceCategories.find(cat => cat.value === watchedInterventionType);
-    if (!selectedCategory) return teamRoles;
-    return teamRoles.filter(role => selectedCategory.roles.includes(role.value));
-  };
+  const getAvailableRoles = () => teamRoles;
 
   const handleAddMember = () => {
     const availableRoles = getAvailableRoles();
@@ -229,6 +200,7 @@ const TeamForm: React.FC = () => {
       name: formData.name.trim(),
       description: (formData.description || '').trim(),
       interventionType: formData.interventionType,
+      serviceItemCodes: formData.serviceItemCodes,
       members: formData.members.map(member => ({
         userId: member.userId,
         role: member.role,
@@ -253,7 +225,6 @@ const TeamForm: React.FC = () => {
 
   const filteredUsers = getFilteredUsers();
   const availableRoles = getAvailableRoles();
-  const selectedCategory = teamServiceCategories.find(cat => cat.value === watchedInterventionType);
 
   return (
     <div>
@@ -360,36 +331,8 @@ const TeamForm: React.FC = () => {
                   </div>
 
                   <div className="col-span-12">
-                    <Controller
-                      name="interventionType"
-                      control={control}
-                      // Liste riche (icone par categorie) -> Select du kit : une
-                      // <option> native ne peut porter aucun balisage.
-                      render={({ field, fieldState }) => (
-                        <Field>
-                          <FieldLabel htmlFor="team-intervention-type">{`${t('teams.fields.interventionType')} *`}</FieldLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger
-                              id="team-intervention-type"
-                              size="sm"
-                              className="w-full"
-                              aria-invalid={!!fieldState.error}
-                              onBlur={field.onBlur}
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {teamServiceCategories.map((cat) => (
-                                <SelectItem key={cat.value} value={cat.value}>
-                                  {getCategoryIcon(cat.value, 18)}
-                                  {cat.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
-                        </Field>
-                      )}
+                    <Controller name="serviceItemCodes" control={control}
+                      render={({ field }) => <ServiceCapabilitySelect value={field.value ?? []} onChange={field.onChange} />}
                     />
                   </div>
                 </div>
@@ -402,24 +345,7 @@ const TeamForm: React.FC = () => {
             <Card className="[--card-spacing:0px]">
               <CardContent>
                 {/* Bandeau catégorie : panneau plat -soft (badge icône + libellés) */}
-                {selectedCategory && (
-                  <div
-                    className="flex items-center gap-[7.5px] border-b border-solid border-border px-[9px] py-[7.5px]"
-                    style={{ backgroundColor: `${selectedCategory.color}18` }}
-                  >
-                    <div className="w-[36px] h-[36px] rounded-[10px] inline-flex items-center justify-center bg-card shrink-0" style={{ color: selectedCategory.color }}>
-                      {getCategoryIcon(selectedCategory.value, 20)}
-                    </div>
-                    <div className="min-w-0">
-                      <span className="block text-xs font-semibold uppercase tracking-wide text-foreground">
-                        {selectedCategory.label}
-                      </span>
-                      <span className="block mt-0.5 text-2xs text-muted-foreground">
-                        {selectedCategory.description}
-                      </span>
-                    </div>
-                  </div>
-                )}
+
 
                 <div className="p-2">
                   {/* Rôles autorisés */}

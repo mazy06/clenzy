@@ -24,6 +24,24 @@ public class PropertyTeamController {
         this.propertyTeamService = propertyTeamService;
     }
 
+    @GetMapping("/property/{propertyId}/associations")
+    public List<PropertyTeamDto> associations(@PathVariable Long propertyId) {
+        return propertyTeamService.getAssociations(propertyId);
+    }
+
+    @GetMapping("/property/{propertyId}/candidates")
+    public List<PropertyTeamService.AssociationCandidate> candidates(@PathVariable Long propertyId,
+                                                                    @RequestParam String serviceItemCode) {
+        return propertyTeamService.getAssociationCandidates(propertyId, serviceItemCode);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> removeAssociation(@PathVariable Long id) {
+        propertyTeamService.removeAssociation(id);
+        return ResponseEntity.noContent().build();
+    }
+
     /**
      * Recuperer l'equipe assignee a une propriete
      */

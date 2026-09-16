@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class ProviderTariffServiceTest {
     final ProviderTariffRepository repository = mock(ProviderTariffRepository.class);
-    final ProviderTariffService service = new ProviderTariffService(repository);
+    final ProviderTariffService service = new ProviderTariffService(repository, com.clenzy.service.CatalogTestFixture.reference());
 
     @Test void rejectsInvalidAmountsAndCurrenciesBeforeLockingOrWriting() {
         for (String amount : new String[]{"-1", "1000001", "12.001"})

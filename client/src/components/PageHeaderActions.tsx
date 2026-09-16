@@ -154,6 +154,7 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
                 icone cesse d'annoncer sur quoi il porte. C'est le DECLENCHEUR
                 qui est reduit, pas son contenu. */}
             <PopoverContent
+              data-header-filter-panel
               align="end"
               className={`max-h-[70dvh] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto p-2 ${MENU_LAYOUT_CLASS}`}
             >
@@ -187,6 +188,7 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
         <TooltipContent>{t('common.actions', 'Actions')}</TooltipContent>
       </Tooltip>
       <DropdownMenuContent
+        data-header-filter-panel
         align="end"
         className="max-h-[70dvh] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto p-1.5"
       >

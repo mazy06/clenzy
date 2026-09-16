@@ -321,6 +321,12 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     @Query("SELECT i.id FROM Intervention i WHERE i.serviceRequest.id = :serviceRequestId")
     Long findIdByServiceRequestId(@Param("serviceRequestId") Long serviceRequestId);
 
+    /** Affectations opérationnelles des besoins, chargées en lot et bornées à leur organisation. */
+    @Query("SELECT i FROM Intervention i JOIN FETCH i.serviceRequest sr LEFT JOIN FETCH i.assignedUser "
+         + "WHERE i.organizationId = :orgId AND sr.organizationId = :orgId AND sr.id IN :requestIds")
+    List<Intervention> findLinkedForServiceRequests(@Param("orgId") Long orgId,
+                                                   @Param("requestIds") List<Long> requestIds);
+
     /**
      * Trouver une intervention par son ID de session Stripe
      * EntityGraph pour charger property, property.owner et requestor (nécessaire pour les notifications et le DTO)
@@ -452,7 +458,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Exclut les interventions liees a une reservation masquee du planning.
      */
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
-           "WHERE p.owner.keycloakId = :keycloakId " +
+           "WHERE (p.owner.keycloakId = :keycloakId OR (p IS NULL AND i.requestor.keycloakId = :keycloakId)) " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
            "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id " +

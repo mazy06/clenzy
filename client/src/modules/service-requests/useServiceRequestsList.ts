@@ -14,13 +14,14 @@ import { useServiceRequestsListQuery, serviceRequestsListKeys } from '../../hook
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import type { ServiceRequest, AssignTeam, AssignUser } from './serviceRequestsUtils';
 
-export function useServiceRequestsList() {
+export function useServiceRequestsList(enabled = true) {
   // ─── React Query for data fetching ──────────────────────────────────
   const {
     serviceRequests,
     isLoading: loading,
+    isError: loadFailed,
     refetch,
-  } = useServiceRequestsListQuery();
+  } = useServiceRequestsListQuery(enabled);
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -367,7 +368,7 @@ export function useServiceRequestsList() {
     selectedStatus, setSelectedStatus,
     selectedPriority, setSelectedPriority,
     anchorEl, selectedServiceRequest,
-    serviceRequests, loading, filteredServiceRequests,
+    serviceRequests, loading, loadFailed, refetch, filteredServiceRequests,
     deleteDialogOpen, setDeleteDialogOpen,
     selectedRequestForDeletion,
     statusChangeDialogOpen, setStatusChangeDialogOpen,

@@ -73,7 +73,7 @@ class ReservationServiceTest {
                 propertyRepository, guestRepository, stripeService,
                 webhookEventPublisher,
                 cleaningPricingEngine
-        , org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class));
+        , org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), com.clenzy.service.CatalogTestFixture.reference());
 
         // Moteur ménage mocké : émule le résolveur (override logement > 0 prioritaire,
         // sinon conseil 95 €). lenient : la plupart des tests ne créent pas de ménage.

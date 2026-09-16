@@ -10,6 +10,7 @@ export interface AssignableTeam {
   available: boolean;
   /** Interventions déjà posées sur le créneau. */
   conflicts: number;
+  reason?: string | null;
 }
 
 /**
@@ -80,7 +81,7 @@ export interface InterventionProof {
 
 export interface AssignableTeams {
   teams: AssignableTeam[];
-  /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
+  /** Code canonique de prestation ; null si le besoin reste à qualifier. */
   requiredTeamType: string | null;
 }
 

@@ -1,3 +1,5 @@
+import AssignmentContactForm from '../service-requests/AssignmentContactForm';
+import { MANAGER_ROLES, OPERATIONAL_ROLES } from '../../constants/roles';
 import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
 import MyProviderServices from './MyProviderServices';
 import React, { useRef, useState } from 'react';
@@ -41,6 +43,7 @@ export default function MyAccountPage() {
   const { user, hasAnyRole } = useAuth();
   // Profils de terrain : conditions, justificatifs et zone d'intervention les
   // concernent tous. Ils vivaient dans /settings, hors de leur portee.
+  const canReceiveProposals = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
   const isFieldWorker = hasAnyRole([...FIELD_ROLES]);
   /**
    * Seul le circuit MENAGE genere des versements automatiques :
@@ -72,6 +75,12 @@ export default function MyAccountPage() {
       icon: <NotificationsIcon />,
       subtitle: t('account.subtitles.notifications', 'Ce dont vous voulez être averti, et par quel canal.'),
     },
+    ...(canReceiveProposals ? [{
+      key: 'solicitation',
+      label: t('assignmentFlow.contacts.title'),
+      icon: <NotificationsIcon />,
+      subtitle: t('assignmentFlow.contacts.help'),
+    }] : []),
     ...(isFieldWorker
       ? [
         {
@@ -203,6 +212,7 @@ export default function MyAccountPage() {
             <ProviderDocumentsCard onFileComplete={() => completeStep('upload_provider_documents')} />
           </div>
         )}
+        {activeKey === 'solicitation' && <AssignmentContactForm />}
         {activeKey === 'services' && <MyProviderServices />}
         {activeKey === 'coverage' && (
           // La zone rend l'intervenant trouvable par l'affectation automatique.

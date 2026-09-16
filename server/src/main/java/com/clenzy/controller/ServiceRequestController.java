@@ -81,8 +81,9 @@ public class ServiceRequestController {
                                         @RequestParam(required = false) Long reservationId,
                                         @RequestParam(required = false) com.clenzy.model.RequestStatus status,
                                         @RequestParam(required = false) com.clenzy.model.ServiceType serviceType,
+                                        @RequestParam(defaultValue = "false") boolean activeOnly,
                                         @AuthenticationPrincipal Jwt jwt) {
-        return service.searchWithRoleBasedAccess(pageable, userId, propertyId, reservationId, status, serviceType, jwt);
+        return service.searchWithRoleBasedAccess(pageable, userId, propertyId, reservationId, status, serviceType, jwt, activeOnly);
     }
 
     @DeleteMapping("/{id}")
@@ -97,7 +98,8 @@ public class ServiceRequestController {
     @Operation(summary = "Refuser une assignation",
                description = "L'équipe ou l'utilisateur assigné refuse la demande de service. " +
                            "La demande revient en PENDING et une re-assignation est tentée automatiquement.")
-    public ResponseEntity<ServiceRequestDto> refuse(@PathVariable Long id) {
+    public ResponseEntity<ServiceRequestDto> refuse(@PathVariable Long id,@AuthenticationPrincipal Jwt jwt) {
+        service.requireRefusalRecipient(id,jwt);
         ServiceRequestDto result = service.refuse(id);
         return ResponseEntity.ok(result);
     }

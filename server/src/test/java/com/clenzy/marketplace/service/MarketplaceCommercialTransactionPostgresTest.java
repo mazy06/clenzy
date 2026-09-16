@@ -53,13 +53,13 @@ class MarketplaceCommercialTransactionPostgresTest {
         when(users.findById(11L)).thenReturn(Optional.of(providerUser));
         var factory = new MarketplaceQuoteMissionFactory(mock(InterventionRepository.class), mock(PropertyRepository.class),
                 providers, users, requests, Clock.systemUTC(), org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class),
-                new MarketplaceExposureService(mock(MarketplaceExposureRuleRepository.class), Clock.systemUTC(), org.mockito.Mockito.mock(com.clenzy.marketplace.service.MarketplaceDecisionJournal.class), documentary()), mock(MarketplaceGeographicEligibility.class));
+                new MarketplaceExposureService(mock(MarketplaceExposureRuleRepository.class), Clock.systemUTC(), org.mockito.Mockito.mock(com.clenzy.marketplace.service.MarketplaceDecisionJournal.class), documentary()), mock(MarketplaceGeographicEligibility.class), com.clenzy.service.CatalogTestFixture.reference(),org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class), mock(com.clenzy.service.assignment.AcceptedServiceRequestConverter.class));
         service = new ServiceQuoteService(quotes, mock(InterventionRepository.class), users,
                 mock(ProviderAgreedRateRepository.class), mock(NotificationService.class), Clock.systemUTC(),
                 mock(DocumentGeneratorService.class), mock(ContactThreadService.class), mock(ServiceQuotePublisher.class),
                 mock(PlatformSettingsService.class), mock(PaymentTransactionRepository.class),
                 mock(DocumentGenerationRepository.class), mock(OrganizationRepository.class),
-                mock(com.clenzy.service.agent.supervision.SupervisionTriggerService.class), mock(QuoteDiscussionScope.class), factory, mock(InterventionAllocationGuard.class));
+                mock(com.clenzy.service.agent.supervision.SupervisionTriggerService.class), mock(QuoteDiscussionScope.class), factory, mock(InterventionAllocationGuard.class), mock(com.clenzy.service.assignment.AssignmentQuoteService.class));
         tx.executeWithoutResult(status -> {
             providerId = ((Number) em.createNativeQuery("INSERT INTO marketplace_providers (public_ref, display_name, email) VALUES (:ref, 'Baitly test', 'test@example.invalid') RETURNING id")
                     .setParameter("ref", UUID.randomUUID()).getSingleResult()).longValue();

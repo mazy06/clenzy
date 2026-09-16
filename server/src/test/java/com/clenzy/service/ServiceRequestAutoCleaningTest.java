@@ -75,7 +75,7 @@ class ServiceRequestAutoCleaningTest {
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
                 supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
-                organizationAccessGuard, allocationGuard, cancellationCoordination);
+                organizationAccessGuard, allocationGuard, cancellationCoordination, org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class));
 
         // Le moteur ménage est mocké : conseil 95 € (fourchette 80-110, 135 min).
         // lenient : certains tests s'arrêtent avant le calcul (skip idempotent).
@@ -114,9 +114,7 @@ class ServiceRequestAutoCleaningTest {
                 lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
                 return sr;
             });
-        when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
-        when(propertyTeamService.findAvailableTeamForProperty(anyLong(), any(), any(), any(), anyLong()))
-            .thenReturn(Optional.empty());
+
 
         var outcome = service.createAutomaticCleaningRequest(ORG_ID, PROPERTY_ID, CHECK_IN, CHECK_OUT, 42L);
 
@@ -193,7 +191,7 @@ class ServiceRequestAutoCleaningTest {
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> persisted(inv.getArgument(0)));
         WorkflowSettings ws = new WorkflowSettings();
         ws.setAutoAssignInterventions(false);
-        when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+
 
         var outcome = service.createAutomaticCleaningRequest(ORG_ID, PROPERTY_ID, CHECK_IN, CHECK_OUT, 42L);
 

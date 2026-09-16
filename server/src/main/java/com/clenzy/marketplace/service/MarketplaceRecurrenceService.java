@@ -65,9 +65,11 @@ public class MarketplaceRecurrenceService {
         if (quote.getServiceItemCode() != null && items.findByCode(quote.getServiceItemCode())
                 .map(item -> item.getRecurrence() == ServiceRecurrence.PER_STAY).orElse(false))
             throw new IllegalArgumentException("Cette prestation dépend des séjours ; utilisez l’automatisation des réservations");
-        var property = properties.findByIdWithOwner(quote.getPropertyId(), tenant.getRequiredOrganizationId())
+        var property = quote.getPropertyId() == null ? null : properties.findByIdWithOwner(quote.getPropertyId(), tenant.getRequiredOrganizationId())
                 .orElseThrow(() -> new AccessDeniedException("Logement indisponible"));
-        if (property.getOwner() == null) throw new IllegalStateException("Propriétaire introuvable");
+        Long consentingUser = property == null ? quote.getRequestedByUserId()
+            : property.getOwner() == null ? null : property.getOwner().getId();
+        if (consentingUser == null) throw new IllegalStateException("Demandeur introuvable");
         if (command.firstDate() == null || !command.firstDate().isAfter(today(property))
                 || !("DAYS".equals(command.intervalUnit()) || "MONTHS".equals(command.intervalUnit()))
                 || command.intervalCount() < 1 || command.intervalCount() > 3650
@@ -78,7 +80,7 @@ public class MarketplaceRecurrenceService {
             plan = new MarketplaceRecurrence(); plan.setQuoteRequestId(id);
             plan.setOrganizationId(tenant.getRequiredOrganizationId());
         }
-        plan.setConsentOwnerId(property.getOwner().getId());
+        plan.setConsentOwnerId(consentingUser);
         plan.configure(command.firstDate(), command.intervalUnit(), command.intervalCount(), command.leadDays());
         plan.setEnabled(command.enabled());
         return view(plans.saveAndFlush(plan));
@@ -94,9 +96,10 @@ public class MarketplaceRecurrenceService {
         if (quote.getStatus() != QuoteRequestStatus.ACCEPTED) {
             plan.setEnabled(false); return;
         }
-        var property = properties.findByIdWithOwner(quote.getPropertyId(), org).orElse(null);
-        if (property == null || property.getOwner() == null
-                || !Objects.equals(property.getOwner().getId(), plan.getConsentOwnerId())) {
+        var property = quote.getPropertyId() == null ? null : properties.findByIdWithOwner(quote.getPropertyId(), org).orElse(null);
+        Long consentingUser = quote.getPropertyId() == null ? quote.getRequestedByUserId()
+            : property == null || property.getOwner() == null ? null : property.getOwner().getId();
+        if (consentingUser == null || !Objects.equals(consentingUser, plan.getConsentOwnerId())) {
             plan.setEnabled(false); return;
         }
         if (plan.getNextDate().minusDays(plan.getLeadDays()).isAfter(today(property))) return;
@@ -112,11 +115,13 @@ public class MarketplaceRecurrenceService {
         dto.description = "Échéance du " + plan.getNextDate() + " issue du devis n° " + id
                 + ". Nouveau chiffrage et nouvelle attribution à valider.\n"
                 + description.substring(0, Math.min(description.length(), 800));
-        dto.propertyId = property.getId();
-        dto.userId = property.getOwner().getId();
+        dto.propertyId = property == null ? null : property.getId();
+        dto.userId = consentingUser;
         dto.desiredDate = plan.getNextDate().atTime(9, 0);
+        dto.serviceItemCode = source.getServiceItemCode();
         try { dto.serviceType = ServiceType.valueOf(source.getType()); }
         catch (IllegalArgumentException | NullPointerException unsupportedType) { dto.serviceType = ServiceType.OTHER; }
+        if (dto.serviceItemCode != null) dto.serviceType = ServiceType.OTHER;
         plan.generated(requests.createRecurringRequest(dto, id));
     }
 
@@ -126,7 +131,7 @@ public class MarketplaceRecurrenceService {
     }
     private LocalDate today(com.clenzy.model.Property property) {
         // Les logements historiques sans fuseau utilisent le défaut PMS Europe/Paris.
-        String zone = property.getTimezone();
+        String zone = property == null ? null : property.getTimezone();
         return LocalDate.now(clock.withZone(java.time.ZoneId.of(zone == null || zone.isBlank() ? "Europe/Paris" : zone)));
     }
 }

@@ -59,7 +59,7 @@ public record QuoteRequestDto(
             providerName,
             quote.getRequesterOrganizationId(),
             requesterOrganizationName,
-            quote.getPropertyId(),
+            quote.getServiceRequestId()!=null && quote.getStatus()!=QuoteRequestStatus.ACCEPTED?null:quote.getPropertyId(),
             quote.getCategoryCode(),
             quote.getServiceItemCode(),
             quote.getTitle(),

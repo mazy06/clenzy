@@ -72,4 +72,22 @@ class ProviderDocumentaryPostgresTest {
         assertThatThrownBy(() -> service.requireAssignment(mission,null)).hasMessageContaining("Revue documentaire");
     }
 
+    @Test void remoteWorkUsesExplicitProfessionalRulesWithoutBlanketSiteInsurance() throws Exception {
+        db.execute("CREATE TABLE marketplace_service_items(code text,execution_mode text)");
+        db.execute("INSERT INTO marketplace_service_items VALUES('accounts','REMOTE'),('cleaning','ON_SITE')");
+        try(var sql=getClass().getResourceAsStream("/db/changelog/changes/0467__service_execution_documents.sql")) {
+            db.execute(new String(sql.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+        }
+        review("ITEM:accounts","10");
+        assertThat(eligible("MA","ITEM:accounts",0)).isTrue();
+        review("ITEM:cleaning","10");
+        assertThat(eligible("MA","ITEM:cleaning",0)).isFalse();
+        db.execute("INSERT INTO provider_documentary_rules VALUES('MA','COMPANY','ITEM:accounts','LIABILITY_INSURANCE',false,1,'Exigence métier','staff')");
+        db.execute("UPDATE provider_documentary_reviews SET rule_version=1 WHERE service_scope='ITEM:accounts'");
+        assertThat(eligible("MA","ITEM:accounts",0)).isFalse();
+        db.execute("UPDATE provider_documentary_reviews SET document_ids='10,11' WHERE service_scope='ITEM:accounts'");
+        assertThat(eligible("MA","ITEM:accounts",0)).isTrue();
+        assertThat(eligible("MA","ITEM:accounts",11)).isFalse();
+    }
+
 }

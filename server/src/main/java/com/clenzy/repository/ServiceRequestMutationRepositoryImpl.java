@@ -42,22 +42,7 @@ public class ServiceRequestMutationRepositoryImpl implements ServiceRequestMutat
                 || !("team".equals(targetType) || "user".equals(targetType))) {
             throw new IllegalArgumentException("Une cible et un créneau valides sont requis");
         }
-        var keys = new TreeSet<String>();
-        if ("team".equals(targetType)) {
-            // Stabiliser la composition AVANT de lire les membres à verrouiller.
-            lockResource("baitly:assignment:team:" + targetId);
-            for (Object member : entityManager.createNativeQuery("SELECT user_id FROM team_members WHERE team_id = :team")
-                    .setParameter("team", targetId).getResultList()) {
-                keys.add("baitly:assignment:user:" + ((Number) member).longValue());
-            }
-        } else {
-            keys.add("baitly:assignment:user:" + targetId);
-        }
-        // Même ordre pour les équipes partageant plusieurs membres. Les verrous sont
-        // transactionnels, inter-processus, et ne portent aucune donnée personnelle.
-        for (String key : keys) {
-            lockResource(key);
-        }
+        lockAssignee(targetType, targetId);
         entityManager.flush();
         return previewAssignmentConflicts(requestId, interventionId, targetType, targetId, start, durationHours);
     }
@@ -74,6 +59,15 @@ public class ServiceRequestMutationRepositoryImpl implements ServiceRequestMutat
                 .setParameter("start", start)
                 .setParameter("finish", start.plusHours(durationHours != null && durationHours > 0 ? durationHours : 4))
                 .getSingleResult());
+    }
+
+    @Override
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void lockAssignee(String kind, Long id) {
+        if (id == null || id <= 0) throw new IllegalArgumentException("Prestataire invalide");
+        if ("team".equals(kind)) lockTeamAvailability(id);
+        else if ("user".equals(kind)) lockResource("baitly:assignment:user:" + id);
+        else throw new IllegalArgumentException("Type de prestataire invalide");
     }
 
     private void lockResource(String key) {
@@ -98,7 +92,7 @@ public class ServiceRequestMutationRepositoryImpl implements ServiceRequestMutat
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<com.clenzy.model.Team> findTeamForCompositionMutation(Long id) {
-        lockResource("baitly:assignment:team:" + id);
+        lockTeamAvailability(id);
         entityManager.flush();
         var team = entityManager.find(com.clenzy.model.Team.class, id);
         if (team != null) entityManager.refresh(team, LockModeType.PESSIMISTIC_WRITE);

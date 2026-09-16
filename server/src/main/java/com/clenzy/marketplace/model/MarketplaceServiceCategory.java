@@ -13,10 +13,7 @@ import java.time.LocalDateTime;
  * nature. Un enum aurait impose un deploiement pour chaque metier ajoute, alors
  * que le referentiel doit rester administrable.</p>
  *
- * <p>A ne pas confondre avec {@code ServiceType} / {@code InterventionType},
- * qui decrivent les interventions PLANIFIEES dans le PMS et restent inchanges :
- * ici on decrit ce qu'un professionnel VEND, la-bas ce que l'exploitation
- * EXECUTE.</p>
+ * Le même catalogue qualifie les offres commerciales et les besoins exécutés dans le PMS.
  */
 @Entity
 @Table(name = "marketplace_service_categories")
@@ -73,6 +70,11 @@ public class MarketplaceServiceCategory {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Column(name="professional_domain",nullable=false,length=60)
+    private String professionalDomain = "OTHER";
+    public String getProfessionalDomain() { return professionalDomain; }
+    public void setProfessionalDomain(String value) { professionalDomain=value; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

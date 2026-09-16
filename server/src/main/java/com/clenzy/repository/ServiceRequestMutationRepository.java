@@ -24,4 +24,6 @@ public interface ServiceRequestMutationRepository {
 
     /** Sérialise les modifications de disponibilités avec les attributions de cette équipe. */
     void lockTeamAvailability(Long teamId);
+    /** Même verrou pour une prestation asynchrone, sans réserver un créneau. */
+    void lockAssignee(String kind, Long id);
 }

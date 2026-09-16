@@ -167,10 +167,12 @@ public class CleaningPricingEngine {
     private final PricingConfigService pricingConfigService;
     private final ObjectMapper objectMapper;
     private final ProviderTariffRepository housekeeperRateRepository;
+    private final ProviderTariffService tariffs;
 
     public CleaningPricingEngine(PricingConfigService pricingConfigService,
                                  ObjectMapper objectMapper,
-                                 ProviderTariffRepository housekeeperRateRepository) {
+                                 ProviderTariffRepository housekeeperRateRepository, ProviderTariffService tariffs) {
+        this.tariffs = tariffs;
         this.pricingConfigService = pricingConfigService;
         this.objectMapper = objectMapper;
         this.housekeeperRateRepository = housekeeperRateRepository;
@@ -238,7 +240,7 @@ public class CleaningPricingEngine {
         CleaningQuote quote = quote(property, cleaningType, serviceDate);
 
         if (housekeeperUserId != null && property.getOrganizationId() != null) {
-            String key = ProviderTariffService.keyForType(cleaningType == null ? STANDARD_CLEANING : cleaningType);
+            String key = tariffs.keyForType(cleaningType == null ? STANDARD_CLEANING : cleaningType);
             ProviderTariff tariff = housekeeperRateRepository
                     .findByUserIdAndServiceKey(housekeeperUserId, key).orElse(null);
             if (tariff == null && !ProviderTariffService.CLEANING.equals(key)) {

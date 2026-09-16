@@ -11,7 +11,7 @@ import static org.mockito.Mockito.*;
 class MarketplaceGeographicEligibilityTest {
     final PropertyRepository properties = mock(PropertyRepository.class);
     final MarketplaceProviderZoneRepository zones = mock(MarketplaceProviderZoneRepository.class);
-    final MarketplaceGeographicEligibility service = new MarketplaceGeographicEligibility(properties, zones, mock(ProviderDocumentaryService.class));
+    final MarketplaceGeographicEligibility service = new MarketplaceGeographicEligibility(properties, zones, mock(ProviderDocumentaryService.class), com.clenzy.service.CatalogTestFixture.reference());
 
     @Test void changedCoverageBlocksApprovalBeforeStateChange() {
         var requests = mock(com.clenzy.marketplace.repository.MarketplaceQuoteRequestRepository.class);
@@ -19,14 +19,15 @@ class MarketplaceGeographicEligibilityTest {
         var factory = new MarketplaceQuoteMissionFactory(mock(com.clenzy.repository.InterventionRepository.class),
             properties, mock(com.clenzy.marketplace.repository.MarketplaceProviderRepository.class),
             mock(com.clenzy.repository.UserRepository.class), requests, java.time.Clock.systemUTC(),
-            mock(com.clenzy.service.InterventionAllocationGuard.class), mock(MarketplaceExposureService.class), geography);
+            mock(com.clenzy.service.InterventionAllocationGuard.class), mock(MarketplaceExposureService.class), geography, com.clenzy.service.CatalogTestFixture.reference(),org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class), mock(com.clenzy.service.assignment.AcceptedServiceRequestConverter.class));
         var request = new com.clenzy.marketplace.model.MarketplaceQuoteRequest();
         request.setId(9L); request.setProviderId(1L); request.setPropertyId(2L);
         request.setRequesterOrganizationId(3L);
         request.setStatus(com.clenzy.marketplace.model.QuoteRequestStatus.QUOTED);
+        when(requests.findById(9L)).thenReturn(Optional.of(request));
         when(requests.findForDiscussion(9L)).thenReturn(Optional.of(request));
         var quote = new com.clenzy.model.ServiceQuote(); quote.setMarketplaceRequestId(9L);
-        doThrow(new IllegalStateException("hors zone")).when(geography).requireCoverage(1L, 2L, 3L);
+        doThrow(new IllegalStateException("hors zone")).when(geography).requireService(1L, 2L, 3L, null, null, null);
         assertThatThrownBy(() -> factory.decide(quote, 3L, true, null)).hasMessage("hors zone");
         verify(requests, never()).decideIfStillQuoted(any(), any(), any(), any(), any());
     }
@@ -43,7 +44,7 @@ class MarketplaceGeographicEligibilityTest {
         request.setId(9L); request.setProviderId(1L); request.setPropertyId(2L);
         request.setRequesterOrganizationId(3L);
         when(requests.findById(9L)).thenReturn(Optional.of(request));
-        doThrow(new IllegalStateException("hors zone")).when(geography).requireCoverage(1L, 2L, 3L);
+        doThrow(new IllegalStateException("hors zone")).when(geography).requireService(1L, 2L, 3L, null, null, null);
         assertThatThrownBy(() -> quotes.quote(9L, 1L, java.math.BigDecimal.TEN, "EUR", null, null))
             .hasMessage("hors zone");
         verify(requests, never()).quoteIfStillOpen(any(), any(), any(), any(), any(), any(), any());

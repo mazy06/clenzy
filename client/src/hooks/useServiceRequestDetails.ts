@@ -11,11 +11,28 @@ export interface ServiceRequestDetailsData {
   title: string;
   description: string;
   type: string;
+  serviceItemCode?: string;
+  marketplaceRequestId?: number;
+  interventionId?: number;
   status: string;
   priority: string;
   // Property
   propertyId: number;
   propertyName: string;
+  propertyPhotoUrl?: string;
+  propertyTimezone?: string;
+  assignmentPhase?: string;
+  assignmentExpiresAt?: string;
+  autoAssignStatus?: string;
+  preferredTimeSlot?: string;
+  pricingMode?: string;
+  diagnosticFee?: number;
+  quoteLines?: { label: string; quantity: number; unitPrice: number }[];
+  reservationId?: number;
+  requestorPhotoUrl?: string;
+  requestorPhone?: string;
+  assignedToPhotoUrl?: string;
+  assignedToPhone?: string;
   propertyAddress: string;
   propertyCity: string;
   propertyPostalCode?: string;
@@ -90,7 +107,7 @@ export const serviceRequestDetailsKeys = {
 // Converter
 // ============================================================================
 
-function convertDetail(raw: Record<string, unknown>): ServiceRequestDetailsData {
+export function convertDetail(raw: Record<string, unknown>): ServiceRequestDetailsData {
   const property = raw.property as Record<string, unknown> | undefined;
   const user = raw.user as Record<string, unknown> | undefined;
   const requestor = raw.requestor as Record<string, unknown> | undefined;
@@ -101,18 +118,35 @@ function convertDetail(raw: Record<string, unknown>): ServiceRequestDetailsData 
     id: String(raw.id),
     title: (raw.title as string) || '',
     description: (raw.description as string) || '',
+    serviceItemCode: raw.serviceItemCode as string | undefined,
+    marketplaceRequestId: raw.marketplaceRequestId as number | undefined,
+    interventionId: (raw.interventionId ?? raw.convertedInterventionId) as number | undefined,
     type: ((raw.type as string) || (raw.serviceType as string) || 'other').toLowerCase(),
     status: (raw.status as string) || 'PENDING',
     priority: ((raw.priority as string) || 'medium').toLowerCase(),
     // Property
-    propertyId: (raw.propertyId as number) || 0,
+    propertyId: ((raw.propertyId ?? property?.id) as number) || 0,
     propertyName: (property?.name as string) || 'Propriété inconnue',
+    propertyPhotoUrl: property?.coverPhotoUrl as string | undefined,
+    propertyTimezone: property?.timezone as string | undefined,
+    assignmentPhase: raw.assignmentPhase as string | undefined,
+    assignmentExpiresAt: raw.assignmentExpiresAt as string | undefined,
+    autoAssignStatus: raw.autoAssignStatus as string | undefined,
+    preferredTimeSlot: raw.preferredTimeSlot as string | undefined,
+    pricingMode: raw.pricingMode as string | undefined,
+    diagnosticFee: raw.diagnosticFee as number | undefined,
+    quoteLines: raw.quoteLines as ServiceRequestDetailsData['quoteLines'],
+    reservationId: raw.reservationId as number | undefined,
+    requestorPhotoUrl: (user?.profilePictureUrl ?? requestor?.profilePictureUrl) as string | undefined,
+    requestorPhone: (user?.phoneNumber ?? requestor?.phoneNumber) as string | undefined,
+    assignedToPhotoUrl: assignedToUser?.profilePictureUrl as string | undefined,
+    assignedToPhone: assignedToUser?.phoneNumber as string | undefined,
     propertyAddress: (property?.address as string) || '',
     propertyCity: (property?.city as string) || '',
     propertyPostalCode: (property?.postalCode as string) || undefined,
     propertyCountry: (property?.country as string) || undefined,
     propertyType: (property?.type as string) || undefined,
-    propertyBedroomCount: (property?.bedroomCount as number) || undefined,
+    propertyBedroomCount: property?.bedroomCount as number | undefined,
     propertyBathroomCount: (property?.bathroomCount as number) || undefined,
     propertySquareMeters: (property?.squareMeters as number) || undefined,
     propertyMaxGuests: (property?.maxGuests as number) || undefined,
@@ -157,14 +191,14 @@ function convertDetail(raw: Record<string, unknown>): ServiceRequestDetailsData 
       | 'team'
       | undefined,
     // Planning
-    estimatedDuration: (raw.estimatedDurationHours as number) || (raw.estimatedDuration as number) || 1,
+    estimatedDuration: ((raw.estimatedDurationHours ?? raw.estimatedDuration) as number) || 0,
     dueDate: (raw.desiredDate as string) || (raw.dueDate as string) || '',
     guestCheckoutTime: (raw.guestCheckoutTime as string) || undefined,
     guestCheckinTime: (raw.guestCheckinTime as string) || undefined,
     // Costs
-    estimatedCost: (raw.estimatedCost as number) || undefined,
-    recommendedCost: (raw.recommendedCost as number) || undefined,
-    actualCost: (raw.actualCost as number) || undefined,
+    estimatedCost: raw.estimatedCost as number | undefined,
+    recommendedCost: raw.recommendedCost as number | undefined,
+    actualCost: raw.actualCost as number | undefined,
     // Flags
     urgent: (raw.urgent as boolean) || false,
     requiresApproval: (raw.requiresApproval as boolean) || false,

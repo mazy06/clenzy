@@ -39,6 +39,7 @@ class MarketplaceDecisionTransactionTest {
     TransactionTemplate transaction;
 
     @BeforeEach void setup() {
+        org.mockito.Mockito.lenient().when(allocations.save(any())).thenAnswer(inv -> inv.getArgument(0));
         var source = new DriverManagerDataSource("jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1", "sa", "");
         jdbc = new JdbcTemplate(source);
         jdbc.execute("CREATE TABLE decision_state (status varchar(20))");
@@ -46,7 +47,7 @@ class MarketplaceDecisionTransactionTest {
         var manager = new DataSourceTransactionManager(source);
         transaction = new TransactionTemplate(manager);
         var target = new MarketplaceQuoteMissionFactory(missions, properties, providers, users, requests,
-                Clock.systemUTC(), new InterventionAllocationGuard(allocations, availability, org.mockito.Mockito.mock(com.clenzy.service.ProviderPropertyEligibility.class), org.mockito.Mockito.mock(com.clenzy.marketplace.service.ProviderDocumentaryService.class)), exposure, mock(MarketplaceGeographicEligibility.class));
+                Clock.systemUTC(), new InterventionAllocationGuard(allocations, availability, org.mockito.Mockito.mock(com.clenzy.service.ProviderPropertyEligibility.class), org.mockito.Mockito.mock(com.clenzy.marketplace.service.ProviderDocumentaryService.class), org.mockito.Mockito.mock(com.clenzy.service.catalog.ServiceCapabilityPolicy.class), org.mockito.Mockito.mock(com.clenzy.service.catalog.ServiceCatalogReference.class)), exposure, mock(MarketplaceGeographicEligibility.class), com.clenzy.service.CatalogTestFixture.reference(),org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class), mock(com.clenzy.service.assignment.AcceptedServiceRequestConverter.class));
         var proxy = new ProxyFactory(target);
         proxy.addAdvice(new TransactionInterceptor(manager, new AnnotationTransactionAttributeSource()));
         service = (MarketplaceQuoteMissionFactory) proxy.getProxy();
@@ -84,6 +85,7 @@ class MarketplaceDecisionTransactionTest {
         quote.setProviderTeamId(request.getProviderTeamId());
         var provider = new MarketplaceProvider(); provider.setId(1L); provider.setUserId(11L); provider.setStatus(ProviderStatus.ACTIVE);
         var user = new User(); user.setId(11L);
+        when(requests.findById(9L)).thenReturn(Optional.of(request));
         when(requests.findForDiscussion(9L)).thenReturn(Optional.of(request));
         when(providers.findById(1L)).thenReturn(Optional.of(provider));
         when(exposure.isVisibleTo(provider, 7L)).thenReturn(true);
