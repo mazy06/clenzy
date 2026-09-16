@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.Team;
 import com.clenzy.model.User;
 import com.clenzy.repository.*;
+import com.clenzy.service.catalog.ServiceCatalogReference;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.*;
 import java.util.Optional;
@@ -16,7 +17,8 @@ class PersonalTeamAvailabilityInitializationTest {
     PersonalTeamService service;
     @BeforeEach void setup() {
         tenant.setOrganizationId(7L);
-        service = new PersonalTeamService(teams, users, tenant);
+        service = new PersonalTeamService(teams, users, tenant,
+                mock(ServiceRequestRepository.class), mock(ServiceCatalogReference.class));
     }
     @AfterEach void clear() { tenant.clear(); }
     @Test void creatingAPersonalTeamDoesNotCopyCalendarData() {

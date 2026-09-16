@@ -896,8 +896,8 @@ class StripeServiceTest {
         }
 
         @Test
-        @DisplayName("marks SR PAID, IN_PROGRESS, creates intervention")
-        void whenFound_thenSetsPaidAndCreatesIntervention() {
+        @DisplayName("marks SR PAID and IN_PROGRESS without creating an intervention")
+        void whenFound_thenSetsPaidWithoutIntervention() {
             ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
 
@@ -906,7 +906,9 @@ class StripeServiceTest {
             assertThat(sr.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
             assertThat(sr.getStatus()).isEqualTo(RequestStatus.IN_PROGRESS);
             assertThat(sr.getPaidAt()).isNotNull();
-            verify(serviceRequestService).createInterventionFromPaidServiceRequest(sr);
+            // Un paiement confirme le reglement, jamais le consentement du prestataire :
+            // la mission nait de l'acceptation de la demande ou du devis.
+            verify(serviceRequestService, never()).createInterventionFromPaidServiceRequest(any());
         }
 
         @Test
@@ -919,16 +921,16 @@ class StripeServiceTest {
         }
 
         @Test
-        @DisplayName("payment still confirmed when intervention creation fails")
-        void whenInterventionCreationFails_thenPaymentStillConfirmed() {
+        @DisplayName("an assignment flow in progress keeps its own status")
+        void whenAssignmentPhaseInProgress_thenStatusUntouched() {
             ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            sr.setAssignmentPhase("PROPOSED");
             when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
-            doThrow(new RuntimeException("creation err"))
-                    .when(serviceRequestService).createInterventionFromPaidServiceRequest(any());
 
             stripeService.confirmServiceRequestPayment("sess_sr");
 
             assertThat(sr.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.AWAITING_PAYMENT);
         }
 
         @Test

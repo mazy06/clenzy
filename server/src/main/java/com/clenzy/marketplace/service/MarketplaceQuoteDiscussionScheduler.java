@@ -3,6 +3,7 @@ package com.clenzy.marketplace.service;
 import com.clenzy.marketplace.repository.MarketplaceQuoteRequestRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,7 @@ public class MarketplaceQuoteDiscussionScheduler {
     }
 
     @Scheduled(fixedDelayString = "${baitly.marketplace.discussions.delay-ms:5000}")
+    @SchedulerLock(name = "baitly-marketplace-quote-discussions", lockAtMostFor = "PT5M")
     public void publishPending() {
         for (Long id : requests.findPendingDiscussions()) {
             try { publisher.publish(id); }

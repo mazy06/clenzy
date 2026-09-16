@@ -4,6 +4,7 @@ import com.clenzy.service.ServiceQuoteAmendmentPdfService;
 import com.clenzy.service.ServiceQuoteAmendmentArchives;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ public class ServiceQuoteAmendmentArchiveScheduler {
     }
 
     @Scheduled(fixedDelayString = "${baitly.amendment-archives.delay-ms:60000}")
+    @SchedulerLock(name = "baitly-amendment-archives", lockAtMostFor = "PT10M")
     public void archiveDue() {
         archives.discoverMissing();
         for (int i = 0; i < 5; i++) {

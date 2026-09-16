@@ -4,6 +4,7 @@ import com.clenzy.payment.StripeGateway;
 import com.stripe.model.Refund;
 import com.stripe.param.RefundCreateParams;
 import org.springframework.jdbc.core.JdbcTemplate;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -24,6 +25,7 @@ public class MissionFinancialWorker {
     }
 
     @Scheduled(initialDelayString="${clenzy.marketplace.financial-check-ms:60000}", fixedDelayString="${clenzy.marketplace.financial-check-ms:60000}")
+    @SchedulerLock(name = "baitly-mission-financial-worker", lockAtMostFor = "PT10M")
     public void run() {
         for (Long id : db.queryForList("SELECT quote_id FROM mission_financial_cases WHERE next_check_at<=now() ORDER BY next_check_at LIMIT 20", Long.class)) {
             if (db.update("UPDATE mission_financial_cases SET next_check_at=now()+interval '5 minutes' WHERE quote_id=? AND next_check_at<=now()", id)==0) continue;

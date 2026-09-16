@@ -4,8 +4,10 @@ import com.clenzy.model.Team;
 import com.clenzy.model.TeamMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.catalog.ServiceCatalogReference;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Equipe PERSONNELLE d'un intervenant — l'« equipe implicite » d'une personne.
@@ -46,13 +50,50 @@ public class PersonalTeamService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
+    private final ServiceRequestRepository serviceRequestRepository;
+    private final ServiceCatalogReference catalog;
 
     public PersonalTeamService(TeamRepository teamRepository,
                                UserRepository userRepository,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               ServiceRequestRepository serviceRequestRepository,
+                               ServiceCatalogReference catalog) {
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.serviceRequestRepository = serviceRequestRepository;
+        this.catalog = catalog;
+    }
+
+    /** Capacites declarees de l'identite, lues dans la transaction qui possede la collection. */
+    @Transactional(readOnly = true)
+    public Set<String> capabilities(String keycloakId) {
+        return findCanonicalByKeycloakId(keycloakId)
+                .map(team -> Set.copyOf(team.getServiceItemCodes()))
+                .orElse(Set.of());
+    }
+
+    /**
+     * Remplace les capacites declarees de l'identite.
+     *
+     * <p>Un retrait est refuse tant qu'une mission en cours s'appuie sur l'equipe :
+     * la capacite a servi a l'attribuer, la supprimer invaliderait l'accord deja pris.
+     * Un ajout reste toujours possible.</p>
+     */
+    @Transactional
+    public Set<String> replaceCapabilities(String keycloakId, Set<String> codes) {
+        final Team own = getOrCreateCanonicalByKeycloakId(keycloakId);
+        final Team team = serviceRequestRepository.findTeamForCompositionMutation(own.getId()).orElseThrow();
+        if (!codes.containsAll(team.getServiceItemCodes())
+                && serviceRequestRepository.teamHasActiveAssignments(team.getId())) {
+            throw new com.clenzy.exception.TeamCompositionConflictException();
+        }
+        final Set<String> valid = new LinkedHashSet<>();
+        for (String code : codes) {
+            valid.add(catalog.resolve(code, "OTHER", team.getServiceItemCodes().contains(code) ? code : null, "OTHER"));
+        }
+        team.setServiceItemCodes(valid);
+        return Set.copyOf(valid);
     }
 
     /** Equipe personnelle existante, sans en creer. */

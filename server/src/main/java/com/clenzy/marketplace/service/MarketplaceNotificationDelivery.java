@@ -7,6 +7,7 @@ import com.clenzy.model.UserRole;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import org.springframework.beans.factory.annotation.Value;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import java.util.List;
@@ -28,6 +29,7 @@ public class MarketplaceNotificationDelivery {
         this.outbox=outbox; this.providers=providers; this.imports=imports; this.emails=emails; this.notifications=notifications;
     }
     @Scheduled(fixedDelayString="${baitly.marketplace.notification-delay-ms:60000}")
+    @SchedulerLock(name = "baitly-marketplace-notification-delivery", lockAtMostFor = "PT10M")
     public void retryDue() {
         for (UUID id : outbox.due()) {
             try { deliver(id); }

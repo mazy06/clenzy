@@ -2,8 +2,10 @@ package com.clenzy.service;
 
 import com.clenzy.model.Team;
 import com.clenzy.model.User;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.catalog.ServiceCatalogReference;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.Test;
 import java.util.Optional;
@@ -14,7 +16,8 @@ class PersonalTeamServiceTest {
     final TeamRepository teams = mock(TeamRepository.class);
     final UserRepository users = mock(UserRepository.class);
     final TenantContext tenant = new TenantContext();
-    final PersonalTeamService service = new PersonalTeamService(teams, users, tenant);
+    final PersonalTeamService service = new PersonalTeamService(teams, users, tenant,
+            mock(ServiceRequestRepository.class), mock(ServiceCatalogReference.class));
 
     @Test void switchingClientOrganizationKeepsTheSamePersonalCapabilityProfile() {
         var user = new User(); user.setId(9L);

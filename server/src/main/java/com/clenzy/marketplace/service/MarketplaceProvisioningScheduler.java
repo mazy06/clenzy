@@ -1,6 +1,7 @@
 package com.clenzy.marketplace.service;
 
 import org.slf4j.LoggerFactory;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ public class MarketplaceProvisioningScheduler {
     }
 
     @Scheduled(fixedDelayString = "${clenzy.marketplace.provisioning-delay-ms:60000}")
+    @SchedulerLock(name = "baitly-marketplace-provisioning", lockAtMostFor = "PT15M")
     public void retryDue() {
         for (Long id : jobs.due()) {
             try { onboarding.onboard(id); }

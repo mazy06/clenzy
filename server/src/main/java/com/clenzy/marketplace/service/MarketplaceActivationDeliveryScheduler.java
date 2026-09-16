@@ -5,6 +5,7 @@ import com.clenzy.marketplace.repository.MarketplaceProviderRepository;
 import com.clenzy.service.TokenEncryptionService;
 import com.clenzy.util.StringUtils;
 import org.slf4j.LoggerFactory;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,7 @@ public class MarketplaceActivationDeliveryScheduler {
     }
 
     @Scheduled(fixedDelayString = "${baitly.marketplace.activation-delivery-delay-ms:60000}")
+    @SchedulerLock(name = "baitly-marketplace-activation-delivery", lockAtMostFor = "PT10M")
     public void retryDue() {
         deliveries.discardInvalid();
         for (Long id : deliveries.due()) {

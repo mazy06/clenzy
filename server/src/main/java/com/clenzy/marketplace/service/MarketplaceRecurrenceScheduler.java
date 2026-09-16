@@ -2,6 +2,7 @@ package com.clenzy.marketplace.service;
 
 import com.clenzy.marketplace.repository.MarketplaceRecurrenceRepository;
 import com.clenzy.tenant.TenantScopedExecutor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import java.time.Clock;
@@ -19,6 +20,7 @@ public class MarketplaceRecurrenceScheduler {
         this.plans = plans; this.service = service; this.tenants = tenants; this.clock = clock;
     }
     @Scheduled(fixedDelayString = "${baitly.marketplace.recurrence.delay-ms:3600000}")
+    @SchedulerLock(name = "baitly-marketplace-recurrence", lockAtMostFor = "PT30M")
     public void generateDue() {
         // Borne large pour les logements à UTC+14 ; le service tranche dans leur fuseau.
         for (var due : plans.findDue(LocalDate.now(clock.withZone(java.time.ZoneOffset.UTC)).plusDays(1))) {
