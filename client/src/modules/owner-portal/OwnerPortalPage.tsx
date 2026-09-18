@@ -572,11 +572,13 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                 value={fmtCurrency(statement.totalExpenses)}
                 iconClassName="text-warning"
               />
+              {/* Le seul chiffre que le propriétaire touche réellement ; revenu,
+                    commissions, frais OTA et dépenses ne font que le composer. */}
               <StatTile
+                feature
                 icon={<PayoutIcon />}
                 label={t('ownerPortal.netAmount', 'Montant net')}
                 value={fmtCurrency(statement.netAmount)}
-                iconClassName="text-success"
               />
             </div>
           </div>

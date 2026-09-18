@@ -251,11 +251,14 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           label={t('supervision.portfolio.properties', 'Logements pilotés')}
           value={portfolio.propertyCount}
         />
+        {/* La file d'attente de l'humain. Logements pilotés, temps gagné et
+            actions auto sont des résultats ; celui-là est un travail. */}
         <StatTile
+          feature
           icon={<CheckCircle />}
           label={t('supervision.portfolio.pendingLabel', 'À valider')}
           value={pendingTotal}
-          iconClassName={pendingTotal > 0 ? 'text-warning' : 'text-success'}
+          iconClassName={pendingTotal > 0 ? 'text-warning-ink' : 'text-success-ink'}
         />
         <StatTile
           icon={<Schedule />}
