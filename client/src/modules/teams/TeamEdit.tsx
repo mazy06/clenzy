@@ -272,7 +272,7 @@ const TeamEdit: React.FC = () => {
   }
 
   return (
-    <div className="p-4">
+    <div>
       <PageHeader
         title="Modifier l'équipe"
         subtitle="Modifiez les détails de l'équipe"

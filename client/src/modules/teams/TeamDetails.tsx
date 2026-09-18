@@ -112,7 +112,7 @@ const TeamDetails: React.FC = () => {
   }
 
   return (
-    <div className="p-4">
+    <div>
       <PageHeader
         title={team.name}
         subtitle="Détails de l'équipe et de ses membres"

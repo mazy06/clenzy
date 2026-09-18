@@ -186,7 +186,11 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       <PageHeader
         title={t('notifications.title')}
         subtitle={
@@ -220,191 +224,193 @@ export default function NotificationsPage() {
           </>
         }
       />
+      <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
 
-      <PageTabs
-          options={tabs.map((tab) => ({
-            value: tab.value,
-            label: tab.label,
-            badge: tab.value === 'unread' && unreadCount > 0 ? unreadCount : undefined,
-            badgeColor: 'primary' as const,
-          }))}
-          value={activeTab}
-          onChange={(v) => setActiveTab(v as typeof activeTab)}
-          size="compact"
-          paper={false}
-          mb={1}
-        />
+        <PageTabs
+            options={tabs.map((tab) => ({
+              value: tab.value,
+              label: tab.label,
+              badge: tab.value === 'unread' && unreadCount > 0 ? unreadCount : undefined,
+              badgeColor: 'primary' as const,
+            }))}
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as typeof activeTab)}
+            size="compact"
+            paper={false}
+            mb={1}
+          />
 
-      {/* Deux colonnes distinctes plutôt qu'une carte scindée par un filet : la
-          file d'événements et l'événement lu sont deux objets, séparés par une
-          gouttière. Sous le seuil, le détail prend toute la place (master-detail
-          mobile) et un bouton Retour ramène à la file. */}
-      <div
-        className={cn(
-          'grid min-h-0 flex-1 grid-cols-1 gap-3',
-          !listIsEmpty && 'min-[900px]:grid-cols-[minmax(320px,380px)_1fr]',
-        )}
-      >
+        {/* Deux colonnes distinctes plutôt qu'une carte scindée par un filet : la
+            file d'événements et l'événement lu sont deux objets, séparés par une
+            gouttière. Sous le seuil, le détail prend toute la place (master-detail
+            mobile) et un bouton Retour ramène à la file. */}
         <div
           className={cn(
-            'flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card',
-            selected && 'hidden min-[900px]:flex',
+            'grid min-h-0 flex-1 grid-cols-1 gap-3',
+            !listIsEmpty && 'min-[900px]:grid-cols-[minmax(320px,380px)_1fr]',
           )}
         >
-          <DataFetchWrapper
-            loading={isLoading}
-            error={error ? (error instanceof Error ? error.message : String(error)) : null}
-            onRetry={() => {
-              notificationsApi.resetAvailability();
-              refetch();
-            }}
-            isEmpty={notifications.length === 0}
-            emptyState={
-              activeTab === 'all' ? (
-                <ShowcaseEmpty
-                  eyebrow={{ icon: <NotificationsNone size={14} strokeWidth={1.75} />, label: t('notifications.title') }}
-                  title={t('notifications.showcase.title')}
-                  description={t('notifications.showcase.description')}
-                  action={
-                    <Button onClick={() => navigate('/settings?tab=notifications')}>
-                      {t('notifications.showcase.action')}
-                    </Button>
-                  }
-                />
-              ) : (
-                <EmptyState
-                  icon={<NotificationsNone />}
-                  title={t('notifications.empty')}
-                  description={t('notifications.emptyFilter')}
-                  variant="transparent"
-                />
-              )
-            }
+          <div
+            className={cn(
+              'flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card',
+              selected && 'hidden min-[900px]:flex',
+            )}
           >
-            <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-2">
-              {groups.map((group) => (
-                <div className="flex flex-col gap-2" key={group.jour}>
-                  <h3 className="m-0 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    {group.label}
-                  </h3>
-                  {group.items.map((notification) => {
-                    const style = categoryStyle(notification.category);
-                    const active = notification.id === selectedId;
-                    return (
-                      <div
-                        key={notification.id}
-                        data-notif-row
-                        role="button"
-                        tabIndex={0}
-                        aria-current={active || undefined}
-                        onClick={() => handleSelect(notification)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleSelect(notification);
-                          }
-                        }}
-                        className={cn(
-                          'group/notification flex cursor-pointer items-start gap-3 rounded-xl border border-solid p-3 text-start transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
-                          active
-                            ? 'border-primary/40 bg-primary-soft/50'
-                            : cn('hover:bg-accent', !notification.read ? 'border-primary/25 bg-card' : 'border-border bg-card/60'),
-                        )}
-                      >
-                        <span
+            <DataFetchWrapper
+              loading={isLoading}
+              error={error ? (error instanceof Error ? error.message : String(error)) : null}
+              onRetry={() => {
+                notificationsApi.resetAvailability();
+                refetch();
+              }}
+              isEmpty={notifications.length === 0}
+              emptyState={
+                activeTab === 'all' ? (
+                  <ShowcaseEmpty
+                    eyebrow={{ icon: <NotificationsNone size={14} strokeWidth={1.75} />, label: t('notifications.title') }}
+                    title={t('notifications.showcase.title')}
+                    description={t('notifications.showcase.description')}
+                    action={
+                      <Button onClick={() => navigate('/settings?tab=notifications')}>
+                        {t('notifications.showcase.action')}
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    icon={<NotificationsNone />}
+                    title={t('notifications.empty')}
+                    description={t('notifications.emptyFilter')}
+                    variant="transparent"
+                  />
+                )
+              }
+            >
+              <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-2">
+                {groups.map((group) => (
+                  <div className="flex flex-col gap-2" key={group.jour}>
+                    <h3 className="m-0 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      {group.label}
+                    </h3>
+                    {group.items.map((notification) => {
+                      const style = categoryStyle(notification.category);
+                      const active = notification.id === selectedId;
+                      return (
+                        <div
+                          key={notification.id}
+                          data-notif-row
+                          role="button"
+                          tabIndex={0}
+                          aria-current={active || undefined}
+                          onClick={() => handleSelect(notification)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleSelect(notification);
+                            }
+                          }}
                           className={cn(
-                            'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
-                            style.accent,
+                            'group/notification flex cursor-pointer items-start gap-3 rounded-xl border border-solid p-3 text-start transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+                            active
+                              ? 'border-primary/40 bg-primary-soft/50'
+                              : cn('hover:bg-accent', !notification.read ? 'border-primary/25 bg-card' : 'border-border bg-card/60'),
                           )}
                         >
-                          {style.icon}
-                        </span>
-
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2">
-                            <span className="truncate text-sm font-semibold text-foreground">
-                              {notification.notificationKey
-                                ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
-                                : notification.title}
-                            </span>
-                            {!notification.read && (
-                              <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+                          <span
+                            className={cn(
+                              'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
+                              style.accent,
                             )}
+                          >
+                            {style.icon}
                           </span>
-                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                            {notification.message}
-                          </span>
-                        </span>
 
-                        <span className="flex shrink-0 items-center gap-1">
-                          <span className="text-2xs text-faint whitespace-nowrap">
-                            {timeAgo(notification.createdAt, t, currentLanguage)}
-                          </span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex opacity-0 transition-opacity duration-150 group-hover/notification:opacity-100">
-                                <Button
-                                  variant="ghost"
-                                  size="icon-xs"
-                                  aria-label={t('common.delete')}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(notification.id);
-                                  }}
-                                  className="text-faint hover:text-destructive"
-                                >
-                                  <DeleteOutline size={15} strokeWidth={1.75} />
-                                </Button>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span className="truncate text-sm font-semibold text-foreground">
+                                {notification.notificationKey
+                                  ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
+                                  : notification.title}
                               </span>
-                            </TooltipTrigger>
-                            <TooltipContent>{t('common.delete')}</TooltipContent>
-                          </Tooltip>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-            {totalElements > perPage && (
-              <PagePagination
-                count={totalElements}
-                page={page}
-                onPageChange={(p) => setPage(p)}
-                rowsPerPage={perPage}
-                className="shrink-0 border-t border-border px-2"
-              />
-            )}
-          </DataFetchWrapper>
-        </div>
+                              {!notification.read && (
+                                <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+                              )}
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                              {notification.message}
+                            </span>
+                          </span>
 
-        {/* ── Volet droit : l'événement lu, ou l'invitation à en choisir un ── */}
-        {!listIsEmpty && (
-          <div className={cn('flex min-h-0 min-w-0 flex-col', !selected && 'hidden min-[900px]:flex')}>
-            {selected ? (
-              <NotificationDetailCard
-                key={selected.id}
-                notification={selected}
-                showBack={isMobile}
-                onClose={() => setSelectedSnapshot(null)}
-                onDelete={handleDelete}
-              />
-            ) : (
-              <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
-                <EmptyState
-                  variant="transparent"
-                  icon={<NotificationsNone />}
-                  title={t('notifications.detail.selectTitle', 'Sélectionnez une notification')}
-                  description={t(
-                    'notifications.detail.selectHint',
-                    "Choisissez un événement à gauche pour lire son détail complet et les actions possibles.",
-                  )}
-                />
+                          <span className="flex shrink-0 items-center gap-1">
+                            <span className="text-2xs text-faint whitespace-nowrap">
+                              {timeAgo(notification.createdAt, t, currentLanguage)}
+                            </span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex opacity-0 transition-opacity duration-150 group-hover/notification:opacity-100">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    aria-label={t('common.delete')}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(notification.id);
+                                    }}
+                                    className="text-faint hover:text-destructive"
+                                  >
+                                    <DeleteOutline size={15} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('common.delete')}</TooltipContent>
+                            </Tooltip>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-            )}
+              {totalElements > perPage && (
+                <PagePagination
+                  count={totalElements}
+                  page={page}
+                  onPageChange={(p) => setPage(p)}
+                  rowsPerPage={perPage}
+                  className="shrink-0 border-t border-border px-2"
+                />
+              )}
+            </DataFetchWrapper>
           </div>
-        )}
+
+          {/* ── Volet droit : l'événement lu, ou l'invitation à en choisir un ── */}
+          {!listIsEmpty && (
+            <div className={cn('flex min-h-0 min-w-0 flex-col', !selected && 'hidden min-[900px]:flex')}>
+              {selected ? (
+                <NotificationDetailCard
+                  key={selected.id}
+                  notification={selected}
+                  showBack={isMobile}
+                  onClose={() => setSelectedSnapshot(null)}
+                  onDelete={handleDelete}
+                />
+              ) : (
+                <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
+                  <EmptyState
+                    variant="transparent"
+                    icon={<NotificationsNone />}
+                    title={t('notifications.detail.selectTitle', 'Sélectionnez une notification')}
+                    description={t(
+                      'notifications.detail.selectHint',
+                      "Choisissez un événement à gauche pour lire son détail complet et les actions possibles.",
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

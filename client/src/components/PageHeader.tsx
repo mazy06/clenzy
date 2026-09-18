@@ -60,6 +60,17 @@ interface PageHeaderProps {
    */
   anchored?: boolean;
   /**
+   * Le parent espace deja ce header — conteneur en {@code gap} ou
+   * {@code space-y}.
+   *
+   * <p>Sans cela la gouttiere du parent S'AJOUTE a la marge basse du header :
+   * un parent en {@code gap-3} donne 24 px sous le bandeau la ou la maquette
+   * en veut 12. Neutraliser depuis la page ne suffit pas — {@code mb-0} ne
+   * remplace que le palier de base, {@code lg:mb-3} survit a la fusion
+   * tailwind-merge et le doublon reste sur le seul palier ou il se voit.</p>
+   */
+  selfSpaced?: boolean;
+  /**
    * Element optionnel rendu inline a droite du titre (meme ligne que le h1).
    * Typiquement une puce de statut decrivant l'entite (Actif/Inactif, Brouillon).
    * Separe ce que l'entite EST (titre + adornment) de ce qu'on peut FAIRE (actions).
@@ -121,6 +132,7 @@ export default function PageHeader({
   iconBadge,
   iconBadgeColor,
   anchored = true,
+  selfSpaced = true,
   titleAdornment,
   backPath,
   backLabel = 'Retour',
@@ -190,7 +202,8 @@ export default function PageHeader({
   return (
     <header
       className={cn(
-        'mb-1.5 flex flex-col gap-1.5 lg:mb-3',
+        'flex flex-col gap-1.5',
+        selfSpaced && 'mb-1.5 lg:mb-3',
         anchored && [
           'bg-card shadow-[inset_0_-1px_0_var(--bui-border)]',
           // Deborde le padding du conteneur, puis le retablit dedans.

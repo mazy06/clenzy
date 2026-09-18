@@ -370,13 +370,11 @@ function ManagedServiceRequestsList({ embedded = false, actionsContainer, filter
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
-
-      {/* Portal filters into parent's PageHeader when embedded */}
-      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
-
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       {!embedded && (
         <div className="shrink-0">
           <PageHeader
@@ -390,196 +388,204 @@ function ManagedServiceRequestsList({ embedded = false, actionsContainer, filter
           />
         </div>
       )}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Portal actions into parent's PageHeader when embedded */}
+        {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
-      {(isAdmin() || isManager()) && <ServiceReferenceIssues />}
-      {!loadFailed && !loading && viewMode !== "map" && (
-        <div className="mb-2 flex shrink-0 justify-end">{indicators}</div>
-      )}
+        {/* Portal filters into parent's PageHeader when embedded */}
+        {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
-      {/* Liste des demandes de service */}
-      {viewMode === 'map' ? <ServiceRequestsMapView filters={mapFilters} /> : loadFailed ? <Alert variant="destructive"><AlertDescription>
-        {t('serviceRequests.loadError')}
-        <Button variant="outline" onClick={() => void refetch()}>{t('common.retry')}</Button>
-      </AlertDescription></Alert> : loading ? <Skeleton className="h-48 w-full" /> : visibleRequests.length === 0 ? (
-        <EmptyState
-          icon={<Description />}
-          title={t('serviceRequests.noRequestFound')}
-          description={`${
-            isAdmin() || isManager()
-              ? t('serviceRequests.noRequestCreated')
-              : t('serviceRequests.noRequestAssigned')
-          } — ${t('serviceRequests.requestsDescription')}`}
-          action={(isAdmin() || isManager() || isHost()) && (
-            <Button variant="outline" size="sm" onClick={() => navigate('/service-requests/new')}>
-              <Add size={16} strokeWidth={1.75} />
-              {t('serviceRequests.createFirst')}
-            </Button>
-          )}
-        />
-      ) : viewMode === 'grid' ? (
-        <ServiceRequestsGridView
-          serviceRequests={paginatedServiceRequests}
-          totalCount={visibleRequests.length}
-          page={page}
-          onPageChange={setPage}
-          onMenuOpen={handleMenuOpen}
-          typeIcons={typeIcons}
-          statuses={statuses}
-          priorities={priorities}
-          statusColors={statusColors}
-          priorityColors={priorityColors}
-          navigate={navigate}
-        />
-      ) : (
-        <ServiceRequestsTableView
-          serviceRequests={paginatedServiceRequests}
-          totalCount={visibleRequests.length}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setPage}
-          containerRef={listContainerRef}
-          onMenuOpen={handleMenuOpen}
-          navigate={navigate}
-        />
-      )}
 
-      {/* Menu contextuel */}
-      <DropdownMenu
-        open={Boolean(anchorEl)}
-        onOpenChange={(next) => { if (!next) handleMenuClose(); }}
-      >
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            aria-hidden
-            tabIndex={-1}
-            className="fixed pointer-events-none opacity-0"
-            // Coordonnees issues du rectangle de l'ancre : valeurs d'execution,
-            // donc style inline (une classe Tailwind ne peut pas naitre d'une
-            // variable). `left` et non `inset-inline-start` : le rectangle est
-            // toujours mesure depuis le bord gauche du viewport, meme en RTL.
-            style={anchorRect
-              ? { left: anchorRect.left, top: anchorRect.top, width: anchorRect.width, height: anchorRect.height }
-              : { left: 0, top: 0, width: 0, height: 0 }}
-          />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-auto min-w-[220px]"
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            lastAnchorRef.current?.focus();
-          }}
-        >
-          <DropdownMenuItem onSelect={handleViewDetails}>
-            <Visibility size={20} strokeWidth={1.75} />
-            {t('serviceRequests.viewDetails')}
-          </DropdownMenuItem>
-
-          {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
-          {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
-            <DropdownMenuItem onSelect={() => handleAssignServiceRequest(selectedServiceRequest)}>
-              {/* Icone teintee : l'assignation est l'action mise en avant de ce
-                  menu. La teinte vient du jeton de marque, pas d'une prop MUI. */}
-              <Assignment size={20} strokeWidth={1.75} className="text-primary" />
-              {t('serviceRequests.assign')}
-            </DropdownMenuItem>
-          )}
-
-          {/* Option de modification - toujours visible si permissions */}
-          {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
-            <DropdownMenuItem onSelect={handleEdit}>
-              <Edit size={20} strokeWidth={1.75} />
-              {t('serviceRequests.modify')}
-            </DropdownMenuItem>
-          )}
-
-          {/* Option de suppression - seulement si pas approuvee */}
-          {selectedServiceRequest && canDeleteServiceRequest(selectedServiceRequest) && (
-            <DropdownMenuItem onSelect={handleDelete}>
-              <Delete size={20} strokeWidth={1.75} />
-              {t('serviceRequests.delete')}
-            </DropdownMenuItem>
-          )}
-
-          {/* Option d'annulation - seulement si approuvee */}
-          {selectedServiceRequest && canCancelServiceRequest(selectedServiceRequest) && (
-            <DropdownMenuItem
-              onSelect={() => {
-                setSelectedRequestForStatusChange(selectedServiceRequest);
-                setNewStatus('CANCELLED');
-                setStatusChangeDialogOpen(true);
-              }}
-            >
-              <Cancel size={20} strokeWidth={1.75} className="text-warning" />
-              {/* Deux lignes : libelle d'action + delai restant en appui. */}
-              <span className="flex flex-col">
-                <span>{t('serviceRequests.cancel')}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
-                </span>
-              </span>
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Dialogs */}
-      <DeleteConfirmDialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        onConfirm={confirmDelete}
-        requestTitle={selectedRequestForDeletion?.title}
-        t={t}
-      />
-
-      <StatusChangeDialog
-        open={statusChangeDialogOpen}
-        onClose={() => { if (!changingStatus) setStatusChangeDialogOpen(false); }}
-        onConfirm={confirmStatusChange}
-        requestTitle={selectedRequestForStatusChange?.title}
-        newStatus={newStatus}
-        pending={changingStatus}
-        onStatusChange={setNewStatus}
-        statuses={statuses.filter(s =>
-          s.value === selectedRequestForStatusChange?.status ||
-          (s.value === "REJECTED" && selectedRequestForStatusChange?.status === "PENDING") ||
-          (s.value === "CANCELLED" && ["PENDING", "ASSIGNED", "AWAITING_PAYMENT", "IN_PROGRESS"].includes(selectedRequestForStatusChange?.status ?? ""))
+        {(isAdmin() || isManager()) && <ServiceReferenceIssues />}
+        {!loadFailed && !loading && viewMode !== "map" && (
+          <div className="mb-2 flex shrink-0 justify-end">{indicators}</div>
         )}
-        t={t}
-      />
 
-      <AssignDialog
-        open={assignDialogOpen}
-        onClose={closeAssignDialog}
-        onConfirm={confirmAssignment}
-        selectedRequest={selectedRequestForAssignment}
-        assignmentType={assignAssignmentType}
-        onAssignmentTypeChange={setAssignAssignmentType}
-        selectedTeamId={assignSelectedTeamId}
-        onTeamChange={setAssignSelectedTeamId}
-        selectedUserId={assignSelectedUserId}
-        onUserChange={setAssignSelectedUserId}
-        teams={assignTeams}
-        users={assignUsers}
-        loadingData={loadingAssignData}
-        assigning={assigning}
-        t={t}
-      />
+        {/* Liste des demandes de service */}
+        {viewMode === 'map' ? <ServiceRequestsMapView filters={mapFilters} /> : loadFailed ? <Alert variant="destructive"><AlertDescription>
+          {t('serviceRequests.loadError')}
+          <Button variant="outline" onClick={() => void refetch()}>{t('common.retry')}</Button>
+        </AlertDescription></Alert> : loading ? <Skeleton className="h-48 w-full" /> : visibleRequests.length === 0 ? (
+          <EmptyState
+            icon={<Description />}
+            title={t('serviceRequests.noRequestFound')}
+            description={`${
+              isAdmin() || isManager()
+                ? t('serviceRequests.noRequestCreated')
+                : t('serviceRequests.noRequestAssigned')
+            } — ${t('serviceRequests.requestsDescription')}`}
+            action={(isAdmin() || isManager() || isHost()) && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/service-requests/new')}>
+                <Add size={16} strokeWidth={1.75} />
+                {t('serviceRequests.createFirst')}
+              </Button>
+            )}
+          />
+        ) : viewMode === 'grid' ? (
+          <ServiceRequestsGridView
+            serviceRequests={paginatedServiceRequests}
+            totalCount={visibleRequests.length}
+            page={page}
+            onPageChange={setPage}
+            onMenuOpen={handleMenuOpen}
+            typeIcons={typeIcons}
+            statuses={statuses}
+            priorities={priorities}
+            statusColors={statusColors}
+            priorityColors={priorityColors}
+            navigate={navigate}
+          />
+        ) : (
+          <ServiceRequestsTableView
+            serviceRequests={paginatedServiceRequests}
+            totalCount={visibleRequests.length}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            containerRef={listContainerRef}
+            onMenuOpen={handleMenuOpen}
+            navigate={navigate}
+          />
+        )}
 
-      <ErrorDialog
-        open={errorDialogOpen}
-        onClose={() => setErrorDialogOpen(false)}
-        message={errorMessage}
-        t={t}
-      />
+        {/* Menu contextuel */}
+        <DropdownMenu
+          open={Boolean(anchorEl)}
+          onOpenChange={(next) => { if (!next) handleMenuClose(); }}
+        >
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-hidden
+              tabIndex={-1}
+              className="fixed pointer-events-none opacity-0"
+              // Coordonnees issues du rectangle de l'ancre : valeurs d'execution,
+              // donc style inline (une classe Tailwind ne peut pas naitre d'une
+              // variable). `left` et non `inset-inline-start` : le rectangle est
+              // toujours mesure depuis le bord gauche du viewport, meme en RTL.
+              style={anchorRect
+                ? { left: anchorRect.left, top: anchorRect.top, width: anchorRect.width, height: anchorRect.height }
+                : { left: 0, top: 0, width: 0, height: 0 }}
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-auto min-w-[220px]"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              lastAnchorRef.current?.focus();
+            }}
+          >
+            <DropdownMenuItem onSelect={handleViewDetails}>
+              <Visibility size={20} strokeWidth={1.75} />
+              {t('serviceRequests.viewDetails')}
+            </DropdownMenuItem>
 
-      <SuccessDialog
-        open={successDialogOpen}
-        onClose={() => setSuccessDialogOpen(false)}
-        message={successMessage}
-        t={t}
-      />
-    </div>
+            {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
+            {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
+              <DropdownMenuItem onSelect={() => handleAssignServiceRequest(selectedServiceRequest)}>
+                {/* Icone teintee : l'assignation est l'action mise en avant de ce
+                    menu. La teinte vient du jeton de marque, pas d'une prop MUI. */}
+                <Assignment size={20} strokeWidth={1.75} className="text-primary" />
+                {t('serviceRequests.assign')}
+              </DropdownMenuItem>
+            )}
+
+            {/* Option de modification - toujours visible si permissions */}
+            {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
+              <DropdownMenuItem onSelect={handleEdit}>
+                <Edit size={20} strokeWidth={1.75} />
+                {t('serviceRequests.modify')}
+              </DropdownMenuItem>
+            )}
+
+            {/* Option de suppression - seulement si pas approuvee */}
+            {selectedServiceRequest && canDeleteServiceRequest(selectedServiceRequest) && (
+              <DropdownMenuItem onSelect={handleDelete}>
+                <Delete size={20} strokeWidth={1.75} />
+                {t('serviceRequests.delete')}
+              </DropdownMenuItem>
+            )}
+
+            {/* Option d'annulation - seulement si approuvee */}
+            {selectedServiceRequest && canCancelServiceRequest(selectedServiceRequest) && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  setSelectedRequestForStatusChange(selectedServiceRequest);
+                  setNewStatus('CANCELLED');
+                  setStatusChangeDialogOpen(true);
+                }}
+              >
+                <Cancel size={20} strokeWidth={1.75} className="text-warning" />
+                {/* Deux lignes : libelle d'action + delai restant en appui. */}
+                <span className="flex flex-col">
+                  <span>{t('serviceRequests.cancel')}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
+                  </span>
+                </span>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Dialogs */}
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          requestTitle={selectedRequestForDeletion?.title}
+          t={t}
+        />
+
+        <StatusChangeDialog
+          open={statusChangeDialogOpen}
+          onClose={() => { if (!changingStatus) setStatusChangeDialogOpen(false); }}
+          onConfirm={confirmStatusChange}
+          requestTitle={selectedRequestForStatusChange?.title}
+          newStatus={newStatus}
+          pending={changingStatus}
+          onStatusChange={setNewStatus}
+          statuses={statuses.filter(s =>
+            s.value === selectedRequestForStatusChange?.status ||
+            (s.value === "REJECTED" && selectedRequestForStatusChange?.status === "PENDING") ||
+            (s.value === "CANCELLED" && ["PENDING", "ASSIGNED", "AWAITING_PAYMENT", "IN_PROGRESS"].includes(selectedRequestForStatusChange?.status ?? ""))
+          )}
+          t={t}
+        />
+
+        <AssignDialog
+          open={assignDialogOpen}
+          onClose={closeAssignDialog}
+          onConfirm={confirmAssignment}
+          selectedRequest={selectedRequestForAssignment}
+          assignmentType={assignAssignmentType}
+          onAssignmentTypeChange={setAssignAssignmentType}
+          selectedTeamId={assignSelectedTeamId}
+          onTeamChange={setAssignSelectedTeamId}
+          selectedUserId={assignSelectedUserId}
+          onUserChange={setAssignSelectedUserId}
+          teams={assignTeams}
+          users={assignUsers}
+          loadingData={loadingAssignData}
+          assigning={assigning}
+          t={t}
+        />
+
+        <ErrorDialog
+          open={errorDialogOpen}
+          onClose={() => setErrorDialogOpen(false)}
+          message={errorMessage}
+          t={t}
+        />
+
+        <SuccessDialog
+          open={successDialogOpen}
+          onClose={() => setSuccessDialogOpen(false)}
+          message={successMessage}
+          t={t}
+        />
+      </div>
+    </>
   );
 }

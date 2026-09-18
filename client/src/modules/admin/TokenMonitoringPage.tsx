@@ -8,7 +8,12 @@ const TokenMonitoringPage: React.FC = () => {
     // Report du `<Container maxWidth="xl">` : largeur bornee au breakpoint xl MUI
     // (1536 px) + gouttieres spacing(2)/spacing(3) — le theme fixe l'unite a 6 px.
     <div className="mx-auto w-full max-w-[1536px] px-3 min-[600px]:px-[18px]">
+      {/* Pas de bandeau ancre : le padding de cette page n'est pas un doublon de
+          celui du conteneur de contenu — il sert la colonne bornee a 1536 px
+          ci-dessus. Une bande qui deborde d'une colonne centree ne s'aligne sur
+          rien. */}
       <PageHeader
+        anchored={false}
         title="Monitoring des Tokens"
         subtitle="Surveillance des tokens JWT et gestion des sessions"
         iconBadge={<Shield />}

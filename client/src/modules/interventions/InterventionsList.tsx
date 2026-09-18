@@ -347,13 +347,11 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
-
-      {/* Portal filters into parent's PageHeader when embedded */}
-      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
-
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       {!embedded && (
         <div className="shrink-0">
           <PageHeader
@@ -367,108 +365,116 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           />
         </div>
       )}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Portal actions into parent's PageHeader when embedded */}
+        {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
-      {error && viewMode !== 'map' && (
-        <UiAlert variant="destructive" className="mb-3 py-1.5 shrink-0">
-          <TriangleAlert />
-          <AlertDescription>{t('interventions.errors.loadError')} <Button variant="outline" onClick={loadInterventions}>{t('common.retry')}</Button></AlertDescription>
-        </UiAlert>
-      )}
+        {/* Portal filters into parent's PageHeader when embedded */}
+        {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
-      {/* ─── Liste des interventions ─────────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 min-h-0">
 
-          {viewMode === 'map' ? <InterventionsMapView filters={mapFilters} /> : loading ? (
-            <ListSkeleton rows={6} variant="row" />
-          ) : error ? null : filteredInterventions.length === 0 ? (
-            <EmptyState
-              icon={<Build />}
-              title={t('interventions.noInterventionFound')}
-              description={`${
-                canCreateInterventions
-                  ? t('interventions.noInterventionValidated')
-                  : t('interventions.noInterventionAssigned')
-              } — ${t('interventions.interventionsDescription')}`}
+        {error && viewMode !== 'map' && (
+          <UiAlert variant="destructive" className="mb-3 py-1.5 shrink-0">
+            <TriangleAlert />
+            <AlertDescription>{t('interventions.errors.loadError')} <Button variant="outline" onClick={loadInterventions}>{t('common.retry')}</Button></AlertDescription>
+          </UiAlert>
+        )}
+
+        {/* ─── Liste des interventions ─────────────────────────────────────────── */}
+        <div className="flex flex-col flex-1 min-h-0">
+
+            {viewMode === 'map' ? <InterventionsMapView filters={mapFilters} /> : loading ? (
+              <ListSkeleton rows={6} variant="row" />
+            ) : error ? null : filteredInterventions.length === 0 ? (
+              <EmptyState
+                icon={<Build />}
+                title={t('interventions.noInterventionFound')}
+                description={`${
+                  canCreateInterventions
+                    ? t('interventions.noInterventionValidated')
+                    : t('interventions.noInterventionAssigned')
+                } — ${t('interventions.interventionsDescription')}`}
+              />
+            ) : viewMode === 'grid' ? (
+              <InterventionsGridView
+                interventions={paginatedInterventions}
+                totalCount={displayedCount}
+                page={page}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setPage}
+                onMenuOpen={handleMenuOpen}
+                canModifyIntervention={canModifyIntervention}
+              />
+            ) : (
+              <InterventionsTableView
+                interventions={filteredInterventions}
+                totalCount={displayedCount}
+                page={page}
+                rowsPerPage={pageSize}
+                onPageChange={setPage}
+                onMenuOpen={handleMenuOpen}
+                containerRef={listContainerRef}
+                navigate={navigate}
+              />
+            )}
+          </div>
+
+        {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
+        <DropdownMenu open={Boolean(anchorEl)} onOpenChange={handleMenuOpenChange}>
+          <DropdownMenuTrigger asChild>
+            <span
+              aria-hidden="true"
+              className="fixed pointer-events-none"
+              style={{
+                left: anchorRect?.left ?? 0,
+                top: anchorRect?.top ?? 0,
+                width: anchorRect?.width ?? 0,
+                height: anchorRect?.height ?? 0,
+              }}
             />
-          ) : viewMode === 'grid' ? (
-            <InterventionsGridView
-              interventions={paginatedInterventions}
-              totalCount={displayedCount}
-              page={page}
-              itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={setPage}
-              onMenuOpen={handleMenuOpen}
-              canModifyIntervention={canModifyIntervention}
-            />
-          ) : (
-            <InterventionsTableView
-              interventions={filteredInterventions}
-              totalCount={displayedCount}
-              page={page}
-              rowsPerPage={pageSize}
-              onPageChange={setPage}
-              onMenuOpen={handleMenuOpen}
-              containerRef={listContainerRef}
-              navigate={navigate}
-            />
-          )}
-        </div>
-
-      {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
-      <DropdownMenu open={Boolean(anchorEl)} onOpenChange={handleMenuOpenChange}>
-        <DropdownMenuTrigger asChild>
-          <span
-            aria-hidden="true"
-            className="fixed pointer-events-none"
-            style={{
-              left: anchorRect?.left ?? 0,
-              top: anchorRect?.top ?? 0,
-              width: anchorRect?.width ?? 0,
-              height: anchorRect?.height ?? 0,
-            }}
-          />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-auto min-w-[11rem]">
-          <DropdownMenuItem onClick={onMenuItem(handleViewDetails)}>
-            <span className="inline-flex"><VisibilityIcon size={18} strokeWidth={1.75} /></span>
-            {t('interventions.viewDetails')}
-          </DropdownMenuItem>
-          {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
-            <DropdownMenuItem onClick={onMenuItem(handleOpenAssignDialog)}>
-              <span className="inline-flex text-info"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
-              Assigner
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-auto min-w-[11rem]">
+            <DropdownMenuItem onClick={onMenuItem(handleViewDetails)}>
+              <span className="inline-flex"><VisibilityIcon size={18} strokeWidth={1.75} /></span>
+              {t('interventions.viewDetails')}
             </DropdownMenuItem>
-          )}
-          {selectedIntervention && canModifyIntervention(selectedIntervention) && (
-            <DropdownMenuItem onClick={onMenuItem(handleEdit)}>
-              <span className="inline-flex"><EditIcon size={18} strokeWidth={1.75} /></span>
-              Modifier
-            </DropdownMenuItem>
-          )}
-          {canDeleteInterventions && (
-            <DropdownMenuItem onClick={onMenuItem(handleDelete)}>
-              <span className="inline-flex"><DeleteIcon size={18} strokeWidth={1.75} /></span>
-              {t('interventions.delete')}
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
+              <DropdownMenuItem onClick={onMenuItem(handleOpenAssignDialog)}>
+                <span className="inline-flex text-info"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
+                Assigner
+              </DropdownMenuItem>
+            )}
+            {selectedIntervention && canModifyIntervention(selectedIntervention) && (
+              <DropdownMenuItem onClick={onMenuItem(handleEdit)}>
+                <span className="inline-flex"><EditIcon size={18} strokeWidth={1.75} /></span>
+                Modifier
+              </DropdownMenuItem>
+            )}
+            {canDeleteInterventions && (
+              <DropdownMenuItem onClick={onMenuItem(handleDelete)}>
+                <span className="inline-flex"><DeleteIcon size={18} strokeWidth={1.75} /></span>
+                {t('interventions.delete')}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-      {/* Dialog d'assignation rapide */}
-      <InterventionAssignDialog
-        open={assignDialogOpen}
-        selectedIntervention={selectedIntervention}
-        assignType={assignType}
-        assignTargetId={assignTargetId}
-        teams={teams}
-        availableUsers={availableUsers}
-        assignLoading={assignLoading}
-        onClose={handleCloseAssignDialog}
-        onAssign={handleAssign}
-        setAssignType={setAssignType}
-        setAssignTargetId={setAssignTargetId}
-      />
+        {/* Dialog d'assignation rapide */}
+        <InterventionAssignDialog
+          open={assignDialogOpen}
+          selectedIntervention={selectedIntervention}
+          assignType={assignType}
+          assignTargetId={assignTargetId}
+          teams={teams}
+          availableUsers={availableUsers}
+          assignLoading={assignLoading}
+          onClose={handleCloseAssignDialog}
+          onAssign={handleAssign}
+          setAssignType={setAssignType}
+          setAssignTargetId={setAssignTargetId}
+        />
 
-    </div>
+      </div>
+    </>
   );
 }

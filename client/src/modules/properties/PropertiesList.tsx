@@ -382,13 +382,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Portail des actions vers le PageHeader du parent en mode embarqué.
-          Ternaires explicites (au lieu de &&) pour ne jamais passer le booléen
-          `false` en children. */}
-      {embedded && actionsContainer ? createPortal(compactHeaderActions(actionButtons), actionsContainer) : null}
-      {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
-
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       {!embedded ? (
         <div className="shrink-0">
           <PageHeader
@@ -402,160 +400,168 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           />
         </div>
       ) : null}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Portail des actions vers le PageHeader du parent en mode embarqué.
+            Ternaires explicites (au lieu de &&) pour ne jamais passer le booléen
+            `false` en children. */}
+        {embedded && actionsContainer ? createPortal(compactHeaderActions(actionButtons), actionsContainer) : null}
+        {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
-      {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif.
-          Le variant `warning` du primitif porte deja le fond pastel et l'encre
-          `-ink` : aucune couleur n'est reecrite ici, seule la mise en ligne. */}
-      {canManageContracts && missingContractIds.size > 0 ? (
-        <MissingContractsBanner
-          count={missingContractIds.size}
-          onEstablish={() => openContractModal([...missingContractIds][0] ?? null)}
-          className="mb-1.5"
+
+        {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif.
+            Le variant `warning` du primitif porte deja le fond pastel et l'encre
+            `-ink` : aucune couleur n'est reecrite ici, seule la mise en ligne. */}
+        {canManageContracts && missingContractIds.size > 0 ? (
+          <MissingContractsBanner
+            count={missingContractIds.size}
+            onEstablish={() => openContractModal([...missingContractIds][0] ?? null)}
+            className="mb-1.5"
+          />
+        ) : null}
+
+        {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
+        {filteredProperties.length > 0 && (
+          <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} />
+        )}
+
+        {/* Liste des propriétés */}
+        {filteredProperties.length === 0 ? (
+          <EmptyState
+            icon={<Home />}
+            title={t('properties.noPropertyFound')}
+            description={`${
+              isAdmin() || isManager()
+                ? t('properties.noPropertyCreated')
+                : t('properties.noPropertyAssigned')
+            } — ${t('properties.propertiesDescription')}`}
+            action={(isAdmin() || isManager() || isHost()) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/properties/new')}
+              >
+                <Add size={16} strokeWidth={1.75} />
+                {t('properties.createFirst')}
+              </Button>
+            )}
+            tip={(isAdmin() || isManager() || isHost())
+              ? 'Astuce : une fois une propriété créée, branche son lien iCal pour synchroniser automatiquement les réservations Airbnb.'
+              : undefined}
+          />
+        ) : viewMode === 'map' ? (
+          <PropertiesMapView
+            mapMarkers={mapMarkers}
+            viewportProperties={viewportProperties}
+            channexMappings={channexMappings}
+            onBoundsChange={handleBoundsChange}
+            onDiagnose={openDiagnoseFor}
+            canManageContracts={canManageContracts}
+            missingContractIds={missingContractIds}
+            onMissingContractClick={openContractModal}
+            navigate={navigate}
+          />
+        ) : viewMode === 'grid' ? (
+          <PropertiesGridView
+            properties={paginatedProperties}
+            totalCount={filteredProperties.length}
+            page={page}
+            onPageChange={setPage}
+            kpiMap={kpiMap}
+            channexMappings={channexMappings}
+            cleaningEstimates={cleaningEstimates}
+            onDelete={handleDeleteRequest}
+            onDiagnose={openDiagnoseFor}
+            canManageContracts={canManageContracts}
+            missingContractIds={missingContractIds}
+            onMissingContractClick={openContractModal}
+            navigate={navigate}
+          />
+        ) : (
+          <PropertiesTableView
+            properties={paginatedProperties}
+            totalCount={filteredProperties.length}
+            page={page}
+            rowsPerPage={listRowsPerPage}
+            onPageChange={setPage}
+            containerRef={listContainerRef}
+            channexMappings={channexMappings}
+            cleaningEstimates={cleaningEstimates}
+            canManageContracts={canManageContracts}
+            missingContractIds={missingContractIds}
+            onMissingContractClick={openContractModal}
+            onToggleStatus={setStatusTarget}
+            onDelete={handleDeleteRequest}
+            navigate={navigate}
+          />
+        )}
+
+        {/* Modal de création de contrat de gestion (gate de rattrapage). */}
+        <ManagementContractFormModal
+          open={contractModalOpen}
+          onClose={() => setContractModalOpen(false)}
+          initialPropertyId={contractModalPropertyId}
         />
-      ) : null}
 
-      {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
-      {filteredProperties.length > 0 && (
-        <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} />
-      )}
-
-      {/* Liste des propriétés */}
-      {filteredProperties.length === 0 ? (
-        <EmptyState
-          icon={<Home />}
-          title={t('properties.noPropertyFound')}
-          description={`${
-            isAdmin() || isManager()
-              ? t('properties.noPropertyCreated')
-              : t('properties.noPropertyAssigned')
-          } — ${t('properties.propertiesDescription')}`}
-          action={(isAdmin() || isManager() || isHost()) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/properties/new')}
-            >
-              <Add size={16} strokeWidth={1.75} />
-              {t('properties.createFirst')}
-            </Button>
-          )}
-          tip={(isAdmin() || isManager() || isHost())
-            ? 'Astuce : une fois une propriété créée, branche son lien iCal pour synchroniser automatiquement les réservations Airbnb.'
-            : undefined}
+        <PropertyDeleteDialog
+          open={deleteDialogOpen}
+          propertyName={selectedProperty?.name}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
         />
-      ) : viewMode === 'map' ? (
-        <PropertiesMapView
-          mapMarkers={mapMarkers}
-          viewportProperties={viewportProperties}
-          channexMappings={channexMappings}
-          onBoundsChange={handleBoundsChange}
-          onDiagnose={openDiagnoseFor}
-          canManageContracts={canManageContracts}
-          missingContractIds={missingContractIds}
-          onMissingContractClick={openContractModal}
-          navigate={navigate}
+
+        <PropertyStatusToggleDialog
+          property={statusTarget}
+          pending={statusMutation.isPending}
+          onClose={() => setStatusTarget(null)}
+          onConfirm={() => {
+            if (!statusTarget) return;
+            statusMutation.mutate({
+              id: statusTarget.id,
+              status: statusTarget.status === 'active' ? 'INACTIVE' : 'ACTIVE',
+            });
+          }}
         />
-      ) : viewMode === 'grid' ? (
-        <PropertiesGridView
-          properties={paginatedProperties}
-          totalCount={filteredProperties.length}
-          page={page}
-          onPageChange={setPage}
-          kpiMap={kpiMap}
-          channexMappings={channexMappings}
-          cleaningEstimates={cleaningEstimates}
-          onDelete={handleDeleteRequest}
-          onDiagnose={openDiagnoseFor}
-          canManageContracts={canManageContracts}
-          missingContractIds={missingContractIds}
-          onMissingContractClick={openContractModal}
-          navigate={navigate}
-        />
-      ) : (
-        <PropertiesTableView
-          properties={paginatedProperties}
-          totalCount={filteredProperties.length}
-          page={page}
-          rowsPerPage={listRowsPerPage}
-          onPageChange={setPage}
-          containerRef={listContainerRef}
-          channexMappings={channexMappings}
-          cleaningEstimates={cleaningEstimates}
-          canManageContracts={canManageContracts}
-          missingContractIds={missingContractIds}
-          onMissingContractClick={openContractModal}
-          onToggleStatus={setStatusTarget}
-          onDelete={handleDeleteRequest}
-          navigate={navigate}
-        />
-      )}
 
-      {/* Modal de création de contrat de gestion (gate de rattrapage). */}
-      <ManagementContractFormModal
-        open={contractModalOpen}
-        onClose={() => setContractModalOpen(false)}
-        initialPropertyId={contractModalPropertyId}
-      />
+        {/* FAB pour ajouter rapidement */}
+        {(isAdmin() || isManager() || isHost()) ? (
+          // Le bouton d'action flottant n'a pas d'equivalent dans le kit : c'est
+          // un bouton rond, rendu ici par le Button du kit. Le seuil de 900 px est
+          // explicite (les breakpoints Tailwind lisent 768).
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={t('properties.create')}
+            onClick={() => navigate('/properties/new')}
+            className="fixed bottom-4 end-4 z-40 size-10 rounded-full border-solid border-primary bg-card text-primary shadow-lg hover:bg-primary-soft hover:text-primary min-[900px]:hidden"
+          >
+            <Add size={20} strokeWidth={1.75} />
+          </Button>
+        ) : null}
 
-      <PropertyDeleteDialog
-        open={deleteDialogOpen}
-        propertyName={selectedProperty?.name}
-        onClose={() => setDeleteDialogOpen(false)}
-        onConfirm={confirmDelete}
-      />
+        {/* Quick Win #5 : Diagnose + Repair dialog (declenche par clic sur health badge) */}
+        {diagnoseTarget && (
+          <ChannexDiagnoseDialog
+            open={diagnoseTarget !== null}
+            onClose={() => setDiagnoseTarget(null)}
+            propertyId={diagnoseTarget.propertyId}
+            onFullDisconnect={handleDiagnoseFullDisconnect}
+            onOpenHub={handleDiagnoseOpenHub}
+            onResyncSuccess={() => { void refreshChannexMappings(); }}
+          />
+        )}
 
-      <PropertyStatusToggleDialog
-        property={statusTarget}
-        pending={statusMutation.isPending}
-        onClose={() => setStatusTarget(null)}
-        onConfirm={() => {
-          if (!statusTarget) return;
-          statusMutation.mutate({
-            id: statusTarget.id,
-            status: statusTarget.status === 'active' ? 'INACTIVE' : 'ACTIVE',
-          });
-        }}
-      />
-
-      {/* FAB pour ajouter rapidement */}
-      {(isAdmin() || isManager() || isHost()) ? (
-        // Le bouton d'action flottant n'a pas d'equivalent dans le kit : c'est
-        // un bouton rond, rendu ici par le Button du kit. Le seuil de 900 px est
-        // explicite (les breakpoints Tailwind lisent 768).
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={t('properties.create')}
-          onClick={() => navigate('/properties/new')}
-          className="fixed bottom-4 end-4 z-40 size-10 rounded-full border-solid border-primary bg-card text-primary shadow-lg hover:bg-primary-soft hover:text-primary min-[900px]:hidden"
-        >
-          <Add size={20} strokeWidth={1.75} />
-        </Button>
-      ) : null}
-
-      {/* Quick Win #5 : Diagnose + Repair dialog (declenche par clic sur health badge) */}
-      {diagnoseTarget && (
-        <ChannexDiagnoseDialog
-          open={diagnoseTarget !== null}
-          onClose={() => setDiagnoseTarget(null)}
-          propertyId={diagnoseTarget.propertyId}
-          onFullDisconnect={handleDiagnoseFullDisconnect}
-          onOpenHub={handleDiagnoseOpenHub}
-          onResyncSuccess={() => { void refreshChannexMappings(); }}
-        />
-      )}
-
-      {/* Quick Win #2 : Smart Disconnect declenche depuis le diagnostic
-          (l'utilisateur clique "Deconnecter completement" dans le diagnose dialog). */}
-      {fullDisconnectTarget && (
-        <ChannexFullDisconnectDialog
-          open={fullDisconnectTarget !== null}
-          onClose={() => setFullDisconnectTarget(null)}
-          propertyId={fullDisconnectTarget.propertyId}
-          propertyName={fullDisconnectTarget.propertyName}
-          onSuccess={() => { void refreshChannexMappings(); }}
-        />
-      )}
-    </div>
+        {/* Quick Win #2 : Smart Disconnect declenche depuis le diagnostic
+            (l'utilisateur clique "Deconnecter completement" dans le diagnose dialog). */}
+        {fullDisconnectTarget && (
+          <ChannexFullDisconnectDialog
+            open={fullDisconnectTarget !== null}
+            onClose={() => setFullDisconnectTarget(null)}
+            propertyId={fullDisconnectTarget.propertyId}
+            propertyName={fullDisconnectTarget.propertyName}
+            onSuccess={() => { void refreshChannexMappings(); }}
+          />
+        )}
+      </div>
+    </>
   );
 }

@@ -272,7 +272,7 @@ const UserEdit: React.FC = () => {
       && formData.newPassword !== formData.confirmPassword;
 
   return (
-    <div className="p-3">
+    <div>
       <PageHeader
         title="Modifier l'utilisateur"
         subtitle={`${user?.firstName || ''} ${user?.lastName || ''}`}

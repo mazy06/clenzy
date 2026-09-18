@@ -235,7 +235,10 @@ const ManagementContractsPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-2">
       {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
+      {/* Le conteneur de cette page espace deja ses blocs (gap) : sans ca la
+          gouttiere s'ajouterait a la marge basse du bandeau. */}
       <PageHeader
+        selfSpaced={false}
         title={t('contracts.title')}
         subtitle={t('contracts.subtitle')}
         iconBadge={<Handshake />}

@@ -337,7 +337,7 @@ const AutomationRulesPage: React.FC = () => {
 
   return (
     // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
-    <div className="p-3">
+    <div>
       <PageHeader
         title={t('automation.title', 'Regles d\'automatisation')}
         subtitle={t('automation.subtitle', 'Automatisez les messages et actions pour vos reservations')}

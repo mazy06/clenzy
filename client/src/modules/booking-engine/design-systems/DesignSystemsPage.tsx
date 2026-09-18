@@ -116,7 +116,12 @@ export default function DesignSystemsPage() {
 
   return (
     <div className="min-h-[100vh] bg-background px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]">
+      {/* Pas de bandeau ancré : le padding de cette page n'est pas un
+          doublon de celui du conteneur de contenu — il sert une canevas plein écran, fond propre.
+          Le retirer collerait le contenu au bord, et une bande qui déborde
+          d'une colonne centrée ne s'aligne sur rien. */}
       <PageHeader
+        anchored={false}
         title="Systèmes de design"
         subtitle="Une direction réutilisable (tokens + DESIGN.md) que vos templates reprennent"
         iconBadge={<Sparkles />}

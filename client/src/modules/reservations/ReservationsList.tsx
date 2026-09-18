@@ -236,7 +236,11 @@ const ReservationsList: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       {/* Header + Filters */}
       <div className="shrink-0">
         <PageHeader
@@ -249,207 +253,209 @@ const ReservationsList: React.FC = () => {
           filters={filterBar}
         />
       </div>
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
-      {/* Error */}
-      {isError && (
-        <Alert variant="destructive" className="mb-3 shrink-0">
-          <TriangleAlert />
-          <AlertDescription>{error ?? 'Erreur lors du chargement des reservations'}</AlertDescription>
-        </Alert>
-      )}
+        {/* Error */}
+        {isError && (
+          <Alert variant="destructive" className="mb-3 shrink-0">
+            <TriangleAlert />
+            <AlertDescription>{error ?? 'Erreur lors du chargement des reservations'}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Loading */}
-      {isLoading ? (
-        <ListSkeleton rows={6} variant="row" />
-      ) : totalElements === 0 ? (
-        <EmptyState
-          icon={<EventNoteIcon />}
-          title={t('reservations.noReservations')}
-          description="Ajoutez votre première réservation manuellement, ou laissez Baitly importer vos calendriers Airbnb / Booking automatiquement."
-          action={(
-            <Button variant="outline" size="sm" onClick={handleCreate}>
-              <AddIcon strokeWidth={1.75} />
-              {t('reservations.create')}
-            </Button>
-          )}
-          tip="Astuce : configure un lien iCal une fois et les nouvelles réservations apparaissent ici dans la minute."
-        />
-      ) : (
-        /* Data table */
-        <div ref={tableContainerRef} className={cn(CARD_CLASS, 'flex-1 min-h-0 flex flex-col overflow-hidden')}>
-          <div className="flex-1 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="[&_th]:whitespace-nowrap">
-                  <TableHead>{t('reservations.fields.property')}</TableHead>
-                  <TableHead>{t('reservations.fields.guestName')}</TableHead>
-                  <TableHead>{t('reservations.fields.checkIn')}</TableHead>
-                  <TableHead>{t('reservations.fields.checkOut')}</TableHead>
-                  <TableHead>{t('reservations.fields.status')}</TableHead>
-                  <TableHead>{t('reservations.fields.source')}</TableHead>
-                  <TableHead className="text-end">{t('reservations.fields.totalPrice')}</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reservations.map((r) => (
-                  <TableRow
-                    key={r.id}
-                    data-highlight-id={String(r.id)}
-                  >
-                    <TableCell>
-                      <p className="text-xs font-medium text-foreground">
-                        {r.propertyName}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs text-foreground cursor-pointer hover:text-primary hover:underline" onClick={() => {
-                          setSelectedGuestId(r.id);
-                          setGuestDialogOpen(true);
-                        }}>
-                        {r.guestName}
-                      </p>
-                      <span className="text-xs text-muted-foreground">
-                        {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs text-foreground tabular-nums">
-                        {formatDate(r.checkIn)}
-                      </p>
-                      {r.checkInTime && (
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {r.checkInTime}
+        {/* Loading */}
+        {isLoading ? (
+          <ListSkeleton rows={6} variant="row" />
+        ) : totalElements === 0 ? (
+          <EmptyState
+            icon={<EventNoteIcon />}
+            title={t('reservations.noReservations')}
+            description="Ajoutez votre première réservation manuellement, ou laissez Baitly importer vos calendriers Airbnb / Booking automatiquement."
+            action={(
+              <Button variant="outline" size="sm" onClick={handleCreate}>
+                <AddIcon strokeWidth={1.75} />
+                {t('reservations.create')}
+              </Button>
+            )}
+            tip="Astuce : configure un lien iCal une fois et les nouvelles réservations apparaissent ici dans la minute."
+          />
+        ) : (
+          /* Data table */
+          <div ref={tableContainerRef} className={cn(CARD_CLASS, 'flex-1 min-h-0 flex flex-col overflow-hidden')}>
+            <div className="flex-1 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="[&_th]:whitespace-nowrap">
+                    <TableHead>{t('reservations.fields.property')}</TableHead>
+                    <TableHead>{t('reservations.fields.guestName')}</TableHead>
+                    <TableHead>{t('reservations.fields.checkIn')}</TableHead>
+                    <TableHead>{t('reservations.fields.checkOut')}</TableHead>
+                    <TableHead>{t('reservations.fields.status')}</TableHead>
+                    <TableHead>{t('reservations.fields.source')}</TableHead>
+                    <TableHead className="text-end">{t('reservations.fields.totalPrice')}</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reservations.map((r) => (
+                    <TableRow
+                      key={r.id}
+                      data-highlight-id={String(r.id)}
+                    >
+                      <TableCell>
+                        <p className="text-xs font-medium text-foreground">
+                          {r.propertyName}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs text-foreground cursor-pointer hover:text-primary hover:underline" onClick={() => {
+                            setSelectedGuestId(r.id);
+                            setGuestDialogOpen(true);
+                          }}>
+                          {r.guestName}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
                         </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs text-foreground tabular-nums">
-                        {formatDate(r.checkOut)}
-                      </p>
-                      {r.checkOutTime && (
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {r.checkOutTime}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <ReservationStatusChip status={r.status} />
-                    </TableCell>
-                    <TableCell>
-                      <ReservationSourceBadge source={r.source} />
-                    </TableCell>
-                    <TableCell className="text-end">
-                      {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
-                      <p className="text-xs font-semibold font-[family-name:var(--font-display)] tabular-nums text-foreground">
-                        {formatPrice(r.totalPrice)}
-                      </p>
-                    </TableCell>
-                    <TableCell className="text-center whitespace-nowrap">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {/* span : TooltipTrigger asChild pose une ref DOM que le
-                              Button du kit (fonction, React 18) ne transmet pas. */}
-                          <span className="inline-flex">
-                            <Button variant="ghost" size="icon-sm" aria-label={t('reservations.edit')} onClick={() => handleEdit(r)}>
-                              <EditIcon size={18} strokeWidth={1.75} />
-                            </Button>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs text-foreground tabular-nums">
+                          {formatDate(r.checkIn)}
+                        </p>
+                        {r.checkInTime && (
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {r.checkInTime}
                           </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{t('reservations.edit')}</TooltipContent>
-                      </Tooltip>
-                      {r.status !== 'cancelled' && r.status !== 'checked_out' && (
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs text-foreground tabular-nums">
+                          {formatDate(r.checkOut)}
+                        </p>
+                        {r.checkOutTime && (
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {r.checkOutTime}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <ReservationStatusChip status={r.status} />
+                      </TableCell>
+                      <TableCell>
+                        <ReservationSourceBadge source={r.source} />
+                      </TableCell>
+                      <TableCell className="text-end">
+                        {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
+                        <p className="text-xs font-semibold font-[family-name:var(--font-display)] tabular-nums text-foreground">
+                          {formatPrice(r.totalPrice)}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
                         <Tooltip>
                           <TooltipTrigger asChild>
+                            {/* span : TooltipTrigger asChild pose une ref DOM que le
+                                Button du kit (fonction, React 18) ne transmet pas. */}
                             <span className="inline-flex">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t('reservations.cancel')}
-                                onClick={() => handleCancelClick(r)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <CancelIcon size={18} strokeWidth={1.75} />
+                              <Button variant="ghost" size="icon-sm" aria-label={t('reservations.edit')} onClick={() => handleEdit(r)}>
+                                <EditIcon size={18} strokeWidth={1.75} />
                               </Button>
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent>{t('reservations.cancel')}</TooltipContent>
+                          <TooltipContent>{t('reservations.edit')}</TooltipContent>
                         </Tooltip>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        {r.status !== 'cancelled' && r.status !== 'checked_out' && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={t('reservations.cancel')}
+                                  onClick={() => handleCancelClick(r)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <CancelIcon size={18} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('reservations.cancel')}</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <PagePagination
+              count={totalElements}
+              page={page}
+              onPageChange={(newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+            />
           </div>
+        )}
 
-          <PagePagination
-            count={totalElements}
-            page={page}
-            onPageChange={(newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-          />
-        </div>
-      )}
+        {/* Create/Edit dialog */}
+        <ReservationDialog
+          open={formOpen}
+          mode={editingReservation ? 'edit' : 'create'}
+          reservation={editingReservation}
+          onClose={() => {
+            setFormOpen(false);
+            setEditingReservation(null);
+          }}
+          onCreated={() => notify.success('Réservation créée')}
+          onUpdated={() => notify.success('Réservation mise à jour')}
+        />
 
-      {/* Create/Edit dialog */}
-      <ReservationDialog
-        open={formOpen}
-        mode={editingReservation ? 'edit' : 'create'}
-        reservation={editingReservation}
-        onClose={() => {
-          setFormOpen(false);
-          setEditingReservation(null);
-        }}
-        onCreated={() => notify.success('Réservation créée')}
-        onUpdated={() => notify.success('Réservation mise à jour')}
-      />
+        {/* Guest profile dialog */}
+        <GuestProfileDialog
+          guestId={selectedGuestId}
+          open={guestDialogOpen}
+          onClose={() => { setGuestDialogOpen(false); setSelectedGuestId(null); }}
+        />
 
-      {/* Guest profile dialog */}
-      <GuestProfileDialog
-        guestId={selectedGuestId}
-        open={guestDialogOpen}
-        onClose={() => { setGuestDialogOpen(false); setSelectedGuestId(null); }}
-      />
-
-      {/* Cancel confirmation dialog */}
-      <Dialog open={cancelDialogOpen} onOpenChange={(next) => { if (!next) setCancelDialogOpen(false); }}>
-        <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('reservations.cancel')}</DialogTitle>
-        </DialogHeader>
-        <div>
-          <p className="text-xs text-muted-foreground">
-            {t('reservations.cancelConfirm')}
-          </p>
-          {cancelTarget && (
-            <p className="mt-1.5 text-xs font-semibold text-foreground">
-              {cancelTarget.guestName} · {cancelTarget.propertyName}
+        {/* Cancel confirmation dialog */}
+        <Dialog open={cancelDialogOpen} onOpenChange={(next) => { if (!next) setCancelDialogOpen(false); }}>
+          <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+          </DialogHeader>
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {t('reservations.cancelConfirm')}
             </p>
-          )}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCancelDialogOpen(false)}
-            disabled={isCancelling}
-          >
-            Non
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleConfirmCancel}
-            disabled={isCancelling}
-          >
-            {isCancelling ? <Spinner className="size-[18px]" /> : null}
-            Oui, annuler
-          </Button>
-        </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            {cancelTarget && (
+              <p className="mt-1.5 text-xs font-semibold text-foreground">
+                {cancelTarget.guestName} · {cancelTarget.propertyName}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={isCancelling}
+            >
+              Non
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+            >
+              {isCancelling ? <Spinner className="size-[18px]" /> : null}
+              Oui, annuler
+            </Button>
+          </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 };
 
