@@ -63,7 +63,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {data.title && (
-        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title}
         </p>
       )}
@@ -90,10 +90,10 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
 
   return (
     <div className="px-1 py-1.5 rounded-lg border border-border bg-card flex flex-col items-center gap-0.5 min-w-0 text-center">
-      <p className="text-2xs font-bold uppercase text-faint tracking-[.05em]">
+      <p className="text-2xs font-bold uppercase text-muted-foreground tracking-[.05em]">
         {formatDay(item.date)}
       </p>
-      <p className="text-2xs text-faint tabular-nums">
+      <p className="text-2xs text-muted-foreground tabular-nums">
         {formatDate(item.date)}
       </p>
       <div className="inline-flex my-[1.5px]" style={{ color: iconColor(item.conditionCode) }}>

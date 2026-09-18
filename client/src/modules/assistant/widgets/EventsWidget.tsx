@@ -53,7 +53,7 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {data.title && (
-        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title}
         </p>
       )}
@@ -65,7 +65,7 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
       </div>
 
       {data.truncated && (
-        <p className="block mt-1 text-xs text-faint text-end tabular-nums">
+        <p className="block mt-1 text-xs text-muted-foreground text-end tabular-nums">
           {items.length}/{data.totalElements} affiches — affine les dates pour voir le reste
         </p>
       )}
@@ -82,7 +82,7 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
         <p className="text-[1rem] font-semibold leading-[1.1] text-foreground tabular-nums">
           {formatDay(item.date)}
         </p>
-        <p className="text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {formatMonth(item.date)}
         </p>
       </div>
@@ -96,7 +96,7 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
             <StatusChip size="sm" tokens={{ color: typeColor, bg: typeSoft }} label={typeLabel(item.type)} className="text-2xs tracking-[.04em] uppercase" />
           )}
           {item.city && item.city !== '*' && (
-            <p className="text-xs text-faint">
+            <p className="text-xs text-muted-foreground">
               {item.city}
             </p>
           )}

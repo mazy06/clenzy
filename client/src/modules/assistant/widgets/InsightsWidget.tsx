@@ -63,7 +63,7 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-1.5">
       {data.title && (
-        <p className="block mb-0.5 text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="block mb-0.5 text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title}
         </p>
       )}
@@ -104,7 +104,7 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
       {/* Recommandation actionnable */}
       {item.recommendation && (
         <div className="ms-7 mt-1 px-2 py-1 rounded-lg bg-muted">
-          <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint mb-0.5">
+          <p className="block text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground mb-0.5">
             Action recommandee
           </p>
           <p className="text-xs leading-[1.45] text-foreground">

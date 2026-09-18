@@ -51,10 +51,10 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
             </span>
           </p>
           <div>
-            <p className="block font-bold text-faint text-2xs uppercase tracking-[.06em]">
+            <p className="block font-bold text-foreground/70 text-2xs uppercase tracking-[.06em]">
               Readiness score
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground/70">
               {critical ? 'KPI critique en defaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
             </p>
@@ -84,7 +84,7 @@ const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = 
       className="relative rounded-lg border border-border bg-card px-2 py-1.5 before:absolute before:top-2 before:end-2 before:size-1.5 before:rounded-full before:bg-[var(--kpi-dot)] before:content-['']"
       style={{ '--kpi-dot': statusColor } as React.CSSProperties}
     >
-      <p className="block text-faint text-2xs font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
+      <p className="block text-muted-foreground text-2xs font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
         {kpi.name}
       </p>
       <p className="text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-foreground">
