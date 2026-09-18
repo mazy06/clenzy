@@ -165,26 +165,37 @@
      (PublicBookingPage l'ecrase par site) : celui-la ne se touche pas ici. */
   --radius: 0.625rem;
 
-  --bui-background: #F4F7F9;
+  /* ÉCHELLE DE SURFACES — quatre niveaux réellement distincts.
+     L'ancienne échelle tenait dans une bande de 1,1:1 : page→carte valait
+     1,05 et carte→creux 1,09, si bien qu'une carte ne se distinguait pas de
+     son fond mais de son filet. Le fond descend, la carte remonte, le creux
+     se creuse. Mesuré : page→carte 1,15 · carte→creux 1,21 · filet/carte 1,34.
+
+     La profondeur du creux a un PLAFOND DUR, fixé par les encres : à
+     #DAE3EC l'encre secondaire tombe à 4,34:1, sous l'AA. #E1E9F0 est le
+     palier le plus bas qui garde une marge (4,87). Creuser davantage
+     imposerait de reprendre toutes les encres sémantiques. */
+  --bui-background: #E8EEF3;
   --bui-foreground: #1B2A35;
 
-  --bui-card: #FBFCFD; /* paper — pas blanc pur */
-  --bui-popover: #FBFCFD;
+  --bui-card: #FDFDFE; /* paper — pas blanc pur */
+  --bui-popover: #FDFDFE;
 
   --bui-primary: #1B2A35; /* bleu nuit Baitly — couleur du wordmark */
   --bui-primary-deep: #2E4356; /* survols secondaires (le Button utilise primary/90) */
   --bui-primary-soft: rgba(27, 42, 53, 0.08);
   --bui-primary-foreground: #FFFFFF;
 
-  --bui-secondary: #EEF3F7;
-  --bui-muted: #EEF3F7;
-  /* Assombri de #5F7382 : cette encre tenait 4,80:1 sur une carte mais tombait
-     a 4,41:1 posee sur --bui-muted — c'est-a-dire sur toutes les pastilles de
-     ton `neutral` et tous les encarts `bg-muted`, qui echouaient donc l'AA de
-     peu. Mesure de la nouvelle valeur : 4,75 sur muted, 4,93 sur la page,
-     5,17 sur une carte. L'ecart visuel est imperceptible.
+  --bui-secondary: #E1E9F0;
+  --bui-muted: #E1E9F0;
+  /* Deja assombri une premiere fois de #5F7382 a #5A6E7C : l'encre tombait a
+     4,41:1 sur --bui-muted, soit sur toutes les pastilles de ton `neutral` et
+     tous les encarts `bg-muted`. Le creusement du creux rejoue exactement cet
+     incident — #5A6E7C y retombe a 4,41. D'ou cette seconde descente.
+     Mesure de #526674 : 4,87 sur le creux, 5,11 sur la page, 5,88 sur une
+     carte. L'ecart visuel reste imperceptible.
      Le mode sombre n'est pas concerne (6,15 a 7,31). */
-  --bui-muted-foreground: #5A6E7C;
+  --bui-muted-foreground: #526674;
 
   --bui-destructive: #C97A7A;
   --bui-destructive-soft: rgba(201, 122, 122, 0.13);
@@ -192,12 +203,22 @@
      son propre fond pastel. Mesuré : 5,61:1 sur la page, 5,86:1 sur --card. */
   --bui-destructive-ink: #93413F;
 
-  --bui-border: #E2E8F0;
+  /* Suit le fond de page : a #E2E8F0 le filet serait tombe a 1,05 sur la
+     nouvelle page, donc invisible. Mesure : 1,16 sur la page, 1,34 sur une
+     carte, 1,11 sur un creux — contre 1,15 / 1,20 / 1,10 avant. */
+  --bui-border: #D5DEE7;
   --bui-input: #CBD5E1;
   --bui-ring: #1B2A35;
 
   --bui-ink: #1B2A35;
   --bui-faint: #94A7B8;
+
+  /* OMBRE — teintee vers le bleu nuit de marque, jamais un noir generique.
+     Deux couches : un filet de contact tres serre qui detache la carte du
+     fond, une diffusion large et faible qui lui donne son assise. Au-dela
+     d'environ 30 px de flou on retombe dans le « card material » date. */
+  --bui-shadow-1: rgba(27, 42, 53, 0.055);
+  --bui-shadow-2: rgba(27, 42, 53, 0.22);
 
   /* Statuts : teintes du nouveau mark (teal response, bleu request).
      `-ink` = variante ASSOMBRIE réservée au TEXTE : en clair les teintes vives
@@ -217,7 +238,11 @@
      Mesuré : 5,37:1 sur la page, 5,61:1 sur --card. */
   --bui-info-ink: #1D4ED8;
 
-  --bui-field: #EEF3F7;
+  /* Au niveau du creux. Un champ pose directement sur le fond de page ne se
+     lit toujours que par son filet (1,05) — inchange par rapport a l'echelle
+     precedente (1,04), et non aggrave : c'est --bui-field-line qui le dessine.
+     Remonter les champs au niveau de la carte serait une autre decision. */
+  --bui-field: #E1E9F0;
   --bui-field-line: #CBD5E1;
 
   /* Pastille d'icône des en-têtes d'écran.
@@ -332,6 +357,11 @@
 
   --bui-field: #16223A;
   --bui-field-line: #2A3A55;
+
+  /* En sombre une ombre teintee navy ne se voit pas sur un fond navy : c'est
+     le noir qui creuse. Alpha nettement plus fort, pour la meme raison. */
+  --bui-shadow-1: rgba(0, 0, 0, 0.32);
+  --bui-shadow-2: rgba(0, 0, 0, 0.55);
 
   /* En sombre, la couleur de la sidebar est celle du fond de page : une
      pastille teintée avec elle serait invisible. Le primaire clair reprend
