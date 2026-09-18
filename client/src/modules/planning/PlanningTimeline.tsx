@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { createSettledScheduler } from '../../utils/layoutShift';
 import { Card } from '../../components/ui';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
@@ -130,9 +131,17 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
     const measure = () => setViewport({ width: el.clientWidth, height: el.clientHeight });
     measure();
     if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(measure);
+    // Le repli de la navigation fait varier `clientWidth` a chaque frame. Sans
+    // ce report, chacune declenchait un rendu complet de la grille (rangs,
+    // vignettes, pastilles) : la mesure est repoussee a la fin du deplacement,
+    // seule valeur qui compte.
+    const settled = createSettledScheduler(measure);
+    const ro = new ResizeObserver(settled.schedule);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      settled.cancel();
+      ro.disconnect();
+    };
   }, [scrollRef]);
 
   // Publication au parent. Effet separe et callback tenue dans une ref : la

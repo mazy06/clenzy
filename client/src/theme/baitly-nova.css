@@ -1188,8 +1188,23 @@
 }
 
 /* MARK: Sidebar */
-.cn-sidebar-gap {
-  @apply transition-[width] duration-200 ease-linear;
+/* Repli de la navigation — une seule ligne de temps.
+   Seuls DEUX elements animent une propriete de mise en page : la coquille
+   fixe et la gouttiere qui pousse le contenu. Tout le reste (boutons de menu,
+   rail) n'anime plus que des couleurs : les 25 boutons animaient chacun
+   `width, height, padding`, soit 25 animations de layout imbriquees dans une
+   26e, toutes recalculees a chaque frame. Ils se redimensionnent toujours —
+   simplement dans la meme passe de layout que leur parent, au lieu d'en
+   reclamer une a eux. */
+.cn-sidebar-gap,
+.cn-sidebar-container {
+  transition: width var(--bui-sidebar-motion) var(--ease-out-quart);
+}
+
+/* `left`/`right` : la variante hors-champ (`offcanvas`) sort la coquille par
+   le bord. Elle partage la courbe du reste. */
+.cn-sidebar-container {
+  transition-property: width, left, right;
 }
 
 .cn-sidebar-inner {
@@ -1197,7 +1212,10 @@
 }
 
 .cn-sidebar-rail {
-  @apply hover:after:bg-sidebar-border;
+  /* `transition-all` animait aussi les positions que le repli change — la
+     poignee partait en glissade a contretemps de la coquille. Seule la
+     couleur de survol a besoin d'une transition. */
+  @apply transition-colors duration-150 hover:after:bg-sidebar-border;
 }
 
 .cn-sidebar-inset {
@@ -1237,7 +1255,7 @@
 }
 
 .cn-sidebar-group-label {
-  @apply text-sidebar-foreground/70 ring-sidebar-ring h-8 rounded-md px-2 text-xs font-medium transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4;
+  @apply text-sidebar-foreground/70 ring-sidebar-ring h-8 rounded-md px-2 text-xs font-medium transition-[margin,opacity] duration-[var(--bui-sidebar-motion)] ease-[var(--ease-out-quart)] group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4;
 }
 
 .cn-sidebar-group-action {
@@ -1245,7 +1263,7 @@
 }
 
 .cn-sidebar-menu-button {
-  @apply ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-start text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium;
+  @apply ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-start text-sm transition-[background-color,color] duration-150 group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium;
 }
 
 .cn-sidebar-menu-button-aria {

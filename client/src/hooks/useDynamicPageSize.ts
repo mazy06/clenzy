@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createSettledScheduler } from '../utils/layoutShift';
 
 /**
  * Hook that dynamically computes how many table rows fit in the available
@@ -132,11 +133,11 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
     // mesure porterait sur une table encore vide et retomberait sur la
     // constante. Le recalcul converge en un tour (même hauteur de ligne → même
     // valeur → `setPageSize` sans effet).
-    let raf = 0;
-    const schedule = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(compute);
-    };
+    // `compute` lit la mise en page (offsetHeight, clientHeight) : l'appeler
+    // pendant que la gouttiere de navigation pousse le contenu forcerait un
+    // recalcul synchrone a chaque frame. Le planificateur attend l'arrivee.
+    const settled = createSettledScheduler(compute);
+    const schedule = settled.schedule;
 
     const observer = new MutationObserver(schedule);
     // La carte retrecit exactement quand un bloc s'insere au-dessus d'elle :
@@ -154,7 +155,7 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
 
     return () => {
       clearTimeout(timer);
-      cancelAnimationFrame(raf);
+      settled.cancel();
       observer.disconnect();
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);

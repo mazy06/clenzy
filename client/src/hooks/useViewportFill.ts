@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createSettledScheduler } from '../utils/layoutShift';
 
 /** En deca de cette largeur la mise en page s'empile : la figer serait nuisible. */
 const SIDE_BY_SIDE = 1024;
@@ -86,10 +87,15 @@ export function useViewportFill<T extends HTMLElement>() {
 
     measure();
     window.addEventListener('resize', measure);
-    const observer = new ResizeObserver(measure);
+    // Observe `document.body`, donc reagit au repli de la navigation comme a
+    // un redimensionnement de fenetre. La hauteur visee ne depend pourtant que
+    // de la position finale : on ne mesure qu'une fois le deplacement fini.
+    const settled = createSettledScheduler(measure);
+    const observer = new ResizeObserver(settled.schedule);
     observer.observe(document.body);
     return () => {
       window.removeEventListener('resize', measure);
+      settled.cancel();
       observer.disconnect();
     };
   }, []);

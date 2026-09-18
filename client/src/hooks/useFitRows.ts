@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { createSettledScheduler } from '../utils/layoutShift';
 import { useDeclareTileOverflow } from './useTileHeight';
 
 /**
@@ -89,7 +90,11 @@ export function useFitRows<T extends HTMLElement>(rowSelector?: string): {
     if (!node) return undefined;
 
     // Le cadre change de taille (la ligne se resserre, le panneau s'elargit).
-    const resize = new ResizeObserver(measure);
+    // `measure` alterne lectures et ecritures de mise en page (il masque les
+    // rangs qui debordent) : le laisser suivre frame par frame le repli de la
+    // navigation faisait battre les rangs. Une seule mesure, a l'arrivee.
+    const settled = createSettledScheduler(measure);
+    const resize = new ResizeObserver(settled.schedule);
     resize.observe(node);
 
     // Un rang qui GRANDIT sur place — une rubrique qu'on deplie — ne change ni
@@ -97,10 +102,11 @@ export function useFitRows<T extends HTMLElement>(rowSelector?: string): {
     // deborderait sans que personne ne remesure. On n'ecoute que la structure,
     // pas les attributs : nos propres `display: none` ne se declenchent pas
     // eux-memes.
-    const mutations = new MutationObserver(measure);
+    const mutations = new MutationObserver(settled.schedule);
     mutations.observe(node, { childList: true, subtree: true });
 
     return () => {
+      settled.cancel();
       resize.disconnect();
       mutations.disconnect();
     };

@@ -482,6 +482,15 @@
 
   /* ---- Mouvement ---- */
   --ease-out-quart: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Repli de la navigation. UNE seule duree pour tout ce qui bouge pendant le
+     repli — coquille, gouttiere, libelles de groupe. Avant, la coquille et la
+     gouttiere tenaient 200 ms quand les boutons de menu suivaient la duree par
+     defaut de Tailwind (150 ms) : ils finissaient 50 ms trop tot, et ce
+     decalage se lisait comme un a-coup. Toute valeur changee ici doit l'etre
+     aussi dans SIDEBAR_MOTION_MS (components/ui/sidebar.tsx), qui s'en sert
+     pour suspendre les mesures de mise en page le temps du deplacement. */
+  --bui-sidebar-motion: 220ms;
 }
 
 /* ---- Sidebar : respect de prefers-reduced-motion ----
