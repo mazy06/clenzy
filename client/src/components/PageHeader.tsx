@@ -37,6 +37,29 @@ interface PageHeaderProps {
   /** Couleur du badge icone. Default : primaire Baitly. */
   iconBadgeColor?: string;
   /**
+   * BANDEAU ancre — l'en-tete prend la surface haute et une vraie arete, et le
+   * contenu s'installe dessous sur le fond de page.
+   *
+   * <p>La barre laterale a donne une structure verticale au produit ; les
+   * ecrans n'ont aucun ancrage horizontal : le titre flotte sur le meme fond
+   * que le contenu, et rien ne dit ou commence le plan de travail.</p>
+   *
+   * <p>Le bandeau deborde le padding du conteneur de contenu — 9 px, 12 px a
+   * partir de 900 px — pour aller d'un bord a l'autre, puis le retablit a
+   * l'interieur. Sans ce debordement il resterait une carte flottante, pas une
+   * bande.</p>
+   *
+   * <p>N'a de sens qu'avec l'echelle de surfaces a quatre paliers : avant
+   * elle, le bandeau aurait ete a 1,05 du contenu, donc invisible. Mesure
+   * apres : 1,15 entre la carte et la page, 1,16 pour l'arete.</p>
+   *
+   * <p>Actif PAR DEFAUT depuis l'essai concluant sur le Planning. Un ecran
+   * qui rendrait son en-tete AILLEURS que dans le conteneur de contenu — a
+   * l'interieur d'une carte ou d'une modale, par exemple — verrait le bandeau
+   * deborder de SON parent : il passe alors {@code anchored={false}}.</p>
+   */
+  anchored?: boolean;
+  /**
    * Element optionnel rendu inline a droite du titre (meme ligne que le h1).
    * Typiquement une puce de statut decrivant l'entite (Actif/Inactif, Brouillon).
    * Separe ce que l'entite EST (titre + adornment) de ce qu'on peut FAIRE (actions).
@@ -97,6 +120,7 @@ export default function PageHeader({
   subtitle,
   iconBadge,
   iconBadgeColor,
+  anchored = true,
   titleAdornment,
   backPath,
   backLabel = 'Retour',
@@ -164,7 +188,18 @@ export default function PageHeader({
     );
 
   return (
-    <header className={cn('mb-1.5 flex flex-col gap-1.5 lg:mb-3', className)}>
+    <header
+      className={cn(
+        'mb-1.5 flex flex-col gap-1.5 lg:mb-3',
+        anchored && [
+          'bg-card shadow-[inset_0_-1px_0_var(--bui-border)]',
+          // Deborde le padding du conteneur, puis le retablit dedans.
+          '-mx-[9px] -mt-[9px] px-[9px] pt-[9px] pb-2',
+          'min-[900px]:-mx-3 min-[900px]:-mt-3 min-[900px]:px-3 min-[900px]:pt-3',
+        ],
+        className,
+      )}
+    >
       {/* UNE ligne, jamais deux. `flex-wrap` + `justify-between` faisait passer
           les commandes a la ligne des 375 px, et `justify-between` poussait
           alors le titre contre le bord DROIT : le regard partait a droite pour
