@@ -7,6 +7,7 @@ import {
   serviceRequestToEvent,
   groupBlockedDays,
   dedup,
+  isPriorityWaveLoading,
 } from '../hooks/usePlanningData';
 import type { Reservation, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
@@ -335,5 +336,33 @@ describe('isPlanningSettled — quand ce qui se DEDUIT des sejours est complet',
     // Personne a interroger : attendre des donnees qui ne viendront jamais
     // garderait la rangee de filtres cachee a vie.
     expect(isPlanningSettled({ ...settled, propertyCount: 0, hasAnyData: false })).toBe(true);
+  });
+});
+
+describe('isPriorityWaveLoading', () => {
+  const chunks = [{ from: 'A' }, { from: 'B' }, { from: 'C' }];
+  const priority = new Set(['A', 'B']);
+
+  it('est vraie tant qu une tranche PRIORITAIRE charge', () => {
+    const results = [{ isLoading: true }, { isLoading: false }, { isLoading: false }];
+    expect(isPriorityWaveLoading(results, chunks, priority)).toBe(true);
+  });
+
+  it('ignore les tranches de BUFFER encore en vol', () => {
+    // Le coeur du correctif : le buffer s active APRES les prioritaires. Le
+    // compter faisait attendre la rangee de filtres jusqu au bout du buffer,
+    // alors que la fenetre visible etait deja lisible.
+    const results = [{ isLoading: false }, { isLoading: false }, { isLoading: true }];
+    expect(isPriorityWaveLoading(results, chunks, priority)).toBe(false);
+  });
+
+  it('est fausse quand la premiere vague est retombee', () => {
+    const results = [{ isLoading: false }, { isLoading: false }, { isLoading: false }];
+    expect(isPriorityWaveLoading(results, chunks, priority)).toBe(false);
+  });
+
+  it('ne se laisse pas depasser par un resultat sans tranche', () => {
+    const results = [{ isLoading: true }, { isLoading: true }, { isLoading: true }, { isLoading: true }];
+    expect(isPriorityWaveLoading(results, [], priority)).toBe(false);
   });
 });

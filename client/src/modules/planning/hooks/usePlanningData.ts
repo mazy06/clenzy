@@ -382,6 +382,30 @@ export function dedup<T extends { id: number }>(arrays: T[][]): T[] {
  * n'ait ete demande. D'ou la troisieme clause : soit des donnees sont la, soit
  * il n'y a personne a interroger.</p>
  */
+/**
+ * La vague PRIORITAIRE est-elle encore en vol ?
+ *
+ * <p>A ne pas confondre avec « une tranche quelconque charge ». Les tranches de
+ * buffer sont volontairement desactivees tant que les prioritaires n'ont pas
+ * resolu : elles ne comptent donc pas pendant la premiere vague, puis
+ * s'activent TOUTES d'un coup. Mesurer « une tranche charge » faisait alors
+ * repasser l'indicateur a vrai juste apres la fenetre visible, et tout ce qui
+ * attend l'atterrissage — la rangee de filtres — restait en reserve jusqu'au
+ * bout du buffer, bien apres que le planning soit lisible.</p>
+ *
+ * <p>Les resultats arrivent dans l'ordre des tranches : l'index fait foi.</p>
+ */
+export function isPriorityWaveLoading(
+  results: readonly { isLoading: boolean }[],
+  chunks: readonly { from: string }[],
+  priorityFroms: ReadonlySet<string>,
+): boolean {
+  return results.some((query, index) => {
+    const chunk = chunks[index];
+    return query.isLoading && !!chunk && priorityFroms.has(chunk.from);
+  });
+}
+
 export function isPlanningSettled({
   propertiesLoading,
   chunksLoading,
@@ -524,6 +548,7 @@ export function usePlanningData(
         blocked,
         hasAnyData: chunkData.length > 0,
         isLoading: results.some((q) => q.isLoading),
+        priorityLoading: isPriorityWaveLoading(results, chunks, priorityFroms),
         error: results.find((q) => q.error)?.error?.message,
       };
     },
@@ -605,7 +630,9 @@ export function usePlanningData(
     loading,
     settled: isPlanningSettled({
       propertiesLoading: propertiesQuery.isLoading,
-      chunksLoading: planningResult.isLoading,
+      // La vague PRIORITAIRE, pas l'ensemble des tranches — cf.
+      // isPriorityWaveLoading.
+      chunksLoading: planningResult.priorityLoading,
       propertyCount: propertyIds.length,
       hasAnyData: planningResult.hasAnyData,
     }),
