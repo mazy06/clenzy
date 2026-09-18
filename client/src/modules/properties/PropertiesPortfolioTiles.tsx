@@ -84,7 +84,12 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
         value={aggregates.adr != null ? <Money value={aggregates.adr} decimals={0} /> : '—'}
         hint="prix moyen par nuit vendue"
       />
+      {/* Le moment engagé de cet écran. Un portefeuille se juge à ce qu'il
+          rapporte : l'occupation et l'ADR expliquent ce chiffre, elles ne le
+          remplacent pas. Une seule tuile portante par écran — deux, et il n'y
+          en a plus aucune. */}
       <StatTile
+        feature
         icon={<TrendingUp />}
         label="Revenu du mois"
         value={aggregates.revenue != null ? <Money value={aggregates.revenue} decimals={0} /> : '—'}

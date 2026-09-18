@@ -193,11 +193,19 @@ const InterventionsPendingPayment: React.FC = () => {
           value={interventions.length}
           iconClassName={WARN_TONE}
         />
+        {/* De l'argent dû : le compte d'interventions est une unité de travail,
+            celui-ci est un enjeu.
+
+            L'icône passe de la teinte vive à l'encre foncée : sur le fond
+            accentué d'une tuile portante, `text-destructive` tombe de 3,15 à
+            2,41 — sous le seuil 3:1 des éléments non textuels. L'encre y tient
+            largement, et la sémantique est conservée. */}
         <StatTile
+          feature
           icon={<EuroIcon size={16} strokeWidth={1.75} />}
           label="Total a regler"
           value={<Money value={totalDue} from="EUR" />}
-          iconClassName={ERR_TONE}
+          iconClassName="text-destructive-ink"
         />
       </div>
 
