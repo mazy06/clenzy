@@ -6,6 +6,7 @@ import { FIELD_ROLES } from '../utils/fieldRoles';
 import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
 import { useAuth } from '../hooks/useAuth';
+import { useAssignmentEventStream } from '../hooks/useAssignmentEventStream';
 import { warmHotRoutes } from './routePrefetch';
 import { ASSISTANT_CONVERSATION_PARAM } from '../components/assistantDeepLink';
 
@@ -57,6 +58,19 @@ const TeamEdit = lazy(() => import('./teams/TeamEdit'));
 
 // Directory (Annuaire — merged Teams + Portfolios + Guests)
 const DirectoryPage = lazy(() => import('./directory/DirectoryPage'));
+
+// Annuaire unifié des prestataires ; capacités selon le rôle.
+const ProvidersPage = lazy(() => import('./marketplace/ProvidersPage'));
+const ServiceProposalsRedirect = lazy(() => import('./service-requests/ServiceProposalsRedirect'));
+const LegacyProvidersRedirect = lazy(() => import('./marketplace/ProvidersPage').then(module => ({ default: module.LegacyProvidersRedirect })));
+// Les détails conservent leurs contrats d'accès catalogue / modération.
+const ProviderCatalogDetailPage = lazy(() => import('./provider-catalog/ProviderCatalogDetailPage'));
+// Devis : les deux cotes. `/devis` pour ce que l'organisation a demande,
+// `/devis/recus` pour ce qui est adresse a la fiche du compte connecte.
+const SentQuotesPage = lazy(() => import('./quotes/SentQuotesPage'));
+const ReceivedQuotesPage = lazy(() => import('./quotes/ReceivedQuotesPage'));
+const MarketplaceProviderDetailPage = lazy(() => import('./marketplace/MarketplaceProviderDetailPage'));
+const MarketplaceAccountReconciliationPage = lazy(() => import('./marketplace/MarketplaceAccountReconciliationPage'));
 
 // Reports
 const Reports = lazy(() => import('./reports/Reports'));
@@ -166,6 +180,7 @@ const ManagementContractsPage = lazy(() => import('./contracts/ManagementContrac
 
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
+  useAssignmentEventStream(user ? `${user.id}:${user.organizationId}` : null);
   const queryClient = useQueryClient();
 
   // Warm-up au montage : les données du Planning (route d'atterrissage) partent
@@ -295,7 +310,7 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/interventions/new" element={
           <ProtectedRoute requiredPermission="interventions:create">
             <ErrorBoundary>
-              <InterventionForm />
+              <ServiceRequestCreate />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
@@ -361,6 +376,39 @@ const AuthenticatedApp: React.FC = () => {
 
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
+
+        {/* Ancienne entrée conservée pour les favoris. Les fiches de gestion
+            restent réservées aux rôles plateforme, comme leurs API. */}
+        <Route path="/marketplace/providers" element={<ProtectedRoute><LegacyProvidersRedirect /></ProtectedRoute>} />
+        <Route path="/marketplace/providers/:id" element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER']}>
+            <MarketplaceProviderDetailPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/marketplace" element={<LegacyProvidersRedirect />} />
+        <Route path="/marketplace/account-reconciliation/:providerId" element={<MarketplaceAccountReconciliationPage />} />
+
+        {/* Catalogue vu par une ORGANISATION. Pas de `requiredRoles` : un
+            technicien comme un gestionnaire ont des raisons légitimes de
+            consulter les prestataires de leur organisation. Ce qui borne la
+            vue, c'est l'organisation — résolue par le serveur, jamais par
+            l'écran. */}
+        <Route path="/prestataires" element={
+          <ProtectedRoute><ProvidersPage /></ProtectedRoute>
+        } />
+        <Route path="/service-proposals" element={<ServiceProposalsRedirect />} />
+        <Route path="/prestataires/:id" element={
+          <ProtectedRoute><ProviderCatalogDetailPage /></ProtectedRoute>
+        } />
+        <Route path="/devis" element={
+          <ProtectedRoute><SentQuotesPage /></ProtectedRoute>
+        } />
+        {/* L'acces est borne par le SERVEUR : un compte sans fiche prestataire
+            recoit un refus, et l'ecran le dit. Un `requiredRoles` ici serait
+            faux — c'est le rattachement a une fiche qui compte, pas le role. */}
+        <Route path="/devis/recus" element={
+          <ProtectedRoute><ReceivedQuotesPage /></ProtectedRoute>
+        } />
         {/* Backward-compat redirects for old URLs */}
         <Route path="/guests" element={<Navigate to="/directory?tab=guests" replace />} />
 

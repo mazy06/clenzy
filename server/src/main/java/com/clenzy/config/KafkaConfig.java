@@ -31,11 +31,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Configuration Apache Kafka pour Clenzy.
+ * Configuration Apache Kafka pour Baitly.
  *
  * Topics :
  * - airbnb.webhooks.incoming   : evenements bruts recus d'Airbnb
- * - airbnb.reservations.sync   : sync reservations Airbnb <-> Clenzy
+ * - airbnb.reservations.sync   : sync reservations Airbnb <-> Baitly
  * - airbnb.calendar.sync       : sync calendrier
  * - airbnb.messages.sync       : sync messagerie
  * - airbnb.listings.sync       : sync annonces
@@ -371,6 +371,7 @@ public class KafkaConfig {
      * en production, ces flux echouaient silencieusement (P5-03).</p>
      */
     public static final Set<String> CONSUMED_TOPICS = Set.of(
+            AssignmentConsumerConfig.TOPIC,
             TOPIC_AIRBNB_RESERVATIONS,
             TOPIC_AIRBNB_CALENDAR,
             TOPIC_AIRBNB_MESSAGES,

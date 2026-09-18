@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Attachment,
@@ -24,7 +25,10 @@ import { formatCurrency } from '../../../utils/currencyUtils';
 import { formatDate } from '../../../utils/formatUtils';
 import { documentsApi } from '../../../services/api/documentsApi';
 import { serviceQuotesApi } from '../../../services/api/serviceQuotesApi';
+import { quoteRequestsApi } from '../../../services/api/quoteRequestsApi';
 import type { QuoteCardPayload } from '../../../services/api/contactApi';
+import { invalidateMissionWorkflow } from '../../../hooks/invalidateMissionWorkflow';
+import QuoteAmendments from './QuoteAmendments';
 
 /**
  * Devis presente DANS la discussion : le logement concerne, le detail chiffre,
@@ -34,13 +38,18 @@ import type { QuoteCardPayload } from '../../../services/api/contactApi';
  * fallait retrouver l'intervention. Tout est ici.</p>
  */
 export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
+  const { user, loading } = useAuth();
+  if (loading || !user) return null;
+  return <QuoteMessageContent key={JSON.stringify([user.id, user.organizationId, card.quoteId, card.marketplaceRequestId])} card={card} />;
+}
+
+function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
   const { t } = useTranslation();
   const { notify } = useNotification();
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, user } = useAuth();
   // La decision appartient a la conciergerie et au proprietaire. Le serveur en
   // est l'autorite (`assertCanDecide`) ; l'ecran ne doit pas proposer un geste
   // qui sera refuse — l'intervenant voyait « Accepter » sur son propre devis.
-  const canDecide = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST']);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [deciding, setDeciding] = useState(false);
@@ -50,22 +59,49 @@ export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
   // figee au moment ou le message a ete poste, et une pastille tenue en memoire
   // locale disparaissait au moindre remontage — un abandon de paiement, un
   // changement de conversation, un simple rechargement.
-  const quotesKey = ['service-quotes', card.interventionId] as const;
+  const scope = JSON.stringify([user?.id, user?.organizationId]);
+  const quotesKey = ['service-quotes', card.interventionId, scope] as const;
   const { data: quotes } = useQuery({
     queryKey: quotesKey,
-    queryFn: () => serviceQuotesApi.list(card.interventionId),
+    queryFn: () => serviceQuotesApi.list(card.interventionId!),
+    enabled: card.marketplaceRequestId == null && card.interventionId != null,
     staleTime: 30_000,
   });
-  const status = quotes?.find((quote) => quote.id === card.quoteId)?.status ?? null;
+  const { data: request } = useQuery({
+    queryKey: ['quote-requests', 'detail', card.marketplaceRequestId, scope],
+    queryFn: () => quoteRequestsApi.getById(card.marketplaceRequestId!),
+    enabled: card.marketplaceRequestId != null,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+  });
+  const { data: commercial } = useQuery({
+    queryKey: ['service-quotes', 'marketplace', card.marketplaceRequestId, scope],
+    queryFn: () => quoteRequestsApi.commercial(card.marketplaceRequestId!),
+    enabled: card.marketplaceRequestId != null,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+    retry: false,
+  });
+  const status = commercial?.status ?? (card.marketplaceRequestId != null
+    ? request?.status === 'ACCEPTED' ? 'APPROVED'
+      : request?.status === 'DECLINED' ? 'REJECTED'
+        : request?.status === 'QUOTED' && !request.expired ? 'RECEIVED' : null
+    : quotes?.find((quote) => quote.id === card.quoteId)?.status ?? null);
+  const documentGenerationId = commercial?.documentGenerationId ?? card.documentGenerationId;
+  const depositAmount = commercial?.depositAmount ?? card.depositAmount;
+  const depositPercent = commercial?.depositPercent ?? card.depositPercent;
   const decision = status === 'APPROVED' || status === 'REJECTED' ? status : null;
+  const canDecide = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'])
+    && (card.marketplaceRequestId == null || request?.requesterOrganizationId === user?.organizationId);
 
-  const fileName = `devis-${card.quoteId}.pdf`;
+  const fileName = `devis-${commercial?.id ?? card.quoteId}.pdf`;
+  const interventionId = request?.interventionId ?? card.interventionId;
 
   const loadPdf = async () => {
-    if (blobUrl || loadingPdf || card.documentGenerationId == null) return;
+    if (blobUrl || loadingPdf || documentGenerationId == null) return;
     setLoadingPdf(true);
     try {
-      setBlobUrl(await documentsApi.fetchGenerationBlobUrl(card.documentGenerationId));
+      setBlobUrl(await documentsApi.fetchGenerationBlobUrl(documentGenerationId));
     } catch {
       setBlobUrl(null);
     } finally {
@@ -80,14 +116,17 @@ export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
     setDeciding(true);
     try {
       if (accept) {
-        await serviceQuotesApi.approve(card.quoteId);
+        if (card.marketplaceRequestId != null) await quoteRequestsApi.accept(card.marketplaceRequestId);
+        else await serviceQuotesApi.approve(card.quoteId);
         notify.success(t('messagingHub.quote.approved', 'Devis approuvé'));
       } else {
-        await serviceQuotesApi.reject(card.quoteId);
+        if (card.marketplaceRequestId != null) await quoteRequestsApi.decline(card.marketplaceRequestId);
+        else await serviceQuotesApi.reject(card.quoteId);
         notify.success(t('messagingHub.quote.rejected', 'Devis écarté'));
       }
-      queryClient.invalidateQueries({ queryKey: quotesKey });
+      await invalidateMissionWorkflow(queryClient);
     } catch {
+      void invalidateMissionWorkflow(queryClient);
       notify.error(t('messagingHub.quote.decisionFailed', 'L’action a échoué, réessayez.'));
     } finally {
       setDeciding(false);
@@ -118,6 +157,7 @@ export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
       </span>
 
       <span className="flex flex-wrap items-baseline gap-x-2 border-t border-solid border-border pt-2">
+        {status === 'APPROVED' && <span className="text-xs text-muted-foreground">{t('quoteAmendments.initial')}</span>}
         <span className="text-[17px] font-semibold tabular-nums text-foreground">
           {formatCurrency(card.amount, card.currency)}
         </span>
@@ -159,12 +199,12 @@ export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
         </span>
       )}
 
-      {card.depositAmount != null && card.depositAmount > 0 && (
+      {depositAmount != null && depositAmount > 0 && (
         <span className="rounded-md bg-warning-soft px-2 py-1 text-xs text-warning-ink">
           {t('messagingHub.quote.deposit',
             'Acompte de {{amount}} à la validation ({{percent}} % du devis).', {
-              amount: formatCurrency(card.depositAmount, card.currency),
-              percent: card.depositPercent ?? 0,
+              amount: formatCurrency(depositAmount, card.currency),
+              percent: depositPercent ?? 0,
             })}
         </span>
       )}
@@ -181,7 +221,7 @@ export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
       )}
 
       {/* Le PDF, ouvrable sans quitter la discussion. */}
-      {card.documentGenerationId != null && (
+      {documentGenerationId != null && (
         <Dialog onOpenChange={(open) => { if (open) loadPdf(); }}>
           <Attachment className="w-full">
             <AttachmentMedia>
@@ -225,7 +265,18 @@ export default function QuoteMessageCard({ card }: { card: QuoteCardPayload }) {
 
       {/* La decision se prend ici : c'est le propriétaire ou la conciergerie
           qui tranche, et c'est dans ce fil qu'on leur a soumis le prix. */}
-      {!decision && canDecide && (
+      {interventionId != null && (
+        <Link to={`/interventions/${interventionId}`}
+          className="cursor-pointer text-xs text-primary underline underline-offset-2 focus-visible:outline focus-visible:outline-2">
+          {t('payments.history.viewIntervention', "Voir l'intervention")}
+        </Link>
+      )}
+
+      {status === 'APPROVED' && interventionId != null && (
+        <QuoteAmendments key={commercial?.id ?? card.quoteId} quoteId={commercial?.id ?? card.quoteId} />
+      )}
+
+      {status === 'RECEIVED' && !request?.expired && canDecide && (
         <span className="flex flex-wrap gap-2 border-t border-solid border-border pt-2">
           <Button variant="secondary" size="sm" disabled={deciding} onClick={() => decide(true)}>
             {deciding ? <Spinner className="size-4" /> : <CheckCircleOutline size={15} strokeWidth={2} />}

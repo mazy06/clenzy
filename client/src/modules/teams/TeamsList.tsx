@@ -1,3 +1,4 @@
+import ServiceItemSelect from '../../components/ServiceItemSelect';
 import React from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -173,25 +174,10 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
             tone="accent"
             className="h-[26px] border-solid text-[0.72rem] font-semibold"
           />
-          {TEAM_FILTER_CATEGORIES.map((cat) => {
-            const actif = selectedType === cat.value;
-            return (
-              <StatusChip
-                key={cat.value}
-                icon={cat.icon}
-                label={cat.label}
-                outlined
-                selected={actif}
-                pressed={actif}
-                onClick={() => setSelectedType(cat.value)}
-                tone="accent"
-                // Au repos la bordure porte l'identite de la categorie : couleur
-                // connue a l'execution seulement, donc style inline.
-                sx={actif ? undefined : { borderColor: cat.borderColor }}
-                className={`h-[26px] border-solid text-[0.72rem] ${actif ? 'font-semibold' : 'font-normal'}`}
-              />
-            );
-          })}
+          <div className="min-w-0 flex-1">
+            <ServiceItemSelect value={selectedType === 'all' ? undefined : selectedType}
+              onChange={item => setSelectedType(item.code)} />
+          </div>
         </div>
 
         {/* Compteur d'équipes */}

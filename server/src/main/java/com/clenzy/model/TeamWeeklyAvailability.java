@@ -7,8 +7,8 @@ import java.time.LocalTime;
 import java.time.LocalDateTime;
 
 /**
- * Creneau hebdomadaire recurrent d'un prestataire — equipe classique ou equipe
- * PERSONNELLE d'un intervenant independant.
+ * Créneau hebdomadaire d’une équipe collective. Les équipes personnelles
+ * consultent le calendrier individuel de leur membre, sans copie.
  *
  * <p>Regle qui gouverne tout le reste : <b>aucune ligne = disponible</b>. Un
  * prestataire qui n'a rien declare reste eligible, comme avant l'existence de

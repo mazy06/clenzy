@@ -1,0 +1,31 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import ProviderDocumentaryPanel from './ProviderDocumentaryPanel';
+import apiClient from '../../services/apiClient';
+vi.mock('../../services/apiClient', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 3, organizationId: 7 } }) }));
+vi.mock('../../hooks/useTranslation', () => ({ useTranslation: () => ({ t: (key: string) => key, currentLanguage: 'fr' }) }));
+let client: QueryClient;
+const data = { professionalStatus: null, baseCountry: 'MA', serviceScopes: ['*', 'ITEM:CLEANING'], documents: [{ id: 10, name: 'Registre', type: 'COMPANY_REGISTRATION', status: 'APPROVED', expiresAt: null }, { id: 11, name: 'Assurance', type: 'LIABILITY_INSURANCE', status: 'PENDING', expiresAt: null }], reviews: [], rules: [] };
+beforeEach(() => { vi.resetAllMocks(); client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }); vi.mocked(apiClient.get).mockResolvedValue(data); vi.mocked(apiClient.post).mockResolvedValue(data); });
+afterEach(() => { cleanup(); client.clear(); });
+const mount = () => render(<QueryClientProvider client={client}><ProviderDocumentaryPanel providerId={1} /></QueryClientProvider>);
+it('requires explicit manual assessment for an unconfigured country and only accepts approved evidence', async () => {
+  mount(); await screen.findByText('documentary.manualRequired');
+  expect(screen.getByLabelText(/Assurance/)).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'documentary.save' })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('documentary.status'), { target: { value: 'COMPANY' } });
+  fireEvent.click(screen.getByLabelText(/Registre/));
+  fireEvent.change(screen.getByLabelText('documentary.until'), { target: { value: '2027-01-01' } });
+  fireEvent.change(screen.getByLabelText('documentary.note'), { target: { value: 'Registre local vérifié' } });
+  expect(screen.getByRole('button', { name: 'documentary.save' })).toBeDisabled();
+  fireEvent.click(screen.getByLabelText('documentary.confirmation'));
+  fireEvent.click(screen.getByRole('button', { name: 'documentary.save' }));
+  await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/admin/marketplace/documentary/1/reviews', { country: 'MA', professionalStatus: 'COMPANY', serviceScope: '*', documentIds: [10], regulated: false, licenseDocumentId: null, validUntil: '2027-01-01', note: 'Registre local vérifié', manualAssessment: true }));
+});
+it('does not turn a review into a global country rule automatically', async () => {
+  mount(); await screen.findByText('documentary.manualRequired');
+  expect(screen.getByRole('button', { name: 'documentary.ruleSave', hidden: true })).toBeDisabled();
+  expect(apiClient.put).not.toHaveBeenCalled();
+});

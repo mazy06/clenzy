@@ -18,6 +18,10 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Optional<User> findByEmailHash(String emailHash);
     boolean existsByEmailHash(String emailHash);
     Optional<User> findByKeycloakId(String keycloakId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select u from User u where u.id = :id")
+    Optional<User> findForMarketplaceReconciliation(@org.springframework.data.repository.query.Param("id") Long id);
     /** Payeur d'un abonnement Stripe (dotation credits IA a invoice.paid — T-07). */
     Optional<User> findByStripeSubscriptionId(String stripeSubscriptionId);
     /**
@@ -77,4 +81,3 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     long countByCreatedAtAfter(LocalDateTime date);
 }
-

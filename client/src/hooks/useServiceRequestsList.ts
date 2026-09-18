@@ -16,11 +16,13 @@ export const serviceRequestsListKeys = {
 // Converter
 // ============================================================================
 
-function convertServiceRequest(req: ServiceRequestApiResponse): ServiceRequest {
+export function convertServiceRequest(req: ServiceRequestApiResponse): ServiceRequest {
   return {
     id: req.id.toString(),
+    version: req.version,
     title: req.title,
     description: req.description,
+    serviceItemCode: req.serviceItemCode,
     type: req.type?.toLowerCase() || req.serviceType?.toLowerCase() || 'other',
     status: req.status || 'PENDING',
     priority: req.priority?.toLowerCase() || 'medium',
@@ -48,6 +50,10 @@ function convertServiceRequest(req: ServiceRequestApiResponse): ServiceRequest {
       | undefined,
     estimatedDuration: req.estimatedDurationHours || req.estimatedDuration || 1,
     estimatedCost: req.estimatedCost || undefined,
+    interventionId: req.interventionId,
+    assignmentPhase: req.assignmentPhase,
+    assignmentExpiresAt: req.assignmentExpiresAt,
+    autoAssignStatus: req.autoAssignStatus,
     dueDate: req.desiredDate || req.dueDate || '',
     createdAt: req.createdAt,
     propertyLatitude: req.property?.latitude,
@@ -69,17 +75,18 @@ export interface UseServiceRequestsListReturn {
   refetch: () => void;
 }
 
-export function useServiceRequestsListQuery(): UseServiceRequestsListReturn {
+export function useServiceRequestsListQuery(enabled = true): UseServiceRequestsListReturn {
   const queryClient = useQueryClient();
 
   // ─── Service requests query ─────────────────────────────────────────
   const query = useQuery({
     queryKey: serviceRequestsListKeys.list(),
     queryFn: async () => {
-      const data = await serviceRequestsApi.getAll();
+      const data = await serviceRequestsApi.getAll({ activeOnly: true });
       const requestsList = (data as unknown as { content?: ServiceRequestApiResponse[] }).content || data;
       return (requestsList as unknown as ServiceRequestApiResponse[]).map(convertServiceRequest);
     },
+    enabled,
     staleTime: 60_000,
   });
 

@@ -26,11 +26,11 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
     List<OutboxEvent> findPendingEvents(Pageable pageable);
 
     /**
-     * Recupere les events FAILED avec moins de maxRetries tentatives,
-     * bornes par le Pageable (meme raison que findPendingEvents).
+     * Reprend les échecs bornés par lot. Les réveils d'attribution restent
+     * réessayables sans limite pour ne pas perdre une échéance pendant une panne Kafka.
      */
     @Query("SELECT e FROM OutboxEvent e WHERE e.status = 'FAILED' " +
-           "AND e.retryCount < :maxRetries ORDER BY e.createdAt ASC")
+           "AND (e.retryCount < :maxRetries OR e.topic = 'baitly.assignment.jobs') ORDER BY e.createdAt ASC")
     List<OutboxEvent> findRetryableEvents(@Param("maxRetries") int maxRetries, Pageable pageable);
 
     /**
@@ -105,6 +105,7 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
             SELECT e FROM OutboxEvent e
             WHERE e.status = 'FAILED'
               AND e.retryCount >= :maxRetries
+              AND e.topic <> 'baitly.assignment.jobs'
               AND e.organizationId = :orgId
             ORDER BY e.createdAt DESC
             """)

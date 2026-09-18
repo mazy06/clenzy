@@ -1,3 +1,4 @@
+import ServiceReferenceLabels from '../../components/ServiceReferenceLabels';
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button, Card, CardContent } from '../../components/ui';
@@ -27,6 +28,7 @@ interface Team {
   name: string;
   description: string;
   interventionType: string;
+  serviceItemCodes?: string[];
   memberCount: number;
   members: TeamMember[];
   createdAt?: string;
@@ -143,7 +145,7 @@ const TeamDetails: React.FC = () => {
                 sémantique → la primitive en dérive elle-même le fond doux. */}
             <StatusChip
               color={getInterventionTypeHex(team.interventionType)}
-              label={getInterventionTypeLabel(team.interventionType, t)}
+              label={<ServiceReferenceLabels codes={team.serviceItemCodes} />}
             />
           </div>
 
@@ -167,7 +169,7 @@ const TeamDetails: React.FC = () => {
             <div className="col-span-6 min-[900px]:col-span-3">
               <div className="text-center">
                 <span className="inline-flex text-muted-foreground mb-0.5"><Build size={20} strokeWidth={1.75} /></span>
-                <p className="text-xs font-medium">{getInterventionTypeLabel(team.interventionType, t)}</p>
+                <p className="text-xs font-medium"><ServiceReferenceLabels codes={team.serviceItemCodes} /></p>
                 <span className="text-xs text-muted-foreground">Spécialité</span>
               </div>
             </div>

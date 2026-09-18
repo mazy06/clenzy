@@ -44,6 +44,8 @@ public class BookingReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(BookingReservationService.class);
 
+    private final com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog;
+
     private final ChannelMappingRepository channelMappingRepository;
     private final BookingConnectionRepository bookingConnectionRepository;
     private final ServiceRequestRepository serviceRequestRepository;
@@ -54,7 +56,8 @@ public class BookingReservationService {
                                      BookingConnectionRepository bookingConnectionRepository,
                                      ServiceRequestRepository serviceRequestRepository,
                                      PropertyRepository propertyRepository,
-                                     AuditLogService auditLogService) {
+                                     AuditLogService auditLogService, com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog) {
+        this.serviceCatalog=serviceCatalog;
         this.channelMappingRepository = channelMappingRepository;
         this.bookingConnectionRepository = bookingConnectionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -108,7 +111,7 @@ public class BookingReservationService {
 
         Long orgId = resolveOrgId(hotelId);
         if (orgId == null) {
-            log.warn("Hotel Booking.com {} non lie a une organisation Clenzy, evenement ignore", hotelId);
+            log.warn("Hotel Booking.com {} non lie a une organisation Baitly, evenement ignore", hotelId);
             return;
         }
 
@@ -116,7 +119,7 @@ public class BookingReservationService {
                 .findByExternalIdAndChannel(roomId, ChannelName.BOOKING, orgId);
 
         if (mappingOpt.isEmpty()) {
-            log.warn("Room Booking.com {} non liee a une propriete Clenzy, evenement ignore", roomId);
+            log.warn("Room Booking.com {} non liee a une propriete Baitly, evenement ignore", roomId);
             return;
         }
 
@@ -265,6 +268,7 @@ public class BookingReservationService {
                 property.getOwner(),
                 property
         );
+        sr.setServiceItemCode(serviceCatalog.resolve(null, sr.getServiceType().name(), null, null));
         sr.setOrganizationId(orgId);
         sr.setStatus(RequestStatus.PENDING);
         sr.setPriority(Priority.HIGH);

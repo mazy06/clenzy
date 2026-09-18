@@ -1,12 +1,13 @@
 import { z } from 'zod/v4';
 
-export const interventionSchema = z.object({
+export const interventionSchemaFor = (propertyRequired = true) => z.object({
   title: z.string().min(1, 'Le titre est requis'),
   description: z.string().optional().default(''),
+  serviceItemCode: z.string().optional(),
   type: z.string().min(1, "Le type d'intervention est requis"),
   status: z.string().min(1, 'Le statut est requis'),
   priority: z.string().min(1, 'La priorité est requise'),
-  propertyId: z.number().min(1, 'La propriété est requise'),
+  propertyId: z.number().min(propertyRequired ? 1 : 0, 'La propriété est requise'),
   requestorId: z.number().min(1, 'Le demandeur est requis'),
   assignedToId: z.number().optional(),
   assignedToType: z.enum(['user', 'team']).optional(),
@@ -17,5 +18,7 @@ export const interventionSchema = z.object({
   photos: z.string().optional().default(''),
   progressPercentage: z.number().int().min(0).max(100).default(0),
 });
+
+export const interventionSchema = interventionSchemaFor();
 
 export type InterventionFormValues = z.infer<typeof interventionSchema>;

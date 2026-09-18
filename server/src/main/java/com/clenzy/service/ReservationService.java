@@ -43,6 +43,8 @@ public class ReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(ReservationService.class);
 
+    private final com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog;
+
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
@@ -62,6 +64,8 @@ public class ReservationService {
     private final StripeService stripeService;
     private final WebhookEventPublisher webhookEventPublisher;
     private final CleaningPricingEngine cleaningPricingEngine;
+
+    private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -83,7 +87,9 @@ public class ReservationService {
                               // @Lazy : evite un cycle potentiel via les services de paiement.
                               @Lazy StripeService stripeService,
                               WebhookEventPublisher webhookEventPublisher,
-                              CleaningPricingEngine cleaningPricingEngine) {
+                              CleaningPricingEngine cleaningPricingEngine, com.clenzy.service.InterventionAllocationGuard allocationGuard, com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog) {
+        this.serviceCatalog=serviceCatalog;
+        this.allocationGuard = allocationGuard;
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -664,6 +670,7 @@ public class ReservationService {
             return;
         }
         intervention.setProperty(reservation.getProperty());
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
     }
 
@@ -685,6 +692,7 @@ public class ReservationService {
         if (intervention.getEstimatedDurationHours() != null) {
             intervention.setEndTime(newScheduled.plusHours(intervention.getEstimatedDurationHours()));
         }
+        allocationGuard.requireAvailable(intervention);
         interventionRepository.save(intervention);
     }
 
@@ -854,6 +862,7 @@ public class ReservationService {
                 requestor,
                 property
         );
+        sr.setServiceItemCode(serviceCatalog.resolve(null, sr.getServiceType().name(), null, null));
         sr.setOrganizationId(orgId);
         sr.setStatus(RequestStatus.PENDING);
         sr.setPriority(Priority.NORMAL);

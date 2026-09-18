@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
@@ -55,6 +54,7 @@ class HousekeeperRateAssignmentTest {
         @Mock private InterventionPhotoService photoService;
         @Mock private InterventionMapper interventionMapper;
         @Mock private InterventionAccessPolicy accessPolicy;
+        @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
         @Mock private CleaningPricingEngine cleaningPricingEngine;
         @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
         @Mock private com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
@@ -63,7 +63,7 @@ class HousekeeperRateAssignmentTest {
             return new InterventionService(interventionRepository, userRepository, teamRepository,
                     notificationService, tenantContext, photoService, interventionMapper, accessPolicy,
                     cleaningPricingEngine, missionAssignmentEmailComposer, propertyPhotoRepository,
-                    supervisionTriggerService);
+                    supervisionTriggerService, serviceQuoteRepository, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), org.mockito.Mockito.mock(com.clenzy.service.assignment.InterventionRequestIntake.class));
         }
 
         private Jwt adminJwt() {
@@ -149,7 +149,7 @@ class HousekeeperRateAssignmentTest {
     // ─── ServiceRequestService.manualAssign ─────────────────────────────────
 
     @Nested
-    @DisplayName("ServiceRequestService.manualAssign — recalcul au tarif du pro")
+    @DisplayName("ServiceRequestService.manualAssign — proposition sans écraser le prix demandé")
     class ManualAssign {
 
         @Mock private ServiceRequestRepository serviceRequestRepository;
@@ -160,7 +160,7 @@ class HousekeeperRateAssignmentTest {
         @Mock private TeamRepository teamRepository;
         @Mock private NotificationService notificationService;
         @Mock private PropertyTeamService propertyTeamService;
-        @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+        @Mock private com.clenzy.service.DocumentGenerationOutbox documentOutbox;
         @Mock private ServiceRequestMapper serviceRequestMapper;
         @Mock private AssignmentEventRepository assignmentEventRepository;
         @Mock private WorkflowSettingsRepository workflowSettingsRepository;
@@ -170,14 +170,18 @@ class HousekeeperRateAssignmentTest {
         @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
         @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
         @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
+        @Mock private com.clenzy.service.assignment.ServiceAssignmentService assignments;
 
         private ServiceRequestService service() {
+            var guard = org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class);
+            org.mockito.Mockito.lenient().when(guard.isUserDeclaredAvailable(any(), any(), any())).thenReturn(true);
+            org.mockito.Mockito.lenient().when(guard.isTeamDeclaredAvailable(any(), any(), any())).thenReturn(true);
             return new ServiceRequestService(serviceRequestRepository, userRepository, propertyRepository,
                     interventionRepository, reservationRepository, teamRepository, notificationService,
-                    propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
+                    propertyTeamService, documentOutbox, new TenantContext(), serviceRequestMapper,
                     assignmentEventRepository, workflowSettingsRepository, cleaningPricingEngine, housekeeperScoreService,
                     supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
-                    organizationAccessGuard);
+                    organizationAccessGuard, guard, org.mockito.Mockito.mock(com.clenzy.service.ServiceRequestCancellationCoordination.class), assignments);
         }
 
         private ServiceRequest cleaningSr(RequestStatus status) {
@@ -186,6 +190,7 @@ class HousekeeperRateAssignmentTest {
             property.setOrganizationId(7L);
             ServiceRequest sr = new ServiceRequest();
             sr.setId(1L);
+            sr.setOrganizationId(7L);
             sr.setStatus(status);
             sr.setServiceType(ServiceType.CLEANING);
             sr.setProperty(property);
@@ -195,41 +200,41 @@ class HousekeeperRateAssignmentTest {
         }
 
         @Test
-        void whenUserAssignedOnUnpaidCleaningSr_thenEstimatedCostFollowsProRate() {
+        void whenUserProposed_thenRequestedPriceIsPreservedUntilAgreement() {
             ServiceRequest sr = cleaningSr(RequestStatus.PENDING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(serviceRequestRepository.findForMutation(1L)).thenReturn(Optional.of(sr));
             when(serviceRequestMapper.toDto(any())).thenReturn(new com.clenzy.dto.ServiceRequestDto());
-            when(cleaningPricingEngine.resolveCleaningPrice(any(), eq("CLEANING"), eq(42L))).thenReturn(PRO_PRICE);
 
             service().manualAssign(1L, 42L, "user");
 
-            assertThat(sr.getEstimatedCost()).isEqualByComparingTo("88");
+            verify(assignments).propose(1L, 7L, "user", 42L);
+            assertThat(sr.getEstimatedCost()).isEqualByComparingTo("120");
             assertThat(sr.getRecommendedCost()).isEqualByComparingTo("95");
+            verify(cleaningPricingEngine, never()).resolveCleaningPrice(any(), any(), anyLong());
         }
 
         @Test
         void whenTeamAssigned_thenNoRateLookup() {
             ServiceRequest sr = cleaningSr(RequestStatus.PENDING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(serviceRequestRepository.findForMutation(1L)).thenReturn(Optional.of(sr));
             when(serviceRequestMapper.toDto(any())).thenReturn(new com.clenzy.dto.ServiceRequestDto());
 
             service().manualAssign(1L, 77L, "team");
+            verify(assignments).propose(1L, 7L, "team", 77L);
 
             assertThat(sr.getEstimatedCost()).isEqualByComparingTo("120");
             verify(cleaningPricingEngine, never()).resolveCleaningPrice(any(), any(), anyLong());
         }
 
         @Test
-        void whenSrAlreadyPaid_thenAmountUntouched() {
+        void whenSrAlreadyPaid_thenReassignmentRequiresTheMissionWorkflow() {
             ServiceRequest sr = cleaningSr(RequestStatus.AWAITING_PAYMENT);
             sr.setPaidAt(java.time.LocalDateTime.now());
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(serviceRequestMapper.toDto(any())).thenReturn(new com.clenzy.dto.ServiceRequestDto());
-
-            service().manualAssign(1L, 42L, "user");
+            when(serviceRequestRepository.findForMutation(1L)).thenReturn(Optional.of(sr));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service().manualAssign(1L, 42L, "user"))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("mission existante");
+            verify(serviceRequestRepository, never()).save(any());
+            verifyNoInteractions(assignments);
 
             assertThat(sr.getEstimatedCost()).isEqualByComparingTo("120");
             verify(cleaningPricingEngine, never()).resolveCleaningPrice(any(), any(), anyLong());

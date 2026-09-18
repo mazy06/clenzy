@@ -1,3 +1,4 @@
+import ServiceRequestCatalogPicker from '../service-requests/ServiceRequestCatalogPicker';
 import React from 'react';
 import {
   Card,
@@ -14,7 +15,7 @@ import {
   SelectValue,
   Textarea,
 } from '../../components/ui';
-import { Controller } from 'react-hook-form';
+import { Controller, useController } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
@@ -32,6 +33,7 @@ interface PropertyWithDefaults {
 }
 
 export interface InterventionFormMainInfoProps {
+  section: 'details' | 'schedule';
   control: Control<InterventionFormValues>;
   errors: FieldErrors<InterventionFormValues>;
   scheduledDatePart: string;
@@ -59,6 +61,7 @@ const priorities = PRIORITY_OPTIONS.map(option => ({
 
 const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.memo(
   ({
+    section,
     control,
     errors,
     scheduledDatePart,
@@ -69,16 +72,18 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
     watchedPropertyId,
   }) => {
     const { t } = useTranslation();
+    const legacyType = useController({ name: 'type', control });
 
     return (
       <div className="col-span-12 min-[900px]:col-span-8">
         <Card size="sm">
           <CardContent>
             <h6 className="text-sm font-semibold tracking-tight mb-2">
-              {t('interventions.sections.mainInfo')}
+              {t(section === 'details' ? 'requestComposer.services' : 'requestComposer.schedule')}
             </h6>
 
             <div className="grid grid-cols-12 gap-[9px]">
+              {section === 'details' && <>
               <div className="col-span-12">
                 <Controller
                   name="title"
@@ -114,7 +119,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                       </FieldLabel>
                       <Textarea
                         id="intervention-description"
-                        rows={3}
+                        rows={2}
                         name={field.name}
                         value={field.value ?? ''}
                         onChange={field.onChange}
@@ -128,46 +133,17 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                 />
               </div>
 
-              <div className="col-span-12 min-[600px]:col-span-6">
-                <Controller
-                  name="type"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <Field>
-                      <FieldLabel htmlFor="intervention-type">
-                        {t('interventions.fields.interventionType')}
-                      </FieldLabel>
-                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                        <SelectTrigger
-                          id="intervention-type"
-                          size="sm"
-                          className="w-full"
-                          aria-invalid={!!fieldState.error}
-                        >
-                          <SelectValue placeholder={t('interventions.fields.interventionType')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {interventionTypes.map((type) => {
-                            const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
-                            const IconComponent = typeOption?.icon;
-
-                            return (
-                              <SelectItem key={type.value} value={type.value}>
-                                <span className="flex items-center gap-1">
-                                  {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
-                                  {type.label}
-                                </span>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
-                    </Field>
-                  )}
-                />
+              <div className="intervention-catalog col-span-12">
+                <Controller name="serviceItemCode" control={control}
+                  render={({ field }) => <ServiceRequestCatalogPicker selectionMode="single" selected={field.value ? [field.value] : []} onToggle={item => {
+                    field.onChange(item.code);
+                    legacyType.field.onChange(item.legacyType);
+                  }} />} />
+                {errors.serviceItemCode && <FieldError>{errors.serviceItemCode.message}</FieldError>}
               </div>
 
+              </>}
+              {section === 'schedule' && <>
               <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="status"
@@ -233,7 +209,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
               </div>
 
               {/* Date planifiee (date seule) */}
-              <div className="col-span-12 min-[600px]:col-span-4">
+              <div className="col-span-12">
                 <Field>
                   <FieldLabel htmlFor="intervention-scheduled-date">
                     {t('interventions.fields.scheduledDate')}
@@ -249,7 +225,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
               </div>
 
               {/* Heure de debut */}
-              <div className="col-span-6 min-[600px]:col-span-4">
+              <div className="col-span-6">
                 <Field>
                   <FieldLabel htmlFor="intervention-scheduled-time">Heure</FieldLabel>
                   <Input
@@ -270,7 +246,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
               </div>
 
               {/* Duree estimee (fractionnaire) */}
-              <div className="col-span-6 min-[600px]:col-span-4">
+              <div className="col-span-6">
                 <Controller
                   name="estimatedDurationHours"
                   control={control}
@@ -294,7 +270,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                       />
                       {fieldState.error
                         ? <FieldError>{fieldState.error.message}</FieldError>
-                        : <FieldDescription>En heures (ex: 1.5 = 1h30)</FieldDescription>}
+                        : null}
                     </Field>
                   )}
                 />
@@ -334,6 +310,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   )}
                 />
               </div>
+              </>}
             </div>
           </CardContent>
         </Card>

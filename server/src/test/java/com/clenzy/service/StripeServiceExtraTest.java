@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -58,7 +57,7 @@ class StripeServiceExtraTest {
     @Mock private LedgerService ledgerService;
     @Mock private SplitPaymentService splitPaymentService;
     @Mock private AutoInvoiceService autoInvoiceService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private DocumentGenerationOutbox documentOutbox;
     @Mock private StripeGateway stripeGateway;
     @Mock private PaymentStatusTransitionService paymentStatusTransitionService;
 
@@ -72,12 +71,12 @@ class StripeServiceExtraTest {
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
             interventionRepository, reservationRepository, serviceRequestRepository,
             notificationService, serviceRequestService, walletService, ledgerService,
-            splitPaymentService, autoInvoiceService, kafkaTemplate, paymentStatusTransitionService,
+            splitPaymentService, autoInvoiceService, documentOutbox, paymentStatusTransitionService,
             org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
             org.mockito.Mockito.mock(com.clenzy.service.WebhookEventPublisher.class));
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
             paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
-            notificationService, kafkaTemplate);
+            notificationService);
         stripeService = new StripeService(stripeGateway, paymentConfirmationService, refundService);
         setField(paymentConfirmationService, "currency", "EUR");
         org.mockito.Mockito.lenient()
@@ -192,7 +191,7 @@ class StripeServiceExtraTest {
 
             stripeService.confirmReservationPayment("sess_n");
 
-            verify(kafkaTemplate, times(2)).send(anyString(), anyString(), any());
+            verify(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
             assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
         }
     }
@@ -209,6 +208,7 @@ class StripeServiceExtraTest {
             ServiceRequest sr = new ServiceRequest();
             sr.setId(7L);
             sr.setTitle("Anonymous SR");
+            sr.setStripeSessionId("sess_anon");
             sr.setStatus(RequestStatus.AWAITING_PAYMENT);
             sr.setPaymentStatus(PaymentStatus.PROCESSING);
             sr.setEstimatedCost(BigDecimal.valueOf(50));
@@ -236,6 +236,7 @@ class StripeServiceExtraTest {
         void srWithoutUser_onlyAdminNotified() {
             ServiceRequest sr = new ServiceRequest();
             sr.setId(8L);
+            sr.setStripeSessionId("sess_anon2");
             sr.setTitle("X");
             sr.setStatus(RequestStatus.IN_PROGRESS);
             sr.setUser(null);

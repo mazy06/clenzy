@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.TeamCoverageZone;
-import com.clenzy.service.PersonalTeamService;
+import com.clenzy.service.IndividualCoverageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,16 +17,7 @@ import java.util.List;
 /**
  * Zone d'intervention DECLAREE PAR L'INTERVENANT lui-meme.
  *
- * <p>Les zones vivent dans {@code team_coverage_zones}, clefees par equipe :
- * c'est ce que lit le moteur d'affectation. Un intervenant independant passe
- * donc par son equipe PERSONNELLE, creee au premier enregistrement — d'ou
- * {@link PersonalTeamService}, qui porte toute la logique. Le controller se
- * limite a valider l'entree et a convertir la sortie (regle ArchUnit gelee :
- * aucun repository ici).</p>
- *
- * <p>Un intervenant deja membre d'une equipe classique garde SA zone
- * personnelle : les deux coexistent, et le moteur retient l'une ou l'autre
- * selon ce qui couvre le logement.</p>
+ * <p>Une déclaration portée par la personne, commune au PMS et à la marketplace.</p>
  */
 @RestController
 @RequestMapping("/api/my-coverage-zones")
@@ -35,10 +25,10 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class MyCoverageZoneController {
 
-    private final PersonalTeamService personalTeamService;
+    private final IndividualCoverageService coverage;
 
-    public MyCoverageZoneController(PersonalTeamService personalTeamService) {
-        this.personalTeamService = personalTeamService;
+    public MyCoverageZoneController(IndividualCoverageService coverage) {
+        this.coverage = coverage;
     }
 
     @GetMapping
@@ -46,7 +36,7 @@ public class MyCoverageZoneController {
     public ResponseEntity<List<CoverageZoneDto>> getMine(@AuthenticationPrincipal Jwt jwt) {
         // Zone jamais declaree = liste vide, pas 404 : l'ecran affiche « non
         // declaree », ce qui n'est pas une erreur.
-        return ResponseEntity.ok(personalTeamService.getCoverageZones(jwt.getSubject()).stream()
+        return ResponseEntity.ok(coverage.getMine(jwt.getSubject()).stream()
                 .map(CoverageZoneDto::from)
                 .toList());
     }
@@ -56,10 +46,10 @@ public class MyCoverageZoneController {
     public ResponseEntity<List<CoverageZoneDto>> replaceMine(
             @Valid @RequestBody List<CoverageZoneRequest> zones,
             @AuthenticationPrincipal Jwt jwt) {
-        List<TeamCoverageZone> saved = personalTeamService.replaceCoverageZones(
+        var saved = coverage.replace(
                 jwt.getSubject(),
                 zones.stream()
-                        .map(z -> new PersonalTeamService.CoverageZoneInput(
+                        .map(z -> new IndividualCoverageService.Input(
                                 z.country(), z.department(), z.arrondissement(), z.city()))
                         .toList());
         return ResponseEntity.ok(saved.stream().map(CoverageZoneDto::from).toList());
@@ -73,9 +63,9 @@ public class MyCoverageZoneController {
 
     public record CoverageZoneDto(Long id, String country, String department,
                                   String arrondissement, String city) {
-        static CoverageZoneDto from(TeamCoverageZone zone) {
-            return new CoverageZoneDto(zone.getId(), zone.getCountry(),
-                    zone.getDepartment(), zone.getArrondissement(), zone.getCity());
+        static CoverageZoneDto from(IndividualCoverageService.Zone zone) {
+            return new CoverageZoneDto(zone.id(), zone.country(),
+                    zone.department(), zone.arrondissement(), zone.city());
         }
     }
 }

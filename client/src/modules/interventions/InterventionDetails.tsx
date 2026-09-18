@@ -213,6 +213,7 @@ export default function InterventionDetailsPage() {
 
     return {
       type: intervention.type,
+      serviceItemCode: intervention.serviceItemCode,
       // La photo de couverture arrive avec l'intervention depuis le lot
       // pre-charge : un intervenant reconnait un lieu avant de le lire.
       propertyPhotoUrl: intervention.propertyCoverPhotoUrl,

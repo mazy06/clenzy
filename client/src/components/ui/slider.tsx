@@ -14,8 +14,10 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  thumbLabel,
+  thumbValueText,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: React.ComponentProps<typeof SliderPrimitive.Root> & { thumbLabel?: string; thumbValueText?: string }) {
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -52,6 +54,8 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
+          aria-label={thumbLabel}
+          aria-valuetext={thumbValueText}
           className="cn-slider-thumb block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
         />
       ))}

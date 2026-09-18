@@ -1,9 +1,14 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.PricingConfigDto.ServicePriceConfig;
-import com.clenzy.model.TechnicianPrestation;
+import com.clenzy.model.ProviderTariff;
+import com.clenzy.model.InterventionType;
+import com.clenzy.marketplace.model.PricingModel;
+import com.clenzy.service.pricing.ProviderTariffService;
+import com.clenzy.repository.ProviderTariffRepository;
+import java.math.BigDecimal;
 import com.clenzy.model.User;
-import com.clenzy.repository.TechnicianPrestationRepository;
+
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -17,21 +22,23 @@ import java.util.Map;
 
 /**
  * Surcouche « travaux » par technicien : chaque utilisateur gère SES propres
- * prestations + prix. Toujours scopé (organisation courante via TenantContext,
- * utilisateur résolu depuis le JWT) — jamais partagé entre techniciens.
+ * prestations et tarifs uniques, communs à tous ses clients.
+ * L’identité de l’écrivain est résolue depuis le JWT.
  */
 @Service
 public class TechnicianPrestationService {
 
-    private final TechnicianPrestationRepository repository;
+    private final ProviderTariffRepository repository;
+    private final ProviderTariffService tariffs;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
     private final PricingConfigService pricingConfigService;
 
-    public TechnicianPrestationService(TechnicianPrestationRepository repository,
+    public TechnicianPrestationService(ProviderTariffRepository repository,
                                        UserRepository userRepository,
                                        TenantContext tenantContext,
-                                       PricingConfigService pricingConfigService) {
+                                       PricingConfigService pricingConfigService, ProviderTariffService tariffs) {
+        this.tariffs = tariffs;
         this.repository = repository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -64,8 +71,9 @@ public class TechnicianPrestationService {
     public List<ServicePriceConfig> getMine(String keycloakId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         Long userId = resolveUserId(keycloakId);
-        return repository.findByOrganizationIdAndUserIdOrderByInterventionTypeAsc(orgId, userId).stream()
-                .map(e -> new ServicePriceConfig(e.getInterventionType(), e.getBasePrice(), e.isEnabled()))
+        return repository.findByUserIdOrderByServiceKeyAsc(userId).stream()
+                .filter(e -> e.getPricingModel() == PricingModel.FLAT || e.getPricingModel() == PricingModel.ON_QUOTE)
+                .map(this::toConfig)
                 .toList();
     }
 
@@ -85,27 +93,29 @@ public class TechnicianPrestationService {
                 if (item == null || item.getInterventionType() == null || item.getInterventionType().isBlank()) {
                     continue;
                 }
-                if (item.getBasePrice() != null && (item.getBasePrice() < 0 || item.getBasePrice() > 1_000_000)) {
+                if (item.getBasePrice() != null && (!Double.isFinite(item.getBasePrice()) || item.getBasePrice() < 0 || item.getBasePrice() > 1_000_000)) {
                     throw new IllegalArgumentException("basePrice hors limites (0-1000000)");
                 }
                 byType.put(item.getInterventionType(), item);
             }
         }
 
-        repository.deleteByOrganizationIdAndUserId(orgId, userId);
-        repository.flush();
-
-        List<TechnicianPrestation> toSave = new ArrayList<>();
-        for (ServicePriceConfig item : byType.values()) {
-            TechnicianPrestation e = new TechnicianPrestation();
-            e.setOrganizationId(orgId);
-            e.setUserId(userId);
-            e.setInterventionType(item.getInterventionType());
-            e.setBasePrice(item.getBasePrice());
-            e.setEnabled(item.isEnabled());
-            toSave.add(e);
+        repository.lockUser(userId);
+        // Désactiver les prestations retirées conserve les références des offres et des devis.
+        for (ProviderTariff existing : repository.findByUserIdOrderByServiceKeyAsc(userId)) {
+            if (!byType.containsKey(typeForKey(existing.getServiceKey())) && (existing.getPricingModel() == PricingModel.FLAT || existing.getPricingModel() == PricingModel.ON_QUOTE)) {
+                existing.setEnabled(false);
+                repository.save(existing);
+            }
         }
-        repository.saveAll(toSave);
+        for (ServicePriceConfig item : byType.values()) {
+            String key = tariffs.keyForType(item.getInterventionType());
+            String currency = item.getCurrency() != null ? item.getCurrency() : repository.findByUserIdAndServiceKey(userId, key)
+                    .map(ProviderTariff::getCurrency).orElse("EUR");
+            tariffs.set(userId, key, PricingModel.FLAT,
+                    item.getBasePrice() == null ? null : BigDecimal.valueOf(item.getBasePrice()),
+                    currency, item.isEnabled());
+        }
 
         return getMine(keycloakId);
     }
@@ -117,22 +127,35 @@ public class TechnicianPrestationService {
             return List.of();
         }
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return repository.findUserIdsOffering(orgId, interventionTypes);
+        return repository.findOfferingInOrganization(orgId, interventionTypes.stream().map(tariffs::keyForType).toList());
     }
 
     /** Prestations (actives) d'un technicien donné — pour appliquer ses tarifs (P3). */
     @Transactional(readOnly = true)
     public List<ServicePriceConfig> getForUser(Long userId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return repository.findByOrganizationIdAndUserIdOrderByInterventionTypeAsc(orgId, userId).stream()
-                .filter(TechnicianPrestation::isEnabled)
-                .map(e -> new ServicePriceConfig(e.getInterventionType(), e.getBasePrice(), e.isEnabled()))
+        if (!repository.belongsToOrganization(userId, orgId))
+            throw new org.springframework.security.access.AccessDeniedException("Prestataire hors de votre organisation");
+        return repository.findByUserIdOrderByServiceKeyAsc(userId).stream()
+                .filter(ProviderTariff::isEnabled)
+                .filter(e -> e.getPricingModel() == PricingModel.FLAT || e.getPricingModel() == PricingModel.ON_QUOTE)
+                .map(this::toConfig)
                 .toList();
     }
+
+    private ServicePriceConfig toConfig(ProviderTariff tariff) {
+        var dto = new ServicePriceConfig(typeForKey(tariff.getServiceKey()),
+                tariff.getAmount() == null ? null : tariff.getAmount().doubleValue(), tariff.isEnabled());
+        dto.setCurrency(tariff.getCurrency());
+        dto.setNeedsReview(tariff.isNeedsReview());
+        return dto;
+    }
+
+    private String typeForKey(String key) { return tariffs.legacyTypeForKey(key); }
 
     private Long resolveUserId(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
                 .map(User::getId)
-                .orElseThrow(() -> new IllegalStateException("Utilisateur introuvable pour keycloakId " + keycloakId));
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Compte prestataire introuvable"));
     }
 }

@@ -333,7 +333,12 @@ function RowContent({
     return (
       <>
         {row.entries.map((entry) => (
-          <React.Fragment key={entry.id}>{entry.node}</React.Fragment>
+          // Une tuile isolée suit son contenu : son `h-full` ne doit pas
+          // prendre la hauteur de la colonne du tableau de bord. Le cadre
+          // accepte aussi les widgets qui rendent plusieurs sections.
+          <div key={entry.id} className="min-w-0 shrink-0 space-y-4 [&>*]:h-auto">
+            {entry.node}
+          </div>
         ))}
       </>
     );

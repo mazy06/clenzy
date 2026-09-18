@@ -9,10 +9,11 @@ export const quoteLineSchema = z.object({
   interventionType: z.string().optional(),
 });
 
-export const serviceRequestSchema = z.object({
+export const serviceRequestSchemaFor = (propertyRequired = true) => z.object({
   title: z.string().min(1, 'Le titre est requis'),
   description: z.string(),
-  propertyId: z.number().min(1, 'La propriété est requise'),
+  propertyId: z.number().min(propertyRequired ? 1 : 0, 'La propriété est requise'),
+  serviceItemCode: z.string().optional(),
   serviceType: z.string().min(1, 'Le type de service est requis'),
   priority: z.string().min(1, 'La priorité est requise'),
   estimatedDurationHours: z.number().min(0, 'Doit être positif'),
@@ -30,6 +31,8 @@ export const serviceRequestSchema = z.object({
   /** Montant du diagnostic (mode diagnostic : facturé d'abord). */
   diagnosticFee: z.number().optional(),
 });
+
+export const serviceRequestSchema = serviceRequestSchemaFor();
 
 export type QuoteLine = z.infer<typeof quoteLineSchema>;
 

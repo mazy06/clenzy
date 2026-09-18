@@ -28,6 +28,7 @@ import UnifiedHistoryTab, { type UnifiedHistoryTabRef } from './UnifiedHistoryTa
 import { useDocumentsFailedCount } from './useDocumentsFailedCount';
 import AvailableTagsReference from './AvailableTagsReference';
 import ComplianceDashboard, { type ComplianceDashboardRef } from './ComplianceDashboard';
+import AmendmentArchives from './AmendmentArchives';
 
 // ─── Tab indices ────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ const TAB_DOC_TEMPLATES = 3;
 const TAB_HISTORY = 4;
 const TAB_VARIABLES = 5;
 const TAB_COMPLIANCE = 6;
+const TAB_AMENDMENTS = 7;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. documentsTabMeta plus bas).
@@ -91,6 +93,7 @@ const DocumentsPage: React.FC = () => {
   // tabs (source unique) defini plus haut (avant les callbacks/inlineActions qui le consomment).
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const documentsTabMeta: Record<string, TabHeaderMeta> = {
+    [t('amendmentLibrary.title')]: { subtitle: t('amendmentLibrary.subtitle') },
     [t('documents.tabs.catalog')]: {
       subtitle: t('tabHeaders.documents.subtitle.catalog', 'Catalogue des templates par étape du parcours voyageur : messagerie, documents, communications.'),
     },
@@ -263,6 +266,7 @@ const DocumentsPage: React.FC = () => {
         {activeTab === TAB_HISTORY && <UnifiedHistoryTab ref={historyRef} />}
         {activeTab === TAB_VARIABLES && <AvailableTagsReference search={tagsSearch} />}
         {activeTab === TAB_COMPLIANCE && <ComplianceDashboard ref={complianceRef} />}
+        {activeTab === TAB_AMENDMENTS && <AmendmentArchives />}
       </div>
     </PageHeaderActionsProvider>
   );

@@ -3,10 +3,8 @@ package com.clenzy.service.pricing;
 import com.clenzy.dto.HousekeeperRatesDto;
 import com.clenzy.dto.HousekeeperRatesDto.UpdateRequest;
 import com.clenzy.dto.HousekeeperRatesDto.UpdateRequest.FlatRateEntry;
-import com.clenzy.model.HousekeeperRate;
-import com.clenzy.model.HousekeeperRate.RateUnit;
 import com.clenzy.model.Property;
-import com.clenzy.repository.HousekeeperRateRepository;
+import com.clenzy.repository.ProviderTariffRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.pricing.CleaningPricingEngine.CleaningQuote;
@@ -37,7 +35,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HousekeeperRateServiceTest {
 
-    @Mock private HousekeeperRateRepository rateRepository;
+    @Mock private ProviderTariffRepository rateRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
     @Mock private CleaningPricingEngine cleaningPricingEngine;
@@ -49,7 +47,7 @@ class HousekeeperRateServiceTest {
     @BeforeEach
     void setUp() {
         service = new HousekeeperRateService(rateRepository, propertyRepository, userRepository,
-                cleaningPricingEngine, tenantContext, housekeeperScoreService);
+                cleaningPricingEngine, tenantContext, housekeeperScoreService, new ProviderTariffService(rateRepository, com.clenzy.service.CatalogTestFixture.reference()));
         lenient().when(housekeeperScoreService.computeScore(any(), any()))
                 .thenReturn(com.clenzy.service.pricing.HousekeeperScoreService.HousekeeperScore.empty());
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
@@ -66,74 +64,41 @@ class HousekeeperRateServiceTest {
         return p;
     }
 
-    @Test
-    @DisplayName("getRates : advisories par logement + taux de référence org")
-    void whenGetRates_thenReturnsAdvisoriesAndReference() {
-        when(rateRepository.findByOrganizationIdAndUserId(7L, 42L)).thenReturn(List.of(
-                new HousekeeperRate(7L, 42L, null, BigDecimal.valueOf(35), RateUnit.HOURLY),
-                new HousekeeperRate(7L, 42L, 3L, BigDecimal.valueOf(90), RateUnit.FLAT)));
-        when(propertyRepository.findByOrganizationId(7L)).thenReturn(List.of(orgProperty(3L, 7L)));
-
-        HousekeeperRatesDto dto = service.getRates(42L);
-
-        assertThat(dto.referenceHourlyRate()).isEqualByComparingTo("42");
-        assertThat(dto.hourlyAmount()).isEqualByComparingTo("35");
-        assertThat(dto.properties()).hasSize(1);
-        assertThat(dto.properties().get(0).flatAmount()).isEqualByComparingTo("90");
-        assertThat(dto.properties().get(0).advisoryMin()).isEqualByComparingTo("80");
-        assertThat(dto.properties().get(0).advisoryRecommended()).isEqualByComparingTo("95");
-        assertThat(dto.properties().get(0).advisoryMax()).isEqualByComparingTo("110");
+    @Test void sameUserReadsSameHourlyPriceAcrossOrganizations() {
+        var tariff = new com.clenzy.model.ProviderTariff();
+        tariff.setAmount(new BigDecimal("35")); tariff.setPricingModel(com.clenzy.marketplace.model.PricingModel.HOURLY);
+        when(rateRepository.findByUserIdAndServiceKey(42L, "cleaning-turnover")).thenReturn(Optional.of(tariff));
+        assertThat(service.getRates(42L).hourlyAmount()).isEqualByComparingTo("35");
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(8L);
+        assertThat(service.getRates(42L).hourlyAmount()).isEqualByComparingTo("35");
     }
 
-    @Test
-    @DisplayName("updateRates : refuse un forfait sur un logement d'une AUTRE org")
-    void whenFlatTargetsForeignProperty_thenAccessDenied() {
-        when(propertyRepository.findById(99L)).thenReturn(Optional.of(orgProperty(99L, 666L)));
-
-        UpdateRequest request = new UpdateRequest(null, List.of(new FlatRateEntry(99L, BigDecimal.valueOf(50))));
-
-        assertThatThrownBy(() -> service.updateRates(42L, request))
-                .isInstanceOf(AccessDeniedException.class);
+    @Test void propertyOverridesAreRejectedBeforeWriting() {
+        assertThatThrownBy(() -> service.updateRates(42L, new UpdateRequest(new BigDecimal("35"),
+                List.of(new FlatRateEntry(3L, new BigDecimal("100"))))))
+            .isInstanceOf(IllegalArgumentException.class);
         verify(rateRepository, never()).save(any());
+        verifyNoInteractions(propertyRepository);
     }
 
-    @Test
-    @DisplayName("updateRates : upsert hourly + sync des forfaits (absents supprimés)")
-    void whenUpdateRates_thenUpsertsAndDeletesMissing() {
-        HousekeeperRate existingHourly = new HousekeeperRate(7L, 42L, null, BigDecimal.valueOf(30), RateUnit.HOURLY);
-        HousekeeperRate keptFlat = new HousekeeperRate(7L, 42L, 3L, BigDecimal.valueOf(90), RateUnit.FLAT);
-        HousekeeperRate staleFlat = new HousekeeperRate(7L, 42L, 4L, BigDecimal.valueOf(70), RateUnit.FLAT);
-        when(rateRepository.findByOrganizationIdAndUserIdAndPropertyIdIsNull(7L, 42L))
-                .thenReturn(Optional.of(existingHourly));
-        when(rateRepository.findByOrganizationIdAndUserId(7L, 42L))
-                .thenReturn(List.of(existingHourly, keptFlat, staleFlat))
-                .thenReturn(List.of());
-        when(propertyRepository.findById(3L)).thenReturn(Optional.of(orgProperty(3L, 7L)));
-        when(propertyRepository.findByOrganizationId(7L)).thenReturn(List.of());
-
-        // Nouvel état : hourly 35, forfait P3 = 100 (maj), P4 absent (suppression).
-        service.updateRates(42L, new UpdateRequest(BigDecimal.valueOf(35),
-                List.of(new FlatRateEntry(3L, BigDecimal.valueOf(100)))));
-
-        assertThat(existingHourly.getAmount()).isEqualByComparingTo("35");
-        verify(rateRepository).save(existingHourly);
-        assertThat(keptFlat.getAmount()).isEqualByComparingTo("100");
-        verify(rateRepository).save(keptFlat);
-        verify(rateRepository).delete(staleFlat);
+    @Test void updateChangesGlobalRateAndKeepsItsCurrency() {
+        var tariff = new com.clenzy.model.ProviderTariff();
+        tariff.setCurrency("MAD"); tariff.setNeedsReview(true);
+        when(rateRepository.findByUserIdAndServiceKey(42L, "cleaning-turnover")).thenReturn(Optional.of(tariff));
+        service.updateRates(42L, new UpdateRequest(new BigDecimal("35"), List.of()));
+        assertThat(tariff.getAmount()).isEqualByComparingTo("35");
+        assertThat(tariff.getCurrency()).isEqualTo("MAD");
+        assertThat(tariff.isNeedsReview()).isFalse();
+        verify(rateRepository, times(2)).lockUser(42L);
+        verify(rateRepository).save(tariff);
     }
 
-    @Test
-    @DisplayName("updateRates : hourly null supprime le taux général")
-    void whenHourlyNull_thenGeneralRateDeleted() {
-        HousekeeperRate existingHourly = new HousekeeperRate(7L, 42L, null, BigDecimal.valueOf(30), RateUnit.HOURLY);
-        when(rateRepository.findByOrganizationIdAndUserIdAndPropertyIdIsNull(7L, 42L))
-                .thenReturn(Optional.of(existingHourly));
-        when(rateRepository.findByOrganizationIdAndUserId(7L, 42L)).thenReturn(List.of(existingHourly));
-        when(propertyRepository.findByOrganizationId(7L)).thenReturn(List.of());
-
+    @Test void clearingPriceKeepsTheCanonicalReferenceOnQuote() {
+        var tariff = new com.clenzy.model.ProviderTariff();
+        when(rateRepository.findByUserIdAndServiceKey(42L, "cleaning-turnover")).thenReturn(Optional.of(tariff));
         service.updateRates(42L, new UpdateRequest(null, List.of()));
-
-        verify(rateRepository).delete(existingHourly);
-        verify(rateRepository, never()).save(any());
+        assertThat(tariff.getAmount()).isNull();
+        assertThat(tariff.getPricingModel()).isEqualTo(com.clenzy.marketplace.model.PricingModel.ON_QUOTE);
+        verify(rateRepository, never()).delete(any());
     }
 }

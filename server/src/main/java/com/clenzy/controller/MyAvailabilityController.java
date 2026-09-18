@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.TeamAbsence;
-import com.clenzy.model.TeamWeeklyAvailability;
+
 import com.clenzy.service.MyAvailabilityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,9 +23,7 @@ import java.util.List;
  * Disponibilites DECLAREES PAR L'INTERVENANT lui-meme : sa semaine type et ses
  * absences.
  *
- * <p>Comme les zones, elles vivent sur son equipe PERSONNELLE — le moteur
- * d'affectation ne raisonne qu'en equipes. Toute la logique est dans le
- * service : un controller ne touche pas de repository (regle ArchUnit gelee).</p>
+ * <p>Le calendrier appartient à la personne, indépendamment des organisations clientes.</p>
  */
 @RestController
 @RequestMapping("/api/my-availability")
@@ -43,9 +40,9 @@ public class MyAvailabilityController {
     @GetMapping
     @Operation(summary = "Mes disponibilites")
     public ResponseEntity<AvailabilityDto> getMine(@AuthenticationPrincipal Jwt jwt) {
+        var calendar = service.getMine(jwt.getSubject());
         return ResponseEntity.ok(AvailabilityDto.from(
-                service.getWeekly(jwt.getSubject()),
-                service.getAbsences(jwt.getSubject())));
+                calendar.weekly(), calendar.absences(), calendar.weeklyRestricted()));
     }
 
     @PutMapping("/weekly")
@@ -85,23 +82,23 @@ public class MyAvailabilityController {
             @Size(max = 200) String reason) {}
 
     public record WeeklySlotDto(Long id, Short dayOfWeek, LocalTime startTime, LocalTime endTime) {
-        static WeeklySlotDto from(TeamWeeklyAvailability slot) {
-            return new WeeklySlotDto(slot.getId(), slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
+        static WeeklySlotDto from(MyAvailabilityService.Slot slot) {
+            return new WeeklySlotDto(slot.id(), slot.dayOfWeek(), slot.startTime(), slot.endTime());
         }
     }
 
-    public record AbsenceDto(Long id, LocalDate startDate, LocalDate endDate, String reason) {
-        static AbsenceDto from(TeamAbsence absence) {
-            return new AbsenceDto(absence.getId(), absence.getStartDate(),
-                    absence.getEndDate(), absence.getReason());
+    public record AbsenceDto(Long id, LocalDate startDate, LocalDate endDate, String reason, boolean assignmentConflict) {
+        static AbsenceDto from(MyAvailabilityService.Absence absence) {
+            return new AbsenceDto(absence.id(), absence.startDate(),
+                    absence.endDate(), absence.reason(), absence.assignmentConflict());
         }
     }
 
-    public record AvailabilityDto(List<WeeklySlotDto> weekly, List<AbsenceDto> absences) {
-        static AvailabilityDto from(List<TeamWeeklyAvailability> weekly, List<TeamAbsence> absences) {
+    public record AvailabilityDto(List<WeeklySlotDto> weekly, List<AbsenceDto> absences, boolean weeklyRestricted) {
+        static AvailabilityDto from(List<MyAvailabilityService.Slot> weekly, List<MyAvailabilityService.Absence> absences, boolean weeklyRestricted) {
             return new AvailabilityDto(
                     weekly.stream().map(WeeklySlotDto::from).toList(),
-                    absences.stream().map(AbsenceDto::from).toList());
+                    absences.stream().map(AbsenceDto::from).toList(), weeklyRestricted);
         }
     }
 }

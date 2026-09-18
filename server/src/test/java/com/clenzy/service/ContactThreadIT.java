@@ -64,7 +64,7 @@ class ContactThreadIT extends AbstractIntegrationTest {
         ContactThread thread = threadService.openThread(
                 orgId, "Devis — fuite cuisine",
                 ContactMessageCategory.MAINTENANCE, provider.getKeycloakId(),
-                "SERVICE_QUOTE_INTERVENTION", 4242L, List.of(owner.getKeycloakId()));
+                "TEST_REFERENCE", 4242L, List.of(owner.getKeycloakId()));
 
         threadService.post(thread, provider.getKeycloakId(), null,
                 "Je propose 320 EUR pour cette intervention.", null,
@@ -104,10 +104,10 @@ class ContactThreadIT extends AbstractIntegrationTest {
 
         ContactThread first = threadService.openThread(
                 orgId, "Devis", ContactMessageCategory.MAINTENANCE,
-                provider.getKeycloakId(), "SERVICE_QUOTE_INTERVENTION", 777L, List.of());
+                provider.getKeycloakId(), "TEST_REFERENCE", 777L, List.of());
         ContactThread second = threadService.openThread(
                 orgId, "Devis (bis)", ContactMessageCategory.MAINTENANCE,
-                provider.getKeycloakId(), "SERVICE_QUOTE_INTERVENTION", 777L, List.of());
+                provider.getKeycloakId(), "TEST_REFERENCE", 777L, List.of());
 
         assertThat(second.getId()).isEqualTo(first.getId());
     }
@@ -120,7 +120,7 @@ class ContactThreadIT extends AbstractIntegrationTest {
 
         ContactThread thread = threadService.openThread(
                 orgId, "Devis", ContactMessageCategory.MAINTENANCE,
-                provider.getKeycloakId(), "SERVICE_QUOTE_INTERVENTION", 999L,
+                provider.getKeycloakId(), "TEST_REFERENCE", 999L,
                 List.of(owner.getKeycloakId()));
         threadService.post(thread, provider.getKeycloakId(), null, "Bonjour", null);
 

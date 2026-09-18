@@ -7,10 +7,18 @@ public record CreateInterventionRequest(
     @Size(max = 500) String description,
     @NotBlank String type,
     @NotBlank String priority,
-    @NotNull Long propertyId,
+    Long propertyId,
     @NotNull Long requestorId,
     @NotBlank String scheduledDate,
     @Min(1) Integer estimatedDurationHours,
     String assignedToType,
-    Long assignedToId
-) {}
+    Long assignedToId,
+    @Size(max = 60) String serviceItemCode
+) {
+    public CreateInterventionRequest(String title, String description, String type, String priority,
+            Long propertyId, Long requestorId, String scheduledDate, Integer estimatedDurationHours,
+            String assignedToType, Long assignedToId) {
+        this(title, description, type, priority, propertyId, requestorId, scheduledDate,
+                estimatedDurationHours, assignedToType, assignedToId, null);
+    }
+}

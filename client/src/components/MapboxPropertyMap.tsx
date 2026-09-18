@@ -106,8 +106,13 @@ export function MapboxPropertyMap({
     const handleMoveEnd = () => emitBounds();
     map.on('moveend', handleMoveEnd);
     mapRef.current = map;
+    // Le panneau change de taille sans toujours redimensionner la fenêtre
+    // (sidebar, répartition carte/liste). Mapbox doit recalculer son canvas.
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(mapContainerRef.current);
 
     return () => {
+      resizeObserver.disconnect();
       map.off('moveend', handleMoveEnd);
       clearMarkers();
       map.remove();
@@ -143,8 +148,8 @@ export function MapboxPropertyMap({
         markersRef.current.push(marker);
       });
 
-      // Fit bounds when there are multiple markers
-      if (properties.length > 1) {
+      // Centre aussi un logement unique, au lieu de conserver la vue du globe.
+      if (properties.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
         properties.forEach((p) => bounds.extend([p.lng, p.lat]));
         map.fitBounds(bounds, { padding: 60, maxZoom: 15 });

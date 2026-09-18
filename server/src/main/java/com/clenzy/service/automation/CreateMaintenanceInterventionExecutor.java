@@ -45,6 +45,7 @@ import java.util.List;
  * l'intervention terminee, un nouvel episode pourra en recreer une.</p>
  */
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class CreateMaintenanceInterventionExecutor implements AutomationActionExecutor {
 
     /**
@@ -77,12 +78,17 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
     private final com.clenzy.repository.UserRepository userRepository;
     private final com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository;
 
+    private final com.clenzy.service.InterventionAllocationGuard allocationGuard;
+    private final com.clenzy.service.assignment.InterventionRequestIntake intake;
+
     public CreateMaintenanceInterventionExecutor(SmartLockDeviceRepository deviceRepository,
                                                  InterventionRepository interventionRepository,
                                                  PropertyRepository propertyRepository,
                                                  NoiseAlertRepository noiseAlertRepository,
                                                  com.clenzy.repository.UserRepository userRepository,
-                                                 com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository) {
+                                                 com.clenzy.repository.OrganizationMemberRepository organizationMemberRepository, com.clenzy.service.InterventionAllocationGuard allocationGuard, com.clenzy.service.assignment.InterventionRequestIntake intake) {
+        this.intake=intake;
+        this.allocationGuard = allocationGuard;
         this.deviceRepository = deviceRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
@@ -150,7 +156,7 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                             ? " Niveau releve : " + device.getBatteryLevel() + "%." : ""),
                 marker + " Intervention validée depuis la constellation (batterie serrure).",
                 plan);
-        interventionRepository.save(intervention);
+        var need = intake.createRecurringDraft(intervention,"MAINTENANCE:"+intervention.getOrganizationId()+":"+property.getId()+":"+marker);
         return true;
     }
 
@@ -181,7 +187,7 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 plan);
         intervention.setType("PREVENTIVE_MAINTENANCE");
         intervention.setPriority("MEDIUM");
-        interventionRepository.save(intervention);
+        var need = intake.createRecurringDraft(intervention,"MAINTENANCE:"+intervention.getOrganizationId()+":"+property.getId()+":"+marker);
         return true;
     }
 
@@ -247,9 +253,9 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 marker + " Intervention generee automatiquement (batterie critique serrure connectee).",
                 null); // chemin automatique : aucun humain pour choisir
 
-        interventionRepository.save(intervention);
-        log.info("Batterie critique serrure {} : intervention preventive #{} creee (propriete {}, prevue {})",
-                device.getId(), intervention.getId(), property.getId(), intervention.getScheduledDate());
+        var need = intake.createRecurringDraft(intervention,"MAINTENANCE:"+intervention.getOrganizationId()+":"+property.getId()+":"+marker);
+        log.info("Batterie critique serrure {} : demande de maintenance créée (propriete {}, prevue {})",
+                device.getId(), property.getId(), intervention.getScheduledDate());
         return ExecutionResult.executed();
     }
 
@@ -297,9 +303,9 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
                 marker + " Intervention generee automatiquement (escalade alertes bruit).",
                 null); // chemin automatique : aucun humain pour choisir
 
-        interventionRepository.save(intervention);
-        log.info("Escalade bruit propriete {} : intervention de verification #{} creee (prevue {})",
-                property.getId(), intervention.getId(), intervention.getScheduledDate());
+        var need = intake.createRecurringDraft(intervention,"MAINTENANCE:"+intervention.getOrganizationId()+":"+property.getId()+":"+marker);
+        log.info("Escalade bruit propriete {} : demande de vérification créée (prevue {})",
+                property.getId(), intervention.getScheduledDate());
         return ExecutionResult.executed();
     }
 
@@ -378,11 +384,6 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
         if (!sameOrg) {
             throw new IllegalStateException(
                     "Intervenant " + plan.assigneeId() + " hors de l'organisation " + orgId);
-        }
-        if (!com.clenzy.model.InterventionRoleFit.accepts(
-                assignee.getRole(), intervention.getType())) {
-            log.info("Assignation hors metier assumee : {} sur une intervention {}",
-                    assignee.getRole(), intervention.getType());
         }
         intervention.setAssignedUser(assignee);
         intervention.setAssignmentResponse(

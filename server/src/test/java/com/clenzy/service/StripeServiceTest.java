@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import com.clenzy.model.NotificationKey;
+
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.LedgerReferenceType;
@@ -27,7 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -54,7 +55,7 @@ class StripeServiceTest {
     @Mock private LedgerService ledgerService;
     @Mock private SplitPaymentService splitPaymentService;
     @Mock private AutoInvoiceService autoInvoiceService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private DocumentGenerationOutbox documentOutbox;
     @Mock private StripeGateway stripeGateway;
     @Mock private PaymentStatusTransitionService paymentStatusTransitionService;
 
@@ -69,12 +70,12 @@ class StripeServiceTest {
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
                 interventionRepository, reservationRepository, serviceRequestRepository,
                 notificationService, serviceRequestService, walletService, ledgerService,
-                splitPaymentService, autoInvoiceService, kafkaTemplate, paymentStatusTransitionService,
+                splitPaymentService, autoInvoiceService, documentOutbox, paymentStatusTransitionService,
                 org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
                 org.mockito.Mockito.mock(com.clenzy.service.WebhookEventPublisher.class));
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
                 paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
-                notificationService, kafkaTemplate);
+                notificationService);
         stripeService = new StripeService(stripeGateway, paymentConfirmationService, refundService);
         setField(paymentConfirmationService, "currency", "EUR");
         setField(stripeService, "stripeSecretKey", "sk_test_xxx");
@@ -109,6 +110,7 @@ class StripeServiceTest {
 
     private ServiceRequest buildServiceRequest(Long id, RequestStatus status, PaymentStatus paymentStatus) {
         ServiceRequest sr = new ServiceRequest();
+        sr.setStripeSessionId("sess_sr");
         sr.setId(id);
         sr.setTitle("SR Title");
         sr.setStatus(status);
@@ -154,10 +156,24 @@ class StripeServiceTest {
     class ConfirmPayment {
 
         @Test
+        void payingDeliveredWorkCompletesItWithoutRequestingAnotherAssignment() {
+            Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setCompletedAt(java.time.LocalDateTime.now());
+            intervention.setStripeSessionId("sess_done");
+            when(interventionRepository.findByStripeSessionId("sess_done"))
+                    .thenReturn(Optional.of(intervention));
+            stripeService.confirmPayment("sess_done");
+            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.COMPLETED);
+            verify(notificationService, never()).notifyAdminsAndManagers(
+                    eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION), anyString(), anyString(), anyString());
+        }
+
+        @Test
         @DisplayName("sets PAID status and saves when session found")
         void whenSessionFound_thenSetsPaidAndSaves() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_123");
             when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
@@ -176,6 +192,7 @@ class StripeServiceTest {
         void whenAwaitingPayment_thenStatusChangesToPending() {
             // Arrange
             Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_123");
             when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
@@ -191,6 +208,7 @@ class StripeServiceTest {
         void whenNotAwaitingPayment_thenStatusUnchanged() {
             // Arrange
             Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_123");
             when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
@@ -218,6 +236,7 @@ class StripeServiceTest {
         void whenNotificationFails_thenPaymentStillConfirmed() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_123");
             when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
             doThrow(new RuntimeException("notification error")).when(notificationService)
@@ -236,6 +255,7 @@ class StripeServiceTest {
         void whenPaymentConfirmed_thenSendsKafkaEvents() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_123");
             when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
@@ -243,7 +263,7 @@ class StripeServiceTest {
             stripeService.confirmPayment("sess_123");
 
             // Assert
-            verify(kafkaTemplate, times(2)).send(anyString(), anyString(), any());
+            verify(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
         }
     }
 
@@ -258,6 +278,7 @@ class StripeServiceTest {
         void whenInterventionFound_thenStatusIsFailed() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_fail");
             when(interventionRepository.findByStripeSessionId("sess_fail"))
                     .thenReturn(Optional.of(intervention));
 
@@ -288,6 +309,7 @@ class StripeServiceTest {
         void whenFailed_thenNotifiesOwnerAndAdmins() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_fail");
             when(interventionRepository.findByStripeSessionId("sess_fail"))
                     .thenReturn(Optional.of(intervention));
 
@@ -317,8 +339,12 @@ class StripeServiceTest {
         void whenMultipleIds_thenAllMarkedAsPaid() {
             // Arrange
             Intervention i1 = buildIntervention(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i1.setStripeSessionId("sess_group");
             Intervention i2 = buildIntervention(2L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i2.setStripeSessionId("sess_group");
+            i1.setStripeSessionId("sess_group");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
+            i2.setStripeSessionId("sess_group");
             when(interventionRepository.findById(2L)).thenReturn(Optional.of(i2));
 
             // Act
@@ -356,6 +382,8 @@ class StripeServiceTest {
         void whenInvalidId_thenSkipsIt() {
             // Arrange
             Intervention valid = buildIntervention(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            valid.setStripeSessionId("sess");
+            valid.setStripeSessionId("sess");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(valid));
 
             // Act
@@ -370,6 +398,8 @@ class StripeServiceTest {
         void whenConfirmed_thenSetsPaidAt() {
             // Arrange
             Intervention i1 = buildIntervention(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i1.setStripeSessionId("sess_group");
+            i1.setStripeSessionId("sess_group");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
 
             // Act
@@ -391,12 +421,14 @@ class StripeServiceTest {
         void whenMultipleIds_thenAllMarkedFailed() {
             // Arrange
             Intervention i1 = buildIntervention(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i1.setStripeSessionId("sess_failed");
             Intervention i2 = buildIntervention(2L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i2.setStripeSessionId("sess_failed");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
             when(interventionRepository.findById(2L)).thenReturn(Optional.of(i2));
 
             // Act
-            stripeService.markGroupedPaymentAsFailed("1,2");
+            stripeService.markGroupedPaymentAsFailed("sess_failed", "1,2");
 
             // Assert
             assertThat(i1.getPaymentStatus()).isEqualTo(PaymentStatus.FAILED);
@@ -407,7 +439,7 @@ class StripeServiceTest {
         @DisplayName("does nothing when ids is null")
         void whenNullIds_thenDoesNothing() {
             // Act
-            stripeService.markGroupedPaymentAsFailed(null);
+            stripeService.markGroupedPaymentAsFailed("sess_failed", null);
 
             // Assert
             verify(interventionRepository, never()).save(any());
@@ -417,7 +449,7 @@ class StripeServiceTest {
         @DisplayName("does nothing when ids is blank")
         void whenBlankIds_thenDoesNothing() {
             // Act
-            stripeService.markGroupedPaymentAsFailed("  ");
+            stripeService.markGroupedPaymentAsFailed("sess_failed", "  ");
 
             // Assert
             verify(interventionRepository, never()).save(any());
@@ -430,7 +462,7 @@ class StripeServiceTest {
             when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
 
             // Act
-            stripeService.markGroupedPaymentAsFailed("99");
+            stripeService.markGroupedPaymentAsFailed("sess_failed", "99");
 
             // Assert
             verify(interventionRepository, never()).save(any());
@@ -442,6 +474,14 @@ class StripeServiceTest {
     @Nested
     @DisplayName("refundPayment")
     class RefundPayment {
+
+        @BeforeEach
+        void successfulRefundByDefault() throws Exception {
+            var refund = new com.stripe.model.Refund();
+            refund.setId("re_confirmed");
+            refund.setStatus("succeeded");
+            lenient().when(stripeGateway.createRefund(any(), anyString())).thenReturn(refund);
+        }
 
         private PaymentStatusTransitionService.InterventionRefundContext refundContext() {
             return new PaymentStatusTransitionService.InterventionRefundContext(
@@ -531,7 +571,8 @@ class StripeServiceTest {
             // Assert
             verify(notificationService).notify(eq("kc-owner-1"),
                     eq(com.clenzy.model.NotificationKey.PAYMENT_REFUND_COMPLETED), any(), any(), any());
-            verify(kafkaTemplate).send(anyString(), eq("justif-remboursement-int-1"), any());
+            verify(paymentStatusTransitionService).markInterventionRefunded(1L);
+            org.mockito.Mockito.verifyNoInteractions(documentOutbox);
         }
     }
 
@@ -582,20 +623,19 @@ class StripeServiceTest {
 
             stripeService.confirmReservationPayment("sess_r");
 
-            verify(kafkaTemplate, times(2)).send(anyString(), anyString(), any());
+            verify(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
         }
 
         @Test
-        @DisplayName("payment still confirmed when Kafka publish fails")
-        void whenKafkaFails_thenPaymentStillConfirmed() {
+        @DisplayName("document scheduling failure propagates for retry")
+        void whenDocumentSchedulingFails_thenPropagates() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             doThrow(new RuntimeException("kafka down"))
-                    .when(kafkaTemplate).send(anyString(), anyString(), any());
+                    .when(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
 
-            stripeService.confirmReservationPayment("sess_r");
-
-            assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            assertThatThrownBy(() -> stripeService.confirmReservationPayment("sess_r"))
+                    .hasMessage("kafka down");
         }
 
         @Test
@@ -833,9 +873,31 @@ class StripeServiceTest {
     @DisplayName("confirmServiceRequestPayment")
     class ConfirmServiceRequestPayment {
 
+        @Test void lateCollectionKeepsCancellationAndDoesNotCreateWork() {
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.CANCELLED, PaymentStatus.PROCESSING);
+            when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
+            stripeService.confirmServiceRequestPayment("sess_sr");
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+            assertThat(sr.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            verify(serviceRequestService, never()).createInterventionFromPaidServiceRequest(any());
+            var order = inOrder(paymentStatusTransitionService);
+            order.verify(paymentStatusTransitionService).lockServiceRequestPayment(sr);
+            order.verify(paymentStatusTransitionService).markServiceRequestPaid(1L);
+        }
+
+        @Test void cancellationCommittedWhileWaitingForLockIsRespected() {
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
+            doAnswer(call -> { sr.setStatus(RequestStatus.CANCELLED); return null; })
+                .when(paymentStatusTransitionService).lockServiceRequestPayment(sr);
+            stripeService.confirmServiceRequestPayment("sess_sr");
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+            verify(serviceRequestService, never()).createInterventionFromPaidServiceRequest(any());
+        }
+
         @Test
-        @DisplayName("marks SR PAID, IN_PROGRESS, creates intervention")
-        void whenFound_thenSetsPaidAndCreatesIntervention() {
+        @DisplayName("marks SR PAID and IN_PROGRESS without creating an intervention")
+        void whenFound_thenSetsPaidWithoutIntervention() {
             ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
 
@@ -844,7 +906,9 @@ class StripeServiceTest {
             assertThat(sr.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
             assertThat(sr.getStatus()).isEqualTo(RequestStatus.IN_PROGRESS);
             assertThat(sr.getPaidAt()).isNotNull();
-            verify(serviceRequestService).createInterventionFromPaidServiceRequest(sr);
+            // Un paiement confirme le reglement, jamais le consentement du prestataire :
+            // la mission nait de l'acceptation de la demande ou du devis.
+            verify(serviceRequestService, never()).createInterventionFromPaidServiceRequest(any());
         }
 
         @Test
@@ -857,16 +921,16 @@ class StripeServiceTest {
         }
 
         @Test
-        @DisplayName("payment still confirmed when intervention creation fails")
-        void whenInterventionCreationFails_thenPaymentStillConfirmed() {
+        @DisplayName("an assignment flow in progress keeps its own status")
+        void whenAssignmentPhaseInProgress_thenStatusUntouched() {
             ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            sr.setAssignmentPhase("PROPOSED");
             when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
-            doThrow(new RuntimeException("creation err"))
-                    .when(serviceRequestService).createInterventionFromPaidServiceRequest(any());
 
             stripeService.confirmServiceRequestPayment("sess_sr");
 
             assertThat(sr.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.AWAITING_PAYMENT);
         }
 
         @Test
@@ -887,6 +951,24 @@ class StripeServiceTest {
     @Nested
     @DisplayName("markServiceRequestPaymentFailed")
     class MarkServiceRequestPaymentFailed {
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.EnumSource(value = PaymentStatus.class, names = {"PAID", "PARTIALLY_PAID", "REFUNDED"})
+        void failureCannotOverwriteConfirmedMoney(PaymentStatus status) {
+            var sr = buildServiceRequest(1L, RequestStatus.IN_PROGRESS, status);
+            when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
+            stripeService.markServiceRequestPaymentFailed("sess_sr");
+            assertThat(sr.getPaymentStatus()).isEqualTo(status);
+            verify(serviceRequestRepository, never()).save(any());
+        }
+
+        @Test void failedPaymentCannotReopenCancelledRequest() {
+            var sr = buildServiceRequest(1L, RequestStatus.CANCELLED, PaymentStatus.PROCESSING);
+            when(serviceRequestRepository.findByStripeSessionId("sess_sr")).thenReturn(Optional.of(sr));
+            stripeService.markServiceRequestPaymentFailed("sess_sr");
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+            verify(serviceRequestRepository, never()).save(any());
+        }
 
         @Test
         @DisplayName("sets FAILED and reverts status to AWAITING_PAYMENT")
@@ -950,6 +1032,7 @@ class StripeServiceTest {
             Property p = intervention.getProperty();
             p.setId(7L);
             intervention.getProperty().getOwner().setId(99L);
+            intervention.setStripeSessionId("sess_w");
             when(interventionRepository.findByStripeSessionId("sess_w")).thenReturn(Optional.of(intervention));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -970,6 +1053,7 @@ class StripeServiceTest {
         void whenAmountNull_thenSkipsLedger() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             intervention.setEstimatedCost(null);
+            intervention.setStripeSessionId("sess_n");
             when(interventionRepository.findByStripeSessionId("sess_n")).thenReturn(Optional.of(intervention));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -986,6 +1070,7 @@ class StripeServiceTest {
         void whenAmountZero_thenSkipsLedger() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             intervention.setEstimatedCost(BigDecimal.ZERO);
+            intervention.setStripeSessionId("sess_z");
             when(interventionRepository.findByStripeSessionId("sess_z")).thenReturn(Optional.of(intervention));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -1002,6 +1087,7 @@ class StripeServiceTest {
         void whenSplitFails_thenContinues() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            intervention.setStripeSessionId("sess_s");
             when(interventionRepository.findByStripeSessionId("sess_s")).thenReturn(Optional.of(intervention));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -1020,6 +1106,7 @@ class StripeServiceTest {
         void whenWalletCreationFails_thenPaymentStillConfirmed() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            intervention.setStripeSessionId("sess_e");
             when(interventionRepository.findByStripeSessionId("sess_e")).thenReturn(Optional.of(intervention));
             when(walletService.getOrCreatePlatformWallet(any(), any())).thenThrow(new RuntimeException("wallet err"));
 
@@ -1035,9 +1122,16 @@ class StripeServiceTest {
     @DisplayName("refundPayment resilience")
     class RefundAutoInvoice {
 
+        @BeforeEach
+        void successfulRefund() throws Exception {
+            var refund = new com.stripe.model.Refund();
+            refund.setStatus("succeeded");
+            when(stripeGateway.createRefund(any(), anyString())).thenReturn(refund);
+        }
+
         @Test
-        @DisplayName("when Kafka publish fails, refund still completes")
-        void whenKafkaFails_refundStillCompletes() throws Exception {
+        @DisplayName("refund delegates durable receipt to status transaction")
+        void refundDoesNotPublishDirectly() throws Exception {
             // Arrange
             when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(
                     new PaymentStatusTransitionService.InterventionRefundContext(
@@ -1045,14 +1139,13 @@ class StripeServiceTest {
             com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
             when(session.getPaymentIntent()).thenReturn("pi_1");
             when(stripeGateway.retrieveSession("cs_abc")).thenReturn(session);
-            doThrow(new RuntimeException("kafka down"))
-                    .when(kafkaTemplate).send(anyString(), anyString(), any());
 
             // Act
             stripeService.refundPayment(1L);
 
             // Assert
             verify(paymentStatusTransitionService).markInterventionRefunded(1L);
+            org.mockito.Mockito.verifyNoInteractions(documentOutbox);
         }
     }
 
@@ -1064,6 +1157,7 @@ class StripeServiceTest {
         @Test
         void whenConfirmed_thenNotifiesAdminsForAwaitingValidation() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_n2");
             when(interventionRepository.findByStripeSessionId("sess_n2")).thenReturn(Optional.of(intervention));
 
             stripeService.confirmPayment("sess_n2");
@@ -1078,6 +1172,7 @@ class StripeServiceTest {
         @Test
         void whenAutoInvoiceFails_paymentStillConfirmed() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_inv");
             when(interventionRepository.findByStripeSessionId("sess_inv")).thenReturn(Optional.of(intervention));
             doThrow(new RuntimeException("invoice err"))
                 .when(autoInvoiceService).generateForIntervention(any());
@@ -1091,6 +1186,7 @@ class StripeServiceTest {
         void whenOwnerHasNoKeycloakId_thenNoOwnerNotificationButAdminsStillNotified() {
             Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             // No owner — no keycloakId notification
+            intervention.setStripeSessionId("sess_no_owner");
             when(interventionRepository.findByStripeSessionId("sess_no_owner")).thenReturn(Optional.of(intervention));
 
             stripeService.confirmPayment("sess_no_owner");
@@ -1109,19 +1205,22 @@ class StripeServiceTest {
     @DisplayName("confirmGroupedPayment - kafka and auto-invoice failures")
     class ConfirmGroupedPaymentFailures {
         @Test
-        void whenKafkaFails_paymentStillSet() {
+        void whenDocumentSchedulingFails_thenGroupedPaymentPropagates() {
             Intervention i1 = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i1.setStripeSessionId("sess_grp_kafka");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
-            doThrow(new RuntimeException("kafka")).when(kafkaTemplate).send(anyString(), anyString(), any());
+            doThrow(new RuntimeException("kafka")).when(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
 
-            stripeService.confirmGroupedPayment("sess_grp_kafka", "1");
+            assertThatThrownBy(() -> stripeService.confirmGroupedPayment("sess_grp_kafka", "1"))
+                    .hasMessage("kafka");
 
-            assertThat(i1.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            org.mockito.Mockito.verifyNoInteractions(walletService, ledgerService, notificationService);
         }
 
         @Test
         void whenAutoInvoiceFails_paymentStillSet() {
             Intervention i1 = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i1.setStripeSessionId("sess_grp_inv");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
             doThrow(new RuntimeException("inv")).when(autoInvoiceService).generateForIntervention(any());
 
@@ -1133,6 +1232,7 @@ class StripeServiceTest {
         @Test
         void whenInterventionFound_thenSetsSessionId() {
             Intervention i1 = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            i1.setStripeSessionId("sess_grp_xyz");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
 
             stripeService.confirmGroupedPayment("sess_grp_xyz", "1");
@@ -1148,6 +1248,7 @@ class StripeServiceTest {
         void whenOwnerNoKeycloak_thenOnlyAdminsNotified() {
             Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
             // No owner - no notify() call
+            intervention.setStripeSessionId("sess_no");
             when(interventionRepository.findByStripeSessionId("sess_no")).thenReturn(Optional.of(intervention));
 
             stripeService.markPaymentAsFailed("sess_no");
@@ -1160,6 +1261,7 @@ class StripeServiceTest {
         @Test
         void whenNotificationsFail_stillSavesFailedStatus() {
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_fn");
             when(interventionRepository.findByStripeSessionId("sess_fn")).thenReturn(Optional.of(intervention));
             doThrow(new RuntimeException("notif")).when(notificationService)
                     .notify(any(), any(), any(), any(), any(), any());
@@ -1185,7 +1287,7 @@ class StripeServiceTest {
 
             stripeService.confirmReservationPayment("sess_em");
 
-            verify(kafkaTemplate, times(2)).send(anyString(), anyString(), any());
+            verify(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
         }
     }
 
@@ -1224,6 +1326,7 @@ class StripeServiceTest {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PAID);
             intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            intervention.setStripeSessionId("sess_dup");
             when(interventionRepository.findByStripeSessionId("sess_dup")).thenReturn(Optional.of(intervention));
 
             // Act
@@ -1233,7 +1336,7 @@ class StripeServiceTest {
             verify(interventionRepository, never()).save(any());
             verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), any());
             verify(splitPaymentService, never()).splitGenericPayment(any(), any(), any(), any(), any(), any());
-            verify(kafkaTemplate, never()).send(anyString(), anyString(), any());
+            org.mockito.Mockito.verifyNoInteractions(documentOutbox);
         }
 
         @Test
@@ -1241,6 +1344,7 @@ class StripeServiceTest {
         void whenGuardedTransitionLost_thenConfirmPaymentAborts() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId("sess_race");
             when(interventionRepository.findByStripeSessionId("sess_race")).thenReturn(Optional.of(intervention));
             when(paymentStatusTransitionService.markInterventionPaid(1L)).thenReturn(false);
 
@@ -1273,6 +1377,7 @@ class StripeServiceTest {
         void whenSrAlreadyPaid_thenSkips() {
             // Arrange
             ServiceRequest sr = buildServiceRequest(1L, RequestStatus.IN_PROGRESS, PaymentStatus.PAID);
+            sr.setStripeSessionId("sess_dup_sr");
             when(serviceRequestRepository.findByStripeSessionId("sess_dup_sr")).thenReturn(Optional.of(sr));
 
             // Act
@@ -1290,7 +1395,9 @@ class StripeServiceTest {
             // Arrange
             Intervention paid = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PAID);
             Intervention pending = buildInterventionWithOwner(2L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            paid.setStripeSessionId("sess_grp_dup");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(paid));
+            pending.setStripeSessionId("sess_grp_dup");
             when(interventionRepository.findById(2L)).thenReturn(Optional.of(pending));
 
             // Act
@@ -1337,6 +1444,7 @@ class StripeServiceTest {
             intervention.setEstimatedCost(BigDecimal.valueOf(100));
             intervention.getProperty().setDefaultCurrency("USD");
             intervention.getProperty().getOwner().setId(99L);
+            intervention.setStripeSessionId("sess_usd");
             when(interventionRepository.findByStripeSessionId("sess_usd")).thenReturn(Optional.of(intervention));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();

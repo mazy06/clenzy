@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -33,6 +33,14 @@ import { propertyStatusTokens } from './propertiesListConstants';
 /** Surface « carte » de la liste (hairline + rayon xl + fond carte). */
 const LIST_SURFACE_CLASS = 'border border-solid border-border rounded-xl bg-card';
 
+/**
+ * Taille du lot affiché. La zone visible peut contenir des centaines de logements ;
+ * les peindre tous d'un coup construit autant de lignes, chacune avec ses pastilles
+ * et ses infobulles, pour un écran qui n'en montre qu'une dizaine. Les données sont
+ * déjà côté client : ce qui coûte, c'est le DOM, et c'est lui qu'on étale.
+ */
+const BATCH_SIZE = 20;
+
 interface PropertiesMapViewProps {
   mapMarkers: PropertyMarker[];
   viewportProperties: PropertyListItem[];
@@ -52,6 +60,25 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   canManageContracts, missingContractIds, onMissingContractClick, navigate,
 }) => {
   const { t } = useTranslation();
+
+  // Avant tout retour anticipé : les hooks doivent s'exécuter à chaque rendu.
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const endRef = useRef<HTMLDivElement>(null);
+  // `viewportProperties` est mémoïsé en amont : son identité change quand la zone
+  // ou les filtres changent la sélection, et le lot repart alors du début.
+  useEffect(() => { setVisibleCount(BATCH_SIZE); }, [viewportProperties]);
+  const visibleProperties = viewportProperties.slice(0, visibleCount);
+  const hasMore = visibleCount < viewportProperties.length;
+  useEffect(() => {
+    const sentinel = endRef.current;
+    if (!sentinel || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries.some((entry) => entry.isIntersecting)) setVisibleCount((count) => count + BATCH_SIZE); },
+      { root: sentinel.closest('[data-map-list-scroll]'), threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, visibleCount]);
 
   // Aucun marqueur : ni carte ni feuille, seulement l'explication.
   if (mapMarkers.length === 0) {
@@ -91,7 +118,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
         />
       ) : undefined}
     >
-      {viewportProperties.map((property) => {
+      {visibleProperties.map((property) => {
                 const typeColor = getPropertyTypeHex(property.type);
                 return (
                   <Item
@@ -170,6 +197,13 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                   </Item>
                 );
       })}
+      {hasMore && (
+        <div ref={endRef} className="flex shrink-0 justify-center p-3">
+          <Button variant="ghost" onClick={() => setVisibleCount((count) => count + BATCH_SIZE)}>
+            {t('missionMap.loadMore')}
+          </Button>
+        </div>
+      )}
     </MapWithSheet>
   );
 };

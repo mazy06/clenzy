@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.config.KafkaConfig;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.payment.StripeGateway;
 import com.stripe.exception.StripeException;
@@ -8,10 +7,8 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
 
 /**
  * Remboursements Stripe + contre-passation ledger — extrait de
@@ -34,18 +31,15 @@ public class StripeRefundService {
     private final PaymentStatusTransitionService paymentStatusTransitionService;
     private final PaymentLedgerReversalService paymentLedgerReversalService;
     private final NotificationService notificationService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public StripeRefundService(StripeGateway stripeGateway,
                                PaymentStatusTransitionService paymentStatusTransitionService,
                                PaymentLedgerReversalService paymentLedgerReversalService,
-                               NotificationService notificationService,
-                               KafkaTemplate<String, Object> kafkaTemplate) {
+                               NotificationService notificationService) {
         this.stripeGateway = stripeGateway;
         this.paymentStatusTransitionService = paymentStatusTransitionService;
         this.paymentLedgerReversalService = paymentLedgerReversalService;
         this.notificationService = notificationService;
-        this.kafkaTemplate = kafkaTemplate;
     }
 
     /**
@@ -62,18 +56,38 @@ public class StripeRefundService {
         PaymentStatusTransitionService.InterventionRefundContext ctx =
             paymentStatusTransitionService.loadRefundableIntervention(interventionId);
 
-        String paymentIntentId = resolvePaymentIntentId(ctx.stripeSessionId());
+        Session session = stripeGateway.retrieveSession(ctx.stripeSessionId());
+        if (session != null && session.getMetadata() != null) {
+            var metadata = session.getMetadata();
+            if ("grouped_deferred".equals(metadata.get("type"))
+                    || metadata.containsKey("intervention_ids") || metadata.containsKey("interventionIds")
+                    || "DEFERRED_INTERVENTIONS_HOST".equals(metadata.get("sourceType"))
+                    || "DEFERRED_INTERVENTIONS_PROPERTY".equals(metadata.get("sourceType"))) {
+                throw new IllegalStateException("Paiement groupé : un remboursement par mission exige un rapprochement financier");
+            }
+        }
+        String paymentIntentId = session == null ? null : session.getPaymentIntent();
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            throw new IllegalStateException("Aucun PaymentIntent trouve pour la session: " + ctx.stripeSessionId());
+        }
 
         // Remboursement total — hors transaction DB, idempotent cote Stripe
         RefundCreateParams refundParams = RefundCreateParams.builder()
             .setPaymentIntent(paymentIntentId)
             .build();
-        stripeGateway.createRefund(refundParams, "refund-intervention-" + interventionId);
+        var refund = stripeGateway.createRefund(refundParams, "refund-intervention-" + interventionId);
+        // Un retry idempotent peut renvoyer l'ancienne réponse pending : relire l'objet courant.
+        if (refund != null && refund.getId() != null && !"succeeded".equals(refund.getStatus())) {
+            refund = stripeGateway.retrieveRefund(refund.getId());
+        }
+        if (refund == null || !"succeeded".equals(refund.getStatus())) {
+            throw new IllegalStateException("Remboursement non confirmé par Stripe ; rapprochement requis ("
+                    + (refund == null ? "résultat absent" : refund.getStatus()) + ")");
+        }
 
         persistRefundResult(interventionId);
         recordRefundLedgerReversal(interventionId);
         notifyRefundCompleted(ctx);
-        publishRefundDocumentEvent(ctx);
     }
 
     /**
@@ -174,25 +188,6 @@ public class StripeRefundService {
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_REFUND_COMPLETED: {}", e.getMessage());
-        }
-    }
-
-    private void publishRefundDocumentEvent(PaymentStatusTransitionService.InterventionRefundContext ctx) {
-        try {
-            String emailTo = ctx.ownerEmail() != null ? ctx.ownerEmail() : "";
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "justif-remboursement-int-" + ctx.interventionId(),
-                Map.of(
-                    "documentType", "JUSTIFICATIF_REMBOURSEMENT",
-                    "referenceId", ctx.interventionId(),
-                    "referenceType", "intervention",
-                    "emailTo", emailTo
-                )
-            );
-            log.debug("Evenement JUSTIFICATIF_REMBOURSEMENT publie sur Kafka pour l'intervention: {}", ctx.interventionId());
-        } catch (Exception e) {
-            log.error("Erreur publication Kafka JUSTIFICATIF_REMBOURSEMENT: {}", e.getMessage());
         }
     }
 

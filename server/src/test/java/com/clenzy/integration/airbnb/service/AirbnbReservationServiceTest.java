@@ -47,7 +47,7 @@ class AirbnbReservationServiceTest {
     void setUp() {
         service = new AirbnbReservationService(
                 listingMappingRepository, serviceRequestRepository,
-                propertyRepository, webhookService, auditLogService);
+                propertyRepository, webhookService, auditLogService, com.clenzy.service.CatalogTestFixture.reference());
     }
 
     private AirbnbListingMapping createMapping(Long propertyId, boolean autoCreate) {

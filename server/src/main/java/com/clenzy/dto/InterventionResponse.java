@@ -45,6 +45,7 @@ public record InterventionResponse(
     Integer estimatedDurationHours,
     Integer actualDurationMinutes,
     BigDecimal estimatedCost,
+    String currency,
     BigDecimal recommendedCost,
     BigDecimal actualCost,
     String scheduledDate,
@@ -70,7 +71,8 @@ public record InterventionResponse(
     /** null = aucune reponse attendue (assignations anterieures). */
     String assignmentResponse,
     LocalDateTime assignmentRespondedAt,
-    String assignmentDeclineReason
+    String assignmentDeclineReason,
+    String serviceItemCode
 ) {
     /**
      * Signalement a l'origine — ce qui a ete constate sur place, par qui, et
@@ -89,6 +91,7 @@ public record InterventionResponse(
         private String title;
         private String description;
         private String type;
+        private String serviceItemCode;
         private String priority;
         private String status;
         private Long propertyId;
@@ -111,6 +114,7 @@ public record InterventionResponse(
         private Integer estimatedDurationHours;
         private Integer actualDurationMinutes;
         private BigDecimal estimatedCost;
+        private String currency;
         private BigDecimal recommendedCost;
         private BigDecimal actualCost;
         private String scheduledDate;
@@ -163,6 +167,7 @@ public record InterventionResponse(
         public Builder estimatedDurationHours(Integer estimatedDurationHours) { this.estimatedDurationHours = estimatedDurationHours; return this; }
         public Builder actualDurationMinutes(Integer actualDurationMinutes) { this.actualDurationMinutes = actualDurationMinutes; return this; }
         public Builder estimatedCost(BigDecimal estimatedCost) { this.estimatedCost = estimatedCost; return this; }
+        public Builder currency(String currency) { this.currency = currency; return this; }
         public Builder recommendedCost(BigDecimal recommendedCost) { this.recommendedCost = recommendedCost; return this; }
         public Builder actualCost(BigDecimal actualCost) { this.actualCost = actualCost; return this; }
         public Builder scheduledDate(String scheduledDate) { this.scheduledDate = scheduledDate; return this; }
@@ -189,6 +194,8 @@ public record InterventionResponse(
         public Builder assignmentRespondedAt(LocalDateTime assignmentRespondedAt) { this.assignmentRespondedAt = assignmentRespondedAt; return this; }
         public Builder assignmentDeclineReason(String assignmentDeclineReason) { this.assignmentDeclineReason = assignmentDeclineReason; return this; }
 
+        public Builder serviceItemCode(String value) { serviceItemCode = value; return this; }
+
         public InterventionResponse build() {
             return new InterventionResponse(
                 id, title, description, type, priority, status,
@@ -198,7 +205,7 @@ public record InterventionResponse(
                 requestorId, requestorName,
                 assignedToType, assignedToId, assignedToName, assignedToAvatarUrl, assignedUserRole,
                 estimatedDurationHours, actualDurationMinutes,
-                estimatedCost, recommendedCost, actualCost,
+                estimatedCost, currency, recommendedCost, actualCost,
                 scheduledDate, startTime, endTime, completedAt,
                 createdAt, updatedAt,
                 notes, progressPercentage, validatedRooms, completedSteps,
@@ -206,7 +213,7 @@ public record InterventionResponse(
                 beforePhotoIds, afterPhotoIds,
                 paymentStatus, stripePaymentIntentId, stripeSessionId,
                 paidAt, preferredTimeSlot,
-                assignmentResponse, assignmentRespondedAt, assignmentDeclineReason
+                assignmentResponse, assignmentRespondedAt, assignmentDeclineReason, serviceItemCode
             );
         }
     }

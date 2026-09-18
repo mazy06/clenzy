@@ -84,7 +84,7 @@ public final class ToolScopeSelector {
             new Domain(
                     Set.of("menage", "intervention", "maintenance", "technicien", "nettoy", "checkin",
                             "checkout", "tache", "assign", "planifi", "reparation", "prestataire"),
-                    Set.of("create_intervention", "assign_intervention", "update_intervention_status",
+                    Set.of("list_service_reference", "create_intervention", "assign_intervention", "update_intervention_status",
                             "get_interventions_by_status", "list_cleaning_tasks",
                             "predict_maintenance_needs", "detect_operational_risks")),
             new Domain(

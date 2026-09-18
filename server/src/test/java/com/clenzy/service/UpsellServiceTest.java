@@ -42,11 +42,14 @@ class UpsellServiceTest {
     @Mock private ManagementContractService managementContractService;
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Mock private com.clenzy.repository.UpsellTypeDefRepository upsellTypeRepository;
+    @Mock private com.clenzy.tenant.TenantContext tenantContext;
 
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, guideRepository, reservationRepository,
             stripeService, walletService, ledgerService, monetizationConfigService, managementContractService,
-            java.time.Clock.systemUTC(), orchestrationService, transactionManager);
+            java.time.Clock.systemUTC(), orchestrationService, transactionManager,
+            upsellTypeRepository, tenantContext);
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {

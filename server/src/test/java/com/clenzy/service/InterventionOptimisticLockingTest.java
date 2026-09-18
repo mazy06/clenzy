@@ -35,6 +35,7 @@ class InterventionOptimisticLockingTest {
     @Mock private TenantContext tenantContext;
     @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
 
+    @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuotes;
     private InterventionLifecycleService service;
 
     @BeforeEach
@@ -43,7 +44,7 @@ class InterventionOptimisticLockingTest {
                 interventionRepository, interventionMapper, accessPolicy,
                 notificationService, outboxPublisher, objectMapper, tenantContext,
                 housekeeperPayoutService,
-                org.mockito.Mockito.mock(com.clenzy.service.PropertyStockService.class));
+                org.mockito.Mockito.mock(com.clenzy.service.PropertyStockService.class), org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), serviceQuotes, new ServiceQuoteAgreementService(org.mockito.Mockito.mock(com.clenzy.repository.ServiceQuoteAmendmentRepository.class)) );
     }
 
     private Jwt mockJwtWithRole(String role) {

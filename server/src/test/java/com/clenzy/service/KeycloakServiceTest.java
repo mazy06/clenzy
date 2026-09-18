@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -84,8 +85,144 @@ class KeycloakServiceTest {
     private Response buildCreatedResponse(String userId) {
         Response response = mock(Response.class);
         when(response.getStatus()).thenReturn(201);
+        // CreatedResponseUtil lit la FAMILLE du statut avant l'en-tete Location :
+        // sans ce stub il recevait null et les tests etaient desactives.
+        lenient().when(response.getStatusInfo()).thenReturn(Response.Status.CREATED);
         when(response.getLocation()).thenReturn(URI.create("http://kc.local/admin/realms/clenzy/users/" + userId));
         return response;
+    }
+
+    @Test
+    void marketplaceOwnerProofRequiresTheCurrentVerifiedEnabledIdentity() {
+        var owner = buildUserRepresentation("owner", "pro@example.com");
+        when(usersResource.get("owner")).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(owner);
+        when(usersResource.searchByEmail("pro@example.com", true)).thenReturn(List.of(owner));
+        service.verifyMarketplaceAccountOwner("owner", "pro@example.com");
+        owner.setEmailVerified(false);
+        assertThatThrownBy(() -> service.verifyMarketplaceAccountOwner("owner", "pro@example.com"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        owner.setEmailVerified(true); owner.setEnabled(false);
+        assertThatThrownBy(() -> service.verifyMarketplaceAccountOwner("owner", "pro@example.com"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(userResource, never()).update(any());
+        verify(usersResource, never()).create(any());
+    }
+
+    @Test
+    void marketplaceOwnerProofRejectsAmbiguousEmailsAndChangedSubjects() {
+        var owner = buildUserRepresentation("owner", "pro@example.com");
+        when(usersResource.get("owner")).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(owner);
+        when(usersResource.searchByEmail("pro@example.com", true))
+            .thenReturn(List.of(owner, buildUserRepresentation("other", "pro@example.com")));
+        assertThatThrownBy(() -> service.verifyMarketplaceAccountOwner("owner", "pro@example.com"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        when(usersResource.searchByEmail("pro@example.com", true)).thenReturn(List.of(owner));
+        owner.setId("changed");
+        assertThatThrownBy(() -> service.verifyMarketplaceAccountOwner("owner", "pro@example.com"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
+    @Nested
+    class MarketplaceProvisioning {
+        final String operation = "00000000-0000-0000-0000-000000000001";
+        final String email = "provider@example.invalid";
+
+        CreateUserDto request() {
+            var request = new CreateUserDto();
+            request.setEmail(email);
+            request.setFirstName("Baitly");
+            request.setLastName("Test");
+            return request;
+        }
+
+        UserRepresentation marked() {
+            var user = buildUserRepresentation("kc-marketplace", email);
+            user.setAttributes(java.util.Map.of("baitly_marketplace_operation", List.of(operation)));
+            return user;
+        }
+
+        @Test
+        void creationStoresTheServerProofAndClosesTheResponse() {
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of());
+            var response = buildCreatedResponse("kc-marketplace");
+            when(usersResource.create(any())).thenReturn(response);
+            when(usersResource.get("kc-marketplace")).thenReturn(userResource);
+            when(userResource.toRepresentation()).thenReturn(marked());
+            assertThat(service.createMarketplaceUser(request(), operation)).isEqualTo("kc-marketplace");
+            var sent = org.mockito.ArgumentCaptor.forClass(UserRepresentation.class);
+            verify(usersResource).create(sent.capture());
+            assertThat(sent.getValue().getAttributes()).containsEntry("baitly_marketplace_operation", List.of(operation));
+            assertThat(sent.getValue().getCredentials()).isNullOrEmpty();
+            verify(response).close();
+        }
+
+        @Test
+        void aLostCreationResponseIsRecoveredOnTheNextAttempt() {
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of(), List.of(marked()));
+            when(usersResource.create(any())).thenThrow(new jakarta.ws.rs.ProcessingException("timeout"));
+            assertThatThrownBy(() -> service.createMarketplaceUser(request(), operation)).isInstanceOf(RuntimeException.class);
+            assertThat(service.createMarketplaceUser(request(), operation)).isEqualTo("kc-marketplace");
+            verify(usersResource, times(1)).create(any());
+            verify(usersResource, never()).delete(anyString());
+        }
+
+        @Test
+        void anUnmarkedAccountWithTheSameEmailIsNeverAdopted() {
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of(buildUserRepresentation("other", email)));
+            assertThatThrownBy(() -> service.createMarketplaceUser(request(), operation)).isInstanceOf(KeycloakOperationException.class);
+            verify(usersResource, never()).create(any());
+            verify(usersResource, never()).get(anyString());
+        }
+
+        @Test
+        void aDifferentOperationOrDisabledAccountIsNeverAdopted() {
+            var other = marked();
+            other.setAttributes(java.util.Map.of("baitly_marketplace_operation", List.of("another-operation")));
+            var disabled = marked(); disabled.setEnabled(false);
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of(other), List.of(disabled));
+            assertThatThrownBy(() -> service.createMarketplaceUser(request(), operation)).isInstanceOf(KeycloakOperationException.class);
+            assertThatThrownBy(() -> service.createMarketplaceUser(request(), operation)).isInstanceOf(KeycloakOperationException.class);
+            verify(usersResource, never()).create(any());
+        }
+
+        @Test
+        void aCreationConflictRequiresTheSameProof() {
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of(), List.of(marked()));
+            var conflict = mock(Response.class); when(conflict.getStatus()).thenReturn(409);
+            when(usersResource.create(any())).thenReturn(conflict);
+            when(usersResource.get("kc-marketplace")).thenReturn(userResource);
+            when(userResource.toRepresentation()).thenReturn(marked());
+            assertThat(service.createMarketplaceUser(request(), operation)).isEqualTo("kc-marketplace");
+            verify(conflict).close();
+        }
+
+        @Test
+        void anIgnoredAttributeStopsProvisioningBeforeRoleAssignment() {
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of());
+            var response = buildCreatedResponse("kc-marketplace");
+            when(usersResource.create(any())).thenReturn(response);
+            when(usersResource.get("kc-marketplace")).thenReturn(userResource);
+            when(userResource.toRepresentation()).thenReturn(buildUserRepresentation("kc-marketplace", email));
+            var request = request(); request.setRole("TECHNICIAN");
+            assertThatThrownBy(() -> service.createMarketplaceUser(request, operation))
+                    .isInstanceOf(KeycloakOperationException.class).hasMessageContaining("preuve");
+            verify(userResource, never()).roles();
+        }
+
+        @Test
+        void roleFailureCanBeRetriedWithoutDeletingOrRecreatingTheAccount() {
+            var retriable = org.mockito.Mockito.spy(service);
+            var request = request(); request.setRole("TECHNICIAN");
+            when(usersResource.searchByEmail(email, true)).thenReturn(List.of(marked()));
+            doThrow(new RuntimeException("role unavailable")).doNothing()
+                    .when(retriable).assignRoleToUser("kc-marketplace", "TECHNICIAN");
+            assertThatThrownBy(() -> retriable.createMarketplaceUser(request, operation)).isInstanceOf(RuntimeException.class);
+            assertThat(retriable.createMarketplaceUser(request, operation)).isEqualTo("kc-marketplace");
+            verify(usersResource, never()).create(any());
+            verify(usersResource, never()).delete(anyString());
+        }
     }
 
     @Nested
@@ -146,7 +283,6 @@ class KeycloakServiceTest {
     class Create {
 
         @Test
-        @org.junit.jupiter.api.Disabled("Mock Response.getStatusInfo() returns null — needs buildCreatedResponse() to stub StatusInfo too. Skip pour debloquer la campagne coverage.")
         void whenAllFieldsValid_thenReturnsId() {
             CreateUserDto dto = new CreateUserDto("Jean", "Dupont", "jd@test.com", "Pass1234!", null);
             Response response = buildCreatedResponse("new-id-123");
@@ -160,23 +296,56 @@ class KeycloakServiceTest {
         }
 
         @Test
-        @org.junit.jupiter.api.Disabled("Mock Response.getStatusInfo() returns null — needs buildCreatedResponse() to stub StatusInfo too. Skip pour debloquer la campagne coverage.")
         void whenRoleProvided_thenAssignsRole() {
             CreateUserDto dto = new CreateUserDto("J", "D", "test@x.com", "Pass1234!", "HOST");
             Response response = buildCreatedResponse("kc-42");
             when(usersResource.create(any(UserRepresentation.class))).thenReturn(response);
             when(usersResource.get("kc-42")).thenReturn(userResource);
             when(realmResource.roles()).thenReturn(rolesResource);
-            when(rolesResource.get("HOST")).thenReturn(roleResource);
             RoleRepresentation roleRep = new RoleRepresentation();
             roleRep.setName("HOST");
-            when(roleResource.toRepresentation()).thenReturn(roleRep);
+            when(rolesResource.list()).thenReturn(java.util.List.of(roleRep));
             when(userResource.roles()).thenReturn(roleMappingResource);
             when(roleMappingResource.realmLevel()).thenReturn(roleScopeResource);
 
             service.createUser(dto);
 
             verify(roleScopeResource).add(any());
+        }
+
+        @Test
+        void whenNoPasswordIsGiven_thenNoneIsSetAndCreationSucceeds() {
+            // Cas legitime : le compte est cree, et c'est Keycloak qui invite la
+            // personne a choisir son mot de passe. Envoyer une valeur nulle
+            // faisait repondre 400 A KEYCLOAK, APRES creation — le compte
+            // restait, orphelin, et gardait l'adresse.
+            CreateUserDto dto = new CreateUserDto("Yasmine", "Benali", "pro@test.com", null, null);
+            // Le helper est appele AVANT `when` : l'appeler dedans ouvrirait un
+            // second stubbing pendant le premier, ce que Mockito refuse.
+            Response response = buildCreatedResponse("kc-sans-mdp");
+            when(usersResource.create(any(UserRepresentation.class))).thenReturn(response);
+
+            String id = service.createUser(dto);
+
+            assertThat(id).isEqualTo("kc-sans-mdp");
+            verify(usersResource, never()).get("kc-sans-mdp");
+        }
+
+        @Test
+        void whenALaterStepFails_thenTheAccountIsRemovedRatherThanLeftOrphaned() {
+            // Sans ce retrait, l'adresse reste prise dans Keycloak et toutes les
+            // tentatives suivantes echouent sans que rien ne dise pourquoi.
+            CreateUserDto dto = new CreateUserDto("J", "D", "x@test.com", "Pass1234!", null);
+            Response response = buildCreatedResponse("kc-incomplet");
+            when(usersResource.create(any(UserRepresentation.class))).thenReturn(response);
+            when(usersResource.get("kc-incomplet")).thenReturn(userResource);
+            doThrow(new RuntimeException("Keycloak injoignable"))
+                .when(userResource).resetPassword(any());
+
+            assertThatThrownBy(() -> service.createUser(dto))
+                .isInstanceOf(RuntimeException.class);
+
+            verify(userResource).remove();
         }
 
         @Test
@@ -298,10 +467,9 @@ class KeycloakServiceTest {
         @Test
         void assignRole_whenSucceeds_thenAddsToRealmLevel() {
             when(realmResource.roles()).thenReturn(rolesResource);
-            when(rolesResource.get("HOST")).thenReturn(roleResource);
             RoleRepresentation roleRep = new RoleRepresentation();
             roleRep.setName("HOST");
-            when(roleResource.toRepresentation()).thenReturn(roleRep);
+            when(rolesResource.list()).thenReturn(List.of(roleRep));
             when(usersResource.get("u-1")).thenReturn(userResource);
             when(userResource.roles()).thenReturn(roleMappingResource);
             when(roleMappingResource.realmLevel()).thenReturn(roleScopeResource);
@@ -309,6 +477,22 @@ class KeycloakServiceTest {
             service.assignRoleToUser("u-1", "HOST");
 
             verify(roleScopeResource).add(any());
+        }
+
+        @Test
+        void assignRole_whenTheRoleIsAbsentFromTheRealm_thenItSaysSo() {
+            // Le role est cherche dans la LISTE : sur le Keycloak 24.0.5 de
+            // l'environnement, `roles/{nom}` repond 404 pour TOUS les roles, y
+            // compris ceux que `roles` renvoie juste apres. Toute assignation
+            // echouait donc, quel que soit le parcours.
+            when(realmResource.roles()).thenReturn(rolesResource);
+            RoleRepresentation other = new RoleRepresentation();
+            other.setName("HOST");
+            when(rolesResource.list()).thenReturn(List.of(other));
+
+            assertThatThrownBy(() -> service.assignRoleToUser("u-1", "INCONNU"))
+                .isInstanceOf(KeycloakOperationException.class)
+                .hasMessageContaining("INCONNU");
         }
 
         @Test
@@ -323,10 +507,9 @@ class KeycloakServiceTest {
 
             // assignRoleToUser
             when(realmResource.roles()).thenReturn(rolesResource);
-            when(rolesResource.get("HOST")).thenReturn(roleResource);
             RoleRepresentation newRole = new RoleRepresentation();
             newRole.setName("HOST");
-            when(roleResource.toRepresentation()).thenReturn(newRole);
+            when(rolesResource.list()).thenReturn(List.of(newRole));
 
             service.updateUserRole("u-1", "HOST");
 

@@ -70,6 +70,15 @@ public enum NotificationKey {
 
     // ─── ICAL (6 cles) ─────────────────────────────────────────────────────────
 
+    // ─── PLACE DE MARCHE (2 cles) ───────────────────────────────────────────────
+
+    /** Une candidature attend d'etre instruite. Adressee a l'equipe PLATEFORME. */
+    MARKETPLACE_APPLICATION_RECEIVED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
+    /** Un candidat a complete son dossier : il redevient instruisable. */
+    MARKETPLACE_APPLICATION_DOCUMENTS_ADDED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
+    /** Compte cree, mais invitation a definir un mot de passe non partie. */
+    MARKETPLACE_INVITATION_FAILED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+
     ICAL_IMPORT_SUCCESS(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
     ICAL_IMPORT_PARTIAL(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
     ICAL_IMPORT_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),

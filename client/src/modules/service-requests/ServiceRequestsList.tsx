@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { MANAGER_ROLES, OPERATIONAL_ROLES } from '../../constants/roles';
+import ProviderServiceRequests from './ProviderServiceRequests';
+import { convertServiceRequest } from '../../hooks/useServiceRequestsList';
+import type { ServiceRequestApiResponse } from './serviceRequestsUtils';
+import { fetchMissionMapExport, useMissionMapFilters, useMissionMapOverview } from '../../hooks/useMissionMap';
+import ServiceReferenceIssues from './ServiceReferenceIssues';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  Alert, AlertDescription, Skeleton,
   Button,
   DropdownMenu,
   DropdownMenuContent,
@@ -23,15 +31,12 @@ import {
   CheckCircle as CheckIcon,
 } from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
-import StatTile from '../../components/baitly/StatTile';
-import StatTileRow from '../../components/baitly/StatTileRow';
-import FilterChipRow from '../../components/baitly/FilterChipRow';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
 import { useServiceRequestsList } from './useServiceRequestsList';
-import { statusColors, priorityColors, typeIcons, familyOf, type ServiceRequestFamily } from './serviceRequestsUtils';
+import { isServiceRequestOverdue, overdueServiceRequestsFirst, statusColors, priorityColors, typeIcons } from './serviceRequestsUtils';
 import {
   DeleteConfirmDialog,
   StatusChangeDialog,
@@ -42,7 +47,6 @@ import {
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
-import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
 import ServiceRequestsMapView from './ServiceRequestsMapView';
 import ServiceRequestsGridView from './ServiceRequestsGridView';
@@ -62,7 +66,19 @@ const CREATE_BUTTON_CLASS =
   + 'transition-[background-color,border-color,color] duration-[140ms] '
   + 'hover:bg-primary-soft hover:border-primary-deep hover:text-primary-deep';
 
-export default function ServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
+export default function ServiceRequestsList(props: ServiceRequestsListProps) {
+  const { hasAnyRole } = useAuth();
+  const providerView = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
+  const requests = <ManagedServiceRequestsList {...props} />;
+  return providerView
+    ? <ProviderServiceRequests embedded={props.embedded}>{requests}</ProviderServiceRequests>
+    : requests;
+}
+
+function ManagedServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
+  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
+    'service-requests', 'map', ['grid', 'list', 'map'] as const,
+  );
   const {
     // Filter state
     searchTerm,
@@ -81,6 +97,8 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     // Data
     serviceRequests,
     loading,
+    loadFailed,
+    refetch,
     filteredServiceRequests,
 
     // Delete dialog
@@ -94,6 +112,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     selectedRequestForStatusChange,
     setSelectedRequestForStatusChange,
     newStatus,
+    changingStatus,
     setNewStatus,
 
     // Assign dialog
@@ -108,6 +127,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     assignTeams,
     assignUsers,
     loadingAssignData,
+    assigning,
 
     // Validate dialog
     validateDialogOpen,
@@ -155,35 +175,21 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     isHost,
     navigate,
     t,
-  } = useServiceRequestsList();
+  } = useServiceRequestsList(viewMode !== 'map');
 
-  // ─── Filtre par famille (rangee de chips de la projection) ──────────────
-  // Vingt types ne font pas une rangee de chips : la projection raisonne en
-  // familles (menage / maintenance / autre). Le chip se COMPOSE avec le select
-  // de type fin — intersection, rien n'est perdu.
-  const [selectedFamily, setSelectedFamily] = useState<ServiceRequestFamily | ''>('');
-  const visibleRequests = useMemo(
-    () => (selectedFamily ? filteredServiceRequests.filter((r) => familyOf(r.type) === selectedFamily) : filteredServiceRequests),
-    [filteredServiceRequests, selectedFamily],
-  );
-  const familyCounts = useMemo(() => {
-    const compte: Record<ServiceRequestFamily, number> = { cleaning: 0, maintenance: 0, other: 0 };
-    serviceRequests.forEach((r) => { compte[familyOf(r.type)] += 1; });
-    return compte;
-  }, [serviceRequests]);
+  const mapFilters = useMissionMapFilters(searchTerm, selectedType, selectedStatus, selectedPriority);
+  const mapOverview = useMissionMapOverview('service-requests', mapFilters, viewMode === 'map');
+  const visibleRequests = useMemo(() => overdueServiceRequestsFirst(filteredServiceRequests), [filteredServiceRequests]);
 
-  // ─── Les trois tuiles de la projection ──────────────────────────────────
-  // Assiette = la liste complete : les tuiles decrivent l'etat du parc, pas
-  // le resultat du filtre courant.
+  // Les indicateurs conservent leur périmètre global, indépendamment des filtres.
   const kpis = useMemo(() => {
-    const OUVERTES = (st: string) => !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(st);
     const maintenant = Date.now();
     const debutJour = new Date(); debutJour.setHours(0, 0, 0, 0);
     const finJour = debutJour.getTime() + 86_400_000;
     const ilYA7j = maintenant - 7 * 86_400_000;
 
     const enRetard = serviceRequests
-      .filter((r) => OUVERTES(r.status) && r.dueDate && new Date(r.dueDate).getTime() < maintenant)
+      .filter((r) => isServiceRequestOverdue(r, maintenant))
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
     const plusAncienne = enRetard[0];
     const joursRetard = plusAncienne
@@ -201,15 +207,31 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     const terminees7j = serviceRequests.filter(
       (r) => r.status === 'COMPLETED' && r.dueDate && new Date(r.dueDate).getTime() >= ilYA7j,
     );
-    const dureeMoy = terminees7j.length
-      ? Math.round(terminees7j.reduce((s, r) => s + (r.estimatedDuration || 0), 0) / terminees7j.length)
-      : 0;
-
-    return { enRetard: enRetard.length, plusAncienne, joursRetard, aujourdHui: aujourdHui.length, terminees7j: terminees7j.length, dureeMoy };
+    return { enRetard: enRetard.length, plusAncienne, joursRetard, aujourdHui: aujourdHui.length, terminees7j: terminees7j.length };
   }, [serviceRequests]);
 
-  const formatDuree = (minutes: number) =>
-    minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}` : `${minutes} min`;
+  const indicators = (
+    <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs tabular-nums">
+      {[
+        { label: t("serviceRequests.kpi.late", "En retard"), value: kpis.enRetard, icon: WarningIcon, color: "text-[var(--bui-destructive-ink)]", detail: kpis.plusAncienne ? kpis.plusAncienne.title + " · " + t("serviceRequests.kpi.sinceDays", { count: kpis.joursRetard, defaultValue: "depuis {{count}} j" }) : undefined },
+        { label: t("serviceRequests.kpi.today", "Aujourd’hui"), value: kpis.aujourdHui, icon: ClockIcon, color: "text-[var(--bui-info-ink)]" },
+        { label: t("serviceRequests.kpi.done7d", "Terminées (7 j)"), value: kpis.terminees7j, icon: CheckIcon, color: "text-[var(--bui-success-ink)]" },
+      ].map(({ label, value, icon: Icon, color, detail }) => (
+        <Tooltip key={label}>
+          <TooltipTrigger asChild>
+            <span tabIndex={0} aria-label={value + " " + label} className="inline-flex items-center gap-1 rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Icon aria-hidden size={15} className={color} />
+              <span className="font-semibold">{value}</span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <span>{label}</span>
+            {detail && <span className="mt-1 block max-w-64">{detail}</span>}
+          </TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
+  );
 
   // ─── Ancre du menu contextuel ───────────────────────────────────────────
   // Le declencheur du menu vit dans les vues enfant (grille / tableau / carte),
@@ -225,66 +247,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   }, [anchorEl]);
 
   const [page, setPage] = useState(0);
-  // Auto default : map si au moins 1 demande a une propriete geocodee, sinon list.
-  // undefined tant qu'on charge -> le hook conserve son fallback initial.
-  const autoDefaultMode = useMemo<'map' | 'list' | undefined>(() => {
-    if (loading) return undefined;
-    return serviceRequests.some((r) => r.propertyLatitude && r.propertyLongitude)
-      ? 'map'
-      : 'list';
-  }, [loading, serviceRequests]);
-  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
-    'service-requests',
-    'map',
-    ['grid', 'list', 'map'] as const,
-    autoDefaultMode,
-  );
-
-  // ─── Map state ──────────────────────────────────────────────
-  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
-  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleBoundsChange = useCallback((bounds: MapBounds) => {
-    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
-    boundsTimerRef.current = setTimeout(() => setMapBounds(bounds), 300);
-  }, []);
-
-  useEffect(() => {
-    if (viewMode !== 'map') setMapBounds(null);
-  }, [viewMode]);
-
-  const mapMarkers: PropertyMarker[] = useMemo(
-    () =>
-      visibleRequests.flatMap((r) =>
-        r.propertyLatitude && r.propertyLongitude
-          ? [
-              {
-                lat: r.propertyLatitude!,
-                lng: r.propertyLongitude!,
-                name: `${r.title} — ${r.propertyName}`,
-                id: Number(r.id),
-                type: 'property' as const,
-              },
-            ]
-          : [],
-      ),
-    [visibleRequests],
-  );
-
-  const viewportRequests = useMemo(() => {
-    if (!mapBounds) return visibleRequests.filter((r) => r.propertyLatitude && r.propertyLongitude);
-    const pad = 0.005;
-    return visibleRequests.filter((r) => {
-      if (!r.propertyLatitude || !r.propertyLongitude) return false;
-      return (
-        r.propertyLatitude >= mapBounds.south - pad &&
-        r.propertyLatitude <= mapBounds.north + pad &&
-        r.propertyLongitude >= mapBounds.west - pad &&
-        r.propertyLongitude <= mapBounds.east + pad
-      );
-    });
-  }, [visibleRequests, mapBounds]);
-
   // Dynamic page size based on available viewport height
   const { containerRef: listContainerRef, pageSize: rowsPerPage } = useDynamicPageSize({
     rowHeight: 49,
@@ -307,7 +269,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   // Reset page quand les filtres changent
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, selectedType, selectedStatus, selectedPriority, selectedFamily, viewMode]);
+  }, [searchTerm, selectedType, selectedStatus, selectedPriority, viewMode]);
 
   // Deep-link notification : surligne la demande ciblee (?highlight=<srId>).
   // Force la vue liste (les cartes/lignes portent data-highlight-id, pas la carte) et
@@ -343,6 +305,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     <div className="flex gap-1 items-center">
       <ExportButton
         data={visibleRequests}
+        loadData={viewMode === 'map' ? async () => (await fetchMissionMapExport<ServiceRequestApiResponse>('service-requests', mapFilters)).map(convertServiceRequest) : undefined}
         columns={exportColumns}
         fileName="demandes-service"
         variant="icon"
@@ -395,7 +358,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       }}
       counter={{
         label: t('serviceRequests.request'),
-        count: visibleRequests.length,
+        count: viewMode === 'map' ? mapOverview.data?.total ?? 0 : visibleRequests.length,
         singular: "",
         plural: "s"
       }}
@@ -428,64 +391,16 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         </div>
       )}
 
-      {/* ─── Les trois tuiles de la projection ──
-          Sous `sm`, une rangee qui DEFILE horizontalement plutot qu'une colonne :
-          empilees, les trois tuiles mangeaient 302 px des 812 px de l'ecran avant
-          meme la carte, et `shrink-0` les rendait incompressibles. Le plancher de
-          largeur evite qu'elles se tassent, `snap` cale le defilement sur chaque
-          tuile. A partir de `sm` on retrouve la grille a trois colonnes. */}
-      <StatTileRow
-        compact
-        className="mb-3 shrink-0"
-        footer={kpis.plusAncienne ? (
-          <p className="m-0 text-xs text-muted-foreground">
-            <b className="font-semibold text-foreground">{kpis.plusAncienne.title.slice(0, 40)}</b>{' '}
-            {t('serviceRequests.kpi.sinceDays', { count: kpis.joursRetard, defaultValue: 'depuis {{count}} j' })}
-            {kpis.dureeMoy > 0 && (
-              <> · <b className="font-semibold text-foreground">{formatDuree(kpis.dureeMoy)}</b>{' '}
-                {t('serviceRequests.kpi.avgDuration', 'de durée moyenne estimée')}</>
-            )}
-          </p>
-        ) : undefined}
-      >
-        <StatTile
-          icon={<WarningIcon />}
-          label={t('serviceRequests.kpi.late', 'En retard')}
-          value={String(kpis.enRetard)}
-          iconClassName="text-destructive"
-          loading={loading}
-        />
-        <StatTile
-          icon={<ClockIcon />}
-          label={t('serviceRequests.kpi.today', "Aujourd'hui")}
-          value={String(kpis.aujourdHui)}
-          loading={loading}
-        />
-        <StatTile
-          icon={<CheckIcon />}
-          label={t('serviceRequests.kpi.done7d', 'Terminées (7 j)')}
-          value={String(kpis.terminees7j)}
-          iconClassName="text-success"
-          loading={loading}
-        />
-      </StatTileRow>
-
-      {/* ─── Chips par famille (le select de type fin reste dans la barre) ── */}
-      <FilterChipRow
-        className="mb-3 shrink-0"
-        allLabel={t('serviceRequests.family.all', 'Tous types')}
-        allCount={serviceRequests.length}
-        value={selectedFamily}
-        onChange={(v) => setSelectedFamily(v as ServiceRequestFamily | '')}
-        options={[
-          { value: 'cleaning', label: t('serviceRequests.family.cleaning', 'Ménage'), color: '#2563EB', count: familyCounts.cleaning },
-          { value: 'maintenance', label: t('serviceRequests.family.maintenance', 'Maintenance'), color: '#D4A574', count: familyCounts.maintenance },
-          { value: 'other', label: t('serviceRequests.family.other', 'Autre'), color: '#7BA3C2', count: familyCounts.other },
-        ].filter((o) => o.count > 0)}
-      />
+      {(isAdmin() || isManager()) && <ServiceReferenceIssues />}
+      {!loadFailed && !loading && viewMode !== "map" && (
+        <div className="mb-2 flex shrink-0 justify-end">{indicators}</div>
+      )}
 
       {/* Liste des demandes de service */}
-      {visibleRequests.length === 0 ? (
+      {viewMode === 'map' ? <ServiceRequestsMapView filters={mapFilters} /> : loadFailed ? <Alert variant="destructive"><AlertDescription>
+        {t('serviceRequests.loadError')}
+        <Button variant="outline" onClick={() => void refetch()}>{t('common.retry')}</Button>
+      </AlertDescription></Alert> : loading ? <Skeleton className="h-48 w-full" /> : visibleRequests.length === 0 ? (
         <EmptyState
           icon={<Description />}
           title={t('serviceRequests.noRequestFound')}
@@ -500,13 +415,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
               {t('serviceRequests.createFirst')}
             </Button>
           )}
-        />
-      ) : viewMode === 'map' ? (
-        <ServiceRequestsMapView
-          mapMarkers={mapMarkers}
-          viewportRequests={viewportRequests}
-          onBoundsChange={handleBoundsChange}
-          navigate={navigate}
         />
       ) : viewMode === 'grid' ? (
         <ServiceRequestsGridView
@@ -627,12 +535,17 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
       <StatusChangeDialog
         open={statusChangeDialogOpen}
-        onClose={() => setStatusChangeDialogOpen(false)}
+        onClose={() => { if (!changingStatus) setStatusChangeDialogOpen(false); }}
         onConfirm={confirmStatusChange}
         requestTitle={selectedRequestForStatusChange?.title}
         newStatus={newStatus}
+        pending={changingStatus}
         onStatusChange={setNewStatus}
-        statuses={statuses}
+        statuses={statuses.filter(s =>
+          s.value === selectedRequestForStatusChange?.status ||
+          (s.value === "REJECTED" && selectedRequestForStatusChange?.status === "PENDING") ||
+          (s.value === "CANCELLED" && ["PENDING", "ASSIGNED", "AWAITING_PAYMENT", "IN_PROGRESS"].includes(selectedRequestForStatusChange?.status ?? ""))
+        )}
         t={t}
       />
 
@@ -650,6 +563,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         teams={assignTeams}
         users={assignUsers}
         loadingData={loadingAssignData}
+        assigning={assigning}
         t={t}
       />
 

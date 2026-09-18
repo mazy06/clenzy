@@ -42,6 +42,19 @@ public class PropertyTeam {
     @JoinColumn(name = "team_id", insertable = false, updatable = false)
     private Team team;
 
+    @Column(name = "service_item_code", length = 60)
+    private String serviceItemCode;
+    @Column(name = "priority", nullable = false)
+    private int priority = 100;
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+    public String getServiceItemCode() { return serviceItemCode; }
+    public void setServiceItemCode(String code) { serviceItemCode = code; }
+    public int getPriority() { return priority; }
+    public void setPriority(int value) { priority = value; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean value) { active = value; }
+
     // Constructeurs
     public PropertyTeam() {
         this.assignedAt = LocalDateTime.now();

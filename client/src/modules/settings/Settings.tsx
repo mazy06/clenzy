@@ -47,6 +47,7 @@ import {
 } from '../../icons';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
+import AssignmentPolicyForm from '../service-requests/AssignmentPolicyForm';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
@@ -880,6 +881,14 @@ export default function Settings() {
               />
             </SettingsSection>
           </div>
+
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <div className="col-span-12">
+              <SettingsSection title={t('assignmentFlow.policy.title')} icon={Person} accent="accent">
+                <AssignmentPolicyForm />
+              </SettingsSection>
+            </div>
+          )}
 
           {/* Affichage */}
           <div className="col-span-12 min-[900px]:col-span-6">

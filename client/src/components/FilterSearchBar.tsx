@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   GridView,
   ViewList,
@@ -119,6 +119,12 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   sx: _sx,
 }) => {
   const [open, setOpen] = useState(false);
+  const [inHeaderPanel, setInHeaderPanel] = useState(false);
+  // Le DOM identifie aussi les filtres arrivés par portail : le contexte React
+  // appartient alors à l'écran source, pas au panneau du PageHeader.
+  const bindPanel = useCallback((node: HTMLDivElement | null) => {
+    if (node) setInHeaderPanel(!!node.closest('[data-header-filter-panel]'));
+  }, []);
 
   // Sous `lg`, le PageHeader replie filtres et actions dans son menu ⋯ : le
   // panneau s'affiche alors EN LIGNE, comme une section du menu, au lieu
@@ -132,7 +138,8 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   // l'intérieur de `[role="menu"]`.
   //
   // Si le seuil de `PageHeader` change, celui-ci doit suivre (cf. `isCompact`).
-  const inOverflow = useIsMobile(1024);
+  const isNarrow = useIsMobile(1024);
+  const inOverflow = isNarrow || inHeaderPanel;
 
   // La recherche de l'écran est déléguée au champ UNIQUE du PageHeader : la
   // barre ne dessine plus de champ, elle publie juste son état (cf. ScreenChrome).
@@ -278,7 +285,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   // acrobatiques posées par le menu.
   if (inOverflow) {
     return (
-      <div data-inline-panel className="flex w-full min-w-0 flex-col gap-2">
+      <div ref={bindPanel} data-inline-panel className="flex w-full min-w-0 flex-col gap-2">
         <span className="px-1 text-2xs font-bold uppercase tracking-[0.06em] text-muted-foreground tabular-nums">
           {counterText}
         </span>
@@ -358,12 +365,12 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   );
 
   if (bare) {
-    return <div className="flex w-full flex-nowrap items-center gap-2 overflow-hidden">{content}</div>;
+    return <div ref={bindPanel} className="flex w-full flex-nowrap items-center gap-2 overflow-hidden">{content}</div>;
   }
 
   return (
     <Card className={cn('mb-2 gap-0 py-0')}>
-      <div className="flex flex-nowrap items-center gap-2 overflow-hidden p-2">{content}</div>
+      <div ref={bindPanel} className="flex flex-nowrap items-center gap-2 overflow-hidden p-2">{content}</div>
     </Card>
   );
 };

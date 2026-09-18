@@ -89,6 +89,27 @@ export const NAVIGATION_HUBS: HubDef[] = [
         isAccessible: (a) =>
           has(a, 'teams:view') || has(a, 'portfolios:view') || has(a, 'guests:view') || has(a, 'users:manage'),
       },
+      {
+        path: '/devis',
+        matchPrefixes: ['/devis'],
+        translationKey: 'navigation.quoteRequests',
+        fallbackLabel: 'Devis',
+        // Ouvert à tout compte : le serveur borne par l'organisation d'un côté,
+        // par la fiche rattachée de l'autre. Un garde par rôle serait faux —
+        // un prestataire accepté porte un rôle d'intervention, pas un rôle
+        // « prestataire ».
+        isAccessible: () => true,
+      },
+      {
+        path: '/prestataires',
+        matchPrefixes: ['/prestataires', '/marketplace'],
+        translationKey: 'navigation.providerCatalog',
+        fallbackLabel: 'Prestataires',
+        // Ouvert à tout compte de l'organisation : un technicien comme un
+        // gestionnaire ont des raisons légitimes de consulter le catalogue.
+        // Ce qui borne la vue, c'est l'ORGANISATION, résolue par le serveur.
+        isAccessible: () => true,
+      },
     ],
   },
   {

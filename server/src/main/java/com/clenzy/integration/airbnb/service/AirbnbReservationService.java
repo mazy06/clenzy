@@ -33,6 +33,8 @@ public class AirbnbReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(AirbnbReservationService.class);
 
+    private final com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog;
+
     private final AirbnbListingMappingRepository listingMappingRepository;
     private final ServiceRequestRepository serviceRequestRepository;
     private final PropertyRepository propertyRepository;
@@ -43,7 +45,8 @@ public class AirbnbReservationService {
                                     ServiceRequestRepository serviceRequestRepository,
                                     PropertyRepository propertyRepository,
                                     AirbnbWebhookService webhookService,
-                                    AuditLogService auditLogService) {
+                                    AuditLogService auditLogService, com.clenzy.service.catalog.ServiceCatalogReference serviceCatalog) {
+        this.serviceCatalog=serviceCatalog;
         this.listingMappingRepository = listingMappingRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.propertyRepository = propertyRepository;
@@ -102,10 +105,10 @@ public class AirbnbReservationService {
 
         log.info("Nouvelle reservation Airbnb pour listing {} (code: {})", airbnbListingId, confirmationCode);
 
-        // Trouver le mapping propriete Clenzy <-> listing Airbnb
+        // Trouver le mapping propriete Baitly <-> listing Airbnb
         Optional<AirbnbListingMapping> mappingOpt = listingMappingRepository.findByAirbnbListingId(airbnbListingId);
         if (mappingOpt.isEmpty()) {
-            log.warn("Listing Airbnb {} non liee a une propriete Clenzy, evenement ignore", airbnbListingId);
+            log.warn("Listing Airbnb {} non liee a une propriete Baitly, evenement ignore", airbnbListingId);
             return;
         }
 
@@ -260,6 +263,7 @@ public class AirbnbReservationService {
                 property.getOwner(),
                 property
         );
+        sr.setServiceItemCode(serviceCatalog.resolve(null, sr.getServiceType().name(), null, null));
         sr.setOrganizationId(property.getOrganizationId());
         sr.setStatus(RequestStatus.PENDING);
         sr.setPriority(Priority.HIGH);

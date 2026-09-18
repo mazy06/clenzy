@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PaymentStatusTransitionService")
@@ -33,13 +34,37 @@ class PaymentStatusTransitionServiceTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private Query query;
 
+    @Mock private DocumentGenerationOutbox documentOutbox;
     private PaymentStatusTransitionService service;
 
     @BeforeEach
     void setUp() {
-        service = new PaymentStatusTransitionService(entityManager, interventionRepository);
+        service = new PaymentStatusTransitionService(entityManager, interventionRepository, documentOutbox);
         lenient().when(entityManager.createQuery(anyString())).thenReturn(query);
         lenient().when(query.setParameter(anyString(), any())).thenReturn(query);
+    }
+
+    @Test
+    void locksRequestsBeforeMissionsInStableOrder() {
+        var request = new com.clenzy.model.ServiceRequest(); request.setId(3L);
+        var first = new Intervention(); first.setId(1L); first.setServiceRequest(request);
+        var second = new Intervention(); second.setId(2L); second.setServiceRequest(request);
+        service.lockInterventionPayments(java.util.List.of(second, first));
+        var order = org.mockito.Mockito.inOrder(entityManager);
+        order.verify(entityManager).refresh(request, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        order.verify(entityManager).refresh(first, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        order.verify(entityManager).refresh(second, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        order.verifyNoMoreInteractions();
+    }
+
+    @Test
+    void refusesChangedRequestAfterMissionLock() {
+        var mission = new Intervention(); mission.setId(1L);
+        var request = new com.clenzy.model.ServiceRequest(); request.setId(3L);
+        org.mockito.Mockito.doAnswer(invocation -> { mission.setServiceRequest(request); return null; })
+                .when(entityManager).refresh(mission, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        assertThatThrownBy(() -> service.lockInterventionPayments(java.util.List.of(mission)))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     // ─── Transitions gardees vers PAID ──────────────────────────────────────
@@ -82,7 +107,9 @@ class PaymentStatusTransitionServiceTest {
             org.mockito.Mockito.verify(entityManager).createQuery(jpql.capture());
             assertThat(jpql.getValue())
                     .contains("Reservation")
-                    .contains("e.paymentStatus <> :paid");
+                    .contains("e.paymentStatus <> :paid")
+                    .contains("e.paymentStatus <> :refunded");
+            verify(query).setParameter("refunded", PaymentStatus.REFUNDED);
         }
 
         @Test
@@ -185,22 +212,55 @@ class PaymentStatusTransitionServiceTest {
 
     // ─── Persistance du remboursement ────────────────────────────────────────
 
+    @Test
+    void refusesFullRefundOfSessionSharedWithAnotherMission() {
+        var mission = new Intervention(); mission.setId(1L);
+        mission.setPaymentStatus(PaymentStatus.PAID); mission.setStripeSessionId("shared");
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));
+        when(interventionRepository.existsByStripeSessionIdAndIdNot("shared", 1L)).thenReturn(true);
+        assertThatThrownBy(() -> service.loadRefundableIntervention(1L))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("plusieurs missions");
+    }
+
     @Nested
     @DisplayName("markInterventionRefunded")
     class MarkRefunded {
 
         @Test
+        void alreadyRefundedDoesNotScheduleAnotherReceipt() {
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(new Intervention()));
+            when(query.executeUpdate()).thenReturn(0);
+            service.markInterventionRefunded(1L);
+            org.mockito.Mockito.verifyNoInteractions(documentOutbox);
+        }
+
+        @Test
+        void receiptFailurePropagatesToRefundTransaction() {
+            var intervention = new Intervention();
+            intervention.setOrganizationId(3L);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(query.executeUpdate()).thenReturn(1);
+            org.mockito.Mockito.doThrow(new IllegalStateException("outbox failed")).when(documentOutbox)
+                    .requestRefundReceipt(1L, 3L, null);
+            assertThatThrownBy(() -> service.markInterventionRefunded(1L))
+                    .hasMessage("outbox failed");
+        }
+
+        @Test
         @DisplayName("when row updated, then completes")
         void whenRowUpdated_thenOk() {
+            var intervention = new Intervention(); intervention.setOrganizationId(3L);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
             when(query.executeUpdate()).thenReturn(1);
 
             service.markInterventionRefunded(1L);
+            verify(documentOutbox).requestRefundReceipt(1L, 3L, null);
         }
 
         @Test
         @DisplayName("when no row updated, then throws for reconciliation")
         void whenNoRowUpdated_thenThrows() {
-            when(query.executeUpdate()).thenReturn(0);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.markInterventionRefunded(1L))
                     .isInstanceOf(IllegalStateException.class);

@@ -39,6 +39,8 @@ class InterventionLifecycleServiceTest {
     @Mock private TenantContext tenantContext;
     @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
 
+    @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuotes;
+    @Mock private com.clenzy.repository.ServiceQuoteAmendmentRepository amendments;
     private InterventionLifecycleService service;
 
     private Property property;
@@ -50,7 +52,7 @@ class InterventionLifecycleServiceTest {
                 interventionRepository, interventionMapper, accessPolicy,
                 notificationService, outboxPublisher, objectMapper, tenantContext,
                 housekeeperPayoutService,
-                org.mockito.Mockito.mock(com.clenzy.service.PropertyStockService.class));
+                org.mockito.Mockito.mock(com.clenzy.service.PropertyStockService.class), org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), serviceQuotes, new ServiceQuoteAgreementService(amendments) );
 
         owner = new User();
         owner.setId(10L);
@@ -190,7 +192,7 @@ class InterventionLifecycleServiceTest {
         }
 
         @Test
-        @DisplayName("publishes Kafka BON_INTERVENTION event")
+        @DisplayName("persists BON_INTERVENTION in the outbox")
         void whenStarted_thenPublishesKafkaEvent() {
             Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
 
@@ -203,6 +205,18 @@ class InterventionLifecycleServiceTest {
 
             verify(outboxPublisher).publish(eq("INTERVENTION"), eq("1"), eq("BON_INTERVENTION"),
                     anyString(), contains("bon-intervention"), any(), any());
+        }
+
+        @Test
+        void startDocumentFailurePreventsNotification() {
+            var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(interventionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            doThrow(new IllegalStateException("outbox failed")).when(outboxPublisher)
+                    .publish(any(), any(), eq("BON_INTERVENTION"), any(), any(), any(), any());
+            assertThatThrownBy(() -> service.startIntervention(1L, mockJwtWithRole("SUPER_ADMIN")))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("bon d’intervention");
+            verifyNoInteractions(notificationService);
         }
     }
 
@@ -359,9 +373,121 @@ class InterventionLifecycleServiceTest {
 
     // ============= EXTENDED =============
 
+    @Test
+    void validationUsesAcceptedAmendmentAndPreservesInitialQuote() {
+        var mission = buildIntervention(1L, InterventionStatus.AWAITING_VALIDATION);
+        mission.setEstimatedCost(new java.math.BigDecimal("150"));
+        var quote = new com.clenzy.model.ServiceQuote();
+        quote.setId(2L); quote.setOrganizationId(1L); quote.setInterventionId(1L);
+        quote.setCurrency("EUR"); quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+        quote.setAmount(new java.math.BigDecimal("120"));
+        var amendment = org.mockito.Mockito.mock(com.clenzy.model.ServiceQuoteAmendment.class);
+        when(amendment.getInterventionId()).thenReturn(1L);
+        when(amendment.getCurrency()).thenReturn("EUR");
+        when(amendment.getProposedAmount()).thenReturn(new java.math.BigDecimal("150"));
+        when(amendments.findFirstByQuoteIdAndOrganizationIdAndStatusOrderByDecidedAtDescIdDesc(
+                2L, 1L, com.clenzy.model.ServiceQuoteAmendment.Status.ACCEPTED)).thenReturn(Optional.of(amendment));
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));
+        when(serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(1L, 1L)).thenReturn(java.util.List.of(quote));
+        assertThatThrownBy(() -> service.validateIntervention(1L, new java.math.BigDecimal("120"), mockJwtWithRole("SUPER_ADMIN")))
+                .hasMessageContaining("avenant");
+        verify(interventionRepository, never()).save(any());
+        when(interventionRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        service.validateIntervention(1L, new java.math.BigDecimal("150"), mockJwtWithRole("SUPER_ADMIN"));
+        assertThat(mission.getStatus()).isEqualTo(InterventionStatus.AWAITING_PAYMENT);
+        assertThat(quote.getAmount()).isEqualByComparingTo("120");
+        verify(interventionRepository).save(mission);
+    }
+
+    @Test
+    void acceptedQuotePreventsSetAndDiscountBeforeMutation() {
+        var mission = buildIntervention(1L, InterventionStatus.AWAITING_VALIDATION);
+        mission.setEstimatedCost(new java.math.BigDecimal("120"));
+        var quote = new com.clenzy.model.ServiceQuote();
+        quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+        quote.setAmount(new java.math.BigDecimal("120"));
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));
+        when(serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(1L, 1L))
+                .thenReturn(java.util.List.of(quote));
+        for (String mode : java.util.List.of("SET", "DISCOUNT_AMOUNT", "DISCOUNT_PERCENT")) {
+            assertThatThrownBy(() -> service.updateAmount(1L, mode, java.math.BigDecimal.TEN, mockJwtWithRole("SUPER_ADMIN")))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("avenant");
+            assertThat(mission.getEstimatedCost()).isEqualByComparingTo("120");
+            assertThat(mission.getActualCost()).isNull();
+        }
+        assertThatThrownBy(() -> service.updateAmount(1L, "SET", new java.math.BigDecimal("120.001"), mockJwtWithRole("SUPER_ADMIN")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("avenant");
+        assertThat(mission.getEstimatedCost()).isEqualByComparingTo("120");
+        verify(interventionRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    void validationCannotOverrideAcceptedQuote() {
+        var mission = buildIntervention(1L, InterventionStatus.AWAITING_VALIDATION);
+        mission.setEstimatedCost(new java.math.BigDecimal("120"));
+        var quote = new com.clenzy.model.ServiceQuote();
+        quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+        quote.setAmount(new java.math.BigDecimal("120"));
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));
+        when(serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(1L, 1L))
+                .thenReturn(java.util.List.of(quote));
+        assertThatThrownBy(() -> service.validateIntervention(1L, java.math.BigDecimal.TEN, mockJwtWithRole("SUPER_ADMIN")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("avenant");
+        assertThat(mission.getStatus()).isEqualTo(InterventionStatus.AWAITING_VALIDATION);
+        assertThat(mission.getEstimatedCost()).isEqualByComparingTo("120");
+        verify(interventionRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    void sameAcceptedAmountRemainsValidRegardlessOfDecimalScale() {
+        var mission = buildIntervention(1L, InterventionStatus.AWAITING_VALIDATION);
+        var quote = new com.clenzy.model.ServiceQuote();
+        quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+        quote.setAmount(new java.math.BigDecimal("120.00"));
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));
+        when(serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(1L, 1L))
+                .thenReturn(java.util.List.of(quote));
+        when(interventionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        service.validateIntervention(1L, new java.math.BigDecimal("120"), mockJwtWithRole("SUPER_ADMIN"));
+        assertThat(mission.getStatus()).isEqualTo(InterventionStatus.AWAITING_PAYMENT);
+        verify(interventionRepository).save(mission);
+    }
+
     @Nested
     @DisplayName("completeIntervention - full flow")
     class CompleteInterventionFullFlow {
+        @Test
+        void documentFailurePreventsCompletionNotificationsAndPayout() throws Exception {
+            var intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(interventionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(objectMapper.writeValueAsString(any())).thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("serialization failed") {});
+
+            assertThatThrownBy(() -> service.completeIntervention(1L, mockJwtWithRole("SUPER_ADMIN")))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("documents de fin de mission");
+            verifyNoInteractions(notificationService, housekeeperPayoutService);
+            verify(outboxPublisher, never()).publish(any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void secondRecipientFailureAbortsCompletion() throws Exception {
+            var intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            var tech = new com.clenzy.model.User();
+            tech.setEmail("tech@example.com");
+            intervention.setAssignedUser(tech);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(interventionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+            doThrow(new IllegalStateException("outbox failed")).when(outboxPublisher)
+                    .publish(any(), any(), eq("VALIDATION_FIN_MISSION_TECH"), any(), any(), any(), any());
+
+            assertThatThrownBy(() -> service.completeIntervention(1L, mockJwtWithRole("SUPER_ADMIN")))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("documents de fin de mission");
+            verifyNoInteractions(notificationService, housekeeperPayoutService);
+        }
+
         @Test
         @DisplayName("IN_PROGRESS -> COMPLETED, persists + outbox events")
         void whenInProgress_thenCompletesPublishesOutbox() throws Exception {
@@ -461,12 +587,23 @@ class InterventionLifecycleServiceTest {
     @Nested
     @DisplayName("updateStatus - cancel auth")
     class UpdateStatusCancel {
+        @Test void acceptedAgreementRequiresTheReasonedCancellationRoute() {
+            var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findForReview(1L, 1L)).thenReturn(Optional.of(intervention));
+            when(serviceQuotes.hasApprovedAgreement(1L, 1L)).thenReturn(true);
+            assertThatThrownBy(() -> service.updateStatus(1L, "CANCELLED", mockJwtWithRole("SUPER_ADMIN")))
+                    .hasMessageContaining("motif");
+            verify(interventionRepository, never()).save(any());
+        }
+
         @Test
         @DisplayName("non-platform staff cannot cancel - throws AccessDenied")
         void whenNonPlatformCancels_thenAccessDenied() {
             Jwt jwt = mockJwtWithRole("HOST");
             Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findForReview(1L, 1L)).thenReturn(Optional.of(intervention));
 
             assertThatThrownBy(() -> service.updateStatus(1L, "CANCELLED", jwt))
                     .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
@@ -477,7 +614,8 @@ class InterventionLifecycleServiceTest {
         void whenAdminCancels_thenSucceeds() {
             Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
             Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findForReview(1L, 1L)).thenReturn(Optional.of(intervention));
             when(interventionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(interventionMapper.convertToResponse(any())).thenReturn(buildResultResponse(1L, "CANCELLED", "T"));
 

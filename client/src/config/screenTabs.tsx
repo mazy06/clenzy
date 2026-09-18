@@ -152,6 +152,7 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
     { key: 'history', translationKey: 'documents.tabs.history', fallbackLabel: 'Historique', icon: <History /> },
     { key: 'variables', translationKey: 'documents.tabs.variablesAndTags', fallbackLabel: 'Variables & Tags', icon: <LocalOffer /> },
     { key: 'compliance', translationKey: 'documents.tabs.compliance', fallbackLabel: 'Conformité', icon: <GppGood /> },
+    { key: 'amendments', translationKey: 'amendmentLibrary.title', fallbackLabel: 'Avenants', icon: <Description /> },
   ],
 
   '/billing': [

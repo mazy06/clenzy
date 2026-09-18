@@ -10,7 +10,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -27,6 +26,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class ServiceRequestAutoCleaningTest {
+    private final InterventionAllocationGuard allocationGuard = org.mockito.Mockito.mock(InterventionAllocationGuard.class);
 
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private UserRepository userRepository;
@@ -36,7 +36,7 @@ class ServiceRequestAutoCleaningTest {
     @Mock private TeamRepository teamRepository;
     @Mock private NotificationService notificationService;
     @Mock private PropertyTeamService propertyTeamService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private com.clenzy.service.DocumentGenerationOutbox documentOutbox;
     @Mock private ServiceRequestMapper serviceRequestMapper;
     @Mock private AssignmentEventRepository assignmentEventRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
@@ -49,6 +49,7 @@ class ServiceRequestAutoCleaningTest {
     @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private ServiceRequestService service;
+    @Mock private ServiceRequestCancellationCoordination cancellationCoordination;
 
     private static final Long ORG_ID = 1L;
     private static final Long PROPERTY_ID = 100L;
@@ -61,14 +62,20 @@ class ServiceRequestAutoCleaningTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(cancellationCoordination.inspectLegacyCancellation(any()))
+            .thenReturn(new ServiceRequestCancellationCoordination.CancellationCheck(null, null));
+        org.mockito.Mockito.lenient().when(allocationGuard.isUserDeclaredAvailable(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.lenient().when(allocationGuard.isTeamDeclaredAvailable(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
         service = new ServiceRequestService(
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
-                propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
+                propertyTeamService, documentOutbox, new TenantContext(), serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
                 supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
-                organizationAccessGuard);
+                organizationAccessGuard, allocationGuard, cancellationCoordination, org.mockito.Mockito.mock(com.clenzy.service.assignment.ServiceAssignmentService.class));
 
         // Le moteur ménage est mocké : conseil 95 € (fourchette 80-110, 135 min).
         // lenient : certains tests s'arrêtent avant le calcul (skip idempotent).
@@ -103,11 +110,11 @@ class ServiceRequestAutoCleaningTest {
             .thenAnswer(inv -> {
                 ServiceRequest sr = inv.getArgument(0);
                 if (sr.getId() == null) sr.setId(55L);
+                sr.setOrganizationId(ORG_ID);
+                lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
                 return sr;
             });
-        when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
-        when(propertyTeamService.findAvailableTeamForProperty(anyLong(), any(), any(), any(), anyLong()))
-            .thenReturn(Optional.empty());
+
 
         var outcome = service.createAutomaticCleaningRequest(ORG_ID, PROPERTY_ID, CHECK_IN, CHECK_OUT, 42L);
 
@@ -181,10 +188,10 @@ class ServiceRequestAutoCleaningTest {
     void whenAutoAssignDisabledForOrg_thenNoAssignmentAttempt() {
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
         when(serviceRequestRepository.findByAutoFlowKey(EXPECTED_KEY, ORG_ID)).thenReturn(Optional.empty());
-        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> persisted(inv.getArgument(0)));
         WorkflowSettings ws = new WorkflowSettings();
         ws.setAutoAssignInterventions(false);
-        when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+
 
         var outcome = service.createAutomaticCleaningRequest(ORG_ID, PROPERTY_ID, CHECK_IN, CHECK_OUT, 42L);
 
@@ -194,15 +201,45 @@ class ServiceRequestAutoCleaningTest {
 
     // ── Annulation liee (F2a) ────────────────────────────────────────────────
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"agreement", "payment", "started", "pending"})
+    void cancellationCoordinatesTheLinkedMissionWithoutBypassingAgreements(String state) {
+        var sr = new ServiceRequest(); sr.setId(55L); sr.setOrganizationId(ORG_ID);
+        sr.setStatus(RequestStatus.PENDING); sr.setAutoFlowKey(EXPECTED_KEY);
+        var mission = new com.clenzy.model.Intervention();
+        mission.setStatus(state.equals("started") ? com.clenzy.model.InterventionStatus.IN_PROGRESS
+            : com.clenzy.model.InterventionStatus.PENDING);
+        when(serviceRequestRepository.findByAutoFlowKey(EXPECTED_KEY, ORG_ID)).thenReturn(Optional.of(sr));
+        when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
+        when(cancellationCoordination.inspectLegacyCancellation(sr)).thenReturn(
+            new ServiceRequestCancellationCoordination.CancellationCheck(mission,
+                state.equals("agreement") || state.equals("payment") ? state : null));
+        var result = service.cancelAutomaticCleaningRequest(ORG_ID, PROPERTY_ID, CHECK_IN, CHECK_OUT);
+        if (state.equals("pending")) {
+            assertThat(result.executed()).isTrue();
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+            assertThat(mission.getStatus()).isEqualTo(com.clenzy.model.InterventionStatus.CANCELLED);
+        } else {
+            assertThat(result.executed()).isFalse();
+            assertThat(sr.getStatus()).isEqualTo(RequestStatus.PENDING);
+            assertThat(sr.getAutoFlowKey()).isEqualTo(EXPECTED_KEY);
+            assertThat(mission.getStatus()).isNotEqualTo(com.clenzy.model.InterventionStatus.CANCELLED);
+            verify(serviceRequestRepository, never()).save(any());
+            verifyNoInteractions(notificationService);
+        }
+    }
+
     @Test
     void whenReservationCancelled_thenCancelsPendingAutoRequest_andFreesKey() {
         ServiceRequest sr = new ServiceRequest();
         sr.setId(55L);
+        sr.setOrganizationId(ORG_ID);
+        lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
         sr.setTitle("Menage apres depart - Studio Paris");
         sr.setStatus(RequestStatus.PENDING);
         sr.setAutoFlowKey(EXPECTED_KEY);
         when(serviceRequestRepository.findByAutoFlowKey(EXPECTED_KEY, ORG_ID)).thenReturn(Optional.of(sr));
-        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> persisted(inv.getArgument(0)));
 
         var outcome = service.cancelAutomaticCleaningRequest(ORG_ID, PROPERTY_ID, CHECK_IN, CHECK_OUT);
 
@@ -229,6 +266,8 @@ class ServiceRequestAutoCleaningTest {
     void whenCleaningAlreadyStarted_thenCancelSkips() {
         ServiceRequest sr = new ServiceRequest();
         sr.setId(55L);
+        sr.setOrganizationId(ORG_ID);
+        lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
         sr.setStatus(RequestStatus.IN_PROGRESS);
         sr.setAutoFlowKey(EXPECTED_KEY);
         when(serviceRequestRepository.findByAutoFlowKey(EXPECTED_KEY, ORG_ID)).thenReturn(Optional.of(sr));
@@ -245,6 +284,8 @@ class ServiceRequestAutoCleaningTest {
     void whenCleaningCompleted_thenCancelSkips() {
         ServiceRequest sr = new ServiceRequest();
         sr.setId(55L);
+        sr.setOrganizationId(ORG_ID);
+        lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
         sr.setStatus(RequestStatus.COMPLETED);
         sr.setAutoFlowKey(EXPECTED_KEY);
         when(serviceRequestRepository.findByAutoFlowKey(EXPECTED_KEY, ORG_ID)).thenReturn(Optional.of(sr));
@@ -261,5 +302,10 @@ class ServiceRequestAutoCleaningTest {
             .isEqualTo(EXPECTED_KEY);
         assertThat(ServiceRequestService.buildAutoCleaningKey(PROPERTY_ID, null, CHECK_OUT))
             .isEqualTo("AUTO_CLEANING:100:NA:2026-07-14");
+    }
+    private ServiceRequest persisted(ServiceRequest sr) {
+        sr.setId(55L);
+        lenient().when(serviceRequestRepository.findForMutation(55L)).thenReturn(Optional.of(sr));
+        return sr;
     }
 }

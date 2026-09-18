@@ -200,6 +200,12 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       navigationPath: '/account?tab=profile',
     },
     {
+      key: 'setup_assignment_contacts',
+      labelKey: 'onboarding.steps.setupAssignmentContacts.label',
+      descriptionKey: 'onboarding.steps.setupAssignmentContacts.description',
+      navigationPath: '/account?tab=solicitation',
+    },
+    {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
@@ -269,6 +275,12 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
       navigationPath: '/account?tab=profile',
+    },
+    {
+      key: 'setup_assignment_contacts',
+      labelKey: 'onboarding.steps.setupAssignmentContacts.label',
+      descriptionKey: 'onboarding.steps.setupAssignmentContacts.description',
+      navigationPath: '/account?tab=solicitation',
     },
     {
       key: 'setup_notifications',
@@ -342,6 +354,12 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       navigationPath: '/account?tab=profile',
     },
     {
+      key: 'setup_assignment_contacts',
+      labelKey: 'onboarding.steps.setupAssignmentContacts.label',
+      descriptionKey: 'onboarding.steps.setupAssignmentContacts.description',
+      navigationPath: '/account?tab=solicitation',
+    },
+    {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
@@ -369,13 +387,19 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=general',
+      navigationPath: '/account?tab=profile',
+    },
+    {
+      key: 'setup_assignment_contacts',
+      labelKey: 'onboarding.steps.setupAssignmentContacts.label',
+      descriptionKey: 'onboarding.steps.setupAssignmentContacts.description',
+      navigationPath: '/account?tab=solicitation',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=notifications',
+      navigationPath: '/account?tab=notifications',
       skippable: true,
     },
     {
@@ -392,13 +416,19 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=general',
+      navigationPath: '/account?tab=profile',
+    },
+    {
+      key: 'setup_assignment_contacts',
+      labelKey: 'onboarding.steps.setupAssignmentContacts.label',
+      descriptionKey: 'onboarding.steps.setupAssignmentContacts.description',
+      navigationPath: '/account?tab=solicitation',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=notifications',
+      navigationPath: '/account?tab=notifications',
       skippable: true,
     },
     {

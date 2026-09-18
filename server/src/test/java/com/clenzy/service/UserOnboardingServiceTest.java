@@ -54,10 +54,10 @@ class UserOnboardingServiceTest {
     @Mock private PaymentMethodConfigRepository paymentMethodConfigRepository;
     @Mock private ICalFeedRepository icalFeedRepository;
     @Mock private ProviderDocumentService providerDocumentService;
-    @Mock private PersonalTeamService personalTeamService;
-    @Mock private com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository;
-    @Mock private com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository;
+    @Mock private com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones;
+    @Mock private com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository;
 
+    @Mock private com.clenzy.service.assignment.AssignmentContactPreferences contactPreferences;
     private UserOnboardingService service;
 
     private static final Long USER_ID = 42L;
@@ -71,8 +71,8 @@ class UserOnboardingServiceTest {
                 organizationMemberRepository, fiscalProfileRepository,
                 propertyRepository, notificationPreferenceRepository,
                 messagingAutomationConfigRepository, paymentMethodConfigRepository,
-                icalFeedRepository, providerDocumentService, personalTeamService,
-                teamCoverageZoneRepository, weeklyAvailabilityRepository);
+                icalFeedRepository, providerDocumentService,
+                providerZones, weeklyAvailabilityRepository, contactPreferences);
     }
 
     private User buildUser(String firstName, String lastName, String phone) {
@@ -85,6 +85,25 @@ class UserOnboardingServiceTest {
         user.setKeycloakId(KEYCLOAK_ID);
         user.setRole(UserRole.HOST);
         return user;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value=UserRole.class, names={"HOUSEKEEPER","TECHNICIAN","SUPERVISOR","LAUNDRY","EXTERIOR_TECH"})
+    void contactStepRequiresPersistedPreferences(UserRole role) {
+        when(repository.findByUserIdAndRole(USER_ID,role)).thenReturn(List.of());
+        when(repository.save(any())).thenAnswer(call -> call.getArgument(0));
+        var pending=service.getStatus(USER_ID,role,ORG_ID);
+        assertThat(stepOf(pending,"setup_assignment_contacts").completed()).isFalse();
+        when(contactPreferences.isConfigured(USER_ID)).thenReturn(true);
+        var configured=service.getStatus(USER_ID,role,ORG_ID);
+        assertThat(stepOf(configured,"setup_assignment_contacts").completed()).isTrue();
+    }
+
+    @Test void contactStepCannotBeMarkedCompleteWithoutSavingPreferences() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            service.completeStep(USER_ID,UserRole.TECHNICIAN,"setup_assignment_contacts",ORG_ID))
+            .isInstanceOf(IllegalStateException.class);
+        verify(repository,never()).save(any());
     }
 
     // ─── getStatus ─────────────────────────────────────────────────────────────
@@ -542,8 +561,8 @@ class UserOnboardingServiceTest {
         }
 
         @Test
-        @DisplayName("HOUSEKEEPER role: 9 steps in correct order")
-        void whenHousekeeper_then9Steps() {
+        @DisplayName("HOUSEKEEPER role: 10 steps in correct order")
+        void whenHousekeeper_then10Steps() {
             when(repository.findByUserIdAndRole(USER_ID, UserRole.HOUSEKEEPER))
                     .thenReturn(List.of());
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -554,17 +573,17 @@ class UserOnboardingServiceTest {
             // L'ORDRE porte une regle metier : les conditions de prestation
             // precedent le compte de versement et les tarifs — sans accord, ni la
             // commission retenue ni le reversement ne sont opposables.
-            assertThat(dto.steps()).hasSize(9);
+            assertThat(dto.steps()).hasSize(10);
             assertThat(dto.steps()).extracting(OnboardingStatusDto.StepDto::key)
-                    .containsExactly("complete_profile", "setup_notifications",
+                    .containsExactly("complete_profile", "setup_assignment_contacts", "setup_notifications",
                             "accept_provider_terms", "upload_provider_documents",
                             "setup_payout_account", "setup_coverage_zone", "setup_availability",
                             "setup_rates", "view_interventions");
         }
 
         @Test
-        @DisplayName("SUPERVISOR role: 4 steps including create_team")
-        void whenSupervisor_then4Steps() {
+        @DisplayName("SUPERVISOR role: 5 steps including create_team")
+        void whenSupervisor_then5Steps() {
             when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPERVISOR))
                     .thenReturn(List.of());
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -572,7 +591,7 @@ class UserOnboardingServiceTest {
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPERVISOR, ORG_ID);
 
-            assertThat(dto.steps()).hasSize(4);
+            assertThat(dto.steps()).hasSize(5);
             assertThat(dto.steps()).extracting(OnboardingStatusDto.StepDto::key)
                     .contains("create_team");
         }

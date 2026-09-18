@@ -30,11 +30,26 @@ public class ServiceQuote {
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
-    @Column(name = "property_id", nullable = false)
+    @Column(name = "property_id")
     private Long propertyId;
 
     @Column(name = "intervention_id")
     private Long interventionId;
+
+    @Column(name = "marketplace_request_id")
+    private Long marketplaceRequestId;
+
+    @Column(name = "service_request_id")
+    private Long serviceRequestId;
+    @Column(name = "assignment_proposal_id")
+    private Long assignmentProposalId;
+    public Long getServiceRequestId() { return serviceRequestId; }
+    public void setServiceRequestId(Long value) { serviceRequestId=value; }
+    public Long getAssignmentProposalId() { return assignmentProposalId; }
+    public void setAssignmentProposalId(Long value) { assignmentProposalId=value; }
+
+    public Long getMarketplaceRequestId() { return marketplaceRequestId; }
+    public void setMarketplaceRequestId(Long value) { marketplaceRequestId = value; }
 
     @Column(name = "provider_name", nullable = false, length = 200)
     private String providerName;
@@ -45,6 +60,13 @@ public class ServiceQuote {
      */
     @Column(name = "provider_user_id")
     private Long providerUserId;
+
+    /** Équipe représentée à l'émission ; null pour une proposition individuelle. */
+    @Column(name = "provider_team_id")
+    private Long providerTeamId;
+
+    public Long getProviderTeamId() { return providerTeamId; }
+    public void setProviderTeamId(Long providerTeamId) { this.providerTeamId = providerTeamId; }
 
     @Column(name = "provider_email", length = 320)
     private String providerEmail;

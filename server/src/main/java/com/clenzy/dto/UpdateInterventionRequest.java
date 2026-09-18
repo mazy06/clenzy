@@ -12,5 +12,13 @@ public record UpdateInterventionRequest(
     BigDecimal estimatedCost,
     String notes,
     String assignedToType,
-    Long assignedToId
-) {}
+    Long assignedToId,
+    @Size(max = 60) String serviceItemCode
+) {
+    public UpdateInterventionRequest(String title, String description, String type, String priority,
+            Integer estimatedDurationHours, BigDecimal estimatedCost, String notes,
+            String assignedToType, Long assignedToId) {
+        this(title, description, type, priority, estimatedDurationHours, estimatedCost, notes,
+                assignedToType, assignedToId, null);
+    }
+}

@@ -61,6 +61,7 @@ public class DeferredPaymentService {
     private final TenantContext tenantContext;
     private final PaymentOrchestrationService orchestrationService;
     private final CurrencyConverterService currencyConverter;
+    private final com.clenzy.repository.ServiceQuoteRepository serviceQuotes;
     /** Marquage PROCESSING atomique HORS de la transaction ambiante (règle #2 : appel provider hors tx). */
     private final TransactionTemplate transactionTemplate;
 
@@ -79,12 +80,14 @@ public class DeferredPaymentService {
                                    TenantContext tenantContext,
                                    PaymentOrchestrationService orchestrationService,
                                    CurrencyConverterService currencyConverter,
-                                   PlatformTransactionManager transactionManager) {
+                                   PlatformTransactionManager transactionManager,
+                                   com.clenzy.repository.ServiceQuoteRepository serviceQuotes) {
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.orchestrationService = orchestrationService;
         this.currencyConverter = currencyConverter;
+        this.serviceQuotes = serviceQuotes;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -346,7 +349,8 @@ public class DeferredPaymentService {
         LocalDate today = LocalDate.now();
         return interventions.stream()
                 .map(i -> currencyConverter.convert(
-                        i.getEstimatedCost(),
+                        InterventionPaymentAmounts.payable(i,
+                                serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(i.getId(), i.getOrganizationId()), false),
                         firstNonBlank(i.getCurrency(), targetCurrency),
                         targetCurrency,
                         today))

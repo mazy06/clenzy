@@ -36,7 +36,7 @@ import java.util.UUID;
 
 /**
  * Service d'envoi d'emails transactionnels.
- * Utilisé pour notifier l'équipe Clenzy des demandes de devis depuis la landing page.
+ * Utilisé pour notifier l'équipe Baitly des demandes de devis depuis la landing page.
  */
 @Service
 public class EmailService {
@@ -630,6 +630,109 @@ public class EmailService {
      * Envoie un email HTML simple (sans piece jointe).
      * Utilise pour les liens de paiement, confirmations, etc.
      */
+    /**
+     * Courriel adresse a l'EQUIPE, aux destinataires internes configures.
+     *
+     * <p>Primitive volontairement nue : l'appelant compose son corps, ce service
+     * ne connait que la liste des destinataires internes et l'expediteur. Les
+     * notifications internes existantes (liste d'attente, devis, maintenance)
+     * refont chacune ce bloc d'envoi ; celle-ci evite la quatrieme copie.</p>
+     *
+     * <p><b>Best-effort</b> : un envoi rate ne doit jamais faire echouer l'action
+     * metier qui l'a declenche. L'echec est journalise, pas propage.</p>
+     *
+     * @param replyTo adresse a laquelle l'equipe repond en cliquant « Repondre »,
+     *                ou {@code null}
+     */
+    /**
+     * Envoie un GABARIT systeme, resolu depuis {@code system_email_template}.
+     *
+     * <p>Primitive introduite pour que les courriels d'un module n'aient pas a
+     * refaire la meme sequence — resoudre, interpoler le sujet, interpoler le
+     * corps, appliquer l'habillage — et surtout pour qu'ils cessent d'etre
+     * ecrits en HTML dans le code : un courriel en dur est invisible de l'ecran
+     * « Documents & communication », donc impossible a corriger sans deployer.</p>
+     *
+     * <p>Aucun {@code organizationId} : ces gabarits sont des defauts PLATEFORME.
+     * Le jour ou une organisation voudra les sienne, {@code resolve} sait deja
+     * preferer un override.</p>
+     *
+     * @param toEmail destinataire, ou {@code null} pour l'equipe interne
+     * @param replyTo adresse de reponse, ou {@code null}
+     * @throws IllegalStateException si le gabarit n'existe pas : un courriel
+     *         muet serait pire qu'une erreur, personne ne le remarquerait
+     */
+    /** Une file durable doit conserver le message si aucun destinataire n'est configuré. */
+    public void sendRequiredInternalTemplateEmail(String templateKey, Map<String, String> variables, String replyTo) {
+        if (internalRecipients().length == 0) {
+            throw new IllegalStateException("Aucun destinataire interne configuré");
+        }
+        sendSystemTemplateEmail(null, templateKey, variables, replyTo);
+    }
+
+    public void sendSystemTemplateEmail(String toEmail, String templateKey,
+                                        Map<String, String> variables, String replyTo) {
+        var template = systemEmailTemplateService.resolve(null, templateKey, "fr")
+            .orElseThrow(() -> new IllegalStateException(
+                "Template systeme " + templateKey + " introuvable en BDD"));
+
+        String subject = templateInterpolationService.interpolate(template.getSubject(), variables, false);
+        String body = templateInterpolationService.interpolate(template.getBody(), variables, true);
+        String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), body);
+
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            applyDeliverabilityHeaders(message, helper);
+
+            if (toEmail != null && !toEmail.isBlank()) {
+                helper.setTo(toEmail);
+            } else {
+                String[] recipients = internalRecipients();
+                if (recipients.length == 0) {
+                    log.warn("Aucun destinataire interne configure : « {} » non envoye", templateKey);
+                    return;
+                }
+                helper.setTo(recipients);
+            }
+            if (replyTo != null && !replyTo.isBlank()) {
+                helper.setReplyTo(sanitizeHeaderValue(replyTo));
+            }
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
+            ms.send(message);
+            log.info("Courriel « {} » envoye", templateKey);
+        } catch (MessagingException e) {
+            log.error("Envoi de « {} » impossible : {}", templateKey, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email", e);
+        }
+    }
+
+    public void sendInternalHtmlEmail(String subject, String htmlBody, String replyTo) {
+        try {
+            String[] recipients = internalRecipients();
+            if (recipients.length == 0) {
+                log.warn("Aucun destinataire interne configure : courriel « {} » non envoye", subject);
+                return;
+            }
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(resolveFromAddress(), resolveFromName());
+            helper.setTo(recipients);
+            if (replyTo != null && !replyTo.isBlank()) {
+                helper.setReplyTo(sanitizeHeaderValue(replyTo));
+            }
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlBody, true);
+            ms.send(message);
+            log.info("Courriel interne envoye ({} destinataires, sujet={})", recipients.length, subject);
+        } catch (Exception e) {
+            log.warn("Courriel interne « {} » non envoye : {}", subject, e.getMessage(), e);
+        }
+    }
+
     public void sendSimpleHtmlEmail(String toEmail, String subject, String htmlBody) {
         try {
             JavaMailSender ms = requireMailSender();
@@ -670,7 +773,7 @@ public class EmailService {
      *
      * <p>Implementation deliberement simple : on extrait le texte des balises block,
      * on remplace les separateurs HTML par des newlines, on decode les entites les
-     * plus courantes. Pas de parser HTML complet — pour les emails Clenzy,
+     * plus courantes. Pas de parser HTML complet — pour les emails Baitly,
      * c'est suffisant car les templates sont controles (pas d'input user brut).</p>
      */
     String htmlToPlainText(String html) {
@@ -710,7 +813,7 @@ public class EmailService {
      * (Gmail/Outlook 2024) :
      *
      * <ul>
-     *   <li><b>From "Clenzy &lt;info@clenzy.fr&gt;"</b> : display name + adresse alignee
+     *   <li><b>From "Baitly &lt;info@clenzy.fr&gt;"</b> : display name + adresse alignee
      *       avec le domaine DKIM. Un nom humain reduit le score spam.</li>
      *   <li><b>List-Unsubscribe</b> (RFC 8058) : URL one-click + mailto fallback. Gmail
      *       et Outlook penalisent les emails qui n'en ont pas — meme transactionnels —
@@ -884,7 +987,7 @@ public class EmailService {
 
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
-            helper.setSubject(sanitizeHeaderValue("Bienvenue sur Clenzy — Votre compte a ete cree"));
+            helper.setSubject(sanitizeHeaderValue("Bienvenue sur Baitly — Votre compte a ete cree"));
             String welcomeHtml = accountEmailComposer.renderWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl);
             helper.setText(htmlToPlainText(welcomeHtml), welcomeHtml);
             ms.send(message);
@@ -906,7 +1009,7 @@ public class EmailService {
 
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
-            helper.setSubject(sanitizeHeaderValue("Confirmez votre inscription Clenzy"));
+            helper.setSubject(sanitizeHeaderValue("Confirmez votre inscription Baitly"));
             String confirmationHtml = accountEmailComposer.renderInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt);
             helper.setText(htmlToPlainText(confirmationHtml), confirmationHtml);
             ms.send(message);

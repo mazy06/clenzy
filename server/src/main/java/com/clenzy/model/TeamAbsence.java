@@ -6,7 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Absence datee d'un prestataire — conges, arret, indisponibilite ponctuelle.
+ * Absence datée d’une équipe collective. Les absences individuelles sont
+ * conservées dans le calendrier unique de la personne.
  *
  * <p>Les bornes sont INCLUSES : une absence « du 12 au 19 » couvre le 19
  * entier. C'est ainsi qu'on la saisit et qu'on la lit ; un intervalle
@@ -41,6 +42,13 @@ public class TeamAbsence {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Verdict recalculé à la lecture, sans détail de mission ni donnée d'une autre organisation. */
+    @Transient
+    private boolean assignmentConflict;
+
+    public boolean isAssignmentConflict() { return assignmentConflict; }
+    public void setAssignmentConflict(boolean assignmentConflict) { this.assignmentConflict = assignmentConflict; }
 
     public TeamAbsence() {}
 

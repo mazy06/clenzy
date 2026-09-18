@@ -1,3 +1,4 @@
+import ServiceReferenceLabels from './ServiceReferenceLabels';
 import React from 'react';
 import { resolveMediaUrl } from '../config/api';
 import StatusChip, { type StatusTone } from './StatusChip';
@@ -184,7 +185,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               className="size-2 shrink-0 rounded-[2.5px]"
               style={{ backgroundColor: type.inkToken }}
             />
-            {type.label}
+            <ServiceReferenceLabels codes={team.serviceItemCodes} />
           </span>
           <StatusChip tone={statusTone} label={statusLabel} />
           {activeInterventionsCount > 0 ? (

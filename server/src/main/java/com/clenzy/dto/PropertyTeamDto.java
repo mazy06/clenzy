@@ -14,6 +14,16 @@ public class PropertyTeamDto {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime assignedAt;
 
+    private String serviceItemCode;
+    private int priority = 100;
+    private boolean active = true;
+    public String getServiceItemCode() { return serviceItemCode; }
+    public void setServiceItemCode(String code) { serviceItemCode = code; }
+    public int getPriority() { return priority; }
+    public void setPriority(int value) { priority = value; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean value) { active = value; }
+
     // Constructeurs
     public PropertyTeamDto() {}
 

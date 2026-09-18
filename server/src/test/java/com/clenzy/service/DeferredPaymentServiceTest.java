@@ -41,6 +41,7 @@ class DeferredPaymentServiceTest {
 
     @Mock private InterventionRepository interventionRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuotes;
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private CurrencyConverterService currencyConverter;
     @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
@@ -49,13 +50,35 @@ class DeferredPaymentServiceTest {
     private DeferredPaymentService service;
     private static final Long ORG_ID = 1L;
 
+    @Test
+    void groupedPaymentDeductsPaidDepositBeforeConversion() {
+        var host = buildHost(1L, "Jean", "Dupont", "host@example.test");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(host));
+        var mission = buildIntervention(100L, "Mission", new BigDecimal("100"),
+                buildProperty(10L, "Logement"), PaymentStatus.PARTIALLY_PAID);
+        mission.setOrganizationId(ORG_ID);
+        when(interventionRepository.findUnpaidByHostId(1L, ORG_ID)).thenReturn(List.of(mission));
+        var quote = new com.clenzy.model.ServiceQuote();
+        quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+        quote.setDepositAmount(new BigDecimal("20"));
+        quote.setDepositPaidAt(LocalDateTime.now());
+        when(serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(100L, ORG_ID)).thenReturn(List.of(quote));
+        when(currencyConverter.convert(any(), any(), any(), any())).thenAnswer(call -> call.getArgument(0));
+        when(orchestrationService.initiatePayment(any())).thenReturn(new PaymentOrchestrationResult(
+                null, PaymentResult.success("session", "https://example.test/pay"), PaymentProviderType.STRIPE));
+        service.createGroupedPaymentSession(1L);
+        var capture = ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+        verify(orchestrationService).initiatePayment(capture.capture());
+        assertThat(capture.getValue().amount()).isEqualByComparingTo("80");
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new DeferredPaymentService(
                 interventionRepository, userRepository, tenantContext, orchestrationService,
-                currencyConverter, transactionManager);
+                currencyConverter, transactionManager, serviceQuotes);
 
         setField(service, "currency", "EUR");
         setField(service, "successUrl", "http://localhost:3000/payment/success");

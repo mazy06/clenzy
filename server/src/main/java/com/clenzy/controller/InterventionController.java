@@ -105,7 +105,7 @@ public class InterventionController {
 
     @PostMapping
     @Operation(summary = "Creer une intervention")
-    public ResponseEntity<InterventionResponse> create(@Validated @RequestBody CreateInterventionRequest request,
+    public ResponseEntity<com.clenzy.dto.ServiceRequestDto> create(@Validated @RequestBody CreateInterventionRequest request,
                                                  @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(interventionService.create(request, jwt));
     }

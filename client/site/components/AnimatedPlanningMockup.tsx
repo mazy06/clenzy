@@ -341,7 +341,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     t += 900;
     for (let step = 1; step <= 9; step += 1) {
       at(t + step * 110, () => {
-        setDragging({ id: 'r9', photo: g9, shift: step, conflict: step >= 6 });
+        setDragging({ id: 'r9', shift: step, conflict: step >= 6 });
         moveTo(find('[data-bar="r9"]'), step * DAY_W * 0.55);
       });
     }
@@ -351,7 +351,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     /* 3. Déplacement valide de 2 jours. */
     t += 1400;
     for (let step = 1; step <= 2; step += 1) {
-      at(t + step * 220, () => setDragging({ id: 'r9', photo: g9, shift: step, conflict: false }));
+      at(t + step * 220, () => setDragging({ id: 'r9', shift: step, conflict: false }));
     }
     t += 2 * 220 + 700;
     at(t, () => {

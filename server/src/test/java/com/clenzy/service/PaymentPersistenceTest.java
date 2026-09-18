@@ -43,13 +43,14 @@ class PaymentPersistenceTest {
     @Mock private com.clenzy.service.DepositReconciler depositReconciler;
     @Mock private OutboxPublisher outboxPublisher;
 
+    @Mock private InterventionPaymentCoordination interventionPayments;
     private PaymentPersistence persistence;
 
     private static final Long ORG_ID = 42L;
 
     @BeforeEach
     void setUp() {
-        persistence = new PaymentPersistence(transactionRepository, outboxPublisher, new ObjectMapper(), depositReconciler);
+        persistence = new PaymentPersistence(transactionRepository, outboxPublisher, new ObjectMapper(), depositReconciler, interventionPayments);
     }
 
     private PaymentTransaction tx(String ref, TransactionStatus status, PaymentProviderType type) {
@@ -139,6 +140,19 @@ class PaymentPersistenceTest {
             assertThat(result.getSourceId()).isEqualTo(10L);
             assertThat(result.getIdempotencyKey()).isEqualTo("IDEM");
             assertThat(result.getTransactionRef()).startsWith("TX-");
+            var order = org.mockito.Mockito.inOrder(interventionPayments, transactionRepository);
+            order.verify(interventionPayments).lockPaymentMissions(eq(ORG_ID), any());
+            order.verify(transactionRepository).save(any());
+        }
+
+        @Test
+        void rejectedMissionLockDoesNotPersistPayment() {
+            org.mockito.Mockito.doThrow(new org.springframework.security.access.AccessDeniedException("Mission"))
+                    .when(interventionPayments).lockPaymentMissions(eq(ORG_ID), any());
+            assertThatThrownBy(() -> persistence.createPending(
+                    ORG_ID, PaymentProviderType.STRIPE, request("IDEM"), "IDEM"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verify(transactionRepository, never()).save(any());
         }
     }
 
@@ -410,7 +424,7 @@ class PaymentPersistenceTest {
         void jsonErrorSwallowed() throws JsonProcessingException {
             ObjectMapper failingMapper = org.mockito.Mockito.mock(ObjectMapper.class);
             when(failingMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
-            PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper, depositReconciler);
+            PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper, depositReconciler, interventionPayments);
 
             PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
             when(transactionRepository.markCompleted("TX-1")).thenReturn(1);

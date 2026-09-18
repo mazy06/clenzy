@@ -4,10 +4,10 @@ import com.clenzy.model.Team;
 import com.clenzy.model.TeamMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
-import com.clenzy.model.TeamCoverageZone;
-import com.clenzy.repository.TeamCoverageZoneRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.catalog.ServiceCatalogReference;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,25 +15,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Equipe PERSONNELLE d'un intervenant — l'« equipe implicite » d'une personne.
  *
  * <h2>Le probleme</h2>
  * <p>Tout le moteur d'affectation ({@link PropertyTeamService}) raisonne en
- * equipes : les zones de couverture sont clefees par {@code team_id},
- * l'occupation se teste par {@code team_id}, et le metier vient du
- * {@code interventionType} de l'equipe. Un intervenant independant, sans
+ * équipes : l’occupation se teste par {@code team_id}, et les prestations viennent des capacités explicites de l’équipe. Un intervenant independant, sans
  * equipe, est donc invisible de l'auto-assignation — un gestionnaire doit le
  * choisir a la main.</p>
  *
  * <h2>Le choix</h2>
  * <p>Plutot que de dupliquer le moteur pour les personnes, on donne a chaque
- * independant une equipe d'un seul membre. Zones, disponibilites et
- * compatibilite de metier s'appliquent alors sans qu'une ligne du moteur
- * change.</p>
+ * independant une equipe d'un seul membre. Les zones et disponibilités se lisent sur l’identité de la personne ;
+ * l’équipe ne porte que son rattachement opérationnel à l’organisation.</p>
  *
  * <p>La creation est PARESSEUSE : l'equipe nait au premier besoin — quand
  * l'intervenant declare sa zone — et non a l'inscription. Creer une equipe pour
@@ -49,18 +48,52 @@ public class PersonalTeamService {
     private static final Logger log = LoggerFactory.getLogger(PersonalTeamService.class);
 
     private final TeamRepository teamRepository;
-    private final TeamCoverageZoneRepository zoneRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
+    private final ServiceRequestRepository serviceRequestRepository;
+    private final ServiceCatalogReference catalog;
 
     public PersonalTeamService(TeamRepository teamRepository,
-                               TeamCoverageZoneRepository zoneRepository,
                                UserRepository userRepository,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               ServiceRequestRepository serviceRequestRepository,
+                               ServiceCatalogReference catalog) {
         this.teamRepository = teamRepository;
-        this.zoneRepository = zoneRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.serviceRequestRepository = serviceRequestRepository;
+        this.catalog = catalog;
+    }
+
+    /** Capacites declarees de l'identite, lues dans la transaction qui possede la collection. */
+    @Transactional(readOnly = true)
+    public Set<String> capabilities(String keycloakId) {
+        return findCanonicalByKeycloakId(keycloakId)
+                .map(team -> Set.copyOf(team.getServiceItemCodes()))
+                .orElse(Set.of());
+    }
+
+    /**
+     * Remplace les capacites declarees de l'identite.
+     *
+     * <p>Un retrait est refuse tant qu'une mission en cours s'appuie sur l'equipe :
+     * la capacite a servi a l'attribuer, la supprimer invaliderait l'accord deja pris.
+     * Un ajout reste toujours possible.</p>
+     */
+    @Transactional
+    public Set<String> replaceCapabilities(String keycloakId, Set<String> codes) {
+        final Team own = getOrCreateCanonicalByKeycloakId(keycloakId);
+        final Team team = serviceRequestRepository.findTeamForCompositionMutation(own.getId()).orElseThrow();
+        if (!codes.containsAll(team.getServiceItemCodes())
+                && serviceRequestRepository.teamHasActiveAssignments(team.getId())) {
+            throw new com.clenzy.exception.TeamCompositionConflictException();
+        }
+        final Set<String> valid = new LinkedHashSet<>();
+        for (String code : codes) {
+            valid.add(catalog.resolve(code, "OTHER", team.getServiceItemCodes().contains(code) ? code : null, "OTHER"));
+        }
+        team.setServiceItemCodes(valid);
+        return Set.copyOf(valid);
     }
 
     /** Equipe personnelle existante, sans en creer. */
@@ -87,7 +120,6 @@ public class PersonalTeamService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur non trouve : " + userId));
-
         Team team = new Team();
         team.setOrganizationId(orgId);
         team.setPersonalUserId(userId);
@@ -122,71 +154,30 @@ public class PersonalTeamService {
         return getOrCreate(requireUser(keycloakId).getId());
     }
 
-    // ── Zone d'intervention declaree par l'intervenant ─────────────────────
-
-    /** Zone declaree, vide tant qu'aucune equipe personnelle n'existe. */
+    /** Les rattachements d'organisation ne créent pas plusieurs profils de compétences. */
     @Transactional(readOnly = true)
-    public List<TeamCoverageZone> getCoverageZones(String keycloakId) {
-        return find(requireUser(keycloakId).getId())
-                .map(team -> zoneRepository.findByTeamId(team.getId()))
-                .orElseGet(List::of);
+    public Optional<Team> findCanonicalByKeycloakId(String keycloakId) {
+        return teamRepository.findCanonicalPersonalTeam(requireUser(keycloakId).getId());
     }
 
-    /**
-     * REMPLACE la zone declaree — l'intervenant decrit ou il travaille
-     * AUJOURD'HUI. Empiler les declarations successives laisserait des secteurs
-     * qu'il a quittes le rendre eligible a des missions qu'il refusera.
-     *
-     * <p>C'est ici que l'equipe personnelle nait, si elle n'existait pas :
-     * declarer sa zone est exactement le moment ou elle devient utile.</p>
-     */
     @Transactional
-    public List<TeamCoverageZone> replaceCoverageZones(String keycloakId, List<CoverageZoneInput> zones) {
-        final Long orgId = tenantContext.getRequiredOrganizationId();
-        Team team = getOrCreate(requireUser(keycloakId).getId());
-
-        zoneRepository.deleteByTeamIdAndOrganizationId(team.getId(), orgId);
-
-        return zones.stream().map(input -> {
-            TeamCoverageZone zone = new TeamCoverageZone(
-                    team.getId(),
-                    input.country().toUpperCase(),
-                    input.department(),
-                    input.arrondissement(),
-                    input.city());
-            zone.setOrganizationId(orgId);
-            return zoneRepository.save(zone);
-        }).toList();
+    public Team getOrCreateCanonicalByKeycloakId(String keycloakId) {
+        User user = requireUser(keycloakId);
+        var existing = teamRepository.findCanonicalPersonalTeam(user.getId());
+        if (existing.isPresent()) return existing.get();
+        getOrCreate(user.getId());
+        teamRepository.flush();
+        teamRepository.registerPersonalCapabilityOwner(user.getId());
+        return teamRepository.findCanonicalPersonalTeam(user.getId()).orElseThrow();
     }
-
-    /**
-     * Une zone declaree. La France se decrit par departement (et arrondissement
-     * pour Paris, Lyon, Marseille), le reste du monde par ville : c'est la
-     * maille dont dispose le moteur, et elle differe selon le pays.
-     */
-    public record CoverageZoneInput(String country, String department,
-                                    String arrondissement, String city) {}
 
     private User requireUser(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur non trouve"));
     }
 
-    /**
-     * Metier de l'equipe, deduit du ROLE de l'intervenant : c'est lui qui dit ce
-     * qu'il sait faire, et {@code InterventionTypeMatcher} raisonne sur ces
-     * memes libelles.
-     */
-    private String interventionTypeFor(User user) {
-        UserRole role = user.getRole();
-        if (role == null) return "CLEANING";
-        return switch (role) {
-            case TECHNICIAN -> "MAINTENANCE";
-            case LAUNDRY -> "LAUNDRY";
-            case EXTERIOR_TECH -> "EXTERIOR";
-            default -> "CLEANING";
-        };
-    }
+    /** Projection historique uniquement ; les capacités sont déclarées séparément. */
+    private String interventionTypeFor(User user) { return "OTHER"; }
 
     /** Nom lisible dans les ecrans de replanification, ou l'equipe apparait. */
     private String displayName(User user) {

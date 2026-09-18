@@ -90,6 +90,22 @@ public class ContactMessageEventPublisher {
      */
     public void publishToParticipants(ContactMessage msg, ContactMessageDto dto,
                                       Collection<String> participantKeycloakIds) {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
+                && org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            var recipients = new java.util.ArrayList<>(participantKeycloakIds);
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() {
+                            publishToParticipantsNow(msg, dto, recipients);
+                        }
+                    });
+            return;
+        }
+        publishToParticipantsNow(msg, dto, participantKeycloakIds);
+    }
+
+    private void publishToParticipantsNow(ContactMessage msg, ContactMessageDto dto,
+                                         Collection<String> participantKeycloakIds) {
         if (messagingTemplate == null) {
             log.debug("WebSocket non configure, evenement contact non publie");
             return;

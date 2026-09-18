@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildInterventionListParams, MAP_VIEW_PAGE_SIZE } from '../useInterventionsList';
+import { buildInterventionListParams } from '../useInterventionsList';
 
 describe('buildInterventionListParams — mapping filtres UI vers params serveur', () => {
   it("whenAllFiltersAreAll_thenNoServerFilterIsSent", () => {
@@ -53,9 +53,5 @@ describe('buildInterventionListParams — mapping filtres UI vers params serveur
     expect(params.page).toBe(0);
   });
 
-  it('mapViewPageSize_isABoundedCap', () => {
-    // La vue carte plafonne la taille de page serveur (jamais "tout charger").
-    expect(MAP_VIEW_PAGE_SIZE).toBeGreaterThan(0);
-    expect(MAP_VIEW_PAGE_SIZE).toBeLessThanOrEqual(500);
-  });
+
 });

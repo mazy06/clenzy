@@ -1,5 +1,5 @@
 # ============================================================================
-# Few-shot examples pour l'Assistant IA Clenzy
+# Few-shot examples pour l'Assistant IA Baitly
 # ----------------------------------------------------------------------------
 # Le composer charge ce fichier au boot via ExampleLoader. Validation stricte :
 # si un example est malformé (champs manquants), le boot échoue rapidement.
@@ -9,7 +9,7 @@
 #  - simulation   : what-if pricing / calendar
 #  - navigation   : "où trouver", "comment configurer"
 #  - write_action : actions avec confirmation user
-#  - kb_query     : questions sur la doc Clenzy (RAG)
+#  - kb_query     : questions sur la doc Baitly (RAG)
 #
 # Format strict :
 #   - id (snake_case unique)
@@ -68,7 +68,7 @@ examples:
     user: "Crée une intervention de ménage demain à 10h pour Appartement Bastille"
     thinking: |
       Action ecriture avec parametres precis
-      -> create_intervention(propertyId=appartement_bastille, type=HOUSEKEEPING,
+      -> list_service_reference(query="ménage"), puis create_intervention(propertyId=appartement_bastille, serviceItemCode=code_retourné,
                               title="Ménage", scheduledDate=demain 10:00).
       Le tool demandera confirmation user avant execution.
     assistant: |
@@ -77,12 +77,12 @@ examples:
 
   - id: kb_query_ical_sync
     category: kb_query
-    user: "Comment fonctionne la synchronisation iCal dans Clenzy ?"
+    user: "Comment fonctionne la synchronisation iCal dans Baitly ?"
     thinking: |
       Question precise sur fonctionnalite -> search_knowledge_base.
       Si snippets trouves, cite-les. Sinon, dis qu'on ne couvre pas.
     assistant: |
-      Selon [Synchronisation iCal](/docs/sync-ical), Clenzy importe automatiquement les
+      Selon [Synchronisation iCal](/docs/sync-ical), Baitly importe automatiquement les
       réservations depuis Airbnb, Booking.com, Vrbo via les feeds iCal (synchro toutes les 15min).
       Configure tes feeds dans [Channels](/channels).
 

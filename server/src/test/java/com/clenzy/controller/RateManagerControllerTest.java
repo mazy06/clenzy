@@ -93,7 +93,7 @@ class RateManagerControllerTest {
     private RateManagerController buildController(YieldManagementScheduler scheduler) {
         ReservationService reservationService = new ReservationService(
                 null, userRepository, tenantContext, null, null, null, null, null,
-                null, null, null, null, null, null, propertyRepository, null, null, null, null);
+                null, null, null, null, null, null, propertyRepository, null, null, null, null, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), com.clenzy.service.CatalogTestFixture.reference());
         RateManagerService rateManagerService = new RateManagerService(
                 advancedRateManager, rateDistributionService, scheduler, priceEngine,
                 channelRateModifierRepository, lengthOfStayDiscountRepository,

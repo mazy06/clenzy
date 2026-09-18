@@ -133,6 +133,7 @@ public class InterventionPlanningService {
             map.put("id", i.getId());
             map.put("propertyId", i.getProperty() != null ? i.getProperty().getId() : null);
             map.put("propertyName", i.getProperty() != null ? i.getProperty().getName() : "");
+            map.put("serviceItemCode", i.getServiceItemCode());
             map.put("type", i.getType() != null ? i.getType().toLowerCase() : "cleaning");
 
             String frontendStatus = "scheduled";

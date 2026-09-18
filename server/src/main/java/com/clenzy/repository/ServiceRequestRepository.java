@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long>, JpaSpecificationExecutor<ServiceRequest> {
+public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long>, JpaSpecificationExecutor<ServiceRequest>, ServiceRequestMutationRepository {
+
+    Optional<ServiceRequest> findByMarketplaceRequestId(Long marketplaceRequestId);
 
     /**
      * Compteurs du dashboard overview sur la fenêtre de la période (créées dans
@@ -91,10 +93,9 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     /**
      * Prestations restées sans prestataire après un cycle complet de recherche.
      *
-     * <p>Une demande naît en {@code PENDING} et n'en sort que si quelqu'un lui
-     * est assigné — automatiquement à la création, ou par le scheduler qui
-     * repasse toutes les 15 minutes. Rester en {@code PENDING} juste après la
-     * création est donc normal ; l'être encore un cycle plus tard ne l'est pas.</p>
+     * <p>Le seuil de supervision est indépendant du passage du scheduler.
+     * Un devis en cours de décision ou une recherche publique ne constitue
+     * pas un dossier orphelin à réattribuer.</p>
      *
      * <p>D'où le seul critère retenu : {@code createdAt} antérieur à
      * {@code staleBefore} (l'appelant passe « maintenant moins un cycle »). Il
@@ -108,7 +109,9 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property " +
            "WHERE sr.organizationId = :orgId " +
            "AND sr.status = com.clenzy.model.RequestStatus.PENDING " +
-           "AND sr.createdAt < :staleBefore " +
+           "AND sr.createdAt < :staleBefore AND sr.marketplaceRequestId IS NULL " +
+           "AND (sr.assignmentPhase IS NULL OR sr.assignmentPhase IN ('INTERNAL','MANUAL')) " +
+           "AND NOT EXISTS (SELECT i.id FROM Intervention i WHERE i.serviceRequest = sr) " +
            "ORDER BY sr.desiredDate")
     List<ServiceRequest> findStuckUnassignedForOrg(@Param("orgId") Long orgId,
                                                    @Param("staleBefore") LocalDateTime staleBefore);
@@ -184,7 +187,8 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
            "GROUP BY sr.property.id")
     List<Object[]> countUnpaidByPropertyForOrg(@Param("orgId") Long orgId);
 
-    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.status = :status AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId")
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.status = :status AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId " +
+           "AND NOT EXISTS (SELECT i.id FROM Intervention i WHERE i.serviceRequest = sr)")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
@@ -240,6 +244,10 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     })
     List<ServiceRequest> findAllWithRelations(@Param("orgId") Long orgId);
 
+    @Query("SELECT x FROM ServiceRequest x LEFT JOIN FETCH x.property LEFT JOIN FETCH x.user "
+            + "WHERE x.organizationId = :orgId AND " + ServiceRequestReadScope.OPEN)
+    List<ServiceRequest> findOpenWithRelations(@Param("orgId") Long orgId);
+
     /**
      * Planning: SR en AWAITING_PAYMENT filtrees par propertyIds et plage de dates.
      * Exclut les SR liees a une reservation masquee du planning (cancelled + hidden).
@@ -247,6 +255,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
            "WHERE sr.status = :status AND sr.property.id IN :propertyIds " +
            "AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId " +
+           "AND NOT EXISTS (SELECT i.id FROM Intervention i WHERE i.serviceRequest = sr) " +
            "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.id = sr.reservationId " +
            "  AND r.hiddenFromPlanning = true AND r.status = 'cancelled')")
     List<ServiceRequest> findByStatusAndPropertyIdsAndDesiredDateBetween(
@@ -336,6 +345,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
      */
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
            "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
+           "AND (sr.autoAssignStatus IS NULL OR sr.autoAssignStatus <> 'manual_hold') " +
            "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries " +
            "AND sr.organizationId = :orgId")
     List<ServiceRequest> findPendingUnassignedForRetry(
@@ -346,6 +356,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
      */
     @Query("SELECT DISTINCT sr.organizationId FROM ServiceRequest sr " +
            "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
+           "AND (sr.autoAssignStatus IS NULL OR sr.autoAssignStatus <> 'manual_hold') " +
            "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries")
     List<Long> findOrganizationIdsWithPendingUnassigned(@Param("maxRetries") int maxRetries);
 

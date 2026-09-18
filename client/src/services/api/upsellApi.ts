@@ -1,6 +1,15 @@
 import apiClient from '../apiClient';
 
-/** Catégories d'upsell (cf. UpsellType backend). */
+/**
+ * Code d'un type d'upsell.
+ *
+ * Une CHAÎNE libre et non une union fermée : le référentiel vit en base et
+ * s'enrichit sans déploiement. Figer la liste ici aurait reproduit côté front
+ * exactement le verrou qu'on vient de retirer côté serveur.
+ *
+ * Les neuf codes historiques restent listés pour l'autocomplétion et pour les
+ * quelques endroits qui les nomment — l'union reste ouverte via `(string & {})`.
+ */
 export type UpsellTypeId =
   | 'EARLY_CHECKIN'
   | 'LATE_CHECKOUT'
@@ -10,7 +19,26 @@ export type UpsellTypeId =
   | 'PARKING'
   | 'EQUIPMENT'
   | 'EXPERIENCE'
-  | 'OTHER';
+  | 'OTHER'
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | (string & {});
+
+/** Type du référentiel, servi par `GET /upsells/types`. */
+export interface UpsellTypeDto {
+  id: number;
+  code: string;
+  labelFr: string;
+  labelEn: string;
+  description?: string;
+  iconKey?: string;
+  /** Prestation correspondante du catalogue place de marché, quand il y en a une. */
+  serviceItemCode?: string;
+  /** true = proposé à toutes les organisations, donc non modifiable ici. */
+  platform: boolean;
+  /** Type historique référencé nommément par le code : non supprimable. */
+  system: boolean;
+  sortOrder: number;
+}
 
 /** Offre d'upsell (catalogue hôte). */
 export interface UpsellOffer {
@@ -92,4 +120,14 @@ export const upsellApi = {
     apiClient.put<UpsellOffer>(`/upsells/offers/${id}`, data),
   removeOffer: (id: number) => apiClient.delete(`/upsells/offers/${id}`),
   listOrders: () => apiClient.get<UpsellOrder[]>('/upsells/orders'),
+
+  /** Référentiel des types : ceux de la plateforme et ceux de l'organisation. */
+  listTypes: () => apiClient.get<UpsellTypeDto[]>('/upsells/types'),
+
+  /** Ajoute un type propre à l'organisation. Le code dérive du libellé s'il est omis. */
+  createType: (data: { code?: string; label: string; description?: string; iconKey?: string }) =>
+    apiClient.post<UpsellTypeDto>('/upsells/types', data),
+
+  /** Retire le type du choix sans le supprimer : les offres existantes le portent encore. */
+  deactivateType: (id: number) => apiClient.delete(`/upsells/types/${id}`),
 };

@@ -3,7 +3,7 @@ package com.clenzy.service.agent.supervision;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.UpsellOffer;
-import com.clenzy.model.UpsellType;
+import com.clenzy.model.UpsellTypes;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UpsellOfferRepository;
 import com.clenzy.service.WelcomeGuideService;
@@ -60,8 +60,8 @@ public class GuestUpsellScanner {
             return;
         }
         try {
-            final UpsellOffer earlyOffer = applicableOffer(orgId, propertyId, UpsellType.EARLY_CHECKIN);
-            final UpsellOffer lateOffer = applicableOffer(orgId, propertyId, UpsellType.LATE_CHECKOUT);
+            final UpsellOffer earlyOffer = applicableOffer(orgId, propertyId, UpsellTypes.EARLY_CHECKIN);
+            final UpsellOffer lateOffer = applicableOffer(orgId, propertyId, UpsellTypes.LATE_CHECKOUT);
             if (earlyOffer == null && lateOffer == null) {
                 return; // aucune offre active du bon type — rien à proposer
             }
@@ -95,7 +95,7 @@ public class GuestUpsellScanner {
     }
 
     /** Première offre ACTIVE du type, applicable au logement (org-wide ou dédiée). */
-    private UpsellOffer applicableOffer(Long orgId, Long propertyId, UpsellType type) {
+    private UpsellOffer applicableOffer(Long orgId, Long propertyId, String type) {
         return upsellOfferRepository
                 .findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(orgId).stream()
                 .filter(o -> o.getType() == type)

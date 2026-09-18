@@ -44,12 +44,14 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ExpediaReservationServiceTest {
 
+    @Mock private com.clenzy.service.assignment.InterventionRequestIntake intake;
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private InterventionRepository interventionRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private ExpediaWebhookService webhookService;
     @Mock private AuditLogService auditLogService;
 
+    @Mock private com.clenzy.service.AutomaticInterventionCancellationPolicy cancellationPolicy;
     private ExpediaReservationService service;
 
     private static final String EVENT_ID = "evt-1";
@@ -62,7 +64,7 @@ class ExpediaReservationServiceTest {
     void setUp() {
         service = new ExpediaReservationService(
                 channelMappingRepository, interventionRepository, propertyRepository,
-                webhookService, auditLogService);
+                webhookService, auditLogService, org.mockito.Mockito.mock(com.clenzy.service.InterventionAllocationGuard.class), cancellationPolicy, intake);
     }
 
     private ChannelMapping buildMapping() {
@@ -130,7 +132,7 @@ class ExpediaReservationServiceTest {
             Map<String, Object> event = buildEvent("reservation.created", buildReservationData());
             service.handleReservationEvent(event);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
             verify(webhookService).markAsProcessed(EVENT_ID);
         }
 
@@ -235,7 +237,7 @@ class ExpediaReservationServiceTest {
             service.handleReservationCreated(buildReservationData());
 
             ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            verify(intake).createDraft(captor.capture(), org.mockito.ArgumentMatchers.anyString());
             Intervention saved = captor.getValue();
 
             assertThat(saved.getOrganizationId()).isEqualTo(ORG_ID);
@@ -262,7 +264,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test
@@ -277,7 +279,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test
@@ -292,7 +294,7 @@ class ExpediaReservationServiceTest {
             service.handleReservationCreated(data);
 
             ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            verify(intake).createDraft(captor.capture(), org.mockito.ArgumentMatchers.anyString());
             assertThat(captor.getValue().getTitle()).contains("VRBO");
         }
 
@@ -307,7 +309,7 @@ class ExpediaReservationServiceTest {
             service.handleReservationCreated(buildReservationData());
 
             ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            verify(intake).createDraft(captor.capture(), org.mockito.ArgumentMatchers.anyString());
             assertThat(captor.getValue().getRequestor()).isNull();
         }
 
@@ -425,6 +427,19 @@ class ExpediaReservationServiceTest {
     @Nested
     @DisplayName("handleReservationCancelled")
     class HandleReservationCancelled {
+        @Test void contractedMissionIsPreservedAndRecordedForReview() {
+            stubMappingFound();
+            Intervention intervention = new Intervention();
+            intervention.setId(100L); intervention.setStatus(InterventionStatus.PENDING);
+            intervention.setSpecialInstructions("[VRBO:" + RESERVATION_ID + "]");
+            when(interventionRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(List.of(intervention));
+            when(cancellationPolicy.blocker(intervention)).thenReturn("AGREEMENT_REQUIRES_REASON");
+            service.handleReservationCancelled(buildReservationData());
+            verify(interventionRepository, never()).save(any());
+            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.PENDING);
+            verify(auditLogService).logSync("ExpediaReservation", RESERVATION_ID,
+                    "Mission #100 conservée : AGREEMENT_REQUIRES_REASON");
+        }
 
         @Test
         @DisplayName("when no mapping, exits silently")
@@ -535,7 +550,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test
@@ -549,7 +564,7 @@ class ExpediaReservationServiceTest {
 
             service.handleReservationCreated(data);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(intake).createDraft(any(Intervention.class), org.mockito.ArgumentMatchers.anyString());
         }
     }
 }

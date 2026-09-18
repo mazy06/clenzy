@@ -8,7 +8,6 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.service.InterventionPhotoService;
 import com.clenzy.service.PropertyTeamService;
 import com.clenzy.service.payout.HousekeeperPayoutService;
-import com.clenzy.util.InterventionTypeMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,8 +62,10 @@ public class InterventionActionContextService {
                         intervention.getScheduledDate(),
                         intervention.getEstimatedDurationHours(),
                         intervention.getType(),
-                        orgId),
-                InterventionTypeMatcher.requiredTeamType(intervention.getType()));
+                        orgId,
+                        intervention.getServiceRequest() == null ? null : intervention.getServiceRequest().getId(),
+                        intervention.getId()),
+                intervention.getServiceItemCode());
     }
 
     /**

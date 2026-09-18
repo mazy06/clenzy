@@ -1,3 +1,4 @@
+import ServiceReferenceLabels from '../../components/ServiceReferenceLabels';
 import React from 'react';
 import {
   Avatar,
@@ -352,6 +353,7 @@ export interface WorkOrderViewModel {
   /** Signalement dont decoule ce travail, le cas echeant. */
   sourceIssue?: WorkOrderSourceIssue;
   type: string;
+  serviceItemCode?: string;
   status: string;
   /** Libellé de statut déjà traduit. */
   statusLabel: string;
@@ -656,7 +658,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       >
         <div className="min-[900px]:pe-4">
           <Fact icon={getTypeIcon(vm.type)} label={t('common.type')}
-            value={getInterventionTypeLabel(vm.type, t)} />
+            value={vm.serviceItemCode ? <ServiceReferenceLabels codes={[vm.serviceItemCode]} /> : getInterventionTypeLabel(vm.type, t)} />
         </div>
         <div className="min-[900px]:px-4">
           <Fact icon={<CalendarToday size={16} strokeWidth={1.75} />} label={t('serviceRequests.dueDateShort')}

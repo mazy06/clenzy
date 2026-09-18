@@ -1,3 +1,4 @@
+import { useServiceReferenceLabel } from '../ServiceReferenceLabels';
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClockIcon, CheckIcon, ClockIcon, TriangleAlertIcon, XCircleIcon } from 'lucide-react';
@@ -33,6 +34,8 @@ export interface StuckServiceDialogProps {
   /** Prestation à ouvrir. `null` ferme la modale. */
   serviceRequestId: number | null;
   onClose: () => void;
+  /** Une replanification volontaire ne suppose pas une recherche en échec. */
+  schedulingOnly?: boolean;
   service?: {
     title?: string | null;
     propertyId?: number | null;
@@ -47,6 +50,7 @@ export interface StuckServiceDialogProps {
 export default function StuckServiceDialog({
   serviceRequestId,
   onClose,
+  schedulingOnly = false,
   service,
   invalidateKeys = [],
 }: StuckServiceDialogProps) {
@@ -73,11 +77,11 @@ export default function StuckServiceDialog({
   // Chaque ouverture repart d'une page blanche : sans cela, la date saisie pour
   // la prestation precedente s'appliquerait a la suivante.
   React.useEffect(() => {
-    setMode('idle');
+    setMode(schedulingOnly ? 'reschedule' : 'idle');
     setDay(undefined);
     setTime('10:00');
     setAssignee('');
-  }, [serviceRequestId]);
+  }, [serviceRequestId, schedulingOnly]);
 
   // Minuit, et non l'instant présent : `before: new Date()` désactivait le jour
   // même, interdisant de replanifier pour cet après-midi.
@@ -111,6 +115,7 @@ export default function StuckServiceDialog({
   // Quand aucune équipe ne convient, c'est le TYPE requis qui manque à l'écran :
   // sans lui on ne distingue pas un manque d'équipe d'un manque de disponibilité.
   const requiredTeamType = assignable?.requiredTeamType ?? null;
+  const requiredServiceLabel = useServiceReferenceLabel(requiredTeamType, requiredTeamType ? teamTypeLabel(requiredTeamType,t) : "");
 
   const { data: reservations = [] } = useQuery({
     queryKey: ['reservations', 'by-property', service?.propertyId],
@@ -186,7 +191,7 @@ export default function StuckServiceDialog({
           {service?.propertyName && <DialogDescription>{service.propertyName}</DialogDescription>}
         </DialogHeader>
 
-        <p className="m-0 text-sm text-muted-foreground">
+        {!schedulingOnly && <p className="m-0 text-sm text-muted-foreground">
           {overdue
             ? t(
                 'dashboard.stuckService.overdue',
@@ -196,7 +201,7 @@ export default function StuckServiceDialog({
                 'dashboard.stuckService.searchExhausted',
                 'Aucun prestataire disponible n’a été trouvé. La recherche automatique s’est arrêtée : il faut assigner quelqu’un.',
               )}
-        </p>
+        </p>}
 
         {planning && (
           <div className="flex flex-col gap-4">
@@ -282,8 +287,8 @@ export default function StuckServiceDialog({
                       <TriangleAlertIcon />
                       <AlertDescription>
                         {t(
-                          'dashboard.stuckService.allBusy',
-                          'Aucune équipe n’est libre sur ce créneau. Choisissez une autre date, ou assignez quand même : la prestation devra être confirmée avec l’équipe.',
+                          'serviceReference.noneEligible',
+                          'Aucune équipe ne remplit les conditions actuelles. Vérifiez le motif indiqué ou choisissez une autre date.',
                         )}
                       </AlertDescription>
                     </Alert>
@@ -310,9 +315,8 @@ export default function StuckServiceDialog({
                       hint={
                         team.available
                           ? t('dashboard.stuckService.free', 'Disponible')
-                          : t('dashboard.stuckService.busy', {
-                              count: team.conflicts,
-                              defaultValue: 'Occupée ({{count}})',
+                          : team.reason ? t('serviceReference.reason.' + team.reason) : t('dashboard.stuckService.busy', {
+                              defaultValue: 'Indisponible sur ce créneau',
                             })
                       }
                       muted={!team.available}
@@ -324,7 +328,7 @@ export default function StuckServiceDialog({
                     <p className="m-0 text-sm text-muted-foreground">
                       {requiredTeamType
                         ? t('dashboard.stuckService.needsTeamType', {
-                            type: teamTypeLabel(requiredTeamType, t),
+                            type: requiredServiceLabel,
                             defaultValue:
                               'Cette prestation demande une équipe de type « {{type}} ». '
                               + 'Votre organisation n’en a aucune.',
@@ -449,5 +453,5 @@ function SuggestionRow({
 function teamTypeLabel(type: string, t: (key: string, fallback: string) => string): string {
   if (type === 'CLEANING') return t('teamType.cleaning', 'Ménage');
   if (type === 'MAINTENANCE') return t('teamType.maintenance', 'Maintenance');
-  return t('teamType.other', 'Autre');
+  return type === 'OTHER' ? t('teamType.other', 'Autre') : type;
 }

@@ -46,6 +46,10 @@ public class LocalPhotoStorageService implements PhotoStorageService {
     /** Prefixe org-scope, identique a celui de {@code ObjectStoragePhotoService}. */
     private static final Pattern KEY_PATTERN = Pattern.compile("^org/(\\d+)/photos/[^/]+$");
 
+    /** Prefixe plateforme : un binaire qui n'appartient a aucune organisation. */
+    private static final Pattern PLATFORM_KEY_PATTERN =
+            Pattern.compile("^platform/[a-z0-9-]+/[^/]+$");
+
     private final PropertyPhotoRepository photoRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final BinaryAssetStorage binaryAssetStorage;
@@ -78,7 +82,20 @@ public class LocalPhotoStorageService implements PhotoStorageService {
     }
 
     @Override
+    public String storePlatformAsset(String namespace, byte[] data, String contentType,
+                                     String originalFilename) {
+        final String key = PlatformAssetKeys.build(namespace);
+        binaryAssetStorage.store(key, contentType, data);
+        return key;
+    }
+
+    @Override
     public byte[] retrieve(String storageKey) {
+        if (storageKey != null && PLATFORM_KEY_PATTERN.matcher(storageKey).matches()) {
+            return binaryAssetStorage.load(storageKey)
+                    .map(BinaryAssetStorage.StoredBinaryAsset::bytes)
+                    .orElseThrow(() -> new IllegalArgumentException("Binaire introuvable: " + storageKey));
+        }
         if (storageKey != null && KEY_PATTERN.matcher(storageKey).matches()) {
             return binaryAssetStorage.load(storageKey)
                     .map(BinaryAssetStorage.StoredBinaryAsset::bytes)
@@ -134,7 +151,9 @@ public class LocalPhotoStorageService implements PhotoStorageService {
      */
     @Override
     public void delete(String storageKey) {
-        if (storageKey != null && KEY_PATTERN.matcher(storageKey).matches()) {
+        if (storageKey != null
+                && (KEY_PATTERN.matcher(storageKey).matches()
+                    || PLATFORM_KEY_PATTERN.matcher(storageKey).matches())) {
             binaryAssetStorage.delete(storageKey);
         }
     }

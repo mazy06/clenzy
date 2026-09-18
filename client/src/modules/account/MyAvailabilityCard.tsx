@@ -54,6 +54,8 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
   const { notify } = useNotification();
 
   const [slots, setSlots] = useState<WeeklySlotInput[] | null>(null);
+  const [calendarConflict, setCalendarConflict] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [absences, setAbsences] = useState<Absence[]>([]);
   /** Horaires par jour deplies : la majorite travaille aux memes heures. */
   const [perDay, setPerDay] = useState(false);
@@ -64,6 +66,8 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
   const [absenceEnd, setAbsenceEnd] = useState('');
   const [absenceReason, setAbsenceReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [absenceSaving, setAbsenceSaving] = useState(false);
+  const [removingAbsenceId, setRemovingAbsenceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const dayLabel = (day: number) => t(`availability.days.${day}`, {
@@ -83,6 +87,8 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
           endTime: toInputTime(slot.endTime),
         }));
         setSlots(loaded);
+        setLoadFailed(false);
+        setCalendarConflict(Boolean(data.weeklyRestricted && loaded.length === 0));
         setAbsences(data.absences);
         if (loaded.length > 0) {
           setCommonStart(loaded[0].startTime);
@@ -95,27 +101,29 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
       })
       .catch(() => {
         setSlots([]);
+        setLoadFailed(true);
         setError(t('availability.loadError', 'Impossible de charger vos disponibilités.'));
       });
   }, [t]);
 
-  const activeDays = useMemo(() => (slots ?? []).map((slot) => String(slot.dayOfWeek)), [slots]);
+  const activeDays = useMemo(() => [...new Set((slots ?? []).map((slot) => String(slot.dayOfWeek)))], [slots]);
 
   const toggleDays = (values: string[]) => {
     setSlots((prev) => {
       if (!prev) return prev;
-      const wanted = values.map(Number).sort((a, b) => a - b);
-      return wanted.map((day) => prev.find((slot) => slot.dayOfWeek === day) ?? {
+      const wanted = [...new Set(values.map(Number))].sort((a, b) => a - b);
+      return wanted.flatMap((day) => prev.some((slot) => slot.dayOfWeek === day)
+        ? prev.filter((slot) => slot.dayOfWeek === day) : [{
         dayOfWeek: day,
         startTime: commonStart,
         endTime: commonEnd,
-      });
+      }]);
     });
   };
 
-  const updateSlot = (day: number, patch: Partial<WeeklySlotInput>) => {
-    setSlots((prev) => prev?.map((slot) =>
-      slot.dayOfWeek === day ? { ...slot, ...patch } : slot) ?? prev);
+  const updateSlot = (index: number, patch: Partial<WeeklySlotInput>) => {
+    setSlots((prev) => prev?.map((slot, slotIndex) =>
+      slotIndex === index ? { ...slot, ...patch } : slot) ?? prev);
   };
 
   /** Horaires communs : ils s'appliquent a tous les jours coches d'un coup. */
@@ -147,18 +155,24 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
   }, [slots, t, dayLabel]);
 
   const saveWeekly = async () => {
+    if (saving || loadFailed || (calendarConflict && !slots?.length)) return;
     setSaving(true);
     setError(null);
     try {
       // Un creneau dont la fin precede le debut serait refuse par la contrainte
       // en base : on l'ecarte ici pour ne pas perdre tout l'enregistrement.
-      const valid = (slots ?? []).filter((slot) => slot.endTime > slot.startTime);
+      const valid = slots ?? [];
+      if (valid.some((slot) => slot.endTime <= slot.startTime)) {
+        setError(t('availability.invalidHours', 'Chaque heure de fin doit suivre son heure de début.'));
+        return;
+      }
       const saved = await myAvailabilityApi.replaceWeekly(valid);
       setSlots(saved.map((slot) => ({
         dayOfWeek: slot.dayOfWeek,
         startTime: toInputTime(slot.startTime),
         endTime: toInputTime(slot.endTime),
       })));
+      setCalendarConflict(false);
       notify.success(t('availability.saved', 'Disponibilités enregistrées'));
       onSaved?.();
     } catch {
@@ -169,7 +183,8 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
   };
 
   const addAbsence = async () => {
-    if (!absenceStart || !absenceEnd) return;
+    if (!absenceStart || !absenceEnd || absenceSaving) return;
+    setAbsenceSaving(true);
     setError(null);
     try {
       const created = await myAvailabilityApi.addAbsence(absenceStart, absenceEnd, absenceReason || null);
@@ -180,12 +195,23 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
       setAbsenceFormOpen(false);
     } catch {
       setError(t('availability.absenceError', "Impossible d'enregistrer cette absence."));
+    } finally {
+      setAbsenceSaving(false);
     }
   };
 
   const removeAbsence = async (id: number) => {
-    await myAvailabilityApi.removeAbsence(id).catch(() => undefined);
-    setAbsences((prev) => prev.filter((absence) => absence.id !== id));
+    if (removingAbsenceId !== null) return;
+    setRemovingAbsenceId(id);
+    setError(null);
+    try {
+      await myAvailabilityApi.removeAbsence(id);
+      setAbsences((prev) => prev.filter((absence) => absence.id !== id));
+    } catch {
+      setError(t('availability.removeError', 'Impossible de retirer cette absence. Elle reste enregistrée.'));
+    } finally {
+      setRemovingAbsenceId(null);
+    }
   };
 
   if (slots === null) {
@@ -205,6 +231,13 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
         </Alert>
       )}
 
+      {calendarConflict && (
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{t('availability.calendarConflict', 'Vos anciens horaires ne comportent aucun créneau commun. Vous restez indisponible tant que vous n’avez pas enregistré de nouveaux horaires.')}</AlertDescription>
+        </Alert>
+      )}
+
       {/* ── Semaine type ──────────────────────────────────────────────── */}
       <Card size="sm" className="shadow-none">
         <CardContent className="flex flex-col gap-4">
@@ -216,13 +249,13 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
               {/* Le RESUME plutot qu'un compteur : on vient verifier ce qu'on a
                   declare, pas compter des jours. */}
               <p className="m-0 mt-0.5 text-xs text-muted-foreground tabular-nums">
-                {summary ?? t('availability.alwaysAvailableLong',
-                  'Aucun créneau déclaré — vous restez disponible à tout moment.')}
+                {summary ?? (calendarConflict ? t('availability.noAllowedSlot', 'Aucun créneau autorisé') : t('availability.alwaysAvailableLong',
+                  'Aucun créneau déclaré, vous restez disponible à tout moment.'))}
               </p>
             </div>
             <StatusChip
               tone={slots.length > 0 ? 'ok' : 'neutral'}
-              label={slots.length > 0
+              label={calendarConflict && slots.length === 0 ? t('availability.noAllowedSlot', 'Aucun créneau autorisé') : slots.length > 0
                 ? t('availability.limited', 'Horaires définis')
                 : t('availability.alwaysAvailable', 'Toujours disponible')}
               size="sm"
@@ -301,8 +334,8 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {[...slots].sort((a, b) => a.dayOfWeek - b.dayOfWeek).map((slot) => (
-                    <div key={slot.dayOfWeek} className="flex flex-wrap items-center gap-2">
+                  {slots.map((slot, index) => (
+                    <div key={index} className="flex flex-wrap items-center gap-2">
                       <span className="min-w-[92px] text-sm font-medium text-foreground">
                         {dayLabel(slot.dayOfWeek)}
                       </span>
@@ -311,7 +344,7 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
                         className="w-auto tabular-nums"
                         aria-label={`${dayLabel(slot.dayOfWeek)} — ${t('availability.from', 'De')}`}
                         value={slot.startTime}
-                        onChange={(event) => updateSlot(slot.dayOfWeek, { startTime: event.target.value })}
+                        onChange={(event) => updateSlot(index, { startTime: event.target.value })}
                       />
                       <span className="text-xs text-muted-foreground">{t('availability.to', 'à')}</span>
                       <Input
@@ -319,7 +352,7 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
                         className="w-auto tabular-nums"
                         aria-label={`${dayLabel(slot.dayOfWeek)} — ${t('availability.to', 'à')}`}
                         value={slot.endTime}
-                        onChange={(event) => updateSlot(slot.dayOfWeek, { endTime: event.target.value })}
+                        onChange={(event) => updateSlot(index, { endTime: event.target.value })}
                       />
                     </div>
                   ))}
@@ -340,7 +373,7 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
           )}
 
           <div>
-            <Button variant="secondary" size="sm" onClick={saveWeekly} disabled={saving}>
+            <Button variant="secondary" size="sm" onClick={saveWeekly} disabled={saving || loadFailed || (calendarConflict && slots.length === 0)}>
               {saving ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               {t('availability.save', 'Enregistrer mes horaires')}
             </Button>
@@ -358,7 +391,7 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
               </p>
               <p className="m-0 mt-0.5 text-xs text-muted-foreground">
                 {t('availability.absencesHelp',
-                  'Congés et indisponibilités ponctuelles — aucune mission ne vous sera proposée sur ces dates.')}
+                  'Déclarez vos indisponibilités. Les missions déjà attribuées restent à traiter avec votre gestionnaire.')}
               </p>
             </div>
             {!absenceFormOpen && (
@@ -417,7 +450,7 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
                   variant="secondary"
                   size="sm"
                   onClick={addAbsence}
-                  disabled={!absenceStart || !absenceEnd}
+                  disabled={!absenceStart || !absenceEnd || absenceEnd < absenceStart || absenceSaving}
                 >
                   {t('availability.confirmAbsence', 'Enregistrer')}
                 </Button>
@@ -454,6 +487,11 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
                         : `${absence.startDate} → ${absence.endDate}`}
                     </ItemTitle>
                     {absence.reason && <ItemDescription>{absence.reason}</ItemDescription>}
+                    {absence.assignmentConflict && (
+                      <p role="status" className="text-sm text-warning-ink">
+                        {t('availability.assignmentConflict', 'Cette absence recouvre une mission attribuée. Contactez votre gestionnaire pour la replanifier ; son attribution reste inchangée.')}
+                      </p>
+                    )}
                   </ItemContent>
                   <ItemActions>
                     <Button
@@ -462,6 +500,7 @@ export default function MyAvailabilityCard({ onSaved }: Props) {
                       className="text-muted-foreground hover:text-destructive-ink"
                       aria-label={t('availability.removeAbsence', 'Retirer cette absence')}
                       onClick={() => removeAbsence(absence.id)}
+                      disabled={removingAbsenceId !== null}
                     >
                       <DeleteOutline size={16} strokeWidth={1.75} />
                     </Button>

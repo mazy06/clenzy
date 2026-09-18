@@ -1,3 +1,5 @@
+import ServicePriceComparison, { ServicePriceDifference } from '../../service-requests/ServicePriceComparison';
+import DashboardServiceProposals from '../../service-requests/DashboardServiceProposals';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -246,7 +248,7 @@ function MissionCard({ mission, onOpen }: { mission: Intervention; onOpen: (id: 
         )}
         {mission.estimatedCost != null && (
           <span className="whitespace-nowrap font-medium text-foreground">
-            · <Money value={mission.estimatedCost} decimals={0} />
+            · {mission.currency ? <Money value={mission.estimatedCost} from={mission.currency} decimals={0} /> : <span title={t('requestCommercial.currencyUnknown')}>{mission.estimatedCost.toLocaleString(currentLanguage)}</span>}
           </span>
         )}
       </div>
@@ -486,16 +488,16 @@ function gapTone(gap: number | null) {
  * lignes compactes et le total en pied, mis en evidence.</p>
  */
 function MissionPricing({
-  lines, asked, mine, carriedOver, rateOf,
+  lines, asked, mine, carriedOver, rateOf, currency,
 }: {
   lines: QuoteLine[];
   asked: number | null;
   mine: number | null;
   carriedOver: number;
+  currency?: string | null;
   rateOf: (type?: string | null) => number | null;
 }) {
   const { t } = useTranslation();
-  const tone = gapTone(mine != null && asked != null ? mine - asked : null);
   const detailed = lines.length > 1;
 
   return (
@@ -535,48 +537,11 @@ function MissionPricing({
         </div>
       )}
 
-      <div className="flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          <p className="m-0 text-2xs uppercase tracking-wide text-muted-foreground">
-            {t('field.proposals.asked', 'Proposé')}
-          </p>
-          <p className="m-0 text-base font-semibold tabular-nums text-foreground">
-            {asked != null ? <Money value={asked} decimals={0} /> : '—'}
-          </p>
-        </div>
-
-        {mine != null && asked != null ? (
-          <>
-            <span
-              aria-hidden
-              className={cn(
-                'mb-1 shrink-0 rounded px-1.5 py-0.5 text-2xs font-semibold tabular-nums',
-                tone === 'neutral' && 'bg-muted text-muted-foreground',
-                tone === 'over' && 'bg-warning-soft text-warning-ink',
-                tone === 'under' && 'bg-success-soft text-success-ink',
-              )}
-            >
-              {mine - asked > 0 ? '+' : ''}{Math.round(mine - asked)} €
-            </span>
-            <div className="min-w-0 text-end">
-              <p className="m-0 text-2xs uppercase tracking-wide text-muted-foreground">
-                {t('field.proposals.myRate', 'Mon tarif')}
-              </p>
-              <p className={cn(
-                'm-0 text-base font-semibold tabular-nums',
-                tone === 'over' ? 'text-warning-ink'
-                  : tone === 'under' ? 'text-success-ink' : 'text-foreground',
-              )}>
-                <Money value={mine} decimals={0} />
-              </p>
-            </div>
-          </>
-        ) : (
-          <p className="m-0 text-xs text-muted-foreground">
-            {t('field.proposals.noRate', 'Aucun tarif configuré')}
-          </p>
-        )}
-      </div>
+      <ServicePriceComparison proposedLabel={t('field.proposals.asked', 'Proposé')}
+        proposed={asked!=null ? currency ? <Money value={asked} from={currency} decimals={0} /> : <span title={t('requestCommercial.currencyUnknown')}>{asked}</span> : '—'}
+        providerLabel={t('field.proposals.myRate', 'Mon tarif')}
+        provider={mine!=null ? <Money value={mine} from="EUR" decimals={0} /> : t('field.proposals.noRate')}
+        difference={currency==='EUR' && mine!=null && asked!=null ? <ServicePriceDifference amount={mine-asked} currency="EUR" /> : undefined} />
 
       {/* Sans cette mention, un total superieur au catalogue passe pour une
           erreur : il inclut les lignes qu'on ne tarife pas et qu'on reprend. */}
@@ -598,6 +563,10 @@ function MissionPricing({
  * sur un tableau de bord deja creux n'apporte rien.</p>
  */
 export function MissionProposalsCard() {
+  return <><DashboardServiceProposals /><LegacyMissionProposalsCard /></>;
+}
+
+function LegacyMissionProposalsCard() {
   const { t, currentLanguage } = useTranslation();
   const { notify } = useNotification();
   const queryClient = useQueryClient();
@@ -690,7 +659,7 @@ export function MissionProposalsCard() {
   return (
     <BlockCard
       icon={<ClipboardListIcon className="size-3.5 text-warning-ink" />}
-      title={t('field.proposals.title', 'Missions à confirmer')}
+      title={t('requestCommercial.legacyMissions')}
       count={proposals.length}
     >
       <div data-fit-list className="grid grid-cols-1 gap-2 min-[640px]:grid-cols-2 min-[900px]:grid-cols-3">
@@ -730,6 +699,7 @@ export function MissionProposalsCard() {
               <MissionPricing
                 lines={lines}
                 asked={mission.estimatedCost ?? null}
+                currency={mission.currency}
                 mine={mineTotal}
                 carriedOver={carriedOver}
                 rateOf={pricing.forType}

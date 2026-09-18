@@ -5,6 +5,16 @@ public class PropertyTeamRequest {
     private Long propertyId;
     private Long teamId;
 
+    private String serviceItemCode;
+    private int priority = 100;
+    private boolean active = true;
+    public String getServiceItemCode() { return serviceItemCode; }
+    public void setServiceItemCode(String code) { serviceItemCode = code; }
+    public int getPriority() { return priority; }
+    public void setPriority(int value) { priority = value; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean value) { active = value; }
+
     // Constructeurs
     public PropertyTeamRequest() {}
 

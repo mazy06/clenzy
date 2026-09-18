@@ -1,3 +1,4 @@
+import { serviceReferenceQuery } from '../../components/ServiceItemSelect';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -6,7 +7,7 @@ import { Spinner, Button } from '../../components/ui';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { interventionSchema, type InterventionFormValues } from '../../schemas/interventionSchema';
+import { interventionSchemaFor, type InterventionFormValues } from '../../schemas/interventionSchema';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -21,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../../providers/PostHogProvider';
 import { interventionsKeys } from './useInterventionsList';
 import PageHeader from '../../components/PageHeader';
+import './interventionForm.css';
 import InterventionFormMainInfo from './InterventionFormMainInfo';
 import InterventionFormPropertyRequestor from './InterventionFormPropertyRequestor';
 import InterventionFormAssignment from './InterventionFormAssignment';
@@ -31,6 +33,7 @@ export interface InterventionFormData {
   title: string;
   description: string;
   type: string;
+  serviceItemCode?: string;
   status: string;
   priority: string;
   propertyId: number;
@@ -97,6 +100,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const serviceReference = useQuery(serviceReferenceQuery);
 
   // Detect edit mode
   const isEditMode = mode === 'edit' || !!interventionId;
@@ -126,7 +130,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<InterventionFormValues>({
     // zodResolver v4 type mismatch with react-hook-form v7 — safe cast
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(interventionSchema) as any,
+    resolver: (values, context, options) => (zodResolver(interventionSchemaFor(serviceReference.data?.find(item => item.code === values.serviceItemCode)?.propertyRequired !== false)) as import("react-hook-form").Resolver<InterventionFormValues>)(values, context, options),
     defaultValues: {
       title: '',
       description: '',
@@ -207,7 +211,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     reset({
       title: interventionData.title || '',
       description: interventionData.description || '',
-      type: interventionData.type || InterventionType.CLEANING,
+      type: interventionData.type || InterventionType.OTHER,
+      serviceItemCode: interventionData.serviceItemCode,
       status: interventionData.status || InterventionStatus.PENDING,
       priority: interventionData.priority || Priority.NORMAL,
       propertyId: interventionData.propertyId || 0,
@@ -263,10 +268,10 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const submitMutation = useMutation({
     mutationFn: async (formData: InterventionFormValues) => {
       if (isEditMode && interventionId) {
-        await interventionsApi.update(interventionId, formData);
+        await interventionsApi.update(interventionId, { ...formData, propertyId: formData.propertyId || undefined });
         return { type: 'update' as const, id: interventionId };
       } else {
-        const saved = await interventionsApi.create(formData);
+        const saved = await interventionsApi.create({ ...formData, propertyId: formData.propertyId || undefined });
         return { type: 'create' as const, id: saved.id, estimatedCost: formData.estimatedCost };
       }
     },
@@ -291,25 +296,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           navigate(`/interventions/${result.id}`);
         }
       } else {
-        // Create mode: handle payment flow
-        if (!isHost() && formData.estimatedCost && formData.estimatedCost > 0) {
-          try {
-            const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
-              interventionId: result.id,
-              amount: formData.estimatedCost
-            });
-            window.location.href = paymentData.url;
-            return;
-          } catch (paymentErr: unknown) {
-            setError(paymentErr instanceof Error ? paymentErr.message : 'Erreur lors de la creation de la session de paiement');
-          }
-        }
-
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          window.location.href = `/interventions/${result.id}`;
-        }
+        await queryClient.invalidateQueries({ queryKey: ['service-requests'] });
+        if (onSuccess) onSuccess();
+        else navigate(`/service-requests/${result.id}`);
       }
     },
     onError: () => {
@@ -338,7 +327,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   }
 
   const onSubmit = (formData: InterventionFormValues) => {
-    if (!isEditMode && (!formData.propertyId || !formData.requestorId)) {
+    if (!isEditMode && ((!formData.propertyId && serviceReference.data?.find(item => item.code === formData.serviceItemCode)?.propertyRequired !== false) || !formData.requestorId)) {
       setError(t('interventions.errors.selectPropertyRequestor'));
       return;
     }
@@ -364,7 +353,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   }
 
   return (
-    <div>
+    <div className="intervention-workspace">
       {/* Header standalone (page /interventions/new). En mode edit, le
           PageHeader est fourni par le parent InterventionEdit. */}
       {!isEditMode && (
@@ -383,49 +372,40 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       )}
 
       <form onSubmit={rhfHandleSubmit(onSubmit)} id="intervention-form">
-        <div className="grid grid-cols-12 gap-3">
-          {/* Informations principales */}
-          <InterventionFormMainInfo
-            control={control}
-            errors={errors}
-            scheduledDatePart={scheduledDatePart}
-            scheduledTimePart={scheduledTimePart}
-            setScheduledDatePart={setScheduledDatePart}
-            setScheduledTimePart={setScheduledTimePart}
-            properties={properties}
-            watchedPropertyId={watchedPropertyId}
-          />
-
-          {/* Informations secondaires */}
-          <div className="col-span-12 min-[900px]:col-span-4">
-            {/* Propriete et demandeur */}
-            <InterventionFormPropertyRequestor
-              control={control}
-              errors={errors}
-              properties={properties}
-              users={users}
-              isAdmin={isAdmin}
-              isManager={isManager}
-            />
-
-            {/* Assignation */}
-            <InterventionFormAssignment
-              control={control}
-              errors={errors}
-              setValue={setValue}
-              users={users}
-              teams={teams}
-              watchedAssignedToType={watchedAssignedToType}
-            />
-
-            {/* Couts et Notes/Photos */}
-            <InterventionFormCostsNotes
-              control={control}
-              errors={errors}
-              isHost={isHost}
-            />
-          </div>
-        </div>
+        <fieldset disabled={saving || loading} className="intervention-columns">
+          <section className="intervention-panel intervention-details">
+            <InterventionFormPropertyRequestor control={control} errors={errors} properties={properties}
+              users={users} isAdmin={isAdmin} isManager={isManager} />
+            <InterventionFormMainInfo section="details" control={control} errors={errors}
+              scheduledDatePart={scheduledDatePart} scheduledTimePart={scheduledTimePart}
+              setScheduledDatePart={setScheduledDatePart} setScheduledTimePart={setScheduledTimePart}
+              properties={properties} watchedPropertyId={watchedPropertyId} />
+            <details className="intervention-extras">
+              <summary className="cursor-pointer text-sm font-medium focus-visible:outline-2">{t('interventions.sections.notesPhotos')}</summary>
+              <InterventionFormCostsNotes section="notes" control={control} errors={errors} isHost={isHost} />
+            </details>
+          </section>
+          <section className="intervention-panel intervention-planning">
+            <div className="intervention-planning-fields">
+              <InterventionFormMainInfo section="schedule" control={control} errors={errors}
+              scheduledDatePart={scheduledDatePart} scheduledTimePart={scheduledTimePart}
+              setScheduledDatePart={setScheduledDatePart} setScheduledTimePart={setScheduledTimePart}
+              properties={properties} watchedPropertyId={watchedPropertyId} />
+              <InterventionFormAssignment control={control} errors={errors} setValue={setValue}
+                users={users} teams={teams} watchedAssignedToType={watchedAssignedToType} />
+              <InterventionFormCostsNotes section="cost" control={control} errors={errors} isHost={isHost} />
+            </div>
+            <div className="intervention-actions">
+              <Button type="submit" disabled={saving || loading} className="w-full cursor-pointer">
+                {saving ? t('common.loading') : t(isEditMode ? 'common.save' : 'interventions.createTitle')}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full cursor-pointer"
+                onClick={() => onClose ? onClose() : navigate(isEditMode ? '/interventions/' + interventionId : '/interventions')}>
+                {t('common.cancel')}
+              </Button>
+            </div>
+          </section>
+        </fieldset>
 
         {/* Bouton de soumission cache pour le PageHeader */}
         <Button

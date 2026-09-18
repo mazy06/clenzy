@@ -170,6 +170,17 @@ class LoginProtectionServiceTest {
     }
 
     @Test
+    void validateCaptchaToken_noSecretKey_missingToken_returnsTrue() {
+        // Sans secret, aucune verification n'est possible : accepter un jeton
+        // present et refuser un jeton absent etait incoherent, et ne refusait
+        // que les clients honnetes. La protection etait nulle dans les deux cas.
+        ReflectionTestUtils.setField(service, "turnstileSecretKey", "");
+
+        assertTrue(service.validateCaptchaToken(null));
+        assertTrue(service.validateCaptchaToken("   "));
+    }
+
+    @Test
     void validateCaptchaToken_noSecretKey_returnsTrue() {
         ReflectionTestUtils.setField(service, "turnstileSecretKey", "");
 

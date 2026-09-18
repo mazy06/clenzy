@@ -6,19 +6,20 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { InterventionFormValues } from '../../schemas';
 
 export interface InterventionFormCostsNotesProps {
+  section: 'cost' | 'notes';
   control: Control<InterventionFormValues>;
   errors: FieldErrors<InterventionFormValues>;
   isHost: () => boolean;
 }
 
 const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = React.memo(
-  ({ control, errors, isHost }) => {
+  ({ control, errors, isHost, section }) => {
     const { t } = useTranslation();
 
     return (
       <>
         {/* Couts - Seulement pour les admins et managers, pas pour les HOST */}
-        {!isHost() && (
+        {section === 'cost' && !isHost() && (
           <Card size="sm">
             <CardContent>
               <h6 className="text-sm font-semibold tracking-tight mb-2">
@@ -54,7 +55,7 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
         )}
 
         {/* Notes et photos */}
-        <Card size="sm" className={isHost() ? undefined : 'mt-[9px]'}>
+        {section === 'notes' && <Card size="sm">
           <CardContent>
             <h6 className="text-sm font-semibold tracking-tight mb-2">
               {t('interventions.sections.notesPhotos')}
@@ -71,7 +72,7 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
                   <Textarea
                     id="intervention-notes"
                     className="w-full"
-                    rows={3}
+                    rows={2}
                     name={field.name}
                     value={field.value ?? ''}
                     onBlur={field.onBlur}
@@ -104,7 +105,7 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
               )}
             />
           </CardContent>
-        </Card>
+        </Card>}
       </>
     );
   }

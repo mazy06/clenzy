@@ -1,6 +1,6 @@
+import type { PublishedPricingModel } from '../../../services/api/housekeeperRatesApi';
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
-import StatusChip from '../../../components/StatusChip';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import {
@@ -23,13 +23,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import {
   housekeeperRatesApi,
   type HousekeeperRates,
-  type HousekeeperPropertyRate,
 } from '../../../services/api/housekeeperRatesApi';
 
 // ─── Tarifs & score d'un prestataire — vue staff plateforme (MM-4A #6) ───────
 // Consomme GET/PUT /housekeeper-rates/user/{userId} (gardes backend :
-// SUPER_ADMIN / SUPER_MANAGER). Score qualité 30 j + taux horaire + forfaits
-// par logement avec le nudge fourchette conseil (jamais bloquant).
+// SUPER_ADMIN / SUPER_MANAGER). Score qualité et tarif horaire global.
 
 interface HousekeeperRatesDialogProps {
   userId: number | null;
@@ -37,34 +35,15 @@ interface HousekeeperRatesDialogProps {
   onClose: () => void;
 }
 
-/** Badge du nudge : « dans le marché » (fourchette conseil) ou écart % neutre. */
-function RateNudge({ amount, rate }: { amount: number | null; rate: HousekeeperPropertyRate }) {
-  const { t } = useTranslation();
-  if (amount == null || amount <= 0) return null;
-  const inMarket = amount >= rate.advisoryMin && amount <= rate.advisoryMax;
-  const deltaPct = rate.advisoryRecommended > 0
-    ? Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100)
-    : 0;
-  // Pastille de statut = primitive StatusChip, qui porte le couple `-ink`/`-soft`
-  // conforme AA, plutot qu'un badge redessine a la main.
-  return (
-    <StatusChip
-      tone={inMarket ? 'ok' : 'neutral'}
-      size="sm"
-      className="whitespace-nowrap tabular-nums"
-      label={inMarket
-        ? t('users.ratesDialog.inMarket', 'Dans le marché')
-        : `${deltaPct > 0 ? '+' : ''}${deltaPct} %`}
-    />
-  );
-}
 
 export default function HousekeeperRatesDialog({ userId, userName, onClose }: HousekeeperRatesDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [hourly, setHourly] = useState('');
-  const [flats, setFlats] = useState<Record<number, string>>({});
+  const [unitLabel, setUnitLabel] = useState('');
+  const [currency, setCurrency] = useState('EUR');
+  const [pricingModel, setPricingModel] = useState<PublishedPricingModel>('HOURLY');
   const [saved, setSaved] = useState(false);
 
   const ratesQuery = useQuery<HousekeeperRates>({
@@ -78,24 +57,19 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
   useEffect(() => {
     const data = ratesQuery.data;
     if (!data) return;
-    setHourly(data.hourlyAmount != null ? String(data.hourlyAmount) : '');
-    const next: Record<number, string> = {};
-    for (const p of data.properties) {
-      if (p.flatAmount != null) next[p.propertyId] = String(p.flatAmount);
-    }
-    setFlats(next);
+    setHourly((data.amount ?? data.hourlyAmount) != null ? String(data.amount ?? data.hourlyAmount) : '');
+    setPricingModel(data.pricingModel && data.pricingModel !== 'ON_QUOTE' ? data.pricingModel : 'HOURLY');
+    setUnitLabel(data.unitLabel ?? '');
+    setCurrency(data.currency ?? 'EUR');
     setSaved(false);
   }, [ratesQuery.data]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const flatRates = Object.entries(flats).flatMap(([propertyId, raw]) => {
-        const amount = parseFloat(raw);
-        return !isNaN(amount) && amount > 0 ? [{ propertyId: Number(propertyId), amount }] : [];
-      });
       return housekeeperRatesApi.updateForUser(userId as number, {
         hourlyAmount: hourly.trim() !== '' && !isNaN(parseFloat(hourly)) ? parseFloat(hourly) : null,
-        flatRates,
+        flatRates: [],
+        currency, pricingModel, ...(pricingModel === 'PER_UNIT' ? { unitLabel } : {}),
       });
     },
     onSuccess: (data) => {
@@ -142,12 +116,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                     {score.score}
                     <span className="text-[13px] text-muted-foreground font-medium">/100</span>
                   </p>
-                  <p className="m-0 text-[12px] text-muted-foreground tabular-nums">
-                    {t('settings.myRates.scoreDetail', {
-                      count: score.completedCount,
-                      proof: Math.round(score.proofRate * 100),
-                    })}
-                  </p>
+
                 </div>
               </div>
             )}
@@ -155,12 +124,12 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
             {/* ── Taux horaire ── */}
             <div>
               <p className="m-0 mb-1 text-2xs font-bold uppercase tracking-[.06em] text-faint">
-                {t('settings.myRates.hourlySection', 'Taux horaire')}
+                {t('providerTariff.title')}
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <Field className="w-[200px]">
                   <FieldLabel htmlFor="housekeeper-rates-hourly">
-                    {t('settings.myRates.hourlyRate', 'Taux horaire')}
+                    {t('providerTariff.amount')}
                   </FieldLabel>
                   <InputGroup>
                     <InputGroupInput
@@ -173,63 +142,40 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                       onChange={(e) => setHourly(e.target.value)}
                     />
                     <InputGroupAddon align="inline-end">
-                      <InputGroupText>€/h</InputGroupText>
+                      <InputGroupText>{currency}{pricingModel === 'HOURLY' ? '/h' : pricingModel === 'PER_SQM' ? '/m²' : ''}</InputGroupText>
                     </InputGroupAddon>
                   </InputGroup>
                 </Field>
+          <Field className="w-[160px]">
+            <FieldLabel htmlFor="tariff-model-staff">{t('providerTariff.model')}</FieldLabel>
+            <select id="tariff-model-staff" className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+              value={pricingModel} onChange={(event) => setPricingModel(event.target.value as PublishedPricingModel)}>
+              <option value="HOURLY">{t('providerTariff.hourly')}</option>
+              <option value="FLAT">{t('providerTariff.flat')}</option>
+              <option value="PER_UNIT">{t('providerTariff.perUnit')}</option>
+              <option value="PER_SQM">{t('providerTariff.perSqm')}</option>
+            </select>
+          </Field>
+          {pricingModel === 'PER_UNIT' && <Field className="w-[160px]">
+            <FieldLabel htmlFor="tariff-unit-staff">{t('providerTariff.unit')}</FieldLabel>
+            <InputGroup><InputGroupInput id="tariff-unit-staff" value={unitLabel} maxLength={40}
+              onChange={(event) => setUnitLabel(event.target.value)} /></InputGroup>
+          </Field>}
+          <Field className="w-[110px]">
+            <FieldLabel htmlFor="tariff-currency-staff">{t('providerTariff.currency')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput id="tariff-currency-staff" value={currency} maxLength={3}
+                onChange={(event) => setCurrency(event.target.value.toUpperCase())} />
+            </InputGroup>
+          </Field>
                 <p className="m-0 text-[12px] text-muted-foreground tabular-nums">
                   {t('settings.myRates.referenceRate', 'Taux de référence plateforme')} : {data.referenceHourlyRate} €/h
                 </p>
               </div>
             </div>
 
-            {/* ── Forfaits par logement + nudge ── */}
-            <div>
-              <p className="m-0 mb-1 text-2xs font-bold uppercase tracking-[.06em] text-faint">
-                {t('settings.myRates.flatSection', 'Forfaits par logement')}
-              </p>
-              {data.properties.length === 0 ? (
-                <p className="m-0 text-[12.5px] text-muted-foreground italic">
-                  {t('settings.myRates.noProperties', 'Aucun logement accessible.')}
-                </p>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  {data.properties.map((property) => {
-                    const raw = flats[property.propertyId] ?? '';
-                    const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
-                    return (
-                      <div className="flex items-center gap-2 flex-wrap" key={property.propertyId}>
-                        <p className="m-0 flex-1 min-w-[140px] text-[13px] font-semibold text-foreground">
-                          {property.propertyName}
-                        </p>
-                        {/* Champ sans libelle visible (le nom du logement est a
-                            gauche) : l'aria-label reste la seule etiquette. */}
-                        <InputGroup className="w-[130px]">
-                          <InputGroupInput
-                            id={`housekeeper-rates-flat-${property.propertyId}`}
-                            type="number"
-                            min={0}
-                            step={1}
-                            className="tabular-nums"
-                            aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
-                            value={raw}
-                            placeholder={String(property.advisoryRecommended)}
-                            onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                          />
-                          <InputGroupAddon align="inline-end">
-                            <InputGroupText>€</InputGroupText>
-                          </InputGroupAddon>
-                        </InputGroup>
-                        <p className="m-0 text-[11.5px] text-muted-foreground tabular-nums whitespace-nowrap">
-                          {property.advisoryMin}–{property.advisoryMax} €
-                        </p>
-                        <RateNudge amount={amount} rate={property} />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground">{t('providerTariff.shared')}</p>
+            {data.needsReview && <p className="text-xs text-muted-foreground">{t('providerTariff.review')}</p>}
 
             {saveMutation.isError && (
               <Alert variant="destructive">

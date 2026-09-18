@@ -1,3 +1,7 @@
+import AssignmentContactForm from '../service-requests/AssignmentContactForm';
+import { MANAGER_ROLES, OPERATIONAL_ROLES } from '../../constants/roles';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
+import MyProviderServices from './MyProviderServices';
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Avatar, AvatarFallback, AvatarImage, Button, Card, CardContent, Spinner } from '../../components/ui';
@@ -22,7 +26,6 @@ import MyCompanyCard from './MyCompanyCard';
 import { CLEANING_ROLES, FIELD_ROLES } from '../../utils/fieldRoles';
 import compactHeaderActions from '../../components/compactHeaderActions';
 
-const PORTAL_STYLE = { display: 'contents' } as const;
 
 /**
  * « Mon compte » — profil et notifications, accessibles a TOUT utilisateur
@@ -40,6 +43,7 @@ export default function MyAccountPage() {
   const { user, hasAnyRole } = useAuth();
   // Profils de terrain : conditions, justificatifs et zone d'intervention les
   // concernent tous. Ils vivaient dans /settings, hors de leur portee.
+  const canReceiveProposals = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
   const isFieldWorker = hasAnyRole([...FIELD_ROLES]);
   /**
    * Seul le circuit MENAGE genere des versements automatiques :
@@ -71,6 +75,12 @@ export default function MyAccountPage() {
       icon: <NotificationsIcon />,
       subtitle: t('account.subtitles.notifications', 'Ce dont vous voulez être averti, et par quel canal.'),
     },
+    ...(canReceiveProposals ? [{
+      key: 'solicitation',
+      label: t('assignmentFlow.contacts.title'),
+      icon: <NotificationsIcon />,
+      subtitle: t('assignmentFlow.contacts.help'),
+    }] : []),
     ...(isFieldWorker
       ? [
         {
@@ -79,6 +89,12 @@ export default function MyAccountPage() {
           icon: <Description />,
           subtitle: t('account.subtitles.documents',
             'Vos conditions de prestation et les justificatifs que votre conciergerie doit conserver.'),
+        },
+        {
+          key: 'services',
+          label: t('providerServices.title'),
+          icon: <Description />,
+          subtitle: t('providerServices.help'),
         },
         {
           key: 'coverage',
@@ -106,7 +122,7 @@ export default function MyAccountPage() {
   const activeTabMeta = tabs.find((tab) => tab.value === activeTab);
   const activeKey = activeTabMeta?.key;
 
-  const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+  const { slot: actionsContainer, portalContainer } = usePageHeaderActionsSlot();
 
   const initials = [user?.firstName?.[0], user?.lastName?.[0]]
     .filter(Boolean)
@@ -121,13 +137,14 @@ export default function MyAccountPage() {
   ];
 
   return (
+    <PageHeaderActionsProvider slot={actionsContainer}>
     <div className="flex flex-1 flex-col min-h-0">
       <div className="shrink-0">
         <PageHeader
           title={activeTabMeta?.label ?? t('account.title', 'Mon compte')}
           subtitle={activeTabMeta?.subtitle}
           showBackButton={false}
-          actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
+          actions={portalContainer}
         />
       </div>
       <div className="shrink-0">
@@ -195,10 +212,11 @@ export default function MyAccountPage() {
             <ProviderDocumentsCard onFileComplete={() => completeStep('upload_provider_documents')} />
           </div>
         )}
+        {activeKey === 'solicitation' && <AssignmentContactForm />}
+        {activeKey === 'services' && <MyProviderServices />}
         {activeKey === 'coverage' && (
           // La zone rend l'intervenant trouvable par l'affectation automatique.
-          // C'est le seul reglage qui decide s'il recoit du travail : il ne se
-          // range pas au milieu de pieces administratives.
+          // Les tarifs, types de logement et disponibilités restent contrôlés aussi.
           <MyCoverageZoneCard onSaved={() => completeStep('setup_coverage_zone')} />
         )}
         {activeKey === 'payouts' && <MyProPayoutsSettings />}
@@ -233,5 +251,6 @@ export default function MyAccountPage() {
         actionsContainer,
       )}
     </div>
+    </PageHeaderActionsProvider>
   );
 }

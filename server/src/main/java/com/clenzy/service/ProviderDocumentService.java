@@ -32,10 +32,14 @@ public class ProviderDocumentService {
      * Formats acceptes. Liste BLANCHE et non liste noire : tout ce qui n'est pas
      * explicitement un document ou une image est refuse, y compris les archives
      * et les fichiers executables.
+     *
+     * <p>Partagee avec le depot des candidats sans compte : deux copies de la
+     * meme liste de securite finiraient par diverger.</p>
      */
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+    public static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf", "image/jpeg", "image/png", "image/heic", "image/webp");
 
+    private final com.clenzy.marketplace.service.ProviderDocumentaryService documentary;
     private final ProviderDocumentRepository repository;
     private final UserRepository userRepository;
     private final PhotoStorageService storageService;
@@ -44,7 +48,8 @@ public class ProviderDocumentService {
     public ProviderDocumentService(ProviderDocumentRepository repository,
                                    UserRepository userRepository,
                                    PhotoStorageService storageService,
-                                   TenantContext tenantContext) {
+                                   TenantContext tenantContext, com.clenzy.marketplace.service.ProviderDocumentaryService documentary) {
+        this.documentary=documentary;
         this.repository = repository;
         this.userRepository = userRepository;
         this.storageService = storageService;
@@ -124,19 +129,16 @@ public class ProviderDocumentService {
 
     /**
      * Le dossier est-il complet : une piece VALIDE et non perimee pour chacun
-     * des trois justificatifs obligatoires. C'est ce que lit l'onboarding.
+     * du contexte documentaire approuvé. C'est ce que lit l'onboarding.
      */
     @Transactional(readOnly = true)
     public boolean hasCompleteFile(Long userId) {
-        List<ProviderDocument> documents = repository.findByUserIdOrderByCreatedAtDesc(userId);
-        return REQUIRED_TYPES.stream().allMatch(type -> documents.stream()
-                .anyMatch(doc -> doc.getDocumentType() == type && doc.isCurrentlyValid()));
+        return documentary.completeForUser(userId);
     }
 
-    /** Pieces sans lesquelles un intervenant ne peut pas travailler legalement. */
+    /** Pièces métier de base ; les exigences nationales dépendent de la revue documentaire. */
     public static final List<ProviderDocument.DocumentType> REQUIRED_TYPES = List.of(
             ProviderDocument.DocumentType.COMPANY_REGISTRATION,
-            ProviderDocument.DocumentType.URSSAF_VIGILANCE,
             ProviderDocument.DocumentType.LIABILITY_INSURANCE);
 
     public record DownloadPayload(byte[] data, String contentType, String fileName) {}

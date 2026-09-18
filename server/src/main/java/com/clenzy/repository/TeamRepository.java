@@ -15,6 +15,17 @@ import java.util.Optional;
 
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
+    @Query(value = "SELECT t.* FROM teams t JOIN personal_capability_owners owner ON owner.team_id=t.id WHERE owner.user_id=:userId", nativeQuery = true)
+    Optional<Team> findCanonicalPersonalTeam(@Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = "INSERT INTO personal_capability_owners(user_id,team_id) SELECT :userId,min(id) FROM teams WHERE personal_user_id=:userId HAVING count(*)>0 ON CONFLICT(user_id) DO NOTHING", nativeQuery = true)
+    void registerPersonalCapabilityOwner(@Param("userId") Long userId);
+
+    /** Appartenance explicite : une équipe peut servir une autre organisation. */
+    @Query(value = "SELECT t.* FROM teams t JOIN team_members m ON m.team_id = t.id "
+            + "WHERE m.user_id = :userId AND t.personal_user_id IS NULL", nativeQuery = true)
+    List<Team> findRealTeamsForMember(@Param("userId") Long userId);
 
     /**
      * Id + nom des équipes de l'org (Rapports Baitly) — projection légère,

@@ -1,3 +1,5 @@
+import ServiceCapabilitySelect from '../../components/ServiceCapabilitySelect';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 import { resolveMediaUrl } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
@@ -51,6 +53,7 @@ interface TeamFormData {
   name: string;
   description: string;
   interventionType: string;
+  serviceItemCodes: string[];
   members: TeamMember[];
   coverageZones: CoverageZone[];
 }
@@ -92,7 +95,8 @@ const TeamEdit: React.FC = () => {
   const [formData, setFormData] = useState<TeamFormData>({
     name: '',
     description: '',
-    interventionType: 'CLEANING',
+    interventionType: 'OTHER',
+    serviceItemCodes: [],
     members: [],
     coverageZones: [],
   });
@@ -128,7 +132,8 @@ const TeamEdit: React.FC = () => {
       setFormData({
         name: teamData.name || '',
         description: teamData.description || '',
-        interventionType: teamData.interventionType || 'CLEANING',
+        interventionType: teamData.interventionType || 'OTHER',
+        serviceItemCodes: teamData.serviceItemCodes ?? [],
         members: (teamData.members || []).map(m => ({
           userId: m.userId ?? m.id,
           firstName: m.firstName,
@@ -162,6 +167,7 @@ const TeamEdit: React.FC = () => {
         name: data.name,
         description: data.description,
         interventionType: data.interventionType,
+        serviceItemCodes: data.serviceItemCodes,
         members: data.members.map(m => ({ userId: m.userId, role: m.role })),
         coverageZones: data.coverageZones,
       };
@@ -175,7 +181,7 @@ const TeamEdit: React.FC = () => {
       }, 1500);
     },
     onError: (err: Error) => {
-      setError(err?.message || 'Erreur lors de la mise à jour');
+      setError(getErrorMessage(err, 'Erreur lors de la mise à jour'));
     },
   });
 
@@ -341,27 +347,8 @@ const TeamEdit: React.FC = () => {
               <div>
                 {/* Liste riche (une icone par categorie) : le Select du kit, pas
                     le select natif qui ne sait rendre que du texte. */}
-                <Field>
-                  <FieldLabel htmlFor="team-intervention-type">Type de service *</FieldLabel>
-                  <Select
-                    value={formData.interventionType}
-                    onValueChange={(value) => handleInputChange('interventionType', value)}
-                  >
-                    <SelectTrigger id="team-intervention-type" className="w-full">
-                      <SelectValue placeholder="Choisir un type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teamServiceCategories.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          <span className="flex items-center gap-1">
-                            {cat.icon}
-                            {cat.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
+                <ServiceCapabilitySelect value={formData.serviceItemCodes}
+                  onChange={(codes) => setFormData(previous => ({ ...previous, serviceItemCodes: codes }))} />
               </div>
             </div>
 

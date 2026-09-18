@@ -24,11 +24,11 @@ public class UserOnboardingService {
 
     private static final Logger log = LoggerFactory.getLogger(UserOnboardingService.class);
 
+    private final com.clenzy.service.assignment.AssignmentContactPreferences contactPreferences;
     private final UserOnboardingRepository repository;
     private final ProviderDocumentService providerDocumentService;
-    private final PersonalTeamService personalTeamService;
-    private final com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository;
-    private final com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository;
+    private final com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones;
+    private final com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
@@ -46,7 +46,7 @@ public class UserOnboardingService {
      */
     private static final Set<String> REVERTABLE_STEPS = Set.of(
         "configure_org", "setup_fiscal", "setup_payment", "setup_general",
-        "complete_profile", "create_property", "configure_details"
+        "complete_profile", "create_property", "configure_details", "setup_assignment_contacts"
     );
 
     /**
@@ -75,15 +75,15 @@ public class UserOnboardingService {
             "complete_profile", "create_property", "configure_details",
             "define_pricing", "connect_channels", "setup_notifications", "setup_payouts"
         )),
-        Map.entry(UserRole.HOUSEKEEPER, List.of("complete_profile", "setup_notifications",
+        Map.entry(UserRole.HOUSEKEEPER, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications",
             "accept_provider_terms", "upload_provider_documents", "setup_payout_account",
             "setup_coverage_zone", "setup_availability", "setup_rates", "view_interventions")),
-        Map.entry(UserRole.TECHNICIAN, List.of("complete_profile", "setup_notifications",
+        Map.entry(UserRole.TECHNICIAN, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications",
             "accept_provider_terms", "upload_provider_documents", "setup_payout_account",
             "setup_coverage_zone", "setup_availability", "setup_rates", "view_interventions")),
-        Map.entry(UserRole.SUPERVISOR, List.of("complete_profile", "setup_notifications", "create_team", "view_interventions")),
-        Map.entry(UserRole.LAUNDRY, List.of("complete_profile", "setup_notifications", "view_interventions")),
-        Map.entry(UserRole.EXTERIOR_TECH, List.of("complete_profile", "setup_notifications", "view_interventions"))
+        Map.entry(UserRole.SUPERVISOR, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "create_team", "view_interventions")),
+        Map.entry(UserRole.LAUNDRY, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "view_interventions")),
+        Map.entry(UserRole.EXTERIOR_TECH, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "view_interventions"))
     );
 
     public UserOnboardingService(UserOnboardingRepository repository,
@@ -97,14 +97,14 @@ public class UserOnboardingService {
                                   PaymentMethodConfigRepository paymentMethodConfigRepository,
                                   ICalFeedRepository icalFeedRepository,
                                   ProviderDocumentService providerDocumentService,
-                                  PersonalTeamService personalTeamService,
-                                  com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository,
-                                  com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository) {
+                                  com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones,
+                                  com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository,
+                                  com.clenzy.service.assignment.AssignmentContactPreferences contactPreferences) {
+        this.contactPreferences = contactPreferences;
         this.repository = repository;
         this.userRepository = userRepository;
         this.providerDocumentService = providerDocumentService;
-        this.personalTeamService = personalTeamService;
-        this.teamCoverageZoneRepository = teamCoverageZoneRepository;
+        this.providerZones = providerZones;
         this.weeklyAvailabilityRepository = weeklyAvailabilityRepository;
         this.organizationRepository = organizationRepository;
         this.organizationMemberRepository = organizationMemberRepository;
@@ -184,6 +184,8 @@ public class UserOnboardingService {
 
     @Transactional
     public void completeStep(Long userId, UserRole role, String stepKey, Long organizationId) {
+        if ("setup_assignment_contacts".equals(stepKey) && !contactPreferences.isConfigured(userId))
+            throw new IllegalStateException("Enregistrez vos horaires de sollicitation avant de terminer cette étape");
         final UserOnboarding step = repository
             .findByUserIdAndRoleAndStepKey(userId, role, stepKey)
             .orElseGet(() -> repository.save(new UserOnboarding(userId, role, stepKey, organizationId)));
@@ -243,6 +245,7 @@ public class UserOnboardingService {
                 case "setup_payouts" -> false; // Requires explicit bank info — sensitive, no auto-check
 
                 // ── Operational steps ──
+                case "setup_assignment_contacts" -> contactPreferences.isConfigured(userId);
                 case "create_team" -> false; // Requires explicit team creation via form
                 case "view_interventions" -> false; // Requires the user to visit the page at least once
                 // Le compte de versement et les tarifs se declarent depuis
@@ -250,21 +253,15 @@ public class UserOnboardingService {
                 // automatique ici (une auto-completion prematurée ferait croire
                 // l'intervenant paye alors que son compte Stripe n'existe pas).
                 case "setup_payout_account", "setup_rates" -> false;
-                // La zone se DEDUIT : elle vit dans team_coverage_zones, portee
-                // par l'equipe personnelle de l'intervenant. Rien a declarer.
+                // La zone et les horaires sont lus sur les référentiels individuels.
                 // Les disponibilites sont OPTIONNELLES : ne rien declarer laisse
                 // disponible. L'etape se coche donc des qu'un creneau existe, et
                 // reste passable sinon.
                 case "setup_availability" -> userOpt
-                        .map(u -> personalTeamService.find(u.getId())
-                                .map(team -> !weeklyAvailabilityRepository
-                                        .findByTeamIdOrderByDayOfWeekAscStartTimeAsc(team.getId()).isEmpty())
-                                .orElse(false))
+                        .map(u -> weeklyAvailabilityRepository.restricted(u.getId()))
                         .orElse(false);
                 case "setup_coverage_zone" -> userOpt
-                        .map(u -> personalTeamService.find(u.getId())
-                                .map(team -> !teamCoverageZoneRepository.findByTeamId(team.getId()).isEmpty())
-                                .orElse(false))
+                        .map(u -> providerZones.existsByUserId(u.getId()))
                         .orElse(false);
                 // Celle-ci se deduit : l'acceptation est en base, inutile
                 // d'attendre un appel /complete que l'ecran pourrait rater.

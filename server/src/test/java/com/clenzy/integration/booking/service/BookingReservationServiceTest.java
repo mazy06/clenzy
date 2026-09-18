@@ -52,7 +52,7 @@ class BookingReservationServiceTest {
                 serviceRequestRepository,
                 propertyRepository,
                 auditLogService
-        );
+        , com.clenzy.service.CatalogTestFixture.reference());
     }
 
     private Map<String, Object> buildEvent(String eventType, Map<String, Object> data) {

@@ -6,6 +6,7 @@ import type { ServiceRequest } from './serviceRequestsUtils';
 import { statusCssColors, priorityCssColors } from './serviceRequestsUtils';
 import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
 import PagePagination from '../../components/PagePagination';
+import RequestCommercialDetails, { RequestCommercialBatch } from './RequestCommercialDetails';
 
 interface ServiceRequestsGridViewProps {
   serviceRequests: ServiceRequest[];
@@ -37,10 +38,13 @@ const ServiceRequestsGridView: React.FC<ServiceRequestsGridViewProps> = ({
   typeIcons, statuses, priorities, statusColors, priorityColors,
 }) => (
   <>
+    <RequestCommercialBatch ids={serviceRequests.map(request=>Number(request.id))}>
     <div className="grid grid-cols-12 gap-3">
       {serviceRequests.map((request) => (
         <div className="col-span-12 min-[900px]:col-span-6 min-[1200px]:col-span-4" key={request.id} data-highlight-id={String(request.id)}>
           <ServiceRequestCard
+            commercialDetails={<RequestCommercialDetails id={request.id} interventionId={request.interventionId} status={request.status} estimate={request.estimatedCost}
+              assignmentPhase={request.assignmentPhase} assignmentExpiresAt={request.assignmentExpiresAt} autoAssignStatus={request.autoAssignStatus} />}
             // L'echeance est preformatee (la carte l'affiche telle quelle),
             // les couleurs passees sont les jetons CSS, et type / statut /
             // priorite remontent en MAJUSCULES : les listes d'options et les
@@ -63,6 +67,7 @@ const ServiceRequestsGridView: React.FC<ServiceRequestsGridViewProps> = ({
         </div>
       ))}
     </div>
+    </RequestCommercialBatch>
     {totalCount > ITEMS_PER_PAGE && (
       <PagePagination
         count={totalCount}

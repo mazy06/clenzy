@@ -11,10 +11,16 @@ import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } fro
 // ============================================================================
 
 export interface ServiceRequest {
+  assignmentPhase?: string | null;
+  assignmentExpiresAt?: string | null;
+  autoAssignStatus?: string | null;
   id: string;
+  interventionId?: number;
+  version?: number;
   title: string;
   description: string;
   type: string;
+  serviceItemCode?: string;
   status: string;
   priority: string;
   propertyId: number;
@@ -34,6 +40,22 @@ export interface ServiceRequest {
   propertyLongitude?: number;
 }
 
+/** Une demande clôturée ne devient jamais en retard. */
+export function isServiceRequestOverdue(request: Pick<ServiceRequest, "status" | "dueDate">, now = Date.now()): boolean {
+  return !["COMPLETED", "CANCELLED", "REJECTED"].includes(request.status.toUpperCase())
+    && !!request.dueDate && new Date(request.dueDate).getTime() < now;
+}
+
+/** Retards en premier, du plus ancien au plus récent ; ordre conservé pour le reste. */
+export function overdueServiceRequestsFirst<T extends Pick<ServiceRequest, "status" | "dueDate">>(requests: readonly T[], now = Date.now()): T[] {
+  return [...requests].sort((a, b) => {
+    const aLate = isServiceRequestOverdue(a, now);
+    const bLate = isServiceRequestOverdue(b, now);
+    return Number(bLate) - Number(aLate)
+      || (aLate && bLate ? new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime() : 0);
+  });
+}
+
 export interface AssignTeam {
   id: number;
   name: string;
@@ -47,10 +69,16 @@ export interface AssignUser {
 }
 
 export interface ServiceRequestApiResponse {
+  assignmentPhase?: string | null;
+  assignmentExpiresAt?: string | null;
+  autoAssignStatus?: string | null;
   id: number;
+  interventionId?: number;
+  version?: number;
   title: string;
   description: string;
   type?: string;
+  serviceItemCode?: string;
   serviceType?: string;
   status?: string;
   priority?: string;

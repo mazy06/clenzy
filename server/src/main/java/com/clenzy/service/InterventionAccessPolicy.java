@@ -46,6 +46,14 @@ public class InterventionAccessPolicy {
             Long callerOrgId = tenantContext.getRequiredOrganizationId();
             if (intervention.getOrganizationId() != null
                     && !intervention.getOrganizationId().equals(callerOrgId)) {
+                // L'affectation est un droit sur cette mission seulement, même
+                // lorsque le prestataire possède sa propre organisation.
+                try {
+                    requireAssignee(intervention, jwt);
+                    return;
+                } catch (UnauthorizedException denied) {
+                    // Conserver le refus tenant pour toute autre ressource.
+                }
                 log.warn("Cross-tenant access attempt: intervention orgId={} vs caller orgId={}",
                         intervention.getOrganizationId(), callerOrgId);
                 throw new UnauthorizedException("Acces refuse : intervention hors de votre organisation");
@@ -77,6 +85,8 @@ public class InterventionAccessPolicy {
 
         if (userRole == UserRole.HOST) {
             Property prop = intervention.getProperty();
+            if (prop == null && intervention.getRequestor() != null
+                    && userId.equals(intervention.getRequestor().getId())) return;
             if (prop != null && prop.getOwner() != null && prop.getOwner().getId().equals(userId)) {
                 return;
             }

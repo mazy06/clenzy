@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:site": "vite --config vite.site.config.ts",
-    "build:site": "vite build --config vite.site.config.ts",
+    "typecheck:site": "tsc --noEmit -p tsconfig.site.json",
+    "build:site": "npm run typecheck:site && vite build --config vite.site.config.ts",
     "build:sdk": "vite build --config vite.config.sdk.ts",
     "prebuild": "vite build --config vite.config.sdk.ts",
     "build": "tsc -b && vite build",

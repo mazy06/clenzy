@@ -1,3 +1,4 @@
+import ProviderPropertyTypes from './ProviderPropertyTypes';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -6,8 +7,6 @@ import {
   Card,
   CardContent,
   Input,
-  NativeSelect,
-  NativeSelectOption,
   Spinner,
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -25,8 +24,7 @@ interface Props {
   onSaved?: () => void;
 }
 
-/** Pays proposes — la maille de zone en depend, pas seulement le libelle. */
-const COUNTRIES = ['FR', 'MA', 'ES', 'PT', 'IT', 'BE', 'CH'];
+
 
 const emptyZone = (country = 'FR'): CoverageZoneInput => ({
   country,
@@ -53,14 +51,20 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
   const [zones, setZones] = useState<CoverageZoneInput[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
+    let active = true;
     myCoverageZonesApi.getMine()
-      .then((loaded: CoverageZone[]) => setZones(loaded.map(({ id: _id, ...rest }) => rest)))
+      .then((loaded: CoverageZone[]) => {
+        if (active) setZones(loaded.map(({ id: _id, ...rest }) => rest));
+      })
       .catch(() => {
-        setZones([]);
+        if (!active) return;
+        setLoadFailed(true);
         setError(t('coverageZone.loadError', 'Impossible de charger votre zone.'));
       });
+    return () => { active = false; };
   }, [t]);
 
   const update = (index: number, patch: Partial<CoverageZoneInput>) => {
@@ -74,8 +78,13 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
   };
 
   const save = async () => {
-    const cleaned = (zones ?? []).filter((zone) =>
-      zone.country === 'FR' ? !!zone.department?.trim() : !!zone.city?.trim());
+    if (zones === null || loadFailed) return;
+    const cleaned = zones;
+    if (cleaned.some((zone) => !/^[A-Z]{2}$/.test(zone.country)
+      || (zone.country === 'FR' ? !zone.department?.trim() : !zone.city?.trim()))) {
+      setError(t('coverageZone.incomplete', 'Complétez chaque secteur ou retirez les lignes inutiles.'));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -104,7 +113,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Room size={16} strokeWidth={1.75} className="text-muted-foreground" />
-            <p className="m-0 text-2xs font-bold uppercase tracking-wider text-faint">
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t('coverageZone.title', "Ma zone d'intervention")}
             </p>
           </div>
@@ -122,7 +131,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
 
         <p className="m-0 text-xs text-muted-foreground">
           {t('coverageZone.help',
-            "Sans zone déclarée, les missions ne vous sont pas proposées automatiquement — un gestionnaire doit vous désigner à la main.")}
+            "Ces zones s’appliquent à toutes les conciergeries avec lesquelles vous travaillez. Sans zone déclarée, un gestionnaire doit vous attribuer les missions manuellement.")}
         </p>
 
         {error && (
@@ -132,7 +141,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
           </Alert>
         )}
 
-        {zones === null ? (
+        {loadFailed ? null : zones === null ? (
           <div className="flex justify-center py-5"><Spinner className="size-6" /></div>
         ) : (
           <>
@@ -146,15 +155,10 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
                     <label className="text-xs text-muted-foreground" htmlFor={`zone-country-${index}`}>
                       {t('coverageZone.country', 'Pays')}
                     </label>
-                    <NativeSelect
-                      id={`zone-country-${index}`}
-                      value={zone.country}
-                      onChange={(event) => changeCountry(index, event.target.value)}
-                    >
-                      {COUNTRIES.map((code) => (
-                        <NativeSelectOption key={code} value={code}>{code}</NativeSelectOption>
-                      ))}
-                    </NativeSelect>
+                    <Input id={`zone-country-${index}`} value={zone.country} maxLength={2}
+                      placeholder="MA" aria-label={t('coverageZone.country', 'Pays')}
+                      onChange={(event) => changeCountry(index, event.target.value.toUpperCase())} />
+
                   </div>
 
                   {zone.country === 'FR' ? (
@@ -229,6 +233,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
             </div>
           </>
         )}
+        <ProviderPropertyTypes />
       </CardContent>
     </Card>
   );

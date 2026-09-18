@@ -45,10 +45,13 @@ class InterventionServiceTest {
     @Mock private InterventionPhotoService photoService;
     @Mock private InterventionMapper interventionMapper;
     @Mock private InterventionAccessPolicy accessPolicy;
+    @Mock private com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     @Mock private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
     @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
     @Mock private com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
+    @Mock private InterventionAllocationGuard allocationGuard;
+    @Mock private com.clenzy.service.assignment.InterventionRequestIntake intake;
     private InterventionService service;
 
     private Property property;
@@ -62,7 +65,7 @@ class InterventionServiceTest {
                 notificationService, tenantContext,
                 photoService, interventionMapper, accessPolicy,
                 cleaningPricingEngine, missionAssignmentEmailComposer, propertyPhotoRepository,
-                supervisionTriggerService);
+                supervisionTriggerService, serviceQuoteRepository, allocationGuard, intake);
 
         owner = new User();
         owner.setId(10L);
@@ -127,67 +130,47 @@ class InterventionServiceTest {
         return intervention;
     }
 
-    @Nested
-    @DisplayName("create(request, jwt)")
-    class Create {
+    @Test
+    void assignmentUsesFinalDurationAndConflictPreventsSaveAndNotification() {
+        var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+        intervention.setEstimatedDurationHours(1);
+        var team = new Team(); team.setId(7L);
+        var request = new UpdateInterventionRequest(null, null, null, null, 3, null, null, "team", 7L);
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+        when(teamRepository.findById(7L)).thenReturn(Optional.of(team));
+        doAnswer(inv -> { intervention.setEstimatedDurationHours(3); return null; })
+                .when(interventionMapper).applyUpdateDetails(request, intervention);
+        doAnswer(inv -> {
+            assertThat(intervention.getEstimatedDurationHours()).isEqualTo(3);
+            throw new com.clenzy.exception.AssignmentConflictException();
+        }).when(allocationGuard).requireAvailable(intervention);
 
-        @Test
-        @DisplayName("HOST user creates intervention with AWAITING_VALIDATION status")
-        void whenHostCreates_thenStatusIsAwaitingValidation() {
-            Jwt jwt = mockJwtWithRole("HOST");
-            CreateInterventionRequest request = buildCreateRequest();
+        assertThatThrownBy(() -> service.update(1L, request, mockJwtWithRole("SUPER_MANAGER")))
+                .isInstanceOf(com.clenzy.exception.AssignmentConflictException.class);
+        verify(interventionRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
+    }
 
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
+    @Test
+    void creationDelegatesToTheNeedIntakeWithoutPersistingAnIntervention() {
+        var jwt = mockJwtWithRole("HOST");
+        var request = buildCreateRequest();
+        var need = new com.clenzy.dto.ServiceRequestDto();
+        need.id = 45L;
+        when(intake.create(request, jwt)).thenReturn(need);
 
-            InterventionResponse resultResponse = InterventionResponse.builder()
-                    .id(1L).title("Reparation fuite").status("AWAITING_VALIDATION")
-                    .propertyName("Appartement Paris").build();
-            when(interventionMapper.convertToResponse(any(Intervention.class))).thenReturn(resultResponse);
+        assertThat(service.create(request, jwt)).isSameAs(need);
+        verify(intake).create(request, jwt);
+        verifyNoInteractions(interventionRepository, notificationService);
+    }
 
-            InterventionResponse result = service.create(request, jwt);
-
-            assertThat(result.status()).isEqualTo("AWAITING_VALIDATION");
-            assertThat(result.estimatedCost()).isNull();
-            verify(interventionMapper).apply(eq(request), any(Intervention.class));
-            verify(interventionRepository).save(any(Intervention.class));
-        }
-
-        @Test
-        @DisplayName("platform staff creates intervention with PENDING status")
-        void whenPlatformStaffCreates_thenStatusIsPending() {
-            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
-            CreateInterventionRequest request = buildCreateRequest();
-
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
-
-            InterventionResponse resultResponse = buildResultResponse(1L, "PENDING", "Reparation fuite");
-            when(interventionMapper.convertToResponse(any(Intervention.class))).thenReturn(resultResponse);
-
-            InterventionResponse result = service.create(request, jwt);
-
-            assertThat(result.status()).isEqualTo("PENDING");
-            verify(interventionRepository).save(any(Intervention.class));
-        }
-
-        @Test
-        @DisplayName("unauthorized role throws UnauthorizedException")
-        void whenUnauthorizedRole_thenThrows() {
-            Jwt jwt = mockJwtWithRole("TECHNICIAN");
-            CreateInterventionRequest request = buildCreateRequest();
-
-            assertThatThrownBy(() -> service.create(request, jwt))
-                    .isInstanceOf(UnauthorizedException.class);
-        }
+    @Test
+    void creationCannotBypassIntakeAuthorization() {
+        var jwt = mockJwtWithRole("TECHNICIAN");
+        var request = buildCreateRequest();
+        when(intake.create(request, jwt)).thenThrow(new UnauthorizedException("Accès refusé"));
+        assertThatThrownBy(() -> service.create(request, jwt)).isInstanceOf(UnauthorizedException.class);
+        verifyNoInteractions(interventionRepository);
     }
 
     @Nested
@@ -212,7 +195,7 @@ class InterventionServiceTest {
             InterventionResponse result = service.update(1L, updateRequest, jwt);
 
             assertThat(result.title()).isEqualTo("Updated Title");
-            verify(interventionMapper).applyUpdate(eq(updateRequest), eq(intervention));
+            verify(interventionMapper).applyUpdateDetails(eq(updateRequest), eq(intervention));
             verify(interventionRepository).save(intervention);
         }
 
@@ -308,6 +291,22 @@ class InterventionServiceTest {
     @Nested
     @DisplayName("assign(id, userId, teamId, jwt)")
     class Assign {
+
+        @Test
+        void acceptedQuotePreventsAssigningACompetitor() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            var quote = new com.clenzy.model.ServiceQuote();
+            quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
+            quote.setProviderUserId(99L);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(serviceQuoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                    1L, intervention.getOrganizationId())).thenReturn(List.of(quote));
+
+            assertThatThrownBy(() -> service.assign(1L, technician.getId(), null, jwt))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("devis accepté");
+            verify(interventionRepository, never()).save(any());
+        }
 
         @Test
         @DisplayName("assigns user and clears team")
@@ -717,52 +716,12 @@ class InterventionServiceTest {
         }
     }
 
-    @Nested
-    @DisplayName("create - notification side effects")
-    class CreateNotifications {
-        @Test
-        @DisplayName("HOST sends AWAITING_VALIDATION notification")
-        void hostCreate_sendsAwaitingValidation() {
-            Jwt jwt = mockJwtWithRole("HOST");
-            CreateInterventionRequest request = buildCreateRequest();
-
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention saved = inv.getArgument(0);
-                saved.setId(1L);
-                saved.setProperty(property);
-                return saved;
-            });
-            InterventionResponse resp = buildResultResponse(1L, "AWAITING_VALIDATION", "Reparation fuite");
-            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
-
-            service.create(request, jwt);
-
-            verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any(), any(Map.class));
-        }
-
-        @Test
-        @DisplayName("platform staff sends INTERVENTION_CREATED notification")
-        void platformStaffCreate_sendsCreated() {
-            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
-            CreateInterventionRequest request = buildCreateRequest();
-
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention saved = inv.getArgument(0);
-                saved.setId(1L);
-                saved.setProperty(property);
-                return saved;
-            });
-            InterventionResponse resp = buildResultResponse(1L, "PENDING", "Reparation fuite");
-            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
-
-            service.create(request, jwt);
-
-            verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.INTERVENTION_CREATED), any(), any(), any(), any(Map.class));
-        }
+    @Test
+    void noExecutionNotificationIsSentBeforeProviderAgreement() {
+        var jwt = mockJwtWithRole("SUPER_ADMIN");
+        service.create(buildCreateRequest(), jwt);
+        verify(intake).create(any(), eq(jwt));
+        verifyNoInteractions(notificationService, interventionRepository);
     }
 
     @Nested

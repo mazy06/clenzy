@@ -19,7 +19,43 @@ import java.util.Set;
     condition = "organization_id = :orgId"
 )
 public class ServiceRequest {
+
+    /** Null désigne les données historiques à qualifier, sans échéance inventée. */
+    @Column(name = "assignment_phase", length = 24)
+    private String assignmentPhase;
+    @Column(name = "assignment_cycle", nullable = false)
+    private int assignmentCycle = 1;
+    @Column(name = "converted_intervention_id")
+    private Long convertedInterventionId;
+
+    public String getAssignmentPhase() { return assignmentPhase; }
+    public void setAssignmentPhase(String value) { assignmentPhase = value; }
+    public int getAssignmentCycle() { return assignmentCycle; }
+    public void setAssignmentCycle(int value) { assignmentCycle = value; }
+    public Long getConvertedInterventionId() { return convertedInterventionId; }
+    public void setConvertedInterventionId(Long value) { convertedInterventionId = value; }
+
+    // Le scheduler et les décisions humaines doivent détecter une écriture périmée.
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    public long getVersion() { return version; }
     
+    /** Référence précise du catalogue PMS, distincte du type historique de compatibilité. */
+    @Column(name = "service_item_code", length = 60)
+    private String serviceItemCode;
+
+    public String getServiceItemCode() { return serviceItemCode; }
+    public void setServiceItemCode(String value) { serviceItemCode = value; }
+
+    /** Origine commerciale : sa décision reste pilotée par le devis. */
+    @Column(name = "marketplace_request_id")
+    private Long marketplaceRequestId;
+
+    public Long getMarketplaceRequestId() { return marketplaceRequestId; }
+    public void setMarketplaceRequestId(Long value) { marketplaceRequestId = value; }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -98,7 +134,7 @@ public class ServiceRequest {
     @Column(name = "guest_checkin_time")
     private LocalDateTime guestCheckinTime;
     
-    @Column(name = "is_urgent")
+    @Column(name = "is_urgent", nullable = false)
     private boolean urgent = false;
     
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -127,7 +163,7 @@ public class ServiceRequest {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "property_id", nullable = false)
+    @JoinColumn(name = "property_id")
     private Property property;
     
     // Assignation de la demande de service

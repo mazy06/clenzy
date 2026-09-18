@@ -1,0 +1,33 @@
+/* Baitly intervention workspace, sharing the compact request composer hierarchy. */
+.intervention-workspace { position:relative; display:flex; flex-direction:column; height:100%; min-height:0; }
+#intervention-form { flex:1; min-height:0; padding:8px; overflow:auto; }
+.intervention-columns { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:12px; padding:0; margin:0; border:0; min-width:0; }
+.intervention-panel { min-width:0; padding:12px; border:1px solid var(--bui-border); border-radius:12px; background:var(--bui-card); }
+.intervention-workspace [data-slot="card"] { border:0; border-radius:0; box-shadow:none; padding:0; margin:0; gap:0; background:transparent; flex-shrink:0; overflow:visible; }
+.intervention-workspace [data-slot="card-content"] { padding:0; flex-shrink:0; overflow:visible; }
+.intervention-workspace [data-slot="field"] { gap:4px; min-width:0; }
+.intervention-workspace p, .intervention-workspace h6 { margin:0; }
+.intervention-workspace h6 { margin-bottom:8px; }
+.intervention-workspace textarea { min-height:52px; resize:none; }
+.intervention-workspace input[type="number"], .intervention-workspace input[type="date"], .intervention-workspace input[type="time"] { font-variant-numeric:tabular-nums; min-width:0; width:100%; }
+.intervention-panel > :not(:first-child), .intervention-planning-fields > :not(:first-child) { margin-top:12px; padding-top:12px; border-top:1px solid var(--bui-border); }
+.intervention-catalog .composer-results { max-height:240px; overflow-y:auto; }
+.intervention-actions { display:grid; gap:4px; }
+.intervention-extras[open] { max-height:240px; overflow:auto; }
+@media(min-width:1024px) and (min-height:650px) {
+  .intervention-workspace { overflow:clip; }
+  .intervention-columns { height:100%; min-height:0; }
+  .intervention-panel { height:100%; min-height:0; display:flex; flex-direction:column; }
+  .intervention-planning-fields { flex:1; min-height:0; overflow:auto; }
+  .intervention-details { overflow:auto; }
+  .intervention-details > div:not([data-slot]) { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .intervention-details > div:not([data-slot]) > [data-slot="card"],
+  .intervention-details > div:not([data-slot]) > [data-slot="card"] > [data-slot="card-content"] { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .intervention-details > div:not([data-slot]) [data-slot="card-content"] > .grid { flex:1; min-height:0; grid-template-rows:auto auto minmax(0,1fr); }
+  .intervention-catalog, .intervention-catalog .composer-picker { min-height:0; display:flex; flex-direction:column; }
+  .intervention-catalog .composer-picker { flex:1; }
+  .intervention-catalog .composer-results { flex:1; min-height:0; max-height:none; }
+  .intervention-extras { flex-shrink:0; }
+  .intervention-actions { flex-shrink:0; }
+}
+@media(max-width:1023px) { .intervention-columns { grid-template-columns:minmax(0,1fr); } }

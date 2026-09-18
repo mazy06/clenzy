@@ -32,6 +32,7 @@ export interface Team {
   name: string;
   description: string;
   interventionType: string;
+  serviceItemCodes?: string[];
   memberCount: number;
   members?: TeamMember[];
   coverageZones?: CoverageZone[];
@@ -47,6 +48,7 @@ export interface TeamFormData {
   name: string;
   description: string;
   interventionType: string;
+  serviceItemCodes?: string[];
   members: { userId: number; role: string }[];
   coverageZones?: CoverageZone[];
 }
@@ -62,7 +64,16 @@ export const teamsApi = {
    * « .filter is not a function ».
    */
   async getAll(): Promise<Team[]> {
-    return extractApiList<Team>(await apiClient.get<unknown>('/teams'));
+    const first = await apiClient.get<unknown>('/teams');
+    const rows = extractApiList<Team>(first);
+    if (!first || typeof first !== 'object' || Array.isArray(first)) return rows;
+    const page = first as { totalPages?: number; size?: number };
+    if (!Number.isInteger(page.totalPages) || !page.totalPages || page.totalPages <= 1) return rows;
+    const size = Number.isInteger(page.size) && page.size! > 0 ? page.size! : 20;
+    for (let index = 1; index < page.totalPages; index++) {
+      rows.push(...extractApiList<Team>(await apiClient.get<unknown>('/teams?page=' + index + '&size=' + size)));
+    }
+    return [...new Map(rows.map(team => [team.id, team])).values()];
   },
   getById(id: number) {
     return apiClient.get<Team>(`/teams/${id}`);

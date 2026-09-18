@@ -194,6 +194,27 @@
 }
 
 /* ============================================================
+   ÎLOT SOMBRE DE LA SIDEBAR — pendant Signature de baitly-ui.css
+   ------------------------------------------------------------
+   La barre latérale reste sombre même en thème clair. Le logo lit
+   `--brand-ink` (le noir de marque), qui resterait ici calibré pour un fond
+   clair : le mark deviendrait invisible sur le rail sombre.
+
+   Volontairement ÉTROIT. On ne reprend surtout pas `--accent*` : la teinte
+   choisie par l'utilisateur est posée sur <html data-accent="…">, et ces
+   règles-là ne matchent que <html>. Redéclarer l'accent ici le remplacerait
+   par la valeur sombre par défaut, et la sidebar cesserait de suivre la
+   teinte choisie.
+   ============================================================ */
+
+[data-slot="sidebar"],
+.bui-sidebar-flyout,
+[data-assistant-launcher] {
+  --brand-ink:    #F0EBE6;
+  --on-brand-ink: #171310;
+}
+
+/* ============================================================
    SIDEBAR (--nav-*) — extension issue de la référence utilisateur
    « Référence de la barre latérale.html » (Baitly PMS sidebar).
    Valeurs EXACTES de la référence, clair + sombre. Consommées par

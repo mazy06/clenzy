@@ -63,8 +63,23 @@ public class ProviderDocument {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    /**
+     * Proprietaire quand il a un compte. {@code null} tant que la piece
+     * appartient a une candidature — exclusif avec {@link #marketplaceProviderId},
+     * invariant tenu en base par {@code ck_provider_documents_single_owner}.
+     */
+    @Column(name = "user_id")
     private Long userId;
+
+    /**
+     * Candidature proprietaire, tant qu'aucun compte n'existe.
+     *
+     * <p>Les pieces sont ce qui permet de DECIDER d'une candidature : exiger un
+     * compte pour les deposer revenait a les demander apres la decision, donc a
+     * les recevoir par courriel, hors du produit et hors de toute retention.</p>
+     */
+    @Column(name = "marketplace_provider_id")
+    private Long marketplaceProviderId;
 
     @Column(name = "organization_id")
     private Long organizationId;
@@ -119,6 +134,9 @@ public class ProviderDocument {
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getMarketplaceProviderId() { return marketplaceProviderId; }
+    public void setMarketplaceProviderId(Long id) { this.marketplaceProviderId = id; }
 
     public Long getOrganizationId() { return organizationId; }
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }

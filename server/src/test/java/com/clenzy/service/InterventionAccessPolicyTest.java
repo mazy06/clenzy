@@ -72,6 +72,18 @@ class InterventionAccessPolicyTest {
     class TenantIsolation {
 
         @Test
+        void explicitlyAssignedIndependentCanAccessOnlyTheirCrossOrgMission() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
+            User assignee = user(12L);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(assignee));
+            Intervention ownMission = intervention(99L, null, assignee, null);
+            assertThatNoException().isThrownBy(() -> policy.assertCanAccess(ownMission, jwt("TECHNICIAN")));
+            Intervention otherMission = intervention(99L, null, user(13L), null);
+            assertThatThrownBy(() -> policy.assertCanAccess(otherMission, jwt("TECHNICIAN")))
+                    .isInstanceOf(UnauthorizedException.class);
+        }
+
+        @Test
         void crossOrg_throwsUnauthorized() {
             when(tenantContext.isSystemOrg()).thenReturn(false);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);

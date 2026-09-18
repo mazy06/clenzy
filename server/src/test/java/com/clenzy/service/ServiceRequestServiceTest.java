@@ -17,7 +17,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
@@ -33,7 +32,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ServiceRequestServiceTest {
+    private final InterventionAllocationGuard allocationGuard = org.mockito.Mockito.mock(InterventionAllocationGuard.class);
 
+    @Mock private com.clenzy.service.assignment.ServiceAssignmentService assignments;
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private UserRepository userRepository;
     @Mock private PropertyRepository propertyRepository;
@@ -42,7 +43,7 @@ class ServiceRequestServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private NotificationService notificationService;
     @Mock private PropertyTeamService propertyTeamService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private com.clenzy.service.DocumentGenerationOutbox documentOutbox;
     @Mock private ServiceRequestMapper serviceRequestMapper;
     @Mock private AssignmentEventRepository assignmentEventRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
@@ -61,20 +62,54 @@ class ServiceRequestServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(allocationGuard.isUserDeclaredAvailable(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.lenient().when(allocationGuard.isTeamDeclaredAvailable(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
+        lenient().when(serviceRequestRepository.findForMutation(any())).thenAnswer(i -> serviceRequestRepository.findById(i.getArgument(0)));
 
         service = new ServiceRequestService(
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
-                propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper,
+                propertyTeamService, documentOutbox, tenantContext, serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
                 supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
-                organizationAccessGuard);
+                organizationAccessGuard, allocationGuard, org.mockito.Mockito.mock(ServiceRequestCancellationCoordination.class), assignments);
     }
 
     // ── Clôture et replanification ───────────────────────────────────────────
+
+    @Test
+    void composerRetryReturnsExistingRequestWithoutRepeatingAssignmentOrNotifications() {
+        var submission = java.util.UUID.randomUUID();
+        var dto = buildDto(); dto.serviceItemCode = "cleaning-turnover";
+        var previous = buildEntity(42L, dto.title, RequestStatus.PENDING);
+        previous.setDesiredDate(dto.desiredDate);
+        var user = new User(); user.setId(dto.userId); previous.setUser(user);
+        var property = new Property(); property.setId(dto.propertyId); previous.setProperty(property);
+        String key = "COMPOSER:" + submission + ":cleaning-turnover";
+        when(serviceRequestRepository.findByAutoFlowKey(key, ORG_ID)).thenReturn(Optional.of(previous));
+        when(serviceRequestMapper.toDto(previous)).thenReturn(dto);
+        assertThat(service.createComposedRequest(dto, submission)).isSameAs(dto);
+        verify(serviceRequestRepository).acquireAutoFlowKeyLock(key);
+        verify(serviceRequestRepository, never()).save(any());
+        verifyNoInteractions(notificationService, propertyTeamService);
+    }
+
+    @Test
+    void composerRetryRejectsChangedContentInsteadOfSilentlyDuplicatingTheRequest() {
+        var submission = java.util.UUID.randomUUID();
+        var dto = buildDto(); dto.serviceItemCode = "cleaning-turnover";
+        var previous = buildEntity(42L, dto.title, RequestStatus.PENDING);
+        var user = new User(); user.setId(999L); previous.setUser(user);
+        when(serviceRequestRepository.findByAutoFlowKey(anyString(), eq(ORG_ID))).thenReturn(Optional.of(previous));
+        assertThatThrownBy(() -> service.createComposedRequest(dto, submission)).isInstanceOf(IllegalStateException.class);
+        verify(serviceRequestRepository, never()).save(any());
+        verifyNoInteractions(notificationService, propertyTeamService);
+    }
 
     @Test
     void whenServiceWillNeverHappen_thenItIsClosedAndKept() {
@@ -110,6 +145,7 @@ class ServiceRequestServiceTest {
     void whenRescheduledWithoutAStay_thenTheNewRequestCarriesNoReservation() {
         // Une remise en etat ne concerne aucun sejour : c'est un choix, pas un oubli.
         ServiceRequest stuck = buildEntity(43L, "Installation climatisation", RequestStatus.PENDING);
+        stuck.setServiceItemCode("maintenance-hvac");
         Property property = new Property();
         property.setId(20L);
         stuck.setProperty(property);
@@ -118,6 +154,7 @@ class ServiceRequestServiceTest {
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> {
             ServiceRequest sr = inv.getArgument(0);
             if (sr.getId() == null) sr.setId(99L);
+            lenient().doReturn(Optional.of(sr)).when(serviceRequestRepository).findForMutation(sr.getId());
             return sr;
         });
 
@@ -128,6 +165,7 @@ class ServiceRequestServiceTest {
         verify(serviceRequestRepository, atLeastOnce()).save(saved.capture());
         ServiceRequest created = saved.getAllValues().get(0);
         assertThat(created.getReservationId()).isNull();
+        assertThat(created.getServiceItemCode()).isEqualTo("maintenance-hvac");
         assertThat(created.getDesiredDate()).isEqualTo(when);
         assertThat(created.getStatus()).isEqualTo(RequestStatus.PENDING);
         // Le coût et le logement suivent la nouvelle demande.
@@ -145,21 +183,262 @@ class ServiceRequestServiceTest {
         verify(serviceRequestRepository, never()).save(any());
     }
 
+    @Test
+    void unassignPausesAutomationAndKeepsRequestDetails() {
+        ServiceRequest sr = buildEntity(44L, "Original title", RequestStatus.ASSIGNED);
+        Property property = new Property();
+        property.setId(20L);
+        sr.setProperty(property);
+        sr.setAssignedToId(99L);
+        sr.setAssignedToType("user");
+        when(serviceRequestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.unassign(44L);
+
+        assertThat(sr.getAssignedToId()).isNull();
+        assertThat(sr.getAssignedToType()).isNull();
+        assertThat(sr.getStatus()).isEqualTo(RequestStatus.PENDING);
+        assertThat(sr.getAutoAssignStatus()).isEqualTo(ServiceRequestService.MANUAL_ASSIGNMENT_HOLD);
+        assertThat(sr.getTitle()).isEqualTo("Original title");
+        verify(assignmentEventRepository).save(any());
+        assertThat(service.attemptAutoAssign(sr)).isFalse();
+        assertThat(service.attemptAutoAssignByOrgId(sr, ORG_ID)).isFalse();
+        verifyNoInteractions(propertyTeamService, housekeeperScoreService, workflowSettingsRepository);
+    }
+
+    @Test
+    void unassignRefusesPaidRequest() {
+        ServiceRequest sr = buildEntity(44L, "Paid", RequestStatus.ASSIGNED);
+        sr.setPaidAt(LocalDateTime.now());
+        assertThatThrownBy(() -> service.unassign(44L)).isInstanceOf(IllegalStateException.class);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void manualAssignmentReleasesHold() {
+
+        buildEntity(44L,"Held",RequestStatus.PENDING);
+        service.manualAssign(44L,9L,"team");
+        verify(assignments).propose(44L,ORG_ID,"team",9L);
+        verifyNoInteractions(notificationService,assignmentEventRepository);
+
+    }
+
+    @Test
+    void unassignIsIdempotent() {
+        ServiceRequest sr = buildEntity(44L, "Held", RequestStatus.PENDING);
+        sr.setAutoAssignStatus(ServiceRequestService.MANUAL_ASSIGNMENT_HOLD);
+        service.unassign(44L);
+        verify(serviceRequestRepository, never()).save(any());
+        verifyNoInteractions(assignmentEventRepository);
+    }
+
+    @Test
+    void unassignRefusesExistingMission() {
+        ServiceRequest sr = buildEntity(44L, "Assigned", RequestStatus.ASSIGNED);
+        sr.setAssignedToId(99L);
+        when(interventionRepository.existsByServiceRequestId(44L)).thenReturn(true);
+        assertThatThrownBy(() -> service.unassign(44L)).isInstanceOf(IllegalStateException.class);
+        assertThat(sr.getAssignedToId()).isEqualTo(99L);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void unassignRefusesClosedRequest() {
+        buildEntity(44L, "Done", RequestStatus.COMPLETED);
+        assertThatThrownBy(() -> service.unassign(44L)).isInstanceOf(IllegalStateException.class);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void unassignChecksOrganizationBeforeChangingAssignment() {
+        ServiceRequest sr = buildEntity(44L, "Other organization", RequestStatus.ASSIGNED);
+        sr.setOrganizationId(999L);
+        doThrow(new org.springframework.security.access.AccessDeniedException("Other organization"))
+                .when(organizationAccessGuard).requireSameOrganization(eq(999L), anyString());
+        assertThatThrownBy(() -> service.unassign(44L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void manualAssignRejectsInvalidTargets() {
+        assertThatThrownBy(() -> service.manualAssign(44L, null, "user")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.manualAssign(44L, 0L, "team")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.manualAssign(44L, 9L, "none")).isInstanceOf(IllegalArgumentException.class);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void updateRejectsMissingOrStaleBrowserVersionBeforeMapping() {
+        ServiceRequest sr = buildEntity(44L, "Current", RequestStatus.PENDING);
+        org.springframework.test.util.ReflectionTestUtils.setField(sr, "version", 3L);
+        ServiceRequestDto dto = buildDto();
+        assertThatThrownBy(() -> service.update(44L, dto))
+                .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
+        dto.version = null;
+        assertThatThrownBy(() -> service.update(44L, dto))
+                .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
+        verifyNoInteractions(serviceRequestMapper);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void statusCommandDoesNotApplyUnrelatedFields() {
+        ServiceRequest sr = buildEntity(44L, "Preserved", RequestStatus.PENDING);
+        sr.setAssignedToId(9L);
+        sr.setEstimatedCost(new BigDecimal("120.00"));
+        when(serviceRequestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        service.changeStatus(44L, 0L, RequestStatus.REJECTED);
+        assertThat(sr.getTitle()).isEqualTo("Preserved");
+        assertThat(sr.getAssignedToId()).isEqualTo(9L);
+        assertThat(sr.getEstimatedCost()).isEqualByComparingTo("120.00");
+        assertThat(sr.getStatus()).isEqualTo(RequestStatus.REJECTED);
+        verify(serviceRequestMapper, never()).apply(any(), any());
+    }
+
+    @Test
+    void statusCommandRefusesStaleDecision() {
+        ServiceRequest sr = buildEntity(44L, "Current", RequestStatus.PENDING);
+        org.springframework.test.util.ReflectionTestUtils.setField(sr, "version", 1L);
+        assertThatThrownBy(() -> service.changeStatus(44L, 0L, RequestStatus.REJECTED))
+                .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
+        assertThat(sr.getStatus()).isEqualTo(RequestStatus.PENDING);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void quickStatusCannotBypassMissionLifecycle() {
+        buildEntity(44L, "Current", RequestStatus.PENDING);
+        for (RequestStatus target : List.of(RequestStatus.ASSIGNED, RequestStatus.AWAITING_PAYMENT,
+                RequestStatus.IN_PROGRESS, RequestStatus.COMPLETED)) {
+            assertThatThrownBy(() -> service.changeStatus(44L, 0L, target))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void quickCancellationRefusesLinkedMission() {
+        buildEntity(44L, "Current", RequestStatus.ASSIGNED);
+        when(interventionRepository.existsByServiceRequestId(44L)).thenReturn(true);
+        assertThatThrownBy(() -> service.changeStatus(44L, 0L, RequestStatus.CANCELLED))
+                .isInstanceOf(IllegalStateException.class);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void sameStatusDoesNotRepeatNotifications() {
+        buildEntity(44L, "Rejected", RequestStatus.REJECTED);
+        service.changeStatus(44L, 0L, RequestStatus.REJECTED);
+        verifyNoInteractions(notificationService);
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void formAssignmentUsesManualCommandAndSetsAssignedState() {
+
+        buildEntity(44L,"Need",RequestStatus.PENDING);
+        var dto=buildDto(); dto.assignedToId=9L; dto.assignedToType="team";
+        when(serviceRequestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        service.update(44L,dto);
+        verify(assignments).propose(44L,ORG_ID,"team",9L);
+        verifyNoInteractions(assignmentEventRepository);
+
+    }
+
+    @Test
+    void editingLinkedMissionRequiresDedicatedRevision() {
+        buildEntity(44L, "Current", RequestStatus.PENDING);
+        when(interventionRepository.existsByServiceRequestId(44L)).thenReturn(true);
+        assertThatThrownBy(() -> service.update(44L, buildDto())).isInstanceOf(IllegalStateException.class);
+        verify(serviceRequestMapper, never()).apply(any(), any());
+    }
+
+    @Test
+    void cancellationCommandUsesAuditAndFlushesBeforeReturningVersion() {
+        ServiceRequest sr = buildEntity(44L, "Current", RequestStatus.PENDING);
+        when(serviceRequestRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        service.changeStatus(44L, 0L, RequestStatus.CANCELLED);
+        assertThat(sr.getStatus()).isEqualTo(RequestStatus.CANCELLED);
+        verify(assignmentEventRepository).save(any());
+        verify(serviceRequestRepository).flush();
+    }
+
+    @Test
+    void manualAssignmentRefusesReservedSlotBeforeChangingTarget() {
+
+        var need=buildEntity(44L,"Need",RequestStatus.PENDING);
+        when(assignments.propose(44L,ORG_ID,"team",7L)).thenThrow(new com.clenzy.exception.AssignmentConflictException("Prestataire indisponible"));
+        assertThatThrownBy(() -> service.manualAssign(44L,7L,"team")).isInstanceOf(com.clenzy.exception.AssignmentConflictException.class);
+        assertThat(need.getAssignedToId()).isNull();
+        verifyNoInteractions(notificationService,assignmentEventRepository);
+
+    }
+
+    @Test
+    void automaticAssignmentDoesNotUseCandidateReservedInTheMeantime() {
+
+        var need=buildEntity(44L,"Need",RequestStatus.PENDING); need.setAssignmentPhase("INTERNAL");
+        when(assignments.search(44L,ORG_ID)).thenReturn(false);
+        assertThat(service.attemptAutoAssign(need)).isFalse();
+        verify(assignments).search(44L,ORG_ID);
+        verifyNoInteractions(propertyTeamService);
+
+    }
+
+    @Test
+    void automaticAssignmentTriesNextTeamAfterReservationConflict() {
+
+        var need=buildEntity(44L,"Need",RequestStatus.PENDING); need.setAssignmentPhase("INTERNAL");
+        when(assignments.search(44L,ORG_ID)).thenReturn(true);
+        assertThat(service.attemptAutoAssign(need)).isTrue();
+        verify(assignments).search(44L,ORG_ID);
+
+    }
+
+    @Test
+    void manualAssignmentRefusesUnavailableTeamWithoutChangingTheRequest() {
+
+        var need=buildEntity(44L,"Need",RequestStatus.PENDING);
+        when(assignments.propose(44L,ORG_ID,"team",7L)).thenThrow(new com.clenzy.exception.AssignmentConflictException("Prestataire indisponible"));
+        assertThatThrownBy(() -> service.manualAssign(44L,7L,"team")).isInstanceOf(com.clenzy.exception.AssignmentConflictException.class);
+        assertThat(need.getAssignedToId()).isNull();
+        verifyNoInteractions(notificationService,assignmentEventRepository);
+
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void automaticAssignmentTriesNextTeamWhenAvailabilityChanged(boolean explicitOrganization) {
+
+        var need=buildEntity(44L,"Need",RequestStatus.PENDING); need.setAssignmentPhase("INTERNAL");
+        when(assignments.search(44L,ORG_ID)).thenReturn(true);
+        assertThat(explicitOrganization?service.attemptAutoAssignByOrgId(need,ORG_ID):service.attemptAutoAssign(need)).isTrue();
+        verify(assignments).search(44L,ORG_ID);
+        verifyNoInteractions(propertyTeamService);
+
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private ServiceRequest buildEntity(Long id, String title, RequestStatus status) {
         ServiceRequest sr = new ServiceRequest();
         sr.setId(id);
+        sr.setOrganizationId(ORG_ID);
+        lenient().doAnswer(i -> serviceRequestRepository.findById(id).or(() -> Optional.of(sr))).when(serviceRequestRepository).findForMutation(id);
         sr.setTitle(title);
         sr.setStatus(status);
         sr.setPriority(Priority.NORMAL);
         sr.setServiceType(ServiceType.CLEANING);
+        sr.setServiceItemCode("cleaning-turnover");
         sr.setDesiredDate(LocalDateTime.now().plusDays(3));
         return sr;
     }
 
     private ServiceRequestDto buildDto() {
         ServiceRequestDto dto = new ServiceRequestDto();
+        dto.version = 0L;
         dto.title = "Nettoyage appartement";
         dto.serviceType = ServiceType.CLEANING;
         dto.priority = Priority.NORMAL;
@@ -193,6 +472,19 @@ class ServiceRequestServiceTest {
     @Nested
     @DisplayName("create(dto)")
     class Create {
+
+        @Test void recurringRedeliveryReturnsTheExistingRequestBeforeAnySideEffect() {
+            ServiceRequestDto dto = buildDto(); dto.desiredDate = LocalDateTime.of(2026, 10, 1, 9, 0);
+            var existing = buildEntity(42L, "Entretien", RequestStatus.CANCELLED);
+            String key = "MARKETPLACE_RECURRENCE:9:2026-10-01";
+            when(serviceRequestRepository.findByAutoFlowKey(key, ORG_ID)).thenReturn(Optional.of(existing));
+            assertThat(service.createRecurringRequest(dto, 9L)).isEqualTo(42L);
+            var order = inOrder(serviceRequestRepository);
+            order.verify(serviceRequestRepository).acquireAutoFlowKeyLock(key);
+            order.verify(serviceRequestRepository).findByAutoFlowKey(key, ORG_ID);
+            verifyNoInteractions(notificationService, serviceRequestMapper);
+            verify(serviceRequestRepository, never()).save(any());
+        }
 
         @Test
         @DisplayName("maps DTO to entity, saves, notifies admins, returns mapped DTO")
@@ -283,6 +575,7 @@ class ServiceRequestServiceTest {
 
             ServiceRequestDto dto = new ServiceRequestDto();
             dto.status = RequestStatus.REJECTED;
+            dto.version = 0L;
 
             doAnswer(inv -> {
                 ServiceRequest entity = inv.getArgument(1);
@@ -406,7 +699,7 @@ class ServiceRequestServiceTest {
             ServiceRequestDto dto1 = new ServiceRequestDto();
             dto1.id = 1L;
 
-            when(serviceRequestRepository.findAll(pageable)).thenReturn(page);
+
             when(serviceRequestRepository.findAllWithRelations(ORG_ID)).thenReturn(List.of(sr1));
             when(serviceRequestMapper.toDto(sr1)).thenReturn(dto1);
 
@@ -488,20 +781,21 @@ class ServiceRequestServiceTest {
         @DisplayName("when exists - deletes by ID")
         void whenExists_thenDeletes() {
             // Arrange
-            when(serviceRequestRepository.existsById(1L)).thenReturn(true);
+            ServiceRequest request = buildEntity(1L, "Demande test", RequestStatus.PENDING);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(request));
 
             // Act
             service.delete(1L);
 
             // Assert
-            verify(serviceRequestRepository).deleteById(1L);
+            verify(serviceRequestRepository).delete(request);
         }
 
         @Test
         @DisplayName("when not found - throws NotFoundException")
         void whenNotFound_thenThrowsNotFoundException() {
             // Arrange
-            when(serviceRequestRepository.existsById(999L)).thenReturn(false);
+            when(serviceRequestRepository.findById(999L)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> service.delete(999L))
@@ -531,7 +825,7 @@ class ServiceRequestServiceTest {
             // Workflow disabled → attemptAutoAssign returns early without touching retryCount
             WorkflowSettings ws = new WorkflowSettings();
             ws.setAutoAssignInterventions(false);
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+
 
             service.refuse(1L);
 
@@ -560,7 +854,7 @@ class ServiceRequestServiceTest {
             // Auto-assignation désactivée → attemptAutoAssign échoue → carte HITL
             WorkflowSettings ws = new WorkflowSettings();
             ws.setAutoAssignInterventions(false);
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+
 
             service.refuse(1L);
 
@@ -584,7 +878,7 @@ class ServiceRequestServiceTest {
             when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
             WorkflowSettings ws = new WorkflowSettings();
             ws.setAutoAssignInterventions(false);
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+
             when(autoApplyGate.decide(eq(ORG_ID), eq("ops"),
                     eq(com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_CLEANING), any()))
                     .thenReturn(com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AUTO_NOTIFY);
@@ -670,56 +964,21 @@ class ServiceRequestServiceTest {
     @DisplayName("manualAssign(srId, assignedToId, type)")
     class ManualAssign {
 
-        @Test
-        @DisplayName("when SR PENDING - assigns and switches to ASSIGNED (pas encore payable)")
-        void whenPending_thenAssigns() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.PENDING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
-
-            service.manualAssign(1L, 99L, "user");
-
-            assertThat(sr.getAssignedToId()).isEqualTo(99L);
-            assertThat(sr.getAssignedToType()).isEqualTo("user");
-            // ASSIGNEE, pas payable : personne n'a encore travaille. Le solde ne
-            // devient du qu'apres le controle du travail rendu.
-            assertThat(sr.getStatus()).isEqualTo(RequestStatus.ASSIGNED);
-            assertThat(sr.getAutoAssignStatus()).isEqualTo("found");
-            verify(assignmentEventRepository).save(argThat(e ->
-                    "MANUAL_ASSIGN".equals(((AssignmentEvent) e).getEventType())));
+        @Test void commandProposesWithoutCreatingAnExecution() {
+            buildEntity(1L,"Need",RequestStatus.PENDING);
+            service.manualAssign(1L,9L,"team");
+            verify(assignments).propose(1L,ORG_ID,"team",9L);
+            verify(interventionRepository,never()).save(any());
+        }
+        @Test void commandPropagatesTheCanonicalGuard() {
+            buildEntity(1L,"Need",RequestStatus.COMPLETED);
+            when(assignments.propose(1L,ORG_ID,"team",9L)).thenThrow(new IllegalStateException("Accord existant"));
+            assertThatThrownBy(() -> service.manualAssign(1L,9L,"team")).hasMessage("Accord existant");
+        }
+        @Test void unknownNeedIsRejected() {
+            assertThatThrownBy(() -> service.manualAssign(999L,9L,"team")).isInstanceOf(NotFoundException.class);
         }
 
-        @Test
-        @DisplayName("when SR ASSIGNED - allows reassignment")
-        void whenAssigned_thenReassigns() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.ASSIGNED);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
-
-            service.manualAssign(1L, 77L, "team");
-
-            assertThat(sr.getAssignedToId()).isEqualTo(77L);
-        }
-
-        @Test
-        @DisplayName("when SR COMPLETED - throws IllegalStateException")
-        void whenCompleted_thenThrows() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.COMPLETED);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> service.manualAssign(1L, 99L, "team"))
-                    .isInstanceOf(IllegalStateException.class);
-        }
-
-        @Test
-        @DisplayName("when not found - throws NotFoundException")
-        void whenNotFound_thenThrows() {
-            when(serviceRequestRepository.findById(999L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> service.manualAssign(999L, 99L, "team"))
-                    .isInstanceOf(NotFoundException.class);
-        }
     }
 
     // ── AttemptAutoAssign ────────────────────────────────────────────────────
@@ -728,146 +987,18 @@ class ServiceRequestServiceTest {
     @DisplayName("attemptAutoAssign(sr)")
     class AttemptAutoAssign {
 
-        @Test
-        @DisplayName("when already assigned - returns false (precondition)")
-        void whenAlreadyAssigned_thenSkips() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.ASSIGNED);
-            sr.setAssignedToId(50L);
-            sr.setProperty(buildProperty(20L, buildUser(10L, UserRole.HOST, "kc-10")));
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isFalse();
-            verifyNoInteractions(propertyTeamService);
+        @Test void legacyNeedsDoNotReceiveRetroactiveDeadlines() {
+            var need=buildEntity(1L,"Legacy",RequestStatus.PENDING);
+            assertThat(service.attemptAutoAssign(need)).isFalse();
+            verify(assignments,never()).search(any(),any());
+        }
+        @Test void managedNeedsUseTheCanonicalEngine() {
+            var need=buildEntity(1L,"Managed",RequestStatus.PENDING); need.setAssignmentPhase("INTERNAL");
+            when(assignments.search(1L,ORG_ID)).thenReturn(true);
+            assertThat(service.attemptAutoAssign(need)).isTrue();
+            verifyNoInteractions(propertyTeamService,assignmentEventRepository,notificationService);
         }
 
-        @Test
-        @DisplayName("when no property - returns false (precondition)")
-        void whenNoProperty_thenSkips() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isFalse();
-            verifyNoInteractions(propertyTeamService);
-        }
-
-        @Test
-        @DisplayName("when workflow autoAssign disabled - returns false")
-        void whenWorkflowDisabled_thenSkips() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
-            sr.setOrganizationId(ORG_ID);
-            sr.setProperty(buildProperty(20L, buildUser(10L, UserRole.HOST, "kc-10")));
-
-            WorkflowSettings ws = new WorkflowSettings();
-            ws.setAutoAssignInterventions(false);
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isFalse();
-            verifyNoInteractions(propertyTeamService);
-        }
-
-        @Test
-        @DisplayName("when team available - assigns, switches ASSIGNED, logs AUTO_SUCCESS")
-        void whenTeamAvailable_thenAssigns() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
-            sr.setOrganizationId(ORG_ID);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-            sr.setEstimatedDurationHours(3);
-
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
-            when(propertyTeamService.findAvailableTeamForProperty(
-                    eq(20L), any(), eq(3), eq("CLEANING"))).thenReturn(Optional.of(50L));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-            Team team = new Team("Equipe A", "", "CLEANING");
-            team.setId(50L);
-            when(teamRepository.findById(50L)).thenReturn(Optional.of(team));
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isTrue();
-            assertThat(sr.getAssignedToId()).isEqualTo(50L);
-            assertThat(sr.getAssignedToType()).isEqualTo("team");
-            // ASSIGNEE, pas payable : personne n'a encore travaille. Le solde ne
-            // devient du qu'apres le controle du travail rendu.
-            assertThat(sr.getStatus()).isEqualTo(RequestStatus.ASSIGNED);
-            assertThat(sr.getAutoAssignStatus()).isEqualTo("found");
-            verify(assignmentEventRepository).save(argThat(e ->
-                    "AUTO_SUCCESS".equals(((AssignmentEvent) e).getEventType())));
-        }
-
-        @Test
-        @DisplayName("when no team - increments retry count, sets searching")
-        void whenNoTeam_thenIncrementsRetry() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
-            sr.setOrganizationId(ORG_ID);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
-            when(propertyTeamService.findAvailableTeamForProperty(any(), any(), any(), anyString()))
-                    .thenReturn(Optional.empty());
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isFalse();
-            assertThat(sr.getAutoAssignRetryCount()).isEqualTo(1);
-            assertThat(sr.getAutoAssignStatus()).isEqualTo("searching");
-            verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE),
-                    anyString(), anyString(), anyString(), any(Map.class));
-        }
-
-        @Test
-        @DisplayName("when retry count reaches MAX - sets exhausted and ESCALATES")
-        void whenMaxRetries_thenEscalates() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
-            sr.setOrganizationId(ORG_ID);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-            sr.setAutoAssignRetryCount(ServiceRequestService.MAX_AUTO_ASSIGN_RETRIES - 1);
-
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
-            when(propertyTeamService.findAvailableTeamForProperty(any(), any(), any(), nullable(String.class)))
-                    .thenReturn(Optional.empty());
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-            // serviceType null path
-            sr.setServiceType(null);
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isFalse();
-            assertThat(sr.getAutoAssignStatus()).isEqualTo("exhausted");
-            verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.SERVICE_REQUEST_ESCALATION),
-                    anyString(), anyString(), anyString(), any(Map.class));
-            verify(assignmentEventRepository).save(argThat(e ->
-                    "ESCALATION".equals(((AssignmentEvent) e).getEventType())));
-        }
-
-        @Test
-        @DisplayName("when exception thrown internally - returns false silently")
-        void whenException_thenReturnsFalse() {
-            ServiceRequest sr = buildEntity(1L, "X", RequestStatus.PENDING);
-            sr.setOrganizationId(ORG_ID);
-            sr.setProperty(buildProperty(20L, buildUser(10L, UserRole.HOST, "kc-10")));
-
-            when(workflowSettingsRepository.findByOrganizationId(ORG_ID))
-                    .thenThrow(new RuntimeException("DB down"));
-
-            boolean result = service.attemptAutoAssign(sr);
-
-            assertThat(result).isFalse();
-        }
     }
 
     // ── AttemptAutoAssignByOrgId (scheduler path) ────────────────────────────
@@ -876,96 +1007,20 @@ class ServiceRequestServiceTest {
     @DisplayName("attemptAutoAssignByOrgId(sr, orgId)")
     class AttemptAutoAssignByOrgId {
 
-        @Test
-        @DisplayName("when team available - assigns and notifies via orgId helper")
-        void whenAvailable_thenAssignsViaSchedulerPath() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.PENDING);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-
-            when(propertyTeamService.findAvailableTeamForProperty(
-                    eq(20L), any(), any(), eq("CLEANING"), eq(ORG_ID))).thenReturn(Optional.of(60L));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            Team team = new Team("Team Scheduler", "", "CLEANING");
-            team.setId(60L);
-            when(teamRepository.findById(60L)).thenReturn(Optional.of(team));
-
-            boolean result = service.attemptAutoAssignByOrgId(sr, ORG_ID);
-
-            assertThat(result).isTrue();
-            assertThat(sr.getAssignedToId()).isEqualTo(60L);
-            verify(notificationService).notifyAdminsAndManagersByOrgId(
-                    eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED),
-                    anyString(), anyString(), anyString(), any());
+        @Test void schedulerAndWebUseTheSameEngine() {
+            var need=buildEntity(1L,"Managed",RequestStatus.PENDING); need.setAssignmentPhase("INTERNAL");
+            when(assignments.search(1L,ORG_ID)).thenReturn(true);
+            assertThat(service.attemptAutoAssignByOrgId(need,ORG_ID)).isTrue();
+            verify(assignments).requireOrganization(need,ORG_ID);
+            verify(assignments).search(1L,ORG_ID);
+        }
+        @Test void technicalFailurePropagatesInsteadOfOpeningPublicSearch() {
+            var need=buildEntity(1L,"Managed",RequestStatus.PENDING); need.setAssignmentPhase("INTERNAL");
+            when(assignments.search(1L,ORG_ID)).thenThrow(new IllegalStateException("database unavailable"));
+            assertThatThrownBy(() -> service.attemptAutoAssignByOrgId(need,ORG_ID)).hasMessage("database unavailable");
+            assertThat(need.getAssignmentPhase()).isEqualTo("INTERNAL");
         }
 
-        @Test
-        @DisplayName("when no team and max retries - escalates via scheduler path")
-        void whenNoTeamMaxRetries_thenEscalatesScheduler() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.PENDING);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-            sr.setAutoAssignRetryCount(ServiceRequestService.MAX_AUTO_ASSIGN_RETRIES - 1);
-
-            when(propertyTeamService.findAvailableTeamForProperty(
-                    any(), any(), any(), anyString(), eq(ORG_ID))).thenReturn(Optional.empty());
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-            boolean result = service.attemptAutoAssignByOrgId(sr, ORG_ID);
-
-            assertThat(result).isFalse();
-            assertThat(sr.getAutoAssignStatus()).isEqualTo("exhausted");
-            verify(notificationService).notifyAdminsAndManagersByOrgId(
-                    eq(ORG_ID), eq(NotificationKey.SERVICE_REQUEST_ESCALATION),
-                    anyString(), anyString(), anyString(), any());
-        }
-
-        @Test
-        @DisplayName("when no team and not max - increments retry only")
-        void whenNoTeamNotMax_thenIncrements() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.PENDING);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-
-            when(propertyTeamService.findAvailableTeamForProperty(
-                    any(), any(), any(), anyString(), eq(ORG_ID))).thenReturn(Optional.empty());
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-            boolean result = service.attemptAutoAssignByOrgId(sr, ORG_ID);
-
-            assertThat(result).isFalse();
-            assertThat(sr.getAutoAssignRetryCount()).isEqualTo(1);
-            assertThat(sr.getAutoAssignStatus()).isEqualTo("searching");
-        }
-
-        @Test
-        @DisplayName("precondition - already assigned - returns false")
-        void whenAlreadyAssigned_thenSkips() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.ASSIGNED);
-            sr.setAssignedToId(33L);
-            sr.setProperty(buildProperty(20L, buildUser(10L, UserRole.HOST, "kc-10")));
-
-            assertThat(service.attemptAutoAssignByOrgId(sr, ORG_ID)).isFalse();
-            verifyNoInteractions(propertyTeamService);
-        }
-
-        @Test
-        @DisplayName("when exception thrown - returns false silently")
-        void whenException_thenReturnsFalse() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.PENDING);
-            User host = buildUser(10L, UserRole.HOST, "kc-10");
-            sr.setUser(host);
-            sr.setProperty(buildProperty(20L, host));
-
-            when(propertyTeamService.findAvailableTeamForProperty(
-                    any(), any(), any(), anyString(), eq(ORG_ID)))
-                    .thenThrow(new RuntimeException("Boom"));
-
-            assertThat(service.attemptAutoAssignByOrgId(sr, ORG_ID)).isFalse();
-        }
     }
 
     // ── createInterventionFromPaidServiceRequest ─────────────────────────────
@@ -974,154 +1029,13 @@ class ServiceRequestServiceTest {
     @DisplayName("createInterventionFromPaidServiceRequest(sr)")
     class CreateInterventionFromPaid {
 
-        @Test
-        @DisplayName("when intervention already exists - skips and returns null")
-        void whenAlreadyExists_thenReturnsNull() {
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.AWAITING_PAYMENT);
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(true);
-
-            Intervention result = service.createInterventionFromPaidServiceRequest(sr);
-
-            assertThat(result).isNull();
-            verify(interventionRepository, never()).save(any());
+        @Test void paymentCannotCreateOrReplayAnAgreement() {
+            var need=buildEntity(1L,"Paid",RequestStatus.AWAITING_PAYMENT);
+            assertThatThrownBy(() -> service.createInterventionFromPaidServiceRequest(need))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("accord du prestataire");
+            verifyNoInteractions(interventionRepository,documentOutbox,assignments);
         }
 
-        @Test
-        @DisplayName("when SR assigned to user - sets assigned user on intervention")
-        void whenAssignedToUser_thenAttaches() {
-            User assignee = buildUser(77L, UserRole.TECHNICIAN, "kc-77");
-            User requestor = buildUser(10L, UserRole.HOST, "kc-10");
-            ServiceRequest sr = buildEntity(1L, "Repair", RequestStatus.AWAITING_PAYMENT);
-            sr.setUser(requestor);
-            sr.setProperty(buildProperty(20L, requestor));
-            sr.setAssignedToId(77L);
-            sr.setAssignedToType("user");
-            sr.setOrganizationId(ORG_ID);
-            sr.setEstimatedCost(BigDecimal.valueOf(150));
-            sr.setEstimatedDurationHours(2);
-            sr.setServiceType(ServiceType.PLUMBING_REPAIR);
-
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(userRepository.findById(77L)).thenReturn(Optional.of(assignee));
-            when(interventionRepository.save(any())).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(500L);
-                return i;
-            });
-
-            Intervention result = service.createInterventionFromPaidServiceRequest(sr);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getAssignedUser()).isEqualTo(assignee);
-            assertThat(result.getAssignedTechnicianId()).isEqualTo(77L);
-            assertThat(result.getServiceRequest()).isEqualTo(sr);
-            assertThat(result.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
-            assertThat(result.getType()).isEqualTo(InterventionType.PREVENTIVE_MAINTENANCE.name());
-            verify(kafkaTemplate).send(anyString(), anyString(), any());
-            verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION),
-                    anyString(), anyString(), anyString(), any(Map.class));
-        }
-
-        @Test
-        @DisplayName("when SR assigned to team - sets teamId on intervention")
-        void whenAssignedToTeam_thenSetsTeamId() {
-            User requestor = buildUser(10L, UserRole.HOST, "kc-10");
-            ServiceRequest sr = buildEntity(1L, "Cleaning", RequestStatus.AWAITING_PAYMENT);
-            sr.setUser(requestor);
-            sr.setProperty(buildProperty(20L, requestor));
-            sr.setAssignedToId(88L);
-            sr.setAssignedToType("team");
-            sr.setServiceType(ServiceType.DEEP_CLEANING);
-
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(interventionRepository.save(any())).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(501L);
-                return i;
-            });
-
-            Intervention result = service.createInterventionFromPaidServiceRequest(sr);
-
-            assertThat(result.getTeamId()).isEqualTo(88L);
-            assertThat(result.getType()).isEqualTo(InterventionType.CLEANING.name());
-        }
-
-        @Test
-        @DisplayName("when reservationId set - links intervention to reservation")
-        void whenReservationId_thenLinks() {
-            User requestor = buildUser(10L, UserRole.HOST, "kc-10");
-            ServiceRequest sr = buildEntity(1L, "Cleaning", RequestStatus.AWAITING_PAYMENT);
-            sr.setUser(requestor);
-            sr.setProperty(buildProperty(20L, requestor));
-            sr.setReservationId(300L);
-            sr.setServiceType(ServiceType.CLEANING);
-
-            Reservation reservation = new Reservation();
-            reservation.setId(300L);
-
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(interventionRepository.save(any())).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(502L);
-                return i;
-            });
-            when(reservationRepository.findById(300L)).thenReturn(Optional.of(reservation));
-
-            Intervention result = service.createInterventionFromPaidServiceRequest(sr);
-
-            assertThat(result).isNotNull();
-            verify(reservationRepository).save(reservation);
-            assertThat(reservation.getIntervention()).isEqualTo(result);
-        }
-
-        @Test
-        @DisplayName("title and description truncation - over 255/500 chars")
-        void whenTitleOver255_thenTruncates() {
-            String longTitle = "a".repeat(300);
-            String longDesc = "b".repeat(600);
-            User requestor = buildUser(10L, UserRole.HOST, "kc-10");
-            ServiceRequest sr = buildEntity(1L, longTitle, RequestStatus.AWAITING_PAYMENT);
-            sr.setDescription(longDesc);
-            sr.setUser(requestor);
-            sr.setProperty(buildProperty(20L, requestor));
-            sr.setServiceType(ServiceType.CLEANING);
-
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(interventionRepository.save(any())).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(510L);
-                return i;
-            });
-
-            Intervention result = service.createInterventionFromPaidServiceRequest(sr);
-
-            assertThat(result.getTitle()).hasSize(255);
-            assertThat(result.getDescription()).hasSize(500);
-        }
-
-        @Test
-        @DisplayName("kafka throws - notification still sent (resilient)")
-        void whenKafkaThrows_thenSwallows() {
-            User requestor = buildUser(10L, UserRole.HOST, "kc-10");
-            ServiceRequest sr = buildEntity(1L, "T", RequestStatus.AWAITING_PAYMENT);
-            sr.setUser(requestor);
-            sr.setProperty(buildProperty(20L, requestor));
-            sr.setServiceType(ServiceType.CLEANING);
-
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(interventionRepository.save(any())).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(520L);
-                return i;
-            });
-            doThrow(new RuntimeException("kafka down")).when(kafkaTemplate)
-                    .send(anyString(), anyString(), any());
-
-            // Should not throw
-            Intervention result = service.createInterventionFromPaidServiceRequest(sr);
-            assertThat(result).isNotNull();
-        }
     }
 
     // ── searchWithRoleBasedAccess ────────────────────────────────────────────
@@ -1428,4 +1342,48 @@ class ServiceRequestServiceTest {
             assertThat(result.get(0)).containsEntry("assignedToName", "Utilisateur #77");
         }
     }
+    @Test void marketplaceNeedCannotStartACompetingAssignmentOrPayment() {
+        ServiceRequest request = buildEntity(91L, "Besoin commercial", RequestStatus.PENDING);
+        request.setMarketplaceRequestId(44L);
+        when(serviceRequestRepository.findById(91L)).thenReturn(Optional.of(request));
+        assertThatThrownBy(() -> service.manualAssign(91L, 20L, "team")).hasMessageContaining("devis marketplace");
+        assertThatThrownBy(() -> service.cancel(91L, "Autre parcours")).hasMessageContaining("devis marketplace");
+        assertThatThrownBy(() -> service.createInterventionFromPaidServiceRequest(request)).hasMessageContaining("accord du prestataire");
+        assertThat(service.attemptAutoAssign(request)).isFalse();
+        assertThat(service.attemptAutoAssignByOrgId(request, ORG_ID)).isFalse();
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test void listProjectsLinkedAssignmentsInOneOrganizationScopedLookup() {
+        ServiceRequest linked = buildEntity(91L, "Besoin lié", RequestStatus.PENDING);
+        ServiceRequest standalone = buildEntity(92L, "Besoin sans mission", RequestStatus.PENDING);
+        ServiceRequestDto linkedDto = new ServiceRequestDto();
+        ServiceRequestDto standaloneDto = new ServiceRequestDto();
+        when(serviceRequestRepository.findAllWithRelations(ORG_ID)).thenReturn(List.of(linked, standalone));
+        when(serviceRequestMapper.toDto(linked)).thenReturn(linkedDto);
+        when(serviceRequestMapper.toDto(standalone)).thenReturn(standaloneDto);
+        Intervention mission = new Intervention();
+        mission.setId(55L);
+        mission.setServiceRequest(linked);
+        when(interventionRepository.findLinkedForServiceRequests(ORG_ID, List.of(91L, 92L)))
+                .thenReturn(List.of(mission));
+        assertThat(service.list()).containsExactly(linkedDto, standaloneDto);
+        verify(serviceRequestMapper).projectMissionAssignment(linkedDto, mission);
+        verify(serviceRequestMapper, never()).projectMissionAssignment(eq(standaloneDto), any());
+        verify(interventionRepository).findLinkedForServiceRequests(ORG_ID, List.of(91L, 92L));
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test void needDetailsLinkToTheirSingleOperationalMission() {
+        ServiceRequest request = buildEntity(91L, "Besoin commun", RequestStatus.PENDING);
+        when(serviceRequestRepository.findById(91L)).thenReturn(Optional.of(request));
+        when(serviceRequestMapper.toDto(request)).thenReturn(new ServiceRequestDto());
+        Intervention mission = new Intervention();
+        mission.setId(55L);
+        mission.setServiceRequest(request);
+        when(interventionRepository.findLinkedForServiceRequests(ORG_ID, List.of(91L))).thenReturn(List.of(mission));
+        ServiceRequestDto result = service.getById(91L);
+        verify(serviceRequestMapper).projectMissionAssignment(result, mission);
+    }
+
 }

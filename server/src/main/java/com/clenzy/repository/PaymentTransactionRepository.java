@@ -17,6 +17,23 @@ import java.util.Optional;
 @Repository
 public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, Long> {
 
+    /** Inclut les membres secondaires des lots ; un échec confirmé ne bloque plus l'accord. */
+    @Query(value = """
+        SELECT EXISTS (
+          SELECT 1 FROM payment_transactions p
+          WHERE p.organization_id = :orgId AND p.status <> 'FAILED'
+            AND (
+              (p.source_type = 'INTERVENTION' AND (
+                p.source_id = :missionId OR CAST(:missionId AS text) = ANY(
+                  string_to_array(regexp_replace(p.metadata ->> 'interventionIds', '\\s', '', 'g'), ','))))
+              OR (p.source_type IN ('DEFERRED_INTERVENTIONS_HOST', 'DEFERRED_INTERVENTIONS_PROPERTY')
+                AND CAST(:missionId AS text) = ANY(
+                  string_to_array(regexp_replace(p.metadata ->> 'intervention_ids', '\\s', '', 'g'), ',')))
+            )
+        )
+        """, nativeQuery = true)
+    boolean hasRecordedInterventionPayment(@Param("orgId") Long orgId, @Param("missionId") Long missionId);
+
     Optional<PaymentTransaction> findByTransactionRef(String transactionRef);
 
     Optional<PaymentTransaction> findByIdempotencyKey(String idempotencyKey);

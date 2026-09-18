@@ -22,7 +22,7 @@ public record PublicUpsellDto(
 
     public static PublicUpsellDto from(UpsellOffer o, List<String> bundleItems) {
         return new PublicUpsellDto(
-                o.getId(), o.getType().name(), o.getTitle(), o.getDescription(),
+                o.getId(), o.getType(), o.getTitle(), o.getDescription(),
                 o.getPrice(), o.getCurrency(), o.getImageUrl(), bundleItems);
     }
 }

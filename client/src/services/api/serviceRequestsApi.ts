@@ -3,6 +3,7 @@ import { extractApiList } from '../../types';
 
 export interface ServiceRequest {
   id: number;
+  version?: number;
   title: string;
   description: string;
   propertyId: number;
@@ -12,6 +13,9 @@ export interface ServiceRequest {
   userId: number;
   userName?: string;
   serviceType: string;
+  serviceItemCode?: string;
+  marketplaceRequestId?: number;
+  interventionId?: number;
   priority: string;
   status: string;
   estimatedDurationHours: number;
@@ -25,7 +29,7 @@ export interface ServiceRequest {
   assignedToUser?: { id: number; firstName: string; lastName: string };
   assignedToTeam?: { id: number; name: string };
   paymentStatus?: string;
-  autoAssignStatus?: 'searching' | 'found' | 'exhausted' | null;
+  autoAssignStatus?: 'searching' | 'found' | 'exhausted' | 'manual_hold' | null;
   // Chiffrage maintenance (devis structuré) — présents sur getById.
   quoteLines?: { label: string; quantity: number; unitPrice: number; interventionType?: string }[];
   pricingMode?: 'DIRECT' | 'DIAGNOSTIC';
@@ -39,6 +43,7 @@ export interface ServiceRequestFormData {
   description: string;
   propertyId: number;
   serviceType: string;
+  serviceItemCode?: string;
   priority: string;
   estimatedDurationHours: number;
   desiredDate: string;
@@ -54,11 +59,12 @@ export interface ServiceRequestFormData {
 export interface AssignableTeam {
   teamId: number;
   name: string;
-  /** `DEFAULT` = équipe attitrée au logement, `ZONE` = couvre la zone. */
-  origin: 'DEFAULT' | 'ZONE';
+  /** `DEFAULT` = équipe attitrée, `ZONE` = couvre la zone, `OTHER` = hors zone. */
+  origin: 'DEFAULT' | 'ZONE' | 'OTHER';
   available: boolean;
-  /** Interventions qui se chevauchent — ce qui explique l'indisponibilité. */
+  /** Indicateur de conflit (0 ou 1), sans détail sur les engagements externes. */
   conflicts: number;
+  reason?: string | null;
 }
 
 /**
@@ -68,7 +74,7 @@ export interface AssignableTeam {
  */
 export interface AssignableTeams {
   teams: AssignableTeam[];
-  /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
+  /** Code canonique de prestation ; null si le besoin reste à qualifier. */
   requiredTeamType: string | null;
 }
 
@@ -82,7 +88,7 @@ export const serviceRequestsApi = {
    * `apiClient.get<T>`. Un appelant qui s'y fiait plantait sur
    * « .filter is not a function ».
    */
-  async getAll(params?: { propertyId?: number; reservationId?: number; userId?: number; status?: string; serviceType?: string }): Promise<ServiceRequest[]> {
+  async getAll(params?: { propertyId?: number; reservationId?: number; userId?: number; status?: string; serviceType?: string; activeOnly?: boolean }): Promise<ServiceRequest[]> {
     return extractApiList<ServiceRequest>(await apiClient.get<unknown>('/service-requests', { params }));
   },
   getById(id: number) {
@@ -91,8 +97,11 @@ export const serviceRequestsApi = {
   create(data: ServiceRequestFormData) {
     return apiClient.post<ServiceRequest>('/service-requests', data);
   },
-  update(id: number, data: Partial<ServiceRequestFormData> & { status?: string }) {
+  update(id: number, data: Partial<ServiceRequestFormData> & { status?: string; version?: number }) {
     return apiClient.put<ServiceRequest>(`/service-requests/${id}`, data);
+  },
+  changeStatus(id: number, version: number | undefined, status: string) {
+    return apiClient.post<ServiceRequest>(`/service-requests/${id}/status`, { version, status });
   },
   delete(id: number) {
     return apiClient.delete(`/service-requests/${id}`);
@@ -151,6 +160,10 @@ export const serviceRequestsApi = {
     return apiClient.post<{ sessionId: string; clientSecret: string }>(`/service-requests/${id}/create-embedded-session`);
   },
   /** Assigner manuellement une équipe ou un utilisateur (admin/manager uniquement) */
+  unassign(id: number) {
+    return apiClient.post<ServiceRequest>(`/service-requests/${id}/unassign`);
+  },
+
   manualAssign(id: number, assignedToId: number, assignedToType: 'user' | 'team') {
     return apiClient.post<ServiceRequest>(`/service-requests/${id}/assign`, null, {
       params: { assignedToId, assignedToType },
@@ -167,6 +180,7 @@ export interface PlanningServiceRequest {
   propertyId: number;
   propertyName: string;
   serviceType: string;
+  serviceItemCode?: string;
   title: string;
   assignedToName?: string;
   startDate: string;

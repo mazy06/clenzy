@@ -16,7 +16,18 @@ import java.util.HashSet;
     condition = "organization_id = :orgId"
 )
 public class Intervention {
+    @Column(name = "initial_acceptance_request_id", unique = true)
+    private Long initialAcceptanceRequestId;
+    public Long getInitialAcceptanceRequestId() { return initialAcceptanceRequestId; }
+    public void setInitialAcceptanceRequestId(Long value) { initialAcceptanceRequestId=value; }
     
+    /** Référence précise du catalogue PMS, distincte du type historique de compatibilité. */
+    @Column(name = "service_item_code", length = 60)
+    private String serviceItemCode;
+
+    public String getServiceItemCode() { return serviceItemCode; }
+    public void setServiceItemCode(String value) { serviceItemCode = value; }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -134,7 +145,7 @@ public class Intervention {
     private Set<InterventionPhoto> interventionPhotos = new HashSet<>();
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "property_id", nullable = false)
+    @JoinColumn(name = "property_id")
     private Property property;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -328,6 +339,23 @@ public class Intervention {
     
     public void setAssignedUser(User assignedUser) {
         this.assignedUser = assignedUser;
+    }
+
+    /** Une nouvelle affectation exige une réponse propre à son destinataire. */
+    public void proposeAssignment(User user, Long newTeamId) {
+        if ((user == null) == (newTeamId == null)) {
+            throw new IllegalArgumentException("Désignez un utilisateur ou une équipe");
+        }
+        Long oldUserId = assignedUser == null ? null : assignedUser.getId();
+        Long newUserId = user == null ? null : user.getId();
+        if (java.util.Objects.equals(oldUserId, newUserId)
+                && java.util.Objects.equals(teamId, newTeamId) && assignmentResponse != null) return;
+        assignedUser = user;
+        assignedTechnicianId = newUserId;
+        teamId = newTeamId;
+        assignmentResponse = InterventionAssignmentResponse.PENDING;
+        assignmentRespondedAt = null;
+        assignmentDeclineReason = null;
     }
     
 

@@ -24,7 +24,7 @@ public record UpsellOfferDto(
 
     public static UpsellOfferDto from(UpsellOffer o) {
         return new UpsellOfferDto(
-                o.getId(), o.getPropertyId(), o.getType().name(), o.getTitle(), o.getDescription(),
+                o.getId(), o.getPropertyId(), o.getType(), o.getTitle(), o.getDescription(),
                 o.getPrice(), o.getCurrency(), o.getImageUrl(), o.isActive(), o.getSortOrder(),
                 o.getMinNights(), o.getLeadTimeHours(), o.getBundleOfferIds(),
                 o.isDiffuseOnLivret(), o.isDiffuseOnBooking());

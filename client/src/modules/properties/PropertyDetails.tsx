@@ -1,3 +1,4 @@
+import PropertyServiceTeams from './PropertyServiceTeams';
 import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
@@ -835,6 +836,7 @@ const PropertyDetails: React.FC = () => {
       {/* ─── Tab 1: Interventions ────────────────────────────────────────── */}
       {tabValue === 1 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-1" aria-labelledby="property-tab-1">
+          <PropertyServiceTeams propertyId={Number(id)} />
           <PropertyInterventionsTab interventions={interventions} propertyId={String(id)} />
         </div>
       )}

@@ -124,7 +124,7 @@ describe('<StuckServiceDialog>', () => {
     // Les équipes restent proposées — décaler l'heure peut les libérer.
     expect(await screen.findByText('Équipe Marrakech')).toBeTruthy();
     expect(screen.getByText('Équipe Gueliz')).toBeTruthy();
-    expect(screen.getByText(/Aucune équipe n’est libre sur ce créneau/)).toBeTruthy();
+    expect(screen.getByText(/Aucune équipe ne remplit les conditions actuelles/)).toBeTruthy();
   });
 
   it('rattache au séjour qui couvre le jour choisi', async () => {
