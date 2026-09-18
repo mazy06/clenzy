@@ -55,7 +55,17 @@ export function PropertyThumb({
   name,
   className,
 }: {
-  property: Property | null;
+  /**
+   * Le logement, ou le strict minimum dont la vignette se sert. Les ecrans de
+   * liste ne portent qu'une ligne (`PropertyListItem`), jamais l'entite
+   * complete : leur demander de charger un logement entier pour afficher une
+   * image serait payer une requete par ligne.
+   */
+  property: {
+    id?: number | string;
+    coverPhotoUrl?: string | null;
+    photoUrls?: string[] | null;
+  } | null;
   /** Repli d'identite quand le logement n'a pas pu etre charge. */
   name: string;
   className?: string;

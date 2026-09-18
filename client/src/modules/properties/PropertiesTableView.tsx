@@ -22,6 +22,7 @@ import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
+import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
@@ -96,6 +97,10 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
               const details = toPropertyDetails(property);
               const price = cleaningEstimates[Number(property.id)];
               const duration = estimateCleaningDuration(details);
+              // L'API rend un chemin RELATIF (/api/properties/3/photos/12/data).
+              // Pose tel quel dans un `url()`, il vise le serveur du front et la
+              // vignette reste muette : seul le degrade s'affichait.
+              const photo = toApiMediaUrl(property.imageUrl ?? property.photoUrls?.[0]);
               // .pr-lrow:hover → fond de marque doux, plus soutenu que le `bg-muted` du primitif
               return (
                 <TableRow
@@ -111,9 +116,9 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         className="size-11 rounded-lg shrink-0 flex items-center justify-center text-white/80"
                         style={{
                           background: propertyGradientCss(property.id || property.name),
-                          ...(property.photoUrls && property.photoUrls.length > 0
+                          ...(photo
                             ? {
-                                backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.30)), url(${property.photoUrls[0]}), ${propertyGradientCss(property.id || property.name)}`,
+                                backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.30)), url(${photo}), ${propertyGradientCss(property.id || property.name)}`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                               }
