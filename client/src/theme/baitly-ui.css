@@ -220,6 +220,20 @@
   --bui-field: #EEF3F7;
   --bui-field-line: #CBD5E1;
 
+  /* Pastille d'icône des en-têtes d'écran.
+     Elle lisait `bg-primary/10` : le primaire clair est le bleu nuit #1B2A35,
+     dont 10 % sur blanc donne un gris franc. On la teinte désormais à la
+     couleur de la barre latérale, dont elle devient le rappel — assez
+     translucide pour que l'icône, tracée dans la même encre, reste lisible.
+
+     Valeur figée plutôt que `color-mix` sur --bui-sidebar : le repli que
+     Lightning CSS génère pour les navigateurs sans color-mix est la couleur
+     PLEINE, ce qui rendrait la pastille opaque et l'icône invisible.
+     --bui-primary-soft est figé pour la même raison. Les deux bougent
+     ensemble si la teinte de la sidebar change. */
+  --bui-screen-icon-bg: rgba(13, 21, 38, 0.16); /* --bui-sidebar à 16 % */
+  --bui-screen-icon-fg: var(--bui-sidebar);
+
   /* Sidebar (tokens shadcn dédiés) */
   --bui-sidebar: #FBFCFD;
   --bui-sidebar-foreground: #1B2A35;
@@ -245,8 +259,38 @@
   --bui-tint-bg: 14%;
 }
 
-/* ---- Palette Baitly (dark) — navy profond #0A1120, primaire inversée ---- */
-[data-theme="dark"] {
+/* ---- Palette Baitly (dark) — navy profond #0A1120, primaire inversée ----
+
+   Ces declarations servent DEUX usages :
+
+   1. le theme sombre de l'application, pose sur <html data-theme="dark"> ;
+   2. la barre laterale, qui reste sombre meme en theme clair.
+
+   Pour (2) on ne bascule PAS seulement les tokens --bui-sidebar-* : tout ce
+   qui vit dans la sidebar et lit un token de page (text-muted-foreground du
+   lanceur d'assistant, bg-background de la variante outline du bouton de
+   menu, text-primary de la coche du flyout) resterait calibre pour un fond
+   clair et deviendrait illisible. En redeclarant la palette ENTIERE sur le
+   sous-arbre, les variables etant heritees, chaque composant a l'interieur
+   se resout en sombre sans avoir a etre repris un par un — et un composant
+   ajoute demain suit automatiquement.
+
+   Les trois chemins de rendu du primitif Sidebar (bureau, feuille mobile,
+   collapsible="none") portent tous data-slot="sidebar" ; le flyout est
+   rendu dans un portail, hors du sous-arbre, d'ou .bui-sidebar-flyout.
+   Cibler par attribut evite de dependre d'un className que deux de ces
+   trois chemins ne propagent pas. Le panneau de l'assistant ne porte la
+   classe du flyout qu'en bureau — d'ou data-assistant-launcher, qu'il porte
+   dans les deux cas.
+
+   Attention : la variante Tailwind `dark:` reste liee a [data-theme="dark"]
+   et ne s'active donc PAS dans l'ilot. Aucun composant de la sidebar n'en
+   utilise aujourd'hui ; si l'un en ajoute, il faudra une vraie variable de
+   surface plutot qu'une utilitaire `dark:`. */
+[data-theme="dark"],
+[data-slot="sidebar"],
+.bui-sidebar-flyout,
+[data-assistant-launcher] {
   --bui-background: #0A1120; /* bleu nuit prononcé */
   --bui-foreground: #D7E1EE;
 
@@ -289,6 +333,12 @@
   --bui-field: #16223A;
   --bui-field-line: #2A3A55;
 
+  /* En sombre, la couleur de la sidebar est celle du fond de page : une
+     pastille teintée avec elle serait invisible. Le primaire clair reprend
+     donc son rôle. */
+  --bui-screen-icon-bg: rgba(232, 238, 245, 0.12); /* --bui-primary à 12 % */
+  --bui-screen-icon-fg: var(--bui-primary);
+
   --bui-sidebar: #0D1526;
   --bui-sidebar-foreground: #D7E1EE;
   --bui-sidebar-primary: #E8EEF5;
@@ -306,6 +356,10 @@
 
   --bui-tint-text: 48%;
   --bui-tint-bg: 24%;
+
+  /* Ascenseur et widgets natifs du sous-arbre : sans cela, un ascenseur
+     clair traverse la sidebar sombre en theme clair. */
+  color-scheme: dark;
 }
 
 @theme inline {

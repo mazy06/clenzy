@@ -204,7 +204,7 @@ export default function PageHeader({
             icon && (
               <span
                 aria-hidden
-                className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary/10 text-primary"
+                className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-[var(--bui-screen-icon-bg)] text-[var(--bui-screen-icon-fg)]"
                 style={
                   iconBadgeColor
                     ? {
