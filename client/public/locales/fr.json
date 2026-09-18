@@ -4194,7 +4194,8 @@
     "gate": {
       "cta": "Établir les contrats",
       "banner": "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.",
-      "badge": "Contrat manquant"
+      "badge": "Contrat manquant",
+      "dismiss": "Masquer ce rappel"
     },
     "required": {
       "title": "Contrat de gestion requis",
@@ -9196,6 +9197,15 @@
     "provider": "Intervenant",
     "team": "Équipe",
     "unscheduled": "À planifier"
+  },
+  "propertyMap": {
+    "visible": "{{count}} propriétés dans cette zone",
+    "visible_one": "{{count}} propriété dans cette zone",
+    "visible_other": "{{count}} propriétés dans cette zone",
+    "emptyZoneTitle": "Aucune propriété dans cette zone",
+    "emptyZone": "Déplacez ou dézoomez la carte pour élargir la recherche.",
+    "noCoordinatesTitle": "Aucune propriété géolocalisée",
+    "noCoordinates": "Les coordonnées sont ajoutées automatiquement lors de la saisie de l'adresse."
   },
   "assignmentFlow": {
     "title": "Propositions de service",

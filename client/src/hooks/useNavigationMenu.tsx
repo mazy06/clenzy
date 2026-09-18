@@ -31,6 +31,8 @@ import {
   Contacts,
   Bolt,
   Palette,
+  RequestQuote,
+  PersonSearch,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -39,6 +41,7 @@ import {
   type HubAccess,
   type HubDef,
 } from '../config/navigationHubs';
+import { SCREEN_ICON } from '../config/navigationIcons';
 // Imports PROFONDS (pas le barrel '../modules/supervision') : ce hook est monté
 // globalement via la sidebar — passer par le barrel tirerait tout le module
 // supervision (constellation + framer-motion) dans le chunk chargé partout.
@@ -113,7 +116,14 @@ interface UseNavigationMenuReturn {
 
 type MenuEntryConfig =
   | { kind: 'item'; item: Omit<MenuItem, 'id' | 'text'> }
-  | { kind: 'hub'; hubId: string; icon: React.ReactNode };
+  | { kind: 'hub'; hubId: string; icon: React.ReactNode }
+  /**
+   * Hub APLATI : ses onglets accessibles remontent au premier niveau de la
+   * sidebar, sans entree parente ni sous-menu depliable. Le hub reste defini —
+   * il porte les permissions de chaque onglet et les routes qu'il couvre ;
+   * seul son REGROUPEMENT visuel disparait.
+   */
+  | { kind: 'hub-tabs'; hubId: string };
 
 const MENU_ENTRIES: MenuEntryConfig[] = [
   // ── Main ──
@@ -142,8 +152,50 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   // Assistant : plus d'entree de menu — accessible via le widget bulle (logo
   // flottant) present sur toutes les pages, qui s'agrandit en plein ecran avec
   // l'historique. L'ancienne page dediee /assistant a ete supprimee.
-  // Exploitation = Propriétés · Réservations · Interventions
-  { kind: 'hub', hubId: 'exploitation', icon: <Home /> },
+  // Propriétés · Réservations · Interventions — au premier niveau. Le
+  // regroupement « Exploitation » ne se voyait QUE dans la sidebar, et il y
+  // coutait un depliage pour atteindre les trois ecrans les plus frequentes de
+  // la journee. Sa definition reste en place : c'est elle qui porte les
+  // permissions de ces trois onglets et les routes qu'ils couvrent
+  // (/service-requests, /calendar, /connected-objects), qu'une entree simple
+  // aurait fallu recopier a la main.
+  { kind: 'hub-tabs', hubId: 'exploitation' },
+  /*
+   * Devis et Prestataires quittent le regroupement « Contacts » pour le premier
+   * niveau : ce ne sont pas des carnets d'adresses, ce sont deux gestes de
+   * l'exploitation — demander un prix, trouver qui intervient.
+   *
+   * `'all'`, métiers du terrain COMPRIS. Sous Contacts, le filtre des hubs les
+   * leur masquait alors que les deux écrans se déclaraient ouverts à tous et
+   * que les routes n'ont jamais porté de garde : un intervenant y arrivait
+   * depuis sa mission, mais ne pouvait pas y aller de lui-même. Ce qui borne
+   * la vue, c'est l'ORGANISATION, résolue par le serveur — et pour les devis,
+   * la fiche rattachée au compte. Un garde par rôle serait faux de toute
+   * façon : un prestataire accepté porte un rôle d'intervention, pas un rôle
+   * « prestataire ».
+   */
+  {
+    kind: 'item',
+    item: {
+      icon: <RequestQuote />,
+      path: '/devis',
+      matchPaths: ['/devis'],
+      roles: ['all'],
+      translationKey: 'navigation.quoteRequests',
+      group: 'main',
+    },
+  },
+  {
+    kind: 'item',
+    item: {
+      icon: <PersonSearch />,
+      path: '/prestataires',
+      matchPaths: ['/prestataires', '/marketplace'],
+      roles: ['all'],
+      translationKey: 'navigation.providerCatalog',
+      group: 'main',
+    },
+  },
   // ── Management ──
   // Contacts = Messagerie · Annuaire
   { kind: 'hub', hubId: 'contacts', icon: <Contacts /> },
@@ -339,26 +391,50 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
   }, [user?.permissions, isAdmin, isManager, hasAnyRole]);
 
   /**
-   * Construit l'item sidebar d'un hub : visible si au moins un onglet est
-   * accessible ; pointe vers le premier onglet accessible ; actif sur toutes
-   * les routes couvertes par les onglets accessibles (matchPaths).
+   * Onglets d'un hub reellement atteignables par l'utilisateur courant.
+   *
+   * <p>Un intervenant reste sur SES interventions. Ce compte technicien portait
+   * `properties:view` — une permission accordee a la main, absente du role par
+   * defaut — et voyait donc l'inventaire des logements, qui est l'ecran de
+   * gestion du parc. Le detail d'un logement lui reste accessible depuis sa
+   * mission, la ou il en a besoin.</p>
    */
-  const buildHubItem = useCallback((hub: HubDef, icon: React.ReactNode): MenuItem | null => {
+  const reachableHubTabs = useCallback((hub: HubDef) => {
     const access: HubAccess = {
       permissions: user?.permissions ?? [],
       isAdmin: isAdmin(),
       isManager: isManager(),
     };
-    let tabs = accessibleHubTabs(hub, access);
+    const tabs = accessibleHubTabs(hub, access);
+    return hasAnyRole([...FIELD_ROLES])
+      ? tabs.filter((tab) => FIELD_HUB_TABS.has(tab.path))
+      : tabs;
+  }, [user?.permissions, isAdmin, isManager, hasAnyRole]);
 
-    // Un intervenant reste sur SES interventions. Ce compte technicien portait
-    // `properties:view` — une permission accordee a la main, absente du role par
-    // defaut — et voyait donc l'inventaire des logements, qui est l'ecran de
-    // gestion du parc. Le detail d'un logement lui reste accessible depuis sa
-    // mission, la ou il en a besoin.
-    if (hasAnyRole([...FIELD_ROLES])) {
-      tabs = tabs.filter((tab) => FIELD_HUB_TABS.has(tab.path));
-    }
+  /**
+   * Hub APLATI : une entree de premier niveau par onglet accessible, sans
+   * parent ni sous-menu. Chaque entree porte l'icone de son ecran et reste
+   * active sur les sous-routes de detail (/properties/123).
+   */
+  const buildHubTabItems = useCallback((hub: HubDef): MenuItem[] =>
+    reachableHubTabs(hub).map((tab) => ({
+      id: tab.path,
+      text: t(tab.translationKey, tab.fallbackLabel),
+      icon: SCREEN_ICON[tab.path] ?? <Home />,
+      path: tab.path,
+      roles: ['all'],
+      translationKey: tab.translationKey,
+      group: hub.group,
+      matchPaths: tabRoutePrefixes(tab),
+    })), [reachableHubTabs, t]);
+
+  /**
+   * Construit l'item sidebar d'un hub : visible si au moins un onglet est
+   * accessible ; pointe vers le premier onglet accessible ; actif sur toutes
+   * les routes couvertes par les onglets accessibles (matchPaths).
+   */
+  const buildHubItem = useCallback((hub: HubDef, icon: React.ReactNode): MenuItem | null => {
+    const tabs = reachableHubTabs(hub);
 
     if (tabs.length === 0) return null;
 
@@ -379,7 +455,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
         matchPaths: tabRoutePrefixes(tab),
       })),
     };
-  }, [user?.permissions, isAdmin, isManager, hasAnyRole, t]);
+  }, [reachableHubTabs, t]);
 
   // Fonction pour construire le menu (synchronisée)
   const buildMenuItems = useCallback((): MenuItem[] => {
@@ -401,10 +477,14 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       const isFieldWorker = hasAnyRole([...FIELD_ROLES]);
 
       for (const entry of MENU_ENTRIES) {
-        if (entry.kind === 'hub') {
+        if (entry.kind === 'hub' || entry.kind === 'hub-tabs') {
           if (isFieldWorker && !fieldOnlyHubs.has(entry.hubId)) continue;
           const hub = NAVIGATION_HUBS.find((h) => h.id === entry.hubId);
           if (!hub) continue;
+          if (entry.kind === 'hub-tabs') {
+            accessibleItems.push(...buildHubTabItems(hub));
+            continue;
+          }
           const hubItem = buildHubItem(hub, entry.icon);
           if (hubItem) accessibleItems.push(hubItem);
           continue;
@@ -421,6 +501,9 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
             permission: item.permission,
             translationKey: item.translationKey,
             group: item.group,
+            // Sans cela une entree simple ne s'allume que sur sa route exacte :
+            // « Prestataires » s'eteignait sur /marketplace.
+            matchPaths: item.matchPaths,
           });
         }
       }
@@ -443,7 +526,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     } finally {
       setLoading(false);
     }
-  }, [user, hasMenuAccess, buildHubItem, t]);
+  }, [user, hasMenuAccess, buildHubItem, buildHubTabItems, t]);
 
   // État mémorisé du menu
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
