@@ -282,20 +282,35 @@
 }
 
 /* MARK: Card */
+/* L'anneau seul faisait de la carte un contour, pas une surface : sur
+   l'ancienne echelle il etait a 1,05 du fond. L'ombre teintee la pose.
+
+   Passe par l'utilitaire `shadow-[...]` et non par une declaration
+   `box-shadow` separee : `ring-1` emet lui aussi un box-shadow, et une
+   seconde declaration l'ecraserait. Tailwind compose --tw-shadow et
+   --tw-ring-shadow dans la meme propriete. Les espaces sont des `_` :
+   une classe arbitraire contenant une espace n'existe pas. */
 .cn-card {
-  @apply ring-foreground/10 bg-card text-card-foreground gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm ring-1 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl;
+  @apply ring-foreground/10 bg-card text-card-foreground gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm ring-1 shadow-[0_1px_2px_var(--bui-shadow-1),0_10px_26px_-14px_var(--bui-shadow-2)] [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl;
 }
 
 .cn-card-header {
   @apply gap-1 rounded-t-xl px-(--card-spacing) [.border-b]:pb-(--card-spacing);
 }
 
+/* CONTRASTE DE DENSITE — le titre porte, le contenu se serre.
+   Le titre valait text-base/500 : deux pixels et cent graisses au-dessus du
+   corps en text-sm, donc rien qui ressorte. Il monte d'un cran de l'echelle
+   produit (rapport 1,2 : 14 px -> 16,8) et prend une vraie graisse de titre.
+   La description descend a 13 px pour elargir l'ecart plutot que de le
+   rattraper. Aucune couleur ne change : la hierarchie revient par la seule
+   typographie. */
 .cn-card-title {
-  @apply text-base leading-snug font-medium group-data-[size=sm]/card:text-sm;
+  @apply leading-snug font-semibold tracking-[-0.01em] text-[1.0625rem] group-data-[size=sm]/card:text-sm;
 }
 
 .cn-card-description {
-  @apply text-muted-foreground text-sm;
+  @apply text-muted-foreground text-[0.8125rem] leading-normal;
 }
 
 .cn-card-content {
@@ -1173,8 +1188,23 @@
 }
 
 /* MARK: Sidebar */
-.cn-sidebar-gap {
-  @apply transition-[width] duration-200 ease-linear;
+/* Repli de la navigation — une seule ligne de temps.
+   Seuls DEUX elements animent une propriete de mise en page : la coquille
+   fixe et la gouttiere qui pousse le contenu. Tout le reste (boutons de menu,
+   rail) n'anime plus que des couleurs : les 25 boutons animaient chacun
+   `width, height, padding`, soit 25 animations de layout imbriquees dans une
+   26e, toutes recalculees a chaque frame. Ils se redimensionnent toujours —
+   simplement dans la meme passe de layout que leur parent, au lieu d'en
+   reclamer une a eux. */
+.cn-sidebar-gap,
+.cn-sidebar-container {
+  transition: width var(--bui-sidebar-motion) var(--ease-out-quart);
+}
+
+/* `left`/`right` : la variante hors-champ (`offcanvas`) sort la coquille par
+   le bord. Elle partage la courbe du reste. */
+.cn-sidebar-container {
+  transition-property: width, left, right;
 }
 
 .cn-sidebar-inner {
@@ -1182,7 +1212,10 @@
 }
 
 .cn-sidebar-rail {
-  @apply hover:after:bg-sidebar-border;
+  /* `transition-all` animait aussi les positions que le repli change — la
+     poignee partait en glissade a contretemps de la coquille. Seule la
+     couleur de survol a besoin d'une transition. */
+  @apply transition-colors duration-150 hover:after:bg-sidebar-border;
 }
 
 .cn-sidebar-inset {
@@ -1222,7 +1255,7 @@
 }
 
 .cn-sidebar-group-label {
-  @apply text-sidebar-foreground/70 ring-sidebar-ring h-8 rounded-md px-2 text-xs font-medium transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4;
+  @apply text-sidebar-foreground/70 ring-sidebar-ring h-8 rounded-md px-2 text-xs font-medium transition-[margin,opacity] duration-[var(--bui-sidebar-motion)] ease-[var(--ease-out-quart)] group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4;
 }
 
 .cn-sidebar-group-action {
@@ -1230,7 +1263,7 @@
 }
 
 .cn-sidebar-menu-button {
-  @apply ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-start text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium;
+  @apply ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-start text-sm transition-[background-color,color] duration-150 group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium;
 }
 
 .cn-sidebar-menu-button-aria {
@@ -1387,6 +1420,11 @@
   @apply px-3 py-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pe-0;
   font-size: 12.5px;
   border-bottom: 1px solid var(--bui-border);
+  /* Chiffres a chasse fixe dans TOUTES les cellules : une colonne de montants
+     ou de dates cesse de danser d'une ligne a l'autre. Sans effet sur le texte
+     — la propriete ne touche que l'avance des chiffres — donc applicable ici
+     plutot qu'ecran par ecran, ou elle etait inegalement posee. */
+  font-variant-numeric: tabular-nums;
 }
 
 .cn-table-cell-aria {

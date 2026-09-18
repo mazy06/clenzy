@@ -1,11 +1,5 @@
 import React, { useState, useMemo, useEffect, createContext, useContext } from 'react';
-import {
-  Security,
-  TrendingUp,
-  Assignment,
-  HealthAndSafety,
-} from '../../icons';
-import { ShieldAlert } from 'lucide-react';
+import { HealthAndSafety } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { useTabKeyParam } from '../../components/tabKeyParam';
@@ -14,6 +8,7 @@ import {
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
 import TokenMonitoring from '../../components/TokenMonitoring';
 import KeycloakMetrics from '../../components/KeycloakMetrics';
 import AuditLogging from '../../components/AuditLogging';
@@ -36,29 +31,16 @@ const MonitoringHeaderContext = createContext<MonitoringHeaderApi>({
 
 export const useMonitoringHeader = (): MonitoringHeaderApi => useContext(MonitoringHeaderContext);
 
-// ─── Tab definitions (source of truth) ──────────────────────────────────────
-// Les labels et la metadata sont construits dans le composant via t() pour
-// reagir au changement de langue.
-const TAB_ICONS = [
-  <Security />,
-  <TrendingUp />,
-  <Assignment />,
-  <HealthAndSafety />,
-  <ShieldAlert />,
-] as const;
+// Les onglets vivent dans `config/screenTabs.tsx` — la barre latérale en déplie
+// le tiroir sans avoir monté cet écran, et une liste tenue en double aurait
+// dérivé au premier onglet ajouté d'un seul côté.
 
 const MonitoringPage: React.FC = () => {
   const { t } = useTranslation();
 
-  // Source de verite des tabs (avec `key` stable pour l'URL ?tab=<key>). Definie AVANT useTabKeyParam,
-  // dont le resultat (tabValue) est consomme par le useEffect ci-dessous (TDZ).
-  const monitoringTabs = [
-    { key: 'tokens', label: t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens'), icon: TAB_ICONS[0] },
-    { key: 'keycloak', label: t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak'), icon: TAB_ICONS[1] },
-    { key: 'audit', label: t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging'), icon: TAB_ICONS[2] },
-    { key: 'health-checks', label: t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés'), icon: TAB_ICONS[3] },
-    { key: 'rls-audit', label: t('tabHeaders.monitoring.tabs.rlsAudit', 'Isolation RLS'), icon: TAB_ICONS[4] },
-  ];
+  // Onglets lus au registre — defini AVANT useTabKeyParam, dont le resultat
+  // (tabValue) est consomme par le useEffect ci-dessous (TDZ).
+  const monitoringTabs = useScreenTabs('/admin/monitoring');
   const [tabValue, setTabValue] = useTabKeyParam(monitoringTabs);
   const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
   const [headerLastUpdate, setHeaderLastUpdate] = useState<Date | null>(null);

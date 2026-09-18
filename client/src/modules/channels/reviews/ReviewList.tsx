@@ -141,7 +141,10 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
             label={t('channels.reviews.totalReviews', 'Avis reçus')}
             value={reviews.length}
           />
+          {/* L'écran existe pour répondre : la note moyenne est une
+              conséquence, celle-ci est une action. */}
           <StatTile
+            feature
             icon={<ReplyIcon />}
             label={t('channels.reviews.pending', 'Sans réponse')}
             value={pending}

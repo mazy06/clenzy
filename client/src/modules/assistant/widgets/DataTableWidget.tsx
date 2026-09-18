@@ -68,7 +68,7 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
         {/* Header row */}
         <div className="grid gap-1.5 border-b border-border bg-muted px-2 py-1" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
           {columns.map((col) => (
-            <p className="text-2xs font-bold tracking-[.05em] uppercase text-faint whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
+            <p className="text-2xs font-bold tracking-[.05em] uppercase text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
               {col.label}
             </p>
           ))}

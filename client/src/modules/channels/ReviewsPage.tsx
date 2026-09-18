@@ -30,7 +30,10 @@ export default function ReviewsPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col gap-3">
+      {/* Le conteneur de cette page espace deja ses blocs (gap) : sans ca la
+          gouttiere s'ajouterait a la marge basse du bandeau. */}
       <PageHeader
+        selfSpaced={false}
         title={t('channels.reviews.title', 'Avis voyageurs')}
         subtitle={t('channels.reviews.subtitle', 'Tous canaux confondus')}
         iconBadge={<StarIcon />}

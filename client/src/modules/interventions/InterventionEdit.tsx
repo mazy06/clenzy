@@ -14,7 +14,7 @@ const InterventionEdit: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="p-4">
+    <div>
       <PageHeader
         title={t('interventions.editTitle')}
         subtitle={t('interventions.subtitle')}

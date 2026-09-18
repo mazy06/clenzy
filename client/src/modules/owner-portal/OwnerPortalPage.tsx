@@ -99,8 +99,11 @@ const OwnerPortalPage: React.FC = () => {
   // SPACING.PAGE_PADDING = 2 unites MUI et theme.spacing = 6 => 12px de padding
   // (le commentaire « 16px » de theme/spacing.ts date d'un theme a 8px).
   return (
-    <div className="p-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
+      {/* Le conteneur de cette page espace deja ses blocs (gap) : sans ca la
+          gouttiere s'ajouterait a la marge basse du bandeau. */}
       <PageHeader
+        selfSpaced={false}
         title={t('ownerPortal.title', 'Portail Proprietaire')}
         subtitle={
           selectedOwner
@@ -572,11 +575,13 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                 value={fmtCurrency(statement.totalExpenses)}
                 iconClassName="text-warning"
               />
+              {/* Le seul chiffre que le propriétaire touche réellement ; revenu,
+                    commissions, frais OTA et dépenses ne font que le composer. */}
               <StatTile
+                feature
                 icon={<PayoutIcon />}
                 label={t('ownerPortal.netAmount', 'Montant net')}
                 value={fmtCurrency(statement.netAmount)}
-                iconClassName="text-success"
               />
             </div>
           </div>

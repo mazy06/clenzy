@@ -228,7 +228,7 @@ const UserForm: React.FC = () => {
   };
 
   return (
-    <div className="p-3">
+    <div>
       <PageHeader
         title="Nouvel utilisateur"
         subtitle="Créez un nouveau compte utilisateur pour la gestion des utilisateurs"

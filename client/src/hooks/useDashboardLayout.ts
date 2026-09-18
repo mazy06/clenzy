@@ -46,13 +46,18 @@ export interface DashboardRow {
  * ci-dessus absorbent déjà la différence.
  */
 
-/** Répartition égale, arrondie pour que la somme fasse exactement 100. */
+/**
+ * Répartition égale — en fractions EXACTES, pas en entiers.
+ *
+ * <p>L'arrondi précédent posait le reste sur la première tuile : à trois par
+ * ligne, `[34, 33, 33]`. Un pour cent d'écart ne se voit pas sur un chiffre,
+ * mais sur une ligne de trois graphiques la première colonne est visiblement
+ * plus large. En tiers exacts les trois sont strictement identiques, et la
+ * somme vaut toujours 100 — `sizesAreSane` reste satisfait.</p>
+ */
 function equalSizes(count: number): number[] {
   if (count <= 0) return [];
-  const base = Math.floor(100 / count);
-  const sizes = Array.from({ length: count }, () => base);
-  sizes[0] += 100 - base * count;
-  return sizes;
+  return Array.from({ length: count }, () => 100 / count);
 }
 
 /** Largeurs valides ? Bon cardinal, valeurs positives, somme proche de 100. */

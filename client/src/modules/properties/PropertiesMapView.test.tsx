@@ -1,4 +1,6 @@
 import { render, screen, act, fireEvent, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PropertiesMapView from './PropertiesMapView';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
@@ -22,18 +24,26 @@ const build = (count: number) => Array.from({ length: count }, (_, index) => ({
   type: 'APARTMENT', status: 'ACTIVE', nightlyPrice: 0, latitude: 47, longitude: 1,
 })) as unknown as PropertyListItem[];
 
+const view = (properties: PropertyListItem[]) => (
+  <MemoryRouter>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <PropertiesMapView
+      mapMarkers={properties.map(p => ({ lat: 47, lng: 1, name: p.name, id: Number(p.id), type: 'property' as const }))}
+      viewportProperties={properties}
+      channexMappings={new Map()}
+      onBoundsChange={() => {}}
+      onDiagnose={() => {}}
+      canManageContracts={false}
+      missingContractIds={new Set()}
+      onMissingContractClick={() => {}}
+      navigate={vi.fn() as never}
+    />
+    </QueryClientProvider>
+  </MemoryRouter>
+);
+
 function mount(properties: PropertyListItem[]) {
-  return render(<PropertiesMapView
-    mapMarkers={properties.map(p => ({ lat: 47, lng: 1, name: p.name, id: Number(p.id), type: 'property' as const }))}
-    viewportProperties={properties}
-    channexMappings={new Map()}
-    onBoundsChange={() => {}}
-    onDiagnose={() => {}}
-    canManageContracts={false}
-    missingContractIds={new Set()}
-    onMissingContractClick={() => {}}
-    navigate={vi.fn() as never}
-  />);
+  return render(view(properties));
 }
 
 describe('Liste de la vue carte des logements', () => {
@@ -55,17 +65,7 @@ describe('Liste de la vue carte des logements', () => {
     expect(screen.getAllByText(/^Logement /)).toHaveLength(40);
 
     const narrowed = build(30);
-    rerender(<PropertiesMapView
-      mapMarkers={narrowed.map(p => ({ lat: 47, lng: 1, name: p.name, id: Number(p.id), type: 'property' as const }))}
-      viewportProperties={narrowed}
-      channexMappings={new Map()}
-      onBoundsChange={() => {}}
-      onDiagnose={() => {}}
-      canManageContracts={false}
-      missingContractIds={new Set()}
-      onMissingContractClick={() => {}}
-      navigate={vi.fn() as never}
-    />);
+    rerender(view(narrowed));
     expect(screen.getAllByText(/^Logement /)).toHaveLength(20);
   });
 

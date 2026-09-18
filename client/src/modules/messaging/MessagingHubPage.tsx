@@ -209,7 +209,11 @@ export default function MessagingHubPage() {
     : `${t('messagingHub.conversationCount', { count: source.items.length })} · ${t('messagingHub.unreadCount', { count: unreadCount })}`;
 
   return (
-    <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       <PageHeader
         title={t('messagingHub.title', 'Messagerie')}
         subtitle={subtitle}
@@ -224,67 +228,69 @@ export default function MessagingHubPage() {
           </Button>
         }
       />
+      <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
 
-      {/* Deux CARTES distinctes plutot qu'une carte scindee par un filet : la
-          liste et le fil sont deux objets, la projection les separe par une
-          gouttiere. Le seuil 900 px est le `md` de MUI, celui du reste de
-          l'ecran (master-detail mobile). */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[300px_1fr]">
-        <div className={cn('min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'hidden' : 'flex flex-col')}>
-          <ConversationList
-            items={source.items}
-            isLoading={source.isLoading}
-            error={source.error}
-            filter={filter}
-            onFilterChange={setFilter}
-            showFormsFilter={isAdminOrManager}
-            selectedKey={selectedKey}
-            onSelect={handleSelect}
-            onArchive={handleArchive}
-            onRestore={handleRestore}
-          />
-        </div>
+        {/* Deux CARTES distinctes plutot qu'une carte scindee par un filet : la
+            liste et le fil sont deux objets, la projection les separe par une
+            gouttiere. Le seuil 900 px est le `md` de MUI, celui du reste de
+            l'ecran (master-detail mobile). */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[300px_1fr]">
+          <div className={cn('min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'hidden' : 'flex flex-col')}>
+            <ConversationList
+              items={source.items}
+              isLoading={source.isLoading}
+              error={source.error}
+              filter={filter}
+              onFilterChange={setFilter}
+              showFormsFilter={isAdminOrManager}
+              selectedKey={selectedKey}
+              onSelect={handleSelect}
+              onArchive={handleArchive}
+              onRestore={handleRestore}
+            />
+          </div>
 
-        {/* ── Volet droit adaptatif : fil + compose ou détail formulaire ──── */}
-        <div className={cn('min-w-0 min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'flex flex-col' : 'hidden')}>
-          {selected?.kind === 'channel' && selected.conv ? (
-            <ChannelThread
-              conv={selected.conv}
-              onArchived={() => setSelectedKey(null)}
-              showBack={isMobile}
-              onBack={() => setSelectedKey(null)}
-            />
-          ) : selected?.kind === 'internal' && selected.thread ? (
-            <InternalThread
-              // key = correspondant : remount au changement de thread (etat frais
-              // draft/attachments) — remplace l'ancien effet de reset interne.
-              key={selected.thread.counterpartKeycloakId}
-              thread={selected.thread}
-              onArchived={() => setSelectedKey(null)}
-              showBack={isMobile}
-              onBack={() => setSelectedKey(null)}
-            />
-          ) : selected?.kind === 'form' && selected.form ? (
-            <FormDetailPanel
-              form={selected.form}
-              showBack={isMobile}
-              onBack={() => setSelectedKey(null)}
-            />
-          ) : (
-            <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
-              <EmptyState
-                variant="transparent"
-                icon={<ForumIcon />}
-                title={t('messagingHub.selectConversation', 'Sélectionnez une conversation')}
-                description={t(
-                  'messagingHub.selectConversationHint',
-                  'Choisissez une conversation ou un formulaire à gauche pour afficher le détail.',
-                )}
+          {/* ── Volet droit adaptatif : fil + compose ou détail formulaire ──── */}
+          <div className={cn('min-w-0 min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'flex flex-col' : 'hidden')}>
+            {selected?.kind === 'channel' && selected.conv ? (
+              <ChannelThread
+                conv={selected.conv}
+                onArchived={() => setSelectedKey(null)}
+                showBack={isMobile}
+                onBack={() => setSelectedKey(null)}
               />
-            </div>
-          )}
+            ) : selected?.kind === 'internal' && selected.thread ? (
+              <InternalThread
+                // key = correspondant : remount au changement de thread (etat frais
+                // draft/attachments) — remplace l'ancien effet de reset interne.
+                key={selected.thread.counterpartKeycloakId}
+                thread={selected.thread}
+                onArchived={() => setSelectedKey(null)}
+                showBack={isMobile}
+                onBack={() => setSelectedKey(null)}
+              />
+            ) : selected?.kind === 'form' && selected.form ? (
+              <FormDetailPanel
+                form={selected.form}
+                showBack={isMobile}
+                onBack={() => setSelectedKey(null)}
+              />
+            ) : (
+              <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
+                <EmptyState
+                  variant="transparent"
+                  icon={<ForumIcon />}
+                  title={t('messagingHub.selectConversation', 'Sélectionnez une conversation')}
+                  description={t(
+                    'messagingHub.selectConversationHint',
+                    'Choisissez une conversation ou un formulaire à gauche pour afficher le détail.',
+                  )}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -115,7 +115,7 @@ const UserDetails: React.FC = () => {
   }
 
   return (
-    <div className="p-3">
+    <div>
       <PageHeader
         title="Détails de l'utilisateur"
         subtitle={`${user.firstName} ${user.lastName}`}

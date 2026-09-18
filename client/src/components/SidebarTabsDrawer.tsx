@@ -4,6 +4,7 @@ import {
   Popover,
   PopoverAnchor,
   PopoverContent,
+  PopoverTrigger,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSubButton,
@@ -37,24 +38,20 @@ import type { ResolvedScreenTab } from '../hooks/useScreenTabs';
  * lignes sont celles du volet, l'onglet courant porte l'aplat des entrées de
  * navigation.</p>
  *
- * <p><b>Ouverture au survol, avec intention.</b> Un tiroir qui s'ouvre au
- * premier pixel survolé clignote dès qu'on traverse la liste pour descendre. On
- * attend donc {@link OPEN_DELAY} avant d'ouvrir et {@link CLOSE_DELAY} avant de
- * refermer — cette seconde temporisation est ce qui autorise la diagonale entre
- * la ligne et le tiroir, que la souris ne fait jamais en ligne droite.</p>
+ * <p><b>Ouverture au CLIC.</b> Le tiroir s'ouvrait au survol, et la barre
+ * repliée montrait alors deux choses à la fois : l'infobulle du kit, que le
+ * survol déclenche aussi en mode icônes, et le tiroir — deux panneaux ouverts
+ * au même geste, qui se chevauchaient. Le clic tranche : l'infobulle reste au
+ * survol, le tiroir répond au clic, et la ligne se comporte comme un hub de la
+ * barre, qui n'a jamais navigué au clic non plus mais ouvert son niveau
+ * suivant. On atteint l'écran par son premier onglet, qui est justement son
+ * onglet d'entrée.</p>
  *
- * <p><b>Et au clavier</b>, parce qu'un tiroir qui n'existe qu'au survol n'existe
- * pas pour tout le monde : la flèche vers l'extérieur (droite en LTR, gauche en
+ * <p><b>Et au clavier</b> : la flèche vers l'extérieur (droite en LTR, gauche en
  * RTL) ouvre et donne le focus au tiroir, {@code Échap} le referme et rend le
- * focus à la ligne. Le focus n'est pris QUE dans ce cas — une ouverture au
- * survol qui volerait le focus déplacerait le curseur de saisie de la page.</p>
+ * focus à la ligne. Le focus n'est pris QUE dans ce cas — une ouverture qui le
+ * volerait déplacerait le curseur de saisie de la page.</p>
  */
-
-/** Survol assez long pour être une intention, assez court pour ne pas se voir. */
-const OPEN_DELAY = 120;
-
-/** Laps accordé à la diagonale souris entre la ligne et le tiroir. */
-const CLOSE_DELAY = 180;
 
 /**
  * Repli si l'animation d'ouverture ne rend pas la main — un mouvement coupé par
@@ -252,43 +249,31 @@ function useSeam(
   return { innerRef, seam };
 }
 
-function useHoverDrawer(prepare: () => void) {
+function useClickDrawer(prepare: () => void) {
   const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // `prepare` est relu au moment de l'ouverture, jamais comparé : il mesure le
-  // DOM, une lambda recréée à chaque rendu ne doit pas relancer de temporisation.
+  // DOM, et une lambda recréée à chaque rendu ne doit pas réinstaller de rappel.
   const prepareRef = useRef(prepare);
   prepareRef.current = prepare;
 
-  const reveal = useCallback(() => {
+  const openNow = useCallback(() => {
     prepareRef.current();
     setOpen(true);
   }, []);
+  const closeNow = useCallback(() => setOpen(false), []);
 
-  const cancel = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-  }, []);
+  /**
+   * Tout passage à l'ouvert MESURE d'abord — que le geste vienne de la ligne,
+   * du clavier ou de Radix (qui pilote lui-même l'ouverture du déclencheur).
+   * Sans quoi le tiroir se placerait sur des cotes périmées.
+   */
+  const onOpenChange = useCallback(
+    (next: boolean) => { if (next) openNow(); else setOpen(false); },
+    [openNow],
+  );
 
-  // Le tiroir survit rarement à son écran : naviguer démonte la ligne alors
-  // qu'une temporisation court encore.
-  useEffect(() => cancel, [cancel]);
-
-  const openSoon = useCallback(() => {
-    cancel();
-    timer.current = setTimeout(reveal, OPEN_DELAY);
-  }, [cancel, reveal]);
-
-  const closeSoon = useCallback(() => {
-    cancel();
-    timer.current = setTimeout(() => setOpen(false), CLOSE_DELAY);
-  }, [cancel]);
-
-  const openNow = useCallback(() => { cancel(); reveal(); }, [cancel, reveal]);
-  const closeNow = useCallback(() => { cancel(); setOpen(false); }, [cancel]);
-
-  return { open, setOpen, openSoon, closeSoon, cancel, openNow, closeNow };
+  return { open, onOpenChange, openNow, closeNow };
 }
 
 interface TabsDrawerProps {
@@ -382,8 +367,8 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
     setTopOffset(onPanel ? Math.round(to.top - from.top) : 0);
   }, [side]);
 
-  const drawer = useHoverDrawer(measurePlacement);
-  // Une ouverture au clavier prend le focus ; une ouverture au survol, jamais.
+  const drawer = useClickDrawer(measurePlacement);
+  // Une ouverture au clavier prend le focus ; une ouverture au clic, jamais.
   const viaKeyboard = useRef(false);
 
   const focusRow = () => {
@@ -417,12 +402,10 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
 
   const outward = side === 'right' ? 'ArrowRight' : 'ArrowLeft';
 
-  /** Posé sur l'enveloppe : les touches et le survol lui remontent de la ligne. */
+  /** Posé sur l'enveloppe : les touches lui remontent de la ligne. */
   const anchorProps = {
     ref: anchorRef,
     className: 'w-full',
-    onMouseEnter: drawer.openSoon,
-    onMouseLeave: drawer.closeSoon,
     onKeyDown: (event: React.KeyboardEvent) => {
       if (event.key === outward) {
         event.preventDefault();
@@ -435,11 +418,11 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
     },
   };
 
-  /** Posé sur la LIGNE : c'est elle qui annonce le tiroir, pas l'enveloppe. */
-  const rowProps = {
-    'aria-haspopup': 'menu' as const,
-    'aria-expanded': drawer.open,
-  };
+  /**
+   * Posé sur la LIGNE : c'est elle qui annonce le tiroir, pas l'enveloppe.
+   * `aria-expanded`, lui, est posé par le déclencheur Radix.
+   */
+  const rowProps = { 'aria-haspopup': 'menu' as const };
 
   const content = (
     <PopoverContent
@@ -457,11 +440,9 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
           ? ({ '--bui-flyout-seam-end': `${seam.end}px` } as React.CSSProperties)
           : undefined
       }
-      onMouseEnter={drawer.cancel}
-      onMouseLeave={drawer.closeSoon}
       onOpenAutoFocus={(event) => { if (!viaKeyboard.current) event.preventDefault(); }}
-      // Le survol referme déjà le tiroir ; rendre le focus au corps de la page à
-      // ce moment-là ferait sauter la vue. Échap, lui, le rend à la ligne.
+      // Un clic dehors referme déjà le tiroir ; rendre le focus au corps de la
+      // page à ce moment-là ferait sauter la vue. Échap, lui, le rend à la ligne.
       onCloseAutoFocus={(event) => event.preventDefault()}
       onEscapeKeyDown={() => { drawer.closeNow(); focusRow(); }}
     >
@@ -479,12 +460,12 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
     </PopoverContent>
   );
 
-  const setOpen = (next: boolean) => {
+  const onOpenChange = (next: boolean) => {
     if (!next) viaKeyboard.current = false;
-    drawer.setOpen(next);
+    drawer.onOpenChange(next);
   };
 
-  return { open: drawer.open, setOpen, anchorProps, rowProps, content };
+  return { open: drawer.open, onOpenChange, anchorProps, rowProps, content };
 }
 
 /** Chevron du niveau suivant — orienté par le sens de lecture, comme la barre. */
@@ -500,35 +481,56 @@ function DrawerChevron() {
 interface SidebarTabsRowProps extends TabsDrawerProps {
   /** L'écran est la page courante. */
   isActive: boolean;
-  /** Clic sur la ligne : on va sur l'écran, à son onglet d'entrée. */
-  onNavigate: () => void;
+  /** Préchauffe la route de l'écran — le tiroir y mène toujours. */
   onPrefetch?: () => void;
+  /** Infobulle de la ligne — la barre principale la montre quand elle est repliée. */
+  tooltip?: React.ComponentProps<typeof SidebarMenuButton>['tooltip'];
+  /** Classes de la ligne (hauteur tactile, par exemple). */
+  className?: string;
+  /** Posé entre le libellé et le chevron — un compteur, typiquement. */
+  trailing?: React.ReactNode;
   /** Contenu de la ligne (le libellé de l'écran). */
   children: React.ReactNode;
 }
 
 /**
- * Ligne d'écran DANS le volet (barre repliée) qui déplie ses onglets. Même
- * ligne que {@link SidebarFlyoutRow}, plus le chevron et le tiroir.
+ * `SidebarMenuButton asChild` AUTOUR du déclencheur, et non l'inverse : Radix
+ * pose sur son enfant la ref qui sert d'ancre, et les boutons du kit sont des
+ * composants fonction sans `forwardRef` — en React 18 la ref se perdrait en
+ * silence. Dans ce sens-là, c'est le `Slot` du kit qui la transmet au
+ * déclencheur, qui lui est bien `forwardRef`. C'est aussi lui qui gère la
+ * bascule ouvert/fermé : un `onClick` maison rouvrirait le tiroir que le clic
+ * dehors vient de refermer.
+ */
+
+/**
+ * Ligne d'écran de niveau MENU qui déplie ses onglets : dans le volet d'un hub
+ * (barre repliée) comme dans la barre principale, pour un écran qui y figure
+ * sans parent. Même ligne que {@link SidebarFlyoutRow}, plus le chevron et le
+ * tiroir.
  */
 export function SidebarTabsFlyoutRow({
-  isActive, onNavigate, onPrefetch, children, ...drawerProps
+  isActive, onPrefetch, tooltip, className, trailing, children, ...drawerProps
 }: SidebarTabsRowProps) {
-  const { open, setOpen, anchorProps, rowProps, content } = useTabsDrawerRow(drawerProps);
+  const { open, onOpenChange, anchorProps, rowProps, content } = useTabsDrawerRow(drawerProps);
 
   return (
     <SidebarMenuItem>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverAnchor asChild>
           <div {...anchorProps}>
             <SidebarMenuButton
+              asChild
               isActive={isActive}
-              onClick={onNavigate}
-              onFocus={onPrefetch}
+              tooltip={tooltip}
+              className={className}
               {...rowProps}
             >
-              {children}
-              <DrawerChevron />
+              <PopoverTrigger onMouseEnter={onPrefetch} onFocus={onPrefetch}>
+                {children}
+                {trailing}
+                <DrawerChevron />
+              </PopoverTrigger>
             </SidebarMenuButton>
           </div>
         </PopoverAnchor>
@@ -541,32 +543,31 @@ export function SidebarTabsFlyoutRow({
 /**
  * Ligne d'écran du sous-menu DÉPLIÉ (barre ouverte) qui déplie ses onglets.
  *
- * <p>{@code SidebarMenuSubButton} est une ancre sans {@code href} : elle n'est
- * pas atteignable au clavier telle quelle. Le {@code role} et le
- * {@code tabIndex} la remettent dans l'ordre de tabulation — sans quoi la
- * flèche d'ouverture n'aurait personne à qui répondre.</p>
+ * <p>{@code SidebarMenuSubButton} rend une ancre sans {@code href}, que le
+ * clavier n'atteint pas. Le déclencheur Radix qu'elle enveloppe est un vrai
+ * bouton : il la remet dans l'ordre de tabulation, sans {@code role} ni
+ * {@code tabIndex} postiches.</p>
  */
 export function SidebarTabsSubRow({
-  isActive, onNavigate, onPrefetch, children, ...drawerProps
+  isActive, onPrefetch, children, ...drawerProps
 }: SidebarTabsRowProps) {
-  const { open, setOpen, anchorProps, rowProps, content } = useTabsDrawerRow(drawerProps);
+  const { open, onOpenChange, anchorProps, rowProps, content } = useTabsDrawerRow(drawerProps);
 
   return (
     <SidebarMenuSubItem>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverAnchor asChild>
           <div {...anchorProps}>
             <SidebarMenuSubButton
-              role="button"
-              tabIndex={0}
+              asChild
               isActive={isActive}
-              onClick={onNavigate}
-              onFocus={onPrefetch}
               className="max-lg:h-9"
               {...rowProps}
             >
-              {children}
-              <DrawerChevron />
+              <PopoverTrigger onMouseEnter={onPrefetch} onFocus={onPrefetch}>
+                {children}
+                <DrawerChevron />
+              </PopoverTrigger>
             </SidebarMenuSubButton>
           </div>
         </PopoverAnchor>

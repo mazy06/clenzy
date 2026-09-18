@@ -75,7 +75,7 @@ function dispatchQuickReply(text: string) {
  *       repondre dans le champ chat.</li>
  * </ul>
  *
- * <p>Habillage Baitly UI : sur-titres en petites capitales {@code text-faint}.
+ * <p>Habillage Baitly UI : sur-titres en petites capitales {@code muted-foreground}.
  * Pour les boolean quick replies, on emet un
  * {@link ASSISTANT_QUICK_REPLY_EVENT} sur la window que la page chat ecoute
  * pour rappeler {@code sendMessage}.</p>
@@ -99,11 +99,11 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {/* Header titre + meta */}
       <div className="flex items-baseline gap-1.5 flex-wrap">
-        <p className="text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title || 'Workflow'}
         </p>
         {data.estimatedDuration && (
-          <p className="text-xs text-faint tabular-nums">
+          <p className="text-xs text-muted-foreground tabular-nums">
             ≈ {data.estimatedDuration} min
           </p>
         )}
@@ -163,7 +163,7 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
               </Button>
             </div>
           ) : (
-            <p className="block mt-2 text-xs italic text-faint">
+            <p className="block mt-2 text-xs italic text-foreground/70">
               Reponds dans le chat ci-dessous puis j'enchainerai l'etape suivante.
             </p>
           )}
@@ -183,7 +183,7 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
             Workflow termine.
           </p>
           {data.suggestedAction?.toolName && (
-            <p className="block mt-0.5 text-xs text-muted-foreground">
+            <p className="block mt-0.5 text-xs text-foreground/70">
               Prochaine action suggeree : <code>{data.suggestedAction.toolName}</code>
             </p>
           )}

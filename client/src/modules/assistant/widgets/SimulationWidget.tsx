@@ -87,7 +87,7 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title}
         </p>
       )}
@@ -98,7 +98,7 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
           <p className="text-[1.5rem] font-semibold tabular-nums leading-[1]" style={{ color: deltaColor(data.pctRevenueChange) }}>
             {formatPctSigned(data.pctRevenueChange)}
           </p>
-          <p className="text-2xs font-bold text-faint uppercase tracking-[.05em]">
+          <p className="text-2xs font-bold text-foreground/70 uppercase tracking-[.05em]">
             Revenue projete
           </p>
           <p className="text-[0.85rem] font-semibold tabular-nums ms-auto" style={{ color: deltaColor(data.deltaRevenue) }}>
@@ -159,7 +159,7 @@ const ScenarioCard: React.FC<{
 
   return (
     <div className="px-[7.5px] py-1.5 rounded-lg" style={{ backgroundColor: bg }}>
-      <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint mb-0.5">
+      <p className="block text-2xs font-bold uppercase tracking-[.05em] text-foreground/70 mb-0.5">
         {label}
       </p>
       <p className="text-[1.35rem] font-semibold text-foreground tabular-nums tracking-[-0.01em] leading-[1.1]">
@@ -176,7 +176,7 @@ const ScenarioCard: React.FC<{
 
 const MetricInline: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="inline-flex items-baseline gap-0.5">
-    <p className="text-2xs font-bold text-faint uppercase tracking-[.04em]">
+    <p className="text-2xs font-bold text-foreground/70 uppercase tracking-[.04em]">
       {label}
     </p>
     <p className="text-xs font-semibold text-foreground tabular-nums">
@@ -191,7 +191,7 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title}
         </p>
       )}
@@ -203,7 +203,7 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
         <p className="text-[1.75rem] font-semibold text-warning-ink tabular-nums tracking-[-0.02em] leading-[1]">
           {formatCurrency(data.estimatedLostRevenue)}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-foreground/70 mt-0.5">
           sur {data.daysBlocked} jour(s){data.reference ? ` · base sur ${data.reference}` : ''}
         </p>
       </div>
@@ -235,7 +235,7 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
 
 const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="px-2 py-1.5 rounded-lg bg-muted">
-    <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint mb-0.5">
+    <p className="block text-2xs font-bold uppercase tracking-[.05em] text-foreground/70 mb-0.5">
       {label}
     </p>
     <p className="text-[1rem] font-semibold text-foreground tabular-nums">

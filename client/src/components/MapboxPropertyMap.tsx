@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { createSettledScheduler } from '../utils/layoutShift';
 import { MapIcon } from '../icons';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -29,6 +30,12 @@ interface MapboxPropertyMapProps {
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+/**
+ * Dernier recours seulement. Le centre normal est la ville du compte
+ * (`useHomeMapCenter`) ; Paris ne sert plus qu'aux comptes sans ville
+ * exploitable — creation par un administrateur, invitation d'un prestataire,
+ * ville que le geocodeur ne reconnait pas.
+ */
 const DEFAULT_CENTER: [number, number] = [2.3522, 48.8566]; // Paris
 const DEFAULT_ZOOM = 12;
 
@@ -65,10 +72,20 @@ export function MapboxPropertyMap({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const onMarkerClickRef = useRef(onMarkerClick);
   const onBoundsChangeRef = useRef(onBoundsChange);
+  // `center`/`zoom` sont des valeurs d'AMORCAGE, pas un etat pilote : les
+  // garder en dependances de la creation detruisait et reconstruisait la carte
+  // des que le centre changeait — ce qui arrive desormais, la ville du compte
+  // arrivant apres coup. Un ref les transmet sans reconstruire.
+  const centerRef = useRef(center);
+  const zoomRef = useRef(zoom);
+  /** L'utilisateur a-t-il deja deplace la carte lui-meme ? */
+  const userMovedRef = useRef(false);
   useEffect(() => {
     onMarkerClickRef.current = onMarkerClick;
     onBoundsChangeRef.current = onBoundsChange;
-  }, [onMarkerClick, onBoundsChange]);
+    centerRef.current = center;
+    zoomRef.current = zoom;
+  }, [onMarkerClick, onBoundsChange, center, zoom]);
 
   const mapStyle = isDark ? MAP_STYLES.dark : MAP_STYLES.light;
 
@@ -97,28 +114,52 @@ export function MapboxPropertyMap({
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: mapStyle,
-      center,
-      zoom,
+      center: centerRef.current,
+      zoom: zoomRef.current,
       accessToken: MAPBOX_TOKEN,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     const handleMoveEnd = () => emitBounds();
+    // `originalEvent` n'est present que sur un geste : un `fitBounds` ou un
+    // `jumpTo` programmatique ne compte pas comme un deplacement utilisateur.
+    const handleMoveStart = (event: { originalEvent?: unknown }) => {
+      if (event.originalEvent) userMovedRef.current = true;
+    };
     map.on('moveend', handleMoveEnd);
+    map.on('movestart', handleMoveStart);
     mapRef.current = map;
     // Le panneau change de taille sans toujours redimensionner la fenêtre
     // (sidebar, répartition carte/liste). Mapbox doit recalculer son canvas.
-    const resizeObserver = new ResizeObserver(() => map.resize());
+    // ...mais une seule fois arrive : `resize` reconstruit le canvas GL, le
+    // faire a chaque frame du repli de la navigation coute bien plus cher que
+    // le deplacement lui-meme.
+    const settledResize = createSettledScheduler(() => map.resize());
+    const resizeObserver = new ResizeObserver(settledResize.schedule);
     resizeObserver.observe(mapContainerRef.current);
 
     return () => {
+      settledResize.cancel();
       resizeObserver.disconnect();
       map.off('moveend', handleMoveEnd);
+      map.off('movestart', handleMoveStart);
       clearMarkers();
       map.remove();
       mapRef.current = null;
     };
-  }, [center, zoom, clearMarkers, mapStyle, emitBounds]);
+  }, [clearMarkers, mapStyle, emitBounds]);
+
+  /**
+   * Centre arrive APRES la creation — typiquement la ville du compte, resolue
+   * par une requete. On ne le pose que si la camera n'appartient a personne
+   * d'autre : des marqueurs la cadrent deja (`fitBounds` plus bas), et un
+   * deplacement manuel est une intention qu'on ne recouvre pas.
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || userMovedRef.current || properties.length > 0) return;
+    map.jumpTo({ center, zoom });
+  }, [center, zoom, properties.length]);
 
   // Sync markers with properties
   useEffect(() => {

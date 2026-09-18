@@ -24,7 +24,9 @@ import { useDashboardLayout } from '../../hooks/useDashboardLayout';
 import DashboardWidgetPicker from './DashboardWidgetPicker';
 import {
   ImportedTileWidget,
+  KPI_TILE_KEY,
   findTileSource,
+  importedWidgetId,
   isImportedWidgetId,
   parseImportedWidgetId,
 } from './importedWidgets';
@@ -103,6 +105,71 @@ function OverviewSkeleton() {
     </div>
   );
 }
+
+/**
+ * Disposition LIVREE — ce que voit un compte qui n'a jamais touche a son
+ * tableau de bord.
+ *
+ * <h2>Pourquoi des tuiles importees y figurent</h2>
+ * <p>Les appariements natifs (revenus + canal, a traiter + occupation) ne
+ * faisaient qu'un ecran d'operations. Les tuiles des Rapports et du Pulse
+ * completent la lecture — tendance, pace, arriere d'interventions, reperes,
+ * reassort — sans quoi chaque compte devait les reposer une par une.</p>
+ *
+ * <h2>Une seule repartition par canal importee</h2>
+ * <p>Synthese et Revenus exposent chacune une tuile « Revenus par canal ».
+ * Posees toutes les deux a cote de la native `revenue-by-channel`, elles
+ * faisaient TROIS fois la meme lecture. Celle des Revenus est gardee : elle
+ * porte son intitule (« Ou la demande arrive ») et vit dans l'onglet qui est le
+ * foyer naturel d'une repartition par canal.</p>
+ *
+ * <h2>Le prix, assume</h2>
+ * <p>Ces dix tuiles viennent de NEUF sources, et importer une tuile monte le
+ * hook de tout son onglet d'origine : neuf jeux de requetes de rapport au
+ * premier chargement, en plus des widgets natifs. Seule Revenus sert deux
+ * tuiles, que React Query dedoublonne. Retirer une tuile d'une source unique
+ * est donc ce qui allege le plus.</p>
+ *
+ * <h2>Ce que cette constante ne fait PAS</h2>
+ * <p>Elle ne touche a personne. `mergeLayoutRows` ne lit la disposition livree
+ * que lorsque AUCUNE preference n'est enregistree : un compte qui a deja
+ * deplace une tuile garde la sienne, et ne verra jamais ces ajouts. Les leur
+ * imposer demanderait d'incrementer la cle de preference, ce qui effacerait la
+ * personnalisation de tout le monde.</p>
+ *
+ * <p>Les largeurs ne sont volontairement PAS ecrites ici : `mergeLayoutRows`
+ * repartit chaque ligne a parts egales. Toutes les lignes du corps tenant
+ * exactement TROIS tuiles, chacune fait un tiers — la largeur est donc la meme
+ * d'un bout a l'autre de l'ecran, et non plus seulement au sein d'une ligne.
+ * Elle reste adaptative : un pourcentage suit son conteneur, et sous `sm` la
+ * ligne s'empile.</p>
+ */
+const DEFAULT_LAYOUT_ROWS: string[][] = [
+  // Deux bandeaux pleine largeur : le ruban de chiffres, puis la journee en
+  // trois colonnes. Les reduire au tiers les casserait — ce sont des bandes,
+  // pas des tuiles.
+  ['kpis'],
+  ['today-operations'],
+  // Cinq lignes de TROIS, et rien d'autre : c'est ce qui rend toutes les
+  // tuiles du corps strictement de meme largeur.
+  ['revenue-split', 'revenue-by-channel', importedWidgetId('reports.revenue', 'channels')],
+  ['action-items', 'occupancy-by-property', 'upcoming-arrivals'],
+  [
+    importedWidgetId('pulse.guest', 'reviews-unanswered'),
+    importedWidgetId('reports.overview', 'revenueTrend'),
+    importedWidgetId('reports.pace', 'table'),
+  ],
+  [
+    importedWidgetId('reports.interventions', 'trend'),
+    importedWidgetId('reports.occupancy', 'highlights'),
+    importedWidgetId('reports.pricing', KPI_TILE_KEY),
+  ],
+  [
+    importedWidgetId('reports.properties', 'benchmark'),
+    importedWidgetId('reports.revenue', 'costs'),
+    importedWidgetId('pulse.operations', 'stock'),
+  ],
+];
 
 const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period }) => {
   const { user } = useAuth();
@@ -349,7 +416,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       node: (
         <DashboardErrorBoundary widgetName="OperationalKPIs">
           <StatTileRow compact>
-            <StatTile
+            {/* Le moment engagé du tableau de bord. On l'ouvre le matin pour
+                  savoir quoi faire, pas pour contempler un indicateur de
+                  revenu : le seul chiffre qui appelle une action dans l'heure
+                  le porte. */}
+              <StatTile
+              feature
               icon={<CalendarCheckIcon />}
               label={t('dashboard.stats.todayInterventions', 'Aujourd’hui')}
               value={stats ? stats.interventions.today : '—'}
@@ -472,16 +544,25 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const widgetIdsKey = widgets.map((widget) => widget.id).join('|');
   const availableWidgetIds = useMemo(() => widgetIdsKey.split('|'), [widgetIdsKey]);
 
-  /** Appariements de la projection : revenus + canal, à traiter + occupation. */
   const defaultRows = useMemo(() => {
-    const pairs: Record<string, string> = {
-      'revenue-split': 'revenue-by-channel',
-      'action-items': 'occupancy-by-property',
-    };
-    const partners = new Set(Object.values(pairs));
-    return availableWidgetIds
-      .filter((id) => !partners.has(id))
-      .map((id) => (pairs[id] && availableWidgetIds.includes(pairs[id]) ? [id, pairs[id]] : [id]));
+    const available = new Set(availableWidgetIds);
+    const placed = new Set<string>();
+    const rows = DEFAULT_LAYOUT_ROWS
+      .map((ids) => ids.filter((id) => {
+        // Une tuile IMPORTEE n'est jamais « disponible » : elle n'existe que
+        // parce qu'elle est posee. Seules les natives se verifient.
+        if (!isImportedWidgetId(id) && !available.has(id)) return false;
+        placed.add(id);
+        return true;
+      }))
+      .filter((ids) => ids.length > 0);
+
+    // Tuiles natives qu'un role expose sans que la disposition livree les
+    // nomme : ajoutees en fin, une par ligne, plutot que perdues.
+    for (const id of availableWidgetIds) {
+      if (!placed.has(id)) rows.push([id]);
+    }
+    return rows;
   }, [availableWidgetIds]);
 
   const layoutOptions = useMemo(() => ({ isImported: isImportedWidgetId }), []);

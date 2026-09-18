@@ -1,37 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
-import {
-  Button,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../../components/ui';
-import type { NavigateFunction } from 'react-router-dom';
-import { Home, LocationOn, Visibility } from '../../icons';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, CircleCheck, Wrench } from 'lucide-react';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Home } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useHomeMapCenter } from '../../hooks/useHomeMapCenter';
 import EmptyState from '../../components/EmptyState';
-import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
-import MissingContractChip from './MissingContractChip';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import MapWithSheet from '../../components/baitly/MapWithSheet';
-import { Money } from '../../components/Money';
+import PropertyMapRow from './PropertyMapRow';
+import type { NavigateFunction } from 'react-router-dom';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
-import {
-  getPropertyStatusLabel,
-  getPropertyTypeLabel,
-  getPropertyTypeHex,
-} from '../../utils/statusUtils';
-import { propertyStatusTokens } from './propertiesListConstants';
-
-/** Surface « carte » de la liste (hairline + rayon xl + fond carte). */
-const LIST_SURFACE_CLASS = 'border border-solid border-border rounded-xl bg-card';
 
 /**
  * Taille du lot affiché. La zone visible peut contenir des centaines de logements ;
@@ -54,18 +34,27 @@ interface PropertiesMapViewProps {
   navigate: NavigateFunction;
 }
 
-/** Vue carte : carte fixe en haut + liste scrollable des propriétés du viewport. */
+/**
+ * Vue carte des logements — même surface que les deux autres cartes de
+ * l'application (demandes de service, interventions) : sur desktop la carte
+ * occupe la colonne principale et la liste vit dans un panneau à droite, à sa
+ * hauteur ; sous 640 px la liste devient la feuille tirable de `MapWithSheet`.
+ *
+ * <p>L'empilement précédent — carte de 400 px en haut, liste dessous — pliait
+ * deux surfaces qui réclament chacune l'attention entière : en lisant la liste
+ * la carte était morte au-dessus, en manipulant la carte la liste sortait du
+ * champ. Le panneau latéral les rend simultanées, ce qui est le propre d'une
+ * vue carte : déplacer la carte MET À JOUR la liste, sous les yeux.</p>
+ */
 const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   mapMarkers, viewportProperties, channexMappings, onBoundsChange, onDiagnose,
   canManageContracts, missingContractIds, onMissingContractClick, navigate,
 }) => {
   const { t } = useTranslation();
+  const homeCenter = useHomeMapCenter();
 
-  // Avant tout retour anticipé : les hooks doivent s'exécuter à chaque rendu.
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const endRef = useRef<HTMLDivElement>(null);
-  // `viewportProperties` est mémoïsé en amont : son identité change quand la zone
-  // ou les filtres changent la sélection, et le lot repart alors du début.
   useEffect(() => { setVisibleCount(BATCH_SIZE); }, [viewportProperties]);
   const visibleProperties = viewportProperties.slice(0, visibleCount);
   const hasMore = visibleCount < viewportProperties.length;
@@ -80,27 +69,56 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
     return () => observer.disconnect();
   }, [hasMore, visibleCount]);
 
-  // Aucun marqueur : ni carte ni feuille, seulement l'explication.
-  if (mapMarkers.length === 0) {
-    return (
-      <div className={cn(LIST_SURFACE_CLASS, 'shrink-0 overflow-hidden')}>
-        <EmptyState
-          variant="transparent"
-          minHeight={400}
-          icon={<Home />}
-          title="Aucune propriété avec coordonnées GPS"
-          description="Les coordonnées sont ajoutées automatiquement lors de la saisie de l'adresse"
-        />
-      </div>
+  /** Compteurs de la ZONE VISIBLE — ils suivent la carte, là où les tuiles
+      portefeuille du haut d'écran suivent, elles, les filtres. */
+  const indicators = useMemo(() => {
+    const counts = viewportProperties.reduce(
+      (accumulator, property) => {
+        const status = String(property.status).toUpperCase();
+        if (status === 'ACTIVE') accumulator.active += 1;
+        if (status === 'MAINTENANCE' || status === 'UNDER_MAINTENANCE') accumulator.maintenance += 1;
+        if (missingContractIds.has(Number(property.id))) accumulator.missing += 1;
+        return accumulator;
+      },
+      { active: 0, maintenance: 0, missing: 0 },
     );
-  }
+    return [
+      { key: 'active', label: t('properties.statuses.ACTIVE'), count: counts.active, Icon: CircleCheck, color: 'var(--bui-success-ink)' },
+      { key: 'maintenance', label: t('properties.statuses.MAINTENANCE'), count: counts.maintenance, Icon: Wrench, color: 'var(--bui-warning-ink)' },
+      ...(canManageContracts
+        ? [{ key: 'missing', label: t('contracts.gate.badge', 'Contrat manquant'), count: counts.missing, Icon: AlertTriangle, color: 'var(--bui-destructive-ink)' }]
+        : []),
+    ];
+  }, [viewportProperties, missingContractIds, canManageContracts, t]);
 
+  const emptyState = mapMarkers.length === 0 ? (
+    <EmptyState
+      variant="plain"
+      icon={<Home />}
+      title={t('propertyMap.noCoordinatesTitle')}
+      description={t('propertyMap.noCoordinates')}
+    />
+  ) : viewportProperties.length === 0 ? (
+    <EmptyState
+      variant="plain"
+      icon={<Home />}
+      title={t('propertyMap.emptyZoneTitle')}
+      description={t('propertyMap.emptyZone')}
+    />
+  ) : undefined;
+
+  // Plancher de securite sur la surface : `flex-1` se resout a zero si un
+  // ancetre cesse d'etre contraint en hauteur, et la carte disparaitrait alors
+  // en silence.
   return (
     <MapWithSheet
-      className="h-[calc(100vh_-_140px)] min-h-[500px]"
+      desktopLayout="split"
+      className="min-h-[480px]"
+      listResetKey={`${viewportProperties.length}:${viewportProperties[0]?.id ?? ''}`}
       map={
         <MapboxPropertyMap
           properties={mapMarkers}
+          center={homeCenter}
           height="100%"
           onMarkerClick={(marker) => {
             if (marker.id) navigate(`/properties/${marker.id}`);
@@ -108,95 +126,38 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
           onBoundsChange={onBoundsChange}
         />
       }
-      listTitle={`${viewportProperties.length} ${viewportProperties.length > 1 ? 'propriétés' : 'propriété'} dans la zone visible`}
-      emptyState={viewportProperties.length === 0 ? (
-        <EmptyState
-          variant="plain"
-          icon={<Home />}
-          title="Aucune propriété dans cette zone"
-          description="Déplacez ou dézoomez la carte."
-        />
-      ) : undefined}
+      listTitle={t('propertyMap.visible', { count: viewportProperties.length })}
+      listIndicators={
+        <div className="flex shrink-0 items-center gap-2 text-xs tabular-nums">
+          {indicators.map(({ key, label, count, Icon, color }) => (
+            <Tooltip key={key}>
+              <TooltipTrigger asChild>
+                <span
+                  tabIndex={0}
+                  aria-label={`${count} ${label}`}
+                  className="inline-flex items-center gap-1 rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Icon size={15} style={{ color }} aria-hidden />
+                  <span className="font-semibold">{count}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      }
+      emptyState={emptyState}
     >
-      {visibleProperties.map((property) => {
-                const typeColor = getPropertyTypeHex(property.type);
-                return (
-                  <Item
-                    key={property.id}
-                    variant="outline"
-                    size="xs"
-                    className={cn(
-                      'shrink-0 flex-nowrap rounded-xl bg-card cursor-pointer',
-                      'transition-[border-color,box-shadow] duration-150 hover:border-input hover:shadow-sm motion-reduce:transition-none',
-                    )}
-                    onClick={() => navigate(`/properties/${property.id}`)}
-                  >
-                    {/* Nom + adresse */}
-                    <ItemContent className="min-w-0 gap-0.5">
-                      <ItemTitle className="min-w-0 max-w-full gap-1">
-                        <span className="min-w-0 truncate text-sm font-semibold">
-                          {property.name}
-                        </span>
-                        {/* Quick Win #4 : badge sante Channex */}
-                        {channexMappings.get(Number(property.id)) && (
-                          <ChannexHealthBadge
-                            mapping={channexMappings.get(Number(property.id)) ?? null}
-                            size={9}
-                            variant="dot"
-                            onClick={() => onDiagnose(Number(property.id), property.name)}
-                          />
-                        )}
-                        {canManageContracts && missingContractIds.has(Number(property.id)) && (
-                          <MissingContractChip
-                            onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
-                          />
-                        )}
-                      </ItemTitle>
-                      <div className="flex min-w-0 items-center gap-0.5 text-2xs text-muted-foreground">
-                        <span className="inline-flex shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
-                        <span className="truncate">
-                          {property.address}, {property.city}
-                        </span>
-                      </div>
-                    </ItemContent>
-
-                    {/* Type + Statut chips */}
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      <StatusChip color={typeColor} label={getPropertyTypeLabel(property.type, t)} />
-                      <StatusChip tokens={propertyStatusTokens(property.status)} label={getPropertyStatusLabel(property.status, t)} />
-                    </div>
-
-                    {/* Prix + Action */}
-                    <ItemActions className="shrink-0 gap-2">
-                      {property.nightlyPrice > 0 && (
-                        <p className="my-0 whitespace-nowrap font-[family-name:var(--font-display)] text-sm font-semibold text-foreground tabular-nums">
-                          <Money value={property.nightlyPrice} from="EUR" decimals={0} />
-                          <span className="text-2xs text-muted-foreground">
-                            /nuit
-                          </span>
-                        </p>
-                      )}
-                      {/* span intermediaire : TooltipTrigger asChild pose une ref DOM,
-                          que le Button du kit (fonction, React 18) ne transmet pas. */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex">
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Détails"
-                              onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
-                            >
-                              <Visibility size={16} strokeWidth={1.75} />
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Détails</TooltipContent>
-                      </Tooltip>
-                    </ItemActions>
-                  </Item>
-                );
-      })}
+      {visibleProperties.map((property) => (
+        <PropertyMapRow
+          key={property.id}
+          property={property}
+          channexMapping={channexMappings.get(Number(property.id))}
+          onDiagnose={onDiagnose}
+          showMissingContract={canManageContracts && missingContractIds.has(Number(property.id))}
+          onMissingContractClick={onMissingContractClick}
+        />
+      ))}
       {hasMore && (
         <div ref={endRef} className="flex shrink-0 justify-center p-3">
           <Button variant="ghost" onClick={() => setVisibleCount((count) => count + BATCH_SIZE)}>

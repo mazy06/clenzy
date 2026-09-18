@@ -20,7 +20,6 @@ import {
   ToggleGroupItem,
 } from '../../components/ui';
 import {
-  Notifications,
   Security,
   Person,
   Save,
@@ -32,16 +31,7 @@ import {
   DarkMode,
   SettingsBrightness,
   BarChart,
-  GroupAdd,
-  ChatBubbleOutline,
   TrendingUp,
-  AccountBalance,
-  Euro,
-  Payment,
-  SmartToy,
-  Extension,
-  CalendarMonth,
-  LocalOffer,
   Bolt,
   NightsStay,
 } from '../../icons';
@@ -65,6 +55,7 @@ import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { useTabKeyParam, tabIndexFromKey } from '../../components/tabKeyParam';
+import { useScreenTabs } from '../../hooks/useScreenTabs';
 import { SettingsHeaderProvider, useSettingsHeaderActionsSlot } from './SettingsHeaderContext';
 
 // Type re-export pour la metadata des tabs. Le mapping concret est construit
@@ -248,25 +239,13 @@ export default function Settings() {
   const [canViewSettings, setCanViewSettings] = useState(false);
   const [canViewAi, setCanViewAi] = useState(false);
 
-  // ─── Onglets (source unique) + onglet actif resolu par CLE (URL ?tab=<key>) ──────────────
-  // Defini ICI (avant la 1ere utilisation de tabValue par handleTabChange / headerActions).
-  // La cle est STABLE face aux onglets masques par role, contrairement a l'index visible (qui
-  // shifte selon le role). Cf. components/tabKeyParam.ts (useTabKeyParam / tabIndexFromKey).
-  const settingsTabs = [
-    { key: 'general', label: t('tabHeaders.settings.tabs.general', 'Général'), icon: <TuneOutlined />, hidden: false },
-    { key: 'notifications', label: t('tabHeaders.settings.tabs.notifications', 'Notifications'), icon: <Notifications />, hidden: false },
-    { key: 'messaging', label: t('tabHeaders.settings.tabs.messaging', 'Messagerie'), icon: <ChatBubbleOutline />, hidden: false },
-    { key: 'my-payout', label: t('settings.myPayout.tabLabel', 'Reversements propriétaire'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
-    { key: 'my-rates', label: t('settings.myRates.tabLabel', 'Mes tarifs'), icon: <Euro />, hidden: !hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) },
-    { key: 'my-payouts-pro', label: t('settings.myProPayouts.tabLabel', 'Mes versements de missions'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) },
-    { key: 'ai', label: t('tabHeaders.settings.tabs.ai', 'IA'), icon: <SmartToy />, hidden: !canViewAi },
-    { key: 'fiscal', label: t('tabHeaders.settings.tabs.fiscal', 'Fiscal'), icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { key: 'organization', label: t('tabHeaders.settings.tabs.organization', 'Organisation'), icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { key: 'payment', label: t('tabHeaders.settings.tabs.payment', 'Paiement'), icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { key: 'integrations', label: t('tabHeaders.settings.tabs.integrations', 'Intégrations'), icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { key: 'payouts', label: t('tabHeaders.settings.tabs.payouts', 'Reversements (plateforme)'), icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
-    { key: 'amenities-ota', label: t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA'), icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
-  ];
+  // ─── Onglets (registre) + onglet actif resolu par CLE (URL ?tab=<key>) ──────
+  // Lus dans `config/screenTabs.tsx` : la barre laterale deplie les memes, pour
+  // un ecran qu'elle n'a pas monte. Definis ICI (avant la 1ere utilisation de
+  // tabValue par handleTabChange / headerActions).
+  // La cle est STABLE face aux onglets masques par role, contrairement a l'index
+  // visible (qui shifte selon le role). Cf. components/tabKeyParam.ts.
+  const settingsTabs = useScreenTabs('/settings');
   const visibleSettingsTabs = settingsTabs.filter((tab) => !tab.hidden);
   const [tabValue, setTabValue] = useTabKeyParam(settingsTabs);
 

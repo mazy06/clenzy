@@ -72,7 +72,12 @@ export default function TemplateGalleryPage() {
   return (
     <div className="be-home h-[100vh] flex flex-col bg-background px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]" data-accent="indigo">
       <div className="shrink-0">
+        {/* Pas de bandeau ancré : le padding de cette page n'est pas un
+            doublon de celui du conteneur de contenu — il sert une canevas plein écran, fond et accent propres.
+            Le retirer collerait le contenu au bord, et une bande qui déborde
+            d'une colonne centrée ne s'aligne sur rien. */}
         <PageHeader
+          anchored={false}
           title="Tous les templates"
           subtitle="Choisissez un modèle pour démarrer votre booking engine"
           iconBadge={<LayoutGrid />}

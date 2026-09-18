@@ -266,3 +266,51 @@ describe('placeNextTo — le côté du dépôt', () => {
     expect(placeNextTo(full, 'd', 'b', 'after')).toEqual(full);
   });
 });
+
+describe('disposition LIVREE (aucune preference enregistree)', () => {
+  const isImported = (id: string) => id.startsWith('import:');
+
+  it('garde les tuiles importees que la disposition livree nomme', () => {
+    // Le piege : une tuile importee n'est JAMAIS dans `available`. Sans le
+    // predicat, la regle 1 la jetterait — la disposition livree perdrait
+    // silencieusement ses onze tuiles de rapport.
+    const rows = mergeLayoutRows(
+      null,
+      ['kpis', 'action-items'],
+      [['kpis'], ['action-items', 'import:reports.pace:table']],
+      { isImported },
+    );
+    expect(rows.map((row) => row.ids)).toEqual([
+      ['kpis'],
+      ['action-items', 'import:reports.pace:table'],
+    ]);
+  });
+
+  it('repartit chaque ligne en parts strictement egales', () => {
+    const rows = mergeLayoutRows(
+      null,
+      ['a', 'b', 'c'],
+      [['a', 'b', 'c']],
+      { isImported },
+    );
+    const [first, second, third] = rows[0].sizes!;
+    expect(first).toBe(second);
+    expect(second).toBe(third);
+    expect(first + second + third).toBeCloseTo(100, 10);
+  });
+
+  it('ajoute en fin une tuile native que la disposition livree ne nomme pas', () => {
+    const rows = mergeLayoutRows(null, ['kpis', 'role-only'], [['kpis']], { isImported });
+    expect(rows.map((row) => row.ids)).toEqual([['kpis'], ['role-only']]);
+  });
+
+  it('cede devant la moindre preference enregistree', () => {
+    const rows = mergeLayoutRows(
+      { rows: [{ ids: ['kpis'] }] },
+      ['kpis'],
+      [['kpis'], ['import:reports.pace:table']],
+      { isImported },
+    );
+    expect(rows.map((row) => row.ids)).toEqual([['kpis']]);
+  });
+});

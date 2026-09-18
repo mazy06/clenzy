@@ -71,7 +71,12 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     return (
       // Container maxWidth="lg" MUI = 1200 px centres + gouttieres.
       <div className="mx-auto w-full max-w-[1200px] px-4">
+        {/* Pas de bandeau ancré : le padding de cette page n'est pas un
+            doublon de celui du conteneur de contenu — il sert une colonne centrée de 1200 px.
+            Le retirer collerait le contenu au bord, et une bande qui déborde
+            d'une colonne centrée ne s'aligne sur rien. */}
         <PageHeader
+          anchored={false}
           title={t('portfolios.forms.clientPropertyAssociation')}
           subtitle={t('portfolios.forms.clientPropertyAssociationSubtitle')}
           backPath="/portfolios"
@@ -382,7 +387,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4">
+      {/* Meme colonne centree que l'autre rendu de cet ecran : meme retrait du
+          bandeau, sans quoi il n'apparaitrait que dans l'un des deux etats. */}
       <PageHeader
+        anchored={false}
         title={t('portfolios.forms.clientPropertyAssociation')}
         subtitle={t('portfolios.forms.clientPropertyAssociationSubtitle')}
         backPath="/portfolios"

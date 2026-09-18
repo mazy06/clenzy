@@ -47,7 +47,7 @@ export const KnowledgeWidget: React.FC<KnowledgeWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {data.title && (
-        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-faint">
+        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-muted-foreground">
           {data.title}{data.query ? ` · « ${data.query} »` : ''}
         </p>
       )}
@@ -68,7 +68,7 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
     ? ['var(--color-success-ink)', 'var(--color-success-soft)']
     : relevance >= 0.6
       ? ['var(--color-info-ink)', 'var(--color-info-soft)']
-      : ['var(--color-faint)', 'var(--color-accent)'];
+      : ['var(--color-muted-foreground)', 'var(--color-accent)'];
 
   return (
     <div className="px-2 py-1.5 rounded-lg border border-border bg-card flex flex-col gap-0.5">
@@ -84,7 +84,7 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
         </p>
       )}
       {item.sourcePath && (
-        <p className="text-2xs text-faint italic">
+        <p className="text-2xs text-muted-foreground italic">
           {item.sourcePath}
         </p>
       )}

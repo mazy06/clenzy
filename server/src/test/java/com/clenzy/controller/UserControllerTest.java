@@ -40,12 +40,14 @@ class UserControllerTest {
     @Mock private LoginProtectionService loginProtectionService;
     @Mock private DeviceTokenService deviceTokenService;
     @Mock private com.clenzy.service.MediaTicketService mediaTicketService;
+    @Mock private com.clenzy.service.HomeLocationService homeLocationService;
 
     private UserController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController(userService, loginProtectionService, deviceTokenService, mediaTicketService);
+        controller = new UserController(userService, loginProtectionService, deviceTokenService, mediaTicketService,
+                homeLocationService);
     }
 
     private Jwt buildJwt(String subject, boolean isSuperAdmin) {

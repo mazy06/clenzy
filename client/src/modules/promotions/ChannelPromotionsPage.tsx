@@ -197,7 +197,7 @@ const ChannelPromotionsPage: React.FC = () => {
 
   return (
     // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
-    <div className="p-3">
+    <div>
       <PageHeader
         title={t('promotions.title', 'Promotions OTA')}
         subtitle={t('promotions.subtitle', 'Gerez vos promotions sur les channels OTA')}

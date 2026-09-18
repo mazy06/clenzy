@@ -1,4 +1,5 @@
 import React from 'react';
+import { createSettledScheduler } from '../../utils/layoutShift';
 import {
   Area,
   AreaChart,
@@ -88,9 +89,16 @@ function useMeasuredWidth<T extends HTMLElement>() {
   React.useEffect(() => {
     const element = ref.current;
     if (!element) return undefined;
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    // Mesure repoussee tant que la mise en page se deplace : sinon le repli de
+    // la navigation re-rend le graphe une douzaine de fois pour aboutir a la
+    // seule largeur qui compte, la derniere.
+    const settled = createSettledScheduler(() => setWidth(element.clientWidth));
+    const observer = new ResizeObserver(settled.schedule);
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      settled.cancel();
+      observer.disconnect();
+    };
   }, []);
 
   return [ref, width] as const;

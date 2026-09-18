@@ -21,10 +21,13 @@ import {
   TooltipTrigger,
 } from './tooltip'
 import { IconPlaceholder } from './icon-placeholder'
+import { beginLayoutShift } from '../../utils/layoutShift'
 
 /**
  * Baitly UI — Sidebar (copie de apps/v4/registry/bases/radix/ui — la source de la doc /docs/components/radix).
- * Adaptations locales : imports, propriétés logiques RTL (sidebar : positions physiques conservées, prop side), shim IconPlaceholder.
+ * Adaptations locales : imports, propriétés logiques RTL (sidebar : positions physiques conservées, prop side), shim IconPlaceholder,
+ * transitions portées dans la feuille Nova (`cn-sidebar-container`) pour tenir UNE ligne de temps,
+ * et signal `beginLayoutShift` pour que les écrans ne se mesurent qu'à la fin du repli.
  */
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -40,6 +43,12 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b"
  * Cf. `components/SIDEBAR-PARITY.md` §E.
  */
 const SIDEBAR_SHEET_BREAKPOINT = 1024
+/**
+ * Duree du repli, en miroir de `--bui-sidebar-motion` (theme/baitly-ui.css).
+ * Sert a suspendre les mesures de mise en page des ecrans le temps que la
+ * gouttiere finisse de pousser le contenu (cf. utils/layoutShift).
+ */
+const SIDEBAR_MOTION_MS = 220
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
@@ -93,8 +102,14 @@ function SidebarProvider({
 
       // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+
+      // Adaptation locale : seul le bureau POUSSE le contenu (sur mobile la
+      // sidebar est une feuille posee par-dessus). On previent donc les
+      // mesureurs d'ecran que la largeur va bouger pendant toute la
+      // transition, pour qu'ils ne mesurent qu'a l'arrivee.
+      if (!isMobile) beginLayoutShift(SIDEBAR_MOTION_MS)
     },
-    [setOpenProp, open]
+    [setOpenProp, open, isMobile]
   )
 
   // Helper to toggle the sidebar.
@@ -239,7 +254,7 @@ function Sidebar({
         data-slot="sidebar-container"
         data-side={side}
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] lg:flex",
+          "cn-sidebar-container fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] lg:flex",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
@@ -305,7 +320,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       onClick={toggleSidebar}
       title="Toggle Sidebar"
       className={cn(
-        "cn-sidebar-rail absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
+        "cn-sidebar-rail absolute inset-y-0 z-20 hidden w-4 group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",

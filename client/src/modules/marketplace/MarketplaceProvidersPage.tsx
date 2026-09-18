@@ -335,16 +335,12 @@ export default function MarketplaceProvidersPage() {
           </SelectContent>
         </Select>
 
-        {data && (
-          <span className="ms-auto text-xs tabular-nums text-muted-foreground">
-            {t("marketplaceAdmin.results", { count: data.total })}
-          </span>
-        )}
-      </div>
-
-      {/* ─── Filtres actifs ──────────────────────────────────────────── */}
-      {activeChips.length > 0 && (
-        <div className="mb-3 flex shrink-0 flex-wrap items-center gap-1.5">
+        {/* Filtres actifs et compteur, a droite de la MEME ligne que les vues et
+            le tri. Les puces occupaient une ligne a part, sous les controles qui
+            les produisent : l'etat du filtrage se lisait a un endroit, se
+            pilotait a un autre, et la rangee disparaissait des qu'on effacait —
+            la grille sautait alors d'un cran vers le haut. */}
+        <div className="ms-auto flex flex-wrap items-center justify-end gap-1.5">
           {activeChips.map((chip) => (
             <button
               key={chip.key}
@@ -357,9 +353,16 @@ export default function MarketplaceProvidersPage() {
               <Close className="size-3 opacity-60" />
             </button>
           ))}
-          <Button variant="ghost" size="sm" onClick={resetFilters}>{t('marketplaceAdmin.clear')}</Button>
+          {activeChips.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={resetFilters}>{t('marketplaceAdmin.clear')}</Button>
+          )}
+          {data && (
+            <span className="ms-1 text-xs tabular-nums text-muted-foreground">
+              {t("marketplaceAdmin.results", { count: data.total })}
+            </span>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ─── Filtres et résultats ────────────────────────────────────── */}
       <ProviderDirectoryLayout filters={<MarketplaceFilterPanel {...filterPanelProps} />}>

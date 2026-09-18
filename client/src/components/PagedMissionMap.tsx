@@ -5,6 +5,7 @@ import { MapboxPropertyMap, type MapBounds } from "./MapboxPropertyMap";
 import MapWithSheet from "./baitly/MapWithSheet";
 import { Alert, AlertDescription, Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "./ui";
 import { useTranslation } from "../hooks/useTranslation";
+import { useHomeMapCenter } from "../hooks/useHomeMapCenter";
 import { useMissionMapOverview, useMissionMapPages, type MissionMapFilters, type MissionMapKind } from "../hooks/useMissionMap";
 
 export default function PagedMissionMap<T extends { id: string | number }>({ kind, filters, renderRow, renderRows }: {
@@ -13,6 +14,7 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const homeCenter = useHomeMapCenter();
   const overview = useMissionMapOverview(kind, filters);
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -70,7 +72,7 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
       </span></TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>)}
   </div> : undefined;
   return <MapWithSheet desktopLayout="split" listResetKey={resetKey}
-    map={<MapboxPropertyMap properties={markerData} height="100%" onBoundsChange={onBoundsChange}
+    map={<MapboxPropertyMap properties={markerData} center={homeCenter} height="100%" onBoundsChange={onBoundsChange}
       onMarkerClick={marker => marker.id && navigate("/" + kind + "/" + marker.id)} />}
     listTitle={total === undefined && markerData.length ? t("missionMap.loading") :
       kind === "service-requests" ? t("requestMap.visible", { count: total ?? 0 }) : t("missionMap.visibleInterventions", { count: total ?? 0 })}

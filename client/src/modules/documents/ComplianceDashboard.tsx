@@ -48,7 +48,6 @@ import StatTileRow from '../../components/baitly/StatTileRow';
 
 // ─── Teintes d'icone des tuiles KPI (classes Baitly UI) ─────────────────────
 const PRIMARY = 'text-primary';
-const ACCENT_TEAL = 'text-success';
 const SOFT_BLUE = 'text-info';
 const WARM = 'text-warning';
 
@@ -313,11 +312,12 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             value={`${stats.totalFacturesLocked}/${stats.totalFactures}`}
             iconClassName={SOFT_BLUE}
           />
+          {/* Les trois autres tuiles sont des volumes ; celle-ci est le verdict. */}
           <StatTile
+            feature
             icon={<GppGood size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.averageScore')}
             value={`${stats.averageComplianceScore}%`}
-            iconClassName={ACCENT_TEAL}
           />
         </StatTileRow>
       )}

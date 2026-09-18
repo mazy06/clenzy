@@ -445,11 +445,12 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           value={users.length}
           iconClassName="text-primary"
         />
+        {/* Le total compte des comptes, celui-ci compte des gens. */}
         <StatTile
+          feature
           icon={<ManageAccounts />}
           label="Utilisateurs actifs"
           value={users.filter(u => u.status === 'ACTIVE').length}
-          iconClassName="text-success"
         />
         <StatTile
           icon={<AdminPanelSettings />}

@@ -44,7 +44,9 @@ describe('PortfolioOverviewWidget (smoke)', () => {
     expect(screen.getByText('Vue portfolio')).toBeInTheDocument();
     expect(screen.getByText('Proprietes')).toBeInTheDocument();
     expect(screen.getByText('65%')).toBeInTheDocument(); // avgOccupancy
-    expect(screen.getByText('2/3 actives')).toBeInTheDocument();
+    // En bandeau compact le hint n'est plus une ligne : il se replie en
+    // infobulle native sur la tuile.
+    expect(screen.getByTitle('2/3 actives')).toBeInTheDocument();
 
     // Section top performers
     expect(screen.getByText('Top performers')).toBeInTheDocument();
@@ -62,6 +64,19 @@ describe('PortfolioOverviewWidget (smoke)', () => {
     expect(screen.getByText(/Taux d'annulation eleve/)).toBeInTheDocument();
     expect(screen.getByText('HIGH')).toBeInTheDocument();
     expect(screen.getByText(/Villa Nice/)).toBeInTheDocument();
+  });
+
+  it.each([
+    [0.8, 'text-success-ink'],
+    [0.3, 'text-warning-ink'],
+  ])('carries the occupancy state on the icon (%s)', (avgOccupancy, inkClass) => {
+    render(<PortfolioOverviewWidget data={{ totalProperties: 1, avgOccupancy }} />);
+
+    // L'etat se lit sur l'ICONE : encre `-ink` (la teinte vive n'atteint pas le
+    // seuil 3:1 sur --card en clair), et forme distincte, le hint etant replie
+    // en infobulle.
+    const tile = screen.getByTitle('moyenne portfolio');
+    expect(tile.querySelector(`.${inkClass}`)).not.toBeNull();
   });
 
   it('hides optional sections when arrays are empty', () => {

@@ -54,7 +54,7 @@ import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
 import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
 import type { MenuItem, MenuSubItem, NavGroup } from '../hooks/useNavigationMenu';
-import { useVisibleScreenTabs } from '../hooks/useScreenTabs';
+import { useVisibleScreenTabs, type ResolvedScreenTab } from '../hooks/useScreenTabs';
 import { prefetchRoute } from '../modules/routePrefetch';
 import SidebarAssistantLauncher from './SidebarAssistantLauncher';
 import {
@@ -134,6 +134,23 @@ function NavBadgeDot({ item }: { item: MenuItem }) {
 }
 
 /**
+ * Onglet courant d'un écran — `undefined` si ce n'est pas l'écran affiché.
+ *
+ * <p>Même résolution que `tabIndexFromKey` : une clé d'URL inconnue replie sur
+ * l'onglet d'entrée, sans quoi la barre ne marquerait aucune ligne là où la
+ * page en marque une.</p>
+ */
+function activeTabKey(
+  location: ReturnType<typeof useLocation>,
+  path: string,
+  tabs: ResolvedScreenTab[],
+): string | undefined {
+  if (location.pathname !== path) return undefined;
+  const raw = new URLSearchParams(location.search).get('tab');
+  return tabs.some((tab) => tab.key === raw) ? (raw as string) : tabs[0].key;
+}
+
+/**
  * Une ligne d'ÉCRAN du sous-menu d'un hub — dans le volet (barre repliée) ou
  * dans le sous-menu déplié.
  *
@@ -192,13 +209,7 @@ function NavScreenRow({
     );
   }
 
-  // Onglet courant — seulement si c'est l'écran affiché. Même résolution que
-  // `tabIndexFromKey` : une clé d'URL inconnue replie sur l'onglet d'entrée,
-  // sans quoi la barre ne marquerait aucune ligne là où la page en marque une.
-  const raw = new URLSearchParams(location.search).get('tab');
-  const activeKey = location.pathname === child.path
-    ? (tabs.some((tab) => tab.key === raw) ? (raw as string) : tabs[0].key)
-    : undefined;
+  const activeKey = activeTabKey(location, child.path, tabs);
 
   const Row = variant === 'flyout' ? SidebarTabsFlyoutRow : SidebarTabsSubRow;
 
@@ -209,7 +220,6 @@ function NavScreenRow({
       activeKey={activeKey}
       side={side}
       isActive={isActive}
-      onNavigate={() => go(child.path)}
       onPrefetch={prefetch}
       onSelect={(key) => go(`${child.path}?tab=${key}`)}
     >
@@ -228,9 +238,14 @@ interface NavEntryProps {
 
 function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavEntryProps) {
   const { state, isMobile } = useSidebar();
+  const location = useLocation();
   const iconOnly = state === 'collapsed' && !isMobile;
   const hasChildren = (item.children?.length ?? 0) > 0;
   const [flyoutOpen, setFlyoutOpen] = useState(false);
+  // Les onglets de l'écran, pour une entrée SANS parent : elle est alors le
+  // seuil du tiroir d'onglets, exactement comme la ligne d'écran d'un hub.
+  // Appelé sans condition — un hub le laisse simplement de côté.
+  const screenTabs = useVisibleScreenTabs(item.path);
 
   const prefetch = () => prefetchRoute(item.path);
 
@@ -243,6 +258,29 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
       <span className="truncate">{item.text}</span>
     </>
   );
+
+  // Entrée sans parent qui porte ses PROPRES onglets : la ligne les déplie au
+  // clic, comme le faisait la ligne d'écran quand elle vivait sous un hub, et
+  // comme un hub déplie ses écrans. Sans cela, remonter un écran au premier
+  // niveau lui coûtait son tiroir.
+  if (!hasChildren && screenTabs.length >= 2) {
+    return (
+      <SidebarTabsFlyoutRow
+        screenLabel={item.text}
+        tabs={screenTabs}
+        activeKey={activeTabKey(location, item.path, screenTabs)}
+        side={tooltipSide}
+        isActive={isActive}
+        onSelect={(key) => onNavigate(`${item.path}?tab=${key}`)}
+        onPrefetch={prefetch}
+        tooltip={{ children: item.text, side: tooltipSide }}
+        className="max-lg:h-10"
+        trailing={<NavBadge item={item} />}
+      >
+        {label}
+      </SidebarTabsFlyoutRow>
+    );
+  }
 
   // Entrée simple : le clic navigue.
   if (!hasChildren) {

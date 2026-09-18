@@ -45,7 +45,11 @@ const WorkOrdersPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <>
+      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
+          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
+          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
+          bandeau s'arretait au bord du rembourrage, comme une carte. */}
       <div className="shrink-0">
         <PageHeader
           title={tabs.find((tb) => tb.value === activeTab)?.label ?? t('workOrders.title')}
@@ -56,29 +60,31 @@ const WorkOrdersPage: React.FC = () => {
           filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
       </div>
-      <div className="shrink-0">
-        <PageTabs
-          options={tabs}
-          value={activeTab}
-          onChange={setActiveTab}
-        />
-      </div>
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="shrink-0">
+          <PageTabs
+            options={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+          />
+        </div>
 
-      {activeKey === 'service-requests' && (
-        <ServiceRequestsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-      )}
-      {activeKey === 'interventions' && (
-        <InterventionsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-      )}
-      {activeKey === 'issues' && (
-        <IssuesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-      )}
-      {activeKey === 'calendar' && (
-        <Suspense fallback={<Skeleton className="min-h-0 flex-1 rounded-lg" />}>
-          <CalendarPage embedded filtersContainer={filtersContainer} />
-        </Suspense>
-      )}
-    </div>
+        {activeKey === 'service-requests' && (
+          <ServiceRequestsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+        )}
+        {activeKey === 'interventions' && (
+          <InterventionsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+        )}
+        {activeKey === 'issues' && (
+          <IssuesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+        )}
+        {activeKey === 'calendar' && (
+          <Suspense fallback={<Skeleton className="min-h-0 flex-1 rounded-lg" />}>
+            <CalendarPage embedded filtersContainer={filtersContainer} />
+          </Suspense>
+        )}
+      </div>
+    </>
   );
 };
 
