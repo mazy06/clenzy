@@ -37,6 +37,14 @@ export interface User {
   organizationName?: string;
 }
 
+/** Point d'ancrage des cartes : la ville du compte, resolue par le geocodeur. */
+export interface HomeLocation {
+  /** Nom RESOLU par le geocodeur, pas la saisie brute du compte. */
+  city: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface UserFormData {
   firstName: string;
   lastName: string;
@@ -135,6 +143,21 @@ export const usersApi = {
   profilePictureUrl(userId: number, cacheBust?: string | null): string {
     const base = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/users/${userId}/profile-picture`;
     return cacheBust ? `${base}?v=${encodeURIComponent(cacheBust)}` : base;
+  },
+
+  // ─── Ancrage des cartes ───────────────────────────────────────────────────
+
+  /**
+   * Ville du compte, resolue en coordonnees, pour centrer les cartes.
+   *
+   * <p>`null` quand elle est introuvable (compte sans ville, ville que le
+   * geocodeur ne reconnait pas) : le backend repond alors 204, que le client
+   * HTTP rend `undefined`. On normalise en `null` — react-query refuse une
+   * donnee `undefined`.</p>
+   */
+  async getMyHomeLocation(): Promise<HomeLocation | null> {
+    const location = await apiClient.get<HomeLocation | undefined>('/users/me/home-location');
+    return location ?? null;
   },
 
   // ─── Preferences marketing (RGPD article 7-3) ─────────────────────────────

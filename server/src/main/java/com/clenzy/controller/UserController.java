@@ -1,10 +1,12 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.HomeLocationDto;
 import com.clenzy.dto.UserDto;
 import com.clenzy.service.signature.TrustedClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import com.clenzy.model.User;
 import com.clenzy.service.DeviceTokenService;
+import com.clenzy.service.HomeLocationService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.UserService;
@@ -43,14 +45,17 @@ public class UserController {
     private final LoginProtectionService loginProtectionService;
     private final DeviceTokenService deviceTokenService;
     private final com.clenzy.service.MediaTicketService mediaTicketService;
+    private final HomeLocationService homeLocationService;
 
     public UserController(UserService userService,
                           LoginProtectionService loginProtectionService, DeviceTokenService deviceTokenService,
-                          com.clenzy.service.MediaTicketService mediaTicketService) {
+                          com.clenzy.service.MediaTicketService mediaTicketService,
+                          HomeLocationService homeLocationService) {
         this.userService = userService;
         this.loginProtectionService = loginProtectionService;
         this.deviceTokenService = deviceTokenService;
         this.mediaTicketService = mediaTicketService;
+        this.homeLocationService = homeLocationService;
     }
 
     /**
@@ -134,6 +139,22 @@ public class UserController {
                 request.getHeader("X-Forwarded-For"),
                 request.getHeader("X-Real-IP"));
         return ResponseEntity.ok(userService.acceptProviderTerms(jwt.getSubject(), clientIp));
+    }
+
+    /**
+     * Ville du compte, resolue en coordonnees, pour centrer les cartes de
+     * l'utilisateur connecte.
+     *
+     * <p>204 quand elle est introuvable : le compte n'a pas de ville, ou le
+     * geocodeur ne la reconnait pas. L'appelant garde alors son propre centre
+     * par defaut.</p>
+     */
+    @GetMapping("/me/home-location")
+    @Operation(summary = "Obtenir la ville de son compte en coordonnees (centrage des cartes)")
+    public ResponseEntity<HomeLocationDto> getMyHomeLocation(@AuthenticationPrincipal Jwt jwt) {
+        return homeLocationService.findForUser(jwt.getSubject())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     /**
