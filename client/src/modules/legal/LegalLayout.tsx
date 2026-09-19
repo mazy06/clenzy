@@ -7,6 +7,7 @@ import { cn } from '../../utils/cn';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
+import PublicLanguagePicker from '../../components/PublicLanguagePicker';
 
 /**
  * Layout commun pour les pages legales publiques (CGU, Politique de confidentialite).
@@ -119,10 +120,11 @@ export function LegalSections({
 
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
   const { t } = useTranslation();
-  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
-  // L'effet du hook change la langue i18n ; la direction RTL et la police arabe
-  // sont posees globalement par AppWithTheme (main.tsx) qui reagit a ce changement.
-  useGeoAuthLanguage();
+  // La geolocalisation POSE la langue (pays arabes -> ar, Maghreb-France -> fr,
+  // sinon en) ; le selecteur permet d'en sortir. Un document qui engage doit
+  // pouvoir se lire dans la langue de son lecteur, pas dans celle de son IP.
+  // La direction RTL et la police arabe suivent globalement (AppWithTheme).
+  const { language, chooseLanguage } = useGeoAuthLanguage();
 
   return (
     <div className="min-h-svh bg-background flex flex-col">
@@ -133,13 +135,20 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
             <RouterLink to="/login" className="flex items-center no-underline">
               <BaitlyMarkLogo variant="full" size={30} />
             </RouterLink>
-            <RouterLink
-              to="/login"
-              className={cn(QUIET_LINK, 'flex items-center gap-[3px] text-sm font-medium')}
-            >
-              <ArrowBack size={16} strokeWidth={1.75} />
-              {t('auth.legal.back', 'Retour')}
-            </RouterLink>
+            <div className="flex items-center gap-3">
+              <PublicLanguagePicker
+                value={language}
+                onChange={chooseLanguage}
+                label={t('navigation.language')}
+              />
+              <RouterLink
+                to="/login"
+                className={cn(QUIET_LINK, 'flex items-center gap-[3px] text-sm font-medium')}
+              >
+                <ArrowBack size={16} strokeWidth={1.75} />
+                {t('auth.legal.back', 'Retour')}
+              </RouterLink>
+            </div>
           </div>
         </div>
       </header>

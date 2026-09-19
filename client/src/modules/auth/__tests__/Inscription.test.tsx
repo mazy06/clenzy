@@ -3,6 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Inscription from '../Inscription';
 
+// Ces tests lisent la copie FRANCAISE. La langue des pages publiques suit la
+// langue du navigateur : on la declare ici plutot que de dependre du defaut
+// jsdom (`en-US`), qui ne rendait le francais que par accident.
+Object.defineProperty(window.navigator, 'languages', { value: ['fr-FR'], configurable: true });
+Object.defineProperty(window.navigator, 'language', { value: 'fr-FR', configurable: true });
+
+
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 // Mock apiClient

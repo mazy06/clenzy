@@ -10444,10 +10444,6 @@
       }
     },
     "layout": {
-      "tagline": "Pendant que vous dormez,",
-      "taglineHighlight": "8 agents IA optimisent votre revenue par nuit",
-      "taglineEnd": ".",
-      "subtitle": "Pricing dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. La seule chose que vous gardez en main : la stratégie.",
       "trustEurope": "Hébergé en Europe",
       "trustCompliance": "NF 525 / RGPD",
       "trustSupport": "Support 7j/7"
@@ -10677,51 +10673,39 @@
     "slides": {
       "s0": {
         "tagline": "Pendant que vous dormez,",
-        "highlight": "8 agents IA optimisent vos revenus nuit après nuit",
+        "highlight": "{{agentCount}} agents IA veillent sur chacun de vos métiers",
         "end": ".",
-        "subtitle": "Tarification dynamique, messagerie voyageurs multilingue, briefings quotidiens, analyse des avis. La seule chose qui reste entre vos mains : la stratégie."
+        "subtitle": "Tarification, messages voyageurs, ménage, paiements, avis, calendriers, conformité, relation propriétaire, distribution : chacun son métier, tous coordonnés. La seule chose qui reste entre vos mains : la stratégie."
       },
       "s1": {
-        "tagline": "Récupérez",
-        "highlight": "12 h par semaine, sans embaucher",
+        "tagline": "Ils proposent,",
+        "highlight": "vous gardez la main sur chaque action",
         "end": ".",
-        "subtitle": "Vos agents IA fixent les prix, répondent aux voyageurs, rédigent vos briefings du matin et alertent sur les anomalies. Vous reprenez le contrôle de votre temps."
+        "subtitle": "Vos agents fixent les prix, répondent aux voyageurs, rédigent vos briefings et signalent les anomalies. Chaque action sensible attend votre validation, et celles que vous déléguez restent journalisées."
       },
       "s2": {
         "tagline": "Vos voyageurs servis à 3 h du matin.",
         "highlight": "Sans vous réveiller",
         "end": ".",
-        "subtitle": "Messagerie IA multilingue qui répond aux questions d'arrivée, aux codes Wi-Fi, aux recommandations de restaurants. Vous gérez les exceptions, l'IA gère la routine."
-      },
-      "s3": {
-        "tagline": "De 1 à 100 logements,",
-        "highlight": "sans embaucher un seul gestionnaire",
-        "end": ".",
-        "subtitle": "Architecture multi-agents qui monte en charge linéairement. Tarification, messagerie, analytique, briefings, sentiment : tout reste fluide quand votre portefeuille grossit."
+        "subtitle": "Messagerie multilingue qui répond aux questions d'arrivée, aux codes Wi-Fi, aux recommandations du quartier — sur WhatsApp comme par e-mail, dans un seul fil. Vous gérez les exceptions, l'IA gère la routine."
       },
       "s4": {
-        "tagline": "De zéro à",
-        "highlight": "la première réservation en 24 heures",
+        "tagline": "Vos biens arrivent",
+        "highlight": "avec leur calendrier et leurs réservations",
         "end": ".",
-        "subtitle": "Import automatique depuis vos canaux existants, descriptions générées par IA, photos analysées et notées. Mise en route en 15 minutes, première nuit vendue le lendemain."
+        "subtitle": "Import depuis vos canaux existants, par iCal ou par connexion directe. Vos séjours en cours sont repris, pas ressaisis. Les descriptions d'annonce sont générées par l'IA, puis retravaillées par vous."
       },
       "s5": {
         "tagline": "Un seul calendrier pour",
         "highlight": "tous vos canaux de distribution",
         "end": ".",
-        "subtitle": "Synchronisation en temps réel via nos connecteurs natifs. Plus de double réservation, plus de prix incohérents d'un canal à l'autre."
+        "subtitle": "Un calendrier fait foi : après chaque changement, les disponibilités repartent vers chaque canal. Les écarts et les doubles réservations sont détectés et remontés — pas découverts par le voyageur."
       },
       "s6": {
         "tagline": "Codes d’accès générés à la volée.",
         "highlight": "Toutes vos serrures connectées orchestrées",
         "end": ".",
         "subtitle": "Le code expire automatiquement au départ, la batterie de la serrure est surveillée, les clés déposées en consigne sont suivies en temps réel. Vous ne donnez plus jamais un code à la main."
-      },
-      "s7": {
-        "tagline": "",
-        "highlight": "WhatsApp et e-mail, tout sur un seul fil",
-        "end": ".",
-        "subtitle": "Vos voyageurs vous répondent là où ils sont, sans installer d'application. Conversations centralisées, traduction automatique et réponses suggérées par l'IA."
       },
       "s8": {
         "tagline": "Votre comptabilité connectée,",
@@ -10731,15 +10715,45 @@
       },
       "s9": {
         "tagline": "Vos contrats signés",
-        "highlight": "en 30 secondes, sans quitter Baitly",
+        "highlight": "sans quitter Baitly",
         "end": ".",
-        "subtitle": "Mandat de gestion, contrats de location courte durée, autorisations d'arrivée. Signature électronique intégrée nativement, sans outil tiers à payer en parallèle."
+        "subtitle": "Mandat de gestion, contrats de location courte durée, autorisations d'arrivée. Signature électronique intégrée, certificat horodaté à l'appui, sans outil tiers à payer en parallèle."
       },
-      "s10": {
-        "tagline": "",
-        "highlight": "API ouverte, données exportables en un clic",
+      "s11": {
+        "tagline": "Vos réservations en direct,",
+        "highlight": "sans commission d'intermédiaire",
         "end": ".",
-        "subtitle": "Vos réservations, voyageurs, finances et photos : tout s'exporte au format ouvert. Webhooks et intégrations natives. Aucun enfermement."
+        "subtitle": "Un site de réservation que vous composez sans écrire une ligne de code, branché sur votre calendrier, vos prix et votre encaissement. Ce que vous vendez en direct, vous le gardez."
+      },
+      "s12": {
+        "tagline": "Le livret d'accueil",
+        "highlight": "que vos voyageurs ouvrent vraiment",
+        "end": ".",
+        "subtitle": "Wi-Fi, arrivée, règlement intérieur, bonnes adresses du quartier : une page web qui s'ouvre par un lien, sans installer d'application. Vous la composez une fois, elle suit chaque séjour."
+      },
+      "s13": {
+        "tagline": "Ménage, plomberie, blanchisserie :",
+        "highlight": "tous les corps de métier dans le PMS",
+        "end": ".",
+        "subtitle": "Exploitation, technique et réglementaire, services au voyageur, services au propriétaire : vous trouvez le prestataire, vous demandez un devis et vous suivez l'intervention sans quitter Baitly."
+      },
+      "s14": {
+        "tagline": "Arrivée anticipée, transfert, petit-déjeuner :",
+        "highlight": "le même séjour rapporte davantage",
+        "end": ".",
+        "subtitle": "Vos ventes additionnelles s'affichent au moment de réserver et dans le livret d'accueil, se règlent en ligne et remontent dans vos relevés. Rien à relancer à la main."
+      },
+      "s15": {
+        "tagline": "Une fête chez vous à minuit :",
+        "highlight": "vous l'apprenez avant le voisin",
+        "end": ".",
+        "subtitle": "Des capteurs mesurent le niveau sonore, au seuil que vous fixez. Au dépassement, le voyageur reçoit un rappel et vous recevez l'alerte avec le niveau et le créneau. Des décibels, jamais un enregistrement."
+      },
+      "s16": {
+        "tagline": "Vos prix face au marché,",
+        "highlight": "dans les bornes que vous posez",
+        "end": ".",
+        "subtitle": "Comparables de votre ville, rythme de remplissage, positionnement tarifaire. L'agent Revenue propose un ajustement, et ne sort jamais du plancher ni du plafond que vous avez fixés pour chaque bien."
       }
     },
     "errors": {
