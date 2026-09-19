@@ -132,66 +132,62 @@ export const complianceConnectionApi = {
 export interface ComplianceProviderMeta {
   id: ComplianceProvider;
   label: string;
-  description: string;
+  descriptionKey: string;
   brandColor: string;
   brandInitials: string;
   serverUrlPlaceholder: string;
   apiKeyHelpUrl?: string;
-  accountIdentifierLabel?: string;
+  accountIdentifierLabelKey?: string;
   /** Code pays ISO (FR, MA, SA) pour affichage du chip pays. */
   countryCode: 'FR' | 'MA' | 'SA';
   /** Court rappel de l'obligation legale couverte. */
-  legalNote: string;
+  legalNoteKey: string;
 }
 
 export const COMPLIANCE_PROVIDER_META: Record<ComplianceProvider, ComplianceProviderMeta> = {
   CHEKIN: {
     id: 'CHEKIN',
     label: 'Chekin',
-    description:
-      'SaaS d\'automatisation de la fiche individuelle de police (CERFA 11253*04) pour les voyageurs étrangers. Aussi disponible Espagne, Italie, Portugal.',
+    descriptionKey: 'complianceProviders.CHEKIN.description',
     brandColor: '#1E40AF',
     brandInitials: 'CK',
     serverUrlPlaceholder: 'https://a.chekin.io/public/api/v1',
     apiKeyHelpUrl: 'https://docs.chekin.com/',
-    accountIdentifierLabel: 'Account ID (optionnel)',
+    accountIdentifierLabelKey: 'complianceProviders.CHEKIN.accountLabel',
     countryCode: 'FR',
-    legalNote: 'Fiche police France (CERFA 11253*04, obligatoire non-résidents UE)',
+    legalNoteKey: 'complianceProviders.CHEKIN.legalNote',
   },
   POLICE_MA: {
     id: 'POLICE_MA',
     label: 'Police Maroc (DGSN)',
-    description:
-      'Connecteur direct DGSN — Direction Générale de la Sûreté Nationale. Déclaration obligatoire des voyageurs dès la 1ère nuit, contrôle régulier par les autorités locales.',
+    descriptionKey: 'complianceProviders.POLICE_MA.description',
     brandColor: '#C1272D',
     brandInitials: 'MA',
     serverUrlPlaceholder: 'https://portal.dgsn.gov.ma',
-    accountIdentifierLabel: 'Établissement ID',
+    accountIdentifierLabelKey: 'complianceProviders.POLICE_MA.accountLabel',
     countryCode: 'MA',
-    legalNote: 'Fiche d\'identification voyageur (DGSN, obligatoire)',
+    legalNoteKey: 'complianceProviders.POLICE_MA.legalNote',
   },
   ABSHER_KSA: {
     id: 'ABSHER_KSA',
     label: 'Absher (Arabie Saoudite)',
-    description:
-      'Plateforme nationale Absher — Ministère de l\'Intérieur saoudien. Enregistrement obligatoire des voyageurs non-résidents. Connecté à Tawakkalna pour les contrôles.',
+    descriptionKey: 'complianceProviders.ABSHER_KSA.description',
     brandColor: '#006C35',
     brandInitials: 'KSA',
     serverUrlPlaceholder: 'https://api.absher.sa',
-    accountIdentifierLabel: 'Establishment ID',
+    accountIdentifierLabelKey: 'complianceProviders.ABSHER_KSA.accountLabel',
     countryCode: 'SA',
-    legalNote: 'Enregistrement MOI + Tawakkalna (obligatoire non-résidents)',
+    legalNoteKey: 'complianceProviders.ABSHER_KSA.legalNote',
   },
   SHOMOOS: {
     id: 'SHOMOOS',
     label: 'Shomoos (Arabie Saoudite)',
-    description:
-      'Plateforme nationale Shomoos (شموس) — enregistrement obligatoire des voyageurs pour les établissements d\'hébergement licenciés. C\'est le canal officiel du secteur hôtelier saoudien (le resolver mappe le pays SA sur Shomoos).',
+    descriptionKey: 'complianceProviders.SHOMOOS.description',
     brandColor: '#A3762A',
     brandInitials: 'SH',
     serverUrlPlaceholder: 'https://shomoos.com.sa',
-    accountIdentifierLabel: 'Licence établissement',
+    accountIdentifierLabelKey: 'complianceProviders.SHOMOOS.accountLabel',
     countryCode: 'SA',
-    legalNote: 'Enregistrement voyageurs hébergement (Shomoos, obligatoire établissements licenciés)',
+    legalNoteKey: 'complianceProviders.SHOMOOS.legalNote',
   },
 };

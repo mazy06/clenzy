@@ -104,8 +104,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex items-start gap-0.5">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[0.82rem] font-semibold leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={product.name}>
-                          {product.name}
+                        <p dir="auto" className="text-[0.82rem] font-semibold leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={t(product.nameKey)}>
+                          {t(product.nameKey)}
                         </p>
                         <p className="text-2xs font-medium uppercase tracking-wide tabular-nums text-faint">
                           {product.sku}
@@ -115,7 +115,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => onRemoveItem(product.id)}
-                        aria-label="Retirer du panier"
+                        aria-label={t('shop.removeFromCart')}
                         className="text-faint hover:text-destructive-ink hover:bg-destructive-soft"
                       >
                         <Delete size={14} strokeWidth={1.75} />

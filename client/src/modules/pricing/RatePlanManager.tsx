@@ -124,7 +124,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
             {/* Name + date range */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">
+              <p dir="auto" className="text-sm font-semibold truncate">
                 {plan.name}
               </p>
               {formatDateRange(plan) && (

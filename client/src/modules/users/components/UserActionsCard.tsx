@@ -3,6 +3,7 @@ import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription, AlertTitle, Button } from '../../../components/ui';
 import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface UserActionsCardProps {
   lockoutStatus: LockoutStatus | null;
@@ -17,6 +18,7 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
   unlocking,
   onUnlockUser,
 }) => {
+  const { t } = useTranslation();
   if (!isAdminOrManager || !lockoutStatus) return null;
   if (!lockoutStatus.isLocked && lockoutStatus.failedAttempts === 0) return null;
 
@@ -42,10 +44,10 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
           </AlertTitle>
           <AlertDescription className="text-xs">
             {lockoutStatus.isLocked
-              ? `Bloque pendant encore ${Math.ceil(lockoutStatus.remainingSeconds / 60)} minute${Math.ceil(lockoutStatus.remainingSeconds / 60) > 1 ? 's' : ''} (deblocage automatique)`
+              ? t('users.lockedForMinutes', { count: Math.ceil(lockoutStatus.remainingSeconds / 60) })
               : lockoutStatus.captchaRequired
-                ? 'CAPTCHA requis a la prochaine connexion'
-                : 'Le verrouillage se declenche apres 5 tentatives'
+                ? t('users.captchaRequired')
+                : t('users.lockAfterFive')
             }
           </AlertDescription>
         </div>

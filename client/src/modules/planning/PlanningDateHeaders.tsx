@@ -2,7 +2,9 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { ChevronRight } from '../../icons';
-import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
+import { useTranslation } from 'react-i18next';
+import { isToday } from './utils/dateUtils';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel } from './types';
 import { PlanningTooltipContent } from './PlanningTooltip';
@@ -30,6 +32,10 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   collapsed = false,
   onToggleCollapse,
 }) => {
+  const { t } = useTranslation();
+  // En arabe, quantièmes et jours de semaine viennent du calendrier hégirien.
+  const { formatDayNumber, formatWeekdayShort, formatFullDate, isWeekend } = useDateFormat();
+
   // Le coin n'est un bouton QUE si le parent fournit l'interrupteur (mobile) :
   // ailleurs il reste la cellule inerte qu'il a toujours ete.
   const CornerTag = onToggleCollapse ? 'button' : 'div';
@@ -45,8 +51,8 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
         aria-label={
           onToggleCollapse
             ? collapsed
-              ? 'Afficher la colonne logements'
-              : 'Masquer la colonne logements'
+              ? t('planning.grid.showProperties', 'Afficher la colonne logements')
+              : t('planning.grid.hideProperties', 'Masquer la colonne logements')
             : undefined
         }
         className={cn(
@@ -60,7 +66,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
           <ChevronRight size={15} strokeWidth={2} className="text-[var(--muted)]" />
         ) : (
           <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
-            {propertyCount} {propertyCount > 1 ? 'logements' : 'logement'}
+            {t('planning.grid.propertyCount', { count: propertyCount })}
           </span>
         )}
       </CornerTag>
@@ -85,7 +91,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
                     <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--brand-ink)]' : 'text-[var(--faint)]')}>
-                      {formatDayShort(day).replace('.', '')}
+                      {formatWeekdayShort(day)}
                     </span>
                   )}
                   {/* Numéro (spec .dn : Space Grotesk 14px fw600) —

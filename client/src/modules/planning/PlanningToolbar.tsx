@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Badge,
   Button,
@@ -8,16 +9,16 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import {
-  ChevronLeft,
-  ChevronRight,
+  ChevronPrev,
+  ChevronNext,
   TodayOutlined,
   FullscreenExit,
 } from '../../icons';
 import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
-import { ZOOM_LABELS, ZOOM_LABELS_SHORT } from './constants';
+import { ZOOM_LEVELS } from './constants';
 import type { PlanningChannelKey } from './constants';
-import { formatMonthYear, formatMonthYearShort } from './utils/dateUtils';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { ChannelLegendChips, StatusLegendChips, InterventionLegendChip } from './LegendChips';
 import { PlanningTooltipContent } from './PlanningTooltip';
 
@@ -97,7 +98,12 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
   onGoToday,
   onGoNext,
   onZoomChange,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  // En arabe, le libelle porte le mois HEGIRIEN (« ربيع الآخر 1446 هـ »).
+  const { formatMonthYear, formatMonthYearShort } = useDateFormat();
+
+  return (
   // Conteneur SANS retour a la ligne : les trois controles forment un seul bloc
   // insecable. Ils etaient auparavant trois freres directs d'une rangee
   // `flex-wrap`, donc le zoom basculait seul sur une 2e ligne sous ~500 px.
@@ -108,10 +114,10 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
         variant="ghost"
         size="icon-sm"
         onClick={onGoPrev}
-        aria-label="Période précédente"
+        aria-label={t('planning.nav.prev', 'Période précédente')}
         className={NAV_BTN_CLS}
       >
-        <ChevronLeft size={15} strokeWidth={1.75} />
+        <ChevronPrev size={15} strokeWidth={1.75} />
       </Button>
 
       {/* Month title : info principale (display, encre).
@@ -134,10 +140,10 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
         variant="ghost"
         size="icon-sm"
         onClick={onGoNext}
-        aria-label="Période suivante"
+        aria-label={t('planning.nav.next', 'Période suivante')}
         className={NAV_BTN_CLS}
       >
-        <ChevronRight size={15} strokeWidth={1.75} />
+        <ChevronNext size={15} strokeWidth={1.75} />
       </Button>
     </div>
 
@@ -145,12 +151,12 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
         nom reste porte par `aria-label` pour le clavier et la synthese vocale. */}
     <Badge
       variant="outline"
-      aria-label="Aller à aujourd'hui"
+      aria-label={t('planning.nav.todayAria', "Aller à aujourd'hui")}
       onClick={onGoToday}
       className="size-[28px] shrink-0 justify-center gap-0 p-0 min-[480px]:size-auto min-[480px]:gap-1 min-[480px]:px-2 min-[480px]:py-0 text-[0.6875rem] font-semibold min-[480px]:h-[28px] rounded-[9px] cursor-pointer bg-[var(--bui-card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--brand-ink)]"
     >
       <TodayOutlined size={13} strokeWidth={1.75} />
-      <span className="hidden min-[480px]:inline">Aujourd'hui</span>
+      <span className="hidden min-[480px]:inline">{t('planning.nav.today', "Aujourd'hui")}</span>
     </Badge>
 
     {/* Zoom selector — segmented control Signature (.s-seg) */}
@@ -166,15 +172,16 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
       // + 2x2 (padding) + 2x1 (filet) = 28 px, comme tout le reste du groupe.
       className="h-[28px] shrink-0 gap-[2px] rounded-[9px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[2px]"
     >
-      {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
+      {ZOOM_LEVELS.map((level) => (
         <ToggleGroupItem key={level} value={level} className={ZOOM_ITEM_CLS}>
-          <span className="min-[480px]:hidden">{ZOOM_LABELS_SHORT[level]}</span>
-          <span className="hidden min-[480px]:inline">{ZOOM_LABELS[level]}</span>
+          <span className="min-[480px]:hidden">{t(`planning.zoom.${level}Short`)}</span>
+          <span className="hidden min-[480px]:inline">{t(`planning.zoom.${level}`)}</span>
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
   </div>
-);
+  );
+};
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -198,6 +205,8 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   activeStatuses,
   onToggleStatus,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-1.5 py-1.5 px-2 bg-[transparent] shrink-0">
       {/* ── Rangée 1 : navigation + mois + segmented + sortie plein écran ──
@@ -238,14 +247,14 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   variant="ghost"
                   size="icon-sm"
                   onClick={onToggleFullscreen}
-                  aria-label="Quitter le plein écran"
+                  aria-label={t('planning.nav.exitFullscreen', 'Quitter le plein écran')}
                   className="size-[28px] shrink-0 text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--hover)]"
                 >
                   <FullscreenExit size={18} strokeWidth={1.75} />
                 </Button>
               </span>
             </TooltipTrigger>
-            <PlanningTooltipContent>Quitter le plein écran</PlanningTooltipContent>
+            <PlanningTooltipContent>{t('planning.nav.exitFullscreen', 'Quitter le plein écran')}</PlanningTooltipContent>
           </Tooltip>
         )}
       </div>

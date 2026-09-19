@@ -68,38 +68,35 @@ export const kycConnectionApi = {
 export interface KycProviderMeta {
   id: KycProvider;
   label: string;
-  description: string;
+  descriptionKey: string;
   serverUrlPlaceholder: string;
   apiKeyHelpUrl?: string;
-  accountIdentifierLabel?: string;
+  accountIdentifierLabelKey?: string;
 }
 
 export const KYC_PROVIDER_META: Record<KycProvider, KycProviderMeta> = {
   SUMSUB: {
     id: 'SUMSUB',
     label: 'Sumsub',
-    description:
-      'Leader vérification d\'identité MENA + Europe. Accepté par les banques saoudiennes. KYC + KYB + transaction monitoring. Saisir l\'App Token ci-dessous et la Secret Key dans le champ API key : la paire signe chaque requête (HMAC).',
+    descriptionKey: 'kycProviders.SUMSUB.description',
     serverUrlPlaceholder: 'https://api.sumsub.com',
     apiKeyHelpUrl: 'https://developers.sumsub.com/',
-    accountIdentifierLabel: 'App Token (requis)',
+    accountIdentifierLabelKey: 'kycProviders.SUMSUB.accountLabel',
   },
   VERIFF: {
     id: 'VERIFF',
     label: 'Veriff',
-    description:
-      'Vérification d\'identité estonienne, bon rapport qualité/prix. Couverture EU + MENA. Liveness + document check. Saisir l\'API key (publishable) ci-dessous et le Shared secret dans le champ API key : la paire signe chaque requête (HMAC).',
+    descriptionKey: 'kycProviders.VERIFF.description',
     serverUrlPlaceholder: 'https://stationapi.veriff.com',
     apiKeyHelpUrl: 'https://developers.veriff.com/',
-    accountIdentifierLabel: 'API key publique (requis)',
+    accountIdentifierLabelKey: 'kycProviders.VERIFF.accountLabel',
   },
   ONFIDO: {
     id: 'ONFIDO',
     label: 'Onfido',
-    description:
-      'Vérification d\'identité premium globale. Qualité UX exceptionnelle, intégrée dans Revolut, Bolt, Zopa. ~95 % approval rate.',
+    descriptionKey: 'kycProviders.ONFIDO.description',
     serverUrlPlaceholder: 'https://api.eu.onfido.com/v3.6',
     apiKeyHelpUrl: 'https://documentation.onfido.com/',
-    accountIdentifierLabel: 'Workflow ID (optionnel)',
+    accountIdentifierLabelKey: 'kycProviders.ONFIDO.accountLabel',
   },
 };

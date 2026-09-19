@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { cn } from '../utils/cn';
 import { Button, Dialog, DialogContent, DialogTitle } from './ui';
-import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '../icons';
+import { ChevronPrev, ChevronNext, Close, Fullscreen, ImageNotSupported } from '../icons';
 import { API_CONFIG } from '../config/api';
+import { useTranslation } from '../hooks/useTranslation';
 
 type ResponsiveSize = number | string | { [key: string]: number | string };
 
@@ -80,12 +81,13 @@ export function PropertyImageCarousel({
   photoUrls,
   width = { xs: 72, sm: 88, md: 104 },
   height = { xs: 56, sm: 64, md: 72 },
-  alt = 'Photo de la propriete',
+  alt,
   sx,
   alwaysShowNav = false,
   enableFullscreen = false,
   showCounter = false,
 }: PropertyImageCarouselProps) {
+  const { t } = useTranslation();
   const urls = (photoUrls ?? []).filter(Boolean);
   const hasPhotos = urls.length > 0;
   const hasMultiple = urls.length > 1;
@@ -152,7 +154,7 @@ export function PropertyImageCarousel({
             <ImageNotSupported size={alwaysShowNav ? 48 : 24} strokeWidth={1.5} />
             {alwaysShowNav && (
               <p className="text-xs font-medium">
-                Aucune photo
+                {t('common.noPhoto')}
               </p>
             )}
           </div>
@@ -167,7 +169,7 @@ export function PropertyImageCarousel({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Photo précédente"
+              aria-label={t('common.previousPhoto')}
               // La pastille prend la surface de carte (et non un blanc fige) :
               // en sombre l'icone restait claire sur une pastille blanche.
               className={cn(
@@ -178,7 +180,7 @@ export function PropertyImageCarousel({
               style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
               onClick={prev}
             >
-              <ChevronLeft size={navIconSize} strokeWidth={1.75} />
+              <ChevronPrev size={navIconSize} strokeWidth={1.75} />
             </Button>
             <Button
               variant="ghost"
@@ -191,7 +193,7 @@ export function PropertyImageCarousel({
               style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
               onClick={next}
             >
-              <ChevronRight size={navIconSize} strokeWidth={1.75} />
+              <ChevronNext size={navIconSize} strokeWidth={1.75} />
             </Button>
             <div className={cn('absolute start-[50%] flex pointer-events-none', alwaysShowNav ? 'bottom-[10px]' : 'bottom-[2px]', alwaysShowNav ? 'gap-[4.5px]' : 'gap-[1.5px]')} style={{ transform: 'translateX(-50%)' }}>
               {urls.map((url, i) => (
@@ -249,12 +251,12 @@ export function PropertyImageCarousel({
                 <Button
                   variant="ghost"
                   size="icon-lg"
-                  aria-label="Photo précédente"
+                  aria-label={t('common.previousPhoto')}
                   onClick={prev}
                   className="absolute top-1/2 start-[24px] size-[56px] rounded-full bg-white/15 text-white hover:bg-white/30 hover:text-white"
                   style={{ transform: 'translateY(-50%)' }}
                 >
-                  <ChevronLeft size={36} strokeWidth={1.75} />
+                  <ChevronPrev size={36} strokeWidth={1.75} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -264,7 +266,7 @@ export function PropertyImageCarousel({
                   className="absolute top-1/2 end-[24px] size-[56px] rounded-full bg-white/15 text-white hover:bg-white/30 hover:text-white"
                   style={{ transform: 'translateY(-50%)' }}
                 >
-                  <ChevronRight size={36} strokeWidth={1.75} />
+                  <ChevronNext size={36} strokeWidth={1.75} />
                 </Button>
                 <div className="absolute bottom-[24px] start-[50%] px-3 py-[4.5px] rounded-xl bg-black/60 text-white text-sm font-semibold tabular-nums" style={{ transform: 'translateX(-50%)' }}>
                   {index + 1} / {urls.length}

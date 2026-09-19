@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/core';
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { reservationsApi } from '../../../services/api/reservationsApi';
 import type { PlanningIntervention } from '../../../services/api';
 import type {
@@ -22,6 +23,7 @@ import type {
   PlanningDragState,
 } from '../types';
 import { addDaysToStr } from '../utils/dateUtils';
+import { isRtlLanguage } from '../../../utils/localeDate';
 import { computeBarLayout } from '../utils/layoutUtils';
 import { wouldConflict } from '../utils/conflictUtils';
 import { planningKeys } from './usePlanningData';
@@ -67,6 +69,11 @@ export function usePlanningDrag({
   density,
 }: UsePlanningDragConfig): UsePlanningDragReturn {
   const queryClient = useQueryClient();
+  // Sens de lecture de la frise. dnd-kit rend un delta de pixels PHYSIQUE : en
+  // arabe, tirer une brique vers la gauche l'avance dans le temps. Sans ce
+  // signe, glisser une reservation la reculerait d'autant de jours.
+  const { i18n } = useTranslation();
+  const timeDirection = isRtlLanguage(i18n.language) ? -1 : 1;
   const [state, setState] = useState<PlanningDragState>(INITIAL_STATE);
 
   // Sensors: 8px activation distance to distinguish click from drag
@@ -88,7 +95,7 @@ export function usePlanningDrag({
       conflict: boolean;
       newEvent: PlanningEvent;
     } => {
-      const daysDelta = Math.round(deltaX / dayWidth);
+      const daysDelta = Math.round((deltaX * timeDirection) / dayWidth);
       if (daysDelta === 0) {
         const ghost = computeBarLayout(originalEvent, days, dayWidth, density);
         return { ghost, conflict: false, newEvent: originalEvent };
@@ -111,7 +118,7 @@ export function usePlanningDrag({
       const conflict = wouldConflict(newEvent, events, interventions);
       return { ghost, conflict, newEvent };
     },
-    [dayWidth, days, density, events, interventions],
+    [dayWidth, days, density, events, interventions, timeDirection],
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -183,7 +190,7 @@ export function usePlanningDrag({
       }
 
       const deltaX = event.delta.x;
-      const daysDelta = Math.round(deltaX / dayWidth);
+      const daysDelta = Math.round((deltaX * timeDirection) / dayWidth);
 
       // No change
       if (daysDelta === 0) {

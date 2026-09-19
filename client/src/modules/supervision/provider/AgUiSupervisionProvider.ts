@@ -28,6 +28,11 @@
    ============================================================ */
 
 import { toast } from 'sonner';
+
+// Classe hors React : pas de hook disponible. Le singleton i18next est lu au
+// MOMENT de l'appel, jamais au chargement du module — sinon le libellé resterait
+// figé sur la langue du boot.
+import i18n from '../../../i18n/config';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
 import { applyAutonomy, fetchAutonomy } from './supervisionConfigApi';
@@ -184,7 +189,7 @@ const POLL_INTERVAL_MS = 30_000;
  */
 async function describeApplyFailure(response: Response): Promise<string> {
   if (response.status >= 500) {
-    return "Action impossible : le serveur a rencontré une erreur. Elle a été journalisée.";
+    return i18n.t('supervision.errors.applyServerError');
   }
   try {
     const body = (await response.json()) as { message?: string; error?: string };
@@ -193,7 +198,7 @@ async function describeApplyFailure(response: Response): Promise<string> {
   } catch {
     /* corps vide ou non-JSON : on retombe sur le message générique */
   }
-  return "Action impossible : cette carte n'est plus applicable.";
+  return i18n.t('supervision.errors.applyStale');
 }
 
 export class AgUiSupervisionProvider implements SupervisionProvider<OrchestratorSnapshot> {
@@ -288,7 +293,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         metrics: [],
       })),
       dayMetrics: { timeSaved: '—', autoActions: 0, awaiting: 0 },
-      summary: 'Connexion au moteur multi-agent…',
+      summary: i18n.t('supervision.summary.connecting'),
     };
   }
 
@@ -465,10 +470,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       },
       summary:
         awaiting > 0
-          ? `Connecté · ${awaiting} action${awaiting > 1 ? 's' : ''} attend${
-              awaiting > 1 ? 'ent' : ''
-            } ta validation`
-          : 'Connecté au moteur multi-agent · en attente d’activité',
+          ? i18n.t('supervision.summary.awaiting', { count: awaiting })
+          : i18n.t('supervision.summary.idle'),
       ...(inline ? { pendingAction: inline } : {}),
     };
   }
@@ -669,7 +672,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
 
     if (!checkoutUrl) {
       paymentWindow?.close();
-      toast.error('Paiement impossible : aucun lien de règlement reçu.');
+      toast.error(i18n.t('supervision.errors.noCheckoutLink'));
       return;
     }
     if (paymentWindow) {
@@ -707,7 +710,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         return; // la carte reste : l'action a un effet métier réel
       }
     } catch {
-      toast.error("Action impossible : le serveur n'a pas répondu.");
+      toast.error(i18n.t('supervision.errors.applyNoResponse'));
       return; // réseau → la carte reste, réessai possible
     }
     this.applicableSuggestionIds.delete(id);
@@ -1251,8 +1254,8 @@ function toPendingAgentAction(interrupt: AgUiInterrupt): PendingAgentAction {
   const toolName = interrupt.metadata?.toolName;
   return {
     interruptId: interrupt.id,
-    toolName: toolName ? humanizeTool(toolName) : 'Action',
-    message: interrupt.message ?? interrupt.reason ?? 'Cette action requiert votre validation.',
+    toolName: toolName ? humanizeTool(toolName) : i18n.t('supervision.genericAction'),
+    message: interrupt.message ?? interrupt.reason ?? i18n.t('supervision.needsApproval'),
     ...(interrupt.metadata?.args ? { args: interrupt.metadata.args } : {}),
   };
 }
@@ -1266,8 +1269,8 @@ function pendingDtoToAgentAction(dto: PendingActionDtoShape): PendingAgentAction
   const args = parseArgsSummary(dto.argsSummary);
   return {
     interruptId: dto.toolCallId,
-    toolName: dto.toolName ? humanizeTool(dto.toolName) : 'Action',
-    message: dto.description ?? 'Cette action requiert votre validation.',
+    toolName: dto.toolName ? humanizeTool(dto.toolName) : i18n.t('supervision.genericAction'),
+    message: dto.description ?? i18n.t('supervision.needsApproval'),
     ...(args ? { args } : {}),
   };
 }

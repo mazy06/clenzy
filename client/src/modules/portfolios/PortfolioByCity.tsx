@@ -61,8 +61,6 @@ interface PortfolioByCityProps {
   onAssignStaff: () => void;
 }
 
-const SANS_VILLE = 'Sans ville';
-
 function initials(name: string): string {
   return name
     .split(/\s+/)
@@ -137,10 +135,10 @@ function tradeOf(role: string | undefined): Trade {
   }
 }
 
-const TRADE_LABEL: Record<Trade, string> = {
-  CLEANING: 'Ménage',
-  MAINTENANCE: 'Maintenance',
-  BOTH: 'Encadrement',
+const TRADE_KEYS: Record<Trade, string> = {
+  CLEANING: 'portfolios.trades.cleaning',
+  MAINTENANCE: 'portfolios.trades.maintenance',
+  BOTH: 'portfolios.trades.both',
 };
 
 /**
@@ -151,7 +149,8 @@ const TRADE_LABEL: Record<Trade, string> = {
  * lettres, pour qui ne voit pas l'image ou ne distingue pas les teintes.</p>
  */
 const TradeGlyph: React.FC<{ trade: Trade }> = ({ trade }) => {
-  const label = TRADE_LABEL[trade];
+  const { t } = useTranslation();
+  const label = t(TRADE_KEYS[trade]);
   const common = { size: 13, strokeWidth: 1.9, 'aria-hidden': true } as const;
   return (
     <span
@@ -432,6 +431,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
   }, [users]);
 
   const groups = useMemo<CityGroup[]>(() => {
+    const sansVille = t('portfolios.noCity');
     const byCity = new Map<string, CityGroup>();
     const ensure = (city: string): CityGroup => {
       let group = byCity.get(city);
@@ -442,9 +442,9 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
       return group;
     };
 
-    properties.forEach((p) => ensure(p.city || SANS_VILLE).properties.push(p));
-    teams.forEach((team) => ensure(team.city || SANS_VILLE).teams.push(team));
-    people.forEach((user) => ensure(user.city || SANS_VILLE).staff.push(user));
+    properties.forEach((p) => ensure(p.city || sansVille).properties.push(p));
+    teams.forEach((team) => ensure(team.city || sansVille).teams.push(team));
+    people.forEach((user) => ensure(user.city || sansVille).staff.push(user));
 
     // Une personne peut travailler dans une ville sans y etre basee : un
     // responsable de secteur siege dans une ville et encadre les equipes de
@@ -479,7 +479,7 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
     });
 
     return [...byCity.values()].sort((a, b) => a.city.localeCompare(b.city, 'fr'));
-  }, [properties, teams, people]);
+  }, [properties, teams, people, t]);
 
   const [selected, setSelected] = useState<string | null>(null);
   const current = groups.find((g) => g.city === selected) ?? groups[0] ?? null;
@@ -543,9 +543,13 @@ const PortfolioByCity: React.FC<PortfolioByCityProps> = ({
             }
             if (person && !tradeAllows(person.role, target.interventionType)) {
               throw new Error(
-                `${fullName(person)} est ${TRADE_LABEL[tradeOf(person.role)].toLowerCase()} : `
-                + `il ne peut pas rejoindre une équipe `
-                + `${target.interventionType === 'MAINTENANCE' ? 'de maintenance' : 'de ménage'}.`,
+                t('portfolios.tradeMismatch', {
+                  person: fullName(person),
+                  trade: t(TRADE_KEYS[tradeOf(person.role)]).toLowerCase(),
+                  team: t(target.interventionType === 'MAINTENANCE'
+                    ? 'portfolios.trades.maintenance'
+                    : 'portfolios.trades.cleaning').toLowerCase(),
+                }),
               );
             }
             const members = [

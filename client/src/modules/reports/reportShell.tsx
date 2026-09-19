@@ -6,6 +6,7 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { useTranslation } from '../../hooks/useTranslation';
 import { StatsBand, StatsLayout, TileGrid } from '../../components/stats';
 import type { StatFigure, Tile, ValueFormatter } from '../../components/stats';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 /**
  * Coque commune des onglets de Rapports.
@@ -67,7 +68,10 @@ export function useReportFormats() {
     // montant non converti mentirait sur la valeur.
     const converted = !!rates && currency in rates;
     const symbol = converted ? currencySymbol : '€';
-    const compact = new Intl.NumberFormat(undefined, {
+    // `undefined` aurait pris la locale du NAVIGATEUR, pas celle choisie dans
+    // l'application : un compte en arabe sur un poste français lisait ses axes
+    // à la française.
+    const compact = new Intl.NumberFormat(activeIntlLocale(), {
       notation: 'compact',
       maximumFractionDigits: 1,
     });

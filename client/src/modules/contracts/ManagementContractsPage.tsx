@@ -23,7 +23,7 @@ import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
-import { CONTRACT_TYPE_LABELS, type PropertyOption } from './ManagementContractForm';
+import { CONTRACT_TYPE_KEYS, type PropertyOption } from './ManagementContractForm';
 import ManagementContractFormModal from './ManagementContractFormModal';
 
 // ─── Palette de statut ──────────────────────────────────────────────────────
@@ -32,14 +32,14 @@ import ManagementContractFormModal from './ManagementContractFormModal';
 // filtre la mélange à l'exécution (color-mix), donc aucune classe Tailwind ne
 // pourrait être émise à la compilation — c'est la teinte vive qui convient.
 
-interface StatusMeta { label: string; tone: StatusTone; color: string }
+interface StatusMeta { labelKey: string; tone: StatusTone; color: string }
 
 const STATUS_META: Record<ContractStatus, StatusMeta> = {
-  ACTIVE:     { label: 'Actif',     tone: 'ok',      color: 'var(--bui-success)' },
-  DRAFT:      { label: 'Brouillon', tone: 'neutral', color: 'var(--bui-muted-foreground)' },
-  SUSPENDED:  { label: 'Suspendu',  tone: 'warn',    color: 'var(--bui-warning)' },
-  TERMINATED: { label: 'Résilié',   tone: 'err',     color: 'var(--bui-destructive)' },
-  EXPIRED:    { label: 'Expiré',    tone: 'err',     color: 'var(--bui-destructive)' },
+  ACTIVE:     { labelKey: 'contracts.statuses.active',     tone: 'ok',      color: 'var(--bui-success)' },
+  DRAFT:      { labelKey: 'contracts.statuses.draft',      tone: 'neutral', color: 'var(--bui-muted-foreground)' },
+  SUSPENDED:  { labelKey: 'contracts.statuses.suspended',  tone: 'warn',    color: 'var(--bui-warning)' },
+  TERMINATED: { labelKey: 'contracts.statuses.terminated', tone: 'err',     color: 'var(--bui-destructive)' },
+  EXPIRED:    { labelKey: 'contracts.statuses.expired',    tone: 'err',     color: 'var(--bui-destructive)' },
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -212,13 +212,13 @@ const ManagementContractsPage: React.FC = () => {
         sendEmail: false,
       });
       if (generated?.id) {
-        showSuccess('Mandat généré');
+        showSuccess(t('contracts.mandate.generated'));
         await documentsApi.viewGeneration(generated.id);
       } else {
-        showError("Impossible de générer le mandat — aucun template actif pour MANDAT_GESTION.");
+        showError(t('contracts.mandate.noTemplate'));
       }
     } catch (err) {
-      showError("Impossible d'ouvrir le mandat. Vérifie qu'un template MANDAT_GESTION actif existe.");
+      showError(t('contracts.mandate.openFailed'));
     }
   };
 
@@ -227,7 +227,7 @@ const ManagementContractsPage: React.FC = () => {
   // Options de filtre derivees du STATUS_META — passe au FilterChipRow partage
   const filterOptions = (Object.keys(STATUS_META) as ContractStatus[]).map(status => ({
     value: status,
-    label: STATUS_META[status].label,
+    label: t(STATUS_META[status].labelKey),
     color: STATUS_META[status].color,
     count: contracts.filter(c => c.status === status).length,
   }));
@@ -284,8 +284,8 @@ const ManagementContractsPage: React.FC = () => {
         <EmptyState
           icon={<Handshake />}
           title={t('contracts.noContracts')}
-          description="Sans contrat actif, les paiements suivent la répartition par défaut de l'organisation (Paramètres → Paiement → Répartition des revenus)."
-          tip="Crée un contrat ici pour appliquer une commission spécifique à un bien (au lieu de la répartition globale)."
+          description={t('contracts.empty.description')}
+          tip={t('contracts.empty.tip')}
           action={(
             <Button
               variant="outline"
@@ -322,7 +322,7 @@ const ManagementContractsPage: React.FC = () => {
           )}
           {inactiveContracts.length > 0 && (
             <ContractsTableSection
-              title="Contrats archivés"
+              title={t('contracts.archived')}
               accentColor="var(--bui-muted-foreground)"
               accentSoft="var(--bui-muted)"
               contracts={inactiveContracts}
@@ -416,8 +416,9 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
           </TableHeader>
           <TableBody>
             {contracts.map(c => {
-              const meta: StatusMeta = STATUS_META[c.status]
-                ?? { label: c.status, tone: 'neutral', color: 'var(--bui-muted-foreground)' };
+              const meta: StatusMeta | undefined = STATUS_META[c.status];
+              const statusLabel = meta ? t(meta.labelKey) : c.status;
+              const statusTone: StatusTone = meta?.tone ?? 'neutral';
               const isTerminating = terminatingId === c.id;
 
               if (isTerminating) {
@@ -495,7 +496,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
+                    <p className="text-[0.8125rem]">{t(CONTRACT_TYPE_KEYS[c.contractType])}</p>
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge variant="secondary" className="bg-primary-soft text-primary tabular-nums">{`${(c.commissionRate * 100).toFixed(0)}%`}</Badge>
@@ -507,7 +508,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex flex-col items-center gap-0.5">
-                      <StatusChip tone={meta.tone} label={meta.label} />
+                      <StatusChip tone={statusTone} label={statusLabel} />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
                         <p className="text-2xs font-semibold text-warning-ink">
                           {t('contracts.signature.pending', 'En attente de signature')}
@@ -531,14 +532,14 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                               variant="ghost"
                               size="icon-sm"
                               className="text-primary"
-                              aria-label="Voir le mandat de gestion"
+                              aria-label={t('contracts.viewMandate')}
                               onClick={() => onViewMandate(c.id)}
                             >
                               <PictureAsPdf size={16} strokeWidth={1.75} />
                             </Button>
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent>Voir le mandat de gestion</TooltipContent>
+                        <TooltipContent>{t('contracts.viewMandate')}</TooltipContent>
                       </Tooltip>
                       {c.status === 'DRAFT' && (
                         <Tooltip>

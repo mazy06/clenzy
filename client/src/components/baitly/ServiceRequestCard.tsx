@@ -68,7 +68,7 @@ export default function ServiceRequestCard({
             {request.propertyName && (
               <p className="m-0 mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPinIcon className="size-3 shrink-0" />
-                <span className="truncate">
+                <span dir="auto" className="truncate">
                   {request.propertyName}
                   {request.propertyCity ? ` · ${request.propertyCity}` : ''}
                 </span>

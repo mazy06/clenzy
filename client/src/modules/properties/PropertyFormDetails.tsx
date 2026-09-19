@@ -213,7 +213,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               control={control}
               render={({ field, fieldState }) => (
                 <Field>
-                  <FieldLabel htmlFor="property-minimum-nights">Nuitées minimum</FieldLabel>
+                  <FieldLabel htmlFor="property-minimum-nights">{t('properties.form.minimumNights')}</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
                       <NightsStay size={16} strokeWidth={1.75} />

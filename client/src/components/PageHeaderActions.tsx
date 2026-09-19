@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useHeaderSeam, HEADER_FLYOUT_CLASS } from '../hooks/useHeaderSeam';
 import { MoreHorizontal } from 'lucide-react';
 import {
   Button,
@@ -14,6 +15,7 @@ import {
 } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
 import compactHeaderActions from './compactHeaderActions';
+import { cn } from '../utils/cn';
 import { headerActionIcon } from './headerActionIcons';
 
 /**
@@ -67,6 +69,9 @@ import { headerActionIcon } from './headerActionIcons';
  * mentions qui accompagnent les filtres restent lisibles, alignés comme le
  * reste.</p>
  */
+/** Borne de hauteur du panneau de filtres, portée par ce qui défile. */
+const SCROLL_CLASS = 'max-h-[70dvh] overflow-y-auto';
+
 const MENU_LAYOUT_CLASS = [
   // Chaque groupe passé en slot redevient une colonne.
   //
@@ -119,6 +124,8 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { triggerRef: filtersTriggerRef, seam: filtersSeam, measure: measureFilters }
+    = useHeaderSeam<HTMLSpanElement>();
 
   if (!filters && !actions) return null;
 
@@ -132,11 +139,17 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
     return (
       <div className="flex items-center gap-1.5">
         {filters && (
-          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <Popover
+            open={filtersOpen}
+            onOpenChange={(next) => {
+              if (next) measureFilters();
+              setFiltersOpen(next);
+            }}
+          >
             <Tooltip>
               <TooltipTrigger asChild>
                 <PopoverTrigger asChild>
-                  <span className="inline-flex">
+                  <span ref={filtersTriggerRef} className="inline-flex">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -156,9 +169,28 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
             <PopoverContent
               data-header-filter-panel
               align="end"
-              className={`max-h-[70dvh] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto p-2 ${MENU_LAYOUT_CLASS}`}
+              sideOffset={filtersSeam ?? undefined}
+              /* Les conges debordent de 15 px de part et d'autre : sans cette
+                 reserve, celui de droite passait sous le bord de la fenetre —
+                 le panneau est aligne sur la FIN de la barre. */
+              collisionPadding={20}
+              className={cn(
+                'w-[min(22rem,calc(100vw-1.5rem))] p-2',
+                filtersSeam === null && [SCROLL_CLASS, MENU_LAYOUT_CLASS],
+                filtersSeam !== null && HEADER_FLYOUT_CLASS,
+              )}
             >
-              {filters}
+              {/* Accroche au bandeau : le panneau passe en `overflow: visible`
+                  pour laisser sortir les conges, le defilement revient donc a
+                  ce conteneur — qui reprend AUSSI `MENU_LAYOUT_CLASS`. Ses
+                  selecteurs visent les enfants DIRECTS : laisse sur le panneau,
+                  il aurait mis en colonne ce seul conteneur au lieu des slots
+                  de filtres, qu'il ne voyait plus. */}
+              {filtersSeam !== null ? (
+                <div className={cn(SCROLL_CLASS, MENU_LAYOUT_CLASS)}>{filters}</div>
+              ) : (
+                filters
+              )}
             </PopoverContent>
           </Popover>
         )}

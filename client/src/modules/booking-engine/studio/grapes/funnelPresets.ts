@@ -1,4 +1,5 @@
 import { BOOKING_WIDGET_DEFS } from './bookingWidgetDefs';
+import i18n from '../../../../i18n/config';
 
 /**
  * Parcours de réservation (« funnel ») = composition ORDONNÉE de widgets booking, insérée dans une
@@ -8,10 +9,14 @@ import { BOOKING_WIDGET_DEFS } from './bookingWidgetDefs';
 export interface FunnelPreset {
   /** Id stable (slug pour les intégrés, généré pour les custom). */
   id: string;
-  /** Nom affiché. */
+  /** Nom affiché — libellé brut pour un preset custom (donnee utilisateur). */
   label: string;
+  /** Cle du nom pour un preset integre ; prime sur `label`. */
+  labelKey?: string;
   /** Description courte. */
   description?: string;
+  /** Cle de la description pour un preset integre. */
+  descriptionKey?: string;
   /** Ids ordonnés des widgets booking (cf. `bookingWidgetDefs`). */
   widgetIds: string[];
   /**
@@ -20,8 +25,12 @@ export interface FunnelPreset {
    * intégrés uniquement ; NON sérialisé → les customs dérivent leur flux des libellés de widgets.
    */
   steps?: string[];
+  /** Cles des ecrans pour un preset integre. */
+  stepKeys?: string[];
   /** Badge court affiché à côté du titre (« Populaire », « Sans paiement »…). NON sérialisé. */
   badge?: string;
+  /** Cle du badge pour un preset integre. */
+  badgeKey?: string;
   /** `true` = preset livré en code ; absent/false = preset custom de l'org. */
   builtin?: boolean;
 }
@@ -39,6 +48,10 @@ export interface FunnelPreset {
 export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   {
     id: 'catalogue',
+    labelKey: 'funnels.catalogue.label',
+    descriptionKey: 'funnels.catalogue.description',
+    badgeKey: 'funnels.badges.popular',
+    stepKeys: ['funnels.steps.search', 'funnels.steps.properties', 'funnels.steps.priceSummary'],
     label: 'Recherche catalogue',    badge: 'Populaire',
     description: 'Plusieurs logements à explorer puis réserver en direct.',
     steps: ['Recherche', 'Logements', 'Récap prix'],
@@ -47,6 +60,9 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   },
   {
     id: 'single',
+    labelKey: 'funnels.single.label',
+    descriptionKey: 'funnels.single.description',
+    stepKeys: ['funnels.steps.theProperty', 'funnels.steps.datesQuote', 'funnels.steps.pay'],
     label: 'Logement unique',    description: 'Un seul bien, sur une page : sa fiche, ses équipements, le devis instantané et le paiement.',
     steps: ['Le logement', 'Dates & devis', 'Payer'],
     widgetIds: ['booking-property-summary', 'booking-amenities', 'booking-dates', 'booking-guests', 'booking-price-summary', 'booking-checkout-button'],
@@ -54,6 +70,10 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   },
   {
     id: 'inquiry',
+    labelKey: 'funnels.inquiry.label',
+    descriptionKey: 'funnels.inquiry.description',
+    badgeKey: 'funnels.badges.noPayment',
+    stepKeys: ['funnels.steps.datesGuests', 'funnels.steps.contact', 'funnels.steps.requestSent'],
     label: 'Demande de devis',    badge: 'Sans paiement',
     description: 'Le voyageur envoie une demande, vous répondez avec un devis.',
     steps: ['Dates & voyageurs', 'Coordonnées', 'Demande envoyée'],
@@ -62,6 +82,10 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   },
   {
     id: 'extras',
+    labelKey: 'funnels.extras.label',
+    descriptionKey: 'funnels.extras.description',
+    badgeKey: 'funnels.badges.upsell',
+    stepKeys: ['funnels.steps.property', 'funnels.steps.optionsExtras', 'funnels.steps.summary', 'funnels.steps.payment'],
     label: 'Séjour + extras',    badge: 'Upsell',
     description: 'Ajoutez options et extras avant le paiement pour augmenter le panier.',
     steps: ['Logement', 'Options & extras', 'Récap', 'Paiement'],
@@ -70,6 +94,9 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   },
   {
     id: 'cart',
+    labelKey: 'funnels.cart.label',
+    descriptionKey: 'funnels.cart.description',
+    stepKeys: ['funnels.steps.search', 'funnels.steps.cartN', 'funnels.steps.payment'],
     label: 'Panier multi-séjours',    description: 'Plusieurs réservations groupées dans un même panier.',
     steps: ['Recherche', 'Panier ×N', 'Paiement'],
     widgetIds: ['booking-city-search', 'booking-dates', 'booking-guests', 'booking-property-results', 'booking-add-to-cart', 'booking-cart'],
@@ -77,6 +104,10 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   },
   {
     id: 'express',
+    labelKey: 'funnels.express.label',
+    descriptionKey: 'funnels.express.description',
+    badgeKey: 'funnels.badges.oneScreen',
+    stepKeys: ['funnels.steps.datesGuests', 'funnels.steps.payNow'],
     label: 'Réservation express',    badge: '1 écran · rapide',
     description: 'Friction minimale (1 écran, bien implicite) : dates, voyageurs, total, paiement immédiat.',
     steps: ['Dates & voyageurs', 'Payer maintenant'],
@@ -85,6 +116,10 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
   },
   {
     id: 'confirmation',
+    labelKey: 'funnels.confirmation.label',
+    descriptionKey: 'funnels.confirmation.description',
+    badgeKey: 'funnels.badges.returnPage',
+    stepKeys: ['funnels.steps.confirmation'],
     label: 'Page de confirmation',    badge: 'Page de retour',
     description: 'À placer sur la page de retour après paiement : remerciement, référence et récapitulatif.',
     steps: ['Confirmation'],
@@ -95,7 +130,8 @@ export const BUILTIN_FUNNEL_PRESETS: FunnelPreset[] = [
 
 /** Libellé d'un widget par id (pour l'aperçu d'un preset). */
 export function widgetLabel(id: string): string {
-  return BOOKING_WIDGET_DEFS.find((d) => d.id === id)?.label ?? id;
+  const def = BOOKING_WIDGET_DEFS.find((d) => d.id === id);
+  return def ? i18n.t(def.labelKey) : id;
 }
 
 /** Section HTML d'un parcours à partir d'une liste ORDONNÉE d'ids widgets (classe `clenzy-funnel`). */

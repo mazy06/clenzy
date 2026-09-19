@@ -42,6 +42,8 @@ import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import { useAuth } from '../hooks/useAuth';
 import { userAvatarSrc } from '../services/api/usersApi';
 import { parseApiDate } from '../utils/formatUtils';
+import { activeIntlLocale } from '../utils/activeLocale';
+import { useTranslation } from '../hooks/useTranslation';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -67,8 +69,8 @@ const TONE_TINT: Record<StatusTone, string> = {
   neutral: 'var(--bui-muted-foreground)',
 };
 
-function formatDuration(seconds: number): string {
-  if (seconds <= 0) return 'Expiré';
+function formatDuration(seconds: number, expiredLabel: string): string {
+  if (seconds <= 0) return expiredLabel;
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
@@ -102,6 +104,7 @@ function getInitials(name: string | undefined): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const TokenMonitoring: React.FC = () => {
+  const { t } = useTranslation();
   const [tokenStats, setTokenStats] = useState<TokenStats | null>(null);
   const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,7 +127,7 @@ const TokenMonitoring: React.FC = () => {
       if (stats) setTokenStats(stats);
       if (metrics) setTokenMetrics(metrics);
     } catch {
-      setError('Impossible de charger les statistiques des tokens');
+      setError(t('tokens.statsError'));
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +143,7 @@ const TokenMonitoring: React.FC = () => {
         setError(`Erreur lors du nettoyage: ${result.error}`);
       }
     } catch {
-      setError('Erreur lors du nettoyage des tokens');
+      setError(t('tokens.cleanupError'));
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +186,7 @@ const TokenMonitoring: React.FC = () => {
           className="text-warning-ink border-warning hover:bg-warning-soft"
         >
           <Delete size={16} strokeWidth={1.75} />
-          Nettoyer expirés
+          {t('tokenMonitoring.cleanExpired')}
         </BuiButton>
       </div>,
     );
@@ -200,11 +203,11 @@ const TokenMonitoring: React.FC = () => {
   // ton porte les trois jetons a la fois : `-ink` pour le texte via
   // STATUS_TONES, teinte vive pour l'anneau et la barre via TONE_TINT.
   const tokenStatus = useMemo((): { label: string; tone: StatusTone } => {
-    if (!currentToken.isAuthenticated) return { label: 'Non authentifié', tone: 'neutral' };
-    if (timeUntilExpiry <= 0) return { label: 'Expiré', tone: 'err' };
-    if (timeUntilExpiry < 300) return { label: 'Expiration proche', tone: 'warn' };
-    return { label: 'Authentifié', tone: 'ok' };
-  }, [currentToken.isAuthenticated, timeUntilExpiry]);
+    if (!currentToken.isAuthenticated) return { label: t('tokens.notAuthenticated'), tone: 'neutral' };
+    if (timeUntilExpiry <= 0) return { label: t('tokens.expired'), tone: 'err' };
+    if (timeUntilExpiry < 300) return { label: t('tokens.expiringSoon'), tone: 'warn' };
+    return { label: t('tokens.authenticated'), tone: 'ok' };
+  }, [currentToken.isAuthenticated, timeUntilExpiry, t]);
 
   // Donut data
   const donutData = useMemo(() => {
@@ -214,10 +217,10 @@ const TokenMonitoring: React.FC = () => {
     if (total === 0) return [];
     // Parts de graphique et pastilles de legende : des aplats, donc la teinte vive.
     return [
-      { name: 'Actifs', value: active, color: 'var(--bui-success)' },
-      { name: 'Expirés', value: expired, color: 'var(--bui-destructive)' },
+      { name: t('tokens.active'), value: active, color: 'var(--bui-success)' },
+      { name: t('tokens.expiredPlural'), value: expired, color: 'var(--bui-destructive)' },
     ];
-  }, [tokenStats]);
+  }, [tokenStats, t]);
 
   const copyUserId = () => {
     if (!currentToken.userId) return;
@@ -337,7 +340,7 @@ const TokenMonitoring: React.FC = () => {
                           )}
                         </BuiButton>
                       </TooltipTrigger>
-                      <TooltipContent>{copied ? 'Copié !' : "Copier l'ID complet"}</TooltipContent>
+                      <TooltipContent>{copied ? t('common.copied') : t('tokens.copyFullId')}</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -355,7 +358,7 @@ const TokenMonitoring: React.FC = () => {
                   ))
                 ) : (
                   <p className="text-xs text-muted-foreground opacity-60 italic">
-                    Aucun rôle assigné
+                    {t('tokenMonitoring.noRole')}
                   </p>
                 )}
               </div>
@@ -370,11 +373,11 @@ const TokenMonitoring: React.FC = () => {
               </p>
               {/* Valeur de decompte : du TEXTE, donc l'encre `-ink` du ton. */}
               <p className="text-2xl font-semibold tabular-nums tracking-[-0.02em] leading-[1.1]" style={{ color: STATUS_TONES[tokenStatus.tone].color, fontFamily: 'var(--font-display)' }}>
-                {formatDuration(timeUntilExpiry)}
+                {formatDuration(timeUntilExpiry, t('tokens.expired'))}
               </p>
               {currentToken.expiresAt && (
                 <p className="text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
-                  {new Date(currentToken.expiresAt).toLocaleString('fr-FR', {
+                  {new Date(currentToken.expiresAt).toLocaleString(activeIntlLocale(), {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',
@@ -394,7 +397,7 @@ const TokenMonitoring: React.FC = () => {
         ) : (
           <BuiAlert variant="warning">
             <TriangleAlert />
-            <AlertDescription>Aucun token actif détecté. Veuillez vous authentifier.</AlertDescription>
+            <AlertDescription>{t('tokenMonitoring.noToken')}</AlertDescription>
           </BuiAlert>
         )}
       </Card>
@@ -403,7 +406,7 @@ const TokenMonitoring: React.FC = () => {
       <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px]">
         <StatTile
           icon={<Storage />}
-          label="Total des tokens"
+          label="{t('tokenMonitoring.totalTokens')}"
           value={tokenStats?.totalTokens ?? 0}
           iconClassName="text-primary"
           loading={isLoading && !tokenStats}
@@ -422,7 +425,7 @@ const TokenMonitoring: React.FC = () => {
         />
         <StatTile
           icon={<Warning />}
-          label="Tokens expirés"
+          label="{t('tokenMonitoring.expiredTokens')}"
           value={tokenStats?.expiredTokens ?? 0}
           iconClassName="text-destructive"
           hint={
@@ -434,7 +437,7 @@ const TokenMonitoring: React.FC = () => {
         />
         <StatTile
           icon={<TrendingUp />}
-          label="Taux de succès"
+          label="{t('tokenMonitoring.successRate')}"
           value={tokenStats?.successRate ?? 'N/A'}
           iconClassName="text-primary"
           loading={isLoading && !tokenStats}
@@ -446,10 +449,10 @@ const TokenMonitoring: React.FC = () => {
         {/* Donut */}
         <Card className="gap-0 py-0 p-3.5">
           <p className="text-sm font-bold mb-0.5">
-            Distribution des tokens
+            {t('tokenMonitoring.distribution')}
           </p>
           <p className="text-xs text-muted-foreground mb-3">
-            Répartition entre tokens actifs et expirés
+            {t('tokenMonitoring.distributionHint')}
           </p>
 
           {donutData.length === 0 ? (
@@ -458,7 +461,7 @@ const TokenMonitoring: React.FC = () => {
                 <HourglassEmpty size={32} strokeWidth={1.5} />
               </span>
               <p className="text-xs">
-                En attente de données
+                {t('tokenMonitoring.awaitingData')}
               </p>
             </div>
           ) : (
@@ -516,10 +519,10 @@ const TokenMonitoring: React.FC = () => {
         {/* Refresh metrics */}
         <Card className="gap-0 py-0 p-3.5">
           <p className="text-sm font-bold mb-0.5">
-            Métriques de rafraîchissement
+            {t('tokenMonitoring.refreshMetrics')}
           </p>
           <p className="text-xs text-muted-foreground mb-3">
-            Indicateurs de performance du service de tokens
+            {t('tokenMonitoring.refreshMetricsHint')}
           </p>
 
           {/* Success rate bar */}
@@ -527,7 +530,7 @@ const TokenMonitoring: React.FC = () => {
             <div className="mb-3.5">
               <div className="flex justify-between items-center mb-0.5">
                 <p className="text-[0.6875rem] text-muted-foreground font-semibold uppercase tracking-[0.4px]">
-                  Fiabilité globale
+                  {t('tokenMonitoring.reliability')}
                 </p>
                 {/* Le pourcentage est du texte : encre `-ink`. La barre, elle,
                     est un aplat et garde la teinte vive. */}
@@ -550,7 +553,7 @@ const TokenMonitoring: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             <MetricRow
               icon={<Refresh size={14} strokeWidth={1.75} />}
-              label="Rafraîchissements"
+              label={t('tokenMonitoring.refreshes')}
               value={tokenMetrics?.refreshCount ?? 0}
               fg="var(--bui-info)"
               bg="var(--bui-info-soft)"
@@ -584,7 +587,7 @@ const TokenMonitoring: React.FC = () => {
       <BuiAlert variant="info">
         <Bolt size={16} strokeWidth={2} />
         <AlertDescription className="text-[0.8125rem]">
-          <strong>Architecture réactive</strong> — TokenService utilise le pattern Observer pour une
+          <strong>{t('tokenMonitoring.reactiveArchitecture')}</strong> — TokenService utilise le pattern Observer pour une
           propagation événementielle des changements de session (renouvellement, expiration, échec
           d&apos;authentification).
         </AlertDescription>

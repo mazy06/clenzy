@@ -7,6 +7,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationOn, DirectionsWalk } from '../icons';
 import { useThemeMode } from '../hooks/useThemeMode';
+import { useTranslation } from '../hooks/useTranslation';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -41,6 +42,7 @@ export function PropertyLocationPicker({
   height = 280,
   helperText,
 }: PropertyLocationPickerProps) {
+  const { t } = useTranslation();
   const { isDark } = useThemeMode();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -140,7 +142,7 @@ export function PropertyLocationPicker({
 
   const handleGeolocate = useCallback(() => {
     if (!navigator.geolocation) {
-      setGeoError('Géolocalisation non supportée par ce navigateur');
+      setGeoError(t('properties.map.geolocUnsupported'));
       return;
     }
     setGeoLoading(true);
@@ -154,7 +156,7 @@ export function PropertyLocationPicker({
       (err) => {
         setGeoLoading(false);
         if (err.code === err.PERMISSION_DENIED) {
-          setGeoError('Permission refusée — autorise la géolocalisation dans ton navigateur');
+          setGeoError(t('properties.map.geolocDenied'));
         } else {
           setGeoError("Impossible d'obtenir votre position");
         }
@@ -173,7 +175,7 @@ export function PropertyLocationPicker({
     return (
       <BuiAlert variant="warning" className="text-xs">
         <TriangleAlert />
-        <AlertDescription>Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.</AlertDescription>
+        <AlertDescription>{t('locationPicker.mapboxMissing')}</AlertDescription>
       </BuiAlert>
     );
   }
@@ -247,7 +249,7 @@ export function PropertyLocationPicker({
                   <BuiButton
                     variant="outline"
                     size="icon-sm"
-                    aria-label="Centrer sur le marqueur"
+                    aria-label={t('locationPicker.centerOnMarker')}
                     onClick={handleRecenter}
                     className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
                   >
@@ -255,7 +257,7 @@ export function PropertyLocationPicker({
                   </BuiButton>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="right">Centrer sur le marqueur</TooltipContent>
+              <TooltipContent side="right">{t('locationPicker.centerOnMarker')}</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -275,7 +277,7 @@ export function PropertyLocationPicker({
 
       {hasCoords && (
         <p className="text-2xs text-faint">
-          Astuce : clique sur la carte ou fais glisser le pin pour ajuster la position exacte.
+          {t('locationPicker.hint')}
         </p>
       )}
     </div>

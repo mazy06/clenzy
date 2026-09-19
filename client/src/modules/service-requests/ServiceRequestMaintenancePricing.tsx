@@ -4,6 +4,9 @@ import { Receipt, Search } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import ServiceRequestQuoteEditor from './ServiceRequestQuoteEditor';
 import StatusChip from '../../components/StatusChip';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { currencySign } from '../../utils/currencyUtils';
 
 // ─── Chiffrage maintenance ──────────────────────────────────────────────────
 //
@@ -48,6 +51,8 @@ const BRAND_TOKENS = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)
 
 const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricingProps> = React.memo(
   ({ pricingMode, quoteLines, diagnosticFee, onChange, disabled = false }) => {
+    const { t } = useTranslation();
+    const { currency } = useCurrency();
     const handleModeChange = useCallback(
       (mode: PricingMode) => {
         if (mode === pricingMode) return;
@@ -111,7 +116,7 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
                   htmlFor="maintenance-diagnostic-fee"
                   className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5"
                 >
-                  Montant du diagnostic (€)
+                  {t('serviceRequests.quote.diagnosticFeeWithCurrency', { currency: currencySign(currency) })}
                 </FieldLabel>
                 <Input
                   id="maintenance-diagnostic-fee"
@@ -126,8 +131,7 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
                 />
               </Field>
               <p className="flex-1 min-w-[180px] text-[11.5px] text-muted-foreground leading-[1.4]">
-                L'artisan facture d'abord ce diagnostic pour évaluer sur place, puis
-                établit le devis après la visite. Optionnel — laisse vide pour chiffrer plus tard.
+                {t('serviceRequests.quote.diagnosticHint')}
               </p>
             </div>
           </div>

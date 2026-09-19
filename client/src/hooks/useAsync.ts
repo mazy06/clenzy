@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from './useTranslation';
 
 /**
  * Hook générique pour la gestion des opérations asynchrones.
@@ -41,11 +42,12 @@ export function useAsync<T>(
   asyncFunction: (...args: unknown[]) => Promise<T>,
   options: UseAsyncOptions<T> = {}
 ) {
+  const { t } = useTranslation();
   const {
     immediate = true,
     onSuccess,
     onError,
-    defaultErrorMessage = 'Une erreur est survenue',
+    defaultErrorMessage = t('common.errorOccurred'),
   } = options;
 
   const [state, setState] = useState<AsyncState<T>>({

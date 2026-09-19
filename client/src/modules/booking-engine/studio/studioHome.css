@@ -1,8 +1,9 @@
 /* ============================================================================
    BOOKING ENGINE — Accueil (studio). Reconstruction de design_handoff_booking_accueil.
    Styles SCOPÉS sous .be-home, branchés sur les tokens Baitly (tokens.css).
-   L'accent du module est l'indigo : le wrapper porte data-accent="indigo"
-   (cf. tokens.css [data-accent="indigo"]) → var(--accent) = #5453D6.
+   L'accent du module est le bleu nuit Baitly (`--bui-primary`), defini juste
+   en dessous. Il ne vient donc plus d'un `data-accent` : c'etait l'indigo
+   #5453D6, une couleur que rien d'autre dans l'application ne portait.
    Seul Fraunces (hero serif) n'existe pas dans le thème → chargé ici.
    ============================================================================ */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap');
@@ -32,6 +33,23 @@
 
 /* hero */
 .be-home .hero { text-align: center; margin-bottom: 20px; }
+/* ── Accent du module : le bleu nuit Baitly ──────────────────────────────────
+   `--bui-navy`, defini une seule fois dans `theme/baitly-ui.css` avec sa
+   justification et ses contrastes. On le REFERENCE : le module suit la marque
+   si elle bouge, et n'a pas besoin de son propre bloc sombre — la famille
+   `--bui-navy-*` s'inverse deja toute seule. */
+.be-home {
+  --accent: var(--bui-navy);
+  --accent-deep: var(--bui-navy-deep);
+  --accent-soft: var(--bui-navy-soft);
+  --on-accent: #FFFFFF;
+}
+
+/* En sombre l'accent passe du cote clair : l'encre posee dessus s'inverse. */
+[data-theme='dark'] .be-home {
+  --on-accent: #101A2E;
+}
+
 .be-home .hero .eyebrow { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 16px; }
 .be-home .hero h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; letter-spacing: -.015em; color: var(--ink); margin: 0; text-wrap: balance; }
 
@@ -60,7 +78,7 @@
 /* Chip Template grisé tant qu'aucun funnel n'est choisi. */
 .be-home .chip--locked { opacity: .5; cursor: not-allowed; }
 .be-home .field__spacer { flex: 1; }
-.be-home .send { width: 46px; height: 46px; border-radius: 11px; background: var(--accent); color: #fff; border: 0; display: grid; place-items: center; box-shadow: 0 8px 18px -8px var(--accent-soft); transition: background .16s, transform .12s; }
+.be-home .send { width: 46px; height: 46px; border-radius: 11px; background: var(--accent); color: var(--on-accent); border: 0; display: grid; place-items: center; box-shadow: 0 8px 18px -8px var(--accent-soft); transition: background .16s, transform .12s; }
 .be-home .send:hover { background: var(--accent-deep); }
 .be-home .send:active { transform: scale(.96); }
 .be-home .send:disabled { opacity: .55; cursor: not-allowed; }
@@ -317,7 +335,7 @@
 .be-home .b-lang svg { color: var(--muted); }
 .be-home .lv-actions { display: flex; align-items: center; gap: 4px; flex: none; }
 .be-home .switch { width: 44px; height: 25px; border-radius: 999px; background: var(--accent); position: relative; border: 0; cursor: pointer; flex: none; margin-right: 6px; transition: background .18s; }
-.be-home .switch::after { content: ""; position: absolute; top: 3px; left: 22px; width: 19px; height: 19px; border-radius: 50%; background: #fff; transition: left .18s; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+.be-home .switch::after { content: ""; position: absolute; top: 3px; left: 22px; width: 19px; height: 19px; border-radius: 50%; background: var(--on-accent); transition: left .18s; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
 .be-home .switch.off { background: var(--line2); }
 .be-home .switch.off::after { left: 3px; }
 .be-home .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -371,7 +389,7 @@
 .be-home .mk__price small { font-size: 11px; font-weight: 500; color: var(--muted); }
 .be-home .mk__comm { font-size: 11px; color: #C28A52; font-weight: 600; margin: 3px 0 0; }
 .be-home .mk__add { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 10px; padding: 9px 13px; font-size: 13px; font-weight: 600; transition: .16s; flex: none; cursor: pointer; }
-.be-home .mk__add:hover { background: var(--accent); color: #fff; }
+.be-home .mk__add:hover { background: var(--accent); color: var(--on-accent); }
 /* Marketplace organisée par partenaire : sous-groupe avec en-tête. */
 .be-home .mk-group { margin-top: 18px; }
 .be-home .mk-group:first-of-type { margin-top: 8px; }

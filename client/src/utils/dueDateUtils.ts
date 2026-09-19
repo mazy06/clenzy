@@ -3,6 +3,9 @@
  * service : « En retard de N j », « Aujourd'hui », « Demain », « Dans N j » ou
  * date courte. Le `tone` pilote la couleur (retard → err, proche → warn).
  */
+import i18n from '../i18n/config';
+import { formatDayMonthShort } from './localeDate';
+
 export type DueTone = 'overdue' | 'soon' | 'normal';
 
 type Translate = (key: string, options?: { count?: number }) => string;
@@ -23,7 +26,8 @@ export function getDueMeta(
   if (days === 0) return { label: t('interventions.due.today'), tone: 'soon' };
   if (days === 1) return { label: t('interventions.due.tomorrow'), tone: 'soon' };
   if (days <= 7) return { label: t('interventions.due.inDays', { count: days }), tone: 'normal' };
-  return { label: target.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), tone: 'normal' };
+  // Au-dela d'une semaine, la date brute — dans le calendrier de la langue.
+  return { label: formatDayMonthShort(target, i18n.language), tone: 'normal' };
 }
 
 /**

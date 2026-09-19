@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { Lock as LockIcon, LockOpen as LockOpenIcon } from '../../icons';
 import { PlanningTooltipContent } from './PlanningTooltip';
@@ -40,6 +41,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
   endDate,
   onUnblock,
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -77,11 +79,11 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
       await onUnblock(startDate, endDate);
       setOpen(false);
     } catch {
-      setErreur('Le déblocage a échoué. Réessayez.');
+      setErreur(t('planning.blocked.unblockFailed', 'Le déblocage a échoué. Réessayez.'));
     } finally {
       setPending(false);
     }
-  }, [onUnblock, startDate, endDate]);
+  }, [onUnblock, startDate, endDate, t]);
 
   // Largeur minimale pour afficher l'icône / le label sans tronquer.
   const showIcon = width >= 22;
@@ -98,7 +100,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
           data-blocked-range
           role="button"
           tabIndex={0}
-          aria-label="Période bloquée — voir le détail"
+          aria-label={t('planning.blocked.tooltip', 'Période bloquée — voir le détail')}
           onClick={toggle}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -115,7 +117,8 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
             'transition-[background-color] duration-150 ease-out'
           }
           style={{
-            left,
+            // Logique et non physique : la frise se lit a l'envers en arabe.
+            insetInlineStart: left,
             width,
             height,
             // Gradient statique laisse en style inline (les dimensions y passent
@@ -127,7 +130,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
           {showIcon && <LockIcon size={12} strokeWidth={1.75} />}
           {showLabel && (
             <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">
-              Bloqué
+              {t('planning.blocked.label', 'Bloqué')}
             </p>
           )}
         </div>
@@ -135,11 +138,11 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
       <PlanningTooltipContent side="top" className="max-w-[240px]" onEscapeKeyDown={close}>
         <div className="py-0.5">
           <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">
-            Période bloquée
+            {t('planning.blocked.title', 'Période bloquée')}
           </p>
           <p className="cn-text-body1 text-[0.6875rem] leading-[1.35]">
-            Ces dates sont indisponibles à la réservation.
-            {isExternal && ' Synchronisée depuis un calendrier externe (OTA).'}
+            {t('planning.blocked.desc', 'Ces dates sont indisponibles à la réservation.')}
+            {isExternal && t('planning.blocked.descExternal', ' Synchronisée depuis un calendrier externe (OTA).')}
           </p>
           {notes && (
             <p className="cn-text-body1 text-[0.6875rem] mt-0.5 opacity-85 italic">
@@ -162,12 +165,13 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
                 }
               >
                 <LockOpenIcon size={12} strokeWidth={1.75} />
-                {pending ? 'Déblocage…' : 'Débloquer la période'}
+                {pending
+                  ? t('planning.blocked.unblocking', 'Déblocage…')
+                  : t('planning.blocked.unblock', 'Débloquer la période')}
               </button>
               {isExternal && (
                 <p className="cn-text-body1 text-[0.6875rem] mt-1 leading-[1.35] opacity-85">
-                  Le blocage revient à la prochaine synchronisation s'il n'est pas
-                  aussi levé chez le canal.
+                  {t('planning.blocked.externalWarning', "Le blocage revient à la prochaine synchronisation s'il n'est pas aussi levé chez le canal.")}
                 </p>
               )}
               {erreur && (

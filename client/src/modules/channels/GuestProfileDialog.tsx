@@ -26,6 +26,7 @@ import { Money } from '../../components/Money';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { GuestProfile } from '../../services/api/airbnbApi';
 import { RESERVATION_STATUS_COLORS } from '../../services/api/reservationsApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -144,7 +145,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                 />
               )}
               {guest.lastStayDate && (
-                <StatBox label={t('channels.guest.lastStay')} value={new Date(guest.lastStayDate).toLocaleDateString('fr-FR')} />
+                <StatBox label={t('channels.guest.lastStay')} value={new Date(guest.lastStayDate).toLocaleDateString(activeIntlLocale())} />
               )}
             </div>
 
@@ -220,7 +221,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                         <div>
                           <p className="text-xs font-semibold">{r.propertyName}</p>
                           <p className="text-2xs text-muted-foreground tabular-nums">
-                            {new Date(r.checkIn).toLocaleDateString('fr-FR')} → {new Date(r.checkOut).toLocaleDateString('fr-FR')}
+                            {new Date(r.checkIn).toLocaleDateString(activeIntlLocale())} → {new Date(r.checkOut).toLocaleDateString(activeIntlLocale())}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">

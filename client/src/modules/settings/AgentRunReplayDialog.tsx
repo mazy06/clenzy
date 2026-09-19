@@ -16,7 +16,7 @@ import {
 import { cn } from '../../utils/cn';
 import { Field, FieldLabel, Input } from '../../components/ui';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../hooks/useTranslation';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
 
 /**

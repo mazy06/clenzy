@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -83,10 +84,17 @@ interface RawFinancialStats {
 
 // ─── Helpers (présentation uniquement) ──────────────────────────────────────
 
-/** 'yyyy-MM' → libellé localisé court (ex. 'juil. 26'). */
+/**
+ * 'yyyy-MM' → libellé localisé court (ex. « juil. 26 »).
+ *
+ * <p>Grégorien même en arabe : le rapport est agrégé par mois CIVIL côté
+ * serveur, un libellé hégirien y annoncerait un découpage que la série ne
+ * suit pas.</p>
+ */
 function monthLabel(isoMonth: string): string {
   const [year, month] = isoMonth.split('-').map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+  return new Date(year, month - 1, 1)
+    .toLocaleDateString(activeIntlLocaleGregorian(), { month: 'short', year: '2-digit' });
 }
 
 /** Catégorie d'affichage d'un type brut d'intervention. */

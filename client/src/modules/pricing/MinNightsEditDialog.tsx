@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Spinner, Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui';
 import { NightsStay } from '../../icons';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,13 +32,14 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
   selectedDates,
   loading,
 }) => {
+  const { t } = useTranslation();
   const [minNights, setMinNights] = useState<string>('');
   const [error, setError] = useState<string>('');
 
   const handleApply = async () => {
     const n = parseInt(minNights, 10);
     if (Number.isNaN(n) || n < 1 || n > 365) {
-      setError('Valeur entre 1 et 365');
+      setError(t('pricing.minNightsRange'));
       return;
     }
     setError('');
@@ -59,7 +61,7 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5 pe-8">
             <NightsStay size={18} strokeWidth={1.75} />
-            Définir le minimum de nuits
+            {t('minNights.title')}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
@@ -73,7 +75,7 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
           </p>
 
           <Field>
-            <FieldLabel htmlFor="min-nights">Minimum de nuits</FieldLabel>
+            <FieldLabel htmlFor="min-nights">{t('minNights.label')}</FieldLabel>
             <Input
               id="min-nights"
               type="number"
@@ -88,14 +90,12 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
             {error ? (
               <FieldError>{error}</FieldError>
             ) : (
-              <FieldDescription>Surcharge le défaut de la propriété pour ces dates</FieldDescription>
+              <FieldDescription>{t('minNights.overrideHint')}</FieldDescription>
             )}
           </Field>
 
           <span className="text-xs text-muted-foreground">
-            Les réservations dont la date d'arrivée tombe sur l'une de ces dates devront
-            respecter ce minimum. Le défaut de la propriété est remplacé uniquement sur
-            les dates sélectionnées.
+            {t('minNights.explain')}
           </span>
         </div>
         <DialogFooter>

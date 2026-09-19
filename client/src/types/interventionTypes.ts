@@ -52,6 +52,7 @@ export enum InterventionType {
 export interface InterventionTypeOption {
   value: InterventionType;
   label: string;
+  labelKey: string;
   category: 'cleaning' | 'maintenance' | 'specialized' | 'other';
   color: string;
   icon: ComponentType<{ size?: number | string; strokeWidth?: number | string; color?: string }>;
@@ -62,29 +63,29 @@ export interface InterventionTypeOption {
  */
 export const INTERVENTION_TYPE_OPTIONS: InterventionTypeOption[] = [
   // Nettoyage
-  { value: InterventionType.CLEANING, label: 'Nettoyage', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
-  { value: InterventionType.EXPRESS_CLEANING, label: 'Nettoyage Express', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
-  { value: InterventionType.DEEP_CLEANING, label: 'Nettoyage en Profondeur', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
-  { value: InterventionType.WINDOW_CLEANING, label: 'Nettoyage des Vitres', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
-  { value: InterventionType.FLOOR_CLEANING, label: 'Nettoyage des Sols', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
-  { value: InterventionType.KITCHEN_CLEANING, label: 'Nettoyage de la Cuisine', category: 'cleaning', color: 'success.main', icon: Kitchen },
-  { value: InterventionType.BATHROOM_CLEANING, label: 'Nettoyage des Sanitaires', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.CLEANING, label: 'Nettoyage', labelKey: 'statusOptions.interventionType.CLEANING', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.EXPRESS_CLEANING, label: 'Nettoyage Express', labelKey: 'statusOptions.interventionType.EXPRESS_CLEANING', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.DEEP_CLEANING, label: 'Nettoyage en Profondeur', labelKey: 'statusOptions.interventionType.DEEP_CLEANING', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.WINDOW_CLEANING, label: 'Nettoyage des Vitres', labelKey: 'statusOptions.interventionType.WINDOW_CLEANING', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.FLOOR_CLEANING, label: 'Nettoyage des Sols', labelKey: 'statusOptions.interventionType.FLOOR_CLEANING', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.KITCHEN_CLEANING, label: 'Nettoyage de la Cuisine', labelKey: 'statusOptions.interventionType.KITCHEN_CLEANING', category: 'cleaning', color: 'success.main', icon: Kitchen },
+  { value: InterventionType.BATHROOM_CLEANING, label: 'Nettoyage des Sanitaires', labelKey: 'statusOptions.interventionType.BATHROOM_CLEANING', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
   
   // Maintenance et réparation
-  { value: InterventionType.PREVENTIVE_MAINTENANCE, label: 'Maintenance Préventive', category: 'maintenance', color: 'warning.main', icon: Build },
-  { value: InterventionType.EMERGENCY_REPAIR, label: 'Réparation d\'Urgence', category: 'maintenance', color: 'warning.main', icon: Build },
-  { value: InterventionType.ELECTRICAL_REPAIR, label: 'Réparation Électrique', category: 'maintenance', color: 'warning.main', icon: ElectricalServices },
-  { value: InterventionType.PLUMBING_REPAIR, label: 'Réparation Plomberie', category: 'maintenance', color: 'warning.main', icon: Plumbing },
-  { value: InterventionType.HVAC_REPAIR, label: 'Réparation Climatisation', category: 'maintenance', color: 'warning.main', icon: AcUnit },
-  { value: InterventionType.APPLIANCE_REPAIR, label: 'Réparation Électroménager', category: 'maintenance', color: 'warning.main', icon: Build },
+  { value: InterventionType.PREVENTIVE_MAINTENANCE, label: 'Maintenance Préventive', labelKey: 'statusOptions.interventionType.PREVENTIVE_MAINTENANCE', category: 'maintenance', color: 'warning.main', icon: Build },
+  { value: InterventionType.EMERGENCY_REPAIR, label: 'Réparation d\'Urgence', labelKey: 'statusOptions.interventionType.EMERGENCY_REPAIR', category: 'maintenance', color: 'warning.main', icon: Build },
+  { value: InterventionType.ELECTRICAL_REPAIR, label: 'Réparation Électrique', labelKey: 'statusOptions.interventionType.ELECTRICAL_REPAIR', category: 'maintenance', color: 'warning.main', icon: ElectricalServices },
+  { value: InterventionType.PLUMBING_REPAIR, label: 'Réparation Plomberie', labelKey: 'statusOptions.interventionType.PLUMBING_REPAIR', category: 'maintenance', color: 'warning.main', icon: Plumbing },
+  { value: InterventionType.HVAC_REPAIR, label: 'Réparation Climatisation', labelKey: 'statusOptions.interventionType.HVAC_REPAIR', category: 'maintenance', color: 'warning.main', icon: AcUnit },
+  { value: InterventionType.APPLIANCE_REPAIR, label: 'Réparation Électroménager', labelKey: 'statusOptions.interventionType.APPLIANCE_REPAIR', category: 'maintenance', color: 'warning.main', icon: Build },
   
   // Services spécialisés
-  { value: InterventionType.GARDENING, label: 'Jardinage', category: 'specialized', color: 'purple', icon: Yard },
-  { value: InterventionType.EXTERIOR_CLEANING, label: 'Nettoyage Extérieur', category: 'specialized', color: 'purple', icon: AutoAwesome },
-  { value: InterventionType.PEST_CONTROL, label: 'Désinsectisation', category: 'specialized', color: 'purple', icon: BugReport },
-  { value: InterventionType.DISINFECTION, label: 'Désinfection', category: 'specialized', color: 'purple', icon: Sanitizer },
-  { value: InterventionType.RESTORATION, label: 'Remise en État', category: 'specialized', color: 'purple', icon: Restore },
+  { value: InterventionType.GARDENING, label: 'Jardinage', labelKey: 'statusOptions.interventionType.GARDENING', category: 'specialized', color: 'purple', icon: Yard },
+  { value: InterventionType.EXTERIOR_CLEANING, label: 'Nettoyage Extérieur', labelKey: 'statusOptions.interventionType.EXTERIOR_CLEANING', category: 'specialized', color: 'purple', icon: AutoAwesome },
+  { value: InterventionType.PEST_CONTROL, label: 'Désinsectisation', labelKey: 'statusOptions.interventionType.PEST_CONTROL', category: 'specialized', color: 'purple', icon: BugReport },
+  { value: InterventionType.DISINFECTION, label: 'Désinfection', labelKey: 'statusOptions.interventionType.DISINFECTION', category: 'specialized', color: 'purple', icon: Sanitizer },
+  { value: InterventionType.RESTORATION, label: 'Remise en État', labelKey: 'statusOptions.interventionType.RESTORATION', category: 'specialized', color: 'purple', icon: Restore },
   
   // Autre
-  { value: InterventionType.OTHER, label: 'Autre', category: 'other', color: 'error.main', icon: MoreHoriz }
+  { value: InterventionType.OTHER, label: 'Autre', labelKey: 'statusOptions.interventionType.OTHER', category: 'other', color: 'error.main', icon: MoreHoriz }
 ];

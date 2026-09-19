@@ -9,6 +9,7 @@
    ============================================================ */
 import React from 'react';
 import { SurfaceCard, Overline, formatMoney } from './shared';
+import { activeIntlLocale } from '../../../../utils/activeLocale';
 
 interface PerNight {
   date: string;
@@ -30,7 +31,7 @@ function formatRange(from?: string, to?: string): string {
   const f = new Date(from);
   const t = new Date(to);
   if (Number.isNaN(f.getTime()) || Number.isNaN(t.getTime())) return `${from} → ${to}`;
-  return `${f.toLocaleDateString('fr-FR', opts)} → ${t.toLocaleDateString('fr-FR', opts)}`;
+  return `${f.toLocaleDateString(activeIntlLocale(), opts)} → ${t.toLocaleDateString(activeIntlLocale(), opts)}`;
 }
 
 export const QuoteResult: React.FC<{ data: QuoteData }> = ({ data }) => {
@@ -59,7 +60,7 @@ export const QuoteResult: React.FC<{ data: QuoteData }> = ({ data }) => {
           {perNight.map((night) => (
             <div className="flex items-baseline justify-between py-0.5" key={night.date}>
               <p className="text-xs tabular-nums text-muted-foreground">
-                {new Date(night.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })}
+                {new Date(night.date).toLocaleDateString(activeIntlLocale(), { weekday: 'short', day: '2-digit', month: 'short' })}
               </p>
               <p className="text-xs font-medium tabular-nums text-foreground">
                 {formatMoney(night.price, data.currency)}

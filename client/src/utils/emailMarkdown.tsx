@@ -161,3 +161,27 @@ function renderMarkdownInternal(text: string, escape: boolean): string {
     })
     .join('\n');
 }
+
+// ─── Police des apercus en iframe ────────────────────────────────────────────
+
+/** Pile systeme d'origine — ce que le destinataire voit dans son client mail. */
+const EMAIL_PREVIEW_SYSTEM_STACK =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
+
+/**
+ * Pile de polices d'un apercu d'email rendu en iframe `srcDoc`.
+ *
+ * <p>L'iframe est un document isole : ni la feuille Baitly UI ni la bascule
+ * `html[lang='ar']` ne l'atteignent. Sans ce correctif, l'arabe d'un apercu
+ * s'affichait dans la police systeme alors que le reste de l'ecran est en
+ * Tajawal — deux dessins d'arabe sur la meme page.</p>
+ *
+ * <p>La bascule porte sur la LANGUE ACTIVE, pas sur le contenu : c'est le choix
+ * que fait deja l'application, dont `--font-sans` passe aussi le latin en
+ * Tajawal quand l'interface est en arabe.</p>
+ */
+export function emailPreviewFontStack(language: string): string {
+  return language === 'ar' || language.startsWith('ar-')
+    ? `'Tajawal','Tahoma','Geeza Pro',${EMAIL_PREVIEW_SYSTEM_STACK}`
+    : EMAIL_PREVIEW_SYSTEM_STACK;
+}

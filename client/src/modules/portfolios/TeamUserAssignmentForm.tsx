@@ -450,7 +450,7 @@ const TeamUserAssignmentForm: React.FC = () => {
           ) : (
             <Button size="sm" onClick={handleNext} disabled={!canGoNext}>
               {t('portfolios.forms.next')}
-              <ArrowForward size={16} strokeWidth={1.75} />
+              <ArrowForward className="cn-rtl-flip" size={16} strokeWidth={1.75} />
             </Button>
           )}
         </div>

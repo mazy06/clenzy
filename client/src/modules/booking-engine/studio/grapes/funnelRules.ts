@@ -1,4 +1,5 @@
 import { widgetLabel } from './funnelPresets';
+import i18n from '../../../../i18n/config';
 
 /**
  * Règles de COMPOSITION d'un parcours : « on ne compose pas tout avec tout ». Modèle par CAPACITÉS —
@@ -40,11 +41,11 @@ const SUGGESTS: Record<string, WidgetCapability[]> = {
 };
 
 /** Libellé lisible d'une capacité (pour le message). */
-const CAPABILITY_HINT: Record<WidgetCapability, string> = {
-  dates: 'un sélecteur de Dates',
-  'cart-item': 'un bouton « Ajouter au panier » en amont',
-  checkout: 'un moyen de finaliser (Bouton de paiement, Panier ou Coordonnées voyageur)',
-  results: 'un affichage des résultats (« Logements disponibles »), ici ou sur une page reliée',
+const CAPABILITY_HINT_KEY: Record<WidgetCapability, string> = {
+  dates: 'studio.funnel.needs.dates',
+  'cart-item': 'studio.funnel.needs.cartItem',
+  checkout: 'studio.funnel.needs.checkout',
+  results: 'studio.funnel.needs.results',
 };
 
 export interface CompositionWarning {
@@ -71,8 +72,11 @@ export function validateComposition(widgetIds: string[]): CompositionWarning[] {
         const key = `${severity}:${id}:${cap}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        const verb = severity === 'warning' ? 'nécessite' : ': pensez à';
-        out.push({ widgetId: id, capability: cap, severity, message: `« ${widgetLabel(id)} » ${verb} ${CAPABILITY_HINT[cap]}.` });
+        const message = i18n.t(
+          severity === 'warning' ? 'studio.funnel.requires' : 'studio.funnel.suggests',
+          { widget: widgetLabel(id), need: i18n.t(CAPABILITY_HINT_KEY[cap]) },
+        );
+        out.push({ widgetId: id, capability: cap, severity, message });
       }
     }
   };

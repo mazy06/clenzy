@@ -17,6 +17,7 @@ import {
 import { TriangleAlert } from 'lucide-react';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Dialog de configuration de l'<b>app Netatmo</b> (credentials OAuth plateforme) : Client ID +
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export default function NetatmoProjectConfigDialog({ open, onClose, current, onSaved }: Props) {
+  const { t } = useTranslation();
   const alreadyConfigured = current?.configured ?? false;
 
   const [clientId, setClientId] = useState(current?.clientId ?? '');
@@ -55,15 +57,15 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
   const handleSave = async () => {
     setError(null);
     if (!clientId.trim()) {
-      setError('Le Client ID est obligatoire.');
+      setError(t('iot.clientIdRequired'));
       return;
     }
     if (!redirectUri.trim()) {
-      setError("La Redirect URI est obligatoire.");
+      setError(t('iot.redirectUriRequired'));
       return;
     }
     if (!alreadyConfigured && !clientSecret.trim()) {
-      setError('Le Client Secret est obligatoire à la première configuration.');
+      setError(t('iot.clientSecretRequiredFirst'));
       return;
     }
     setSaving(true);
@@ -94,7 +96,8 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
           {/* Le texte d'explication devient la description du dialog : il en
               porte deja le role, et Radix l'associe alors via aria-describedby. */}
           <DialogDescription className="text-xs">
-            Renseignez le <strong>Client ID</strong> et le <strong>Client Secret</strong> de l'app créée sur{' '}
+            {t('settings.netatmo.introHead')} <strong>{t('settings.netatmo.clientId')}</strong> {t('settings.netatmo.and')} <strong>{t('settings.netatmo.clientSecret')}</strong>{' '}
+            {t('settings.netatmo.introTail')}{' '}
             <a
               href="https://dev.netatmo.com/apps/"
               target="_blank"
@@ -103,8 +106,8 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
             >
               dev.netatmo.com
             </a>
-            . La <strong>Redirect URI</strong> doit être <u>identique</u> à celle déclarée dans l'app Netatmo.
-            Les identifiants sont stockés chiffrés en base.
+            . {t('settings.netatmo.theArticle')} <strong>{t('settings.netatmo.redirectUri')}</strong> {t('settings.netatmo.mustBe')} <u>{t('settings.netatmo.identical')}</u>{' '}
+            {t('settings.netatmo.identicalTail')}
           </DialogDescription>
         </DialogHeader>
 
@@ -135,10 +138,10 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
               type="password"
               autoComplete="new-password"
               disabled={saving}
-              placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
+              placeholder={alreadyConfigured ? t('common.unchangedIfEmpty') : undefined}
             />
             {alreadyConfigured && (
-              <FieldDescription>Laissez vide pour conserver le secret déjà enregistré.</FieldDescription>
+              <FieldDescription>{t('settings.netatmo.keepSecret')}</FieldDescription>
             )}
           </Field>
           <Field>
@@ -152,7 +155,7 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
               disabled={saving}
             />
             <FieldDescription>
-              Doit correspondre exactement à l'URI de redirection déclarée dans l'app Netatmo.
+              {t('settings.netatmo.redirectUriHint')}
             </FieldDescription>
           </Field>
         </div>

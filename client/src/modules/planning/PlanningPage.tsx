@@ -55,7 +55,8 @@ import {
   PLANNING_CHANNEL_KEYS,
   PLANNING_STATUS_KEYS,
 } from './constants';
-import { formatMonthYear } from './utils/dateUtils';
+import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -79,6 +80,9 @@ import {
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  // Libellés de dates de la langue active — en arabe, calendrier hégirien.
+  const fmt = useDateFormat();
 
   // Import : choix du mécanisme (iCal ponctuel vs Channel Manager Channex),
   // puis modale du flux retenu.
@@ -503,7 +507,7 @@ const PlanningPage: React.FC = () => {
       onSelect: nav.toggleFullscreen,
     },
     {
-      label: 'Importer / connecter des canaux',
+      label: t('planning.importChannels'),
       icon: <CloudDownload size={15} strokeWidth={1.75} />,
       onSelect: () => setImportChooserOpen(true),
     },
@@ -812,8 +816,13 @@ const PlanningPage: React.FC = () => {
   }, [selectedEvent?.id, selectedEvent?.startDate, selection.panelOpen, timeline]);
 
   // Sous-titre du header : mois visible (synchronisé au scroll), capitalisé.
-  const visibleMonthLabel = formatMonthYear(visibleMonthDate);
-  const headerSubtitle = `Réservations & interventions · ${visibleMonthLabel.charAt(0).toUpperCase()}${visibleMonthLabel.slice(1)}`;
+  // En arabe, `formatMonthYear` rend le mois HÉGIRIEN et la capitalisation est
+  // un non-événement (l'alphabet arabe n'a pas de casse) : `charAt(0)` y est
+  // inoffensif, il rend le caractère tel quel.
+  const visibleMonthLabel = fmt.formatMonthYear(visibleMonthDate);
+  const headerSubtitle = t('planning.subtitle', {
+    month: `${visibleMonthLabel.charAt(0).toUpperCase()}${visibleMonthLabel.slice(1)}`,
+  });
 
   return (
     // Marges negatives : compensent le padding du MainLayoutFull <main> pour
@@ -846,19 +855,19 @@ const PlanningPage: React.FC = () => {
               <HeaderSearchField
                 value={agentAsk}
                 onChange={setAgentAsk}
-                placeholder="Demandez quelque chose aux agents…"
+                placeholder={t('planning.askAgentsPlaceholder', 'Demandez quelque chose aux agents…')}
                 onSubmit={sendAgentAsk}
               />
             ) : (
               <HeaderSearchField
                 value={filters.searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Rechercher une réservation, un voyageur…"
+                placeholder={t('planning.searchPlaceholder', 'Rechercher une réservation, un voyageur…')}
               />
             )
           )}
           <PageHeader
-            title="Planning"
+            title={t('planning.title', 'Planning')}
             subtitle={headerSubtitle}
             showBackButton={false}
             /* Constellation déployée : la navigation de dates + zoom REMONTE
@@ -921,7 +930,7 @@ const PlanningPage: React.FC = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="Actions du planning"
+                              aria-label={t('planning.grid.actions', 'Actions du planning')}
                               className="relative"
                             >
                               <MoreVert size={18} strokeWidth={1.85} />
@@ -1045,11 +1054,11 @@ const PlanningPage: React.FC = () => {
         <div className="flex justify-center items-center flex-1 px-3">
           <EmptyState
             icon={<CalendarMonth />}
-            title="Aucun logement ne correspond au filtre"
-            description="Le filtre par logement masque tout le portefeuille du planning."
+            title={t('planning.empty.filteredTitle', 'Aucun logement ne correspond au filtre')}
+            description={t('planning.empty.filteredDesc', 'Le filtre par logement masque tout le portefeuille du planning.')}
             action={
               <Button variant="outline" size="sm" onClick={handleClearFilters}>
-                Réinitialiser les filtres
+                {t('planning.empty.clearFilters', 'Réinitialiser les filtres')}
               </Button>
             }
             variant="transparent"

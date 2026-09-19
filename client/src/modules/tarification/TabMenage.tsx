@@ -32,6 +32,8 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property, CleaningPreviewResponse, CleaningEstimateDetail } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 
 // ─── Onglet « Ménage » — grille du Moteur Ménage (CleaningPricingEngine) ─────
 // Édite la config JSON `cleaningEngineConfig` de PricingConfig : minutes normées
@@ -148,11 +150,15 @@ interface TabMenageProps {
   config: PricingConfig;
   canEdit: boolean;
   onUpdate: (partial: Partial<PricingConfig>) => void;
-  currencySymbol: string;
 }
 
-export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }: TabMenageProps) {
+export default function TabMenage({ config, canEdit, onUpdate }: TabMenageProps) {
   const { t } = useTranslation();
+  // Le SIGNE de la devise, pas son code : `<CurrencySymbol>` rend une icône
+  // pour le riyal et le dirham, faute de glyphe dans les polices. L'ancienne
+  // prop `currencySymbol` livrait la chaîne « SAR » / « MAD ».
+  const { currency } = useCurrency();
+  const sign = <CurrencySymbol code={currency} size={12} />;
   const [expandedSection, setExpandedSection] = useState<string | false>('workTime');
 
   const draft = useMemo(() => parseDraft(config.cleaningEngineConfig), [config.cleaningEngineConfig]);
@@ -270,7 +276,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     value: number | undefined,
     placeholder: number,
     onChange: (v: string) => void,
-    adornment?: string,
+    adornment?: React.ReactNode,
     step = 1,
   ) => (
     <Field>
@@ -388,16 +394,16 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
         <AccordionContent>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField('menage-hourly-rate', t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
+              {numberField('menage-hourly-rate', t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), <>{sign}/h</>, 0.5)}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField('menage-range-percent', t('tarification.cleaning.rangePercent'), draft.rangePercent, ENGINE_DEFAULTS.rangePercent, (v) => setRoot('rangePercent', v), '%')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField('menage-round-to', t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), currencySymbol)}
+              {numberField('menage-round-to', t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), sign)}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField('menage-min-price', t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
+              {numberField('menage-min-price', t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), sign)}
             </div>
           </div>
         </AccordionContent>
@@ -636,10 +642,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           {estimateQuery.data && (
             <div className="flex items-baseline gap-2 mb-2 flex-wrap">
               <p className="font-[family-name:var(--font-display)] text-[22px] font-semibold text-primary tabular-nums">
-                {estimateQuery.data.estimate} {currencySymbol}
+                {estimateQuery.data.estimate} {sign}
               </p>
               <p className="text-xs text-muted-foreground tabular-nums">
-                {estimateQuery.data.min}–{estimateQuery.data.max} {currencySymbol} · {estimateQuery.data.durationMinutes} min
+                {estimateQuery.data.min}–{estimateQuery.data.max} {sign} · {estimateQuery.data.durationMinutes} min
               </p>
               <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {estimateQuery.data.source === 'PROPERTY_OVERRIDE'
@@ -665,10 +671,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                           {t(`properties.priceEstimation.cleaningTypes.${type}`)}
                         </p>
                         <p className="font-[family-name:var(--font-display)] text-[18px] font-semibold text-foreground tabular-nums">
-                          {q.recommended} {currencySymbol}
+                          {q.recommended} {sign}
                         </p>
                         <p className="text-xs text-muted-foreground tabular-nums">
-                          {q.min}–{q.max} {currencySymbol} · {q.durationMinutes} min
+                          {q.min}–{q.max} {sign} · {q.durationMinutes} min
                         </p>
                       </CardContent>
                     </Card>

@@ -14,6 +14,8 @@ import {
   Percent as OccupancyIcon,
   Bed as NightIcon,
 } from '../../../icons';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface TopPerformer {
   id: number;
@@ -102,6 +104,7 @@ interface PortfolioOverviewWidgetProps {
  * sombre. L'etat d'occupation passe a l'icone — cf. {@link occupancyTone}.</p>
  */
 export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = ({ data }) => {
+  const { t } = useTranslation();
   const total = data.totalProperties ?? 0;
   const active = data.activeProperties ?? 0;
   const revenue = data.totalRevenue ?? 0;
@@ -117,7 +120,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
       <div className="mt-1.5 mb-2">
         <div className="p-4 rounded-xl bg-warning-soft text-center">
           <p className="text-xs font-semibold text-warning-ink">
-            Aucune propriete dans le portefeuille — ajoute-en une pour commencer.
+            {t('assistant.widgets.noProperty')}
           </p>
         </div>
       </div>
@@ -248,7 +251,7 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
 
   return (
     <div className="px-2 py-1.5 rounded-lg bg-success-soft">
-      <p className="text-[13.5px] font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+      <p dir="auto" className="text-[13.5px] font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
         {performer.name}
       </p>
       {performer.city && (
@@ -336,14 +339,15 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
-
+// Un `Intl.NumberFormat` de module se fige sur la langue du chargement : il
+// resterait en français après un passage en arabe. On le construit donc à
+// l'appel — `Intl` met déjà ses formateurs en cache en interne.
 function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
+  return new Intl.NumberFormat(activeIntlLocale(), {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function severityColors(severity: string): [string, string] {

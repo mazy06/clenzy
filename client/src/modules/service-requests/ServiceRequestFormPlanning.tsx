@@ -32,6 +32,7 @@ import {
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ServiceRequestFormValues } from '../../schemas';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           {displayLabel}
                         </p>
                         <p className="text-[10.5px] font-medium text-muted-foreground">
-                          durée estimée
+                          {t('serviceRequests.planning.estimatedDuration')}
                         </p>
                       </div>
                       {canEdit ? (
@@ -263,7 +264,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           <TooltipTrigger asChild>
                             <span className="inline-flex text-faint ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
                           </TooltipTrigger>
-                          <TooltipContent>Calculée automatiquement, modifiable par un manager</TooltipContent>
+                          <TooltipContent>{t('serviceRequests.planning.autoDurationTooltip')}</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
@@ -277,10 +278,10 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       className="p-3 min-w-[220px]"
                     >
                       <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                        Modifier la durée
+                        {t('serviceRequests.planning.editDuration')}
                       </p>
                       <Field>
-                        <FieldLabel htmlFor="service-request-duration-minutes">Durée (en minutes)</FieldLabel>
+                        <FieldLabel htmlFor="service-request-duration-minutes">{t('serviceRequests.planning.durationMinutes')}</FieldLabel>
                         <InputGroup>
                           <InputGroupInput
                             id="service-request-duration-minutes"
@@ -308,7 +309,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         <FieldDescription className="text-[10.5px] font-medium text-primary">
                           {durationInputValue && !isNaN(parseInt(durationInputValue, 10)) && parseInt(durationInputValue, 10) > 0
                             ? `= ${formatDurationMins(parseInt(durationInputValue, 10))}`
-                            : 'Saisissez la durée en minutes'}
+                            : t('serviceRequests.durationInMinutes')}
                         </FieldDescription>
                       </Field>
                     </PopoverContent>
@@ -321,7 +322,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     )}
                     {!isAdminOrManager && (
                       <p className="text-2xs text-faint italic mt-0.5">
-                        Calculée automatiquement depuis les caractéristiques du logement
+                        {t('serviceRequests.planning.autoFromProperty')}
                       </p>
                     )}
                   </div>
@@ -398,7 +399,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                   </p>
                                 </div>
                                 {isSelected && (
-                                  <StatusChip size="sm" tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-card)' }} label="Sélectionné" className="text-[10px]" />
+                                  <StatusChip size="sm" tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-card)' }} label={t('serviceRequests.planning.selected')} className="text-[10px]" />
                                 )}
                               </div>
                             );
@@ -407,11 +408,11 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       ) : (
                         <div className="py-[9px] px-[9px] rounded-[11px] bg-field border border-dashed border-border text-center">
                           <p className="text-[11.5px] text-faint">
-                            Aucun checkout à venir pour cette propriété
+                            {t('serviceRequests.planning.noUpcomingCheckout')}
                           </p>
                           <StatusChip
                             tokens={BRAND_TOKENS}
-                            label="Saisir une date manuellement"
+                            label={t('serviceRequests.planning.manualDate')}
                             onClick={handleSwitchToCustom}
                             className="mt-1 text-[10.5px]"
                           />
@@ -435,7 +436,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       {fieldState.error ? (
                         <FieldError>{fieldState.error.message}</FieldError>
                       ) : (
-                        <FieldDescription>Idéal pour les demandes de maintenance pendant un séjour</FieldDescription>
+                        <FieldDescription>{t('serviceRequests.planning.duringStayHint')}</FieldDescription>
                       )}
                     </Field>
                   )}
@@ -458,14 +459,14 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
 
 function formatCheckoutLabel(checkOut: string, checkOutTime: string | undefined, guestName: string): string {
   const date = new Date(checkOut);
-  const formatted = date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  const formatted = date.toLocaleDateString(activeIntlLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
   const time = checkOutTime || '11:00';
   return `${formatted} à ${time} — ${guestName}`;
 }
 
 function formatCheckoutDateDisplay(checkOut: string, checkOutTime: string | undefined): string {
   const date = new Date(checkOut);
-  const formatted = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const formatted = date.toLocaleDateString(activeIntlLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const time = checkOutTime || '11:00';
   return `${formatted} à ${time}`;
 }

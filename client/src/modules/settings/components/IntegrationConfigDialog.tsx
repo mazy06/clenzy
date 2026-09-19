@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogTitle } from '../../../components/ui';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Modal generique pour configurer une integration (signature, pricing,
@@ -48,6 +49,7 @@ export default function IntegrationConfigDialog({
   children,
   maxWidth = 'sm',
 }: IntegrationConfigDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       {/* La card interne (ApiKeyProviderCard, etc.) porte deja sa bordure et son
@@ -64,7 +66,7 @@ export default function IntegrationConfigDialog({
       >
         {/* Titre porteur du nom accessible du dialogue : le contenu est libre,
             aucun des enfants ne garantit un intitulé. */}
-        <DialogTitle className="sr-only">Configuration de l'intégration</DialogTitle>
+        <DialogTitle className="sr-only">{t('settings.integrations.configDialogTitle')}</DialogTitle>
         {children}
       </DialogContent>
     </Dialog>

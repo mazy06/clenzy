@@ -5,6 +5,7 @@ import {
   type ChannelManagerProvider,
 } from '../../../services/api/channelManagerConnectionApi';
 import ApiKeyConnectionCard, { type ApiKeyConnectionApi } from './ApiKeyConnectionCard';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Wrapper Channel Manager autour du composant generique
@@ -16,6 +17,7 @@ interface Props {
 }
 
 const ChannelManagerProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
+  const { t } = useTranslation();
   const meta = CHANNEL_MANAGER_PROVIDER_META[provider];
   return (
     <ApiKeyConnectionCard
@@ -24,7 +26,7 @@ const ChannelManagerProviderCard: React.FC<Props> = ({ provider, onStatusChange 
       meta={meta}
       logoId={provider}
       onStatusChange={onStatusChange}
-      scaffoldingNote={`L'intégration ${meta.label} est en cours de scaffolding. La connexion enregistre vos credentials ; les appels de routage multi-OTAs (push availability, retrieval bookings) seront ajoutés prochainement.`}
+      scaffoldingNote={t('settings.integrations.scaffolding.channelManager', { provider: meta.label })}
     />
   );
 };

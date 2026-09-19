@@ -1,5 +1,6 @@
 import { WifiOffIcon } from 'lucide-react';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/OfflineBanner.tsx (MUI).
@@ -11,6 +12,7 @@ export interface OfflineBannerProps {
 }
 
 export default function OfflineBanner({ forceVisible = false }: OfflineBannerProps) {
+  const { t } = useTranslation();
   const { isOnline } = useOnlineStatus();
   if (isOnline && !forceVisible) return null;
 
@@ -24,7 +26,7 @@ export default function OfflineBanner({ forceVisible = false }: OfflineBannerPro
       }
     >
       <WifiOffIcon className="size-4" />
-      Connexion perdue — certaines actions sont indisponibles.
+      {t('common.connectionLost')}
     </div>
   );
 }

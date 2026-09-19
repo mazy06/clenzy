@@ -3,6 +3,7 @@ import { cn } from '../utils/cn';
 import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Paywall de rachat de crédits IA (T-07). Affiché quand une opération IA coûteuse est bloquée faute de
@@ -24,6 +25,7 @@ export interface AiCreditsPaywallProps {
 const euro = (cents: number) => (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'EUR' });
 
 export default function AiCreditsPaywall({ open, onClose, title, message, balanceMillicredits }: AiCreditsPaywallProps) {
+  const { t } = useTranslation();
   const [packs, setPacks] = useState<CreditPack[] | null>(null);
   // Le solde affiche est derive : prop connue > solde recharge en arriere-plan.
   const [fetchedBalance, setFetchedBalance] = useState<number | null>(null);
@@ -73,7 +75,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
               <Wallet size={18} strokeWidth={2} />
             </span>
             <DialogTitle className="flex-1 font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-foreground">
-              {title ?? 'Crédits IA insuffisants'}
+              {title ?? t('aiCredits.insufficientTitle')}
             </DialogTitle>
             <Button
               variant="ghost"
@@ -90,7 +92,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
 
         <div className="flex flex-col gap-3">
         <div className="text-sm text-muted-foreground leading-[1.55]">
-          {message ?? "Cette génération dépasse votre solde de crédits IA. Rechargez pour continuer — le surplus consommé est facturé au réel."}
+          {message ?? t('aiCredits.insufficientBody')}
         </div>
 
         {balance != null && (
@@ -102,7 +104,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         {packs === null ? (
           <div className="grid place-items-center py-[18px]"><Spinner className="size-[22px] text-primary" /></div>
         ) : packs.length === 0 ? (
-          <div className="text-sm text-muted-foreground">Aucun pack disponible pour le moment.</div>
+          <div className="text-sm text-muted-foreground">{t('aiCredits.noPack')}</div>
         ) : (
           // Le gabarit depend du nombre de packs (execution) : custom property,
           // la rupture sm (600px MUI) reste une variante statique.
@@ -116,7 +118,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
                 <button className={cn('relative text-start p-[9px] rounded-lg border-[1.5px] border-solid hover:border-primary', busy ? 'cursor-default' : 'cursor-pointer', active ? 'border-primary' : 'border-border', active ? 'bg-primary-soft' : 'bg-card')} style={{ transition: 'border-color 150ms ease, background 150ms ease' }} key={p.key} type="button" onClick={() => setSelected(p.key)} disabled={busy}>
                   {active && <div className="absolute top-[8px] end-[8px] grid place-items-center w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground"><Check size={12} strokeWidth={3} /></div>}
                   <div className="text-base font-bold text-foreground tabular-nums">{toCredits(p.millicredits)}</div>
-                  <div className="text-2xs text-muted-foreground mb-1.5">crédits IA</div>
+                  <div className="text-2xs text-muted-foreground mb-1.5">{t('aiCredits.label')}</div>
                   <div className={cn('text-sm font-bold tabular-nums', active ? 'text-primary' : 'text-foreground')}>{euro(p.priceCents)}</div>
                 </button>
               );
@@ -135,7 +137,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
           <Button variant="ghost" onClick={handleClose} disabled={busy} className="text-muted-foreground">Annuler</Button>
           <Button onClick={handleBuy} disabled={!selected || busy}>
             {busy ? <Spinner className="size-[15px]" /> : <Sparkles strokeWidth={2} />}
-            {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}
+            {busy ? t('aiCredits.openingPayment') : t('aiCredits.topUpAndContinue')}
             {!busy && <ArrowRight strokeWidth={2} />}
           </Button>
         </div>

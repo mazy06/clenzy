@@ -21,6 +21,7 @@ import {
 } from '../../config/navigationHubs';
 import { parseApiDate } from '../../utils/formatUtils';
 import type { Notification } from '../../services/api';
+import { intlLocale } from '../../utils/localeDate';
 
 /**
  * Reperes partages par la liste et la carte de detail des notifications :
@@ -60,9 +61,14 @@ export const TYPE_BADGE_VARIANT: Record<Notification['type'], 'info' | 'success'
   error: 'destructive',
 };
 
-/** Locale Intl deduite de la langue de l'interface. */
+/**
+ * Locale Intl déduite de la langue de l'interface.
+ *
+ * <p>Passe par `intlLocale` : en arabe, l'étiquette porte le calendrier
+ * hégirien et force les chiffres latins.</p>
+ */
 export function localeOf(lang: string): string {
-  return lang === 'ar' ? 'ar-SA' : lang === 'en' ? 'en-US' : 'fr-FR';
+  return intlLocale(lang);
 }
 
 export function timeAgo(

@@ -45,6 +45,7 @@ import {
 } from './hooks/useDocuments';
 import StatTile from '../../components/baitly/StatTile';
 import StatTileRow from '../../components/baitly/StatTileRow';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Teintes d'icone des tuiles KPI (classes Baitly UI) ─────────────────────
 const PRIMARY = 'text-primary';
@@ -89,7 +90,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+  return new Date(dateStr).toLocaleDateString(activeIntlLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
@@ -366,7 +367,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                     size="icon-sm"
                     onClick={handleManualRecheck}
                     disabled={autoCheckRunning}
-                    aria-label="Relancer la verification"
+                    aria-label={t('documents.compliance.recheck')}
                     className="text-primary hover:text-primary hover:bg-primary-soft"
                   >
                     {/* `animate-spin` de Tailwind = animation: spin 1s linear infinite, identique aux keyframes locales remplacees. */}
@@ -376,7 +377,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>Relancer la verification</TooltipContent>
+              <TooltipContent>{t('documents.compliance.recheck')}</TooltipContent>
             </Tooltip>
           </div>
 

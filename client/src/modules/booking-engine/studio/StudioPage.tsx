@@ -34,6 +34,7 @@ import { useStudioConfig } from './useStudioConfig';
 import { type StudioMode } from './studioMode';
 import { sitesApi } from '../../../services/api/sitesApi';
 import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bookingEngineApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Baitly Studio — page hôte : assemble StudioShell + les sections.
@@ -47,22 +48,23 @@ import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bo
  */
 
 const SECTIONS: StudioSection[] = [
-  { key: 'design', label: 'Design', icon: LayoutTemplate },
-  { key: 'embed', label: 'Aperçu site', icon: Globe },
-  { key: 'theme', label: 'Thème', icon: Palette },
-  { key: 'content', label: 'Contenu', icon: FileText },
-  { key: 'blog', label: 'Blog', icon: Newspaper },
-  { key: 'booking', label: 'Réservation', icon: CalendarCheck },
-  { key: 'growth', label: 'Croissance', icon: TrendingUp },
-  { key: 'funnel', label: 'Funnel', icon: Filter },
-  { key: 'distribution', label: 'Diffusion', icon: Share2 },
+  { key: 'design', labelKey: 'studio.sections.design', icon: LayoutTemplate },
+  { key: 'embed', labelKey: 'studio.sitePreview', icon: Globe },
+  { key: 'theme', labelKey: 'studio.sections.theme', icon: Palette },
+  { key: 'content', labelKey: 'studio.sections.content', icon: FileText },
+  { key: 'blog', labelKey: 'studio.sections.blog', icon: Newspaper },
+  { key: 'booking', labelKey: 'studio.sections.booking', icon: CalendarCheck },
+  { key: 'growth', labelKey: 'studio.sections.growth', icon: TrendingUp },
+  { key: 'funnel', labelKey: 'studio.sections.funnel', icon: Filter },
+  { key: 'distribution', labelKey: 'studio.sections.distribution', icon: Share2 },
 ];
 
 export default function StudioPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const cfg = useStudioConfig(id ? Number(id) : undefined);
-  const projectName = cfg.config?.name ?? 'Mon booking engine';
+  const projectName = cfg.config?.name ?? t('studio.myEngine');
   const [activeSection, setActiveSection] = useState('design');
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [previewCurrency, setPreviewCurrency] = useState('EUR');
@@ -100,7 +102,7 @@ export default function StudioPage() {
     const sections: CommandDescriptor[] = SECTIONS.map((s) => ({
       id: `studio.section.${s.key}`,
       section: 'screen',
-      label: `Aller à ${s.label}`,
+      label: t('studio.goTo', { section: t(s.labelKey) }),
       keywords: s.key,
       icon: <s.icon />,
       run: () => setActiveSection(s.key),
@@ -111,13 +113,13 @@ export default function StudioPage() {
       {
         id: 'studio.design-analysis',
         section: 'screen',
-        label: 'Analyse du design',
+        label: t('studio.designAnalysisCmd'),
         keywords: 'ia design site couleur typo url analyser',
         icon: <Wand2 />,
         run: () => setDesignAnalysisOpen(true),
       },
     ];
-  }, []);
+  }, [t]);
 
   useScreenCommands('Baitly Studio', studioCommands);
 

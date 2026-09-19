@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Skeleton } from '../../components/ui';
@@ -73,32 +74,9 @@ import './planningEmpty.css';
 
 // ─── Jalons — chacun pilote une scène de la démonstration ───────────────────
 
-const MILESTONES = [
-  {
-    key: 'sync',
-    label: 'Tous vos canaux sur une seule grille',
-    detail:
-      'Airbnb, Booking.com, Vrbo et tout flux iCal se déversent ici. Le canal d’origine se lit en bout de séjour.',
-  },
-  {
-    key: 'move',
-    label: 'Déplacez un séjour, les canaux suivent',
-    detail:
-      'Glissez la brique sur d’autres nuits : les disponibilités repartent vers chaque canal connecté.',
-  },
-  {
-    key: 'ops',
-    label: 'Le ménage s’intercale entre deux séjours',
-    detail:
-      'Ménages, maintenances et blocages vivent sur la même grille que les réservations, pas dans un autre écran.',
-  },
-  {
-    key: 'money',
-    label: 'Prix par nuit et occupation, sous les yeux',
-    detail:
-      'Le tarif de chaque nuit libre et le taux d’occupation du jour s’affichent sans quitter le planning.',
-  },
-] as const;
+// Les jalons ne portent que leur CLEF : libellé et détail se lisent dans
+// `planning.empty.showcase.milestones.<clef>.*` au rendu.
+const MILESTONE_KEYS = ['sync', 'move', 'ops', 'money'] as const;
 
 // ─── Grille de démonstration ────────────────────────────────────────────────
 
@@ -128,6 +106,7 @@ const DEMO_PRICES = [128, 128, 145, 145, 160, 180, 180, 160, 145, 128, 128, 135]
 const DEMO_OCCUPANCY = [0.62, 0.74, 0.81, 0.81, 0.9, 1, 1, 0.88, 0.7, 0.55, 0.48, 0.6];
 
 function DemoGrid({ scene }: { scene: number }) {
+  const { t } = useTranslation();
   const moved = scene === 1;
 
   return (
@@ -267,7 +246,7 @@ function DemoGrid({ scene }: { scene: number }) {
             className="pointer-events-none absolute inset-y-0 w-0.5 rounded-full"
             style={{
               backgroundColor: TODAY_LINE_COLOR,
-              left: `calc(${(TODAY_COLUMN * 100) / DAY_COUNT}% - 1px)`,
+              insetInlineStart: `calc(${(TODAY_COLUMN * 100) / DAY_COUNT}% - 1px)`,
             }}
           />
         </div>
@@ -276,7 +255,7 @@ function DemoGrid({ scene }: { scene: number }) {
       {/* Rangée d'occupation, en pied de grille comme dans le planning. */}
       <div className="mt-3 flex items-end gap-2 border-t border-border pt-2">
         <span className="w-20 shrink-0 text-[9px] leading-none font-medium text-muted-foreground">
-          Occupation
+          {t('planning.grid.occupancy', 'Occupation')}
         </span>
         <div
           className="grid h-4 min-w-0 flex-1 items-end gap-[3px]"
@@ -301,7 +280,7 @@ function DemoGrid({ scene }: { scene: number }) {
       {moved && (
         <p className="pl-empty-pop m-0 mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-medium text-primary">
           <SwapHoriz size={12} strokeWidth={2} />
-          Disponibilités renvoyées à Airbnb, Booking.com et Vrbo
+          {t('planning.empty.showcase.pushedBack')}
         </p>
       )}
     </div>
@@ -316,6 +295,7 @@ export interface PlanningEmptyShowcaseProps {
 }
 
 export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcaseProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const reducedMotion = usePrefersReducedMotion();
   const [active, setActive] = useState(0);
@@ -324,7 +304,7 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
   useEffect(() => {
     if (touched || reducedMotion) return;
     const id = window.setInterval(
-      () => setActive((current) => (current + 1) % MILESTONES.length),
+      () => setActive((current) => (current + 1) % MILESTONE_KEYS.length),
       4600,
     );
     return () => window.clearInterval(id);
@@ -345,14 +325,13 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
           <div className="min-w-0">
             <Reveal>
               <h2 className="cn-font-heading m-0 text-3xl leading-tight font-semibold text-balance text-foreground sm:text-4xl">
-                Un seul calendrier pour tous vos logements et tous vos canaux
+                {t('planning.empty.showcase.title')}
               </h2>
             </Reveal>
 
             <Reveal delay={70}>
               <p className="m-0 mt-3 text-base text-muted-foreground">
-                Les disponibilités se synchronisent dans les deux sens avec Airbnb, Booking.com et
-                les autres. Plus de double réservation.
+                {t('planning.empty.showcase.lede')}
               </p>
             </Reveal>
 
@@ -361,23 +340,23 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
             <Reveal delay={130}>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Button size="lg" onClick={() => navigate('/properties/new')}>
-                  Ajouter un logement
+                  {t('planning.empty.showcase.addProperty', 'Ajouter un logement')}
                 </Button>
                 <Button size="lg" variant="outline" onClick={onImport}>
-                  Importer depuis un canal
+                  {t('planning.empty.showcase.importChannel', 'Importer depuis un canal')}
                 </Button>
               </div>
             </Reveal>
 
             <Reveal delay={180}>
               <p className="m-0 mt-3 text-sm text-muted-foreground">
-                Vos biens sont déjà en ligne ailleurs&nbsp;?{' '}
+                {t('planning.empty.showcase.alreadyOnline')}{' '}
                 <button
                   type="button"
                   onClick={onImport}
                   className="cursor-pointer bg-transparent p-0 font-medium text-primary underline underline-offset-4"
                 >
-                  Importez-les avec leurs calendriers
+                  {t('planning.empty.showcase.importWithCalendars')}
                 </button>
               </p>
             </Reveal>
@@ -385,10 +364,10 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
             {/* Jalons — seul l'actif est déplié : quatre détails empilés
                 poussaient la démonstration hors de l'écran. */}
             <ul className="m-0 mt-6 flex list-none flex-col gap-0.5 border-t border-border p-0 pt-4">
-              {MILESTONES.map((milestone, index) => {
+              {MILESTONE_KEYS.map((milestoneKey, index) => {
                 const selected = index === active;
                 return (
-                  <li key={milestone.key}>
+                  <li key={milestoneKey}>
                     <Reveal delay={230 + index * 60}>
                       <button
                         type="button"
@@ -410,12 +389,12 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium text-foreground">
-                            {milestone.label}
+                            {t(`planning.empty.showcase.milestones.${milestoneKey}.label`)}
                           </span>
                           <span className="pl-empty-detail" data-open={selected}>
                             <span>
                               <span className="block pt-1 text-sm text-muted-foreground">
-                                {milestone.detail}
+                                {t(`planning.empty.showcase.milestones.${milestoneKey}.detail`)}
                               </span>
                             </span>
                           </span>
@@ -444,66 +423,47 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
             démontrent la promesse qui les surplombe, les garanties la
             referment. ── */}
         <StoryBand
-          eyebrow={{ icon: <Block size={16} strokeWidth={1.85} />, label: 'Plus de double réservation' }}
-          title="Une nuit vendue est fermée partout, dans la minute"
-          lede="Le calendrier fait foi : une réservation entrante ferme les mêmes nuits sur tous les autres canaux, sans que personne ait à y penser."
+          eyebrow={{
+            icon: <Block size={16} strokeWidth={1.85} />,
+            label: t('planning.empty.showcase.noDoubleBooking'),
+          }}
+          title={t('planning.empty.showcase.bandTitle')}
+          lede={t('planning.empty.showcase.bandLede')}
           guarantees={[
-            'Synchronisation dans les deux sens',
-            'Airbnb, Booking.com, Vrbo et tout flux iCal',
-            'Aucune double saisie de disponibilité',
-            'Historique des échanges avec chaque canal',
+            t('planning.empty.showcase.guarantees.twoWay'),
+            t('planning.empty.showcase.guarantees.channels'),
+            t('planning.empty.showcase.guarantees.noDouble'),
+            t('planning.empty.showcase.guarantees.history'),
           ]}
         >
           <StoryFlow
-            steps={[
-              { label: '1 · Le canal annonce', text: 'Airbnb, Booking.com, Vrbo ou un flux iCal remonte la réservation.' },
-              { label: '2 · Le calendrier tranche', text: 'Les nuits vendues passent en indisponible dans Baitly.' },
-              { label: '3 · Les canaux suivent', text: 'La fermeture repart vers tous les autres canaux connectés.' },
-              { label: '4 · L’exploitation s’enclenche', text: 'Ménage, arrivée et départ se placent sur les bonnes dates.' },
-            ]}
+            steps={(['announce', 'decide', 'propagate', 'operate'] as const).map((step) => ({
+              label: t(`planning.empty.showcase.flow.${step}.label`),
+              text: t(`planning.empty.showcase.flow.${step}.text`),
+            }))}
           />
         </StoryBand>
 
         {/* ── Les services rendus par la grille — trois colonnes sur grand
             écran : six points sur deux colonnes ajoutaient un écran entier. ── */}
         <StorySection
-          title="Ce que la grille sait faire"
-          lede="Tout se règle depuis le planning : c’est l’écran où l’on passe la journée, il n’a pas à renvoyer ailleurs."
+          title={t('planning.empty.showcase.sectionTitle')}
+          lede={t('planning.empty.showcase.sectionLede')}
         >
           <StoryPoints
             className="lg:grid-cols-3"
             items={[
-              {
-                icon: <SwapHoriz />,
-                title: 'Glisser-déposer un séjour',
-                text: 'Déplacez ou allongez une réservation à la souris ; les canaux sont mis à jour derrière.',
-              },
-              {
-                icon: <CleaningServices />,
-                title: 'Ménages et maintenances',
-                text: 'Les interventions se posent sur la même grille, à la nuit exacte, et s’assignent à une équipe.',
-              },
-              {
-                icon: <Euro />,
-                title: 'Tarif de chaque nuit',
-                text: 'Prix et minimum de nuits s’affichent dans les cellules libres, modifiables sur place.',
-              },
-              {
-                icon: <Block />,
-                title: 'Blocage de dates',
-                text: 'Fermez une période pour travaux ou usage personnel : la fermeture part sur tous les canaux.',
-              },
-              {
-                icon: <TrendingUp />,
-                title: 'Occupation du jour',
-                text: 'Une bande en pied de grille donne le taux d’occupation, jour après jour, sur le portefeuille.',
-              },
-              {
-                icon: <AutoAwesome />,
-                title: 'Actions à valider',
-                text: 'Les propositions des agents remontent sur la ligne du logement concerné, prêtes à accepter ou refuser.',
-              },
-            ]}
+              { icon: <SwapHoriz />, key: 'drag' },
+              { icon: <CleaningServices />, key: 'ops' },
+              { icon: <Euro />, key: 'price' },
+              { icon: <Block />, key: 'block' },
+              { icon: <TrendingUp />, key: 'occupancy' },
+              { icon: <AutoAwesome />, key: 'agents' },
+            ].map(({ icon, key }) => ({
+              icon,
+              title: t(`planning.empty.showcase.points.${key}.title`),
+              text: t(`planning.empty.showcase.points.${key}.text`),
+            }))}
           />
         </StorySection>
       </StoryPage>

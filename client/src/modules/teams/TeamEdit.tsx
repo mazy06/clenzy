@@ -29,6 +29,7 @@ import type { User } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import { useTranslation } from '../../hooks/useTranslation';
 import { teamsKeys } from './useTeamsList';
 import {
   FRENCH_DEPARTMENTS,
@@ -75,6 +76,7 @@ const roleOptions = [
 ];
 
 const TeamEdit: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
@@ -195,7 +197,7 @@ const TeamEdit: React.FC = () => {
     const user = availableUsers?.find(u => u.id?.toString() === selectedUser);
     if (!user) return;
     if ((formData.members || []).some(m => m.userId === user.id)) {
-      setError('Cet utilisateur est déjà dans l\'équipe');
+      setError(t('teams.errors.alreadyMember'));
       return;
     }
     const newMember: TeamMember = {
@@ -265,7 +267,7 @@ const TeamEdit: React.FC = () => {
       <div className="p-4">
         <BuiAlert variant="destructive">
           <TriangleAlert />
-          <AlertDescription><h6 className="text-sm font-semibold mb-[0.35em]">Accès non autorisé</h6><p className="text-sm">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p></AlertDescription>
+          <AlertDescription><h6 className="text-sm font-semibold mb-[0.35em]">{t('teams.edit.accessDenied')}</h6><p className="text-sm">{t('teams.edit.noPermission')}</p></AlertDescription>
         </BuiAlert>
       </div>
     );
@@ -289,17 +291,17 @@ const TeamEdit: React.FC = () => {
               title="Annuler"
             >
               <Cancel />
-              Annuler
+              {t('teams.cancel')}
             </BuiButton>
             <BuiButton
               type="submit"
               size="sm"
               disabled={updateMutation.isPending}
               onClick={handleSubmit}
-              title="Mettre à jour"
+              title={t('teams.edit.update')}
             >
               <Save />
-              {updateMutation.isPending ? 'Mise à jour...' : 'Mettre à jour'}
+              {updateMutation.isPending ? t('teams.edit.updating') : t('teams.edit.update')}
             </BuiButton>
           </div>
         }
@@ -320,7 +322,7 @@ const TeamEdit: React.FC = () => {
       {success && (
         <BuiAlert variant="success" className="mb-4">
           <CircleCheck />
-          <AlertDescription>Équipe mise à jour avec succès ! Redirection en cours...</AlertDescription>
+          <AlertDescription>{t('teams.edit.updateSuccess')}</AlertDescription>
         </BuiAlert>
       )}
 
@@ -328,19 +330,19 @@ const TeamEdit: React.FC = () => {
         <CardContent>
           <form onSubmit={handleSubmit}>
             <h6 className="text-sm font-semibold mb-4 text-foreground">
-              Informations de base
+              {t('teams.edit.basicInfo')}
             </h6>
 
             <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px] mb-6">
               <div className="min-[900px]:col-span-2">
                 <Field>
-                  <FieldLabel htmlFor="team-name">Nom de l'équipe *</FieldLabel>
+                  <FieldLabel htmlFor="team-name">{t('teams.edit.nameRequired')}</FieldLabel>
                   <Input
                     id="team-name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     required
-                    placeholder="Ex: Équipe Nettoyage Premium"
+                    placeholder={t('teams.edit.namePlaceholder')}
                   />
                 </Field>
               </div>
@@ -356,14 +358,14 @@ const TeamEdit: React.FC = () => {
 
             <div className="mb-6">
               <Field>
-                <FieldLabel htmlFor="team-description">Description de l'équipe</FieldLabel>
+                <FieldLabel htmlFor="team-description">{t('teams.edit.descriptionLabel')}</FieldLabel>
                 {/* min-h en `lh` : le primitif pose field-sizing:content, qui neutralise `rows`. */}
                 <Textarea
                   id="team-description"
                   className="min-h-[4lh]"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Décrivez votre équipe..."
+                  placeholder={t('teams.edit.descriptionPlaceholder')}
                 />
               </Field>
             </div>
@@ -372,7 +374,7 @@ const TeamEdit: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h6 className="text-sm font-semibold text-foreground flex items-center gap-0.5">
                 <MapIcon size={20} strokeWidth={1.75} />
-                Zones de couverture
+                {t('teams.coverageZones')}
               </h6>
               {/* type="button" explicite : le Button du kit est un <button> natif, qui
                   soumettrait le <form> parent au clic (MUI posait type="button" seul). */}
@@ -383,13 +385,13 @@ const TeamEdit: React.FC = () => {
                 onClick={addCoverageZone}
               >
                 <Add />
-                Ajouter une zone
+                {t('teams.addCoverageZone')}
               </BuiButton>
             </div>
 
             {formData.coverageZones.length === 0 ? (
               <div className="mb-6">
-                <EmptyState icon={<MapIcon />} title="Aucune zone de couverture définie" />
+                <EmptyState icon={<MapIcon />} title={t('teams.noCoverageZones')} />
               </div>
             ) : (
               <div className="mb-6">
@@ -407,7 +409,7 @@ const TeamEdit: React.FC = () => {
                     <div key={index} className="grid grid-cols-1 min-[900px]:grid-cols-12 gap-3 mb-[9px] items-end">
                       <div className="min-[900px]:col-span-3">
                         <Field>
-                          <FieldLabel htmlFor={`zone-country-${index}`}>Pays</FieldLabel>
+                          <FieldLabel htmlFor={`zone-country-${index}`}>{t('teams.country')}</FieldLabel>
                           <Combobox
                             items={COVERAGE_COUNTRIES}
                             itemToStringLabel={(opt: CoverageCountry) => opt.name}
@@ -421,9 +423,9 @@ const TeamEdit: React.FC = () => {
                               updateCoverageZone(index, 'city', undefined);
                             }}
                           >
-                            <ComboboxInput id={`zone-country-${index}`} placeholder="Selectionner un pays" />
+                            <ComboboxInput id={`zone-country-${index}`} placeholder={t('teams.edit.selectCountry')} />
                             <ComboboxContent>
-                              <ComboboxEmpty>Aucun pays</ComboboxEmpty>
+                              <ComboboxEmpty>{t('teams.noCountryFound')}</ComboboxEmpty>
                               <ComboboxList>
                                 {(option: CoverageCountry) => (
                                   <ComboboxItem key={option.code} value={option}>
@@ -439,7 +441,7 @@ const TeamEdit: React.FC = () => {
                         <>
                           <div className={showArr ? 'min-[900px]:col-span-4' : 'min-[900px]:col-span-7'}>
                             <Field>
-                              <FieldLabel htmlFor={`zone-department-${index}`}>Departement</FieldLabel>
+                              <FieldLabel htmlFor={`zone-department-${index}`}>{t('teams.department')}</FieldLabel>
                               <Combobox
                                 items={FRENCH_DEPARTMENTS}
                                 itemToStringLabel={(opt: Department) => `${opt.code} - ${opt.name}`}
@@ -453,9 +455,9 @@ const TeamEdit: React.FC = () => {
                                   }
                                 }}
                               >
-                                <ComboboxInput id={`zone-department-${index}`} placeholder="Selectionner un departement" />
+                                <ComboboxInput id={`zone-department-${index}`} placeholder={t('teams.selectDepartment')} />
                                 <ComboboxContent>
-                                  <ComboboxEmpty>Aucun departement</ComboboxEmpty>
+                                  <ComboboxEmpty>{t('teams.noDepartmentFound')}</ComboboxEmpty>
                                   <ComboboxList>
                                     {(option: Department) => (
                                       <ComboboxItem key={option.code} value={option}>
@@ -470,7 +472,7 @@ const TeamEdit: React.FC = () => {
                           {showArr && (
                             <div className="min-[900px]:col-span-4">
                               <Field>
-                                <FieldLabel htmlFor={`zone-arrondissement-${index}`}>Arrondissement</FieldLabel>
+                                <FieldLabel htmlFor={`zone-arrondissement-${index}`}>{t('teams.arrondissement')}</FieldLabel>
                                 <Combobox
                                   items={arrOptions}
                                   itemToStringLabel={(opt: Arrondissement) => opt.name}
@@ -481,9 +483,9 @@ const TeamEdit: React.FC = () => {
                                     updateCoverageZone(index, 'arrondissement', val?.code || undefined);
                                   }}
                                 >
-                                  <ComboboxInput id={`zone-arrondissement-${index}`} placeholder="Tous les arrondissements" />
+                                  <ComboboxInput id={`zone-arrondissement-${index}`} placeholder={t('teams.allArrondissements')} />
                                   <ComboboxContent>
-                                    <ComboboxEmpty>Aucun arrondissement</ComboboxEmpty>
+                                    <ComboboxEmpty>{t('teams.noArrondissementFound')}</ComboboxEmpty>
                                     <ComboboxList>
                                       {(option: Arrondissement) => (
                                         <ComboboxItem key={option.code} value={option}>
@@ -500,7 +502,7 @@ const TeamEdit: React.FC = () => {
                       ) : (
                         <div className="min-[900px]:col-span-7">
                           <Field>
-                            <FieldLabel htmlFor={`zone-city-${index}`}>Ville</FieldLabel>
+                            <FieldLabel htmlFor={`zone-city-${index}`}>{t('teams.city')}</FieldLabel>
                             {/* Report du `freeSolo` : seule la SAISIE est controlee, il n'y a
                                 pas de `value` d'item — une ville hors liste reste donc valide. */}
                             <Combobox
@@ -513,9 +515,9 @@ const TeamEdit: React.FC = () => {
                                 updateCoverageZone(index, 'city', val || undefined);
                               }}
                             >
-                              <ComboboxInput id={`zone-city-${index}`} placeholder="Saisir ou selectionner une ville" />
+                              <ComboboxInput id={`zone-city-${index}`} placeholder={t('teams.edit.cityPlaceholder')} />
                               <ComboboxContent>
-                                <ComboboxEmpty>Aucune ville proposee</ComboboxEmpty>
+                                <ComboboxEmpty>{t('teams.edit.noCitySuggested')}</ComboboxEmpty>
                                 <ComboboxList>
                                   {(option: string) => (
                                     <ComboboxItem key={option} value={option}>
@@ -536,7 +538,7 @@ const TeamEdit: React.FC = () => {
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          aria-label="Supprimer cette zone de couverture"
+                          aria-label={t('teams.edit.removeZone')}
                           className="text-destructive"
                           onClick={() => removeCoverageZone(index)}
                         >
@@ -549,12 +551,12 @@ const TeamEdit: React.FC = () => {
               </div>
             )}
 
-            <h6 className="text-sm font-semibold mb-3 text-foreground">Membres de l'équipe</h6>
+            <h6 className="text-sm font-semibold mb-3 text-foreground">{t('teams.edit.membersTitle')}</h6>
 
             <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-3 mb-[18px] items-end">
               <div>
                 <Field>
-                  <FieldLabel htmlFor="team-add-user">Utilisateur</FieldLabel>
+                  <FieldLabel htmlFor="team-add-user">{t('teams.edit.user')}</FieldLabel>
                   {/* Option vide desactivee : sans elle le select natif afficherait
                       le premier utilisateur alors que l'etat vaut encore ''. */}
                   <NativeSelect
@@ -564,7 +566,9 @@ const TeamEdit: React.FC = () => {
                     onChange={(e) => setSelectedUser(e.target.value)}
                   >
                     <NativeSelectOption value="" disabled>
-                      {assignableUsers.length > 0 ? 'Choisir un utilisateur' : 'Aucun utilisateur disponible'}
+                      {t(assignableUsers.length > 0
+                        ? 'teams.pickUser'
+                        : 'teams.noUserAvailable')}
                     </NativeSelectOption>
                     {assignableUsers.map((user) => (
                       <NativeSelectOption key={user.id} value={user.id.toString()}>
@@ -576,7 +580,7 @@ const TeamEdit: React.FC = () => {
               </div>
               <div>
                 <Field>
-                  <FieldLabel htmlFor="team-add-role">Rôle</FieldLabel>
+                  <FieldLabel htmlFor="team-add-role">{t('users.role')}</FieldLabel>
                   <NativeSelect
                     id="team-add-role"
                     className="w-full"
@@ -604,7 +608,7 @@ const TeamEdit: React.FC = () => {
             {(formData.members || []).length > 0 && (
               <div className="mb-6">
                 <h6 className="text-sm font-medium mb-3">
-                  Membres actuels ({(formData.members || []).length})
+                  {t('teams.edit.currentMembers', { count: (formData.members || []).length })}
                 </h6>
                 <div className="flex flex-col gap-1.5">
                   {(formData.members || []).map((member) => (
@@ -621,7 +625,7 @@ const TeamEdit: React.FC = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate">{member.firstName} {member.lastName}</p>
+                        <p dir="auto" className="text-sm truncate">{member.firstName} {member.lastName}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                       </div>
                       <div className="flex items-center gap-3">

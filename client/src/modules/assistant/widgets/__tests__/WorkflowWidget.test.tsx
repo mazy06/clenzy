@@ -45,7 +45,7 @@ describe('WorkflowWidget (smoke)', () => {
     expect(screen.getByText('Tarification')).toBeInTheDocument();
     expect(screen.getByText('Confirmer')).toBeInTheDocument();
     // Field non boolean → message d'invite a taper
-    expect(screen.getByText(/Reponds dans le chat/i)).toBeInTheDocument();
+    expect(screen.getByText(/Répondez dans le chat/i)).toBeInTheDocument();
   });
 
   it('renders Oui/Non quick reply buttons for boolean steps + dispatches event', () => {

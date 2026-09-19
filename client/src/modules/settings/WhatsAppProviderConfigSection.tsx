@@ -103,7 +103,7 @@ export default function WhatsAppProviderConfigSection() {
         setOpenwaSessionId(data.openwaSessionId ?? '');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+      setError(e instanceof Error ? e.message : t('common.loadingError'));
     }
   };
 
@@ -184,10 +184,10 @@ export default function WhatsAppProviderConfigSection() {
   const statusChip = !config
     ? null
     : !enabled
-      ? <StatusChip tone="neutral" label="Désactivé" />
+      ? <StatusChip tone="neutral" label={t('settings.integrations.status.disabled')} />
       : isProviderConfigured
-        ? <Badge variant="success"><CheckCircle size={14} />Connecté</Badge>
-        : <Badge variant="warning"><ErrorOutline size={14} />Configuration incomplète</Badge>;
+        ? <Badge variant="success"><CheckCircle size={14} />{t('settings.integrations.status.connected')}</Badge>
+        : <Badge variant="warning"><ErrorOutline size={14} />{t('settings.integrations.status.incomplete')}</Badge>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -215,16 +215,16 @@ export default function WhatsAppProviderConfigSection() {
             onClick={() => setProvider('META')}
             disabled={enabled && provider === 'OPENWA'}
             title="Meta Cloud API"
-            subtitle="Officiel — recommandé pour la production"
-            badge={{ label: 'Recommandé', color: 'success' }}
+            subtitle={t('settings.whatsapp.officialProvider')}
+            badge={{ label: t('settings.whatsapp.recommended'), color: 'success' }}
             pros={[
-              'Conforme ToS WhatsApp',
-              'Templates approuvés, boutons, listes',
-              'SLA 99.95%',
+              t('settings.whatsapp.metaPro1'),
+              t('settings.whatsapp.metaPro2'),
+              t('settings.whatsapp.metaPro3'),
             ]}
             cons={[
-              'Setup 1-3 jours (vérif Meta Business)',
-              'Payant (~$0.014-$0.07/conversation)',
+              t('settings.whatsapp.metaCon1'),
+              t('settings.whatsapp.metaCon2'),
             ]}
           />
           <ProviderOptionCard
@@ -232,17 +232,17 @@ export default function WhatsAppProviderConfigSection() {
             onClick={() => setProvider('OPENWA')}
             disabled={enabled && provider === 'META'}
             title="OpenWA"
-            subtitle="Self-hosted — pour trials et MVP"
-            badge={{ label: 'Hors ToS Meta', color: 'warning' }}
+            subtitle={t('settings.whatsapp.selfHostedProvider')}
+            badge={{ label: t('settings.whatsapp.outsideMetaTos'), color: 'warning' }}
             pros={[
-              'Gratuit (hors coût infra)',
-              'Setup 5 min (scan QR code)',
-              'Pas besoin de Meta Business Manager',
+              t('settings.whatsapp.openwaPro1'),
+              t('settings.whatsapp.openwaPro2'),
+              t('settings.whatsapp.openwaPro3'),
             ]}
             cons={[
-              'Risque ban du compte WhatsApp',
-              'Pas de templates approuvés ni boutons',
-              'Throughput limité (20 msg/min)',
+              t('settings.whatsapp.openwaCon1'),
+              t('settings.whatsapp.openwaCon2'),
+              t('settings.whatsapp.openwaCon3'),
             ]}
           />
         </div>
@@ -318,7 +318,7 @@ export default function WhatsAppProviderConfigSection() {
                 type="password"
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
-                placeholder={config?.hasApiToken ? '••••••••••••  (déjà configuré, laissez vide pour conserver)' : 'EAAxxxxxxxxxxxxxxxx...'}
+                placeholder={config?.hasApiToken ? t('settings.whatsapp.keptPlaceholder') : 'EAAxxxxxxxxxxxxxxxx...'}
                 autoComplete="off"
               />
               <InputGroupAddon align="inline-end">
@@ -339,7 +339,7 @@ export default function WhatsAppProviderConfigSection() {
                 placeholder="123456789012345"
               />
               <InputGroupAddon align="inline-end">
-                <FieldInfo text="ID numérique du numéro WhatsApp Business approuvé." />
+                <FieldInfo text={t('settings.whatsapp.phoneIdHint')} />
               </InputGroupAddon>
             </InputGroup>
           </Field>
@@ -355,7 +355,7 @@ export default function WhatsAppProviderConfigSection() {
                 placeholder="987654321098765"
               />
               <InputGroupAddon align="inline-end">
-                <FieldInfo text="ID du Business Account (WABA). Utilisé pour les templates." />
+                <FieldInfo text={t('settings.whatsapp.wabaIdHint')} />
               </InputGroupAddon>
             </InputGroup>
           </Field>
@@ -368,11 +368,11 @@ export default function WhatsAppProviderConfigSection() {
                 id="whatsapp-meta-webhook-verify-token"
                 value={webhookVerifyToken}
                 onChange={(e) => setWebhookVerifyToken(e.target.value)}
-                placeholder={config?.hasApiToken ? '•••••  (laissez vide pour conserver)' : 'une chaîne secrète de votre choix'}
+                placeholder={config?.hasApiToken ? t('settings.whatsapp.keptShortPlaceholder') : t('settings.whatsapp.yourSecretString')}
                 autoComplete="off"
               />
               <InputGroupAddon align="inline-end">
-                <FieldInfo text="Chaîne secrète que VOUS choisissez et saisissez à l'identique côté Meta (Configuration → Webhooks → Verify token). Valide l'abonnement du webhook entrant." />
+                <FieldInfo text={t('settings.whatsapp.verifyTokenHint')} />
               </InputGroupAddon>
             </InputGroup>
           </Field>
@@ -392,7 +392,7 @@ export default function WhatsAppProviderConfigSection() {
                 type="password"
                 value={openwaApiKey}
                 onChange={(e) => setOpenwaApiKey(e.target.value)}
-                placeholder={config?.hasOpenwaApiKey ? '••••••••••••  (déjà configurée, laissez vide pour conserver)' : 'dev-admin-key'}
+                placeholder={config?.hasOpenwaApiKey ? t('settings.whatsapp.keptPlaceholderF') : 'dev-admin-key'}
                 autoComplete="off"
               />
               <InputGroupAddon align="inline-end">

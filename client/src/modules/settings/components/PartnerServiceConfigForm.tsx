@@ -2,6 +2,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Badge, Spinner, Button, Field, FieldLabel, Input } from '../../../components/ui';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -22,6 +23,7 @@ export default function PartnerServiceConfigForm({
   provider: PartnerServiceProvider;
   serviceName: string;
 }) {
+  const { t } = useTranslation();
   // Le formulaire est instancie une fois par service du catalogue : les id des
   // champs doivent rester uniques meme si deux instances coexistent.
   const fieldId = useId();
@@ -65,7 +67,7 @@ export default function PartnerServiceConfigForm({
       setForm({ serverUrl: '', accountIdentifier: '', apiKey: '' });
       setMessage({ type: 'success', text: 'Accès enregistrés (chiffrés).' });
     } catch {
-      setMessage({ type: 'error', text: "Impossible d'enregistrer les accès. Vérifiez l'URL (https://…) et la clé API (8 caractères minimum)." });
+      setMessage({ type: 'error', text: t('partnerService.saveFailed') });
     } finally {
       setSubmitting(false);
     }
@@ -78,9 +80,9 @@ export default function PartnerServiceConfigForm({
       await partnerConnectionApi.disconnect(provider);
       setConnected(false);
       setConnectedServerUrl(null);
-      setMessage({ type: 'success', text: 'Connexion supprimée.' });
+      setMessage({ type: 'success', text: t('partnerService.connectionDeleted') });
     } catch {
-      setMessage({ type: 'error', text: 'Impossible de supprimer la connexion.' });
+      setMessage({ type: 'error', text: t('partnerService.deleteFailed') });
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +108,7 @@ export default function PartnerServiceConfigForm({
 
       {connected ? (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge variant="success">Accès enregistrés</Badge>
+          <Badge variant="success">{t('settings.partnerService.savedCredentials')}</Badge>
           {connectedServerUrl && (
             <span className="text-xs text-muted-foreground">
               {connectedServerUrl}
@@ -114,13 +116,13 @@ export default function PartnerServiceConfigForm({
           )}
           {/* Rompre la connexion est l'action irreversible de la ligne : variante destructive. */}
           <Button variant="destructive" size="sm" className="ms-auto" onClick={handleDisconnect} disabled={submitting}>
-            Déconnecter
+            {t('settings.integrations.disconnect')}
           </Button>
         </div>
       ) : (
         <>
           <Field className="mb-1.5">
-            <FieldLabel htmlFor={`${fieldId}-server-url`}>URL de l'API</FieldLabel>
+            <FieldLabel htmlFor={`${fieldId}-server-url`}>{t('settings.partnerService.apiUrl')}</FieldLabel>
             <Input
               id={`${fieldId}-server-url`}
               className="w-full"
@@ -131,7 +133,7 @@ export default function PartnerServiceConfigForm({
           </Field>
           <Field className="mb-1.5">
             <FieldLabel htmlFor={`${fieldId}-account-identifier`}>
-              Identifiant de compte (optionnel)
+              {t('settings.partnerService.accountId')}
             </FieldLabel>
             <Input
               id={`${fieldId}-account-identifier`}
@@ -141,7 +143,7 @@ export default function PartnerServiceConfigForm({
             />
           </Field>
           <Field className="mb-1.5">
-            <FieldLabel htmlFor={`${fieldId}-api-key`}>Clé API</FieldLabel>
+            <FieldLabel htmlFor={`${fieldId}-api-key`}>{t('settings.partnerService.apiKey')}</FieldLabel>
             <Input
               id={`${fieldId}-api-key`}
               className="w-full"

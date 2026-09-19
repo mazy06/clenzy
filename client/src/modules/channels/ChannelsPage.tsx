@@ -37,13 +37,14 @@ import AirbnbListingsSection from './AirbnbListingsSection';
 import AirbnbSyncStatusSection from './AirbnbSyncStatusSection';
 import ChannelDisconnectDialog from './ChannelDisconnectDialog';
 import ChannelManagerHealthBanner from './ChannelManagerHealthBanner';
+import { intlLocale } from '../../utils/localeDate';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const ChannelsPage: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
-  const dateLocale = currentLanguage === 'fr' ? 'fr-FR' : 'en-US';
+  const dateLocale = intlLocale(currentLanguage);
 
   // ── React Query: Airbnb ──
   const {

@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { permissionsApi } from '../services/api/permissionsApi';
 import type { ApiError } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
+// Hors composant : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../i18n/config';
 
 export interface RolePermissions {
   role: string;
@@ -30,7 +32,7 @@ export const useRolePermissions = () => {
       //   setSelectedRole(rolesData[0]);
       // }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des rôles');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.loadRoles'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ export const useRolePermissions = () => {
       const permissionsData = await permissionsApi.getRolePermissions(role);
       setRolePermissions(permissionsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des permissions');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.loadPermissions'));
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export const useRolePermissions = () => {
 
       return updatedRole;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour des permissions');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.updatePermissions'));
       throw err;
     } finally {
       setLoading(false);
@@ -82,7 +84,7 @@ export const useRolePermissions = () => {
 
       return resetRole;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la réinitialisation des permissions');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.resetPermissions'));
       throw err;
     } finally {
       setLoading(false);
@@ -100,7 +102,7 @@ export const useRolePermissions = () => {
 
       return resetRole;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la réinitialisation aux permissions initiales');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.resetInitial'));
       throw err;
     } finally {
       setLoading(false);
@@ -144,7 +146,7 @@ export const useRolePermissions = () => {
 
       return updatedRole;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'application des permissions');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.applyPermissions'));
       throw err;
     } finally {
       setLoading(false);
@@ -173,7 +175,7 @@ export const useRolePermissions = () => {
           }
 
           // Simuler une sauvegarde réussie
-          return { success: true, message: 'Permissions sauvegardées (simulation)' };
+          return { success: true, message: i18n.t('permissions.savedSimulated') };
         }
         throw saveErr;
       }
@@ -190,10 +192,10 @@ export const useRolePermissions = () => {
     } catch (err) {
       if (err instanceof Error && err.message.includes('404')) {
         // Endpoint non implémenté, on simule la sauvegarde
-        return { success: true, message: 'Permissions sauvegardées (simulation)' };
+        return { success: true, message: i18n.t('permissions.savedSimulated') };
       }
 
-      setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde des permissions');
+      setError(err instanceof Error ? err.message : i18n.t('permissions.errors.savePermissions'));
       throw err;
     } finally {
       setLoading(false);

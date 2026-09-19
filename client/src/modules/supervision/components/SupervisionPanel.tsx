@@ -359,7 +359,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           },
         );
         if (!response.ok) {
-          toast.error('Refus impossible : le serveur a rejeté la demande.');
+          toast.error(t('supervision.errors.rejectRefused'));
           return;
         }
         // La carte disparaît : le travail n'attend plus de contrôle, il est
@@ -368,10 +368,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         void actions.editPending(card.id);
         setConfirmAction(null);
       } catch {
-        toast.error("Refus impossible : le serveur n'a pas répondu.");
+        toast.error(t('supervision.errors.rejectNoResponse'));
       }
     },
-    [actions, markInFlight],
+    [actions, markInFlight, t],
   );
 
   const handleConfirmed = useCallback(() => {

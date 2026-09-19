@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Spinner, Button, Alert, Skeleton, Card, CardContent } from './ui';
 import { Refresh as RefreshIcon, ErrorOutline, Close as CloseIcon } from '../icons';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Wrapper réutilisable pour le rendu conditionnel basé sur l'état de chargement/erreur.
@@ -84,7 +85,9 @@ const ErrorDisplay: React.FC<{
   error: string;
   onRetry?: () => void;
   onClearError?: () => void;
-}> = ({ error, onRetry, onClearError }) => (
+}> = ({ error, onRetry, onClearError }) => {
+  const { t } = useTranslation();
+  return (
   // Alerte -soft hairline. Le contenu est pose dans une rangee flex plutot que
   // dans AlertAction : le libelle « Reessayer » depasse la gouttiere de 72px que
   // le primitif reserve a une action absolue.
@@ -99,7 +102,7 @@ const ErrorDisplay: React.FC<{
         // Action d'appoint dans une alerte : ghost, pas de cadre au repos.
         <Button variant="ghost" size="sm" onClick={onRetry}>
           <RefreshIcon size={13} strokeWidth={1.75} />
-          Réessayer
+          {t('common.retry')}
         </Button>
       )}
       {onClearError && (
@@ -109,7 +112,8 @@ const ErrorDisplay: React.FC<{
       )}
     </div>
   </Alert>
-);
+  );
+};
 
 const DataFetchWrapper: React.FC<DataFetchWrapperProps> = ({
   loading,

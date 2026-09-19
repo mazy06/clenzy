@@ -30,15 +30,13 @@ export interface MarketDataConnectionStatus {
 export const MARKET_DATA_PROVIDER_META: Record<MarketDataProvider, ApiKeyProviderMeta> = {
   AIRBTICS: {
     label: 'Airbtics',
-    description:
-      'Fournisseur cible de données de marché : couverture Maroc profonde (Marrakech, Casablanca, Agadir depuis 2019), benchmarks ADR/occupation restitués nativement en MAD. Abonnement ~500-2000 $/an.',
+    descriptionKey: 'marketDataProviders.AIRBTICS.description',
     serverUrlPlaceholder: 'https://api.airbtics.com/v1/market',
     apiKeyHelpUrl: 'https://airbtics.com/airbnb-api',
   },
   AIRROI: {
     label: 'AirROI',
-    description:
-      'Appoint pay-per-call (~0,01 $/appel, sans contrat) : cross-check de précision et marchés où les autres sources sont minces. 5 marchés en refresh quotidien ≈ 18 $/an.',
+    descriptionKey: 'marketDataProviders.AIRROI.description',
     serverUrlPlaceholder: 'https://api.airroi.com/v1/market',
     apiKeyHelpUrl: 'https://www.airroi.com/api/pricing',
   },

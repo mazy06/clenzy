@@ -14,6 +14,7 @@ import UserHostProfileCard from './components/UserHostProfileCard';
 import UserRoleStatusCard from './components/UserRoleStatusCard';
 import UserActionsCard from './components/UserActionsCard';
 import { USER_ROLES } from './components/userRoleCatalog';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Adapt the shared catalog to the legacy RoleInfo shape consumed by the detail cards.
 const userRoles: RoleInfo[] = USER_ROLES.map((r) => ({
@@ -32,6 +33,7 @@ const userStatuses: StatusInfo[] = [
 ];
 
 const UserDetails: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -73,11 +75,11 @@ const UserDetails: React.FC = () => {
           {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
               un <h6>/<p> natif recupere sinon les marges du navigateur. */}
           <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
-            Acces non autorise
+            {t('users.accessDenied.title')}
           </h6><p className="m-0 text-sm">
-            Vous n'avez pas les permissions necessaires pour visualiser les details des utilisateurs.
+            {t('users.accessDenied.view')}
             <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+            {t('users.accessDenied.contact')}
           </p></AlertDescription>
         </Alert>
       </div>

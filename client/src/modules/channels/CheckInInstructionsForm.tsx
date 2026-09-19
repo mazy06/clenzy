@@ -47,6 +47,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { CheckInInstructions, UpdateCheckInInstructions } from '../../services/api/airbnbApi';
 import AccessCodeGeneratorDialog, { generateCode, inferFormat, type CodeFormat } from '../../components/AccessCodeGeneratorDialog';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -395,13 +396,13 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               {t('channels.checkIn.title')}
             </p>
             <p className="text-sm text-muted-foreground">
-              Informations partagées avec les voyageurs avant et pendant leur séjour
+              {t('channels.checkIn.subtitle')}
             </p>
           </div>
           <div className="flex flex-col gap-[4.5px] items-end min-w-[200px]">
             <div className="flex items-center gap-1.5">
               <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Complétude
+                {t('channels.checkIn.completeness')}
               </p>
               <StatusChip
                 tokens={stats.filled === stats.total
@@ -424,7 +425,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             />
             {instructions?.updatedAt && (
               <p className="text-xs text-muted-foreground opacity-60 tabular-nums">
-                {t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleString(activeIntlLocale(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
           </div>
@@ -689,7 +690,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           icon={<ParkingIcon />}
           accentColor="var(--bui-info)"
           title={t('channels.checkIn.parkingSection')}
-          description="Où et comment se garer"
+          description={t('channels.checkIn.parkingDesc')}
           filledCount={stats.parking}
           totalCount={1}
         >
@@ -700,7 +701,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               rows={2}
               value={form.parkingInfo ?? ''}
               onChange={(e) => handleChange('parkingInfo', e.target.value)}
-              placeholder="Ex : Parking gratuit en face du bâtiment, place numéro 12..."
+              placeholder={t('channels.checkIn.parkingPlaceholder')}
             />
           </Field>
         </SectionCard>
@@ -710,7 +711,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           icon={<ArrivalIcon />}
           accentColor="var(--bui-success)"
           title={t('channels.checkIn.arrivalSection')}
-          description="Comment accéder au logement"
+          description={t('channels.checkIn.arrivalDesc')}
           filledCount={stats.arrival}
           totalCount={1}
         >
@@ -801,7 +802,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           icon={<DepartureIcon />}
           accentColor="var(--bui-info)"
           title={t('channels.checkIn.departureSection')}
-          description="Procédure et check-out"
+          description={t('channels.checkIn.departureDesc')}
           filledCount={stats.departure}
           totalCount={1}
         >
@@ -822,7 +823,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           icon={<RulesIcon />}
           accentColor="var(--bui-primary)"
           title={t('channels.checkIn.rulesSection')}
-          description="Règles à respecter dans le logement"
+          description={t('channels.checkIn.rulesDesc')}
           filledCount={stats.rules}
           totalCount={1}
         >
@@ -833,7 +834,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               rows={3}
               value={form.houseRules ?? ''}
               onChange={(e) => handleChange('houseRules', e.target.value)}
-              placeholder="Pas de fête, pas de fumeurs, animaux acceptés..."
+              placeholder={t('channels.checkIn.rulesPlaceholder')}
             />
           </Field>
         </SectionCard>
@@ -873,7 +874,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             icon={<NotesIcon />}
             accentColor="var(--bui-muted-foreground)"
             title={t('channels.checkIn.additionalSection')}
-            description="Bons plans, recommandations, infos pratiques sur le quartier"
+            description={t('channels.checkIn.additionalDesc')}
             filledCount={stats.additional}
             totalCount={1}
           >
@@ -884,7 +885,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                 rows={3}
                 value={form.additionalNotes ?? ''}
                 onChange={(e) => handleChange('additionalNotes', e.target.value)}
-                placeholder="Boulangerie au coin de la rue, supermarché à 200m, conseils transports..."
+                placeholder={t('channels.checkIn.additionalPlaceholder')}
               />
             </Field>
           </SectionCard>
@@ -913,7 +914,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           )}
           {!error && !success && !dirty && instructions?.updatedAt && (
             <p className="text-xs text-muted-foreground opacity-60">
-              Aucune modification en cours
+              {t('channels.checkIn.noChanges')}
             </p>
           )}
         </div>

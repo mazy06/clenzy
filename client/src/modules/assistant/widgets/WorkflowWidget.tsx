@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Button, Stepper, Step, StepLabel } from '../../../components/ui';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface StepDef {
   id: string;
@@ -81,6 +82,7 @@ function dispatchQuickReply(text: string) {
  * pour rappeler {@code sendMessage}.</p>
  */
 export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
+  const { t } = useTranslation();
   const total = data.totalSteps ?? data.steps?.length ?? 0;
   const currentIdx = data.currentStepIdx ?? 0;
   const isCompleted = data.status === 'COMPLETED';
@@ -164,7 +166,7 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
             </div>
           ) : (
             <p className="block mt-2 text-xs italic text-foreground/70">
-              Reponds dans le chat ci-dessous puis j'enchainerai l'etape suivante.
+              {t('assistant.widgets.replyInChat')}
             </p>
           )}
 

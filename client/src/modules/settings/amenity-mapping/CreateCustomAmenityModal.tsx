@@ -176,9 +176,9 @@ export default function CreateCustomAmenityModal({
             pleine largeur, comme le pied du kit le fait deja. */}
         <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-border px-4 py-2">
           <div>
-            <DialogTitle className="text-sm font-semibold">Nouvelle commodité</DialogTitle>
+            <DialogTitle className="text-sm font-semibold">{t('settings.customAmenity.title')}</DialogTitle>
             <span className="text-xs text-muted-foreground">
-              Étend le référentiel Baitly pour votre organisation
+              {t('settings.customAmenity.subtitle')}
             </span>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
@@ -190,8 +190,7 @@ export default function CreateCustomAmenityModal({
         {prefillRawName && (
           <Alert variant="info" className="mb-3 text-[0.8rem]">
             <AlertDescription>
-              Détectée sur <strong>{prefillAffectedCount}</strong> propriété
-              {prefillAffectedCount > 1 ? 's' : ''} sous le nom OTA brut «&nbsp;
+              {t('settings.customAmenity.detectedOn', { count: prefillAffectedCount })} «&nbsp;
               <span className="font-mono">{prefillRawName}</span>&nbsp;».
             </AlertDescription>
           </Alert>
@@ -199,12 +198,12 @@ export default function CreateCustomAmenityModal({
 
         <div className="flex flex-col gap-3">
           <Field>
-            <FieldLabel htmlFor="custom-amenity-label-fr">Label français *</FieldLabel>
+            <FieldLabel htmlFor="custom-amenity-label-fr">{t('settings.customAmenity.labelFr')}</FieldLabel>
             <Input
               id="custom-amenity-label-fr"
               value={labelFr}
               onChange={(e) => setLabelFr(e.target.value)}
-              placeholder="ex : Détecteur de fumée"
+              placeholder={t('settings.customAmenity.labelPlaceholder')}
             />
           </Field>
           <Field>
@@ -227,10 +226,10 @@ export default function CreateCustomAmenityModal({
             >
               <ComboboxInput
                 id="custom-amenity-label-en"
-                placeholder="ex : Smoke alarm — tape pour suggestions Channex"
+                placeholder={t('settings.customAmenity.channexPlaceholder')}
               />
               <ComboboxContent className="pointer-events-auto">
-                <ComboboxEmpty>Aucune suggestion Channex.</ComboboxEmpty>
+                <ComboboxEmpty>{t('settings.customAmenity.noChannexSuggestion')}</ComboboxEmpty>
                 <ComboboxList>
                   {(group: { value: string; items: ChannexFacilityOption[] }) => (
                     <ComboboxGroup key={group.value} items={group.items}>
@@ -255,14 +254,14 @@ export default function CreateCustomAmenityModal({
             </Combobox>
             <FieldDescription>
               {loadingCatalog
-                ? 'Chargement du catalogue Channex…'
+                ? t('amenityMapping.loadingCatalogue')
                 : channexCatalog.length > 0
                   ? `Autocomplete depuis ${channexCatalog.length} libellés Channex standardisés`
-                  : 'Utilisé par la booking engine multilingue.'}
+                  : t('amenityMapping.usedByBookingEngine')}
             </FieldDescription>
           </Field>
           <Field>
-            <FieldLabel htmlFor="custom-amenity-category">Catégorie *</FieldLabel>
+            <FieldLabel htmlFor="custom-amenity-category">{t('settings.customAmenity.category')}</FieldLabel>
             <NativeSelect
               id="custom-amenity-category"
               className="w-full"
@@ -328,7 +327,7 @@ export default function CreateCustomAmenityModal({
                   onCheckedChange={(checked) => setAutoAlias(checked === true)}
                 />
                 <FieldLabel htmlFor="custom-amenity-auto-alias" className="text-xs font-normal text-muted-foreground">
-                  Créer aussi l'alias «&nbsp;<strong>{prefillRawName}</strong>&nbsp;» → <strong>{previewCode || '...'}</strong>
+                  {t('settings.customAmenity.alsoCreateAliasHead')}&nbsp;<strong>{prefillRawName}</strong>&nbsp;{t('settings.customAmenity.alsoCreateAliasTail')} → <strong>{previewCode || '...'}</strong>
                 </FieldLabel>
               </Field>
               {prefillAffectedCount > 0 && (
@@ -340,7 +339,7 @@ export default function CreateCustomAmenityModal({
                     disabled={!autoAlias}
                   />
                   <FieldLabel htmlFor="custom-amenity-apply-now" className="text-xs font-normal text-muted-foreground">
-                    Appliquer aux <strong>{prefillAffectedCount}</strong> propriété{prefillAffectedCount > 1 ? 's' : ''} maintenant
+                    {t('settings.customAmenity.applyToNow', { count: prefillAffectedCount })}
                   </FieldLabel>
                 </Field>
               )}
@@ -364,7 +363,7 @@ export default function CreateCustomAmenityModal({
             onClick={handleSubmit}
             disabled={!canSubmit || submitting}
           >
-            {submitting ? 'Création…' : 'Créer la commodité'}
+            {submitting ? t('common.creating') : t('amenityMapping.createAmenity')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,8 @@
 import type { ReceivedForm } from '../../../services/api/receivedFormsApi';
 import { parseApiDate } from '../../../utils/formatUtils';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+// Hors React : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../../../i18n/config';
 
 /**
  * Formatage des formulaires reçus (devis / maintenance / support).
@@ -10,35 +13,36 @@ import { parseApiDate } from '../../../utils/formatUtils';
  * formulaire landing.
  */
 
-const DEVIS_VALUE_LABELS: Record<string, Record<string, string>> = {
-  propertyType: {
-    studio: 'Studio', t1: 'T1', t2: 'T2', t3: 'T3', t4: 'T4+', maison: 'Maison', villa: 'Villa',
-  },
-  bookingFrequency: {
-    'tres-frequent': 'Très fréquent', frequent: 'Fréquent', occasionnel: 'Occasionnel', rare: 'Rare',
-  },
-  cleaningSchedule: {
-    'apres-depart': 'Après chaque départ', quotidien: 'Quotidien', hebdomadaire: 'Hebdomadaire',
-  },
-  calendarSync: {
-    sync: 'Synchronisé', manual: 'Manuel', none: 'Aucun',
-  },
-  urgency: {
-    low: 'Faible', medium: 'Moyenne', high: 'Haute', critical: 'Critique',
-  },
+/**
+ * Valeurs connues d'un formulaire recu → cle en locales
+ * (`receivedForms.values.<champ>.<valeur>`). La valeur brute reste le repli :
+ * un formulaire peut porter une option qu'on ne connait pas.
+ */
+const DEVIS_VALUE_FIELDS: Record<string, readonly string[]> = {
+  propertyType: ['studio', 't1', 't2', 't3', 't4', 'maison', 'villa'],
+  bookingFrequency: ['tres-frequent', 'frequent', 'occasionnel', 'rare'],
+  cleaningSchedule: ['apres-depart', 'quotidien', 'hebdomadaire'],
+  calendarSync: ['sync', 'manual', 'none'],
+  urgency: ['low', 'medium', 'high', 'critical'],
 };
+
+function devisValueLabel(field: string, value: string): string | undefined {
+  if (!DEVIS_VALUE_FIELDS[field]?.includes(value)) return undefined;
+  return i18n.t(`receivedForms.values.${field}.${value}`);
+}
 
 export function formatFieldValue(key: string, value: unknown): string {
   if (Array.isArray(value)) return value.map((v) => formatFieldValue(key, v)).join(', ');
   const str = String(value);
   // Capacité voyageurs : intervalle (ex. "1-2") → "1 à 2" pour lever l'ambiguïté.
   if (key === 'guestCapacity') {
-    const labeled = DEVIS_VALUE_LABELS[key]?.[str];
+    const labeled = devisValueLabel(key, str);
     if (labeled) return labeled;
     const range = str.match(/^\s*(\d+)\s*[-–\s]\s*(\d+)\s*$/);
-    return range ? `${range[1]} à ${range[2]}` : str;
+    return range ? i18n.t('receivedForms.range', { from: range[1], to: range[2] }) : str;
   }
-  return DEVIS_VALUE_LABELS[key]?.[str] || str.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  return devisValueLabel(key, str)
+    ?? str.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 /** Normalise un champ liste (array OU chaîne "a, b, c") en items individuels. */
@@ -61,7 +65,7 @@ export function formatFormDate(d: string): string {
   try {
     // parseApiDate : les timestamps backend sont du LocalDateTime UTC sans
     // fuseau ; sans cette conversion ils s'affichaient avec 2h de retard.
-    return parseApiDate(d).toLocaleDateString('fr-FR', {
+    return parseApiDate(d).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   } catch {
@@ -76,12 +80,12 @@ export function formatFormDate(d: string): string {
  */
 export const STATUS_PILL: Record<
   ReceivedForm['status'],
-  { label: string; variant: 'warning' | 'info' | 'success' | 'secondary' }
+  { labelKey: string; variant: 'warning' | 'info' | 'success' | 'secondary' }
 > = {
-  NEW: { label: 'Nouveau', variant: 'warning' },
-  READ: { label: 'Lu', variant: 'info' },
-  PROCESSED: { label: 'Traité', variant: 'success' },
-  ARCHIVED: { label: 'Archivé', variant: 'secondary' },
+  NEW: { labelKey: 'receivedForms.status.new', variant: 'warning' },
+  READ: { labelKey: 'receivedForms.status.read', variant: 'info' },
+  PROCESSED: { labelKey: 'receivedForms.status.processed', variant: 'success' },
+  ARCHIVED: { labelKey: 'receivedForms.status.archived', variant: 'secondary' },
 };
 
 export const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/;

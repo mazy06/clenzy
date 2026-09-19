@@ -23,6 +23,8 @@ import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../service
 import { Money } from '../../../components/Money';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone }> = {
   DRAFT: { label: 'Brouillon', tone: 'warn' },
@@ -32,7 +34,7 @@ const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone }> = {
 
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+  return new Date(dateStr).toLocaleDateString(activeIntlLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 };
@@ -46,6 +48,7 @@ interface Props {
 }
 
 export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit, onGenerate, onConfirm }: Props) {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
 
@@ -68,16 +71,16 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
         <div className="flex items-center gap-1.5">
           <span className="inline-flex text-warning"><Receipt size={22} strokeWidth={1.75} /></span>
           <div>
-            <h6 className="text-sm font-semibold tracking-tight">Devis / Factures blanchisserie</h6>
+            <h6 className="text-sm font-semibold tracking-tight">{t('properties.laundryQuotes.title')}</h6>
             <p className="text-xs text-muted-foreground">
-              Historique des devis generes pour cette propriete
+              {t('properties.laundryQuotes.subtitle')}
             </p>
           </div>
         </div>
         {canEdit && (
           <Button size="sm" onClick={handleGenerate} disabled={!hasLaundryItems || generating}>
             <Add size={18} strokeWidth={1.75} />
-            {generating ? 'Generation...' : 'Generer un devis'}
+            {generating ? t('common.generating') : t('properties.laundry.generateQuote')}
           </Button>
         )}
       </div>
@@ -85,7 +88,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
       {!hasLaundryItems && (
         <Alert className="mb-3">
           <AlertDescription>
-            Configurez d'abord les articles de linge avant de generer un devis
+            {t('properties.laundryQuotes.needItems')}
           </AlertDescription>
         </Alert>
       )}
@@ -93,7 +96,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
       {quotes.length === 0 ? (
         <EmptyState
           icon={<Receipt />}
-          title="Aucun devis genere pour cette propriete"
+          title={t('properties.laundryQuotes.empty')}
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
@@ -152,7 +155,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                                   </Button>
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent>Confirmer le devis</TooltipContent>
+                              <TooltipContent>{t('properties.laundryQuotes.confirm')}</TooltipContent>
                             </Tooltip>
                           )}
                         </TableCell>

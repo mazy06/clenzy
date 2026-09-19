@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FileSearch, LayoutTemplate, PenLine, Palette, Check, type LucideIcon } from 'lucide-react';
 

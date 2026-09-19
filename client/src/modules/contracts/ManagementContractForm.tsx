@@ -30,37 +30,37 @@ import type { SplitRatios } from '../../types/payment';
 
 // ─── Domain labels (partagés page /contracts + modals) ──────────────────────
 
-export const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
-  FULL_MANAGEMENT:  'Gestion complète',
-  BOOKING_ONLY:     'Réservations uniquement',
-  MAINTENANCE_ONLY: 'Maintenance uniquement',
-  CUSTOM:           'Personnalisé',
+export const CONTRACT_TYPE_KEYS: Record<ContractType, string> = {
+  FULL_MANAGEMENT:  'contracts.types.fullManagement',
+  BOOKING_ONLY:     'contracts.types.bookingOnly',
+  MAINTENANCE_ONLY: 'contracts.types.maintenanceOnly',
+  CUSTOM:           'contracts.types.custom',
 };
 
 // ─── Taxonomie OTA : qui encaisse le paiement guest ─────────────────────────
 
-export const PAYMENT_MODEL_LABELS: Record<PaymentModel, string> = {
-  DIRECT:             'Direct — Baitly encaisse (Stripe)',
-  OWNER_COLLECTS:     'OTA — Le propriétaire encaisse',
-  CONCIERGE_COLLECTS: 'OTA — La conciergerie encaisse',
-  OTA_COHOST_SPLIT:   'OTA — Co-hosting (split à la source)',
+export const PAYMENT_MODEL_KEYS: Record<PaymentModel, string> = {
+  DIRECT:             'contracts.paymentModels.direct.label',
+  OWNER_COLLECTS:     'contracts.paymentModels.ownerCollects.label',
+  CONCIERGE_COLLECTS: 'contracts.paymentModels.conciergeCollects.label',
+  OTA_COHOST_SPLIT:   'contracts.paymentModels.otaCohostSplit.label',
 };
 
-export const PAYMENT_MODEL_HELP: Record<PaymentModel, string> = {
-  DIRECT:             'Le guest paie via Baitly (Stripe). La répartition est appliquée automatiquement à l\'encaissement.',
-  OWNER_COLLECTS:     'L\'OTA verse au propriétaire. La conciergerie facture sa commission au propriétaire (créance).',
-  CONCIERGE_COLLECTS: 'L\'OTA verse à la conciergerie. Elle reverse la part nette au propriétaire (reversement).',
-  OTA_COHOST_SPLIT:   'L\'OTA répartit directement entre les co-hosts. Baitly réconcilie, sans flux d\'argent.',
+export const PAYMENT_MODEL_HELP_KEYS: Record<PaymentModel, string> = {
+  DIRECT:             'contracts.paymentModels.direct.help',
+  OWNER_COLLECTS:     'contracts.paymentModels.ownerCollects.help',
+  CONCIERGE_COLLECTS: 'contracts.paymentModels.conciergeCollects.help',
+  OTA_COHOST_SPLIT:   'contracts.paymentModels.otaCohostSplit.help',
 };
 
-export const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
-  GROSS:          'Montant brut (loyer encaissé)',
-  NET_OF_OTA_FEE: 'Net des frais OTA (après commission plateforme)',
+export const COMMISSION_BASE_KEYS: Record<CommissionBase, string> = {
+  GROSS:          'contracts.commissionBases.gross',
+  NET_OF_OTA_FEE: 'contracts.commissionBases.netOfOtaFee',
 };
 
-export const OTA_FEE_BEARER_LABELS: Record<OtaFeeBearer, string> = {
-  AGENCY: 'La conciergerie (déduits de sa commission)',
-  OWNER:  'Le propriétaire (déduits de son reversement)',
+export const OTA_FEE_BEARER_KEYS: Record<OtaFeeBearer, string> = {
+  AGENCY: 'contracts.otaFeeBearers.agency',
+  OWNER:  'contracts.otaFeeBearers.owner',
 };
 
 /**
@@ -68,9 +68,9 @@ export const OTA_FEE_BEARER_LABELS: Record<OtaFeeBearer, string> = {
  * c'est aussi ce qui se passe quand aucun contrat n'existe — un propriétaire
  * qui gère seul porte ses propres obligations.
  */
-export const OBLIGATION_BEARER_LABELS: Record<ObligationBearer, string> = {
-  AGENCY: 'La conciergerie',
-  OWNER:  'Le propriétaire',
+export const OBLIGATION_BEARER_KEYS: Record<ObligationBearer, string> = {
+  AGENCY: 'contracts.obligationBearers.agency',
+  OWNER:  'contracts.obligationBearers.owner',
 };
 
 /**
@@ -79,16 +79,16 @@ export const OBLIGATION_BEARER_LABELS: Record<ObligationBearer, string> = {
  */
 export interface ContractPreset {
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   values: Partial<CreateManagementContractRequest>;
 }
 
 export const CONTRACT_PRESETS: ContractPreset[] = [
   {
     id: 'full-concierge',
-    label: 'Gestion complète — Conciergerie encaisse',
-    description: 'La conciergerie gère tout et encaisse les OTA, puis reverse au propriétaire.',
+    labelKey: 'contracts.presets.fullConcierge.label',
+    descriptionKey: 'contracts.presets.fullConcierge.description',
     values: {
       contractType: 'FULL_MANAGEMENT', paymentModel: 'CONCIERGE_COLLECTS',
       commissionRate: 0.20, commissionBase: 'GROSS',
@@ -97,8 +97,8 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
   },
   {
     id: 'full-owner',
-    label: 'Gestion complète — Propriétaire encaisse',
-    description: 'Le propriétaire reçoit les versements OTA ; la conciergerie facture sa commission.',
+    labelKey: 'contracts.presets.fullOwner.label',
+    descriptionKey: 'contracts.presets.fullOwner.description',
     values: {
       contractType: 'FULL_MANAGEMENT', paymentModel: 'OWNER_COLLECTS',
       commissionRate: 0.20, commissionBase: 'GROSS',
@@ -107,8 +107,8 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
   },
   {
     id: 'cohost',
-    label: 'Co-hosting Airbnb (split à la source)',
-    description: 'Airbnb répartit directement entre co-hosts. Aucun flux ne transite par Baitly.',
+    labelKey: 'contracts.presets.cohost.label',
+    descriptionKey: 'contracts.presets.cohost.description',
     values: {
       contractType: 'BOOKING_ONLY', paymentModel: 'OTA_COHOST_SPLIT',
       commissionRate: 0.15, commissionBase: 'GROSS',
@@ -116,8 +116,8 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
   },
   {
     id: 'direct',
-    label: 'Paiement direct (Baitly encaisse)',
-    description: 'Le guest paie via Stripe. La répartition est automatique à l\'encaissement.',
+    labelKey: 'contracts.presets.direct.label',
+    descriptionKey: 'contracts.presets.direct.description',
     values: {
       contractType: 'FULL_MANAGEMENT', paymentModel: 'DIRECT',
       commissionRate: 0.20, commissionBase: 'GROSS',
@@ -125,8 +125,8 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
   },
   {
     id: 'booking-light',
-    label: 'Conciergerie légère — Réservations seules',
-    description: 'Apport de réservations uniquement, commission réduite sur le net OTA.',
+    labelKey: 'contracts.presets.bookingLight.label',
+    descriptionKey: 'contracts.presets.bookingLight.description',
     values: {
       contractType: 'BOOKING_ONLY', paymentModel: 'OWNER_COLLECTS',
       commissionRate: 0.12, commissionBase: 'NET_OF_OTA_FEE',
@@ -225,8 +225,8 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
     <div className="flex flex-col gap-5">
       {/* ── Modèle d'accord (presets) ── */}
       <FormSection
-        label="Modèle d'accord"
-        hint="Choisissez un modèle pour préremplir le contrat, puis ajustez les détails."
+        label={t('contracts.form.presetSection')}
+        hint={t('contracts.form.presetHint')}
       >
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[7.5px]">
           {CONTRACT_PRESETS.map(preset => {
@@ -255,10 +255,10 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                   </span>
                 )}
                 <p className={cn('text-[0.8125rem] font-semibold leading-[1.3] text-foreground', active ? 'pe-[15px]' : 'pe-0')}>
-                  {preset.label}
+                  {t(preset.labelKey)}
                 </p>
                 <p className="text-xs text-muted-foreground leading-[1.45] mt-0.5">
-                  {preset.description}
+                  {t(preset.descriptionKey)}
                 </p>
               </div>
             );
@@ -298,8 +298,8 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               value={form.contractType}
               onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
             >
-              {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              {(Object.entries(CONTRACT_TYPE_KEYS) as [ContractType, string][]).map(([key, labelKey]) => (
+                <option key={key} value={key}>{t(labelKey)}</option>
               ))}
             </NativeSelect>
           </Field>
@@ -307,7 +307,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
       </FormSection>
 
       {/* ── Période ── */}
-      <FormSection label="Période" hint="Sans date de fin, le contrat court jusqu'à résiliation.">
+      <FormSection label={t('contracts.form.periodSection')} hint={t('contracts.form.periodHint')}>
         <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[1fr_1fr_0.7fr_0.7fr] gap-3">
           <Field>
             <FieldLabel htmlFor="contract-start-date">{t('contracts.startDate')}</FieldLabel>
@@ -339,7 +339,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="contract-notice-days">Préavis</FieldLabel>
+            <FieldLabel htmlFor="contract-notice-days">{t('contracts.form.notice')}</FieldLabel>
             <InputGroup>
               <InputGroupInput
                 id="contract-notice-days"
@@ -366,7 +366,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                   d'ornement interne comme le faisait l'InputAdornment de MUI. */}
               <FieldLabel htmlFor="contract-payment-model" className="items-center gap-1.5">
                 <Handshake size={14} strokeWidth={1.75} />
-                Qui encaisse le paiement guest ?
+                {t('contracts.form.whoCollects')}
               </FieldLabel>
               <NativeSelect
                 id="contract-payment-model"
@@ -374,41 +374,41 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                 value={form.paymentModel ?? 'DIRECT'}
                 onChange={e => setForm(prev => ({ ...prev, paymentModel: e.target.value as PaymentModel }))}
               >
-                {(Object.entries(PAYMENT_MODEL_LABELS) as [PaymentModel, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(Object.entries(PAYMENT_MODEL_KEYS) as [PaymentModel, string][]).map(([key, labelKey]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </NativeSelect>
-              <FieldDescription>{PAYMENT_MODEL_HELP[form.paymentModel ?? 'DIRECT']}</FieldDescription>
+              <FieldDescription>{t(PAYMENT_MODEL_HELP_KEYS[form.paymentModel ?? 'DIRECT'])}</FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="contract-commission-base">Base de commission</FieldLabel>
+              <FieldLabel htmlFor="contract-commission-base">{t('contracts.form.commissionBase')}</FieldLabel>
               <NativeSelect
                 id="contract-commission-base"
                 className="w-full"
                 value={form.commissionBase ?? 'GROSS'}
                 onChange={e => setForm(prev => ({ ...prev, commissionBase: e.target.value as CommissionBase }))}
               >
-                {(Object.entries(COMMISSION_BASE_LABELS) as [CommissionBase, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(Object.entries(COMMISSION_BASE_KEYS) as [CommissionBase, string][]).map(([key, labelKey]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </NativeSelect>
             </Field>
             <Field>
-              <FieldLabel htmlFor="contract-ota-fee-bearer">Frais OTA à la charge de</FieldLabel>
+              <FieldLabel htmlFor="contract-ota-fee-bearer">{t('contracts.form.otaFeeBearer')}</FieldLabel>
               <NativeSelect
                 id="contract-ota-fee-bearer"
                 className="w-full"
                 value={form.otaFeeBorneBy ?? 'AGENCY'}
                 onChange={e => setForm(prev => ({ ...prev, otaFeeBorneBy: e.target.value as OtaFeeBearer }))}
               >
-                {(Object.entries(OTA_FEE_BEARER_LABELS) as [OtaFeeBearer, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(Object.entries(OTA_FEE_BEARER_KEYS) as [OtaFeeBearer, string][]).map(([key, labelKey]) => (
+                  <option key={key} value={key}>{t(labelKey)}</option>
                 ))}
               </NativeSelect>
-              <FieldDescription>Sur un séjour OTA, la plateforme retient sa commission avant de verser.</FieldDescription>
+              <FieldDescription>{t('contracts.form.otaFeeHint')}</FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="contract-commission-rate">Commission</FieldLabel>
+              <FieldLabel htmlFor="contract-commission-rate">{t('contracts.form.commission')}</FieldLabel>
               <InputGroup>
                 <InputGroupInput
                   id="contract-commission-rate"
@@ -438,56 +438,56 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
            figurer dans le texte du mandat signé — sans quoi ils restent un
            réglage, pas une autorisation. */}
       <FormSection
-        label="Obligations réglementaires"
-        hint="Qui déclare quoi. Sans mention contraire, c'est la conciergerie — ces choix sont repris dans le mandat signé par le propriétaire."
+        label={t('contracts.form.regulatorySection')}
+        hint={t('contracts.form.regulatoryHint')}
       >
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr] gap-3 items-start">
           <Field>
-            <FieldLabel htmlFor="contract-police-by">Fiche de police</FieldLabel>
+            <FieldLabel htmlFor="contract-police-by">{t('contracts.form.policeRecord')}</FieldLabel>
             <NativeSelect
               id="contract-police-by"
               className="w-full"
               value={form.policeDeclarationBy ?? 'AGENCY'}
               onChange={e => setForm(prev => ({ ...prev, policeDeclarationBy: e.target.value as ObligationBearer }))}
             >
-              {(Object.entries(OBLIGATION_BEARER_LABELS) as [ObligationBearer, string][]).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              {(Object.entries(OBLIGATION_BEARER_KEYS) as [ObligationBearer, string][]).map(([key, labelKey]) => (
+                <option key={key} value={key}>{t(labelKey)}</option>
               ))}
             </NativeSelect>
             <FieldDescription>
-              La télédéclaration passe par les identifiants de téléservice du déclarant.
+              {t('contracts.form.policeHint')}
             </FieldDescription>
           </Field>
           <Field>
-            <FieldLabel htmlFor="contract-tax-by">Taxe de séjour</FieldLabel>
+            <FieldLabel htmlFor="contract-tax-by">{t('contracts.form.touristTax')}</FieldLabel>
             <NativeSelect
               id="contract-tax-by"
               className="w-full"
               value={form.touristTaxBy ?? 'AGENCY'}
               onChange={e => setForm(prev => ({ ...prev, touristTaxBy: e.target.value as ObligationBearer }))}
             >
-              {(Object.entries(OBLIGATION_BEARER_LABELS) as [ObligationBearer, string][]).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              {(Object.entries(OBLIGATION_BEARER_KEYS) as [ObligationBearer, string][]).map(([key, labelKey]) => (
+                <option key={key} value={key}>{t(labelKey)}</option>
               ))}
             </NativeSelect>
             <FieldDescription>
-              Dépôt et reversement auprès de la commune du logement.
+              {t('contracts.form.touristTaxHint')}
             </FieldDescription>
           </Field>
           <Field>
-            <FieldLabel htmlFor="contract-licence-by">Licence / enregistrement</FieldLabel>
+            <FieldLabel htmlFor="contract-licence-by">{t('contracts.form.licence')}</FieldLabel>
             <NativeSelect
               id="contract-licence-by"
               className="w-full"
               value={form.licenceHeldBy ?? 'AGENCY'}
               onChange={e => setForm(prev => ({ ...prev, licenceHeldBy: e.target.value as ObligationBearer }))}
             >
-              {(Object.entries(OBLIGATION_BEARER_LABELS) as [ObligationBearer, string][]).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              {(Object.entries(OBLIGATION_BEARER_KEYS) as [ObligationBearer, string][]).map(([key, labelKey]) => (
+                <option key={key} value={key}>{t(labelKey)}</option>
               ))}
             </NativeSelect>
             <FieldDescription>
-              Titulaire de l'autorisation, donc responsable de son renouvellement.
+              {t('contracts.form.licenceHint')}
             </FieldDescription>
           </Field>
         </div>
@@ -510,7 +510,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                   max={100}
                   step={1}
                   className="tabular-nums"
-                  placeholder="Défaut org"
+                  placeholder={t('contracts.form.orgDefault')}
                   value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
                   onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
                 />
@@ -540,7 +540,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                 onCheckedChange={checked => setForm(prev => ({ ...prev, cleaningFeeIncluded: checked === true }))}
               />
               <FieldLabel htmlFor="contract-cleaning-included" className="text-[0.8125rem] font-normal">
-                Ménage inclus
+                {t('contracts.form.cleaningIncluded')}
               </FieldLabel>
             </Field>
             <Field orientation="horizontal" className="w-auto gap-1.5">
@@ -559,14 +559,14 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
       </FormSection>
 
       {/* ── Notes ── */}
-      <FormSection label="Notes">
+      <FormSection label={t('contracts.form.notesSection')}>
         <Textarea
           id="contract-notes"
-          aria-label="Notes"
+          aria-label={t('contracts.form.notesSection')}
           rows={2}
           value={form.notes ?? ''}
           onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="Détails complémentaires, conditions particulières… (optionnel)"
+          placeholder={t('contracts.form.notesPlaceholder')}
         />
       </FormSection>
     </div>
@@ -590,6 +590,7 @@ interface SplitPreviewBarProps {
  * dès que l'utilisateur tape).
  */
 const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, splitRatios }) => {
+  const { t } = useTranslation();
   const commissionPct = (commissionRate ?? 0) * 100;
   const hasCommission = commissionPct > 0;
 
@@ -597,9 +598,9 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   if (!hasCommission) {
     return (
       <div className="flex flex-col gap-0.5">
-        <div className="h-[8px] rounded-md border border-dashed border-border bg-transparent" aria-label="Aucune commission définie" />
+        <div className="h-[8px] rounded-md border border-dashed border-border bg-transparent" aria-label={t('contracts.form.noCommissionAria')} />
         <p className="text-2xs text-faint italic">
-          Saisissez un taux de commission pour voir la répartition appliquée à ce contrat.
+          {t('contracts.form.noCommissionHint')}
         </p>
       </div>
     );

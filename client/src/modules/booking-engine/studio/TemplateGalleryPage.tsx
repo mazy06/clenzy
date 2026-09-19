@@ -9,6 +9,7 @@ import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
 import { buildConfigPayload } from './StudioHome';
 import './studioHome.css';
 import PagePagination from '../../../components/PagePagination';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Galerie COMPLÈTE des templates (écran « Voir tous les templates »). 4 colonnes, paginée pour tenir
@@ -23,6 +24,7 @@ const GRID_GAP = 18;
 const COLS = 4;
 
 export default function TemplateGalleryPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const areaRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState(COLS * 2);
@@ -70,7 +72,7 @@ export default function TemplateGalleryPage() {
   }, [creating, navigate]);
 
   return (
-    <div className="be-home h-[100vh] flex flex-col bg-background px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]" data-accent="indigo">
+    <div className="be-home h-[100vh] flex flex-col bg-background px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]">
       <div className="shrink-0">
         {/* Pas de bandeau ancré : le padding de cette page n'est pas un
             doublon de celui du conteneur de contenu — il sert une canevas plein écran, fond et accent propres.
@@ -78,8 +80,8 @@ export default function TemplateGalleryPage() {
             d'une colonne centrée ne s'aligne sur rien. */}
         <PageHeader
           anchored={false}
-          title="Tous les templates"
-          subtitle="Choisissez un modèle pour démarrer votre booking engine"
+          title="{t('studio.gallery.allTemplates')}"
+          subtitle="{t('studio.gallery.subtitle')}"
           iconBadge={<LayoutGrid />}
           titleAdornment={<Badge variant="secondary" className="tabular-nums whitespace-nowrap">{total} modèles</Badge>}
           onBack={() => navigate(-1)}
@@ -108,7 +110,7 @@ export default function TemplateGalleryPage() {
                       <div className="mini__cards"><span /><span /><span /></div>
                     </div>
                   )}
-                  <div className="tpl-use"><span><Plus size={15} strokeWidth={2} /> Utiliser ce template</span></div>
+                  <div className="tpl-use"><span><Plus size={15} strokeWidth={2} /> {t('studio.gallery.useTemplate')}</span></div>
                 </div>
                 <div className="tpl-body">
                   <p className="tpl-name">{tpl.name}</p>

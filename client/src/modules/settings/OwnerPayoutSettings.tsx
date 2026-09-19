@@ -245,10 +245,9 @@ export default function OwnerPayoutSettings() {
                 {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
               </AlertTitle>
               <AlertDescription className="text-[0.78rem]">
-                Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
+                {t('settings.ownerPayout.scaHead')}
                 <strong> Mes reversements </strong>
-                pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
-                engrenage (Configurer la méthode).
+                {t('settings.ownerPayout.scaTail')}
               </AlertDescription>
             </Alert>
           );

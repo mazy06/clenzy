@@ -20,6 +20,7 @@ import {
 } from '../../components/ui';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface GenerateDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ const REFERENCE_TYPES = [
 ];
 
 const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [documentType, setDocumentType] = useState('');
   const [referenceId, setReferenceId] = useState('');
   const [referenceType, setReferenceType] = useState('intervention');
@@ -47,12 +49,12 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
 
   const handleSubmit = async () => {
     if (!documentType || !referenceId) {
-      setError('Veuillez remplir les champs obligatoires');
+      setError(t('common.fillRequiredFields'));
       return;
     }
 
     if (sendEmail && !emailTo) {
-      setError('Veuillez saisir une adresse email');
+      setError(t('common.enterEmail'));
       return;
     }
 
@@ -74,7 +76,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
       resetForm();
       onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la génération');
+      setError(err instanceof Error ? err.message : t('documents.generationError'));
     }
   };
 
@@ -98,7 +100,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Générer un document</DialogTitle>
+          <DialogTitle>{t('documents.generate.title')}</DialogTitle>
         </DialogHeader>
         {error && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
@@ -110,14 +112,14 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
               choisi » : un select natif afficherait sinon la premiere entree
               alors que documentType vaut encore ''. */}
           <Field>
-            <FieldLabel htmlFor="generate-document-type">Type de document *</FieldLabel>
+            <FieldLabel htmlFor="generate-document-type">{t('documents.generate.documentType')}</FieldLabel>
             <NativeSelect
               id="generate-document-type"
               className="w-full"
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value)}
             >
-              <NativeSelectOption value="" disabled>Choisir un type</NativeSelectOption>
+              <NativeSelectOption value="" disabled>{t('documents.generate.chooseType')}</NativeSelectOption>
               {documentTypes.map((type) => (
                 <NativeSelectOption key={type.value} value={type.value}>{type.label}</NativeSelectOption>
               ))}
@@ -125,7 +127,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="generate-reference-type">Type de référence *</FieldLabel>
+            <FieldLabel htmlFor="generate-reference-type">{t('documents.generate.referenceType')}</FieldLabel>
             <NativeSelect
               id="generate-reference-type"
               className="w-full"
@@ -139,7 +141,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="generate-reference-id">ID de référence *</FieldLabel>
+            <FieldLabel htmlFor="generate-reference-id">{t('documents.generate.referenceId')}</FieldLabel>
             <Input
               id="generate-reference-id"
               type="number"
@@ -148,7 +150,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
               onChange={(e) => setReferenceId(e.target.value)}
               placeholder="Ex: 42"
             />
-            <FieldDescription>ID de l'intervention, demande, bien ou utilisateur</FieldDescription>
+            <FieldDescription>{t('documents.generate.referenceIdHint')}</FieldDescription>
           </Field>
 
           <Field orientation="horizontal">
@@ -158,13 +160,13 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
               onCheckedChange={(checked) => setSendEmail(checked === true)}
             />
             <FieldLabel htmlFor="generate-send-email" className="font-normal">
-              Envoyer par email
+              {t('documents.generate.sendByEmail')}
             </FieldLabel>
           </Field>
 
           {sendEmail && (
             <Field>
-              <FieldLabel htmlFor="generate-email-to">Adresse email du destinataire</FieldLabel>
+              <FieldLabel htmlFor="generate-email-to">{t('documents.generate.recipientEmail')}</FieldLabel>
               <Input
                 id="generate-email-to"
                 type="email"

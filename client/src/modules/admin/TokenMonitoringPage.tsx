@@ -2,8 +2,10 @@ import React from 'react';
 import { Shield } from '../../icons';
 import TokenMonitoring from '../../components/TokenMonitoring';
 import PageHeader from '../../components/PageHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const TokenMonitoringPage: React.FC = () => {
+  const { t } = useTranslation();
   return (
     // Report du `<Container maxWidth="xl">` : largeur bornee au breakpoint xl MUI
     // (1536 px) + gouttieres spacing(2)/spacing(3) — le theme fixe l'unite a 6 px.
@@ -14,8 +16,8 @@ const TokenMonitoringPage: React.FC = () => {
           rien. */}
       <PageHeader
         anchored={false}
-        title="Monitoring des Tokens"
-        subtitle="Surveillance des tokens JWT et gestion des sessions"
+        title="{t('admin.tokens.title')}"
+        subtitle="{t('admin.tokens.subtitle')}"
         iconBadge={<Shield />}
         backPath="/admin"
         showBackButton={false}

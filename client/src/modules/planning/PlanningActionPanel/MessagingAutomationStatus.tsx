@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { Button, Tooltip, TooltipTrigger } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
@@ -26,6 +27,7 @@ interface MessagingAutomationStatusProps {
 }
 
 const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ guestEmail, source }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: rules, isLoading } = useQuery({
     queryKey: ['automation-rules'],
@@ -66,7 +68,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
         <span className="inline-flex text-[var(--faint)]">
           <Bolt size={13} strokeWidth={1.75} />
         </span>
-        <span className="flex-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]">Messagerie automatique</span>
+        <span className="flex-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]">{t('planning.panel.messaging.title', 'Messagerie automatique')}</span>
         <Tooltip>
           {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa ref
               d'ancrage, ce qu'un composant fonction React 18 ne peut pas recevoir. */}
@@ -75,7 +77,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Configurer dans Automatisations"
+                aria-label={t('planning.panel.messaging.configure', 'Configurer dans Automatisations')}
                 onClick={() => navigate('/automation-rules')}
                 className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
               >
@@ -83,27 +85,27 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
               </Button>
             </span>
           </TooltipTrigger>
-          <PlanningTooltipContent>Configurer dans Automatisations</PlanningTooltipContent>
+          <PlanningTooltipContent>{t('planning.panel.messaging.configure', 'Configurer dans Automatisations')}</PlanningTooltipContent>
         </Tooltip>
       </div>
 
       {isLoading ? (
-        <div className="text-[0.6875rem] text-[var(--faint)]">Chargement…</div>
+        <div className="text-[0.6875rem] text-[var(--faint)]">{t('planning.panel.messaging.loading', 'Chargement…')}</div>
       ) : (
         <div>
           <Row
             ok={checkInOk}
-            label="Check-in"
+            label={t('planning.popover.checkIn', 'Check-in')}
             detail={checkInOk
-              ? 'automatique · règle active'
-              : 'désactivé (envoi manuel uniquement)'}
+              ? t('planning.panel.messaging.ruleActive', 'automatique · règle active')
+              : t('planning.panel.messaging.ruleOff', 'désactivé (envoi manuel uniquement)')}
           />
           <Row
             ok={checkOutOk}
-            label="Check-out"
+            label={t('planning.popover.checkOut', 'Check-out')}
             detail={checkOutOk
-              ? 'automatique · règle active'
-              : 'désactivé (envoi manuel uniquement)'}
+              ? t('planning.panel.messaging.ruleActive', 'automatique · règle active')
+              : t('planning.panel.messaging.ruleOff', 'désactivé (envoi manuel uniquement)')}
           />
 
           {/* Destinataire */}
@@ -115,18 +117,20 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
             </span>
             <div className="flex-1 min-w-0">
               <span className={cn('block text-[0.6875rem] font-semibold', hasEmail ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
-                {hasEmail ? `Email guest disponible (${guestEmail})` : 'Pas d\'email guest'}
+                {hasEmail
+                  ? t('planning.panel.messaging.emailOk', { email: guestEmail })
+                  : t('planning.panel.messaging.emailMissing', "Pas d'email voyageur")}
               </span>
               {!hasEmail && (
                 <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
                   {isAnonymizedIcal
-                    ? `Réservation importée via iCal (${source}) — l'email du voyageur n'est pas exposé par le canal. Renseigne-le manuellement dans la fiche client pour activer les envois.`
-                    : 'Aucun message automatique ne pourra être envoyé tant que l\'email n\'est pas renseigné.'}
+                    ? t('planning.panel.messaging.emailIcal', { source })
+                    : t('planning.panel.messaging.emailNeeded')}
                 </span>
               )}
               {hasEmail && !checkInOk && !checkOutOk && (
                 <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
-                  Active une règle de messagerie dans Automatisations pour que les emails partent sans intervention.
+                  {t('planning.panel.messaging.noRule')}
                 </span>
               )}
             </div>
@@ -136,7 +140,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
             <div className="flex items-center gap-0.5 mt-1 text-[var(--faint)]">
               <AccessTime size={10} strokeWidth={1.75} />
               <span className="text-[0.625rem] italic">
-                Scheduler : déclenchement horaire
+                {t('planning.panel.messaging.scheduler', 'Scheduler : déclenchement horaire')}
               </span>
             </div>
           )}

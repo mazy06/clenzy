@@ -19,6 +19,7 @@ import {
 } from '../../services/api/touristTaxApi';
 import TouristTaxBaremeDialog from './TouristTaxBaremeDialog';
 import { taxFilingsApi, type TaxFiling } from '../../services/api/taxFilingsApi';
+import { Money } from '../../components/Money';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -404,7 +405,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                     </TableCell>
                     <TableCell className="text-end tabular-nums">
                       <p className="text-xs font-semibold">
-                        {num(report.totalTax)} EUR
+                        <Money value={report.totalTax} from="EUR" />
                       </p>
                     </TableCell>
                   </TableRow>

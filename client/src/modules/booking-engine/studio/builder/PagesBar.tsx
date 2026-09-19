@@ -6,6 +6,7 @@ import {
 } from '../../../../components/ui';
 import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw, Check, Files, ChevronDown } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Barre d'onglets des pages du site (multi-page 2.2). Sélection, ajout, renommage (double-clic ou
@@ -27,6 +28,7 @@ export interface PagesBarProps {
 }
 
 export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename, onDelete, onMove, onReset, busy }: PagesBarProps) {
+  const { t } = useTranslation();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
@@ -84,7 +86,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
           ))}
           <DropdownMenuItem onSelect={() => onAdd()} disabled={busy} className="min-h-9 cursor-pointer gap-2 text-muted-foreground">
             <Plus size={14} strokeWidth={2} className="shrink-0" />
-            Ajouter une page
+            {t('studio.pages.add')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -104,7 +106,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
               // fond) est neutralise, l'onglet lui-meme porte deja le cadre.
               <Input
                 autoFocus
-                aria-label="Renommer la page"
+                aria-label={t('studio.pages.rename')}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commitRename}
@@ -131,26 +133,26 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
                 {onMove && !isHome && canLeft && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" onClick={() => onMove(p.id, -1)} aria-label="Déplacer la page à gauche" className={TAB_ICON_CLASS}>
+                      <button type="button" onClick={() => onMove(p.id, -1)} aria-label={t('studio.pages.movePageLeft')} className={TAB_ICON_CLASS}>
                         <ChevronLeft size={14} strokeWidth={2} />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>Déplacer à gauche</TooltipContent>
+                    <TooltipContent>{t('studio.pages.moveLeft')}</TooltipContent>
                   </Tooltip>
                 )}
                 {onMove && !isHome && canRight && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" onClick={() => onMove(p.id, 1)} aria-label="Déplacer la page à droite" className={TAB_ICON_CLASS}>
+                      <button type="button" onClick={() => onMove(p.id, 1)} aria-label={t('studio.pages.movePageRight')} className={TAB_ICON_CLASS}>
                         <ChevronRight size={14} strokeWidth={2} />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>Déplacer à droite</TooltipContent>
+                    <TooltipContent>{t('studio.pages.moveRight')}</TooltipContent>
                   </Tooltip>
                 )}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button type="button" onClick={() => startRename(p)} aria-label="Renommer la page" className={TAB_ICON_CLASS}>
+                    <button type="button" onClick={() => startRename(p)} aria-label={t('studio.pages.rename')} className={TAB_ICON_CLASS}>
                       <Pencil size={12} strokeWidth={2} />
                     </button>
                   </TooltipTrigger>
@@ -159,7 +161,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
                 {!isHome && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" onClick={() => onDelete(p.id)} aria-label="Supprimer la page" className={TAB_ICON_CLASS}>
+                      <button type="button" onClick={() => onDelete(p.id)} aria-label={t('studio.pages.delete')} className={TAB_ICON_CLASS}>
                         <X size={13} strokeWidth={2} />
                       </button>
                     </TooltipTrigger>
@@ -185,14 +187,14 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
               type="button"
               onClick={onAdd}
               disabled={busy}
-              aria-label="Ajouter une page"
+              aria-label={t('studio.pages.add')}
               className={cn(TAB_ICON_CLASS, 'w-[28px] h-[28px] disabled:opacity-40')}
             >
               <Plus size={16} strokeWidth={2} />
             </button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>Ajouter une page</TooltipContent>
+        <TooltipContent>{t('studio.pages.add')}</TooltipContent>
       </Tooltip>
 
       {onReset && (
@@ -231,11 +233,11 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
                     disabled={busy}
                     className="h-[24px] shrink-0 cursor-pointer whitespace-nowrap text-2xs font-medium text-muted-foreground hover:text-destructive-ink"
                   >
-                    <RotateCcw size={12} strokeWidth={2} /> Repartir de zéro
+                    <RotateCcw size={12} strokeWidth={2} /> {t('studio.pages.reset')}
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>Supprimer toutes les pages et repartir d&apos;une page d&apos;accueil vierge</TooltipContent>
+              <TooltipContent>{t('studio.pages.resetHint')}</TooltipContent>
             </Tooltip>
           )}
         </div>

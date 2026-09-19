@@ -235,7 +235,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           variant="outline"
         >
           <Visibility size={15} strokeWidth={1.75} />
-          Détails
+          {t('interventions.table.details')}
         </Button>
         {canEdit && (
           <Button

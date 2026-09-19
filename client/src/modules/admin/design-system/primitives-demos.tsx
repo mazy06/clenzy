@@ -420,7 +420,6 @@ export function BDateRangePickerDemo() {
       endDate={end}
       onChangeStart={setStart}
       onChangeEnd={setEnd}
-      isFrench
       label="Période du rapport"
     />
   );

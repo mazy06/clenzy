@@ -45,14 +45,14 @@ export default function ServiceMapRow({ request, to, badges, serviceType, childr
     className="group block min-w-0 cursor-pointer p-4 text-foreground no-underline transition-colors duration-150 motion-reduce:transition-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2">
     <div className="flex items-start justify-between gap-3">
       <span className="text-sm font-semibold leading-snug">{stripPropertySuffix(request.title, request.propertyName)}</span>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <ChevronRight className="cn-rtl-flip size-4 shrink-0 text-muted-foreground" aria-hidden />
     </div>
     <span className="mt-1 block text-xs text-muted-foreground">{serviceLabel}</span>
     <div className="my-3 grid grid-cols-[minmax(0,1fr)_minmax(90px,34%)] gap-3">
     <div className="flex min-w-0 items-start gap-2">
       <PropertyThumb key={request.propertyId} property={property.data ?? null} name={request.propertyName} className="h-12 w-14" />
       <div className="min-w-0">
-        <span className="block truncate text-sm font-medium">{request.propertyName}</span>
+        <span dir="auto" className="block truncate text-sm font-medium">{request.propertyName}</span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground" title={request.propertyAddress}>{request.propertyAddress}</span>
         {request.propertyCity && <span className="block text-xs text-muted-foreground">{request.propertyCity}</span>}
       </div>

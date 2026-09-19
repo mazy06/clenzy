@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui';
 import { ArrowBack } from '../../../icons';
 
@@ -7,15 +8,19 @@ interface PanelSubViewHeaderProps {
   onBack: () => void;
 }
 
-const PanelSubViewHeader: React.FC<PanelSubViewHeaderProps> = ({ title, onBack }) => (
+const PanelSubViewHeader: React.FC<PanelSubViewHeaderProps> = ({ title, onBack }) => {
+  const { t } = useTranslation();
+
+  return (
   <div className="flex items-center gap-1.5 min-h-[40px] px-1.5 border-b border-[var(--bui-border)]">
-    <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Retour">
+    <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label={t('planning.panel.back', 'Retour')}>
       <ArrowBack size={18} strokeWidth={1.75} />
     </Button>
     <h6 className="cn-text-subtitle2 font-bold text-[0.75rem] uppercase tracking-[0.03em] overflow-hidden text-ellipsis whitespace-nowrap">
       {title}
     </h6>
   </div>
-);
+  );
+};
 
 export default PanelSubViewHeader;

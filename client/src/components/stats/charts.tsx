@@ -18,6 +18,8 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../ui/chart';
 import { useChartThumbnail } from './chartThumbnail';
+// Hors composant / valeur par defaut : la langue se lit a l'appel.
+import i18n from '../../i18n/config';
 
 /**
  * Les graphiques du langage « statistiques » de Baitly.
@@ -246,7 +248,7 @@ const nonZero = (buckets: StatBucket[]) => buckets.filter((b) => b.count !== 0);
 
 export const EmptyChart: React.FC<{ message?: string }> = ({ message }) => (
   <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-    {message ?? 'Aucune donnée à représenter.'}
+    {message ?? i18n.t('stats.noChartData')}
   </div>
 );
 

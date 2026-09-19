@@ -3,6 +3,7 @@ import { Field, FieldDescription, FieldError, FieldLabel, InputGroupAddon, Spinn
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from './ui/combobox';
 import { LocationCity as LocationCityIcon } from '../icons';
 import { useCityAutocomplete } from '../hooks/useCityAutocomplete';
+import { useTranslation } from '../hooks/useTranslation';
 import type { GeocodedAddress } from '../services/geocoderApi';
 
 interface CityAutocompleteProps {
@@ -31,13 +32,16 @@ export function CityAutocomplete({
   onSelect,
   onChange,
   countryCode = 'FR',
-  label = 'Ville',
-  placeholder = 'Rechercher une ville...',
+  label,
+  placeholder,
   error,
   helperText,
   required,
 }: CityAutocompleteProps) {
+  const { t } = useTranslation();
   const inputId = useId();
+  const fieldLabel = label ?? t('common.city');
+  const fieldPlaceholder = placeholder ?? t('city.searchPlaceholder');
   const { options, isLoading, inputValue, setInputValue } = useCityAutocomplete({
     countryCode,
     minLength: 2,
@@ -45,7 +49,7 @@ export function CityAutocomplete({
 
   return (
     <Field>
-      <FieldLabel htmlFor={inputId}>{required ? `${label} *` : label}</FieldLabel>
+      <FieldLabel htmlFor={inputId}>{required ? `${fieldLabel} *` : fieldLabel}</FieldLabel>
       {/* `filter={null}` : la liste vient deja filtree du geocodeur — equivalent
           du `filterOptions={(x) => x}` de MUI. La saisie libre (ancien freeSolo)
           reste possible : seule l'entree est controlee, la selection est
@@ -73,7 +77,7 @@ export function CityAutocomplete({
       >
         <ComboboxInput
           id={inputId}
-          placeholder={placeholder}
+          placeholder={fieldPlaceholder}
           required={required}
           aria-invalid={error || undefined}
         >
@@ -84,7 +88,7 @@ export function CityAutocomplete({
           )}
         </ComboboxInput>
         <ComboboxContent>
-          <ComboboxEmpty>{isLoading ? 'Recherche...' : 'Aucune ville trouvee'}</ComboboxEmpty>
+          <ComboboxEmpty>{isLoading ? t('common.searching') : t('city.noneFound')}</ComboboxEmpty>
           <ComboboxList>
             {(option: GeocodedAddress) => (
               <ComboboxItem key={option.label} value={option}>

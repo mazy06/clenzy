@@ -50,13 +50,8 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
   );
 
   return (
-    <div className="rounded-xl border border-solid border-border p-2">
-      {/* Section overline (pattern .rm-sec des modales) */}
-      <span className="mb-2 block text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {t('automation.form.conditionsSection', 'Conditions (optionnel)')}
-      </span>
-
-      <div className="flex flex-col gap-[9px]">
+    <div className="pb-5">
+      <div className="flex flex-col gap-4">
         <Field>
           <FieldLabel htmlFor="automation-cond-properties">
             {t('automation.form.properties', 'Logements concernés')}
@@ -81,6 +76,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
                     ))}
                     <ComboboxChipsInput
                       id="automation-cond-properties"
+                      className="bg-transparent placeholder:text-muted-foreground"
                       placeholder={t(
                         'automation.form.propertiesPlaceholder',
                         'Tous les logements si vide',
@@ -90,7 +86,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
                 )}
               </ComboboxValue>
             </ComboboxChips>
-            {/* Le popup est porté hors du DialogContent (Radix y coupe les
+            {/* Le popup est porté hors du panneau d'édition (Radix y coupe les
                 pointer-events du reste du document) : sans `pointer-events-auto`
                 les options ne seraient pas cliquables. */}
             <ComboboxContent anchor={propertiesAnchor} className="pointer-events-auto">
@@ -108,7 +104,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
           </Combobox>
         </Field>
 
-        <div className="flex flex-row gap-[9px]">
+        <div className="automation-field-pair">
           <Field>
             <FieldLabel htmlFor="automation-cond-min-nights">
               {t('automation.form.minNights', 'Nuits min.')}

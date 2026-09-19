@@ -11,6 +11,7 @@ import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/chan
 import OtaInfoDialog from './OtaInfoDialog';
 import ServiceGridCard from './ServiceGridCard';
 import { blockInteraction } from './disabledIntegration';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Vitrine visuelle des OTAs dans l'onglet Integrations.
@@ -51,6 +52,7 @@ interface OtaShowcaseSectionProps {
 }
 
 export default function OtaShowcaseSection({ serviceFilter = null, disabled = false }: OtaShowcaseSectionProps = {}) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isConnected, getStatus } = useChannelConnections();
   const { data: airbnbStatus } = useAirbnbConnectionStatus();
@@ -77,16 +79,16 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
               <p className="text-sm font-semibold tracking-tight">
-                Canaux de réservation (OTAs)
+                {t('settings.ota.showcaseTitle')}
               </p>
               {disabled && (
                 <Badge variant="secondary" className="h-[18px] px-1.5 text-2xs">
-                  Bientôt disponible
+                  {t('settings.integrations.status.comingSoon')}
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Connectez vos OTAs ici ou depuis l'onglet <strong>Channels</strong> dédié. Les modifications sont synchronisées entre les deux vues.
+              {t('settings.ota.showcaseHead')} <strong>Channels</strong> {t('settings.ota.showcaseTail')}
             </p>
           </div>
           <Button
@@ -95,7 +97,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
             onClick={() => navigate('/channels')}
             className="shrink-0"
           >
-            Voir dans Channels
+            {t('settings.ota.seeInChannels')}
             <ArrowRightIcon size={14} strokeWidth={2} />
           </Button>
         </div>

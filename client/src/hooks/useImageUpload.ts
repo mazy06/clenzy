@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { assistantApi, type AttachmentRef, type UploadResponse } from '../services/api/assistantApi';
+import { useTranslation } from './useTranslation';
 
 /**
  * Hook pour uploader des images dans le chat assistant (vision support).
@@ -42,6 +43,7 @@ export interface UseImageUploadResult {
 }
 
 export function useImageUpload(): UseImageUploadResult {
+  const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +87,7 @@ export function useImageUpload(): UseImageUploadResult {
         name: response.name,
       };
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload impossible";
+      const msg = e instanceof Error ? e.message : t('assistant.uploadFailed');
       setError(msg);
       throw e;
     } finally {

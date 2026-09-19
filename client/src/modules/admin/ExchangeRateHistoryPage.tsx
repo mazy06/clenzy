@@ -14,6 +14,8 @@ import StatTile from '../../components/baitly/StatTile';
 import { exchangeRateApi, type ExchangeRateHistoryParams } from '../../services/api/exchangeRateApi';
 import { useCurrency } from '../../hooks/useCurrency';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Palette catégorielle devises (accents Baitly — pattern catégoriel à arbitrer, cf. baseline §7)
 const CURRENCY_COLORS: Record<string, string> = {
@@ -63,11 +65,14 @@ const CURRENCY_PAIRS = [
   { base: 'SAR', target: 'MAD', label: 'SAR → MAD' },
 ];
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' });
+// Construit à l'APPEL, pas à l'import : un `Intl` de module se fige sur la
+// langue du chargement et resterait en français après un passage en arabe.
+// `Intl` met déjà ses formateurs en cache en interne.
+const dateFormatter = () => new Intl.DateTimeFormat(activeIntlLocale(), { dateStyle: 'medium' });
 
 function formatDate(iso: string): string {
   try {
-    return DATE_FORMATTER.format(new Date(iso));
+    return dateFormatter().format(new Date(iso));
   } catch {
     return iso;
   }
@@ -90,6 +95,7 @@ function defaultTo(): string {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ExchangeRateHistoryPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { rateDate } = useCurrency();
 
@@ -155,8 +161,8 @@ export default function ExchangeRateHistoryPage() {
   return (
     <div>
       <PageHeader
-        title="Historique des taux de change"
-        subtitle="Taux de change BCE mis a jour quotidiennement"
+        title="{t('admin.rates.title')}"
+        subtitle="{t('admin.rates.subtitle')}"
         iconBadge={<CurrencyExchange />}
         showBackButton={false}
         actions={
@@ -207,7 +213,7 @@ export default function ExchangeRateHistoryPage() {
           {/* Largeurs figees : ces champs vivent dans une rangee flex, le `w-full`
               du kit les ferait passer chacun sur sa propre ligne. */}
           <Field className="w-[190px]">
-            <FieldLabel htmlFor="exchange-rate-pair">Paire de devises</FieldLabel>
+            <FieldLabel htmlFor="exchange-rate-pair">{t('admin.rates.pair')}</FieldLabel>
             <NativeSelect
               id="exchange-rate-pair"
               className="w-full"
@@ -261,7 +267,7 @@ export default function ExchangeRateHistoryPage() {
                     <StatusChip tokens={STAT_TOKENS.min} label={`Min: ${formatRate(stats.min)}`} />
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>Minimum sur la periode</TooltipContent>
+                <TooltipContent>{t('admin.rates.min')}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -269,7 +275,7 @@ export default function ExchangeRateHistoryPage() {
                     <StatusChip tokens={STAT_TOKENS.max} label={`Max: ${formatRate(stats.max)}`} />
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>Maximum sur la periode</TooltipContent>
+                <TooltipContent>{t('admin.rates.max')}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -277,7 +283,7 @@ export default function ExchangeRateHistoryPage() {
                     <StatusChip tokens={STAT_TOKENS.avg} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>Moyenne sur la periode</TooltipContent>
+                <TooltipContent>{t('admin.rates.avg')}</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -287,7 +293,7 @@ export default function ExchangeRateHistoryPage() {
       {refreshMutation.isSuccess && (
         <BuiAlert variant="success" className="mb-3">
           <CircleCheck />
-          <AlertDescription>Taux de change mis a jour avec succes depuis la BCE.</AlertDescription>
+          <AlertDescription>{t('admin.rates.updated')}</AlertDescription>
           <AlertAction>
             <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => refreshMutation.reset()}>
               <X />
@@ -299,7 +305,7 @@ export default function ExchangeRateHistoryPage() {
       {error && (
         <BuiAlert variant="destructive" className="mb-3">
           <TriangleAlert />
-          <AlertDescription>Erreur lors du chargement de l'historique des taux.</AlertDescription>
+          <AlertDescription>{t('admin.rates.loadError')}</AlertDescription>
         </BuiAlert>
       )}
 
@@ -330,7 +336,7 @@ export default function ExchangeRateHistoryPage() {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-6">
                         <p className="text-sm text-muted-foreground">
-                          Aucun taux de change sur cette periode.
+                          {t('admin.rates.empty')}
                         </p>
                       </TableCell>
                     </TableRow>

@@ -1,3 +1,4 @@
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { Alert, AlertDescription, Skeleton } from '../../../../components/ui';
 import { AlertTriangle } from 'lucide-react';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
@@ -12,14 +13,14 @@ import {
  * fenêtre de réservation, politique d'annulation, liens légaux. Save = PUT config complet.
  */
 
-const CURRENCIES = [
-  { value: 'EUR', label: 'Euro (€)' },
-  { value: 'USD', label: 'Dollar US ($)' },
-  { value: 'GBP', label: 'Livre sterling (£)' },
-  { value: 'CHF', label: 'Franc suisse (CHF)' },
-  { value: 'CAD', label: 'Dollar canadien (C$)' },
-  { value: 'MAD', label: 'Dirham marocain (MAD)' },
-];
+// Les devises ne portent que leur CODE : le nom se lit dans `currencies.*` au
+// rendu, comme dans le sélecteur de l'application. Les libellés d'origine
+// répétaient le symbole entre parenthèses — « (MAD) » et « (CHF) » y écrivaient
+// un code ISO là où les autres montraient un signe.
+//
+// SAR figure désormais dans la liste : l'application sait afficher et convertir
+// le riyal, le moteur de réservation devait pouvoir être tarifé avec.
+const CURRENCY_CODES = ['EUR', 'SAR', 'MAD', 'USD', 'GBP', 'CHF', 'CAD'] as const;
 
 const LANGUAGES = [
   { value: 'fr', label: 'Français' },
@@ -27,10 +28,9 @@ const LANGUAGES = [
   { value: 'ar', label: 'العربية' },
 ];
 
-const DATA_SOURCE_MODES = [
-  { value: 'REAL', label: 'Vraies données du tenant' },
-  { value: 'MOCK', label: 'Données de démonstration' },
-];
+// Même règle que les devises : seule la CLEF vit ici, le libellé se lit au
+// rendu — figé à l'import, il resterait français.
+const DATA_SOURCE_MODES = ['REAL', 'MOCK'] as const;
 
 export interface BookingSettingsPanelProps {
   config: BookingEngineConfig | null;
@@ -43,6 +43,9 @@ export interface BookingSettingsPanelProps {
 }
 
 export default function BookingSettingsPanel({ config, loading, error, saving, dirty, patch, onSave }: BookingSettingsPanelProps) {
+  // Appelé avant tout retour anticipé (règle des hooks).
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
@@ -59,7 +62,7 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
       <div className="m-6">
         <Alert variant="destructive">
           <AlertTriangle />
-          <AlertDescription>{error ?? 'Config introuvable.'}</AlertDescription>
+          <AlertDescription>{error ?? t('bookingSettings.notFound')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -67,45 +70,63 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
 
   return (
     <SettingsPage
-      title="Réservation"
-      description="Les règles de réservation appliquées à ce booking engine."
+      title={t('bookingSettings.title', 'Réservation')}
+      description={t('bookingSettings.description')}
       footer={<SaveBar dirty={dirty} saving={saving} onSave={onSave} error={error} />}
     >
-      <SettingCard title="Source de données" description="Vraies données du tenant ou jeu de démonstration.">
+      <SettingCard
+        title={t('bookingSettings.dataSource.title')}
+        description={t('bookingSettings.dataSource.description')}
+      >
         <SettingRow
-          label="Mode de données"
-          helper="« Vraies données » : propriétés, tarifs et disponibilités réels du tenant. « Démonstration » : jeu de démo générique, aucune réservation ni paiement réel — idéal pour prévisualiser le design avant la mise en ligne."
+          label={t('bookingSettings.dataSource.label')}
+          helper={t('bookingSettings.dataSource.helper')}
           htmlFor="cfg-data-source"
           control={
-            <SelectControl id="cfg-data-source" value={config.dataSourceMode ?? 'REAL'}
-              onChange={(v) => patch({ dataSourceMode: v as 'REAL' | 'MOCK' })} options={DATA_SOURCE_MODES} />
+            <SelectControl
+              id="cfg-data-source"
+              value={config.dataSourceMode ?? 'REAL'}
+              onChange={(v) => patch({ dataSourceMode: v as 'REAL' | 'MOCK' })}
+              options={DATA_SOURCE_MODES.map((mode) => ({
+                value: mode,
+                label: t(`bookingSettings.dataSource.${mode === 'REAL' ? 'real' : 'mock'}`),
+              }))}
+            />
           }
         />
       </SettingCard>
 
-      <SettingCard title="Devise & langue" description="Valeurs par défaut présentées aux voyageurs.">
-        <SettingRow label="Devise" htmlFor="cfg-currency" control={
-          <SelectControl id="cfg-currency" value={config.defaultCurrency} onChange={(v) => patch({ defaultCurrency: v })} options={CURRENCIES} />
+      <SettingCard
+        title={t('bookingSettings.locale.title')}
+        description={t('bookingSettings.locale.description')}
+      >
+        <SettingRow label={t('bookingSettings.locale.currency', 'Devise')} htmlFor="cfg-currency" control={
+          <SelectControl
+            id="cfg-currency"
+            value={config.defaultCurrency}
+            onChange={(v) => patch({ defaultCurrency: v })}
+            options={CURRENCY_CODES.map((code) => ({ value: code, label: t(`currencies.${code}`) }))}
+          />
         } />
-        <SettingRow label="Langue par défaut" htmlFor="cfg-lang" control={
+        <SettingRow label={t('bookingSettings.locale.language')} htmlFor="cfg-lang" control={
           <SelectControl id="cfg-lang" value={config.defaultLanguage} onChange={(v) => patch({ defaultLanguage: v })} options={LANGUAGES} />
         } />
       </SettingCard>
 
-      <SettingCard title="Paiement & confirmation">
+      <SettingCard title={t('bookingSettings.payment.title')}>
         <SettingRow
-          label="Encaisser à la réservation"
-          helper="Le paiement Stripe est exigé au moment de réserver."
+          label={t('bookingSettings.payment.collect')}
+          helper={t('bookingSettings.payment.collectHelper')}
           control={<ToggleControl checked={config.collectPaymentOnBooking} onChange={(v) => patch({ collectPaymentOnBooking: v })} />}
         />
         <SettingRow
-          label="Confirmation automatique"
-          helper="Les réservations sont confirmées sans validation manuelle."
+          label={t('bookingSettings.payment.autoConfirm')}
+          helper={t('bookingSettings.payment.autoConfirmHelper')}
           control={<ToggleControl checked={config.autoConfirm} onChange={(v) => patch({ autoConfirm: v })} />}
         />
         <SettingRow
-          label="Durée du hold (minutes)"
-          helper="Délai avant qu'une réservation non payée soit annulée et les dates libérées (défaut 30)."
+          label={t('bookingSettings.payment.hold')}
+          helper={t('bookingSettings.payment.holdHelper')}
           htmlFor="cfg-hold-minutes"
           control={
             <NumberControl id="cfg-hold-minutes" value={config.pendingHoldMinutes ?? 30}
@@ -114,15 +135,21 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
         />
       </SettingCard>
 
-      <SettingCard title="Frais affichés" description="Lignes de prix visibles dans le récapitulatif.">
-        <SettingRow label="Afficher les frais de ménage" control={<ToggleControl checked={config.showCleaningFee} onChange={(v) => patch({ showCleaningFee: v })} />} />
-        <SettingRow label="Afficher la taxe de séjour" control={<ToggleControl checked={config.showTouristTax} onChange={(v) => patch({ showTouristTax: v })} />} />
+      <SettingCard
+        title={t('bookingSettings.fees.title')}
+        description={t('bookingSettings.fees.description')}
+      >
+        <SettingRow label={t('bookingSettings.fees.cleaning')} control={<ToggleControl checked={config.showCleaningFee} onChange={(v) => patch({ showCleaningFee: v })} />} />
+        <SettingRow label={t('bookingSettings.fees.touristTax')} control={<ToggleControl checked={config.showTouristTax} onChange={(v) => patch({ showTouristTax: v })} />} />
       </SettingCard>
 
-      <SettingCard title="Réservation directe" description="Récompensez la réservation en direct par une remise — « Book Direct & Save ».">
+      <SettingCard
+        title={t('bookingSettings.direct.title')}
+        description={t('bookingSettings.direct.description')}
+      >
         <SettingRow
-          label="Remise réservation directe (%)"
-          helper="Appliquée au sous-total ; 0 = aucune. L'économie réalisée est affichée au voyageur dans le récapitulatif."
+          label={t('bookingSettings.direct.discount')}
+          helper={t('bookingSettings.direct.discountHelper')}
           htmlFor="cfg-direct-discount"
           control={
             <NumberControl id="cfg-direct-discount" value={config.directBookingDiscountPercent ?? 0}
@@ -130,8 +157,8 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
           }
         />
         <SettingRow
-          label="Tarif membre (%)"
-          helper="Remise pour un voyageur connecté à son compte. Le membre obtient la meilleure des deux remises (directe ou membre) ; 0 = aucune."
+          label={t('bookingSettings.direct.member')}
+          helper={t('bookingSettings.direct.memberHelper')}
           htmlFor="cfg-member-discount"
           control={
             <NumberControl id="cfg-member-discount" value={config.memberDiscountPercent ?? 0}
@@ -140,23 +167,26 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
         />
       </SettingCard>
 
-      <SettingCard title="Fenêtre de réservation" description="Anticipation minimale et maximale, en jours.">
-        <SettingRow label="Délai minimum (jours)" htmlFor="cfg-min" control={
+      <SettingCard
+        title={t('bookingSettings.window.title')}
+        description={t('bookingSettings.window.description')}
+      >
+        <SettingRow label={t('bookingSettings.window.min')} htmlFor="cfg-min" control={
           <NumberControl id="cfg-min" value={config.minAdvanceDays} onChange={(v) => patch({ minAdvanceDays: v })} min={0} max={365} />
         } />
-        <SettingRow label="Horizon maximum (jours)" htmlFor="cfg-max" control={
+        <SettingRow label={t('bookingSettings.window.max')} htmlFor="cfg-max" control={
           <NumberControl id="cfg-max" value={config.maxAdvanceDays} onChange={(v) => patch({ maxAdvanceDays: v })} min={1} max={1095} />
         } />
       </SettingCard>
 
-      <SettingCard title="Politique & mentions">
-        <SettingRow label="Politique d'annulation" htmlFor="cfg-cancel" control={
-          <TextAreaControl id="cfg-cancel" value={config.cancellationPolicy ?? ''} onChange={(v) => patch({ cancellationPolicy: v || null })} placeholder="Ex. : annulation gratuite jusqu'à 7 jours avant l'arrivée." />
+      <SettingCard title={t('bookingSettings.policy.title')}>
+        <SettingRow label={t('bookingSettings.policy.cancellation')} htmlFor="cfg-cancel" control={
+          <TextAreaControl id="cfg-cancel" value={config.cancellationPolicy ?? ''} onChange={(v) => patch({ cancellationPolicy: v || null })} placeholder={t('bookingSettings.policy.cancellationPlaceholder')} />
         } />
-        <SettingRow label="URL des CGV" htmlFor="cfg-terms" control={
+        <SettingRow label={t('bookingSettings.policy.terms')} htmlFor="cfg-terms" control={
           <TextControl id="cfg-terms" type="url" value={config.termsUrl ?? ''} onChange={(v) => patch({ termsUrl: v || null })} placeholder="https://…" />
         } />
-        <SettingRow label="URL confidentialité" htmlFor="cfg-privacy" control={
+        <SettingRow label={t('bookingSettings.policy.privacy')} htmlFor="cfg-privacy" control={
           <TextControl id="cfg-privacy" type="url" value={config.privacyUrl ?? ''} onChange={(v) => patch({ privacyUrl: v || null })} placeholder="https://…" />
         } />
       </SettingCard>

@@ -36,28 +36,36 @@ import {
   type NoiseAlertDto,
 } from '../../hooks/useNoiseAlerts';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from 'react-i18next';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) +
-    ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: '2-digit', year: '2-digit' }) +
+    ' ' + d.toLocaleTimeString(activeIntlLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 function SeverityChip({ severity }: { severity: string }) {
+  const { t } = useTranslation();
   const isWarning = severity === 'WARNING';
   return (
     <StatusChip
       icon={isWarning ? <Warning size={12} strokeWidth={1.75} /> : <ErrorIcon size={12} strokeWidth={1.75} />}
-      label={isWarning ? 'Avertissement' : 'Critique'}
+      label={t(isWarning ? 'noiseAlerts.severity.warning' : 'noiseAlerts.severity.critical')}
       tone={isWarning ? 'warn' : 'err'}
     />
   );
 }
 
 function SourceChip({ source }: { source: string }) {
-  const label = source === 'WEBHOOK' ? 'Temps reel' : source === 'SCHEDULER' ? 'Poll' : source;
+  const { t } = useTranslation();
+  const label = source === 'WEBHOOK'
+    ? t('noiseAlerts.source.webhook')
+    : source === 'SCHEDULER'
+      ? t('noiseAlerts.source.scheduler')
+      : source;
   return (
     <BuiBadge variant="outline" className="h-[20px] text-[0.625rem] px-0.5">{label}</BuiBadge>
   );
@@ -71,6 +79,7 @@ interface NoiseAlertHistoryProps {
 }
 
 const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => {
+  const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [severityFilter, setSeverityFilter] = useState<string>('');
@@ -128,20 +137,20 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
               )}
             </span>
             <h6 className="text-sm font-semibold text-foreground">
-              Historique des alertes
+              {t('noiseAlerts.title')}
             </h6>
           </div>
 
           <NativeSelect
             size="sm"
-            aria-label="Filtrer par severite"
+            aria-label={t('noiseAlerts.filterSeverity')}
             className="min-w-[140px] [&>select]:text-[0.75rem]"
             value={severityFilter}
             onChange={(e) => { setSeverityFilter(e.target.value); setPage(0); }}
           >
-            <NativeSelectOption value="">Toutes severites</NativeSelectOption>
-            <NativeSelectOption value="WARNING">Avertissement</NativeSelectOption>
-            <NativeSelectOption value="CRITICAL">Critique</NativeSelectOption>
+            <NativeSelectOption value="">{t('noiseAlerts.allSeverities')}</NativeSelectOption>
+            <NativeSelectOption value="WARNING">{t('noiseAlerts.severity.warning')}</NativeSelectOption>
+            <NativeSelectOption value="CRITICAL">{t('noiseAlerts.severity.critical')}</NativeSelectOption>
           </NativeSelect>
         </div>
 
@@ -155,9 +164,9 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
               <EmptyMedia variant="icon">
                 <History />
               </EmptyMedia>
-              <EmptyTitle>Aucune alerte enregistree</EmptyTitle>
+              <EmptyTitle>{t('noiseAlerts.emptyTitle')}</EmptyTitle>
               <EmptyDescription className="text-xs">
-                Les depassements de seuil apparaitront ici des qu'un capteur en remontera.
+                {t('noiseAlerts.emptyBody')}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -167,14 +176,14 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className={HEADER_CELL_CLASS}>Date</TableHead>
-                    <TableHead className={HEADER_CELL_CLASS}>Propriete</TableHead>
-                    <TableHead className={HEADER_CELL_CLASS}>Severite</TableHead>
-                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>Mesure</TableHead>
-                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>Seuil</TableHead>
-                    <TableHead className={HEADER_CELL_CLASS}>Creneau</TableHead>
-                    <TableHead className={HEADER_CELL_CLASS}>Source</TableHead>
-                    <TableHead className={`${HEADER_CELL_CLASS} text-center`}>Statut</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>{t('noiseAlerts.cols.date')}</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>{t('noiseAlerts.cols.property')}</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>{t('noiseAlerts.cols.severity')}</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>{t('noiseAlerts.cols.measure')}</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>{t('noiseAlerts.cols.threshold')}</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>{t('noiseAlerts.cols.window')}</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>{t('noiseAlerts.cols.source')}</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-center`}>{t('noiseAlerts.cols.status')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -211,7 +220,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"
-                                  aria-label="Acquitter"
+                                  aria-label={t('noiseAlerts.acknowledge')}
                                   className="text-warning"
                                   onClick={() => setAckDialog({ open: true, alertId: alert.id })}
                                 >
@@ -247,10 +256,10 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
         >
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="pe-8 text-[0.95rem]">Acquitter l'alerte</DialogTitle>
+              <DialogTitle className="pe-8 text-[0.95rem]">{t('noiseAlerts.acknowledgeTitle')}</DialogTitle>
             </DialogHeader>
             <Field>
-              <FieldLabel htmlFor="noise-alert-ack-notes">Notes (optionnel)</FieldLabel>
+              <FieldLabel htmlFor="noise-alert-ack-notes">{t('noiseAlerts.notes')}</FieldLabel>
               {/* min-h en `lh` : le primitif pose field-sizing:content, qui neutralise `rows`. */}
               <Textarea
                 id="noise-alert-ack-notes"
@@ -272,7 +281,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                 onClick={handleAcknowledge}
                 disabled={ackMutation.isPending}
               >
-                {ackMutation.isPending ? 'Acquittement...' : 'Acquitter'}
+                {ackMutation.isPending ? t('noiseAlerts.acknowledging') : t('noiseAlerts.acknowledge')}
               </Button>
             </DialogFooter>
           </DialogContent>

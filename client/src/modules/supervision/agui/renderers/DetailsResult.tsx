@@ -16,6 +16,7 @@ import {
   humanizeStatus,
   statusTone,
 } from './shared';
+import { activeIntlLocale } from '../../../../utils/activeLocale';
 
 type Details = Record<string, unknown>;
 
@@ -31,7 +32,7 @@ function formatValue(key: string, value: unknown, currency?: unknown): React.Rea
     return <StatusChip label={humanizeStatus(value)} tone={statusTone(value)} />;
   }
   if (DATE_KEYS.has(key)) {
-    return new Date(String(value)).toLocaleDateString('fr-FR', {
+    return new Date(String(value)).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit',
       month: 'short',
       year: 'numeric',

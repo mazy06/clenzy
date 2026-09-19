@@ -1,7 +1,15 @@
 import { useState, useCallback, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ZoomLevel } from '../types';
 import { ZOOM_CONFIGS, BUFFER_MULTIPLIER, EXTEND_THRESHOLD_DAYS } from '../constants';
 import { generateDays, addDays, subDays } from '../utils/dateUtils';
+import { isRtlLanguage } from '../../../utils/localeDate';
+import {
+  getInlineScroll,
+  nudgeInlineScroll,
+  setInlineScroll,
+  smoothInlineScroll,
+} from '../../../utils/inlineScroll';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -23,9 +31,13 @@ export interface UseInfiniteTimelineReturn {
   scrollToAnchor: () => void;
 }
 
-/** Index du jour situe au bord gauche de la zone de grille. */
-function firstVisibleIndex(scrollLeft: number, dayWidth: number): number {
-  return Math.floor(Math.max(0, scrollLeft) / dayWidth);
+/**
+ * Index du jour situe au bord AMONT de la zone de grille — a gauche en
+ * francais, a droite en arabe. `offset` est un decalage logique (cf.
+ * `utils/inlineScroll`), donc toujours positif.
+ */
+function firstVisibleIndex(offset: number, dayWidth: number): number {
+  return Math.floor(Math.max(0, offset) / dayWidth);
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
@@ -51,13 +63,14 @@ function firstVisibleIndex(scrollLeft: number, dayWidth: number): number {
  * en boucle : d'ou les sauts de plusieurs mois et le defilement fige.</p>
  */
 /**
- * Decalage horizontal qui pose `targetDate` en 3e colonne de la grille, ou
- * `null` si ce jour n'est pas dans le buffer.
+ * Decalage horizontal LOGIQUE (0 = debut du buffer, cf. `utils/inlineScroll`)
+ * qui pose `targetDate` en 3e colonne de la grille, ou `null` si ce jour n'est
+ * pas dans le buffer.
  *
  * <p>Pur et exporte : le squelette de chargement s'ouvre sur cette meme
  * fenetre, faute de quoi la grille sauterait lateralement en apparaissant.</p>
  */
-export function scrollLeftForDateIn(days: Date[], targetDate: Date, dayWidth: number): number | null {
+export function inlineScrollForDateIn(days: Date[], targetDate: Date, dayWidth: number): number | null {
   const targetIndex = days.findIndex(
     (d) =>
       d.getFullYear() === targetDate.getFullYear() &&
@@ -65,7 +78,7 @@ export function scrollLeftForDateIn(days: Date[], targetDate: Date, dayWidth: nu
       d.getDate() === targetDate.getDate(),
   );
   if (targetIndex < 0) return null;
-  // Le jour vise se pose en 3e colonne (2 colonnes de marge a gauche).
+  // Le jour vise se pose en 3e colonne (2 colonnes de marge en amont).
   return Math.max(0, (targetIndex - 2) * dayWidth);
 }
 
@@ -75,6 +88,16 @@ export function useInfiniteTimeline({
   dayWidth,
   propertyColWidth,
 }: UseInfiniteTimelineConfig): UseInfiniteTimelineReturn {
+  const { i18n } = useTranslation();
+  // En arabe la grille se lit de droite a gauche : `scrollLeft` y part de 0 au
+  // bord DROIT et devient negatif. Toute la mecanique ci-dessous raisonne en
+  // decalage logique, cette valeur ne sert qu'aux lectures/ecritures du DOM.
+  const isRtl = isRtlLanguage(i18n.language);
+  // L'ecouteur de molette est pose une fois par element, jamais a chaque rendu
+  // (cf. plus bas) : sa fermeture figerait la direction du jour ou elle a ete
+  // creee. Il la relit donc dans une reference.
+  const isRtlRef = useRef(isRtl);
+  isRtlRef.current = isRtl;
   const config = ZOOM_CONFIGS[zoom];
   /** Pas de glissement : une fenetre visible a la fois. */
   const slideAmount = config.visibleDays;
@@ -110,10 +133,11 @@ export function useInfiniteTimeline({
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (el && pendingCompensation.current !== 0) {
-      el.scrollLeft += pendingCompensation.current;
+      nudgeInlineScroll(el, pendingCompensation.current, isRtl);
     }
     pendingCompensation.current = 0;
     slidePending.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bufferStartTime, dayWidth]);
 
   // ── Recentrage sur changement d'ancre ou de zoom ──────────────────────────
@@ -176,7 +200,9 @@ export function useInfiniteTimeline({
       if (target && target.closest('[data-vertical-scroll]')) return;
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         e.preventDefault();
-        el.scrollLeft += e.deltaY;
+        // `+=` sur `scrollLeft` reculerait en arabe : on avance dans le
+        // CONTENU, pas vers la gauche de l'ecran.
+        nudgeInlineScroll(el, e.deltaY, isRtlRef.current);
       }
     };
 
@@ -198,7 +224,7 @@ export function useInfiniteTimeline({
     if (!el || slidePending.current) return;
 
     const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
-    const startIndex = firstVisibleIndex(el.scrollLeft, dayWidth);
+    const startIndex = firstVisibleIndex(getInlineScroll(el), dayWidth);
     const endIndex = startIndex + Math.ceil(gridViewportWidth / dayWidth);
 
     // Glissement vers le passe : la fenetre recule, le contenu se decale vers
@@ -232,8 +258,8 @@ export function useInfiniteTimeline({
 
   // ── Defilement vers une date ─────────────────────────────────────────────
 
-  const scrollLeftForDate = useCallback(
-    (targetDate: Date): number | null => scrollLeftForDateIn(days, targetDate, dayWidth),
+  const inlineScrollForDate = useCallback(
+    (targetDate: Date): number | null => inlineScrollForDateIn(days, targetDate, dayWidth),
     [days, dayWidth],
   );
 
@@ -241,9 +267,9 @@ export function useInfiniteTimeline({
     (targetDate: Date) => {
       const el = scrollRef.current;
       if (!el) return;
-      const left = scrollLeftForDate(targetDate);
+      const offset = inlineScrollForDate(targetDate);
 
-      if (left === null) {
+      if (offset === null) {
         // Cible hors fenetre : on RECENTRE ici meme.
         //
         // L'ancienne version abandonnait en silence, en pariant sur le
@@ -260,19 +286,19 @@ export function useInfiniteTimeline({
         return;
       }
 
-      el.scrollTo({ left, behavior: 'smooth' });
+      smoothInlineScroll(el, offset, isRtl);
     },
-    [scrollLeftForDate, config.visibleDays],
+    [inlineScrollForDate, config.visibleDays, isRtl],
   );
 
   const scrollToAnchor = useCallback(() => {
     requestAnimationFrame(() => {
       const el = scrollRef.current;
       if (!el) return;
-      const left = scrollLeftForDate(anchorDate);
-      if (left !== null) el.scrollLeft = left;
+      const offset = inlineScrollForDate(anchorDate);
+      if (offset !== null) setInlineScroll(el, offset, isRtl);
     });
-  }, [anchorDate, scrollLeftForDate]);
+  }, [anchorDate, inlineScrollForDate, isRtl]);
 
   // ── Repositionnement differe apres recentrage du buffer ──────────────────
 
@@ -284,8 +310,8 @@ export function useInfiniteTimeline({
 
     const el = scrollRef.current;
     if (!el) return;
-    const left = scrollLeftForDate(target);
-    if (left !== null) el.scrollLeft = left;
+    const offset = inlineScrollForDate(target);
+    if (offset !== null) setInlineScroll(el, offset, isRtl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daysIdentity]);
 

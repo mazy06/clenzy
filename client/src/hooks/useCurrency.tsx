@@ -4,6 +4,24 @@ import { CURRENCY_OPTIONS, formatCurrency } from '../utils/currencyUtils';
 import { exchangeRateApi, type RateMatrix } from '../services/api/exchangeRateApi';
 import { useUserPreferences } from './useUserPreferences';
 import { useIsAuthenticated } from './useIsAuthenticated';
+import i18n from '../i18n/config';
+import { normalizeLanguage } from '../utils/localeDate';
+
+/**
+ * Devise que la langue impose d'elle-meme.
+ *
+ * <p>Passer l'interface en arabe, c'est s'adresser au marche du Golfe : les
+ * montants basculent en riyal saoudien sans avoir a le redemander dans les
+ * reglages.</p>
+ *
+ * <p><b>Seul l'arabe figure ici, volontairement.</b> Revenir au francais ne
+ * ramene PAS a l'euro : un gestionnaire marocain travaille en francais et en
+ * dirham, lui reimposer l'euro serait une regression. Quitter l'arabe laisse
+ * donc la devise en place, et l'utilisateur reste libre d'en changer.</p>
+ */
+const CURRENCY_FOR_LANGUAGE: Partial<Record<ReturnType<typeof normalizeLanguage>, CurrencyCode>> = {
+  ar: 'SAR',
+};
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -113,6 +131,36 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
   }, [isAuthed, updatePreferences]);
 
   // Fetch rate matrix when needed (currency !== EUR or stale cache)
+  // ── Langue → devise ──────────────────────────────────────────────────────
+  //
+  // On s'abonne a i18next plutot que d'appeler `setCurrency` depuis chaque
+  // selecteur de langue : il en existe trois (barre laterale, palette de
+  // commandes, detection geographique) et un quatrieme finirait par oublier la
+  // regle. L'evenement, lui, ne s'oublie pas.
+  //
+  // Le premier `languageChanged` du boot (la locale detectee qui se charge) ne
+  // doit RIEN ecraser : la reference part de la langue deja active, un
+  // evenement qui la repete est ignore.
+  const currencyRef = useRef(currency);
+  currencyRef.current = currency;
+  const prevLanguageRef = useRef(normalizeLanguage(i18n.language));
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng: string) => {
+      const next = normalizeLanguage(lng);
+      if (next === prevLanguageRef.current) return;
+      prevLanguageRef.current = next;
+
+      const target = CURRENCY_FOR_LANGUAGE[next];
+      if (target && target !== currencyRef.current) setCurrency(target);
+    };
+
+    i18n.on('languageChanged', handleLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, [setCurrency]);
+
   useEffect(() => {
     const now = Date.now();
     const isStale = now - fetchedAt.current > MATRIX_STALE_MS;

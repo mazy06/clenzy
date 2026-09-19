@@ -39,13 +39,15 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useAiFeatureToggles } from '../../../hooks/useAi';
 import EmptyState from '../../../components/EmptyState';
 import { useScreenSearch } from '../../../components/ScreenChrome';
+import { useTranslation } from '../../../hooks/useTranslation';
 import './studioHome.css';
 
 /**
  * Accueil « studio » du Booking Engine (refonte handoff design_handoff_booking_accueil) :
  * hero + champ IA + éventail de funnels + galerie de templates + liste « Mes booking engines ».
  * Zone de CONTENU uniquement — le chrome (sidebar, top bar segmentée, sous-onglets) est fourni
- * par le parent. Accent module = indigo via le wrapper `data-accent="indigo"`.
+ * par le parent. Accent module = bleu nuit (teinte de la barre laterale,
+ * relevee en luminosite), defini sur `.be-home` dans `studioHome.css`.
  *
  * Câblage : la liste, la création (vierge / depuis funnel / depuis template / depuis le champ IA)
  * sont réelles (bookingEngineApi). Les champs sûrs (couleur/police d'un style ou d'un template,
@@ -131,33 +133,57 @@ type PromptOptionId =
 
 /** Tonalités proposées (la valeur affichée alimente `brief.tone`). */
 const TONE_CHOICES = [
-  { id: 'chaleureux', label: 'Chaleureux & authentique' },
-  { id: 'epure', label: 'Épuré & moderne' },
-  { id: 'luxe', label: 'Luxe & raffiné' },
-  { id: 'convivial', label: 'Convivial & familial' },
+  { id: 'chaleureux', label: 'Chaleureux & authentique', labelKey: 'studioBrief.tones.chaleureux' },
+  { id: 'epure', label: 'Épuré & moderne', labelKey: 'studioBrief.tones.epure' },
+  { id: 'luxe', label: 'Luxe & raffiné', labelKey: 'studioBrief.tones.luxe' },
+  { id: 'convivial', label: 'Convivial & familial', labelKey: 'studioBrief.tones.convivial' },
 ] as const;
 
 /** Langues générables (alignées sur les locales du Studio ; alimente `brief.languages`). */
 const LANGUAGE_OPTIONS = [
-  { code: 'fr', label: 'Français' },
-  { code: 'en', label: 'Anglais' },
-  { code: 'ar', label: 'Arabe' },
+  { code: 'fr', labelKey: 'languages.fr' },
+  { code: 'en', labelKey: 'languages.en' },
+  { code: 'ar', labelKey: 'languages.ar' },
 ] as const;
 
 /** Clientèle cible (valeur = libellé, alimente directement `brief.audience`). */
 const AUDIENCE_CHOICES = ['Familles', 'Couples', "Voyageurs d'affaires", 'Groupes', 'Voyageurs de luxe'] as const;
+/** Cle d'affichage par valeur — la valeur elle-meme part dans le brief, inchangee. */
+const BRIEF_LABEL_KEYS: Record<string, string> = {
+  'Familles': 'studioBrief.audiences.families',
+  'Couples': 'studioBrief.audiences.couples',
+  "Voyageurs d'affaires": 'studioBrief.audiences.business',
+  'Groupes': 'studioBrief.audiences.groups',
+  'Voyageurs de luxe': 'studioBrief.audiences.luxury',
+  'Réservation directe': 'studioBrief.goals.directBooking',
+  'Demande de devis': 'studioBrief.goals.quoteRequest',
+  'Capture de leads': 'studioBrief.goals.leadCapture',
+  'Découverte': 'studioBrief.goals.discovery',
+  'Économique': 'studioBrief.tiers.budget',
+  'Milieu de gamme': 'studioBrief.tiers.midRange',
+  'Premium': 'studioBrief.tiers.premium',
+  'Luxe': 'studioBrief.tiers.luxury',
+  'Sans commission': 'studioBrief.usps.noCommission',
+  'Conciergerie 24/7': 'studioBrief.usps.concierge',
+  'Check-in autonome': 'studioBrief.usps.selfCheckIn',
+  'Animaux acceptés': 'studioBrief.usps.petsAllowed',
+  'Spa / piscine': 'studioBrief.usps.spaPool',
+  'Vue mer': 'studioBrief.usps.seaView',
+  'Petit-déjeuner inclus': 'studioBrief.usps.breakfast',
+  'Parking': 'studioBrief.usps.parking',
+};
 /** Objectif principal / appel à l'action (`brief.goal`). */
 const GOAL_CHOICES = ['Réservation directe', 'Demande de devis', 'Capture de leads', 'Découverte'] as const;
 /** Niveau de gamme (`brief.tier`). */
 const TIER_CHOICES = ['Économique', 'Milieu de gamme', 'Premium', 'Luxe'] as const;
-/** Devises proposées (code ISO → libellé ; `brief.currency` = code). */
-const CURRENCY_CHOICES = [
-  { code: 'EUR', label: 'EUR — Euro' },
-  { code: 'MAD', label: 'MAD — Dirham' },
-  { code: 'USD', label: 'USD — Dollar' },
-  { code: 'GBP', label: 'GBP — Livre' },
-  { code: 'SAR', label: 'SAR — Riyal' },
-] as const;
+/**
+ * Devises proposées (`brief.currency` = code).
+ *
+ * <p>Le libellé se lit dans `currencies.*` au rendu : l'ancienne table répétait
+ * le code ISO devant le nom (« SAR — Riyal »), et restait française quelle que
+ * soit la langue de l'interface.</p>
+ */
+const CURRENCY_CHOICES = ['EUR', 'SAR', 'MAD', 'USD', 'GBP'] as const;
 /** Points forts (multiselect, valeurs = libellés ; `brief.usps`). */
 const USP_CHOICES = [
   'Sans commission', 'Conciergerie 24/7', 'Check-in autonome', 'Animaux acceptés',
@@ -165,16 +191,16 @@ const USP_CHOICES = [
 ] as const;
 /** Pages générables (clé stable → libellé ; `brief.pages` = clés ; miroir de `SiteGenerationPrompts.PAGE_CATALOG`). */
 const PAGE_CHOICES = [
-  { key: 'accueil', label: 'Accueil' },
-  { key: 'logements', label: 'Logements' },
-  { key: 'a-propos', label: 'À propos' },
-  { key: 'contact', label: 'Contact' },
-  { key: 'blog', label: 'Blog' },
-  { key: 'faq', label: 'FAQ' },
-  { key: 'avis', label: 'Avis' },
-  { key: 'galerie', label: 'Galerie' },
-  { key: 'experiences', label: 'Expériences' },
-  { key: 'tarifs', label: 'Tarifs' },
+  { key: 'accueil', label: 'Accueil', labelKey: 'studioBrief.pages.home' },
+  { key: 'logements', label: 'Logements', labelKey: 'studioBrief.pages.properties' },
+  { key: 'a-propos', label: 'À propos', labelKey: 'studioBrief.pages.about' },
+  { key: 'contact', label: 'Contact', labelKey: 'studioBrief.pages.contact' },
+  { key: 'blog', label: 'Blog', labelKey: 'studioBrief.pages.blog' },
+  { key: 'faq', label: 'FAQ', labelKey: 'studioBrief.pages.faq' },
+  { key: 'avis', label: 'Avis', labelKey: 'studioBrief.pages.reviews' },
+  { key: 'galerie', label: 'Galerie', labelKey: 'studioBrief.pages.gallery' },
+  { key: 'experiences', label: 'Expériences', labelKey: 'studioBrief.pages.experiences' },
+  { key: 'tarifs', label: 'Tarifs', labelKey: 'studioBrief.pages.rates' },
 ] as const;
 /** Set de pages par défaut (miroir de `SiteGenerationPrompts.DEFAULT_PAGES`). */
 const DEFAULT_PAGES = ['accueil', 'logements', 'a-propos', 'contact'];
@@ -254,6 +280,7 @@ const PROMPT_OPTIONS: { id: PromptOptionId; label: string; icon: typeof LayoutDa
 ];
 
 export default function StudioHome({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [configs, setConfigs] = useState<BookingEngineConfig[] | null>(null);
@@ -344,7 +371,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       }
       navigate(`/booking-engine/studio/${created.id}`, navState ? { state: navState } : undefined);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Création impossible');
+      setError(e instanceof Error ? e.message : t('studio.createFailed'));
       setCreating(false);
     }
   };
@@ -431,17 +458,20 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       case 'template': {
         const tid = templateId ?? hoveredTemplateId;
         if (tid) return GALLERY_TEMPLATES.find((t) => t.id === tid)?.name ?? 'Template';
-        return funnelId ? 'Aucun' : 'Choisir un funnel';
+        return funnelId ? t('common.none') : t('studioBrief.chooseFunnel');
       }
       case 'style': return styleId ? styleLabel(styleId) : 'Automatique';
-      case 'tone': return tone ? (TONE_CHOICES.find((c) => c.id === tone)?.label ?? tone) : 'Au choix';
+      case 'tone': {
+        const c = TONE_CHOICES.find((x) => x.id === tone);
+        return c ? t(c.labelKey) : t('studioBrief.anyChoice');
+      }
       case 'languages': return languages.length ? languages.map((c) => c.toUpperCase()).join(' · ') : 'Aucune';
-      case 'audience': return audience ?? 'Au choix';
-      case 'goal': return goal ?? 'Au choix';
-      case 'tier': return tier ?? 'Au choix';
+      case 'audience': return audience ? t(BRIEF_LABEL_KEYS[audience]) : t('studioBrief.anyChoice');
+      case 'goal': return goal ? t(BRIEF_LABEL_KEYS[goal]) : t('studioBrief.anyChoice');
+      case 'tier': return tier ? t(BRIEF_LABEL_KEYS[tier]) : t('studioBrief.anyChoice');
       case 'currency': return currency ?? 'Auto';
       case 'usps': return usps.length ? `${usps.length} sélectionné${usps.length > 1 ? 's' : ''}` : 'Aucun';
-      case 'location': return location.trim() || 'À préciser';
+      case 'location': return location.trim() || t('studioBrief.toSpecify');
       case 'pages': return pages.length ? `${pages.length} page${pages.length > 1 ? 's' : ''}` : 'Aucune';
     }
   };
@@ -499,7 +529,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         return (
           <DropdownMenuRadioGroup value={tone ?? ''} onValueChange={setTone}>
             {TONE_CHOICES.map((c) => (
-              <DropdownMenuRadioItem key={c.id} value={c.id} className="text-[13px]">{c.label}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem key={c.id} value={c.id} className="text-[13px]">{t(c.labelKey)}</DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
         );
@@ -514,14 +544,14 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             }}
             className="text-[13px]"
           >
-            {l.label}
+            {t(l.labelKey)}
           </DropdownMenuCheckboxItem>
         ));
       case 'audience':
         return (
           <DropdownMenuRadioGroup value={audience ?? ''} onValueChange={chooseAudience}>
             {AUDIENCE_CHOICES.map((a) => (
-              <DropdownMenuRadioItem key={a} value={a} className="text-[13px]">{a}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem key={a} value={a} className="text-[13px]">{t(BRIEF_LABEL_KEYS[a])}</DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
         );
@@ -535,10 +565,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                   key={g}
                   value={g}
                   disabled={incompatible}
-                  title={incompatible ? 'Incompatible avec le funnel choisi' : undefined}
+                  title={incompatible ? t('studioBrief.incompatibleFunnel') : undefined}
                   className="text-[13px]"
                 >
-                  {g}
+                  {t(BRIEF_LABEL_KEYS[g])}
                 </DropdownMenuRadioItem>
               );
             })}
@@ -548,15 +578,17 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         return (
           <DropdownMenuRadioGroup value={tier ?? ''} onValueChange={setTier}>
             {TIER_CHOICES.map((tr) => (
-              <DropdownMenuRadioItem key={tr} value={tr} className="text-[13px]">{tr}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem key={tr} value={tr} className="text-[13px]">{t(BRIEF_LABEL_KEYS[tr])}</DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
         );
       case 'currency':
         return (
           <DropdownMenuRadioGroup value={currency ?? ''} onValueChange={setCurrency}>
-            {CURRENCY_CHOICES.map((c) => (
-              <DropdownMenuRadioItem key={c.code} value={c.code} className="text-[13px]">{c.label}</DropdownMenuRadioItem>
+            {CURRENCY_CHOICES.map((code) => (
+              <DropdownMenuRadioItem key={code} value={code} className="text-[13px]">
+                {t(`currencies.${code}`)}
+              </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
         );
@@ -571,7 +603,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             }}
             className="text-[13px]"
           >
-            {u}
+            {t(BRIEF_LABEL_KEYS[u])}
           </DropdownMenuCheckboxItem>
         ));
       case 'pages':
@@ -582,14 +614,14 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               key={pg.key}
               checked={pages.includes(pg.key)}
               disabled={incompatible}
-              title={incompatible ? 'Sans objet pour un funnel mono-bien' : undefined}
+              title={incompatible ? t('studioBrief.notForSingleProperty') : undefined}
               onSelect={(e) => {
                 e.preventDefault();
                 setPages((prev) => (prev.includes(pg.key) ? prev.filter((x) => x !== pg.key) : [...prev, pg.key]));
               }}
               className="text-[13px]"
             >
-              {pg.label}
+              {t(pg.labelKey)}
             </DropdownMenuCheckboxItem>
           );
         });
@@ -643,7 +675,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     if (!value) { areaRef.current?.focus(); return; }
     if (URL_RE.test(value)) {
       const style = styleId ? DESIGN_PRESETS.find((p) => p.id === styleId) : undefined;
-      const name = value.replace(/^https?:\/\//, '').split(/[\s/]+/)[0].slice(0, 40) || 'Nouveau booking engine';
+      const name = value.replace(/^https?:\/\//, '').split(/[\s/]+/)[0].slice(0, 40) || t('studio.newEngine');
       createAndOpen(
         name,
         { sourceWebsiteUrl: value, ...(style ? { primaryColor: style.primaryColor, fontFamily: style.fontFamily } : {}) },
@@ -660,7 +692,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   const createWithTemplate = (tplId: string) => {
     const tpl = GALLERY_TEMPLATES.find((t) => t.id === tplId);
     createAndOpen(
-      tpl?.name ?? 'Nouveau booking engine',
+      tpl?.name ?? t('studio.newEngine'),
       { ...(tpl?.theme?.primaryColor ? { primaryColor: tpl.theme.primaryColor } : {}), ...(tpl?.theme?.fontFamily ? { fontFamily: tpl.theme.fontFamily } : {}) },
       // `templateId` + `funnelId` consommés par GrapesStudio (auto-import + widgets) une fois l'éditeur prêt.
       { templateId: tplId, funnelId },
@@ -676,7 +708,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       setConfigs((prev) => (prev ? prev.filter((c) => c.id !== confirmDelete.id) : prev));
       setConfirmDelete(null);
     } catch {
-      setError('La suppression du booking engine a échoué.');
+      setError(t('studio.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -688,7 +720,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   );
 
   const content = (
-    <div className="be-home" data-accent="indigo">
+    <div className="be-home">
       <div className="canvas" style={{ maxWidth: 1180 }}>
         {error && (
           <Alert variant="destructive" className="mb-3">
@@ -704,13 +736,13 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         {/* 1 · Hero */}
         <div className="hero">
           <p className="eyebrow">Booking Engine · Studio</p>
-          <h1>Quel booking engine créons-nous&nbsp;?</h1>
+          <h1>{t('studio.home.heading')}</h1>
         </div>
 
         {/* Les directions réutilisables se gèrent ici ; la SÉLECTION se fait à l'étape 1 de la génération. */}
         <div className="mb-2">
           <Button variant="link" size="sm" className="px-0" onClick={() => navigate('/booking-engine/design-systems')}>
-            <Sparkles size={14} strokeWidth={2} /> Gérer les systèmes de design
+            <Sparkles size={14} strokeWidth={2} /> {t('studio.home.manageDesignSystems')}
           </Button>
         </div>
 
@@ -734,7 +766,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               {/* « + » : propose les champs non encore ajoutés pour un prompt complet et standardisé. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="chip chip--icon" aria-label="Ajouter un champ au prompt" type="button" title="Ajouter un champ (style, ton, langues…)">
+                  <button className="chip chip--icon" aria-label={t('studio.home.addFieldToPrompt')} type="button" title="{t('studio.home.addField')}">
                     <Plus size={16} strokeWidth={2} />
                   </button>
                 </DropdownMenuTrigger>
@@ -749,7 +781,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                     )];
                   })}
                   {PROMPT_OPTIONS.every((o) => activeOptions.includes(o.id)) && (
-                    <DropdownMenuItem disabled className="text-[13px]">Tous les champs sont ajoutés</DropdownMenuItem>
+                    <DropdownMenuItem disabled className="text-[13px]">{t('studio.home.allFieldsAdded')}</DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -822,7 +854,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem variant="destructive" className="text-[13px] gap-1.5" onSelect={() => removeOption(id)}>
-                            <X size={15} strokeWidth={2} /> Retirer ce champ
+                            <X size={15} strokeWidth={2} /> {t('studio.home.removeField')}
                           </DropdownMenuItem>
                         </>
                       )}
@@ -831,7 +863,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                 );
               })}
               <div className="field__spacer" />
-              <button className="send" type="button" aria-label="Générer" disabled={creating} onClick={handleAiSubmit}>
+              <button className="send" type="button" aria-label={t('studio.home.generate')} disabled={creating} onClick={handleAiSubmit}>
                 <ArrowUp size={19} strokeWidth={2.2} />
               </button>
             </div>
@@ -840,7 +872,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
         {/* 3 · Éventail de funnels */}
         <div className="fan-wrap">
-          <p className="fan-lead">Ou partez d'un funnel prêt à l'emploi…</p>
+          <p className="fan-lead">{t('studio.home.orReadyFunnel')}</p>
           <div className="fan">
             {FAN_FUNNELS.map((f) => {
               return (
@@ -867,11 +899,11 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         {/* 4 · Templates du funnel : grisés tant qu'aucun funnel choisi ; filtrés par type de funnel ; même éventail. */}
         <div className="fan-wrap">
           <p className="fan-lead">
-            Puis choisissez un template
-            <button className="fan-lead__link" type="button" onClick={() => navigate('/booking-engine/templates')}>Voir tous →</button>
+            {t('studio.home.thenTemplate')}
+            <button className="fan-lead__link" type="button" onClick={() => navigate('/booking-engine/templates')}>{t('studio.home.seeAllArrow')}</button>
           </p>
           {!funnelId ? (
-            <p className="fan-locked">Sélectionnez d'abord un funnel ci-dessus pour débloquer les templates.</p>
+            <p className="fan-locked">{t('studio.home.pickFunnelFirst')}</p>
           ) : visibleTemplates.length ? (
             <div className="fan fan--tpl" style={{ ['--fan-mx' as string]: `${-(fanOverlap / 2)}px` }}>
               {fanTemplates.map((tpl, i) => (
@@ -902,12 +934,12 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/booking-engine/templates'); } }}
                 >
                   <div className="fan__vig fan__vig--more"><span className="fan__more">+{fanExtra}</span></div>
-                  <p className="fan__name">Voir tous</p>
+                  <p className="fan__name">{t('studio.home.seeAll')}</p>
                 </article>
               )}
             </div>
           ) : (
-            <p className="fan-locked">Aucun template pour ce funnel — partez d'une page vierge.</p>
+            <p className="fan-locked">{t('studio.home.noTemplateForFunnel')}</p>
           )}
         </div>
 
@@ -917,7 +949,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             className="blank" type="button" onClick={handleCreateBlank} disabled={creating}
             aria-describedby={blankError ? 'blank-funnel-hint' : undefined}
           >
-            Partir d'une page vierge <ArrowRight size={16} strokeWidth={2} />
+            {t('studio.home.blankPage')} <ArrowRight size={16} strokeWidth={2} />
           </button>
           {/* `.be-home .fan-locked` gagne sur une utility simple : la couleur d'alerte
               reste en style inline, mais sur le jeton Baitly UI (-ink = texte, AA). */}
@@ -946,7 +978,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               <label className="search">
                 <Search size={15} strokeWidth={2} />
                 <input
-                  placeholder="Rechercher un booking engine…"
+                  placeholder={t('studio.home.search')}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -964,14 +996,14 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             <EmptyState
               variant="dashed"
               icon={<LayoutGrid />}
-              title="Aucun booking engine pour l'instant"
-              description="Partez d'un funnel, d'un template, ou décrivez votre activité dans le champ ci-dessus."
+              title={t('studio.emptyTitle')}
+              description={t('studio.emptyDescription')}
             />
           )}
 
           {configs && configs.length > 0 && view === 'list' && (
             <div className="tbl">
-              <div className="tbl__h"><span>Nom</span><span>Statut</span><span>Dernière modif.</span><span>Propriétaire</span></div>
+              <div className="tbl__h"><span>{t('studio.home.name')}</span><span>{t('studio.home.status')}</span><span>{t('studio.home.lastModified')}</span><span>{t('studio.home.owner')}</span></div>
               {filtered.map((c) => (
                 <div key={c.id} className="row-wrap">
                   <button className="row" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
@@ -986,7 +1018,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                     <span className={`status ${c.enabled ? 'active' : 'off'}`}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
                     {/* TODO : « dernière modif » (la config n'expose pas updatedAt). */}
                     <span className="row__meta">—</span>
-                    <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__owner">Vous</span></div>
+                    <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__owner">{t('studio.home.you')}</span></div>
                   </button>
                   <button className="row__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={16} strokeWidth={2} /></button>
                 </div>
@@ -1004,7 +1036,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                         <MiniPreview color={c.primaryColor || '#5453d6'} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-foreground">{c.name}</div>
+                        <div dir="auto" className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-foreground">{c.name}</div>
                         <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
                       </div>
                     </div>
@@ -1026,7 +1058,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="pe-8 font-bold">Supprimer ce booking engine ?</DialogTitle>
+            <DialogTitle className="pe-8 font-bold">{t('studio.home.deleteEngine')}</DialogTitle>
             <DialogDescription>
               « {confirmDelete?.name} » sera définitivement supprimé, avec ses pages et son contenu. Cette action est irréversible.
             </DialogDescription>

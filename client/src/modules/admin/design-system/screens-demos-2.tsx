@@ -39,6 +39,7 @@ import PeriodSegmented from '../../../components/baitly/PeriodSegmented';
 import ExportButton from '../../../components/baitly/ExportButton';
 import { Money } from '../../../components/baitly/Money';
 import { cn } from '../../../utils/cn';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 /**
  * Projections d'écrans PMS (vague 6, enrichies) — galerie uniquement.
@@ -79,7 +80,7 @@ export function BPricingSectionDemo() {
             numberOfMonths={1}
             className="rounded-lg border shadow-sm [--cell-size:2.75rem]"
             formatters={{
-              formatMonthDropdown: (date) => date.toLocaleString('fr-FR', { month: 'long' }),
+              formatMonthDropdown: (date) => date.toLocaleString(activeIntlLocale(), { month: 'long' }),
             }}
             components={{
               DayButton: ({ children, modifiers, day, ...props }) => {
@@ -96,7 +97,7 @@ export function BPricingSectionDemo() {
           {hasSelection ? (
             <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft p-2">
               <span className="flex-1 text-xs text-foreground">
-                {range?.from?.toLocaleDateString('fr-FR')} → {range?.to?.toLocaleDateString('fr-FR')}
+                {range?.from?.toLocaleDateString(activeIntlLocale())} → {range?.to?.toLocaleDateString(activeIntlLocale())}
               </span>
               <Input className="h-8 w-24" placeholder="Prix (€)" />
               <Button size="sm">Appliquer</Button>

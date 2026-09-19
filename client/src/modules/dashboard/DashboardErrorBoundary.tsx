@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import { Button, Card, CardContent } from '../../components/ui';
 import { ErrorOutline, Refresh } from '../../icons';
+// Composant de CLASSE : pas de hook. Le singleton i18next est lu au rendu, donc
+// dans la langue courante — ce qu'une constante de module ne saurait faire.
+import i18n from '../../i18n/config';
 
 interface Props {
   children: React.ReactNode;
@@ -46,12 +49,12 @@ class DashboardErrorBoundary extends Component<Props, State> {
             <span className="mb-0.5 inline-flex text-destructive"><ErrorOutline size={28} strokeWidth={1.75} /></span>
             <p className="mb-1.5 text-xs text-muted-foreground">
               {this.props.widgetName
-                ? `Erreur lors du chargement de "${this.props.widgetName}"`
-                : 'Erreur lors du chargement du widget'}
+                ? i18n.t('dashboard.widgetLoadErrorNamed', { widget: this.props.widgetName })
+                : i18n.t('dashboard.widgetLoadError')}
             </p>
             <Button variant="outline" size="sm" onClick={this.handleRetry}>
               <Refresh size={14} strokeWidth={1.75} />
-              Reessayer
+              {i18n.t('common.retry')}
             </Button>
           </CardContent>
         </Card>

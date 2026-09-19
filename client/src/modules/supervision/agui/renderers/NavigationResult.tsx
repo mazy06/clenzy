@@ -8,6 +8,7 @@ import React from 'react';
 import { Button } from '../../../../components/ui';
 import { ArrowForward } from '../../../../icons';
 import { SurfaceCard, Overline } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface NavigationData {
   path?: string;
@@ -18,11 +19,13 @@ interface NavigationData {
 export const NavigationResult: React.FC<{
   data: NavigationData;
   onNavigate?: (path: string) => void;
-}> = ({ data, onNavigate }) => (
+}> = ({ data, onNavigate }) => {
+  const { t } = useTranslation();
+  return (
   <SurfaceCard>
-    <Overline className="mb-1">Navigation suggérée</Overline>
+    <Overline className="mb-1">{t('supervision.agui.suggestedNavigation')}</Overline>
     <p className="text-sm font-semibold text-balance text-foreground">
-      {data.label ?? 'Page suggérée'}
+      {data.label ?? t('supervision.agui.suggestedPage')}
     </p>
     {data.reason && (
       <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{data.reason}</p>
@@ -35,10 +38,13 @@ export const NavigationResult: React.FC<{
           className="cursor-pointer"
           onClick={() => onNavigate(data.path as string)}
         >
-          {data.label ? `Ouvrir ${data.label}` : 'Y aller'}
+          {data.label
+            ? t('supervision.agui.openTarget', { label: data.label })
+            : t('supervision.agui.goThere')}
           <ArrowForward size={15} strokeWidth={1.85} />
         </Button>
       </div>
     )}
   </SurfaceCard>
-);
+  );
+};

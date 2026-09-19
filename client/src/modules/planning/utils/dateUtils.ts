@@ -1,22 +1,26 @@
 import {
   addDays,
   subDays,
-  startOfMonth,
-  endOfMonth,
   startOfWeek,
-  endOfWeek,
   eachDayOfInterval,
   format,
   differenceInCalendarDays,
   isToday,
-  isWeekend,
   parseISO,
 } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import type { ZoomLevel } from '../types';
 import { ZOOM_CONFIGS } from '../constants';
+import {
+  endOfDisplayMonth,
+  startOfDisplayMonth,
+  weekStartsOnForLanguage,
+} from '../../../utils/localeDate';
 
-export { addDays, subDays, isToday, isWeekend, parseISO };
+export { addDays, subDays, isToday, parseISO };
+
+// `isWeekend` de date-fns n'est PAS reexporte ici : il ne connait que le
+// week-end samedi-dimanche, quand l'arabe chome vendredi et samedi. La grille
+// passe par `useDateFormat().isWeekend`, qui suit la langue active.
 
 export function toDateStr(date: Date): string {
   return format(date, 'yyyy-MM-dd');
@@ -31,60 +35,53 @@ export function generateDays(start: Date, end: Date): Date[] {
   return eachDayOfInterval({ start, end });
 }
 
-export function formatDayNumber(date: Date): string {
-  return format(date, 'd');
-}
-
-export function formatDayShort(date: Date): string {
-  return format(date, 'EEE', { locale: fr });
-}
-
-export function formatMonthYear(date: Date): string {
-  return format(date, 'MMMM yyyy', { locale: fr });
-}
-
 /**
- * Mois abrege — « sept. 2026 ».
- *
- * <p>Sur les ecrans etroits, « Septembre 2026 » reclame une quarantaine de
- * pixels de plus que « Aout 2026 » : la barre d'outils debordait, gagnait une
- * ligne en hauteur, et la grille perdait un logement au profit de la page
- * suivante. Le mois ne doit pas decider du nombre de lignes affichees.</p>
+ * Les libelles de dates (quantieme, jour, mois, date complete) ne vivent plus
+ * ici : ils dependent de la LANGUE et, en arabe, du calendrier hegirien. Les
+ * composants les prennent via `useDateFormat()` (`hooks/useDateFormat`), qui
+ * les rebrasse au changement de langue — une grille memoisee resterait sinon
+ * en francais.
  */
-export function formatMonthYearShort(date: Date): string {
-  return format(date, 'MMM yyyy', { locale: fr });
-}
-
-/** Format complet pour tooltips : "Lundi 18 mai 2026". */
-export function formatFullDate(date: Date): string {
-  return format(date, 'EEEE d MMMM yyyy', { locale: fr });
-}
 
 export function daysBetween(d1: Date, d2: Date): number {
   return differenceInCalendarDays(d2, d1);
 }
 
 /**
- * Compute the date range to display based on zoom level and current date.
+ * Fenêtre de dates affichée pour un niveau de zoom et une date courante.
+ *
+ * <p>Les deux bornes dépendent de la LANGUE. Le début de semaine d'abord —
+ * lundi en français, dimanche en anglais comme en arabe. Le mois ensuite : en
+ * arabe, « le mois » est un mois <b>hégirien</b>, qui commence et finit au
+ * milieu d'un mois grégorien et compte 29 ou 30 jours. Découper la grille sur
+ * des bornes grégoriennes tout en libellant l'en-tête en hégirien afficherait
+ * un « mois » à cheval sur deux.</p>
  */
-export function computeDateRange(currentDate: Date, zoom: ZoomLevel): { start: Date; end: Date } {
+export function computeDateRange(
+  currentDate: Date,
+  zoom: ZoomLevel,
+  lng?: string | null,
+): { start: Date; end: Date } {
   const config = ZOOM_CONFIGS[zoom];
 
   switch (zoom) {
     // Semaine (7 j) et quinzaine (14 j) : calées sur le début de semaine.
     case 'week':
     case 'fortnight': {
-      const start = startOfWeek(currentDate, { locale: fr });
+      // Le premier jour de semaine vient de la POLITIQUE produit, pas des
+      // options de la locale : `enUS` ouvrirait sa semaine le dimanche (cf.
+      // weekStartsOnForLanguage).
+      const start = startOfWeek(currentDate, { weekStartsOn: weekStartsOnForLanguage(lng) });
       return {
         start,
         end: addDays(start, config.visibleDays - 1),
       };
     }
-    // Mois : mois calendaire complet.
+    // Mois : mois calendaire complet, dans le calendrier affiché.
     case 'month':
       return {
-        start: startOfMonth(currentDate),
-        end: endOfMonth(currentDate),
+        start: startOfDisplayMonth(currentDate, lng),
+        end: endOfDisplayMonth(currentDate, lng),
       };
   }
 }

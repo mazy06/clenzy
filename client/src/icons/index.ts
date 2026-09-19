@@ -596,3 +596,9 @@ export const WhatsApp: FC<IconifyProps> = (props) =>
 //         <Icon icon="solar:bed-bold-duotone" width={20} />
 // Voir https://icon-sets.iconify.design/ pour browser tous les sets
 export { Icon as IconifyIcon } from '@iconify/react';
+
+// ─── Chevrons de NAVIGATION (précédent / suivant) ───────────────────────────
+// Un chevron ne se retourne pas tout seul en RTL : « précédent » y pointe à
+// DROITE. Ces deux-là prennent le sens logique et choisissent le glyphe selon
+// la direction de lecture — cf. src/icons/directional.tsx.
+export { ChevronPrev, ChevronNext } from './directional';

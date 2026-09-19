@@ -15,6 +15,7 @@ import { usePageHeaderActions } from '../../components/PageHeaderActionsContext'
 import EmptyState from '../../components/EmptyState';
 import PeriodSegmented from './PeriodSegmented';
 import { useTranslation } from '../../hooks/useTranslation';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } from '../../hooks/useFiscalReporting';
 import { formatTaxRate } from '../../utils/currencyUtils';
 import { Money } from '../../components/Money';
@@ -34,16 +35,10 @@ const CELL_CLASS = 'py-[7.5px] tabular-nums';
 // Carte/panneau : filet discret, rayon lg (baseline §2 Cartes), aucune ombre.
 const PANEL_CLASS = 'border border-solid border-border shadow-none rounded-lg bg-card';
 
-const PERIOD_MODE_OPTIONS: { value: PeriodMode; label: string }[] = [
-  { value: 'monthly', label: 'Mensuel' },
-  { value: 'quarterly', label: 'Trimestriel' },
-  { value: 'annual', label: 'Annuel' },
-];
+// Seules les CLEFS vivent ici : un libellé figé à l'import resterait français.
+const PERIOD_MODES: PeriodMode[] = ['monthly', 'quarterly', 'annual'];
 
-const MONTHS = [
-  'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre',
-];
+const QUARTERS = [1, 2, 3, 4] as const;
 
 
 // ─── Blocs reutilisables ────────────────────────────────────────────────────
@@ -55,14 +50,17 @@ const MONTHS = [
 export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string }> = ({
   summary,
   className,
-}) => (
+}) => {
+  const { t } = useTranslation();
+
+  return (
   <div className={cn('flex gap-3 flex-wrap', className)}>
     {[
-      { label: 'Periode', value: summary.period, isText: true },
-      { label: 'Factures', value: String(summary.invoiceCount), isText: true },
-      { label: 'Total HT', value: <Money value={summary.totalHt} from={summary.currency} /> },
-      { label: 'Total TVA', value: <Money value={summary.totalTax} from={summary.currency} /> },
-      { label: 'Total TTC', value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
+      { label: t('reports.fiscal.cards.period', 'Période'), value: summary.period, isText: true },
+      { label: t('reports.fiscal.cards.invoices', 'Factures'), value: String(summary.invoiceCount), isText: true },
+      { label: t('reports.fiscal.cards.totalHt', 'Total HT'), value: <Money value={summary.totalHt} from={summary.currency} /> },
+      { label: t('reports.fiscal.cards.totalTax', 'Total TVA'), value: <Money value={summary.totalTax} from={summary.currency} /> },
+      { label: t('reports.fiscal.cards.totalTtc', 'Total TTC'), value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
     ].map(card => (
       <div
         key={card.label}
@@ -82,20 +80,24 @@ export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string
       </div>
     ))}
   </div>
-);
+  );
+};
 
 /** Ventilation de la TVA par categorie et par taux. */
-export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }) => (
+export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }) => {
+  const { t } = useTranslation();
+
+  return (
   <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Categorie</TableHead>
-          <TableHead>Taxe</TableHead>
-          <TableHead className="text-end">Taux</TableHead>
-          <TableHead className="text-end">Base HT</TableHead>
-          <TableHead className="text-end">Montant TVA</TableHead>
-          <TableHead className="text-end">Lignes</TableHead>
+          <TableHead>{t('reports.fiscal.cols.category', 'Catégorie')}</TableHead>
+          <TableHead>{t('reports.fiscal.cols.tax', 'Taxe')}</TableHead>
+          <TableHead className="text-end">{t('reports.fiscal.cols.rate', 'Taux')}</TableHead>
+          <TableHead className="text-end">{t('reports.fiscal.cols.base', 'Base HT')}</TableHead>
+          <TableHead className="text-end">{t('reports.fiscal.cols.amount', 'Montant TVA')}</TableHead>
+          <TableHead className="text-end">{t('reports.fiscal.cols.lines', 'Lignes')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -112,7 +114,8 @@ export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }
       </TableBody>
     </Table>
   </div>
-);
+  );
+};
 
 
 // ─── Contenu importable ─────────────────────────────────────────────────────
@@ -140,6 +143,7 @@ export function fiscalModeFor(period: DashboardPeriod): PeriodMode {
  * croie pas lire une declaration passee.</p>
  */
 export function useFiscalReport(period: DashboardPeriod = 'month'): ReportContent {
+  const { t } = useTranslation();
   const mode = fiscalModeFor(period);
   const now = new Date();
   const year = now.getFullYear();
@@ -158,7 +162,7 @@ export function useFiscalReport(period: DashboardPeriod = 'month'): ReportConten
       {
         key: 'vat-summary',
         fluid: true,
-        title: 'Synthèse TVA',
+        title: t('reports.fiscal.summary', 'Synthèse TVA'),
         hint: summary.period,
         render: () => <VatSummaryCards summary={summary} />,
       },
@@ -166,8 +170,8 @@ export function useFiscalReport(period: DashboardPeriod = 'month'): ReportConten
         key: 'vat-breakdown',
         fluid: true,
         span: 2,
-        title: 'Ventilation de la TVA',
-        hint: `${summary.period} · ${summary.invoiceCount} facture${summary.invoiceCount > 1 ? 's' : ''}`,
+        title: t('reports.fiscal.breakdown', 'Ventilation de la TVA'),
+        hint: `${summary.period} · ${t('reports.fiscal.invoiceCount', { count: summary.invoiceCount })}`,
         render: () => <VatBreakdownTable summary={summary} />,
       },
     ] as TileOrNothing[])
@@ -177,7 +181,7 @@ export function useFiscalReport(period: DashboardPeriod = 'month'): ReportConten
     figures: [],
     items,
     loading: activeQuery.isLoading,
-    error: activeQuery.error ? 'Erreur lors du chargement du rapport fiscal' : null,
+    error: activeQuery.error ? t('reports.fiscal.loadError') : null,
     retry: () => { void activeQuery.refetch(); },
   };
 }
@@ -239,14 +243,17 @@ const FiscalReportSection: React.FC = () => {
           <PeriodSegmented<PeriodMode>
             value={mode}
             onChange={setMode}
-            options={PERIOD_MODE_OPTIONS}
-            ariaLabel="Granularité de la période"
+            options={PERIOD_MODES.map((value) => ({
+              value,
+              label: t(`reports.fiscal.modes.${value}`),
+            }))}
+            ariaLabel={t('reports.fiscal.granularity', 'Granularité de la période')}
           />
 
           {/* Largeur bornee : le Field du kit est w-full, il occuperait toute la
               rangee au lieu de se ranger a cote du segmente de periode. */}
           <Field className="w-[110px]">
-            <FieldLabel htmlFor="fiscal-report-year">Annee</FieldLabel>
+            <FieldLabel htmlFor="fiscal-report-year">{t('reports.fiscal.year', 'Année')}</FieldLabel>
             <NativeSelect
               id="fiscal-report-year"
               className="w-full"
@@ -261,15 +268,17 @@ const FiscalReportSection: React.FC = () => {
 
           {mode === 'monthly' && (
             <Field className="w-[150px]">
-              <FieldLabel htmlFor="fiscal-report-month">Mois</FieldLabel>
+              <FieldLabel htmlFor="fiscal-report-month">{t('reports.fiscal.month', 'Mois')}</FieldLabel>
               <NativeSelect
                 id="fiscal-report-month"
                 className="w-full"
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
               >
-                {MONTHS.map((m, i) => (
-                  <NativeSelectOption key={m} value={i + 1}>{m}</NativeSelectOption>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <NativeSelectOption key={i} value={i + 1}>
+                    {new Date(2024, i, 1).toLocaleDateString(activeIntlLocaleGregorian(), { month: 'long' })}
+                  </NativeSelectOption>
                 ))}
               </NativeSelect>
             </Field>
@@ -277,17 +286,18 @@ const FiscalReportSection: React.FC = () => {
 
           {mode === 'quarterly' && (
             <Field className="w-[140px]">
-              <FieldLabel htmlFor="fiscal-report-quarter">Trimestre</FieldLabel>
+              <FieldLabel htmlFor="fiscal-report-quarter">{t('reports.fiscal.quarter', 'Trimestre')}</FieldLabel>
               <NativeSelect
                 id="fiscal-report-quarter"
                 className="w-full"
                 value={quarter}
                 onChange={(e) => setQuarter(Number(e.target.value))}
               >
-                <NativeSelectOption value={1}>T1 (Jan-Mar)</NativeSelectOption>
-                <NativeSelectOption value={2}>T2 (Avr-Jun)</NativeSelectOption>
-                <NativeSelectOption value={3}>T3 (Jul-Sep)</NativeSelectOption>
-                <NativeSelectOption value={4}>T4 (Oct-Dec)</NativeSelectOption>
+                {QUARTERS.map((q) => (
+                  <NativeSelectOption key={q} value={q}>
+                    {t(`reports.fiscal.quarters.${q}`)}
+                  </NativeSelectOption>
+                ))}
               </NativeSelect>
             </Field>
           )}
@@ -303,13 +313,13 @@ const FiscalReportSection: React.FC = () => {
       ) : activeQuery.error ? (
         <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
-          <AlertDescription>Erreur lors du chargement du rapport fiscal</AlertDescription>
+          <AlertDescription>{t('reports.fiscal.loadError')}</AlertDescription>
         </Alert>
       ) : !summary ? (
         <EmptyState
           icon={<AccountBalance />}
-          title="Aucune donnée fiscale"
-          description="Aucune facture sur cette période — ajustez la granularité ou la période sélectionnée."
+          title={t('reports.fiscal.emptyTitle', 'Aucune donnée fiscale')}
+          description={t('reports.fiscal.emptyBody')}
           variant="plain"
         />
       ) : (

@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Spinner, Button, Card } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { ChevronLeft as ChevronLeftIcon } from '../../icons';
-import { ChevronRight as ChevronRightIcon } from '../../icons';
+import { ChevronPrev as ChevronPrevIcon } from '../../icons';
+import { ChevronNext as ChevronNextIcon } from '../../icons';
 import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,6 +12,11 @@ import { minNightsKeys } from '../planning/hooks/usePlanningMinNights';
 import EmptyState from '../../components/EmptyState';
 import PricingEditDialog from './PricingEditDialog';
 import MinNightsEditDialog from './MinNightsEditDialog';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
+import { useDateFormat } from '../../hooks/useDateFormat';
+import { buildMonthGrid, toLocalISODate } from '../../utils/monthGrid';
+import { weekdayHeaders } from '../../utils/localeDate';
+import './pricingCalendar.css';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -45,53 +50,13 @@ interface PricingCalendarViewProps {
 
 // ─── Calendar Helpers ───────────────────────────────────────────────────────
 
-interface CalendarCell {
-  date: Date;
-  dateStr: string;
-  inMonth: boolean;
-}
 
-function buildCalendarGrid(month: Date): CalendarCell[] {
-  const year = month.getFullYear();
-  const m = month.getMonth();
-  const firstDay = new Date(year, m, 1);
-  const lastDay = new Date(year, m + 1, 0);
-
-  let startDow = firstDay.getDay() - 1;
-  if (startDow < 0) startDow = 6;
-
-  const cells: CalendarCell[] = [];
-
-  for (let i = startDow - 1; i >= 0; i--) {
-    const d = new Date(year, m, -i);
-    cells.push({ date: d, dateStr: toISO(d), inMonth: false });
-  }
-
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    const d = new Date(year, m, day);
-    cells.push({ date: d, dateStr: toISO(d), inMonth: true });
-  }
-
-  const remaining = 7 - (cells.length % 7);
-  if (remaining < 7) {
-    for (let i = 1; i <= remaining; i++) {
-      const d = new Date(year, m + 1, i);
-      cells.push({ date: d, dateStr: toISO(d), inMonth: false });
-    }
-  }
-
-  return cells;
-}
-
-function toISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function formatMonth(date: Date, isFrench: boolean): string {
-  return date.toLocaleDateString(isFrench ? 'fr-FR' : 'en-US', {
+// Le libellé de mois d'une grille GRÉGORIENNE : la langue suit l'utilisateur,
+// le découpage reste celui de la grille. Un nom de mois hégirien coifferait
+// ici une grille qui en couvre deux — c'est le piège que le planning évite en
+// bornant sa fenêtre sur le mois affiché.
+function formatMonth(date: Date): string {
+  return date.toLocaleDateString(activeIntlLocaleGregorian(), {
     month: 'long',
     year: 'numeric',
   });
@@ -110,7 +75,10 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   updatePriceLoading,
   currency = 'EUR',
 }) => {
-  const { t, isFrench } = useTranslation();
+  const { t } = useTranslation();
+  // Premier jour de semaine et week-end suivent la LANGUE : dimanche→samedi et
+  // week-end vendredi-samedi en arabe, comme la grille du planning.
+  const { isWeekend, language, weekStartsOn } = useDateFormat();
 
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -144,8 +112,11 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     },
   });
 
-  const calendarCells = useMemo(() => buildCalendarGrid(currentMonth), [currentMonth]);
-  const todayISO = useMemo(() => toISO(new Date()), []);
+  const calendarCells = useMemo(
+    () => buildMonthGrid(currentMonth, weekStartsOn),
+    [currentMonth, weekStartsOn],
+  );
+  const todayISO = useMemo(() => toLocalISODate(new Date()), []);
 
   const pricingMap = useMemo(() => {
     const map = new Map<string, CalendarPricingDay>();
@@ -155,13 +126,9 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     return map;
   }, [calendarPricing]);
 
-  const dayHeaders = useMemo(
-    () =>
-      isFrench
-        ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    [isFrench],
-  );
+  // Les sept entetes, dans l'ordre de la langue (cf. weekdayHeaders) : la liste
+  // etait ecrite en dur en francais et en anglais, l'arabe heritait de l'anglais.
+  const dayHeaders = useMemo(() => weekdayHeaders(language), [language]);
 
   // Plage inclusive entre deux dates du mois affiché (ordre visuel du calendrier).
   const rangeBetween = useCallback(
@@ -245,13 +212,13 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
       <Card className={PANEL_CLASS}>
         <div className="flex items-center justify-center gap-0.5">
           <Button variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label={t('common.previous', 'Précédent')}>
-            <ChevronLeftIcon size={20} strokeWidth={1.75} />
+            <ChevronPrevIcon size={20} strokeWidth={1.75} />
           </Button>
           <p className="text-sm font-semibold min-w-[140px] text-center capitalize">
-            {formatMonth(currentMonth, isFrench)}
+            {formatMonth(currentMonth)}
           </p>
           <Button variant="ghost" size="icon-sm" onClick={onNextMonth} aria-label={t('common.next', 'Suivant')}>
-            <ChevronRightIcon size={20} strokeWidth={1.75} />
+            <ChevronNextIcon size={20} strokeWidth={1.75} />
           </Button>
         </div>
       </Card>
@@ -266,21 +233,29 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         />
       )}
 
-      {/* ── Calendar grid ── */}
+      {/* ── Calendar grid ──
+          `pc-grid` porte le jeton de teinte du week-end (pricingCalendar.css). */}
       {selectedPropertyId && (
-        <Card className={cn(PANEL_CLASS, 'relative flex flex-1 flex-col')}>
+        <Card className={cn(PANEL_CLASS, 'pc-grid relative flex flex-1 flex-col')}>
           {calendarPricingLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/70 z-[2] rounded-xl">
               <Spinner className="size-7" />
             </div>
           )}
 
-          {/* Day headers — overline (pattern entête planning) */}
+          {/* Day headers — overline (pattern entête planning). Clé par index :
+              en arabe les libellés sont des lettres uniques, qui se répètent
+              d'un jour à l'autre. */}
           <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5 mb-0.5">
-            {dayHeaders.map((label) => (
-              <div className="text-center py-0.5" key={label}>
-                <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
-                  {label}
+            {dayHeaders.map((header, index) => (
+              <div className="text-center py-0.5" key={index}>
+                <span
+                  className={cn(
+                    'text-2xs font-semibold uppercase tracking-wide',
+                    header.weekend ? 'text-muted-foreground' : 'text-faint',
+                  )}
+                >
+                  {header.label}
                 </span>
               </div>
             ))}
@@ -292,6 +267,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               const pricing = pricingMap.get(cell.dateStr);
               const isSelected = selectedDatesSet.has(cell.dateStr);
               const isToday = cell.dateStr === todayISO;
+              const weekend = isWeekend(cell.date);
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 
               return (
@@ -311,7 +287,9 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                     cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-30',
                     isSelected
                       ? 'bg-primary-soft border-primary shadow-[inset_0_0_0_1px_var(--color-primary)]'
-                      : 'bg-transparent border-border shadow-none',
+                      : weekend
+                        ? 'border-border shadow-none bg-[var(--pc-cell-we)]'
+                        : 'bg-transparent border-border shadow-none',
                     cell.inMonth && !isSelected && 'hover:border-primary/40 hover:bg-muted',
                   )}
                 >

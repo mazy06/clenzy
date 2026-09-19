@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Alert,
   AlertDescription,
@@ -24,6 +24,7 @@ import { buildConfigPayload } from './StudioHome';
 import SiteGenerationProgress from './SiteGenerationProgress';
 import AiCreditsPaywall from '../../../components/AiCreditsPaywall';
 import './openDesignCanvas.css';
+import i18n from '../../../i18n/config';
 
 /**
  * Écran plein « Générer mon site par IA » (modèle open-design — remplace l'ancienne modale wizard).
@@ -64,17 +65,17 @@ const DS_SOURCES: { id: DesignSystemSource; label: string; icon: typeof Globe }[
   { id: 'MANUAL', label: 'Manuel', icon: SlidersHorizontal },
 ];
 
-const COMPLETENESS_FIELDS: { present: (b: Partial<SiteGenerationBrief>) => boolean; weight: number; hint: string }[] = [
-  { present: (b) => !!b.propertyType?.trim(), weight: 25, hint: 'décrivez le type de biens' },
-  { present: (b) => !!b.location, weight: 12, hint: 'ajoutez une localisation (SEO local)' },
-  { present: (b) => !!(b.usps && b.usps.length), weight: 12, hint: 'listez vos points forts' },
-  { present: (b) => !!b.audience, weight: 10, hint: 'précisez la clientèle cible' },
-  { present: (b) => !!b.goal, weight: 8, hint: "définissez l'objectif principal" },
-  { present: (b) => !!b.tone, weight: 8, hint: 'choisissez un ton' },
-  { present: (b) => !!b.tier, weight: 7, hint: 'indiquez le niveau de gamme' },
-  { present: (b) => !!b.brandName?.trim(), weight: 6, hint: 'renseignez le nom de marque' },
-  { present: (b) => !!b.primaryColorHint, weight: 6, hint: 'définissez une couleur' },
-  { present: (b) => !!(b.languages && b.languages.length), weight: 6, hint: 'sélectionnez les langues' },
+const COMPLETENESS_FIELDS: { present: (b: Partial<SiteGenerationBrief>) => boolean; weight: number; hintKey: string }[] = [
+  { present: (b) => !!b.propertyType?.trim(), weight: 25, hintKey: 'studioBrief.hints.propertyType' },
+  { present: (b) => !!b.location, weight: 12, hintKey: 'studioBrief.hints.location' },
+  { present: (b) => !!(b.usps && b.usps.length), weight: 12, hintKey: 'studioBrief.hints.usps' },
+  { present: (b) => !!b.audience, weight: 10, hintKey: 'studioBrief.hints.audience' },
+  { present: (b) => !!b.goal, weight: 8, hintKey: 'studioBrief.hints.goal' },
+  { present: (b) => !!b.tone, weight: 8, hintKey: 'studioBrief.hints.tone' },
+  { present: (b) => !!b.tier, weight: 7, hintKey: 'studioBrief.hints.tier' },
+  { present: (b) => !!b.brandName?.trim(), weight: 6, hintKey: 'studioBrief.hints.brandName' },
+  { present: (b) => !!b.primaryColorHint, weight: 6, hintKey: 'studioBrief.hints.color' },
+  { present: (b) => !!(b.languages && b.languages.length), weight: 6, hintKey: 'studioBrief.hints.languages' },
 ];
 
 function briefCompleteness(b: Partial<SiteGenerationBrief>): { score: number; hints: string[] } {
@@ -84,7 +85,7 @@ function briefCompleteness(b: Partial<SiteGenerationBrief>): { score: number; hi
   for (const f of COMPLETENESS_FIELDS) {
     total += f.weight;
     if (f.present(b)) got += f.weight;
-    else missing.push({ w: f.weight, h: f.hint });
+    else missing.push({ w: f.weight, h: i18n.t(f.hintKey) });
   }
   missing.sort((x, y) => y.w - x.w);
   return { score: Math.round((got / total) * 100), hints: missing.slice(0, 2).map((m) => m.h) };
@@ -185,7 +186,7 @@ export default function SiteGenerationPage() {
       setDsCreating(false);
       setDsName(''); setDsUrl(''); setDsBrand(''); setDsMarkdown('');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'La création de la direction a échoué.');
+      setError(e instanceof Error ? e.message : t('bookingEngine.studio.ai.generate.directionFailed'));
     } finally {
       setDsBusy(false);
     }
@@ -205,7 +206,7 @@ export default function SiteGenerationPage() {
       designSystemId: selectedDsId ?? undefined,
     };
     try {
-      const name = (brief.brandName?.trim() || brief.propertyType.trim()).slice(0, 40) || 'Nouveau booking engine';
+      const name = (brief.brandName?.trim() || brief.propertyType.trim()).slice(0, 40) || t('studio.newEngine');
       const overrides: Partial<BookingEngineConfigUpdate> = {};
       if (brief.primaryColorHint && /^#[0-9a-fA-F]{6}$/.test(brief.primaryColorHint)) overrides.primaryColor = brief.primaryColorHint;
       const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(await uniqueConfigName(name)), ...overrides });
@@ -292,18 +293,18 @@ export default function SiteGenerationPage() {
               <Sparkles size={12} strokeWidth={2.4} />
             </div>
             <span className="text-2xs font-semibold tracking-wide uppercase text-primary">
-              Génération IA
+              {t('studio.generation.badge')}
             </span>
           </div>
           <div className="[font-family:var(--font-display)] text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-balance text-foreground min-[900px]:text-[42px]">
-            Générez votre site, en minutes
+            {t('studio.generation.title')}
           </div>
           <div className="text-sm text-muted-foreground leading-[1.6] mt-3 max-w-[460px]">
-            L'IA rédige et structure un site complet à partir de votre brief, puis en dérive un thème on-brand. Les pages sont créées en brouillon — à relire avant publication.
+            {t('studio.generation.subtitle')}
           </div>
           <div className="flex flex-col gap-2 mt-4">
             {[
-              { n: 1, t: 'Direction de design', d: 'Réutilisez ou créez une direction — optionnel' },
+              { n: 1, t: t('studio.generation.designDirection'), d: 'Réutilisez ou créez une direction — optionnel' },
               { n: 2, t: 'Brief', d: 'Type de biens, ton, marque, langues' },
             ].map((s) => {
               const active = step === s.n;
@@ -355,7 +356,7 @@ export default function SiteGenerationPage() {
         <div className="flex flex-col">
           {step === 1 ? (
             <>
-              <div className="text-lg font-bold tracking-tight text-balance text-foreground">Direction de design</div>
+              <div className="text-lg font-bold tracking-tight text-balance text-foreground">{t('studio.generation.designDirection')}</div>
               <div className="text-xs text-muted-foreground mt-0.5 mb-3 leading-[1.55]">
                 {k('directionIntro', "Choisissez la DIRECTION (identité visuelle + voix) que l'IA suivra, ou créez-en une. Optionnel : sans direction, l'IA choisit un style.")}
               </div>
@@ -372,7 +373,7 @@ export default function SiteGenerationPage() {
                     )}
                     {systems?.map((s) => (
                       <DirectionRow key={s.id} selected={selectedDsId === s.id} onClick={() => setSelectedDsId(s.id)}
-                        title={s.name} subtitle={[s.category, s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'].filter(Boolean).join(' · ')} />
+                        title={s.name} subtitle={[s.category, s.scope === 'GLOBAL' ? 'Baitly' : t('common.private')].filter(Boolean).join(' · ')} />
                     ))}
                   </div>
                   <Button variant="outline" onClick={() => setDsCreating(true)} className="mt-1.5 self-start">

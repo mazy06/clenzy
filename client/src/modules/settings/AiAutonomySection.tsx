@@ -17,7 +17,7 @@ import {
 } from '../../components/ui';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../hooks/useTranslation';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   aiAutonomyApi,

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { CheckIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — grappe de pastilles de canaux avec état de connexion.
@@ -72,6 +73,7 @@ export default function ChannelBadges({
   max,
   className,
 }: ChannelBadgesProps) {
+  const { t } = useTranslation();
   const s = SIZE_CLASSES[size];
   const visible = max ? channels.slice(0, max) : channels;
   const hidden = max ? channels.length - visible.length : 0;
@@ -115,7 +117,7 @@ export default function ChannelBadges({
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              {channel.label} · {connected ? 'connecté' : 'non connecté'}
+              {channel.label} · {connected ? t('channels.connected') : t('channels.notConnected')}
               {channel.hint ? ` · ${channel.hint}` : ''}
             </TooltipContent>
           </Tooltip>

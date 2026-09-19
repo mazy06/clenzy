@@ -175,6 +175,7 @@ import {
 } from './design-system/teardown-feature-stories';
 import { BAgentsConstellationSectionDemo } from './design-system/agents-demo';
 import { BIotSectionDemo } from './design-system/iot-demo';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 /**
  * Bibliothèque Baitly UI — galerie du design system (super admin).
@@ -1011,7 +1012,7 @@ function CalendarPricingDemo() {
       captionLayout="dropdown"
       className="rounded-lg border shadow-sm [--cell-size:2.75rem] md:[--cell-size:3rem]"
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString('fr-FR', { month: 'long' }),
+        formatMonthDropdown: (date) => date.toLocaleString(activeIntlLocale(), { month: 'long' }),
       }}
       components={{
         DayButton: ({ children, modifiers, day, ...props }) => {
@@ -1089,7 +1090,7 @@ function CalendarDatePickerDemo() {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" id="ds-cal-date" className="w-48 justify-between font-normal">
-            {date ? date.toLocaleDateString('fr-FR') : 'Choisir une date'}
+            {date ? date.toLocaleDateString(activeIntlLocale()) : 'Choisir une date'}
             <ChevronDownIcon />
           </Button>
         </PopoverTrigger>
@@ -1121,7 +1122,7 @@ function CalendarRangePickerDemo() {
         <PopoverTrigger asChild>
           <Button variant="outline" id="ds-cal-dates" className="w-64 justify-between font-normal">
             {range?.from && range?.to
-              ? `${range.from.toLocaleDateString('fr-FR')} – ${range.to.toLocaleDateString('fr-FR')}`
+              ? `${range.from.toLocaleDateString(activeIntlLocale())} – ${range.to.toLocaleDateString(activeIntlLocale())}`
               : 'Choisir les dates'}
             <ChevronDownIcon />
           </Button>
@@ -1546,7 +1547,7 @@ function ChartPieDonutDemo() {
                       y={viewBox.cy}
                       className="fill-foreground text-3xl font-bold"
                     >
-                      {CHANNEL_TOTAL.toLocaleString('fr-FR')}
+                      {CHANNEL_TOTAL.toLocaleString(activeIntlLocale())}
                     </tspan>
                     <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
                       réservations

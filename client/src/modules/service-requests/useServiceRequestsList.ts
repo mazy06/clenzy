@@ -350,7 +350,7 @@ export function useServiceRequestsList(enabled = true) {
     { value: 'all', label: t('serviceRequests.allStatuses') },
     ...REQUEST_STATUS_OPTIONS.map(option => ({
       value: option.value,
-      label: option.label
+      label: t(option.labelKey)
     }))
   ], [t]);
 
@@ -358,7 +358,7 @@ export function useServiceRequestsList(enabled = true) {
     { value: 'all', label: t('serviceRequests.allPriorities') },
     ...PRIORITY_OPTIONS.map(option => ({
       value: option.value,
-      label: option.label
+      label: t(option.labelKey)
     }))
   ], [t]);
 

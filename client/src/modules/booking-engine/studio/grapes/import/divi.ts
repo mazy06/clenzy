@@ -1,5 +1,6 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
 import { sanitizeHtml } from './sanitizeHtml';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur Divi (Elegant Themes) — shortcodes `[et_pb_*]`.
@@ -60,12 +61,12 @@ const diviImporter: TemplateImporter = {
     const report = newReport('divi');
     const src = input ?? '';
     if (!src.trim()) {
-      report.warnings.push('Entrée Divi vide.');
+      report.warnings.push(i18n.t('studioImport.divi.empty'));
       return { html: '', report };
     }
     const html = sanitizeHtml(diviToHtml(src));
     report.warnings.push(
-      'Conversion structurelle Divi (sans le CSS du moteur Divi) — fidélité limitée. Pour un rendu fidèle, importez l’URL de la page publiée.',
+      i18n.t('studioImport.divi.structural'),
     );
     return { html, report };
   },

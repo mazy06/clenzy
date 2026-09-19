@@ -1,5 +1,7 @@
 import { teamsApi } from './teamsApi';
 import apiClient from '../apiClient';
+// Hors React : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../../i18n/config';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,7 +58,7 @@ export const propertyTeamsApi = {
     if (!serviceItemCode) {
       const team = await teamsApi.getById(teamId);
       if (team.serviceItemCodes?.length !== 1)
-        throw new Error('Choisissez la prestation dans la fiche du logement.');
+        throw new Error(i18n.t('propertyTeams.pickServiceItem'));
       serviceItemCode = team.serviceItemCodes[0];
     }
     return apiClient.post<PropertyTeamMapping>('/property-teams', {
@@ -69,7 +71,7 @@ export const propertyTeamsApi = {
 
   async remove(propertyId: number) {
     const rows = await this.getAssociations(propertyId);
-    if (rows.length !== 1) throw new Error('Sélectionnez une association précise dans la fiche du logement.');
+    if (rows.length !== 1) throw new Error(i18n.t('propertyTeams.pickAssociation'));
     return this.removeAssociation(rows[0].id);
   },
 };

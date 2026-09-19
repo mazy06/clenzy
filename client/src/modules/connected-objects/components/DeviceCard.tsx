@@ -32,6 +32,7 @@ import { useLockLiveStatus } from '../useLockLiveStatus';
 import { useNoiseLiveStatus } from '../useNoiseLiveStatus';
 import { useSensorLiveStatus } from '../useSensorLiveStatus';
 import { isDeviceDeletable, type ConnectedDevice, type DeviceAction } from '../types';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface DeviceCardProps {
   device: ConnectedDevice;
@@ -49,6 +50,7 @@ interface DeviceCardProps {
  * pas de carte-dans-carte.
  */
 export default function DeviceCard({ device, onAction, acting = false }: DeviceCardProps) {
+  const { t } = useTranslation();
   const { notify } = useNotification();
   const { isDark } = useThemeMode();
   const iconSize = useIconSize('row');
@@ -114,14 +116,14 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p
+          <p dir="auto"
             onClick={() => onAction?.(device.uid, 'view')}
             className="text-sm font-semibold leading-[1.25] text-foreground truncate cursor-pointer transition-colors duration-150 hover:text-primary"
           >
             {device.name}
           </p>
           <span className="text-xs text-muted-foreground block overflow-hidden text-ellipsis whitespace-nowrap">
-            {device.roomName ? `${device.roomName} · ` : ''}{meta.singular}
+            {device.roomName ? `${device.roomName} · ` : ''}{t(meta.singularKey)}
           </span>
         </div>
         <Tooltip>
@@ -174,7 +176,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             onClick={() => onAction?.(device.uid, 'view')}
             className="flex-1 justify-between text-muted-foreground"
           >
-            Gérer
+            {t('connectedObjects.deviceCard.manage')}
             <ChevronRight strokeWidth={1.75} />
           </BuiButton>
         )}

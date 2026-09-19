@@ -43,6 +43,7 @@ import {
 } from '../../../services/api/housekeeperPayoutsApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PagePagination from '../../../components/PagePagination';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 // Cartes/tableaux : hairline Baitly UI, r14, pas d'ombre (baseline §2, aligné AccountingPage).
 const CARD_CLASS = 'border border-solid border-border rounded-xl bg-card';
@@ -63,7 +64,7 @@ const STATUS_VALUES: HousekeeperPayoutStatus[] = ['PENDING', 'SENT', 'FAILED', '
 // erreur claire (toast) plutôt que de créer un transfert.
 const RETRYABLE: HousekeeperPayoutStatus[] = ['FAILED', 'BLOCKED'];
 
-const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('fr-FR') : '—');
+const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString(activeIntlLocale()) : '—');
 
 export const HousekeeperPayoutsTab: React.FC = () => {
   const { t } = useTranslation();

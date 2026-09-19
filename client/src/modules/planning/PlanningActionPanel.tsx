@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { cn } from '../../utils/cn';
 import { Button } from '../../components/ui';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { useDateFormat, type DateFormatApi } from '../../hooks/useDateFormat';
 import {
   Close,
   Info,
@@ -97,18 +98,21 @@ interface PlanningActionPanelProps {
 
 const ICON_PROPS = { size: 13, strokeWidth: 1.75 } as const;
 
-const RESERVATION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
-  { value: 'info', label: 'Infos', icon: <Info {...ICON_PROPS} /> },
-  { value: 'property', label: 'Logement', icon: <Home {...ICON_PROPS} /> },
-  { value: 'operations', label: 'Opérations', icon: <Build {...ICON_PROPS} /> },
-  { value: 'financial', label: 'Paiement', icon: <AccountBalance {...ICON_PROPS} /> },
+// Les onglets ne portent que leur CLEF et leur icône : le LIBELLÉ se lit dans
+// `planning.panel.tabs.<onglet>` au rendu. Figé à l'import, il resterait
+// français après un changement de langue — un module ne s'évalue qu'une fois.
+const RESERVATION_TABS: { value: PanelTab; icon: React.ReactElement }[] = [
+  { value: 'info', icon: <Info {...ICON_PROPS} /> },
+  { value: 'property', icon: <Home {...ICON_PROPS} /> },
+  { value: 'operations', icon: <Build {...ICON_PROPS} /> },
+  { value: 'financial', icon: <AccountBalance {...ICON_PROPS} /> },
 ];
 
-const INTERVENTION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
-  { value: 'info', label: 'Infos', icon: <Info {...ICON_PROPS} /> },
-  { value: 'progress', label: 'Avancement', icon: <TrendingUp {...ICON_PROPS} /> },
-  { value: 'recap', label: 'Récap', icon: <PhotoLibrary {...ICON_PROPS} /> },
-  { value: 'payment', label: 'Paiement', icon: <Payment {...ICON_PROPS} /> },
+const INTERVENTION_TABS: { value: PanelTab; icon: React.ReactElement }[] = [
+  { value: 'info', icon: <Info {...ICON_PROPS} /> },
+  { value: 'progress', icon: <TrendingUp {...ICON_PROPS} /> },
+  { value: 'recap', icon: <PhotoLibrary {...ICON_PROPS} /> },
+  { value: 'payment', icon: <Payment {...ICON_PROPS} /> },
 ];
 
 const getTabConfig = (eventType: PlanningEventType) =>
@@ -119,11 +123,13 @@ const getValidTabs = (eventType: PlanningEventType): PanelTab[] =>
 
 // ─── Sub-view title helper ────────────────────────────────────────────────────
 
-const getSubViewTitle = (view: PanelView): string => {
+const getSubViewTitle = (view: PanelView, t: TFunction): string => {
   switch (view.type) {
-    case 'property-details': return 'Détails du logement';
-    case 'intervention-detail': return 'Détail intervention';
-    default: return '';
+    case 'property-details':
+    case 'intervention-detail':
+      return t(`planning.panel.subViews.${view.type}`);
+    default:
+      return '';
   }
 };
 
@@ -136,23 +142,28 @@ const formatGuestShort = (fullName: string): string => {
   return `${words[0]} ${words[1][0].toUpperCase()}.`;
 };
 
-/** « 10 → 13 févr. 2026 · 3 nuits » (mois/année portés par le départ). */
-const formatStayRange = (startStr: string, endStr: string): string => {
+/**
+ * « 10 → 13 févr. 2026 · 3 nuits » (mois/année portés par le départ).
+ *
+ * <p>« Même mois » se juge dans le calendrier AFFICHÉ : en arabe, deux dates du
+ * même mois grégorien peuvent tomber dans deux mois hégiriens, et le mois doit
+ * alors être rappelé sur l'arrivée.</p>
+ */
+const formatStayRange = (
+  startStr: string,
+  endStr: string,
+  fmt: DateFormatApi,
+  t: TFunction,
+): string => {
   const start = toDate(startStr);
   const end = toDate(endStr);
   const nights = Math.max(1, daysBetween(start, end));
-  const sameMonth =
-    start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
-  const startLabel = sameMonth ? format(start, 'd') : format(start, 'd MMM', { locale: fr });
-  const endLabel = format(end, 'd MMM yyyy', { locale: fr });
-  return `${startLabel} → ${endLabel} · ${nights} nuit${nights > 1 ? 's' : ''}`;
-};
-
-const EVENT_TYPE_LABELS: Record<PlanningEventType, string> = {
-  reservation: 'Réservation',
-  cleaning: 'Ménage',
-  maintenance: 'Maintenance',
-  blocked: 'Blocage',
+  const startParts = fmt.toDisplayParts(start);
+  const endParts = fmt.toDisplayParts(end);
+  const sameMonth = startParts.month === endParts.month && startParts.year === endParts.year;
+  const startLabel = sameMonth ? fmt.formatDayNumber(start) : fmt.formatDayMonthShort(start);
+  const endLabel = fmt.formatDayMonthYearShort(end);
+  return `${startLabel} → ${endLabel} · ${t('planning.panel.nights', { count: nights })}`;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -190,6 +201,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   autoOpenGuestCardForReservationId,
   onGuestCardAutoOpenHandled,
 }) => {
+  const { t } = useTranslation();
+  // Dates de l'entête : calendrier de la langue active.
+  const fmt = useDateFormat();
   const { currentView, isSubView, pushView, popView } = usePanelNavigation(event?.id ?? null);
 
   // Auto-reset to valid tab when event type changes
@@ -345,9 +359,10 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   };
 
   // Entête maquette : « Réservation · Jean D. » / « Ménage · {label} »
-  const headerTitle = isReservation
-    ? `Réservation · ${formatGuestShort(event.label)}`
-    : `${EVENT_TYPE_LABELS[event.type]} · ${event.label}`;
+  const headerTitle = t('planning.panel.headerTitle', {
+    type: t(`planning.panel.eventTypes.${event.type}`),
+    label: isReservation ? formatGuestShort(event.label) : event.label,
+  });
 
   // Panneau non modal : il recouvre le planning sans voile ni piege de focus,
   // le calendrier derriere reste manipulable pendant qu'il est ouvert. Porte
@@ -376,14 +391,14 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             {headerTitle}
           </span>
           <span className="block text-[0.75rem] text-[var(--muted)] mt-0.5 tabular-nums">
-            {formatStayRange(event.startDate, event.endDate)}
+            {formatStayRange(event.startDate, event.endDate, fmt, t)}
           </span>
         </div>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('planning.panel.close', 'Fermer')}
           className="size-[30px] rounded-full border border-solid border-[var(--line-2)] text-[var(--muted)] transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
         >
           <Close size={14} strokeWidth={1.75} />
@@ -392,7 +407,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
 
       {/* ─── Onglets niveau 1 (soulignés accent, style PageTabs) ──────── */}
       {isSubView ? (
-        <PanelSubViewHeader title={getSubViewTitle(currentView)} onBack={popView} />
+        <PanelSubViewHeader title={getSubViewTitle(currentView, t)} onBack={popView} />
       ) : (
         <div className="px-1.5">
           {/* Onglets du PANNEAU, pas la navigation de l'écran : `trail={false}`.
@@ -400,14 +415,18 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               page (« Planning │ Infos ⌄ ») — le drawer perdait sa bande d'onglets
               et l'accès aux Opérations, au Logement et au Paiement avec elle. */}
           <PageTabs<PanelTab>
-            options={tabConfig.map((tab) => ({ value: tab.value, label: tab.label, icon: tab.icon }))}
+            options={tabConfig.map((tab) => ({
+              value: tab.value,
+              label: t(`planning.panel.tabs.${tab.value}`),
+              icon: tab.icon,
+            }))}
             value={activeTab}
             onChange={onTabChange}
             size="compact"
             paper={false}
             mb={0}
             trail={false}
-            ariaLabel="Onglets du détail"
+            ariaLabel={t('planning.panel.tabsAria')}
           />
         </div>
       )}

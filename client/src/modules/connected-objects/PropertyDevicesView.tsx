@@ -10,10 +10,12 @@ import DeviceCard from './components/DeviceCard';
 import PropertyAccessCodeChip from './components/PropertyAccessCodeChip';
 import AddDeviceWizard from './components/AddDeviceWizard';
 import type { DeviceAction } from './types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
 export default function PropertyDevicesView() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const propertyId = Number(id);
@@ -51,14 +53,14 @@ export default function PropertyDevicesView() {
     <div>
       <PageHeader
         title={propertyName}
-        subtitle="Objets connectés de ce logement"
+        subtitle={t('connectedObjects.propertyView.title')}
         iconBadge={<Inventory2 />}
         backPath="/connected-objects"
         backLabel="Objets connectés"
         actions={
           <Button size="sm" onClick={() => setWizardOpen(true)}>
             <Add size={16} strokeWidth={2} />
-            Ajouter un objet
+            {t('connectedObjects.addDevice')}
           </Button>
         }
       />
@@ -85,9 +87,9 @@ export default function PropertyDevicesView() {
       ) : propertyDevices.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
-          title="Aucun objet dans ce logement"
-          description="Ajoutez une serrure, un capteur sonore ou un point de remise des clés pour ce logement."
-          action={<Button variant="outline" onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />Ajouter un objet</Button>}
+          title={t('connectedObjects.propertyView.empty')}
+          description={t('connectedObjects.propertyView.emptyHint')}
+          action={<Button variant="outline" onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />{t('connectedObjects.addDevice')}</Button>}
         />
       ) : (
         rooms.map(([room, list]) => (
@@ -97,7 +99,7 @@ export default function PropertyDevicesView() {
                 <GridView size={15} strokeWidth={1.75} />
               </span>
               <p className="text-[0.9375rem] font-semibold text-foreground">
-                {room === '__none__' ? 'Sans pièce attribuée' : room}
+                {room === '__none__' ? t('connectedObjects.noRoom') : room}
               </p>
               <span className="text-xs text-muted-foreground opacity-60 tabular-nums">· {list.length}</span>
             </div>
@@ -117,7 +119,7 @@ export default function PropertyDevicesView() {
       {/* Lien retour secondaire pour les écrans étroits */}
       <Button variant="ghost" size="sm" onClick={() => navigate('/connected-objects')} className="mt-1.5 text-muted-foreground">
         <ChevronLeft size={16} strokeWidth={1.75} />
-        Tous les objets
+        {t('connectedObjects.propertyView.allDevices')}
       </Button>
     </div>
   );

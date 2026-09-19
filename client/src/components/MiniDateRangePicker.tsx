@@ -1,57 +1,20 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { cn } from '../utils/cn';
 import { Button } from './ui';
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '../icons';
+import { ChevronPrev as ChevronPrevIcon, ChevronNext as ChevronNextIcon } from '../icons';
+import { activeIntlLocaleGregorian } from '../utils/activeLocale';
+import { useTranslation } from 'react-i18next';
+import { weekdayHeaders, weekStartsOnForLanguage } from '../utils/localeDate';
+import { buildMonthGrid } from '../utils/monthGrid';
 
 // ─── Calendar Helpers ───────────────────────────────────────────────────────
 
-interface MiniCalendarCell {
-  date: Date;
-  dateStr: string;
-  inMonth: boolean;
-}
-
-function toISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function buildMiniGrid(month: Date): MiniCalendarCell[] {
-  const year = month.getFullYear();
-  const m = month.getMonth();
-  const firstDay = new Date(year, m, 1);
-  const lastDay = new Date(year, m + 1, 0);
-
-  let startDow = firstDay.getDay() - 1;
-  if (startDow < 0) startDow = 6;
-
-  const cells: MiniCalendarCell[] = [];
-
-  for (let i = startDow - 1; i >= 0; i--) {
-    const d = new Date(year, m, -i);
-    cells.push({ date: d, dateStr: toISO(d), inMonth: false });
-  }
-
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    const d = new Date(year, m, day);
-    cells.push({ date: d, dateStr: toISO(d), inMonth: true });
-  }
-
-  const remaining = 7 - (cells.length % 7);
-  if (remaining < 7) {
-    for (let i = 1; i <= remaining; i++) {
-      const d = new Date(year, m + 1, i);
-      cells.push({ date: d, dateStr: toISO(d), inMonth: false });
-    }
-  }
-
-  return cells;
-}
-
-function formatMiniMonth(date: Date, isFrench: boolean): string {
-  return date.toLocaleDateString(isFrench ? 'fr-FR' : 'en-US', {
+// Le libellé de mois d'une grille GRÉGORIENNE : la langue suit l'utilisateur,
+// le découpage reste celui de la grille. Un nom de mois hégirien coifferait
+// ici une grille qui en couvre deux — c'est le piège que le planning évite en
+// bornant sa fenêtre sur le mois affiché.
+function formatMiniMonth(date: Date): string {
+  return date.toLocaleDateString(activeIntlLocaleGregorian(), {
     month: 'short',
     year: 'numeric',
   });
@@ -64,7 +27,6 @@ interface MiniDateRangePickerProps {
   endDate: string;
   onChangeStart: (d: string) => void;
   onChangeEnd: (d: string) => void;
-  isFrench: boolean;
   startLabel?: string;
   endLabel?: string;
 }
@@ -76,10 +38,10 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
   endDate,
   onChangeStart,
   onChangeEnd,
-  isFrench,
   startLabel,
   endLabel,
 }) => {
+  const { t, i18n } = useTranslation();
   const [viewMonth, setViewMonth] = useState<Date>(() => {
     if (startDate) {
       const [y, m] = startDate.split('-').map(Number);
@@ -101,11 +63,18 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
 
   const [selectingField, setSelectingField] = useState<'start' | 'end'>('start');
 
-  const cells = useMemo(() => buildMiniGrid(viewMonth), [viewMonth]);
+  // Le découpage de la semaine suit la LANGUE (lundi partout, dimanche en
+  // arabe) : le mini calendrier partait du lundi en dur, y compris en arabe.
+  const weekStartsOn = weekStartsOnForLanguage(i18n.language);
+  const cells = useMemo(() => buildMonthGrid(viewMonth, weekStartsOn), [viewMonth, weekStartsOn]);
 
-  const dayHeaders = isFrench
-    ? ['L', 'M', 'M', 'J', 'V', 'S', 'D']
-    : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  // Initiales des jours ET leur ordre viennent de la langue (cf.
+  // weekdayHeaders) : deux tableaux figés FR/EN laissaient l'arabe en anglais,
+  // et l'ordre était celui d'une semaine commençant au lundi, en dur.
+  const dayHeaders = useMemo(
+    () => weekdayHeaders(i18n.language, 'narrow').map((header) => header.label),
+    [i18n.language],
+  );
 
   const handleCellClick = useCallback(
     (dateStr: string) => {
@@ -140,8 +109,8 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
   const isStart = (dateStr: string): boolean => dateStr === startDate;
   const isEnd = (dateStr: string): boolean => dateStr === endDate;
 
-  const defaultStartLabel = isFrench ? 'Début' : 'Start';
-  const defaultEndLabel = isFrench ? 'Fin' : 'End';
+  const defaultStartLabel = t('common.start', 'Début');
+  const defaultEndLabel = t('common.end', 'Fin');
 
   return (
     <div>
@@ -188,21 +157,21 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label={isFrench ? 'Mois précédent' : 'Previous month'}
+          aria-label={t('common.previousMonth', 'Mois précédent')}
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
         >
-          <ChevronLeftIcon size={16} strokeWidth={1.75} />
+          <ChevronPrevIcon size={16} strokeWidth={1.75} />
         </Button>
         <span className="min-w-[90px] text-center text-[0.6875rem] font-semibold capitalize">
-          {formatMiniMonth(viewMonth, isFrench)}
+          {formatMiniMonth(viewMonth)}
         </span>
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label={isFrench ? 'Mois suivant' : 'Next month'}
+          aria-label={t('common.nextMonth', 'Mois suivant')}
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
         >
-          <ChevronRightIcon size={16} strokeWidth={1.75} />
+          <ChevronNextIcon size={16} strokeWidth={1.75} />
         </Button>
       </div>
 
@@ -272,7 +241,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
               setSelectingField('start');
             }}
           >
-            {isFrench ? 'Effacer' : 'Clear'}
+            {t('common.clear', 'Effacer')}
           </Button>
         </div>
       )}

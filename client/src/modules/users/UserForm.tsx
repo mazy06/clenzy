@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../hooks/useTranslation';
 import { usersApi, type UserFormData as ApiUserFormData } from '../../services/api/usersApi';
 import { organizationsApi, type OrganizationDto } from '../../services/api/organizationsApi';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
@@ -61,30 +62,31 @@ export interface UserFormData {
 }
 
 const userRoles = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
-  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
-  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
-  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
+  { value: 'SUPER_ADMIN', labelKey: 'roles.platform.SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
+  { value: 'SUPER_MANAGER', labelKey: 'roles.platform.SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
+  { value: 'SUPERVISOR', labelKey: 'roles.platform.SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
+  { value: 'TECHNICIAN', labelKey: 'roles.platform.TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
+  { value: 'HOUSEKEEPER', labelKey: 'roles.platform.HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
+  { value: 'LAUNDRY', labelKey: 'roles.platform.LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
+  { value: 'EXTERIOR_TECH', labelKey: 'roles.platform.EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
+  { value: 'HOST', labelKey: 'roles.platform.HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
 const orgMemberRoles = [
-  { value: 'OWNER', label: 'Propriétaire' },
-  { value: 'ADMIN', label: 'Administrateur' },
-  { value: 'MANAGER', label: 'Manager' },
-  { value: 'SUPERVISOR', label: 'Superviseur' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
-  { value: 'TECHNICIAN', label: 'Technicien' },
-  { value: 'HOST', label: 'Hôte' },
-  { value: 'MEMBER', label: 'Membre' },
+  { value: 'OWNER', labelKey: 'roles.org.OWNER', label: 'Propriétaire' },
+  { value: 'ADMIN', labelKey: 'roles.org.ADMIN', label: 'Administrateur' },
+  { value: 'MANAGER', labelKey: 'roles.org.MANAGER', label: 'Manager' },
+  { value: 'SUPERVISOR', labelKey: 'roles.org.SUPERVISOR', label: 'Superviseur' },
+  { value: 'HOUSEKEEPER', labelKey: 'roles.org.HOUSEKEEPER', label: 'Agent de ménage' },
+  { value: 'TECHNICIAN', labelKey: 'roles.org.TECHNICIAN', label: 'Technicien' },
+  { value: 'HOST', labelKey: 'roles.org.HOST', label: 'Hôte' },
+  { value: 'MEMBER', labelKey: 'roles.org.MEMBER', label: 'Membre' },
 ];
 
 // Utilisation des enums partagés pour les statuts utilisateur
 const userStatuses = USER_STATUS_OPTIONS.map(option => ({
   value: option.value,
+  labelKey: option.labelKey,
   label: option.label,
   color: option.color
 }));
@@ -105,6 +107,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
 };
 
 const UserForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
 
@@ -186,11 +189,11 @@ const UserForm: React.FC = () => {
           {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
               un <h6>/<p> natif recupere sinon les marges du navigateur. */}
           <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
-            Accès non autorisé
+            {t('users.accessDenied.title')}
           </h6><p className="m-0 text-sm">
-            Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
+            {t('users.accessDenied.create')}
             <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+            {t('users.accessDenied.contact')}
           </p></AlertDescription>
         </Alert>
       </div>
@@ -230,8 +233,8 @@ const UserForm: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="Nouvel utilisateur"
-        subtitle="Créez un nouveau compte utilisateur pour la gestion des utilisateurs"
+        title={t('users.create')}
+        subtitle={t('users.form.createSubtitle')}
         backPath="/users"
         showBackButton={true}
         actions={
@@ -251,10 +254,10 @@ const UserForm: React.FC = () => {
               size="sm"
               onClick={handleSubmit(onSubmit)}
               disabled={saving}
-              title="Créer l'utilisateur"
+              title={t('users.createUser')}
             >
               {saving ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
-              {saving ? 'Création...' : 'Créer l\'utilisateur'}
+              {t(saving ? 'users.creating' : 'users.createUser')}
             </Button>
           </>
         }
@@ -271,7 +274,7 @@ const UserForm: React.FC = () => {
       {success && (
         <Alert variant="success" className="mb-3 py-1.5">
           <CircleCheck />
-          <AlertDescription>Utilisateur créé avec succès ! Redirection en cours...</AlertDescription>
+          <AlertDescription>{t('users.form.createSuccess')}</AlertDescription>
         </Alert>
       )}
 
@@ -287,7 +290,7 @@ const UserForm: React.FC = () => {
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
-                  <FieldLabel htmlFor="user-first-name">Prénom *</FieldLabel>
+                  <FieldLabel htmlFor="user-first-name">{t('users.firstName')} *</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
                       <span className="inline-flex text-muted-foreground"><Person size={18} strokeWidth={1.75} /></span>
@@ -296,7 +299,7 @@ const UserForm: React.FC = () => {
                       id="user-first-name"
                       {...registerField('firstName')}
                       aria-invalid={!!errors.firstName}
-                      placeholder="Ex: Jean"
+                      placeholder={t('users.form.firstNamePlaceholder')}
                     />
                   </InputGroup>
                   {errors.firstName?.message && <FieldError>{errors.firstName.message}</FieldError>}
@@ -305,7 +308,7 @@ const UserForm: React.FC = () => {
 
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
-                  <FieldLabel htmlFor="user-last-name">Nom *</FieldLabel>
+                  <FieldLabel htmlFor="user-last-name">{t('users.lastName')} *</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
                       <span className="inline-flex text-muted-foreground"><Person size={18} strokeWidth={1.75} /></span>
@@ -314,7 +317,7 @@ const UserForm: React.FC = () => {
                       id="user-last-name"
                       {...registerField('lastName')}
                       aria-invalid={!!errors.lastName}
-                      placeholder="Ex: Dupont"
+                      placeholder={t('users.form.lastNamePlaceholder')}
                     />
                   </InputGroup>
                   {errors.lastName?.message && <FieldError>{errors.lastName.message}</FieldError>}
@@ -324,7 +327,7 @@ const UserForm: React.FC = () => {
 
             {/* Informations de contact */}
             <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
-              Informations de contact
+              {t('users.form.contactInfo')}
             </h6>
 
             <div className="grid grid-cols-12 gap-3 mb-3">
@@ -340,7 +343,7 @@ const UserForm: React.FC = () => {
                       type="email"
                       {...registerField('email')}
                       aria-invalid={!!errors.email}
-                      placeholder="Ex: jean.dupont@baitly.fr"
+                      placeholder={t('users.form.emailPlaceholder')}
                     />
                   </InputGroup>
                   {errors.email?.message && <FieldError>{errors.email.message}</FieldError>}
@@ -349,7 +352,7 @@ const UserForm: React.FC = () => {
 
               <div className="col-span-12 min-[900px]:col-span-4">
                 <Field>
-                  <FieldLabel htmlFor="user-phone-number">Téléphone</FieldLabel>
+                  <FieldLabel htmlFor="user-phone-number">{t('common.phone')}</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
                       <span className="inline-flex text-muted-foreground"><Phone size={18} strokeWidth={1.75} /></span>
@@ -368,13 +371,13 @@ const UserForm: React.FC = () => {
 
             {/* Sécurité */}
             <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
-              Sécurité
+              {t('users.form.security')}
             </h6>
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
-                  <FieldLabel htmlFor="user-password">Mot de passe *</FieldLabel>
+                  <FieldLabel htmlFor="user-password">{t('users.form.password')} *</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
                       <span className="inline-flex text-muted-foreground"><Lock size={18} strokeWidth={1.75} /></span>
@@ -384,20 +387,20 @@ const UserForm: React.FC = () => {
                       type="password"
                       {...registerField('password')}
                       aria-invalid={!!errors.password}
-                      placeholder="Minimum 8 caractères"
+                      placeholder={t('users.form.passwordHint')}
                     />
                   </InputGroup>
                   {errors.password?.message ? (
                     <FieldError>{errors.password.message}</FieldError>
                   ) : (
-                    <FieldDescription>Le mot de passe doit contenir au moins 8 caractères</FieldDescription>
+                    <FieldDescription>{t('users.form.passwordTooShort')}</FieldDescription>
                   )}
                 </Field>
               </div>
 
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
-                  <FieldLabel htmlFor="user-confirm-password">Confirmer le mot de passe *</FieldLabel>
+                  <FieldLabel htmlFor="user-confirm-password">{t('users.form.passwordConfirm')} *</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon>
                       <span className="inline-flex text-muted-foreground"><Lock size={18} strokeWidth={1.75} /></span>
@@ -407,7 +410,7 @@ const UserForm: React.FC = () => {
                       type="password"
                       {...registerField('confirmPassword')}
                       aria-invalid={!!errors.confirmPassword || passwordsMismatch}
-                      placeholder="Retapez le mot de passe"
+                      placeholder={t('users.form.passwordRetype')}
                     />
                   </InputGroup>
                   {(errors.confirmPassword?.message || passwordsMismatch) && (
@@ -421,27 +424,27 @@ const UserForm: React.FC = () => {
 
             {/* Rôle et statut */}
             <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
-              Rôle et statut
+              {t('users.form.roleAndStatus')}
             </h6>
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
-                  <FieldLabel htmlFor="user-role">Rôle *</FieldLabel>
+                  <FieldLabel htmlFor="user-role">{t('users.role')} *</FieldLabel>
                   <Controller
                     name="role"
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger id="user-role" className="w-full" aria-invalid={!!errors.role}>
-                          <SelectValue placeholder="Rôle" />
+                          <SelectValue placeholder={t('users.role')} />
                         </SelectTrigger>
                         <SelectContent>
                           {userRoles.map((role) => (
                             <SelectItem key={role.value} value={role.value}>
                               <span className="flex items-center gap-1.5">
                                 <span className="inline-flex text-[18px]">{role.icon}</span>
-                                {role.label}
+                                {t(role.labelKey, role.label)}
                               </span>
                             </SelectItem>
                           ))}
@@ -453,7 +456,7 @@ const UserForm: React.FC = () => {
                     <FieldError className="text-[0.7rem]">{errors.role.message}</FieldError>
                   ) : (
                     <FieldDescription className="text-[0.7rem]">
-                      Le rôle détermine les permissions de l'utilisateur
+                      {t('users.form.roleHint')}
                     </FieldDescription>
                   )}
                 </Field>
@@ -473,7 +476,7 @@ const UserForm: React.FC = () => {
                         <SelectContent>
                           {userStatuses.map((status) => (
                             <SelectItem key={status.value} value={status.value}>
-                              <StatusChip tone={STATUS_TONE[status.color] ?? 'neutral'} label={status.label} />
+                              <StatusChip tone={STATUS_TONE[status.color] ?? 'neutral'} label={t(status.labelKey, status.label)} />
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -484,7 +487,7 @@ const UserForm: React.FC = () => {
                     <FieldError className="text-[0.7rem]">{errors.status.message}</FieldError>
                   ) : (
                     <FieldDescription className="text-[0.7rem]">
-                      Le statut détermine si l'utilisateur peut se connecter
+                      {t('users.form.statusHint')}
                     </FieldDescription>
                   )}
                 </Field>
@@ -499,17 +502,13 @@ const UserForm: React.FC = () => {
               <div className="mb-3 p-2 bg-field border border-solid border-field-line rounded-md">
                 <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
                   <AdminPanelSettings size={14} strokeWidth={1.75} />
-                  Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
+                  {t('users.form.selectedRole')} {(() => {
+                    const r = userRoles.find((x) => x.value === watchedRole);
+                    return r ? t(r.labelKey, r.label) : '';
+                  })()}
                 </span>
                 <span className="block text-[0.7rem] text-muted-foreground">
-                  {watchedRole === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
-                  {watchedRole === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
-                  {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
-                  {watchedRole === 'TECHNICIAN' && 'Exécution des interventions techniques'}
-                  {watchedRole === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
-                  {watchedRole === 'HOST' && 'Gestion de ses propres propriétés'}
-                  {watchedRole === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
-                  {watchedRole === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
+                  {watchedRole && t('roles.platformDesc.' + watchedRole, '')}
                 </span>
               </div>
             )}
@@ -522,7 +521,7 @@ const UserForm: React.FC = () => {
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
-                  <FieldLabel htmlFor="user-organization">Organisation</FieldLabel>
+                  <FieldLabel htmlFor="user-organization">{t('users.form.organization')}</FieldLabel>
                   <Controller
                     name="organizationId"
                     control={control}
@@ -532,11 +531,11 @@ const UserForm: React.FC = () => {
                         onValueChange={(value) => field.onChange(value === NONE_OPTION ? '' : value)}
                       >
                         <SelectTrigger id="user-organization" className="w-full" aria-invalid={!!errors.organizationId}>
-                          <SelectValue placeholder="Aucune" />
+                          <SelectValue placeholder={t('common.none')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={NONE_OPTION}>
-                            <span className="text-muted-foreground">Aucune</span>
+                            <span className="text-muted-foreground">{t('common.none')}</span>
                           </SelectItem>
                           {organizations.map((org) => (
                             <SelectItem key={org.id} value={String(org.id)}>
@@ -554,7 +553,7 @@ const UserForm: React.FC = () => {
                     <FieldError className="text-[0.7rem]">{errors.organizationId.message}</FieldError>
                   ) : (
                     <FieldDescription className="text-[0.7rem]">
-                      Optionnel — rattacher l'utilisateur à une organisation
+                      {t('users.form.orgOptionalHint')}
                     </FieldDescription>
                   )}
                 </Field>
@@ -563,7 +562,7 @@ const UserForm: React.FC = () => {
               <div className="col-span-12 min-[900px]:col-span-6">
                 <Field>
                   <FieldLabel htmlFor="user-org-role">
-                    Rôle dans l'organisation {watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}
+                    {t('users.form.orgRoleLabel')} {watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}
                   </FieldLabel>
                   <Controller
                     name="orgRole"
@@ -575,17 +574,17 @@ const UserForm: React.FC = () => {
                         disabled={!watchedOrganizationId || watchedOrganizationId === ''}
                       >
                         <SelectTrigger id="user-org-role" className="w-full" aria-invalid={!!errors.orgRole}>
-                          <SelectValue placeholder="Aucun" />
+                          <SelectValue placeholder={t('common.noneMasc')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={NONE_OPTION}>
-                            <span className="text-muted-foreground">Aucun</span>
+                            <span className="text-muted-foreground">{t('common.noneMasc')}</span>
                           </SelectItem>
                           {orgMemberRoles.map((role) => (
                             <SelectItem key={role.value} value={role.value}>
                               <span className="flex items-center gap-1.5">
                                 <span className="inline-flex text-muted-foreground"><Group size={18} strokeWidth={1.75} /></span>
-                                {role.label}
+                                {t(role.labelKey, role.label)}
                               </span>
                             </SelectItem>
                           ))}

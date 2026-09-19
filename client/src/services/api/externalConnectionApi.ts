@@ -85,7 +85,7 @@ export interface ProviderMeta {
   id: ApiKeyProvider;
   label: string;
   /** Description courte affichee sous le titre dans la carte. */
-  description: string;
+  descriptionKey: string;
   /** Couleur de la "brand tile" en hex (sans #). */
   brandColor: string;
   /** Texte de 2-4 lettres affiche dans la tile (ex 'YS', 'UNI'). */
@@ -95,7 +95,7 @@ export interface ProviderMeta {
   /** Label additionnel sous le titre (ex "QTSP francais — SES + AES + QES"). */
   badge?: string;
   /** Libelle pour le champ accountIdentifier (varie selon le provider). */
-  accountIdentifierLabel?: string;
+  accountIdentifierLabelKey?: string;
   /** Placeholder pour le champ serverUrl. */
   serverUrlPlaceholder: string;
   /** URL doc pour generer l'API key. */
@@ -106,52 +106,48 @@ export const PROVIDER_META: Record<ApiKeyProvider, ProviderMeta> = {
   YOUSIGN: {
     id: 'YOUSIGN',
     label: 'Yousign',
-    description:
-      'QTSP français basé à Caen, certifié ANSSI. Signature électronique SES, AES et QES (équivalent juridique de la signature manuscrite).',
+    descriptionKey: 'signatureProviders.YOUSIGN.description',
     brandColor: '#1F2A37',
     brandInitials: 'YS',
     qtspFrance: true,
     badge: 'QTSP français · SES + AES + QES',
-    accountIdentifierLabel: 'Identifiant de compte (optionnel)',
+    accountIdentifierLabelKey: 'signatureProviders.YOUSIGN.accountLabel',
     serverUrlPlaceholder: 'https://api.yousign.app',
     apiKeyHelpUrl: 'https://developers.yousign.com/docs/authentication',
   },
   UNIVERSIGN: {
     id: 'UNIVERSIGN',
     label: 'Universign',
-    description:
-      'QTSP français (Quadient), fortement implanté dans le secteur bancaire et assurance. SES, AES, QES.',
+    descriptionKey: 'signatureProviders.UNIVERSIGN.description',
     brandColor: '#0046AD',
     brandInitials: 'UNI',
     qtspFrance: true,
     badge: 'QTSP français · SES + AES + QES',
-    accountIdentifierLabel: 'Profile ID (optionnel)',
+    accountIdentifierLabelKey: 'signatureProviders.UNIVERSIGN.accountLabel',
     serverUrlPlaceholder: 'https://ws.universign.eu',
     apiKeyHelpUrl: 'https://help.universign.com/',
   },
   DOCAPOSTE: {
     id: 'DOCAPOSTE',
     label: 'DocaPoste',
-    description:
-      'Filiale du Groupe La Poste, QTSP français. SES, AES, QES + lettre recommandée électronique (utile pour mises en demeure).',
+    descriptionKey: 'signatureProviders.DOCAPOSTE.description',
     brandColor: '#FFCC00',
     brandInitials: 'DP',
     qtspFrance: true,
     badge: 'QTSP français · SES + AES + QES + LRE',
-    accountIdentifierLabel: 'Tenant / Espace client',
+    accountIdentifierLabelKey: 'signatureProviders.DOCAPOSTE.accountLabel',
     serverUrlPlaceholder: 'https://api.docaposte.fr',
     apiKeyHelpUrl: 'https://www.docaposte.com/api',
   },
   ODOO: {
     id: 'ODOO',
     label: 'Odoo',
-    description:
-      'Connectez votre instance Odoo (SaaS ou self-hosted). Signature via le module Sign d\'Odoo Enterprise.',
+    descriptionKey: 'signatureProviders.ODOO.description',
     brandColor: '#714B67',
     brandInitials: 'ODOO',
     qtspFrance: false,
     badge: 'ERP polyvalent · signature + comptabilité',
-    accountIdentifierLabel: 'Nom de base + Login',
+    accountIdentifierLabelKey: 'signatureProviders.ODOO.accountLabel',
     serverUrlPlaceholder: 'https://mycompany.odoo.com',
   },
 };

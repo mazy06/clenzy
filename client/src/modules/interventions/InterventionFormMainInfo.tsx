@@ -46,16 +46,19 @@ export interface InterventionFormMainInfoProps {
 
 const interventionTypes = INTERVENTION_TYPE_OPTIONS.map(option => ({
   value: option.value,
+  labelKey: option.labelKey,
   label: option.label
 }));
 
 const statuses = INTERVENTION_STATUS_OPTIONS.map(option => ({
   value: option.value,
+  labelKey: option.labelKey,
   label: option.label
 }));
 
 const priorities = PRIORITY_OPTIONS.map(option => ({
   value: option.value,
+  labelKey: option.labelKey,
   label: option.label
 }));
 
@@ -165,7 +168,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                         <SelectContent>
                           {statuses.map((status) => (
                             <SelectItem key={status.value} value={status.value}>
-                              {status.label}
+                              {t(status.labelKey, status.label)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -197,7 +200,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                         <SelectContent>
                           {priorities.map((priority) => (
                             <SelectItem key={priority.value} value={priority.value}>
-                              {priority.label}
+                              {t(priority.labelKey, priority.label)}
                             </SelectItem>
                           ))}
                         </SelectContent>

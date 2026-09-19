@@ -1,5 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 
 interface EventItem {
@@ -139,14 +140,14 @@ function typeLabel(type: string): string {
 }
 
 function formatDay(iso: string): string {
-  try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit' }); }
+  try { return new Date(iso).toLocaleDateString(activeIntlLocale(), { day: '2-digit' }); }
   catch { return ''; }
 }
 
 function formatMonth(iso: string): string {
   try {
     return new Date(iso)
-      .toLocaleDateString('fr-FR', { month: 'short' })
+      .toLocaleDateString(activeIntlLocale(), { month: 'short' })
       .replace('.', '');
   } catch { return ''; }
 }

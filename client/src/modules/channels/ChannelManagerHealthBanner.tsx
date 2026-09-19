@@ -7,6 +7,7 @@ import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { channexApi } from '../../services/api/channexApi';
+import { intlLocale } from '../../utils/localeDate';
 
 /**
  * Bandeau de sante du channel manager — le dessin de la projection
@@ -37,7 +38,7 @@ export default function ChannelManagerHealthBanner() {
   const actifs = data.countsByStatus.ACTIVE ?? 0;
   const enErreur = erreurs > 0;
   const heure = new Date(data.computedAt).toLocaleTimeString(
-    currentLanguage === 'ar' ? 'ar-SA' : currentLanguage === 'en' ? 'en-US' : 'fr-FR',
+    intlLocale(currentLanguage),
     { hour: '2-digit', minute: '2-digit' },
   );
 

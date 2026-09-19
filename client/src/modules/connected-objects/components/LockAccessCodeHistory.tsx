@@ -2,6 +2,8 @@ import { Skeleton } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { useLockAccessCodeHistory } from '../useLockAccessCodeHistory';
 import type { SmartLockAccessCodeEventDto } from '../../../services/api/smartLockApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Journal des codes d'accès d'une serrure.
@@ -20,20 +22,20 @@ import type { SmartLockAccessCodeEventDto } from '../../../services/api/smartLoc
  * vigueur, et les `notes` d'évènement n'en contiennent jamais.</p>
  */
 
-const EVENT_LABELS: Record<string, string> = {
-  CODE_GENERATED: 'Code généré',
-  CODE_DELIVERED: 'Code envoyé au voyageur',
-  DELIVERY_FAILED: 'Envoi au voyageur en échec',
-  CODE_REVOKED: 'Code révoqué',
-  CODE_EXPIRED: 'Code expiré',
-  GENERATION_FAILED: 'Génération en échec',
+const EVENT_KEYS: Record<string, string> = {
+  CODE_GENERATED: 'accessCodes.generated',
+  CODE_DELIVERED: 'accessCodes.sentToGuest',
+  DELIVERY_FAILED: 'accessCodes.sendFailed',
+  CODE_REVOKED: 'accessCodes.revoked',
+  CODE_EXPIRED: 'accessCodes.expired',
+  GENERATION_FAILED: 'accessCodes.generationFailed',
 };
 
 const FAILURES = new Set(['DELIVERY_FAILED', 'GENERATION_FAILED']);
 
 function formatMoment(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('fr-FR', {
+    return new Date(iso).toLocaleString(activeIntlLocale(), {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   } catch {
@@ -42,6 +44,7 @@ function formatMoment(iso: string): string {
 }
 
 function EventRow({ event }: { event: SmartLockAccessCodeEventDto }) {
+  const { t } = useTranslation();
   const failed = FAILURES.has(event.eventType);
   return (
     <li className="flex items-start gap-2 py-1">
@@ -55,7 +58,7 @@ function EventRow({ event }: { event: SmartLockAccessCodeEventDto }) {
       />
       <span className="min-w-0 flex-1">
         <span className={cn('block text-xs font-medium', failed ? 'text-warning-ink' : 'text-foreground')}>
-          {EVENT_LABELS[event.eventType] ?? event.eventType}
+          {EVENT_KEYS[event.eventType] ? t(EVENT_KEYS[event.eventType]) : event.eventType}
         </span>
         <span className="block text-xs text-muted-foreground">
           {formatMoment(event.createdAt)}
@@ -71,6 +74,7 @@ function EventRow({ event }: { event: SmartLockAccessCodeEventDto }) {
 }
 
 export default function LockAccessCodeHistory({ deviceId }: { deviceId: number }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useLockAccessCodeHistory(deviceId, true);
 
   if (isLoading) {
@@ -88,8 +92,7 @@ export default function LockAccessCodeHistory({ deviceId }: { deviceId: number }
   if (events.length === 0) {
     return (
       <p className="m-0 text-xs text-muted-foreground">
-        Aucun évènement pour l'instant. Le premier code sera généré à la prochaine
-        réservation sur ce logement.
+        {t('connectedObjects.history.empty')}
       </p>
     );
   }

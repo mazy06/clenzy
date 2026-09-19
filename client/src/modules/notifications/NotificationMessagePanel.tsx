@@ -9,7 +9,7 @@ import {
   guestMessagingApi,
   type GuestMessageLog,
 } from '../../services/api/guestMessagingApi';
-import { renderServerEmailPreview } from '../../utils/emailMarkdown';
+import { renderServerEmailPreview, emailPreviewFontStack } from '../../utils/emailMarkdown';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../contexts/AuthContext';
@@ -291,7 +291,7 @@ export default function NotificationMessagePanel({
             sandbox=""
             title={t('notifications.detail.message.preview', 'Contenu du message')}
             className="mt-3 h-56 w-full rounded-md border border-border"
-            srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:14px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(body)}</body></html>`}
+            srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:${emailPreviewFontStack(currentLanguage)};font-size:13px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:14px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(body)}</body></html>`}
           />
         ) : (
           <p className="m-0 mt-2 text-xs text-muted-foreground">

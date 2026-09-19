@@ -1,5 +1,6 @@
 import type { ChipColor } from '../../../types';
 import type { HostBalanceSummary, LockoutStatus } from '../../../services/api';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 export interface UserDetailsData {
   id: number;
@@ -82,7 +83,7 @@ export function getStatusInfo(status: string, statuses: StatusInfo[]): StatusInf
 }
 
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('fr-FR', {
+  return new Date(dateString).toLocaleDateString(activeIntlLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

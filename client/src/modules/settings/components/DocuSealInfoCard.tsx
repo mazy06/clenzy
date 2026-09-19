@@ -2,6 +2,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription, Card } from '../../../components/ui';
 import ProviderLogo from './ProviderLogos';
 import { CheckCircle } from '../../../icons';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Panneau d'information DocuSeal — provider de signature open source
@@ -18,22 +19,11 @@ interface DocuSealInfoCardProps {
   active: boolean;
 }
 
-const STEPS: Array<{ title: string; detail: string }> = [
-  {
-    title: 'Déployer l’instance (clenzy-infra)',
-    detail: 'Ajouter le container DocuSeal au docker-compose + reverse proxy nginx (ex. sign.clenzy.fr).',
-  },
-  {
-    title: 'Configurer le backend',
-    detail: 'Renseigner DOCUSEAL_BASE_URL et DOCUSEAL_API_KEY (clé générée dans DocuSeal → Réglages → API) sur le service pms-server.',
-  },
-  {
-    title: 'Activer le provider',
-    detail: 'Basculer SIGNATURE_PROVIDER=docuseal puis redéployer. Sans cette bascule, le workflow interne Baitly (SES) reste utilisé.',
-  },
-];
+/** Les libelles vivent dans les locales : `docuseal.steps.<id>.{title,detail}`. */
+const STEP_IDS = ['deploy', 'backend', 'enable'] as const;
 
 export default function DocuSealInfoCard({ available, active }: DocuSealInfoCardProps) {
+  const { t } = useTranslation();
   return (
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
@@ -45,13 +35,13 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
             {active ? (
               <StatusChip size="sm" tone="ok" label="Provider actif" />
             ) : available ? (
-              <StatusChip size="sm" tone="ok" label="Instance connectée — non activé" />
+              <StatusChip size="sm" tone="ok" label={t('settings.integrations.docuseal.instanceConnected')} />
             ) : (
-              <StatusChip size="sm" tone="warn" label="Prêt — à brancher" />
+              <StatusChip size="sm" tone="warn" label={t('settings.integrations.status.readyToWire2')} />
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Alternative open source (AGPL) auto-hébergée à DocuSign — signature SES avec scellement cryptographique du PDF, données sur votre infrastructure, 0 € de licence.
+            {t('settings.integrations.docuseal.description')}
           </p>
         </div>
       </div>
@@ -61,26 +51,26 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
         <Alert variant={available ? 'success' : 'info'} className="rounded-md py-[1.5px] mb-[9px]">
           <AlertDescription className="text-xs">
             {available
-              ? "L'instance DocuSeal est configurée. Le provider est implémenté et fonctionnel — il ne sera utilisé qu'après la bascule SIGNATURE_PROVIDER=docuseal."
-              : "L'intégration est entièrement implémentée côté code (création de la demande, lien de signature, statut, téléchargement du document signé). Elle est inactive tant que l'instance self-hosted n'est pas déployée et branchée — opération d'infrastructure, pas de saisie ici."}
+              ? t('docuseal.configured')
+              : t('docuseal.notDeployed')}
           </AlertDescription>
         </Alert>
 
         <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-          Branchement (opération infra)
+          {t('settings.integrations.docuseal.wiring')}
         </p>
         {/* Volontairement des <div> et non un <ol> : le projet tourne sans
             preflight Tailwind, une liste native rapporterait puce, retrait et
             marges du navigateur — et un second numerotage. */}
         <div className="flex flex-col gap-1.5">
-          {STEPS.map((step, i) => (
-            <div className="flex gap-2 items-start" key={step.title}>
+          {STEP_IDS.map((step, i) => (
+            <div className="flex gap-2 items-start" key={step}>
               <span className="size-5 rounded-full shrink-0 inline-flex items-center justify-center text-2xs font-semibold tabular-nums bg-primary-soft text-primary">
                 {i + 1}
               </span>
               <div>
-                <p className="text-sm font-medium leading-snug">{step.title}</p>
-                <p className="text-xs text-muted-foreground">{step.detail}</p>
+                <p className="text-sm font-medium leading-snug">{t('docuseal.steps.' + step + '.title')}</p>
+                <p className="text-xs text-muted-foreground">{t('docuseal.steps.' + step + '.detail')}</p>
               </div>
             </div>
           ))}
@@ -91,7 +81,7 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
             <CheckCircle size={13} strokeWidth={2} />
           </span>
           <p className="text-xs text-muted-foreground">
-            En attendant, la signature électronique fonctionne via le workflow interne Baitly (SES, lien public + certificat de preuve).
+            {t('settings.integrations.docuseal.meanwhile')}
           </p>
         </div>
       </div>

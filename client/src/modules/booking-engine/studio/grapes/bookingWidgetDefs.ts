@@ -49,10 +49,10 @@ export interface BookingTrait {
   name: string;
   /** Type de contrôle GrapesJS (panneau Réglages). */
   type: 'text' | 'number' | 'checkbox' | 'select' | 'color';
-  /** Libellé affiché. */
-  label: string;
-  /** Options (type `select` uniquement). */
-  options?: { id: string; name: string }[];
+  /** Cle du libelle affiche. */
+  labelKey: string;
+  /** Options (type `select` uniquement) — le nom est une cle. */
+  options?: { id: string; nameKey: string }[];
 }
 
 /**
@@ -90,11 +90,11 @@ export interface BookingWidgetDef {
    * clé de bloc. Le marqueur exporté est `data-clenzy-widget="<id>"`.
    */
   id: string;
-  /** Libellé affiché (bloc + nom de calque). */
-  label: string;
-  /** Description courte (affichée sous le titre dans la palette, façon ancien Studio). */
-  description?: string;
-  /** Catégorie du BlockManager (regroupement de la palette). */
+  /** Cle du libelle affiche (bloc + nom de calque). */
+  labelKey: string;
+  /** Cle de la description courte (sous le titre dans la palette). */
+  descriptionKey?: string;
+  /** Cle de la categorie du BlockManager (regroupement de la palette). */
   category: string;
   /** Icône du bloc (DOM sûr, contenu 100 % statique). */
   icon: BookingIconShape;
@@ -113,11 +113,11 @@ export interface BookingWidgetDef {
 export const BOOKING_WIDGET_ATTR = 'data-clenzy-widget';
 
 /** Catégories du BlockManager (parité ancien Studio `WIDGET_CATEGORIES`). */
-const CAT_SEARCH = 'Recherche';
-const CAT_RESULTS = 'Résultats & prix';
-const CAT_CART = 'Panier & options';
-const CAT_CHECKOUT = 'Coordonnées & réservation';
-const CAT_ACCOUNT = 'Compte';
+const CAT_SEARCH = 'studioBlocks.categories.search';
+const CAT_RESULTS = 'studioBlocks.categories.results';
+const CAT_CART = 'studioBlocks.categories.cart';
+const CAT_CHECKOUT = 'studioBlocks.categories.checkout';
+const CAT_ACCOUNT = 'studioBlocks.categories.account';
 
 /* ── Icônes SVG statiques (alignées sur lucide-react, mêmes glyphes que `widgetRegistry`) ──
  * Chaque icône est un DOM 100 % statique (aucun innerHTML) construit par `bookingComponents.buildIcon`. */
@@ -271,8 +271,8 @@ const ROTATE_ICON: BookingIconShape = {
 /** Recherche ville. SDK : champ input de destination (alimente `state.destination`). */
 const CITY_SEARCH_WIDGET: BookingWidgetDef = {
   id: 'booking-city-search',
-  label: 'Recherche ville',
-  description: 'Champ destination / ville.',
+  labelKey: 'studioBlocks.booking-city-search.label',
+  descriptionKey: 'studioBlocks.booking-city-search.description',
   category: CAT_SEARCH,
   icon: SEARCH_ICON,
   widgetType: 'citySearch',
@@ -282,8 +282,8 @@ const CITY_SEARCH_WIDGET: BookingWidgetDef = {
 /** Sélecteur de dates (arrivée → départ). SDK : DatePicker + calendrier. */
 const DATES_WIDGET: BookingWidgetDef = {
   id: 'booking-dates',
-  label: 'Dates',
-  description: 'Sélecteur de dates (arrivée → départ).',
+  labelKey: 'studioBlocks.booking-dates.label',
+  descriptionKey: 'studioBlocks.booking-dates.description',
   category: CAT_SEARCH,
   icon: CALENDAR_DAYS_ICON,
   widgetType: 'dates',
@@ -293,8 +293,8 @@ const DATES_WIDGET: BookingWidgetDef = {
 /** Nombre de voyageurs. SDK : `createGuestSelector`. */
 const GUESTS_WIDGET: BookingWidgetDef = {
   id: 'booking-guests',
-  label: 'Voyageurs',
-  description: 'Nombre de voyageurs (adultes / enfants).',
+  labelKey: 'studioBlocks.booking-guests.label',
+  descriptionKey: 'studioBlocks.booking-guests.description',
   category: CAT_SEARCH,
   icon: USERS_ICON,
   widgetType: 'guests',
@@ -304,8 +304,8 @@ const GUESTS_WIDGET: BookingWidgetDef = {
 /** Filtre par type de logement. SDK : `createPropertyFilter`. */
 const PROPERTY_TYPE_WIDGET: BookingWidgetDef = {
   id: 'booking-property-type',
-  label: 'Type de logement',
-  description: 'Filtre par type (appartement, villa, riad…).',
+  labelKey: 'studioBlocks.booking-property-type.label',
+  descriptionKey: 'studioBlocks.booking-property-type.description',
   category: CAT_SEARCH,
   icon: HOME_ICON,
   widgetType: 'propertyType',
@@ -315,8 +315,8 @@ const PROPERTY_TYPE_WIDGET: BookingWidgetDef = {
 /** Filtre additionnel (équipement, budget…). SDK : `createPropertyFilter` (même rendu que le type). */
 const FILTER_WIDGET: BookingWidgetDef = {
   id: 'booking-filter',
-  label: 'Filtre',
-  description: 'Filtre additionnel (équipement, budget…).',
+  labelKey: 'studioBlocks.booking-filter.label',
+  descriptionKey: 'studioBlocks.booking-filter.description',
   category: CAT_SEARCH,
   icon: SLIDERS_ICON,
   widgetType: 'filter',
@@ -326,8 +326,8 @@ const FILTER_WIDGET: BookingWidgetDef = {
 /** Sélecteur de devise. SDK : `createCurrencySelector`. */
 const CURRENCY_WIDGET: BookingWidgetDef = {
   id: 'booking-currency',
-  label: 'Devise',
-  description: 'Sélecteur de devise.',
+  labelKey: 'studioBlocks.booking-currency.label',
+  descriptionKey: 'studioBlocks.booking-currency.description',
   category: CAT_SEARCH,
   icon: COINS_ICON,
   widgetType: 'currency',
@@ -337,8 +337,8 @@ const CURRENCY_WIDGET: BookingWidgetDef = {
 /** Bouton de validation de la recherche. SDK : `createCTAButton`. */
 const SEARCH_BUTTON_WIDGET: BookingWidgetDef = {
   id: 'booking-search-button',
-  label: 'Bouton Rechercher',
-  description: 'Bouton de validation de la recherche.',
+  labelKey: 'studioBlocks.booking-search-button.label',
+  descriptionKey: 'studioBlocks.booking-search-button.description',
   category: CAT_SEARCH,
   icon: ARROW_RIGHT_ICON,
   widgetType: 'searchButton',
@@ -353,30 +353,30 @@ const SEARCH_BUTTON_WIDGET: BookingWidgetDef = {
  * `propertyResults` + `mountPrimitive.buildPropertyListFromProps`). Disposition + toggles + typographie.
  */
 const PROPERTY_RESULTS_TRAITS: BookingTrait[] = [
-  { name: 'mode', type: 'select', label: 'Affichage', options: [{ id: 'all', name: 'Tous' }, { id: 'limited', name: 'Limité' }, { id: 'paginated', name: 'Paginé' }] },
-  { name: 'limit', type: 'number', label: 'Limite (mode limité)' },
-  { name: 'pageSize', type: 'number', label: 'Par page (mode paginé)' },
-  { name: 'cardStyle', type: 'select', label: 'Style de carte', options: [{ id: 'vertical', name: 'Vertical' }, { id: 'horizontal', name: 'Horizontal' }, { id: 'overlay', name: 'Superposé' }, { id: 'minimal', name: 'Minimal' }] },
-  { name: 'direction', type: 'select', label: 'Direction', options: [{ id: 'column', name: 'Colonne' }, { id: 'row', name: 'Ligne' }] },
-  { name: 'columns', type: 'number', label: 'Colonnes (0 = auto)' },
-  { name: 'horizontalScroll', type: 'checkbox', label: 'Défilement horizontal' },
-  { name: 'fillEmpty', type: 'checkbox', label: 'Remplir les cases vides' },
-  { name: 'showImage', type: 'checkbox', label: 'Afficher l’image' },
-  { name: 'showLocation', type: 'checkbox', label: 'Afficher le lieu' },
-  { name: 'showPrice', type: 'checkbox', label: 'Afficher le prix' },
-  { name: 'showBadges', type: 'checkbox', label: 'Afficher les badges' },
+  { name: 'mode', type: 'select', labelKey: 'studioBlocks.traits.mode', options: [{ id: 'all', nameKey: 'studioBlocks.options.all' }, { id: 'limited', nameKey: 'studioBlocks.options.limited' }, { id: 'paginated', nameKey: 'studioBlocks.options.paginated' }] },
+  { name: 'limit', type: 'number', labelKey: 'studioBlocks.traits.limit' },
+  { name: 'pageSize', type: 'number', labelKey: 'studioBlocks.traits.pageSize' },
+  { name: 'cardStyle', type: 'select', labelKey: 'studioBlocks.traits.cardStyle', options: [{ id: 'vertical', nameKey: 'studioBlocks.options.vertical' }, { id: 'horizontal', nameKey: 'studioBlocks.options.horizontal' }, { id: 'overlay', nameKey: 'studioBlocks.options.overlay' }, { id: 'minimal', nameKey: 'studioBlocks.options.minimal' }] },
+  { name: 'direction', type: 'select', labelKey: 'studioBlocks.traits.direction', options: [{ id: 'column', nameKey: 'studioBlocks.options.column' }, { id: 'row', nameKey: 'studioBlocks.options.row' }] },
+  { name: 'columns', type: 'number', labelKey: 'studioBlocks.traits.columns' },
+  { name: 'horizontalScroll', type: 'checkbox', labelKey: 'studioBlocks.traits.horizontalScroll' },
+  { name: 'fillEmpty', type: 'checkbox', labelKey: 'studioBlocks.traits.fillEmpty' },
+  { name: 'showImage', type: 'checkbox', labelKey: 'studioBlocks.traits.showImage' },
+  { name: 'showLocation', type: 'checkbox', labelKey: 'studioBlocks.traits.showLocation' },
+  { name: 'showPrice', type: 'checkbox', labelKey: 'studioBlocks.traits.showPrice' },
+  { name: 'showBadges', type: 'checkbox', labelKey: 'studioBlocks.traits.showBadges' },
   // Typographie par élément (vide / 0 = hérité du thème).
-  { name: 'titleFont', type: 'text', label: 'Police titre' },
-  { name: 'titleSize', type: 'number', label: 'Taille titre' },
-  { name: 'titleWeight', type: 'text', label: 'Graisse titre' },
-  { name: 'titleColor', type: 'color', label: 'Couleur titre' },
-  { name: 'locationFont', type: 'text', label: 'Police lieu' },
-  { name: 'locationSize', type: 'number', label: 'Taille lieu' },
-  { name: 'locationColor', type: 'color', label: 'Couleur lieu' },
-  { name: 'priceFont', type: 'text', label: 'Police prix' },
-  { name: 'priceSize', type: 'number', label: 'Taille prix' },
-  { name: 'priceWeight', type: 'text', label: 'Graisse prix' },
-  { name: 'priceColor', type: 'color', label: 'Couleur prix' },
+  { name: 'titleFont', type: 'text', labelKey: 'studioBlocks.traits.titleFont' },
+  { name: 'titleSize', type: 'number', labelKey: 'studioBlocks.traits.titleSize' },
+  { name: 'titleWeight', type: 'text', labelKey: 'studioBlocks.traits.titleWeight' },
+  { name: 'titleColor', type: 'color', labelKey: 'studioBlocks.traits.titleColor' },
+  { name: 'locationFont', type: 'text', labelKey: 'studioBlocks.traits.locationFont' },
+  { name: 'locationSize', type: 'number', labelKey: 'studioBlocks.traits.locationSize' },
+  { name: 'locationColor', type: 'color', labelKey: 'studioBlocks.traits.locationColor' },
+  { name: 'priceFont', type: 'text', labelKey: 'studioBlocks.traits.priceFont' },
+  { name: 'priceSize', type: 'number', labelKey: 'studioBlocks.traits.priceSize' },
+  { name: 'priceWeight', type: 'text', labelKey: 'studioBlocks.traits.priceWeight' },
+  { name: 'priceColor', type: 'color', labelKey: 'studioBlocks.traits.priceColor' },
 ];
 
 /**
@@ -386,8 +386,8 @@ const PROPERTY_RESULTS_TRAITS: BookingTrait[] = [
  */
 const PROPERTY_RESULTS_WIDGET: BookingWidgetDef = {
   id: 'booking-property-results',
-  label: 'Logements disponibles',
-  description: 'Liste des logements disponibles (résultats de recherche, cliquables).',
+  labelKey: 'studioBlocks.booking-property-results.label',
+  descriptionKey: 'studioBlocks.booking-property-results.description',
   category: CAT_RESULTS,
   icon: BUILDING_ICON,
   widgetType: 'propertyResults',
@@ -405,8 +405,8 @@ const PROPERTY_RESULTS_WIDGET: BookingWidgetDef = {
 /** Récapitulatif détaillé du prix du séjour. SDK : `createPriceSummary`. */
 const PRICE_SUMMARY_WIDGET: BookingWidgetDef = {
   id: 'booking-price-summary',
-  label: 'Récap prix',
-  description: 'Récapitulatif détaillé du prix du séjour.',
+  labelKey: 'studioBlocks.booking-price-summary.label',
+  descriptionKey: 'studioBlocks.booking-price-summary.description',
   category: CAT_RESULTS,
   icon: RECEIPT_ICON,
   widgetType: 'priceSummary',
@@ -417,8 +417,8 @@ const PRICE_SUMMARY_WIDGET: BookingWidgetDef = {
 /** Panier multi-séjours. SDK : `createCartList`. */
 const CART_WIDGET: BookingWidgetDef = {
   id: 'booking-cart',
-  label: 'Panier',
-  description: 'Panier multi-séjours : liste des séjours ajoutés + total + validation.',
+  labelKey: 'studioBlocks.booking-cart.label',
+  descriptionKey: 'studioBlocks.booking-cart.description',
   category: CAT_CART,
   icon: CART_ICON,
   widgetType: 'cart',
@@ -427,8 +427,8 @@ const CART_WIDGET: BookingWidgetDef = {
 /** Ajoute le séjour courant au panier. SDK : `buildAddToCart`. */
 const ADD_TO_CART_WIDGET: BookingWidgetDef = {
   id: 'booking-add-to-cart',
-  label: 'Ajouter au panier',
-  description: 'Ajoute le séjour courant au panier (multi-séjours).',
+  labelKey: 'studioBlocks.booking-add-to-cart.label',
+  descriptionKey: 'studioBlocks.booking-add-to-cart.description',
   category: CAT_CART,
   icon: PLUS_ICON,
   widgetType: 'addToCart',
@@ -438,8 +438,8 @@ const ADD_TO_CART_WIDGET: BookingWidgetDef = {
 /** Services additionnels du séjour. SDK : `createAddonsPanel`. */
 const ADDONS_WIDGET: BookingWidgetDef = {
   id: 'booking-addons',
-  label: 'Options & extras',
-  description: 'Services additionnels du séjour (transfert, ménage, petit-déjeuner…).',
+  labelKey: 'studioBlocks.booking-addons.label',
+  descriptionKey: 'studioBlocks.booking-addons.description',
   category: CAT_CART,
   icon: SPARKLES_ICON,
   widgetType: 'addons',
@@ -450,8 +450,8 @@ const ADDONS_WIDGET: BookingWidgetDef = {
 /** Indicateur de progression du parcours. SDK : `createStepper`. */
 const STEPPER_WIDGET: BookingWidgetDef = {
   id: 'booking-stepper',
-  label: 'Étapes (progression)',
-  description: 'Indicateur de progression : séjour → identité → validation → confirmation.',
+  labelKey: 'studioBlocks.booking-stepper.label',
+  descriptionKey: 'studioBlocks.booking-stepper.description',
   category: CAT_CHECKOUT,
   icon: STEPS_ICON,
   widgetType: 'stepper',
@@ -460,8 +460,8 @@ const STEPPER_WIDGET: BookingWidgetDef = {
 /** Formulaire de coordonnées voyageur → paiement. SDK : `createGuestForm`. */
 const GUEST_FORM_WIDGET: BookingWidgetDef = {
   id: 'booking-guest-form',
-  label: 'Coordonnées voyageur',
-  description: 'Formulaire de contact (nom, e-mail, téléphone) → bouton de paiement.',
+  labelKey: 'studioBlocks.booking-guest-form.label',
+  descriptionKey: 'studioBlocks.booking-guest-form.description',
   category: CAT_CHECKOUT,
   icon: USER_ROUND_ICON,
   widgetType: 'guestForm',
@@ -478,8 +478,8 @@ const MAIL_ICON: BookingIconShape = {
 /** Demande de devis (sans paiement) : coordonnées + message → host. SDK : `createGuestForm` + submit inquiry. */
 const INQUIRY_FORM_WIDGET: BookingWidgetDef = {
   id: 'booking-inquiry-form',
-  label: 'Demande de devis',
-  description: 'Sans paiement : coordonnées + message → la demande est envoyée au host.',
+  labelKey: 'studioBlocks.booking-inquiry-form.label',
+  descriptionKey: 'studioBlocks.booking-inquiry-form.description',
   category: CAT_CHECKOUT,
   icon: MAIL_ICON,
   widgetType: 'inquiryForm',
@@ -490,8 +490,8 @@ const INQUIRY_FORM_WIDGET: BookingWidgetDef = {
 /** Bouton de connexion au compte voyageur. SDK : `buildAccountButton` (null si org inconnue). */
 const ACCOUNT_WIDGET: BookingWidgetDef = {
   id: 'booking-account',
-  label: 'Connexion / compte',
-  description: 'Bouton de connexion au compte voyageur (favoris, re-booking).',
+  labelKey: 'studioBlocks.booking-account.label',
+  descriptionKey: 'studioBlocks.booking-account.description',
   category: CAT_ACCOUNT,
   icon: LOGIN_ICON,
   widgetType: 'account',
@@ -501,8 +501,8 @@ const ACCOUNT_WIDGET: BookingWidgetDef = {
 /** Re-booking 1-clic pour le voyageur connecté. SDK : `createRebookStrip` (null si org inconnue). */
 const REBOOK_WIDGET: BookingWidgetDef = {
   id: 'booking-rebook',
-  label: 'Réserver à nouveau',
-  description: 'Re-booking 1-clic pour le voyageur connecté (séjours passés).',
+  labelKey: 'studioBlocks.booking-rebook.label',
+  descriptionKey: 'studioBlocks.booking-rebook.description',
   category: CAT_ACCOUNT,
   icon: ROTATE_ICON,
   widgetType: 'rebook',
@@ -551,8 +551,8 @@ const CHECK_CIRCLE_ICON: BookingIconShape = {
 /** Détail du logement sélectionné. SDK : `createPropertySummary`. */
 const PROPERTY_SUMMARY_WIDGET: BookingWidgetDef = {
   id: 'booking-property-summary',
-  label: 'Détail du logement',
-  description: 'Photo, nom, lieu et prix du logement sélectionné.',
+  labelKey: 'studioBlocks.booking-property-summary.label',
+  descriptionKey: 'studioBlocks.booking-property-summary.description',
   category: CAT_RESULTS,
   icon: BED_DOUBLE_ICON,
   widgetType: 'propertySummary',
@@ -561,8 +561,8 @@ const PROPERTY_SUMMARY_WIDGET: BookingWidgetDef = {
 /** Équipements du logement sélectionné. SDK : `createAmenitiesList`. */
 const AMENITIES_WIDGET: BookingWidgetDef = {
   id: 'booking-amenities',
-  label: 'Équipements',
-  description: 'Liste des équipements du logement sélectionné.',
+  labelKey: 'studioBlocks.booking-amenities.label',
+  descriptionKey: 'studioBlocks.booking-amenities.description',
   category: CAT_RESULTS,
   icon: WIFI_ICON,
   widgetType: 'amenities',
@@ -571,8 +571,8 @@ const AMENITIES_WIDGET: BookingWidgetDef = {
 /** Bouton de paiement isolé → checkout Stripe. SDK : `buildCheckoutButton`. */
 const CHECKOUT_BUTTON_WIDGET: BookingWidgetDef = {
   id: 'booking-checkout-button',
-  label: 'Bouton de paiement',
-  description: 'Lance le paiement (Stripe) du séjour sélectionné.',
+  labelKey: 'studioBlocks.booking-checkout-button.label',
+  descriptionKey: 'studioBlocks.booking-checkout-button.description',
   category: CAT_CHECKOUT,
   icon: CREDIT_CARD_ICON,
   widgetType: 'checkoutButton',
@@ -581,8 +581,8 @@ const CHECKOUT_BUTTON_WIDGET: BookingWidgetDef = {
 /** Écran de confirmation post-réservation. SDK : `createConfirmationCard` / `buildConfirmation`. */
 const CONFIRMATION_WIDGET: BookingWidgetDef = {
   id: 'booking-confirmation',
-  label: 'Confirmation',
-  description: 'Écran de remerciement après réservation (référence + récapitulatif).',
+  labelKey: 'studioBlocks.booking-confirmation.label',
+  descriptionKey: 'studioBlocks.booking-confirmation.description',
   category: CAT_CHECKOUT,
   icon: CHECK_CIRCLE_ICON,
   widgetType: 'confirmation',
@@ -591,23 +591,23 @@ const CONFIRMATION_WIDGET: BookingWidgetDef = {
 /* ── Critères de filtre AUTONOMES (widgets indépendants, déposables/déplaçables en DnD, ≠ bloc « Filtre »
  *    groupé). Chacun écrit directement un critère de `state.filters` (cf. `mountPrimitive`). ── */
 const PRICE_FILTER_WIDGET: BookingWidgetDef = {
-  id: 'booking-price', label: 'Prix', description: 'Fourchette de prix / nuit (min – max).',
+  id: 'booking-price', labelKey: 'studioBlocks.booking-price.label', descriptionKey: 'studioBlocks.booking-price.description',
   category: CAT_SEARCH, icon: COINS_ICON, widgetType: 'filter',
 };
 const BEDROOMS_FILTER_WIDGET: BookingWidgetDef = {
-  id: 'booking-bedrooms', label: 'Chambres', description: 'Nombre minimum de chambres.',
+  id: 'booking-bedrooms', labelKey: 'studioBlocks.booking-bedrooms.label', descriptionKey: 'studioBlocks.booking-bedrooms.description',
   category: CAT_SEARCH, icon: BED_DOUBLE_ICON, widgetType: 'filter',
 };
 const BATHROOMS_FILTER_WIDGET: BookingWidgetDef = {
-  id: 'booking-bathrooms', label: 'Salles de bain', description: 'Nombre minimum de salles de bain.',
+  id: 'booking-bathrooms', labelKey: 'studioBlocks.booking-bathrooms.label', descriptionKey: 'studioBlocks.booking-bathrooms.description',
   category: CAT_SEARCH, icon: HOME_ICON, widgetType: 'filter',
 };
 const CAPACITY_FILTER_WIDGET: BookingWidgetDef = {
-  id: 'booking-capacity', label: 'Capacité', description: 'Nombre minimum de voyageurs accueillis.',
+  id: 'booking-capacity', labelKey: 'studioBlocks.booking-capacity.label', descriptionKey: 'studioBlocks.booking-capacity.description',
   category: CAT_SEARCH, icon: USERS_ICON, widgetType: 'filter',
 };
 const AMENITIES_FILTER_WIDGET: BookingWidgetDef = {
-  id: 'booking-amenities-filter', label: 'Équipements (filtre)', description: 'Filtre multi-équipements (Wifi, piscine…).',
+  id: 'booking-amenities-filter', labelKey: 'studioBlocks.booking-amenities-filter.label', descriptionKey: 'studioBlocks.booking-amenities-filter.description',
   category: CAT_SEARCH, icon: WIFI_ICON, widgetType: 'filter',
 };
 
@@ -624,8 +624,8 @@ const REVIEWS_ICON: BookingIconShape = {
 /** Section d'avis publics (résumé note + distribution + liste). SDK : `createReviewsList`. */
 const REVIEWS_WIDGET: BookingWidgetDef = {
   id: 'booking-reviews',
-  label: 'Avis voyageurs',
-  description: 'Note moyenne, distribution et liste des avis publics.',
+  labelKey: 'studioBlocks.booking-reviews.label',
+  descriptionKey: 'studioBlocks.booking-reviews.description',
   category: CAT_RESULTS,
   icon: REVIEWS_ICON,
   widgetType: 'reviews',
@@ -634,8 +634,8 @@ const REVIEWS_WIDGET: BookingWidgetDef = {
 /** Badge note compact (★ 4,7 · N avis) du logement sélectionné. SDK : `createRatingBadge`. */
 const RATING_WIDGET: BookingWidgetDef = {
   id: 'booking-rating',
-  label: 'Note (badge)',
-  description: 'Note moyenne et nombre d’avis, en ligne compacte.',
+  labelKey: 'studioBlocks.booking-rating.label',
+  descriptionKey: 'studioBlocks.booking-rating.description',
   category: CAT_RESULTS,
   icon: STAR_ICON,
   widgetType: 'rating',

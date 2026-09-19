@@ -12,6 +12,7 @@ import {
 } from '../../icons';
 import type { LucideIcon } from 'lucide-react';
 import type { ShopProduct } from './shopProducts';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   VolumeUp,
@@ -189,6 +190,7 @@ interface ProductHeroProps {
 }
 
 const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168 }) => {
+  const { t } = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
   const palette = PALETTE[product.icon] ?? DEFAULT_PALETTE;
   const Icon = ICON_MAP[product.icon];
@@ -203,7 +205,7 @@ const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168 }) => {
       {showImage ? (
         <img
           src={product.imageUrl}
-          alt={product.imageAlt}
+          alt={t(product.imageAltKey)}
           loading="lazy"
           onError={() => setImgFailed(true)}
           className="w-full h-full object-cover"
@@ -219,7 +221,7 @@ const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168 }) => {
               borderColor: `${palette.bgAccent}40`,
               boxShadow: `0 4px 14px ${palette.bgAccent}1F`,
             }}
-            aria-label={product.imageAlt}
+            aria-label={t(product.imageAltKey)}
           >
             {Icon && <Icon size={28} strokeWidth={1.75} />}
           </div>

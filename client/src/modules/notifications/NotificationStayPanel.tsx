@@ -1,6 +1,5 @@
 import React from 'react';
 import { parseISO } from 'date-fns';
-import { ar, enUS, fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -37,6 +36,7 @@ import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { deepLinkId, factId, formatFactDate, FACT_ICON } from './notificationMeta';
 import type { Notification } from '../../services/api';
+import { dateFnsLocale } from '../../utils/localeDate';
 
 /**
  * Le SEJOUR designe par une carte de la constellation, et les gestes qui
@@ -251,7 +251,7 @@ export default function NotificationStayPanel({
 
   // Deux plages plutot qu'une : ce qui est CONSOMME et ce qui reste vendable ne
   // se lisent pas pareil, et c'est toute la question d'un no-show.
-  const calendarLocale = currentLanguage === 'ar' ? ar : currentLanguage === 'en' ? enUS : fr;
+  const calendarLocale = dateFnsLocale(currentLanguage);
   // La bascule consomme/vendable, bornee AUX DEUX BOUTS : avant l'arrivee rien
   // n'est consomme, apres le depart plus rien n'est vendable. Sans la seconde
   // borne, un sejour d'aout se peignait jusqu'a aujourd'hui.
@@ -317,7 +317,7 @@ export default function NotificationStayPanel({
               size={36}
             />
             <div className="min-w-0 flex-1">
-              <p className="m-0 truncate text-sm font-medium text-foreground">{guestName}</p>
+              <p dir="auto" className="m-0 truncate text-sm font-medium text-foreground">{guestName}</p>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-0.5">
                 <ContactLine icon={<Email />} value={reservation.guestEmail} href="mailto:" />
                 <ContactLine icon={<Phone />} value={reservation.guestPhone} href="tel:" />

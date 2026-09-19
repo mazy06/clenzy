@@ -3,6 +3,7 @@ import { Card } from '../ui';
 import { Money } from './Money';
 import { cn } from '../../utils/cn';
 import { useFitRows } from '../../hooks/useFitRows';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/RevenueByChannelCard.tsx (MUI).
@@ -34,6 +35,7 @@ export default function RevenueByChannelCard({
   headerAction,
   className,
 }: RevenueByChannelCardProps) {
+  const { t } = useTranslation();
   // La carte remplit la hauteur qu'on lui donne, sans ascenseur : les canaux
   // qui ne tiennent pas sont REGROUPES en un rang, avec leur cumul. Un canal a
   // 0 € n'apprend rien de plus qu'une ligne « Autres » ; un montant tu, si.
@@ -66,7 +68,7 @@ export default function RevenueByChannelCard({
       <div ref={ref} className="min-h-0 flex-1 overflow-hidden px-4">
         {channels.length === 0 && (
           <p className="m-0 py-3 text-xs text-muted-foreground">
-            Aucun revenu par canal sur la période.
+            {t('revenueByChannel.empty')}
           </p>
         )}
         {channels.map((channel) => {
@@ -95,6 +97,7 @@ export default function RevenueByChannelCard({
                   'w-full truncate text-xs font-semibold @[20rem]:w-[74px] @[20rem]:shrink-0',
                   idle ? 'text-muted-foreground' : 'text-foreground'
                 )}
+                dir="auto"
               >
                 {channel.name}
               </span>

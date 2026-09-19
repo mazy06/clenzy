@@ -26,6 +26,7 @@ import {
 } from './funnelPresets';
 import { BOOKING_WIDGET_DEFS } from './bookingWidgetDefs';
 import { validateComposition } from './funnelRules';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Sélecteur de PARCOURS de réservation (funnels customisables) — design « Baitly funnel modal ».
@@ -53,6 +54,7 @@ export interface FunnelPickerProps {
 type TabKey = 'models' | 'saved' | 'compose';
 
 export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [], onSave, onDelete }: FunnelPickerProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>('models');
   // Composition sur-mesure : liste ORDONNÉE d'ids widgets sélectionnés.
   const [selected, setSelected] = useState<string[]>([]);
@@ -100,13 +102,14 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
   /** Partir d'un parcours existant : modèle intégré → fork (nouveau custom) ; custom → mise à jour en place. */
   const startFrom = (preset: FunnelPreset) => {
     setSelected([...preset.widgetIds]);
-    setBaseLabel(preset.label);
+    const name = presetLabel(preset, t);
+    setBaseLabel(name);
     if (preset.builtin) {
       setEditingId(null);
-      setPresetName(`${preset.label} personnalisé`);
+      setPresetName(t('funnels.customOf', { name }));
     } else {
       setEditingId(preset.id);
-      setPresetName(preset.label);
+      setPresetName(name);
     }
     setTab('compose');
     requestAnimationFrame(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0; });
@@ -141,10 +144,10 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
         </div>
         <div className="flex-1 min-w-0">
           <DialogTitle className="m-0 text-base font-semibold tracking-tight text-balance text-foreground">
-            Parcours de réservation
+            {t('studio.funnel.title')}
           </DialogTitle>
           <DialogDescription className="mt-1 max-w-[62ch] text-2xs leading-snug text-muted-foreground">
-            Démarrez avec un modèle prêt à l'emploi, ou composez votre propre parcours, écran par écran.
+            {t('studio.funnel.subtitle')}
           </DialogDescription>
         </div>
         <Button
@@ -161,18 +164,18 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
 
       {/* ── Onglets ── */}
       <div className="flex gap-1 px-4 pt-2">
-        <TabBtn label="Modèles" count={BUILTIN_FUNNEL_PRESETS.length} active={activeTab === 'models'} onClick={() => setTab('models')} />
+        <TabBtn label={t('studio.funnel.models')} count={BUILTIN_FUNNEL_PRESETS.length} active={activeTab === 'models'} onClick={() => setTab('models')} />
         {showSavedTab && (
           <TabBtn label="Mes parcours" count={savedPresets.length} active={activeTab === 'saved'} onClick={() => setTab('saved')} />
         )}
-        <TabBtn label="Composer sur mesure" active={activeTab === 'compose'} onClick={() => setTab('compose')} />
+        <TabBtn label="{t('studio.funnel.composeCustom')}" active={activeTab === 'compose'} onClick={() => setTab('compose')} />
       </div>
 
       {/* ── Corps (scroll) ── */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-[16.5px] py-[15px]" ref={bodyRef}>
         {activeTab === 'models' && (
           <>
-            <SecLabel>Choisissez un modèle</SecLabel>
+            <SecLabel>{t('studio.funnel.chooseModel')}</SecLabel>
             <CardGrid>
               {BUILTIN_FUNNEL_PRESETS.map((p) => (
                 <FunnelCard key={p.id} preset={p} onInsert={() => insert(p.widgetIds)} onEdit={() => startFrom(p)} />
@@ -183,7 +186,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
 
         {activeTab === 'saved' && (
           <>
-            <SecLabel>Vos parcours enregistrés</SecLabel>
+            <SecLabel>{t('studio.funnel.saved')}</SecLabel>
             <CardGrid>
               {savedPresets.map((p) => (
                 <FunnelCard
@@ -200,7 +203,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
 
         {activeTab === 'compose' && (
           <>
-            <SecLabel>{editingId ? 'Modifier le parcours' : 'Composez votre parcours'}</SecLabel>
+            <SecLabel>{editingId ? t('studio.funnel.editFunnel') : t('studio.funnel.composeFunnel')}</SecLabel>
 
             {baseLabel && (
               <div className="mb-2.5 flex items-center gap-2 rounded-lg border border-border bg-primary-soft px-2 py-1.5">
@@ -208,10 +211,10 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                   <Pencil size={15} strokeWidth={2} />
                 </div>
                 <span className="min-w-0 flex-1 text-2xs leading-snug text-foreground">
-                  Basé sur <span className="font-semibold text-foreground">« {baseLabel} »</span>
-                  {' — '}{editingId ? 'vos modifications mettront à jour ce parcours.' : 'vos modifications créeront un nouveau parcours personnalisé.'}
+                  {t('studio.funnel.basedOn')} <span className="font-semibold text-foreground">« {baseLabel} »</span>
+                  {' — '}{editingId ? t('studio.funnel.willUpdate') : t('studio.funnel.willCreate')}
                 </span>
-                <SecondaryBtn icon={RotateCcw} label="Repartir de zéro" onClick={resetComposer} />
+                <SecondaryBtn icon={RotateCcw} label="{t('studio.funnel.reset')}" onClick={resetComposer} />
               </div>
             )}
 
@@ -242,8 +245,8 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                               <WidgetGlyph id={w.id} size={17} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="block text-sm font-medium text-foreground">{w.label}</span>
-                              {w.description && <span className="block truncate text-2xs leading-tight text-muted-foreground">{w.description}</span>}
+                              <span className="block text-sm font-medium text-foreground">{t(w.labelKey)}</span>
+                              {w.descriptionKey && <span className="block truncate text-2xs leading-tight text-muted-foreground">{t(w.descriptionKey)}</span>}
                             </div>
                             <div className={cn('grid size-5 shrink-0 place-items-center rounded-sm border-[1.5px] text-primary-foreground', on ? 'border-primary bg-primary' : 'border-border bg-transparent')}>
                               {on && <Check size={12} strokeWidth={3} />}
@@ -257,7 +260,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
               </Panel>
 
               {/* Ordre du parcours */}
-              <Panel title="Ordre du parcours" pill={String(selected.length)}>
+              <Panel title={t('studio.funnel.order')} pill={String(selected.length)}>
                 <div className="flex-1 min-h-[200px] max-h-[340px] overflow-y-auto p-2 flex flex-col gap-1.5">
                   {selected.length === 0 ? (
                     <Empty className="m-auto max-w-[240px] px-2 py-4">
@@ -266,7 +269,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                           <Workflow strokeWidth={1.75} />
                         </EmptyMedia>
                         <EmptyDescription className="text-sm">
-                          Cochez des widgets à gauche pour composer votre parcours, étape par étape.
+                          {t('studio.funnel.composeHint')}
                         </EmptyDescription>
                       </EmptyHeader>
                     </Empty>
@@ -285,10 +288,10 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                 </div>
                 <div className="flex items-center gap-2 border-t border-border px-2.5 py-2">
                   <span className="text-2xs text-muted-foreground">
-                    {selected.length === 0 ? 'Aucun widget' : `${selected.length} écran${selected.length > 1 ? 's' : ''} dans le parcours`}
+                    {selected.length === 0 ? t('studio.funnel.noWidget') : t('studio.funnel.screensInFunnel', { count: selected.length })}
                   </span>
                   <div className="ms-auto">
-                    <PrimaryBtn icon={Plus} label={baseLabel && !editingId ? 'Créer le parcours' : editingId ? 'Insérer ce parcours' : 'Insérer le parcours'} onClick={insertCustom} disabled={selected.length === 0} />
+                    <PrimaryBtn icon={Plus} label={baseLabel && !editingId ? t('studio.funnel.createFunnel') : editingId ? t('studio.funnel.insertThisFunnel') : t('studio.funnel.insertFunnel')} onClick={insertCustom} disabled={selected.length === 0} />
                   </div>
                 </div>
               </Panel>
@@ -312,17 +315,17 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
             {onSave && (
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
                 <span className="me-0.5 text-2xs text-muted-foreground">
-                  {editingId ? 'Mettre à jour ce parcours enregistré' : 'Enregistrer dans « Mes parcours »'}
+                  {editingId ? t('studio.funnel.updateSaved') : t('studio.funnel.saveToMine')}
                 </span>
                 {/* Pas de libelle : la phrase a gauche introduit le champ,
                     d'ou l'aria-label repris du placeholder. */}
                 <Input
                   id="funnel-preset-name"
-                  aria-label="Nom du parcours"
+                  aria-label={t('studio.funnel.name')}
                   className="flex-1 min-w-[180px]"
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
-                  placeholder="Nom du parcours"
+                  placeholder={t('studio.funnel.name')}
                 />
                 <SecondaryBtn icon={Save} label={editingId ? 'Mettre à jour' : 'Enregistrer'} onClick={saveCustom} disabled={selected.length === 0 || !presetName.trim()} />
               </div>
@@ -367,14 +370,22 @@ function CardGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-2.5">{children}</div>;
 }
 
+/** Nom affiche : cle pour un preset integre, libelle brut pour un custom. */
+function presetLabel(p: FunnelPreset, t: (key: string) => string): string {
+  return p.labelKey ? t(p.labelKey) : p.label;
+}
+
 /** Étapes affichées : `steps` curatées (modèles) sinon dérivées des libellés de widgets (customs). */
-function flowSteps(p: FunnelPreset): string[] {
+function flowSteps(p: FunnelPreset, t: (key: string) => string): string[] {
+  if (p.stepKeys && p.stepKeys.length) return p.stepKeys.map((k) => t(k));
   return p.steps && p.steps.length ? p.steps : p.widgetIds.map(widgetLabel);
 }
 
 function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelPreset; onInsert: () => void; onEdit: () => void; onDelete?: () => void }) {
-  const steps = flowSteps(p);
-  const screensMeta = p.steps && p.steps.length ? ` · ${p.steps.length} écran${p.steps.length > 1 ? 's' : ''}` : '';
+  const { t } = useTranslation();
+  const steps = flowSteps(p, t);
+  const screenCount = p.stepKeys?.length ?? p.steps?.length ?? 0;
+  const screensMeta = screenCount ? ` · ${t('funnels.screenCount', { count: screenCount })}` : '';
   return (
     <Card
       size="sm"
@@ -384,13 +395,13 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
         {/* Titre + badge + (supprimer) */}
         <div className="flex items-center gap-1.5">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-            <span className="text-sm font-semibold text-foreground">{p.label}</span>
-            {p.badge && <Badge variant="secondary" className="text-2xs">{p.badge}</Badge>}
+            <span className="text-sm font-semibold text-foreground">{presetLabel(p, t)}</span>
+            {(p.badgeKey || p.badge) && <Badge variant="secondary" className="text-2xs">{p.badgeKey ? t(p.badgeKey) : p.badge}</Badge>}
           </div>
           {onDelete && !p.builtin && <IconAction title="Supprimer" icon={Trash2} danger onClick={onDelete} />}
         </div>
 
-        {p.description && <p className="-mt-1 text-2xs leading-snug text-muted-foreground">{p.description}</p>}
+        {(p.descriptionKey || p.description) && <p className="-mt-1 text-2xs leading-snug text-muted-foreground">{p.descriptionKey ? t(p.descriptionKey) : p.description}</p>}
 
         {/* Visualisation du parcours : étapes numérotées + flèches */}
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-muted p-2">
@@ -470,6 +481,7 @@ function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: s
 
 /** Bouton « Insérer » (outline accent → plein au survol), façon CTA de carte. */
 function InsertBtn({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
   return (
     <Button
       type="button"
@@ -477,7 +489,7 @@ function InsertBtn({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="border-primary font-semibold text-primary hover:bg-primary hover:text-primary-foreground"
     >
-      <Plus size={15} strokeWidth={2} /> Insérer
+      <Plus size={15} strokeWidth={2} /> {t('studio.funnel.insert')}
     </Button>
   );
 }

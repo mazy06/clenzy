@@ -13,6 +13,7 @@ import type { Intervention } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { teamsKeys } from './useTeamsList';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 interface TeamPerformanceChartProps {
   teamId: number;
@@ -54,7 +55,7 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+    const label = d.toLocaleDateString(activeIntlLocale(), { month: 'short', year: '2-digit' });
     months.push({ key: monthKey, label, month: d.getMonth(), year: d.getFullYear() });
   }
 

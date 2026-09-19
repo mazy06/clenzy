@@ -38,6 +38,7 @@ import {
   ImageIcon,
 } from '../../../icons';
 import type { PropertyInventoryItem } from '../../../services/api/propertyInventoryApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ─── Image resize helper (max 800px, 80% JPEG quality) ──────────────────────
 
@@ -138,17 +139,18 @@ interface InlineFormProps {
 // ─── Photo upload zone (used inside InlineForm) ─────────────────────────────
 
 function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange: (url: string | null) => void }) {
+  const { t } = useTranslation();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFile = async (file: File) => {
     setError(null);
     if (!file.type.startsWith('image/')) {
-      setError('Format non supporté');
+      setError(t('common.unsupportedFormat'));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setError('Fichier trop volumineux (>10 Mo)');
+      setError(t('common.fileTooLarge'));
       return;
     }
     try {
@@ -207,6 +209,7 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
 }
 
 function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitting }: InlineFormProps) {
+  const { t } = useTranslation();
   // Le formulaire est monte deux fois (ajout en tete + edition d'une ligne) :
   // les identifiants doivent etre uniques par instance.
   const uid = React.useId();
@@ -225,12 +228,12 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         {/* Designation */}
         <div>
           <FieldLabel icon={<Label size={12} strokeWidth={1.75} />} htmlFor={`${uid}-name`}>
-            Designation
+            {t('properties.inventory.designation')}
           </FieldLabel>
           <Input
             id={`${uid}-name`}
             required
-            placeholder="Ex : Canape 3 places, Lave-linge Bosch..."
+            placeholder={t('properties.inventory.namePlaceholder')}
             value={value.name}
             onChange={(e) => onChange({ ...value, name: e.target.value })}
             onKeyDown={(e) => {
@@ -244,7 +247,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
 
         {/* Categorie */}
         <div className="min-w-0">
-          <FieldLabel icon={<Category size={12} strokeWidth={1.75} />}>Categorie</FieldLabel>
+          <FieldLabel icon={<Category size={12} strokeWidth={1.75} />}>{t('properties.inventory.category')}</FieldLabel>
           <ToggleGroup
             type="single"
             value={value.category}
@@ -284,14 +287,14 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         {/* Quantite */}
         <div>
           <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />} htmlFor={`${uid}-quantity`}>
-            Quantite
+            {t('properties.inventory.quantity')}
           </FieldLabel>
           <div className="flex flex-row items-center gap-[3px]">
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Diminuer la quantite"
+              aria-label={t('properties.inventory.decrease')}
               onClick={() => incrementQty(-1)}
               disabled={value.quantity <= 1}
               className="border border-border bg-card rounded-md"
@@ -312,7 +315,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Augmenter la quantite"
+              aria-label={t('properties.inventory.increase')}
               onClick={() => incrementQty(1)}
               className="border border-border bg-card rounded-md"
             >
@@ -324,11 +327,11 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         {/* Notes */}
         <div>
           <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />} htmlFor={`${uid}-notes`}>
-            Notes <span className="font-normal ms-[3px] normal-case tracking-0">(optionnel)</span>
+            {t('properties.inventory.notes')} <span className="font-normal ms-[3px] normal-case tracking-0">({t('common.optional')})</span>
           </FieldLabel>
           <Input
             id={`${uid}-notes`}
-            placeholder="Marque, modele, emplacement..."
+            placeholder={t('properties.inventory.notesPlaceholder')}
             value={value.notes}
             onChange={(e) => onChange({ ...value, notes: e.target.value })}
           />
@@ -377,6 +380,7 @@ const renderCategoryChip = (categoryValue: string) => {
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate, onDelete }: Props) {
+  const { t } = useTranslation();
   const [addForm, setAddForm] = useState<InventoryForm>(EMPTY_FORM);
   const [addSubmitting, setAddSubmitting] = useState(false);
 
@@ -441,10 +445,10 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
         </span>
         <div>
           <h6 className="text-sm font-semibold tracking-tight">
-            Inventaire du logement
+            {t('properties.inventory.title')}
           </h6>
           <p className="text-xs text-muted-foreground">
-            Mobilier, electromenager et equipements presents dans la propriete
+            {t('properties.inventory.subtitle')}
           </p>
         </div>
       </div>
@@ -464,8 +468,8 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
       {items.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
-          title="Aucun objet reference pour cette propriete"
-          description="Remplis le formulaire ci-dessus pour ajouter ton premier objet"
+          title={t('properties.inventory.empty')}
+          description={t('properties.inventory.emptyHint')}
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
@@ -473,10 +477,10 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16" />
-                <TableHead>Designation</TableHead>
-                <TableHead>Categorie</TableHead>
-                <TableHead className="text-center">Qte</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead>{t('properties.inventory.designation')}</TableHead>
+                <TableHead>{t('properties.inventory.category')}</TableHead>
+                <TableHead className="text-center">{t('properties.inventory.quantityShort')}</TableHead>
+                <TableHead>{t('properties.inventory.notes')}</TableHead>
                 {canEdit && <TableHead className="w-20 text-end" />}
               </TableRow>
             </TableHeader>

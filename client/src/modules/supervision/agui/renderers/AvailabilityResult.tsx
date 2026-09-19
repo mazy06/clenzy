@@ -11,6 +11,7 @@ import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
 import { cn } from '../../../../utils/cn';
 import { SurfaceCard, Overline } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface Day {
   date: string;
@@ -40,26 +41,29 @@ function dayClasses(day: Day): string {
 
 /** Légende : pastilles décoratives, donc teinte vive. */
 const LEGEND = [
-  { dot: 'bg-success', label: 'Libre' },
-  { dot: 'bg-destructive', label: 'Réservé' },
-  { dot: 'bg-warning', label: 'Bloqué' },
+  { dot: 'bg-success', key: 'supervision.agui.status.free' },
+  { dot: 'bg-destructive', key: 'supervision.agui.status.booked' },
+  { dot: 'bg-warning', key: 'supervision.agui.status.blocked' },
 ] as const;
 
-function statusLabel(day: Day): string {
-  if (day.available) return 'Libre';
+/** Rend la CLÉ du statut : la traduction se fait dans le composant, seul
+    endroit où le hook de langue est disponible. */
+function statusLabelKey(day: Day): string {
+  if (day.available) return 'supervision.agui.status.free';
   switch ((day.status ?? '').toUpperCase()) {
     case 'BOOKED':
-      return 'Réservé';
+      return 'supervision.agui.status.booked';
     case 'MAINTENANCE':
-      return 'Maintenance';
+      return 'supervision.agui.status.maintenance';
     case 'BLOCKED':
-      return 'Bloqué';
+      return 'supervision.agui.status.blocked';
     default:
-      return 'Indisponible';
+      return 'supervision.agui.status.unavailable';
   }
 }
 
 export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data }) => {
+  const { t } = useTranslation();
   const days = Array.isArray(data.days) ? data.days : [];
   const visible = days.slice(0, MAX_CELLS);
   const hidden = days.length - visible.length;
@@ -72,18 +76,18 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
       {/* Bandeau résumé */}
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <div>
-          <Overline>Disponibilité</Overline>
+          <Overline>{t('supervision.agui.availability')}</Overline>
           <p className="text-xs tabular-nums text-muted-foreground">
             {data.fullyAvailable
-              ? 'Entièrement disponible'
-              : `${available} nuit${available > 1 ? 's' : ''} libre${available > 1 ? 's' : ''} · ${unavailable} occupée${unavailable > 1 ? 's' : ''}`}
+              ? t('supervision.agui.fullyAvailable')
+              : `${t('supervision.agui.freeNights', { count: available })} · ${t('supervision.agui.busyNights', { count: unavailable })}`}
           </p>
         </div>
         <div className="ms-auto flex flex-wrap gap-2">
           {LEGEND.map((legend) => (
-            <div className="inline-flex items-center gap-1" key={legend.label}>
+            <div className="inline-flex items-center gap-1" key={legend.key}>
               <span className={cn('size-2 rounded-[2px]', legend.dot)} />
-              <span className="text-2xs text-muted-foreground">{legend.label}</span>
+              <span className="text-2xs text-muted-foreground">{t(legend.key)}</span>
             </div>
           ))}
         </div>
@@ -107,7 +111,7 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
                     {dayNum}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>{`${day.date} · ${statusLabel(day)}`}</TooltipContent>
+                <TooltipContent>{`${day.date} · ${t(statusLabelKey(day))}`}</TooltipContent>
               </Tooltip>
             );
           })}
@@ -116,7 +120,7 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
 
       {hidden > 0 && (
         <p className="mt-1 block text-2xs italic text-muted-foreground">
-          + {hidden} jour{hidden > 1 ? 's' : ''} non affiché{hidden > 1 ? 's' : ''}
+          {t('supervision.agui.hiddenDays', { count: hidden })}
         </p>
       )}
     </SurfaceCard>

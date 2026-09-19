@@ -50,14 +50,14 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                 l'interlettrage 0.06em et le nowrap etaient un ajout du sx. */}
             <TableRow className="[&>th]:tracking-[0.06em] [&>th]:whitespace-nowrap">
               <TableHead>Titre</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Propriété</TableHead>
-              <TableHead>Assigné à</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
-              <TableHead className="text-center">Priorité</TableHead>
-              <TableHead className="text-center">Progression</TableHead>
-              <TableHead>Planifié le</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead>{t('interventions.table.type')}</TableHead>
+              <TableHead>{t('interventions.table.property')}</TableHead>
+              <TableHead>{t('serviceRequests.assignedTo')}</TableHead>
+              <TableHead className="text-center">{t('common.status')}</TableHead>
+              <TableHead className="text-center">{t('common.priority')}</TableHead>
+              <TableHead className="text-center">{t('interventions.table.progress')}</TableHead>
+              <TableHead>{t('interventions.table.scheduledOn')}</TableHead>
+              <TableHead className="text-center">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -148,14 +148,14 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            aria-label="Détails"
+                            aria-label={t('interventions.table.details')}
                             onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
                           >
                             <VisibilityIcon size={18} strokeWidth={1.75} />
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Détails</TooltipContent>
+                      <TooltipContent>{t('interventions.table.details')}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>

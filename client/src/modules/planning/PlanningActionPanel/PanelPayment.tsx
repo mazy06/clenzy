@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
@@ -73,6 +75,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
   onCreatePaymentSession,
   onValidateIntervention,
 }) => {
+  const { t } = useTranslation();
+  // Les dates de l'historique suivent le calendrier de la langue.
+  const fmt = useDateFormat();
   const { user } = useAuth();
   const intervention = event.intervention;
 
@@ -95,7 +100,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     if (!intervention || !onValidateIntervention) return;
     const cost = parseFloat(validateCost);
     if (isNaN(cost) || cost <= 0) {
-      setValidateError('Veuillez entrer un coût valide');
+      setValidateError(t('payments.enterValidCost'));
       return;
     }
     setValidating(true);
@@ -110,7 +115,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     return (
       <Alert variant="info" className="text-[0.75rem]">
         <Info />
-        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
+        <AlertDescription>{t('planning.panel.intervention.noData')}</AlertDescription>
       </Alert>
     );
   }
@@ -124,9 +129,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {/* Payment status */}
       <div className="flex items-center gap-1.5 mb-3">
         <span className="inline-flex text-[var(--brand-ink)]"><Payment size={18} strokeWidth={1.75} /></span>
-        <p className={OVERLINE_CLASS}>Statut paiement</p>
-        {(() => { const t = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
-        <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={intervention.paymentStatus || intervention.status} className="ms-auto" />
+        <p className={OVERLINE_CLASS}>{t('planning.panel.payment.status', 'Statut paiement')}</p>
+        {(() => { const tone = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
+        <StatusChip pill tokens={{ color: tone.color, bg: tone.bg }} label={intervention.paymentStatus || intervention.status} className="ms-auto" />
         ); })()}
       </div>
 
@@ -135,16 +140,18 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
         <div className="flex justify-between items-center mb-0.5">
           <div className="flex items-center gap-0.5">
             <span className="inline-flex text-[var(--muted)]"><Schedule size={14} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">Durée estimée</p>
+            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">{t('planning.panel.payment.duration', 'Durée estimée')}</p>
           </div>
           <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)] tabular-nums">
-            {intervention.estimatedDurationHours || '—'} h
+            {intervention.estimatedDurationHours
+              ? t('planning.panel.payment.hours', { count: intervention.estimatedDurationHours })
+              : t('planning.panel.payment.hoursUnknown', '— h')}
           </p>
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-0.5">
             <span className="inline-flex text-[var(--muted)]"><AttachMoney size={14} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">Coût estimé</p>
+            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">{t('planning.panel.payment.cost', 'Coût estimé')}</p>
           </div>
           <p className="cn-text-body1 text-[0.9375rem] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
             <Money value={estimatedCost} from="EUR" />
@@ -166,12 +173,12 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           <div className="flex items-center gap-0.5 mb-1.5">
             <span className="inline-flex text-[var(--warn)]"><Gavel size={16} strokeWidth={1.75} /></span>
             <p className={OVERLINE_CLASS}>
-              Validation manager
+              {t('planning.panel.payment.managerReview', 'Validation manager')}
             </p>
           </div>
           <Alert variant="warning" className="text-[0.6875rem] mb-1.5">
             <TriangleAlert />
-            <AlertDescription>Cette intervention est terminée et attend votre validation.</AlertDescription>
+            <AlertDescription>{t('planning.panel.payment.awaitingReview')}</AlertDescription>
           </Alert>
           {/* `color="warning"` n'a pas de variante dediee : outline teinte --warn. */}
           <Button
@@ -184,7 +191,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             }}
           >
             <CheckCircle size={14} strokeWidth={1.75} />
-            Valider l'intervention
+            {t('planning.panel.payment.validate', "Valider l'intervention")}
           </Button>
           <Separator className="my-3" />
         </>
@@ -194,7 +201,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       <div className="flex items-center gap-0.5 mb-1.5">
         <span className="inline-flex text-[var(--muted)]"><Receipt size={16} strokeWidth={1.75} /></span>
         <p className={OVERLINE_CLASS}>
-          Historique paiements
+          {t('planning.panel.payment.history', 'Historique paiements')}
         </p>
       </div>
 
@@ -204,7 +211,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
         </div>
       ) : payment.paymentHistory.length === 0 ? (
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
-          Aucun paiement enregistré
+          {t('planning.panel.payment.noHistory', 'Aucun paiement enregistré')}
         </p>
       ) : (
         <div className="overflow-x-auto mb-1.5">
@@ -213,23 +220,23 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="p-[3px]">Date</TableHead>
-                <TableHead className="p-[3px]">Montant</TableHead>
-                <TableHead className="p-[3px]">Statut</TableHead>
+                <TableHead className="p-[3px]">{t('planning.panel.payment.date', 'Date')}</TableHead>
+                <TableHead className="p-[3px]">{t('planning.panel.payment.amount', 'Montant')}</TableHead>
+                <TableHead className="p-[3px]">{t('planning.panel.payment.statusCol', 'Statut')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {payment.paymentHistory.map((record) => (
                 <TableRow key={record.id}>
                   <TableCell className="p-[3px] tabular-nums">
-                    {new Date(record.transactionDate).toLocaleDateString('fr-FR')}
+                    {fmt.formatShortDate(new Date(record.transactionDate))}
                   </TableCell>
                   <TableCell className="p-[3px] font-semibold tabular-nums">
                     <Money value={record.amount} from="EUR" />
                   </TableCell>
                   <TableCell className="p-[3px]">
-                    {(() => { const t = STATUS_TOKENS[record.status] || NEUTRAL_TOKENS; return (
-                    <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={record.status} className="h-[18px] text-[0.625rem]" />
+                    {(() => { const tone = STATUS_TOKENS[record.status] || NEUTRAL_TOKENS; return (
+                    <StatusChip pill tokens={{ color: tone.color, bg: tone.bg }} label={record.status} className="h-[18px] text-[0.625rem]" />
                     ); })()}
                   </TableCell>
                 </TableRow>
@@ -243,14 +250,14 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       <Dialog open={validateDialogOpen} onOpenChange={(next) => { if (!next) setValidateDialogOpen(false); }}>
         <DialogContent aria-describedby={undefined} className="max-w-[444px]">
           <DialogHeader>
-            <DialogTitle>Valider l'intervention</DialogTitle>
+            <DialogTitle>{t('planning.panel.payment.validate', "Valider l'intervention")}</DialogTitle>
           </DialogHeader>
           <div>
             <p className="cn-text-body1 text-[0.75rem] mb-3">
-              Intervention : <strong>{intervention.title}</strong>
+              {t('planning.panel.payment.interventionLine', { title: intervention.title })}
             </p>
             <Field>
-              <FieldLabel htmlFor="validate-final-cost">Coût final estimé (EUR)</FieldLabel>
+              <FieldLabel htmlFor="validate-final-cost">{t('planning.panel.payment.finalCost', 'Coût final estimé (€)')}</FieldLabel>
               <Input
                 id="validate-final-cost"
                 className="w-full tabular-nums"
@@ -267,10 +274,10 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             </Alert>}
           </div>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setValidateDialogOpen(false)}>Annuler</Button>
+            <Button variant="ghost" size="sm" onClick={() => setValidateDialogOpen(false)}>{t('planning.panel.payment.cancel', 'Annuler')}</Button>
             <Button size="sm" onClick={handleValidate} disabled={validating}>
               {validating && <Spinner className="size-3.5" />}
-              Valider
+              {t('planning.panel.payment.confirm', 'Valider')}
             </Button>
           </DialogFooter>
         </DialogContent>

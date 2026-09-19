@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { Info, Send } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 /** Domaine déjà authentifié dans Brevo (SPF/DKIM). */
@@ -19,6 +20,7 @@ interface Props {
  * authentifié dans Brevo (sinon spam / soft bounce).
  */
 const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
+  const { t } = useTranslation();
   // Copies editables initialisees depuis les props ; le resync backend passe par
   // le remount via `key` chez le parent (LaunchSettingsSection) — plus d'effet miroir.
   const [localEmail, setLocalEmail] = useState(email);
@@ -40,11 +42,10 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
         </span>
         <div className="min-w-0">
           <p className="text-[0.8125rem] font-medium text-foreground">
-            Adresse d'expédition
+            {t('settings.emails.senderAddress')}
           </p>
           <p className="text-xs text-muted-foreground">
-            Le « From » de tous les emails de la plateforme. Le nom d'affichage précède l'adresse
-            (ex. Baitly &lt;info@clenzy.fr&gt;).
+            {t('settings.emails.senderAddressHint', { sender: 'info@clenzy.fr' })}
           </p>
         </div>
       </div>

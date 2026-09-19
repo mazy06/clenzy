@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
-import { isWeekend, toDateStr } from './utils/dateUtils';
+import { toDateStr } from './utils/dateUtils';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { WEEKEND_HEADER_BG } from './constants';
 import type { PlanningEvent } from './types';
 
@@ -64,6 +66,10 @@ const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
   occupancy,
   collapsed = false,
 }) => {
+  const { t } = useTranslation();
+  // Vendredi-samedi en arabe, samedi-dimanche ailleurs.
+  const { isWeekend } = useDateFormat();
+
   return (
     // `mt-auto` : pied de la carte. Le parent (contenu scrollable de
     // PlanningTimeline) est une colonne flex d'au moins la hauteur visible,
@@ -81,7 +87,7 @@ const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
             débordait sur la grille et se superposait aux pourcentages. */}
         {!collapsed && (
           <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] whitespace-nowrap">
-            Occupation
+            {t('planning.grid.occupancy', 'Occupation')}
           </span>
         )}
       </div>

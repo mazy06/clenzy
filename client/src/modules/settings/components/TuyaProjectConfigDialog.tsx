@@ -20,6 +20,7 @@ import {
 import { TriangleAlert } from 'lucide-react';
 import { KeyRound } from 'lucide-react';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Dialog de configuration du <b>projet Tuya Cloud</b> (credentials plateforme) : Access ID + Access
@@ -49,6 +50,7 @@ interface Props {
 }
 
 export default function TuyaProjectConfigDialog({ open, onClose, current, onSaved }: Props) {
+  const { t } = useTranslation();
   const alreadyConfigured = current?.configured ?? false;
 
   const [accessId, setAccessId] = useState(current?.accessId ?? '');
@@ -118,7 +120,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5 font-semibold">
             <KeyRound size={18} />
-            Configurer le projet Tuya Cloud
+            {t('settings.tuya.dialogTitle')}
           </DialogTitle>
           {/* Le texte d'explication devient la description du dialog : il en
               porte deja le role, et Radix l'associe alors via aria-describedby. */}
@@ -164,10 +166,10 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               type="password"
               autoComplete="new-password"
               disabled={saving}
-              placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
+              placeholder={alreadyConfigured ? t('common.unchangedIfEmpty') : undefined}
             />
             {alreadyConfigured && (
-              <FieldDescription>Laissez vide pour conserver le secret déjà enregistré.</FieldDescription>
+              <FieldDescription>{t('settings.tuya.keepSecret')}</FieldDescription>
             )}
           </Field>
           <Field>
@@ -186,12 +188,12 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               ))}
             </NativeSelect>
             <FieldDescription>
-              Région du projet Tuya (doit correspondre à celle choisie sur iot.tuya.com).
+              {t('settings.tuya.regionHint')}
             </FieldDescription>
           </Field>
           <Separator className="mt-0.5" />
           <p className="text-2xs font-semibold text-muted-foreground">
-            App SDK mobile (appairage — modèle C)
+            {t('settings.tuya.appSdkSection')}
           </p>
           <Field>
             <FieldLabel htmlFor="tuya-app-schema">App SDK schema (optionnel)</FieldLabel>
@@ -203,8 +205,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               disabled={saving}
             />
             <FieldDescription>
-              Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile.
-              Laisser vide si non utilisé.
+              {t('settings.tuya.schemaHint')}
             </FieldDescription>
           </Field>
           <Field>
@@ -217,7 +218,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               disabled={saving}
             />
             <FieldDescription>
-              AppKey iOS de l'App SDK Tuya (console → App → Get Key → iOS).
+              {t('settings.tuya.iosKeyHint')}
             </FieldDescription>
           </Field>
           <Field>
@@ -229,10 +230,10 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               type="password"
               autoComplete="new-password"
               disabled={saving}
-              placeholder={current?.appKey ? '•••••••• (inchangé si laissé vide)' : undefined}
+              placeholder={current?.appKey ? t('common.unchangedIfEmpty') : undefined}
             />
             <FieldDescription>
-              Laisser vide pour conserver l'AppSecret iOS déjà enregistré.
+              {t('settings.tuya.iosSecretHint')}
             </FieldDescription>
           </Field>
           <Field>
@@ -245,7 +246,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               disabled={saving}
             />
             <FieldDescription>
-              AppKey Android de l'App SDK Tuya (console → App → Get Key → Android) — distinct de l'iOS.
+              {t('settings.tuya.androidKeyHint')}
             </FieldDescription>
           </Field>
           <Field>
@@ -257,10 +258,10 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               type="password"
               autoComplete="new-password"
               disabled={saving}
-              placeholder={current?.androidAppKey ? '•••••••• (inchangé si laissé vide)' : undefined}
+              placeholder={current?.androidAppKey ? t('common.unchangedIfEmpty') : undefined}
             />
             <FieldDescription>
-              Laisser vide pour conserver l'AppSecret Android déjà enregistré.
+              {t('settings.tuya.androidSecretHint')}
             </FieldDescription>
           </Field>
         </div>

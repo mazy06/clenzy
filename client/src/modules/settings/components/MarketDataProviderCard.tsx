@@ -6,6 +6,7 @@ import {
   type MarketDataProvider,
 } from '../../../services/api/marketDataConnectionApi';
 import ApiKeyConnectionCard, { type ApiKeyConnectionApi } from './ApiKeyConnectionCard';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Wrapper « données de marché » autour du composant générique
@@ -19,12 +20,13 @@ interface Props {
 }
 
 const MarketDataProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
+  const { t } = useTranslation();
   const meta = MARKET_DATA_PROVIDER_META[provider];
 
   const bodyAlert = (
     <Alert variant="info" className="rounded-[8px] text-[0.74rem] py-[3px]">
       <AlertDescription className="text-[0.74rem]">
-        <strong>Portée plateforme :</strong> la clé active l'ingestion quotidienne des
+        <strong>{t('settings.integrations.platformScope')}</strong> la clé active l'ingestion quotidienne des
         benchmarks marché (ADR, occupation, RevPAR) pour tous les tenants. Sans clé, le
         RMS fonctionne déjà avec les données réseau (first-party) et l'open data.
       </AlertDescription>

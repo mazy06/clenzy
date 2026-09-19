@@ -499,9 +499,9 @@ export default function PaymentSettings() {
 
             const statusChips = (
               <>
-                {isStub && <StatusChip tone="neutral" label="Bientôt" />}
+                {isStub && <StatusChip tone="neutral" label={t('common.comingSoonShort')} />}
                 {isConfigurable && !isConfigured && (
-                  <StatusChip tone="warn" label="À configurer" />
+                  <StatusChip tone="warn" label={t('settings.integrations.status.toConfigure')} />
                 )}
                 {enabled && !isStub && <StatusChip tone="ok" label="Actif" />}
                 {config?.sandboxMode && isConfigured && (
@@ -534,7 +534,7 @@ export default function PaymentSettings() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {isConfigured ? "Reconfigurer" : "Configurer les credentials"}
+                  {isConfigured ? t('settings.payments.reconfigure') : t('settings.payments.configureCredentials')}
                 </TooltipContent>
               </Tooltip>
             ) : null;

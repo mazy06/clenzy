@@ -19,6 +19,7 @@ import {
   LinkOff as LinkOffIcon,
 } from '../../../icons';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Composant generique pour configurer la connexion d'un provider base sur
@@ -81,10 +82,11 @@ export interface ApiKeyConnectionApi<P extends string> {
 
 export interface ApiKeyProviderMeta {
   label: string;
-  description: string;
+  /** Cles i18n — les libelles vivent dans les locales, pas dans la table. */
+  descriptionKey: string;
   serverUrlPlaceholder: string;
   apiKeyHelpUrl?: string;
-  accountIdentifierLabel?: string;
+  accountIdentifierLabelKey?: string;
 }
 
 // ─── Props du composant ────────────────────────────────────────────────────
@@ -113,6 +115,7 @@ export default function ApiKeyConnectionCard<P extends string>({
   bodyAlert,
   scaffoldingNote,
 }: ApiKeyConnectionCardProps<P>) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<ApiKeyConnectionStatus<P> | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ serverUrl: '', accountIdentifier: '', apiKey: '' });
@@ -200,16 +203,16 @@ export default function ApiKeyConnectionCard<P extends string>({
             {headerChip}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {meta.description}
+            {t(meta.descriptionKey)}
           </p>
         </div>
         <div className="shrink-0">
           {loading ? (
             <Spinner className="size-[18px]" />
           ) : connected ? (
-            <StatusChip tone="ok" label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+            <StatusChip tone="ok" label={t('settings.integrations.status.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
           ) : (
-            <StatusChip tone="neutral" label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+            <StatusChip tone="neutral" label={t('settings.integrations.status.notConnected')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
           )}
         </div>
       </div>
@@ -232,7 +235,7 @@ export default function ApiKeyConnectionCard<P extends string>({
               {status?.accountIdentifier && (
                 <div>
                   <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {meta.accountIdentifierLabel ?? 'Identifiant'}
+                    {meta.accountIdentifierLabelKey ? t(meta.accountIdentifierLabelKey) : t('settings.integrations.identifier')}
                   </p>
                   <p className="text-sm font-medium">{status.accountIdentifier}</p>
                 </div>
@@ -246,7 +249,7 @@ export default function ApiKeyConnectionCard<P extends string>({
                 confirmation — c'est le bouton du dialog qui porte le poids destructif. */}
             <Button variant="outline" size="sm" onClick={() => setDisconnectOpen(true)}>
               <LinkOffIcon size={14} strokeWidth={2} />
-              Déconnecter {meta.label}
+              {t('settings.integrations.disconnectProvider', { provider: meta.label })}
             </Button>
           </div>
         ) : (
@@ -277,9 +280,9 @@ export default function ApiKeyConnectionCard<P extends string>({
                 onChange={(e) => setForm({ ...form, serverUrl: e.target.value })}
               />
             </Field>
-            {meta.accountIdentifierLabel && (
+            {meta.accountIdentifierLabelKey && (
               <Field>
-                <FieldLabel htmlFor={`${fieldId}-account-identifier`}>{meta.accountIdentifierLabel}</FieldLabel>
+                <FieldLabel htmlFor={`${fieldId}-account-identifier`}>{t(meta.accountIdentifierLabelKey)}</FieldLabel>
                 <Input
                   id={`${fieldId}-account-identifier`}
                   value={form.accountIdentifier}
@@ -331,14 +334,14 @@ export default function ApiKeyConnectionCard<P extends string>({
       <Dialog open={disconnectOpen} onOpenChange={(next) => { if (!next) setDisconnectOpen(false); }}>
         <DialogContent className="max-w-[444px]">
           <DialogHeader>
-            <DialogTitle>Déconnecter {meta.label} ?</DialogTitle>
+            <DialogTitle>{t('settings.integrations.disconnectProviderConfirm', { provider: meta.label })}</DialogTitle>
             <DialogDescription>
               Cette action supprime les credentials {meta.label} enregistrés. Vous devrez ressaisir l'API key pour vous reconnecter.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDisconnectOpen(false)}>Annuler</Button>
-            <Button variant="destructive" onClick={handleDisconnect}>Déconnecter</Button>
+            <Button variant="destructive" onClick={handleDisconnect}>{t('settings.integrations.disconnect')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

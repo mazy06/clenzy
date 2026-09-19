@@ -256,7 +256,7 @@ function PayoutPanel({ payout }: { payout: OwnerPayout }) {
           <GuestAvatar name={payout.ownerName} size={28} />
           <div className="min-w-0">
             <Caption>{t('notifications.detail.money.owner', 'Bénéficiaire')}</Caption>
-            <p className="m-0 truncate text-sm font-medium text-foreground">{payout.ownerName}</p>
+            <p dir="auto" className="m-0 truncate text-sm font-medium text-foreground">{payout.ownerName}</p>
           </div>
         </div>
       )}

@@ -29,6 +29,7 @@ import { getAccessToken } from '../../../keycloak';
 import { useNavigate } from 'react-router-dom';
 import { ToolResultRenderer, TOOL_DISPLAY_HINTS, type RenderContext } from './renderers';
 import { PendingHint } from './renderers/shared';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /** Agent exposé par le backend Java via /api/agui/info. */
 const AGENT_ID = 'clenzy-supervisor';
@@ -51,20 +52,21 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-/** Libellé « en cours » par hint, le temps que le tool s'exécute. */
-const PENDING_LABEL_BY_HINT: Record<string, string> = {
-  list: 'Récupération de la liste',
-  details: 'Chargement du détail',
-  chart_bar: 'Calcul du graphique',
-  kpi_summary: 'Analyse du tableau de bord',
-  data_table: 'Préparation des données',
-  availability: 'Vérification de la disponibilité',
-  quote: 'Calcul du devis',
-  summary: 'Traitement',
-  navigation: 'Recherche de la bonne page',
+/** Clé du libellé « en cours » par hint, le temps que le tool s'exécute. */
+const PENDING_KEY_BY_HINT: Record<string, string> = {
+  list: 'supervision.agui.pending.list',
+  details: 'supervision.agui.pending.details',
+  chart_bar: 'supervision.agui.pending.chartBar',
+  kpi_summary: 'supervision.agui.pending.kpiSummary',
+  data_table: 'supervision.agui.pending.dataTable',
+  availability: 'supervision.agui.pending.availability',
+  quote: 'supervision.agui.pending.quote',
+  summary: 'supervision.agui.pending.summary',
+  navigation: 'supervision.agui.pending.navigation',
 };
 
 function SpikeInner() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const ctx: RenderContext = { onNavigate: (path) => navigate(path) };
 
@@ -79,7 +81,11 @@ function SpikeInner() {
       render: (props: { name?: string; status: string; result?: string }) => {
         const hint = (props.name && TOOL_DISPLAY_HINTS[props.name]) || null;
         if (props.status !== 'complete') {
-          return <PendingHint label={(hint && PENDING_LABEL_BY_HINT[hint]) || 'Traitement'} />;
+          return (
+            <PendingHint
+              label={t((hint && PENDING_KEY_BY_HINT[hint]) || 'supervision.agui.pending.default')}
+            />
+          );
         }
         return <ToolResultRenderer result={props.result} hintFallback={hint} ctx={ctx} />;
       },
@@ -93,7 +99,7 @@ function SpikeInner() {
     agentId: AGENT_ID,
     render: ({ resolve, cancel }) => (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
-        <strong>Validation requise par l'agent</strong>
+        <strong>{t('supervision.agui.validationRequired')}</strong>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" onClick={() => void resolve({ confirmed: true })}>Approuver</button>
           <button type="button" onClick={() => void cancel()}>Refuser</button>

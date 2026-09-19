@@ -1,3 +1,5 @@
+import i18n from '../i18n/config';
+import { intlLocaleGregorian } from '../utils/localeDate';
 // ============================================================================
 // Analytics Utility Functions
 // Pure calculation/helper functions with no React dependencies.
@@ -24,8 +26,18 @@ export function periodToDays(period: DashboardPeriod): number {
   }
 }
 
+/**
+ * Etiquette de mois des graphiques — « mai 26 ».
+ *
+ * <p>Gregorien meme en arabe : les series analytiques sont agregees par mois
+ * CIVIL cote serveur. Un libelle hegirien y annoncerait un decoupage que les
+ * donnees ne suivent pas.</p>
+ */
 export function getMonthLabel(date: Date): string {
-  return date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+  return date.toLocaleDateString(intlLocaleGregorian(i18n.language), {
+    month: 'short',
+    year: '2-digit',
+  });
 }
 
 export function getLast6Months(): string[] {

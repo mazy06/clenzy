@@ -25,67 +25,57 @@ import HelpPopover from '../../../components/HelpPopover';
 import StatTile from '../../../components/baitly/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // Contenu d'aide contextuelle (statique) — porté par l'icône ⓘ dans le header
 // SyncAdmin plutôt qu'un bandeau permanent qui mange de la hauteur.
-const OUTBOX_HELP = (
-  <HelpPopover
-    label="Aide"
-    title="Comment fonctionne l'Outbox ?"
-    description={
-      'Chaque mutation métier (réservation, profil utilisateur, calendrier...) écrit un event '
-      + 'dans la table outbox dans la MÊME transaction que la donnée. Le relais Kafka lit ensuite ces events '
-      + 'et les publie sur le topic correspondant. Garantie : at-least-once, pas de perte.'
-    }
-    steps={[
-      {
-        icon: <HourglassEmpty size={14} strokeWidth={1.75} />,
-        title: 'PENDING — en attente',
-        description: "L'event est en file. Le relais Kafka va le récupérer au prochain cycle (~quelques secondes).",
-        accent: 'info',
-      },
-      {
-        icon: <SendIcon size={14} strokeWidth={1.75} />,
-        title: 'SENT — envoyé',
-        description: "L'event a été publié dans Kafka. Les consumers downstream peuvent maintenant le traiter.",
-        accent: 'success',
-      },
-      {
-        icon: <ErrorOutline size={14} strokeWidth={1.75} />,
-        title: 'FAILED — à investiguer',
-        description: "L'envoi a échoué (topic manquant, broker indisponible, payload invalide). Voir la colonne Error, "
-          + 'corriger la cause, puis cliquer "Retry Selected" pour remettre l\'event en file.',
-        accent: 'error',
-      },
-    ]}
-  />
-);
+// Composant et non constante : la langue se lit au rendu, ce qu'une valeur
+// figee au chargement du module ne saurait faire.
+const OutboxHelp: React.FC = () => {
+  const { t } = useTranslation();
+  return (
+    <HelpPopover
+      label={t('common.help')}
+      title={t('admin.outbox.help.title')}
+      description={t('admin.outbox.help.description')}
+      steps={[
+        {
+          icon: <HourglassEmpty size={14} strokeWidth={1.75} />,
+          title: t('admin.outbox.help.pending.title'),
+          description: t('admin.outbox.help.pending.description'),
+          accent: 'info',
+        },
+        {
+          icon: <SendIcon size={14} strokeWidth={1.75} />,
+          title: t('admin.outbox.help.sent.title'),
+          description: t('admin.outbox.help.sent.description'),
+          accent: 'success',
+        },
+        {
+          icon: <ErrorOutline size={14} strokeWidth={1.75} />,
+          title: t('admin.outbox.help.failed.title'),
+          description: t('admin.outbox.help.failed.description'),
+          accent: 'error',
+        },
+      ]}
+    />
+  );
+};
 
 // ─── Tooltip copy ────────────────────────────────────────────────────────────
 // Centralised so the same explanation surfaces in the chip, the column header,
 // the filter chip, and the stats card. Stops the copy from drifting between
 // surfaces and keeps the page truthfully consistent.
-const STATUS_HELP: Record<string, { title: string; what: string; todo: string }> = {
-  PENDING: {
-    title: 'En file',
-    what: "L'event est persisté en base, le relais Kafka va le récupérer au prochain cycle (quelques secondes).",
-    todo: 'Aucune action requise — la transition vers SENT ou FAILED est automatique.',
-  },
-  SENT: {
-    title: 'Envoyé',
-    what: "L'event a bien été publié sur le topic Kafka. Les consumers downstream peuvent maintenant le traiter.",
-    todo: 'Aucune action — bon signal.',
-  },
-  FAILED: {
-    title: 'Échec',
-    what: "La publication Kafka a échoué (topic manquant, broker indisponible, payload invalide). La colonne ERROR donne le détail.",
-    todo: 'Corriger la cause sous-jacente puis cliquer "Retry Selected" pour remettre l\'event en file.',
-  },
+const STATUS_HELP_KEYS: Record<string, string> = {
+  PENDING: 'admin.outbox.statusHelp.pending',
+  SENT: 'admin.outbox.statusHelp.sent',
+  FAILED: 'admin.outbox.statusHelp.failed',
 };
 
-const renderStatusTooltip = (status: string) => {
-  const help = STATUS_HELP[status];
-  if (!help) return status;
+const renderStatusTooltip = (status: string, t: (key: string) => string) => {
+  const prefix = STATUS_HELP_KEYS[status];
+  if (!prefix) return status;
+  const help = { title: t(prefix + '.title'), what: t(prefix + '.what'), todo: t(prefix + '.todo') };
   return (
     <div className="p-0.5 max-w-[300px]">
       <p className="text-xs font-bold mb-0.5">{help.title}</p>
@@ -135,6 +125,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
 };
 
 const OutboxTab: React.FC = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<OutboxEvent[]>([]);
   const [stats, setStats] = useState<OutboxStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,7 +164,7 @@ const OutboxTab: React.FC = () => {
       setEvents(data.content);
       setTotalElements(data.totalElements);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement de la outbox');
+      setError(err instanceof Error ? err.message : t('admin.sync.outboxLoadError'));
     } finally {
       setLoading(false);
     }
@@ -226,7 +217,7 @@ const OutboxTab: React.FC = () => {
         fetchStats();
       }, 4000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du retry');
+      setError(err instanceof Error ? err.message : t('admin.sync.retryError'));
     } finally {
       setRetrying(false);
     }
@@ -261,7 +252,7 @@ const OutboxTab: React.FC = () => {
   useEffect(() => {
     setHeaderActions(
       <div className="flex items-center gap-1.5">
-        {OUTBOX_HELP}
+        <OutboxHelp />
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
@@ -271,8 +262,7 @@ const OutboxTab: React.FC = () => {
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot
-            d&apos;événements après avoir corrigé la cause (topic créé, broker remonté, etc.).
+            {t('admin.sync.selectAllFailed')}
           </TooltipContent>
         </Tooltip>
         <Tooltip>
@@ -294,7 +284,7 @@ const OutboxTab: React.FC = () => {
           </TooltipTrigger>
           <TooltipContent>
             {selectedIds.size === 0
-              ? 'Sélectionne au moins un event FAILED pour pouvoir le relancer.'
+              ? t('admin.sync.selectFailedFirst')
               : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."}
           </TooltipContent>
         </Tooltip>
@@ -327,7 +317,7 @@ const OutboxTab: React.FC = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                Events qui attendent d&apos;être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.
+                {t('admin.sync.pendingHint')}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -338,7 +328,7 @@ const OutboxTab: React.FC = () => {
                   <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} iconClassName="text-success" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent>Events publiés avec succès dans Kafka. Aucune action requise.</TooltipContent>
+              <TooltipContent>{t('admin.sync.publishedHint')}</TooltipContent>
             </Tooltip>
           </div>
           <div className="col-span-6 min-[600px]:col-span-3">
@@ -349,7 +339,7 @@ const OutboxTab: React.FC = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).
+                {t('admin.sync.failedHint')}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -360,7 +350,7 @@ const OutboxTab: React.FC = () => {
                   <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} iconClassName="text-primary" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent>Total cumulé d&apos;events écrits dans l&apos;outbox depuis sa création.</TooltipContent>
+              <TooltipContent>{t('admin.sync.totalHint')}</TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -396,54 +386,54 @@ const OutboxTab: React.FC = () => {
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        Une case n&apos;apparaît que sur les lignes FAILED. Cochez puis cliquez &apos;Retry Selected&apos;.
+                        {t('admin.sync.checkboxHint')}
                       </TooltipContent>
                     </Tooltip>
                   </TableHead>
                   <TableHead>
-                    <HeaderHint label="ID" hint="Identifiant interne de l'event dans la table outbox." />
+                    <HeaderHint label="ID" hint={t('admin.outbox.columns.id')} />
                   </TableHead>
                   <TableHead>
                     <HeaderHint
                       label="Aggregate"
-                      hint="Entité métier source. Format type#id. Ex: USER#42 = changement de profil utilisateur 42."
+                      hint={t('admin.outbox.columns.aggregate')}
                     />
                   </TableHead>
                   <TableHead>
                     <HeaderHint
                       label="Event Type"
-                      hint="Nature de la mutation. Ex: USER_PROFILE_UPDATED, RESERVATION_CREATED, CALENDAR_BOOKED."
+                      hint={t('admin.outbox.columns.eventType')}
                     />
                   </TableHead>
                   <TableHead>
                     <HeaderHint
                       label="Topic"
-                      hint="Topic Kafka cible. Si un topic n'existe pas côté broker, les envois finissent en FAILED."
+                      hint={t('admin.outbox.columns.topic')}
                     />
                   </TableHead>
                   <TableHead>
                     <HeaderHint
                       label="Status"
-                      hint="PENDING = en file, SENT = publié OK, FAILED = échec. Survolez le chip pour le détail + action recommandée."
+                      hint={t('admin.outbox.columns.status')}
                     />
                   </TableHead>
                   <TableHead>
                     <HeaderHint
                       label="Retry"
-                      hint="Nombre de tentatives déjà effectuées. Incrémenté à chaque échec du relais."
+                      hint={t('admin.outbox.columns.retry')}
                     />
                   </TableHead>
                   <TableHead>
                     <HeaderHint
                       label="Error"
-                      hint="Message d'erreur de la dernière tentative. Survolez la ligne pour voir le message complet."
+                      hint={t('admin.outbox.columns.error')}
                     />
                   </TableHead>
                   <TableHead>
-                    <HeaderHint label="Created At" hint="Moment où l'event a été persisté dans l'outbox (= moment de la mutation métier)." />
+                    <HeaderHint label="Created At" hint={t('admin.outbox.columns.createdAt')} />
                   </TableHead>
                   <TableHead>
-                    <HeaderHint label="Sent At" hint="Moment où l'event a été publié avec succès dans Kafka. Vide tant qu'il n'est pas SENT." />
+                    <HeaderHint label="Sent At" hint={t('admin.outbox.columns.sentAt')} />
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -451,7 +441,7 @@ const OutboxTab: React.FC = () => {
                 {events.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center text-muted-foreground py-[18px]">
-                      Aucun event
+                      {t('admin.sync.noEvent')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -484,7 +474,7 @@ const OutboxTab: React.FC = () => {
                               />
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent side="right">{renderStatusTooltip(evt.status)}</TooltipContent>
+                          <TooltipContent side="right">{renderStatusTooltip(evt.status, t)}</TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>

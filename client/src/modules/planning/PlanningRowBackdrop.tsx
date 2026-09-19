@@ -1,6 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { WEEKEND_CELL_BG } from './constants';
-import { isWeekend, isToday } from './utils/dateUtils';
+import { isToday } from './utils/dateUtils';
+import { useDateFormat } from '../../hooks/useDateFormat';
+import { isRtlLanguage } from '../../utils/localeDate';
 
 /**
  * Le FOND d'une rangée de la grille : colonnes teintées et filets entre jours.
@@ -18,7 +21,13 @@ const PlanningRowBackdrop: React.FC<{
   days: Date[];
   dayWidth: number;
   totalGridWidth: number;
-}> = React.memo(({ days, dayWidth, totalGridWidth }) => (
+}> = React.memo(({ days, dayWidth, totalGridWidth }) => {
+  const { i18n } = useTranslation();
+  const isRtl = isRtlLanguage(i18n.language);
+  // Vendredi-samedi en arabe, samedi-dimanche ailleurs.
+  const { isWeekend } = useDateFormat();
+
+  return (
   <>
     {/* Day column backgrounds (weekends + today) */}
     {days.map((day, idx) => {
@@ -34,7 +43,8 @@ const PlanningRowBackdrop: React.FC<{
         <div
           className="absolute inset-y-0 pointer-events-none"
           style={{
-            left: idx * dayWidth,
+            // Logique et non physique : en arabe les colonnes partent de la droite.
+            insetInlineStart: idx * dayWidth,
             width: dayWidth,
             backgroundColor: today
               ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
@@ -56,13 +66,23 @@ const PlanningRowBackdrop: React.FC<{
       aria-hidden
       className="absolute inset-0 pointer-events-none"
       style={{
-        backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--bui-border) ${dayWidth - 1}px ${dayWidth}px)`,
+        // Un dégradé ne connaît pas les propriétés logiques : sa direction se
+        // choisit à la main. Laissé « to right » en arabe, le motif partirait
+        // du bord opposé à la première colonne et poserait chaque filet du
+        // mauvais côté de la frontière entre deux jours.
+        backgroundImage: `repeating-linear-gradient(to ${isRtl ? 'left' : 'right'}, transparent 0 ${dayWidth - 1}px, var(--bui-border) ${dayWidth - 1}px ${dayWidth}px)`,
         backgroundSize: `${totalGridWidth - 1}px 100%`,
         backgroundRepeat: 'no-repeat',
+        // Le pixel retranché à la taille prive le DERNIER jour de son filet.
+        // « Dernier » est une notion de lecture : l'ancrage doit donc partir du
+        // bord où commence la frise, que `0% 0%` (toujours physique, jamais
+        // logique) placerait à gauche même en arabe.
+        backgroundPosition: isRtl ? '100% 0' : '0 0',
       }}
     />
   </>
-));
+  );
+});
 
 PlanningRowBackdrop.displayName = 'PlanningRowBackdrop';
 

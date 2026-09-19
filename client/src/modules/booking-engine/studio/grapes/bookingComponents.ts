@@ -10,6 +10,7 @@ import {
   type BookingWidgetDef,
   type WidgetProps,
 } from './bookingWidgetDefs';
+import i18n from '../../../../i18n/config';
 
 /**
  * Pont SDK ↔ GrapesJS (G1) : enregistre, pour CHAQUE `BookingWidgetDef`, un type de composant
@@ -122,7 +123,7 @@ function registerOne(editor: Editor, def: BookingWidgetDef, ctx: BookingComponen
       defaults: {
         // tagName + attributes = source de vérité de l'export HTML (point de montage stable).
         tagName: 'div',
-        name: def.label,
+        name: i18n.t(def.labelKey),
         attributes: { [BOOKING_WIDGET_ATTR]: attrValue },
         // Bloc atomique : pas d'édition de contenu, pas de drop interne, pas d'enfants persistés
         // (l'export ne contient que le div marqueur ; le SDK injecte le reste à l'hydratation).
@@ -135,9 +136,9 @@ function registerOne(editor: Editor, def: BookingWidgetDef, ctx: BookingComponen
         traits: traits.map((t) => ({
           type: t.type,
           name: t.name,
-          label: t.label,
+          label: i18n.t(t.labelKey),
           changeProp: true,
-          ...(t.options ? { options: t.options } : {}),
+          ...(t.options ? { options: t.options.map((o) => ({ id: o.id, name: i18n.t(o.nameKey) })) } : {}),
         })),
         // Valeurs initiales des props liées aux traits (sinon contrôles vides au dépôt du bloc).
         ...(def.defaultProps ?? {}),
@@ -194,8 +195,8 @@ function registerOne(editor: Editor, def: BookingWidgetDef, ctx: BookingComponen
   // Bloc drag&drop correspondant. `content: { type }` → dépose une instance du composant ci-dessus.
   // Label HTML (titre + description) = rendu « ligne » de l'ancienne palette Studio (cf. grapesStudio.css).
   editor.BlockManager.add(def.id, {
-    label: blockLabelHtml(def.label, def.description),
-    category: def.category,
+    label: blockLabelHtml(i18n.t(def.labelKey), def.descriptionKey ? i18n.t(def.descriptionKey) : undefined),
+    category: i18n.t(def.category),
     media: iconMarkup(def.icon),
     // Tag DOM pour la synchro sélection canvas → palette (cf. GrapesStudio `highlightBlockForSelection`).
     attributes: { 'data-cz-block': def.id },
@@ -233,11 +234,11 @@ const STEP_TO_DEF_ID: Record<string, string | null> = {
 };
 
 /** Libellés des steps sans micro-widget d'aperçu (rendu réel à la publication). */
-const STEP_LABELS: Record<string, string> = {
-  property: 'Détail du logement',
-  checkout: 'Paiement',
-  confirmation: 'Confirmation de réservation',
-  upsells: 'Services additionnels',
+const STEP_KEYS: Record<string, string> = {
+  property: 'studioBlocks.steps.property',
+  checkout: 'studioBlocks.steps.checkout',
+  confirmation: 'studioBlocks.steps.confirmation',
+  upsells: 'studioBlocks.steps.upsells',
 };
 
 const DEF_BY_ID = new Map(BOOKING_WIDGET_DEFS.map((d) => [d.id, d]));
@@ -307,7 +308,7 @@ function registerStepType(editor: Editor, step: string, ctx: BookingComponentsCt
     model: {
       defaults: {
         tagName: 'div',
-        name: def?.label ?? STEP_LABELS[step] ?? step,
+        name: def ? i18n.t(def.labelKey) : STEP_KEYS[step] ? i18n.t(STEP_KEYS[step]) : step,
         // La valeur du marqueur est PRÉSERVÉE (= step) → l'hydratation runtime reste correcte.
         attributes: { [BOOKING_WIDGET_ATTR]: step },
         droppable: false,

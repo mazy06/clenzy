@@ -6,6 +6,8 @@ import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import { useCurrency } from '../../hooks/useCurrency';
 import StatusChip from '../../components/StatusChip';
+import { useTranslation } from '../../hooks/useTranslation';
+import { currencySign } from '../../utils/currencyUtils';
 
 // ─── Devis structuré (maintenance) ──────────────────────────────────────────
 //
@@ -21,7 +23,11 @@ interface ServiceRequestQuoteEditorProps {
 }
 
 /** Raccourcis de désignation les plus courants pour une intervention technique. */
-const PRESETS = ['Main d’œuvre', 'Pièces / matériel', 'Déplacement'];
+const PRESET_KEYS = [
+  'serviceRequests.quote.presets.labour',
+  'serviceRequests.quote.presets.parts',
+  'serviceRequests.quote.presets.travel',
+];
 
 /** Ton de marque de la puce « ajouter une ligne » (encre + fond pastel). */
 const BRAND_TOKENS = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' } as const;
@@ -41,7 +47,9 @@ const NUM_INPUT_CLASS =
 
 const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = React.memo(
   ({ value, onChange, disabled = false }) => {
-    const { convertAndFormat } = useCurrency();
+    const { t } = useTranslation();
+    const { convertAndFormat, currency } = useCurrency();
+    const sign = currencySign(currency);
 
     const total = useMemo(
       () => value.reduce((sum, line) => sum + lineTotal(line), 0),
@@ -83,7 +91,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
           </div>
           <div className="flex items-baseline gap-0.5">
             <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Total estimé
+              {t('serviceRequests.quote.estimatedTotal')}
             </p>
             <p className="font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-foreground tabular-nums">
               {convertAndFormat(total, 'EUR')}
@@ -96,7 +104,10 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
           <div className="flex flex-col gap-0.5 mb-1.5">
             {/* En-têtes de colonnes */}
             <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] px-[1.5px]">
-              {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
+              {[t('serviceRequests.quote.colLabel'),
+                t('serviceRequests.quote.colQty'),
+                t('serviceRequests.quote.colUnitPrice', { currency: sign }),
+                t('serviceRequests.quote.colTotal'), ''].map((h, i) => (
                 <p className={cn('text-[9.5px] font-semibold uppercase tracking-wide text-muted-foreground', i === 0 ? 'text-start' : i === 4 ? 'text-center' : 'text-end')} key={h || 'actions'}>
                   {h}
                 </p>
@@ -108,15 +119,15 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                 {/* Pas de libelle par champ : ce sont des colonnes, l'intitule est
                     en tete de grille — d'ou l'aria-label qui nomme la ligne. */}
                 <Input
-                  aria-label={`Désignation ligne ${index + 1}`}
+                  aria-label={t('serviceRequests.quote.ariaLabel', { index: index + 1 })}
                   value={line.label}
                   onChange={(e) => updateLine(index, { label: e.target.value })}
-                  placeholder="Désignation…"
+                  placeholder={t('serviceRequests.quote.labelPlaceholder')}
                   disabled={disabled}
                   className={TEXT_INPUT_CLASS}
                 />
                 <Input
-                  aria-label={`Quantité ligne ${index + 1}`}
+                  aria-label={t('serviceRequests.quote.ariaQty', { index: index + 1 })}
                   value={Number.isFinite(line.quantity) ? line.quantity : ''}
                   onChange={(e) => updateLine(index, { quantity: e.target.value === '' ? 0 : Number(e.target.value) })}
                   type="number"
@@ -126,7 +137,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                   className={NUM_INPUT_CLASS}
                 />
                 <Input
-                  aria-label={`Prix unitaire ligne ${index + 1}`}
+                  aria-label={t('serviceRequests.quote.ariaUnitPrice', { index: index + 1 })}
                   value={Number.isFinite(line.unitPrice) ? line.unitPrice : ''}
                   onChange={(e) => updateLine(index, { unitPrice: e.target.value === '' ? 0 : Number(e.target.value) })}
                   type="number"
@@ -147,7 +158,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                   onClick={() => removeLine(index)}
                   disabled={disabled}
                   className="text-faint hover:text-destructive"
-                  aria-label={`Supprimer la ligne ${index + 1}`}
+                  aria-label={t('serviceRequests.quote.ariaDelete', { index: index + 1 })}
                 >
                   <Close size={14} strokeWidth={1.75} />
                 </Button>
@@ -169,15 +180,18 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
               onClick={() => addLine()}
               className="h-[26px] text-[11.5px] border border-solid border-primary"
             />
-            {PRESETS.map((preset) => (
-              <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-muted-foreground border-border bg-card hover:border-primary hover:text-primary hover:bg-muted cursor-pointer" key={preset} onClick={() => addLine(preset)}>{preset}</Badge>
-            ))}
+            {PRESET_KEYS.map((key) => {
+              const preset = t(key);
+              return (
+                <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-muted-foreground border-border bg-card hover:border-primary hover:text-primary hover:bg-muted cursor-pointer" key={key} onClick={() => addLine(preset)}>{preset}</Badge>
+              );
+            })}
           </div>
         )}
 
         {value.length === 0 && disabled && (
           <p className="text-[11.5px] text-faint italic">
-            Aucune ligne de devis
+            {t('serviceRequests.quote.noLine')}
           </p>
         )}
       </div>

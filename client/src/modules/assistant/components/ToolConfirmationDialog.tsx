@@ -10,6 +10,7 @@ import {
 } from '../../../components/ui';
 import { Warning as AlertIcon } from '../../../icons';
 import type { PendingToolConfirmation } from '../../../hooks/useAgent';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ToolConfirmationDialogProps {
   pending: PendingToolConfirmation | null;
@@ -31,6 +32,7 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const parsedArgs = useMemo(() => {
     if (!pending) return null;
     try {
@@ -83,7 +85,7 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
 
         {!parsedArgs && (
           <p className="text-xs text-muted-foreground">
-            Pas d&apos;argument structure (le LLM execute sans parametre).
+            {t('assistant.toolNoArgs')}
           </p>
         )}
       </div>

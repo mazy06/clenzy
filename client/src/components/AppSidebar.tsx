@@ -569,7 +569,7 @@ export default function AppSidebar({
                 </AvatarFallback>
               </Avatar>
               <span className="grid min-w-0 flex-1 text-start leading-tight">
-                <span className="truncate text-[13px] font-semibold">{displayName}</span>
+                <span dir="auto" className="truncate text-[13px] font-semibold">{displayName}</span>
                 {user?.roles && user.roles.length > 0 && (
                   // `/70` et non `/60` : a 60 % l'encre de la sidebar tombait a
                   // 4,03:1 sur son fond clair, sous le seuil AA — mesure au
@@ -692,7 +692,7 @@ export default function AppSidebar({
                   <span className="flex size-4 shrink-0 items-center justify-center text-sm font-semibold">
                     <CurrencySymbol code={opt.code} />
                   </span>
-                  <span className="truncate">{opt.label}</span>
+                  <span className="truncate">{t(`currencies.${opt.code}`, opt.label)}</span>
                 </SidebarFlyoutRow>
               ))}
             </SidebarFlyoutGroup>

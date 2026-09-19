@@ -6,6 +6,7 @@ import {
 } from '../icons';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -44,6 +45,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallbackPath = '/',
   fallbackMessage
 }) => {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -94,32 +96,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const getPermissionMessage = () => {
       if (fallbackMessage) return fallbackMessage;
       
-      const permissionMap: { [key: string]: string } = {
-        'dashboard:view': 'accéder au tableau de bord',
-        'properties:view': 'consulter les propriétés',
-        'properties:create': 'créer des propriétés',
-        'properties:edit': 'modifier des propriétés',
-        'properties:delete': 'supprimer des propriétés',
-        'service-requests:view': 'consulter les demandes de service',
-        'service-requests:create': 'créer des demandes de service',
-        'service-requests:edit': 'modifier des demandes de service',
-        'service-requests:delete': 'supprimer des demandes de service',
-        'interventions:view': 'consulter les interventions',
-        'interventions:create': 'créer des interventions',
-        'interventions:edit': 'modifier des interventions',
-        'interventions:delete': 'supprimer des interventions',
-        'teams:view': 'consulter les équipes',
-        'teams:create': 'créer des équipes',
-        'teams:edit': 'modifier des équipes',
-        'teams:delete': 'supprimer des équipes',
-        'users:manage': 'gérer les utilisateurs',
-        'settings:view': 'accéder aux paramètres',
-        'settings:edit': 'modifier les paramètres',
-        'reports:view': 'consulter les rapports'
-      };
-      
-      if (!requiredPermission) return 'accéder à cette fonctionnalité';
-      return permissionMap[requiredPermission] || 'accéder à cette fonctionnalité';
+      // La permission sert de cle : « properties:create » -> permissionAction.properties.create
+      if (!requiredPermission) return t('permissionAction.fallback');
+      const [scope, action] = requiredPermission.split(':');
+      return t('permissionAction.' + scope + '.' + action, t('permissionAction.fallback'));
     };
 
     // Déterminer la page de destination recommandée
@@ -159,7 +139,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
         {/* Titre principal */}
         <h4 className="text-base font-semibold tracking-tight text-balance text-foreground mb-3">
-          Accès restreint
+          {t('protectedRoute.restricted')}
         </h4>
 
         {/* Message explicatif */}
@@ -177,14 +157,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
           <div className="flex items-center gap-1.5 mb-3 justify-center">
             <p className="text-xs text-muted-foreground">
-              Page demandée : <strong className="text-foreground">{location.pathname}</strong>
+              {t('protectedRoute.requestedPage')} <strong className="text-foreground">{location.pathname}</strong>
             </p>
           </div>
 
           {user && (
             <div className="flex items-center gap-1.5 flex-wrap justify-center">
               <p className="text-xs text-muted-foreground">
-                Votre rôle :
+                {t('protectedRoute.yourRole')}
               </p>
               {user.roles.map((role) => (
                 <Badge variant="secondary" className="text-xs" key={role}>{role}</Badge>

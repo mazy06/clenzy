@@ -72,47 +72,43 @@ export const channelManagerConnectionApi = {
 export interface ChannelManagerProviderMeta {
   id: ChannelManagerProvider;
   label: string;
-  description: string;
+  descriptionKey: string;
   serverUrlPlaceholder: string;
   apiKeyHelpUrl?: string;
-  accountIdentifierLabel?: string;
+  accountIdentifierLabelKey?: string;
 }
 
 export const CHANNEL_MANAGER_PROVIDER_META: Record<ChannelManagerProvider, ChannelManagerProviderMeta> = {
   SITEMINDER: {
     id: 'SITEMINDER',
     label: 'SiteMinder',
-    description:
-      'Channel manager leader mondial (Australie). ~250 OTAs intégrés y compris des marchés niches MENA / Asie / LATAM.',
+    descriptionKey: 'channelManagers.SITEMINDER.description',
     serverUrlPlaceholder: 'https://api.siteminder.com',
     apiKeyHelpUrl: 'https://developer.siteminder.com/',
-    accountIdentifierLabel: 'Property ID (optionnel)',
+    accountIdentifierLabelKey: 'channelManagers.SITEMINDER.accountLabel',
   },
   HOSTAWAY: {
     id: 'HOSTAWAY',
     label: 'Hostaway',
-    description:
-      'Channel manager STR (US), focus court-séjour. Intégration native Airbnb + Booking + Vrbo + Expedia.',
+    descriptionKey: 'channelManagers.HOSTAWAY.description',
     serverUrlPlaceholder: 'https://api.hostaway.com',
     apiKeyHelpUrl: 'https://api.hostaway.com/documentation',
-    accountIdentifierLabel: 'Account ID (optionnel)',
+    accountIdentifierLabelKey: 'channelManagers.HOSTAWAY.accountLabel',
   },
   RENTALS_UNITED: {
     id: 'RENTALS_UNITED',
     label: 'Rentals United',
-    description:
-      'Channel manager STR (Espagne). 60+ OTAs y compris marchés MENA et Europe. Très utilisé en France et Maroc.',
+    descriptionKey: 'channelManagers.RENTALS_UNITED.description',
     serverUrlPlaceholder: 'https://api.rentalsunited.com',
     apiKeyHelpUrl: 'https://documentation.rentalsunited.com/',
-    accountIdentifierLabel: 'Owner ID (optionnel)',
+    accountIdentifierLabelKey: 'channelManagers.RENTALS_UNITED.accountLabel',
   },
   CHANNEX: {
     id: 'CHANNEX',
     label: 'Channex',
-    description:
-      'Channel manager STR (UK). API REST moderne, 100+ OTAs (Airbnb, Booking.com, Vrbo, Expedia, HomeToGo…). Pricing pay-as-you-go ~12 €/bien/mois. Recommandé pour les conciergeries françaises.',
+    descriptionKey: 'channelManagers.CHANNEX.description',
     serverUrlPlaceholder: 'https://staging.channex.io/api/v1',
     apiKeyHelpUrl: 'https://docs.channex.io/api-reference',
-    accountIdentifierLabel: 'Group ID (optionnel)',
+    accountIdentifierLabelKey: 'channelManagers.CHANNEX.accountLabel',
   },
 };

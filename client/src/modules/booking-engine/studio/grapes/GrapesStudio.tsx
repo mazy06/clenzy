@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Badge,
@@ -389,33 +389,33 @@ function extractUploadFiles(e: DragEvent): File[] {
 }
 
 /** Blocs de base (section, texte, image, colonnes) du BlockManager. */
-function registerBaseBlocks(editor: Editor): void {
+function registerBaseBlocks(editor: Editor, t: (key: string) => string): void {
   const bm = editor.BlockManager;
   bm.add('section', {
-    label: blockLabelHtml('Section', 'Bloc pleine largeur (conteneur de contenu).'),
-    category: 'Mise en page',
+    label: blockLabelHtml(t('studioBlocks.base.section'), t('studioBlocks.base.sectionDesc')),
+    category: t('studioBlocks.categories.layout'),
     media: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>',
     attributes: { 'data-cz-block': 'section' },
-    content: '<section style="padding:48px 24px"><h2>Titre de section</h2><p>Décrivez votre offre ici.</p></section>',
+    content: `<section style="padding:48px 24px"><h2>${t('studio.grapes.sectionTitle')}</h2><p>${t('studio.grapes.sectionBody')}</p></section>`,
   });
   bm.add('text', {
-    label: blockLabelHtml('Texte', 'Bloc de texte éditable.'),
-    category: 'Basique',
+    label: blockLabelHtml(t('studioBlocks.base.text'), t('studioBlocks.base.textDesc')),
+    category: t('studioBlocks.categories.basic'),
     media: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
     attributes: { 'data-cz-block': 'text' },
-    content: { type: 'text', content: 'Insérez votre texte' },
+    content: { type: 'text', content: t('studioBlocks.base.textPlaceholder') },
   });
   bm.add('image', {
-    label: blockLabelHtml('Image', 'Image (médiathèque ou upload).'),
-    category: 'Basique',
+    label: blockLabelHtml(t('studioBlocks.base.image'), t('studioBlocks.base.imageDesc')),
+    category: t('studioBlocks.categories.basic'),
     media: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>',
     attributes: { 'data-cz-block': 'image' },
     content: { type: 'image' },
     activate: true,
   });
   bm.add('columns', {
-    label: blockLabelHtml('Colonnes', 'Deux colonnes côte à côte.'),
-    category: 'Mise en page',
+    label: blockLabelHtml(t('studioBlocks.base.columns'), t('studioBlocks.base.columnsDesc')),
+    category: t('studioBlocks.categories.layout'),
     media: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/></svg>',
     attributes: { 'data-cz-block': 'columns' },
     content: `<div style="display:flex;gap:24px;padding:24px">
@@ -706,10 +706,11 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
   onDelete: (c: CompositeWidget) => void;
   onNew: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-1 p-2">
       <p className="px-0.5 text-xs leading-snug text-muted-foreground">
-        Clique pour insérer, ou glisse-dépose le composite depuis l'onglet « Blocs » (catégorie Composites).
+        {t('studio.grapes.compositeHint')}
       </p>
       <Button
         type="button"
@@ -971,7 +972,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     // Contexte des coutures : accesseur de config courante (lu au (re)mount des vues live SDK).
     const ctx = { getConfig: () => configRef.current };
 
-    registerBaseBlocks(editor);
+    registerBaseBlocks(editor, t);
     registerBookingComponents(editor, ctx);
     registerTextEditing(editor);
     setupImageEditing(editor); // clic/dbl-clic sur image → picker (défauts du template + médiathèque + upload)
@@ -1085,9 +1086,10 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         // mais N'EST PAS vide (ex. « Recherche ville » = input, « Filtre » = icône) → ne pas le marquer.
         const isEmpty = !el.innerText?.trim() && !el.querySelector('input, select, textarea, button, svg, img');
         if (isEmpty) {
-          const label = BOOKING_WIDGET_DEFS.find((d) => d.id === id)?.label ?? id;
+          const emptyDef = BOOKING_WIDGET_DEFS.find((d) => d.id === id);
+          const label = emptyDef ? t(emptyDef.labelKey) : id;
           el.classList.add('cz-widget-empty');
-          el.setAttribute('data-cz-name', `${label} — aperçu selon le contexte`);
+          el.setAttribute('data-cz-name', t('studio.previewByContext', { label }));
         } else {
           el.classList.remove('cz-widget-empty');
           el.removeAttribute('data-cz-name');
@@ -1675,7 +1677,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     return (
       <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
         <Spinner />
-        Chargement de l’éditeur…
+        {t('studio.grapes.loadingEditor')}
       </div>
     );
   }
@@ -1788,7 +1790,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                       className="min-h-9 cursor-pointer flex-col items-start gap-0"
                     >
                       <span>{t('bookingEngine.studio.ai.translate.pageAction', 'Créer des variantes traduites…')}</span>
-                      <span className="text-2xs text-muted-foreground">Crée des brouillons à relire, sans rien écraser</span>
+                      <span className="text-2xs text-muted-foreground">{t('studio.grapes.draftsHint')}</span>
                     </DropdownMenuItem>
                   )}
                   {pages.activeLocale !== pages.defaultLocale && (
@@ -1797,15 +1799,15 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                         onSelect={() => { void handleTranslatePage(); }}
                         className="min-h-9 cursor-pointer flex-col items-start gap-0"
                       >
-                        <span>Traduire cette page</span>
-                        <span className="text-2xs text-muted-foreground">Remplace le contenu de la page affichée</span>
+                        <span>{t('studio.grapes.translatePage')}</span>
+                        <span className="text-2xs text-muted-foreground">{t('studio.grapes.translatePageHint')}</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={() => { void handleTranslateAll(); }}
                         className="min-h-9 cursor-pointer flex-col items-start gap-0"
                       >
-                        <span>Traduire toutes les pages</span>
-                        <span className="text-2xs text-muted-foreground">Remplace le contenu de toutes les pages de cette langue</span>
+                        <span>{t('studio.grapes.translateAll')}</span>
+                        <span className="text-2xs text-muted-foreground">{t('studio.grapes.translateAllHint')}</span>
                       </DropdownMenuItem>
                     </>
                   )}
@@ -1850,7 +1852,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                {needsPublish ? 'Publier la version en ligne' : 'Aucune modification à publier'}
+                {needsPublish ? t('studio.publishOnline') : t('studio.nothingToPublish')}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -1864,13 +1866,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
       {!chromeHidden && (
         <div className="cz-editor-toolbar flex h-[44px] shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-card px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
-          <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
+          <ToolBtn icon={Redo2} title={t('studio.grapes.restore')} onClick={doRedo} />
           <Separator orientation="vertical" className="mx-0.5 h-5" />
           {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
-          {!guided && <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />}
-          <ToolBtn icon={Workflow} title="Parcours de réservation (modèles + composeur)" label="Funnel" onClick={handleFunnel} />
-          <ToolBtn icon={PaintBucket} title="Insérer les styles de widgets (skin de base, à personnaliser)" label="Styles widgets" onClick={insertWidgetStyles} />
-          <ToolBtn icon={ImagePlus} title="Logo du site (barre de navigation + pied de page)" label="Logo" onClick={() => logoInputRef.current?.click()} />
+          {!guided && <ToolBtn icon={FolderInput} title={t('studio.import.panelTitle')} label={t('studio.grapes.importLabel')} onClick={() => setImportOpen(true)} />}
+          <ToolBtn icon={Workflow} title="{t('studio.grapes.funnelTooltip')}" label="Funnel" onClick={handleFunnel} />
+          <ToolBtn icon={PaintBucket} title="{t('studio.grapes.widgetStyles')}" label="Styles widgets" onClick={insertWidgetStyles} />
+          <ToolBtn icon={ImagePlus} title="{t('studio.grapes.siteLogo')}" label="Logo" onClick={() => logoInputRef.current?.click()} />
           <input ref={logoInputRef} type="file" accept="image/*" hidden onChange={() => { void handleLogoUpload(); }} />
           <div className="flex-1 min-w-[8px]" />
           <ToolBtn icon={SquareDashed} title="Afficher les contours d'édition" active={outlineOn} onClick={toggleOutline} />
@@ -1982,13 +1984,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
             <Button
               type="button"
               onClick={togglePreview}
-              aria-label="Quitter l'aperçu"
+              aria-label={t('studio.grapes.exitPreviewAria')}
               className="absolute top-3 end-3 z-10 font-semibold shadow-sm"
             >
-              <Eye size={15} strokeWidth={2} /> Quitter l’aperçu
+              <Eye size={15} strokeWidth={2} /> {t('studio.grapes.exitPreview')}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Quitter l'aperçu</TooltipContent>
+          <TooltipContent>{t('studio.grapes.exitPreviewAria')}</TooltipContent>
         </Tooltip>
       )}
 

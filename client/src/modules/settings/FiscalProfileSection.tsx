@@ -203,7 +203,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
               onClick={() => refetch()}
               className="text-warning-ink border-warning hover:bg-warning-soft"
             >
-              Réessayer
+              {t('settings.fiscal.retry')}
             </Button>
           </AlertAction>
         </BuiAlert>
@@ -257,7 +257,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     required
                   >
                     {COUNTRY_OPTIONS.map(c => (
-                      <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                      <NativeSelectOption key={c.code} value={c.code}>
+                        {t(`countries.${c.code}`, c.label)}
+                      </NativeSelectOption>
                     ))}
                   </NativeSelect>
                 </Field>
@@ -274,7 +276,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     required
                   >
                     {CURRENCY_OPTIONS.map(c => (
-                      <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                      <NativeSelectOption key={c.code} value={c.code}>
+                        {t(`currencies.${c.code}`, c.label)}
+                      </NativeSelectOption>
                     ))}
                   </NativeSelect>
                 </Field>
@@ -406,7 +410,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                 <AddressAutocomplete
                   value={form.legalAddress ?? ''}
                   label={t('fiscal.profile.legalAddress')}
-                  placeholder="Rechercher une adresse..."
+                  placeholder={t('settings.fiscal.searchAddress')}
                   onChange={(val) => handleChange('legalAddress', val)}
                   onSelect={(address) => handleChange('legalAddress', address.label)}
                   size="small"
@@ -420,7 +424,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     rows={4}
                     value={form.legalMentions ?? ''}
                     onChange={(e) => handleChange('legalMentions', e.target.value)}
-                    placeholder="Mentions legales obligatoires sur les factures"
+                    placeholder="{t('settings.fiscal.legalMentions')}"
                   />
                 </Field>
               </div>

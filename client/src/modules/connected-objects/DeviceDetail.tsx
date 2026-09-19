@@ -13,6 +13,7 @@ import LockDetail from './device-details/LockDetail';
 import KeyboxDetail from './device-details/KeyboxDetail';
 import SensorDetail from './device-details/SensorDetail';
 import type { DeviceKind } from './types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const SENSOR_KINDS: DeviceKind[] = ['climate', 'contact', 'motion', 'smoke'];
 
@@ -43,6 +44,7 @@ const LEGACY_ROUTE: Partial<Record<DeviceKind, string>> = {
  * remplaçant les anciens écrans de gestion par type.
  */
 export default function DeviceDetail() {
+  const { t } = useTranslation();
   const { kind, id } = useParams<{ kind: string; id: string }>();
   const navigate = useNavigate();
   const { devices, loading } = useConnectedObjects();
@@ -64,15 +66,15 @@ export default function DeviceDetail() {
         <EmptyState
           icon={<ChevronRight />}
           title="Objet introuvable"
-          description="Cet objet connecté n'existe plus ou n'est pas accessible."
-          action={<Button variant="outline" onClick={() => navigate(HUB_PATH)}>Retour aux objets connectés</Button>}
+          description={t('connectedObjects.detail.notFound')}
+          action={<Button variant="outline" onClick={() => navigate(HUB_PATH)}>{t('connectedObjects.detail.back')}</Button>}
         />
       </div>
     );
   }
 
   const meta = DEVICE_KINDS[device.kind];
-  const subtitle = [device.propertyName, device.roomName, meta.singular].filter(Boolean).join(' · ');
+  const subtitle = [device.propertyName, device.roomName, t(meta.singularKey)].filter(Boolean).join(' · ');
 
   return (
     <div>
@@ -114,14 +116,14 @@ export default function DeviceDetail() {
       {LEGACY_ROUTE[device.kind] && (
         <EmptyState
           icon={meta.icon(28)}
-          title="Gestion détaillée"
-          description="La gestion avancée de cet objet est en cours d'intégration dans cette vue."
+          title={t('connectedObjects.detail.management')}
+          description={t('connectedObjects.detail.managementHint')}
           action={
             <Button
               variant="outline"
               onClick={() => navigate(LEGACY_ROUTE[device.kind]!)}
             >
-              Ouvrir la gestion
+              {t('connectedObjects.detail.openManagement')}
               <ChevronRight size={16} strokeWidth={1.75} />
             </Button>
           }

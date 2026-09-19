@@ -6,6 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // Statut connexion → ton sémantique (ACTIVE = succès, sinon neutre)
 const statusTone = (status: string): StatusTone => (status === 'ACTIVE' ? 'ok' : 'neutral');
@@ -19,6 +20,7 @@ const HEALTH_TONE: Record<string, StatusTone> = {
 };
 
 const ConnectionsTab: React.FC = () => {
+  const { t } = useTranslation();
   const [connections, setConnections] = useState<ConnectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ const ConnectionsTab: React.FC = () => {
       const data = await syncAdminApi.getConnections();
       setConnections(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des connexions');
+      setError(err instanceof Error ? err.message : t('admin.sync.connectionsLoadError'));
     } finally {
       setLoading(false);
     }
@@ -51,7 +53,7 @@ const ConnectionsTab: React.FC = () => {
         ),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du health check');
+      setError(err instanceof Error ? err.message : t('admin.sync.healthCheckError'));
     } finally {
       setCheckingId(null);
     }
@@ -98,7 +100,7 @@ const ConnectionsTab: React.FC = () => {
             {connections.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-[18px]">
-                  Aucune connexion
+                  {t('admin.sync.noConnection')}
                 </TableCell>
               </TableRow>
             ) : (

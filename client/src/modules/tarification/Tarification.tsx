@@ -173,7 +173,7 @@ export default function Tarification() {
             <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 2 && (
-            <TabMenage config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+            <TabMenage config={config} canEdit={canEdit} onUpdate={updateConfig} />
           )}
           {activeTab === 3 && (
             <TabTravaux

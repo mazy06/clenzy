@@ -26,7 +26,7 @@ export default function ProviderDirectoryCard({ provider, categoriesByCode, to, 
         <ProviderAvatar name={provider.displayName} url={provider.avatarUrl} />
         <div className="min-w-0 flex-1">
           <h3 className="m-0 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <span className="truncate">{provider.displayName}</span>
+            <span dir="auto" className="truncate">{provider.displayName}</span>
             {provider.verified && <Verified className="size-4 shrink-0 text-success-ink" aria-label={t('marketplaceAdmin.verifiedProvider')} />}
           </h3>
           {provider.headline && <p className="m-0 mt-0.5 line-clamp-2 text-xs text-muted-foreground">{provider.headline}</p>}

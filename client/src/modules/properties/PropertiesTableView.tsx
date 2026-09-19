@@ -85,11 +85,11 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                 fond, la hauteur et le py:0 s'ecartent du primitif. */}
             <TableRow className="bg-muted h-[42px]">
               <TableHead className="w-[28%] py-0">Nom</TableHead>
-              <TableHead className="w-[11%] py-0">Type</TableHead>
-              <TableHead className="w-[20%] py-0">Caractéristiques</TableHead>
-              <TableHead className="w-[18%] py-0">Commodités</TableHead>
-              <TableHead className="w-[13%] py-0">Ménage</TableHead>
-              <TableHead className="w-[10%] py-0 text-center">Actions</TableHead>
+              <TableHead className="w-[11%] py-0">{t('properties.table.type')}</TableHead>
+              <TableHead className="w-[20%] py-0">{t('properties.table.features')}</TableHead>
+              <TableHead className="w-[18%] py-0">{t('properties.table.amenities')}</TableHead>
+              <TableHead className="w-[13%] py-0">{t('properties.table.cleaning')}</TableHead>
+              <TableHead className="w-[10%] py-0 text-center">{t('properties.table.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -129,7 +129,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center min-w-0 gap-1">
-                          <p className="my-0 min-w-0 truncate font-[family-name:var(--font-display)] text-sm font-semibold tracking-[-.01em] text-foreground">
+                          <p dir="auto" className="my-0 min-w-0 truncate font-[family-name:var(--font-display)] text-sm font-semibold tracking-[-.01em] text-foreground">
                             {property.name}
                           </p>
                           {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
@@ -258,14 +258,14 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            aria-label="Détails"
+                            aria-label={t('properties.table.details')}
                             onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
                           >
                             <Visibility size={18} strokeWidth={1.75} />
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Détails</TooltipContent>
+                      <TooltipContent>{t('properties.table.details')}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>

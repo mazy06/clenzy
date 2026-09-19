@@ -17,6 +17,7 @@ import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
 import NetatmoProjectConfigDialog from './NetatmoProjectConfigDialog';
 import { tuyaApi, minutApi } from '../../../services/api/noiseApi';
 import { netatmoApi } from '../../../services/api/netatmoApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Section « Objets connectés (IoT) » de l'onglet Intégrations : connexion des comptes
@@ -81,6 +82,7 @@ const netatmoAdapter: OAuthApiAdapter = {
 };
 
 export default function IoTServicesSection() {
+  const { t } = useTranslation();
   const [configOpen, setConfigOpen] = useState(false);
 
   const { data: tuyaConfig, refetch: refetchConfig } = useQuery({
@@ -111,7 +113,7 @@ export default function IoTServicesSection() {
             variant="ghost"
             size="icon-sm"
             onClick={() => setConfigOpen(true)}
-            aria-label="Configurer le projet Tuya"
+            aria-label={t('settings.iot.configureTuya')}
             // La couleur est le seul ecart entre les deux etats : encre `-ink`
             // (AA sur la carte) et non la teinte vive, illisible a cette taille.
             className={tuyaConfigured ? 'text-muted-foreground' : 'text-warning-ink'}
@@ -123,7 +125,7 @@ export default function IoTServicesSection() {
       <TooltipContent>
         {tuyaConfigured
           ? `Projet Tuya configuré${tuyaConfig?.region ? ` · ${tuyaConfig.region.toUpperCase()}` : ''} · Modifier les identifiants`
-          : 'Configurer le projet Tuya Cloud (Access ID / Secret)'}
+          : t('iot.configureTuya')}
       </TooltipContent>
     </Tooltip>
   );
@@ -145,7 +147,7 @@ export default function IoTServicesSection() {
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        {netatmoConfigured ? "App Netatmo configurée · Modifier les identifiants" : "Configurer l'app Netatmo (Client ID / Secret)"}
+        {netatmoConfigured ? t('iot.netatmoConfigured') : t('iot.configureNetatmo')}
       </TooltipContent>
     </Tooltip>
   );
@@ -156,11 +158,10 @@ export default function IoTServicesSection() {
           n'en rajoutent pas un second. */}
       <CardHeader className="px-0 gap-0.5">
         <CardTitle className="text-base font-semibold tracking-tight text-balance">
-          Objets connectés (IoT)
+          {t('settings.iot.title')}
         </CardTitle>
         <CardDescription className="text-xs">
-          Reliez les comptes IoT de l'organisation : serrures, caméras, thermostats et capteurs de bruit.
-          Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
+          {t('settings.iot.subtitle')}
         </CardDescription>
       </CardHeader>
 
@@ -169,7 +170,7 @@ export default function IoTServicesSection() {
           <OAuthProviderCard
             providerId="TUYA"
             label="Tuya"
-            description="Serrures, caméras, thermostats et capteurs · cloud Tuya IoT"
+            description="{t('settings.iot.tuyaDesc')}"
             api={tuyaAdapter}
             serviceTooltipId="TUYA"
             secondaryAction={tuyaConfigAction}
@@ -179,14 +180,14 @@ export default function IoTServicesSection() {
           <OAuthProviderCard
             providerId="MINUT"
             label="Minut"
-            description="Capteurs de bruit & environnement · OAuth2"
+            description="{t('settings.iot.minutDesc')}"
             api={minutAdapter}
             serviceTooltipId="MINUT"
           />
           <OAuthProviderCard
             providerId="NETATMO"
             label="Netatmo"
-            description="Station météo, thermostat, caméras & détecteurs · OAuth2"
+            description="{t('settings.iot.netatmoDesc')}"
             api={netatmoAdapter}
             secondaryAction={netatmoConfigAction}
             mainActionDisabled={!netatmoConfigured}

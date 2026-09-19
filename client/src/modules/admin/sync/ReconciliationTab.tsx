@@ -34,6 +34,7 @@ import FilterChipRow from '../../../components/baitly/FilterChipRow';
 import StatTile from '../../../components/baitly/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 type ReconciliationStatus = 'SUCCESS' | 'FAILED' | 'DIVERGENCE' | 'RUNNING';
 
@@ -65,6 +66,7 @@ const formatDuration = (startedAt: string | null, completedAt: string | null): s
 };
 
 const ReconciliationTab: React.FC = () => {
+  const { t } = useTranslation();
   const [runs, setRuns] = useState<ReconciliationRun[]>([]);
   const [stats, setStats] = useState<ReconciliationStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ const ReconciliationTab: React.FC = () => {
       setRuns(data.content);
       setTotalElements(data.totalElements);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des reconciliations');
+      setError(err instanceof Error ? err.message : t('admin.sync.reconciliationLoadError'));
     } finally {
       setLoading(false);
     }
@@ -180,7 +182,7 @@ const ReconciliationTab: React.FC = () => {
         fetchStats();
       }, 2000);
     } catch (err) {
-      setTriggerMessage(err instanceof Error ? err.message : 'Erreur lors du declenchement');
+      setTriggerMessage(err instanceof Error ? err.message : t('admin.sync.triggerError'));
     } finally {
       setTriggerLoading(false);
     }
@@ -251,7 +253,7 @@ const ReconciliationTab: React.FC = () => {
                 {runs.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={12} className="text-center text-muted-foreground py-[18px]">
-                      Aucune reconciliation
+                      {t('admin.sync.noReconciliation')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -316,8 +318,7 @@ const ReconciliationTab: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Trigger Reconciliation</DialogTitle>
           <DialogDescription>
-            Declencher une reconciliation manuelle pour une propriete.
-            Tous les mappings actifs de cette propriete seront reconcilies.
+            {t('admin.sync.reconcileHint')}
           </DialogDescription>
         </DialogHeader>
         <div>

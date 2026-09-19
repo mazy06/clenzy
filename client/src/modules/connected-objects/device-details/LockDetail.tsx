@@ -4,6 +4,7 @@ import LockAccessCodeHistory from '../components/LockAccessCodeHistory';
 import { Card } from '../../../components/ui';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { ConnectedDevice } from '../types';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -19,25 +20,26 @@ function InfoRow({ label, value }: { label: string; value: string }) {
  * verrouillage / batterie / suppression. Ici : gestion du code d'accès + identité.
  */
 export default function LockDetail({ device }: { device: ConnectedDevice }) {
+  const { t } = useTranslation();
   const meta = DEVICE_KINDS[device.kind];
   return (
     <div className="flex flex-col gap-3">
       <Card className="gap-0 py-0 p-3">
-        <h6 className="text-xs font-semibold mb-0.5">Code d'accès</h6>
+        <h6 className="text-xs font-semibold mb-0.5">{t('connectedObjects.lock.accessCode')}</h6>
         <AccessCodeSection deviceId={device.id} propertyId={device.propertyId} />
       </Card>
 
       <Card className="gap-0 py-0 p-3">
-        <h6 className="text-xs font-semibold mb-1.5">Historique des codes</h6>
+        <h6 className="text-xs font-semibold mb-1.5">{t('connectedObjects.lock.codeHistory')}</h6>
         <LockAccessCodeHistory deviceId={device.id} />
       </Card>
 
       <Card className="gap-0 py-0 p-3">
-        <h6 className="text-xs font-semibold mb-1.5">Informations</h6>
-        <InfoRow label="Type" value={meta.singular} />
-        <InfoRow label="Marque" value={device.provider !== 'UNKNOWN' ? device.provider : '—'} />
-        <InfoRow label="Logement" value={device.propertyName} />
-        <InfoRow label="Pièce" value={device.roomName ?? '—'} />
+        <h6 className="text-xs font-semibold mb-1.5">{t('connectedObjects.lock.info')}</h6>
+        <InfoRow label={t('connectedObjects.lock.type')} value={t(meta.singularKey)} />
+        <InfoRow label={t('connectedObjects.lock.brand')} value={device.provider !== 'UNKNOWN' ? device.provider : '—'} />
+        <InfoRow label={t('connectedObjects.lock.property')} value={device.propertyName} />
+        <InfoRow label={t('connectedObjects.lock.room')} value={device.roomName ?? '—'} />
       </Card>
     </div>
   );

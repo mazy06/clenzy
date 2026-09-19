@@ -2,6 +2,7 @@
 // Styles alignés sur Baitly UI (palette --bui-*, rayon xl, hairlines).
 
 import type { Intervention } from './useInterventionsList';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 export const LIST_PAPER_SX = {
   border: '1px solid',
@@ -27,7 +28,7 @@ export function stripPropertySuffix(title: string, propertyName?: string): strin
 
 export function formatDateShort(dateStr: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** COMPLETED interventions always show 100% regardless of stored value */

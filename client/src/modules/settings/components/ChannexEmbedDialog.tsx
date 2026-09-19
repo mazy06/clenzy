@@ -32,6 +32,7 @@ import {
   TooltipContent,
 } from '../../../components/ui';
 import { X, Link2, Info, RefreshCw } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 import {
   channexApi,
@@ -74,6 +75,7 @@ export default function ChannexEmbedDialog({
   bannerHint = 'create_channel',
   onClosedAfterConnection,
 }: ChannexEmbedDialogProps) {
+  const { t } = useTranslation();
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,12 +131,10 @@ export default function ChannexEmbedDialog({
         const looksLikeStaleMapping = /not.?found|404|invalide.*api|property.*invalid|does not exist/i.test(raw);
         if (looksLikeStaleMapping) {
           setError(
-            'La propriete liee au hub de distribution a ete supprimee ou n\'existe plus. '
-              + 'Fermez ce dialog, deconnectez la propriete (icone corbeille rouge), '
-              + 'puis reconnectez-la pour reparer le lien.'
+            t('channexEmbed.staleMapping')
           );
         } else {
-          setError(raw || 'Impossible de generer le lien vers le hub de distribution.');
+          setError(raw || t('channexEmbed.linkError'));
         }
       })
       .finally(() => {
@@ -203,7 +203,7 @@ export default function ChannexEmbedDialog({
             >
               {selectedOta ? selectedOta.initials : <Link2 size={18} />}
             </div>
-            <div className="min-w-0">
+            <div dir="auto" className="min-w-0">
               <DialogTitle className="text-sm font-semibold truncate leading-[1.2]">
                 {selectedOta
                   ? `Connecter ${selectedOta.name} — ${propertyName}`
@@ -212,7 +212,7 @@ export default function ChannexEmbedDialog({
               <DialogDescription className="text-xs text-muted-foreground block leading-[1.2]">
                 {selectedOta
                   ? `${selectedOta.description} · via le hub de distribution`
-                  : 'Airbnb · Booking.com · Vrbo · Expedia — via le hub'}
+                  : t('channexEmbed.defaultChannels')}
               </DialogDescription>
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function ChannexEmbedDialog({
                     <RefreshCw size={16} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Rafraichir l&apos;iframe (utile si bloque sur &laquo;&nbsp;Await your action&nbsp;&raquo; apres OAuth)</TooltipContent>
+                <TooltipContent>{t('settings.channex.embed.refresh')}</TooltipContent>
               </Tooltip>
             )}
             <Button variant="ghost" size="icon-sm" onClick={handleClose} aria-label="Fermer">
@@ -311,9 +311,8 @@ export default function ChannexEmbedDialog({
                           <span className="inline-flex items-center px-1 py-0 rounded-sm bg-success-soft text-success-ink font-semibold text-2xs">
                             Save
                           </span>
-                          . Fermez le wizard et cliquez{' '}
-                          <strong>Re-detecter</strong> dans Baitly — la propriete
-                          apparaitra (renommable a l'import).
+                          . {t('settings.channex.embed.closeAndRedetect')}{' '}
+                          <strong>{t('settings.channex.embed.redetect')}</strong> {t('settings.channex.embed.redetectTail')}
                         </>
                       ),
                     },
@@ -384,7 +383,7 @@ export default function ChannexEmbedDialog({
           <div className="flex flex-row items-center justify-center gap-3 flex-1 p-6">
             <Spinner className="size-6" />
             <p className="text-xs text-muted-foreground">
-              Generation de la session de connexion...
+              {t('settings.channex.embed.generating')}
             </p>
           </div>
         )}
@@ -402,7 +401,7 @@ export default function ChannexEmbedDialog({
             // nouvelle session Channex (utile si l'UI est figee apres OAuth).
             key={iframeKey}
             src={embedUrl}
-            title="Widget de connexion OTA"
+            title={t('settings.channex.embed.iframeTitle')}
             className="flex-1 w-full border-0 min-h-0"
             // PAS de sandbox : Channex est un provider de confiance qu'on embarque
             // consciemment. Le sandbox (meme permissif) casse la communication

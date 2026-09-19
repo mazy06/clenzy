@@ -22,7 +22,7 @@ const PaymentSuccess: React.FC = () => {
 
   useEffect(() => {
     if (!sessionId) {
-      setError('Session ID manquant');
+      setError(t('interventions.payment.missingSession'));
       setLoading(false);
       return;
     }
@@ -51,7 +51,7 @@ const PaymentSuccess: React.FC = () => {
           }
 
           if (result.paymentStatus === 'FAILED') {
-            setError('Le paiement a echoue. Veuillez reessayer.');
+            setError(t('interventions.payment.failed'));
             setLoading(false);
             return;
           }
@@ -83,10 +83,10 @@ const PaymentSuccess: React.FC = () => {
               <HourglassTop size={56} strokeWidth={1.75} />
             </span>
             <h5 className="text-sm font-semibold tracking-tight mb-1.5">
-              Verification du paiement...
+              {t('interventions.payment.verifying')}
             </h5>
             <p className="text-xs text-muted-foreground mb-4 tabular-nums">
-              Confirmation en cours aupres de Stripe ({attempt}/{MAX_ATTEMPTS})
+              {t('interventions.payment.stripeConfirming', { attempt, total: MAX_ATTEMPTS })}
             </p>
             <Progress
               value={(attempt / MAX_ATTEMPTS) * 100}
@@ -111,36 +111,36 @@ const PaymentSuccess: React.FC = () => {
               </Alert>
               <Button onClick={() => navigate('/billing')}>
                 <ArrowBack size={18} strokeWidth={1.75} />
-                Retour a la facturation
+                {t('interventions.payment.backToBilling')}
               </Button>
             </>
           ) : paymentConfirmed ? (
             <>
               <span className="inline-flex text-success mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
               <h4 className="text-base font-bold tracking-tight text-balance mb-[0.35em]">
-                Paiement reussi !
+                {t('interventions.payment.success')}
               </h4>
               <p className="text-sm text-muted-foreground mb-4">
-                Votre paiement a ete traite avec succes. Le statut sera mis a jour automatiquement.
+                {t('interventions.payment.successBody')}
               </p>
               <Button onClick={() => navigate('/billing')}>
-                Voir la facturation
+                {t('interventions.payment.viewBilling')}
               </Button>
             </>
           ) : (
             <>
               <span className="inline-flex text-warning mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
               <h5 className="text-sm font-bold tracking-tight mb-[0.35em]">
-                Paiement en cours de traitement
+                {t('interventions.payment.processing')}
               </h5>
               <p className="text-sm text-muted-foreground mb-1.5">
-                Votre paiement a bien ete envoye a Stripe. La confirmation peut prendre quelques instants.
+                {t('interventions.payment.processingBody')}
               </p>
               <p className="text-xs text-muted-foreground mb-4">
-                Le statut sera mis a jour automatiquement.
+                {t('interventions.payment.statusAuto')}
               </p>
               <Button onClick={() => navigate('/billing')}>
-                Voir la facturation
+                {t('interventions.payment.viewBilling')}
               </Button>
             </>
           )}

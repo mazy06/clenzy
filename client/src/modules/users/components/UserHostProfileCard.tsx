@@ -26,6 +26,9 @@ import {
 } from '../../../icons';
 import type { HostBalanceSummary } from '../../../services/api';
 import type { UserDetailsData } from './userDetailsTypes';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { Money } from '../../../components/Money';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface UserHostProfileCardProps {
   user: UserDetailsData;
@@ -43,54 +46,54 @@ interface UserHostProfileCardProps {
   onSendPaymentLink: () => void;
 }
 
-const SERVICE_LABELS: Record<string, string> = {
-  'menage-complet': 'Menage complet',
-  'linge': 'Changement du linge',
-  'poubelles': 'Gestion des poubelles',
-  'desinfection': 'Desinfection',
-  'reassort': 'Reassort consommables',
+const SERVICE_KEYS: Record<string, string> = {
+  'menage-complet': 'hostProfile.services.fullClean',
+  'linge': 'hostProfile.services.linen',
+  'poubelles': 'hostProfile.services.bins',
+  'desinfection': 'hostProfile.services.disinfection',
+  'reassort': 'hostProfile.services.restock',
 };
 
-const SERVICE_DEVIS_LABELS: Record<string, string> = {
-  'repassage': 'Repassage',
-  'vitres': 'Nettoyage des vitres',
-  'blanchisserie': 'Blanchisserie',
-  'pressing': 'Pressing',
-  'plomberie': 'Plomberie',
-  'electricite': 'Electricite',
-  'serrurerie': 'Serrurerie',
-  'bricolage': 'Petit bricolage',
-  'autre-maintenance': 'Autre intervention',
+const SERVICE_DEVIS_KEYS: Record<string, string> = {
+  'repassage': 'hostProfile.quoteServices.ironing',
+  'vitres': 'hostProfile.quoteServices.windows',
+  'blanchisserie': 'hostProfile.quoteServices.laundry',
+  'pressing': 'hostProfile.quoteServices.drycleaning',
+  'plomberie': 'hostProfile.quoteServices.plumbing',
+  'electricite': 'hostProfile.quoteServices.electricity',
+  'serrurerie': 'hostProfile.quoteServices.locksmith',
+  'bricolage': 'hostProfile.quoteServices.handyman',
+  'autre-maintenance': 'hostProfile.quoteServices.other',
 };
 
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  studio: 'Studio',
-  appartement: 'Appartement',
-  maison: 'Maison',
-  duplex: 'Duplex',
-  villa: 'Villa',
-  autre: 'Autre',
+const PROPERTY_TYPE_KEYS: Record<string, string> = {
+  studio: 'hostProfile.propertyTypes.studio',
+  appartement: 'hostProfile.propertyTypes.apartment',
+  maison: 'hostProfile.propertyTypes.house',
+  duplex: 'hostProfile.propertyTypes.duplex',
+  villa: 'hostProfile.propertyTypes.villa',
+  autre: 'hostProfile.propertyTypes.other',
 };
 
-const BOOKING_FREQUENCY_LABELS: Record<string, string> = {
-  'tres-frequent': 'Tres frequent (3+ / semaine)',
-  'regulier': 'Regulier (1-2 / semaine)',
-  'occasionnel': 'Occasionnel (quelques / mois)',
-  'nouvelle-annonce': 'Nouvelle annonce',
+const BOOKING_FREQUENCY_KEYS: Record<string, string> = {
+  'tres-frequent': 'hostProfile.frequency.veryFrequent',
+  'regulier': 'hostProfile.frequency.regular',
+  'occasionnel': 'hostProfile.frequency.occasional',
+  'nouvelle-annonce': 'hostProfile.frequency.newListing',
 };
 
-const CLEANING_SCHEDULE_LABELS: Record<string, string> = {
-  'entre-voyageurs': 'Entre chaque voyageur',
-  'hebdomadaire': 'Hebdomadaire',
-  'bi-mensuel': 'Bi-mensuel',
-  'mensuel': 'Mensuel',
-  'ponctuel': 'Ponctuel',
+const CLEANING_SCHEDULE_KEYS: Record<string, string> = {
+  'entre-voyageurs': 'hostProfile.schedule.betweenGuests',
+  'hebdomadaire': 'hostProfile.schedule.weekly',
+  'bi-mensuel': 'hostProfile.schedule.biMonthly',
+  'mensuel': 'hostProfile.schedule.monthly',
+  'ponctuel': 'hostProfile.schedule.onDemand',
 };
 
-const CALENDAR_SYNC_LABELS: Record<string, string> = {
-  sync: 'Synchronisation automatique',
-  manuel: 'Gestion manuelle',
-  non: 'Pas de calendrier',
+const CALENDAR_SYNC_KEYS: Record<string, string> = {
+  sync: 'hostProfile.calendar.auto',
+  manuel: 'hostProfile.calendar.manual',
+  non: 'hostProfile.calendar.none',
 };
 
 // Mode de synchronisation → ton de la primitive StatusChip, qui porte deja le
@@ -128,6 +131,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   paymentLinkLoading,
   onSendPaymentLink,
 }) => {
+  // Le hook précède le garde : un `return` avant lui violerait les Rules of Hooks.
+  const { t } = useTranslation();
   if (!hasHostData(user)) return null;
 
   return (
@@ -138,7 +143,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
         {/* `m-0` sur les <h6>/<p> natifs : sans preflight Tailwind, ils reprennent
             sinon les marges du navigateur que `cn-text-*` neutralisait. */}
         <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
-          Profil proprietaire
+          {t('users.host.title')}
         </h6>
       </div>
 
@@ -167,16 +172,16 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.propertyType && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className={FIELD_LABEL_CLASS}>Type de propriete</h6>
+          <h6 className={FIELD_LABEL_CLASS}>{t('users.host.propertyType')}</h6>
           <p className={FIELD_VALUE_CLASS}>
-            {PROPERTY_TYPE_LABELS[user.propertyType] || user.propertyType}
+            {PROPERTY_TYPE_KEYS[user.propertyType] ? t(PROPERTY_TYPE_KEYS[user.propertyType]) : user.propertyType}
           </p>
         </div>
       )}
 
       {user.propertyCount != null && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className={FIELD_LABEL_CLASS}>Nombre de proprietes</h6>
+          <h6 className={FIELD_LABEL_CLASS}>{t('users.host.propertyCount')}</h6>
           <p className={`${FIELD_VALUE_CLASS} tabular-nums`}>{user.propertyCount}</p>
         </div>
       )}
@@ -199,9 +204,9 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.bookingFrequency && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className={FIELD_LABEL_CLASS}>Frequence de reservation</h6>
+          <h6 className={FIELD_LABEL_CLASS}>{t('users.host.bookingFrequency')}</h6>
           <p className={FIELD_VALUE_CLASS}>
-            {BOOKING_FREQUENCY_LABELS[user.bookingFrequency] || user.bookingFrequency}
+            {BOOKING_FREQUENCY_KEYS[user.bookingFrequency] ? t(BOOKING_FREQUENCY_KEYS[user.bookingFrequency]) : user.bookingFrequency}
           </p>
         </div>
       )}
@@ -210,7 +215,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
         <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className={FIELD_LABEL_CLASS}>Planning menage</h6>
           <p className={FIELD_VALUE_CLASS}>
-            {CLEANING_SCHEDULE_LABELS[user.cleaningSchedule] || user.cleaningSchedule}
+            {CLEANING_SCHEDULE_KEYS[user.cleaningSchedule] ? t(CLEANING_SCHEDULE_KEYS[user.cleaningSchedule]) : user.cleaningSchedule}
           </p>
         </div>
       )}
@@ -218,7 +223,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {user.calendarSync && (
         <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className={FIELD_LABEL_CLASS}>Synchronisation calendrier</h6>
-          <StatusChip tone={CALENDAR_SYNC_TONE[user.calendarSync] ?? 'neutral'} label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync} className="mt-0.5 mb-3" />
+          <StatusChip tone={CALENDAR_SYNC_TONE[user.calendarSync] ?? 'neutral'} label={CALENDAR_SYNC_KEYS[user.calendarSync] ? t(CALENDAR_SYNC_KEYS[user.calendarSync]) : user.calendarSync} className="mt-0.5 mb-3" />
         </div>
       )}
 
@@ -227,7 +232,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           <h6 className={FIELD_LABEL_CLASS}>Services forfait</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.services.split(',').map((s) => (
-              <Badge variant="secondary" className="text-primary bg-primary-soft" key={s}>{SERVICE_LABELS[s.trim()] || s.trim()}</Badge>
+              <Badge variant="secondary" className="text-primary bg-primary-soft" key={s}>{SERVICE_KEYS[s.trim()] ? t(SERVICE_KEYS[s.trim()]) : s.trim()}</Badge>
             ))}
           </div>
         </div>
@@ -235,12 +240,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.servicesDevis && (
         <div className="col-span-12">
-          <h6 className={FIELD_LABEL_CLASS}>Services sur devis</h6>
+          <h6 className={FIELD_LABEL_CLASS}>{t('users.host.quoteServices')}</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.servicesDevis.split(',').map((s) => (
               // Encre `-ink` et non la teinte vive : sur fond pastel, #D4A574 en
               // texte plafonne tres en dessous du 4,5:1.
-              <Badge variant="secondary" className="text-warning-ink bg-warning-soft" key={s}>{SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}</Badge>
+              <Badge variant="secondary" className="text-warning-ink bg-warning-soft" key={s}>{SERVICE_DEVIS_KEYS[s.trim()] ? t(SERVICE_DEVIS_KEYS[s.trim()]) : s.trim()}</Badge>
             ))}
           </div>
         </div>
@@ -259,11 +264,10 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
               />
               <FieldContent>
                 <FieldLabel htmlFor="deferred-payment" className="text-xs font-medium">
-                  Paiement differe
+                  {t('users.host.deferredPayment')}
                 </FieldLabel>
                 <FieldDescription>
-                  Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
-                  Le cumul impaye sera visible ci-dessous.
+                  {t('users.host.deferredHint')}
                 </FieldDescription>
               </FieldContent>
             </Field>
@@ -281,10 +285,10 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 <p className="m-0 text-sm font-semibold text-foreground">Solde impaye</p>
               </div>
               {balance && balance.totalUnpaid > 0 && (
-                <Badge variant="secondary" className="font-bold tabular-nums text-destructive-ink bg-destructive-soft [&>svg]:text-destructive-ink"><Warning size={14} strokeWidth={1.75} />{`${balance.totalUnpaid.toFixed(2)} EUR`}</Badge>
+                <Badge variant="secondary" className="font-bold tabular-nums text-destructive-ink bg-destructive-soft [&>svg]:text-destructive-ink"><Warning size={14} strokeWidth={1.75} /><Money value={balance.totalUnpaid} from="EUR" /></Badge>
               )}
               {balance && balance.totalUnpaid === 0 && (
-                <Badge variant="secondary" className="text-success-ink bg-success-soft">Aucun impaye</Badge>
+                <Badge variant="secondary" className="text-success-ink bg-success-soft">{t('users.host.noUnpaid')}</Badge>
               )}
             </div>
 
@@ -312,7 +316,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                           <TableCell className="text-[0.8rem]">{prop.propertyName}</TableCell>
                           <TableCell className="text-center text-[0.8rem]">{prop.interventionCount}</TableCell>
                           <TableCell className="text-end text-[0.8rem] font-semibold tabular-nums">
-                            {prop.unpaidAmount.toFixed(2)} EUR
+                            <Money value={prop.unpaidAmount} from="EUR" />
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
@@ -338,10 +342,10 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                           <TableRow key={iv.id} className="bg-muted">
                             <TableCell className="text-[0.75rem] ps-6">{iv.title}</TableCell>
                             <TableCell className="text-center text-[0.75rem]">
-                              {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
+                              {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString(activeIntlLocale()) : '-'}
                             </TableCell>
                             <TableCell className="text-end text-[0.75rem]">
-                              {iv.estimatedCost.toFixed(2)} EUR
+                              <Money value={iv.estimatedCost} from="EUR" />
                             </TableCell>
                             <TableCell className="text-center">
                               <StatusChip tone={PAYMENT_STATUS_TONE[iv.paymentStatus ?? ''] ?? 'neutral'} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
@@ -366,11 +370,11 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                           disabled={paymentLinkLoading || balance.totalUnpaid === 0}
                         >
                           <ContentCopy size={16} strokeWidth={1.75} />
-                          {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
+                          {paymentLinkLoading ? 'Creation...' : t('payments.sendLink')}
                         </Button>
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Cree un lien Stripe et le copie dans le presse-papier</TooltipContent>
+                    <TooltipContent>{t('users.host.stripeLinkHint')}</TooltipContent>
                   </Tooltip>
                 </div>
               </>
@@ -378,7 +382,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
             {!balanceLoading && (!balance || balance.properties.length === 0) && (
               <p className="m-0 py-1.5 text-center text-xs text-muted-foreground">
-                Aucune intervention impayee pour ce proprietaire.
+                {t('users.host.noUnpaidIntervention')}
               </p>
             )}
           </div>

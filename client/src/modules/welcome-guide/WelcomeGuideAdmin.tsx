@@ -75,7 +75,8 @@ import {
   ChevronDown,
   MoreHorizontal,
 } from 'lucide-react';
-// Feuille de style « studio accueil » partagée (scopée .be-home, accent indigo)
+// Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
+// module y est défini : bleu nuit, la teinte de la barre latérale relevée)
 // avec l'onglet Booking Engine — hero, champ IA, éventail, thèmes, cartes.
 import '../booking-engine/studio/studioHome.css';
 import { StructureArt } from './structureArt';
@@ -219,13 +220,16 @@ const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - 
 const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
 
 // Structures de contenu (éventail) — préréglages de sections du livret.
-const LIVRET_STRUCTURES: { id: string; name: string; desc: string; icon: typeof Zap; badge?: string }[] = [
-  { id: 'essentiel', name: "L'Essentiel", desc: 'Wifi, arrivée & départ', icon: Zap, badge: 'Rapide' },
-  { id: 'complet', name: 'Complet', desc: 'Toutes les sections pré-remplies', icon: LayoutGrid },
-  { id: 'cityguide', name: 'City Guide', desc: 'Quartier & recommandations', icon: MapPin },
-  { id: 'longue', name: 'Longue durée', desc: 'Infos pratiques étendues', icon: CalendarDays },
-  { id: 'conciergerie', name: 'Conciergerie', desc: 'Expériences & services payants', icon: ConciergeBell },
+// Libelles en locales : `welcomeGuide.structures.<id>.{name,desc,badge}`.
+const LIVRET_STRUCTURES: { id: string; icon: typeof Zap }[] = [
+  { id: 'essentiel', icon: Zap },
+  { id: 'complet', icon: LayoutGrid },
+  { id: 'cityguide', icon: MapPin },
+  { id: 'longue', icon: CalendarDays },
+  { id: 'conciergerie', icon: ConciergeBell },
 ];
+
+const structureName = (id: string) => `welcomeGuide.structures.${id}.name`;
 
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
@@ -775,7 +779,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     const themeOverlap = WELCOME_BOOK_THEMES.length > 1
       ? Math.max(6, (WELCOME_BOOK_THEMES.length * 124 - 760) / (WELCOME_BOOK_THEMES.length - 1)) : 0;
     return (
-      <div className="be-home px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]" data-accent="indigo">
+      <div className="be-home px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]">
         <div className="canvas" style={{ maxWidth: 860, margin: '0 auto' }}>
           {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
               Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
@@ -784,8 +788,8 @@ const WelcomeGuideAdmin: React.FC = () => {
             <div className="studio-split">
               <div className="studio-split__main">
               <div className="hero">
-                <p className="eyebrow">Livret d'accueil · Studio</p>
-                <h1>Quel livret d'accueil créons-nous&nbsp;?</h1>
+                <p className="eyebrow">{t('welcomeGuide.studio.eyebrow')}</p>
+                <h1>{t('welcomeGuide.studio.heading')}</h1>
               </div>
 
               {/* Champ IA : génère un brouillon (welcomeMessage + sections) via IA (gated STUDIO_ASSIST). */}
@@ -794,36 +798,36 @@ const WelcomeGuideAdmin: React.FC = () => {
                   className="field__area"
                   value={livretPrompt}
                   onChange={(e) => setLivretPrompt(e.target.value)}
-                  aria-label="Décrivez votre logement ou collez le lien de votre annonce"
+                  aria-label={t('welcomeGuide.studio.promptAria')}
                   placeholder={aiAssistOn
-                    ? "Collez le lien de votre annonce Airbnb / Booking à importer, ou décrivez votre logement…"
+                    ? t('welcomeGuide.studio.promptPlaceholderAi')
                     : "Décrivez votre logement (l'assistant IA est désactivé — Paramètres › IA)…"}
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerateGuide(); }}
                 />
                 <div className="field__bar">
-                  <button className="chip chip--icon" type="button" aria-label="Importer une photo" disabled><Add size={16} strokeWidth={2} /></button>
+                  <button className="chip chip--icon" type="button" aria-label={t('welcomeGuide.studio.importPhoto')} disabled><Add size={16} strokeWidth={2} /></button>
                   {/* Structure (obligatoire) : reflète la sélection de l'éventail. */}
                   <div className="chip">
                     <span className={'chip__slide' + (curStructure ? ' chip__slide--open' : '')}>
                       {curStructure && <span className="chip__art"><StructureArt id={curStructure.id} /></span>}
                     </span>
-                    <span className="chip__text"><span className="chip__lbl">Structure</span><span className="chip__val">{curStructure ? curStructure.name : 'Aucune'}</span></span>
+                    <span className="chip__text"><span className="chip__lbl">{t('welcomeGuide.studio.structureChip')}</span><span className="chip__val">{curStructure ? t(structureName(curStructure.id)) : t('common.none')}</span></span>
                   </div>
                   {/* Thème : grisé tant qu'aucune structure choisie. */}
                   <div className={'chip' + (!structureId ? ' chip--locked' : '')}>
                     <span className={'chip__slide' + (curTheme ? ' chip__slide--open' : '')}>
                       {curTheme && <span className="chip__art chip__art--img"><span aria-hidden style={{ position: 'absolute', inset: 0, background: curTheme.swatch.accent }} /></span>}
                     </span>
-                    <span className="chip__text"><span className="chip__lbl">Thème</span><span className="chip__val">{curTheme ? curTheme.name : (structureId ? 'Aucun' : 'Choisir une structure')}</span></span>
+                    <span className="chip__text"><span className="chip__lbl">{t('welcomeGuide.studio.theme')}</span><span className="chip__val">{curTheme ? curTheme.name : (structureId ? t('welcomeGuide.studio.themeNone') : t('welcomeGuide.studio.pickStructureFirst'))}</span></span>
                   </div>
                   <div className="field__spacer" />
-                  <button className="send" type="button" aria-label={structureId ? 'Créer le livret' : 'Générer le livret'} disabled={generating} onClick={handleStudioSubmit}><ArrowUp size={19} strokeWidth={2.2} /></button>
+                  <button className="send" type="button" aria-label={structureId ? t('welcomeGuide.studio.createGuide') : t('welcomeGuide.studio.generateGuide')} disabled={generating} onClick={handleStudioSubmit}><ArrowUp size={19} strokeWidth={2.2} /></button>
                 </div>
               </div>
 
               {/* Structures (éventail, sélection obligatoire) */}
               <div className="fan-wrap">
-                <p className="fan-lead">Choisissez une structure de livret…</p>
+                <p className="fan-lead">{t('welcomeGuide.studio.pickStructure')}</p>
                 <div className="fan">
                   {LIVRET_STRUCTURES.map((s, i) => (
                     <article
@@ -831,7 +835,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                       className={'fan__card' + (s.id === structureId ? ' fan__card--active' : '')}
                       style={{ ['--tip']: fanTip(i, LIVRET_STRUCTURES.length), ['--lift']: fanLift(i, LIVRET_STRUCTURES.length) } as React.CSSProperties}
                       role="button" tabIndex={0} aria-pressed={s.id === structureId}
-                      title={`Choisir la structure « ${s.name} »`}
+                      title={t('welcomeGuide.studio.pickStructureTitle', { name: t(structureName(s.id)) })}
                       onClick={() => applyStructure(s.id)}
                       onMouseEnter={() => setHoveredStructureId(s.id)}
                       onMouseLeave={() => setHoveredStructureId(null)}
@@ -840,7 +844,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyStructure(s.id); } }}
                     >
                       <div className="fan__vig"><StructureArt id={s.id} /></div>
-                      <p className="fan__name">{s.name}</p>
+                      <p className="fan__name">{t(structureName(s.id))}</p>
                     </article>
                   ))}
                 </div>
@@ -848,9 +852,9 @@ const WelcomeGuideAdmin: React.FC = () => {
 
               {/* Thèmes (éventail, grisés tant qu'aucune structure ; le ↑ crée avec structure + thème). */}
               <div className="fan-wrap">
-                <p className="fan-lead">Puis choisissez un thème…</p>
+                <p className="fan-lead">{t('welcomeGuide.studio.pickTheme')}</p>
                 {!structureId ? (
-                  <p className="fan-locked">Sélectionnez d'abord une structure ci-dessus pour débloquer les thèmes.</p>
+                  <p className="fan-locked">{t('welcomeGuide.studio.themeLocked')}</p>
                 ) : (
                   <div className="fan fan--tpl" style={{ ['--fan-mx']: `${-(themeOverlap / 2)}px` } as React.CSSProperties}>
                     {WELCOME_BOOK_THEMES.map((th, i) => (
@@ -883,7 +887,7 @@ const WelcomeGuideAdmin: React.FC = () => {
 
               {/* Page vierge (sans structure ni thème) */}
               <div className="blank-row">
-                <button className="blank" type="button" onClick={() => openCreate()}>Créer un livret vierge <ArrowRight size={16} strokeWidth={2} /></button>
+                <button className="blank" type="button" onClick={() => openCreate()}>{t('welcomeGuide.studio.blankGuide')} <ArrowRight size={16} strokeWidth={2} /></button>
               </div>
 
               </div>{/* /studio-split__main */}
@@ -914,7 +918,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               />
             ) : (
               <div className="tbl lv-tbl">
-                <div className="tbl__h"><span>Nom</span><span>Statut</span><span>Langue</span><span>Propriétaire</span></div>
+                <div className="tbl__h"><span>{t('welcomeGuide.studio.colName')}</span><span>{t('welcomeGuide.studio.colStatus')}</span><span>{t('welcomeGuide.studio.colLanguage')}</span><span>{t('welcomeGuide.studio.colOwner')}</span></div>
                 {filtered.map((g) => {
                   const prop = properties.find((p) => p.id === String(g.propertyId));
                   const heroIds = parseHeroPhotoIds(g.heroPhotoIds);
@@ -928,9 +932,9 @@ const WelcomeGuideAdmin: React.FC = () => {
                             <p className="row__u">{g.propertyName || '—'}{prop?.city ? ` · ${prop.city}` : ''}</p>
                           </div>
                         </div>
-                        <span className={`status ${g.published ? 'active' : 'off'}`}><span className="led" /> {g.published ? 'Publié' : 'Brouillon'}</span>
+                        <span className={`status ${g.published ? 'active' : 'off'}`}><span className="led" /> {g.published ? t('welcomeGuide.studio.published') : t('welcomeGuide.studio.draft')}</span>
                         <span className="row__meta">{g.language.toUpperCase()}</span>
-                        <div className="row__acc"><span className="av-sm">{ownerInitials}</span><span className="row__owner">Vous</span></div>
+                        <div className="row__acc"><span className="av-sm">{ownerInitials}</span><span className="row__owner">{t('welcomeGuide.studio.you')}</span></div>
                       </button>
                       {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
                       <DropdownMenu>

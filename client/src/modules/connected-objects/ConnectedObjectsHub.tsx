@@ -7,6 +7,7 @@ import { Card, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../c
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/baitly/StatTile';
@@ -52,6 +53,7 @@ export default function ConnectedObjectsHub({
   embedded = false,
   actionsContainer,
 }: ConnectedObjectsHubProps = {}) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
   const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
@@ -78,7 +80,7 @@ export default function ConnectedObjectsHub({
       if (res.authorization_url) { window.location.href = res.authorization_url; return; }
       if (res.status === 'already_connected') { void refetch(); }
     } catch {
-      notify.info("Netatmo n'est pas encore activé par l'administrateur (clé API à configurer dans les Intégrations).", 6000);
+      notify.info(t('connectedObjects.netatmo.notEnabled'), 6000);
     }
   };
 
@@ -113,7 +115,7 @@ export default function ConnectedObjectsHub({
   const headerAction = (
     <BuiButton size="sm" onClick={() => setWizardOpen(true)}>
       <Add size={16} strokeWidth={2} />
-      Ajouter un objet
+      {t('connectedObjects.addDevice')}
     </BuiButton>
   );
 
@@ -121,8 +123,8 @@ export default function ConnectedObjectsHub({
     <div>
       {!embedded && (
         <PageHeader
-          title="Objets connectés"
-          subtitle="Supervisez et pilotez vos serrures, capteurs et clés, logement par logement."
+          title={t('connectedObjects.title')}
+          subtitle={t('connectedObjects.subtitle')}
           iconBadge={<Inventory2 />}
           backPath="/dashboard"
           backLabel="Tableau de bord"
@@ -142,10 +144,10 @@ export default function ConnectedObjectsHub({
             pour du grand texte, et ici applique a des capitales minuscules.
             `text-muted-foreground` monte a 4,80:1. */}
         <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Services reliés
+          {t('connectedObjects.linkedServices')}
         </span>
         {visibleProviders.length === 0 && !loading ? (
-          <span className="text-xs text-muted-foreground opacity-60">Aucun service relié pour l'instant.</span>
+          <span className="text-xs text-muted-foreground opacity-60">{t('connectedObjects.noLinkedService')}</span>
         ) : (
           visibleProviders.map((p) => (
             <Tooltip key={p.provider}>
@@ -174,7 +176,7 @@ export default function ConnectedObjectsHub({
                   />
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'}</TooltipContent>
+              <TooltipContent>{p.connected ? 'Connecté' : t('connectedObjects.disconnectedHint')}</TooltipContent>
             </Tooltip>
           ))
         )}
@@ -191,7 +193,7 @@ export default function ConnectedObjectsHub({
           onClick={() => navigate('/settings?tab=integrations')}
           className={cn('text-muted-foreground', netatmoConnected ? 'ms-auto' : 'ms-1.5')}
         >
-          Gérer les intégrations
+          {t('connectedObjects.manageIntegrations')}
           <ChevronRight size={14} strokeWidth={1.75} />
         </BuiButton>
       </Card>
@@ -224,7 +226,7 @@ export default function ConnectedObjectsHub({
             allCount={devices.length}
             options={kindsPresent.map((k) => ({
               value: k,
-              label: DEVICE_KINDS[k].label,
+              label: t(DEVICE_KINDS[k].labelKey),
               color: DEVICE_KINDS[k].color,
               count: devices.filter((d) => d.kind === k).length,
             }))}
@@ -242,14 +244,14 @@ export default function ConnectedObjectsHub({
       ) : filteredGroups.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
-          title="Aucun objet connecté pour l'instant"
+          title={t('connectedObjects.empty.title')}
           description={hasConnectedService
-            ? "Vos services sont reliés — ajoutez vos serrures, caméras, capteurs et points de remise : ils apparaîtront ici, regroupés par logement."
-            : "Reliez un service (Nuki, Minut, Tuya, KeyNest…) puis ajoutez vos serrures, capteurs et points de remise — ils apparaîtront ici, regroupés par logement."}
+            ? t('connectedObjects.empty.linked')
+            : t('connectedObjects.empty.notLinked')}
           action={hasConnectedService
-            ? <BuiButton onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />Ajouter un objet</BuiButton>
-            : <BuiButton variant="outline" onClick={() => navigate('/settings?tab=integrations')}><Add size={16} strokeWidth={2} />Connecter un service</BuiButton>}
-          tip="Un seul écran pour tout superviser : verrouillage à distance, niveau sonore, batteries et codes de clés."
+            ? <BuiButton onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />{t('connectedObjects.addDevice')}</BuiButton>
+            : <BuiButton variant="outline" onClick={() => navigate('/settings?tab=integrations')}><Add size={16} strokeWidth={2} />{t('connectedObjects.connectService')}</BuiButton>}
+          tip={t('connectedObjects.empty.tip')}
         />
       ) : (
         filteredGroups.map((group) => (
@@ -300,7 +302,7 @@ export default function ConnectedObjectsHub({
       {comingSoon.length > 0 && (
         <div className="mt-1.5">
           <span className="text-2xs font-semibold uppercase tracking-wide text-faint block mb-1">
-            Bientôt disponible
+            {t('connectedObjects.comingSoon')}
           </span>
           <div className="flex gap-1.5 flex-wrap">
             {comingSoon.map((k) => {
@@ -327,19 +329,19 @@ export default function ConnectedObjectsHub({
                       } as CSSProperties}
                     >
                       <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
-                      <p className="text-xs text-muted-foreground font-medium">{meta.label}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{t(meta.labelKey)}</p>
                       {previewRoute ? (
                         <>
                           {/* Couleur de TYPE (hex du registre) : `color` compose lui-même le fond doux. */}
-                          <StatusChip size="sm" color={meta.color} label="Aperçu" className="text-[0.65rem]" />
+                          <StatusChip size="sm" color={meta.color} label={t('connectedObjects.previewBadge')} className="text-[0.65rem]" />
                           <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
                         </>
                       ) : (
-                        <Badge variant="secondary" className="h-[18px] text-[0.65rem]">Bientôt</Badge>
+                        <Badge variant="secondary" className="h-[18px] text-[0.65rem]">{t('connectedObjects.comingSoonShort')}</Badge>
                       )}
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>{previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'}</TooltipContent>
+                  <TooltipContent>{previewRoute ? t('connectedObjects.previewOf', { kind: t(meta.labelKey) }) : t('common.comingSoon')}</TooltipContent>
                 </Tooltip>
               );
             })}

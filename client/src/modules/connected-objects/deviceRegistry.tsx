@@ -10,10 +10,10 @@ import type { DeviceKind, DeviceStatusLevel } from './types';
  */
 export interface DeviceKindMeta {
   kind: DeviceKind;
-  /** Pluriel pour les sections / filtres (« Serrures »). */
-  label: string;
-  /** Singulier (« Serrure connectée »). */
-  singular: string;
+  /** Cle du pluriel, pour les sections et les filtres. */
+  labelKey: string;
+  /** Cle du singulier. */
+  singularKey: string;
   /** Couleur d'accent — uniquement dans la palette Baitly validée. */
   color: string;
   /** Disponible aujourd'hui (false = tuile « Bientôt »). */
@@ -25,72 +25,72 @@ export interface DeviceKindMeta {
 export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
   lock: {
     kind: 'lock',
-    label: 'Serrures',
-    singular: 'Serrure connectée',
+    labelKey: 'connectedObjects.kinds.lock.plural',
+    singularKey: 'connectedObjects.kinds.lock.singular',
     color: '#7BA3C2', // bleu Baitly
     available: true,
     icon: (s = 16) => <Lock size={s} strokeWidth={1.75} />,
   },
   noise: {
     kind: 'noise',
-    label: 'Capteurs sonores',
-    singular: 'Capteur de bruit',
+    labelKey: 'connectedObjects.kinds.noise.plural',
+    singularKey: 'connectedObjects.kinds.noise.singular',
     color: '#4A9B8E', // vert Baitly
     available: true,
     icon: (s = 16) => <VolumeUp size={s} strokeWidth={1.75} />,
   },
   keybox: {
     kind: 'keybox',
-    label: 'Remise des clés',
-    singular: 'Point de remise',
+    labelKey: 'connectedObjects.kinds.keybox.plural',
+    singularKey: 'connectedObjects.kinds.keybox.singular',
     color: '#D4A574', // doré Baitly
     available: true,
     icon: (s = 16) => <VpnKey size={s} strokeWidth={1.75} />,
   },
   camera: {
     kind: 'camera',
-    label: 'Caméras',
-    singular: 'Caméra',
+    labelKey: 'connectedObjects.kinds.camera.plural',
+    singularKey: 'connectedObjects.kinds.camera.singular',
     color: '#C97A7A', // argile Baitly
     available: true, // CRUD dispo ; flux live via go2rtc (a venir)
     icon: (s = 16) => <PhotoCamera size={s} strokeWidth={1.75} />,
   },
   thermostat: {
     kind: 'thermostat',
-    label: 'Thermostats',
-    singular: 'Thermostat',
+    labelKey: 'connectedObjects.kinds.thermostat.plural',
+    singularKey: 'connectedObjects.kinds.thermostat.singular',
     color: '#6B8A9A', // primary Baitly
     available: true, // CRUD + pilotage Tuya
     icon: (s = 16) => <Thermostat size={s} strokeWidth={1.75} />,
   },
   climate: {
     kind: 'climate',
-    label: 'Temp./Humidité',
-    singular: 'Capteur temp./humidité',
+    labelKey: 'connectedObjects.kinds.climate.plural',
+    singularKey: 'connectedObjects.kinds.climate.singular',
     color: '#7BA3C2', // bleu Baitly
     available: true, // CRUD + lecture Tuya
     icon: (s = 16) => <WeatherDroplets size={s} strokeWidth={1.75} />,
   },
   contact: {
     kind: 'contact',
-    label: 'Porte/Fenêtre',
-    singular: 'Capteur porte/fenêtre',
+    labelKey: 'connectedObjects.kinds.contact.plural',
+    singularKey: 'connectedObjects.kinds.contact.singular',
     color: '#6B8A9A', // primary Baitly
     available: true, // CRUD + lecture Tuya
     icon: (s = 16) => <SensorDoor size={s} strokeWidth={1.75} />,
   },
   motion: {
     kind: 'motion',
-    label: 'Mouvement',
-    singular: 'Capteur de mouvement',
+    labelKey: 'connectedObjects.kinds.motion.plural',
+    singularKey: 'connectedObjects.kinds.motion.singular',
     color: '#4A9B8E', // vert Baitly
     available: true, // CRUD + lecture Tuya + alertes
     icon: (s = 16) => <DirectionsWalk size={s} strokeWidth={1.75} />,
   },
   smoke: {
     kind: 'smoke',
-    label: 'Fumée/Vape',
-    singular: 'Détecteur fumée/vape',
+    labelKey: 'connectedObjects.kinds.smoke.plural',
+    singularKey: 'connectedObjects.kinds.smoke.singular',
     color: '#C97A7A', // argile Baitly (danger)
     available: true, // CRUD + lecture Tuya + alertes
     icon: (s = 16) => <SmokeFree size={s} strokeWidth={1.75} />,

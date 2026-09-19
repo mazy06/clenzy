@@ -12,6 +12,7 @@ import {
   TableCell,
 } from '../../components/ui';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TemplateTagsViewerProps {
   tags: DocumentTemplateTag[];
@@ -53,6 +54,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
+  const { t } = useTranslation();
   const groupedTags = useMemo(() => {
     const groups: Record<string, DocumentTemplateTag[]> = {};
     for (const tag of tags) {
@@ -88,13 +90,13 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
   return (
     <Card className="gap-0 py-0 p-3 border-border">
       <div className="flex justify-between items-center mb-3">
-        <h6 className="text-sm font-semibold">Tags détectés</h6>
-        <StatusChip tokens={STATUS_TONES.accent} label={`${tags.length} tags`} />
+        <h6 className="text-sm font-semibold">{t('documents.tags.detected')}</h6>
+        <StatusChip tokens={STATUS_TONES.accent} label={t('documents.tags.count', { count: tags.length })} />
       </div>
 
       {categories.length === 0 ? (
         <p className="text-sm text-muted-foreground py-3 text-center">
-          Aucun tag détecté dans ce template
+          {t('documents.tags.none')}
         </p>
       ) : (
         <Accordion type="single" collapsible value={expanded === false ? '' : expanded} onValueChange={handleValueChange}>

@@ -7,6 +7,7 @@ import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../servic
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // Type de commande → ton sémantique. Le couple encre/fond conforme AA est tenu
 // par StatusChip (STATUS_TONES) : ici on ne dit que le SENS, pas la couleur.
@@ -19,6 +20,7 @@ const COMMAND_TONE: Record<string, StatusTone> = {
 };
 
 const CalendarAuditTab: React.FC = () => {
+  const { t } = useTranslation();
   const [commands, setCommands] = useState<CalendarCommand[]>([]);
   const [conflicts, setConflicts] = useState<CalendarConflict[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ const CalendarAuditTab: React.FC = () => {
       setCommands(data.content);
       setTotalElements(data.totalElements);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des commandes calendrier');
+      setError(err instanceof Error ? err.message : t('admin.sync.calendarLoadError'));
     } finally {
       setLoading(false);
     }
@@ -156,7 +158,7 @@ const CalendarAuditTab: React.FC = () => {
                 {commands.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground py-[18px]">
-                      Aucune commande
+                      {t('admin.sync.noCommand')}
                     </TableCell>
                   </TableRow>
                 ) : (

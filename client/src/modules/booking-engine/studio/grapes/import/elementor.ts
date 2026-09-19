@@ -1,5 +1,6 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
 import { sanitizeHtml } from './sanitizeHtml';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur Elementor — JSON de template (`{ content: [ { elType, widgetType, settings, elements } ] }`
@@ -102,7 +103,7 @@ const elementorImporter: TemplateImporter = {
     }
     const html = sanitizeHtml(els.map(elementToHtml).join(''));
     report.warnings.push(
-      'Conversion structurelle Elementor (l’export ne contient pas le CSS du moteur) — fidélité limitée. Pour un rendu fidèle, importez l’URL de la page publiée.',
+      i18n.t('studioImport.elementor.structural'),
     );
     return { html, report };
   },

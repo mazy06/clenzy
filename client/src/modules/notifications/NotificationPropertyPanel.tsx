@@ -150,7 +150,7 @@ export function PropertyIdentity({
       <PropertyThumb property={property} name={name} />
 
       <div className="min-w-0 flex-1 self-center">
-        <p className="m-0 truncate text-sm font-semibold text-foreground">{name}</p>
+        <p dir="auto" className="m-0 truncate text-sm font-semibold text-foreground">{name}</p>
         {place && <PropertyLine icon={<LocationOn />}>{place}</PropertyLine>}
         {extra}
       </div>

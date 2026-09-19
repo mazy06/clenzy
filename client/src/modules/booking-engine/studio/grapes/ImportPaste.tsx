@@ -17,6 +17,7 @@ import type { Editor } from 'grapesjs';
 import { importToHtml } from './import/registry';
 import { IMPORTERS } from './import/registry';
 import { loadHtmlIntoEditor } from './loadIntoEditor';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Onglet « Coller » de l'Importer.
@@ -48,6 +49,7 @@ const CODE_FIELD_CLASS =
   'resize-y font-[ui-monospace,_SFMono-Regular,_Menlo,_Consolas,_monospace] text-sm leading-normal';
 
 export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
+  const { t } = useTranslation();
   const [html, setHtml] = useState('');
   const [css, setCss] = useState('');
   // `auto` (défaut) délègue la détection au registre ; un id force le format (`forceId`).
@@ -62,7 +64,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
     setError(null);
     setWarnings([]);
     if (!html.trim()) {
-      setError('Collez du HTML (ou un export de builder / du Markdown) avant d’importer.');
+      setError(t('studio.import.pasteFirst'));
       return;
     }
     // `importToHtml` ne jette jamais : au pire repli HTML assaini + warning dans le rapport.
@@ -82,8 +84,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm leading-normal text-muted-foreground">
-        Collez votre HTML ci-dessous (et, si besoin, le CSS séparément). Le contenu est converti puis
-        assaini avant d’être chargé dans l’éditeur. Le canevas actuel sera remplacé.
+        {t('studio.import.pasteHint')}
       </p>
 
       {/* Sélecteur de format : auto-détection par défaut, ou format imposé (forceId). */}
@@ -97,7 +98,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
           value={format}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormat(e.target.value)}
         >
-          <NativeSelectOption value={AUTO}>Détection automatique</NativeSelectOption>
+          <NativeSelectOption value={AUTO}>{t('studio.import.autoDetect')}</NativeSelectOption>
           {formats.map((f) => (
             <NativeSelectOption key={f.id} value={f.id}>
               {f.label}
@@ -144,7 +145,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
       {warnings.length > 0 ? (
         <Alert variant="warning" role="status">
           <AlertTriangle />
-          <AlertTitle>Contenu importé avec des avertissements</AlertTitle>
+          <AlertTitle>{t('studio.import.warnings')}</AlertTitle>
           <AlertDescription>
             <ul className="m-0 ps-3.5 leading-normal">
               {warnings.map((w, i) => (
@@ -166,7 +167,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
         ) : null}
         <Button type="button" onClick={runImport} disabled={!html.trim()}>
           <ClipboardPaste size={15} strokeWidth={2} />
-          {warnings.length > 0 ? 'Réimporter' : 'Importer'}
+          {warnings.length > 0 ? t('studio.import.reimport') : t('studio.import.doImport')}
         </Button>
       </div>
     </div>

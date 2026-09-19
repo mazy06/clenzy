@@ -74,6 +74,16 @@ const WELCOME_BOOK_CSS = `
 }
 .wb *{ box-sizing:border-box; }
 
+/* Livret en arabe : ni Cormorant Garamond ni Hanken Grotesk n'ont de glyphes
+   arabes dessines. Sans cette bascule, le navigateur retombe sur la police
+   systeme — et comme les deux jetons retombent independamment, le titre et le
+   corps du meme ecran n'avaient pas le meme dessin. Un seul jeton en arabe,
+   le meme que l'application (Tajawal). */
+.wb[dir="rtl"]{
+  --serif:'Tajawal','Tahoma','Geeza Pro','Arabic Typesetting','Traditional Arabic',sans-serif;
+  --sans:var(--serif);
+}
+
 .wb[data-theme="noir"]{
   --bg:#15110C; --surface:#211B14; --raised:#2B231A;
   --ink:#F4ECDE; --ink-soft:#BCB09C; --ink-faint:#8B7F6C;

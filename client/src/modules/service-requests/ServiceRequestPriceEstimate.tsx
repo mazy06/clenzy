@@ -13,6 +13,7 @@ import {
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useCurrency } from '../../hooks/useCurrency';
 import { Money } from '../../components/Money';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ const RECOMMENDED_BADGE_CLASS =
 
 const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = React.memo(
   ({ property, forfaitConfigs, selectedForfaitKey }) => {
+    const { t } = useTranslation();
     const { convertAndFormat } = useCurrency();
     // Use provided configs or fall back to defaults
     const forfaits = useMemo(
@@ -191,7 +193,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
           <div className={TITLE_ROW_CLASS}>
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Estimation du prix
+              {t('serviceRequests.estimate.title')}
             </p>
           </div>
           <Tooltip>
@@ -199,7 +201,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
               <span className="inline-flex text-faint cursor-help"><Info size={14} strokeWidth={1.75} /></span>
             </TooltipTrigger>
             <TooltipContent>
-              Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire.
+              {t('serviceRequests.estimate.tooltip')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -209,7 +211,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
           <Alert variant="info" className={NOTICE_CLASS}>
             <InfoOutlined size={16} strokeWidth={1.75} />
             <AlertDescription>
-              Sélectionnez une propriété pour afficher l'estimation du prix et de la durée.
+              {t('serviceRequests.estimate.selectProperty')}
             </AlertDescription>
           </Alert>
         )}
@@ -219,9 +221,9 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
           <Alert variant="info" className={NOTICE_CLASS}>
             <InfoOutlined size={16} strokeWidth={1.75} />
             <AlertDescription>
-              {canEstimate
-                ? 'Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.'
-                : 'Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation.'}
+              {t(canEstimate
+                ? 'serviceRequests.estimateApproximate'
+                : 'serviceRequests.estimateImpossible')}
             </AlertDescription>
           </Alert>
         )}
@@ -235,11 +237,11 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                 {formatDuration(estimatedDuration)}
               </p>
               <p className="text-[10.5px] font-medium text-muted-foreground">
-                durée estimée
+                {t('serviceRequests.planning.estimatedDuration')}
               </p>
             </div>
             <p className="text-2xs text-faint italic ms-auto">
-              Calculée automatiquement
+              {t('serviceRequests.estimate.autoCalculated')}
             </p>
           </div>
         )}
@@ -256,7 +258,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   {isSelected && (
                     <div className={RECOMMENDED_BADGE_CLASS}>
                       <Star size={8} strokeWidth={1.75} fill="currentColor" />
-                      Recommandé
+                      {t('serviceRequests.estimate.recommended')}
                     </div>
                   )}
                   <StatusChip
@@ -306,7 +308,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         <div className="flex items-center gap-0.5 mt-1.5">
           <span className="inline-flex text-faint"><TrendingUp size={11} strokeWidth={1.75} /></span>
           <p className="text-2xs text-faint italic">
-            Basé sur les caractéristiques du logement
+            {t('serviceRequests.estimate.basedOnProperty')}
           </p>
         </div>
       </Card>

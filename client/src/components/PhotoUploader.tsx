@@ -7,6 +7,7 @@ import {
   Close as CloseIcon,
 } from '../icons';
 import { cn } from '../utils/cn';
+import { useTranslation } from '../hooks/useTranslation';
 
 // ============================================================
 // PhotoUploader — Composant réutilisable d'upload de photos
@@ -42,6 +43,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   error,
   columns = 3,
 }) => {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -224,7 +226,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           <CloudUploadIcon size={40} strokeWidth={1.5} />
         </span>
         <p className="text-xs font-medium text-muted-foreground">
-          Glissez-déposez vos photos ici
+          {t('photoUploader.dropHere')}
         </p>
         <span className="text-xs text-muted-foreground">
           ou cliquez pour parcourir
@@ -341,7 +343,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     </Button>
                   </div>
                 </div>
-                <span className="mt-1 block truncate text-2xs font-medium text-muted-foreground">
+                <span dir="auto" className="mt-1 block truncate text-2xs font-medium text-muted-foreground">
                   {file.name}
                 </span>
                 <span className="block text-2xs tabular-nums text-faint">

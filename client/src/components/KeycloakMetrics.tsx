@@ -26,6 +26,7 @@ import {
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/api/monitoringApi';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Niveau semantique → couleur, en VALEUR CSS et non en classe : le niveau est
@@ -78,6 +79,7 @@ const getCoverageColor = (percent: number): 'success' | 'warning' | 'error' => {
 };
 
 const KeycloakMetrics: React.FC = () => {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<KeycloakMetricsResponse | null>(null);
   const [coverage, setCoverage] = useState<TestCoverageMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ const KeycloakMetrics: React.FC = () => {
       setCoverage(coverageData);
       setLastUpdate(new Date());
     } catch (err) {
-      setError('Erreur lors de la récupération des métriques plateforme');
+      setError(t('monitoring.metricsFetchError'));
     } finally {
       setLoading(false);
     }
@@ -120,12 +122,12 @@ const KeycloakMetrics: React.FC = () => {
             du kit etant une fonction qui ne transmet pas de ref (React 18). */}
         <TooltipTrigger asChild>
           <span className="inline-flex">
-            <Button variant="ghost" size="icon-sm" onClick={handleRefresh} aria-label="Actualiser les métriques">
+            <Button variant="ghost" size="icon-sm" onClick={handleRefresh} aria-label={t('keycloakMetrics.refresh')}>
               <Refresh size={20} strokeWidth={1.75} />
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>Actualiser les métriques</TooltipContent>
+        <TooltipContent>{t('keycloakMetrics.refresh')}</TooltipContent>
       </Tooltip>,
     );
     return () => setHeaderActions(null);
@@ -152,7 +154,7 @@ const KeycloakMetrics: React.FC = () => {
         <AlertDescription>{error}</AlertDescription>
         <AlertAction>
           <Button variant="outline" size="sm" onClick={handleRefresh}>
-            Réessayer
+            {t('common.retry')}
           </Button>
         </AlertAction>
       </UiAlert>
@@ -163,7 +165,7 @@ const KeycloakMetrics: React.FC = () => {
     return (
       <UiAlert variant="warning">
         <TriangleAlert />
-        <AlertDescription>Aucune donnée de métriques disponible</AlertDescription>
+        <AlertDescription>{t('keycloakMetrics.empty')}</AlertDescription>
       </UiAlert>
     );
   }
@@ -226,7 +228,7 @@ const KeycloakMetrics: React.FC = () => {
                       {metrics.sessions.totalTokens}
                     </h4>
                     <p className="text-xs m-0 text-muted-foreground">
-                      Total traités
+                      {t('keycloakMetrics.totalProcessed')}
                     </p>
                   </div>
                 </div>
@@ -267,7 +269,7 @@ const KeycloakMetrics: React.FC = () => {
                       {metrics.performance.avgResponseTimeMs}ms
                     </h6>
                     <p className="text-xs m-0 text-muted-foreground">
-                      Temps de réponse moy.
+                      {t('keycloakMetrics.avgResponseTime')}
                     </p>
                   </div>
                 </div>
@@ -298,7 +300,7 @@ const KeycloakMetrics: React.FC = () => {
             <CardContent>
               <h6 className="text-sm font-semibold mt-0 mb-[0.35em] flex items-center">
                 <span className="inline-flex me-1.5 text-primary"><Security size={20} strokeWidth={1.75} /></span>
-                Sécurité (7 derniers jours)
+                {t('keycloakMetrics.security7d')}
               </h6>
               <div className="grid grid-cols-12 gap-3">
                 <div className="col-span-6">
@@ -307,7 +309,7 @@ const KeycloakMetrics: React.FC = () => {
                       {metrics.security.failedLogins}
                     </h6>
                     <p className="text-xs m-0 text-muted-foreground">
-                      Échecs de connexion
+                      {t('keycloakMetrics.loginFailures')}
                     </p>
                   </div>
                 </div>
@@ -317,7 +319,7 @@ const KeycloakMetrics: React.FC = () => {
                       {metrics.security.permissionDenied}
                     </h6>
                     <p className="text-xs m-0 text-muted-foreground">
-                      Accès refusés
+                      {t('keycloakMetrics.accessDenied')}
                     </p>
                   </div>
                 </div>
@@ -414,7 +416,7 @@ const KeycloakMetrics: React.FC = () => {
                           {coverage.methodPercent}%
                         </h4>
                         <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          Méthodes
+                          {t('keycloakMetrics.methods')}
                         </p>
                         <Progress
                           value={Math.min(coverage.methodPercent, 100)}
@@ -454,7 +456,7 @@ const KeycloakMetrics: React.FC = () => {
                           {coverage.complexityPercent}%
                         </h4>
                         <p className="text-xs mt-0 text-muted-foreground mb-[0.35em]">
-                          Complexité
+                          {t('keycloakMetrics.complexity')}
                         </p>
                         <Progress
                           value={Math.min(coverage.complexityPercent, 100)}
@@ -478,7 +480,7 @@ const KeycloakMetrics: React.FC = () => {
             <UiAlert variant="info">
               <BugReport size={20} strokeWidth={1.75} />
               <AlertDescription>
-                {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
+                {coverage.message || t('monitoring.coverageUnavailable')}
               </AlertDescription>
             </UiAlert>
           </div>

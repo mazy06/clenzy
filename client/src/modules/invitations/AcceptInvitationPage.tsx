@@ -34,6 +34,8 @@ import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi
 import apiClient, { ApiError } from '../../services/apiClient';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import { setSessionCookie } from '../../services/storageService';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Brand color Baitly — aligne avec EmailWrapperService.BRAND_PRIMARY.
 const BRAND_PRIMARY = '#6B8A9A';
@@ -112,6 +114,7 @@ const getRoleTone = (role: string): StatusTone => {
 };
 
 export default function AcceptInvitationPage() {
+  const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
   // Le hook est appele pour son EFFET (changeLanguage) : la direction RTL est
   // ensuite portee par le DirectionProvider racine, plus par un theme local.
@@ -172,7 +175,7 @@ export default function AcceptInvitationPage() {
   // 1. Charger les infos de l'invitation au mount
   useEffect(() => {
     if (!token) {
-      setError('Lien d\'invitation invalide : aucun token fourni.');
+      setError(t('invitations.errors.noToken'));
       setState('error');
       return;
     }
@@ -184,7 +187,7 @@ export default function AcceptInvitationPage() {
         setState('info');
       } catch (err: unknown) {
         const apiErr = err as { message?: string };
-        setError(apiErr.message || 'Cette invitation est invalide ou a expire.');
+        setError(apiErr.message || t('invitations.errors.invalidOrExpired'));
         setState('error');
       }
     };
@@ -203,7 +206,7 @@ export default function AcceptInvitationPage() {
       setState('complete_profile');
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Erreur lors de l\'acceptation de l\'invitation.');
+      setError(apiErr.message || t('invitations.errors.accept'));
       setState('error');
     }
   }, [token]);
@@ -251,11 +254,11 @@ export default function AcceptInvitationPage() {
 
     // Validation client
     if (!firstName.trim() || !lastName.trim()) {
-      setError('Renseigne ton prenom et ton nom.');
+      setError(t('invitations.errors.nameRequired'));
       return;
     }
     if (password.length < 8) {
-      setError('Le mot de passe doit faire au moins 8 caracteres.');
+      setError(t('invitations.errors.passwordTooShort'));
       return;
     }
     if (password !== confirmPassword) {
@@ -290,7 +293,7 @@ export default function AcceptInvitationPage() {
       }, 1500);
     } catch (err) {
       const apiErr = err as ApiError;
-      setError(apiErr.message || 'Erreur lors de la creation du compte. Reessaye ou contacte le support.');
+      setError(apiErr.message || t('invitations.errors.signup'));
       setRegistering(false);
     }
   };
@@ -333,7 +336,7 @@ export default function AcceptInvitationPage() {
             <div className="flex flex-col items-center gap-3 py-6">
               <Spinner className="size-12" />
               <p className="text-sm text-muted-foreground">
-                Chargement de l'invitation...
+                {t('invitations.accept.loading')}
               </p>
             </div>
           )}
@@ -372,7 +375,7 @@ export default function AcceptInvitationPage() {
                   <div className="flex items-center justify-between gap-1.5">
                     <p className="text-sm text-muted-foreground">Expire</p>
                     <p className="text-sm text-foreground tabular-nums">
-                      {new Date(invitation.expiresAt).toLocaleDateString('fr-FR', {
+                      {new Date(invitation.expiresAt).toLocaleDateString(activeIntlLocale(), {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
@@ -393,9 +396,9 @@ export default function AcceptInvitationPage() {
                       <BuiAlert variant="warning" className="text-start">
                         <TriangleAlert />
                         <AlertDescription>
-                          Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
-                          invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
-                          Deconnectez-vous pour creer un compte avec le bon email.
+                          {t('invitations.accept.emailMismatchHead')} <strong>{currentEmail}</strong>{' '}
+                          {t('invitations.accept.emailMismatchMiddle')} <strong>{invitation.invitedEmail}</strong>.{' '}
+                          {t('invitations.accept.emailMismatchTail')}
                         </AlertDescription>
                       </BuiAlert>
                       <BuiButton
@@ -422,7 +425,7 @@ export default function AcceptInvitationPage() {
                           window.location.href = keycloak.createLogoutUrl({ redirectUri });
                         }}
                       >
-                        Se deconnecter et creer un compte
+                        {t('invitations.accept.signOutAndRegister')}
                       </BuiButton>
                     </div>
                   ) : (
@@ -447,7 +450,7 @@ export default function AcceptInvitationPage() {
                     onClick={handleRegisterAndAccept}
                   >
                     <PersonAdd />
-                    Creer un compte et accepter
+                    {t('invitations.accept.registerAndAccept')}
                   </BuiButton>
                   <BuiButton
                     variant="ghost"
@@ -456,7 +459,7 @@ export default function AcceptInvitationPage() {
                     onClick={handleLoginAndAccept}
                   >
                     <LoginIcon />
-                    J'ai deja un compte
+                    {t('invitations.accept.alreadyHaveAccount')}
                   </BuiButton>
                 </div>
               )}
@@ -467,10 +470,10 @@ export default function AcceptInvitationPage() {
           {state === 'register_form' && invitation && (
             <div className="py-1.5 text-start">
               <div className="text-center mb-4">
-                <SectionLabel>Creation de compte</SectionLabel>
+                <SectionLabel>{t('invitations.accept.createAccount')}</SectionLabel>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed text-balance">
-                  Rejoins <strong className="text-foreground">{invitation.organizationName}</strong>{' '}
-                  en tant que {getRoleLabel(invitation.roleInvited).toLowerCase()}.
+                  {t('invitations.accept.joinHead')} <strong className="text-foreground">{invitation.organizationName}</strong>{' '}
+                  {t('invitations.accept.joinAs', { role: getRoleLabel(invitation.roleInvited).toLowerCase() })}
                 </p>
               </div>
 
@@ -521,7 +524,7 @@ export default function AcceptInvitationPage() {
                     value={invitation.invitedEmail}
                     disabled
                   />
-                  <FieldDescription>L'email est defini par l'invitation</FieldDescription>
+                  <FieldDescription>{t('invitations.accept.emailFromInvitation')}</FieldDescription>
                 </Field>
 
                 <Field>
@@ -538,11 +541,11 @@ export default function AcceptInvitationPage() {
                       autoComplete="tel"
                     />
                   </InputGroup>
-                  <FieldDescription>Optionnel — utile pour les notifications SMS</FieldDescription>
+                  <FieldDescription>{t('invitations.accept.phoneHint')}</FieldDescription>
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="invite-password">Mot de passe</FieldLabel>
+                  <FieldLabel htmlFor="invite-password">{t('invitations.accept.password')}</FieldLabel>
                   <InputGroup>
                     <InputGroupAddon align="inline-start">
                       <LockIcon size={16} strokeWidth={1.75} />
@@ -569,7 +572,7 @@ export default function AcceptInvitationPage() {
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="invite-password-confirm">Confirme le mot de passe</FieldLabel>
+                  <FieldLabel htmlFor="invite-password-confirm">{t('invitations.accept.passwordConfirm')}</FieldLabel>
                   <Input
                     id="invite-password-confirm"
                     className="w-full"
@@ -581,7 +584,7 @@ export default function AcceptInvitationPage() {
                     aria-invalid={passwordMismatch}
                   />
                   {passwordMismatch && (
-                    <FieldError>Les mots de passe ne correspondent pas</FieldError>
+                    <FieldError>{t('invitations.accept.passwordMismatch')}</FieldError>
                   )}
                 </Field>
 
@@ -592,7 +595,7 @@ export default function AcceptInvitationPage() {
                   disabled={registering}
                 >
                   {registering ? <Spinner className="size-4" /> : <PersonAdd />}
-                  {registering ? 'Creation en cours...' : 'Creer mon compte et accepter'}
+                  {t(registering ? 'invitations.creating' : 'invitations.createAndAccept')}
                 </BuiButton>
 
                 <BuiButton
@@ -623,11 +626,11 @@ export default function AcceptInvitationPage() {
               <div className="text-center mb-4">
                 <span className="inline-flex text-success mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
                 <h6 className="text-base font-semibold tracking-tight text-balance">
-                  Completez votre profil
+                  {t('invitations.accept.completeProfile')}
                 </h6>
                 <p className="text-sm text-muted-foreground">
-                  Vous avez rejoint <strong>{invitation?.organizationName}</strong>.
-                  Verifiez vos informations avant de continuer.
+                  {t('invitations.accept.joinedHead')} <strong>{invitation?.organizationName}</strong>.{' '}
+                  {t('invitations.accept.checkInfo')}
                 </p>
               </div>
 
@@ -668,7 +671,7 @@ export default function AcceptInvitationPage() {
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                   />
-                  <FieldDescription>Optionnel — utile pour les notifications SMS</FieldDescription>
+                  <FieldDescription>{t('invitations.accept.phoneHint')}</FieldDescription>
                 </Field>
               </div>
 
@@ -689,13 +692,13 @@ export default function AcceptInvitationPage() {
             <div className="py-4 text-center">
               <span className="inline-flex text-success mb-3"><CheckCircle size={64} strokeWidth={1.75} /></span>
               <h5 className="mb-1 text-base font-semibold tracking-tight text-balance">
-                Bienvenue !
+                {t('invitations.accept.welcome')}
               </h5>
               <p className="text-sm text-muted-foreground">
-                Vous avez rejoint <strong className="text-foreground">{invitation?.organizationName}</strong> avec succes.
+                {t('invitations.accept.joinedHead')} <strong className="text-foreground">{invitation?.organizationName}</strong> {t('invitations.accept.joinedSuccess')}
               </p>
               <p className="text-xs text-muted-foreground mt-1.5">
-                Redirection vers le tableau de bord...
+                {t('invitations.accept.redirecting')}
               </p>
             </div>
           )}
@@ -716,7 +719,7 @@ export default function AcceptInvitationPage() {
                 className="mt-[18px]"
                 onClick={() => navigate('/login', { replace: true })}
               >
-                Retour a la connexion
+                {t('invitations.accept.backToLogin')}
               </BuiButton>
             </div>
           )}

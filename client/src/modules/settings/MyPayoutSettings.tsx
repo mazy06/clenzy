@@ -73,7 +73,7 @@ export default function MyPayoutSettings() {
       .catch((e) => {
         setObError(e instanceof Error
           ? e.message
-          : 'Le consent Open Banking n\'a pas pu être validé. Veuillez relancer le SCA.');
+          : t('payouts.openBankingConsentFailed'));
       })
       .finally(() => setObProcessing(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps

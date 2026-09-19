@@ -57,6 +57,7 @@ import { partnerProviderFromCatalogId } from '../../services/api/partnerConnecti
 import IntegrationsWhatsAppConfig from './IntegrationsWhatsAppConfig';
 import type { ActivityProvider } from '../../services/api/activitiesApi';
 import type { CatalogService } from '../../services/integrations/servicesCatalog';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 /** Map id de service catalogue → fournisseur d'activités (config in-modal). */
 const ACTIVITY_PROVIDER_BY_SERVICE: Record<string, ActivityProvider> = {
@@ -486,11 +487,11 @@ export default function IntegrationsSection({
       {showSection('marketing') && (
       <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-marketing">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="text-sm font-semibold tracking-tight">Marketing &amp; Newsletter</p>
-          <StatusChip tone={TONE_OK} label="Disponible" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+          <p className="text-sm font-semibold tracking-tight">{t('settings.integrations.marketing.title')}</p>
+          <StatusChip tone={TONE_OK} label={t('settings.integrations.status.available')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
         </div>
         <p className="text-xs text-muted-foreground mb-0.5">
-          Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
+          {t('settings.integrations.marketing.description')}
         </p>
         <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           <ServiceGridCard
@@ -520,7 +521,7 @@ export default function IntegrationsSection({
           <p className="text-sm font-semibold tracking-tight">
             {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
           </p>
-          <StatusChip size="sm" tone={TONE_WARM} label="Opérationnel — à brancher" />
+          <StatusChip size="sm" tone={TONE_WARM} label={t('settings.integrations.status.readyToWire')} />
         </div>
         <p className="text-xs text-muted-foreground mb-0.5">
           {t(
@@ -593,7 +594,7 @@ export default function IntegrationsSection({
                       <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.connectedAt')} :
                       </span>{' '}
-                      {new Date(status.connectedAt).toLocaleDateString('fr-FR')}
+                      {new Date(status.connectedAt).toLocaleDateString(activeIntlLocale())}
                     </p>
                   )}
                   {status.lastSyncAt && (
@@ -601,7 +602,7 @@ export default function IntegrationsSection({
                       <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.lastSync')} :
                       </span>{' '}
-                      {new Date(status.lastSyncAt).toLocaleString('fr-FR')}
+                      {new Date(status.lastSyncAt).toLocaleString(activeIntlLocale())}
                     </p>
                   )}
                 </div>
@@ -740,12 +741,12 @@ export default function IntegrationsSection({
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-accounting">
         <div className="flex items-center gap-1.5 mb-0.5">
           <p className="text-sm font-semibold tracking-tight">
-            Comptabilité
+            {t('settings.integrations.accounting.title')}
           </p>
-          <StatusChip size="sm" tone={TONE_NEUTRAL} label="Bientôt disponible" />
+          <StatusChip size="sm" tone={TONE_NEUTRAL} label={t('settings.integrations.status.comingSoon')} />
         </div>
         <p className="text-xs text-muted-foreground mb-0.5">
-          Synchronisez factures et dépenses vers votre logiciel comptable.
+          {t('settings.integrations.accounting.description')}
         </p>
         {/* Pennylane : connexion OAuth réelle (sync factures) — carte interactive,
             hors du wrapper « Bientôt disponible » des autres logiciels compta. */}
@@ -755,7 +756,7 @@ export default function IntegrationsSection({
               providerId="PENNYLANE"
               serviceTooltipId="PENNYLANE"
               label="Pennylane"
-              description="Compta française · OAuth2 · sync factures"
+              description={t('settings.integrations.accounting.pennylane')}
               role="button"
               selected={openSignatureProvider === 'PENNYLANE'}
               status={connectedProviders.has('PENNYLANE') ? 'connected' : 'idle'}
@@ -796,7 +797,7 @@ export default function IntegrationsSection({
           <OAuthProviderCard
             providerId="QUICKBOOKS"
             label="QuickBooks"
-            description="Synchronisation comptable temps réel · OAuth2 Intuit · sandbox + production"
+            description={t('settings.integrations.accounting.quickbooks')}
             api={quickbooksApi}
             onStatusChange={(c) => handleAccountingStatusChange('QUICKBOOKS', c)}
           />
@@ -805,7 +806,7 @@ export default function IntegrationsSection({
           <OAuthProviderCard
             providerId="XERO"
             label="Xero"
-            description="Comptabilité cloud leader UK / Australie / Nouvelle-Zélande · OAuth2 multi-tenant"
+            description={t('settings.integrations.accounting.xero')}
             api={xeroApi}
             onStatusChange={(c) => handleAccountingStatusChange('XERO', c)}
           />
@@ -814,7 +815,7 @@ export default function IntegrationsSection({
           <OAuthProviderCard
             providerId="SAGE"
             label="Sage"
-            description="Sage Business Cloud Accounting · leader France et Europe · OAuth2 multi-business"
+            description={t('settings.integrations.accounting.sage')}
             api={sageApi}
             onStatusChange={(c) => handleAccountingStatusChange('SAGE', c)}
           />
@@ -826,11 +827,11 @@ export default function IntegrationsSection({
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-compliance">
         <div className="flex items-center gap-1.5 mb-0.5">
           <p className="text-sm font-semibold tracking-tight">
-            Conformité légale
+            {t('settings.integrations.compliance.title')}
           </p>
         </div>
         <p className="text-xs text-muted-foreground mb-0.5">
-          Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
+          {t('settings.integrations.compliance.description')}
         </p>
         {/* Chekin : API publique (clé API → JWT) — connexion + soumission réelles,
             carte interactive hors du wrapper « Bientôt disponible » des providers
@@ -856,8 +857,8 @@ export default function IntegrationsSection({
           className={DISABLED_GRID_CLASS}
         >
           {([
-            { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
-            { id: 'SHOMOOS',    label: 'Shomoos',             desc: 'Enregistrement hébergement KSA', flag: '🇸🇦' },
+            { id: 'POLICE_MA',  label: 'Police Maroc',        desc: t('settings.integrations.providers.POLICE_MA'),   flag: '🇲🇦' },
+            { id: 'SHOMOOS',    label: 'Shomoos',             desc: t('settings.integrations.providers.SHOMOOS'), flag: '🇸🇦' },
             { id: 'ABSHER_KSA', label: 'Absher',              desc: 'MOI Arabie Saoudite · KYC',     flag: '🇸🇦' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc, flag }) => (
             <ServiceGridCard
@@ -892,18 +893,18 @@ export default function IntegrationsSection({
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-kyc">
         <div className="flex items-center gap-1.5 mb-0.5">
           <p className="text-sm font-semibold tracking-tight">
-            Vérification d'identité (KYC)
+            {t('settings.integrations.kyc.title')}
           </p>
         </div>
         <p className="text-xs text-muted-foreground mb-0.5">
-          Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
+          {t('settings.integrations.kyc.description')}
         </p>
         {/* Les 3 providers ont une API publique : la connexion valide les credentials
             par un appel réel (Onfido token, Sumsub/Veriff requêtes signées HMAC). */}
         <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           {([
             { id: 'SUMSUB', label: 'Sumsub',  desc: 'Leader MENA · KYC + KYB' },
-            { id: 'VERIFF', label: 'Veriff',  desc: 'Qualité/prix · EU + MENA' },
+            { id: 'VERIFF', label: 'Veriff',  desc: t('settings.integrations.providers.VERIFF') },
             { id: 'ONFIDO', label: 'Onfido',  desc: 'Premium · UX exceptionnelle' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
             <ServiceGridCard
@@ -939,7 +940,7 @@ export default function IntegrationsSection({
           Channel Manager (middleware)
         </p>
         <p className="text-xs text-muted-foreground mb-0.5">
-          Connectez un middleware qui agrège plusieurs OTAs en une seule API — utile pour les marchés niches ou régionaux sans intégration directe. Les OTAs eux-mêmes (Airbnb, Booking, Vrbo) restent dans la tab <strong>Channels</strong>.
+          {t('settings.integrations.channelManager.middlewareNote')} <strong>{t('settings.integrations.channelManager.channelsTab')}</strong>.
         </p>
         <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           {([
@@ -1018,18 +1019,16 @@ export default function IntegrationsSection({
           <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
               <p className="text-sm font-semibold tracking-tight">
-                Intelligence de marché — sources de données
+                {t('settings.integrations.marketData.title')}
               </p>
             </div>
             <p className="text-xs text-muted-foreground mb-0.5">
-              Benchmarks ADR / occupation / RevPAR par zone pour le revenue management.
-              Sans clé, le RMS fonctionne déjà avec les données réseau (first-party) et
-              l'open data ; une clé active l'ingestion quotidienne du fournisseur.
+              {t('settings.integrations.marketData.description')}
             </p>
             <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
               {([
-                { id: 'AIRBTICS', label: 'Airbtics', desc: 'Fournisseur cible · Maroc + MAD natif · API key' },
-                { id: 'AIRROI',   label: 'AirROI',   desc: 'Appoint pay-per-call (~0,01 $/appel) · API key' },
+                { id: 'AIRBTICS', label: 'Airbtics', desc: t('settings.integrations.marketData.airbtics') },
+                { id: 'AIRROI',   label: 'AirROI',   desc: t('settings.integrations.marketData.airroi') },
               ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
                 <ServiceGridCard
                   key={p}
@@ -1059,8 +1058,8 @@ export default function IntegrationsSection({
             disabled
             serviceFilter={selectedServiceId}
             category="market_intelligence"
-            title="Intelligence de marché — catalogue"
-            description="Autres fournisseurs de données de marché (informatif)."
+            title={t('settings.integrations.marketData.catalogTitle')}
+            description={t('settings.integrations.marketData.catalogDescription')}
           />
         </div>
       )}
@@ -1069,8 +1068,8 @@ export default function IntegrationsSection({
         <ServiceCatalogSection
           serviceFilter={selectedServiceId}
           category="tax_automation"
-          title="Fiscalité — Taxe de séjour"
-          description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+          title={t('settings.integrations.tax.title')}
+          description={`${t('settings.integrations.tax.description')} ${t('settings.integrations.laterHint')}`}
           configForService={partnerConfigForService}
         />
       </div>
@@ -1080,8 +1079,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="insurance"
-            title="Assurance & screening"
-            description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            title={t('settings.integrations.insurance.title')}
+            description={`${t('settings.integrations.insurance.description')} ${t('settings.integrations.laterHint')}`}
             configForService={partnerConfigForService}
           />
         </div>
@@ -1091,8 +1090,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="cleaning_operations"
-            title="Ménage & opérations"
-            description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            title={t('settings.integrations.cleaning.title')}
+            description={`${t('settings.integrations.cleaning.description')} ${t('settings.integrations.laterHint')}`}
             configForService={partnerConfigForService}
           />
         </div>
@@ -1108,8 +1107,8 @@ export default function IntegrationsSection({
             disabled
             serviceFilter={selectedServiceId}
             category="key_management"
-            title="Gestion des clés"
-            description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Baitly ou partenaires externes."
+            title={t('settings.integrations.keys.title')}
+            description={t('settings.integrations.keys.description')}
           />
         </div>
       )}
@@ -1118,8 +1117,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="activities_affiliate"
-            title="Activités & affiliation"
-            description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
+            title={t('settings.integrations.activities.title')}
+            description={t('settings.integrations.activities.description')}
             configForService={activityConfigForService}
           />
         </div>
@@ -1129,8 +1128,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="reviews_reputation"
-            title="Avis & réputation"
-            description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            title={t('settings.integrations.reviews.title')}
+            description={`${t('settings.integrations.reviews.description')} ${t('settings.integrations.laterHint')}`}
             configForService={partnerConfigForService}
           />
         </div>
@@ -1140,8 +1139,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="marketing_crm"
-            title="Marketing & CRM"
-            description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            title={t('settings.integrations.crm.title')}
+            description={`${t('settings.integrations.crm.description')} ${t('settings.integrations.laterHint')}`}
             configForService={partnerConfigForService}
           />
         </div>
@@ -1151,8 +1150,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="automation"
-            title="Automatisation & Webhooks"
-            description="Connectez Baitly à des milliers d'apps via Zapier ou Make : collez l'URL de votre webhook et un secret de signature — l'émission des événements (réservations, check-ins, interventions) sera activée ensuite."
+            title={t('settings.integrations.automation.title')}
+            description={t('settings.integrations.automation.description')}
             configForService={partnerConfigForService}
           />
         </div>
@@ -1162,8 +1161,8 @@ export default function IntegrationsSection({
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="guest_experience"
-            title="Expérience guest"
-            description="Guest apps, check-in en ligne, upsells et boarding pass digital — en complément du livret d'accueil natif Baitly. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            title={t('settings.integrations.guestExperience.title')}
+            description={`${t('settings.integrations.guestExperience.description')} ${t('settings.integrations.laterHint')}`}
             configForService={partnerConfigForService}
           />
         </div>

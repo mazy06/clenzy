@@ -8,6 +8,7 @@ import type { ManagerAssociations, PropertyTeamMapping } from '../../services/ap
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import type { ChipColor } from '../../types';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -413,7 +414,7 @@ export function usePortfoliosPage() {
 
   // ── Utility functions ────────────────────────────────────────────────────
   const formatDate = useCallback((dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return new Date(dateString).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

@@ -60,7 +60,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       : null;
 
   // Filter savings line — the -X% badge already conveys it
-  const displayedFeatures = product.features.filter((f) => !SAVINGS_FEATURE_RE.test(f));
+  const displayedFeatures = product.featureKeys
+    .map((k) => t(k))
+    .filter((f) => !SAVINGS_FEATURE_RE.test(f));
 
   return (
     <Card className="gap-0 py-0 relative flex flex-col h-full overflow-hidden border-border bg-card transition-colors duration-200 hover:border-primary/40 motion-reduce:transition-none">
@@ -89,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-3 pb-2 flex flex-col flex-1">
         {/* Title + SKU */}
         <p className="text-[0.95rem] font-bold leading-[1.25] text-foreground text-balance">
-          {product.name}
+          {t(product.nameKey)}
         </p>
         <p className="mt-0.5 mb-1.5 text-2xs font-medium uppercase tracking-wide tabular-nums text-faint">
           {product.sku}
@@ -97,7 +99,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Description */}
         <p className="mb-2 text-[0.78rem] leading-[1.45] text-muted-foreground">
-          {product.shortDescription}
+          {t(product.shortDescriptionKey)}
         </p>
 
         {/* Price row */}
@@ -135,7 +137,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {t('shop.kitContents')}
             </p>
           )}
-          {displayedFeatures.slice(0, 5).map((feature) => (
+          {displayedFeatures.slice(0, 5).map((feature: string) => (
             <div className="flex items-start gap-1 py-0.5" key={feature}>
               <span className="inline-flex shrink-0 mt-0.5" style={{ color: tint }}>
                 <CheckCircleOutline size={13} strokeWidth={1.75} />
@@ -168,7 +170,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               size="icon"
               onClick={onRemoveFromCart}
               className="size-[30px] rounded-md bg-card text-foreground hover:bg-card hover:text-primary"
-              aria-label="Diminuer la quantité"
+              aria-label={t('shop.decreaseQty')}
             >
               <Remove size={14} strokeWidth={2} />
             </Button>
@@ -180,7 +182,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               size="icon"
               onClick={onAddToCart}
               className="size-[30px] rounded-md bg-card text-foreground hover:bg-card hover:text-primary"
-              aria-label="Augmenter la quantité"
+              aria-label={t('shop.increaseQty')}
             >
               <Add size={14} strokeWidth={2} />
             </Button>

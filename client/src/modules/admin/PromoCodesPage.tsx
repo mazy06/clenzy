@@ -43,12 +43,17 @@ import {
   type PromoCode,
   type PromoCodeCreatePayload,
 } from '../../services/api/promoCodesApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type FilterMode = 'active' | 'inactive' | 'expired' | 'all';
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
+// Construit à l'APPEL, pas à l'import : un `Intl` de module se fige sur la
+// langue du chargement et resterait en français après un passage en arabe.
+// `Intl` met déjà ses formateurs en cache en interne.
+const dateTimeFormatter = () => new Intl.DateTimeFormat(activeIntlLocale(), {
   dateStyle: 'short',
   timeStyle: 'short',
 });
@@ -56,7 +61,7 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   try {
-    return DATE_TIME_FORMATTER.format(new Date(iso));
+    return dateTimeFormatter().format(new Date(iso));
   } catch {
     return iso;
   }
@@ -90,6 +95,7 @@ interface CreateDialogProps {
 }
 
 function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FIXED'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState('');
@@ -106,7 +112,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
       handleClose();
     },
     onError: (err: Error) => {
-      setError(err.message || 'Erreur lors de la création du code.');
+      setError(err.message || t('admin.promo.createError'));
     },
   });
 
@@ -125,16 +131,16 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
   const handleSubmit = () => {
     setError(null);
     if (!code.trim()) {
-      setError('Le code est requis.');
+      setError(t('admin.promo.codeRequired'));
       return;
     }
     const valueNum = parseInt(discountValue, 10);
     if (isNaN(valueNum) || valueNum <= 0) {
-      setError('La valeur de réduction doit être un entier positif.');
+      setError(t('admin.promo.valuePositive'));
       return;
     }
     if (discountType === 'PERCENTAGE' && (valueNum < 1 || valueNum > 100)) {
-      setError('Un pourcentage doit être entre 1 et 100.');
+      setError(t('admin.promo.percentRange'));
       return;
     }
     const payload: PromoCodeCreatePayload = {
@@ -185,12 +191,12 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
               className="uppercase"
               autoFocus
             />
-            <FieldDescription>Sera normalisé en majuscules</FieldDescription>
+            <FieldDescription>{t('admin.promo.normalizedUppercase')}</FieldDescription>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="promo-discount-type">Type de réduction *</FieldLabel>
+              <FieldLabel htmlFor="promo-discount-type">{t('admin.promo.discountType')}</FieldLabel>
               <NativeSelect
                 id="promo-discount-type"
                 className="w-full"
@@ -218,7 +224,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
                 </InputGroupAddon>
               </InputGroup>
               <FieldDescription>
-                {discountType === 'PERCENTAGE' ? 'Entre 1 et 100' : 'Centimes (500 = 5,00€)'}
+                {discountType === 'PERCENTAGE' ? t('admin.promo.betweenOneHundred') : 'Centimes (500 = 5,00€)'}
               </FieldDescription>
             </Field>
           </div>
@@ -229,14 +235,14 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
               id="promo-max-uses"
               value={maxUses}
               onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="Laisser vide pour illimité"
+              placeholder="{t('admin.promo.leaveEmptyUnlimited')}"
             />
-            <FieldDescription>Vide = utilisations illimitées</FieldDescription>
+            <FieldDescription>{t('admin.promo.unlimitedUses')}</FieldDescription>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="promo-valid-from">Valide à partir du</FieldLabel>
+              <FieldLabel htmlFor="promo-valid-from">{t('admin.promo.validFrom')}</FieldLabel>
               <Input
                 id="promo-valid-from"
                 type="date"
@@ -246,7 +252,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
               <FieldDescription>Optionnel</FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="promo-valid-until">Valide jusqu'au</FieldLabel>
+              <FieldLabel htmlFor="promo-valid-until">{t('admin.promo.validUntil')}</FieldLabel>
               <Input
                 id="promo-valid-until"
                 type="date"
@@ -286,6 +292,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function PromoCodesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [createOpen, setCreateOpen] = useState(false);
@@ -308,7 +315,7 @@ export default function PromoCodesPage() {
       notify.success(variables.activate ? 'Code activé.' : 'Code désactivé.');
     },
     onError: () => {
-      notify.error('Erreur lors de la modification du code.');
+      notify.error(t('admin.promo.updateError'));
     },
   });
 
@@ -355,11 +362,11 @@ export default function PromoCodesPage() {
               disabled={isLoading}
             >
               <Refresh />
-              Rafraîchir
+              {t('admin.promo.refresh')}
             </BuiButton>
             <BuiButton onClick={() => setCreateOpen(true)}>
               <Add />
-              Créer un code
+              {t('admin.promo.create')}
             </BuiButton>
           </div>
         }
@@ -397,7 +404,7 @@ export default function PromoCodesPage() {
           <ToggleGroupItem value="all">Tous ({promoCodes?.length ?? 0})</ToggleGroupItem>
           <ToggleGroupItem value="active">Actifs ({stats?.active ?? 0})</ToggleGroupItem>
           <ToggleGroupItem value="inactive">Inactifs</ToggleGroupItem>
-          <ToggleGroupItem value="expired">Expirés</ToggleGroupItem>
+          <ToggleGroupItem value="expired">{t('admin.promo.expired')}</ToggleGroupItem>
         </ToggleGroup>
       </div>
 
@@ -417,11 +424,11 @@ export default function PromoCodesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<LocalOffer />}
-          title="Aucun code promo"
+          title="{t('admin.promo.empty')}"
           description={
             filterMode !== 'all'
               ? `Aucun code ne correspond au filtre « ${filterMode} ».`
-              : 'Créez votre premier code promo avec le bouton « Créer un code ».'
+              : t('admin.promo.emptyHint')
           }
         />
       ) : (
@@ -433,11 +440,11 @@ export default function PromoCodesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>
-                  <TableHead>Réduction</TableHead>
+                  <TableHead>{t('admin.promo.discount')}</TableHead>
                   <TableHead>Utilisations</TableHead>
-                  <TableHead>Validité</TableHead>
+                  <TableHead>{t('admin.promo.validity')}</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Créé le</TableHead>
+                  <TableHead>{t('admin.promo.createdOn')}</TableHead>
                   <TableHead className="text-center">Actif</TableHead>
                 </TableRow>
               </TableHeader>

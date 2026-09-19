@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { teamTypeOption } from '../types/teamTypes';
 import type { Team } from '../services/api';
 import { formatShortDate } from '../utils/formatUtils';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface TeamCardProps {
   team: Team;
@@ -98,6 +99,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
   activeInterventionsCount = 0,
   canEdit = false,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const status = getTeamStatus(team);
@@ -137,7 +139,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         {/* ── Identite ─────────────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p
+            <p dir="auto"
               className="truncate text-sm font-semibold leading-tight text-foreground"
               title={team.name}
             >
@@ -238,7 +240,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             </p>
           </div>
         ) : (
-          <p className="m-0 text-xs text-muted-foreground">Aucun membre</p>
+          <p className="m-0 text-xs text-muted-foreground">{t('common.noMember')}</p>
         )}
 
         {/* ── Meta, en retrait : ni cle a molette, ni icone de groupe pour
@@ -269,7 +271,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             handleViewDetails();
           }}
         >
-          Détails
+          {t('common.details')}
         </Button>
         {canEdit && (
           <Button

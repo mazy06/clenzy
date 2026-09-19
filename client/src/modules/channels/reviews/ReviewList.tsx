@@ -23,6 +23,7 @@ import {
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useNotification } from '../../../hooks/useNotification';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 interface ReviewListProps {
   /** Filtre sur un logement. Absent = tous les logements de l'organisation. */
@@ -193,7 +194,7 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
                     </div>
                     {review.reviewDate && (
                       <p className="mt-0.5 text-xs tabular-nums text-faint">
-                        {new Date(review.reviewDate).toLocaleDateString('fr-FR')}
+                        {new Date(review.reviewDate).toLocaleDateString(activeIntlLocale())}
                       </p>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { bookingEngineApi } from '../services/api/bookingEngineApi';
+import { useTranslation } from './useTranslation';
 import type { AvailabilityDay, PropertyTypeInfo } from '../services/api/bookingEngineApi';
 
 interface UseBookingEngineAvailabilityParams {
@@ -36,6 +37,7 @@ export function useBookingEngineAvailability({
   guests,
   enabled = true,
 }: UseBookingEngineAvailabilityParams): UseBookingEngineAvailabilityResult {
+  const { t } = useTranslation();
   const [dayMap, setDayMap] = useState<Map<string, AvailabilityDay>>(new Map());
   const [propertyTypes, setPropertyTypes] = useState<PropertyTypeInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +72,7 @@ export function useBookingEngineAvailability({
       setDayMap(map);
       setPropertyTypes(response.propertyTypes);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur de chargement';
+      const msg = err instanceof Error ? err.message : t('common.loadingError');
       setError(msg);
     } finally {
       setIsLoading(false);

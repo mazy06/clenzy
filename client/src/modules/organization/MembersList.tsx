@@ -21,13 +21,15 @@ import {
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { usersApi } from '../../services/api/usersApi';
 import {
-  getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon,
-  getPlatformRoleLabel, getPlatformRoleHex, getPlatformRoleIcon,
+  getOrgRoleLabel, getOrgRoleLabelKey, getOrgRoleHex, getOrgRoleIcon,
+  getPlatformRoleLabel, getPlatformRoleLabelKey, getPlatformRoleHex, getPlatformRoleIcon,
 } from '../../utils/orgRoleLabels';
 import { useAuth } from '../../hooks/useAuth';
 import ChangeRoleDialog from './ChangeRoleDialog';
 import RemoveMemberDialog from './RemoveMemberDialog';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Props {
   organizationId: number;
@@ -67,6 +69,7 @@ const ROW_ACTION_PRIMARY_CLASS = 'hover:border-primary hover:bg-primary-soft hov
 const ROW_ACTION_DANGER_CLASS = 'hover:border-destructive hover:bg-destructive-soft hover:text-destructive-ink';
 
 export default function MembersList({ organizationId, refreshTrigger, onMemberChanged }: Props) {
+  const { t } = useTranslation();
   const { hasAnyRole, user } = useAuth();
   const [members, setMembers] = useState<OrganizationMemberDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +98,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
       });
       setMembers(sorted);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des membres';
+      const message = err instanceof Error ? err.message : t('organization.errors.loadMembers');
       setError(message);
     } finally {
       setLoading(false);
@@ -137,7 +140,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
   if (members.length === 0) {
     return (
       <p className="text-xs text-muted-foreground py-3 text-center">
-        Aucun membre dans cette organisation
+        {t('organizations.members.empty')}
       </p>
     );
   }
@@ -215,10 +218,10 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                             {/* Teinte de rôle : valeur runtime hors palette sémantique,
                                 la primitive en dérive le fond doux (même API que le
                                 chip de rôle plateforme juste en dessous). */}
-                            <StatusChip color={roleColor} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                            <StatusChip color={roleColor} label={t(getOrgRoleLabelKey(member.roleInOrg), getOrgRoleLabel(member.roleInOrg))} icon={<RoleIcon size={11} strokeWidth={2} />} />
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent>Rôle dans l'organisation</TooltipContent>
+                        <TooltipContent>{t('organizations.members.orgRole')}</TooltipContent>
                       </Tooltip>
                       {member.userRole && member.userRole !== member.roleInOrg && (() => {
                         const pHex = getPlatformRoleHex(member.userRole);
@@ -230,11 +233,11 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                 <StatusChip
                                   color={pHex}
                                   icon={<PlatformIcon size={11} strokeWidth={2} />}
-                                  label={getPlatformRoleLabel(member.userRole)}
+                                  label={t(getPlatformRoleLabelKey(member.userRole), getPlatformRoleLabel(member.userRole))}
                                 />
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Rôle sur la plateforme</TooltipContent>
+                            <TooltipContent>{t('organizations.members.platformRole')}</TooltipContent>
                           </Tooltip>
                         );
                       })()}
@@ -245,7 +248,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   <TableCell className={CELL_NOWRAP_CLASS}>
                     <p className="text-2xs text-muted-foreground tabular-nums">
                       {member.joinedAt
-                        ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
+                        ? new Date(member.joinedAt).toLocaleDateString(activeIntlLocale())
                         : '—'}
                     </p>
                   </TableCell>
@@ -263,14 +266,14 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                   variant="outline"
                                   size="icon-sm"
                                   onClick={() => setChangeRoleMember(member)}
-                                  aria-label="Changer le rôle"
+                                  aria-label={t('organizations.members.changeRole')}
                                   className={cn(ROW_ACTION_CLASS, ROW_ACTION_PRIMARY_CLASS)}
                                 >
                                   <EditIcon size={13} strokeWidth={1.75} />
                                 </Button>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Changer le rôle</TooltipContent>
+                            <TooltipContent>{t('organizations.members.changeRole')}</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -287,7 +290,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                 </Button>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Retirer de l'organisation</TooltipContent>
+                            <TooltipContent>{t('organizations.members.remove')}</TooltipContent>
                           </Tooltip>
                         </div>
                       )}

@@ -41,7 +41,8 @@ import {
   SlidersHorizontal, Search, BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
   MoreHorizontal, Power,
 } from 'lucide-react';
-// Feuille de style « studio accueil » partagée (scopée .be-home, accent indigo).
+// Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
+// module y est défini : bleu nuit, la teinte de la barre latérale relevée).
 import '../booking-engine/studio/studioHome.css';
 import ServicesCatalog from './marketplace/ServicesCatalog';
 import { type MarketplaceExperience } from './marketplace/marketplaceData';
@@ -779,7 +780,7 @@ const UpsellsAdmin: React.FC = () => {
       </Dialog>
 
       {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
-      <div className="be-home" data-accent="indigo">
+      <div className="be-home">
         <div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
           {selected ? renderDetail() : renderList()}
         </div>

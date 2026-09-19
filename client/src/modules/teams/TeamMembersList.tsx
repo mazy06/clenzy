@@ -135,9 +135,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
       technician: t('teams.roles.technician'),
       supervisor: t('teams.roles.supervisor'),
       manager: t('teams.roles.manager'),
-      laundry: 'Blanchisserie',
-      exterior_tech: 'Tech. Extérieur',
-      leader: "Chef d'équipe",
+      laundry: t('teams.roles.laundry'),
+      exterior_tech: t('teams.roles.exteriorTech'),
+      leader: t('teams.roles.leader'),
     };
     return roleLabels[role?.toLowerCase()] || role;
   };

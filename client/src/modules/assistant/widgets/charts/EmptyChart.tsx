@@ -1,5 +1,6 @@
 import React from 'react';
 import { WIDGET_OVERLINE } from './chartConstants';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface EmptyChartProps {
   label?: string;
@@ -16,13 +17,14 @@ interface EmptyChartProps {
  */
 export const EmptyChart: React.FC<EmptyChartProps> = ({
   label,
-  message = 'Aucune donnée à afficher',
+  message,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-1.5">
       {label && <p className={WIDGET_OVERLINE}>{label}</p>}
       <div className="rounded-xl border border-border bg-muted p-4 text-center">
-        <p className="text-xs text-muted-foreground">{message}</p>
+        <p className="text-xs text-muted-foreground">{message ?? t('assistant.noChartData')}</p>
       </div>
     </div>
   );

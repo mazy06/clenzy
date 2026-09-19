@@ -45,6 +45,7 @@ import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 interface PaymentHistoryPageProps {
   embedded?: boolean;
@@ -52,7 +53,7 @@ interface PaymentHistoryPageProps {
 
 const formatDate = (dateStr: string) => {
   try {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
+    return new Date(dateStr).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -175,7 +176,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       setTotalElements(search.trim() ? records.length : historyRes.totalElements);
       setSummary(summaryRes);
     } catch {
-      setError('Erreur lors du chargement des paiements');
+      setError(t('payments.errors.load'));
     } finally {
       setLoading(false);
     }
@@ -257,7 +258,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     if (!target) return;
     const trimmed = emailInput.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Veuillez saisir une adresse email valide');
+      setEmailError(t('payments.errors.invalidEmail'));
       return;
     }
     setEmailError(null);
@@ -280,7 +281,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       setRefundTarget(null);
       loadData(); // Recharger la liste
     } catch (err: unknown) {
-      setRefundError(err instanceof Error ? err.message : 'Erreur lors du remboursement');
+      setRefundError(err instanceof Error ? err.message : t('payments.errors.refund'));
     } finally {
       setRefundingPayment(null);
     }
@@ -564,7 +565,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label="Envoyer le lien de paiement par email"
+                                aria-label={t('payments.sendLinkByEmail')}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleSendPaymentLink(payment);
@@ -580,7 +581,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               </Button>
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent>Envoyer le lien de paiement par email</TooltipContent>
+                          <TooltipContent>{t('payments.sendLinkByEmail')}</TooltipContent>
                         </Tooltip>
                       )}
                       {payment.type !== 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
@@ -590,7 +591,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}
+                                aria-label={t(payment.type === 'SERVICE_REQUEST'
+                                  ? 'payments.payRequest'
+                                  : 'payments.payIntervention')}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handlePay(payment);
@@ -607,7 +610,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}
+                            {t(payment.type === 'SERVICE_REQUEST'
+                              ? 'payments.payRequest'
+                              : 'payments.payIntervention')}
                           </TooltipContent>
                         </Tooltip>
                       )}
@@ -677,7 +682,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       >
         <DialogContent className="sm:max-w-[444px]">
           <DialogHeader>
-            <DialogTitle>Confirmer le remboursement</DialogTitle>
+            <DialogTitle>{t('payments.confirmRefund')}</DialogTitle>
           </DialogHeader>
           <div>
             {refundTarget && (
@@ -687,7 +692,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
               </p>
             )}
             <span className="text-xs text-muted-foreground">
-              Cette action est irréversible. Le montant sera remboursé via Stripe.
+              {t('payments.refundIrreversible')}
             </span>
             {refundError && (
               <UiAlert variant="destructive" className="mt-2 py-0.5">
@@ -725,11 +730,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       >
         <DialogContent className="sm:max-w-[444px]">
           <DialogHeader>
-            <DialogTitle>Email du client</DialogTitle>
+            <DialogTitle>{t('payments.customerEmail')}</DialogTitle>
           </DialogHeader>
           <div>
             <p className="text-xs mb-3 text-muted-foreground">
-              Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
+              {t('payments.noEmailHint')}
             </p>
             <Field>
               <FieldLabel htmlFor="payment-guest-email">Adresse email</FieldLabel>

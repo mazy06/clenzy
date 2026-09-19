@@ -211,7 +211,6 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             endDate={endDate}
             onChangeStart={setStartDate}
             onChangeEnd={setEndDate}
-            isFrench={isFrench}
           />
         </div>
 

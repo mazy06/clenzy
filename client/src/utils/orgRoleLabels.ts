@@ -25,6 +25,11 @@ export function getOrgRoleLabel(role: string): string {
   return ORG_ROLE_LABELS[role] || role;
 }
 
+/** Cle i18n du role d'organisation — le libelle FR ci-dessus sert de repli. */
+export function getOrgRoleLabelKey(role: string): string {
+  return ORG_ROLE_LABELS[role] ? 'roles.org.' + role : '';
+}
+
 import type { LucideIcon } from 'lucide-react';
 import {
   StarRate,
@@ -102,6 +107,11 @@ export function getPlatformRoleLabel(role: string): string {
   return PLATFORM_ROLE_LABELS[role] || role;
 }
 
+/** Cle i18n du role plateforme — le libelle FR ci-dessus sert de repli. */
+export function getPlatformRoleLabelKey(role: string): string {
+  return PLATFORM_ROLE_LABELS[role] ? 'roles.platform.' + role : '';
+}
+
 const PLATFORM_ROLE_HEX: Record<string, string> = {
   SUPER_ADMIN: '#C97A7A',
   SUPER_MANAGER: '#7B68A8',
@@ -126,13 +136,13 @@ export function getPlatformRoleIcon(role: string): LucideIcon {
 
 /** Roles que l'on peut attribuer a un membre (tout sauf OWNER). */
 export const ASSIGNABLE_ORG_ROLES = [
-  { value: 'ADMIN', label: 'Administrateur' },
-  { value: 'MANAGER', label: 'Manager' },
-  { value: 'SUPERVISOR', label: 'Superviseur' },
-  { value: 'HOUSEKEEPER', label: 'Agent de menage' },
-  { value: 'TECHNICIAN', label: 'Technicien' },
-  { value: 'LAUNDRY', label: 'Blanchisserie' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Exterieur' },
-  { value: 'HOST', label: 'Hote' },
-  { value: 'MEMBER', label: 'Membre' },
+  { value: 'ADMIN', labelKey: 'roles.org.ADMIN', label: 'Administrateur' },
+  { value: 'MANAGER', labelKey: 'roles.org.MANAGER', label: 'Manager' },
+  { value: 'SUPERVISOR', labelKey: 'roles.org.SUPERVISOR', label: 'Superviseur' },
+  { value: 'HOUSEKEEPER', labelKey: 'roles.org.HOUSEKEEPER', label: 'Agent de menage' },
+  { value: 'TECHNICIAN', labelKey: 'roles.org.TECHNICIAN', label: 'Technicien' },
+  { value: 'LAUNDRY', labelKey: 'roles.org.LAUNDRY', label: 'Blanchisserie' },
+  { value: 'EXTERIOR_TECH', labelKey: 'roles.org.EXTERIOR_TECH', label: 'Tech. Exterieur' },
+  { value: 'HOST', labelKey: 'roles.org.HOST', label: 'Hote' },
+  { value: 'MEMBER', labelKey: 'roles.org.MEMBER', label: 'Membre' },
 ] as const;

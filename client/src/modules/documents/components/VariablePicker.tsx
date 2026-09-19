@@ -11,6 +11,7 @@ import {
 import { Search } from '../../../icons';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Sidebar de variables interpolables — chips tonales par categorie (tokens Baitly UI).
@@ -106,6 +107,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
   systemVariablesUsed = [],
   showDetails = true,
 }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
 
   const groupedFiltered = useMemo(() => {
@@ -140,8 +142,8 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
               pas a un lecteur d'ecran, d'ou l'aria-label. */}
           <InputGroupInput
             id="variable-picker-search"
-            aria-label="Filtrer les variables"
-            placeholder="Filtrer les variables…"
+            aria-label={t('documents.variables.filter')}
+            placeholder={t('documents.variables.filterPlaceholder')}
             className="text-[0.8125rem]"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -152,7 +154,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
       {/* Variables systeme (HTML-safe, non insertables) */}
       {systemVariablesUsed.length > 0 && (
         <div>
-          <SectionHeading label="VARIABLES SYSTÈME" tone={TONES.err} />
+          <SectionHeading label={t('documents.variables.systemGroup')} tone={TONES.err} />
           <div className="flex flex-wrap gap-0.5">
             {systemVariablesUsed.map((key) => (
               <Tooltip key={key}>
@@ -168,7 +170,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Contenu HTML généré automatiquement par le serveur. À ne pas supprimer.
+                  {t('documents.variables.serverGenerated')}
                 </TooltipContent>
               </Tooltip>
             ))}
@@ -231,7 +233,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
         <div>
           <Separator className="mb-[9px]" />
           <span className="text-xs font-semibold block mb-[0.35em]">
-            Détail des variables
+            {t('documents.variables.details')}
           </span>
           <div className="max-h-[200px] overflow-y-auto">
             {variables.map((v) => (

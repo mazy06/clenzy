@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import type { AssistantUsage } from '../../../services/api/assistantApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface AssistantUsageBadgeProps {
   usage: AssistantUsage | null;
@@ -27,6 +28,7 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
   loading,
   error,
 }) => {
+  const { t } = useTranslation();
   if (error) return null; // silent fail — pas d'erreur visible pour un nice-to-have
 
   const costLabel = loading ? '—' : formatCost(usage?.costUsd ?? 0);
@@ -64,13 +66,14 @@ const UsageTooltipContent: React.FC<{
   usage: AssistantUsage | null;
   loading: boolean;
 }> = ({ usage, loading }) => {
+  const { t } = useTranslation();
   if (loading) {
     return <span className="text-xs">Chargement…</span>;
   }
   if (!usage || usage.requestCount === 0) {
     return (
       <div className="min-w-[200px] text-xs">
-        Aucune consommation enregistree pour cette periode.
+        {t('assistant.usage.empty')}
       </div>
     );
   }
@@ -112,7 +115,7 @@ const UsageTooltipContent: React.FC<{
       {usage.byModel.length > 0 && (
         <>
           <div className="mt-1.5 border-t border-current/20 pt-1">
-            <span className={OVERLINE}>Par modele</span>
+            <span className={OVERLINE}>{t('assistant.usage.byModel')}</span>
           </div>
           {usage.byModel.map((m) => (
             <div className="flex justify-between items-baseline" key={m.model}>

@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage, Spinner } from '../../../component
 import { cn } from '../../../utils/cn';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface AvatarUploaderProps {
   user: Pick<User, 'id' | 'firstName' | 'lastName' | 'profilePictureUrl' | 'updatedAt'>;
@@ -17,10 +18,10 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 const validate = (file: File): string | null => {
   if (!ACCEPTED_TYPES.includes(file.type)) {
-    return 'Format non supporté (JPEG, PNG, WebP ou GIF uniquement)';
+    return 'users.avatarFormat';
   }
   if (file.size > MAX_BYTES) {
-    return 'Fichier trop volumineux (5 Mo maximum)';
+    return 'users.avatarTooLarge';
   }
   return null;
 };
@@ -37,6 +38,7 @@ const validate = (file: File): string | null => {
  * </ul>
  */
 const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -50,7 +52,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
   const upload = async (file: File) => {
     const issue = validate(file);
     if (issue) {
-      setError(issue);
+      setError(t(issue));
       return;
     }
     setError(null);
@@ -124,11 +126,10 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les marges UA
               que neutralisait `cn-text-*`. */}
           <p className="m-0 text-sm font-semibold text-foreground">
-            Photo de profil
+            {t('users.form.photo')}
           </p>
           <p className="m-0 mt-0.5 text-xs text-muted-foreground">
-            Glissez-déposez une image ou utilisez le bouton. JPEG, PNG, WebP ou GIF, 5 Mo max. La photo est
-            synchronisée avec les OTA connectées.
+            {t('users.form.photoHint')}
           </p>
         </div>
         <div className="flex gap-1.5 shrink-0">
@@ -146,7 +147,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
             onClick={() => inputRef.current?.click()}
           >
             <Upload size={16} strokeWidth={1.75} />
-            {photoUrl ? 'Remplacer' : 'Téléverser'}
+            {photoUrl ? 'Remplacer' : t('common.upload')}
           </BuiButton>
           {photoUrl && (
             <BuiButton

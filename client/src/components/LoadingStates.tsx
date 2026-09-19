@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../utils/cn';
 import { Button, Spinner } from './ui';
 import { Refresh, Warning as WarningIcon } from '../icons';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface LoadingStatesProps {
   state: 'loading' | 'user-loading' | 'permissions-loading' | 'error-loading' | 'ready';
@@ -16,32 +17,33 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
   onRetry,
   onClearError
 }) => {
+  const { t } = useTranslation();
   const getLoadingContent = () => {
     switch (state) {
       case 'loading':
         return {
-          title: 'Chargement de l\'application...',
-          description: 'Initialisation en cours'
+          title: t('loadingStates.app'),
+          description: t('loadingStates.appHint')
         };
       case 'user-loading':
         return {
-          title: 'Chargement de l\'utilisateur...',
-          description: 'Vérification de l\'authentification'
+          title: t('loadingStates.user'),
+          description: t('loadingStates.userHint')
         };
       case 'permissions-loading':
         return {
-          title: 'Chargement des permissions...',
-          description: 'Configuration de l\'accès'
+          title: t('loadingStates.permissions'),
+          description: t('loadingStates.permissionsHint')
         };
       case 'error-loading':
         return {
-          title: 'Erreur de chargement',
-          description: error || 'Une erreur est survenue'
+          title: t('loadingStates.error'),
+          description: error || t('common.errorOccurred')
         };
       default:
         return {
-          title: 'Chargement...',
-          description: 'Veuillez patienter'
+          title: t('common.loading'),
+          description: t('loadingStates.pleaseWait')
         };
     }
   };
@@ -74,7 +76,7 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
               {onRetry && (
                 <Button variant="outline" size="sm" onClick={onRetry}>
                   <Refresh strokeWidth={1.75} />
-                  Réessayer
+                  {t('common.retry')}
                 </Button>
               )}
               {onClearError && (

@@ -3,6 +3,7 @@ import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription, Field, FieldError, Spinner } from '../../../components/ui';
 import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from '../../../components/ui/combobox';
 import { AlertTriangle, BellRing } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const SENDER = 'info@clenzy.fr';
@@ -22,6 +23,7 @@ interface Props {
  * (self-send → soft bounces intermittents).
  */
 const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving }) => {
+  const { t } = useTranslation();
   // Copie editable initialisee depuis la prop ; le resync backend passe par le
   // remount via `key` chez le parent (LaunchSettingsSection) — plus d'effet miroir.
   const [emails, setEmails] = useState<string[]>(value);
@@ -73,11 +75,10 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
         </span>
         <div className="min-w-0">
           <p className="text-[0.8125rem] font-medium text-foreground">
-            Destinataires des notifications internes
+            {t('settings.emails.internalRecipients')}
           </p>
           <p className="text-xs text-muted-foreground">
-            Reçoivent les nouvelles demandes de devis, les copies de devis envoyés, la liste
-            d'attente et les demandes de maintenance. L'expéditeur reste toujours info@clenzy.fr.
+            {t('settings.emails.internalRecipientsHint', { sender: 'info@clenzy.fr' })}
           </p>
         </div>
       </div>
@@ -110,14 +111,14 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
                   <ComboboxChipsInput
                     className="text-[0.8rem]"
                     aria-invalid={!!inputError}
-                    placeholder={values.length === 0 ? 'ajouter un email puis Entrée' : ''}
+                    placeholder={values.length === 0 ? t('settings.notifEmails.addPlaceholder') : ''}
                   />
                 </React.Fragment>
               )}
             </ComboboxValue>
           </ComboboxChips>
           <ComboboxContent anchor={anchor}>
-            <ComboboxEmpty>Saisissez une adresse email.</ComboboxEmpty>
+            <ComboboxEmpty>{t('settings.emails.enterAddress')}</ComboboxEmpty>
             <ComboboxList>
               {(item: string) => (
                 <ComboboxItem key={item} value={item}>
@@ -134,8 +135,7 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
         <Alert variant="warning" className="mt-[4.5px] min-[600px]:ms-[30px]">
           <AlertTriangle />
           <AlertDescription className="text-[0.72rem]">
-            info@clenzy.fr est l'expéditeur : se l'envoyer à soi-même provoque des soft bounces
-            intermittents. Préférez une autre adresse (ex. votre boîte perso).
+            {t('settings.emails.selfSendWarning', { sender: 'info@clenzy.fr' })}
           </AlertDescription>
         </Alert>
       )}

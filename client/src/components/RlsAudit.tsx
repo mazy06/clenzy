@@ -32,6 +32,8 @@ import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
 import StatTile from './baitly/StatTile';
 import StatusChip from './StatusChip';
 import EmptyState from './EmptyState';
+import { activeIntlLocale } from '../utils/activeLocale';
+import { useTranslation } from '../hooks/useTranslation';
 
 /** Teintes Baitly UI des icones de tuile (classes utilitaires). */
 const VERT = 'text-success';
@@ -40,7 +42,7 @@ const ROUGE = 'text-destructive';
 const BLEU = 'text-info';
 
 const dateCourte = (iso: string) =>
-  new Date(iso).toLocaleDateString('fr-FR', {
+  new Date(iso).toLocaleDateString(activeIntlLocale(), {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
@@ -58,6 +60,7 @@ const joursDepuis = (iso: string) =>
  * question : peut-on activer la RLS sans vider les ecrans ?
  */
 const RlsAudit: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -88,11 +91,10 @@ const RlsAudit: React.FC = () => {
       return (
         <Alert variant="warning">
           <TriangleAlert />
-          <AlertTitle>Backend non a jour</AlertTitle>
+          <AlertTitle>{t('rlsAudit.staleBackend')}</AlertTitle>
           <AlertDescription>
-            Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
-            Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
-            le reconstruire et le relancer.
+            {t('rlsAudit.unknownEndpoint')} <code>/api/admin/rls-audit</code>.{' '}
+            {t('rlsAudit.staleBackendBody')}
           </AlertDescription>
         </Alert>
       );
@@ -101,10 +103,9 @@ const RlsAudit: React.FC = () => {
       return (
         <Alert variant="warning">
           <TriangleAlert />
-          <AlertTitle>Acces reserve</AlertTitle>
+          <AlertTitle>{t('rlsAudit.accessReserved')}</AlertTitle>
           <AlertDescription>
-            Cet inventaire designe du code et sert une decision d'infrastructure : il est
-            reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+            {t('rlsAudit.platformOnly')}
           </AlertDescription>
         </Alert>
       );
@@ -112,9 +113,9 @@ const RlsAudit: React.FC = () => {
     return (
       <Alert variant="destructive">
         <CircleAlert />
-        <AlertTitle>Inventaire indisponible</AlertTitle>
+        <AlertTitle>{t('rlsAudit.inventoryUnavailable')}</AlertTitle>
         <AlertDescription>
-          {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
+          {(error as { message?: string }).message ?? t('common.unexpectedLoadError')}
         </AlertDescription>
       </Alert>
     );
@@ -134,14 +135,10 @@ const RlsAudit: React.FC = () => {
       {data && data.auditActif && !data.mesureExploitable && (
         <Alert variant="destructive" className="mb-[18px]">
           <CircleAlert />
-          <AlertTitle>Cet inventaire est sans valeur</AlertTitle>
+          <AlertTitle>{t('rlsAudit.worthless')}</AlertTitle>
           <AlertDescription>
-            L'instrumentation tourne, mais l'aspect qui pose le contexte tenant est inactif
-            (<code>clenzy.security.rls.enabled=false</code>). Toutes les requetes sont donc
-            signalees, pas seulement les chemins a risque — et un inventaire vide ne
-            signifierait rien non plus. Poser ce parametre a <code>true</code> : sans risque
-            tant que la RLS n'est pas appliquee en base, puisque aucune politique ne lit ces
-            valeurs.
+            {t('rlsAudit.aspectInactive')}<code>clenzy.security.rls.enabled=false</code>{t('rlsAudit.aspectInactiveTail')}{' '}
+            {t('rlsAudit.aspectInactiveBody')} <code>true</code>{t('rlsAudit.aspectInactiveEnd')}
           </AlertDescription>
         </Alert>
       )}
@@ -149,10 +146,9 @@ const RlsAudit: React.FC = () => {
       {data && !data.auditActif && (
         <Alert variant="info" className="mb-[18px]">
           <Info />
-          <AlertTitle>Mesure a l'arret</AlertTitle>
+          <AlertTitle>{t('rlsAudit.measurementStopped')}</AlertTitle>
           <AlertDescription>
-            L'instrumentation est desactivee. Les chemins ci-dessous datent de la derniere
-            campagne ; aucun nouveau constat n'est enregistre.
+            {t('rlsAudit.disabled')}
           </AlertDescription>
         </Alert>
       )}
@@ -160,11 +156,9 @@ const RlsAudit: React.FC = () => {
       {data?.sature && (
         <Alert variant="warning" className="mb-[18px]">
           <TriangleAlert />
-          <AlertTitle>Inventaire incomplet</AlertTitle>
+          <AlertTitle>{t('rlsAudit.incompleteInventory')}</AlertTitle>
           <AlertDescription>
-            Le tampon a atteint son plafond : de nouveaux chemins ne sont plus enregistres.
-            Traiter ceux deja remontes avant de poursuivre la mesure — d'ici la, l'absence de
-            nouveaux constats ne prouve rien.
+            {t('rlsAudit.incompleteInventoryBody')}
           </AlertDescription>
         </Alert>
       )}
@@ -172,10 +166,9 @@ const RlsAudit: React.FC = () => {
       {data?.rlsDejaActive && (
         <Alert variant="warning" className="mb-[18px]">
           <TriangleAlert />
-          <AlertTitle>La RLS est deja active</AlertTitle>
+          <AlertTitle>{t('rlsAudit.rlsActive')}</AlertTitle>
           <AlertDescription>
-            Les chemins listes ci-dessous ne renvoient plus zero ligne « en cas d'activation » :
-            ils le font <strong>deja</strong>. A traiter en priorite.
+            {t('rlsAudit.rlsActiveHint')} <strong>{t('rlsAudit.already')}</strong>{t('rlsAudit.priority')}
           </AlertDescription>
         </Alert>
       )}
@@ -183,11 +176,9 @@ const RlsAudit: React.FC = () => {
       {enAttente > 0 && (
         <Alert variant="warning" className="mb-[18px]">
           <TriangleAlert />
-          <AlertTitle>{enAttente} constat(s) en attente d'ecriture</AlertTitle>
+          <AlertTitle>{t('rlsAudit.pendingWrites', { count: enAttente })}</AlertTitle>
           <AlertDescription>
-            Des chemins viennent d'etre detectes mais ne sont pas encore enregistres — le
-            vidage a lieu toutes les 5 minutes. Ils apparaitront ci-dessous au prochain
-            passage. D'ici la, ne pas lire cet ecran comme « aucun chemin a traiter ».
+            {t('rlsAudit.pendingWritesBody')}
           </AlertDescription>
         </Alert>
       )}
@@ -196,47 +187,47 @@ const RlsAudit: React.FC = () => {
         <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={ouverts.length === 0 ? <ShieldCheck /> : <ShieldAlert />}
-            label="Chemins a traiter"
+            label={t('rlsAudit.pathsToHandle')}
             value={isLoading ? '—' : ouverts.length + enAttente}
             iconClassName={ouverts.length + enAttente === 0 ? VERT : ROUGE}
             loading={isLoading}
             hint={
               ouverts.length + enAttente === 0
-                ? 'Condition d’activation remplie'
+                ? t('rlsAudit.activationReady')
                 : enAttente > 0 && ouverts.length === 0
-                  ? `${enAttente} constat(s) detecte(s), pas encore ecrit(s)`
-                  : 'La RLS ne peut pas etre activee'
+                  ? t('rlsAudit.detectedNotWritten', { count: enAttente })
+                  : t('rlsAudit.cannotActivate')
             }
           />
         </div>
         <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Check />}
-            label="Chemins traites"
+            label={t('rlsAudit.pathsHandled')}
             value={isLoading ? '—' : traites.length}
             iconClassName={VERT}
             loading={isLoading}
-            hint="Conserves : une reapparition serait visible"
+            hint={t('rlsAudit.pathsHandledHint')}
           />
         </div>
         <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Clock />}
-            label="Plus ancien constat"
+            label={t('rlsAudit.oldestFinding')}
             value={plusAncien ? `${joursDepuis(plusAncien.firstSeenAt)} j` : '—'}
             iconClassName={AMBRE}
             loading={isLoading}
-            hint="Anciennete du plus vieux chemin ouvert"
+            hint={t('rlsAudit.oldestFindingHint')}
           />
         </div>
         <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Layers />}
-            label="En attente d'ecriture"
+            label={t('rlsAudit.awaitingWrite')}
             value={isLoading ? '—' : enAttente}
             iconClassName={BLEU}
             loading={isLoading}
-            hint="Vidage automatique toutes les 5 min"
+            hint={t('rlsAudit.awaitingWriteHint')}
           />
         </div>
       </div>
@@ -246,12 +237,10 @@ const RlsAudit: React.FC = () => {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <h6 className="text-sm font-semibold text-foreground mb-0.5">
-                Chemins sans contexte tenant
+                {t('rlsAudit.noContextPaths')}
               </h6>
               <p className="text-xs text-muted-foreground">
-                Une fois la RLS active, ces requetes renverront zero ligne — sans lever
-                d'erreur. Le nombre d'occurrences indique l'urgence : un chemin tres emprunte
-                casserait plus d'ecrans qu'un chemin marginal.
+                {t('rlsAudit.noContextPathsBody')}
               </p>
             </div>
             {/* Un correctif structurel rend tout l'inventaire caduc d'un coup : le fermer
@@ -266,7 +255,7 @@ const RlsAudit: React.FC = () => {
                 onClick={() => setConfirmerFermetureEnMasse(true)}
               >
                 <CheckCheck />
-                Tout marquer traite
+                {t('rlsAudit.markAllHandled')}
               </Button>
             )}
           </div>
@@ -278,14 +267,13 @@ const RlsAudit: React.FC = () => {
             <Alert variant="warning" className="mb-3">
               <TriangleAlert />
               <AlertTitle>
-                {marquerTousTraites.data.traites} chemin(s) ferme(s),{' '}
-                {marquerTousTraites.data.enAttente} constat(s) non couvert(s)
+                {t('rlsAudit.partialClose', {
+                  closed: marquerTousTraites.data.traites,
+                  pending: marquerTousTraites.data.enAttente,
+                })}
               </AlertTitle>
               <AlertDescription>
-                Ces constats etaient encore en memoire au moment de la fermeture. Ceux qui
-                portent sur un chemin qu'on vient de fermer le rouvriront au prochain vidage
-                et s'afficheront « reapparu apres correction » : ils sont seulement arrives
-                en retard, ce n'est pas une regression.
+                {t('rlsAudit.partialCloseBody')}
               </AlertDescription>
             </Alert>
           )}
@@ -293,24 +281,22 @@ const RlsAudit: React.FC = () => {
           {!isLoading && ouverts.length === 0 && traites.length === 0 && enAttente === 0 ? (
             <EmptyState
               icon={<ShieldCheck />}
-              title="Aucun chemin detecte"
-              description={
-                data?.mesureExploitable
-                  ? 'Aucune requete ne s’execute sans contexte tenant depuis le debut de la mesure. Laisser courir un cycle d’usage complet — fins de mois, exports, taches planifiees — avant d’en conclure que la RLS peut etre activee.'
-                  : 'La mesure n’est pas exploitable en l’etat : ce vide ne prouve rien.'
-              }
+              title={t('rlsAudit.empty')}
+              description={t(data?.mesureExploitable
+                ? 'rlsAudit.emptyMeaningful'
+                : 'rlsAudit.emptyWorthless')}
             />
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Origine</TableHead>
-                    <TableHead>Table</TableHead>
-                    <TableHead className="text-end">Occurrences</TableHead>
-                    <TableHead>Premier constat</TableHead>
-                    <TableHead>Dernier constat</TableHead>
-                    <TableHead className="text-end">Action</TableHead>
+                    <TableHead>{t('rlsAudit.columns.origin')}</TableHead>
+                    <TableHead>{t('rlsAudit.columns.table')}</TableHead>
+                    <TableHead className="text-end">{t('rlsAudit.columns.occurrences')}</TableHead>
+                    <TableHead>{t('rlsAudit.columns.firstSeen')}</TableHead>
+                    <TableHead>{t('rlsAudit.columns.lastSeen')}</TableHead>
+                    <TableHead className="text-end">{t('rlsAudit.columns.action')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -335,14 +321,14 @@ const RlsAudit: React.FC = () => {
                             <span>{chemin.origin}</span>
                           )}
                           {reapparu && (
-                            <StatusChip tone="warn" label="reapparu apres correction" className="ms-1.5" />
+                            <StatusChip tone="warn" label={t('rlsAudit.reappeared')} className="ms-1.5" />
                           )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{chemin.tableName}</Badge>
                         </TableCell>
                         <TableCell className="text-end tabular-nums">
-                          {chemin.occurrences.toLocaleString('fr-FR')}
+                          {chemin.occurrences.toLocaleString(activeIntlLocale())}
                         </TableCell>
                         <TableCell className="tabular-nums whitespace-nowrap">
                           {dateCourte(chemin.firstSeenAt)}
@@ -352,7 +338,7 @@ const RlsAudit: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-end">
                           {chemin.resolvedAt && !reapparu ? (
-                            <StatusChip tone="ok" label="traite" />
+                            <StatusChip tone="ok" label={t('rlsAudit.handled')} />
                           ) : (
                             <Button
                               variant="ghost"
@@ -360,7 +346,7 @@ const RlsAudit: React.FC = () => {
                               disabled={marquerTraite.isPending}
                               onClick={() => marquerTraite.mutate(chemin.id)}
                             >
-                              Marquer traite
+                              {t('rlsAudit.markHandled')}
                             </Button>
                           )}
                         </TableCell>
@@ -378,28 +364,23 @@ const RlsAudit: React.FC = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Marquer traites les {ouverts.length} chemins ouverts ?
+              {t('rlsAudit.confirmBulkTitle', { count: ouverts.length })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              A reserver a un correctif structurel, qui rend l'inventaire entier caduc — pas
-              a une liste qu'on veut voir disparaitre. Les lignes sont conservees : si l'un
-              de ces chemins reapparait, il se rouvrira de lui-meme et s'affichera « reapparu
-              apres correction ».
+              {t('rlsAudit.confirmBulkBody')}
               {enAttente > 0 && (
                 <>
                   {' '}
-                  <strong>
-                    {enAttente} constat(s) sont encore en memoire et ne seront pas couverts
-                  </strong>{' '}
-                  — le vidage a lieu toutes les 5 minutes.
+                  <strong>{t('rlsAudit.confirmBulkPending', { count: enAttente })}</strong>{' '}
+                  {t('rlsAudit.confirmBulkFlush')}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => marquerTousTraites.mutate()}>
-              Tout marquer traite
+              {t('rlsAudit.markAllHandled')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

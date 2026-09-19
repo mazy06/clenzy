@@ -19,6 +19,7 @@ import type {
   ReportSection,
   ReportSnapshot,
 } from '../../../services/api/reportDocumentsApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 /**
  * Le snapshot, à l'écran.
@@ -47,7 +48,7 @@ const SnapshotView: React.FC<{ snapshot: ReportSnapshot }> = ({ snapshot }) => {
         footer={
           <p className="m-0 text-2xs text-muted-foreground">
             Écarts affichés face à la même période l'an dernier · données arrêtées le{' '}
-            {new Date(meta.dataAsOf).toLocaleString('fr-FR', {
+            {new Date(meta.dataAsOf).toLocaleString(activeIntlLocale(), {
               day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
           </p>
@@ -86,8 +87,8 @@ const CoverBand: React.FC<{ snapshot: ReportSnapshot }> = ({ snapshot }) => {
         </div>
         <div className="text-end text-xs text-muted-foreground">
           <p className="m-0">
-            {new Date(meta.periodStart).toLocaleDateString('fr-FR')} —{' '}
-            {new Date(meta.periodEnd).toLocaleDateString('fr-FR')}
+            {new Date(meta.periodStart).toLocaleDateString(activeIntlLocale())} —{' '}
+            {new Date(meta.periodEnd).toLocaleDateString(activeIntlLocale())}
           </p>
           <p className="m-0 tabular-nums">
             {meta.scopeLabels.length} bien{meta.scopeLabels.length > 1 ? 's' : ''} · {meta.currency}
@@ -327,13 +328,13 @@ const alignClass = (align: 'START' | 'CENTER' | 'END' | undefined, index: number
 const formatterFor = (unit: string | null, currency: string) => {
   const symbol = currency === 'EUR' ? '€' : currency;
   if (unit === 'money') {
-    const compact = new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 });
+    const compact = new Intl.NumberFormat(activeIntlLocale(), { notation: 'compact', maximumFractionDigits: 1 });
     return (value: number) => `${compact.format(value)} ${symbol}`;
   }
   if (unit === 'percent') {
-    return (value: number) => `${value.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`;
+    return (value: number) => `${value.toLocaleString(activeIntlLocale(), { maximumFractionDigits: 1 })} %`;
   }
-  return (value: number) => value.toLocaleString('fr-FR');
+  return (value: number) => value.toLocaleString(activeIntlLocale());
 };
 
 export default SnapshotView;

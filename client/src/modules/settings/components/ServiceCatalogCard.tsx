@@ -3,6 +3,7 @@ import { Badge } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import type { CatalogService } from '../../../services/integrations/servicesCatalog';
 import ServiceGridCard from './ServiceGridCard';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Card du catalogue de services (Insurance, Cleaning, Smart Locks, Activités, Avis…).
@@ -18,19 +19,20 @@ interface ServiceCatalogCardProps {
 }
 
 export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogCardProps) {
+  const { t } = useTranslation();
   const chip = getChipMeta(service);
   return (
     <ServiceGridCard
       serviceTooltipId={service.id}
       tooltipData={{
-        description: service.tooltipDescription,
-        accessModality: service.accessModality,
+        descriptionKey: service.tooltipKey,
+        accessKey: service.accessKey,
         websiteUrl: service.websiteUrl,
         region: service.region,
         name: service.name,
       }}
       label={service.name}
-      description={service.shortDescription}
+      description={t(service.shortKey)}
       role="button"
       onClick={() => onClick(service)}
       logo={

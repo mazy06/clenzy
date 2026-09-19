@@ -452,7 +452,7 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
             const rate = row.rate;
             return (
               <div key={row.propertyId} className="flex items-center gap-2.5">
-                <span className="w-32 truncate text-xs font-medium text-foreground" title={row.name}>
+                <span dir="auto" className="w-32 truncate text-xs font-medium text-foreground" title={row.name}>
                   {row.name}
                 </span>
                 <div

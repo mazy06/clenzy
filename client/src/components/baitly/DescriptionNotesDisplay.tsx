@@ -1,5 +1,6 @@
 import { CheckSquareIcon, EllipsisIcon, ListChecksIcon, WrenchIcon } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/DescriptionNotesDisplay.tsx (MUI).
@@ -19,24 +20,24 @@ export interface DescriptionNotesDisplayProps {
  *  la teinte vive de la variante pour la pastille des lignes simples. */
 const VARIANT_CONFIG: Record<
   ConsigneVariant,
-  { title: string; icon: React.ReactNode; tile: string; accent: string; dot: string }
+  { titleKey: string; icon: React.ReactNode; tile: string; accent: string; dot: string }
 > = {
   cleaning: {
-    title: 'Consignes de ménage',
+    titleKey: 'notes.cleaning',
     icon: <ListChecksIcon />,
     tile: 'bg-primary-soft border-primary/25',
     accent: 'text-primary',
     dot: 'bg-primary',
   },
   maintenance: {
-    title: 'Consignes de travaux',
+    titleKey: 'notes.maintenance',
     icon: <WrenchIcon />,
     tile: 'bg-warning-soft border-warning/25',
     accent: 'text-warning-ink',
     dot: 'bg-warning',
   },
   other: {
-    title: 'Consignes diverses',
+    titleKey: 'notes.other',
     icon: <EllipsisIcon />,
     tile: 'bg-muted border-border',
     accent: 'text-muted-foreground',
@@ -49,6 +50,7 @@ export default function DescriptionNotesDisplay({
   notes,
   variant = 'other',
 }: DescriptionNotesDisplayProps) {
+  const { t } = useTranslation();
   const config = VARIANT_CONFIG[variant];
   const lines = (notes ?? '')
     .split('\n')
@@ -71,7 +73,7 @@ export default function DescriptionNotesDisplay({
             )}
           >
             {config.icon}
-            {config.title}
+            {t(config.titleKey)}
           </h4>
           <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
             {lines.map((line, index) => {

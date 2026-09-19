@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MyRatesSettings from './MyRatesSettings';
 import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 vi.mock('../../services/api/housekeeperRatesApi', () => ({ housekeeperRatesApi: { getMy: vi.fn(), updateMy: vi.fn() } }));
 vi.mock('../../hooks/useTranslation', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));

@@ -120,59 +120,49 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
  */
 export interface IconGroup {
   id: string;
-  label: string;
+  /** Libelle en locales : `amenityIcons.groups.<id>`. */
   icons: string[];
 }
 
 export const ICON_CATALOG: IconGroup[] = [
   {
     id: 'comfort',
-    label: 'Confort & climat',
     icons: ['Wifi', 'WifiHigh', 'Tv', 'Tv2', 'Snowflake', 'Flame', 'Wind', 'Sun', 'Thermometer', 'Lightbulb', 'Lamp'],
   },
   {
     id: 'furniture',
-    label: 'Mobilier & literie',
     icons: ['Sofa', 'Armchair', 'Bed', 'BedDouble', 'BedSingle'],
   },
   {
     id: 'kitchen',
-    label: 'Cuisine',
     icons: ['ChefHat', 'UtensilsCrossed', 'Utensils', 'Refrigerator', 'Microwave', 'Coffee', 'Wine', 'Soup', 'Pizza'],
   },
   {
     id: 'bath',
-    label: 'Salle de bain & linge',
     icons: ['Bath', 'ShowerHead', 'Droplets', 'WashingMachine', 'Shirt'],
   },
   {
     id: 'outdoor',
-    label: 'Extérieur',
     icons: ['Trees', 'TreePine', 'Flower', 'Flower2', 'Waves', 'Mountain', 'Tent', 'Umbrella'],
   },
   {
     id: 'mobility',
-    label: 'Mobilité & parking',
     icons: ['Car', 'CarFront', 'Bike', 'ParkingCircle'],
   },
   {
     id: 'safety',
-    label: 'Sécurité & famille',
     icons: ['Lock', 'KeyRound', 'Shield', 'ShieldCheck', 'Baby', 'Cigarette', 'CigaretteOff', 'PawPrint', 'AlertTriangle', 'Camera'],
   },
   {
     id: 'tech',
-    label: 'Tech & divertissement',
     icons: ['Speaker', 'Music', 'Gamepad2', 'Smartphone', 'Tablet', 'Laptop', 'Headphones', 'Printer', 'Router'],
   },
   {
     id: 'wellness',
-    label: 'Bien-être',
     icons: ['Dumbbell', 'Heart', 'HeartHandshake'],
   },
   {
     id: 'misc',
-    label: 'Divers',
     icons: ['Home', 'Building', 'Building2', 'Sparkles', 'Star', 'Package', 'Briefcase', 'CalendarDays', 'MapPin'],
   },
 ];

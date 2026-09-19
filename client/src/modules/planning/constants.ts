@@ -99,23 +99,14 @@ export const ZOOM_CONFIGS: Record<ZoomLevel, ZoomConfig> = {
   },
 };
 
-// ─── Zoom labels (for toolbar) ──────────────────────────────────────────────
+// ─── Niveaux de zoom (ordre d'affichage du selecteur) ───────────────────────
+//
+// Les LIBELLES ne vivent plus ici : ils dependent de la langue et se prennent
+// dans `planning.zoom.<level>` / `planning.zoom.<level>Short`. Les formes
+// abregees servent sous ~420 px, ou les libelles pleins (138 px de texte)
+// feraient passer le groupe de navigation a la ligne.
 
-export const ZOOM_LABELS: Record<ZoomLevel, string> = {
-  week: 'Semaine',
-  fortnight: 'Quinzaine',
-  month: 'Mois',
-};
-
-// Abreviations affichees sous ~420 px : les libelles pleins font 138 px de
-// texte seul, de quoi faire passer le groupe de navigation a la ligne. Memes
-// mots abreges — pas de nouvelle semantique (« 14 j » aurait fait croire a une
-// duree parametrable).
-export const ZOOM_LABELS_SHORT: Record<ZoomLevel, string> = {
-  week: 'Sem.',
-  fortnight: 'Quinz.',
-  month: 'Mois',
-};
+export const ZOOM_LEVELS: readonly ZoomLevel[] = ['week', 'fortnight', 'month'];
 
 // ─── Bar styling ─────────────────────────────────────────────────────────────
 

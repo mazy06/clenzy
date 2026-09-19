@@ -20,6 +20,7 @@ import IntegrationConfigDialog from './components/IntegrationConfigDialog';
 import WhatsAppProviderConfigSection from './WhatsAppProviderConfigSection';
 import { whatsAppConfigApi } from '../../services/api/whatsAppConfigApi';
 import { getServicesByCategory } from '../../services/integrations/servicesCatalog';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /** Le service catalogue WhatsApp (source de vérité visuelle : nom, couleur, desc). */
 const WHATSAPP_SERVICE = getServicesByCategory('messaging').find(
@@ -39,6 +40,7 @@ const WHATSAPP_SERVICE = getServicesByCategory('messaging').find(
  * configuration du <b>compte WhatsApp Baitly GLOBAL</b> (singleton plateforme).</p>
  */
 export default function IntegrationsWhatsAppConfig() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -90,7 +92,7 @@ export default function IntegrationsWhatsAppConfig() {
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        {configured ? 'Configuration WhatsApp · Modifier' : 'Configurer le compte WhatsApp'}
+        {configured ? t('settings.whatsapp.configureEdit') : t('settings.whatsapp.configureAccount')}
       </TooltipContent>
     </Tooltip>
   );
@@ -105,14 +107,14 @@ export default function IntegrationsWhatsAppConfig() {
             size="icon-sm"
             onClick={() => setDisconnectOpen(true)}
             disabled={disconnect.isPending}
-            aria-label="Déconnecter WhatsApp"
+            aria-label={t('settings.whatsapp.disconnectCta')}
             className="text-muted-foreground hover:text-destructive-ink hover:bg-destructive-soft"
           >
             <LinkOffIcon size={16} strokeWidth={2} />
           </Button>
         </span>
       </TooltipTrigger>
-      <TooltipContent>Déconnecter (désactiver l'envoi WhatsApp)</TooltipContent>
+      <TooltipContent>{t('settings.whatsapp.disconnectAria')}</TooltipContent>
     </Tooltip>
   ) : (
     <Tooltip>
@@ -130,7 +132,7 @@ export default function IntegrationsWhatsAppConfig() {
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        {configured ? "Activer l'envoi WhatsApp" : 'Connecter le compte WhatsApp'}
+        {configured ? t('settings.whatsapp.enableSending') : t('settings.whatsapp.connectAccount')}
       </TooltipContent>
     </Tooltip>
   );
@@ -143,21 +145,20 @@ export default function IntegrationsWhatsAppConfig() {
           Messagerie
         </p>
         <p className="text-xs text-muted-foreground mb-0.5">
-          Envoyez vos messages WhatsApp via l'API native du provider, sans intermédiaire.
-          Compte WhatsApp unique pour toute la plateforme.
+          {t('settings.whatsapp.nativeApiHint')}
         </p>
         <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           <ServiceGridCard
             serviceTooltipId={service.id}
             tooltipData={{
-              description: service.tooltipDescription,
-              accessModality: service.accessModality,
+              descriptionKey: service.tooltipKey,
+              accessKey: service.accessKey,
               websiteUrl: service.websiteUrl,
               region: service.region,
               name: service.name,
             }}
             label={service.name}
-            description={service.shortDescription}
+            description={t(service.shortKey)}
             status={connected ? 'connected' : 'idle'}
             onClick={() => setOpen(true)}
             logo={
@@ -188,7 +189,7 @@ export default function IntegrationsWhatsAppConfig() {
                 {service.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {service.shortDescription}
+                {t(service.shortKey)}
               </p>
             </div>
           </div>
@@ -204,10 +205,9 @@ export default function IntegrationsWhatsAppConfig() {
       <Dialog open={disconnectOpen} onOpenChange={(next) => { if (!next) setDisconnectOpen(false); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-semibold">Déconnecter WhatsApp ?</DialogTitle>
+            <DialogTitle className="font-semibold">{t('settings.whatsapp.disconnectTitle')}</DialogTitle>
             <DialogDescription>
-              L'envoi de messages WhatsApp sera désactivé pour toute la plateforme. Les identifiants
-              restent enregistrés : vous pourrez réactiver à tout moment.
+              {t('settings.whatsapp.disconnectBody')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -219,7 +219,7 @@ export default function IntegrationsWhatsAppConfig() {
               variant="destructive"
               disabled={disconnect.isPending}
             >
-              {disconnect.isPending ? <Spinner className="size-3.5" /> : 'Déconnecter'}
+              {disconnect.isPending ? <Spinner className="size-3.5" /> : t('settings.integrations.disconnect')}
             </Button>
           </DialogFooter>
         </DialogContent>

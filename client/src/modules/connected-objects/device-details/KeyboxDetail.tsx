@@ -14,12 +14,14 @@ import {
 } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotification } from '../../../hooks/useNotification';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 // Statuts de code → tons sémantiques de la primitive : actif = ok, utilisé =
 // info, expiré = neutre, annulé = err. Le couple encre `-ink` / fond `-soft`
@@ -49,6 +51,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
  * offers / création de gardien des anciens écrans).
  */
 export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { notify } = useNotification();
   const [subTab, setSubTab] = useState(0);
@@ -78,7 +81,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
       void qc.invalidateQueries({ queryKey: ['key-exchange-codes', device.id] });
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : 'Échec de la génération'),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : t('accessCodes.generationFailed')),
   });
 
   const cancel = useMutation({
@@ -98,14 +101,14 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
       {/* Infos du point */}
       <Card className="gap-0 py-0 p-3">
         <h6 className="text-xs font-semibold mb-1.5 flex items-center gap-0.5">
-          <LocationOn size={15} strokeWidth={1.75} /> Point de remise
+          <LocationOn size={15} strokeWidth={1.75} /> {t('connectedObjects.keybox.handoverPoint')}
         </h6>
-        <InfoRow label="Fournisseur" value={point?.provider ?? device.provider} />
-        <InfoRow label="Commerce" value={point?.storeName ?? device.name} />
-        <InfoRow label="Adresse" value={point?.storeAddress} />
-        <InfoRow label="Téléphone" value={point?.storePhone} />
-        <InfoRow label="Horaires" value={point?.storeOpeningHours} />
-        <InfoRow label="Logement" value={device.propertyName} />
+        <InfoRow label={t('connectedObjects.keybox.provider')} value={point?.provider ?? device.provider} />
+        <InfoRow label={t('connectedObjects.keybox.store')} value={point?.storeName ?? device.name} />
+        <InfoRow label={t('connectedObjects.keybox.address')} value={point?.storeAddress} />
+        <InfoRow label={t('connectedObjects.keybox.phone')} value={point?.storePhone} />
+        <InfoRow label={t('connectedObjects.keybox.openingHours')} value={point?.storeOpeningHours} />
+        <InfoRow label={t('connectedObjects.keybox.property')} value={device.propertyName} />
       </Card>
 
       {/* Codes | Mouvements */}
@@ -130,7 +133,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                   le bouton doit s'aligner sur la ligne de saisie et non au centre. */}
               <div className="flex gap-1.5 items-end">
                 <Field className="w-auto flex-1 max-w-[320px]">
-                  <FieldLabel htmlFor="keybox-guest-name">Nom du voyageur (optionnel)</FieldLabel>
+                  <FieldLabel htmlFor="keybox-guest-name">{t('connectedObjects.keybox.guestName')}</FieldLabel>
                   <Input
                     id="keybox-guest-name"
                     value={guestName}
@@ -152,7 +155,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
               {codesQuery.isLoading ? (
                 <Skeleton className="h-[140px] w-full rounded-xl" />
               ) : codes.length === 0 ? (
-                <EmptyState icon={<VpnKey />} title="Aucun code actif" description="Générez un code de remise pour un voyageur." />
+                <EmptyState icon={<VpnKey />} title={t('connectedObjects.keybox.noActiveCode')} description={t('connectedObjects.keybox.noActiveCodeHint')} />
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
                   <Table>
@@ -186,7 +189,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                                     <Button
                                       variant="ghost"
                                       size="icon-sm"
-                                      aria-label="Annuler ce code"
+                                      aria-label={t('connectedObjects.keybox.cancelCode')}
                                       onClick={() => cancel.mutate(c.id)}
                                       disabled={cancel.isPending}
                                       className="text-destructive hover:text-destructive-ink"
@@ -195,7 +198,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                                     </Button>
                                   </span>
                                 </TooltipTrigger>
-                                <TooltipContent>Annuler ce code</TooltipContent>
+                                <TooltipContent>{t('connectedObjects.keybox.cancelCode')}</TooltipContent>
                               </Tooltip>
                             )}
                           </TableCell>
@@ -212,7 +215,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
             eventsQuery.isLoading ? (
               <Skeleton className="h-[140px] w-full rounded-xl" />
             ) : (eventsQuery.data?.content.length ?? 0) === 0 ? (
-              <EmptyState icon={<History />} title="Aucun mouvement" description="Les remises et collectes de clés de ce logement apparaîtront ici." />
+              <EmptyState icon={<History />} title={t('connectedObjects.keybox.noMovement')} description={t('connectedObjects.keybox.noMovementHint')} />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
                 <Table>
@@ -231,7 +234,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                         <TableCell>{ev.actorName || '—'}</TableCell>
                         <TableCell className="text-muted-foreground">{ev.notes || '—'}</TableCell>
                         <TableCell className="text-end whitespace-nowrap tabular-nums text-faint">
-                          {new Date(ev.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(ev.createdAt).toLocaleString(activeIntlLocale(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </TableCell>
                       </TableRow>
                     ))}

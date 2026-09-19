@@ -35,11 +35,11 @@ interface MessageTemplateEditorProps {
 }
 
 const TEMPLATE_TYPES = [
-  { value: 'CHECK_IN', label: 'Check-in' },
-  { value: 'CHECK_OUT', label: 'Check-out' },
-  { value: 'WELCOME', label: 'Bienvenue' },
-  { value: 'PAYMENT_LINK', label: 'Lien de paiement' },
-  { value: 'CUSTOM', label: 'Personnalise' },
+  { value: 'CHECK_IN', labelKey: 'messaging.templateTypes.checkIn' },
+  { value: 'CHECK_OUT', labelKey: 'messaging.templateTypes.checkOut' },
+  { value: 'WELCOME', labelKey: 'messaging.templateTypes.welcome' },
+  { value: 'PAYMENT_LINK', labelKey: 'messaging.templateTypes.paymentLink' },
+  { value: 'CUSTOM', labelKey: 'messaging.templateTypes.custom' },
 ];
 
 const LANGUAGES = [
@@ -211,7 +211,7 @@ export default function MessageTemplateEditor({
                   >
                     {TEMPLATE_TYPES.map((templateType) => (
                       <NativeSelectOption key={templateType.value} value={templateType.value}>
-                        {templateType.label}
+                        {t(templateType.labelKey)}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>

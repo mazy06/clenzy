@@ -53,7 +53,8 @@ const SENSOR_TYPE_BY_KIND: Partial<Record<DeviceKind, SensorType>> = {
   climate: 'TEMP_HUMIDITY', contact: 'CONTACT', motion: 'MOTION', smoke: 'SMOKE',
 };
 
-const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
+// `labelKey` quand le libelle est du texte (et non un nom de marque).
+const PROVIDERS: Record<DeviceKind, { value: string; label?: string; labelKey?: string }[]> = {
   lock: [
     { value: 'NUKI', label: 'Nuki' }, { value: 'TUYA', label: 'Tuya' },
     { value: 'TTLOCK', label: 'TTLock' }, { value: 'YALE', label: 'Yale' },
@@ -61,7 +62,7 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
   noise: [{ value: 'MINUT', label: 'Minut' }, { value: 'TUYA', label: 'Tuya' }],
   keybox: [{ value: 'CLENZY_KEYVAULT', label: 'Baitly KeyVault' }, { value: 'KEYNEST', label: 'KeyNest' }],
   camera: [
-    { value: 'GENERIC', label: 'Caméra IP (RTSP)' }, { value: 'TUYA', label: 'Tuya (cloud)' },
+    { value: 'GENERIC', labelKey: 'connectedObjects.brands.genericIpCamera' }, { value: 'TUYA', label: 'Tuya (cloud)' },
     { value: 'REOLINK', label: 'Reolink' },
     { value: 'TAPO', label: 'Tapo' }, { value: 'HIKVISION', label: 'Hikvision' }, { value: 'DAHUA', label: 'Dahua' },
   ],
@@ -138,7 +139,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent className="w-full sm:max-w-[600px] max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Ajouter un objet connecté</DialogTitle>
+          <DialogTitle>{t('connectedObjects.wizard.title')}</DialogTitle>
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto">
         {/* Étape 1 — Type */}
@@ -168,7 +169,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                   )}
                 >
                   <span className="inline-flex text-[var(--kind-color)]">{meta.icon(22)}</span>
-                  <span className="text-xs font-semibold">{meta.label}</span>
+                  <span className="text-xs font-semibold">{t(meta.labelKey)}</span>
                 </button>
               );
             })}
@@ -190,13 +191,15 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                     premier service alors qu'aucun n'est encore choisi. */}
                 <NativeSelectOption value="">—</NativeSelectOption>
                 {PROVIDERS[kind].map((p) => (
-                  <NativeSelectOption key={p.value} value={p.value}>{p.label}</NativeSelectOption>
+                  <NativeSelectOption key={p.value} value={p.value}>
+                    {p.labelKey ? t(p.labelKey) : p.label}
+                  </NativeSelectOption>
                 ))}
               </NativeSelect>
             </Field>
             <Alert variant="info" className="mt-2">
               <Info />
-              <AlertDescription>Le service doit être relié dans <strong>Réglages → Services connectés</strong>pour piloter l'objet à distance.</AlertDescription>
+              <AlertDescription>{t('connectedObjects.wizard.serviceRequired')} <strong>{t('connectedObjects.wizard.settingsPath')}</strong> {t('connectedObjects.wizard.serviceRequiredTail')}</AlertDescription>
             </Alert>
           </div>
         )}
@@ -222,7 +225,9 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             </Field>
             <Field>
               <FieldLabel htmlFor="wizard-name">
-                {kind === 'keybox' ? 'Nom du point' : "Nom de l'objet"}
+                {t(kind === 'keybox'
+                  ? 'connectedObjects.wizard.pointName'
+                  : 'connectedObjects.wizard.deviceName')}
               </FieldLabel>
               <Input
                 id="wizard-name"
@@ -233,7 +238,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             </Field>
             {kind !== 'keybox' && (
               <Field>
-                <FieldLabel htmlFor="wizard-room">Pièce (optionnel)</FieldLabel>
+                <FieldLabel htmlFor="wizard-room">{t('connectedObjects.wizard.room')}</FieldLabel>
                 <Input
                   id="wizard-room"
                   className="w-full"
@@ -244,7 +249,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             )}
             {kind === 'camera' && provider !== 'TUYA' && (
               <Field>
-                <FieldLabel htmlFor="wizard-rtsp-url">URL du flux (RTSP recommandé)</FieldLabel>
+                <FieldLabel htmlFor="wizard-rtsp-url">{t('connectedObjects.wizard.streamUrl')}</FieldLabel>
                 <Input
                   id="wizard-rtsp-url"
                   className="w-full"
@@ -254,15 +259,14 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                   onChange={(e) => setRtspUrl(e.target.value)}
                 />
                 <FieldDescription>
-                  RTSP recommandé : lecture directe et fluide. Une URL HTTP/HLS est transcodée (CPU, qualité réduite — pour test). Chiffré côté serveur.
+                  {t('connectedObjects.wizard.streamHint')}
                 </FieldDescription>
               </Field>
             )}
             {kind === 'camera' && /^https?:\/\//i.test(rtspUrl.trim()) && (
               <Alert variant="warning" className="py-0.5">
                 <TriangleAlert />
-                <AlertDescription>URL HTTP/HLS : <strong>transcodée</strong>côté serveur (CPU, qualité réduite, latence) — à réserver au test.
-                Préférez une URL <strong>RTSP</strong>pour une lecture directe et fluide.</AlertDescription>
+                <AlertDescription>{t('connectedObjects.wizard.httpWarnHead')} <strong>{t('connectedObjects.wizard.transcoded')}</strong> {t('connectedObjects.wizard.transcodedHint')} <strong>RTSP</strong> {t('connectedObjects.wizard.httpWarnTail')}</AlertDescription>
               </Alert>
             )}
             {kind === 'camera' && provider === 'TUYA' && (
@@ -303,7 +307,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider !== 'TUYA' && (
               <Field>
-                <FieldLabel htmlFor="wizard-external-device-id">Identifiant externe (optionnel)</FieldLabel>
+                <FieldLabel htmlFor="wizard-external-device-id">{t('connectedObjects.wizard.externalId')}</FieldLabel>
                 <Input
                   id="wizard-external-device-id"
                   className="w-full"
@@ -311,7 +315,9 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                   onChange={(e) => setExternalDeviceId(e.target.value)}
                 />
                 <FieldDescription>
-                  {kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}
+                  {t(kind === 'thermostat'
+                    ? 'connectedObjects.wizard.externalIdTuya'
+                    : 'connectedObjects.wizard.externalIdProvider')}
                 </FieldDescription>
               </Field>
             )}
@@ -331,7 +337,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
           {step < 2 ? (
             <Button variant="default" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>
               Continuer
-              <ChevronRight size={16} strokeWidth={2} />
+              <ChevronRight className="cn-rtl-flip" size={16} strokeWidth={2} />
             </Button>
           ) : (
             <Button variant="default" disabled={!canNext || submitting} onClick={submit}>

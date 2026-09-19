@@ -14,6 +14,7 @@ import type { GalleryTemplate } from './import/galleryTemplates';
 import ImportPaste from './ImportPaste';
 import ImportFile from './ImportFile';
 import ImportGallery from './ImportGallery';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Panneau « Importer » du Studio GrapesJS : modale multi-onglets qui rend l'un des 3 composants de slot
@@ -49,6 +50,7 @@ export interface ImportPanelProps {
 }
 
 export default function ImportPanel({ open, onClose, editor, onImportTemplate }: ImportPanelProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabId>('file');
 
   // Garde-fou : sans éditeur monté, aucun slot ne peut injecter — on ne rend pas le corps.
@@ -56,7 +58,7 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
     if (!editor) {
       return (
         <p className="py-9 text-center text-sm text-faint">
-          Éditeur non disponible.
+          {t('studio.import.editorUnavailable')}
         </p>
       );
     }
@@ -80,10 +82,10 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
         <DialogHeader className="h-[64px] shrink-0 flex-row items-center gap-0 border-b border-border px-3.5">
           <div>
             <DialogTitle className="text-base font-semibold tracking-tight text-balance">
-              Importer un design
+              {t('studio.import.panelTitle')}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Charge un contenu HTML+CSS dans l'éditeur. Le canevas actuel sera remplacé.
+              {t('studio.import.panelHint')}
             </DialogDescription>
           </div>
           <div className="flex-1" />

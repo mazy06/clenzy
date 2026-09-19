@@ -79,6 +79,7 @@ export default function PropertyMapRow({
           )}
           <Link
             to={`/properties/${property.id}`}
+            dir="auto"
             className={cn(
               'min-w-0 truncate text-sm font-semibold leading-snug text-foreground no-underline',
               "cursor-pointer outline-none after:absolute after:inset-0 after:content-['']",

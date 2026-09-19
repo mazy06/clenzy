@@ -16,6 +16,8 @@ import {
   type ReportDocumentStatus,
   type ReportDocumentSummary,
 } from '../../../services/api/reportDocumentsApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Les rapports deja produits.
@@ -35,19 +37,19 @@ const STATUS_TONE: Record<ReportDocumentStatus, 'neutral' | 'ok' | 'warn'> = {
   ARCHIVED: 'neutral',
 };
 
-const STATUS_LABEL: Record<ReportDocumentStatus, string> = {
-  DRAFT: 'Brouillon',
+const STATUS_KEY: Record<ReportDocumentStatus, string> = {
+  DRAFT: 'reports.library.status.draft',
   // Statut historique : l'etape de relecture separee n'existe plus, mais des
   // documents la portent encore en base et doivent rester lisibles.
-  REVIEWED: 'Relu',
-  SENT: 'Envoyé',
-  ARCHIVED: 'Archivé',
+  REVIEWED: 'reports.library.status.reviewed',
+  SENT: 'reports.library.status.sent',
+  ARCHIVED: 'reports.library.status.archived',
 };
 
-const FILTERS: Array<{ value: string; label: string }> = [
-  { value: 'ALL', label: 'Tous' },
-  { value: 'PENDING', label: 'À envoyer' },
-  { value: 'SENT', label: 'Envoyés' },
+const FILTERS: Array<{ value: string; labelKey: string }> = [
+  { value: 'ALL', labelKey: 'reports.library.filters.all' },
+  { value: 'PENDING', labelKey: 'reports.library.filters.pending' },
+  { value: 'SENT', labelKey: 'reports.library.filters.sent' },
 ];
 
 interface ReportLibraryProps {
@@ -58,6 +60,7 @@ interface ReportLibraryProps {
 }
 
 const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }) => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('ALL');
 
@@ -102,18 +105,18 @@ const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }
       <ChartTile
         fluid
         className="min-h-0 flex-1"
-        title="Documents produits"
-        hint="Un brouillon tant qu’il n’est pas transmis"
+        title={t('reports.library.title')}
+        hint={t('reports.library.hint')}
         action={documents.length > 0 ? <NavCountBadge count={documents.length} /> : undefined}
       >
         <div className="flex h-full min-h-0 flex-col gap-2 pt-1">
           {documents.length > 0 && (
             <div className="shrink-0">
               <PeriodSegmented
-              ariaLabel="Filtrer les documents"
+              ariaLabel={t('reports.library.filterAria')}
                 value={filter}
                 onChange={setFilter}
-                options={FILTERS}
+                options={FILTERS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
               />
             </div>
           )}
@@ -125,12 +128,12 @@ const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }
           ) : shown.length === 0 ? (
             <EmptyState
               icon={<DescriptionIcon />}
-              title={documents.length === 0 ? 'Aucun rapport produit' : 'Aucun document à ce stade'}
-              description={
-                documents.length === 0
-                  ? 'Les documents générés apparaîtront ici, avec leur cycle de relecture.'
-                  : 'Changez de filtre pour voir les autres documents.'
-              }
+              title={t(documents.length === 0
+                ? 'reports.library.emptyTitle'
+                : 'reports.library.emptyFilteredTitle')}
+              description={t(documents.length === 0
+                ? 'reports.library.emptyBody'
+                : 'reports.library.emptyFilteredBody')}
               variant="plain"
             />
           ) : (
@@ -176,7 +179,9 @@ const Row: React.FC<{
   onSend: () => void;
   onDelete: () => void;
   busy: boolean;
-}> = ({ document, active, confirming, onOpen, onSend, onDelete, busy }) => (
+}> = ({ document, active, confirming, onOpen, onSend, onDelete, busy }) => {
+  const { t } = useTranslation();
+  return (
   <li
     className={cn(
       'flex flex-col gap-1.5 border-b border-border px-2 py-2 last:border-b-0 transition-colors duration-200',
@@ -197,9 +202,9 @@ const Row: React.FC<{
       </span>
       <span className="block text-2xs tabular-nums text-muted-foreground">
         {document.documentNumber} v{document.version} ·{' '}
-        {new Date(document.periodStart).toLocaleDateString('fr-FR')} —{' '}
-        {new Date(document.periodEnd).toLocaleDateString('fr-FR')}
-        {document.hasNarrative ? ' · commenté' : ''}
+        {new Date(document.periodStart).toLocaleDateString(activeIntlLocale())} —{' '}
+        {new Date(document.periodEnd).toLocaleDateString(activeIntlLocale())}
+        {document.hasNarrative ? ` · ${t('reports.library.commented')}` : ''}
       </span>
     </button>
 
@@ -207,17 +212,17 @@ const Row: React.FC<{
       <StatusChip
         tone={STATUS_TONE[document.status]}
         dot
-        label={STATUS_LABEL[document.status]}
+        label={t(STATUS_KEY[document.status])}
         className="h-[20px] text-[0.6rem]"
       />
 
       {/* Trois gestes, trois icones : la colonne est etroite, trois libelles
           l'auraient fait passer sur trois lignes. */}
-      <IconAction label="Aperçu" onClick={onOpen} disabled={!onOpen}>
+      <IconAction label={t('reports.library.preview')} onClick={onOpen} disabled={!onOpen}>
         <Eye className="size-3.5" />
       </IconAction>
       <IconAction
-        label="Télécharger le PDF"
+        label={t('reports.library.downloadPdf')}
         onClick={() =>
           reportDocumentsApi.downloadPdf(document.id, `${document.documentNumber}.pdf`)
         }
@@ -246,7 +251,8 @@ const Row: React.FC<{
       )}
     </div>
   </li>
-);
+  );
+};
 
 /** Un geste sans libelle : l'intitule passe par le titre et le nom accessible. */
 const IconAction: React.FC<{

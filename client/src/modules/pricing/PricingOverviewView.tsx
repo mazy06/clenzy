@@ -24,6 +24,7 @@ import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -72,8 +73,12 @@ function toISO(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function formatMonth(date: Date, isFrench: boolean): string {
-  return date.toLocaleDateString(isFrench ? 'fr-FR' : 'en-US', {
+// Le libellé de mois d'une grille GRÉGORIENNE : la langue suit l'utilisateur,
+// le découpage reste celui de la grille. Un nom de mois hégirien coifferait
+// ici une grille qui en couvre deux — c'est le piège que le planning évite en
+// bornant sa fenêtre sur le mois affiché.
+function formatMonth(date: Date): string {
+  return date.toLocaleDateString(activeIntlLocaleGregorian(), {
     month: 'long',
     year: 'numeric',
   });
@@ -107,7 +112,7 @@ const PropertyRow: React.FC<{
   return (
     <TableRow>
       <TableCell className={cn(STICKY_COL_CLASS, 'z-[5]')}>
-        <p className="text-sm font-semibold truncate">
+        <p dir="auto" className="text-sm font-semibold truncate">
           {property.name}
         </p>
       </TableCell>
@@ -176,13 +181,13 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
       <Card className="gap-0 py-0 p-[9px]">
         <div className="flex items-center justify-center gap-0.5">
           <Button variant="ghost" size="icon-sm" aria-label={t('common.previous', 'Précédent')} onClick={onPrevMonth}>
-            <ChevronLeftIcon size={20} strokeWidth={1.75} />
+            <ChevronLeftIcon className="cn-rtl-flip" size={20} strokeWidth={1.75} />
           </Button>
           <p className="text-sm font-semibold min-w-[140px] text-center capitalize">
-            {formatMonth(currentMonth, isFrench)}
+            {formatMonth(currentMonth)}
           </p>
           <Button variant="ghost" size="icon-sm" aria-label={t('common.next', 'Suivant')} onClick={onNextMonth}>
-            <ChevronRightIcon size={20} strokeWidth={1.75} />
+            <ChevronRightIcon className="cn-rtl-flip" size={20} strokeWidth={1.75} />
           </Button>
         </div>
       </Card>

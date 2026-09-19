@@ -36,6 +36,7 @@ import type { OwnerDashboard, OwnerStatement } from '../../services/api/ownerPor
 import { useQuery } from '@tanstack/react-query';
 import { Money } from '../../components/Money';
 import PageTabs from '../../components/PageTabs';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ const OWNER_REVENUE_CONFIG = {
 const fmtPercent = (n: number) => `${n.toFixed(1)}%`;
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+  d ? new Date(d).toLocaleDateString(activeIntlLocale()) : '—';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -376,7 +377,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, net]) => ({
       // Cles « YYYY-MM » → libelle de mois localise (« juil. »).
-      month: new Date(`${month}-01T00:00:00`).toLocaleDateString('fr-FR', { month: 'short' }),
+      month: new Date(`${month}-01T00:00:00`).toLocaleDateString(activeIntlLocale(), { month: 'short' }),
       net,
     }));
 

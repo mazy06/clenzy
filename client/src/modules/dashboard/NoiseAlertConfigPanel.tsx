@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Button, Spinner } from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
 import {
@@ -27,6 +27,7 @@ import {
   type SaveNoiseAlertConfigDto,
 } from '../../hooks/useNoiseAlerts';
 import type { TimeWindowDto } from '../../services/api/noiseAlertApi';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -50,10 +51,15 @@ interface ConfigForm {
   timeWindows: TimeWindowForm[];
 }
 
-const DEFAULT_TIME_WINDOWS: TimeWindowForm[] = [
-  { label: 'Jour', startTime: '07:00', endTime: '22:00', warningThresholdDb: 70, criticalThresholdDb: 85 },
-  { label: 'Nuit', startTime: '22:00', endTime: '07:00', warningThresholdDb: 55, criticalThresholdDb: 70 },
+// Le `label` d'un créneau est une donnée SAISISSABLE — l'utilisateur renomme
+// ses plages. Seule sa valeur INITIALE se traduit, et elle se pose au montage :
+// figée ici, elle resterait française.
+const DEFAULT_TIME_WINDOWS: Omit<TimeWindowForm, 'label'>[] = [
+  { startTime: '07:00', endTime: '22:00', warningThresholdDb: 70, criticalThresholdDb: 85 },
+  { startTime: '22:00', endTime: '07:00', warningThresholdDb: 55, criticalThresholdDb: 70 },
 ];
+
+const DEFAULT_WINDOW_KEYS = ['day', 'night'] as const;
 
 const DEFAULT_CONFIG: ConfigForm = {
   enabled: true,
@@ -64,15 +70,10 @@ const DEFAULT_CONFIG: ConfigForm = {
   notifySms: false,
   cooldownMinutes: 30,
   emailRecipients: '',
-  timeWindows: DEFAULT_TIME_WINDOWS,
+  timeWindows: [],
 };
 
-const COOLDOWN_OPTIONS = [
-  { value: 15, label: '15 min' },
-  { value: 30, label: '30 min' },
-  { value: 60, label: '1 heure' },
-  { value: 120, label: '2 heures' },
-];
+const COOLDOWN_VALUES = [15, 30, 60, 120] as const;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -122,10 +123,19 @@ interface NoiseAlertConfigPanelProps {
 }
 
 const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfigPanelProps>(({ propertyIds, onThresholdsChange, onStatusChange, embedded = false }, ref) => {
+  const { t } = useTranslation();
+  /** Créneaux par défaut, libellés dans la langue active. */
+  const defaultWindows = useMemo<TimeWindowForm[]>(
+    () => DEFAULT_TIME_WINDOWS.map((w, i) => ({
+      ...w,
+      label: t(`noiseConfig.defaultWindows.${DEFAULT_WINDOW_KEYS[i]}`),
+    })),
+    [t],
+  );
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(
     propertyIds.length > 0 ? propertyIds[0] : null,
   );
-  const [form, setForm] = useState<ConfigForm>(DEFAULT_CONFIG);
+  const [form, setForm] = useState<ConfigForm>(() => ({ ...DEFAULT_CONFIG, timeWindows: defaultWindows }));
   const [saved, setSaved] = useState(false);
   // Prefixe d'id propre a cette instance : le panneau peut etre monte plusieurs
   // fois (vue globale + detail capteur), les ids de creneau doivent rester uniques.
@@ -202,9 +212,9 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
         })),
       });
     } else if (!configQuery.isLoading) {
-      setForm(DEFAULT_CONFIG);
+      setForm({ ...DEFAULT_CONFIG, timeWindows: defaultWindows });
     }
-  }, [configQuery.data, configQuery.isLoading]);
+  }, [configQuery.data, configQuery.isLoading, defaultWindows]);
 
   const updateField = useCallback(<K extends keyof ConfigForm>(key: K, value: ConfigForm[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -292,7 +302,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
           <div className="flex items-center gap-1">
             <span className="inline-flex text-primary"><Settings size={18} strokeWidth={1.75} /></span>
             <h6 className="text-sm font-semibold whitespace-nowrap text-foreground">
-              Configuration des alertes bruit
+              {t('noiseConfig.title')}
             </h6>
           </div>
 
@@ -320,7 +330,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                 onCheckedChange={(checked) => updateField('enabled', checked)}
               />
               <FieldLabel htmlFor={`${fieldIdBase}-enabled`} className="text-[0.8125rem] font-semibold">
-                Alertes activées
+                {t('noiseConfig.enabled')}
               </FieldLabel>
             </Field>
           )}
@@ -342,7 +352,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                   <div className="col-span-12 min-[900px]:col-span-7">
                     <div className="flex items-center justify-between mb-1.5">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Créneaux horaires
+                        {t('noiseConfig.windows')}
                       </p>
                       {/* Action d'en-tete de section, discrete face au contenu edite. */}
                       <Button
@@ -351,7 +361,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         onClick={addTimeWindow}
                       >
                         <Add size={14} strokeWidth={1.75} />
-                        Ajouter
+                        {t('noiseConfig.add')}
                       </Button>
                     </div>
 
@@ -361,7 +371,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             doit s'aligner sur la ligne de saisie et non sur l'ensemble. */}
                         <div className="flex items-end gap-1.5 mb-1.5">
                           <Field className="flex-1">
-                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-label`}>Label</FieldLabel>
+                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-label`}>{t('noiseConfig.windowLabel')}</FieldLabel>
                             <Input
                               id={`${fieldIdBase}-tw-${idx}-label`}
                               className="w-full text-[0.8125rem]"
@@ -370,7 +380,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             />
                           </Field>
                           <Field className="w-[120px]">
-                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-start`}>Debut</FieldLabel>
+                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-start`}>{t('noiseConfig.start')}</FieldLabel>
                             <Input
                               id={`${fieldIdBase}-tw-${idx}-start`}
                               className="w-full text-[0.8125rem]"
@@ -380,7 +390,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             />
                           </Field>
                           <Field className="w-[120px]">
-                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-end`}>Fin</FieldLabel>
+                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-end`}>{t('noiseConfig.end')}</FieldLabel>
                             <Input
                               id={`${fieldIdBase}-tw-${idx}-end`}
                               className="w-full text-[0.8125rem]"
@@ -408,10 +418,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             {/* La valeur porte l'encre `-ink` (lisible AA), la piste du
                                 curseur la teinte vive — cf. §2.4 du contrat Baitly UI. */}
                             <p className="text-xs text-foreground mb-0.5">
-                              Seuil avertissement : <b className="text-warning-ink tabular-nums">{tw.warningThresholdDb} dB</b>
+                              {t('noiseConfig.warningThreshold')} : <b className="text-warning-ink tabular-nums">{tw.warningThresholdDb} dB</b>
                             </p>
                             <Slider
-                              aria-label="Seuil avertissement"
+                              aria-label={t('noiseConfig.warningThreshold')}
                               value={[tw.warningThresholdDb]}
                               onValueChange={([val]) => updateTimeWindow(idx, 'warningThresholdDb', val)}
                               min={30}
@@ -421,10 +431,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           </div>
                           <div className="col-span-6">
                             <p className="text-xs text-foreground mb-0.5">
-                              Seuil critique : <b className="text-destructive-ink tabular-nums">{tw.criticalThresholdDb} dB</b>
+                              {t('noiseConfig.criticalThreshold')} : <b className="text-destructive-ink tabular-nums">{tw.criticalThresholdDb} dB</b>
                             </p>
                             <Slider
-                              aria-label="Seuil critique"
+                              aria-label={t('noiseConfig.criticalThreshold')}
                               value={[tw.criticalThresholdDb]}
                               onValueChange={([val]) => updateTimeWindow(idx, 'criticalThresholdDb', val)}
                               min={30}
@@ -440,7 +450,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                   {/* ── Colonne droite : Canaux de notification ── */}
                   <div className="col-span-12 min-[900px]:col-span-5">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                      Canaux de notification
+                      {t('noiseConfig.channels')}
                     </p>
 
                     <div className="flex flex-col gap-0.5 mb-2">
@@ -453,7 +463,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         />
                         <FieldLabel htmlFor={`${fieldIdBase}-notify-in-app`} className="items-center gap-0.5 text-xs font-normal">
                           <NotificationsActive size={14} strokeWidth={1.75} />
-                          In-app
+                          {t('noiseConfig.inApp')}
                         </FieldLabel>
                       </Field>
                       <Field orientation="horizontal" className="w-auto gap-1.5">
@@ -465,7 +475,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         />
                         <FieldLabel htmlFor={`${fieldIdBase}-notify-email`} className="items-center gap-0.5 text-xs font-normal">
                           <Email size={14} strokeWidth={1.75} />
-                          Email
+                          {t('noiseConfig.email')}
                         </FieldLabel>
                       </Field>
                       <Field orientation="horizontal" className="w-auto gap-1.5">
@@ -477,7 +487,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         />
                         <FieldLabel htmlFor={`${fieldIdBase}-notify-guest`} className="items-center gap-0.5 text-xs font-normal">
                           <Chat size={14} strokeWidth={1.75} />
-                          Message voyageur
+                          {t('noiseConfig.guestMessage')}
                         </FieldLabel>
                       </Field>
                     </div>
@@ -485,7 +495,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     {form.notifyEmail && (
                       <Field className="mb-[9px]">
                         <FieldLabel htmlFor={`${fieldIdBase}-email-recipients`}>
-                          Destinataires email (optionnel, separes par virgule)
+                          {t('noiseConfig.recipients')}
                         </FieldLabel>
                         <Input
                           id={`${fieldIdBase}-email-recipients`}
@@ -500,7 +510,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     {/* Cooldown */}
                     <div className="flex items-center gap-1.5">
                       <label htmlFor={`${fieldIdBase}-cooldown`} className="text-xs text-muted-foreground">
-                        Cooldown entre alertes :
+                        {t('noiseConfig.cooldown')}
                       </label>
                       <NativeSelect
                         id={`${fieldIdBase}-cooldown`}
@@ -509,9 +519,9 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         value={form.cooldownMinutes}
                         onChange={(e) => updateField('cooldownMinutes', Number(e.target.value))}
                       >
-                        {COOLDOWN_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
+                        {COOLDOWN_VALUES.map(value => (
+                          <option key={value} value={value}>
+                            {t(`noiseConfig.cooldownOptions.${value}`)}
                           </option>
                         ))}
                       </NativeSelect>

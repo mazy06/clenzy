@@ -9,6 +9,7 @@ import {
   DialogFooter,
 } from '../../components/ui';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface PropertyStatusToggleDialogProps {
   /** Propriété ciblée (null = dialog fermé). */
@@ -25,6 +26,7 @@ interface PropertyStatusToggleDialogProps {
 const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
   property, pending = false, onClose, onConfirm,
 }) => {
+  const { t } = useTranslation();
   const isActive = property?.status === 'active';
 
   return (
@@ -35,14 +37,14 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isActive ? 'Désactiver cette propriété ?' : 'Réactiver cette propriété ?'}
+            {isActive ? t('properties.deactivateTitle') : t('properties.reactivateTitle')}
           </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-foreground">
           {property && <><strong>{property.name}</strong>{' '}</>}
           {isActive
-            ? 'ne sera plus visible dans le planning, les recherches et le booking engine. Tu pourras la réactiver à tout moment.'
-            : 'réapparaîtra dans le planning, les recherches et le booking engine.'}
+            ? t('properties.deactivateBody')
+            : t('properties.reactivateBody')}
         </p>
         <DialogFooter>
           {/* « Annuler » passe en ghost pour que l'action de droite reste la seule

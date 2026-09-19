@@ -7,6 +7,36 @@
  * dashboard widgets, etc.
  */
 
+import i18n from '../i18n/config';
+import {
+  formatDayMonthShort,
+  formatShortDate as formatShortDateIn,
+  intlLocale,
+} from './localeDate';
+
+// ─── Langue active ──────────────────────────────────────────────────────────
+//
+// Ces fonctions sont PURES et appelees partout, y compris hors React (mappers,
+// constantes de colonnes, hooks de liste). Elles lisent donc la langue sur le
+// singleton i18next plutot que de la recevoir en parametre : la passer aurait
+// demande de la faire descendre dans une centaine de signatures.
+//
+// <p><b>Contrepartie a connaitre.</b> Un composant memoise qui n'est abonne a
+// rien ne se repeint pas au changement de langue : ses dates restent dans
+// l'ancienne jusqu'au prochain rendu. La ou cela compte — une grille memoisee,
+// un en-tete fige — prendre `useDateFormat()` (hooks/useDateFormat), qui
+// abonne le composant.</p>
+
+/** Langue i18next active, ou le francais avant l'initialisation. */
+function activeLanguage(): string {
+  return i18n.language || 'fr';
+}
+
+/** Libelle d'erreur de parsing, traduit. */
+function invalidDateLabel(): string {
+  return i18n.t('common.invalidDate', 'Date invalide');
+}
+
 // ─── API timestamp parsing ──────────────────────────────────────────────────
 
 /**
@@ -32,29 +62,23 @@ export function parseApiDate(value: string | number | Date | null | undefined): 
 // ─── Date formatting ────────────────────────────────────────────────────────
 
 /**
- * Format a date string to a localised short date (dd/MM/yyyy).
- * Returns '' for falsy inputs and 'Date invalide' on parse error.
+ * Date courte dans le calendrier de la langue active — « 18/05/2026 », et le
+ * calendrier hegirien en arabe. Rend '' sur une entree vide.
  */
 export function formatDate(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    return parseApiDate(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return formatShortDateIn(parseApiDate(dateString), activeLanguage());
   } catch {
-    return 'Date invalide';
+    return invalidDateLabel();
   }
 }
 
-/**
- * Format a date string to a localised date-time (dd/MM/yyyy HH:mm).
- */
+/** Date + heure dans le calendrier de la langue active — « 18/05/2026 14:30 ». */
 export function formatDateTime(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    return parseApiDate(dateString).toLocaleDateString('fr-FR', {
+    return parseApiDate(dateString).toLocaleDateString(intlLocale(activeLanguage()), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -62,21 +86,18 @@ export function formatDateTime(dateString: string | undefined | null): string {
       minute: '2-digit',
     });
   } catch {
-    return 'Date invalide';
+    return invalidDateLabel();
   }
 }
 
 /**
- * Format a date to a short localised format (dd MMM.).
- * Example: "14 fev." — used by PropertyCard & ServiceRequestCard badge bars.
+ * Jour + mois abrege — « 14 fevr. ». Employe par les bandeaux de PropertyCard
+ * et ServiceRequestCard. Suit le calendrier de la langue active.
  */
 export function formatShortDate(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    return parseApiDate(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-    });
+    return formatDayMonthShort(parseApiDate(dateString), activeLanguage());
   } catch {
     return '';
   }

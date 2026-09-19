@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   Popover,
@@ -64,13 +65,11 @@ interface PlanningFilterButtonProps {
   inline?: boolean;
 }
 
-// Variantes d'animation d'urgence des briques (galerie Signature 09b).
-const URGENCY_ANIMATION_OPTIONS: { value: UrgencyAnimationMode; label: string }[] = [
-  { value: 'shake', label: 'Shake' },
-  { value: 'wobble', label: 'Wobble' },
-  { value: 'pop', label: 'Pop' },
-  { value: 'tada', label: 'Tada' },
-  { value: 'none', label: 'Aucune' },
+// Variantes d'animation d'urgence des briques (galerie Signature 09b). Les
+// libelles se lisent dans `planning.filters.urgency.<mode>` au rendu : figes a
+// l'import, ils resteraient francais apres un changement de langue.
+const URGENCY_ANIMATION_MODES: readonly UrgencyAnimationMode[] = [
+  'shake', 'wobble', 'pop', 'tada', 'none',
 ];
 
 /** Overline des sections du popover de filtres. */
@@ -147,6 +146,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   anchorEl,
   inline = false,
 }) => {
+  const { t } = useTranslation();
   // Le popover du kit s'ancre sur son trigger : un booleen suffit, l'element
   // anchor n'a plus a etre porte par l'etat. En mode contrôlé (menu regroupé),
   // l'état vit chez le parent.
@@ -184,12 +184,12 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] font-semibold text-[0.8125rem] text-[var(--ink)]">
-            Filtres
+            {t('planning.filters.title', 'Filtres')}
           </h6>
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label="Fermer"
+            aria-label={t('planning.filters.close', 'Fermer')}
             onClick={() => setFilterOpen(false)}
             className="text-[var(--faint)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
           >
@@ -203,7 +203,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
           <>
             <div className="mb-3">
               <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
-                Canaux
+                {t('planning.filters.channels', 'Canaux')}
               </span>
               <div className="flex gap-0.5 flex-wrap">
                 <ChannelLegendChips
@@ -219,7 +219,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
             <div className="mb-3">
               <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
-                Statuts
+                {t('planning.filters.statuses', 'Statuts')}
               </span>
               <div className="flex gap-0.5 flex-wrap">
                 <StatusLegendChips
@@ -237,7 +237,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
         {/* Affichage */}
         <div className="mb-1.5">
           <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
-            Affichage
+            {t('planning.filters.display', 'Affichage')}
           </span>
           <div className="flex gap-0.5 flex-wrap">
             {/* Interventions : chip légende (grille) — hébergée ici seulement
@@ -253,7 +253,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
             {/* Tarifs (affiche les prix par nuit sur la grille) */}
             <ModalToggleChip
               active={filters.showPrices}
-              label="Tarifs"
+              label={t('planning.filters.prices', 'Tarifs')}
               icon={<AttachMoney size={13} strokeWidth={1.75} />}
               onClick={() => onShowPricesChange(!filters.showPrices)}
             />
@@ -261,7 +261,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
             {/* Densité (compact / normal) */}
             <ModalToggleChip
               active={isCompactDensity}
-              label="Compact"
+              label={t('planning.filters.compact', 'Compact')}
               icon={<ViewCompact size={13} strokeWidth={1.75} />}
               onClick={() => onDensityChange(isCompactDensity ? 'normal' : 'compact')}
             />
@@ -269,15 +269,15 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
           {/* Animation d'urgence (briques paiement en attente / info manquante) */}
           <span className={cn(OVERLINE_CLASS, 'cn-text-overline mt-[9px]')}>
-            Animation d'urgence
+            {t('planning.filters.urgencyAnimation', "Animation d'urgence")}
           </span>
           <div className="flex gap-0.5 flex-wrap">
-            {URGENCY_ANIMATION_OPTIONS.map((opt) => (
+            {URGENCY_ANIMATION_MODES.map((mode) => (
               <ModalToggleChip
-                key={opt.value}
-                active={urgencyAnimation === opt.value}
-                label={opt.label}
-                onClick={() => onUrgencyAnimationChange(opt.value)}
+                key={mode}
+                active={urgencyAnimation === mode}
+                label={t(`planning.filters.urgency.${mode}`)}
+                onClick={() => onUrgencyAnimationChange(mode)}
               />
             ))}
           </div>
@@ -290,7 +290,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
                 onClearFilters();
                 setFilterOpen(false);
               }}>
-              Effacer tous les filtres
+              {t('planning.filters.clearAll', 'Effacer tous les filtres')}
             </span>
           </div>
         )}
@@ -321,7 +321,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Filtres"
+                  aria-label={t('planning.filters.title', 'Filtres')}
                   className={cn(
                     'relative',
                     (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
@@ -337,7 +337,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               </span>
             </PopoverTrigger>
           </TooltipTrigger>
-          <PlanningTooltipContent>Filtres</PlanningTooltipContent>
+          <PlanningTooltipContent>{t('planning.filters.title', 'Filtres')}</PlanningTooltipContent>
         </Tooltip>
       )}
 

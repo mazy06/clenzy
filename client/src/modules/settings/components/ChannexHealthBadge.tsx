@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui'
 import { cn } from '../../../utils/cn';
 
 import type { ChannexSyncStatus, ChannexMappingDto } from '../../../services/api/channexApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ChannexHealthBadgeProps {
   mapping: ChannexMappingDto | null;
@@ -36,7 +37,7 @@ interface ChannexHealthBadgeProps {
 
 interface StatusMeta {
   color: string;
-  label: string;
+  labelKey: string;
   Icon: typeof CheckCircle2;
 }
 
@@ -45,10 +46,10 @@ interface StatusMeta {
  * jamais du texte (cf. contrat Baitly UI §2.4).
  */
 const STATUS_META: Record<ChannexSyncStatus, StatusMeta> = {
-  ACTIVE: { color: 'var(--bui-success)', label: 'Sync Channex active', Icon: CheckCircle2 },
-  PENDING: { color: 'var(--bui-warning)', label: 'Connexion Channex en cours', Icon: Clock },
-  ERROR: { color: 'var(--bui-destructive)', label: 'Erreur de sync Channex', Icon: AlertCircle },
-  DISABLED: { color: 'var(--bui-muted-foreground)', label: 'Sync Channex mise en pause', Icon: Pause },
+  ACTIVE: { color: 'var(--bui-success)', labelKey: 'channexHealth.active', Icon: CheckCircle2 },
+  PENDING: { color: 'var(--bui-warning)', labelKey: 'channexHealth.connecting', Icon: Clock },
+  ERROR: { color: 'var(--bui-destructive)', labelKey: 'channexHealth.syncError', Icon: AlertCircle },
+  DISABLED: { color: 'var(--bui-muted-foreground)', labelKey: 'channexHealth.paused', Icon: Pause },
 };
 
 function formatLastSync(iso: string | null): string {
@@ -74,6 +75,8 @@ export default function ChannexHealthBadge({
   variant = 'dot',
   onClick,
 }: ChannexHealthBadgeProps) {
+  // Le hook précède le garde : un `return` avant lui violerait les Rules of Hooks.
+  const { t } = useTranslation();
   if (!mapping) return null;
 
   const meta = STATUS_META[mapping.syncStatus];
@@ -82,7 +85,7 @@ export default function ChannexHealthBadge({
   const tooltipContent = (
     <div className="max-w-[260px]">
       <p className="text-xs font-semibold leading-[1.3] mb-0.5">
-        {meta.label}
+        {t(meta.labelKey)}
       </p>
       <span className="text-xs block leading-[1.45] opacity-85">
         Derniere sync : {lastSyncStr}
@@ -97,7 +100,7 @@ export default function ChannexHealthBadge({
       )}
       {onClick && (
         <span className="text-2xs block mt-0.5 opacity-70">
-          Cliquer pour ouvrir les details
+          {t('settings.channex.health.clickForDetails')}
         </span>
       )}
     </div>
@@ -153,12 +156,12 @@ export default function ChannexHealthBadge({
             className={badgeClass}
             style={badgeStyle}
             onClick={(e: React.MouseEvent) => { e.stopPropagation(); onClick(); }}
-            aria-label={meta.label}
+            aria-label={t(meta.labelKey)}
           >
             {badgeContent}
           </button>
         ) : (
-          <span className={badgeClass} style={badgeStyle} aria-label={meta.label}>
+          <span className={badgeClass} style={badgeStyle} aria-label={t(meta.labelKey)}>
             {badgeContent}
           </span>
         )}

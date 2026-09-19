@@ -6,7 +6,7 @@ import { WeatherWidget } from '../WeatherWidget';
 describe('WeatherWidget (smoke)', () => {
   it('renders fallback when items is empty', () => {
     render(<WeatherWidget data={{ items: [] }} />);
-    expect(screen.getByText(/Aucune donnee meteo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aucune donnée météo/i)).toBeInTheDocument();
   });
 
   it('renders title + tiles for each day with temp and rain', () => {

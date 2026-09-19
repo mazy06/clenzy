@@ -27,6 +27,8 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
 import { Cable, Search, Check, ArrowRight } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
+import type { TFunction } from 'i18next';
 
 interface ChannexImportProgressStepperProps {
   /** Nb d'OTAs (Airbnb/Booking/...) deja connectes cote hub Channex. */
@@ -39,11 +41,6 @@ interface ChannexImportProgressStepperProps {
   importedCount: number;
 }
 
-/** Accord en nombre sans repeter le ternaire a chaque libelle. */
-function plural(count: number, singular: string, plural_: string): string {
-  return `${count} ${count > 1 ? plural_ : singular}`;
-}
-
 type StepStatus = 'COMPLETE' | 'ACTIVE' | 'UPCOMING';
 
 interface Step {
@@ -54,7 +51,7 @@ interface Step {
   status: StepStatus;
 }
 
-function computeSteps(p: ChannexImportProgressStepperProps): Step[] {
+function computeSteps(p: ChannexImportProgressStepperProps, t: TFunction): Step[] {
   const hasOta = p.connectedOtaCount > 0;
   // Un logement present dans le hub ne prouve PAS une detection OTA : il a pu y
   // etre pousse depuis Baitly. La detection exige un compte OTA autorise.
@@ -64,32 +61,32 @@ function computeSteps(p: ChannexImportProgressStepperProps): Step[] {
   return [
     {
       num: 1,
-      title: 'Autoriser',
+      title: t('channexStepper.authorize'),
       hint: hasOta
-        ? plural(p.connectedOtaCount, 'compte OTA connecté', 'comptes OTA connectés')
-        : 'Connectez votre compte Airbnb ou Booking',
+        ? t('channexStepper.connectedAccounts', { count: p.connectedOtaCount })
+        : t('channexStepper.connectHint'),
       Icon: Cable,
       status: hasOta ? 'COMPLETE' : 'ACTIVE',
     },
     {
       num: 2,
-      title: 'Détecter',
+      title: t('channexStepper.detect'),
       hint: !hasOta
-        ? 'En attente de l\'étape 1'
+        ? t('channexStepper.waitingStepOne')
         : hasDetected
-          ? plural(p.otaDetectedCount > 0 ? p.otaDetectedCount : p.totalInHub, 'annonce détectée', 'annonces détectées')
-          : 'Recherche de vos annonces en cours',
+          ? t('channexStepper.detectedListings', { count: p.otaDetectedCount > 0 ? p.otaDetectedCount : p.totalInHub })
+          : t('channexStepper.searching'),
       Icon: Search,
       status: !hasOta ? 'UPCOMING' : hasDetected ? 'COMPLETE' : 'ACTIVE',
     },
     {
       num: 3,
-      title: 'Synchroniser',
+      title: t('channexStepper.sync'),
       hint: hasImported
-        ? plural(p.importedCount, 'annonce importée dans Baitly', 'annonces importées dans Baitly')
+        ? t('channexStepper.importedListings', { count: p.importedCount })
         : hasDetected
-          ? 'Cochez les annonces, puis importez'
-          : 'En attente de détection',
+          ? t('channexStepper.tickThenImport')
+          : t('channexStepper.waitingDetection'),
       Icon: Check,
       status: !hasDetected ? 'UPCOMING' : hasImported ? 'COMPLETE' : 'ACTIVE',
     },
@@ -107,6 +104,7 @@ const STATUS_COLOR: Record<StepStatus, string> = {
 };
 
 function StepBubble({ step }: { step: Step }) {
+  const { t } = useTranslation();
   const color = STATUS_COLOR[step.status];
   const Icon = step.status === 'COMPLETE' ? Check : step.Icon;
   return (
@@ -140,7 +138,7 @@ function StepBubble({ step }: { step: Step }) {
         <span className={cn('block text-xs font-semibold leading-[1.3]', step.status === 'UPCOMING' ? 'text-muted-foreground' : 'text-foreground')}>
           {step.title}
           <span className="sr-only">
-            {step.status === 'COMPLETE' ? ' — terminée' : step.status === 'ACTIVE' ? ' — étape en cours' : ' — à venir'}
+            {step.status === 'COMPLETE' ? t('channexStepper.srDone') : step.status === 'ACTIVE' ? t('channexStepper.srActive') : t('channexStepper.srUpcoming')}
           </span>
         </span>
         <span className="block text-2xs text-muted-foreground leading-[1.4]">
@@ -163,7 +161,8 @@ function Connector({ next }: { next: StepStatus }) {
 }
 
 export default function ChannexImportProgressStepper(props: ChannexImportProgressStepperProps) {
-  const steps = computeSteps(props);
+  const { t } = useTranslation();
+  const steps = computeSteps(props, t);
   return (
     // L'ancien fond `${ACCENT}22` concatenait un alpha sur un `var()` : declaration
     // invalide, donc silencieusement sans effet. Les tokens Baitly portent leur
@@ -171,7 +170,7 @@ export default function ChannexImportProgressStepper(props: ChannexImportProgres
     <div className="rounded-lg border border-solid border-primary/15 bg-primary-soft/50 p-[7.5px]">
       {/* `sm` MUI = 600 px, pas le 640 de Tailwind. spacing 1/1.25 = 6 px/7,5 px. */}
       <ol
-        aria-label="Progression de la connexion"
+        aria-label={t('settings.channex.stepper.aria')}
         className="flex flex-col gap-1.5 items-start min-[600px]:flex-row min-[600px]:gap-[7.5px] min-[600px]:items-center"
       >
         <StepBubble step={steps[0]} />

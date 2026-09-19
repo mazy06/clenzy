@@ -25,6 +25,7 @@ import StatTile from '../../components/baitly/StatTile';
 import { interventionsKeys } from './useInterventionsList';
 import { Money } from '../../components/Money';
 import { getTypeTokens } from './interventionUtils';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // Teintes d'icone des tuiles KPI (classes Baitly UI)
 const WARN_TONE = 'text-warning';
@@ -51,7 +52,7 @@ interface Intervention {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '--';
   try {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
+    return new Date(dateStr).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -152,7 +153,7 @@ const InterventionsPendingPayment: React.FC = () => {
       <div>
         <BuiAlert variant="destructive">
           <TriangleAlert />
-          <AlertDescription>Vous n'avez pas acces a cette page</AlertDescription>
+          <AlertDescription>{t('interventions.pendingPayment.noAccess')}</AlertDescription>
         </BuiAlert>
       </div>
     );
@@ -214,8 +215,8 @@ const InterventionsPendingPayment: React.FC = () => {
         <EmptyState
           variant="plain"
           icon={<PaymentIcon />}
-          title="Aucun paiement en attente"
-          description="Toutes vos interventions sont a jour."
+          title={t('interventions.pendingPayment.empty')}
+          description={t('interventions.pendingPayment.emptyHint')}
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
@@ -280,7 +281,7 @@ const InterventionsPendingPayment: React.FC = () => {
                             <BuiButton
                               variant="ghost"
                               size="icon-sm"
-                              aria-label="Voir les details"
+                              aria-label={t('interventions.pendingPayment.viewDetails')}
                               onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
                               className="text-muted-foreground hover:text-foreground hover:bg-muted"
                             >
@@ -288,7 +289,7 @@ const InterventionsPendingPayment: React.FC = () => {
                             </BuiButton>
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent>Voir les details</TooltipContent>
+                        <TooltipContent>{t('interventions.pendingPayment.viewDetails')}</TooltipContent>
                       </Tooltip>
                       {/* « Payer » est repete par ligne mais reste l'action meme de l'ecran :
                           on garde la variante pleine plutot qu'une action de ligne discrete. */}

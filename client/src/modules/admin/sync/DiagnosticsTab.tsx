@@ -19,11 +19,13 @@ import {
 } from '../../../icons';
 import StatTile from '../../../components/baitly/StatTile';
 import { syncAdminApi, DiagnosticsSummary, MetricsSnapshot } from '../../../services/api/syncAdminApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /** Label overline d'entête de carte — échelle Baitly UI. */
 const OVERLINE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 const DiagnosticsTab: React.FC = () => {
+  const { t } = useTranslation();
   const [diagnostics, setDiagnostics] = useState<DiagnosticsSummary | null>(null);
   const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ const DiagnosticsTab: React.FC = () => {
         setDiagnostics(diag);
         setMetrics(met);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement des diagnostics');
+        setError(err instanceof Error ? err.message : t('admin.sync.diagnosticsLoadError'));
       } finally {
         setLoading(false);
       }
@@ -111,7 +113,7 @@ const DiagnosticsTab: React.FC = () => {
             <Card className="mb-[18px]">
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'mb-1.5')}>
-                  Sync Logs par Status
+                  {t('admin.sync.logsByStatus')}
                 </p>
                 <div className="grid grid-cols-12 gap-1.5">
                   {Object.entries(diagnostics.syncLogsByStatus).map(([status, count]) => (
@@ -151,7 +153,7 @@ const DiagnosticsTab: React.FC = () => {
                       </p>
                     ))
                   ) : (
-                    <p className="text-xs text-muted-foreground">Aucune donnee</p>
+                    <p className="text-xs text-muted-foreground">{t('admin.sync.noData')}</p>
                   )}
                 </CardContent>
               </Card>
@@ -179,7 +181,7 @@ const DiagnosticsTab: React.FC = () => {
                       ))}
                     </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Aucune donnee</p>
+                    <p className="text-xs text-muted-foreground">{t('admin.sync.noData')}</p>
                   )}
                 </CardContent>
               </Card>

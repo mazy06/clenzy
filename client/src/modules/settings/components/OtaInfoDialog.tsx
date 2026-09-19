@@ -30,6 +30,8 @@ import {
 import type { AirbnbConnectionStatus } from '../../../services/api/airbnbApi';
 import type { OtaChannel } from '../../../services/channels/otaChannels';
 import IntegrationConfigDialog from './IntegrationConfigDialog';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Modal unifie pour les OTAs dans la vitrine Integrations.
@@ -83,6 +85,7 @@ export default function OtaInfoDialog({
   channelStatus,
   airbnbStatus,
 }: OtaInfoDialogProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const disconnectMutation = useDisconnectChannel();
   const connectMutation = useConnectChannel();
@@ -179,7 +182,7 @@ export default function OtaInfoDialog({
   const handleAirbnbConnect = () => {
     setActionError(null);
     airbnbConnectMutation.mutate(undefined, {
-      onError: (err: Error) => setActionError(err.message ?? 'Erreur OAuth Airbnb.'),
+      onError: (err: Error) => setActionError(err.message ?? t('channels.airbnbOauthError')),
     });
   };
 
@@ -208,15 +211,15 @@ export default function OtaInfoDialog({
               {isAirbnb
                 ? 'Connexion OAuth2 native'
                 : isFormConnectable
-                  ? 'Connexion via formulaire (API ou iCal)'
-                  : 'Intégration en cours de développement'}
+                  ? t('channels.connectViaForm')
+                  : t('channels.integrationInProgress')}
             </p>
           </div>
           <div className="shrink-0">
             {isConnected ? (
               <Badge variant="success">
                 <CheckCircleIcon size={11} strokeWidth={2} />
-                Connecté
+                {t('settings.integrations.status.connected')}
               </Badge>
             ) : (
               <Badge variant="secondary">
@@ -233,7 +236,7 @@ export default function OtaInfoDialog({
           {!ota.available && (
             <UiAlert variant="info" className="text-xs">
               <Info />
-              <AlertDescription>L'intégration {ota.name}est en cours de développement. La page <strong>Channels</strong>permet d'exprimer votre intérêt et de suivre la disponibilité.</AlertDescription>
+              <AlertDescription>{t('settings.ota.inDevelopment', { name: ota.name })} <strong>Channels</strong> {t('settings.ota.waitlistHint')}</AlertDescription>
             </UiAlert>
           )}
 
@@ -243,7 +246,7 @@ export default function OtaInfoDialog({
               <UiAlert variant="success" className="text-xs mb-2">
                 <CheckCircleIcon size={16} strokeWidth={2} />
                 <AlertDescription>
-                  Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
+                  {t('settings.ota.integrationActive')} <strong>{t('settings.ota.active')}</strong>. {t('settings.ota.manageHereOrChannels')}
                 </AlertDescription>
               </UiAlert>
 
@@ -258,17 +261,17 @@ export default function OtaInfoDialog({
                     )}
                     {channelStatus.connectedAt && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Connecté depuis</p>
+                        <p className="text-xs text-muted-foreground">{t('settings.ota.connectedSince')}</p>
                         <p className="text-sm font-medium tabular-nums">
-                          {new Date(channelStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {new Date(channelStatus.connectedAt).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     )}
                     {channelStatus.lastSyncAt && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Dernière sync</p>
+                        <p className="text-xs text-muted-foreground">{t('settings.ota.lastSync')}</p>
                         <p className="text-sm font-medium tabular-nums">
-                          {new Date(channelStatus.lastSyncAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {new Date(channelStatus.lastSyncAt).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     )}
@@ -276,9 +279,9 @@ export default function OtaInfoDialog({
                 )}
                 {isAirbnbConnected && airbnbStatus?.connectedAt && (
                   <div>
-                    <p className="text-xs text-muted-foreground">Connecté depuis</p>
+                    <p className="text-xs text-muted-foreground">{t('settings.ota.connectedSince')}</p>
                     <p className="text-sm font-medium tabular-nums">
-                      {new Date(airbnbStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(airbnbStatus.connectedAt).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                 )}
@@ -292,7 +295,7 @@ export default function OtaInfoDialog({
                     onClick={() => setEditingForm(true)}
                   >
                     <LinkIcon size={14} strokeWidth={2} />
-                    Modifier la connexion
+                    {t('settings.ota.editConnection')}
                   </Button>
                 )}
                 {isFormConnectable && (
@@ -305,7 +308,7 @@ export default function OtaInfoDialog({
                     disabled={disconnectMutation.isPending}
                   >
                     {disconnectMutation.isPending ? <Spinner className="size-3" /> : <LinkOffIcon size={14} strokeWidth={2} />}
-                    {disconnectMutation.isPending ? 'Déconnexion...' : `Déconnecter ${ota.name}`}
+                    {disconnectMutation.isPending ? t('settings.ota.disconnecting') : t('settings.integrations.disconnectProvider', { provider: ota.name })}
                   </Button>
                 )}
                 <Button
@@ -313,7 +316,7 @@ export default function OtaInfoDialog({
                   size="sm"
                   onClick={() => navigate('/channels')}
                 >
-                  Gérer dans Channels
+                  {t('settings.ota.manageInChannels')}
                   <ArrowRightIcon size={14} strokeWidth={2} />
                 </Button>
               </div>
@@ -324,7 +327,7 @@ export default function OtaInfoDialog({
           {ota.available && isAirbnb && !isConnected && (
             <div>
               <p className="text-sm text-muted-foreground mb-2">
-                Airbnb utilise un flow OAuth2 natif. Vous serez redirigé vers Airbnb pour autoriser l'accès à votre compte.
+                {t('settings.ota.airbnbOauth')}
               </p>
               <div className="flex gap-1.5 flex-wrap">
                 <Button
@@ -333,14 +336,14 @@ export default function OtaInfoDialog({
                   disabled={airbnbConnectMutation.isPending}
                 >
                   {airbnbConnectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
-                  {airbnbConnectMutation.isPending ? 'Redirection...' : 'Se connecter via Airbnb'}
+                  {airbnbConnectMutation.isPending ? t('settings.ota.redirecting') : t('settings.ota.connectViaAirbnb')}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/channels')}
                 >
-                  Détails dans Channels
+                  {t('settings.ota.detailsInChannels')}
                   <ArrowRightIcon size={14} strokeWidth={2} />
                 </Button>
               </div>
@@ -397,7 +400,7 @@ export default function OtaInfoDialog({
                   disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
                 >
                   {testMutation.isPending ? <Spinner className="size-3" /> : <TestIcon size={14} strokeWidth={2} />}
-                  {testMutation.isPending ? 'Test en cours...' : 'Tester'}
+                  {testMutation.isPending ? t('common.testing') : t('common.test')}
                 </Button>
                 <Button
                   type="submit"

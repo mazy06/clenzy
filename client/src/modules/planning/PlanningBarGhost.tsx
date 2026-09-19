@@ -1,8 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 import type { BarLayout } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { getEventDisplayColor } from './utils/colorUtils';
+import { orderNameForReading } from '../../utils/textDirection';
+import { isRtlLanguage } from '../../utils/localeDate';
 
 // Le @keyframes vivait dans le `sx` MUI, qui l'injectait lui-meme. Sans MUI il
 // faut une vraie feuille : posee une seule fois au chargement du module.
@@ -20,6 +23,8 @@ interface PlanningBarGhostProps {
 }
 
 const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict }) => {
+  const { i18n } = useTranslation();
+  const isRtl = isRtlLanguage(i18n.language);
   const { event, width, height } = layout;
   const eventColor = getEventDisplayColor(event);
 
@@ -42,7 +47,7 @@ const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict 
     >
       {width > 40 && (
         <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis leading-[1.2]">
-          {event.label}
+          {orderNameForReading(event.label, isRtl)}
         </p>
       )}
     </div>

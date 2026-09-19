@@ -16,6 +16,7 @@ import {
 } from '../../services/api/smartLockApi';
 import { reservationsApi, type Reservation } from '../../services/api';
 import type { Notification } from '../../services/api';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 /**
  * Dossier d'une rotation manuelle de code de serrure.
@@ -190,7 +191,7 @@ const TONE_SIGNAL: Record<BatteryTone, string> = {
 
 function formatMoment(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('fr-FR', {
+    return new Date(iso).toLocaleString(activeIntlLocale(), {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   } catch {
@@ -200,7 +201,7 @@ function formatMoment(iso: string): string {
 
 function formatDay(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+    return new Date(iso).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short' });
   } catch {
     return iso;
   }
@@ -294,7 +295,7 @@ export default function NotificationLockCodePanel({
             <SmartLockMark signal={TONE_SIGNAL[tone]} width={54} />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="min-w-0">
-                <p className="m-0 truncate text-sm font-medium text-foreground">{device.name}</p>
+                <p dir="auto" className="m-0 truncate text-sm font-medium text-foreground">{device.name}</p>
                 <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">
                   {[device.roomName, BRAND_LABEL[device.brand] ?? device.brand].filter(Boolean).join(' · ')}
                 </p>

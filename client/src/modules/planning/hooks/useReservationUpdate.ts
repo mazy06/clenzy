@@ -5,6 +5,7 @@ import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
 import { planningKeys } from './usePlanningData';
 import { validateReservationUpdate } from '../utils/conflictUtils';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ReservationTimeUpdate {
   checkIn?: string;
@@ -26,6 +27,7 @@ export function useReservationUpdate(
   events: PlanningEvent[],
   interventions: PlanningIntervention[],
 ) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const updateReservation = useCallback(
@@ -96,7 +98,7 @@ export function useReservationUpdate(
       if (hasOverlap) {
         return {
           success: false,
-          error: 'Conflit : le logement cible a deja une reservation sur ces dates',
+          error: t('planning.conflictTargetProperty'),
         };
       }
 
@@ -109,7 +111,7 @@ export function useReservationUpdate(
 
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors du changement de logement' };
+        return { success: false, error: t('planning.propertyChangeError') };
       }
     },
     [queryClient, events],
@@ -142,7 +144,7 @@ export function useReservationUpdate(
 
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors de la sauvegarde des notes' };
+        return { success: false, error: t('planning.notesSaveError') };
       }
     },
     [queryClient],
@@ -170,7 +172,7 @@ export function useReservationUpdate(
           newCheckOut > e.startDate,
       );
       if (overlapping) {
-        return { success: false, error: 'Conflit : le logement est deja reserve sur ces dates' };
+        return { success: false, error: t('planning.conflictProperty') };
       }
 
       try {
@@ -178,7 +180,7 @@ export function useReservationUpdate(
         queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors de la duplication' };
+        return { success: false, error: t('planning.duplicateError') };
       }
     },
     [queryClient, events],
@@ -191,7 +193,7 @@ export function useReservationUpdate(
         queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors du masquage' };
+        return { success: false, error: t('planning.hideError') };
       }
     },
     [queryClient],
@@ -228,7 +230,7 @@ export function useReservationUpdate(
 
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors de la mise a jour des infos client' };
+        return { success: false, error: t('planning.clientUpdateError') };
       }
     },
     [queryClient],

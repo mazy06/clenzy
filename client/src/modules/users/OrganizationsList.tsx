@@ -38,6 +38,7 @@ import {
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
+import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import StatTile from '../../components/baitly/StatTile';
@@ -50,6 +51,7 @@ import MembersList from '../organization/MembersList';
 import type { ChipColor } from '../../types';
 import type { LucideIcon } from 'lucide-react';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types d'organisation ─────────────────────────────────────────────────────
 
@@ -72,7 +74,7 @@ const getTypeInfo = (type: string) => {
 
 const formatDate = (dateString?: string): string => {
   if (!dateString) return '—';
-  return new Date(dateString).toLocaleDateString('fr-FR', {
+  return new Date(dateString).toLocaleDateString(activeIntlLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -92,6 +94,7 @@ interface OrganizationsListProps {
 }
 
 const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
+  const { t } = useTranslation();
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<OrganizationDto | null>(null);
@@ -154,7 +157,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
   const handleFormSave = async () => {
     if (!formData.name.trim()) {
-      notify.warning('Le nom de l\'organisation est obligatoire');
+      notify.warning(t('organizations.nameRequired'));
       return;
     }
 
@@ -166,7 +169,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           type: formData.type,
         });
         setOrganizations(prev => [...prev, newOrg]);
-        notify.success('Organisation creee avec succes');
+        notify.success(t('organizations.created'));
       } else if (selectedOrg) {
         const updatedOrg = await organizationsApi.update(selectedOrg.id, {
           name: formData.name.trim(),
@@ -175,7 +178,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         setOrganizations(prev =>
           prev.map(o => (o.id === selectedOrg.id ? updatedOrg : o))
         );
-        notify.success('Organisation modifiee avec succes');
+        notify.success(t('organizations.updated'));
       }
       setFormDialogOpen(false);
       setFormData({ name: '', type: 'INDIVIDUAL' });
@@ -194,7 +197,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         setOrganizations(prev => prev.filter(o => o.id !== selectedOrg.id));
         setDeleteDialogOpen(false);
         setSelectedOrg(null);
-        notify.success('Organisation supprimee avec succes');
+        notify.success(t('organizations.deleted'));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
         notify.error(message);
@@ -242,7 +245,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       bare={Boolean(filtersContainer)}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
-      searchPlaceholder="Rechercher une organisation..."
+      searchPlaceholder={t('organizations.searchPlaceholder')}
       filters={{
         type: {
           value: selectedType,
@@ -272,7 +275,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       {!embedded && (
         <PageHeader
           title="Organisations"
-          subtitle="Organisations clientes (multi-tenant) : informations légales, branding et configuration."
+          subtitle={t('organizations.subtitle')}
           iconBadge={<CorporateFare />}
           backPath="/dashboard"
           showBackButton={false}
@@ -318,8 +321,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
               title={organizations.length === 0 ? 'Aucune organisation' : 'Aucun résultat'}
               description={
                 organizations.length === 0
-                  ? 'Créez la première organisation avec le bouton « Nouvelle organisation ».'
-                  : 'Aucune organisation ne correspond aux filtres sélectionnés.'
+                  ? t('organizations.emptyHint')
+                  : t('organizations.noMatch')
               }
             />
           </div>
@@ -343,7 +346,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         <div className="flex-1 min-w-0">
                           {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les
                               marges UA que `cn-text-*` neutralisait. */}
-                          <p className="m-0 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
+                          <p dir="auto" className="m-0 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
                             {org.name}
                           </p>
                           <p className="m-0 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block tabular-nums">
@@ -362,7 +365,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
                           <DropdownMenuItem onClick={() => setMembersDialogOrg(org)}>
                             <People size={18} strokeWidth={1.75} />
-                            Voir les membres
+                            {t('organizations.viewMembers')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(org)}>
                             <Edit size={18} strokeWidth={1.75} />
@@ -441,13 +444,13 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {formMode === 'create' ? 'Nouvelle organisation' : 'Modifier l\'organisation'}
+              {formMode === 'create' ? t('organizations.new') : t('organizations.edit')}
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-12 gap-3 mt-[3px]">
             <div className="col-span-12">
               <Field>
-                <FieldLabel htmlFor="org-form-name">Nom de l'organisation *</FieldLabel>
+                <FieldLabel htmlFor="org-form-name">{t('organizations.nameRequired')}</FieldLabel>
                 <Input
                   id="org-form-name"
                   value={formData.name}
@@ -514,7 +517,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) setDeleteDialogOpen(false); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogTitle>{t('organizations.confirmDelete')}</DialogTitle>
           </DialogHeader>
           <p className="m-0 text-xs">
             Etes-vous sur de vouloir supprimer l'organisation "{selectedOrg?.name}" ?

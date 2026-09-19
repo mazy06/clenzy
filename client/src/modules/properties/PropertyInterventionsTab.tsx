@@ -30,6 +30,8 @@ import {
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import type { PropertyIntervention } from '../../hooks/usePropertyDetails';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { formatMonthYear, weekdayHeaders } from '../../utils/localeDate';
 
 // Statut intervention → ton sémantique du kit. La couleur elle-même n'est plus
 // portée ici : la puce la déduit du ton, les aplats passent par les tables de
@@ -64,11 +66,7 @@ const TONE_BADGE_CLASS: Record<StatusTone, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const MONTH_NAMES_FR = [
-  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-];
-const DAY_LABELS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
 
 function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -154,7 +152,7 @@ const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 export default function PropertyInterventionsTab({ interventions, propertyId: _propertyId }: PropertyInterventionsTabProps) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const today = useMemo(() => new Date(), []);
@@ -216,7 +214,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
       <EmptyState
         icon={<Build />}
         title={t('properties.noInterventions')}
-        description="Les interventions planifiées apparaîtront ici sur un calendrier"
+        description={t('properties.interventions.emptyHint')}
       />
     );
   }
@@ -245,7 +243,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
         />
         <StatCard
           icon={<CheckCircle size={18} strokeWidth={1.75} />}
-          label="Terminées"
+          label={t('properties.interventions.completed')}
           value={stats.completed}
           tone="ok"
         />
@@ -285,14 +283,14 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               <Button variant="ghost" size="sm" onClick={goToToday}>
                 Aujourd'hui
               </Button>
-              <Button variant="ghost" size="icon-sm" aria-label="Mois précédent" onClick={prevMonth}>
-                <ChevronLeft size={18} strokeWidth={1.75} />
+              <Button variant="ghost" size="icon-sm" aria-label={t('properties.interventions.prevMonth')} onClick={prevMonth}>
+                <ChevronLeft className="cn-rtl-flip" size={18} strokeWidth={1.75} />
               </Button>
               <p className="text-sm font-semibold min-w-[130px] text-center capitalize tabular-nums">
-                {MONTH_NAMES_FR[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
+                {formatMonthYear(monthAnchor, currentLanguage)}
               </p>
-              <Button variant="ghost" size="icon-sm" aria-label="Mois suivant" onClick={nextMonth}>
-                <ChevronRight size={18} strokeWidth={1.75} />
+              <Button variant="ghost" size="icon-sm" aria-label={t('properties.interventions.nextMonth')} onClick={nextMonth}>
+                <ChevronRight className="cn-rtl-flip" size={18} strokeWidth={1.75} />
               </Button>
             </>
           )}
@@ -306,9 +304,9 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           <Card className="gap-0 py-0 p-3 bg-card">
             {/* Weekday header */}
             <div className="grid grid-cols-7 mb-1.5">
-              {DAY_LABELS_FR.map((d) => (
-                <p className="text-2xs font-semibold text-faint text-center uppercase tracking-wide" key={d}>
-                  {d}
+              {weekdayHeaders(currentLanguage, 'narrow').map((d, i) => (
+                <p className="text-2xs font-semibold text-faint text-center uppercase tracking-wide" key={i}>
+                  {d.label}
                 </p>
               ))}
             </div>
@@ -394,7 +392,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               </div>
               <div>
                 <p className="text-sm font-semibold capitalize leading-[1.2] text-foreground">
-                  {selectedDay.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {selectedDay.toLocaleDateString(activeIntlLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {selectedDayItems.length === 0
@@ -408,7 +406,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               <div className="flex-1 flex flex-col items-center justify-center py-4 text-faint">
                 <CalendarMonth size={28} strokeWidth={1.5} />
                 <p className="text-xs mt-1.5">
-                  Sélectionnez un jour avec un point coloré
+                  {t('properties.interventions.pickDay')}
                 </p>
               </div>
             ) : (
@@ -452,7 +450,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                               <ChevronRight size={14} strokeWidth={1.75} />
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent>Voir le détail</TooltipContent>
+                          <TooltipContent>{t('properties.interventions.viewDetail')}</TooltipContent>
                         </Tooltip>
                       </div>
                     </div>
@@ -488,7 +486,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                       d'où `bg-muted` plutôt que la surface de carte. */}
                   <div className="px-3 py-1.5 bg-muted border-b border-border flex items-center justify-between sticky top-0 z-[1]">
                     <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
-                      {MONTH_NAMES_FR[m]} {y}
+                      {formatMonthYear(new Date(y, m, 1), currentLanguage)}
                     </p>
                     <p className="text-xs text-muted-foreground tabular-nums">
                       {items.length} intervention{items.length > 1 ? 's' : ''}
@@ -506,7 +504,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           {new Date(iv.scheduledDate).getDate()}
                         </p>
                         <p className="text-2xs font-semibold text-faint uppercase tracking-wide">
-                          {new Date(iv.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short' })}
+                          {new Date(iv.scheduledDate).toLocaleDateString(activeIntlLocale(), { weekday: 'short' })}
                         </p>
                       </div>
                       <div className="min-w-0">

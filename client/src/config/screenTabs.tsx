@@ -5,6 +5,7 @@ import {
   AccountTree,
   Assessment,
   Assignment,
+  Bolt,
   BugReport,
   Build,
   Business,
@@ -133,6 +134,18 @@ const canViewIssues = (a: ScreenTabAccess) =>
  * barre : il n'ouvre alors aucun tiroir.</p>
  */
 export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
+  '/automation-rules': [
+    { key: 'rules', translationKey: 'tabHeaders.automation.rules', fallbackLabel: 'Règles', icon: <Bolt /> },
+    { key: 'system', translationKey: 'tabHeaders.automation.system', fallbackLabel: 'Système', icon: <Tune /> },
+    {
+      key: 'agents',
+      translationKey: 'tabHeaders.automation.agents',
+      fallbackLabel: 'Agents',
+      icon: <SmartToy />,
+      isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'),
+    },
+  ],
+
   '/properties': [
     { key: 'properties', translationKey: 'propertiesPage.tabs.properties', fallbackLabel: 'Propriétés', icon: <Home /> },
     { key: 'pricing', translationKey: 'propertiesPage.tabs.pricing', fallbackLabel: 'Prix dynamique', icon: <TrendingUp /> },

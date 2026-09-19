@@ -45,9 +45,10 @@ import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments
 import GenerateDialog from './GenerateDialog';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
-import { renderServerEmailPreview } from '../../utils/emailMarkdown';
+import { renderServerEmailPreview, emailPreviewFontStack } from '../../utils/emailMarkdown';
 import PagePagination from '../../components/PagePagination';
 import { cn } from '../../utils/cn';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // Lien-bouton de fin de ligne (« Apercu », « Telecharger »). L'ancien `all: unset`
 // est rendu par des remises a zero explicites : l'ordre des utilities Tailwind
@@ -182,8 +183,8 @@ const formatDate = (dateStr: string): string => {
   }
   if (dayDiff === 1) return `hier à ${time}`;
 
-  const weekday = date.toLocaleDateString('fr-FR', { weekday: 'long' });
-  const dayMonth = date.toLocaleDateString('fr-FR', {
+  const weekday = date.toLocaleDateString(activeIntlLocale(), { weekday: 'long' });
+  const dayMonth = date.toLocaleDateString(activeIntlLocale(), {
     day: 'numeric',
     month: 'long',
     // L'annee n'apparait que si elle differe : la repeter alourdit sans informer.
@@ -204,21 +205,21 @@ const formatDate = (dateStr: string): string => {
  * n'est pas reconnu garde « Echec » seul, plutot qu'une categorie inventee qui
  * induirait en erreur. Le detail complet reste dans l'infobulle.</p>
  */
-const FAILURE_REASONS: Array<{ match: RegExp; label: string }> = [
-  { match: /pas de destinataire|no recipient/i, label: 'destinataire manquant' },
-  { match: /adresse rejet|rejected|invalid.*(address|email)|mailbox/i, label: 'adresse rejetée' },
-  { match: /bo[iî]te pleine|quota|mailbox full/i, label: 'boîte pleine' },
-  { match: /num[eé]ro invalide|invalid number|not a valid phone/i, label: 'numéro invalide' },
-  { match: /tags? non resolus|tags manquants/i, label: 'tags non résolus' },
-  { match: /InvalidReferenceException|evaluated to null or missing/i, label: 'variable absente du modèle' },
-  { match: /aucun template actif|template.*introuvable|no template/i, label: 'modèle introuvable' },
-  { match: /transaction/i, label: 'erreur technique' },
-  { match: /timeout|timed out/i, label: 'délai dépassé' },
+const FAILURE_REASONS: Array<{ match: RegExp; key: string }> = [
+  { match: /pas de destinataire|no recipient/i, key: 'documents.failure.noRecipient' },
+  { match: /adresse rejet|rejected|invalid.*(address|email)|mailbox/i, key: 'documents.failure.addressRejected' },
+  { match: /bo[iî]te pleine|quota|mailbox full/i, key: 'documents.failure.mailboxFull' },
+  { match: /num[eé]ro invalide|invalid number|not a valid phone/i, key: 'documents.failure.invalidNumber' },
+  { match: /tags? non resolus|tags manquants/i, key: 'documents.failure.unresolvedTags' },
+  { match: /InvalidReferenceException|evaluated to null or missing/i, key: 'documents.failure.missingVariable' },
+  { match: /aucun template actif|template.*introuvable|no template/i, key: 'documents.failure.templateNotFound' },
+  { match: /transaction/i, key: 'documents.failure.technical' },
+  { match: /timeout|timed out/i, key: 'documents.failure.timeout' },
 ];
 
-const failureReason = (errorMessage?: string): string | null => {
+const failureReasonKey = (errorMessage?: string): string | null => {
   if (!errorMessage) return null;
-  return FAILURE_REASONS.find((reason) => reason.match.test(errorMessage))?.label ?? null;
+  return FAILURE_REASONS.find((reason) => reason.match.test(errorMessage))?.key ?? null;
 };
 
 const formatFileSize = (bytes?: number) => {
@@ -231,7 +232,7 @@ const formatFileSize = (bytes?: number) => {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { isDark } = useThemeMode();
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -400,7 +401,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       // la reservation n'a pas d'email guest (typique iCal anonymise).
       const e = err as { response?: { data?: { message?: string; code?: string } } };
       const backendMessage = e?.response?.data?.message;
-      setActionError(backendMessage || 'Erreur lors du renvoi du message');
+      setActionError(backendMessage || t('documents.resendError'));
     } finally {
       setResendingId(null);
     }
@@ -525,7 +526,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               const title = row.recipient && row.recipient !== '—'
                 ? `${row.name} → ${row.recipient}`
                 : row.name;
-              const reason = isFailed ? failureReason(row.errorMessage) : null;
+              const reasonKey = isFailed ? failureReasonKey(row.errorMessage) : null;
+              const reason = reasonKey ? t(reasonKey) : null;
               const statusLabel = reason ? `${row.status} · ${reason}` : row.status;
               const meta = [
                 row.channel,
@@ -643,7 +645,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                 </BuiButton>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Modifier l&apos;email et renvoyer</TooltipContent>
+                            <TooltipContent>{t('documents.history.editEmailResend')}</TooltipContent>
                           </Tooltip>
                         )}
                         {row.messageLog.status === 'FAILED' && !row.messageLog.guestId && (
@@ -656,8 +658,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              Réservation anonymisée (iCal Airbnb/Booking) — l&apos;email du voyageur n&apos;est pas exposé par le canal.
-                              Crée un guest manuel pour pouvoir envoyer le message.
+                              {t('documents.history.anonymisedBooking')}
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -665,7 +666,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           const canResend = hasRecipient(row.messageLog!);
                           const tip = canResend
                             ? "Renvoyer le message"
-                            : "Pas de destinataire — ajoute un email guest avant de renvoyer";
+                            : t('documents.noRecipientHint');
                           return (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -751,7 +752,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                             className={INLINE_LINK_BTN_CLS}
                           >
                             <Download size={14} strokeWidth={1.75} />
-                            Télécharger
+                            {t('documents.history.download')}
                           </button>
                         )}
                       </>
@@ -781,7 +782,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       <Dialog open={!!detailLog} onOpenChange={(next) => { if (!next) setDetailLog(null); }}>
         <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Details du message</DialogTitle>
+            <DialogTitle>{t('documents.history.messageDetails')}</DialogTitle>
           </DialogHeader>
           {detailLog && (
             <div className="flex flex-col gap-2 pt-1.5">
@@ -806,7 +807,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               {/* Apercu du contenu email */}
               {detailLog.channel === 'EMAIL' && detailLog.templateId && (
                 <>
-                  <h6 className="text-xs font-medium mt-1.5">Contenu de l&apos;email</h6>
+                  <h6 className="text-xs font-medium mt-1.5">{t('documents.history.emailContent')}</h6>
                   {previewLoading ? (
                     <div className="flex justify-center py-3">
                       <Spinner className="size-6" />
@@ -815,7 +816,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     <div className="mt-0.5 rounded-md border border-border overflow-hidden">
                       <iframe
                         sandbox=""
-                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}
+                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:${emailPreviewFontStack(currentLanguage)};font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}
                         title="Apercu email"
                         style={{
                           width: '100%',
@@ -870,7 +871,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 <TooltipTrigger asChild>
                   <span className="inline-flex">{resendButton}</span>
                 </TooltipTrigger>
-                <TooltipContent>Pas de destinataire — ajoute un email guest avant de renvoyer</TooltipContent>
+                <TooltipContent>{t('documents.history.noRecipient')}</TooltipContent>
               </Tooltip>
             );
           })()}
@@ -883,7 +884,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       <Dialog open={!!editEmailLog} onOpenChange={(next) => { if (!next) setEditEmailLog(null); }}>
         <DialogContent className="max-w-[444px]">
           <DialogHeader>
-            <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
+            <DialogTitle>{t('documents.history.editGuestEmail')}</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground mb-3">
             Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
@@ -908,7 +909,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               disabled={!editEmailValue.trim() || editEmailLoading}
               onClick={handleUpdateEmailAndResend}
             >
-              {editEmailLoading ? <Spinner className="size-5" /> : 'Enregistrer et renvoyer'}
+              {editEmailLoading ? <Spinner className="size-5" /> : t('documents.saveAndResend')}
             </BuiButton>
           </DialogFooter>
         </DialogContent>

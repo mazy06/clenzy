@@ -1,12 +1,12 @@
 import { guestPhotoSrc } from '../../../services/api/guestsApi';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner, Field, FieldLabel, Input } from '../../../components/ui';
 import { Alert, AlertAction, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import {
   CalendarMonth,
   Edit,
@@ -116,6 +116,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
   onOpenPayment,
   onOpenOperations,
 }) => {
+  const { t } = useTranslation();
   const reservation = event.reservation;
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState('');
@@ -125,7 +126,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
 
   const statusColor = RESERVATION_STATUS_TOKEN_COLORS[reservation.status] ?? 'var(--ink)';
   const statusSoft = STATUS_SOFT[reservation.status] ?? 'var(--hover)';
-  const statusLabel = RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] || reservation.status;
+  const statusLabel = t(`planning.legend.status.${reservation.status}`, reservation.status);
   const channelLabel = RESERVATION_SOURCE_LABELS[reservation.source as ReservationSource] || reservation.source;
   const channelTokens = getChannelChipTokens(reservation.source);
   const sourceLogo = getSourceLogo(reservation.source);
@@ -157,7 +158,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
               <div className="flex items-center gap-0.5">
                 <input
                   ref={nameInputRef}
-                  aria-label="Nom du client"
+                  aria-label={t('planning.panel.info.nameAria', 'Nom du client')}
                   value={nameValue}
                   onChange={(e) => setNameValue(e.target.value)}
                   onKeyDown={(e) => {
@@ -186,7 +187,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                     : 'cursor-default',
                 )}
               >
-                <span className="font-[family-name:var(--font-display)] text-[1.0625rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+                <span dir="auto" className="font-[family-name:var(--font-display)] text-[1.0625rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
                   {reservation.guestName}
                 </span>
                 {onUpdateGuestInfo && (
@@ -251,6 +252,9 @@ interface EditableDatesSectionProps {
 }
 
 const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation, onUpdate }) => {
+  const { t } = useTranslation();
+  // « 10 févr. » suit le calendrier de la langue — hégirien en arabe.
+  const fmt = useDateFormat();
   const [editing, setEditing] = useState(false);
   const [checkIn, setCheckIn] = useState(reservation.checkIn);
   const [checkOut, setCheckOut] = useState(reservation.checkOut);
@@ -303,7 +307,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
 
   /** « 10 févr. » en gros display. */
   const fmtBigDate = (iso: string) => {
-    try { return format(toDate(iso), 'd MMM', { locale: fr }); } catch { return iso; }
+    try { return fmt.formatDayMonthShort(toDate(iso)); } catch { return iso; }
   };
 
   const DateColumn = ({ label, date, time, align }: { label: string; date: string; time?: string; align: 'left' | 'right' }) => (
@@ -331,7 +335,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
         <span className="inline-flex text-[var(--faint)]">
           <CalendarMonth size={13} strokeWidth={1.75} />
         </span>
-        <span className={cn(OVERLINE_CLASS, 'flex-1')}>Dates &amp; horaires</span>
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>{t('planning.panel.info.datesTitle', 'Dates & horaires')}</span>
         {!editing ? (
           onUpdate && (
             <Button
@@ -339,7 +343,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
               variant="ghost"
               size="icon-xs"
               onClick={() => setEditing(true)}
-              aria-label="Modifier les dates"
+              aria-label={t('planning.panel.info.editDates', 'Modifier les dates')}
               className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
             >
               <Edit size={13} strokeWidth={1.75} />
@@ -353,7 +357,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
               size="icon-xs"
               onClick={handleSave}
               disabled={!hasChanges}
-              aria-label="Enregistrer les dates"
+              aria-label={t('planning.panel.info.saveDates', 'Enregistrer les dates')}
               className="text-[var(--ok)] hover:text-[var(--ok)] hover:bg-[var(--ok-soft)]"
             >
               <Check size={15} strokeWidth={1.75} />
@@ -363,7 +367,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
               variant="ghost"
               size="icon-xs"
               onClick={handleCancel}
-              aria-label="Annuler la modification des dates"
+              aria-label={t('planning.panel.info.cancelDates', 'Annuler la modification des dates')}
               className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
             >
               <Close size={15} strokeWidth={1.75} />
@@ -375,23 +379,23 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
       {!editing ? (
         /* Mode lecture : 2 colonnes + flèche centrale */
         <div className="flex justify-between items-center gap-1.5">
-          <DateColumn label="Check-in" date={reservation.checkIn} time={reservation.checkInTime} align="left" />
+          <DateColumn label={t('planning.popover.checkIn', 'Check-in')} date={reservation.checkIn} time={reservation.checkInTime} align="left" />
           <span className="inline-flex text-[var(--faint)] shrink-0">
             <ArrowForward size={16} strokeWidth={1.75} />
           </span>
-          <DateColumn label="Check-out" date={reservation.checkOut} time={reservation.checkOutTime} align="right" />
+          <DateColumn label={t('planning.popover.checkOut', 'Check-out')} date={reservation.checkOut} time={reservation.checkOutTime} align="right" />
         </div>
       ) : (
         /* Mode édition (flow historique conservé) */
         <div className="flex flex-col gap-2">
           {/* Check-in */}
           <div>
-            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-in</span>
+            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>{t('planning.popover.checkIn', 'Check-in')}</span>
             {/* L'overline coiffe la PAIRE date + heure : il ne peut pas servir de
                 libellé à un champ unique, d'où un FieldLabel sr-only par champ. */}
             <div className="flex gap-1.5">
               <Field className="flex-1">
-                <FieldLabel className="sr-only" htmlFor="panel-check-in-date">Date de check-in</FieldLabel>
+                <FieldLabel className="sr-only" htmlFor="panel-check-in-date">{t('planning.panel.info.checkInDate', 'Date de check-in')}</FieldLabel>
                 <Input
                   id="panel-check-in-date"
                   type="date"
@@ -401,7 +405,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
                 />
               </Field>
               <Field className="w-[100px]">
-                <FieldLabel className="sr-only" htmlFor="panel-check-in-time">Heure de check-in</FieldLabel>
+                <FieldLabel className="sr-only" htmlFor="panel-check-in-time">{t('planning.panel.info.checkInTime', 'Heure de check-in')}</FieldLabel>
                 <Input
                   id="panel-check-in-time"
                   type="time"
@@ -416,10 +420,10 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
 
           {/* Check-out */}
           <div>
-            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-out</span>
+            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>{t('planning.popover.checkOut', 'Check-out')}</span>
             <div className="flex gap-1.5">
               <Field className="flex-1">
-                <FieldLabel className="sr-only" htmlFor="panel-check-out-date">Date de check-out</FieldLabel>
+                <FieldLabel className="sr-only" htmlFor="panel-check-out-date">{t('planning.panel.info.checkOutDate', 'Date de check-out')}</FieldLabel>
                 <Input
                   id="panel-check-out-date"
                   type="date"
@@ -429,7 +433,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
                 />
               </Field>
               <Field className="w-[100px]">
-                <FieldLabel className="sr-only" htmlFor="panel-check-out-time">Heure de check-out</FieldLabel>
+                <FieldLabel className="sr-only" htmlFor="panel-check-out-time">{t('planning.panel.info.checkOutTime', 'Heure de check-out')}</FieldLabel>
                 <Input
                   id="panel-check-out-time"
                   type="time"
@@ -451,7 +455,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Fermer"
+                  aria-label={t('planning.panel.info.close', 'Fermer')}
                   onClick={() => setValidationError(null)}
                 >
                   <X />
@@ -462,7 +466,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
 
           {hasChanges && !validationError && (
             <span className="text-[0.625rem] text-[var(--warn)]">
-              Les interventions liees (menage) seront automatiquement decalees.
+              {t('planning.panel.shiftedJobs')}
             </span>
           )}
         </div>
@@ -495,6 +499,7 @@ function serializeBullets(items: string[]): string {
 }
 
 const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
+  const { t } = useTranslation();
   const [items, setItems] = useState<string[]>(() => parseBullets(reservation.notes || ''));
   const [newItemText, setNewItemText] = useState('');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -600,7 +605,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
       {/* Header overline */}
       <div className="flex items-center gap-1 mb-1.5">
         <span className={cn(OVERLINE_CLASS, 'flex-1')}>
-          Notes{items.length > 0 ? ` · ${items.length}` : ''}
+          {t('planning.panel.info.notes', 'Notes')}{items.length > 0 ? ` · ${items.length}` : ''}
         </span>
         {saving && <Spinner className="size-3" />}
         {saved && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
@@ -609,7 +614,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
       {/* Bloc référence : téléphone (donnée existante, omis sinon) */}
       {reservation.guestPhone && (
         <div className="bg-[var(--field)] rounded-[10px] px-2 py-1.5 mb-1.5">
-          <span className={cn(OVERLINE_CLASS, 'block mb-[1.5px]')}>Téléphone</span>
+          <span className={cn(OVERLINE_CLASS, 'block mb-[1.5px]')}>{t('planning.panel.info.phone', 'Téléphone')}</span>
           <div className="flex items-center gap-1">
             <span className="inline-flex text-[var(--muted)]"><Phone size={12} strokeWidth={1.75} /></span>
             <span className="text-[0.8125rem] font-semibold text-[var(--ink)] tabular-nums">
@@ -638,7 +643,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
             {editingIdx === idx ? (
               <input
                 ref={editInputRef}
-                aria-label="Modifier la note"
+                aria-label={t('planning.panel.info.editNote', 'Modifier la note')}
                 value={editingText}
                 onChange={e => setEditingText(e.target.value)}
                 onBlur={commitEdit}
@@ -656,7 +661,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
               type="button"
               variant="ghost"
               size="icon-xs"
-              aria-label="Supprimer la note"
+              aria-label={t('planning.panel.info.deleteNote', 'Supprimer la note')}
               className="note-delete-btn opacity-0 text-[var(--faint)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
               style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}
               onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
@@ -671,12 +676,14 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
           <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--line-2)] shrink-0" />
           <input
             ref={newInputRef}
-            aria-label="Ajouter une note"
+            aria-label={t('planning.panel.info.addNote', 'Ajouter une note')}
             value={newItemText}
             onChange={e => setNewItemText(e.target.value)}
             onKeyDown={handleNewKeyDown}
             onBlur={() => { if (newItemText.trim()) addItem(); }}
-            placeholder={items.length === 0 ? 'Ajouter une note...' : 'Ajouter...'}
+            placeholder={items.length === 0
+              ? t('planning.panel.info.addNotePlaceholder', 'Ajouter une note...')
+              : t('planning.panel.info.addPlaceholder', 'Ajouter...')}
             style={NOTE_NEW_INPUT_STYLE}
           />
         </div>

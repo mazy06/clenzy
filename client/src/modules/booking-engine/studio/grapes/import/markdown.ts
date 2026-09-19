@@ -1,4 +1,5 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur Markdown → HTML.
@@ -227,14 +228,14 @@ const markdownImporter: TemplateImporter = {
     const report = newReport('markdown');
     const source = input ?? '';
     if (!source.trim()) {
-      report.warnings.push('Entrée Markdown vide.');
+      report.warnings.push(i18n.t('studioImport.markdown.empty'));
       return { html: '', report };
     }
     const html = markdownToHtml(source);
     if (!html.trim()) {
-      report.warnings.push('Aucun contenu Markdown exploitable.');
+      report.warnings.push(i18n.t('studioImport.markdown.noContent'));
     }
-    report.notes = 'Markdown converti en HTML ; le style provient du thème du canvas (pas de CSS dédié).';
+    report.notes = i18n.t('studioImport.markdown.notes');
     return { html, report };
   },
 };

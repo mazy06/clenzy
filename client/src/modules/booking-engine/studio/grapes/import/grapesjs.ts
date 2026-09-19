@@ -1,4 +1,5 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur GrapesJS — réimport d'un export GrapesJS.
@@ -116,7 +117,7 @@ const grapesjsImporter: TemplateImporter = {
     }
     // projectData.
     const { html, css } = projectToHtmlCss(parsed);
-    if (!html.trim()) report.warnings.push('Aucun composant exploitable dans le projet GrapesJS.');
+    if (!html.trim()) report.warnings.push(i18n.t('studioImport.grapesjs.noComponent'));
     return { html, css, report };
   },
 };

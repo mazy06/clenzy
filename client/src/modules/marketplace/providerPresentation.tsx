@@ -45,6 +45,7 @@ import type {
   ServicePayer,
   ServiceRecurrence,
 } from '../../services/api/marketplaceProvidersApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 /**
  * Vocabulaire partage des deux ecrans de la place de marche.
@@ -223,7 +224,7 @@ export function formatOfferPrice(
   currency: string,
   pricingModel: PricingModel,
   unitLabel?: string,
-  locale = 'fr-FR',
+  locale = activeIntlLocale(),
   onQuote = 'Sur devis',
 ): string {
   if (pricingModel === 'ON_QUOTE' || amount === undefined || amount === null) {
@@ -234,7 +235,7 @@ export function formatOfferPrice(
   return `${formatted}${PRICING_SUFFIX[pricingModel]}`;
 }
 
-export function formatMoney(amount: number, currency: string, locale = 'fr-FR'): string {
+export function formatMoney(amount: number, currency: string, locale = activeIntlLocale()): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency || 'EUR',
@@ -312,7 +313,7 @@ export function formatDate(iso?: string): string {
   if (!iso) return '—';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(date);
+  return new Intl.DateTimeFormat(activeIntlLocale(), { dateStyle: 'medium' }).format(date);
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {

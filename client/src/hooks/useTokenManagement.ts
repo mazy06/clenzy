@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import TokenService, { TokenEventData } from '../services/TokenService';
+// Hors composant : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../i18n/config';
 
 export interface TokenManagementState {
   isRefreshing: boolean;
@@ -44,7 +46,7 @@ export const useTokenManagement = () => {
     } catch (error) {
       setState(prev => ({
         ...prev,
-        error: 'Erreur lors de la vérification de la santé du token',
+        error: i18n.t('auth.errors.tokenHealthCheck'),
         tokenHealth: {
           isHealthy: false,
           timeUntilExpiry: 0,
@@ -76,14 +78,14 @@ export const useTokenManagement = () => {
         setState(prev => ({
           ...prev,
           isRefreshing: false,
-          error: 'Échec du rafraîchissement du token'
+          error: i18n.t('auth.errors.tokenRefreshFailed')
         }));
       }
     } catch (error) {
       setState(prev => ({
         ...prev,
         isRefreshing: false,
-        error: 'Erreur lors du rafraîchissement du token'
+        error: i18n.t('auth.errors.tokenRefresh')
       }));
     }
   }, [tokenService, checkTokenHealth]);
@@ -116,7 +118,7 @@ export const useTokenManagement = () => {
     } catch (error) {
       setState(prev => ({
         ...prev,
-        error: 'Erreur lors du nettoyage des tokens'
+        error: i18n.t('auth.errors.tokenCleanup')
       }));
     }
   }, [tokenService, checkTokenHealth]);
@@ -157,7 +159,7 @@ export const useTokenManagement = () => {
     const handleAuthFailed = (data?: TokenEventData) => {
       setState(prev => ({
         ...prev,
-        error: data?.error || 'Échec d\'authentification',
+        error: data?.error || i18n.t('auth.errors.authFailed'),
         tokenHealth: {
           isHealthy: false,
           timeUntilExpiry: 0,

@@ -18,6 +18,7 @@ import {
 } from '../../components/ui';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface SendWhatsAppTemplateDialogProps {
   open: boolean;
@@ -53,6 +54,7 @@ export default function SendWhatsAppTemplateDialog({
   sending,
   error,
 }: SendWhatsAppTemplateDialogProps) {
+  const { t } = useTranslation();
   const { data: groups, isLoading } = useWhatsAppTemplatesList();
   const [selectedKey, setSelectedKey] = useState('');
 
@@ -68,7 +70,7 @@ export default function SendWhatsAppTemplateDialog({
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Envoyer un template</DialogTitle>
+          <DialogTitle>{t('channels.whatsappTemplate.title')}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">
         {isLoading ? (
@@ -77,7 +79,7 @@ export default function SendWhatsAppTemplateDialog({
           </div>
         ) : !groups || groups.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Aucun template disponible.
+            {t('channels.whatsappTemplate.empty')}
           </p>
         ) : (
           <RadioGroup value={selectedKey} onValueChange={setSelectedKey}>
@@ -104,7 +106,7 @@ export default function SendWhatsAppTemplateDialog({
         {error && (
           <Alert variant="destructive" className="mt-1.5 text-sm">
             <TriangleAlert />
-            <AlertDescription>Échec de l'envoi du template. Réessayez.</AlertDescription>
+            <AlertDescription>{t('channels.whatsappTemplate.error')}</AlertDescription>
           </Alert>
         )}
         </div>

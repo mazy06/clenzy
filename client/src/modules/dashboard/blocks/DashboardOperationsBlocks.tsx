@@ -226,7 +226,7 @@ export function TodayOperationsSection() {
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-medium text-foreground">
+                    <span dir="auto" className="truncate text-sm font-medium text-foreground">
                       {arrival.guestName}
                     </span>
                     <StatusChip
@@ -269,7 +269,7 @@ export function TodayOperationsSection() {
                     size={30}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-foreground">
+                    <div dir="auto" className="truncate text-sm font-medium text-foreground">
                       {departure.guestName}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
@@ -320,7 +320,7 @@ export function TodayOperationsSection() {
                   size={30}
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-foreground">
+                  <div dir="auto" className="truncate text-sm font-medium text-foreground">
                     {cleaning.propertyName}
                   </div>
                   <div className="truncate text-xs text-muted-foreground">

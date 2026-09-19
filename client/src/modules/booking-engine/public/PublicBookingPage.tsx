@@ -10,6 +10,7 @@ import type { DesignTokens } from '../../../services/api/bookingEngineApi';
 import { widgetThemeFromTokens } from '../widgetTheme';
 import PublicConcierge from './PublicConcierge';
 import { API_CONFIG } from '../../../config/api';
+import { createBookingI18n } from '../sdk/i18n';
 
 // Même résolution que le reste de l'app (VITE_API_BASE_URL) : pas de proxy /api en dev.
 const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
@@ -94,7 +95,11 @@ function detectHomeContent(blocksJson: string | null | undefined): HomeContent {
  * (`bg-card`, `text-foreground`…) débrancherait le thème du tenant. Seul le chrome affiché AVANT le
  * chargement de la config (chargement, erreur) suit la palette Baitly UI.
  */
-function themeVars(primaryColor: string, fontFamily: string | null, t: DesignTokens | null): React.CSSProperties {
+/** Repli arabe commun — la police de marque de l'hote n'a presque jamais de
+ *  glyphes arabes ; sans ce repli, chaque navigateur choisit le sien. */
+const ARABIC_FALLBACK = "'Tajawal','Tahoma','Geeza Pro','Arabic Typesetting','Traditional Arabic',sans-serif";
+
+function themeVars(primaryColor: string, fontFamily: string | null, t: DesignTokens | null, arabic = false): React.CSSProperties {
   const accent = t?.primaryColor || primaryColor || '#5453D6';
   const style: Record<string, string> = {
     '--accent': accent,
@@ -102,8 +107,17 @@ function themeVars(primaryColor: string, fontFamily: string | null, t: DesignTok
     '--accent-soft': `color-mix(in srgb, ${accent} 12%, transparent)`,
     '--on-accent': '#ffffff',
   };
+  const withArabic = (stack: string): string => (arabic ? `${stack}, ${ARABIC_FALLBACK}` : stack);
   const body = t?.bodyFontFamily || fontFamily;
-  if (body) { style.fontFamily = body; style['--body'] = body; style['--font-display'] = t?.headingFontFamily || body; }
+  if (body) {
+    style.fontFamily = withArabic(body);
+    style['--body'] = style.fontFamily;
+    style['--font-display'] = withArabic(t?.headingFontFamily || body);
+  } else if (arabic) {
+    style.fontFamily = ARABIC_FALLBACK;
+    style['--body'] = ARABIC_FALLBACK;
+    style['--font-display'] = ARABIC_FALLBACK;
+  }
   if (t?.headingFontWeight) style['--fw-heading'] = String(t.headingFontWeight);
   if (t?.backgroundColor) style['--bg'] = t.backgroundColor;
   if (t?.surfaceColor) style['--card'] = t.surfaceColor;
@@ -188,6 +202,9 @@ export default function PublicBookingPage() {
   const homeHasWidgets = homeHtml.includes(WIDGET_MARKER);
 
   const language = (['fr', 'en', 'ar'].includes(config?.defaultLanguage ?? '') ? config!.defaultLanguage : 'fr') as 'fr' | 'en' | 'ar';
+  // Le chrome de la page suit la langue DU SITE, pas celle du PMS : i18next ne
+  // sert pas un visiteur anonyme, le dictionnaire du SDK si.
+  const { t: tSite } = useMemo(() => createBookingI18n(language), [language]);
 
   // Monte le module de réservation une fois la config chargée. Deux parcours mutuellement exclusifs
   // (Option A du contrat : on évite le doublon de widgets bookables) :
@@ -247,7 +264,7 @@ export default function PublicBookingPage() {
   }
 
   return (
-    <div style={themeVars(config.primaryColor, config.fontFamily, tokens)}
+    <div style={themeVars(config.primaryColor, config.fontFamily, tokens, language === 'ar')}
       className="min-h-[100vh] bg-[var(--card)] text-[var(--ink)] [container-type:inline-size]">
       {config.customCss && <style>{config.customCss}</style>}
 
@@ -266,26 +283,27 @@ export default function PublicBookingPage() {
       )}
 
       {/* Preuve sociale : avis publics (affichée seulement s'il y en a). */}
-      {reviews?.stats && reviews.stats.totalCount > 0 && <ReviewsSection data={reviews} />}
+      {reviews?.stats && reviews.stats.totalCount > 0 && <ReviewsSection data={reviews} lang={language} />}
 
       {/* Section de réservation de repli : widget monolithe (Shadow DOM, styles isolés). Masquée si la
           HOME GrapesJS embarque déjà ses propres marqueurs hydratés (évite le doublon bookable). */}
       {!homeHasWidgets && (
         <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9" id="reserver">
           <div className="font-[family-name:var(--font-display)] text-2xl font-bold text-center text-balance mb-4">
-            Réservez votre séjour
+            {tSite('page.bookStay')}
           </div>
           <div ref={widgetHostRef} />
         </div>
       )}
 
       {/* Concierge IA (2.13) — bulle flottante, affichée seulement si l'org a activé l'IA. */}
-      {apiKey && <PublicConcierge apiKey={apiKey} />}
+      {apiKey && <PublicConcierge apiKey={apiKey} lang={language} />}
     </div>
   );
 }
 
-function ReviewsSection({ data }: { data: PublicReviews }) {
+function ReviewsSection({ data, lang }: { data: PublicReviews; lang: string }) {
+  const { t } = useMemo(() => createBookingI18n(lang), [lang]);
   return (
     <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9">
       <div className="flex items-center justify-center gap-1.5 mb-4">
@@ -293,7 +311,7 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
         <div className="font-[family-name:var(--font-display)] text-2xl font-bold tabular-nums text-[var(--ink)]">
           {data.stats.averageRating.toFixed(1)}
         </div>
-        <div className="text-[var(--muted)] text-sm tabular-nums">· {data.stats.totalCount} avis</div>
+        <div className="text-[var(--muted)] text-sm tabular-nums">· {data.stats.totalCount} {t('page.reviews')}</div>
       </div>
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-3">
         {data.reviews.map((r, i) => (

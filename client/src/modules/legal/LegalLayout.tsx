@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Separator } from '../../components/ui';
 import { ArrowBack } from '../../icons';
 import { cn } from '../../utils/cn';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 
 /**
@@ -20,6 +21,7 @@ import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
  */
 export interface LegalLayoutProps {
   title: string;
+  /** Date ISO (`AAAA-MM-JJ`) de derniere modification du document. */
   lastUpdated: string;
   children: React.ReactNode;
 }
@@ -33,6 +35,87 @@ const CONTAINER = 'mx-auto w-full max-w-[900px] px-4 min-[600px]:px-6';
 /** Lien discret du header et du footer : encre attenuee, accent au survol. */
 const QUIET_LINK =
   'text-muted-foreground no-underline transition-colors duration-150 hover:text-primary motion-reduce:transition-none';
+
+/**
+ * Date d'effet d'un document legal — TOUJOURS gregorienne.
+ *
+ * <p>La langue suit le lecteur, le calendrier non : rendue en hegirien, la
+ * version arabe annoncerait une autre date que la version francaise du meme
+ * document. Or c'est la meme date d'effet qui engage.</p>
+ */
+function formatEffectiveDate(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString(activeIntlLocaleGregorian(), {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+}
+
+/**
+ * Un bloc de texte legal.
+ *
+ * <p>Chaque entree porte une CLE, jamais du texte : ces documents existent en
+ * trois langues, et un repli en dur laisserait du francais a l'ecran pour un
+ * lecteur arabophone — precisement ce qu'on ne peut pas se permettre sur une
+ * page qui engage.</p>
+ */
+export interface LegalSection {
+  /** Prefixe de cle : `<base>.<id>.title`, `.p1`, `.i1`, `.after1`… */
+  id: string;
+  /** Cles des paragraphes d'introduction, dans l'ordre. */
+  paragraphs: readonly string[];
+  /** Cles des puces, si la section porte une liste. */
+  items?: readonly string[];
+  /** Cles des paragraphes qui suivent la liste. */
+  after?: readonly string[];
+}
+
+/**
+ * Rend les sections d'un document legal.
+ *
+ * <p>Les corps passent tous par {@code Trans} : plusieurs portent un lien
+ * (contact DPO, renvoi a la politique de confidentialite) que le traducteur
+ * doit pouvoir deplacer dans la phrase. Les composants non references par une
+ * traduction sont simplement ignores.</p>
+ */
+export function LegalSections({
+  base,
+  sections,
+  components,
+}: {
+  /** Racine des cles, p. ex. `legal.cgu`. */
+  base: string;
+  sections: readonly LegalSection[];
+  components?: Record<string, React.ReactElement>;
+}) {
+  const { t } = useTranslation();
+  const body = (key: string) => (
+    <Trans i18nKey={`${base}.${key}`} components={components} />
+  );
+
+  return (
+    <>
+      {sections.map((section) => (
+        <React.Fragment key={section.id}>
+          <h2>{t(`${base}.${section.id}.title`)}</h2>
+          {section.paragraphs.map((key) => (
+            <p key={key}>{body(`${section.id}.${key}`)}</p>
+          ))}
+          {section.items && (
+            <ul>
+              {section.items.map((key) => (
+                <li key={key}>{body(`${section.id}.${key}`)}</li>
+              ))}
+            </ul>
+          )}
+          {section.after?.map((key) => (
+            <p key={key}>{body(`${section.id}.${key}`)}</p>
+          ))}
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
 
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
   const { t } = useTranslation();
@@ -67,7 +150,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           {title}
         </h1>
         <span className="block mb-6 text-xs tabular-nums text-muted-foreground">
-          {t('auth.legal.lastUpdated', `Dernière mise à jour : ${lastUpdated}`, { date: lastUpdated })}
+          {t('auth.legal.lastUpdated', { date: formatEffectiveDate(lastUpdated) })}
         </span>
         <Separator className="mb-6" />
         {/* Habillage typographique du contenu legal : les selecteurs imbriques

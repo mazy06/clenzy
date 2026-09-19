@@ -1,6 +1,7 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCwIcon, XIcon } from 'lucide-react';
 import { Button } from '../ui';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/AppUpdateBanner.tsx (MUI).
@@ -12,6 +13,7 @@ export interface AppUpdateBannerProps {
 }
 
 export default function AppUpdateBanner({ forceVisible = false }: AppUpdateBannerProps) {
+  const { t } = useTranslation();
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -34,7 +36,7 @@ export default function AppUpdateBanner({ forceVisible = false }: AppUpdateBanne
       <div className="min-w-0 flex-1 text-sm">
         <div className="font-semibold text-foreground">Nouvelle version disponible</div>
         <div className="text-xs text-muted-foreground">
-          Recharge pour profiter des dernières améliorations.
+          {t('appUpdate.reloadHint')}
         </div>
       </div>
       <Button size="sm" onClick={() => updateServiceWorker(true)}>
@@ -43,7 +45,7 @@ export default function AppUpdateBanner({ forceVisible = false }: AppUpdateBanne
       <Button
         size="icon-xs"
         variant="ghost"
-        aria-label="Plus tard"
+        aria-label={t('common.later')}
         onClick={() => setNeedRefresh(false)}
       >
         <XIcon />
