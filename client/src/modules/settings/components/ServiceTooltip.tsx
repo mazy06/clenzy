@@ -2,6 +2,7 @@ import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { OpenInNew as ExternalLinkIcon, Info as InfoIcon } from '../../../icons';
 import { SERVICE_TOOLTIPS, type ServiceTooltipData } from '../../../services/integrations/serviceTooltips';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Wrapper Tooltip reutilisable pour tous les services d'integration (Signature,
@@ -29,6 +30,7 @@ interface ServiceTooltipProps {
 }
 
 export default function ServiceTooltip({ providerId, data, name, children }: ServiceTooltipProps) {
+  const { t } = useTranslation();
   const tooltipData = data ?? SERVICE_TOOLTIPS[providerId];
   // Pas de tooltip si pas de donnees — rendu transparent
   if (!tooltipData) return children;
@@ -58,14 +60,14 @@ export default function ServiceTooltip({ providerId, data, name, children }: Ser
 
           {/* Description longue */}
           <span className="block text-[0.7rem] text-inherit opacity-92 leading-[1.45] mb-1">
-            {tooltipData.description}
+            {t(tooltipData.descriptionKey)}
           </span>
 
           {/* Modalites d'acces */}
           <span className="flex items-start gap-0.5 text-[0.68rem] text-inherit opacity-85 leading-[1.4] mb-0.5">
             <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, opacity: 0.7 }} />
             <span>
-              <strong style={{ fontWeight: 700 }}>Modalités :</strong> {tooltipData.accessModality}
+              <strong style={{ fontWeight: 700 }}>{t('settings.integrations.terms')}</strong> {t(tooltipData.accessKey)}
             </span>
           </span>
 

@@ -39,18 +39,18 @@ import {
   AutoAwesome,
 } from '../../icons';
 import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api/notificationPreferencesApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Constantes: groupement des cles par categorie ────────────────────────────
 
 interface NotificationKeyInfo {
+  /** Identifiant backend ; les libelles vivent dans `notifPrefs.<key>.*`. */
   key: string;
-  title: string;
-  description: string;
 }
 
 interface CategoryGroup {
   id: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
   color: string;
   keys: NotificationKeyInfo[];
@@ -97,183 +97,183 @@ const FIELD_ROLES = OPERATIONAL_ROLES.filter((role) => role !== 'SUPERVISOR');
 const CATEGORIES: CategoryGroup[] = [
   {
     id: 'intervention',
-    label: 'Interventions',
+    labelKey: 'notifPrefs.groups.intervention',
     icon: <Build size={16} strokeWidth={1.75} />,
     color: 'var(--bui-primary)',
     keys: [
-      { key: 'INTERVENTION_CREATED', title: 'Intervention creee', description: 'Quand une nouvelle intervention est creee' },
-      { key: 'INTERVENTION_UPDATED', title: 'Intervention mise a jour', description: 'Quand une intervention est modifiee' },
-      { key: 'INTERVENTION_ASSIGNED_TO_USER', title: 'Assignee a un utilisateur', description: 'Quand vous etes assigne a une intervention' },
-      { key: 'INTERVENTION_ASSIGNED_TO_TEAM', title: 'Assignee a une equipe', description: 'Quand votre equipe est assignee a une intervention' },
-      { key: 'INTERVENTION_STARTED', title: 'Intervention demarree', description: 'Quand une intervention commence' },
-      { key: 'INTERVENTION_PROGRESS_UPDATED', title: 'Progression mise a jour', description: 'Quand la progression d\'une intervention change' },
-      { key: 'INTERVENTION_COMPLETED', title: 'Intervention terminee', description: 'Quand une intervention est completee a 100%' },
-      { key: 'INTERVENTION_REOPENED', title: 'Intervention rouverte', description: 'Quand une intervention terminee est rouverte' },
-      { key: 'INTERVENTION_STATUS_CHANGED', title: 'Statut modifie', description: 'Quand le statut d\'une intervention change' },
-      { key: 'INTERVENTION_VALIDATED', title: 'Intervention validee', description: 'Quand une intervention est validee par un manager' },
-      { key: 'INTERVENTION_AWAITING_VALIDATION', title: 'En attente de validation', description: 'Quand une intervention necessite une validation' },
-      { key: 'INTERVENTION_AWAITING_PAYMENT', title: 'En attente de paiement', description: 'Quand un paiement est requis pour une intervention' },
-      { key: 'INTERVENTION_CANCELLED', title: 'Intervention annulee', description: 'Quand une intervention est annulee' },
-      { key: 'INTERVENTION_DELETED', title: 'Intervention supprimee', description: 'Quand une intervention est supprimee' },
-      { key: 'INTERVENTION_PHOTOS_ADDED', title: 'Photos ajoutees', description: 'Quand des photos sont ajoutees a une intervention' },
-      { key: 'INTERVENTION_NOTES_UPDATED', title: 'Notes mises a jour', description: 'Quand les notes d\'une intervention sont modifiees' },
-      { key: 'INTERVENTION_OVERDUE', title: 'Intervention en retard', description: 'Quand une intervention depasse sa date prevue' },
-      { key: 'INTERVENTION_REMINDER', title: 'Rappel d\'intervention', description: 'Rappel avant le debut d\'une intervention' },
+      { key: 'INTERVENTION_CREATED' },
+      { key: 'INTERVENTION_UPDATED' },
+      { key: 'INTERVENTION_ASSIGNED_TO_USER' },
+      { key: 'INTERVENTION_ASSIGNED_TO_TEAM' },
+      { key: 'INTERVENTION_STARTED' },
+      { key: 'INTERVENTION_PROGRESS_UPDATED' },
+      { key: 'INTERVENTION_COMPLETED' },
+      { key: 'INTERVENTION_REOPENED' },
+      { key: 'INTERVENTION_STATUS_CHANGED' },
+      { key: 'INTERVENTION_VALIDATED' },
+      { key: 'INTERVENTION_AWAITING_VALIDATION' },
+      { key: 'INTERVENTION_AWAITING_PAYMENT' },
+      { key: 'INTERVENTION_CANCELLED' },
+      { key: 'INTERVENTION_DELETED' },
+      { key: 'INTERVENTION_PHOTOS_ADDED' },
+      { key: 'INTERVENTION_NOTES_UPDATED' },
+      { key: 'INTERVENTION_OVERDUE' },
+      { key: 'INTERVENTION_REMINDER' },
     ],
   },
   {
     id: 'service_request',
-    label: 'Demandes de service',
+    labelKey: 'notifPrefs.groups.service_request',
     icon: <Description size={16} strokeWidth={1.75} />,
     color: 'var(--bui-info)',
     keys: [
-      { key: 'SERVICE_REQUEST_CREATED', title: 'Demande creee', description: 'Quand une nouvelle demande de service est soumise' },
-      { key: 'SERVICE_REQUEST_UPDATED', title: 'Demande mise a jour', description: 'Quand une demande de service est modifiee' },
-      { key: 'SERVICE_REQUEST_APPROVED', title: 'Demande approuvee', description: 'Quand une demande de service est acceptee' },
-      { key: 'SERVICE_REQUEST_REJECTED', title: 'Demande rejetee', description: 'Quand une demande de service est refusee' },
-      { key: 'SERVICE_REQUEST_INTERVENTION_CREATED', title: 'Intervention creee depuis demande', description: 'Quand une intervention est generee depuis une demande' },
-      { key: 'SERVICE_REQUEST_ASSIGNED', title: 'Demande assignee', description: 'Quand une demande est assignee a un intervenant' },
-      { key: 'SERVICE_REQUEST_CANCELLED', title: 'Demande annulee', description: 'Quand une demande de service est annulee' },
-      { key: 'SERVICE_REQUEST_URGENT', title: 'Demande urgente', description: 'Quand une demande urgente est recue' },
-      { key: 'ISSUE_REPORTED', title: 'Anomalie signalee', description: 'Quand une anomalie terrain est signalee sur un logement' },
-      { key: 'ISSUE_CONVERTED', title: 'Anomalie convertie', description: 'Quand une anomalie est convertie en demande de maintenance' },
+      { key: 'SERVICE_REQUEST_CREATED' },
+      { key: 'SERVICE_REQUEST_UPDATED' },
+      { key: 'SERVICE_REQUEST_APPROVED' },
+      { key: 'SERVICE_REQUEST_REJECTED' },
+      { key: 'SERVICE_REQUEST_INTERVENTION_CREATED' },
+      { key: 'SERVICE_REQUEST_ASSIGNED' },
+      { key: 'SERVICE_REQUEST_CANCELLED' },
+      { key: 'SERVICE_REQUEST_URGENT' },
+      { key: 'ISSUE_REPORTED' },
+      { key: 'ISSUE_CONVERTED' },
     ],
   },
   {
     id: 'payment',
-    label: 'Paiements',
+    labelKey: 'notifPrefs.groups.payment',
     icon: <Payment size={16} strokeWidth={1.75} />,
     color: 'var(--bui-success)',
     keys: [
-      { key: 'PAYMENT_SESSION_CREATED', title: 'Session de paiement creee', description: 'Quand une session de paiement est initiee' },
-      { key: 'PAYMENT_CONFIRMED', title: 'Paiement confirme', description: 'Quand un paiement est confirme avec succes' },
-      { key: 'PAYMENT_FAILED', title: 'Paiement echoue', description: 'Quand un paiement echoue' },
-      { key: 'PAYMENT_GROUPED_SESSION_CREATED', title: 'Paiement groupe cree', description: 'Quand un paiement groupe est initie' },
-      { key: 'PAYMENT_GROUPED_CONFIRMED', title: 'Paiement groupe confirme', description: 'Quand un paiement groupe est confirme' },
-      { key: 'PAYMENT_GROUPED_FAILED', title: 'Paiement groupe echoue', description: 'Quand un paiement groupe echoue' },
-      { key: 'PAYMENT_DEFERRED_REMINDER', title: 'Rappel paiement differe', description: 'Rappel pour un paiement differe en attente' },
-      { key: 'PAYMENT_DEFERRED_OVERDUE', title: 'Paiement differe en retard', description: 'Quand un paiement differe depasse la date limite' },
-      { key: 'PAYMENT_REFUND_INITIATED', title: 'Remboursement initie', description: 'Quand un remboursement est lance' },
-      { key: 'PAYMENT_REFUND_COMPLETED', title: 'Remboursement effectue', description: 'Quand un remboursement est termine' },
-      { key: 'PAYOUT_SENT', title: 'Versement envoye', description: 'Quand un versement de mission est envoye a votre compte' },
-      { key: 'PAYOUT_FAILED', title: 'Versement echoue', description: 'Quand un versement echoue' },
-      { key: 'PAYOUT_BLOCKED_ONBOARDING', title: 'Versement bloque (compte incomplet)', description: 'Quand un versement est bloque car le compte de paiement n\'est pas finalise' },
+      { key: 'PAYMENT_SESSION_CREATED' },
+      { key: 'PAYMENT_CONFIRMED' },
+      { key: 'PAYMENT_FAILED' },
+      { key: 'PAYMENT_GROUPED_SESSION_CREATED' },
+      { key: 'PAYMENT_GROUPED_CONFIRMED' },
+      { key: 'PAYMENT_GROUPED_FAILED' },
+      { key: 'PAYMENT_DEFERRED_REMINDER' },
+      { key: 'PAYMENT_DEFERRED_OVERDUE' },
+      { key: 'PAYMENT_REFUND_INITIATED' },
+      { key: 'PAYMENT_REFUND_COMPLETED' },
+      { key: 'PAYOUT_SENT' },
+      { key: 'PAYOUT_FAILED' },
+      { key: 'PAYOUT_BLOCKED_ONBOARDING' },
     ],
   },
   {
     id: 'team',
-    label: 'Equipes',
+    labelKey: 'notifPrefs.groups.team',
     icon: <Groups size={16} strokeWidth={1.75} />,
     color: 'var(--bui-warning)',
     keys: [
-      { key: 'TEAM_CREATED', title: 'Equipe creee', description: 'Quand une nouvelle equipe est creee' },
-      { key: 'TEAM_UPDATED', title: 'Equipe modifiee', description: 'Quand une equipe est mise a jour' },
-      { key: 'TEAM_DELETED', title: 'Equipe supprimee', description: 'Quand une equipe est supprimee' },
-      { key: 'TEAM_MEMBER_ADDED', title: 'Membre ajoute', description: 'Quand vous etes ajoute a une equipe' },
-      { key: 'TEAM_MEMBER_REMOVED', title: 'Membre retire', description: 'Quand vous etes retire d\'une equipe' },
-      { key: 'TEAM_ASSIGNED_INTERVENTION', title: 'Equipe assignee a intervention', description: 'Quand votre equipe est assignee a une intervention' },
-      { key: 'TEAM_ROLE_CHANGED', title: 'Role modifie', description: 'Quand votre role dans une equipe change' },
-      { key: 'TEAM_MEMBER_JOINED', title: 'Nouveau membre', description: 'Quand un nouveau membre rejoint votre equipe' },
+      { key: 'TEAM_CREATED' },
+      { key: 'TEAM_UPDATED' },
+      { key: 'TEAM_DELETED' },
+      { key: 'TEAM_MEMBER_ADDED' },
+      { key: 'TEAM_MEMBER_REMOVED' },
+      { key: 'TEAM_ASSIGNED_INTERVENTION' },
+      { key: 'TEAM_ROLE_CHANGED' },
+      { key: 'TEAM_MEMBER_JOINED' },
     ],
   },
   {
     id: 'ical',
-    label: 'Import iCal',
+    labelKey: 'notifPrefs.groups.ical',
     icon: <CalendarMonth size={16} strokeWidth={1.75} />,
     color: 'var(--bui-info)',
     keys: [
-      { key: 'ICAL_IMPORT_SUCCESS', title: 'Import reussi', description: 'Quand un import iCal se termine avec succes' },
-      { key: 'ICAL_IMPORT_PARTIAL', title: 'Import partiel', description: 'Quand un import iCal est partiellement reussi' },
-      { key: 'ICAL_IMPORT_FAILED', title: 'Import echoue', description: 'Quand un import iCal echoue' },
-      { key: 'ICAL_SYNC_COMPLETED', title: 'Synchronisation terminee', description: 'Quand la synchronisation automatique se termine' },
-      { key: 'ICAL_FEED_DELETED', title: 'Feed supprime', description: 'Quand un feed iCal est supprime' },
-      { key: 'ICAL_AUTO_INTERVENTIONS_TOGGLED', title: 'Auto-creation modifiee', description: 'Quand l\'auto-creation d\'interventions est activee/desactivee' },
+      { key: 'ICAL_IMPORT_SUCCESS' },
+      { key: 'ICAL_IMPORT_PARTIAL' },
+      { key: 'ICAL_IMPORT_FAILED' },
+      { key: 'ICAL_SYNC_COMPLETED' },
+      { key: 'ICAL_FEED_DELETED' },
+      { key: 'ICAL_AUTO_INTERVENTIONS_TOGGLED' },
     ],
   },
   {
     id: 'portfolio',
-    label: 'Portefeuilles',
+    labelKey: 'notifPrefs.groups.portfolio',
     icon: <Business size={16} strokeWidth={1.75} />,
     color: 'var(--bui-muted-foreground)',
     keys: [
-      { key: 'PORTFOLIO_CREATED', title: 'Portefeuille cree', description: 'Quand un nouveau portefeuille est cree' },
-      { key: 'PORTFOLIO_CLIENT_ADDED', title: 'Client ajoute', description: 'Quand un client est ajoute a un portefeuille' },
-      { key: 'PORTFOLIO_CLIENT_REMOVED', title: 'Client retire', description: 'Quand un client est retire d\'un portefeuille' },
-      { key: 'PORTFOLIO_TEAM_MEMBER_ADDED', title: 'Membre equipe ajoute', description: 'Quand un membre est ajoute a un portefeuille' },
-      { key: 'PORTFOLIO_TEAM_MEMBER_REMOVED', title: 'Membre equipe retire', description: 'Quand un membre est retire d\'un portefeuille' },
-      { key: 'PORTFOLIO_UPDATED', title: 'Portefeuille modifie', description: 'Quand un portefeuille est mis a jour' },
+      { key: 'PORTFOLIO_CREATED' },
+      { key: 'PORTFOLIO_CLIENT_ADDED' },
+      { key: 'PORTFOLIO_CLIENT_REMOVED' },
+      { key: 'PORTFOLIO_TEAM_MEMBER_ADDED' },
+      { key: 'PORTFOLIO_TEAM_MEMBER_REMOVED' },
+      { key: 'PORTFOLIO_UPDATED' },
     ],
   },
   {
     id: 'user',
-    label: 'Utilisateurs',
+    labelKey: 'notifPrefs.groups.user',
     icon: <Person size={16} strokeWidth={1.75} />,
     color: 'var(--bui-destructive)',
     keys: [
-      { key: 'USER_CREATED', title: 'Utilisateur cree', description: 'Quand un nouvel utilisateur est cree' },
-      { key: 'USER_UPDATED', title: 'Profil modifie', description: 'Quand un profil utilisateur est modifie' },
-      { key: 'USER_DELETED', title: 'Utilisateur supprime', description: 'Quand un utilisateur est supprime' },
-      { key: 'USER_ROLE_CHANGED', title: 'Role modifie', description: 'Quand le role d\'un utilisateur change' },
-      { key: 'USER_DEACTIVATED', title: 'Compte desactive', description: 'Quand un compte est desactive' },
+      { key: 'USER_CREATED' },
+      { key: 'USER_UPDATED' },
+      { key: 'USER_DELETED' },
+      { key: 'USER_ROLE_CHANGED' },
+      { key: 'USER_DEACTIVATED' },
     ],
   },
   {
     id: 'gdpr',
-    label: 'RGPD',
+    labelKey: 'notifPrefs.groups.gdpr',
     icon: <Shield size={16} strokeWidth={1.75} />,
     color: 'var(--bui-primary)',
     keys: [
-      { key: 'GDPR_DATA_EXPORTED', title: 'Donnees exportees', description: 'Quand un export RGPD est genere' },
-      { key: 'GDPR_USER_ANONYMIZED', title: 'Utilisateur anonymise', description: 'Quand les donnees d\'un utilisateur sont anonymisees' },
-      { key: 'GDPR_CONSENTS_UPDATED', title: 'Consentements modifies', description: 'Quand les consentements RGPD sont mis a jour' },
+      { key: 'GDPR_DATA_EXPORTED' },
+      { key: 'GDPR_USER_ANONYMIZED' },
+      { key: 'GDPR_CONSENTS_UPDATED' },
     ],
   },
   {
     id: 'permission',
-    label: 'Permissions',
+    labelKey: 'notifPrefs.groups.permission',
     icon: <Shield size={16} strokeWidth={1.75} />,
     color: 'var(--bui-info)',
     keys: [
-      { key: 'PERMISSION_ROLE_UPDATED', title: 'Permissions modifiees', description: 'Quand les permissions d\'un role changent' },
-      { key: 'PERMISSION_CACHE_INVALIDATED', title: 'Cache invalide', description: 'Quand le cache des permissions est reinitialise' },
+      { key: 'PERMISSION_ROLE_UPDATED' },
+      { key: 'PERMISSION_CACHE_INVALIDATED' },
     ],
   },
   {
     id: 'property',
-    label: 'Proprietes',
+    labelKey: 'notifPrefs.groups.property',
     icon: <Home size={16} strokeWidth={1.75} />,
     color: 'var(--bui-success)',
     keys: [
-      { key: 'PROPERTY_CREATED', title: 'Propriete creee', description: 'Quand une nouvelle propriete est ajoutee' },
-      { key: 'PROPERTY_UPDATED', title: 'Propriete modifiee', description: 'Quand une propriete est mise a jour' },
-      { key: 'PROPERTY_DELETED', title: 'Propriete supprimee', description: 'Quand une propriete est supprimee' },
-      { key: 'PROPERTY_STATUS_CHANGED', title: 'Statut modifie', description: 'Quand le statut d\'une propriete change' },
+      { key: 'PROPERTY_CREATED' },
+      { key: 'PROPERTY_UPDATED' },
+      { key: 'PROPERTY_DELETED' },
+      { key: 'PROPERTY_STATUS_CHANGED' },
     ],
   },
   {
     id: 'contact',
-    label: 'Contact & Messagerie',
+    labelKey: 'notifPrefs.groups.contact',
     icon: <Email size={16} strokeWidth={1.75} />,
     color: 'var(--bui-info)',
     keys: [
-      { key: 'CONTACT_MESSAGE_RECEIVED', title: 'Message recu', description: 'Quand vous recevez un nouveau message' },
-      { key: 'CONTACT_MESSAGE_SENT', title: 'Message envoye', description: 'Confirmation quand un message est envoye' },
-      { key: 'CONTACT_MESSAGE_REPLIED', title: 'Reponse recue', description: 'Quand quelqu\'un repond a votre message' },
-      { key: 'CONTACT_MESSAGE_ARCHIVED', title: 'Message archive', description: 'Quand un message est archive' },
-      { key: 'CONTACT_FORM_RECEIVED', title: 'Formulaire recu', description: 'Quand un formulaire (devis, maintenance, support) est soumis' },
-      { key: 'CONTACT_FORM_STATUS_CHANGED', title: 'Statut formulaire modifie', description: 'Quand le statut d\'un formulaire change' },
+      { key: 'CONTACT_MESSAGE_RECEIVED' },
+      { key: 'CONTACT_MESSAGE_SENT' },
+      { key: 'CONTACT_MESSAGE_REPLIED' },
+      { key: 'CONTACT_MESSAGE_ARCHIVED' },
+      { key: 'CONTACT_FORM_RECEIVED' },
+      { key: 'CONTACT_FORM_STATUS_CHANGED' },
     ],
   },
   {
     id: 'document',
-    label: 'Documents',
+    labelKey: 'notifPrefs.groups.document',
     icon: <Description size={16} strokeWidth={1.75} />,
     color: 'var(--bui-warning)',
     keys: [
-      { key: 'DOCUMENT_GENERATED', title: 'Document genere', description: 'Quand un document PDF est genere avec succes' },
-      { key: 'DOCUMENT_GENERATION_FAILED', title: 'Echec de generation', description: 'Quand la generation d\'un document echoue' },
-      { key: 'DOCUMENT_TEMPLATE_UPLOADED', title: 'Template uploade', description: 'Quand un nouveau template de document est uploade' },
-      { key: 'DOCUMENT_SENT_BY_EMAIL', title: 'Document envoye par email', description: 'Quand un document est envoye par email au destinataire' },
+      { key: 'DOCUMENT_GENERATED' },
+      { key: 'DOCUMENT_GENERATION_FAILED' },
+      { key: 'DOCUMENT_TEMPLATE_UPLOADED' },
+      { key: 'DOCUMENT_SENT_BY_EMAIL' },
     ],
   },
   {
@@ -283,15 +283,11 @@ const CATEGORIES: CategoryGroup[] = [
     // le scheduler saute le tour, donc plus d'appel LLM ni de conversation
     // creee (cf. AssistantBriefingScheduler).
     id: 'assistant',
-    label: 'Assistant & syntheses',
+    labelKey: 'notifPrefs.groups.assistant',
     icon: <AutoAwesome size={16} strokeWidth={1.75} />,
     color: 'var(--bui-primary)',
     keys: [
-      {
-        key: 'BRIEFING_READY',
-        title: 'Synthese periodique',
-        description: 'Votre revue hebdomadaire : performance, evenements marquants et priorites de la semaine',
-      },
+      { key: 'BRIEFING_READY' },
     ],
   },
 ];
@@ -311,6 +307,7 @@ interface NotificationPreferencesCardProps {
 }
 
 const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, NotificationPreferencesCardProps>(function NotificationPreferencesCard({ onChangeState }, ref) {
+  const { t } = useTranslation();
   const { hasAnyRole } = useAuth();
   const isFieldUser = hasAnyRole(FIELD_ROLES);
 
@@ -342,7 +339,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       setPreferences(prefs);
       setOriginalPrefs(prefs);
     } catch {
-      setError('Impossible de charger les preferences de notifications');
+      setError(t('notifPrefs.loadError'));
     } finally {
       setLoading(false);
     }
@@ -394,14 +391,14 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       });
 
       if (Object.keys(changed).length === 0) {
-        notify.success('Aucune modification a sauvegarder');
+        notify.success(t('notifPrefs.nothingToSave'));
         return;
       }
 
       const updated = await notificationPreferencesApi.update(changed);
       setPreferences(updated);
       setOriginalPrefs(updated);
-      notify.success('Preferences sauvegardees avec succes');
+      notify.success(t('notifPrefs.saved'));
     } catch {
       notify.error('Erreur lors de la sauvegarde');
     } finally {
@@ -416,10 +413,10 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
   };
 
   const sectionProps = {
-    title: 'Preferences de notifications',
+    title: t('notifPrefs.sectionTitle'),
     icon: Notifications,
     accent: 'primary' as const,
-    description: 'Choisissez les notifications que vous souhaitez recevoir. Desactivez celles qui ne vous interessent pas.',
+    description: t('notifPrefs.sectionDescription'),
   };
 
   if (loading) {
@@ -476,7 +473,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                           {category.icon}
                         </div>
                         <p className={cn('flex-1 text-start text-xs font-semibold transition-colors duration-200', noneEnabled ? 'text-faint' : 'text-foreground')}>
-                          {category.label}
+                          {t(category.labelKey)}
                         </p>
                         <StatusChip
                           tone={allEnabled ? 'ok' : noneEnabled ? 'neutral' : 'warn'}
@@ -502,7 +499,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}
+                      {allEnabled ? t('notifPrefs.disableSection') : noneEnabled ? t('notifPrefs.enableSection') : t('notifPrefs.enableAll')}
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -514,10 +511,10 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                       <Item key={nKey.key} size="xs" className="px-1.5 py-[1.5px]">
                         <ItemContent>
                           <ItemTitle className="text-[0.82rem] font-normal">
-                            {nKey.title}
+                            {t('notifPrefs.' + nKey.key + '.title')}
                           </ItemTitle>
                           <ItemDescription className="text-[0.72rem]">
-                            {nKey.description}
+                            {t('notifPrefs.' + nKey.key + '.desc')}
                           </ItemDescription>
                         </ItemContent>
                         <ItemActions>

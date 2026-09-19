@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 
 import { channexApi } from '../../../services/api/channexApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type {
   ChannexFullDisconnectResult,
   ChannexFullDisconnectStep,
@@ -64,12 +65,12 @@ interface ChannexFullDisconnectDialogProps {
 
 type Phase = 'CONFIRM' | 'RUNNING' | 'RESULT';
 
-const STEP_LABEL_FR: Record<ChannexFullDisconnectStep['code'], string> = {
-  LIST_CHANNELS: 'Detection des channels OTA',
-  DEACTIVATE_CHANNEL: 'Desactivation du channel (OTA libere)',
-  DELETE_CHANNEL: 'Suppression du channel du hub',
-  DELETE_PROPERTY: 'Suppression de la property cote hub',
-  CLEANUP_LOCAL: 'Nettoyage du mapping local Baitly',
+const STEP_KEYS: Record<ChannexFullDisconnectStep['code'], string> = {
+  LIST_CHANNELS: 'channexDisconnect.steps.list',
+  DEACTIVATE_CHANNEL: 'channexDisconnect.steps.deactivate',
+  DELETE_CHANNEL: 'channexDisconnect.steps.deleteChannel',
+  DELETE_PROPERTY: 'channexDisconnect.steps.deleteProperty',
+  CLEANUP_LOCAL: 'channexDisconnect.steps.cleanup',
 };
 
 /** Icone decorative → teinte VIVE, jamais `-ink` (contrat §2.4). */
@@ -91,6 +92,7 @@ const STEP_ROW_CLASS: Record<ChannexFullDisconnectStep['status'], string> = {
 };
 
 function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
+  const { t } = useTranslation();
   return (
     <div className={cn('flex gap-[9px] p-[7.5px] rounded-lg items-start border border-solid', STEP_ROW_CLASS[step.status] ?? STEP_ROW_CLASS.SKIPPED)}>
       <div className="mt-0.5">
@@ -99,7 +101,7 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1 mb-0.5">
           <p className="text-xs font-semibold leading-[1.3] text-foreground">
-            {STEP_LABEL_FR[step.code] ?? step.label}
+            {STEP_KEYS[step.code] ? t(STEP_KEYS[step.code]) : step.label}
           </p>
           {step.targetId && (
             <StatusChip
@@ -125,6 +127,7 @@ export default function ChannexFullDisconnectDialog({
   propertyName,
   onSuccess,
 }: ChannexFullDisconnectDialogProps) {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>('CONFIRM');
   const [deletePivot, setDeletePivot] = useState(false);
   const [result, setResult] = useState<ChannexFullDisconnectResult | null>(null);
@@ -146,7 +149,7 @@ export default function ChannexFullDisconnectDialog({
       setSubmitError(
         err instanceof Error
           ? err.message
-          : 'Erreur inattendue. Reessayez ou contactez le support.',
+          : t('common.unexpectedErrorRetry'),
       );
       setPhase('CONFIRM');
     }
@@ -183,7 +186,7 @@ export default function ChannexFullDisconnectDialog({
                   Deconnexion complete de « {propertyName} »
                 </DialogTitle>
                 <DialogDescription className="text-xs mt-0.5">
-                  Smart Disconnect orchestre · libere les OTA + nettoie le hub
+                  {t('settings.channex.disconnect.subtitle')}
                 </DialogDescription>
               </div>
             </div>
@@ -191,21 +194,21 @@ export default function ChannexFullDisconnectDialog({
 
           <div>
             <p className="text-xs text-muted-foreground mb-3">
-              Cette operation va executer en sequence&nbsp;:
+              {t('settings.channex.disconnect.intro')}
             </p>
             {/* Filet de 1 px : une bande laterale plus epaisse est proscrite. */}
             <div className="flex flex-col gap-[4.5px] mb-3 ps-3 border-s border-solid border-border">
               <p className="text-xs text-foreground">
-                1. <b>Detecter</b> tous les channels OTA actifs sur cette property
+                1. <b>{t('settings.channex.disconnect.step1Strong')}</b> {t('settings.channex.disconnect.step1')}
               </p>
               <p className="text-xs text-foreground">
-                2. <b>Desactiver</b> chaque channel (les hosts reprennent la main immediatement)
+                2. <b>{t('settings.channex.disconnect.step2Strong')}</b> {t('settings.channex.disconnect.step2')}
               </p>
               <p className="text-xs text-foreground">
-                3. <b>Supprimer</b> chaque channel du hub (tokens OAuth detruits)
+                3. <b>{t('settings.channex.disconnect.step3Strong')}</b> {t('settings.channex.disconnect.step3')}
               </p>
               <p className="text-xs text-foreground">
-                4. <b>Nettoyer</b> le mapping local Baitly
+                4. <b>{t('settings.channex.disconnect.step4Strong')}</b> {t('settings.channex.disconnect.step4')}
               </p>
             </div>
 
@@ -221,11 +224,10 @@ export default function ChannexFullDisconnectDialog({
               />
               <FieldContent>
                 <FieldLabel htmlFor="channex-delete-pivot" className="text-xs font-semibold">
-                  Reset complet : supprimer aussi la property cote hub
+                  {t('settings.channex.disconnect.fullReset')}
                 </FieldLabel>
                 <FieldDescription className="text-xs">
-                  Plus de trace dans le dashboard Channex. Irreversible : il faudra recreer la
-                  property pour reconnecter.
+                  {t('settings.channex.disconnect.fullResetHint')}
                 </FieldDescription>
               </FieldContent>
             </Field>
@@ -262,8 +264,7 @@ export default function ChannexFullDisconnectDialog({
                 Deconnexion en cours…
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Le hub libere les OTA et nettoie les channels. 5 a 10 secondes selon le nombre
-                d'OTA connectes.
+                {t('settings.channex.disconnect.running')}
               </DialogDescription>
             </div>
           </div>
@@ -302,9 +303,7 @@ export default function ChannexFullDisconnectDialog({
               <UiAlert variant="warning" className="mb-3">
                 <AlertCircle />
                 <AlertDescription>
-                  Certaines etapes ont echoue. Tant que <b>DEACTIVATE_CHANNEL</b> est OK pour
-                  chaque OTA, vos hosts ont repris la main — le reste peut etre nettoye plus
-                  tard manuellement.
+                  {t('settings.channex.disconnect.partialFailure')}
                 </AlertDescription>
               </UiAlert>
             )}

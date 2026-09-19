@@ -1,9 +1,10 @@
 import { z } from 'zod/v4';
+import { vm } from './validationMessage';
 
 export const contactSchema = z.object({
-  recipientId: z.string().min(1, 'Le destinataire est requis'),
-  subject: z.string().min(1, 'Le sujet est requis'),
-  message: z.string().min(1, 'Le message est requis'),
+  recipientId: z.string().min(1, vm('validation.recipientRequired', 'Le destinataire est requis')),
+  subject: z.string().min(1, vm('validation.subjectRequired', 'Le sujet est requis')),
+  message: z.string().min(1, vm('validation.messageRequired', 'Le message est requis')),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
   category: z.enum(['GENERAL', 'TECHNICAL', 'MAINTENANCE', 'CLEANING', 'EMERGENCY']).default('GENERAL'),
 });

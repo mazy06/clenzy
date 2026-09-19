@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '../../components/ui';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function RemoveMemberDialog({ open, onClose, member, organizationId, onMemberRemoved }: Props) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
       onMemberRemoved();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du retrait du membre';
+      const message = err instanceof Error ? err.message : t('organization.errors.removeMember');
       setError(message);
     } finally {
       setLoading(false);
@@ -52,16 +54,16 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
     <Dialog open={open} onOpenChange={(next) => { if (!next && !loading) onClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Retirer un membre</DialogTitle>
+          <DialogTitle>{t('organizations.removeMember.title')}</DialogTitle>
         </DialogHeader>
 
         <div>
           <p className="text-xs text-muted-foreground mb-1.5">
-            Etes-vous sur de vouloir retirer <strong>{memberName}</strong> de l'organisation ?
+            {t('organizations.removeMember.confirmHead')} <strong>{memberName}</strong> {t('organizations.removeMember.confirmTail')}
           </p>
           {/* Avertissement : du TEXTE → encre `-ink` (la teinte vive plafonne à 2,2:1). */}
           <p className="text-xs text-destructive-ink">
-            Cette action retirera son acces a toutes les ressources de l'organisation.
+            {t('organizations.removeMember.warning')}
           </p>
 
           {error && (

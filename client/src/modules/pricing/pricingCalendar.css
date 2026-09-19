@@ -1,0 +1,20 @@
+/* ─── Week-end de la grille mensuelle des tarifs ────────────────────────────
+ *
+ * MÊMES dérivations que la grille du planning (planningUrgency.css :
+ * --pl-cell-we) et que le calendrier des interventions (calendarSignature.css :
+ * --cal-cell-we), redéclarées ici : ces deux feuilles ne se chargent qu'avec
+ * LEUR module, et l'écran Tarification peut s'ouvrir sans eux. Le périmètre
+ * reste local — scopé sous `.pc-grid`, jamais un token global.
+ *
+ * En sombre la valeur est DÉRIVÉE de la surface de la carte plutôt qu'écrite en
+ * dur : un creux gris figé trahirait l'écart de teinte avec une palette passée
+ * à l'encre de marque. La proportion (9 % de noir sous la surface) reproduit
+ * celle des deux autres grilles.
+ */
+.pc-grid {
+  --pc-cell-we: #f8fafb;
+}
+
+[data-theme='dark'] .pc-grid {
+  --pc-cell-we: color-mix(in srgb, var(--bui-card) 91%, black);
+}

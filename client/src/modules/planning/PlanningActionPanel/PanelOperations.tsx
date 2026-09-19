@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
@@ -97,63 +98,50 @@ const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
 const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
 const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
 
-const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; tokens: SoftTokens }[] = [
-  { value: 'normale', label: 'Normale', tokens: NEUTRAL_TOKENS },
-  { value: 'haute', label: 'Haute', tokens: WARN_TOKENS },
-  { value: 'urgente', label: 'Urgente', tokens: ERR_TOKENS },
+// Les tables ci-dessous ne portent plus que des CLEFS et des jetons de
+// couleur : un module ne s'évalue qu'une fois, un libellé figé à l'import
+// resterait français après un changement de langue. Les libellés sont résolus
+// au rendu, dans le composant.
+const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; tokens: SoftTokens }[] = [
+  { value: 'normale', tokens: NEUTRAL_TOKENS },
+  { value: 'haute', tokens: WARN_TOKENS },
+  { value: 'urgente', tokens: ERR_TOKENS },
 ];
 
-const DEFAULT_CHECKLIST = [
-  'Verifier les equipements',
-  'Nettoyage des surfaces',
-  'Inspection des sanitaires',
-  'Verification du linge',
-  'Photo de controle',
-];
+const DEFAULT_CHECKLIST_KEYS = [
+  'equipment', 'surfaces', 'bathrooms', 'linen', 'photo',
+] as const;
 
 // ── Service request status tokens (attente = warn, en cours/assignée = info,
 //    succès = ok, échec = err, annulée = neutre) ──────────────────────────────
-const SR_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
-  PENDING: { label: "En attente d'assignation", tokens: WARN_TOKENS },
-  ASSIGNED: { label: 'Assignée', tokens: INFO_TOKENS },
-  AWAITING_PAYMENT: { label: 'En attente de paiement', tokens: WARN_TOKENS },
-  IN_PROGRESS: { label: 'En cours', tokens: INFO_TOKENS },
-  COMPLETED: { label: 'Terminée', tokens: OK_TOKENS },
-  CANCELLED: { label: 'Annulée', tokens: NEUTRAL_TOKENS },
-  REJECTED: { label: 'Rejetée', tokens: ERR_TOKENS },
+const SR_STATUS_TOKENS: Record<string, SoftTokens> = {
+  PENDING: WARN_TOKENS,
+  ASSIGNED: INFO_TOKENS,
+  AWAITING_PAYMENT: WARN_TOKENS,
+  IN_PROGRESS: INFO_TOKENS,
+  COMPLETED: OK_TOKENS,
+  CANCELLED: NEUTRAL_TOKENS,
+  REJECTED: ERR_TOKENS,
 };
 
-// ── Service type labels ─────────────────────────────────────────────────────
-const SERVICE_TYPE_LABELS: Record<string, string> = {
-  CLEANING: 'Ménage',
-  EXPRESS_CLEANING: 'Ménage express',
-  DEEP_CLEANING: 'Nettoyage profond',
-  PREVENTIVE_MAINTENANCE: 'Maintenance',
-  EMERGENCY_REPAIR: 'Réparation urgente',
-  ELECTRICAL_REPAIR: 'Électricité',
-  PLUMBING_REPAIR: 'Plomberie',
-  HVAC_REPAIR: 'Climatisation',
-  OTHER: 'Autre',
+// ── Intervention payment status tokens ──────────────────────────────────────
+const PAYMENT_STATUS_TOKENS: Record<string, SoftTokens> = {
+  PAID: OK_TOKENS,
+  PENDING: WARN_TOKENS,
+  PROCESSING: INFO_TOKENS,
+  FAILED: ERR_TOKENS,
+  REFUNDED: ERR_TOKENS,
+  CANCELLED: NEUTRAL_TOKENS,
 };
 
-// ── Intervention payment status config ────────────────────────────────────────
-const PAYMENT_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
-  PAID: { label: 'Payé', tokens: OK_TOKENS },
-  PENDING: { label: 'En attente', tokens: WARN_TOKENS },
-  PROCESSING: { label: 'En cours', tokens: INFO_TOKENS },
-  FAILED: { label: 'Échoué', tokens: ERR_TOKENS },
-  REFUNDED: { label: 'Remboursé', tokens: ERR_TOKENS },
-  CANCELLED: { label: 'Annulé', tokens: NEUTRAL_TOKENS },
-};
-
-// ── Intervention status labels ───────────────────────────────────────────────
-const INTERVENTION_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
-  scheduled: { label: 'Planifiée', tokens: INFO_TOKENS },
-  in_progress: { label: 'En cours', tokens: INFO_TOKENS },
-  completed: { label: 'Terminée', tokens: OK_TOKENS },
-  cancelled: { label: 'Annulée', tokens: NEUTRAL_TOKENS },
-  awaiting_validation: { label: 'Validation', tokens: WARN_TOKENS },
-  awaiting_payment: { label: 'Attente paiement', tokens: WARN_TOKENS },
+// ── Intervention status tokens ──────────────────────────────────────────────
+const INTERVENTION_STATUS_TOKENS: Record<string, SoftTokens> = {
+  scheduled: INFO_TOKENS,
+  in_progress: INFO_TOKENS,
+  completed: OK_TOKENS,
+  cancelled: NEUTRAL_TOKENS,
+  awaiting_validation: WARN_TOKENS,
+  awaiting_payment: WARN_TOKENS,
 };
 
 interface PanelOperationsProps {
@@ -193,6 +181,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   onServiceRequestCreated,
   onNavigate,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isReservation = event.type === 'reservation';
@@ -288,8 +277,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   const [priorityError, setPriorityError] = useState<string | null>(null);
 
   const [checklistOpen, setChecklistOpen] = useState(false);
+  // La checklist par défaut est TRADUITE : ses lignes sont du texte visible,
+  // et elles partent telles quelles dans les notes d'intervention.
+  const defaultChecklist = useMemo(
+    () => DEFAULT_CHECKLIST_KEYS.map((key) => ({ text: t(`planning.panel.ops.checklist.${key}`), checked: false })),
+    [t],
+  );
   const [checklistItems, setChecklistItems] = useState<{ text: string; checked: boolean }[]>(
-    DEFAULT_CHECKLIST.map((text) => ({ text, checked: false })),
+    () => DEFAULT_CHECKLIST_KEYS.map((key) => ({ text: t(`planning.panel.ops.checklist.${key}`), checked: false })),
   );
   const [checklistSaving, setChecklistSaving] = useState(false);
 
@@ -335,9 +330,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     try {
       await serviceRequestsApi.delete(Number(deleteSrTarget.id));
       queryClient.invalidateQueries({ queryKey: ['planning'] });
-      showSnackbar('Demande supprimée');
+      showSnackbar(t('planning.panel.ops.toast.deleted'));
     } catch {
-      showSnackbar('Erreur lors de la suppression', 'error');
+      showSnackbar(t('planning.panel.ops.toast.deleteError'), 'error');
     } finally {
       setDeleteSrLoading(false);
       setDeleteSrDialogOpen(false);
@@ -425,10 +420,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       name: best.label,
       overlappingCount: bestWorkload,
       reason: bestWorkload === 0
-        ? 'Aucune intervention sur ce creneau'
-        : `${bestWorkload} intervention${bestWorkload > 1 ? 's' : ''} sur ce creneau (le moins charge)`,
+        ? t('planning.panel.ops.noOverlap')
+        : t('planning.panel.ops.overlap', { count: bestWorkload }),
     };
-  }, [assignTarget, assignMode, assignSrDesiredDate, interventions, autoAssignEnabled, assigneeOptions]);
+  }, [assignTarget, assignMode, assignSrDesiredDate, interventions, autoAssignEnabled, assigneeOptions, t]);
 
   // ── Fetch team member availability when a team is selected ─────────────────
   // Works for both intervention mode (by interventionId) and SR mode (by date)
@@ -475,7 +470,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         if (cancelled) return;
         setTeamMembers([]);
         setTeamAvailabilityInfo(null);
-        const msg = err instanceof Error ? err.message : 'Erreur lors du chargement';
+        const msg = err instanceof Error ? err.message : t('common.loadingError');
         setTeamAvailabilityError(msg);
       })
       .finally(() => {
@@ -523,12 +518,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     setValidatingId(srId);
     try {
       await serviceRequestsApi.refuse(srId);
-      showSnackbar('Assignation refusee — re-assignation en cours');
+      showSnackbar(t('planning.panel.ops.toast.assignRefused'));
       queryClient.invalidateQueries({ queryKey: ['planning', 'service-requests', currentReservationId] });
       queryClient.invalidateQueries({ queryKey: ['planning-page'] });
       onServiceRequestCreated?.();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur lors du refus';
+      const msg = err instanceof Error ? err.message : t('serviceRequests.refuseError');
       showSnackbar(msg, 'error');
     } finally {
       setValidatingId(null);
@@ -540,7 +535,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     setValidatingId(srId);
     try {
       await serviceRequestsApi.manualAssign(srId, assignedToId, assignedToType);
-      showSnackbar('Demande assignee avec succes');
+      showSnackbar(t('planning.panel.ops.toast.assigned'));
       queryClient.invalidateQueries({ queryKey: ['planning', 'service-requests', currentReservationId] });
       queryClient.invalidateQueries({ queryKey: ['planning-page'] });
       onServiceRequestCreated?.();
@@ -583,7 +578,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   // 4. Assigner equipe / prestataire
   const handleAssignClick = () => {
     if (!targetIntervention) {
-      showSnackbar('Aucune intervention a assigner. Creez d\'abord une intervention.', 'error');
+      showSnackbar(t('planning.panel.ops.toast.noInterventionToAssign'), 'error');
       return;
     }
     setAssignMode('intervention');
@@ -642,7 +637,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   // 5. Definir priorite
   const handlePriorityClick = () => {
     if (!targetIntervention) {
-      showSnackbar('Aucune intervention. Creez d\'abord une intervention.', 'error');
+      showSnackbar(t('planning.panel.ops.toast.noInterventionCreate'), 'error');
       return;
     }
     setPriorityTarget(targetIntervention);
@@ -692,7 +687,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     setChecklistSaving(false);
     if (result.success) {
       setChecklistOpen(false);
-      showSnackbar('Checklist enregistree');
+      showSnackbar(t('planning.panel.ops.toast.checklistSaved'));
     } else {
       showSnackbar(result.error || 'Erreur', 'error');
     }
@@ -713,7 +708,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       setAlertDate('');
       setAlertTime('09:00');
       setAlertMessage('');
-      showSnackbar('Rappel ajoute');
+      showSnackbar(t('planning.panel.ops.toast.reminderAdded'));
     } else {
       showSnackbar(result.error || 'Erreur', 'error');
     }
@@ -771,7 +766,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       setSaving(false);
       if (result.success) {
         setEditing(false);
-        showSnackbar('Dates mises a jour');
+        showSnackbar(t('planning.panel.ops.toast.datesUpdated'));
       } else {
         setValidationError(result.error);
       }
@@ -791,13 +786,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <div className="flex items-center gap-1.5 mb-1.5">
           <span className="inline-flex text-muted-foreground"><CalendarMonth size={18} strokeWidth={1.75} /></span>
           <p className="cn-text-body2 font-semibold flex-1 text-[0.8125rem]">
-            Dates & Horaires
+            {t('planning.panel.ops.datesTitle', 'Dates & horaires')}
           </p>
           {!editing ? (
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="Modifier les dates et horaires"
+              aria-label={t('planning.panel.ops.editDates', 'Modifier les dates et horaires')}
               className="text-muted-foreground"
               onClick={() => setEditing(true)}
             >
@@ -808,7 +803,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Enregistrer les dates"
+                aria-label={t('planning.panel.ops.saveDates', 'Enregistrer les dates')}
                 className="text-[var(--ok)] hover:text-[var(--ok)]"
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
@@ -818,7 +813,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Annuler la modification"
+                aria-label={t('planning.panel.ops.cancelEdit', 'Annuler la modification')}
                 className="text-[var(--err)] hover:text-[var(--err)]"
                 onClick={handleCancel}
               >
@@ -832,7 +827,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           /* Display mode */
           <div className="flex justify-between items-center">
             <div>
-              <span className="cn-text-caption text-muted-foreground">Debut</span>
+              <span className="cn-text-caption text-muted-foreground">{t('planning.panel.ops.start', 'Début')}</span>
               <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                 {intv.startDate}
               </p>
@@ -847,7 +842,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </div>
             <span className="inline-flex text-muted-foreground opacity-60"><SwapHoriz  /></span>
             <div className="text-end">
-              <span className="cn-text-caption text-muted-foreground">Fin</span>
+              <span className="cn-text-caption text-muted-foreground">{t('planning.panel.ops.end', 'Fin')}</span>
               <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                 {intv.endDate}
               </p>
@@ -866,21 +861,21 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           <div className="flex flex-col gap-2">
             <div>
               <span className="cn-text-caption text-muted-foreground mb-0.5 block">
-                Debut
+                {t('planning.panel.ops.start', 'Début')}
               </span>
               <div className="flex gap-1.5">
                 {/* Le libelle « Debut » couvre la paire date + heure : pas de
                     FieldLabel, chaque champ porte son propre aria-label. */}
                 <Input
                   type="date"
-                  aria-label="Date de debut"
+                  aria-label={t('planning.panel.ops.startDate', 'Date de début')}
                   className="flex-1 text-[0.75rem]"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
                 <Input
                   type="time"
-                  aria-label="Heure de debut"
+                  aria-label={t('planning.panel.ops.startTime', 'Heure de début')}
                   placeholder="HH:mm"
                   className="w-[100px] text-[0.75rem]"
                   value={startTime}
@@ -891,19 +886,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
             <div>
               <span className="cn-text-caption text-muted-foreground mb-0.5 block">
-                Fin
+                {t('planning.panel.ops.end', 'Fin')}
               </span>
               <div className="flex gap-1.5">
                 <Input
                   type="date"
-                  aria-label="Date de fin"
+                  aria-label={t('planning.panel.ops.endDate', 'Date de fin')}
                   className="flex-1 text-[0.75rem]"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
                 <Input
                   type="time"
-                  aria-label="Heure de fin"
+                  aria-label={t('planning.panel.ops.endTime', 'Heure de fin')}
                   placeholder="HH:mm"
                   className="w-[100px] text-[0.75rem]"
                   value={endTime}
@@ -917,7 +912,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 <TriangleAlert />
                 <AlertDescription>{validationError}</AlertDescription>
                 <AlertAction>
-                  <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setValidationError(null)}>
+                  <Button variant="ghost" size="icon-xs" aria-label={t('planning.panel.ops.close', 'Fermer')} onClick={() => setValidationError(null)}>
                     <X />
                   </Button>
                 </AlertAction>
@@ -926,7 +921,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
             {hasChanges && intv.linkedReservationId && !validationError && (
               <span className="cn-text-caption text-[0.625rem] text-[var(--warn)]">
-                L'intervention sera deliee de sa reservation si les dates sont modifiees.
+                {t('planning.panel.ops.unlinkWarning')}
               </span>
             )}
           </div>
@@ -954,10 +949,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           </div>
           <div className="flex gap-1.5 mb-1.5 flex-wrap">
             {(() => {
-              const t = INTERVENTION_STATUS_CONFIG[intervention.status]?.tokens
+              const tone = INTERVENTION_STATUS_TOKENS[intervention.status]
                 || (intervention.status === 'cancelled' ? ERR_TOKENS : WARN_TOKENS);
               return (
-                <StatusChip pill size="sm" tokens={{ color: t.color, bg: t.bg }} label={intervention.status} />
+                <StatusChip pill size="sm" tokens={{ color: tone.color, bg: tone.bg }} label={intervention.status} />
               );
             })()}
             <StatusChip pill size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={intervention.assigneeName} />
@@ -981,7 +976,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {/* Service request creation buttons */}
           <div>
             <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1.5">
-              Demandes de service
+              {t('planning.panel.ops.serviceRequests', 'Demandes de service')}
             </span>
             <div className="flex flex-col gap-1">
               {/* Trois raccourcis de meme poids : outline pour tous, aucun ne
@@ -993,7 +988,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
               >
                 <CleaningServices size={14} strokeWidth={1.75} />
-                Demande de menage
+                {t('planning.panel.ops.cleaningRequest', 'Demande de ménage')}
               </Button>
               <Button
                 size="sm"
@@ -1002,7 +997,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
               >
                 <Handyman size={14} strokeWidth={1.75} />
-                Demande de maintenance
+                {t('planning.panel.ops.maintenanceRequest', 'Demande de maintenance')}
               </Button>
               <Button
                 size="sm"
@@ -1011,7 +1006,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
               >
                 <Add size={14} strokeWidth={1.75} />
-                Nouvelle demande de service
+                {t('planning.panel.ops.newRequest', 'Nouvelle demande de service')}
               </Button>
             </div>
           </div>
@@ -1025,8 +1020,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   Demandes liees · {serviceRequests.length}
                 </span>
                 {serviceRequests.map((sr) => {
-                  const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, tokens: NEUTRAL_TOKENS };
-                  const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
+                  const statusCfg = {
+                    label: t(`planning.panel.ops.srStatus.${sr.status}`, sr.status),
+                    tokens: SR_STATUS_TOKENS[sr.status] || NEUTRAL_TOKENS,
+                  };
+                  const typeLabel = t(`planning.panel.ops.serviceTypes.${sr.serviceType}`, sr.serviceType);
                   const isCleaningSr = sr.serviceType.includes('CLEANING');
                   const srTypeColor = isCleaningSr ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance;
                   const isReadyForPayment = sr.status === 'AWAITING_PAYMENT';
@@ -1093,7 +1091,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             }}
                           >
                             <PersonAdd size={14} strokeWidth={1.75} />
-                            Assigner
+                            {t('planning.panel.ops.assign', 'Assigner')}
                           </Button>
                         )}
                         {isPending && !assigneeName && !canEditIntervention && (
@@ -1102,18 +1100,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               <>
                                 <Spinner className="size-2.5 text-[var(--muted)]" />
                                 <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
-                                  Recherche en cours...
+                                  {t('planning.panel.ops.searching', 'Recherche en cours...')}
                                 </span>
                               </>
                             )}
                             {sr.autoAssignStatus === 'exhausted' && (
                               <span className="cn-text-caption text-[0.625rem] text-[var(--warn)] italic">
-                                Aucune equipe disponible — assignation manuelle requise
+                                {t('planning.panel.ops.noTeamLong')}
                               </span>
                             )}
                             {(!sr.autoAssignStatus || sr.autoAssignStatus === 'found') && (
                               <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
-                                En attente d&apos;assignation
+                                {t('planning.panel.ops.srStatus.PENDING')}
                               </span>
                             )}
                           </div>
@@ -1122,14 +1120,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'exhausted' && (
                           <UiAlert variant="warning" className="text-[0.6rem] px-[3px] py-0.5">
                             <TriangleAlert />
-                            <AlertDescription>Aucune equipe dispo — assignation manuelle requise</AlertDescription>
+                            <AlertDescription>{t('planning.panel.ops.noTeamShort')}</AlertDescription>
                           </UiAlert>
                         )}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
                           <div className="flex items-center gap-0.5">
                             <Spinner className="size-2.5 text-[var(--muted)]" />
                             <span className="cn-text-caption text-[0.6rem] text-muted-foreground italic">
-                              Recherche auto...
+                              {t('planning.panel.ops.autoSearching', 'Recherche auto...')}
                             </span>
                           </div>
                         )}
@@ -1145,7 +1143,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             }}
                           >
                             <PersonAdd size={14} strokeWidth={1.75} />
-                            Réassigner
+                            {t('planning.panel.ops.reassign', 'Réassigner')}
                           </Button>
                         )}
                         {/* AWAITING_PAYMENT: bouton Reassigner (admin/manager) */}
@@ -1160,7 +1158,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             }}
                           >
                             <PersonAdd size={14} strokeWidth={1.75} />
-                            Réassigner
+                            {t('planning.panel.ops.reassign', 'Réassigner')}
                           </Button>
                         )}
                         {/* Éditer la demande (admin/manager) — rouvre le modal pré-rempli */}
@@ -1176,7 +1174,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             }}
                           >
                             <Edit size={14} strokeWidth={1.75} />
-                            Éditer
+                            {t('planning.panel.ops.edit', 'Éditer')}
                           </Button>
                         )}
                         {/* Supprimer (PENDING, REJECTED, CANCELLED uniquement) */}
@@ -1217,9 +1215,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   const isPaid = li.paymentStatus === 'PAID';
                   const noCost = cost <= 0;
                   const isOnPlanning = isAssigned && (isPaid || noCost);
-                  const statusCfg = INTERVENTION_STATUS_CONFIG[li.status] || { label: li.status, tokens: NEUTRAL_TOKENS };
+                  const statusCfg = {
+                    label: t(`planning.panel.ops.intStatus.${li.status}`, li.status),
+                    tokens: INTERVENTION_STATUS_TOKENS[li.status] || NEUTRAL_TOKENS,
+                  };
                   const payStatusCfg = li.paymentStatus
-                    ? (PAYMENT_STATUS_CONFIG[li.paymentStatus] || { label: li.paymentStatus, tokens: NEUTRAL_TOKENS })
+                    ? {
+                      label: t(`planning.panel.ops.payStatus.${li.paymentStatus}`, li.paymentStatus),
+                      tokens: PAYMENT_STATUS_TOKENS[li.paymentStatus] || NEUTRAL_TOKENS,
+                    }
                     : null;
 
                   const steps = new Set((li.completedSteps || '').split(',').filter(Boolean));
@@ -1289,7 +1293,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             </span>
                           </TooltipTrigger>
                           <PlanningTooltipContent>
-                            {isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}
+                            {isOnPlanning ? t('planning.panel.visibleOnPlanning') : t('planning.panel.hiddenOnPlanning')}
                           </PlanningTooltipContent>
                         </Tooltip>
                       </div>
@@ -1320,7 +1324,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           className="mt-0.5"
                         >
                           <PersonAdd size={12} strokeWidth={1.75} />
-                          Assigner un prestataire
+                          {t('planning.panel.ops.assignProvider', 'Assigner un prestataire')}
                         </Button>
                       )}
                     </div>
@@ -1335,7 +1339,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             <UiAlert variant="info" className="text-[0.75rem]">
               <Info />
               <AlertDescription>
-                Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
+                {t('planning.panel.ops.emptyState')}
               </AlertDescription>
             </UiAlert>
           )}
@@ -1357,7 +1361,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {/* Assignment */}
           <div>
             <p className="cn-text-body2 font-bold text-[0.8125rem] mb-1.5">
-              Assignation
+              {t('planning.panel.ops.assignment', 'Assignation')}
             </p>
             <div className="flex flex-col gap-1">
               <Button
@@ -1367,7 +1371,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
               >
                 <Groups size={14} strokeWidth={1.75} />
-                Assigner equipe / prestataire
+                {t('planning.panel.ops.assignTeam', 'Assigner équipe / prestataire')}
               </Button>
               <Button
                 size="sm"
@@ -1376,7 +1380,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
               >
                 <PriorityHigh size={14} strokeWidth={1.75} />
-                Definir priorite
+                {t('planning.panel.ops.setPriority', 'Définir priorité')}
               </Button>
             </div>
           </div>
@@ -1386,7 +1390,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {/* Checklist & alerts */}
           <div>
             <p className="cn-text-body2 font-bold text-[0.8125rem] mb-1.5">
-              Suivi
+              {t('planning.panel.ops.tracking', 'Suivi')}
             </p>
             <div className="flex flex-col gap-1">
               <Button
@@ -1395,7 +1399,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
                 onClick={() => {
                   if (!targetIntervention) {
-                    showSnackbar('Aucune intervention.', 'error');
+                    showSnackbar(t('planning.panel.ops.toast.noIntervention'), 'error');
                     return;
                   }
                   // Parse existing checklist from notes
@@ -1407,13 +1411,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     }));
                     setChecklistItems(items);
                   } else {
-                    setChecklistItems(DEFAULT_CHECKLIST.map((text) => ({ text, checked: false })));
+                    setChecklistItems(defaultChecklist);
                   }
                   setChecklistOpen(true);
                 }}
               >
                 <CheckCircleOutline size={14} strokeWidth={1.75} />
-                Ajouter checklist operationnelle
+                {t('planning.panel.ops.addChecklist', 'Ajouter checklist opérationnelle')}
               </Button>
               <Button
                 size="sm"
@@ -1421,7 +1425,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 className="w-full justify-start shrink"
                 onClick={() => {
                   if (!targetIntervention) {
-                    showSnackbar('Aucune intervention.', 'error');
+                    showSnackbar(t('planning.panel.ops.toast.noIntervention'), 'error');
                     return;
                   }
                   setAlertDate(targetIntervention.startDate || today);
@@ -1431,7 +1435,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 }}
               >
                 <NotificationsActive size={14} strokeWidth={1.75} />
-                Ajouter alerte / rappel
+                {t('planning.panel.ops.addReminder', 'Ajouter alerte / rappel')}
               </Button>
             </div>
           </div>
@@ -1451,7 +1455,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         defaultDesiredDate={isReservation ? reservation?.checkOut : intervention?.startDate}
         editingServiceRequestId={editingSrId}
         onCreated={() => {
-          showSnackbar(editingSrId ? 'Demande de service enregistrée' : 'Demande de service créée avec succès');
+          showSnackbar(editingSrId ? t('serviceRequests.saved') : t('serviceRequests.created'));
           // Refetch service requests so they appear in the sidebar
           queryClient.invalidateQueries({ queryKey: ['planning', 'service-requests', currentReservationId] });
           // Also refresh interventions in case auto-assign created one
@@ -1470,7 +1474,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   ? <PersonAdd size={20} strokeWidth={1.75} />
                   : <Groups size={20} strokeWidth={1.75} />}
               </span>
-              {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
+              {assignMode === 'service_request' ? t('serviceRequests.assign') : t('planning.assignIntervention')}
             </DialogTitle>
           </DialogHeader>
           {assignMode === 'intervention' && assignTarget && (
@@ -1497,16 +1501,16 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 <span className={cn('inline-flex', assignAutoMode ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><AutoFixHigh size={18} strokeWidth={1.75} /></span>
                 <div>
                   <p className="cn-text-body2 font-semibold text-[0.8125rem] leading-[1.2]">
-                    Assignation automatique
+                    {t('planning.panel.ops.autoAssign', 'Assignation automatique')}
                   </p>
                   <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
-                    Selectionne le membre le moins charge
+                    {t('planning.panel.ops.autoAssignHint')}
                   </span>
                 </div>
               </div>
               <Switch
                 size="sm"
-                aria-label="Assignation automatique"
+                aria-label={t('planning.panel.ops.autoAssign', 'Assignation automatique')}
                 checked={assignAutoMode}
                 onCheckedChange={handleAutoAssignToggle}
               />
@@ -1524,7 +1528,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
 
           <Field>
-            <FieldLabel htmlFor="assign-assignee">Assigner à</FieldLabel>
+            <FieldLabel htmlFor="assign-assignee">{t('planning.panel.ops.assignTo', 'Assigner à')}</FieldLabel>
             {/* Une option native ne porte que du texte : l'icone disparait, le
                 role/type passe en suffixe et l'appartenance user/equipe est
                 portee par le groupe. */}
@@ -1545,11 +1549,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   le premier intervenant alors que la valeur reste vide. */}
               <NativeSelectOption value="" disabled>
                 {assigneeOptions.length === 0
-                  ? 'Aucun intervenant ou équipe disponible'
-                  : 'Sélectionner…'}
+                  ? t('planning.panel.ops.noAssignee')
+                  : t('planning.panel.ops.selectPlaceholder', 'Sélectionner…')}
               </NativeSelectOption>
               {(usersData as OperationalUser[] | undefined)?.length ? (
-                <NativeSelectOptGroup label="Intervenants">
+                <NativeSelectOptGroup label={t('planning.panel.ops.people', 'Intervenants')}>
                   {assigneeOptions
                     .filter((opt) => opt.type === 'user')
                     .map((opt) => (
@@ -1560,7 +1564,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 </NativeSelectOptGroup>
               ) : null}
               {(teamsData as PortfolioTeam[] | undefined)?.length ? (
-                <NativeSelectOptGroup label="Équipes">
+                <NativeSelectOptGroup label={t('planning.panel.ops.teams', 'Équipes')}>
                   {assigneeOptions
                     .filter((opt) => opt.type === 'team')
                     .map((opt) => (
@@ -1577,14 +1581,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {assignValue.startsWith('team-') && (
             <div className="mt-3">
               <span className="cn-text-caption font-bold text-[0.6875rem] text-muted-foreground uppercase tracking-[0.04em] mb-1 block">
-                Membres de l'équipe
+                {t('planning.panel.ops.teamMembers', "Membres de l'équipe")}
               </span>
 
               {teamMembersLoading && (
                 <div className="flex items-center gap-1.5 py-1.5">
                   <Spinner className="size-3.5" />
                   <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
-                    Vérification de la disponibilité...
+                    {t('planning.panel.ops.checkingAvailability')}
                   </span>
                 </div>
               )}
@@ -1598,7 +1602,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
               {!teamMembersLoading && !teamAvailabilityError && teamMembers.length === 0 && teamAvailabilityInfo && (
                 <span className="cn-text-caption text-muted-foreground text-[0.75rem] italic">
-                  Aucun membre dans cette équipe
+                  {t('planning.panel.ops.noMembers', 'Aucun membre dans cette équipe')}
                 </span>
               )}
 
@@ -1612,8 +1616,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       {teamAvailabilityInfo.allAvailable ? <CircleCheck /> : <TriangleAlert />}
                       <AlertDescription>
                         {teamAvailabilityInfo.allAvailable
-                          ? 'Tous les membres sont disponibles'
-                          : 'Certains membres ont des interventions sur ce créneau'}
+                          ? t('planning.panel.ops.allAvailable')
+                          : t('planning.panel.ops.someBusy')}
                       </AlertDescription>
                     </UiAlert>
                   )}
@@ -1643,8 +1647,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           tokens={member.available ? OK_TOKENS : WARN_TOKENS}
                           label={
                             member.available
-                              ? 'Disponible'
-                              : `${member.conflictCount} intervention${member.conflictCount > 1 ? 's' : ''}`
+                              ? t('planning.panel.ops.available', 'Disponible')
+                              : t('planning.panel.ops.memberInterventions', { count: member.conflictCount })
                           }
                           className="h-5 border border-solid font-semibold"
                           sx={{
@@ -1667,7 +1671,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
-              Annuler
+              {t('planning.panel.ops.cancel', 'Annuler')}
             </Button>
             <Button
               size="sm"
@@ -1675,7 +1679,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               disabled={!assignValue || assignLoading}
             >
               {assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-              Confirmer
+              {t('planning.panel.ops.confirm', 'Confirmer')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1687,12 +1691,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
               <span className="inline-flex text-[var(--warn)]"><PriorityHigh size={20} strokeWidth={1.75} /></span>
-              Definir la priorite
+              {t('planning.panel.ops.priorityTitle', 'Définir la priorité')}
             </DialogTitle>
           </DialogHeader>
           {priorityTarget && (
             <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-3 block">
-              Intervention : <strong>{priorityTarget.title}</strong>
+              {t('planning.panel.ops.interventionLine', { title: priorityTarget.title })}
             </span>
           )}
           <div className="flex flex-col gap-1.5 mt-1.5">
@@ -1717,7 +1721,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   backgroundColor: priorityValue === opt.value ? opt.tokens.bg : 'transparent',
                 }}
               >
-                {opt.label}
+                {t(`planning.panel.ops.priorities.${opt.value}`)}
               </Button>
             ))}
           </div>
@@ -1729,7 +1733,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPriorityDialogOpen(false)}>
-              Annuler
+              {t('planning.panel.ops.cancel', 'Annuler')}
             </Button>
             <Button
               size="sm"
@@ -1749,7 +1753,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
               <span className="inline-flex text-[var(--ok)]"><CheckCircleOutline size={20} strokeWidth={1.75} /></span>
-              Checklist operationnelle
+              {t('planning.panel.ops.checklistTitle', 'Checklist opérationnelle')}
             </DialogTitle>
           </DialogHeader>
           <div>
@@ -1774,7 +1778,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setChecklistOpen(false)}>
-              Fermer
+              {t('planning.panel.ops.close', 'Fermer')}
             </Button>
             <Button
               size="sm"
@@ -1782,7 +1786,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               disabled={checklistSaving}
             >
               {checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-              Enregistrer
+              {t('planning.panel.ops.save', 'Enregistrer')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1794,12 +1798,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
               <span className="inline-flex text-[var(--info)]"><NotificationsActive size={20} strokeWidth={1.75} /></span>
-              Ajouter un rappel
+              {t('planning.panel.ops.reminderTitle', 'Ajouter un rappel')}
             </DialogTitle>
           </DialogHeader>
           <div className="flex gap-2 mb-3">
             <Field className="flex-1">
-              <FieldLabel htmlFor="alert-date">Date du rappel</FieldLabel>
+              <FieldLabel htmlFor="alert-date">{t('planning.panel.ops.reminderDate', 'Date du rappel')}</FieldLabel>
               <Input
                 id="alert-date"
                 type="date"
@@ -1809,7 +1813,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               />
             </Field>
             <Field className="flex-1">
-              <FieldLabel htmlFor="alert-time">Heure</FieldLabel>
+              <FieldLabel htmlFor="alert-time">{t('planning.panel.ops.reminderHour', 'Heure')}</FieldLabel>
               <Input
                 id="alert-time"
                 type="time"
@@ -1820,13 +1824,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </Field>
           </div>
           <Field>
-            <FieldLabel htmlFor="alert-message">Message du rappel</FieldLabel>
+            <FieldLabel htmlFor="alert-message">{t('planning.panel.ops.reminderMessage', 'Message du rappel')}</FieldLabel>
             {/* `rows` est neutralise par le field-sizing du primitif : la hauteur
                 de deux lignes se garantit par min-h. */}
             <Textarea
               id="alert-message"
               rows={2}
-              placeholder="Ex: Verifier la livraison du linge..."
+              placeholder={t('planning.panel.ops.reminderPlaceholder')}
               className="text-[0.8125rem] min-h-[2lh]"
               value={alertMessage}
               onChange={(e) => setAlertMessage(e.target.value)}
@@ -1834,7 +1838,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           </Field>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setAlertDialogOpen(false)}>
-              Annuler
+              {t('planning.panel.ops.cancel', 'Annuler')}
             </Button>
             <Button
               size="sm"
@@ -1842,7 +1846,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               disabled={!alertDate || !alertMessage.trim() || alertSaving}
             >
               {alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
-              Ajouter rappel
+              {t('planning.panel.ops.addReminderCta', 'Ajouter rappel')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1855,10 +1859,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Supprimer la demande</DialogTitle>
+            <DialogTitle>{t('planning.panel.ops.deleteRequest', 'Supprimer la demande')}</DialogTitle>
           </DialogHeader>
           <p className="cn-text-body2">
-            Êtes-vous sûr de vouloir supprimer la demande « {deleteSrTarget?.title} » ? Cette action est irréversible.
+            {t('planning.panel.ops.deleteConfirm', { title: deleteSrTarget?.title })}
           </p>
           <DialogFooter>
             <Button
@@ -1866,7 +1870,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               onClick={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
               disabled={deleteSrLoading}
             >
-              Annuler
+              {t('planning.panel.ops.cancel', 'Annuler')}
             </Button>
             <Button
               variant="destructive"
@@ -1874,7 +1878,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               disabled={deleteSrLoading}
             >
               {deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
-              Supprimer
+              {t('planning.panel.ops.delete', 'Supprimer')}
             </Button>
           </DialogFooter>
         </DialogContent>

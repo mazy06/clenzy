@@ -8,6 +8,8 @@ import { conversationTitle } from '../../channels/channelConfig';
 import type { ConversationDto } from '../../../services/api/conversationApi';
 import type { ContactThreadSummary } from '../../../services/api/contactApi';
 import { receivedFormsApi, type ReceivedForm } from '../../../services/api/receivedFormsApi';
+import i18n from '../../../i18n/config';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 // ─── Avatars (initiales + couleur déterministe, palette référence) ───────────
 
@@ -32,23 +34,23 @@ export function formatConvTime(iso: string | null): string {
   const d = new Date(iso);
   const now = new Date();
   if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString(activeIntlLocale(), { hour: '2-digit', minute: '2-digit' });
   }
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return 'Hier';
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  if (d.toDateString() === yesterday.toDateString()) return i18n.t('common.yesterday', 'Hier');
+  return d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short' });
 }
 
 /** Libellé de la pilule séparateur de jour du fil. */
 export function dayLabel(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
-  if (d.toDateString() === now.toDateString()) return "Aujourd'hui";
+  if (d.toDateString() === now.toDateString()) return i18n.t('common.today', "Aujourd'hui");
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return 'Hier';
-  return d.toLocaleDateString('fr-FR', {
+  if (d.toDateString() === yesterday.toDateString()) return i18n.t('common.yesterday', 'Hier');
+  return d.toLocaleDateString(activeIntlLocale(), {
     day: 'numeric',
     month: 'long',
     ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' as const } : {}),
@@ -56,7 +58,7 @@ export function dayLabel(iso: string): string {
 }
 
 export function formatMsgTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(activeIntlLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 // ─── Conversation unifiée (threads internes + canal + formulaires reçus) ─────
@@ -117,10 +119,12 @@ function fromInternalThread(thread: ContactThreadSummary): UnifiedConversation {
   };
 }
 
-const FORM_TYPE_LABELS: Record<ReceivedForm['formType'], string> = {
-  DEVIS: 'Demande de devis',
-  MAINTENANCE: 'Maintenance',
-  SUPPORT: 'Support',
+// Module sans composant : le libelle se resout a l'appel, via l'instance i18n,
+// et suit donc la langue courante sans hook.
+const FORM_TYPE_KEYS: Record<ReceivedForm['formType'], string> = {
+  DEVIS: 'receivedForms.types.quote',
+  MAINTENANCE: 'receivedForms.types.maintenance',
+  SUPPORT: 'receivedForms.types.support',
 };
 
 function fromReceivedForm(form: ReceivedForm): UnifiedConversation {
@@ -128,7 +132,7 @@ function fromReceivedForm(form: ReceivedForm): UnifiedConversation {
     key: `form-${form.id}`,
     kind: 'form',
     name: form.fullName || 'Anonyme',
-    context: [FORM_TYPE_LABELS[form.formType], form.city].filter(Boolean).join(' · '),
+    context: [i18n.t(FORM_TYPE_KEYS[form.formType]) as string, form.city].filter(Boolean).join(' · '),
     channel: 'FORM',
     preview: form.subject || `Formulaire #${form.id}`,
     lastAt: form.createdAt,

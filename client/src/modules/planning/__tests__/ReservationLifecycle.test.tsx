@@ -2,7 +2,16 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-import ReservationLifecycle, { buildSteps } from '../PlanningActionPanel/ReservationLifecycle';
+import i18n from '../../../i18n/config';
+import ReservationLifecycle, { buildSteps as buildStepsRaw } from '../PlanningActionPanel/ReservationLifecycle';
+
+/**
+ * `buildSteps` reçoit désormais le traducteur et la langue : elle reste pure,
+ * et sait rendre ses dates dans le calendrier hégirien en arabe. Les cas
+ * ci-dessous l'appellent dans la langue active des tests (français).
+ */
+const buildSteps = (reservation: Parameters<typeof buildStepsRaw>[0]) =>
+  buildStepsRaw(reservation, i18n.t.bind(i18n), i18n.language);
 import type { PlanningEvent } from '../types';
 
 type Reservation = NonNullable<PlanningEvent['reservation']>;

@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 
 import { channexApi } from '../../../services/api/channexApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type {
   ChannexPreflightCheck,
   ChannexPreflightReport,
@@ -108,6 +109,7 @@ export default function ChannexPreflightBanner({
   onResult,
   defaultCollapsed = true,
 }: ChannexPreflightBannerProps) {
+  const { t } = useTranslation();
   const [report, setReport] = useState<ChannexPreflightReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export default function ChannexPreflightBanner({
       setError(
         err instanceof Error
           ? err.message
-          : 'Impossible de lancer le diagnostic Channex.',
+          : t('channexPreflight.startFailed'),
       );
     } finally {
       setLoading(false);
@@ -207,7 +209,7 @@ export default function ChannexPreflightBanner({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Relancer le diagnostic"
+                aria-label={t('settings.channex.preflight.rerun')}
                 disabled={loading}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -222,13 +224,13 @@ export default function ChannexPreflightBanner({
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent side="top">Relancer le diagnostic</TooltipContent>
+          <TooltipContent side="top">{t('settings.channex.preflight.rerun')}</TooltipContent>
         </Tooltip>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={collapsed ? 'Deplier le diagnostic' : 'Replier le diagnostic'}
+          aria-label={collapsed ? t('channexPreflight.expand') : t('channexPreflight.collapse')}
           onClick={(e) => {
             e.stopPropagation();
             setCollapsed((c) => !c);

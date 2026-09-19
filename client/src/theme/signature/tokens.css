@@ -36,10 +36,15 @@
   --accent-deep: #96472A;            /* hover bouton primaire */
   --accent-soft: rgba(180,87,51,.10); /* fond doux / actif */
   --on-accent:   #FFFFFF;
-  /* Encre de marque : le logo et les marqueurs de marque sont NOIRS, l'accent
-     ne servant plus qu'aux commandes. Tinte vers la terracotta plutot que
-     #000 pur — un noir neutre jure avec une palette chaude. */
-  --brand-ink:   #171310;
+  /* Encre de marque : le logo et les marqueurs de marque — pastille du jour au
+     planning, icones de ses panneaux, chips de legende. Ils etaient NOIRS
+     (#171310, tinte terracotta). Ils portent desormais le bleu nuit Baitly, la
+     teinte du fond de la barre laterale relevee en luminosite : la marque se
+     lit dans l'application comme dans sa navigation, au lieu d'y poser un noir
+     qui n'appartient a aucune des deux.
+     Le token reste une ENCRE : il vaut 10,1:1 sur une carte, et l'ilot de la
+     barre le renverse en #F0EBE6 comme avant. */
+  --brand-ink:   var(--bui-navy);
   --on-brand-ink: #FFFFFF;          /* encre POSEE sur --brand-ink */
   /* Packets request/response du logo Baitly (BaitlyMarkLogo) : paire choisie
      PAR teinte d'accent pour rester visible sur le trait qui suit --accent

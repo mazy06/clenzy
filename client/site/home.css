@@ -1,0 +1,1666 @@
+/* Brand layer: daylight, architectural photography, blue-grey ink. PMS tokens stay intact. */
+@font-face {
+  font-family: 'Baitly Manrope';
+  src: url('./assets/fonts/manrope-regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Baitly Manrope';
+  src: url('./assets/fonts/manrope-bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+}
+.baitly-marketing {
+  --bl-ink: oklch(28% 0.027 240);
+  --bl-muted: oklch(46% 0.023 240);
+  --bl-accent: oklch(49% 0.045 230);
+  --bl-paper: oklch(98.5% 0.004 230);
+  --bl-surface: oklch(95.5% 0.011 230);
+  --bl-blue: oklch(91.5% 0.021 230);
+  --bl-line: oklch(87% 0.016 230);
+  --bl-success: oklch(40% 0.055 173);
+  --bl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --site-shell-max: 1440px;
+  --bl-type-display: clamp(48px, 5.6vw, 80px);
+  --bl-type-title: clamp(32px, 3.6vw, 50px);
+  --bl-type-subtitle: clamp(25px, 2.7vw, 36px);
+  --bl-space-section: clamp(64px, 7.8vw, 112px);
+  --bl-radius-control: 8px;
+  --bl-radius-panel: 16px;
+  font-family: 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif;
+  color: var(--bl-ink);
+  background: var(--bl-paper);
+}
+.baitly-marketing :is(a, button, summary) {
+  cursor: pointer;
+}
+.baitly-marketing :is(a, button, summary):focus-visible {
+  outline: 3px solid var(--bl-accent);
+  outline-offset: 5px;
+}
+.baitly-marketing .site-header {
+  background: var(--bl-paper);
+  border-color: var(--bl-line);
+}
+.baitly-marketing .site-header-inner {
+  height: 88px;
+  gap: 30px;
+}
+.baitly-marketing .site-wordmark {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+.baitly-marketing .site-nav {
+  margin-inline: auto;
+}
+.baitly-marketing .site-header-cta {
+  min-height: 42px;
+  padding-inline: 20px;
+  border-radius: 8px;
+}
+.baitly-marketing .site-login {
+  font-size: 13px;
+}
+.baitly-marketing .site-footer {
+  background: var(--bl-surface);
+  border-color: var(--bl-line);
+}
+.baitly-marketing .site-footer .site-shell {
+  padding-block: 64px 30px;
+}
+.site-skip-link {
+  position: fixed;
+  inset-block-start: 12px;
+  inset-inline-start: 16px;
+  transform: translateY(-180%);
+  z-index: 60;
+  padding: 12px 18px;
+  background: var(--bl-ink);
+  color: var(--bl-paper);
+  border-radius: 6px;
+}
+.site-skip-link:focus {
+  transform: none;
+}
+.site-route-loading {
+  min-height: 55vh;
+  padding-block: 64px;
+  color: var(--bl-muted);
+}
+.site-route-loading > div {
+  max-width: 720px;
+  height: 32px;
+  margin-block-start: 24px;
+  border-radius: var(--bl-radius-control);
+  background: var(--bl-surface);
+}
+.site-route-loading > div:last-child {
+  height: 180px;
+}
+.baitly-home {
+  font-variant-numeric: tabular-nums;
+}
+.baitly-home :is(h1, h2, h3) {
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+.baitly-home h2 {
+  font-size: var(--bl-type-title);
+  line-height: 1.15;
+}
+.baitly-home h3 {
+  font-size: var(--bl-type-subtitle);
+  line-height: 1.2;
+}
+.baitly-home p {
+  text-wrap: pretty;
+}
+.baitly-home svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke-width: 1.7;
+}
+.baitly-home section[id] {
+  scroll-margin-block-start: 108px;
+}
+.baitly-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 52px;
+  padding: 14px 23px;
+  border-radius: var(--bl-radius-control);
+  background: var(--bl-ink);
+  color: var(--bl-paper);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  transition:
+    background 200ms var(--bl-ease),
+    box-shadow 200ms var(--bl-ease);
+}
+.baitly-button:hover {
+  background: var(--bl-accent);
+  box-shadow: 0 5px 16px oklch(28% 0.027 240 / 0.12);
+}
+.baitly-button svg {
+  width: 17px;
+  height: 17px;
+}
+.baitly-button:active {
+  background: var(--bl-muted);
+}
+.baitly-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 23px;
+  margin-block-start: 32px;
+}
+.baitly-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.baitly-text-link svg,
+.baitly-button > svg {
+  transition: transform 220ms var(--bl-ease);
+}
+.baitly-text-link:hover svg,
+.baitly-button:hover > svg {
+  transform: translateX(3px);
+}
+.baitly-text-link:hover {
+  color: var(--bl-accent);
+}
+.baitly-section {
+  padding-block: var(--bl-space-section);
+}
+.baitly-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bl-accent);
+  margin-block-end: 20px;
+}
+.baitly-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 48px;
+  margin-block-end: 44px;
+}
+.baitly-section-heading > p {
+  max-width: 370px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--bl-muted);
+  padding-block-end: 4px;
+}
+
+.baitly-hero {
+  background: var(--bl-surface);
+}
+.baitly-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.04fr;
+  gap: 48px;
+  align-items: center;
+  padding-block: 55px 60px;
+}
+.baitly-hero-copy {
+  padding-block-end: 12px;
+}
+.baitly-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-block-end: 26px;
+}
+.baitly-eyebrow > span {
+  width: 7px;
+  height: 7px;
+  background: var(--bl-accent);
+  border-radius: 50%;
+}
+.baitly-home h1 {
+  font-size: var(--bl-type-display);
+  line-height: 1.09;
+  letter-spacing: -0.065em;
+}
+.baitly-home h1 > span {
+  color: var(--bl-accent);
+}
+.baitly-lead {
+  font-size: clamp(17px, 1.5vw, 21px);
+  line-height: 1.65;
+  margin-block-start: 27px;
+  letter-spacing: -0.02em;
+}
+.baitly-hero-description {
+  font-size: 15px;
+  line-height: 1.8;
+  max-width: 430px;
+  color: var(--bl-muted);
+  margin-block-start: 15px;
+}
+.baitly-play-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.baitly-play-link > span {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  border: 1px solid var(--bl-line);
+  border-radius: 50%;
+  transition: background 200ms var(--bl-ease);
+}
+.baitly-play-link svg {
+  width: 12px;
+  height: 12px;
+  margin-inline-start: 2px;
+  fill: currentColor;
+}
+.baitly-play-link:hover > span {
+  background: var(--bl-paper);
+}
+.baitly-reassurance {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--bl-muted);
+  margin-block-start: 18px;
+}
+.baitly-reassurance svg {
+  width: 14px;
+  height: 14px;
+}
+.baitly-reassurance > span {
+  margin-inline: 3px;
+}
+.baitly-hero-visual {
+  min-width: 0;
+  position: relative;
+  padding-block-end: 35px;
+}
+.baitly-hero-photo {
+  width: 100%;
+  height: clamp(430px, 39vw, 565px);
+  object-fit: cover;
+  object-position: 54% center;
+  border-radius: 130px 14px 14px 14px;
+}
+.baitly-photo-location {
+  position: absolute;
+  inset-block-start: 22px;
+  inset-inline-end: 18px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: var(--bl-paper);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.baitly-photo-location svg {
+  width: 13px;
+  height: 13px;
+}
+.baitly-hero-note {
+  position: absolute;
+  inset-block-end: 20px;
+  inset-inline-start: -26px;
+  inset-inline-end: 35px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--bl-line);
+  border-radius: 12px;
+  background: var(--bl-paper);
+  box-shadow: 0 16px 45px oklch(28% 0.027 240 / 0.12);
+}
+.baitly-note-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 45px;
+  border-radius: 10px;
+  background: var(--bl-blue);
+  color: var(--bl-accent);
+  flex-shrink: 0;
+}
+.baitly-note-label {
+  display: block;
+  color: var(--bl-accent);
+  font-size: 12px;
+  font-weight: 700;
+  margin-block-end: 3px;
+}
+.baitly-hero-note strong {
+  display: block;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+.baitly-hero-note p {
+  color: var(--bl-muted);
+  font-size: 12px;
+  margin-block-start: 4px;
+}
+.baitly-note-check {
+  margin-inline-start: auto;
+  color: var(--bl-success);
+}
+.baitly-example-label {
+  position: absolute;
+  inset-block-end: -5px;
+  inset-inline-end: 0;
+  font-size: 12px;
+  color: var(--bl-muted);
+}
+.baitly-hero-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding-block: 20px 24px;
+  color: var(--bl-muted);
+  font-size: 12px;
+}
+.baitly-hero-bottom a {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.baitly-hero-bottom svg {
+  height: 16px;
+  width: 16px;
+}
+.baitly-channels {
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  padding-block: 35px;
+  border-block-end: 1px solid var(--bl-line);
+}
+.baitly-channels > p {
+  min-width: 140px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--bl-muted);
+}
+.baitly-channels strong {
+  color: var(--bl-ink);
+  font-weight: 700;
+}
+.baitly-brand-list {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 25px;
+}
+.baitly-brand {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.baitly-brand img {
+  width: 23px;
+  height: 24px;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.8;
+}
+
+.baitly-feature-grid {
+  display: grid;
+  grid-template-columns: 1.18fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.baitly-feature {
+  min-width: 0;
+  border-radius: var(--bl-radius-panel);
+  overflow: hidden;
+}
+.baitly-feature-copy {
+  padding: 36px;
+}
+.baitly-feature-number {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  color: var(--bl-muted);
+  margin-block-end: 20px;
+}
+.baitly-feature-copy > p {
+  color: var(--bl-muted);
+  font-size: 14px;
+  line-height: 1.8;
+  max-width: 370px;
+  margin-block: 16px 14px;
+}
+.baitly-feature-planning {
+  background: var(--bl-blue);
+  padding-block-end: 36px;
+}
+.baitly-feature-direct {
+  background: var(--bl-surface);
+  margin-block-start: 70px;
+}
+.baitly-planning-stage {
+  position: relative;
+  isolation: isolate;
+  margin: 0 24px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+.baitly-planning-stage > div {
+  min-width: 0;
+}
+.landing-planning {
+  overflow: hidden;
+  border: 1px solid var(--bl-line);
+  border-radius: 10px;
+  background: var(--bl-paper);
+  box-shadow: 0 18px 38px oklch(28% 0.027 240 / 0.1);
+}
+.landing-planning-topbar,
+.landing-planning-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.landing-planning-topbar {
+  padding: 17px 19px 15px;
+  border-block-end: 1px solid var(--bl-line);
+}
+.landing-planning-heading {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.landing-planning-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bl-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.landing-planning-kicker svg {
+  width: 14px;
+  height: 14px;
+}
+.landing-planning-heading > strong {
+  color: var(--bl-ink);
+  font-size: clamp(17px, 1.7vw, 21px);
+  letter-spacing: -0.04em;
+}
+.landing-planning-month {
+  flex-shrink: 0;
+  color: var(--bl-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.landing-planning-board {
+  padding: 0 19px;
+}
+.landing-planning-row {
+  display: grid;
+  grid-template-columns: minmax(112px, 0.45fr) minmax(0, 1fr);
+  min-height: 64px;
+  border-block-end: 1px solid var(--bl-line);
+}
+.landing-planning-row:last-child {
+  border-block-end: 0;
+}
+.landing-planning-head {
+  min-height: 35px;
+  color: var(--bl-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.landing-planning-head > span {
+  display: flex;
+  align-items: center;
+}
+.landing-planning-days {
+  display: grid;
+  position: relative;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-width: 0;
+}
+.landing-planning-head .landing-planning-days {
+  align-items: center;
+}
+.landing-planning-head .landing-planning-days > span {
+  padding-inline-start: 8px;
+}
+.landing-planning-property {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding-inline-end: 12px;
+}
+.landing-planning-property strong,
+.landing-planning-property span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.landing-planning-property strong {
+  color: var(--bl-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.landing-planning-property span {
+  margin-block-start: 4px;
+  color: var(--bl-muted);
+  font-size: 10px;
+}
+.landing-planning-stays {
+  align-items: center;
+  gap: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(20% - 1px),
+    var(--bl-line) calc(20% - 1px),
+    var(--bl-line) 20%
+  );
+}
+.landing-planning-stays > span {
+  grid-row: 1;
+  min-height: 100%;
+}
+.landing-planning-stay {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  height: 40px;
+  margin-inline: 4px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  opacity: 0;
+  animation: landing-planning-stay-in 7.2s var(--bl-ease) infinite;
+}
+.landing-planning-stay-coral {
+  border-color: oklch(78% 0.06 32);
+  background: oklch(93% 0.035 32);
+  color: oklch(37% 0.08 32);
+  animation-delay: 120ms;
+}
+.landing-planning-stay-blue {
+  border-color: oklch(77% 0.06 240);
+  background: oklch(91.5% 0.035 240);
+  color: oklch(34% 0.07 240);
+  animation-delay: 420ms;
+}
+.landing-planning-stay-green {
+  border-color: oklch(77% 0.06 174);
+  background: oklch(89.5% 0.045 174);
+  color: oklch(34% 0.07 174);
+  animation-delay: 720ms;
+}
+.landing-planning-stay-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+}
+.landing-planning-stay-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.landing-planning-stay-copy strong,
+.landing-planning-stay-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.landing-planning-stay-copy strong {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.landing-planning-stay-copy small {
+  font-size: 9px;
+  line-height: 1.1;
+  opacity: 0.78;
+}
+.landing-planning-stay-pulse {
+  width: 3px;
+  height: 21px;
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0;
+  animation: landing-planning-pulse 2.4s ease-in-out 1.8s infinite;
+}
+.landing-planning-footer {
+  padding: 13px 19px 14px;
+  color: var(--bl-success);
+  font-size: 11px;
+}
+.landing-planning-sync,
+.landing-planning-channels {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.landing-planning-sync {
+  font-weight: 700;
+}
+.landing-planning-sync svg {
+  width: 14px;
+  height: 14px;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.landing-planning-channels {
+  color: var(--bl-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.landing-planning-channels svg {
+  width: 5px;
+  height: 5px;
+  fill: currentColor;
+  stroke-width: 0;
+}
+@keyframes landing-planning-stay-in {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  18%,
+  82% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateX(5px);
+  }
+}
+@keyframes landing-planning-pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  45%,
+  65% {
+    opacity: 0.7;
+  }
+}
+.baitly-direct-photo {
+  position: relative;
+}
+.baitly-direct-photo > img {
+  width: 100%;
+  height: 245px;
+  object-fit: cover;
+}
+.baitly-booking-note {
+  position: absolute;
+  inset-block-end: 18px;
+  inset-inline: 23px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: var(--bl-paper);
+}
+.baitly-booking-note strong {
+  display: block;
+  font-size: 12px;
+}
+.baitly-booking-note span {
+  display: block;
+  font-size: 12px;
+  color: var(--bl-muted);
+  margin-block-start: 3px;
+}
+.baitly-booking-note > svg:last-child {
+  margin-inline-start: auto;
+  color: var(--bl-success);
+}
+.baitly-module-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 50px;
+  margin-block-start: 48px;
+}
+.baitly-module-list a {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  border-block-end: 1px solid var(--bl-line);
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    color 200ms var(--bl-ease),
+    background 200ms var(--bl-ease);
+}
+.baitly-module-list a:hover {
+  color: var(--bl-accent);
+  background: var(--bl-surface);
+}
+.baitly-module-list .baitly-module-icon {
+  color: var(--bl-accent);
+}
+.baitly-module-list a > svg:last-child {
+  margin-inline-start: auto;
+  width: 16px;
+  height: 16px;
+}
+
+.baitly-agent-section {
+  padding-block: 90px 65px;
+  background: var(--bl-surface);
+}
+.baitly-agent-layout {
+  display: grid;
+  grid-template-columns: 0.78fr 1.22fr;
+  gap: 70px;
+  align-items: center;
+}
+.baitly-agent-choices > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  text-align: start;
+  gap: 18px;
+  padding: 23px 18px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  transition:
+    background 200ms var(--bl-ease),
+    border-color 200ms var(--bl-ease);
+}
+.baitly-agent-choices > button:hover {
+  background: var(--bl-paper);
+}
+.baitly-agent-choices > button[aria-pressed='true'] {
+  background: var(--bl-paper);
+  border-color: var(--bl-line);
+}
+.baitly-agent-choices > button > svg:first-child {
+  width: 23px;
+  height: 23px;
+  color: var(--bl-accent);
+}
+.baitly-agent-choices > button > svg:last-child {
+  margin-inline-start: auto;
+  width: 16px;
+  opacity: 0;
+}
+.baitly-agent-choices > button[aria-pressed='true'] > svg:last-child {
+  opacity: 1;
+}
+.baitly-agent-choices strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+.baitly-agent-choices small {
+  display: block;
+  font-size: 12px;
+  color: var(--bl-muted);
+  margin-block-start: 6px;
+}
+.baitly-agent-choices .baitly-text-link {
+  margin-block-start: 25px;
+  margin-inline-start: 18px;
+  font-size: 12px;
+}
+.baitly-demo-window {
+  min-width: 0;
+  background: var(--bl-paper);
+  border: 1px solid var(--bl-line);
+  border-radius: 14px;
+  box-shadow: 0 22px 50px oklch(28% 0.027 240 / 0.06);
+  overflow: hidden;
+}
+.baitly-demo-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 17px 22px;
+  border-block-end: 1px solid var(--bl-line);
+  font-size: 12px;
+}
+.baitly-demo-top > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.baitly-demo-top svg {
+  width: 15px;
+  height: 15px;
+}
+.baitly-demo-top > span > span {
+  color: var(--bl-muted);
+}
+.baitly-demo-badge {
+  font-size: 12px;
+  color: var(--bl-muted);
+  border: 1px solid var(--bl-line);
+  padding: 4px 7px;
+  border-radius: 4px;
+}
+.baitly-demo-property {
+  padding: 24px 28px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.baitly-demo-property img {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 7px;
+}
+.baitly-demo-property strong {
+  display: block;
+  font-size: 13px;
+}
+.baitly-demo-property span {
+  display: block;
+  font-size: 12px;
+  color: var(--bl-muted);
+  margin-block-start: 4px;
+}
+.baitly-demo-property > svg {
+  margin-inline-start: auto;
+  color: var(--bl-muted);
+}
+.baitly-demo-content {
+  padding: 24px 28px;
+  min-height: 368px;
+}
+.baitly-demo-agent {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--bl-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+.baitly-demo-agent svg {
+  width: 15px;
+  height: 15px;
+}
+.baitly-demo-agent > span {
+  margin-inline-start: auto;
+  color: var(--bl-muted);
+  font-weight: 400;
+}
+.baitly-demo-content h3 {
+  font-size: 22px;
+  line-height: 1.35;
+  margin-block: 17px 10px;
+  letter-spacing: -0.035em;
+}
+.baitly-demo-content > p:not([class]) {
+  font-size: 12px;
+  color: var(--bl-muted);
+  line-height: 1.8;
+  min-height: 44px;
+}
+.baitly-demo-proposal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block: 21px 12px;
+  padding: 18px 16px;
+  border-radius: 6px;
+  background: var(--bl-surface);
+}
+.baitly-demo-proposal > span {
+  font-size: 12px;
+  color: var(--bl-muted);
+}
+.baitly-demo-proposal > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.baitly-demo-proposal > div > span {
+  color: var(--bl-muted);
+  font-size: 12px;
+}
+.baitly-demo-proposal svg {
+  width: 15px;
+}
+.baitly-demo-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--bl-success);
+  min-height: 30px;
+}
+.baitly-demo-note svg {
+  width: 13px;
+  height: 13px;
+}
+.baitly-demo-action {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-block-start: 20px;
+  min-height: 44px;
+}
+.baitly-demo-action .baitly-button {
+  min-height: 44px;
+  padding: 11px 16px;
+  font-size: 12px;
+  gap: 7px;
+}
+.baitly-demo-action > span {
+  color: var(--bl-muted);
+  font-size: 12px;
+}
+.baitly-demo-action > p {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--bl-success);
+  font-size: 12px;
+}
+.baitly-demo-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  border-block-start: 1px solid var(--bl-line);
+}
+.baitly-demo-controls > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--bl-muted);
+  font-size: 12px;
+}
+.baitly-demo-controls i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--bl-accent);
+}
+.baitly-demo-controls button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.baitly-demo-controls svg {
+  width: 12px;
+  height: 12px;
+}
+.baitly-demo-caption {
+  font-size: 12px;
+  text-align: end;
+  margin-block-start: 20px;
+  color: var(--bl-muted);
+}
+
+.baitly-local-section {
+  padding-block: 110px 45px;
+}
+.baitly-local-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1fr;
+  gap: 90px;
+  align-items: center;
+}
+.baitly-local-visual {
+  min-width: 0;
+  position: relative;
+}
+.baitly-local-visual > img {
+  width: 100%;
+  height: 610px;
+  object-fit: cover;
+  object-position: 27% center;
+  border-radius: 14px 140px 14px 14px;
+}
+.baitly-local-visual > div {
+  position: absolute;
+  inset-block-end: 25px;
+  inset-inline: 25px;
+  padding: 21px;
+  border-radius: 8px;
+  background: var(--bl-paper);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.baitly-local-copy h2 {
+  font-size: clamp(31px, 3vw, 42px);
+}
+.baitly-local-copy > p:not([class]) {
+  color: var(--bl-muted);
+  font-size: 14px;
+  line-height: 1.9;
+  margin-block-start: 20px;
+  max-width: 460px;
+}
+.baitly-local-copy ul {
+  margin-block: 28px 18px;
+  display: grid;
+  gap: 23px;
+}
+.baitly-local-copy li {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+.baitly-local-copy li > svg {
+  color: var(--bl-success);
+  width: 17px;
+}
+.baitly-local-copy li p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--bl-muted);
+  margin-block-start: 5px;
+}
+.baitly-local-support {
+  margin-block-start: 24px;
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  padding-block-start: 22px;
+  border-block-start: 1px solid var(--bl-line);
+}
+.baitly-local-support p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--bl-muted);
+}
+.baitly-local-support strong {
+  color: var(--bl-ink);
+}
+.baitly-faq {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 70px;
+}
+.baitly-faq h2 {
+  font-size: clamp(30px, 3vw, 40px);
+}
+.baitly-faq .baitly-text-link {
+  margin-block-start: 25px;
+}
+.baitly-faq details {
+  border-block-end: 1px solid var(--bl-line);
+}
+.baitly-faq details:first-child {
+  border-block-start: 1px solid var(--bl-line);
+}
+.baitly-faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 83px;
+  padding-block: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  list-style: none;
+}
+.baitly-faq summary::-webkit-details-marker {
+  display: none;
+}
+.baitly-faq summary > svg {
+  width: 17px;
+  transition: transform 200ms var(--bl-ease);
+}
+.baitly-faq details[open] summary > svg {
+  transform: rotate(45deg);
+}
+.baitly-faq details > p {
+  font-size: 13px;
+  color: var(--bl-muted);
+  line-height: 1.9;
+  padding-block-end: 25px;
+  padding-inline-end: 25px;
+}
+.baitly-final-wrap {
+  padding-block-end: 80px;
+}
+.baitly-final-cta {
+  position: relative;
+  overflow: hidden;
+  background: var(--bl-ink);
+  color: var(--bl-paper);
+  border-radius: 18px;
+}
+.baitly-final-cta > img {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 54%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 47%;
+  opacity: 0.65;
+}
+.baitly-final-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--bl-ink) 30%,
+    oklch(28% 0.027 240 / 0.75) 53%,
+    transparent 83%
+  );
+}
+.baitly-final-cta > div {
+  position: relative;
+  z-index: 1;
+  padding: 64px;
+}
+.baitly-final-cta .baitly-section-label {
+  color: oklch(85% 0.02 230);
+}
+.baitly-final-cta h2 {
+  font-size: clamp(35px, 4vw, 54px);
+}
+.baitly-final-cta h2 + p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: oklch(86% 0.014 230);
+  margin-block: 20px 27px;
+}
+.baitly-button-light {
+  background: var(--bl-paper);
+  color: var(--bl-ink);
+}
+.baitly-button-light:hover {
+  background: var(--bl-blue);
+}
+.baitly-final-note {
+  display: block;
+  font-size: 12px;
+  color: oklch(86% 0.014 230);
+  margin-block-start: 17px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes baitly-scene-enter {
+    from {
+      opacity: 0.3;
+      transform: translateY(7px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .baitly-demo-content {
+    animation: baitly-scene-enter 400ms var(--bl-ease);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .baitly-marketing *,
+  .baitly-marketing *::before,
+  .baitly-marketing *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .baitly-marketing .site-nav {
+    display: none;
+  }
+  .baitly-marketing .site-mobile-trigger {
+    display: inline-flex;
+  }
+  .baitly-marketing .site-mobile-nav {
+    display: block;
+  }
+}
+@media (max-width: 1100px) {
+  .baitly-hero-grid {
+    gap: 32px;
+  }
+  .baitly-actions {
+    gap: 14px;
+  }
+  .baitly-hero-note {
+    inset-inline-start: -12px;
+    inset-inline-end: 10px;
+    padding: 15px;
+  }
+  .baitly-note-icon {
+    display: none;
+  }
+  .baitly-hero-note strong {
+    font-size: 12px;
+  }
+  .baitly-channels {
+    gap: 25px;
+  }
+  .baitly-brand-list {
+    gap: 18px;
+  }
+  .baitly-brand {
+    font-size: 14px;
+  }
+  .baitly-agent-layout {
+    gap: 32px;
+    grid-template-columns: 0.8fr 1.2fr;
+  }
+  .baitly-local-grid {
+    gap: 45px;
+  }
+  .baitly-local-visual > img {
+    height: 580px;
+  }
+}
+@media (max-width: 767px) {
+  .baitly-marketing .site-header-inner {
+    height: 72px;
+    gap: 16px;
+  }
+  .baitly-marketing .site-wordmark {
+    font-size: 24px;
+  }
+  .baitly-marketing .site-header-cta {
+    font-size: 12px;
+    min-height: 40px;
+    padding-inline: 12px;
+  }
+  .baitly-hero-grid {
+    grid-template-columns: 1fr;
+    padding-block: 44px 18px;
+    gap: 35px;
+  }
+  .baitly-home h1 {
+    font-size: clamp(48px, 9.2vw, 66px);
+  }
+  .baitly-eyebrow {
+    margin-block-end: 22px;
+    font-size: 12px;
+  }
+  .baitly-lead {
+    margin-block-start: 22px;
+    font-size: 18px;
+  }
+  .baitly-hero-description {
+    font-size: 14px;
+    max-width: 480px;
+  }
+  .baitly-actions {
+    gap: 15px;
+    margin-block-start: 25px;
+  }
+  .baitly-button {
+    min-height: 48px;
+    padding: 13px 18px;
+    font-size: 12px;
+    gap: 10px;
+  }
+  .baitly-play-link {
+    font-size: 12px;
+    gap: 7px;
+  }
+  .baitly-reassurance {
+    font-size: 12px;
+  }
+  .baitly-hero-photo {
+    height: 390px;
+    border-start-start-radius: 90px;
+  }
+  .baitly-photo-location {
+    font-size: 12px;
+    inset-block-start: 16px;
+    inset-inline-end: 14px;
+  }
+  .baitly-hero-note {
+    inset-inline: 12px;
+    padding: 18px 15px;
+  }
+  .baitly-note-icon {
+    display: grid;
+  }
+  .baitly-hero-note strong {
+    font-size: 13px;
+  }
+  .baitly-hero-bottom {
+    font-size: 12px;
+    padding-block: 20px;
+  }
+  .baitly-hero-bottom a {
+    display: none;
+  }
+  .baitly-channels {
+    flex-direction: column;
+    align-items: start;
+    gap: 23px;
+    padding-block: 27px;
+  }
+  .baitly-channels > p br {
+    display: none;
+  }
+  .baitly-channels > p strong {
+    margin-inline-start: 5px;
+  }
+  .baitly-brand-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    gap: 24px 15px;
+  }
+  .baitly-brand {
+    font-size: 13px;
+  }
+  .baitly-brand img {
+    width: 20px;
+    height: 20px;
+  }
+  .baitly-section-heading {
+    display: block;
+    margin-block-end: 32px;
+  }
+  .baitly-section-heading > p {
+    margin-block-start: 20px;
+    font-size: 14px;
+    max-width: 470px;
+  }
+  .baitly-section-label {
+    font-size: 12px;
+    margin-block-end: 15px;
+  }
+  .baitly-feature-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .baitly-feature-direct {
+    margin-block-start: 0;
+  }
+  .baitly-feature-copy {
+    padding: 28px;
+  }
+  .baitly-feature-number {
+    margin-block-end: 16px;
+  }
+  .baitly-feature-copy > p {
+    max-width: 440px;
+  }
+  .baitly-feature-planning {
+    padding-block-end: 28px;
+  }
+  .baitly-planning-stage {
+    margin: 0 18px;
+  }
+  .landing-planning-topbar {
+    padding: 14px 14px 13px;
+  }
+  .landing-planning-board {
+    padding-inline: 14px;
+  }
+  .landing-planning-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+    min-height: 58px;
+  }
+  .landing-planning-property span,
+  .landing-planning-channels {
+    display: none;
+  }
+  .landing-planning-property strong {
+    font-size: 11px;
+  }
+  .landing-planning-stay {
+    gap: 5px;
+    height: 36px;
+    margin-inline: 3px;
+    padding-inline: 6px;
+  }
+  .landing-planning-stay-dot,
+  .landing-planning-stay-pulse {
+    display: none;
+  }
+  .landing-planning-stay-copy strong {
+    font-size: 10px;
+  }
+  .landing-planning-stay-copy small {
+    font-size: 8px;
+  }
+  .landing-planning-footer {
+    padding-inline: 14px;
+  }
+  .baitly-module-list {
+    grid-template-columns: 1fr;
+    margin-block-start: 26px;
+  }
+  .baitly-module-list a {
+    min-height: 68px;
+    font-size: 13px;
+  }
+  .baitly-agent-section {
+    padding-block: 60px 40px;
+  }
+  .baitly-agent-layout {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  .baitly-agent-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .baitly-agent-choices > button {
+    padding: 16px 10px;
+    gap: 9px;
+  }
+  .baitly-agent-choices strong {
+    font-size: 12px;
+  }
+  .baitly-agent-choices small,
+  .baitly-agent-choices > button > svg:last-child {
+    display: none;
+  }
+  .baitly-agent-choices > button > svg:first-child {
+    width: 18px;
+    height: 18px;
+  }
+  .baitly-agent-choices .baitly-text-link {
+    grid-column: 1 / -1;
+    margin: 5px 0 0;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .baitly-demo-top {
+    padding: 15px;
+    font-size: 12px;
+  }
+  .baitly-demo-badge {
+    font-size: 12px;
+  }
+  .baitly-demo-property {
+    padding: 20px 18px 0;
+  }
+  .baitly-demo-content {
+    padding: 22px 18px;
+    min-height: 395px;
+  }
+  .baitly-demo-content h3 {
+    font-size: 23px;
+  }
+  .baitly-demo-proposal {
+    padding: 15px 12px;
+    flex-wrap: wrap;
+  }
+  .baitly-demo-proposal > div {
+    font-size: 13px;
+    gap: 8px;
+  }
+  .baitly-demo-controls {
+    padding-inline: 14px;
+  }
+  .baitly-demo-controls > span {
+    max-width: 180px;
+  }
+  .baitly-demo-caption {
+    font-size: 12px;
+    text-align: start;
+    line-height: 1.8;
+  }
+  .baitly-local-section {
+    padding-block: 65px 0;
+  }
+  .baitly-local-grid {
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+  .baitly-local-visual > img {
+    height: 390px;
+    border-start-end-radius: 90px;
+  }
+  .baitly-local-copy h2 {
+    font-size: 33px;
+  }
+  .baitly-local-copy > p:not([class]) {
+    max-width: none;
+  }
+  .baitly-local-visual > div {
+    padding: 18px;
+    inset-inline: 18px;
+  }
+  .baitly-faq {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .baitly-faq summary {
+    font-size: 13px;
+    min-height: 76px;
+  }
+  .baitly-faq .baitly-text-link {
+    margin-block-start: 14px;
+    font-size: 12px;
+  }
+  .baitly-final-wrap {
+    padding-block-end: 45px;
+  }
+  .baitly-final-cta > div {
+    padding: 42px 25px;
+  }
+  .baitly-final-cta > img {
+    width: 100%;
+    opacity: 0.25;
+  }
+  .baitly-final-cta::after {
+    background: oklch(28% 0.027 240 / 0.5);
+  }
+  .baitly-final-cta h2 {
+    font-size: 38px;
+  }
+  .baitly-final-cta h2 + p {
+    font-size: 13px;
+  }
+  .baitly-final-note {
+    font-size: 12px;
+    max-width: 230px;
+    line-height: 1.8;
+  }
+  .baitly-marketing .site-footer .site-shell {
+    padding-block-start: 45px;
+  }
+}
+@media (min-width: 768px) and (max-width: 900px) {
+  .baitly-brand-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+}
+@media (max-width: 390px) {
+  .baitly-home h1 {
+    font-size: 48px;
+  }
+  .baitly-hero-photo {
+    height: 345px;
+  }
+  .baitly-note-icon {
+    display: none;
+  }
+  .baitly-hero-note {
+    gap: 8px;
+  }
+  .baitly-demo-top > span:first-child {
+    gap: 6px;
+  }
+  .baitly-brand {
+    font-size: 12px;
+    gap: 5px;
+  }
+}

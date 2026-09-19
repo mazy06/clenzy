@@ -14,7 +14,8 @@ import {
   Spinner,
 } from '../../components/ui';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
-import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
+import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel, getOrgRoleLabelKey } from '../../utils/orgRoleLabels';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Props {
   open: boolean;
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function ChangeRoleDialog({ open, onClose, member, organizationId, onRoleChanged }: Props) {
+  const { t } = useTranslation();
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
       onRoleChanged();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du changement de role';
+      const message = err instanceof Error ? err.message : t('organization.errors.changeRole');
       setError(message);
     } finally {
       setLoading(false);
@@ -62,11 +64,11 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="sm:max-w-[444px]">
         <DialogHeader>
-          <DialogTitle>Changer le role</DialogTitle>
+          <DialogTitle>{t('organizations.changeRole.title')}</DialogTitle>
         </DialogHeader>
         <p className="text-xs text-muted-foreground mb-3">
-          Modifier le role de <strong>{memberName}</strong> dans l'organisation.
-          Role actuel : <strong>{member ? getOrgRoleLabel(member.roleInOrg) : ''}</strong>
+          {t('organizations.changeRole.body')} <strong>{memberName}</strong> {t('organizations.changeRole.inOrg')}{' '}
+          {t('organizations.changeRole.currentRole')} <strong>{member ? t(getOrgRoleLabelKey(member.roleInOrg), getOrgRoleLabel(member.roleInOrg)) : ''}</strong>
         </p>
 
         {error && (
@@ -77,7 +79,7 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
         )}
 
         <Field>
-          <FieldLabel htmlFor="change-role-new-role">Nouveau role</FieldLabel>
+          <FieldLabel htmlFor="change-role-new-role">{t('organizations.changeRole.newRole')}</FieldLabel>
           <NativeSelect
             id="change-role-new-role"
             className="w-full"
@@ -90,7 +92,7 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
             <NativeSelectOption value="">—</NativeSelectOption>
             {ASSIGNABLE_ORG_ROLES.map((r) => (
               <NativeSelectOption key={r.value} value={r.value}>
-                {r.label}
+                {t(r.labelKey, r.label)}
               </NativeSelectOption>
             ))}
           </NativeSelect>

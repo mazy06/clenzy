@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { addDays, subDays, addMonths, subMonths } from 'date-fns';
+import { addDays, subDays } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useUserPreference } from '../../../hooks/useUserPreference';
+import { addDisplayMonths } from '../../../utils/localeDate';
 import type { ZoomLevel, DensityMode } from '../types';
 import { ZOOM_CONFIGS } from '../constants';
 
@@ -51,6 +53,8 @@ export interface UsePlanningNavigationReturn {
 }
 
 export function usePlanningNavigation(): UsePlanningNavigationReturn {
+  const { i18n } = useTranslation();
+  const language = i18n.language;
   const [persisted, setPersisted] = useUserPreference<PersistedNav>(PREF_KEY, DEFAULT_NAV);
   const safe = useMemo(() => sanitize(persisted), [persisted]);
 
@@ -75,17 +79,25 @@ export function usePlanningNavigation(): UsePlanningNavigationReturn {
 
   // ‹ › avancent d'une vue : 7 jours (semaine), 14 jours (quinzaine),
   // un mois calendaire (mois).
+  //
+  // « Un mois » se lit dans le calendrier AFFICHE. En arabe, la fleche avance
+  // d'un mois hegirien de 29 ou 30 jours — le libelle de la barre annonce ce
+  // mois-la, les deux doivent avancer du meme pas.
   const goPrev = useCallback(() => {
     setCurrentDate((prev) =>
-      safe.zoom === 'month' ? subMonths(prev, 1) : subDays(prev, config.visibleDays),
+      safe.zoom === 'month'
+        ? addDisplayMonths(prev, -1, language)
+        : subDays(prev, config.visibleDays),
     );
-  }, [safe.zoom, config.visibleDays]);
+  }, [safe.zoom, config.visibleDays, language]);
 
   const goNext = useCallback(() => {
     setCurrentDate((prev) =>
-      safe.zoom === 'month' ? addMonths(prev, 1) : addDays(prev, config.visibleDays),
+      safe.zoom === 'month'
+        ? addDisplayMonths(prev, 1, language)
+        : addDays(prev, config.visibleDays),
     );
-  }, [safe.zoom, config.visibleDays]);
+  }, [safe.zoom, config.visibleDays, language]);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);

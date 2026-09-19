@@ -41,6 +41,7 @@ import { useGenerationsByReference } from '../documents/hooks/useDocuments';
 import { documentsApi, type DocumentGeneration } from '../../services/api/documentsApi';
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -696,7 +697,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                   onClick={() => setActiveStep((activeStep + 1) as StepId)}
                 >
                   {t('interventions.progressSteps.nextStep', 'Étape suivante')} : {steps[activeStep + 1].label}
-                  <ChevronRightIcon size={18} strokeWidth={1.75} />
+                  <ChevronRightIcon className="cn-rtl-flip" size={18} strokeWidth={1.75} />
                 </Button>
               </div>
             )}
@@ -712,13 +713,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               {/* Encre `-ink` : le libellé est du texte sur un fond pastel. */}
               <p className="text-xs font-semibold mb-1.5 text-warning-ink">
                 Planifiee pour le{' '}
-                {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
+                {new Date(intervention.scheduledDate).toLocaleDateString(activeIntlLocale(), {
                   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   hour: '2-digit', minute: '2-digit',
                 })}
               </p>
               <span className="text-xs text-muted-foreground mb-3 block">
-                Le demarrage sera possible a partir de cette date.
+                {t('interventions.progressSteps.startAfterDate')}
               </span>
             </>
           )}

@@ -11,6 +11,7 @@ import {
 } from '../../../components/ui';
 import { tuyaApi } from '../../../services/api/noiseApi';
 import DevicePairingGuide from './DevicePairingGuide';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface TuyaDevicePickerProps {
   /** Filtre par catégorie Tuya (ex: 'sp' caméra, 'wk' thermostat). Si le filtre ne ramène rien, on montre tout. */
@@ -26,6 +27,7 @@ interface TuyaDevicePickerProps {
  * (listOrgDevices). NON VALIDÉ faute de compte Tuya réel.
  */
 export default function TuyaDevicePicker({ category, selectedId, onSelect }: TuyaDevicePickerProps) {
+  const { t } = useTranslation();
   const { data: devices = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['tuya-devices'],
     queryFn: () => tuyaApi.listDevices(),
@@ -37,7 +39,7 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
     return (
       <div className="flex items-center gap-1.5 py-1.5">
         <Spinner className="size-4" />
-        <p className="text-xs text-muted-foreground">Recherche des appareils Tuya…</p>
+        <p className="text-xs text-muted-foreground">{t('connectedObjects.picker.tuyaSearching')}</p>
       </div>
     );
   }
@@ -45,7 +47,7 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
     return (
       <Alert variant="warning" className="py-0.5">
         <TriangleAlert />
-        <AlertDescription>Compte Tuya non relié ou indisponible. Reliez Tuya dans <strong>Réglages → Intégrations</strong>.</AlertDescription>
+        <AlertDescription>{t('connectedObjects.picker.tuyaUnlinked')} <strong>{t('connectedObjects.picker.integrationsPath')}</strong>.</AlertDescription>
       </Alert>
     );
   }
@@ -58,7 +60,7 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
       <div>
         <Alert variant="info" className="py-0.5">
           <Info />
-          <AlertDescription>Aucun appareil trouvé sur le compte Tuya relié.</AlertDescription>
+          <AlertDescription>{t('connectedObjects.picker.tuyaEmpty')}</AlertDescription>
         </Alert>
         <DevicePairingGuide onRefresh={() => { void refetch(); }} refreshing={isFetching} />
       </div>
@@ -77,11 +79,14 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
       >
         {list.map((d) => (
           <NativeSelectOption key={d.id} value={d.id} disabled={d.alreadyAdded}>
-            {(d.name || d.id) + (d.category ? ` · ${d.category}` : '') + (d.online ? '' : ' · hors ligne') + (d.alreadyAdded ? ' · déjà ajouté' : '')}
+            {(d.name || d.id)
+              + (d.category ? ` · ${d.category}` : '')
+              + (d.online ? '' : ` · ${t('connectedObjects.picker.offline')}`)
+              + (d.alreadyAdded ? ` · ${t('connectedObjects.picker.alreadyAdded')}` : '')}
           </NativeSelectOption>
         ))}
       </NativeSelect>
-      <FieldDescription>Sélectionnez l'appareil découvert sur le compte Tuya de l'organisation.</FieldDescription>
+      <FieldDescription>{t('connectedObjects.picker.tuyaHint')}</FieldDescription>
     </Field>
   );
 }

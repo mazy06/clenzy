@@ -3,6 +3,7 @@ import { Alert, AlertDescription, Card, CardContent } from './ui';
 import { Info } from 'lucide-react';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   Dashboard as DashboardIcon,
   Home as HomeIcon,
@@ -30,6 +31,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   selectedRole, 
   rolePermissions 
 }) => {
+  const { t } = useTranslation();
 
   // Si aucun rôle n'est sélectionné, afficher un message
   if (!selectedRole || !rolePermissions) {
@@ -37,7 +39,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
       <div>
         <Alert variant="info">
           <Info />
-          <AlertDescription>Veuillez sélectionner un rôle pour voir la démonstration des effets</AlertDescription>
+          <AlertDescription>{t('permissions.selectRoleDemo')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -49,77 +51,79 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   };
 
   // Fonction pour obtenir l'état d'un menu selon les permissions
-  const getMenuStatus = (menuName: string, requiredPermissions: string[]) => {
+  const getMenuStatus = (requiredPermissions: string[]) => {
     const hasAccess = requiredPermissions.every(permission => testPermission(permission));
     return {
       accessible: hasAccess,
       status: hasAccess ? '✅ Accessible' : '❌ Inaccessible',
       color: hasAccess ? 'success' : 'error',
-      reason: hasAccess ? 'Toutes les permissions requises sont accordées' : `Permissions manquantes: ${requiredPermissions.filter(p => !testPermission(p)).join(', ')}`
+      reason: hasAccess
+        ? t('permissionsDemo.allGranted')
+        : t('permissionsDemo.missing', { list: requiredPermissions.filter(p => !testPermission(p)).join(', ') })
     };
   };
 
   const menuPermissions = [
     {
-      name: 'Tableau de Bord',
+      id: 'dashboard',
       permissions: ['dashboard:view'],
-      description: 'Vue d\'ensemble de l\'activité'
+      descriptionKey: 'permissionsDemo.modules.dashboard',
     },
     {
-      name: 'Propriétés',
+      id: 'properties',
       permissions: ['properties:view'],
-      description: 'Gestion des propriétés'
+      descriptionKey: 'permissionsDemo.modules.properties',
     },
     {
-      name: 'Demandes de Service',
+      id: 'service-requests',
       permissions: ['service-requests:view'],
-      description: 'Gestion des demandes de service'
+      descriptionKey: 'permissionsDemo.modules.service-requests',
     },
     {
-      name: 'Interventions',
+      id: 'interventions',
       permissions: ['interventions:view'],
-      description: 'Gestion des interventions'
+      descriptionKey: 'permissionsDemo.modules.interventions',
     },
     {
-      name: 'Équipes',
+      id: 'teams',
       permissions: ['teams:view'],
-      description: 'Gestion des équipes'
+      descriptionKey: 'permissionsDemo.modules.teams',
     },
     {
-      name: 'Utilisateurs',
+      id: 'users',
       permissions: ['users:manage'],
-      description: 'Gestion des utilisateurs (Admin uniquement)'
+      descriptionKey: 'permissionsDemo.modules.users',
     },
     {
-      name: 'Paramètres',
+      id: 'settings',
       permissions: ['settings:view'],
-      description: 'Configuration du système'
+      descriptionKey: 'permissionsDemo.modules.settings',
     },
     {
-      name: 'Rapports',
+      id: 'reports',
       permissions: ['reports:view'],
-      description: 'Génération de rapports'
+      descriptionKey: 'permissionsDemo.modules.reports',
     }
   ];
 
   // Helper function to get module icon
   const getModuleIcon = (moduleName: string) => {
     switch (moduleName) {
-      case 'Tableau de Bord':
+      case 'dashboard':
         return <DashboardIcon size={20} strokeWidth={1.75} />;
-      case 'Propriétés':
+      case 'properties':
         return <HomeIcon size={20} strokeWidth={1.75} />;
-      case 'Demandes de Service':
+      case 'service-requests':
         return <AssignmentIcon size={20} strokeWidth={1.75} />;
-      case 'Interventions':
+      case 'interventions':
         return <BuildIcon size={20} strokeWidth={1.75} />;
-      case 'Équipes':
+      case 'teams':
         return <GroupIcon size={20} strokeWidth={1.75} />;
-      case 'Utilisateurs':
+      case 'users':
         return <PersonIcon size={20} strokeWidth={1.75} />;
-      case 'Paramètres':
+      case 'settings':
         return <SettingsIcon size={20} strokeWidth={1.75} />;
-      case 'Rapports':
+      case 'reports':
         return <AssessmentIcon size={20} strokeWidth={1.75} />;
       default:
         return <InfoIcon size={20} strokeWidth={1.75} />;
@@ -130,10 +134,10 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
     <div>
       <div className="grid grid-cols-12 gap-3">
         {menuPermissions.map((menu) => {
-          const status = getMenuStatus(menu.name, menu.permissions);
+          const status = getMenuStatus(menu.permissions);
           
           return (
-            <div className="col-span-12 min-[1200px]:col-span-6" key={menu.name}>
+            <div className="col-span-12 min-[1200px]:col-span-6" key={menu.id}>
               {/* Le liseré remplace l'anneau du primitif (`ring-0`) : c'est lui qui
                   porte l'etat accessible / inaccessible — teinte vive pour une
                   bordure, jamais l'encre `-ink`. */}
@@ -148,14 +152,14 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                   {/* En-tête avec icône et statut */}
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-1.5 bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                      {getModuleIcon(menu.name)}
+                      {getModuleIcon(menu.id)}
                     </div>
                     <div className="flex-1">
                       <h6 className="text-sm font-semibold mt-0 mb-0.5 text-foreground">
-                        {menu.name}
+                        {t('permissionModules.' + menu.id)}
                       </h6>
                       <p className="text-xs m-0 text-muted-foreground leading-[1.4]">
-                        {menu.description}
+                        {t(menu.descriptionKey)}
                       </p>
                     </div>
                     <StatusChip
@@ -238,7 +242,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 )}
               </div>
               <p className="text-xs m-0 text-muted-foreground font-medium">
-                {rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
+                {rolePermissions.isDefault ? t('permissions.byDefault') : t('permissions.modified')}
               </p>
             </Card>
           </div>

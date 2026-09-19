@@ -15,6 +15,8 @@ import React from 'react';
 import { Check } from '../../../../icons';
 import { SurfaceCard, formatMoney, humanizeKey, humanizeStatus } from './shared';
 import { KpiSummaryResult } from './KpiSummaryResult';
+import { activeIntlLocale } from '../../../../utils/activeLocale';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 type Summary = Record<string, unknown>;
 
@@ -35,13 +37,14 @@ function detailValue(key: string, value: unknown, currency?: unknown): string {
     const d = new Date(String(value));
     return Number.isNaN(d.getTime())
       ? String(value)
-      : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+      : d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short' });
   }
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
 
 export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
+  const { t } = useTranslation();
   // Forme 2 : snapshot KPI → renderer dédié.
   if (isKpiSnapshot(data)) {
     return <KpiSummaryResult data={data} />;
@@ -62,11 +65,11 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-snug text-balance text-foreground">
-            {message ?? 'Action effectuée'}
+            {message ?? t('supervision.agui.actionDone')}
           </p>
           {data.id != null && (
             <p className="mt-0.5 text-2xs tabular-nums text-muted-foreground">
-              Réf. #{String(data.id)}
+              {t('supervision.agui.reference', { id: String(data.id) })}
             </p>
           )}
         </div>

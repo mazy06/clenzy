@@ -17,37 +17,38 @@ export interface ServiceIndexEntry {
   name: string;
   /** ID de la categorie (sert au scroll-to + filtre). */
   categoryId: string;
-  /** Label de la categorie (affiche dans l'autocomplete groupe). */
-  categoryLabel: string;
+  /** Cle du libelle de categorie (autocomplete groupe) ; vide si inconnue. */
+  categoryLabelKey: string;
 }
 
 export interface CategoryDef {
   id: string;
-  label: string;
+  /** Cle en locales : `settings.integrations.categories.<id>`. */
+  labelKey: string;
   /** ID de l'element DOM pour scroll-to (utilise dans IntegrationsSection). */
   domId: string;
 }
 
 export const CATEGORIES: CategoryDef[] = [
-  { id: 'signature',            label: 'Signature électronique',     domId: 'section-signature' },
-  { id: 'accounting',           label: 'Comptabilité',                domId: 'section-accounting' },
-  { id: 'compliance',           label: 'Conformité légale',           domId: 'section-compliance' },
-  { id: 'kyc',                  label: 'Vérification d\'identité',    domId: 'section-kyc' },
-  { id: 'channel_manager',      label: 'Channel Manager middleware',  domId: 'section-channel-manager' },
-  { id: 'ota',                  label: 'Canaux OTAs',                 domId: 'section-ota' },
-  { id: 'messaging',            label: 'Messagerie',                  domId: 'section-messaging' },
-  { id: 'market_intelligence',  label: 'Intelligence de marché',      domId: 'section-market-intelligence' },
-  { id: 'tax_automation',       label: 'Fiscalité / Taxe de séjour',  domId: 'section-tax' },
-  { id: 'insurance',            label: 'Assurance',                   domId: 'section-insurance' },
-  { id: 'cleaning_operations',  label: 'Ménage & opérations',         domId: 'section-cleaning' },
-  { id: 'smart_locks_iot',      label: 'Serrures connectées & IoT',   domId: 'section-smart-locks' },
-  { id: 'key_management',       label: 'Gestion des clés',            domId: 'section-key-management' },
-  { id: 'noise_monitoring',     label: 'Monitoring sonore',           domId: 'section-noise' },
-  { id: 'activities_affiliate', label: 'Activités & affiliation',     domId: 'section-activities' },
-  { id: 'reviews_reputation',   label: 'Avis & réputation',           domId: 'section-reviews' },
-  { id: 'marketing_crm',        label: 'Marketing & CRM',             domId: 'section-marketing' },
-  { id: 'automation',           label: 'Automatisation & Webhooks',   domId: 'section-automation' },
-  { id: 'guest_experience',     label: 'Expérience guest',            domId: 'section-guest-experience' },
+  { id: 'signature',            labelKey: 'settings.integrations.categories.signature',     domId: 'section-signature' },
+  { id: 'accounting',           labelKey: 'settings.integrations.categories.accounting',                domId: 'section-accounting' },
+  { id: 'compliance',           labelKey: 'settings.integrations.categories.compliance',           domId: 'section-compliance' },
+  { id: 'kyc',                  labelKey: 'settings.integrations.categories.kyc',    domId: 'section-kyc' },
+  { id: 'channel_manager',      labelKey: 'settings.integrations.categories.channel_manager',  domId: 'section-channel-manager' },
+  { id: 'ota',                  labelKey: 'settings.integrations.categories.ota',                 domId: 'section-ota' },
+  { id: 'messaging',            labelKey: 'settings.integrations.categories.messaging',                  domId: 'section-messaging' },
+  { id: 'market_intelligence',  labelKey: 'settings.integrations.categories.market_intelligence',      domId: 'section-market-intelligence' },
+  { id: 'tax_automation',       labelKey: 'settings.integrations.categories.tax_automation',  domId: 'section-tax' },
+  { id: 'insurance',            labelKey: 'settings.integrations.categories.insurance',                   domId: 'section-insurance' },
+  { id: 'cleaning_operations',  labelKey: 'settings.integrations.categories.cleaning_operations',         domId: 'section-cleaning' },
+  { id: 'smart_locks_iot',      labelKey: 'settings.integrations.categories.smart_locks_iot',   domId: 'section-smart-locks' },
+  { id: 'key_management',       labelKey: 'settings.integrations.categories.key_management',            domId: 'section-key-management' },
+  { id: 'noise_monitoring',     labelKey: 'settings.integrations.categories.noise_monitoring',           domId: 'section-noise' },
+  { id: 'activities_affiliate', labelKey: 'settings.integrations.categories.activities_affiliate',     domId: 'section-activities' },
+  { id: 'reviews_reputation',   labelKey: 'settings.integrations.categories.reviews_reputation',           domId: 'section-reviews' },
+  { id: 'marketing_crm',        labelKey: 'settings.integrations.categories.marketing_crm',             domId: 'section-marketing' },
+  { id: 'automation',           labelKey: 'settings.integrations.categories.automation',   domId: 'section-automation' },
+  { id: 'guest_experience',     labelKey: 'settings.integrations.categories.guest_experience',            domId: 'section-guest-experience' },
 ];
 
 const CATEGORY_BY_ID: Record<string, CategoryDef> =
@@ -62,7 +63,7 @@ function entry(id: string, name: string, categoryId: string): ServiceIndexEntry 
     id,
     name,
     categoryId,
-    categoryLabel: cat?.label ?? categoryId,
+    categoryLabelKey: cat?.labelKey ?? '',
   };
 }
 

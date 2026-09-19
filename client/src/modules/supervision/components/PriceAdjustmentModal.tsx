@@ -30,6 +30,7 @@ import { cn } from '../../../utils/cn';
 import { Money } from '../../../components/Money';
 import { pricingApi, type PriceSegment, type PricingSimulation } from '../pricingApi';
 import { consequencesOf } from './actionRegistry';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 type Mode = 'percent' | 'targetPrice' | 'fixedAmount';
 
@@ -247,7 +248,7 @@ export function PriceAdjustmentModal({
                   </Button>
                 ) : <div className="w-[30px]" />}
                 <p className="text-xs font-semibold capitalize text-foreground">
-                  {month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                  {month.toLocaleDateString(activeIntlLocale(), { month: 'long', year: 'numeric' })}
                 </p>
                 {mi === months.length - 1 ? (
                   <Button

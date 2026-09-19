@@ -15,6 +15,8 @@ import {
 } from '../../icons';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient from '../../services/apiClient';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types for user search ───────────────────────────────────────────────────
 
@@ -48,6 +50,7 @@ interface Props {
 const ROLES = ASSIGNABLE_ORG_ROLES;
 
 export default function SendInvitationDialog({ open, onClose, organizationId, onInvitationSent }: Props) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('email');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('MEMBER');
@@ -98,14 +101,14 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
 
   const handleSend = async () => {
     if (!email.trim()) {
-      setError('Veuillez saisir un email.');
+      setError(t('organization.errors.emailRequired'));
       return;
     }
 
     // Validation email basique
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      setError('Veuillez saisir un email valide.');
+      setError(t('organization.errors.emailInvalid'));
       return;
     }
 
@@ -121,7 +124,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
       onInvitationSent();
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Erreur lors de l\'envoi de l\'invitation.');
+      setError(apiErr.message || t('organization.errors.sendInvitation'));
     } finally {
       setLoading(false);
     }
@@ -171,7 +174,11 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
       <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
-            {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
+            {result
+              ? t('organization.invite.sent')
+              : memberSuccess
+                ? t('organization.invite.memberAdded')
+                : t('organization.invite.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -190,8 +197,8 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
               // evite de laisser le formulaire sans mode.
               onValueChange={(v) => { if (v) { setMode(v as Mode); setError(null); } }}
             >
-              <ToggleGroupItem value="email">Inviter par email</ToggleGroupItem>
-              <ToggleGroupItem value="existing">Membre existant</ToggleGroupItem>
+              <ToggleGroupItem value="email">{t('organizations.invite.byEmail')}</ToggleGroupItem>
+              <ToggleGroupItem value="existing">{t('organizations.invite.existingMember')}</ToggleGroupItem>
             </ToggleGroup>
 
             {mode === 'email' ? (
@@ -221,17 +228,17 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                   >
                     {ROLES.map((r) => (
                       <NativeSelectOption key={r.value} value={r.value}>
-                        {r.label}
+                        {t(r.labelKey, r.label)}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
-                  <FieldDescription>Le role attribue au nouvel utilisateur</FieldDescription>
+                  <FieldDescription>{t('organizations.invite.roleHintNew')}</FieldDescription>
                 </Field>
               </>
             ) : (
               <>
                 <Field>
-                  <FieldLabel htmlFor="invitation-user-search">Rechercher un utilisateur...</FieldLabel>
+                  <FieldLabel htmlFor="invitation-user-search">{t('organizations.invite.searchUser')}</FieldLabel>
                   {/* `filter={null}` : la liste vient deja filtree du serveur, on
                       ne veut pas d'un second filtrage local (equivalent du
                       `filterOptions={(x) => x}` de l'Autocomplete). */}
@@ -249,7 +256,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                   >
                     <ComboboxInput
                       id="invitation-user-search"
-                      placeholder="Nom, prenom ou email (min. 2 caracteres)"
+                      placeholder={t('organizations.invite.searchPlaceholder')}
                     >
                       {userSearchLoading ? (
                         <InputGroupAddon align="inline-end">
@@ -277,7 +284,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                                 </span>
                               </span>
                               {option.hasOrganization && (
-                                <Badge variant="warning">Deja dans une org</Badge>
+                                <Badge variant="warning">{t('organizations.invite.alreadyInOrg')}</Badge>
                               )}
                             </span>
                           </ComboboxItem>
@@ -298,11 +305,11 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                   >
                     {ROLES.map((r) => (
                       <NativeSelectOption key={r.value} value={r.value}>
-                        {r.label}
+                        {t(r.labelKey, r.label)}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
-                  <FieldDescription>Le role attribue au membre</FieldDescription>
+                  <FieldDescription>{t('organizations.invite.roleHintMember')}</FieldDescription>
                 </Field>
               </>
             )}
@@ -340,7 +347,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                   htmlFor="invitation-link"
                   className="block text-xs text-muted-foreground mb-1.5"
                 >
-                  Vous pouvez aussi partager ce lien directement :
+                  {t('organizations.invite.shareLink')}
                 </label>
                 <InputGroup>
                   <InputGroupInput
@@ -362,7 +369,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                           {copied ? <CheckCircle size={16} /> : <ContentCopy size={16} />}
                         </BuiButton>
                       </TooltipTrigger>
-                      <TooltipContent>{copied ? 'Copie !' : 'Copier le lien'}</TooltipContent>
+                      <TooltipContent>{t(copied ? 'organization.invite.copied' : 'organization.invite.copyLink')}</TooltipContent>
                     </Tooltip>
                   </InputGroupAddon>
                 </InputGroup>
@@ -371,7 +378,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
 
             <span className="text-2xs text-muted-foreground text-center">
               L'invitation expire le{' '}
-              {result?.expiresAt ? new Date(result.expiresAt).toLocaleDateString('fr-FR', {
+              {result?.expiresAt ? new Date(result.expiresAt).toLocaleDateString(activeIntlLocale(), {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',

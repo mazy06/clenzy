@@ -4,6 +4,7 @@ import { Lock, Visibility, VisibilityOff, ContentCopy } from '../../../icons';
 import { useNotification } from '../../../hooks/useNotification';
 import { cn } from '../../../utils/cn';
 import { usePropertyAccessCode } from '../usePropertyAccessCode';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Digicode / boîte à clés d'un LOGEMENT, à hauteur du logement.
@@ -23,6 +24,7 @@ import { usePropertyAccessCode } from '../usePropertyAccessCode';
  * format et son renouvellement automatique.</p>
  */
 export default function PropertyAccessCodeChip({ propertyId }: { propertyId: number }) {
+  const { t } = useTranslation();
   const { notify } = useNotification();
   const { data: instructions } = usePropertyAccessCode(propertyId);
   const [revealed, setRevealed] = useState(false);
@@ -33,9 +35,9 @@ export default function PropertyAccessCodeChip({ propertyId }: { propertyId: num
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
-      notify.success('Digicode copié');
+      notify.success(t('accessCodes.keypadCopied'));
     } catch {
-      notify.error('Copie impossible');
+      notify.error(t('common.copyFailed'));
     }
   };
 
@@ -50,8 +52,8 @@ export default function PropertyAccessCodeChip({ propertyId }: { propertyId: num
         </TooltipTrigger>
         <TooltipContent>
           {instructions?.accessCodeAutoRotate
-            ? 'Digicode / boîte à clés du logement — renouvelé après chaque départ'
-            : 'Digicode / boîte à clés du logement'}
+            ? t('accessCodes.keypadTooltipRenewed')
+            : t('accessCodes.keypadTooltip')}
         </TooltipContent>
       </Tooltip>
 
@@ -71,7 +73,7 @@ export default function PropertyAccessCodeChip({ propertyId }: { propertyId: num
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={revealed ? 'Masquer le digicode' : 'Afficher le digicode'}
+              aria-label={revealed ? t('accessCodes.hideKeypad') : t('accessCodes.showKeypad')}
               onClick={() => setRevealed((v) => !v)}
             >
               {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
@@ -84,7 +86,7 @@ export default function PropertyAccessCodeChip({ propertyId }: { propertyId: num
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex">
-            <Button variant="ghost" size="icon-xs" aria-label="Copier le digicode" onClick={() => { void copy(); }}>
+            <Button variant="ghost" size="icon-xs" aria-label={t('connectedObjects.accessCode.copyKeypad')} onClick={() => { void copy(); }}>
               <ContentCopy size={14} strokeWidth={1.75} />
             </Button>
           </span>

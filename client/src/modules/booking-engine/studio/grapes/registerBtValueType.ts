@@ -1,5 +1,6 @@
 import type { Editor } from 'grapesjs';
 import { BT_TOKEN_GROUPS, tokenCssValue, type BtToken } from './designTokenCatalog';
+import i18n from '../../../../i18n/config';
 
 /**
  * Type de propriété Style Manager custom `bt-value` : un champ combiné = menu des tokens `--bt-*` du
@@ -23,15 +24,15 @@ export function registerBtValueType(editor: Editor): void {
 
       const sel = document.createElement('select');
       sel.className = 'bt-value__token';
-      sel.title = 'Token de design';
+      sel.title = i18n.t('studioTokens.designToken');
       const custom = document.createElement('option');
       custom.value = '';
-      custom.textContent = 'Personnalisé…';
+      custom.textContent = i18n.t('studioTokens.custom');
       sel.appendChild(custom);
       for (const t of tokens) {
         const o = document.createElement('option');
         o.value = tokenCssValue(t); // var(--bt-*)
-        o.textContent = t.label;
+        o.textContent = i18n.t(t.labelKey);
         sel.appendChild(o);
       }
 

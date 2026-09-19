@@ -3,6 +3,7 @@ import { Alert } from './ui';
 import { Button } from './ui';
 import { Refresh as RefreshIcon } from '../icons';
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Props {
   children: ReactNode;
@@ -64,32 +65,53 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] p-4">
-          <Alert variant="destructive" className="mb-3 max-w-[600px]">
-            <h6 className="m-0 mb-[0.35em] text-sm font-semibold">
-              Une erreur s'est produite
-            </h6>
-            <p className="m-0 mb-3 text-xs">
-              {this.state.error?.message || "Une erreur inattendue s'est produite"}
-            </p>
-            {import.meta.env.DEV && this.state.errorInfo && (
-              <div className="mt-3 p-3 bg-muted rounded-md font-mono overflow-auto max-h-[200px]">
-                <pre className="m-0 text-xs text-muted-foreground whitespace-pre-wrap break-words">
-                  {this.state.error?.stack}
-                </pre>
-              </div>
-            )}
-            <Button onClick={this.handleReset} className="mt-3">
-              <RefreshIcon size={18} strokeWidth={1.75} />
-              Réessayer
-            </Button>
-          </Alert>
-        </div>
+        <ErrorFallback
+          message={this.state.error?.message}
+          stack={this.state.error?.stack}
+          showStack={import.meta.env.DEV && !!this.state.errorInfo}
+          onReset={this.handleReset}
+        />
       );
     }
 
     return this.props.children;
   }
+}
+
+/**
+ * Le repli visuel, sorti de la classe : `useTranslation` est un hook, une classe
+ * ne peut pas l'appeler. Le composant fonctionnel, si.
+ */
+function ErrorFallback({ message, stack, showStack, onReset }: {
+  message?: string;
+  stack?: string;
+  showStack: boolean;
+  onReset: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] p-4">
+      <Alert variant="destructive" className="mb-3 max-w-[600px]">
+        <h6 className="m-0 mb-[0.35em] text-sm font-semibold">
+          {t('common.errorOccurred')}
+        </h6>
+        <p className="m-0 mb-3 text-xs">
+          {message || t('common.unexpectedError')}
+        </p>
+        {showStack && (
+          <div className="mt-3 p-3 bg-muted rounded-md font-mono overflow-auto max-h-[200px]">
+            <pre className="m-0 text-xs text-muted-foreground whitespace-pre-wrap break-words">
+              {stack}
+            </pre>
+          </div>
+        )}
+        <Button onClick={onReset} className="mt-3">
+          <RefreshIcon size={18} strokeWidth={1.75} />
+          {t('common.retry')}
+        </Button>
+      </Alert>
+    </div>
+  );
 }
 
 export default ErrorBoundary;

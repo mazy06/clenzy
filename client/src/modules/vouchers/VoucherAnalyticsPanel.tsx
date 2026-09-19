@@ -8,6 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
+import { intlLocale } from '../../utils/localeDate';
 
 /**
  * Panneau analytics affiche en haut de VouchersPage.
@@ -193,6 +194,6 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, emphasis }) => (
 );
 
 function formatPeriod(from: string, to: string, locale: string): string {
-  const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: 'medium' });
   return `${fmt.format(new Date(from))} → ${fmt.format(new Date(to))}`;
 }

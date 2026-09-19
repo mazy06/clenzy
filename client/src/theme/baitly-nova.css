@@ -1881,6 +1881,105 @@
   .cn-text-caption { font-size: 0.6875rem; }
 }
 
+/* MARK: Volet d'onglets du header ───────────────────────────────────────────
+   Le sélecteur d'onglets de la ligne de titre ne flotte pas SOUS le bandeau du
+   header : il en SORT, comme le volet de la barre latérale sort de la barre.
+   Même pièce, quart de tour — la barre offre une ligne VERTICALE et son volet
+   part de côté ; le bandeau offre sa ligne du BAS et le panneau descend.
+
+   Le panneau recouvre cette ligne d'un pixel (cf. `PageTabsMenu`, qui retranche
+   la morsure du `sideOffset` mesuré) : la ligne du bandeau est donc interrompue
+   sur la largeur du panneau, et les deux congés la reprennent pour l'emmener
+   dans les flancs verticaux. Le remplissage est celui du bandeau — un volet
+   prend la surface de ce dont il sort, c'est la raison pour laquelle celui de
+   la barre est sombre, pas une couleur qu'il porterait en propre.
+
+   Construction des congés : identique à celle du volet de la barre, dont le
+   commentaire ci-dessous porte le détail (centre du cercle à l'opposé de la
+   matière, arrêts chevauchants d'un demi-pixel contre les marches d'escalier,
+   tangence à la MÉDIANE des deux traits). Les repères y sont les mêmes —
+   `0.5px` et `100% - 0.5px` — parce que la boîte de chaque congé est calée sur
+   le bord qu'il prolonge.
+
+   ⚠️ `[data-side='bottom']` : Radix bascule le panneau au-dessus du
+   déclencheur quand le bas manque. Là, plus rien à raccorder — la règle ne
+   s'applique pas et le menu redevient un panneau flottant ordinaire.
+   ⚠️ Comme pour le volet de la barre, ne rien passer depuis le composant qui
+   touche au fond, à la bordure, au rayon ou à l'ombre : une utility Tailwind
+   vit dans la couche `utilities` et repasserait devant cette règle, qui vit
+   dans `base`.
+   ⚠️ Le DÉBORDEMENT, lui, se règle forcément depuis le composant, et pour la
+   même raison : le kit pose `overflow-x-hidden overflow-y-auto` en utilities,
+   ce qui fait du panneau une boîte de découpe et rogne les deux congés en
+   entier — ils vivent hors de la boîte. `PageTabsMenu` passe donc
+   `overflow-visible` (tailwind-merge retire les deux) et rend le défilement
+   d'une liste longue à un conteneur interne. */
+.bui-header-flyout[data-side='bottom'] {
+  --bui-header-flyout-radius: 14px;
+  --bui-header-flyout-shadow: rgb(27 42 53 / 0.28);
+
+  position: relative;
+  background: var(--bui-card);
+  color: var(--bui-card-foreground);
+  /* Le `ring-1` du kit est une ombre : il ferait le tour de la boîte et
+     redessinerait un trait pile sur la jonction qu'on vient d'effacer. Une
+     vraie bordure, elle, s'interrompt là où les congés la reprennent. */
+  border: 1px solid var(--bui-border);
+  border-top: 0;
+  border-radius: 0 0 var(--bui-header-flyout-radius) var(--bui-header-flyout-radius);
+  /* L'ombre ne porte que vers le BAS et les côtés. L'étalement négatif rentre
+     la forme avant de la décaler : côté couture elle finit sous le bandeau
+     opaque, flou compris, et rien ne vient noircir le raccord. */
+  box-shadow: 0 16px 34px -14px var(--bui-header-flyout-shadow);
+  /* Le glissement du kit (`slide-in-from-top-2`) décollerait le panneau de la
+     ligne le temps de l'ouverture : il paraîtrait tomber du bandeau au lieu
+     d'en sortir. Seul le fondu reste. */
+  --tw-enter-translate-y: 0;
+  --tw-exit-translate-y: 0;
+  --tw-enter-scale: 1;
+  --tw-exit-scale: 1;
+}
+
+[data-theme='dark'] .bui-header-flyout[data-side='bottom'] {
+  --bui-header-flyout-shadow: rgb(2 6 14 / 0.65);
+}
+
+.bui-header-flyout[data-side='bottom']::before,
+.bui-header-flyout[data-side='bottom']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  /* Le pixel de plus recouvre la rangée de la bordure du panneau, qu'il
+     remplace sur sa largeur. Les pseudo-éléments se peignant PAR-DESSUS la
+     bordure de leur parent, rien à retirer côté panneau. */
+  width: calc(var(--bui-header-flyout-radius) + 1px);
+  height: calc(var(--bui-header-flyout-radius) + 1px);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--bui-header-flyout-cx) var(--bui-header-flyout-cy),
+    transparent 0 calc(var(--bui-header-flyout-radius) - 0.75px),
+    var(--bui-border) calc(var(--bui-header-flyout-radius) - 0.25px)
+      calc(var(--bui-header-flyout-radius) + 0.25px),
+    var(--bui-card) calc(var(--bui-header-flyout-radius) + 0.75px)
+  );
+}
+
+/* Congé de GAUCHE : posé contre le flanc gauche, centre du cercle en bas à
+   gauche — à l'opposé de la matière, qui occupe donc le haut-droit de la boîte
+   et emmène la ligne du bandeau dans la bordure du panneau. */
+.bui-header-flyout[data-side='bottom']::before {
+  right: 100%;
+  --bui-header-flyout-cx: 0.5px;
+  --bui-header-flyout-cy: calc(100% - 0.5px);
+}
+
+/* Congé de DROITE : miroir. */
+.bui-header-flyout[data-side='bottom']::after {
+  left: 100%;
+  --bui-header-flyout-cx: calc(100% - 0.5px);
+  --bui-header-flyout-cy: calc(100% - 0.5px);
+}
+
 /* MARK: Volet de la barre latérale ──────────────────────────────────────────
    Le volet de la barre (bulle de l'assistant au survol du logo, panneau
    apparence / langue / devise du pied) ne flotte pas À CÔTÉ d'elle : il en SORT.

@@ -12,6 +12,7 @@ import {
   Hotel as OccupancyIcon,
 } from '../../icons';
 import { API_CONFIG } from '../../config/api';
+import { intlLocale } from '../../utils/localeDate';
 
 /**
  * Constellation Propriétaire (campagne X9 v1) — page PUBLIQUE en lecture seule,
@@ -99,7 +100,7 @@ export default function PublicOwnerConstellation() {
           ? 'notfound'
           : 'ready';
 
-  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('ar') ? 'ar' : 'en-GB';
+  const locale = intlLocale(i18n.language);
   const euros = useMemo(() => {
     const fmt = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
     return (value: number) => fmt.format(value ?? 0);

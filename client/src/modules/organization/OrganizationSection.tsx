@@ -21,6 +21,7 @@ import SettingsSection from '../settings/components/SettingsSection';
 import LaunchSettingsSection from '../settings/LaunchSettingsSection';
 import PageTabs from '../../components/PageTabs';
 import { Building2, Rocket } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const ORG_TYPE_LABELS: Record<string, string> = {
   INDIVIDUAL: 'Particulier',
@@ -28,8 +29,9 @@ const ORG_TYPE_LABELS: Record<string, string> = {
   CLEANING_COMPANY: 'Societe de menage',
 };
 
-function getOrgTypeLabel(type: string): string {
-  return ORG_TYPE_LABELS[type] || type;
+function getOrgTypeLabel(type: string, t: (key: string, fallback: string) => string): string {
+  const fallback = ORG_TYPE_LABELS[type];
+  return fallback ? t('organizations.types.' + type, fallback) : type;
 }
 
 const ORG_TYPE_COLORS: Record<string, string> = {
@@ -48,6 +50,7 @@ interface Props {
 }
 
 export default function OrganizationSection({ organizationId }: Props) {
+  const { t } = useTranslation();
   const { hasAnyRole } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -80,7 +83,7 @@ export default function OrganizationSection({ organizationId }: Props) {
         }
       } catch {
         if (cancelled) return;
-        setOrgsError('Impossible de charger les organisations');
+        setOrgsError(t('organizations.section.loadError'));
       } finally {
         if (!cancelled) setOrgsLoading(false);
       }
@@ -100,11 +103,11 @@ export default function OrganizationSection({ organizationId }: Props) {
   // ── Aucune organisation dans le système ──
   if (!orgsLoading && organizations.length === 0 && !orgsError) {
     return (
-      <SettingsSection title="Organisations" icon={Business} accent="primary">
+      <SettingsSection title={t('organizations.section.title')} icon={Business} accent="primary">
         <Alert variant="info">
           <InfoOutlined size={16} strokeWidth={1.75} />
           <AlertDescription>
-            Aucune organisation n'existe dans le systeme pour le moment.
+            {t('organizations.section.noneInSystem')}
           </AlertDescription>
         </Alert>
       </SettingsSection>
@@ -114,7 +117,7 @@ export default function OrganizationSection({ organizationId }: Props) {
   const inviteAction = effectiveOrgId ? (
     <Button size="sm" onClick={() => setDialogOpen(true)}>
       <PersonAdd size={14} strokeWidth={2} />
-      Inviter
+      {t('organizations.section.invite')}
     </Button>
   ) : undefined;
 
@@ -122,12 +125,12 @@ export default function OrganizationSection({ organizationId }: Props) {
     <>
       <PageTabs
         options={[
-          { label: 'Organisation', icon: <Building2 /> },
-          { label: 'Pré-lancement', icon: <Rocket /> },
+          { label: t('organizations.section.tabOrganization'), icon: <Building2 /> },
+          { label: t('organizations.section.tabPrelaunch'), icon: <Rocket /> },
         ]}
         value={subTab}
         onChange={setSubTab}
-        ariaLabel="Sous-sections de l'organisation"
+        ariaLabel={t('organizations.section.subTabsAria')}
       />
 
       {subTab === 0 && (
@@ -136,7 +139,7 @@ export default function OrganizationSection({ organizationId }: Props) {
         {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
         <div className="col-span-12 min-[900px]:col-span-5">
           <SettingsSection
-            title="Organisations"
+            title={t('organizations.section.title')}
             icon={Business}
             accent="primary"
             action={inviteAction}
@@ -149,7 +152,7 @@ export default function OrganizationSection({ organizationId }: Props) {
             )}
 
             <Field className="mb-3">
-              <FieldLabel htmlFor="organization-picker">Sélectionner une organisation</FieldLabel>
+              <FieldLabel htmlFor="organization-picker">{t('organizations.section.pick')}</FieldLabel>
               <Combobox
                 items={organizations}
                 value={selectedOrg}
@@ -162,11 +165,11 @@ export default function OrganizationSection({ organizationId }: Props) {
               >
                 <ComboboxInput
                   id="organization-picker"
-                  placeholder="Sélectionner une organisation"
+                  placeholder={t('organizations.section.pick')}
                   disabled={orgsLoading}
                 />
                 <ComboboxContent>
-                  <ComboboxEmpty>Aucune organisation</ComboboxEmpty>
+                  <ComboboxEmpty>{t('organizations.section.none')}</ComboboxEmpty>
                   <ComboboxList>
                     {(option: OrganizationDto) => {
                       const c = getOrgTypeColor(option.type);
@@ -178,9 +181,9 @@ export default function OrganizationSection({ organizationId }: Props) {
                             </p>
                             {/* Teinte du type d'organisation : valeur runtime hors
                                 palette sémantique → fond doux dérivé par la primitive. */}
-                            <StatusChip color={c} label={getOrgTypeLabel(option.type)} className="h-[20px] text-2xs" />
+                            <StatusChip color={c} label={getOrgTypeLabel(option.type, t)} className="h-[20px] text-2xs" />
                             <p className="text-2xs text-muted-foreground tabular-nums">
-                              {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                              {t('organizations.section.memberCount', { count: option.memberCount })}
                             </p>
                           </div>
                         </ComboboxItem>
@@ -194,7 +197,7 @@ export default function OrganizationSection({ organizationId }: Props) {
               {orgsLoading && (
                 <FieldDescription className="flex items-center gap-1.5">
                   <Spinner className="size-3.5" />
-                  Chargement des organisations…
+                  {t('organizations.section.loading')}
                 </FieldDescription>
               )}
             </Field>
@@ -202,7 +205,7 @@ export default function OrganizationSection({ organizationId }: Props) {
             {effectiveOrgId ? (
               <>
                 <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                  Membres de l'organisation
+                  {t('organizations.section.members')}
                 </p>
 
                 <MembersList
@@ -215,7 +218,7 @@ export default function OrganizationSection({ organizationId }: Props) {
               <Alert variant="info">
                 <InfoOutlined size={16} strokeWidth={1.75} />
                 <AlertDescription>
-                  Sélectionnez une organisation pour voir ses membres et invitations.
+                  {t('organizations.section.pickForMembers')}
                 </AlertDescription>
               </Alert>
             )}
@@ -231,15 +234,15 @@ export default function OrganizationSection({ organizationId }: Props) {
                 refreshTrigger={refreshTrigger}
               />
             ) : (
-              <SettingsSection title="Facturation" icon={Business} accent="accent">
+              <SettingsSection title={t('organizations.section.billing')} icon={Business} accent="accent">
                 <p className="text-xs text-muted-foreground text-center py-3">
-                  Sélectionnez une organisation pour voir la facturation.
+                  {t('organizations.section.pickForBilling')}
                 </p>
               </SettingsSection>
             )}
 
             {effectiveOrgId && (
-              <SettingsSection title="Invitations envoyées" icon={Email} accent="info">
+              <SettingsSection title={t('organizations.section.invitationsSent')} icon={Email} accent="info">
                 <InvitationsList
                   organizationId={effectiveOrgId}
                   refreshTrigger={refreshTrigger}

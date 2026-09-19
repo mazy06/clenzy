@@ -12,6 +12,7 @@ import {
 } from './marketplaceData';
 import './marketplace.css';
 import PagePagination from '../../../components/PagePagination';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 type View = 'cards' | 'list';
 type Filter = 'Tous' | 'Internes' | PartnerName;
@@ -57,6 +58,7 @@ export default function ServicesCatalog({
   loading = false, offers, search = '', kpis, addedTitles = [], typeLabel,
   onAdd, onOpenInternal, renderRowMenu,
 }: Props) {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>('cards');
   const [filter, setFilter] = useState<Filter>('Tous');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -120,11 +122,13 @@ export default function ServicesCatalog({
         type="button"
         className={'mp-add' + (done ? ' mp-add--done' : '')}
         disabled={done || !!busy[e.id]}
-        aria-label={done ? `${e.title} ajouté` : `Ajouter ${e.title}`}
+        aria-label={done
+          ? t('welcomeGuide.marketplace.addedAria', { title: e.title })
+          : t('welcomeGuide.marketplace.addAria', { title: e.title })}
         onClick={(ev) => { ev.stopPropagation(); handleAdd(e); }}
       >
         {done ? <Check size={15} strokeWidth={2.4} /> : <Plus size={15} strokeWidth={2.4} />}
-        {done ? 'Ajouté' : 'Ajouter'}
+        {done ? t('welcomeGuide.marketplace.added') : t('welcomeGuide.marketplace.add')}
       </button>
     );
   };
@@ -145,7 +149,7 @@ export default function ServicesCatalog({
     return (
       <section className="mp" style={{ ['--mp-action' as string]: 'var(--bui-primary)', ['--mp-action-soft' as string]: 'var(--bui-primary-soft)' }}>
         <button type="button" className="mp-back" onClick={() => setSelectedId(null)}>
-          <ArrowLeft size={16} strokeWidth={2} /> Retour au catalogue
+          <ArrowLeft size={16} strokeWidth={2} /> {t('welcomeGuide.marketplace.back')}
         </button>
         <div className="mp-detail">
           <div className="mp-detail__main">
@@ -174,14 +178,14 @@ export default function ServicesCatalog({
             <h3 className="mp-detail__h3">Description</h3>
             <p className="mp-detail__desc">{selected.long}</p>
 
-            <h3 className="mp-detail__h3">Ce qui est inclus</h3>
+            <h3 className="mp-detail__h3">{t('welcomeGuide.marketplace.included')}</h3>
             <div className="mp-detail__incl">
               {selected.includes.map((it) => (
                 <span className="mp-incl" key={it}><span className="mp-incl__chk"><Check size={13} strokeWidth={2.6} /></span>{it}</span>
               ))}
             </div>
 
-            <h3 className="mp-detail__h3">Bon à savoir</h3>
+            <h3 className="mp-detail__h3">{t('welcomeGuide.marketplace.goodToKnow')}</h3>
             <div className="mp-detail__know">
               {know.map((k) => {
                 const KIcon = k.icon;
@@ -200,13 +204,14 @@ export default function ServicesCatalog({
             <div className="mp-detail__comm">
               <div className="mp-detail__commrow"><span>Prix voyageur</span><b>{fmtEur(selected.price)}</b></div>
               <div className="mp-detail__commsep" />
-              <div className="mp-detail__commrow"><span>Votre commission ({selected.commission}%)</span><b className="mp-action-text">{commissionTxt}</b></div>
-              <p className="mp-detail__commnote">Perçue par réservation, sans frais de gestion.</p>
+              <div className="mp-detail__commrow"><span>{t('welcomeGuide.marketplace.yourCommission', { pct: selected.commission })}</span><b className="mp-action-text">{commissionTxt}</b></div>
+              <p className="mp-detail__commnote">{t('welcomeGuide.marketplace.commissionNote')}</p>
             </div>
 
-            <p className="mp-detail__diffuse">DIFFUSER SUR</p>
+            <p className="mp-detail__diffuse">{t('welcomeGuide.marketplace.distributeOn')}</p>
             <div className="mp-detail__chans">
-              {([['livret', 'Livret', BookOpen], ['booking', 'Booking', Boxes]] as const).map(([key, label, ChIcon]) => {
+              {([['livret', t('welcomeGuide.marketplace.guide'), BookOpen],
+               ['booking', t('welcomeGuide.marketplace.booking'), Boxes]] as const).map(([key, label, ChIcon]) => {
                 const on = channels[key];
                 return (
                   <button
@@ -228,10 +233,12 @@ export default function ServicesCatalog({
               onClick={() => handleAdd(selected)}
             >
               {done ? <Check size={17} strokeWidth={2.4} /> : <Plus size={17} strokeWidth={2.4} />}
-              {done ? 'Ajouté à vos services' : 'Ajouter à mes services'}
+              {done
+                ? t('welcomeGuide.marketplace.addedToServices')
+                : t('welcomeGuide.marketplace.addToServices')}
             </button>
-            <button type="button" className="mp-outline">Voir la fiche {selected.partner}</button>
-            <p className="mp-detail__mention"><ShieldCheck size={14} strokeWidth={2} /> Réservation &amp; paiement gérés par le partenaire</p>
+            <button type="button" className="mp-outline">{t('welcomeGuide.marketplace.viewPartner', { partner: selected.partner })}</button>
+            <p className="mp-detail__mention"><ShieldCheck size={14} strokeWidth={2} /> {t('welcomeGuide.marketplace.partnerHandled')}</p>
           </aside>
         </div>
       </section>
@@ -245,10 +252,10 @@ export default function ServicesCatalog({
       <div className="mp__bar">
         <div className="mp__pills">
           <button type="button" className={'mp-pill' + (filter === 'Tous' ? ' mp-pill--on' : '')} onClick={() => setFilter('Tous')}>
-            Tous <span className="mp-pill__n">{allItems.length}</span>
+            {t('welcomeGuide.marketplace.filterAll')} <span className="mp-pill__n">{allItems.length}</span>
           </button>
           <button type="button" className={'mp-pill' + (filter === 'Internes' ? ' mp-pill--on' : '')} onClick={() => setFilter('Internes')}>
-            <span className="mp-dot mp-dot--int" />Internes <span className="mp-pill__n">{offers.length}</span>
+            <span className="mp-dot mp-dot--int" />{t('welcomeGuide.marketplace.filterInternal')} <span className="mp-pill__n">{offers.length}</span>
           </button>
           {PARTNERS.map((p) => (
             <button type="button" key={p} className={'mp-pill' + (filter === p ? ' mp-pill--on' : '')} onClick={() => setFilter(p)}>
@@ -280,7 +287,7 @@ export default function ServicesCatalog({
           <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[60px] w-full bg-muted" />)}</div>
         )
       ) : visible.length === 0 ? (
-        <p className="mp-empty">Aucun service pour ce filtre.</p>
+        <p className="mp-empty">{t('welcomeGuide.marketplace.emptyFilter')}</p>
       ) : view === 'cards' ? (
         <div className="mp-grid">
           {pageItems.map((it) => (

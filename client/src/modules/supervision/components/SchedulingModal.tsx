@@ -19,7 +19,6 @@ import { Calendar } from '../../../components/ui/calendar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '../../../components/ui/command';
 import { Check, UserRound, UserRoundX } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { ar, enUS, fr } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
 import { cn } from '../../../utils/cn';
 import { usersApi, type User } from '../../../services/api/usersApi';
@@ -27,6 +26,7 @@ import { MANAGER_ROLES, OPERATIONAL_ROLES } from '../../../constants/roles';
 import { TRADE_ROLES } from '../../../utils/fieldRoles';
 import { useAuth } from '../../../hooks/useAuth';
 import type { PendingAction, PortfolioPendingAction, SchedulingChoice } from '../types';
+import { dateFnsLocale } from '../../../utils/localeDate';
 
 export interface SchedulingModalProps {
   action: PendingAction | PortfolioPendingAction;
@@ -77,10 +77,10 @@ const DEFAULT_TIME = '10:00';
  * « Su Mo Tu » au milieu d'une interface française. La langue de l'application
  * ne suffit pas — il faut lui passer la locale date-fns correspondante.</p>
  */
+// Table unique des locales date-fns : trois ternaires parallèles finissaient
+// par diverger. Cf. `utils/localeDate`.
 function calendarLocale(language: string): Locale {
-  if (language.startsWith('en')) return enUS;
-  if (language.startsWith('ar')) return ar;
-  return fr;
+  return dateFnsLocale(language);
 }
 
 /**
@@ -188,7 +188,7 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
         <Avatar className="size-7">
           <AvatarFallback className="text-[11px]">{initials(user)}</AvatarFallback>
         </Avatar>
-        <span className="min-w-0 flex-1 truncate">{name}</span>
+        <span dir="auto" className="min-w-0 flex-1 truncate">{name}</span>
         <span className="shrink-0 text-xs text-[var(--bui-muted-foreground)]">
           {t(`roles.${user.role?.toLowerCase()}`, user.role)}
         </span>

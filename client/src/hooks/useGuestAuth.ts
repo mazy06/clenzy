@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { bookingEngineApi, GuestProfile, GuestRegisterData, GuestLoginData } from '../services/api/bookingEngineApi';
+// Hors composant : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../i18n/config';
 
 interface GuestSession {
   accessToken: string;
@@ -83,7 +85,7 @@ export function useGuestAuth(organizationId: number | null): UseGuestAuthReturn 
 
   const forgotPassword = useCallback(async (email: string) => {
     if (!organizationId) {
-      setError('Organisation non configurée');
+      setError(i18n.t('guestAuth.errors.noOrganization'));
       return;
     }
     setIsLoading(true);
@@ -93,7 +95,7 @@ export function useGuestAuth(organizationId: number | null): UseGuestAuthReturn 
       await bookingEngineApi.guestForgotPassword({ email, organizationId });
       setResetPasswordSent(true);
     } catch (err: unknown) {
-      const message = extractErrorMessage(err, 'Erreur lors de l\'envoi du lien de réinitialisation');
+      const message = extractErrorMessage(err, i18n.t('guestAuth.errors.resetLink'));
       setError(message);
     } finally {
       setIsLoading(false);

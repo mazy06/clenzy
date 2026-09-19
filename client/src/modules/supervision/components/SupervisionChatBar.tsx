@@ -24,6 +24,7 @@ import {
 import { Send, SmartToy } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationTurn } from '../types';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 export interface SupervisionChatBarProps {
   /** Transcription opérateur ⇄ orchestrateur (chrono croissant). */
@@ -38,7 +39,7 @@ function formatTime(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? ''
-    : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    : d.toLocaleTimeString(activeIntlLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionChatBarProps) {

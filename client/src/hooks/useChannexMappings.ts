@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { channexApi, type ChannexMappingDto } from '../services/api/channexApi';
 import { useAuth } from './useAuth';
+import { useTranslation } from './useTranslation';
 
 interface UseChannexMappingsResult {
   /** Map<clenzyPropertyId, ChannexMappingDto>. Vide si role insuffisant ou pas encore charge. */
@@ -39,6 +40,7 @@ export function useChannexMappings(): UseChannexMappingsResult {
     return user.roles?.some((r) => CHANNEX_ROLES.has(r)) ?? false;
   }, [user]);
 
+  const { t } = useTranslation();
   const [mappings, setMappings] = useState<Map<number, ChannexMappingDto>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function useChannexMappings(): UseChannexMappingsResult {
       if (status === 401 || status === 403) {
         setMappings(new Map());
       } else {
-        setError(err instanceof Error ? err.message : 'Erreur de chargement Channex');
+        setError(err instanceof Error ? err.message : t('settings.channex.loadingError'));
       }
     } finally {
       setLoading(false);

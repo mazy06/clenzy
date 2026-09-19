@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { SaudiRiyal, MoroccanDirham } from '../icons';
 import { useCurrency } from '../hooks/useCurrency';
-import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
+import { CURRENCY_OPTIONS, currencyDisplayPart } from '../utils/currencyUtils';
 
 /**
  * Devises sans glyphe Unicode rendu par les polices : le riyal saoudien (SAR)
@@ -72,10 +72,15 @@ interface MoneyProps {
 }
 
 /**
- * Montant formaté (mêmes règles que `convertAndFormat` — locale fr-FR, préfixe
- * de conversion) dont le symbole SAR/MAD est rendu en icône. Le glyphe étant
- * toujours en suffixe (locale fr-FR fixe), on détache le code de fin et on le
- * remplace par l'icône ; les autres devises (€) restent inchangées.
+ * Montant formaté (mêmes règles que `convertAndFormat`, préfixe de conversion
+ * compris) dont le symbole SAR/MAD est rendu en ICÔNE.
+ *
+ * <p>La devise est retirée <b>là où `Intl` l'a mise</b>, et l'icône prend sa
+ * place. Sa position n'est pas une constante : le français la suit
+ * (« 1 234,50 SAR »), l'anglais la précède (« SAR 1,234.50 »), et l'arabe rend
+ * un glyphe — « ‏1,234.50 ر.س.‏ » — où le code ISO n'apparaît même pas. Une
+ * découpe qui présumait un suffixe en français faisait <b>disparaître le
+ * montant</b> en anglais, et laissait le glyphe arabe à la place de l'icône.</p>
  */
 export function Money({ value, from, compact, decimals, symbolSize = 13, symbolSx }: MoneyProps) {
   const { currency, convertAndFormat } = useCurrency();
@@ -85,17 +90,26 @@ export function Money({ value, from, compact, decimals, symbolSize = 13, symbolS
   if (compact) s = s.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');
   else if (decimals === 0) s = s.replace(/[.,]\d+/g, '');
 
-  // Devise d'affichage à glyphe : remplacer le code suffixe par l'icône. Si le
-  // code n'apparaît pas (taux indisponibles → montant rendu dans sa devise
-  // source), on laisse la chaîne telle quelle (repli identique à l'existant).
+  // Devise d'affichage à glyphe : l'icône remplace la devise à sa place. Si
+  // celle-ci n'apparaît pas (taux indisponibles → montant rendu dans sa devise
+  // source), on laisse la chaîne telle quelle.
   if (ICON_CURRENCIES.has(currency)) {
-    const i = s.lastIndexOf(currency);
-    if (i >= 0) {
-      const head = s.slice(0, i).replace(/[\s ]+$/, '');
+    const token = currencyDisplayPart(currency);
+    const at = s.lastIndexOf(token);
+    if (at >= 0) {
+      // Espaces insécables et marques de direction que `Intl` colle autour de
+      // la devise : sans ce nettoyage, l'icône hériterait d'un blanc double.
+      const before = s.slice(0, at).replace(/[\s\u00a0\u202f\u200e\u200f]+$/u, '');
+      const after = s.slice(at + token.length).replace(/^[\s\u00a0\u202f\u200e\u200f]+/u, '');
       return (
         <>
-          {head}
-          <CurrencySymbol code={currency} size={symbolSize} sx={{ ml: '3px', ...symbolSx }} />
+          {before}
+          <CurrencySymbol
+            code={currency}
+            size={symbolSize}
+            sx={before ? { ml: '3px', ...symbolSx } : { marginInlineEnd: '3px', ...symbolSx }}
+          />
+          {after}
         </>
       );
     }

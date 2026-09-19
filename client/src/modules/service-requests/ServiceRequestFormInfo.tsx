@@ -298,7 +298,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         {isCleaning && availablePrestations.length > 0 && (
           <div className="mt-3">
             <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-              Prestations à la carte
+              {t('serviceRequests.info.aLaCarte')}
             </p>
 
             <div className="flex gap-1 flex-wrap">

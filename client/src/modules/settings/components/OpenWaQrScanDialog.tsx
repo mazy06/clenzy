@@ -177,7 +177,7 @@ export default function OpenWaQrScanDialog({
       pollTimerRef.current = window.setInterval(() => void pollStatus(), POLL_INTERVAL_MS);
       qrRefreshTimerRef.current = window.setInterval(() => void refreshQr(), QR_REFRESH_MS);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Retry impossible');
+      setError(e instanceof Error ? e.message : t('settings.whatsapp.retryFailed'));
     }
   };
 

@@ -58,6 +58,7 @@ import type {
   ChannexSyncSnapshot,
 } from '../../../services/api/channexApi';
 import type { ApiError } from '../../../services/apiClient';
+import { useTranslation } from '../../../hooks/useTranslation';
 import ChannexSyncLogsList from './ChannexSyncLogsList';
 
 interface ChannexDiagnoseDialogProps {
@@ -102,39 +103,40 @@ function formatRelative(iso: string | null): string {
 }
 
 function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
+  const { t } = useTranslation();
   const meta = CHANNEX_STATUS_META[snapshot.status];
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-[5px]">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground min-w-[110px] font-medium">
-            Statut sync
+            {t('settings.channex.diagnose.syncStatus')}
           </span>
-          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} className="h-5 text-2xs" />
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={t(meta.labelKey)} className="h-5 text-2xs" />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground min-w-[110px] font-medium">
-            Derniere sync
+            {t('settings.channex.diagnose.lastSync')}
           </span>
           <p className="text-xs text-foreground tabular-nums">{formatRelative(snapshot.lastSyncAt)}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground min-w-[110px] font-medium">
-            OTAs actifs
+            {t('settings.channex.diagnose.activeOtas')}
           </span>
           <p className={cn('text-xs tabular-nums', snapshot.otaCountKnown ? 'text-foreground' : 'text-muted-foreground')}>
             {!snapshot.otaCountKnown
-              ? 'inconnu — hub injoignable'
+              ? t('settings.channex.diagnose.hubUnreachable')
               : snapshot.activeOtaCount > 0
-                ? `${snapshot.activeOtaCount} OTA${snapshot.activeOtaCount > 1 ? 's' : ''} actif${snapshot.activeOtaCount > 1 ? 's' : ''}`
-                : 'aucun'}
+                ? t('settings.channex.diagnose.activeOtaCount', { count: snapshot.activeOtaCount })
+                : t('settings.channex.diagnose.noneLower')}
           </p>
         </div>
         {/* Le message d'erreur est du TEXTE → encre `-ink` (contrat §2.4). */}
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
           <div className="pt-[3px] mt-[1.5px] border-t border-dashed border-t-border">
             <span className="text-xs text-muted-foreground block mb-0.5 font-medium">
-              Derniere erreur
+              {t('settings.channex.diagnose.lastError')}
             </span>
             <p className="text-xs text-destructive-ink font-mono break-words leading-[1.45]">
               {snapshot.lastSyncError}
@@ -198,6 +200,7 @@ export default function ChannexDiagnoseDialog({
   onOpenHub,
   onResyncSuccess,
 }: ChannexDiagnoseDialogProps) {
+  const { t } = useTranslation();
   const [report, setReport] = useState<ChannexDiagnosisReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,11 +221,11 @@ export default function ChannexDiagnoseDialog({
       // tester `instanceof Error` masquerait le message serveur derriere un
       // libelle generique pour toute reponse HTTP en erreur.
       const message = (err as Partial<ApiError> | null)?.message;
-      setError(message || 'Diagnostic impossible.');
+      setError(message || t('channexDiagnose.failed'));
     } finally {
       setLoading(false);
     }
-  }, [propertyId]);
+  }, [propertyId, t]);
 
   useEffect(() => {
     if (open) {
@@ -268,7 +271,7 @@ export default function ChannexDiagnoseDialog({
     } catch (err) {
       setActionResult({
         ok: false,
-        message: err instanceof Error ? err.message : 'Erreur inattendue.',
+        message: err instanceof Error ? err.message : t('common.unexpectedError'),
       });
     } finally {
       setBusyAction(null);

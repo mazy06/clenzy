@@ -1,6 +1,13 @@
-import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import {
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { MenuIcon, MessageCircleIcon, XIcon } from 'lucide-react';
+import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react';
 import {
   Button,
   NavigationMenu,
@@ -38,7 +45,11 @@ function PanelLink({
           )}
           {title}
         </span>
-        {copy && <span className="line-clamp-2 text-sm leading-snug text-muted-foreground">{copy}</span>}
+        {copy && (
+          <span className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {copy}
+          </span>
+        )}
       </Link>
     </NavigationMenuLink>
   );
@@ -46,7 +57,10 @@ function PanelLink({
 
 function DesktopNav() {
   return (
-    <NavigationMenu className="hidden lg:flex">
+    <NavigationMenu
+      className="site-nav hidden lg:flex"
+      aria-label="Navigation principale"
+    >
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger>Produit</NavigationMenuTrigger>
@@ -91,16 +105,6 @@ function DesktopNav() {
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/comparer">Comparer</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/prestataires">Prestataires</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
           <NavigationMenuTrigger>Ressources</NavigationMenuTrigger>
           <NavigationMenuContent>
             <div className="grid gap-1 sm:w-[440px] md:w-[560px] md:grid-cols-2">
@@ -133,41 +137,64 @@ const MOBILE_LINKS: Array<{ to: string; label: string }> = [
 
 function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
 
   useEffect(() => {
     setMobileOpen(false);
-  }, [location.pathname]);
+  }, [location.key]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setMobileOpen(false);
+      menuTriggerRef.current?.focus();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="site-shell flex h-16 items-center gap-5">
-        <Link to="/" className="flex items-center gap-2.5">
+    <header className="site-header sticky top-0 z-40 border-b border-border bg-background">
+      <div className="site-shell site-header-inner flex h-16 items-center gap-5">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5"
+          aria-label="Baitly, accueil"
+        >
           <span className="text-primary">
             <BaitlyMarkLogo variant="mark" size={30} colorMode="inherit" />
           </span>
-          <span className="text-lg font-semibold tracking-tight">Baitly</span>
+          <span className="site-wordmark text-lg font-semibold tracking-tight">
+            baitly
+          </span>
         </Link>
         <DesktopNav />
         <div className="ms-auto flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="site-login hidden sm:inline-flex"
+            asChild
+          >
             <a href="https://app.clenzy.fr" rel="noreferrer">
               Se connecter
             </a>
           </Button>
-          <Button variant="outline" size="sm" className="hidden md:inline-flex" asChild>
-            <a href="https://wa.me/212600000000" target="_blank" rel="noreferrer">
-              <MessageCircleIcon /> WhatsApp
-            </a>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/demo">Réserver une démo</Link>
+          <Button size="sm" className="site-header-cta" asChild>
+            <Link to="/demo">
+              Réserver une démo <ArrowRightIcon />
+            </Link>
           </Button>
           <Button
             variant="ghost"
             size="icon-sm"
-            className="lg:hidden"
+            ref={menuTriggerRef}
+            className="site-mobile-trigger lg:hidden"
             aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="site-mobile-nav"
             onClick={() => setMobileOpen((open) => !open)}
           >
             {mobileOpen ? <XIcon /> : <MenuIcon />}
@@ -175,7 +202,11 @@ function SiteHeader() {
         </div>
       </div>
       {mobileOpen && (
-        <nav className="border-t border-border bg-background lg:hidden">
+        <nav
+          id="site-mobile-nav"
+          aria-label="Navigation mobile"
+          className="site-mobile-nav border-t border-border bg-background lg:hidden"
+        >
           <div className="site-shell flex flex-col py-2">
             {MOBILE_LINKS.map((link) => (
               <NavLink
@@ -184,7 +215,9 @@ function SiteHeader() {
                 className={({ isActive }) =>
                   cn(
                     'rounded-md px-3 py-2.5 text-sm font-medium',
-                    isActive ? 'bg-primary-soft text-foreground' : 'text-muted-foreground',
+                    isActive
+                      ? 'bg-primary-soft text-foreground'
+                      : 'text-muted-foreground',
                   )
                 }
               >
@@ -200,14 +233,23 @@ function SiteHeader() {
 
 /* ─── Footer ───────────────────────────────────────────────────────────────── */
 
-const FOOTER_COLUMNS: Array<{ title: string; links: Array<{ label: string; to: string }> }> = [
+const FOOTER_COLUMNS: Array<{
+  title: string;
+  links: Array<{ label: string; to: string }>;
+}> = [
   {
     title: 'Produit',
-    links: MODULES.map((module) => ({ label: module.name, to: `/produit/${module.slug}` })),
+    links: MODULES.map((module) => ({
+      label: module.name,
+      to: `/produit/${module.slug}`,
+    })),
   },
   {
     title: 'Solutions',
-    links: SOLUTIONS.map((solution) => ({ label: solution.name, to: `/solutions#${solution.slug}` })),
+    links: SOLUTIONS.map((solution) => ({
+      label: solution.name,
+      to: `/solutions#${solution.slug}`,
+    })),
   },
   {
     title: 'Ressources',
@@ -233,7 +275,7 @@ const FOOTER_COLUMNS: Array<{ title: string; links: Array<{ label: string; to: s
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-card">
+    <footer className="site-footer border-t border-border bg-card">
       <div className="site-shell py-12">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-[1.2fr_repeat(4,1fr)]">
           <div className="col-span-2 md:col-span-1">
@@ -241,11 +283,12 @@ function SiteFooter() {
               <span className="text-primary">
                 <BaitlyMarkLogo variant="mark" size={26} colorMode="inherit" />
               </span>
-              <span className="font-semibold">Baitly</span>
+              <span className="site-wordmark font-semibold">baitly</span>
             </Link>
             <p className="mt-3 max-w-xs text-xs text-muted-foreground">
-              Le PMS avec une équipe d'agents IA, conçu pour le Maroc et la France. Fiche police,
-              taxe de séjour et facturation conformes, dès le premier jour.
+              Le PMS avec une équipe d'agents IA, conçu pour le Maroc et la
+              France. Fiche police, taxe de séjour et facturation conformes, dès
+              le premier jour.
             </p>
           </div>
           {FOOTER_COLUMNS.map((column) => (
@@ -277,7 +320,11 @@ function SiteFooter() {
               { label: 'CGV', to: '/legal/cgv' },
               { label: 'Statut du service', to: '/statut' },
             ].map((link) => (
-              <Link key={link.to} to={link.to} className="transition-colors hover:text-foreground">
+              <Link
+                key={link.to}
+                to={link.to}
+                className="transition-colors hover:text-foreground"
+              >
                 {link.label}
               </Link>
             ))}
@@ -293,7 +340,11 @@ function ScrollRestore() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
     if (hash) {
-      document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById(hash.slice(1))?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'instant'
+          : 'smooth',
+      });
     } else {
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
@@ -303,11 +354,24 @@ function ScrollRestore() {
 
 export default function SiteLayout(): ReactNode {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="baitly-marketing min-h-screen">
+      <a href="#site-content" className="site-skip-link">
+        Aller au contenu
+      </a>
       <ScrollRestore />
       <SiteHeader />
-      <main>
-        <Outlet />
+      <main id="site-content" tabIndex={-1}>
+        <Suspense
+          fallback={
+            <div className="site-shell site-route-loading" role="status">
+              <span>Chargement de la page…</span>
+              <div />
+              <div />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
       <SiteFooter />
     </div>

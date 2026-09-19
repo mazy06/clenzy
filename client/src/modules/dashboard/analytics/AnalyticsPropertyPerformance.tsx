@@ -110,7 +110,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                     >
                       #{index + 1}
                     </div>
-                    <p className="text-xs font-bold text-foreground truncate flex-1">
+                    <p dir="auto" className="text-xs font-bold text-foreground truncate flex-1">
                       {prop.name}
                     </p>
                   </div>

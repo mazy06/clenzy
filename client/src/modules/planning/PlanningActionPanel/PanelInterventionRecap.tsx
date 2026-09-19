@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Info } from 'lucide-react';
@@ -32,6 +33,7 @@ import {
 import type { PlanningEvent } from '../types';
 import PanelPhotoGallery from './PanelPhotoGallery';
 import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
+import { Money } from '../../../components/Money';
 
 // ─── Signalement parsing ────────────────────────────────────────────────────
 
@@ -99,6 +101,7 @@ interface PanelInterventionRecapProps {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }) => {
+  const { t } = useTranslation();
   const intervention = event.intervention;
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newSeverity, setNewSeverity] = useState<Signalement['severity']>('moyenne');
@@ -108,7 +111,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
     return (
       <Alert variant="info" className="text-[0.75rem]">
         <Info />
-        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
+        <AlertDescription>{t('planning.panel.intervention.noData')}</AlertDescription>
       </Alert>
     );
   }
@@ -147,29 +150,29 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`${intervention.estimatedDurationHours}h estimées`} icon={<Schedule size={12} strokeWidth={1.75} />} />
         )}
         {intervention.estimatedDurationHours && (
-          <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`} icon={<AttachMoney size={12} strokeWidth={1.75} />} />
+          <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={<Money value={intervention.estimatedDurationHours * 25} from="EUR" decimals={0} />} icon={<AttachMoney size={12} strokeWidth={1.75} />} />
         )}
       </div>
 
       {/* Photos avant */}
-      <PanelPhotoGallery photos={beforePhotos} label="Photos avant" />
+      <PanelPhotoGallery photos={beforePhotos} label={t('planning.panel.intervention.photosBefore', 'Photos avant')} />
 
       <Separator className="my-[9px]" />
 
       {/* Photos après */}
-      <PanelPhotoGallery photos={afterPhotos} label="Photos après" />
+      <PanelPhotoGallery photos={afterPhotos} label={t('planning.panel.intervention.photosAfter', 'Photos après')} />
 
       <Separator className="my-[9px]" />
 
       {/* Notes per step */}
       {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
       <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[6px]')}>
-        Notes
+        {t('planning.panel.recap.notes', 'Notes')}
       </p>
 
       {!hasNotes && !intervention.notes ? (
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic mb-2">
-          Aucune note enregistrée
+          {t('planning.panel.recap.noNotes', 'Aucune note enregistrée')}
         </p>
       ) : (
         <>
@@ -181,11 +184,8 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
             {['inspection', 'rooms', 'after_photos'].map((step) => {
               const note = stepNotes[step];
               if (!note) return null;
-              const labels: Record<string, string> = {
-                inspection: 'Inspection',
-                rooms: 'Pièces',
-                after_photos: 'Photos après',
-              };
+              // Libellés d'étape : lus au rendu, jamais figés à l'import.
+              const stepLabel = t(`planning.panel.recap.steps.${step}`);
               return (
                 <AccordionItem
                   key={step}
@@ -195,7 +195,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                   <AccordionTrigger className="min-h-8 items-center px-2 py-1">
                     <div className="flex items-center gap-0.5">
                       <span className="inline-flex text-[var(--brand-ink)]"><Notes size={14} strokeWidth={1.75} /></span>
-                      <p className="cn-text-body1 text-[0.6875rem] font-semibold">{labels[step]}</p>
+                      <p className="cn-text-body1 text-[0.6875rem] font-semibold">{stepLabel}</p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-2 pt-0 pb-[6px]">
@@ -220,7 +220,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       {/* Signalements */}
       <div className="flex items-center justify-between mb-1.5">
         <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
-          Signalements ({signalements.length})
+          {t('planning.panel.recap.reports', { count: signalements.length })}
         </p>
         <Button
           variant="ghost"
@@ -229,23 +229,23 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           className="text-[0.625rem]"
         >
           <Add size={14} strokeWidth={1.75} />
-          Ajouter
+          {t('planning.panel.recap.add', 'Ajouter')}
         </Button>
       </div>
 
       {signalements.length === 0 ? (
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
-          Aucun signalement
+          {t('planning.panel.recap.noReports', 'Aucun signalement')}
         </p>
       ) : (
         <div className="flex flex-col gap-1">
           {signalements.map((s, i) => (
             <div className="p-2 border border-[var(--bui-border)] rounded-[10px] flex items-start gap-1.5" key={i}>
-              {(() => { const t = SEVERITY_TOKENS[s.severity] || SEVERITY_TOKENS.moyenne; return (
+              {(() => { const tone = SEVERITY_TOKENS[s.severity] || SEVERITY_TOKENS.moyenne; return (
               <>
-              <span className="inline-flex mt-[1.5px]" style={{ color: t.color }}><Warning size={16} strokeWidth={1.75} /></span>
+              <span className="inline-flex mt-[1.5px]" style={{ color: tone.color }}><Warning size={16} strokeWidth={1.75} /></span>
               <div className="flex-1 min-w-0">
-                <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)} className="mb-0.5" />
+                <StatusChip pill tokens={{ color: tone.color, bg: tone.bg }} label={t(`planning.panel.recap.severities.${s.severity}`)} className="mb-0.5" />
                 <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)]">{s.description}</p>
               </div>
               </>
@@ -260,23 +260,23 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
         {/* maxWidth="xs" MUI = 444 px. */}
         <DialogContent className="sm:max-w-[444px]">
           <DialogHeader>
-            <DialogTitle>Ajouter un signalement</DialogTitle>
+            <DialogTitle>{t('planning.panel.recap.addTitle', 'Ajouter un signalement')}</DialogTitle>
           </DialogHeader>
           <Field className="mt-1.5 mb-3">
-            <FieldLabel htmlFor="signalement-severity">Sévérité</FieldLabel>
+            <FieldLabel htmlFor="signalement-severity">{t('planning.panel.recap.severity', 'Sévérité')}</FieldLabel>
             <NativeSelect
               id="signalement-severity"
               className="w-full"
               value={newSeverity}
               onChange={(e) => setNewSeverity(e.target.value as Signalement['severity'])}
             >
-              <NativeSelectOption value="basse">Basse</NativeSelectOption>
-              <NativeSelectOption value="moyenne">Moyenne</NativeSelectOption>
-              <NativeSelectOption value="haute">Haute</NativeSelectOption>
+              <NativeSelectOption value="basse">{t('planning.panel.recap.severities.basse')}</NativeSelectOption>
+              <NativeSelectOption value="moyenne">{t('planning.panel.recap.severities.moyenne')}</NativeSelectOption>
+              <NativeSelectOption value="haute">{t('planning.panel.recap.severities.haute')}</NativeSelectOption>
             </NativeSelect>
           </Field>
           <Field>
-            <FieldLabel htmlFor="signalement-description">Description</FieldLabel>
+            <FieldLabel htmlFor="signalement-description">{t('planning.panel.recap.description', 'Description')}</FieldLabel>
             <Textarea
               id="signalement-description"
               // field-sizing:content neutralise `rows` : min-h garantit les 3 lignes
@@ -287,7 +287,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
             />
           </Field>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">Annuler</Button>
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">{t('planning.panel.recap.cancel', 'Annuler')}</Button>
             <Button
               size="sm"
               disabled={!newDescription.trim()}
@@ -297,7 +297,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                 setNewDescription('');
               }}
             >
-              Ajouter
+              {t('planning.panel.recap.add', 'Ajouter')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -32,6 +32,7 @@ import bookingLogo from '../../../assets/logo/booking-logo-small.svg';
 import vrboLogo from '../../../assets/logo/vrbo-logo-small.svg';
 import expediaLogo from '../../../assets/logo/expedia-logo.png';
 import agodaLogo from '../../../assets/logo/agoda-logo-small.svg';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /** Map code OTA → asset logo importe (path resolu par Vite au build). */
 export const OTA_LOGO_BY_CODE: Record<ChannexOtaCode, string> = {
@@ -64,9 +65,10 @@ function resolveOtaOption(otaName: string): ChannexOtaOption | null {
 }
 
 export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false }: OtaSyncBadgesProps) {
+  const { t } = useTranslation();
   if (!otas || otas.length === 0) {
     return showEmptyLabel
-      ? <span className="text-xs text-muted-foreground opacity-60 italic">Aucun OTA</span>
+      ? <span className="text-xs text-muted-foreground opacity-60 italic">{t('settings.ota.noOta')}</span>
       : null;
   }
 

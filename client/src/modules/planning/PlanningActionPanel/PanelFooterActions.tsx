@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   AlertDescription,
@@ -50,6 +51,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
   autoOpenGuestCardForReservationId,
   onGuestCardAutoOpenHandled,
 }) => {
+  const { t } = useTranslation();
   const reservation = event.reservation;
   const [guestCardOpen, setGuestCardOpen] = useState(false);
 
@@ -84,12 +86,12 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
       {canChangeProperty && (
         <Button variant="outline" size="sm" onClick={() => setChangePropertyOpen(true)}>
           <SwapHoriz size={13} strokeWidth={1.75} />
-          Changer logement
+          {t('planning.panel.actions.changeProperty', 'Changer logement')}
         </Button>
       )}
       <Button variant="outline" size="sm" onClick={() => setGuestCardOpen(true)}>
         <OpenInNew size={13} strokeWidth={1.75} />
-        Fiche client
+        {t('planning.panel.actions.guestCard', 'Fiche client')}
       </Button>
       <Button variant="outline" size="sm" onClick={() => setTemplateOpen(true)}>
         <WhatsApp size={13} strokeWidth={1.75} />
@@ -104,7 +106,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
         disabled={reservation.status === 'cancelled' || !onCancelReservation}
       >
         <Cancel size={13} strokeWidth={1.75} />
-        Annuler
+        {t('planning.panel.actions.cancel', 'Annuler')}
       </Button>
 
       {/* Fiche client */}
@@ -155,21 +157,22 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5 pe-8">
               <span className="inline-flex text-[var(--err)]"><Warning size={22} strokeWidth={1.75} /></span>
-              Annuler la reservation
+              {t('planning.panel.cancelDialog.title', 'Annuler la réservation')}
             </DialogTitle>
             <DialogDescription>
-              Du {reservation.checkIn} au {reservation.checkOut}
+              {t('planning.panel.cancelDialog.dates', { from: reservation.checkIn, to: reservation.checkOut })}
             </DialogDescription>
           </DialogHeader>
 
           <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
-            Etes-vous sur de vouloir annuler la reservation de{' '}
-            <strong>{reservation.guestName}</strong> au{' '}
-            <strong>{reservation.propertyName}</strong> ?
+            {t('planning.panel.cancelDialog.confirmText', {
+              guest: reservation.guestName,
+              property: reservation.propertyName,
+            })}
           </p>
           <Alert variant="warning" className="text-[0.75rem]">
             <TriangleAlert />
-            <AlertDescription>Les interventions liees (menage) seront egalement annulees. Cette action est irreversible.</AlertDescription>
+            <AlertDescription>{t('planning.panel.cancelDialog.warning')}</AlertDescription>
           </Alert>
           {cancelError && (
             <Alert variant="destructive" className="text-[0.75rem] mt-1.5">
@@ -184,7 +187,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
               size="sm"
               onClick={() => { setCancelDialogOpen(false); setCancelError(null); }}
             >
-              Retour
+              {t('planning.panel.cancelDialog.back', 'Retour')}
             </Button>
             <Button
               onClick={async () => {
@@ -204,7 +207,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
               disabled={cancelLoading || !onCancelReservation}
             >
               {cancelLoading ? <Spinner className="size-3.5" /> : <Cancel size={16} strokeWidth={1.75} />}
-              Confirmer l'annulation
+              {t('planning.panel.cancelDialog.confirm', "Confirmer l'annulation")}
             </Button>
           </DialogFooter>
         </DialogContent>

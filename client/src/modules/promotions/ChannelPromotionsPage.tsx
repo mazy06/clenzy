@@ -51,6 +51,7 @@ import type {
 } from '../../services/api/channelPromotionsApi';
 import { PROMOTION_TYPE_LABELS } from '../../services/api/channelPromotionsApi';
 import { useQuery } from '@tanstack/react-query';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -318,7 +319,7 @@ const ChannelPromotionsPage: React.FC = () => {
                   {/* Colonne dates volontairement plus petite que le gabarit du corps. */}
                   <TableCell className="text-[12px]">
                     {promo.startDate && promo.endDate
-                      ? `${new Date(promo.startDate).toLocaleDateString('fr-FR')} → ${new Date(promo.endDate).toLocaleDateString('fr-FR')}`
+                      ? `${new Date(promo.startDate).toLocaleDateString(activeIntlLocale())} → ${new Date(promo.endDate).toLocaleDateString(activeIntlLocale())}`
                       : '—'}
                   </TableCell>
                   <TableCell className="text-center">

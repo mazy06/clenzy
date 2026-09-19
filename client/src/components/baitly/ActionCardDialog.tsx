@@ -16,6 +16,7 @@ import { ACTION_CARDS, type Gesture } from './actionCards';
 import PayoutRecap from './PayoutRecap';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
+import { dateFnsLocale, weekStartsOnForLanguage } from '../../utils/localeDate';
 
 /**
  * Baitly — la carte de décision d'une action en attente.
@@ -53,7 +54,7 @@ export default function ActionCardDialog({
   onClose,
   invalidateKeys = [],
 }: ActionCardDialogProps) {
-  const { t, isArabic } = useTranslation();
+  const { t, isArabic, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -324,9 +325,14 @@ export default function ActionCardDialog({
           // du mois courant, et l'heure en pied de carte.
           <Card size="sm" className="mx-auto w-fit">
             <CardContent>
+              {/* Sans `locale`, react-day-picker retombe sur `enUS` : initiales
+                  de jours en anglais et semaine ouverte au dimanche, meme en
+                  francais. `weekStartsOn` porte la regle produit. */}
               <Calendar
                 mode="single"
                 numberOfMonths={2}
+                locale={dateFnsLocale(currentLanguage)}
+                weekStartsOn={weekStartsOnForLanguage(currentLanguage)}
                 calendarSystem={isArabic ? 'hijri' : 'gregorian'}
                 selected={day}
                 onSelect={setDay}

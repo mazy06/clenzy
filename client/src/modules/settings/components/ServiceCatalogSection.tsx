@@ -18,6 +18,7 @@ import {
   getServicesByCategory,
 } from '../../../services/integrations/servicesCatalog';
 import { blockInteraction } from './disabledIntegration';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Section generique pour le catalogue de services dans l'onglet Integrations.
@@ -81,6 +82,7 @@ export default function ServiceCatalogSection({
   disabled = false,
   configForService,
 }: ServiceCatalogSectionProps) {
+  const { t } = useTranslation();
   const allServices = getServicesByCategory(category);
   const services = serviceFilter
     ? allServices.filter((s) => s.id === serviceFilter)
@@ -109,7 +111,7 @@ export default function ServiceCatalogSection({
           </p>
           {disabled && (
             <Badge variant="secondary" className="h-[18px] px-1.5 text-2xs">
-              Bientôt disponible
+              {t('settings.integrations.status.comingSoon')}
             </Badge>
           )}
         </div>
@@ -155,13 +157,13 @@ export default function ServiceCatalogSection({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {openService.shortDescription}
+                  {t(openService.shortKey)}
                 </p>
               </div>
               <div className="shrink-0">
                 <Badge variant="secondary">
                   <ErrorOutline size={11} strokeWidth={2} />
-                  {openService.available ? 'Configurable' : 'Bientôt'}
+                  {openService.available ? t('settings.integrations.configurable') : t('common.comingSoon')}
                 </Badge>
               </div>
             </div>
@@ -169,12 +171,12 @@ export default function ServiceCatalogSection({
             {/* Body — description longue + modalites + lien */}
             <div className="p-3">
               <p className="text-sm text-foreground leading-relaxed mb-2">
-                {openService.tooltipDescription}
+                {t(openService.tooltipKey)}
               </p>
 
               <Alert variant="info" className="text-xs mb-2">
                 <Info />
-                <AlertDescription><strong>Modalités d'accès :</strong>{openService.accessModality}</AlertDescription>
+                <AlertDescription><strong>{t('settings.integrations.accessTerms')}</strong>{t(openService.accessKey)}</AlertDescription>
               </Alert>
 
               {configNode ? (
@@ -188,7 +190,7 @@ export default function ServiceCatalogSection({
                       className="hover:border-success/40 hover:bg-success-soft hover:text-success-ink"
                     >
                       <a href={openService.websiteUrl} target="_blank" rel="noreferrer noopener">
-                        En savoir plus
+                        {t('settings.integrations.learnMore')}
                         <ExternalLinkIcon size={14} strokeWidth={2} />
                       </a>
                     </Button>
@@ -199,7 +201,7 @@ export default function ServiceCatalogSection({
               {!openService.available && !openService.internalRoute && (
                 <Alert variant="warning" className="text-xs mb-2">
                   <TriangleAlert />
-                  <AlertDescription>Cette intégration n'est pas encore configurable depuis Baitly. Créez un compte chez le fournisseur — l'intégration native arrivera dans une prochaine release.</AlertDescription>
+                  <AlertDescription>{t('settings.integrations.notConfigurableYet')}</AlertDescription>
                 </Alert>
               )}
 
@@ -226,7 +228,7 @@ export default function ServiceCatalogSection({
                     className="hover:border-success/40 hover:bg-success-soft hover:text-success-ink"
                   >
                     <a href={openService.websiteUrl} target="_blank" rel="noreferrer noopener">
-                      En savoir plus
+                      {t('settings.integrations.learnMore')}
                       <ExternalLinkIcon size={14} strokeWidth={2} />
                     </a>
                   </Button>

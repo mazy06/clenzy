@@ -7,6 +7,7 @@ import {
   TrendAreaChart,
 } from '../../components/stats';
 import type { PortfolioBucket, PortfolioStats } from '../../services/api/portfoliosApi';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 
 /**
  * Les graphiques de l'écran statistiques des portefeuilles.
@@ -100,7 +101,9 @@ function fillMonthGaps(points: PortfolioStats['assignmentsByMonth']) {
     const month = index % 12;
     return {
       key: `${year}-${String(month + 1).padStart(2, '0')}`,
-      label: new Date(year, month, 1).toLocaleDateString('fr-FR', {
+      // Série agrégée par mois civil côté serveur : le libellé se traduit,
+      // le découpage reste grégorien.
+      label: new Date(year, month, 1).toLocaleDateString(activeIntlLocaleGregorian(), {
         month: 'short',
         year: '2-digit',
       }),

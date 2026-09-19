@@ -6,6 +6,8 @@ import { reservationsApi, type Reservation } from '../../services/api/reservatio
 import { useAttachToReservation } from '../../hooks/useConversations';
 import { formatPhoneNumber } from '../../utils/formatPhone';
 import type { ConversationDto } from '../../services/api/conversationApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface AttachReservationDialogProps {
   open: boolean;
@@ -16,7 +18,7 @@ interface AttachReservationDialogProps {
 }
 
 const fmtDate = (d?: string) =>
-  d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '';
+  d ? new Date(d).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short' }) : '';
 
 const reservationLabel = (r: Reservation) =>
   `${r.propertyName} · ${fmtDate(r.checkIn)} → ${fmtDate(r.checkOut)} · ${r.guestName}`;
@@ -33,6 +35,7 @@ export default function AttachReservationDialog({
   onClose,
   onAttached,
 }: AttachReservationDialogProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [options, setOptions] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,15 +83,15 @@ export default function AttachReservationDialog({
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="text-[1rem] font-semibold">Rattacher à une réservation</DialogTitle>
+          <DialogTitle className="text-[1rem] font-semibold">{t('channels.attach.title')}</DialogTitle>
           <DialogDescription className="text-[0.8125rem]">
-            Reliez le numéro {phone ? <strong>{phone}</strong> : 'de ce contact'} à sa réservation.
+            {t('channels.attach.descriptionHead')} {phone ? <strong>{phone}</strong> : t('channels.attach.thisContact')} {t('channels.attach.descriptionTail')}
             Le numéro sera mémorisé sur le guest : ses prochains messages WhatsApp seront reconnus automatiquement.
           </DialogDescription>
         </DialogHeader>
 
         <Field>
-          <FieldLabel htmlFor="attach-reservation-search">Réservation</FieldLabel>
+          <FieldLabel htmlFor="attach-reservation-search">{t('channels.attach.reservation')}</FieldLabel>
           {/* `filter={null}` : la liste vient deja filtree du serveur (recherche
               debouncee), on ne veut pas d'un second filtrage local — equivalent
               du `filterOptions={(x) => x}` de l'Autocomplete. */}
@@ -105,7 +108,7 @@ export default function AttachReservationDialog({
             <ComboboxInput
               id="attach-reservation-search"
               autoFocus
-              placeholder="Nom du guest ou du logement…"
+              placeholder={t('channels.attach.searchPlaceholder')}
             >
               {loading ? (
                 <InputGroupAddon align="inline-end">
@@ -118,7 +121,9 @@ export default function AttachReservationDialog({
                 les options ne seraient pas cliquables. */}
             <ComboboxContent className="pointer-events-auto">
               <ComboboxEmpty>
-                {input.trim().length < 2 ? 'Tapez au moins 2 caractères' : 'Aucune réservation'}
+                {t(input.trim().length < 2
+                  ? 'channels.typeAtLeastTwo'
+                  : 'channels.noReservation')}
               </ComboboxEmpty>
               <ComboboxList>
                 {(r: Reservation) => (
@@ -134,7 +139,7 @@ export default function AttachReservationDialog({
         {attachMutation.isError && (
           <Alert variant="destructive" className="text-[0.8125rem]">
             <TriangleAlert />
-            <AlertDescription>Le rattachement a échoué. Réessayez.</AlertDescription>
+            <AlertDescription>{t('channels.attach.error')}</AlertDescription>
           </Alert>
         )}
 

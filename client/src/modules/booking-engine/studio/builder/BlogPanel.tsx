@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import {
   Alert,
   AlertDescription,
@@ -138,8 +138,8 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
     <div className="max-w-[1080px] mx-auto px-3 min-[900px]:px-[18px] py-[18px]">
       <div className="flex items-end gap-3 mb-4">
         <div>
-          <div className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-balance text-foreground">Articles de blog</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</div>
+          <div className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-balance text-foreground">{t('studio.blog.title')}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{t('studio.blog.subtitle')}</div>
         </div>
         <div className="flex-1" />
         <Button size="lg" onClick={() => setEditing('new')} disabled={siteId == null} className="cursor-pointer">
@@ -150,7 +150,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
       <Alert variant="warning" className="mb-3">
         <AlertTriangle />
         <AlertDescription>
-          La publication est soumise à <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
+          {t('studio.blog.submittedTo')} <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
         </AlertDescription>
       </Alert>
 
@@ -163,7 +163,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
       {posts?.length === 0 && (
         <EmptyState
           icon={<FileText />}
-          title="Aucun article"
+          title={t('studio.blog.empty')}
           description="Crée ton premier article ou laisse l'IA t'en proposer un."
         />
       )}
@@ -204,7 +204,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
                     className="cursor-pointer">
                     <Languages size={14} strokeWidth={2.2} /> {t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(p)} className="cursor-pointer">Éditer</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(p)} className="cursor-pointer">{t('studio.blog.edit')}</Button>
                   <Button
                     variant="ghost"
                     size="icon-sm"
@@ -232,6 +232,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
 }
 
 function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: BlogPost | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<Draft>(post ? toDraft(post) : EMPTY);
   const [topic, setTopic] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -256,7 +257,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
         aiGenerated: true, // contenu IA → relecture manuelle d'autant plus requise
       }));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Génération impossible (IA désactivée ou budget atteint ?)');
+      setErr(e instanceof Error ? e.message : t('studio.blog.generationFailed'));
     } finally {
       setGenerating(false);
     }
@@ -309,7 +310,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
           onKeyDown={(e) => { if (e.key === 'Enter') generate(); }}
           className="flex-1 border-0 bg-transparent px-0 text-xs text-foreground focus-visible:ring-0" />
         <Button variant="outline" onClick={generate} disabled={generating || !topic.trim()} className="cursor-pointer">
-          {generating ? 'Génération…' : 'Générer (IA)'}
+          {generating ? t('common.generating') : t('studio.blog.generateAi')}
         </Button>
       </div>
 
@@ -330,24 +331,24 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
             className="w-full [&_select]:cursor-pointer"
           >
             <option value="DRAFT">Brouillon</option>
-            <option value="PENDING_REVIEW">Soumettre à validation</option>
-            {draft.status === 'PUBLISHED' && <option value="PUBLISHED">Publié — en ligne</option>}
+            <option value="PENDING_REVIEW">{t('studio.blog.submitForReview')}</option>
+            {draft.status === 'PUBLISHED' && <option value="PUBLISHED">{t('studio.blog.publishedLive')}</option>}
           </NativeSelect>
         </Field>
-        <Field label="Langue"><Input value={draft.locale} onChange={(e) => set('locale', e.target.value)} className={FIELD_CLASS} placeholder="fr, en… (vide = toutes)" /></Field>
+        <Field label="Langue"><Input value={draft.locale} onChange={(e) => set('locale', e.target.value)} className={FIELD_CLASS} placeholder={t('studio.blog.languages')} /></Field>
       </div>
       {draft.status === 'PUBLISHED' && (
         <div className="text-2xs text-warning-ink">
-          Toute modification enregistrée repassera par la validation avant une nouvelle mise en ligne.
+          {t('studio.blog.reviewAgain')}
         </div>
       )}
       {/* min-h-[Nlh] et pas `rows` : le Textarea du kit pose field-sizing:content,
           qui neutralise l'attribut rows. */}
-      <Field label="Extrait"><Textarea value={draft.excerpt} onChange={(e) => set('excerpt', e.target.value)} className={`${FIELD_CLASS} min-h-[2lh]`} placeholder="Résumé court (listes, SEO)" /></Field>
+      <Field label="Extrait"><Textarea value={draft.excerpt} onChange={(e) => set('excerpt', e.target.value)} className={`${FIELD_CLASS} min-h-[2lh]`} placeholder={t('studio.blog.excerpt')} /></Field>
       <Field label="Contenu (markdown)"><Textarea value={draft.body} onChange={(e) => set('body', e.target.value)} className={`${FIELD_CLASS} min-h-[12lh]`} style={{ lineHeight: 1.6, fontFamily: 'var(--font-mono, monospace)' }} placeholder="Corps de l'article en markdown…" /></Field>
-      <Field label="Image de couverture (URL)"><Input value={draft.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} className={FIELD_CLASS} placeholder="https://…" /></Field>
-      <Field label="Titre SEO"><Input value={draft.seoTitle} onChange={(e) => set('seoTitle', e.target.value)} className={FIELD_CLASS} placeholder="≤ 60 caractères" /></Field>
-      <Field label="Meta description SEO"><Textarea value={draft.seoDescription} onChange={(e) => set('seoDescription', e.target.value)} className={`${FIELD_CLASS} min-h-[2lh]`} placeholder="≤ 155 caractères" /></Field>
+      <Field label={t('studio.blog.coverImage')}><Input value={draft.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} className={FIELD_CLASS} placeholder="https://…" /></Field>
+      <Field label="Titre SEO"><Input value={draft.seoTitle} onChange={(e) => set('seoTitle', e.target.value)} className={FIELD_CLASS} placeholder={t('studio.blog.max60')} /></Field>
+      <Field label="Meta description SEO"><Textarea value={draft.seoDescription} onChange={(e) => set('seoDescription', e.target.value)} className={`${FIELD_CLASS} min-h-[2lh]`} placeholder={t('studio.blog.max155')} /></Field>
     </div>
   );
 }

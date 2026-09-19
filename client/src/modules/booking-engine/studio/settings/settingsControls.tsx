@@ -13,6 +13,7 @@ import {
   Textarea,
 } from '../../../../components/ui';
 import { Check } from 'lucide-react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Primitives de formulaire Baitly UI pour les panneaux de réglages du Studio (F3).
@@ -80,14 +81,15 @@ export function SettingRow({ label, helper, htmlFor, control }: {
 }
 
 export function SaveBar({ dirty, saving, onSave, error }: { dirty: boolean; saving: boolean; onSave: () => void; error?: string | null }) {
+  const { t } = useTranslation();
   return (
     <div className="shrink-0 bg-card border-t border-border px-[15px] min-[900px]:px-6 py-[9px] flex items-center gap-[9px]">
       <div className={cn('flex-1 text-xs', error ? 'text-destructive-ink' : 'text-muted-foreground')}>
-        {error ? error : dirty ? 'Modifications non enregistrées.' : 'À jour.'}
+        {error ? error : dirty ? t('studio.unsavedChanges') : t('studio.upToDate')}
       </div>
       <Button type="button" onClick={onSave} disabled={!dirty || saving} className="shrink-0 cursor-pointer">
         {!saving && <Check size={16} strokeWidth={2.4} />}
-        {saving ? 'Enregistrement…' : 'Enregistrer'}
+        {saving ? t('common.saving') : t('common.save')}
       </Button>
     </div>
   );

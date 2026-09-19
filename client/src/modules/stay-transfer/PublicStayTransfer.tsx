@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Spinner } from '../../components/ui';
 import { API_CONFIG } from '../../config/api';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const API_BASE = API_CONFIG.BASE_URL;
 
@@ -23,6 +25,7 @@ interface TransferView {
  * bouge sans son clic : Accepter exécute le transfert, Refuser prévient l'hôte.
  */
 export default function PublicStayTransfer() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [view, setView] = useState<TransferView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +37,7 @@ export default function PublicStayTransfer() {
       if (!response.ok) throw new Error();
       setView(await response.json());
     } catch {
-      setError('Cette proposition est introuvable ou le lien est invalide.');
+      setError(t('stayTransfer.errors.notFound'));
     }
   }, [token]);
 
@@ -54,7 +57,7 @@ export default function PublicStayTransfer() {
     } catch (e) {
       setError(e instanceof Error && e.message
         ? e.message
-        : "L'opération n'a pas abouti — votre hôte a été prévenu, il revient vers vous.");
+        : t('stayTransfer.errors.actionFailed'));
       load();
     } finally {
       setActing(false);
@@ -62,7 +65,7 @@ export default function PublicStayTransfer() {
   };
 
   const formatDate = (iso: string | null) =>
-    iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('fr-FR', {
+    iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(activeIntlLocale(), {
       weekday: 'long', day: 'numeric', month: 'long',
     }) : null;
 
@@ -81,32 +84,30 @@ export default function PublicStayTransfer() {
       case 'CONFIRMED':
         return (
           <p className="m-0 text-[14px] leading-relaxed">
-            ✓ C'est confirmé : votre séjour se poursuit dans{' '}
-            <b>{view.toPropertyName}</b>. Vos nouveaux codes d'accès vous parviennent
-            séparément — merci, et bon séjour !
+            {t('stayTransfer.confirmedTransferHead')}{' '}
+            <b>{view.toPropertyName}</b>. {t('stayTransfer.confirmedTransferTail')}
           </p>
         );
       case 'CANCELLED':
         return (
           <p className="m-0 text-[14px] leading-relaxed">
-            Cette proposition a été annulée. Votre hôte est au courant et reste
-            joignable pour trouver une solution avec vous.
+            {t('stayTransfer.cancelled')}
           </p>
         );
       case 'EXPIRED':
         return (
           <p className="m-0 text-[14px] leading-relaxed">
-            Ce lien a expiré. Contactez votre hôte pour la suite — il vous
-            proposera une solution à jour.
+            {t('stayTransfer.expiredTransfer')}
           </p>
         );
       default:
         return (
           <>
             <p className="m-0 text-[14px] leading-relaxed">
-              {view.guestFirstName ? `${view.guestFirstName}, suite` : 'Suite'} à un
-              incident sur <b>{view.fromPropertyName}</b>, nous vous proposons de
-              poursuivre votre séjour dans :
+              {view.guestFirstName
+                ? t('stayTransfer.transferLeadNamed', { name: view.guestFirstName })
+                : t('stayTransfer.transferLead')}{' '}
+              <b>{view.fromPropertyName}</b>{t('stayTransfer.transferLeadTail')}
             </p>
             <div className="my-4 p-4 rounded-xl border border-solid border-[#e3e6ea] bg-[#fafbfc]">
               <p className="m-0 text-[16px] font-semibold">{view.toPropertyName}</p>
@@ -115,13 +116,15 @@ export default function PublicStayTransfer() {
               )}
               {view.checkIn && view.checkOut && (
                 <p className="m-0 mt-2 text-[13px] text-[#5b6570]">
-                  Du {formatDate(view.checkIn)} au {formatDate(view.checkOut)} — dates et
-                  tarif inchangés.
+                  {t('stayTransfer.sameDatesAndPrice', {
+                    from: formatDate(view.checkIn),
+                    to: formatDate(view.checkOut),
+                  })}
                 </p>
               )}
             </div>
             <p className="m-0 mb-4 text-[13px] text-[#5b6570]">
-              Rien ne sera déplacé sans votre accord.
+              {t('stayTransfer.nothingMovedWithoutConsent')}
             </p>
             <div className="flex gap-2.5">
               <button
@@ -130,7 +133,7 @@ export default function PublicStayTransfer() {
                 onClick={() => act('confirm')}
                 className="flex-1 h-11 rounded-lg border-0 bg-[#5453D6] text-white text-[14px] font-semibold cursor-pointer disabled:opacity-60"
               >
-                {acting ? '…' : 'Accepter le relogement'}
+                {acting ? '…' : t('stayTransfer.acceptTransfer')}
               </button>
               <button
                 type="button"
@@ -138,7 +141,7 @@ export default function PublicStayTransfer() {
                 onClick={() => act('decline')}
                 className="flex-1 h-11 rounded-lg border border-solid border-[#d4d8dd] bg-white text-[#3a424b] text-[14px] font-semibold cursor-pointer disabled:opacity-60"
               >
-                Refuser
+                {t('stayTransfer.decline')}
               </button>
             </div>
           </>
@@ -150,7 +153,7 @@ export default function PublicStayTransfer() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-[#f6f7f9]">
       <div className="w-full max-w-[440px] p-6 rounded-2xl bg-white border border-solid border-[#e3e6ea]">
         <p className="m-0 mb-1 text-[11px] font-bold uppercase tracking-[.06em] text-[#8b93a0]">
-          Proposition de relogement
+          {t('stayTransfer.transferTitle')}
         </p>
         {error && (
           <p className="mt-3 mb-0 text-[13px] text-[#b4423f]">{error}</p>

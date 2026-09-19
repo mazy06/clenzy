@@ -1,6 +1,6 @@
 import { SaudiRiyal, MoroccanDirham } from '../../icons';
 import { useCurrency } from '../../hooks/useCurrency';
-import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
+import { CURRENCY_OPTIONS, currencyDisplayPart } from '../../utils/currencyUtils';
 
 /**
  * Baitly — remaster de components/Money.tsx : même logique devise
@@ -54,14 +54,24 @@ export function Money({ value, from, compact, decimals, symbolSize = 13 }: Money
   if (compact) s = s.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');
   else if (decimals === 0) s = s.replace(/[.,]\d+/g, '');
 
+  // L'icône remplace la devise LÀ OÙ `Intl` l'a mise : suffixe en français,
+  // préfixe en anglais, glyphe arabe où le code ISO n'apparaît pas. Cf. le
+  // commentaire de `components/Money.tsx`.
   if (ICON_CURRENCIES.has(currency)) {
-    const i = s.lastIndexOf(currency);
-    if (i >= 0) {
-      const head = s.slice(0, i).replace(/[\s ]+$/, '');
+    const token = currencyDisplayPart(currency);
+    const at = s.lastIndexOf(token);
+    if (at >= 0) {
+      const before = s.slice(0, at).replace(/[\s\u00a0\u202f\u200e\u200f]+$/u, '');
+      const after = s.slice(at + token.length).replace(/^[\s\u00a0\u202f\u200e\u200f]+/u, '');
       return (
         <span className="tabular-nums">
-          {head}
-          <CurrencySymbol code={currency} size={symbolSize} className="ms-[3px]" />
+          {before}
+          <CurrencySymbol
+            code={currency}
+            size={symbolSize}
+            className={before ? 'ms-[3px]' : 'me-[3px]'}
+          />
+          {after}
         </span>
       );
     }

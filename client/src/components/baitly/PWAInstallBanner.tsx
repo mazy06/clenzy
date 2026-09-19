@@ -2,6 +2,7 @@ import { MonitorDownIcon, XIcon } from 'lucide-react';
 import { Button } from '../ui';
 import { usePWA } from '../../hooks/usePWA';
 import { useUserPreference } from '../../hooks/useUserPreference';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/PWAInstallBanner.tsx (MUI).
@@ -13,6 +14,7 @@ export interface PWAInstallBannerProps {
 }
 
 export default function PWAInstallBanner({ forceVisible = false }: PWAInstallBannerProps) {
+  const { t } = useTranslation();
   const { canInstall, install } = usePWA();
   const [dismissed, setDismissed, { isLoaded }] = useUserPreference<boolean>(
     'pwa.install_banner_dismissed',
@@ -37,7 +39,7 @@ export default function PWAInstallBanner({ forceVisible = false }: PWAInstallBan
       <div className="min-w-0 flex-1 text-sm">
         <div className="font-semibold text-foreground">Installer Baitly</div>
         <div className="text-xs text-muted-foreground">
-          Accès en un clic depuis votre bureau, même hors connexion.
+          {t('pwa.installHintShort')}
         </div>
       </div>
       <Button size="sm" onClick={() => install()}>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -95,12 +96,17 @@ const PROVIDER_FIELDS: Record<PaymentProviderType, FieldSpec[]> = {
       type: 'select',
       required: true,
       goesInConfigJson: true,
+      // Le pays suffit a designer la region : le code de devise entre
+      // parentheses ecrivait un code ISO la ou le reste de l'application
+      // montre un signe.
+      // `label` sert de repli : l'affichage passe par
+      // `paymentConfig.regions.<code>`.
       options: [
-        { value: 'SA', label: 'Arabie Saoudite (SAR)' },
-        { value: 'AE', label: 'Emirats Arabes Unis (AED)' },
-        { value: 'EG', label: 'Egypte (EGP)' },
-        { value: 'JO', label: 'Jordanie (JOD)' },
-        { value: 'OM', label: 'Oman (OMR)' },
+        { value: 'SA', label: 'Arabie Saoudite' },
+        { value: 'AE', label: 'Émirats Arabes Unis' },
+        { value: 'EG', label: 'Égypte' },
+        { value: 'JO', label: 'Jordanie' },
+        { value: 'OM', label: 'Oman' },
       ],
       helper: 'Determine l\'URL d\'API utilisee (secure.paytabs.sa pour KSA, etc.).',
     },
@@ -293,6 +299,7 @@ export default function PaymentProviderConfigDialog({
   onClose,
   onSave,
 }: PaymentProviderConfigDialogProps) {
+  const { t } = useTranslation();
   const fields = useMemo(
     () => (providerType ? PROVIDER_FIELDS[providerType] : []),
     [providerType],
@@ -382,7 +389,7 @@ export default function PaymentProviderConfigDialog({
       await onSave(payload);
       onClose();
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erreur inconnue';
+      const message = e instanceof Error ? e.message : t('paymentConfig.unknownError', 'Erreur inconnue');
       setError(message);
     } finally {
       setSaving(false);
@@ -399,16 +406,16 @@ export default function PaymentProviderConfigDialog({
           <div className="flex items-center justify-between gap-2">
             <div>
               <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
-                Configurer {PAYMENT_PROVIDER_LABELS[providerType]}
+                {t('paymentConfig.title', { provider: PAYMENT_PROVIDER_LABELS[providerType] })}
               </DialogTitle>
               <DialogDescription className="text-[0.72rem] font-normal mt-0.5">
-                Renseignez les identifiants marchands. Les secrets sont chiffres avant stockage (AES-256-GCM).
+                {t('paymentConfig.subtitle')}
               </DialogDescription>
             </div>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Fermer"
+              aria-label={t('paymentConfig.close', 'Fermer')}
               onClick={onClose}
               disabled={saving}
             >
@@ -422,7 +429,7 @@ export default function PaymentProviderConfigDialog({
         {fields.length === 0 && (
           <Alert variant="info" className="text-[0.8rem]">
             <Info />
-            <AlertDescription>Aucun parametre a configurer pour ce provider — utilisez le toggle pour l'activer / desactiver.</AlertDescription>
+            <AlertDescription>{t('paymentConfig.noParams')}</AlertDescription>
           </Alert>
         )}
 
@@ -435,7 +442,7 @@ export default function PaymentProviderConfigDialog({
           return (
             <Field key={field.key}>
               <FieldLabel htmlFor={fieldId} className="text-[0.82rem]">
-                {field.label}
+                {t(`paymentConfig.fields.${providerType}.${field.key}.label`, field.label)}
               </FieldLabel>
               {field.type === 'select' ? (
                 <NativeSelect
@@ -448,7 +455,7 @@ export default function PaymentProviderConfigDialog({
                 >
                   {field.options?.map((opt) => (
                     <NativeSelectOption key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {t(`paymentConfig.regions.${opt.value}`, opt.label)}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
@@ -469,7 +476,9 @@ export default function PaymentProviderConfigDialog({
                       size="icon-xs"
                       tabIndex={-1}
                       onClick={() => toggleShow(field.key)}
-                      aria-label={showValue ? 'Masquer la valeur' : 'Afficher la valeur'}
+                      aria-label={showValue
+                        ? t('paymentConfig.hideValue', 'Masquer la valeur')
+                        : t('paymentConfig.showValue', 'Afficher la valeur')}
                     >
                       {showValue ? <VisibilityOff size={16} /> : <Visibility size={16} />}
                     </InputGroupButton>
@@ -488,7 +497,9 @@ export default function PaymentProviderConfigDialog({
                 />
               )}
               {field.helper && (
-                <FieldDescription className="text-[0.68rem]">{field.helper}</FieldDescription>
+                <FieldDescription className="text-[0.68rem]">
+                  {t(`paymentConfig.fields.${providerType}.${field.key}.helper`, field.helper)}
+                </FieldDescription>
               )}
             </Field>
           );
@@ -505,10 +516,10 @@ export default function PaymentProviderConfigDialog({
           />
           <FieldLabel htmlFor="payment-config-sandbox" className="flex-col items-start gap-0">
             <span className="text-sm font-semibold">
-              Mode sandbox
+              {t('paymentConfig.sandbox', 'Mode bac à sable')}
             </span>
             <span className="text-2xs font-normal text-muted-foreground">
-              Activez en developpement ; desactivez pour la production (apres validation KYB).
+              {t('paymentConfig.sandboxHelper')}
             </span>
           </FieldLabel>
         </Field>
@@ -523,7 +534,7 @@ export default function PaymentProviderConfigDialog({
 
         <DialogFooter className="gap-1.5">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
-            Annuler
+            {t('paymentConfig.cancel', 'Annuler')}
           </Button>
           <Button
             size="sm"
@@ -531,7 +542,7 @@ export default function PaymentProviderConfigDialog({
             disabled={saving || fields.length === 0}
           >
             {saving && <Spinner className="size-3.5" />}
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {saving ? t('paymentConfig.saving', 'Enregistrement…') : t('paymentConfig.save', 'Enregistrer')}
           </Button>
         </DialogFooter>
       </DialogContent>

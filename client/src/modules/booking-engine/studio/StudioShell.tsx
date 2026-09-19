@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { SidebarTrigger, useSidebar } from '../../../components/ui/sidebar';
 import { Segmented, SegmentedItem } from './Segmented';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   ChevronLeft,
   Command as CommandIcon,
@@ -24,7 +25,7 @@ export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
 
 export interface StudioSection {
   key: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
 }
 
@@ -63,6 +64,7 @@ export default function StudioShell({
   onBack,
   children,
 }: StudioShellProps) {
+  const { t } = useTranslation();
   // `isMobile` du kit sidebar : le declencheur n'apparait QUE quand la barre
   // laterale est en mode feuille — meme source de verite que la bande qu'il
   // remplace (MainLayoutFull), pour qu'aucune largeur ne se retrouve sans acces
@@ -119,11 +121,11 @@ export default function StudioShell({
         {onAnalyzeDesign && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" onClick={onAnalyzeDesign} aria-label="Analyse du design" className={ICON_BTN_CLASS}>
+              <button type="button" onClick={onAnalyzeDesign} aria-label={t('studio.shell.designAnalysis')} className={ICON_BTN_CLASS}>
                 <Wand2 size={18} strokeWidth={2} />
               </button>
             </TooltipTrigger>
-            <TooltipContent>Analyse du design (IA)</TooltipContent>
+            <TooltipContent>{t('studio.shell.designAnalysisAi')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -141,7 +143,7 @@ export default function StudioShell({
             pas un geste d'edition, et la rangee n'a plus la place. */}
         <span className="hidden min-[900px]:inline-flex">
           <PreviewSelect value={previewCurrency} onChange={onPreviewCurrencyChange}
-            options={['EUR', 'MAD', 'SAR']} ariaLabel="Devise de preview" />
+            options={['EUR', 'MAD', 'SAR']} ariaLabel={t('studio.previewCurrency')} />
         </span>
         {/* La publication se fait par page dans l'éditeur GrapesJS (badge Brouillon/Publié + bouton
             Publier), modèle draft/live multi-pages. Pas de bouton « Publier » global dans la topbar. */}
@@ -154,7 +156,7 @@ export default function StudioShell({
       <div className="flex-1 flex min-h-0 flex-col min-[900px]:flex-row">
         <nav
           className="shrink-0 flex gap-[3px] overflow-x-auto border-b border-border bg-card px-1.5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-[900px]:w-[76px] min-[900px]:flex-col min-[900px]:items-stretch min-[900px]:overflow-x-visible min-[900px]:border-b-0 min-[900px]:border-e min-[900px]:py-[9px]"
-          aria-label="Sections du Studio"
+          aria-label={t('studio.shell.sections')}
         >
           {sections.map((s) => {
             const active = s.key === activeSection;
@@ -175,11 +177,11 @@ export default function StudioShell({
                   >
                     <Icon size={17} strokeWidth={active ? 2 : 1.75} />
                     <span className={'text-2xs ' + (active ? 'font-semibold' : 'font-medium')}>
-                      {s.label}
+                      {t(s.labelKey)}
                     </span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{s.label}</TooltipContent>
+                <TooltipContent side="right">{t(s.labelKey)}</TooltipContent>
               </Tooltip>
             );
           })}
@@ -240,8 +242,9 @@ const SEG_CLASS =
   + 'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2';
 
 function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
+  const { t } = useTranslation();
   return (
-    <div className="flex gap-0.5 p-0.5 rounded-lg bg-field" role="group" aria-label="Vue du studio">
+    <div className="flex gap-0.5 p-0.5 rounded-lg bg-field" role="group" aria-label={t('studio.shell.studioView')}>
       {/* Avancé — vue courante (active) */}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -251,10 +254,10 @@ function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
           >
             <SlidersHorizontal size={15} strokeWidth={2} />
             {/* Le libelle cede sous 900 px : l'infobulle et l'aria-label le portent. */}
-            <span className="hidden min-[900px]:inline">Avancé</span>
+            <span className="hidden min-[900px]:inline">{t('studio.shell.advanced')}</span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>Éditeur complet : tous les blocs, calques, réglages et import de design.</TooltipContent>
+        <TooltipContent>{t('studio.shell.advancedHint')}</TooltipContent>
       </Tooltip>
       {/* Assistant — bascule vers l'aperçu immersif + chat */}
       <Tooltip>
@@ -269,7 +272,7 @@ function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
             <span className="hidden min-[900px]:inline">Assistant</span>
           </button>
         </TooltipTrigger>
-        <TooltipContent>Aperçu live + assistant design : décrivez vos modifications en langage naturel.</TooltipContent>
+        <TooltipContent>{t('studio.shell.livePreviewHint')}</TooltipContent>
       </Tooltip>
     </div>
   );

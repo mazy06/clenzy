@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge, Button } from '../../../components/ui';
@@ -35,15 +36,9 @@ interface ChangePropertyDialogProps {
   ) => Promise<{ success: boolean; error: string | null }>;
 }
 
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  STUDIO: 'Studio',
-  APARTMENT: 'Appartement',
-  LOFT: 'Loft',
-  HOUSE: 'Maison',
-  VILLA: 'Villa',
-  DUPLEX: 'Duplex',
-  PENTHOUSE: 'Penthouse',
-};
+// Les libelles de type de logement vivent deja dans `properties.types.*`, en
+// clefs minuscules. Cette table les redoublait en francais fige : le dialogue
+// affichait « Appartement » sous une interface arabe.
 
 const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
   open,
@@ -53,6 +48,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
   properties,
   onConfirm,
 }) => {
+  const { t } = useTranslation();
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +117,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5 pe-8">
             <span className="inline-flex text-[var(--brand-ink)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
-            Changer de logement
+            {t('planning.panel.changeProperty.title', 'Changer de logement')}
           </DialogTitle>
         </DialogHeader>
 
@@ -129,14 +125,14 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         {/* Current reservation summary */}
         <div className="p-2 rounded-[10px] bg-[var(--pl-surface-2)] border border-[var(--bui-border)] mb-3">
           <span className="cn-text-caption font-bold text-[10.5px] uppercase tracking-[0.05em] text-[var(--faint)]">
-            Reservation actuelle
+            {t('planning.panel.changeProperty.current', 'Réservation actuelle')}
           </span>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold text-[0.8125rem]">
               {reservation.guestName}
             </p>
-            <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="text-[0.625rem] h-[20px]">{t('planning.panel.changeProperty.guests', { count: reservation.guestCount })}</Badge>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="inline-flex text-[var(--muted)]"><Home size={16} strokeWidth={1.75} /></span>
@@ -157,22 +153,22 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         {/* Available properties */}
         <div className="flex items-center justify-between mb-2">
           <h6 className="cn-text-subtitle2 font-bold text-[0.8125rem]">
-            Logements disponibles
+            {t('planning.panel.changeProperty.available', 'Logements disponibles')}
           </h6>
-          <StatusChip size="sm" tokens={{ color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)', bg: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)' }} label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`} className="h-[20px]" />
+          <StatusChip size="sm" tokens={{ color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)', bg: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)' }} label={t('planning.panel.changeProperty.count', { count: compatibleProperties.length })} className="h-[20px]" />
         </div>
 
         {compatibleProperties.length === 0 ? (
           <Alert variant="info" className="text-[0.75rem] mb-3">
             <Info />
-            <AlertDescription>Aucun logement disponible dans la meme ville avec une capacite suffisante pour ces dates.</AlertDescription>
+            <AlertDescription>{t('planning.panel.changeProperty.none')}</AlertDescription>
           </Alert>
         ) : (
           <div className="flex flex-col gap-1.5 mb-3">
             {compatibleProperties.map((property) => {
               const isSelected = selectedPropertyId === property.id;
               const typeLabel = property.type
-                ? PROPERTY_TYPE_LABELS[property.type] || property.type
+                ? t(`properties.types.${property.type.toLowerCase()}`, property.type)
                 : '';
 
               return (
@@ -204,7 +200,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                     {typeLabel && (
                       <Badge variant="outline" className="text-[0.625rem] h-[20px]">{typeLabel}</Badge>
                     )}
-                    <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${property.maxGuests} pers. max`}</Badge>
+                    <Badge variant="outline" className="text-[0.625rem] h-[20px]">{t('planning.panel.changeProperty.maxGuests', { count: property.maxGuests })}</Badge>
                   </div>
                 </div>
               );
@@ -216,8 +212,12 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         {selectedProperty && (
           <Alert variant="info" className="text-[0.75rem] mb-1.5">
             <Info />
-            <AlertDescription>La reservation de <strong>{reservation.guestName}</strong>sera deplacee vers{' '}<strong>{selectedProperty.name}</strong>. Les interventions liees (menage) seront
-            automatiquement deplacees.</AlertDescription>
+            <AlertDescription>
+              {t('planning.panel.changeProperty.moveText', {
+                guest: reservation.guestName,
+                property: selectedProperty.name,
+              })}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -236,7 +236,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             size="sm"
             onClick={handleClose}
           >
-            Annuler
+            {t('planning.panel.changeProperty.cancel', 'Annuler')}
           </Button>
           <Button
             variant="default"
@@ -245,7 +245,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             disabled={!selectedProperty || loading}
           >
             {loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
-            Confirmer le changement
+            {t('planning.panel.changeProperty.confirm', 'Confirmer le changement')}
           </Button>
         </DialogFooter>
       </DialogContent>

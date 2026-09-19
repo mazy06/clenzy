@@ -4,6 +4,7 @@ import { Alert, AlertDescription, Button, Input, Skeleton } from '../../../../co
 import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from 'lucide-react';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, ToggleControl } from './settingsControls';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Section « Diffusion » du Studio (F5) — trois modes réels de mise en ligne :
@@ -16,6 +17,7 @@ export interface DistributionPanelProps {
 }
 
 export default function DistributionPanel({ cfg }: DistributionPanelProps) {
+  const { t } = useTranslation();
   const { config } = cfg;
   const [showKey, setShowKey] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -75,11 +77,11 @@ const properties = await booking.getProperties();`;
   };
 
   return (
-    <SettingsPage title="Diffusion" description="Mettez votre booking engine en ligne : page hébergée, widget ou intégration sur mesure.">
+    <SettingsPage title="Diffusion" description="{t('studio.distribution.subtitle')}">
       <SettingCard title="Statut" description="Tant qu'il est désactivé, le booking engine ne répond pas aux requêtes publiques.">
         <SettingRow
           label="Booking engine actif"
-          helper={config.enabled ? 'En ligne et accessible.' : 'Hors ligne.'}
+          helper={config.enabled ? t('studio.distribution.onlineReachable') : 'Hors ligne.'}
           control={<ToggleControl checked={config.enabled} onChange={onToggle} />}
         />
       </SettingCard>
@@ -91,7 +93,7 @@ const properties = await booking.getProperties();`;
         </Alert>
       )}
 
-      <SettingCard title="Site hébergé" description="Une page de réservation prête à l'emploi, sans rien installer.">
+      <SettingCard title="{t('studio.distribution.hostedSite')}" description="Une page de réservation prête à l'emploi, sans rien installer.">
         <div className="py-2 flex items-center gap-1.5 flex-wrap">
           <div className="inline-flex text-primary"><Globe size={18} strokeWidth={2} /></div>
           <div className="flex-1 min-w-[220px] [font-family:var(--font-mono,_monospace)] text-xs text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
@@ -110,17 +112,17 @@ const properties = await booking.getProperties();`;
         </div>
       </SettingCard>
 
-      <SettingCard title="Widget intégrable" description="Collez ce code dans votre site pour afficher le moteur de réservation.">
+      <SettingCard title="{t('studio.distribution.embeddableWidget')}" description="{t('studio.distribution.embedHint')}">
         <div className="py-2">
           <CodeBlock icon={Code2} code={embedCode} copied={copiedId === 'embed'} onCopy={() => copy('embed', embedCode)} />
-          <div className="text-2xs text-faint mt-2 mb-1">Ou en iframe :</div>
+          <div className="text-2xs text-faint mt-2 mb-1">{t('studio.distribution.orIframe')}</div>
           <CodeBlock code={iframeCode} copied={copiedId === 'iframe'} onCopy={() => copy('iframe', iframeCode)} />
         </div>
       </SettingCard>
 
-      <SettingCard title="SDK & API" description="Pour une intégration sur mesure dans votre application.">
+      <SettingCard title="SDK & API" description="{t('studio.distribution.apiHint')}">
         <SettingRow
-          label="Clé API"
+          label={t('studio.distribution.apiKey')}
           helper="Authentifie vos requêtes. Régénérer invalide l'ancienne clé immédiatement."
           control={
             <div className="flex items-center gap-0.5 w-full">
@@ -133,7 +135,7 @@ const properties = await booking.getProperties();`;
               <IconBtn label={showKey ? 'Masquer' : 'Afficher'} onClick={() => setShowKey((s) => !s)}>
                 {showKey ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
               </IconBtn>
-              <IconBtn label="Copier la clé" onClick={() => copy('key', apiKey)}>
+              <IconBtn label="{t('studio.distribution.copyKey')}" onClick={() => copy('key', apiKey)}>
                 {copiedId === 'key' ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
               </IconBtn>
             </div>
@@ -145,9 +147,9 @@ const properties = await booking.getProperties();`;
         <div className="pb-2.5 flex items-center gap-2 flex-wrap">
           {regenConfirm ? (
             <>
-              <div className="text-xs text-destructive-ink">L'ancienne clé cessera de fonctionner. Confirmer ?</div>
+              <div className="text-xs text-destructive-ink">{t('studio.distribution.regenerateConfirm')}</div>
               <Button type="button" variant="destructive" size="sm" onClick={onRegenerate} disabled={busy} className="cursor-pointer">
-                Oui, régénérer
+                {t('studio.distribution.regenerateYes')}
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => setRegenConfirm(false)} className="cursor-pointer">
                 Annuler
@@ -155,7 +157,7 @@ const properties = await booking.getProperties();`;
             </>
           ) : (
             <Button type="button" variant="outline" size="sm" onClick={() => setRegenConfirm(true)} disabled={busy} className="cursor-pointer">
-              <RefreshCw size={14} strokeWidth={2} /> Régénérer la clé
+              <RefreshCw size={14} strokeWidth={2} /> {t('studio.distribution.regenerate')}
             </Button>
           )}
         </div>

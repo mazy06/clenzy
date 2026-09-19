@@ -16,6 +16,7 @@ import {
   getInterventionPriorityLabel,
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -376,10 +377,10 @@ export function useInterventionsList(enabled = true) {
       {
         key: 'scheduledDate',
         label: 'Date planifiée',
-        formatter: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : ''),
+        formatter: (v: string) => (v ? new Date(v).toLocaleDateString(activeIntlLocale()) : ''),
       },
-      { key: 'estimatedDurationHours', label: 'Durée estimée (h)' },
-      { key: 'progressPercentage', label: 'Progression (%)' },
+      { key: 'estimatedDurationHours', label: t('interventions.export.estimatedDuration') },
+      { key: 'progressPercentage', label: t('interventions.export.progress') },
     ],
     [t],
   );

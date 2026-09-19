@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth, AuthUser } from './useAuth';
+import { useTranslation } from './useTranslation';
 
 export interface LayoutState {
   user: AuthUser | null;
@@ -19,6 +20,7 @@ interface UseLayoutStateReturn extends LayoutState {
 export const useLayoutState = (): UseLayoutStateReturn => {
   const { user, loading: authLoading } = useAuth();
 
+  const { t } = useTranslation();
   const [state, setState] = useState<LayoutState>({
     user: null,
     isAuthenticated: false,
@@ -77,7 +79,7 @@ export const useLayoutState = (): UseLayoutStateReturn => {
         canRender
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du rafraîchissement';
+      const errorMessage = error instanceof Error ? error.message : t('common.refreshError');
       setState(prev => ({
         ...prev,
         loading: false,

@@ -19,6 +19,7 @@ import { Person as PersonIcon, Group as GroupIcon } from '../../icons';
 import type { Team } from '../../services/api';
 import type { User } from '../../services/api/usersApi';
 import type { Intervention } from './useInterventionsList';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface InterventionAssignDialogProps {
   open: boolean;
@@ -38,11 +39,13 @@ interface InterventionAssignDialogProps {
 const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
   open, selectedIntervention, assignType, assignTargetId, teams, availableUsers,
   assignLoading, onClose, onAssign, setAssignType, setAssignTargetId,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
     <DialogContent className="max-w-md">
       <DialogHeader>
-        <DialogTitle className="pe-8">Assigner l'intervention</DialogTitle>
+        <DialogTitle className="pe-8">{t('interventions.assign.title')}</DialogTitle>
         {selectedIntervention && (
           <DialogDescription>{selectedIntervention.title}</DialogDescription>
         )}
@@ -64,17 +67,17 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
       >
         <ToggleGroupItem value="team" className="flex-1">
           <GroupIcon size={18} strokeWidth={1.75} />
-          Équipe
+          {t('interventions.assign.team')}
         </ToggleGroupItem>
         <ToggleGroupItem value="user" className="flex-1">
           <PersonIcon size={18} strokeWidth={1.75} />
-          Utilisateur
+          {t('interventions.assign.user')}
         </ToggleGroupItem>
       </ToggleGroup>
 
       <Field>
         <FieldLabel htmlFor="intervention-assign-target">
-          {assignType === 'team' ? 'Équipe' : 'Utilisateur'}
+          {assignType === 'team' ? t('interventions.assign.team') : t('interventions.assign.user')}
         </FieldLabel>
         {/* Option vide desactivee : le select natif afficherait sinon la premiere
             equipe alors que l'etat vaut encore '' (rien de choisi). */}
@@ -85,7 +88,7 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
           onChange={(e) => setAssignTargetId(e.target.value === '' ? '' : Number(e.target.value))}
         >
           <NativeSelectOption value="" disabled>
-            {assignType === 'team' ? 'Choisir une équipe' : 'Choisir un utilisateur'}
+            {t(assignType === 'team' ? 'interventions.pickTeam' : 'interventions.pickUser')}
           </NativeSelectOption>
           {assignType === 'team'
             ? teams.map((team) => (
@@ -107,18 +110,19 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
 
       <DialogFooter>
         <Button variant="outline" size="sm" onClick={onClose}>
-          Annuler
+          {t('common.cancel')}
         </Button>
         <Button
           size="sm"
           onClick={onAssign}
           disabled={assignTargetId === '' || assignLoading}
         >
-          {assignLoading ? <Spinner className="size-[18px]" /> : 'Assigner'}
+          {assignLoading ? <Spinner className="size-[18px]" /> : t('interventions.assign.submit')}
         </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default InterventionAssignDialog;

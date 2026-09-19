@@ -171,7 +171,7 @@ export default function ChannexImportDiscoveryDialog({
     } catch (err) {
       setError(err instanceof Error
         ? err.message
-        : 'Impossible de detecter les proprietes du hub non encore importees.');
+        : t('channexImport.detectError'));
     } finally {
       setLoading(false);
     }
@@ -198,7 +198,7 @@ export default function ChannexImportDiscoveryDialog({
         if (onImported) onImported();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Le rattachement a echoue.');
+      setError(err instanceof Error ? err.message : t('channexImport.attachFailed'));
     } finally {
       setReattaching(null);
     }
@@ -325,8 +325,8 @@ export default function ChannexImportDiscoveryDialog({
       });
     } catch (err) {
       setError(err instanceof Error
-        ? `Impossible de demarrer la connexion OTA : ${err.message}`
-        : 'Impossible de demarrer la connexion OTA.');
+        ? t('channexImport.otaStartFailedWith', { message: err.message })
+        : t('channexImport.otaStartFailed'));
     } finally {
       setSettingUpOta(null);
     }
@@ -349,7 +349,7 @@ export default function ChannexImportDiscoveryDialog({
     } catch (err) {
       setError(err instanceof Error
         ? err.message
-        : 'Impossible de supprimer ce logement du hub.');
+        : t('channexImport.hubDeleteFailed'));
       setHubDeleteTarget(null);
     } finally {
       setHubDeleting(false);
@@ -363,7 +363,7 @@ export default function ChannexImportDiscoveryDialog({
    */
   const handleApply = async () => {
     if (!hasChanges) {
-      setError('Aucune modification a appliquer.');
+      setError(t('channexImport.noChangeToApply'));
       return;
     }
 
@@ -421,7 +421,7 @@ export default function ChannexImportDiscoveryDialog({
       });
 
       if (disconnectErrors.length > 0) {
-        setError('Certains disconnects ont echoue : ' + disconnectErrors.join(' · '));
+        setError(t('channexImport.someDisconnectsFailed', { list: disconnectErrors.join(' · ') }));
       }
 
       // Refresh : les statuts ont change, recharger la liste
@@ -431,7 +431,7 @@ export default function ChannexImportDiscoveryDialog({
         setTimeout(() => { void refresh(); }, 500);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Echec de l\'operation.');
+      setError(err instanceof Error ? err.message : t('channexImport.operationFailed'));
     } finally {
       setImporting(false);
     }
@@ -499,14 +499,14 @@ export default function ChannexImportDiscoveryDialog({
                   {existing ? `Re-détecter mes annonces ${option.name}` : `Connecter ${option.name}`}
                 </p>
                 {existing && (
-                  <Badge variant="success" className="h-[18px] text-2xs [&>svg]:text-success [&>svg]:ms-0.5"><CheckCircle2 size={11} />Compte autorisé</Badge>
+                  <Badge variant="success" className="h-[18px] text-2xs [&>svg]:text-success [&>svg]:ms-0.5"><CheckCircle2 size={11} />{t('settings.channex.accountAuthorised')}</Badge>
                 )}
               </div>
               <span className="text-xs text-muted-foreground block leading-[1.3]">
                 {isLoading
-                  ? 'Préparation de la connexion…'
+                  ? t('channexImport.preparing')
                   : existing
-                    ? 'Rouvre l\'assistant pour rattacher les annonces ajoutées récemment'
+                    ? t('channexImport.reopenAssistant')
                     : option.description}
               </span>
             </div>
@@ -561,7 +561,7 @@ export default function ChannexImportDiscoveryDialog({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-foreground leading-[1.3] mb-0.5">
-                  Aucun compte OTA n'est encore connecté
+                  {t('settings.channex.noAccountYet')}
                 </p>
                 <span className="text-xs text-muted-foreground block leading-[1.5]">
                   Les {totalInHub} logement{totalInHub > 1 ? 's' : ''} ci-dessous {totalInHub > 1 ? 'viennent' : 'vient'} du
@@ -576,7 +576,7 @@ export default function ChannexImportDiscoveryDialog({
                 aria-expanded={otaPickerExpanded}
                 onClick={() => setOtaPickerExpanded((v) => !v)}
               >
-                {otaPickerExpanded ? 'Masquer' : 'Connecter une plateforme'}
+                {otaPickerExpanded ? t('common.hide') : t('channexImport.connectPlatform')}
               </Button>
             </div>
             {otaPickerExpanded && (
@@ -592,7 +592,7 @@ export default function ChannexImportDiscoveryDialog({
           <div className="flex flex-col items-center justify-center gap-3 py-9">
             <Spinner className="size-6" />
             <p className="text-xs text-muted-foreground">
-              Recherche des proprietes en ligne...
+              {t('settings.channex.searchingOnline')}
             </p>
           </div>
         )}
@@ -631,7 +631,7 @@ export default function ChannexImportDiscoveryDialog({
                 <Info size={24} />
               </div>
               <p className="text-xs font-semibold mb-0.5 text-foreground">
-                Connectez un compte OTA pour importer vos annonces
+                {t('settings.channex.connectAccountToImport')}
               </p>
               <span className="text-xs text-muted-foreground block max-w-[500px] leading-[1.6]">
                 Choisissez la plateforme sur laquelle vos logements sont déjà en ligne.
@@ -649,7 +649,7 @@ export default function ChannexImportDiscoveryDialog({
             {onRequestConnectExisting && (
               <div className="flex flex-row gap-1.5 justify-center mt-3">
                 <span className="text-xs text-muted-foreground self-center">
-                  Ou bien :
+                  {t('settings.channex.orElse')}
                 </span>
                 <Button
                   variant="ghost"
@@ -657,7 +657,7 @@ export default function ChannexImportDiscoveryDialog({
                   onClick={onRequestConnectExisting}
                   className="text-muted-foreground"
                 >
-                  Connecter un logement déjà dans Baitly
+                  {t('settings.channex.connectExistingProperty')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -681,7 +681,7 @@ export default function ChannexImportDiscoveryDialog({
                 <CheckCircle2 size={24} />
               </div>
               <p className="text-xs font-semibold mb-0.5 text-foreground">
-                Tout est synchronise
+                {t('settings.channex.allSynced')}
               </p>
               <span className="text-xs text-muted-foreground block mb-3 max-w-[480px] leading-[1.6]">
                 Vos {totalInHub} propriete{totalInHub > 1 ? 's' : ''} en ligne {totalInHub > 1 ? 'sont' : 'est'} deja
@@ -703,7 +703,7 @@ export default function ChannexImportDiscoveryDialog({
               <>
                 <Separator className="my-3" />
                 <span className="text-xs text-muted-foreground font-semibold block mb-1.5 text-center">
-                  Re-detecter de nouveaux listings ajoutes recemment cote OTA
+                  {t('settings.channex.redetect')}
                 </span>
                 <div className="flex flex-col gap-1.5">
                   {CHANNEX_OTA_OPTIONS
@@ -739,8 +739,8 @@ export default function ChannexImportDiscoveryDialog({
                             </p>
                             <span className="text-xs text-muted-foreground block leading-[1.3]">
                               {isLoading
-                                ? 'Ouverture du widget...'
-                                : 'Rouvre le wizard onglet Listing pour mapper de nouveaux listings'}
+                                ? t('channexImport.openingWidget')
+                                : t('channexImport.reopenWizard')}
                             </span>
                           </div>
                           <div className={cn('shrink-0 flex items-center', !isLoading && 'text-faint')} style={isLoading ? { color: option.brandColor } : undefined}>
@@ -829,7 +829,7 @@ export default function ChannexImportDiscoveryDialog({
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px] flex-wrap">
                         <p className="text-xs font-semibold truncate me-0.5 text-foreground">
-                          {p.title || 'Sans titre'}
+                          {p.title || t('common.untitled')}
                         </p>
                         {p.isImported && (
                           <StatusChip size="sm" tokens={row.selected
@@ -976,7 +976,7 @@ export default function ChannexImportDiscoveryDialog({
                           <NativeSelect
                             size="sm"
                             className="min-w-[130px]"
-                            aria-label="Type de propriete Baitly"
+                            aria-label="{t('settings.channex.baitlyPropertyType')}"
                             value={row.propertyType}
                             onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
                             disabled={!row.selected}
@@ -1010,8 +1010,8 @@ export default function ChannexImportDiscoveryDialog({
                             </TooltipTrigger>
                             <TooltipContent side="top">
                               {hasLinkedOta
-                                ? 'Déconnectez d\'abord la plateforme reliée'
-                                : 'Supprimer du hub'}
+                                ? t('channexImport.disconnectFirst')
+                                : t('channexImport.removeFromHub')}
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -1027,7 +1027,7 @@ export default function ChannexImportDiscoveryDialog({
               <div className="mt-3">
                 <Separator className="mb-1.5" />
                 <span className="text-xs text-muted-foreground font-semibold block mb-0.5">
-                  Detail des cas particuliers
+                  {t('settings.channex.edgeCases')}
                 </span>
                 <div className="flex flex-col gap-[3px]">
                   {importResult.details
@@ -1063,7 +1063,7 @@ export default function ChannexImportDiscoveryDialog({
           {staffMode && diff.toImport.length > 0 ? (
             <div className="flex flex-row items-center gap-1.5 flex-1 min-w-0">
               <span className="text-xs text-muted-foreground font-semibold shrink-0">
-                Attribuer à :
+                {t('settings.channex.assignTo')}
               </span>
               {/* Le placeholder de l'ancien renderValue devient la premiere option. */}
               <NativeSelect
@@ -1073,7 +1073,7 @@ export default function ChannexImportDiscoveryDialog({
                 value={targetOrgId === '' ? '' : String(targetOrgId)}
                 onChange={(e) => setTargetOrgId(e.target.value === '' ? '' : Number(e.target.value))}
               >
-                <NativeSelectOption value="">Mon organisation (par défaut)</NativeSelectOption>
+                <NativeSelectOption value="">{t('settings.channex.myOrganization')}</NativeSelectOption>
                 {organizations.map((o) => (
                   <NativeSelectOption key={o.id} value={o.id}>
                     {o.name}
@@ -1089,7 +1089,7 @@ export default function ChannexImportDiscoveryDialog({
                   onChange={(e) => setTargetOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
                 >
                   <NativeSelectOption value="">
-                    {usersInOrg.length === 0 ? 'Aucun user dans cette org' : 'Choisir un owner'}
+                    {usersInOrg.length === 0 ? t('channexImport.noUserInOrg') : t('channexImport.pickOwner')}
                   </NativeSelectOption>
                   {usersInOrg.map((u) => {
                     const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
@@ -1118,9 +1118,9 @@ export default function ChannexImportDiscoveryDialog({
           >
             {importing ? <Spinner className="size-3" /> : <Download size={14} />}
             {importing
-              ? 'Application en cours...'
+              ? t('channexImport.applying')
               : !hasChanges
-                ? 'Aucune modification'
+                ? t('channexImport.noChange')
                 : diff.toImport.length > 0 && diff.toDisconnect.length > 0
                   ? `Appliquer (${diff.toImport.length} import${diff.toImport.length > 1 ? 's' : ''} · ${diff.toDisconnect.length} desimport${diff.toDisconnect.length > 1 ? 's' : ''})`
                   : diff.toImport.length > 0
@@ -1151,10 +1151,10 @@ export default function ChannexImportDiscoveryDialog({
             </div>
             <div className="min-w-0 flex-1">
               <DialogTitle className="text-sm font-semibold leading-[1.3]">
-                Importer un logement déjà en ligne
+                {t('settings.channex.importOnlineTitle')}
               </DialogTitle>
               <DialogDescription className="text-xs block leading-[1.4]">
-                Détecte les annonces Airbnb, Booking ou Vrbo déjà connues du hub de distribution et pas encore dans Baitly
+                {t('settings.channex.importOnlineSubtitle')}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -1178,12 +1178,12 @@ export default function ChannexImportDiscoveryDialog({
           </div>
           <div className="min-w-0">
             <DialogTitle className="font-semibold leading-[1.3]">
-              Supprimer ce logement du hub&nbsp;?
+              {t('settings.channex.deleteFromHub')}
             </DialogTitle>
           </div>
         </DialogHeader>
         <DialogDescription>
-          <strong>{hubDeleteTarget?.title || 'Ce logement'}</strong> sera définitivement retiré du
+          <strong>{hubDeleteTarget?.title || t('channexImport.thisProperty')}</strong> sera définitivement retiré du
           hub de distribution, avec son type de chambre et son plan tarifaire. Cette action est
           irréversible : pour le remettre en ligne, il faudra le recréer depuis Baitly ou le
           redétecter depuis la plateforme. Aucun logement Baitly n'est touché.
@@ -1204,7 +1204,7 @@ export default function ChannexImportDiscoveryDialog({
             onClick={handleDeleteHubProperty}
           >
             {hubDeleting ? <Spinner className="size-3" /> : <Trash2 size={14} />}
-            {hubDeleting ? 'Suppression…' : 'Supprimer du hub'}
+            {hubDeleting ? t('common.deleting') : t('channexImport.removeFromHub')}
           </Button>
         </DialogFooter>
       </DialogContent>

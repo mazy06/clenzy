@@ -21,7 +21,7 @@ import {
 import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
-import { renderServerEmailPreview } from '../../../utils/emailMarkdown';
+import { renderServerEmailPreview, emailPreviewFontStack } from '../../../utils/emailMarkdown';
 
 interface FeedMessageModalProps {
   /** Id du message à prévisualiser (ouvre la modale quand non-null). */
@@ -30,7 +30,7 @@ interface FeedMessageModalProps {
 }
 
 export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { isDark } = useThemeMode();
   const [loading, setLoading] = useState(false);
   const [subject, setSubject] = useState<string>('');
@@ -68,7 +68,7 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
   // des variables --bui-*. Les teintes sont donc recopiées en dur, mais prises
   // sur la palette (foreground / card / info-ink) — jamais de blanc ni de noir purs.
   const srcDoc = html
-    ? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${
+    ? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:${emailPreviewFontStack(currentLanguage)};font-size:14px;line-height:1.6;color:${
         isDark ? '#D7E1EE' : '#1B2A35'
       };background:${isDark ? '#111B31' : '#FBFCFD'};padding:16px;margin:0;word-wrap:break-word;}a{color:${
         isDark ? '#5B8DF6' : '#1D4ED8'

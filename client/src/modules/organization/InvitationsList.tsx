@@ -3,7 +3,7 @@ import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
+import { getOrgRoleLabel, getOrgRoleLabelKey, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
@@ -43,6 +43,7 @@ const ACTION_BTN_DANGER_CLS =
   'hover:text-destructive-ink hover:border-destructive hover:bg-destructive-soft';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Props {
   organizationId: number;
@@ -75,6 +76,7 @@ const CELL_EMAIL_CLS = 'text-[0.75rem] whitespace-nowrap py-[4.5px] px-1.5';
 const HEAD_CELL_CLS = 'py-[4.5px] px-1.5';
 
 export default function InvitationsList({ organizationId, refreshTrigger }: Props) {
+  const { t } = useTranslation();
   const [invitations, setInvitations] = useState<InvitationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +93,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
       setInvitations(data);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Erreur lors du chargement des invitations.');
+      setError(apiErr.message || t('organization.errors.loadInvitations'));
     } finally {
       setLoading(false);
     }
@@ -145,13 +147,13 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
       await loadInvitations();
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Erreur lors du renvoi.');
+      setError(apiErr.message || t('organization.errors.resend'));
     } finally {
       setActionLoading(null);
     }
   };
 
-  const getRoleLabel = getOrgRoleLabel;
+  const getRoleLabel = (role: string) => t(getOrgRoleLabelKey(role), getOrgRoleLabel(role));
 
   if (loading) {
     return (
@@ -173,7 +175,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
   if (invitations.length === 0) {
     return (
       <p className="text-xs text-muted-foreground py-3 text-center">
-        Aucune invitation envoyee.
+        {t('organizations.invitations.empty')}
       </p>
     );
   }
@@ -311,11 +313,11 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
       open={pendingDeleteId !== null}
       onClose={() => setPendingDeleteId(null)}
       onConfirm={confirmDelete}
-      title="Supprimer cette invitation ?"
+      title={t('organizations.invitations.deleteTitle')}
       message={
         pendingInvitation
-          ? `L'invitation envoyee a ${pendingInvitation.invitedEmail} sera definitivement supprimee. Cette action est irreversible.`
-          : 'Cette invitation sera definitivement supprimee. Cette action est irreversible.'
+          ? t('organizations.invitations.deleteMessage', { email: pendingInvitation.invitedEmail })
+          : t('organizations.invitations.deleteMessageGeneric')
       }
       severity="error"
       confirmText="Supprimer"

@@ -21,6 +21,7 @@ import {
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
 import AiSettingsCard from './AiSettingsCard';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Section "Briefings IA" du panneau /settings → onglet IA.
@@ -44,28 +45,18 @@ interface BriefingPrefs {
   timezone: string;
 }
 
-const FREQUENCY_OPTIONS: Array<{ value: Frequency; label: string; description: string }> = [
-  {
-    value: 'daily_morning',
-    label: 'Tous les matins',
-    description: 'KPIs de la veille + journée du jour + recommandations.',
-  },
-  {
-    value: 'weekly_sunday',
-    label: 'Hebdomadaire (dimanche)',
-    description: 'Revue de la semaine + priorités semaine prochaine.',
-  },
-  {
-    value: 'only_alerts',
-    label: 'Seulement les alertes',
-    description: 'Quotidien, mais envoyé uniquement si une anomalie critique est détectée.',
-  },
+// Les libelles vivent dans les locales : `briefings.frequency.<value>.*` et
+// `briefings.channel.<value>.*`. La table ne porte plus que les valeurs backend.
+const FREQUENCY_OPTIONS: Array<{ value: Frequency }> = [
+  { value: 'daily_morning' },
+  { value: 'weekly_sunday' },
+  { value: 'only_alerts' },
 ];
 
-const CHANNEL_OPTIONS: Array<{ value: string; label: string; description: string }> = [
-  { value: 'in_app', label: 'In-app', description: 'Notification dans Baitly + lien direct vers la conversation.' },
-  { value: 'email', label: 'Email', description: 'Briefing complet envoyé à ton adresse email.' },
-  { value: 'whatsapp', label: 'WhatsApp', description: 'Court résumé via template approuvé.' },
+const CHANNEL_OPTIONS: Array<{ value: string }> = [
+  { value: 'in_app' },
+  { value: 'email' },
+  { value: 'whatsapp' },
 ];
 
 function detectTimezone(): string {
@@ -77,6 +68,7 @@ function detectTimezone(): string {
 }
 
 export const AssistantBriefingPrefs: React.FC = () => {
+  const { t } = useTranslation();
   const { notify } = useNotification();
   const [prefs, setPrefs] = useState<BriefingPrefs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +90,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
       })
       .catch((e) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : 'Chargement impossible');
+        setError(e instanceof Error ? e.message : t('common.loadFailed'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -126,9 +118,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
     try {
       const updated = await apiClient.put<BriefingPrefs>('/assistant/briefings/prefs', prefs);
       setPrefs(updated);
-      notify.success('Préférences de briefing enregistrées.');
+      notify.success(t('briefings.saved'));
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Sauvegarde impossible.');
+      notify.error(e instanceof Error ? e.message : t('common.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -143,10 +135,10 @@ export const AssistantBriefingPrefs: React.FC = () => {
       );
       const channels = result.delivered.length > 0
         ? result.delivered.join(', ')
-        : 'aucun (vérifie tes canaux)';
-      notify.success(`Briefing test envoyé via : ${channels}`);
+        : t('briefings.noChannel');
+      notify.success(t('briefings.testSent', { channels }));
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Trigger test échoué.');
+      notify.error(e instanceof Error ? e.message : t('briefings.testFailed'));
     } finally {
       setTriggering(false);
     }
@@ -162,14 +154,14 @@ export const AssistantBriefingPrefs: React.FC = () => {
   if (error || !prefs) {
     return <Alert variant="destructive">
       <TriangleAlert />
-      <AlertDescription>{error ?? 'Données indisponibles.'}</AlertDescription>
+      <AlertDescription>{error ?? t('common.dataUnavailable')}</AlertDescription>
     </Alert>;
   }
 
   return (
     <AiSettingsCard
-      title="Briefings IA"
-      subtitle="Reçois automatiquement un résumé proactif de ton activité aux horaires choisis. Sans configuration, l'assistant reste réactif uniquement."
+      title={t('briefings.title')}
+      subtitle={t('briefings.subtitle')}
       action={
         <Field orientation="horizontal" className="w-auto gap-1">
           <Switch
@@ -179,7 +171,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
             onCheckedChange={(checked) => update('enabled', checked)}
           />
           <FieldLabel htmlFor="briefing-enabled" className="text-xs font-semibold">
-            {prefs.enabled ? 'Activé' : 'Désactivé'}
+            {prefs.enabled ? t('common.enabled') : t('common.disabled')}
           </FieldLabel>
         </Field>
       }
@@ -192,7 +184,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
               htmlFor="briefing-frequency"
               className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
-              Fréquence
+              {t('settings.assistant.frequency')}
             </FieldLabel>
             <NativeSelect
               id="briefing-frequency"
@@ -202,12 +194,12 @@ export const AssistantBriefingPrefs: React.FC = () => {
             >
               {FREQUENCY_OPTIONS.map((o) => (
                 <NativeSelectOption key={o.value} value={o.value}>
-                  {o.label}
+                  {t('briefings.frequency.' + o.value + '.label')}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
             <FieldDescription className="leading-[1.4]">
-              {FREQUENCY_OPTIONS.find((o) => o.value === prefs.frequency)?.description}
+              {t('briefings.frequency.' + prefs.frequency + '.desc')}
             </FieldDescription>
           </Field>
 
@@ -278,10 +270,10 @@ export const AssistantBriefingPrefs: React.FC = () => {
                   </ItemMedia>
                   <ItemContent className="min-w-0 gap-0.5">
                     <p className="text-xs font-semibold leading-[1.3]">
-                      {opt.label}
+                      {t('briefings.channel.' + opt.value + '.label')}
                     </p>
                     <span className="text-xs text-muted-foreground block leading-[1.4]">
-                      {opt.description}
+                      {t('briefings.channel.' + opt.value + '.desc')}
                     </span>
                   </ItemContent>
                 </Item>
@@ -299,7 +291,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
           onClick={triggerTest}
           disabled={triggering || !prefs.enabled}
         >
-          {triggering ? 'Envoi en cours...' : 'Envoyer un test'}
+          {triggering ? t('briefings.sending') : t('briefings.sendTest')}
         </Button>
         <Button
           onClick={save}

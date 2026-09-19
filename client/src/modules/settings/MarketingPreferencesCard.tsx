@@ -7,6 +7,7 @@ import { useNotification } from '../../hooks/useNotification';
 import { usersApi } from '../../services/api/usersApi';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Section de gestion des preferences marketing — actuellement uniquement
@@ -21,6 +22,7 @@ import SettingsToggleRow from './components/SettingsToggleRow';
  * persistee immediatement (optimistic update + rollback en cas d'erreur).</p>
  */
 export default function MarketingPreferencesCard() {
+  const { t } = useTranslation();
   const { notify } = useNotification();
   const [newsletterOptIn, setNewsletterOptIn] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -31,7 +33,7 @@ export default function MarketingPreferencesCard() {
       const data = await usersApi.getMyMarketingPreferences();
       setNewsletterOptIn(data.newsletterOptIn);
     } catch {
-      setLoadError('Impossible de charger vos préférences marketing.');
+      setLoadError(t('settings.marketing.loadError'));
     }
   }, []);
 
@@ -52,13 +54,13 @@ export default function MarketingPreferencesCard() {
       setNewsletterOptIn(result.newsletterOptIn);
       notify.success(
         next
-          ? 'Vous recevrez désormais notre newsletter.'
-          : 'Vous ne recevrez plus notre newsletter.',
+          ? t('settings.marketing.subscribed')
+          : t('settings.marketing.unsubscribed'),
       );
     } catch {
       // Rollback en cas d'erreur
       setNewsletterOptIn(previous);
-      notify.error('Erreur lors de la sauvegarde. Réessayez.');
+      notify.error(t('settings.marketing.saveError'));
     } finally {
       setSaving(false);
     }
@@ -66,10 +68,10 @@ export default function MarketingPreferencesCard() {
 
   return (
     <SettingsSection
-      title="Préférences marketing"
+      title="{t('settings.marketing.title')}"
       icon={Mail}
       accent="info"
-      description="Communications marketing que vous recevez de Baitly"
+      description="{t('settings.marketing.subtitle')}"
       help="Vous pouvez retirer votre consentement à tout moment, conformément à l'article 7-3 du RGPD."
     >
       {loadError && (
@@ -86,7 +88,7 @@ export default function MarketingPreferencesCard() {
       ) : (
         <SettingsToggleRow
           title="Newsletter Baitly"
-          description="Nouveautés produit, conseils gestion locative, témoignages clients. Environ 1 email par mois."
+          description="{t('settings.marketing.newsletterHint')}"
           checked={!!newsletterOptIn}
           onChange={(checked) => handleToggle(checked)}
           disabled={saving}

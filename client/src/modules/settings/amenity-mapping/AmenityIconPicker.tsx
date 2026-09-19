@@ -214,7 +214,7 @@ export default function AmenityIconPicker({
                 return (
                   <div key={group.id}>
                     <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                      {group.label}
+                      {t('amenityIcons.groups.' + group.id)}
                     </p>
                     <div className="grid grid-cols-[repeat(auto-fill,_minmax(48px,_1fr))] gap-[4.5px]">
                       {group.icons.map((iconName, localIdx) => {

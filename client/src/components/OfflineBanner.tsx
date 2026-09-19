@@ -1,7 +1,7 @@
 import React from 'react';
 import { WifiOff as WifiOffIcon } from '../icons';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Bannière fixe affichée en haut de l'écran lorsque l'utilisateur est hors ligne.

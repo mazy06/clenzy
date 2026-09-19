@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../utils/cn';
 import { Checkbox } from './ui';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   Description,
   Checklist,
@@ -24,7 +25,7 @@ export interface DescriptionNotesDisplayProps {
 // ─── Variant config ─────────────────────────────────────────────────────────
 
 interface VariantConfig {
-  title: string;
+  titleKey: string;
   icon: React.ReactElement;
   bgColor: string;
   borderColor: string;
@@ -37,21 +38,21 @@ interface VariantConfig {
 // être générées pour une valeur calculée.
 const VARIANT_CONFIG: Record<ConsigneVariant, VariantConfig> = {
   cleaning: {
-    title: 'Consignes de ménage',
+    titleKey: 'notes.cleaning',
     icon: <span className="inline-flex text-primary mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>,
     bgColor: 'var(--bui-primary-soft)',
     borderColor: 'color-mix(in srgb, var(--bui-primary) 25%, transparent)',
     accentColor: 'var(--bui-primary)',
   },
   maintenance: {
-    title: 'Consignes de travaux',
+    titleKey: 'notes.maintenance',
     icon: <span className="inline-flex text-warning mt-0 shrink-0"><Build size={16} strokeWidth={1.75} /></span>,
     bgColor: 'var(--bui-warning-soft)',
     borderColor: 'color-mix(in srgb, var(--bui-warning) 25%, transparent)',
     accentColor: 'var(--bui-warning-ink)',
   },
   other: {
-    title: 'Consignes diverses',
+    titleKey: 'notes.other',
     icon: <span className="inline-flex text-muted-foreground mt-0 shrink-0"><MoreHoriz size={16} strokeWidth={1.75} /></span>,
     bgColor: 'var(--bui-card)',
     borderColor: 'var(--bui-border)',
@@ -114,6 +115,7 @@ const TEXT_CLASS = 'text-xs text-muted-foreground leading-[1.4] whitespace-pre-l
 
 const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.memo(
   ({ description, notes, variant = 'cleaning' }) => {
+    const { t } = useTranslation();
     const config = VARIANT_CONFIG[variant];
     const items = notes ? parseNotes(notes) : [];
 
@@ -129,7 +131,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
           <span className="inline-flex text-faint mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
           <div className="flex-1">
             <p className={cn(TITLE_CLASS, 'text-faint')}>
-              Description du logement
+              {t('descriptionNotes.propertyDescription')}
             </p>
             {hasDescription ? (
               <p className={TEXT_CLASS}>
@@ -137,7 +139,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
               </p>
             ) : (
               <p className={cn(TEXT_CLASS, 'italic text-faint')}>
-                Aucune description renseignée
+                {t('descriptionNotes.noDescription')}
               </p>
             )}
           </div>
@@ -151,7 +153,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
           {config.icon}
           <div className="flex-1">
             <p className={TITLE_CLASS} style={{ color: config.accentColor }}>
-              {config.title}
+              {t(config.titleKey)}
             </p>
 
             {hasNotes ? (
@@ -185,7 +187,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
               </div>
             ) : (
               <p className={cn(TEXT_CLASS, 'italic text-faint')}>
-                Aucune consigne renseignée
+                {t('descriptionNotes.noNotes')}
               </p>
             )}
           </div>

@@ -1,3 +1,4 @@
+import { activeIntlLocale } from '../../utils/activeLocale';
 // Helpers de présentation purs partagés par ServiceRequestsList et ses vues
 // (carte / liste). Aucun effet de bord.
 
@@ -17,5 +18,5 @@ export function stripPropertySuffix(title: string, propertyName?: string): strin
 
 export function formatDateShort(dateStr: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }

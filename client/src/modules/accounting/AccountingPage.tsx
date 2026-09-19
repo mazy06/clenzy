@@ -83,6 +83,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../../hooks/useCurrency';
 import { Money } from '../../components/Money';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ const CARD_CLASS = `overflow-x-auto ${PANEL_CLASS}`;
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+  d ? new Date(d).toLocaleDateString(activeIntlLocale()) : '—';
 
 const fmtPercent = (n: number) => `${(n * 100).toFixed(1)}%`;
 
@@ -650,7 +651,7 @@ export const PayoutsTab: React.FC = () => {
               <Table>
                 <TableBody>
                   <TableRow>
-                    <TableCell className={`${DETAIL_LABEL_CLASS} w-[160px]`}>Bénéficiaire</TableCell>
+                    <TableCell className={`${DETAIL_LABEL_CLASS} w-[160px]`}>{t('accounting.beneficiary')}</TableCell>
                     <TableCell className={DETAIL_CELL_CLASS}>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
@@ -662,14 +663,14 @@ export const PayoutsTab: React.FC = () => {
                     <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{config?.bic || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>Méthode</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>{t('common.method')}</TableCell>
                     <TableCell className={DETAIL_CELL_CLASS}>
                       <StatusChip tone="info" label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
                     </TableCell>
                   </TableRow>
                   <TableRow><TableCell colSpan={2} className={`${DETAIL_CELL_CLASS} pt-[12px]`}><Separator /></TableCell></TableRow>
                   <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>Période</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>{t('common.period')}</TableCell>
                     <TableCell className={DETAIL_CELL_CLASS}>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
                   </TableRow>
                   <TableRow>
@@ -681,19 +682,19 @@ export const PayoutsTab: React.FC = () => {
                     <TableCell className={`${DETAIL_CELL_CLASS} text-destructive-ink`}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>Dépenses</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>{t('common.expenses')}</TableCell>
                     <TableCell className={detailPayout.expenses > 0 ? `${DETAIL_CELL_CLASS} text-destructive-ink` : `${DETAIL_CELL_CLASS} text-muted-foreground`}>
                       {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
                     </TableCell>
                   </TableRow>
                   <TableRow><TableCell colSpan={2} className={DETAIL_CELL_CLASS}><Separator /></TableCell></TableRow>
                   <TableRow>
-                    <TableCell className={`${DETAIL_CELL_CLASS} font-bold text-sm`}>Net à virer</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-bold text-sm`}>{t('accounting.netToTransfer')}</TableCell>
                     <TableCell className={`${DETAIL_CELL_CLASS} font-[family-name:var(--font-display)] font-semibold text-sm text-success-ink`}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
                   </TableRow>
                   {detailPayout.paymentReference && (
                     <TableRow>
-                      <TableCell className={DETAIL_LABEL_CLASS}>Réf. paiement</TableCell>
+                      <TableCell className={DETAIL_LABEL_CLASS}>{t('accounting.paymentRef')}</TableCell>
                       <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{detailPayout.paymentReference}</TableCell>
                     </TableRow>
                   )}

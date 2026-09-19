@@ -1,6 +1,5 @@
 import React from 'react';
 import { format, parseISO, isValid, addDays, differenceInCalendarDays } from 'date-fns';
-import { ar, enUS, fr } from 'date-fns/locale';
 import { Badge, Skeleton } from '../../components/ui';
 import { Money } from '../../components/baitly/Money';
 import { SERIES_TOKENS } from '../../components/stats';
@@ -30,6 +29,7 @@ import apiClient from '../../services/apiClient';
 import { FACT_ICON } from './notificationMeta';
 import type { PriceDirection, PriceSegment } from '../supervision/pricingApi';
 import type { Notification } from '../../services/api';
+import { dateFnsLocale } from '../../utils/localeDate';
 
 /**
  * Les creneaux qu'une carte de yield propose de retarifer.
@@ -168,8 +168,10 @@ function Caption({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Table unique des locales date-fns : trois ternaires parallèles finissaient
+// par diverger. Cf. `utils/localeDate`.
 function localeOf(lang: string) {
-  return lang === 'ar' ? ar : lang === 'en' ? enUS : fr;
+  return dateFnsLocale(lang);
 }
 
 /** Les nuits d'un segment. La borne de fin est EXCLUSIVE dans les parametres. */

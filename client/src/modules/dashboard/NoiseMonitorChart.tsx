@@ -33,6 +33,7 @@ import {
 import type { NoiseMonitoringData } from '../../hooks/noiseMonitoring';
 import { NOISE_THRESHOLDS } from '../../hooks/noiseMonitoring';
 import type { TimeWindowThreshold } from './NoiseAlertConfigPanel';
+import { useTranslation } from 'react-i18next';
 
 // ─── Styling constants ──────────────────────────────────────────────────────
 
@@ -69,14 +70,16 @@ const CHART_OVERLAY_PILL_CLASS =
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getNoiseStatus(level: number): { label: string; tone: StatusTone; icon: React.ReactElement } {
+// Rend une CLEF, pas un libellé : la fonction est appelée hors du rendu, et un
+// libellé figé ici resterait français.
+function getNoiseStatus(level: number): { key: string; tone: StatusTone; icon: React.ReactElement } {
   if (level <= NOISE_THRESHOLDS.normal) {
-    return { label: 'Normal', tone: 'ok', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
+    return { key: 'normal', tone: 'ok', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
   }
   if (level <= NOISE_THRESHOLDS.warning) {
-    return { label: 'Élevé', tone: 'warn', icon: <Warning size={14} strokeWidth={1.75} /> };
+    return { key: 'high', tone: 'warn', icon: <Warning size={14} strokeWidth={1.75} /> };
   }
-  return { label: 'Critique', tone: 'err', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
+  return { key: 'critical', tone: 'err', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
 }
 
 const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
@@ -269,6 +272,7 @@ interface NoiseMonitorChartProps {
 }
 
 const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData, activeThresholds, loading = false, variant = 'dashboard' }) => {
+  const { t } = useTranslation();
   const isDevice = variant === 'device';
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
 
@@ -313,9 +317,11 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           <div className="flex items-center gap-1">
             <span className="inline-flex text-primary"><VolumeUp size={16} strokeWidth={1.75} /></span>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
+              {isDevice ? t('noiseMonitor.deviceTitle') : t('noiseMonitor.title')}
             </p>
-            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-primary text-primary px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-primary text-primary px-0.5">{isDevice
+              ? t('noiseMonitor.last24h')
+              : t('noiseMonitor.sensors', { count: data.properties.length })}</Badge>
           </div>
 
           {!isDevice && (
@@ -324,11 +330,11 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             <NativeSelect
               size="sm"
               className="min-w-[130px]"
-              aria-label="Filtrer par logement"
+              aria-label={t('noiseMonitor.filterProperty')}
               value={selectedProperty}
               onChange={(e) => setSelectedProperty(e.target.value)}
             >
-              <NativeSelectOption value="all">Tous les logements</NativeSelectOption>
+              <NativeSelectOption value="all">{t('noiseMonitor.allProperties')}</NativeSelectOption>
               {propertyNames.map(name => (
                 <NativeSelectOption key={name} value={name}>{name}</NativeSelectOption>
               ))}
@@ -447,7 +453,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
               <div className={CHART_OVERLAY_PILL_CLASS}>
                 <Spinner className="size-[22px]" />
                 <span className="text-xs font-semibold text-muted-foreground">
-                  Chargement de l'historique…
+                  {t('noiseMonitor.loadingHistory')}
                 </span>
               </div>
             </div>
@@ -461,10 +467,10 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                   <VolumeUp size={24} strokeWidth={1.5} />
                 </span>
                 <p className="text-xs font-semibold text-foreground">
-                  En attente des premières mesures
+                  {t('noiseMonitor.awaitingTitle')}
                 </p>
                 <span className="text-xs text-muted-foreground leading-[1.4]">
-                  Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
+                  {t('noiseMonitor.awaitingBody')}
                 </span>
               </div>
             </div>

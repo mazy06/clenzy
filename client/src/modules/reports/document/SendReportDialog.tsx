@@ -16,6 +16,7 @@ import {
 import { Plus, TriangleAlert, X } from 'lucide-react';
 import { getParsedAccessToken } from '../../../keycloak';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   reportDocumentsApi,
   type ReportDocumentSummary,
@@ -42,6 +43,7 @@ interface SendReportDialogProps {
 const EMAIL = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/;
 
 const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, onSent }) => {
+  const { t } = useTranslation();
   const own = getParsedAccessToken()?.email as string | undefined;
 
   /** Les adresses proposees, dans l'ordre ou on les coche. */
@@ -50,15 +52,15 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
     if (document?.recipientEmail) {
       list.push({
         email: document.recipientEmail,
-        label: document.recipientName || 'Destinataire du rapport',
+        label: document.recipientName || t('reports.send.reportRecipient'),
         checked: true,
       });
     }
     if (own && own !== document?.recipientEmail) {
-      list.push({ email: own, label: 'Vous, en copie', checked: false });
+      list.push({ email: own, label: t('reports.send.youInCopy'), checked: false });
     }
     return list;
-  }, [document?.recipientEmail, document?.recipientName, own]);
+  }, [document?.recipientEmail, document?.recipientName, own, t]);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [extras, setExtras] = useState<string[]>([]);
@@ -99,7 +101,7 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
     <Dialog open={document != null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle>Envoyer le rapport</DialogTitle>
+          <DialogTitle>{t('reports.send.title')}</DialogTitle>
           <DialogDescription>
             {document?.title}
             {document ? ` · ${document.documentNumber}` : ''}
@@ -121,7 +123,7 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
               <Recipient
                 key={email}
                 email={email}
-                label="Ajoutée à la main"
+                label={t('reports.send.manualAdded')}
                 checked={selected.includes(email)}
                 onToggle={() => toggle(email)}
                 onRemove={() => {
@@ -132,7 +134,7 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
             ))}
             {suggestions.length === 0 && extras.length === 0 && (
               <p className="m-0 text-xs text-muted-foreground">
-                Ce rapport n’a pas de destinataire enregistré. Ajoutez une adresse ci-dessous.
+                {t('reports.send.noRecipient')}
               </p>
             )}
           </div>
@@ -140,7 +142,7 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
           <div className="flex items-center gap-2">
             <Input
               type="email"
-              placeholder="Ajouter une adresse"
+              placeholder={t('reports.send.addAddress')}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -160,7 +162,7 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
             <Alert variant="destructive">
               <TriangleAlert />
               <AlertDescription>
-                L’envoi a échoué. Vérifiez les adresses, puis réessayez.
+                {t('reports.send.sendError')}
               </AlertDescription>
             </Alert>
           )}
@@ -168,8 +170,7 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
           {/* L'envoi vaut relecture : le dire ici, au moment ou la decision se
               prend, et non dans une aide qu'on ne lit pas. */}
           <p className="m-0 text-2xs text-muted-foreground">
-            Le PDF part en pièce jointe, au nom de votre organisation. Le rapport passe alors au
-            statut « envoyé » et ne peut plus être modifié : toute reprise crée une nouvelle version.
+            {t('reports.send.note')}
           </p>
         </div>
 

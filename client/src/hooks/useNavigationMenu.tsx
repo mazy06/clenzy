@@ -50,6 +50,8 @@ import { useSupervisionConfig } from '../modules/supervision/useSupervisionConfi
 import { useSupervisionPendingCounts } from '../modules/supervision/useSupervisionPendingCounts';
 import { useDocumentsFailedCount } from '../modules/documents/useDocumentsFailedCount';
 import { useContactUnreadCount } from './useContactUnreadCount';
+// Hors composant : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../i18n/config';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -510,7 +512,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
 
       return accessibleItems;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la construction du menu';
+      const errorMessage = err instanceof Error ? err.message : i18n.t('navigation.errors.buildMenu');
       setError(errorMessage);
 
       // Retourner un menu de base en cas d'erreur

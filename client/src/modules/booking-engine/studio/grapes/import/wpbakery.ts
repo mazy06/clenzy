@@ -1,5 +1,6 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
 import { sanitizeHtml } from './sanitizeHtml';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur WPBakery / Visual Composer — shortcodes `[vc_row]…`.
@@ -57,12 +58,12 @@ const wpbakeryImporter: TemplateImporter = {
     const report = newReport('wpbakery');
     const src = input ?? '';
     if (!src.trim()) {
-      report.warnings.push('Entrée WPBakery vide.');
+      report.warnings.push(i18n.t('studioImport.wpbakery.empty'));
       return { html: '', report };
     }
     const html = sanitizeHtml(wpbakeryToHtml(src));
     report.warnings.push(
-      'Conversion structurelle WPBakery (sans le CSS du moteur) — fidélité limitée, et les images référencées par id média ne sont pas résolues. Pour un rendu fidèle, importez l’URL de la page publiée.',
+      i18n.t('studioImport.wpbakery.structural'),
     );
     return { html, report };
   },

@@ -221,7 +221,7 @@ function MissionCard({ mission, onOpen }: { mission: Intervention; onOpen: (id: 
       <div className="flex min-w-0 gap-2.5">
         <PropertyBubble mission={mission} />
         <div className="min-w-0 flex-1">
-          <p className="m-0 truncate font-semibold text-foreground">{mission.propertyName}</p>
+          <p dir="auto" className="m-0 truncate font-semibold text-foreground">{mission.propertyName}</p>
           <p className="m-0 truncate text-sm text-muted-foreground">{mission.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1">
             {running && (
@@ -686,7 +686,7 @@ function LegacyMissionProposalsCard() {
               <div className="flex min-w-0 gap-2.5">
                 <PropertyBubble mission={mission} />
                 <div className="min-w-0 flex-1">
-                  <p className="m-0 truncate font-semibold text-foreground">{mission.propertyName}</p>
+                  <p dir="auto" className="m-0 truncate font-semibold text-foreground">{mission.propertyName}</p>
                   <p className="m-0 truncate text-sm text-muted-foreground">{mission.title}</p>
                   <p className="m-0 mt-1 text-sm tabular-nums text-muted-foreground">
                     {formatSlot(mission.scheduledDate, currentLanguage)}
@@ -994,7 +994,7 @@ export function MyWeekCard() {
                     hour: '2-digit', minute: '2-digit',
                   })}
                 </span>
-                <span className="min-w-0 truncate text-sm text-muted-foreground">
+                <span dir="auto" className="min-w-0 truncate text-sm text-muted-foreground">
                   {mission.propertyName}
                 </span>
               </button>

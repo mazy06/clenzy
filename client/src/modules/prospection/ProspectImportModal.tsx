@@ -19,6 +19,7 @@ import {
   CheckCircle,
 } from '../../icons';
 import { useImportProspects } from '../../hooks/useProspects';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -28,16 +29,17 @@ interface ProspectImportModalProps {
 }
 
 const CATEGORY_OPTIONS = [
-  { value: 'CONCIERGERIES', label: 'Conciergeries & Agences' },
-  { value: 'MENAGE', label: 'Societes de menage' },
-  { value: 'ARTISANS', label: 'Artisans & Travaux' },
-  { value: 'ENTRETIEN', label: 'Entretien exterieur' },
-  { value: 'BLANCHISSERIES', label: 'Blanchisseries' },
+  { value: 'CONCIERGERIES', labelKey: 'prospection.categories.CONCIERGERIES' },
+  { value: 'MENAGE', labelKey: 'prospection.categories.MENAGE' },
+  { value: 'ARTISANS', labelKey: 'prospection.categories.ARTISANS' },
+  { value: 'ENTRETIEN', labelKey: 'prospection.categories.ENTRETIEN' },
+  { value: 'BLANCHISSERIES', labelKey: 'prospection.categories.BLANCHISSERIES' },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose }) => {
+  const { t } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -94,7 +96,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
         <DialogHeader className="flex-row items-center gap-1.5 border-b pb-2">
           <CloudUpload className="text-primary" />
           <DialogTitle className="text-sm font-semibold">
-            Importer des prospects
+            {t('prospection.import')}
           </DialogTitle>
         </DialogHeader>
 
@@ -103,7 +105,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           <UiAlert variant="success" className="mb-3">
             <CheckCircle />
             <AlertDescription>
-              <strong>{successCount}</strong> prospects importes avec succes !
+              <strong>{successCount}</strong> {t('prospection.importSuccess')}
             </AlertDescription>
           </UiAlert>
         )}
@@ -112,7 +114,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
         {importMutation.isError && (
           <UiAlert variant="destructive" className="mb-3">
             <TriangleAlert />
-            <AlertDescription>Erreur lors de l&apos;import. Verifiez le format du fichier CSV.</AlertDescription>
+            <AlertDescription>{t('prospection.importError')}</AlertDescription>
           </UiAlert>
         )}
 
@@ -131,7 +133,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
             <NativeSelectOption value="">—</NativeSelectOption>
             {CATEGORY_OPTIONS.map((opt) => (
               <NativeSelectOption key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -175,7 +177,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
             <>
               <span className="inline-flex text-faint mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>
               <p className="text-sm text-muted-foreground">
-                Deposez votre fichier CSV ici
+                {t('prospection.dropCsv')}
               </p>
               <p className="text-xs text-faint">
                 ou cliquez pour parcourir

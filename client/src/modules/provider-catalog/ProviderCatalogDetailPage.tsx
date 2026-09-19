@@ -75,7 +75,7 @@ export default function ProviderCatalogDetailPage() {
         description="Cette fiche n'existe pas ou n'est pas proposée à votre organisation."
         action={
           <Button size="sm" variant="outline" onClick={() => navigate(back)}>
-            Retour au catalogue
+            {t('providerCatalog.back')}
           </Button>
         }
       />
@@ -110,12 +110,12 @@ export default function ProviderCatalogDetailPage() {
                     {provider.displayName}
                   </h2>
                   {provider.verified && (
-                    <StatusChip size="sm" tone="ok" label="Vérifié par Baitly" />
+                    <StatusChip size="sm" tone="ok" label="{t('providerCatalog.verified')}" />
                   )}
                   {provider.acceptsUrgent && (
                     <StatusChip size="sm" tone="warn" label="Accepte l'urgence" />
                   )}
-                  {provider.own && <StatusChip size="sm" tone="accent" label="Votre fiche" />}
+                  {provider.own && <StatusChip size="sm" tone="accent" label="{t('providerCatalog.yourProfile')}" />}
                 </div>
                 {provider.bio && (
                   <p className="m-0 mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
@@ -129,13 +129,13 @@ export default function ProviderCatalogDetailPage() {
           <Card className="shrink-0 gap-0 px-0 py-0">
             <div className="border-b border-border px-4 py-2.5">
               <h2 className="m-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Prestations et tarifs
+                {t('providerCatalog.services')}
               </h2>
             </div>
             <div className="px-4 py-3.5">
               {offersByCategory.length === 0 ? (
                 <p className="m-0 text-sm text-muted-foreground">
-                  Aucune prestation déclarée pour le moment.
+                  {t('providerCatalog.noService')}
                 </p>
               ) : (
                 <div className="flex flex-col gap-4">
@@ -190,7 +190,7 @@ export default function ProviderCatalogDetailPage() {
         <div className="flex flex-col gap-3">
           <Card className="shrink-0 gap-0 px-4 py-3.5">
             <h2 className="m-0 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Où il intervient
+              {t('providerCatalog.coverage')}
             </h2>
             {cities.length > 0 ? (
               <p className="m-0 flex items-start gap-1.5 text-sm text-foreground [&>svg]:mt-0.5 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-primary">
@@ -201,7 +201,7 @@ export default function ProviderCatalogDetailPage() {
                 </span>
               </p>
             ) : (
-              <p className="m-0 text-sm text-muted-foreground">Zone non précisée.</p>
+              <p className="m-0 text-sm text-muted-foreground">{t('providerCatalog.noZone')}</p>
             )}
 
             {provider.languages.length > 0 && (
@@ -220,14 +220,14 @@ export default function ProviderCatalogDetailPage() {
                 une demande de devis tracée, où les deux parties savent qui a
                 contacté qui. Le dire plutôt que laisser chercher. */}
             <p className="m-0 text-sm leading-relaxed text-muted-foreground">
-              {provider.own
-                ? "C'est votre propre fiche : créez directement une intervention."
-                : 'Les coordonnées ne sont pas publiées. Votre demande lui est transmise par Baitly, et vous restez libre d’accepter le montant proposé.'}
+              {t(provider.own
+                ? 'providerCatalog.ownProfileHint'
+                : 'providerCatalog.contactHidden')}
             </p>
             {!provider.own && (
               <Button size="sm" className="mt-3 w-fit" disabled={!!replacementId && (replacement.isError || !replacement.data || !!replacement.data.activeRequestId)} onClick={() => setRequestOpen(true)}>
                 <RequestQuote />
-                Demander un devis
+                {t('providerCatalog.requestQuote')}
               </Button>
             )}
             {replacementId && <p role={replacement.isError ? 'alert' : 'status'} className="mt-2 text-sm text-muted-foreground">

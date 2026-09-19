@@ -4,11 +4,13 @@ import { Button } from './ui';
 import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
 import { useUserPreference } from '../hooks/useUserPreference';
+import { useTranslation } from '../hooks/useTranslation';
 
 const LEGACY_DISMISS_KEY = 'pwa-banner-dismissed-at';
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default function PWAInstallBanner() {
+  const { t } = useTranslation();
   const { canInstall, install } = usePWA();
   // Persiste backend (user_ui_preferences) — la decision "ne pas reproposer
   // l'installation PWA pendant 7j" suit l'utilisateur cross-devices. Note :
@@ -94,7 +96,7 @@ export default function PWAInstallBanner() {
           Installer Baitly PMS
         </p>
         <p className="text-xs text-muted-foreground">
-          Installez l'application sur votre appareil pour un acc&egrave;s rapide.
+          {t('pwa.installHint')}
         </p>
       </div>
       <Button

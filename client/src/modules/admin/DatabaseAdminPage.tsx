@@ -15,6 +15,8 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useNotification } from '../../hooks/useNotification';
 import { databaseAdminApi, BackupInfo } from '../../services/api/databaseAdminApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -26,14 +28,17 @@ function formatFileSize(bytes: number): string {
   return `${size} ${units[i]}`;
 }
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
+// Construit à l'APPEL, pas à l'import : un `Intl` de module se fige sur la
+// langue du chargement et resterait en français après un passage en arabe.
+// `Intl` met déjà ses formateurs en cache en interne.
+const dateTimeFormatter = () => new Intl.DateTimeFormat(activeIntlLocale(), {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
 
 function formatDate(iso: string): string {
   try {
-    return DATE_TIME_FORMATTER.format(new Date(iso));
+    return dateTimeFormatter().format(new Date(iso));
   } catch {
     return iso;
   }
@@ -46,6 +51,7 @@ const handleDownload = (filename: string) => {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const DatabaseAdminPage: React.FC = () => {
+  const { t } = useTranslation();
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -65,7 +71,7 @@ const DatabaseAdminPage: React.FC = () => {
       const data = await databaseAdminApi.listBackups();
       setBackups(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des backups';
+      const message = err instanceof Error ? err.message : t('admin.db.loadError');
       showMessage(message, 'error');
     } finally {
       setLoading(false);
@@ -83,7 +89,7 @@ const DatabaseAdminPage: React.FC = () => {
       showMessage(`Backup cree : ${backup.filename}`, 'success');
       await fetchBackups();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la creation du backup';
+      const message = err instanceof Error ? err.message : t('admin.db.createError');
       showMessage(message, 'error');
     } finally {
       setCreating(false);
@@ -107,8 +113,8 @@ const DatabaseAdminPage: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="Base de donnees"
-        subtitle="Gestion des backups PostgreSQL"
+        title="{t('admin.database.title')}"
+        subtitle="{t('admin.database.subtitle')}"
         iconBadge={<Storage />}
         backPath="/admin"
         showBackButton={false}
@@ -129,7 +135,7 @@ const DatabaseAdminPage: React.FC = () => {
               disabled={creating}
             >
               {creating ? <Spinner className="size-4" /> : <Storage />}
-              {creating ? 'Creation en cours...' : 'Creer un dump'}
+              {creating ? 'Creation en cours...' : t('admin.db.createDump')}
             </Button>
           </div>
         }
@@ -146,7 +152,7 @@ const DatabaseAdminPage: React.FC = () => {
         ) : backups.length === 0 ? (
           <EmptyState
             icon={<Storage />}
-            title="Aucun backup disponible"
+            title="{t('admin.database.empty')}"
             description={'Cliquez sur "Créer un dump" pour générer votre premier backup.'}
             variant="transparent"
           />

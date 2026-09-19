@@ -6,6 +6,8 @@
 
 import type { Reservation } from '../services/api/reservationsApi';
 import type { Property } from '../services/api/propertiesApi';
+// Hors composant : la langue se lit a l'appel, pas au chargement du module.
+import i18n from '../i18n/config';
 import type {
   GlobalKPIs,
   RevenueMetrics,
@@ -349,9 +351,9 @@ export function computeBusinessAlerts(
     alerts.push({
       id: 'alert-gap',
       severity: 'critical',
-      title: 'Nuits vacantes elevees',
-      description: `${occupancy.gapNights} nuits vacantes sur la periode. Action immediate recommandee.`,
-      action: 'Revoir la strategie tarifaire',
+      title: i18n.t('analytics.alerts.gap.title'),
+      description: i18n.t('analytics.alerts.gap.description', { count: occupancy.gapNights }),
+      action: i18n.t('analytics.alerts.gap.action'),
       route: '/properties',
     });
   }
@@ -360,9 +362,9 @@ export function computeBusinessAlerts(
     alerts.push({
       id: 'alert-occ',
       severity: 'critical',
-      title: 'Taux d\'occupation critique',
-      description: `Seulement ${global.occupancyRate.value}% d'occupation. Seuil minimum recommande : 60%.`,
-      action: 'Activer des promotions',
+      title: i18n.t('analytics.alerts.occupancy.title'),
+      description: i18n.t('analytics.alerts.occupancy.description', { rate: global.occupancyRate.value }),
+      action: i18n.t('analytics.alerts.occupancy.action'),
     });
   }
 
@@ -370,9 +372,9 @@ export function computeBusinessAlerts(
     alerts.push({
       id: 'alert-rev',
       severity: 'warning',
-      title: 'Baisse significative des revenus',
-      description: `Revenus en baisse de ${Math.abs(global.totalRevenue.growth)}% vs periode precedente.`,
-      action: 'Analyser les causes',
+      title: i18n.t('analytics.alerts.revenue.title'),
+      description: i18n.t('analytics.alerts.revenue.description', { drop: Math.abs(global.totalRevenue.growth) }),
+      action: i18n.t('analytics.alerts.revenue.action'),
       route: '/reports',
     });
   }
@@ -381,9 +383,9 @@ export function computeBusinessAlerts(
     alerts.push({
       id: 'alert-margin',
       severity: 'warning',
-      title: 'Marge nette insuffisante',
-      description: `Marge nette de ${global.netMargin.value}%. Objectif minimum : 60%.`,
-      action: 'Optimiser les couts',
+      title: i18n.t('analytics.alerts.margin.title'),
+      description: i18n.t('analytics.alerts.margin.description', { margin: global.netMargin.value }),
+      action: i18n.t('analytics.alerts.margin.action'),
     });
   }
 
@@ -392,9 +394,9 @@ export function computeBusinessAlerts(
     alerts.push({
       id: `alert-prop-${p.propertyId}`,
       severity: 'info',
-      title: `${p.name} — occupation tres basse`,
-      description: `${p.occupancyRate}% d'occupation. Revoir l'annonce ou le prix.`,
-      action: 'Revoir le listing',
+      title: i18n.t('analytics.alerts.property.title', { name: p.name }),
+      description: i18n.t('analytics.alerts.property.description', { rate: p.occupancyRate }),
+      action: i18n.t('analytics.alerts.property.action'),
       route: `/properties/${p.propertyId}`,
     });
   }

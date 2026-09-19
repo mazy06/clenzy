@@ -22,6 +22,8 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -59,7 +61,7 @@ const CHANNEL_TOKEN: Record<string, { fg: string; bg: string }> = {
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /**
@@ -84,6 +86,7 @@ interface GuestsListPageProps {
 }
 
 const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
@@ -188,7 +191,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       {isError && (
         <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
-          <AlertDescription>{error instanceof Error ? error.message : 'Erreur lors du chargement des voyageurs'}</AlertDescription>
+          <AlertDescription>{error instanceof Error ? error.message : t('guests.errors.load')}</AlertDescription>
         </Alert>
       )}
 
@@ -197,7 +200,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         searchQuery || channelFilter ? (
           <EmptyState
             icon={<PeopleIcon />}
-            title="Aucun voyageur ne correspond aux filtres"
+            title="{t('guests.noMatch')}"
             description={'Essayez d\'élargir la recherche ou de retirer le filtre canal.'}
           />
         ) : (
@@ -205,11 +208,11 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
           // les fiches naissent des reservations, on y oriente.
           <ShowcaseEmpty
             eyebrow={{ icon: <PeopleIcon size={14} strokeWidth={1.75} />, label: 'Voyageurs' }}
-            title="Chaque voyageur, son historique et ses préférences au même endroit"
-            description="Les fiches se créent toutes seules à partir des réservations, quel que soit le canal d’origine."
+            title="{t('guests.subtitle')}"
+            description="{t('guests.emptyHint')}"
             action={
               <Button onClick={() => navigate('/reservations')}>
-                Importer mes réservations
+                {t('guests.importBookings')}
               </Button>
             }
           />
@@ -228,7 +231,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                   <TableHead>Canal</TableHead>
                   <TableHead className="text-end">Sejours</TableHead>
                   <TableHead className="text-end">Valeur vie</TableHead>
-                  <TableHead>Cree le</TableHead>
+                  <TableHead>{t('guests.createdOn')}</TableHead>
                   {isSuperAdmin && (
                     <TableHead>Organisation</TableHead>
                   )}
@@ -245,7 +248,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                         <GuestAvatar name={guest.fullName || '?'} photoUrl={guestPhotoSrc(guest.avatarUrl)} size={28} />
                         <span className="min-w-0">
                           <span className="flex items-center gap-1.5">
-                            <span className="truncate text-[13px] font-medium text-foreground">{guest.fullName}</span>
+                            <span dir="auto" className="truncate text-[13px] font-medium text-foreground">{guest.fullName}</span>
                             {(() => {
                               const seg = segmentOf(guest);
                               return seg ? <StatusChip tone={seg.tone} label={seg.label} size="sm" /> : null;

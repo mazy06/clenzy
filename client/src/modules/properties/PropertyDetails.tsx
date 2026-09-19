@@ -97,6 +97,7 @@ import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { useQuery } from '@tanstack/react-query';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Gabarits de la fiche bien (Baitly UI) ──────────────────────────────────
 
@@ -868,7 +869,7 @@ const PropertyDetails: React.FC = () => {
                       <span className={INFO_ICON_CLASS}><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
                         <p className={INFO_LABEL_CLASS}>{t('channels.syncStatus.lastSync')}</p>
-                        <p className={INFO_VALUE_CLASS}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</p>
+                        <p className={INFO_VALUE_CLASS}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString(activeIntlLocale())}</p>
                       </div>
                     </div>
                   )}

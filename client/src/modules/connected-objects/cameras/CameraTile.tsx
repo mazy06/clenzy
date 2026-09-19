@@ -4,6 +4,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const ACCENT = '#C97A7A'; // argile Baitly (couleur du type « caméra »)
 const FEED_BG = '#10171C'; // surface « feed » très sombre, tintée bleu-gris (jamais #000)
@@ -32,6 +33,7 @@ interface CameraTileProps {
  * la source. Mémoïsée : seules les tuiles dont une prop change re-rendent à chaque bascule.
  */
 function CameraTile({ camera, active, onToggle, onDelete, acting = false }: CameraTileProps) {
+  const { t } = useTranslation();
   const feedRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [posterOk, setPosterOk] = useState(true);
@@ -113,7 +115,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               />
             ) : (
               <div className="relative z-[2] text-center px-3">
-                <p className="text-2xs text-[color-mix(in_srgb,#F4F7F9_70%,transparent)]">Flux indisponible — passerelle média non configurée.</p>
+                <p className="text-2xs text-[color-mix(in_srgb,#F4F7F9_70%,transparent)]">{t('connectedObjects.cameras.streamUnavailable')}</p>
               </div>
             )
           ) : (
@@ -126,7 +128,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         ) : (
           <div className="relative z-[2] flex flex-col items-center gap-[3px] text-[color-mix(in_srgb,#F4F7F9_45%,transparent)]">
             <WifiOff size={22} />
-            <p className="text-2xs">Caméra injoignable</p>
+            <p className="text-2xs">{t('connectedObjects.cameras.unreachable')}</p>
           </div>
         )}
 
@@ -139,7 +141,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Quitter le plein écran"
+                  aria-label={t('connectedObjects.cameras.exitFullscreen')}
                   onClick={(e) => { e.stopPropagation(); void document.exitFullscreen?.(); }}
                   className="rounded-full text-[#F4F7F9] bg-[color-mix(in_srgb,#0C1216_60%,transparent)] hover:bg-[color-mix(in_srgb,#C97A7A_92%,transparent)] hover:text-[#F4F7F9]"
                 >
@@ -147,13 +149,13 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Quitter le plein écran</TooltipContent>
+            <TooltipContent>{t('connectedObjects.cameras.exitFullscreen')}</TooltipContent>
           </Tooltip>
         )}
 
         {/* Overlay bas : nom + pièce */}
         <div className="absolute start-[10px] end-[10px] bottom-[8px] z-[2]">
-          <p className="text-[#F4F7F9] font-bold text-[0.8rem] leading-[1.2] overflow-hidden text-ellipsis whitespace-nowrap" style={{ textShadow: '0 1px 4px rgba(12,18,22,0.7)' }}>
+          <p dir="auto" className="text-[#F4F7F9] font-bold text-[0.8rem] leading-[1.2] overflow-hidden text-ellipsis whitespace-nowrap" style={{ textShadow: '0 1px 4px rgba(12,18,22,0.7)' }}>
             {name}
           </p>
           {roomName && (
@@ -175,7 +177,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={active ? 'Arrêter la lecture' : 'Lancer la lecture'}
+                    aria-label={active ? t('connectedObjects.camera.stop') : t('connectedObjects.camera.play')}
                     onClick={() => onToggle(id)}
                     className={cn('hover:text-[#C97A7A]', active ? 'text-[#C97A7A]' : 'text-muted-foreground')}
                   >
@@ -183,7 +185,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{active ? 'Arrêter la lecture' : 'Lancer la lecture'}</TooltipContent>
+              <TooltipContent>{active ? t('connectedObjects.camera.stop') : t('connectedObjects.camera.play')}</TooltipContent>
             </Tooltip>
           )}
           <Tooltip>
@@ -192,7 +194,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Plein écran"
+                  aria-label={t('connectedObjects.cameras.fullscreen')}
                   disabled={!active || !camera.webrtcUrl}
                   onClick={toggleFullscreen}
                   className="text-muted-foreground hover:text-[#C97A7A]"
@@ -202,7 +204,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              {isFullscreen ? 'Quitter le plein écran' : (active ? 'Plein écran' : 'Lancez la lecture pour le plein écran')}
+              {isFullscreen ? 'Quitter le plein écran' : (active ? 'Plein écran' : t('connectedObjects.camera.playForFullscreen'))}
             </TooltipContent>
           </Tooltip>
           {onDelete && (

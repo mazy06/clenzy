@@ -26,6 +26,7 @@ import {
 } from '../../../icons';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
 import ServiceTooltip from './ServiceTooltip';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Card generique pour les providers de signature electronique en OAuth2
@@ -108,6 +109,7 @@ export default function OAuthProviderCard({
   serviceTooltipId,
   labels = {},
 }: OAuthProviderCardProps) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<OAuthCardStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [notConfigured, setNotConfigured] = useState(false);
@@ -190,13 +192,13 @@ export default function OAuthProviderCard({
   const isError = status?.status === 'ERROR';
 
   const statusChip = notConfigured ? (
-    <StatusChip tone="neutral" label={labels.notConfigured ?? 'Non configuré'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone="neutral" label={labels.notConfigured ?? t('settings.integrations.status.notConfigured2')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isError ? (
     <StatusChip tone="err" label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <StatusChip tone="ok" label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+    <StatusChip tone="ok" label={t('settings.integrations.status.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <StatusChip tone="neutral" label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone="neutral" label={t('settings.integrations.status.notConnected')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   const connectTooltip = mainActionDisabled
@@ -215,14 +217,14 @@ export default function OAuthProviderCard({
             size="icon-sm"
             onClick={() => setDisconnectOpen(true)}
             disabled={actionLoading}
-            aria-label={labels.disconnect ?? `Déconnecter ${label}`}
+            aria-label={labels.disconnect ?? t('settings.integrations.disconnectProvider', { provider: label })}
             className="text-muted-foreground hover:bg-destructive-soft hover:text-destructive-ink"
           >
             <LinkOffIcon size={16} strokeWidth={2} />
           </Button>
         </span>
       </TooltipTrigger>
-      <TooltipContent>{labels.disconnect ?? `Déconnecter ${label}`}</TooltipContent>
+      <TooltipContent>{labels.disconnect ?? t('settings.integrations.disconnectProvider', { provider: label })}</TooltipContent>
     </Tooltip>
   ) : (
     <Tooltip>
@@ -288,7 +290,7 @@ export default function OAuthProviderCard({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Fermer le message"
+                aria-label={t('settings.integrations.closeMessage')}
                 onClick={() => setMessage(null)}
               >
                 <X size={14} strokeWidth={2} />
@@ -302,7 +304,7 @@ export default function OAuthProviderCard({
       <Dialog open={disconnectOpen} onOpenChange={(next) => !next && setDisconnectOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{labels.confirmDisconnect ?? `Déconnecter ${label} ?`}</DialogTitle>
+            <DialogTitle>{labels.confirmDisconnect ?? t('settings.integrations.disconnectProviderConfirm', { provider: label })}</DialogTitle>
             <DialogDescription>
               {labels.confirmDisconnectMessage ??
                 `Cette action révoquera le token et déconnectera ${label} de votre organisation. Vous pourrez vous reconnecter à tout moment.`}
@@ -317,7 +319,7 @@ export default function OAuthProviderCard({
               variant="destructive"
               disabled={actionLoading}
             >
-              {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? 'Déconnecter')}
+              {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? t('settings.integrations.disconnect'))}
             </Button>
           </DialogFooter>
         </DialogContent>

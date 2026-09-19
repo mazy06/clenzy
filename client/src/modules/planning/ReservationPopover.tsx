@@ -6,8 +6,7 @@ import {
   PopoverAnchor,
   PopoverContent,
 } from '../../components/ui';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import {
   Home,
   CalendarMonth,
@@ -17,16 +16,14 @@ import {
   ChatBubbleOutline,
   Visibility,
 } from '../../icons';
-import {
-  RESERVATION_STATUS_LABELS,
-  RESERVATION_SOURCE_LABELS,
-} from '../../services/api/reservationsApi';
+import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import type { ReservationStatus } from '../../services/api';
 import GuestAvatar from '../../components/GuestAvatar';
 import type { PlanningEvent } from './types';
 import { RESERVATION_STATUS_TOKEN_COLORS } from './constants';
 import { getSourceLogo } from './utils/sourceLogos';
 import { toDate, daysBetween } from './utils/dateUtils';
+import { useDateFormat, type DateFormatApi } from '../../hooks/useDateFormat';
 
 // ─── Popover réservation (maquette Signature) ────────────────────────────────
 //
@@ -36,17 +33,30 @@ import { toDate, daysBetween } from './utils/dateUtils';
 // « Détail » (panneau de détail existant). N'affiche QUE des données déjà
 // présentes sur l'objet réservation — une ligne sans donnée est omise.
 
-/** Format séjour maquette : « 10 → 13 févr. · 3n » (mois sur le départ,
- *  répété sur l'arrivée uniquement si différent). */
-function formatStay(startStr: string, endStr: string): string {
+/**
+ * Format séjour maquette : « 10 → 13 févr. · 3n » (mois porté par le départ,
+ * répété sur l'arrivée seulement s'il diffère).
+ *
+ * <p>« Même mois » se juge dans le calendrier AFFICHÉ : en arabe, deux dates du
+ * même mois grégorien peuvent tomber dans deux mois hégiriens — le mois doit
+ * alors être rappelé sur l'arrivée, sans quoi le séjour se lirait
+ * « 28 → 2 Chaabane ».</p>
+ */
+function formatStay(
+  startStr: string,
+  endStr: string,
+  fmt: DateFormatApi,
+  nightsSuffix: string,
+): string {
   const start = toDate(startStr);
   const end = toDate(endStr);
   const nights = Math.max(1, daysBetween(start, end));
-  const sameMonth =
-    start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
-  const startLabel = sameMonth ? format(start, 'd') : format(start, 'd MMM', { locale: fr });
-  const endLabel = format(end, 'd MMM', { locale: fr });
-  return `${startLabel} → ${endLabel} · ${nights}n`;
+  const startParts = fmt.toDisplayParts(start);
+  const endParts = fmt.toDisplayParts(end);
+  const sameMonth = startParts.month === endParts.month && startParts.year === endParts.year;
+  const startLabel = sameMonth ? fmt.formatDayNumber(start) : fmt.formatDayMonth(start);
+  const endLabel = fmt.formatDayMonth(end);
+  return `${startLabel} → ${endLabel} · ${nights}${nightsSuffix}`;
 }
 
 const ROW_LABEL_FS = '0.6875rem';
@@ -104,11 +114,12 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
   onDetail,
   onMessage,
 }) => {
+  const { t } = useTranslation();
+  const fmt = useDateFormat();
   const reservation = event.reservation;
   if (!reservation) return null;
 
-  const statusLabel =
-    RESERVATION_STATUS_LABELS[event.status as ReservationStatus] ?? event.status;
+  const statusLabel = t(`planning.legend.status.${event.status}`, event.status);
   const statusColor = RESERVATION_STATUS_TOKEN_COLORS[event.status] ?? 'var(--ink)';
   const channelLabel =
     reservation.sourceName
@@ -120,9 +131,9 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
   // Paiement : uniquement depuis les flags déjà calculés sur l'évènement —
   // PAID explicite → Réglé ; pastille paiement active → En attente ; sinon omis.
   const payment = reservation.paymentStatus === 'PAID'
-    ? { label: 'Réglé', color: 'var(--ok)' }
+    ? { label: t('planning.popover.paid', 'Réglé'), color: 'var(--ok)' }
     : event.needsPaymentBadge
-      ? { label: 'En attente', color: 'var(--warn)' }
+      ? { label: t('planning.popover.paymentPending', 'En attente'), color: 'var(--warn)' }
       : null;
 
   return (
@@ -134,7 +145,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       <PopoverContent
         side="bottom"
         align="center"
-        aria-label="Récapitulatif de la réservation"
+        aria-label={t('planning.popover.reservationSummary', 'Récapitulatif de la réservation')}
         collisionPadding={8}
         className="w-[290px] max-w-[calc(100vw-16px)] gap-0 p-0 rounded-[14px] border border-solid border-[var(--bui-border)] bg-[var(--bui-card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
       >
@@ -149,7 +160,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
           sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8125rem' }}
         />
         <div className="min-w-0 flex-1">
-          <span className="block text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+          <span dir="auto" className="block text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {event.label}
           </span>
           <div className="flex items-center gap-[3px] mt-0.5">
@@ -169,39 +180,39 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
           icon={
             <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: statusColor }} />
           }
-          label="Statut"
+          label={t('planning.popover.status', 'Statut')}
           value={statusLabel}
           valueColor={statusColor}
         />
         <InfoRow
           icon={<Home size={ICON_SIZE} strokeWidth={1.75} />}
-          label="Logement"
+          label={t('planning.popover.property', 'Logement')}
           value={reservation.propertyName}
         />
         <InfoRow
           icon={<CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />}
-          label="Séjour"
-          value={formatStay(event.startDate, event.endDate)}
+          label={t('planning.popover.stay', 'Séjour')}
+          value={formatStay(event.startDate, event.endDate, fmt, t('planning.popover.nightsSuffix', 'n'))}
         />
         {checkInTime && (
           <InfoRow
             icon={<Login size={ICON_SIZE} strokeWidth={1.75} />}
-            label="Check-in"
+            label={t('planning.popover.checkIn', 'Check-in')}
             value={checkInTime}
           />
         )}
         {hasLinkedCleaning && (
           <InfoRow
             icon={<CleaningServices size={ICON_SIZE} strokeWidth={1.75} />}
-            label="Ménage"
-            value="après départ"
+            label={t('planning.popover.cleaning', 'Ménage')}
+            value={t('planning.popover.afterCheckout', 'après départ')}
             valueColor="var(--info)"
           />
         )}
         {payment && (
           <InfoRow
             icon={<CreditCard size={ICON_SIZE} strokeWidth={1.75} />}
-            label="Paiement"
+            label={t('planning.popover.payment', 'Paiement')}
             value={payment.label}
             valueColor={payment.color}
           />
@@ -214,13 +225,13 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
         <Button variant="outline" size="sm" className="w-full shrink" onClick={onMessage}>
           <ChatBubbleOutline size={ICON_SIZE} strokeWidth={1.75} />
-          Message
+          {t('planning.popover.message', 'Message')}
         </Button>
         {/* L'ancien sx teintait ce bouton en accent : c'est l'action attendue au clic
             sur une brique — donc `default` et non un second `outline`. */}
         <Button size="sm" className="w-full shrink" onClick={onDetail}>
           <Visibility size={ICON_SIZE} strokeWidth={1.75} />
-          Détail
+          {t('planning.popover.detail', 'Détail')}
         </Button>
       </div>
       </PopoverContent>

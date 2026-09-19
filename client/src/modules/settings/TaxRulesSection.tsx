@@ -242,7 +242,9 @@ const TaxRulesSection: React.FC = () => {
               onChange={(e) => setSelectedCountry(e.target.value)}
             >
               {COUNTRY_OPTIONS.map(c => (
-                <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                <NativeSelectOption key={c.code} value={c.code}>
+                  {t(`countries.${c.code}`, c.label)}
+                </NativeSelectOption>
               ))}
             </NativeSelect>
 
@@ -410,7 +412,9 @@ const TaxRulesSection: React.FC = () => {
               onChange={(e) => handleFormChange('countryCode', e.target.value)}
             >
               {COUNTRY_OPTIONS.map(c => (
-                <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                <NativeSelectOption key={c.code} value={c.code}>
+                  {t(`countries.${c.code}`, c.label)}
+                </NativeSelectOption>
               ))}
             </NativeSelect>
           </Field>

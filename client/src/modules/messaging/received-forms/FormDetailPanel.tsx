@@ -48,6 +48,7 @@ import { documentsApi } from '../../../services/api/documentsApi';
 import { useNotification } from '../../../hooks/useNotification';
 import FormPayloadSections from './FormDetailSections';
 import { EMAIL_RE, STATUS_PILL, formatFormDate } from './formatters';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /** Map type de formulaire → documentType serveur (parité ReceivedFormsTab). */
 const FORM_TO_DOC_TYPE: Record<string, string> = {
@@ -71,6 +72,7 @@ interface FormDetailPanelProps {
  * documents API) — aucun nouvel endpoint.
  */
 export default function FormDetailPanel({ form, showBack = false, onBack }: FormDetailPanelProps) {
+  const { t } = useTranslation();
   // Éditeur de renvoi du devis (objet + corps modifiables avant envoi).
   const [resend, setResend] = useState<{
     open: boolean; subject: string; body: string; loading: boolean;
@@ -122,7 +124,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         createdAt: gen.createdAt,
       });
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Impossible de charger le document');
+      notify.error(e instanceof Error ? e.message : t('documents.loadFailed'));
     }
   };
 
@@ -140,7 +142,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
     const { send = false, forceResend = false, overrides } = opts;
     const tpl = findActiveTemplate(form.formType);
     if (!tpl) {
-      notify.error('Aucun template actif trouvé pour ce type de formulaire');
+      notify.error(t('receivedForms.noActiveTemplate'));
       return;
     }
     const emailTo = form.email?.trim() || '';
@@ -161,7 +163,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         if (!send) {
           notify.success("PDF généré — non envoyé. Utilisez « Renvoyer » pour l'adresser au client.");
         } else if (!hasValidEmail) {
-          notify.warning('PDF généré, mais email non envoyé : adresse manquante ou invalide.');
+          notify.warning(t('receivedForms.pdfNoEmail'));
         } else if (generation.emailStatus === 'SKIPPED') {
           notify.info(`Le devis avait déjà été envoyé à ${emailTo}.`);
         } else if (generation.emailStatus === 'FAILED') {
@@ -171,10 +173,10 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         }
         await openPreview({ id: generation.id, fileName: generation.fileName, createdAt: generation.createdAt });
       } else {
-        notify.error('Génération impossible — vérifie que le template DEVIS est compatible avec ce type de formulaire');
+        notify.error(t('receivedForms.templateIncompatible'));
       }
     } catch (err) {
-      notify.error(err instanceof Error ? err.message : 'Erreur lors de la génération du PDF');
+      notify.error(err instanceof Error ? err.message : t('receivedForms.pdfError'));
     }
   };
 
@@ -228,7 +230,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               <h2 className="cn-font-heading truncate text-lg font-semibold text-foreground">
                 {form.fullName || 'Anonyme'}
               </h2>
-              <Badge variant={pill.variant}>{pill.label}</Badge>
+              <Badge variant={pill.variant}>{t(pill.labelKey)}</Badge>
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {form.subject || `Formulaire #${form.id}`}
@@ -288,7 +290,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                   {generateDocumentMutation.isPending
                     ? <Spinner className="size-[13px]" />
                     : <FileTextIcon size={15} strokeWidth={1.75} />}
-                  {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
+                  {generateDocumentMutation.isPending ? t('common.generating') : t('receivedForms.generatePdf')}
                 </Button>
               </span>
             </TooltipTrigger>
@@ -321,7 +323,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             disabled={updateStatusMutation.isPending}
           >
             <CheckCircleIcon size={15} strokeWidth={1.75} />
-            Marquer traité
+            {t('receivedForms.markHandled')}
           </Button>
         )}
         {form.status !== 'ARCHIVED' ? (
@@ -346,7 +348,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         )}
         {!tpl && form.formType === 'DEVIS' && (
           <p className="min-w-[200px] flex-1 text-xs italic text-faint">
-            Aucun template DEVIS actif — ajoute-en un dans Documents &amp; Communications pour activer la génération PDF.
+            {t('receivedForms.noQuoteTemplate')}
           </p>
         )}
       </div>
@@ -441,20 +443,20 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Ouvrir dans un nouvel onglet"
+                      aria-label={t('receivedForms.openNewTab')}
                       onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
                     >
                       <OpenInNewIcon size={16} strokeWidth={1.75} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
+                  <TooltipContent>{t('receivedForms.openNewTab')}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Télécharger"
+                      aria-label={t('receivedForms.download')}
                       onClick={() => {
                         if (!previewMeta) return;
                         const link = document.createElement('a');
@@ -468,7 +470,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                       <DownloadIcon size={16} strokeWidth={1.75} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Télécharger</TooltipContent>
+                  <TooltipContent>{t('receivedForms.download')}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -498,7 +500,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-bold text-[1rem]">
-            Renvoyer le devis
+            {t('receivedForms.resendQuote')}
           </DialogTitle>
           {form.email ? (
             <DialogDescription className="text-sm text-muted-foreground">
@@ -523,7 +525,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="resend-quote-body">Corps du message</FieldLabel>
+                <FieldLabel htmlFor="resend-quote-body">{t('receivedForms.messageBody')}</FieldLabel>
                 {/* Le primitif pose field-sizing:content, qui neutralise `rows` :
                     la hauteur de 6 lignes est garantie par min-h. */}
                 <Textarea
@@ -533,7 +535,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                   onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
                 />
                 <FieldDescription>
-                  Conservez, modifiez ou videz le contenu. Le PDF du devis est joint automatiquement.
+                  {t('receivedForms.messageBodyHint')}
                 </FieldDescription>
               </Field>
             </>
@@ -546,7 +548,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             onClick={() => setResend((r) => ({ ...r, body: '' }))}
             disabled={resend.loading}
           >
-            Vider le contenu
+            {t('receivedForms.clearContent')}
           </Button>
           <Button variant="ghost" onClick={() => setResend((r) => ({ ...r, open: false }))}>
             Annuler
@@ -573,7 +575,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               <AlertTriangleIcon size={18} strokeWidth={1.75} />
             </span>
             <DialogTitle className="text-base font-semibold text-destructive-ink">
-              Échec de génération
+              {t('receivedForms.generationFailed')}
             </DialogTitle>
           </DialogHeader>
           <div>

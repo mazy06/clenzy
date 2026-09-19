@@ -73,7 +73,7 @@ export default function CamerasScreen() {
   const addButton = (
     <Button size="sm" onClick={() => setWizardOpen(true)}>
       <Add size={16} strokeWidth={2} />
-      Ajouter une caméra
+      {t('connectedObjects.cameras.add')}
     </Button>
   );
 
@@ -94,8 +94,9 @@ export default function CamerasScreen() {
       <Alert variant="info" className="mb-[9px]">
         <Info size={16} strokeWidth={1.75} />
         <AlertDescription className="text-xs">
-          Cliquez sur une caméra pour lancer la <strong>lecture en direct</strong>. Une seule lecture à la fois
-          (performances) : ouvrir une autre caméra arrête la précédente. <strong>RTSP recommandé</strong> pour une lecture fluide.
+          {t('connectedObjects.cameras.hintHead')} <strong>{t('connectedObjects.cameras.livePlayback')}</strong>.{' '}
+          {t('connectedObjects.cameras.hintMiddle')} <strong>{t('connectedObjects.cameras.rtspRecommended')}</strong>{' '}
+          {t('connectedObjects.cameras.hintTail')}
         </AlertDescription>
       </Alert>
 
@@ -106,8 +107,8 @@ export default function CamerasScreen() {
       ) : cameras.length === 0 ? (
         <EmptyState
           icon={<PhotoCamera />}
-          title="Aucune caméra pour l'instant"
-          description="Ajoutez une caméra via son flux RTSP (caméra IP) ou une URL HTTP/HLS pour superviser vos logements en direct."
+          title={t('connectedObjects.cameras.empty')}
+          description={t('connectedObjects.cameras.emptyHint')}
           action={addButton}
         />
       ) : (
@@ -140,9 +141,9 @@ export default function CamerasScreen() {
         open={pendingDeleteId != null}
         onClose={() => setPendingDeleteId(null)}
         onConfirm={confirmDelete}
-        title="Supprimer la caméra"
+        title={t('connectedObjects.cameras.delete')}
         message={pendingCamera
-          ? `Supprimer définitivement la caméra « ${pendingCamera.name} » ? Cette action est irréversible.`
+          ? t('connectedObjects.cameras.deleteConfirm', { name: pendingCamera.name })
           : 'Supprimer définitivement cette caméra ? Cette action est irréversible.'}
         confirmText="Supprimer"
         severity="error"

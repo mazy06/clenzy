@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { paymentsApi } from '../../../services/api/paymentsApi';
 import type { PaymentRecord } from '../../../services/api/paymentsApi';
 import type { PlanningIntervention } from '../../../services/api';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export function usePanelPayment(
   interventions?: PlanningIntervention[],
   onCreatePaymentSession?: (interventionIds: number[], total: number) => Promise<{ url: string; sessionId: string }>,
 ): UsePanelPaymentReturn {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -166,7 +168,7 @@ export function usePanelPayment(
             if (pollRef.current) clearInterval(pollRef.current);
             pollRef.current = null;
             popup?.close();
-            setPaymentError('Le paiement a échoué');
+            setPaymentError(t('payments.failed'));
             setPaying(false);
           }
         } catch {
@@ -177,7 +179,7 @@ export function usePanelPayment(
           if (pollRef.current) clearInterval(pollRef.current);
           pollRef.current = null;
           setPaying(false);
-          setPaymentError('Délai d\'attente dépassé. Vérifiez le statut du paiement.');
+          setPaymentError(t('payments.timeout'));
         }
       }, POLL_INTERVAL_MS);
     } catch (err) {

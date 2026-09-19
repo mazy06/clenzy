@@ -1,10 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { cn } from '../../../utils/cn';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { Check } from '../../../icons';
 import type { PlanningEvent } from '../types';
 import { toDate } from '../utils/dateUtils';
+import { formatDayMonthShort } from '../../../utils/localeDate';
 
 // ─── Cycle de vie du séjour (projection Fiche réservation) ───────────────────
 //
@@ -27,48 +28,60 @@ interface LifecycleStep {
   done: boolean;
 }
 
-/** « 12 août » + « , 15:00 » quand l'heure existe. */
-function fmtMilestone(iso: string, time?: string): string {
+/** « 12 août » + « , 15:00 » quand l'heure existe — dans le calendrier affiché. */
+function fmtMilestone(iso: string, lng: string, time?: string): string {
   let day: string;
   try {
-    day = format(toDate(iso), 'd MMM', { locale: fr });
+    day = formatDayMonthShort(toDate(iso), lng);
   } catch {
     day = iso;
   }
   return time ? `${day}, ${time.slice(0, 5)}` : day;
 }
 
-export function buildSteps(reservation: NonNullable<PlanningEvent['reservation']>): LifecycleStep[] {
+/**
+ * Jalons du séjour, dérivés de l'objet réservation.
+ *
+ * <p>Pure : le traducteur et la langue sont INJECTÉS plutôt que lus d'un
+ * singleton. C'est ce qui garde la fonction testable jalon par jalon, et ce qui
+ * lui permet de rendre ses dates dans le calendrier hégirien en arabe sans rien
+ * savoir de React.</p>
+ */
+export function buildSteps(
+  reservation: NonNullable<PlanningEvent['reservation']>,
+  t: TFunction,
+  lng: string,
+): LifecycleStep[] {
   const paid = reservation.paymentStatus === 'PAID' || reservation.collectedByChannel === true;
   const arrived = reservation.status === 'checked_in' || reservation.status === 'checked_out';
   return [
     {
       id: 'confirmed',
-      label: 'Confirmée',
+      label: t('planning.panel.lifecycle.confirmed', 'Confirmée'),
       done: reservation.status !== 'pending',
     },
     {
       id: 'payment',
-      label: 'Paiement',
+      label: t('planning.panel.lifecycle.payment', 'Paiement'),
       detail: reservation.collectedByChannel
-        ? 'via le canal'
+        ? t('planning.panel.lifecycle.viaChannel', 'via le canal')
         : reservation.paidAt
-          ? fmtMilestone(reservation.paidAt)
+          ? fmtMilestone(reservation.paidAt, lng)
           : paid
             ? undefined
-            : 'en attente',
+            : t('planning.panel.lifecycle.awaiting', 'en attente'),
       done: paid,
     },
     {
       id: 'arrival',
-      label: 'Arrivée',
-      detail: fmtMilestone(reservation.checkIn, reservation.checkInTime),
+      label: t('planning.panel.lifecycle.arrival', 'Arrivée'),
+      detail: fmtMilestone(reservation.checkIn, lng, reservation.checkInTime),
       done: arrived,
     },
     {
       id: 'departure',
-      label: 'Départ',
-      detail: fmtMilestone(reservation.checkOut, reservation.checkOutTime),
+      label: t('planning.panel.lifecycle.departure', 'Départ'),
+      detail: fmtMilestone(reservation.checkOut, lng, reservation.checkOutTime),
       done: reservation.status === 'checked_out',
     },
   ];
@@ -112,8 +125,8 @@ function renderStepContent(step: LifecycleStep, state: StepState, interactive: b
 
 /** Ce vers quoi mène un jalon, quand il mène quelque part. */
 const STEP_DESTINATION: Partial<Record<StepId, string>> = {
-  payment: "ouvrir l'onglet Paiement",
-  arrival: "ouvrir l'onglet Opérations",
+  payment: 'planning.panel.lifecycle.openPayment',
+  arrival: 'planning.panel.lifecycle.openOperations',
 };
 
 interface ReservationLifecycleProps {
@@ -136,9 +149,10 @@ const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({
   onOpenPayment,
   onOpenOperations,
 }) => {
+  const { t, i18n } = useTranslation();
   if (reservation.status === 'cancelled') return null;
 
-  const steps = buildSteps(reservation);
+  const steps = buildSteps(reservation, t, i18n.language);
   // Le jalon courant est le premier non atteint ; les suivants restent à venir.
   const currentIndex = steps.findIndex((step) => !step.done);
 
@@ -163,7 +177,7 @@ const ReservationLifecycle: React.FC<ReservationLifecycleProps> = ({
               <button
                 type="button"
                 onClick={action}
-                aria-label={`${step.label}${step.detail ? ` ${step.detail}` : ''} — ${STEP_DESTINATION[step.id]}`}
+                aria-label={`${step.label}${step.detail ? ` ${step.detail}` : ''} — ${t(STEP_DESTINATION[step.id] as string)}`}
                 className={cn(
                   STEP_CLASS,
                   'cursor-pointer rounded-[8px] border-0 bg-transparent py-0.5',

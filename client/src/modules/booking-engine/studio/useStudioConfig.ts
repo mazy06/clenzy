@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '../../../i18n/config';
 import {
   bookingEngineApi,
   type BookingEngineConfig,
@@ -105,7 +106,7 @@ export function useStudioConfig(id: number | undefined): StudioConfigState {
       const updated = await bookingEngineApi.regenerateApiKey(id);
       adoptManaged({ apiKey: updated.apiKey });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Régénération de la clé impossible');
+      setError(e instanceof Error ? e.message : i18n.t('studio.keyRegenFailed'));
       throw e;
     }
   }, [id, adoptManaged]);
@@ -117,7 +118,7 @@ export function useStudioConfig(id: number | undefined): StudioConfigState {
       const updated = await bookingEngineApi.toggleEnabled(id, enabled);
       adoptManaged({ enabled: updated.enabled });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Changement de statut impossible');
+      setError(e instanceof Error ? e.message : i18n.t('studio.statusChangeFailed'));
       throw e;
     }
   }, [id, adoptManaged]);

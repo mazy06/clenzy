@@ -83,8 +83,26 @@ body::backdrop {
    theme reecrivait `fontFamily` sur les treize variants de typographie ; il
    suffit ici de redefinir le jeton, que tout le reste lit deja.
    `lang` est pose sur <html> par AppWithTheme a chaque changement de langue. */
-html[lang='ar'] {
-  --font-sans: 'Tajawal', 'Tahoma', 'Geeza Pro', 'Arabic Typesetting', 'Traditional Arabic', sans-serif;
+/* Le selecteur accepte aussi les variantes regionales (`ar-MA`, `ar-SA`) :
+   le detecteur i18next peut poser la langue detectee, region comprise, la ou
+   `resolvedLanguage` vaut `ar`. Un seul caractere de region suffisait a faire
+   sauter toute la bascule de police. */
+html[lang='ar'], html[lang^='ar-'] {
+  --font-arabic: 'Tajawal', 'Tahoma', 'Geeza Pro', 'Arabic Typesetting', 'Traditional Arabic', sans-serif;
+  --font-sans: var(--font-arabic);
+  /* Les titres d'ecran (`h1.cn-font-heading`, cf. components/PageTitle) lisent
+     `--font-heading`, dont la pile par defaut — `ui-sans-serif, system-ui` —
+     n'a rien d'arabe : le navigateur y retombait sur la police systeme du
+     document, une autre que le Tajawal de la barre laterale et du corps de
+     page. Deux dessins d'arabe se cotoyaient donc sur le meme ecran, celui du
+     titre etant le seul a ne pas etre le notre. Un seul jeton en arabe. */
+  --font-heading: var(--font-arabic);
+  /* Meme raison pour `--font-display` (Space Grotesk), lu par ~157 endroits :
+     titres de dialogue, KPI, montants, en-tetes de calendrier. Space Grotesk
+     n'a aucun glyphe arabe : le navigateur y retombait sur la police systeme,
+     soit un TROISIEME dessin d'arabe a l'ecran. Les trois jetons de famille
+     pointent desormais sur le meme en arabe. */
+  --font-display: var(--font-arabic);
 }
 
 /* ── Barre de defilement en mode sombre ─────────────────────────────────────

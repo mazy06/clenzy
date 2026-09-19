@@ -2,6 +2,8 @@ import React from 'react';
 import { Alert, AlertDescription, AlertTitle, Button } from '../../../components/ui';
 import { Warning, ErrorOutline } from '../../../icons';
 import type { OwnerPayoutConfig } from '../../../services/api/accountingApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Bannière proactive qui alerte sur l'état du consent Open Banking PIS.
@@ -34,6 +36,7 @@ export default function OpenBankingConsentBanner({
   config,
   onReconnect,
 }: OpenBankingConsentBannerProps) {
+  const { t } = useTranslation();
   if (!config || config.payoutMethod !== 'OPEN_BANKING') {
     return null;
   }
@@ -47,11 +50,10 @@ export default function OpenBankingConsentBanner({
       <Alert variant="warning" className="mb-3">
         <Warning size={18} strokeWidth={1.75} />
         <AlertTitle className="text-[0.85rem] font-semibold">
-          Configuration Open Banking incomplète
+          {t('settings.openBanking.incomplete')}
         </AlertTitle>
         <AlertDescription className="text-[0.78rem]">
-          La méthode Open Banking est sélectionnée, mais l'authentification bancaire (SCA)
-          n'a pas encore été validée. Aucun virement ne peut être effectué tant que ce n'est pas fait.
+          {t('settings.openBanking.incompleteBody')}
         </AlertDescription>
         {onReconnect && (
           <div className="col-start-2 mt-1.5">
@@ -61,7 +63,7 @@ export default function OpenBankingConsentBanner({
               onClick={onReconnect}
               className="text-warning-ink border-warning hover:bg-warning-soft"
             >
-              Compléter le SCA
+              {t('settings.openBanking.completeSca')}
             </Button>
           </div>
         )}
@@ -80,11 +82,11 @@ export default function OpenBankingConsentBanner({
       <Alert variant="destructive" className="mb-3">
         <ErrorOutline size={18} strokeWidth={1.75} />
         <AlertTitle className="text-[0.85rem] font-semibold">
-          Consent bancaire expiré
+          {t('settings.openBanking.consentExpired')}
         </AlertTitle>
         <AlertDescription className="text-[0.78rem]">
           Votre consent Open Banking a expiré le{' '}
-          <strong>{new Date(expiresAt).toLocaleDateString('fr-FR')}</strong>. Les virements automatiques
+          <strong>{new Date(expiresAt).toLocaleDateString(activeIntlLocale())}</strong>. Les virements automatiques
           sont suspendus jusqu'à reconnexion. Refaites le SCA bancaire pour réactiver les payouts.
         </AlertDescription>
         {onReconnect && (
@@ -104,7 +106,7 @@ export default function OpenBankingConsentBanner({
       <Alert variant="warning" className="mb-3">
         <Warning size={18} strokeWidth={1.75} />
         <AlertTitle className="text-[0.85rem] font-semibold">
-          Consent bancaire à renouveler bientôt
+          {t('settings.openBanking.consentExpiring')}
         </AlertTitle>
         <AlertDescription className="text-[0.78rem]">
           Votre consent Open Banking expire dans{' '}
@@ -115,7 +117,7 @@ export default function OpenBankingConsentBanner({
                 ? '1 jour'
                 : `${daysUntilExpiry} jours`}
           </strong>
-          {' '}({new Date(expiresAt).toLocaleDateString('fr-FR')}). Renouvelez dès maintenant pour éviter
+          {' '}({new Date(expiresAt).toLocaleDateString(activeIntlLocale())}). Renouvelez dès maintenant pour éviter
           toute interruption des virements automatiques.
         </AlertDescription>
         {onReconnect && (

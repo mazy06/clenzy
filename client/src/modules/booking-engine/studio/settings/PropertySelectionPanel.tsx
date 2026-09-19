@@ -5,6 +5,7 @@ import { AlertTriangle, Home, Info } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl } from './settingsControls';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * « Propriétés affichées » (section Contenu) — curation des biens présentés par ce booking engine.
@@ -26,6 +27,7 @@ export interface PropertySelectionPanelProps {
 }
 
 export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelProps) {
+  const { t } = useTranslation();
   const [properties, setProperties] = useState<Property[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(true);
@@ -37,7 +39,7 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
     let alive = true;
     propertiesApi.getAll()
       .then((list) => { if (alive) setProperties(list); })
-      .catch((e) => { if (alive) setLoadError(e instanceof Error ? e.message : 'Chargement des propriétés impossible'); });
+      .catch((e) => { if (alive) setLoadError(e instanceof Error ? e.message : t('studio.content.propertiesLoadFailed')); });
     return () => { alive = false; };
   }, []);
 
@@ -89,8 +91,8 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
       <div className="px-6 py-12">
         <EmptyState
           icon={<Home />}
-          title="Aucune propriété"
-          description="Ajoutez des propriétés pour les proposer à la réservation."
+          title={t('studio.properties.empty')}
+          description="{t('studio.properties.emptyHint')}"
         />
       </div>
     );
@@ -100,23 +102,23 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
 
   return (
     <SettingsPage
-      title="Propriétés affichées"
-      description="Choisissez les biens proposés par ce booking engine."
+      title={t('studio.properties.displayed')}
+      description="{t('studio.properties.chooseHint')}"
       footer={<SaveBar dirty={cfg.dirty} saving={cfg.saving} onSave={() => { cfg.save().catch(() => {}); }} error={cfg.error} />}
     >
-      <SettingCard title="Sélection">
+      <SettingCard title={t('studio.properties.selection')}>
         <SettingRow
-          label="Afficher toutes les propriétés"
+          label="{t('studio.properties.showAll')}"
           helper="Désactivez pour choisir manuellement les biens à présenter."
           control={<ToggleControl checked={showAll} onChange={onToggleShowAll} />}
         />
       </SettingCard>
 
       {!showAll && (
-        <SettingCard title={`Propriétés (${selected.size} sélectionnée${selected.size > 1 ? 's' : ''})`} description="Cochez les biens à afficher.">
+        <SettingCard title={t('studio.properties.selectedCount', { count: selected.size })} description={t('studio.properties.tickHint')}>
           {selected.size === 0 && (
             <div className="flex items-center gap-1.5 py-2 text-xs text-muted-foreground">
-              <Info size={15} strokeWidth={2} className="shrink-0 text-info" /> Aucune sélection : toutes les propriétés restent affichées.
+              <Info size={15} strokeWidth={2} className="shrink-0 text-info" /> {t('studio.properties.noSelection')}
             </div>
           )}
           <div className="py-0.5">
@@ -140,7 +142,7 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
                     className="pointer-events-none shrink-0 data-[state=unchecked]:text-faint"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
+                    <div dir="auto" className="text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
                     {p.city && <div className="text-2xs text-faint">{p.city}</div>}
                   </div>
                 </button>

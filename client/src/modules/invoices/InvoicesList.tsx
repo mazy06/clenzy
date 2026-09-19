@@ -54,6 +54,7 @@ import { Money } from '../../components/Money';
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ const STATUS_TONE: Record<InvoiceStatus, 'ok' | 'warn' | 'err' | 'info' | 'neutr
 const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('fr-FR') : '\u2014';
+  d ? new Date(d).toLocaleDateString(activeIntlLocale()) : '\u2014';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -404,7 +405,6 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           endDate={dateTo}
           onChangeStart={setDateFrom}
           onChangeEnd={setDateTo}
-          isFrench
         />
         {hasActiveFilters && (
           <Button variant="outline" size="sm" onClick={handleClearFilters}>

@@ -15,6 +15,8 @@ import {
   useTestBrevo,
 } from '../../../hooks/useMarketingIntegration';
 import type { MarketingTogglesPayload } from '../../../services/api/marketingIntegrationApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /** Vert de marque Brevo : identite du service, pas un jeton du theme Baitly. */
 const BREVO_GREEN = '#0B996E';
@@ -29,6 +31,7 @@ interface BrevoConfigCardProps {
 }
 
 export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps) {
+  const { t } = useTranslation();
   const { data, isLoading } = useMarketingIntegration();
   const setApiKey = useSetBrevoApiKey();
   const setLists = useSetMarketingLists();
@@ -52,13 +55,13 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
   const statusChip =
     data.configured && data.status === 'ACTIVE' ? (
-      <StatusChip tone="ok" label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+      <StatusChip tone="ok" label={t('settings.integrations.status.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
     ) : data.status === 'ERROR' ? (
       <StatusChip tone="err" label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
     ) : data.configured ? (
-      <StatusChip tone="warn" label="À tester" />
+      <StatusChip tone="warn" label={t('settings.integrations.status.toTest')} />
     ) : (
-      <StatusChip tone="neutral" label="Non configuré" />
+      <StatusChip tone="neutral" label={t('settings.integrations.status.notConfigured2')} />
     );
 
   const saveKey = () => {
@@ -133,7 +136,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             Brevo
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Emailing &amp; newsletter · synchro des contacts (waitlist, newsletter, prospects)
+            {t('settings.integrations.brevo.subtitle')}
           </p>
         </div>
         <div className="shrink-0">{statusChip}</div>
@@ -144,7 +147,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
         <div>
           {/* Le titre de section fait office de libelle : le champ MUI n'en portait
               aucun, on l'associe par aria-labelledby sans toucher a la mise en page. */}
-          <p className={labelClass} id="brevo-api-key-label">Clé API Brevo (v3)</p>
+          <p className={labelClass} id="brevo-api-key-label">{t('settings.integrations.brevo.apiKey')}</p>
           <div className="flex gap-1.5 mt-0.5">
             <Input
               id="brevo-api-key"
@@ -164,7 +167,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             </Button>
           </div>
           <p className="text-2xs text-muted-foreground mt-0.5">
-            Stockée chiffrée (AES-256), jamais affichée en clair. Brevo → SMTP &amp; API → Clés API.
+            {t('settings.integrations.brevo.apiKeyHint')}
           </p>
         </div>
 
@@ -181,7 +184,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           </Button>
           {data.lastTestedAt && (
             <p className="text-xs text-muted-foreground tabular-nums">
-              Dernier test : {new Date(data.lastTestedAt).toLocaleString('fr-FR')}
+              Dernier test : {new Date(data.lastTestedAt).toLocaleString(activeIntlLocale())}
             </p>
           )}
         </div>
@@ -207,7 +210,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           <p className={labelClass}>Listes Brevo</p>
           {!data.configured ? (
             <p className="text-xs text-muted-foreground mt-0.5">
-              Enregistre une clé API valide pour charger tes listes Brevo.
+              {t('settings.integrations.brevo.needKey')}
             </p>
           ) : (
             <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-1.5 mt-[4.5px]">
@@ -223,12 +226,12 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
         {/* Toggles de synchro */}
         <div className="flex flex-col gap-2">
-          <p className={labelClass}>Synchronisations</p>
-          {toggleRow('Waitlist → Brevo', 'Pousse les inscrits de la liste d’attente.', data.syncWaitlistEnabled, 'syncWaitlist')}
-          {toggleRow('Newsletter → Brevo', 'Pousse les opt-in newsletter (inscription).', data.syncNewsletterEnabled, 'syncNewsletter')}
-          {toggleRow('Leads devis → Brevo', 'Pousse les demandes de devis de la landing.', data.syncProspectsEnabled, 'syncProspects')}
-          {toggleRow('Leads booking engine → Brevo', 'Pousse les leads captés (exit-intent / panier abandonné), segmentables par SOURCE.', data.syncLeadsEnabled, 'syncLeads')}
-          {toggleRow('Attributs de contact', 'Envoie NOM / VILLE / SOURCE pour segmenter.', data.syncAttributesEnabled, 'syncAttributes')}
+          <p className={labelClass}>{t('brevo.syncs')}</p>
+          {toggleRow('Waitlist → Brevo', t('brevo.syncWaitlist'), data.syncWaitlistEnabled, 'syncWaitlist')}
+          {toggleRow('Newsletter → Brevo', t('brevo.syncNewsletter'), data.syncNewsletterEnabled, 'syncNewsletter')}
+          {toggleRow(t('brevo.quoteLeads'), t('brevo.syncProspects'), data.syncProspectsEnabled, 'syncProspects')}
+          {toggleRow(t('brevo.engineLeads'), t('brevo.syncLeads'), data.syncLeadsEnabled, 'syncLeads')}
+          {toggleRow(t('brevo.contactAttributes'), t('brevo.syncAttributes'), data.syncAttributesEnabled, 'syncAttributes')}
         </div>
       </div>
     </Card>

@@ -134,15 +134,15 @@ function Caption({ children }: { children: React.ReactNode }) {
 }
 
 /** Themes detectes dans l'avis — le libelle, pas la constante en base. */
-const TAG_LABEL: Record<string, string> = {
-  CLEANLINESS: 'Propreté',
-  LOCATION: 'Emplacement',
-  VALUE: 'Rapport qualité-prix',
-  COMMUNICATION: 'Communication',
-  CHECK_IN: 'Arrivée',
-  COMFORT: 'Confort',
-  ACCURACY: 'Conformité',
-  AMENITIES: 'Équipements',
+const TAG_KEYS: Record<string, string> = {
+  CLEANLINESS: 'notifications.review.tags.cleanliness',
+  LOCATION: 'notifications.review.tags.location',
+  VALUE: 'notifications.review.tags.value',
+  COMMUNICATION: 'notifications.review.tags.communication',
+  CHECK_IN: 'notifications.review.tags.checkIn',
+  COMFORT: 'notifications.review.tags.comfort',
+  ACCURACY: 'notifications.review.tags.accuracy',
+  AMENITIES: 'notifications.review.tags.amenities',
 };
 
 /** Nombre de nuits entre deux dates ISO, ou `null` si l'une est illisible. */
@@ -194,7 +194,7 @@ export default function NotificationReviewPanel({ dossier }: { dossier: ReviewDo
         />
 
         <div className="min-w-0 flex-1">
-          <p className="m-0 truncate text-sm font-medium text-foreground">{guestName}</p>
+          <p dir="auto" className="m-0 truncate text-sm font-medium text-foreground">{guestName}</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {typeof review.rating === 'number' && (
               <>
@@ -233,7 +233,7 @@ export default function NotificationReviewPanel({ dossier }: { dossier: ReviewDo
           </Badge>
         )}
         {tags.map((tag) => (
-          <Badge key={tag} variant="outline">{TAG_LABEL[tag] ?? tag}</Badge>
+          <Badge key={tag} variant="outline">{TAG_KEYS[tag] ? t(TAG_KEYS[tag]) : tag}</Badge>
         ))}
       </div>
 

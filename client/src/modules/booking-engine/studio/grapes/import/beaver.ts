@@ -1,5 +1,6 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
 import { sanitizeHtml } from './sanitizeHtml';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur Beaver Builder.
@@ -96,13 +97,13 @@ const beaverImporter: TemplateImporter = {
     const report = newReport('beaver');
     const src = input ?? '';
     if (!src.trim()) {
-      report.warnings.push('Entrée Beaver Builder vide.');
+      report.warnings.push(i18n.t('studioImport.beaver.empty'));
       return { html: '', report };
     }
     const trimmed = src.trim();
     // Forme markup : on conserve le HTML rendu (assaini).
     if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-      report.notes = 'Markup Beaver conservé tel quel (assaini).';
+      report.notes = i18n.t('studioImport.beaver.kept');
       return { html: sanitizeHtml(src), report };
     }
     // Forme JSON de nœuds.
@@ -117,9 +118,9 @@ const beaverImporter: TemplateImporter = {
       return { html: '', report };
     }
     const html = sanitizeHtml(nodesToHtml(nodes));
-    if (!html.trim()) report.warnings.push('Aucun module Beaver exploitable.');
+    if (!html.trim()) report.warnings.push(i18n.t('studioImport.beaver.noModule'));
     report.warnings.push(
-      'Conversion structurelle Beaver (sans le CSS du moteur) — fidélité limitée. Pour un rendu fidèle, importez l’URL de la page publiée.',
+      i18n.t('studioImport.beaver.structural'),
     );
     return { html, report };
   },

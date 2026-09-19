@@ -36,6 +36,7 @@ import { monitoringApi } from '../services/api/monitoringApi';
 import type { HealthCheckService, SystemMetrics } from '../services/api/monitoringApi';
 import StatTile from './baitly/StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import { useTranslation } from '../hooks/useTranslation';
 
 // Statut sante → ton semantique de StatusChip. La table locale de couples
 // {fg,bg} qui vivait ici etait strictement l'equivalent de STATUS_TONES : le
@@ -110,6 +111,7 @@ const formatUptime = (seconds: number): string => {
 };
 
 const HealthChecks: React.FC = () => {
+  const { t } = useTranslation();
   const [expandedChecks, setExpandedChecks] = useState<Set<string>>(new Set());
   const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
 
@@ -134,7 +136,7 @@ const HealthChecks: React.FC = () => {
   const systemMetrics: SystemMetrics | null = data?.systemMetrics ?? null;
   const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
   const loading = isFetching;
-  const error = queryError ? 'Erreur lors de la récupération des vérifications de santé' : null;
+  const error = queryError ? t('monitoring.healthFetchError') : null;
 
   const handleRefresh = () => {
     void refetch();
@@ -153,14 +155,14 @@ const HealthChecks: React.FC = () => {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Actualiser les vérifications"
+                aria-label={t('health.refresh')}
                 onClick={handleRefresh}
               >
                 <Refresh size={20} strokeWidth={1.75} />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Actualiser les vérifications</TooltipContent>
+          <TooltipContent>{t('health.refresh')}</TooltipContent>
         </Tooltip>
       </div>,
     );
@@ -207,7 +209,7 @@ const HealthChecks: React.FC = () => {
           {/* Action d'appoint dans un bandeau : ghost. `text-current` reprend
               l'encre du bandeau d'erreur. */}
           <Button variant="ghost" size="sm" className="text-current" onClick={handleRefresh}>
-            Réessayer
+            {t('common.retry')}
           </Button>
         </AlertAction>
       </Alert>
@@ -243,7 +245,7 @@ const HealthChecks: React.FC = () => {
         <Card className="mb-[18px]">
           <CardContent>
             <h6 className="text-sm font-semibold mb-[0.35em] text-foreground">
-              Métriques Système
+              {t('health.systemMetrics')}
             </h6>
             <div className="grid grid-cols-12 gap-[18px]">
               {([
@@ -323,12 +325,12 @@ const HealthChecks: React.FC = () => {
                       <div className="mt-1.5">
                         <div className="flex items-center gap-3 flex-wrap mb-1.5">
                           <p className="text-xs text-muted-foreground">
-                            <strong>Temps de réponse:</strong>
+                            <strong>{t('health.responseTime')}</strong>
                             <StatusChip tone={responseTimeTone(check.responseTimeMs)} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
                           </p>
                           {check.lastCheck && (
                             <p className="text-xs text-muted-foreground">
-                              <strong>Dernière vérification:</strong> {new Date(check.lastCheck).toLocaleTimeString()}
+                              <strong>{t('health.lastCheck')}</strong> {new Date(check.lastCheck).toLocaleTimeString()}
                             </p>
                           )}
                         </div>

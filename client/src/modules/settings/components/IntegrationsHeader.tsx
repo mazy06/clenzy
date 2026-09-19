@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { NativeSelect } from '../../../components/ui';
 import { Search as SearchIcon, Close as CloseIcon } from '../../../icons';
 import { Badge, Button } from '../../../components/ui';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   useScreenCommands,
   type CommandDescriptor,
@@ -50,6 +51,7 @@ export default function IntegrationsHeader({
   selectedService = null,
   onSelectService,
 }: IntegrationsHeaderProps) {
+  const { t } = useTranslation();
   // Repli quand le parent ne pilote pas la sélection : on se contente de
   // rejoindre la section du service (comportement historique).
   const selectService = React.useCallback(
@@ -72,8 +74,8 @@ export default function IntegrationsHeader({
       label: service.name,
       // La catégorie sert de contexte affiché ET de terme de recherche : on
       // trouve « Airbnb » aussi bien en tapant « OTA ».
-      hint: service.categoryLabel,
-      keywords: `${service.categoryLabel} intégration integration connecteur`,
+      hint: service.categoryLabelKey ? t(service.categoryLabelKey) : '',
+      keywords: `${service.categoryLabelKey ? t(service.categoryLabelKey) : ''} intégration integration connecteur`,
       icon: <SearchIcon />,
       run: () => selectService(service),
     }));
@@ -81,7 +83,7 @@ export default function IntegrationsHeader({
       items.unshift({
         id: 'integrations.service.reset',
         section: 'screen',
-        label: 'Afficher toutes les intégrations',
+        label: t('settings.integrations.showAll'),
         keywords: 'reset filtre tout effacer',
         icon: <CloseIcon />,
         run: () => selectService(null),
@@ -96,7 +98,7 @@ export default function IntegrationsHeader({
     <div className="flex items-center gap-1.5 flex-wrap">
       {selectedService && (
         <Badge variant="secondary" className="gap-1 ps-2 pe-1">
-          <span className="truncate">{selectedService.name}</span>
+          <span dir="auto" className="truncate">{selectedService.name}</span>
           <Button
             type="button"
             variant="ghost"
@@ -112,17 +114,17 @@ export default function IntegrationsHeader({
       <NativeSelect
         size="sm"
         className="w-[160px] min-[600px]:w-[180px]"
-        aria-label="Filtrer par catégorie"
+        aria-label={t('settings.integrations.filterByCategory')}
         value={selectedCategoryId ?? ALL_CATEGORIES}
         onChange={(e) => {
           const v = e.target.value;
           onCategoryChange(v === ALL_CATEGORIES ? null : v);
         }}
       >
-        <option value={ALL_CATEGORIES}>Toutes les catégories</option>
+        <option value={ALL_CATEGORIES}>{t('settings.integrations.allCategories')}</option>
         {CATEGORIES.map((cat) => (
           <option key={cat.id} value={cat.id}>
-            {cat.label}
+            {t(cat.labelKey)}
           </option>
         ))}
       </NativeSelect>

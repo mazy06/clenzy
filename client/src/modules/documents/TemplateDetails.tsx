@@ -45,8 +45,11 @@ import TemplateTagsViewer from './TemplateTagsViewer';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import PageHeader from '../../components/PageHeader';
 import { documentsApi } from '../../services/api/documentsApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const TemplateDetails: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const templateId = Number(id);
@@ -104,7 +107,7 @@ const TemplateDetails: React.FC = () => {
       currentBlobUrl.current = blobUrl;
       setPreviewUrl(blobUrl);
     } catch (e) {
-      setPreviewError(e instanceof Error ? e.message : 'Erreur lors de la generation de l\'apercu');
+      setPreviewError(e instanceof Error ? e.message : t('documents.previewError'));
     } finally {
       setPreviewLoading(false);
     }
@@ -148,7 +151,7 @@ const TemplateDetails: React.FC = () => {
     try {
       await activateMutation.mutateAsync(templateId);
     } catch {
-      setActionError('Erreur lors de l\'activation');
+      setActionError(t('documents.activationError'));
     }
   };
 
@@ -157,7 +160,7 @@ const TemplateDetails: React.FC = () => {
     try {
       await reparseMutation.mutateAsync(templateId);
     } catch {
-      setActionError('Erreur lors du re-scan');
+      setActionError(t('documents.rescanError'));
     }
   };
 
@@ -193,7 +196,7 @@ const TemplateDetails: React.FC = () => {
       const baseName = (template?.name || 'template').replace(/[^a-zA-Z0-9_-]+/g, '_');
       await documentsApi.downloadTemplatePreview(templateId, `${baseName}_apercu.pdf`);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erreur lors du telechargement de l\'apercu');
+      setActionError(e instanceof Error ? e.message : t('documents.previewDownloadError'));
     }
   };
 
@@ -217,7 +220,7 @@ const TemplateDetails: React.FC = () => {
     e.target.value = '';
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.odt')) {
-      setActionError('Seuls les fichiers .odt sont acceptes');
+      setActionError(t('documents.onlyOdt'));
       return;
     }
     setActionError(null);
@@ -234,7 +237,7 @@ const TemplateDetails: React.FC = () => {
       // Regenere l'apercu PDF avec le nouveau contenu
       await loadPreview();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors du remplacement du fichier');
+      setActionError(err instanceof Error ? err.message : t('documents.replaceError'));
       setPendingReplaceFile(null);
     }
   };
@@ -334,33 +337,33 @@ const TemplateDetails: React.FC = () => {
                     <MoreVert size={16} strokeWidth={1.75} />
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Plus d'actions</TooltipContent>
+                <TooltipContent>{t('documents.details.moreActions')}</TooltipContent>
               </Tooltip>
               <DropdownMenuContent align="end" className="w-60 text-[0.85rem]">
                 <DropdownMenuItem onSelect={runFromMenu(handleDownloadOriginal)}>
                   <span className="inline-flex text-muted-foreground">
                     <Download size={18} strokeWidth={1.75} />
                   </span>
-                  Télécharger le fichier source (.odt)
+                  {t('documents.details.downloadSource')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={runFromMenu(handleDownloadPreview)}>
                   <span className="inline-flex text-muted-foreground">
                     <Visibility size={18} strokeWidth={1.75} />
                   </span>
-                  Télécharger l'aperçu PDF
+                  {t('documents.details.downloadPreview')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={runFromMenu(handleReplaceFileClick)} disabled={replacePending}>
                   <span className="inline-flex text-muted-foreground">
                     {replacePending ? <Spinner className="size-4" /> : <Upload size={18} strokeWidth={1.75} />}
                   </span>
-                  {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
+                  {replacePending ? 'Remplacement…' : t('documents.replaceFile')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={runFromMenu(handleReparse)} disabled={reparsePending}>
                   <span className="inline-flex text-muted-foreground">
                     {reparsePending ? <Spinner className="size-4" /> : <Refresh size={18} strokeWidth={1.75} />}
                   </span>
-                  Re-scanner les tags
+                  {t('documents.details.rescanTags')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -426,15 +429,15 @@ const TemplateDetails: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <InfoRow label="Type de document" value={template.documentType} />
-                  <InfoRow label="Fichier original" value={template.originalFilename} />
-                  <InfoRow label="Version" value={`v${template.version}`} />
-                  <InfoRow label="Créé par" value={template.createdBy || '—'} />
-                  <InfoRow label="Créé le" value={template.createdAt ? new Date(template.createdAt).toLocaleDateString('fr-FR') : '—'} />
+                  <InfoRow label={t('documents.details.documentType')} value={template.documentType} />
+                  <InfoRow label={t('documents.details.originalFile')} value={template.originalFilename} />
+                  <InfoRow label={t('documents.details.version')} value={`v${template.version}`} />
+                  <InfoRow label={t('documents.details.createdBy')} value={template.createdBy || '—'} />
+                  <InfoRow label={t('documents.details.createdAt')} value={template.createdAt ? new Date(template.createdAt).toLocaleDateString(activeIntlLocale()) : '—'} />
                   {template.emailSubject && (
                     <>
                       <Separator className="my-1.5" />
-                      <InfoRow label="Objet email" value={template.emailSubject} />
+                      <InfoRow label={t('documents.details.emailSubject')} value={template.emailSubject} />
                     </>
                   )}
                 </div>
@@ -446,10 +449,10 @@ const TemplateDetails: React.FC = () => {
               <div className="flex justify-between items-center mb-3 flex-wrap gap-1.5">
                 <div>
                   <p className="text-2xs font-bold uppercase tracking-[.06em] text-faint">
-                    Aperçu
+                    {t('documents.details.preview')}
                   </p>
                   <span className="text-xs text-muted-foreground">
-                    Prévisualisation générée avec des données factices.
+                    {t('documents.details.previewHint')}
                   </span>
                 </div>
                 <div className="flex gap-0.5">
@@ -463,27 +466,27 @@ const TemplateDetails: React.FC = () => {
                         </BuiButton>
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Regénérer l'aperçu</TooltipContent>
+                    <TooltipContent>{t('documents.details.regeneratePreview')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex">
-                        <BuiButton variant="ghost" size="icon-sm" aria-label="Ouvrir dans un nouvel onglet" onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading}>
+                        <BuiButton variant="ghost" size="icon-sm" aria-label={t('documents.details.openNewTab')} onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading}>
                           <Visibility />
                         </BuiButton>
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
+                    <TooltipContent>{t('documents.details.openNewTab')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex">
-                        <BuiButton variant="ghost" size="icon-sm" aria-label="Télécharger en PDF" onClick={handleDownloadPreview} disabled={previewLoading}>
+                        <BuiButton variant="ghost" size="icon-sm" aria-label={t('documents.details.downloadPdf')} onClick={handleDownloadPreview} disabled={previewLoading}>
                           <Download />
                         </BuiButton>
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Télécharger en PDF</TooltipContent>
+                    <TooltipContent>{t('documents.details.downloadPdf')}</TooltipContent>
                   </Tooltip>
                 </div>
               </div>
@@ -508,13 +511,13 @@ const TemplateDetails: React.FC = () => {
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-[9px] bg-card/60 z-[1]">
                     <Spinner className="size-7" />
                     <span className="text-xs text-muted-foreground">
-                      Génération de l'aperçu en cours...
+                      {t('documents.details.generating')}
                     </span>
                   </div>
                 )}
                 {previewUrl ? (
                   <iframe
-                    title="Aperçu PDF du template"
+                    title={t('documents.details.previewFrameTitle')}
                     src={previewUrl}
                     sandbox="allow-same-origin"
                     style={{ width: '100%', height: '100%', border: 0 }}
@@ -522,7 +525,7 @@ const TemplateDetails: React.FC = () => {
                 ) : !previewLoading && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <p className="text-xs text-muted-foreground">
-                      Aperçu non disponible.
+                      {t('documents.details.previewUnavailable')}
                     </p>
                   </div>
                 )}
@@ -545,13 +548,13 @@ const TemplateDetails: React.FC = () => {
         open={Boolean(pendingReplaceFile)}
         onClose={handleCancelReplace}
         onConfirm={handleConfirmReplace}
-        title="Remplacer le fichier du template ?"
+        title={t('documents.details.replaceTitle')}
         message={
           pendingReplaceFile
-            ? `Le contenu actuel sera remplacé par « ${pendingReplaceFile.name} » et les tags seront re-scannés. Le nom, le type et le statut actif du template restent inchangés.`
+            ? t('documents.details.replaceMessage', { name: pendingReplaceFile.name })
             : ''
         }
-        confirmText="Remplacer"
+        confirmText={t('documents.details.replace')}
         cancelText="Annuler"
         severity="info"
         loading={replaceFileMutation.isPending}
@@ -565,8 +568,8 @@ const TemplateDetails: React.FC = () => {
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
-        title="Supprimer le template ?"
-        message={`Le template « ${template.name} » sera définitivement supprimé. Cette action est irréversible.`}
+        title={t('documents.details.deleteTitle')}
+        message={t('documents.details.deleteMessage', { name: template.name })}
         confirmText="Supprimer"
         cancelText="Annuler"
         severity="error"

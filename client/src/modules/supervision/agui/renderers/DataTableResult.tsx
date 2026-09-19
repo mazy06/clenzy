@@ -19,6 +19,7 @@ import {
 } from '../../../../components/ui';
 import { cn } from '../../../../utils/cn';
 import { Overline, SurfaceCard, humanizeKey } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface ColumnObj {
   key: string;
@@ -59,6 +60,7 @@ function cellValue(row: Row, col: ColumnObj, colIdx: number): unknown {
 }
 
 export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => {
+  const { t } = useTranslation();
   const rows = Array.isArray(data.rows) ? data.rows : [];
   const columns = normalizeColumns(data.columns, rows[0]);
   const visible = rows.slice(0, MAX_ROWS);
@@ -67,7 +69,7 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
   if (rows.length === 0 || columns.length === 0) {
     return (
       <SurfaceCard className="text-center">
-        <p className="text-xs text-muted-foreground">Aucune donnée.</p>
+        <p className="text-xs text-muted-foreground">{t('supervision.agui.noData')}</p>
       </SurfaceCard>
     );
   }

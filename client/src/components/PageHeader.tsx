@@ -201,6 +201,11 @@ export default function PageHeader({
 
   return (
     <header
+      data-slot="page-header"
+      /* Repere de la couture : le selecteur d'onglets mesure le bas de ce
+         bandeau pour y accrocher son panneau (cf. PageTabsMenu). Sans bandeau
+         ancre il n'y a pas de ligne a raccorder, d'ou l'attribut conditionnel. */
+      data-anchored={anchored ? '' : undefined}
       className={cn(
         'flex flex-col gap-1.5',
         selfSpaced && 'mb-1.5 lg:mb-3',

@@ -105,7 +105,7 @@ export function useDashboardOverview({ period, t }: UseDashboardOverviewParams) 
     alerts,
     pendingPaymentsCount: summary?.pendingPaymentsCount ?? 0,
     loading: summaryQuery.isLoading,
-    error: summaryQuery.isError ? 'Erreur lors du chargement des statistiques' : null,
+    error: summaryQuery.isError ? t('dashboard.statsLoadError') : null,
     refreshAll,
   };
 }

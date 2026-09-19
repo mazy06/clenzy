@@ -9,6 +9,7 @@ import {
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 import { STORAGE_KEYS } from '../../services/storageService';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   OnboardingStepList,
   countDoneSteps,
@@ -124,6 +125,7 @@ function nearestCorner(position: DockPosition, width: number, height: number): D
  * accrochee quand la fenetre change de taille.
  */
 function useDockDrag(enabled: boolean) {
+  const { t } = useTranslation();
   const ref = React.useRef<HTMLElement | null>(null);
   const [corner, setCorner] = React.useState<DockCorner>(() =>
     (enabled ? readStoredCorner() ?? DEFAULT_CORNER : DEFAULT_CORNER));
@@ -230,6 +232,7 @@ export default function OnboardingDock({
   formatProgress = formatStepProgress,
   className,
 }: OnboardingDockProps) {
+  const { t } = useTranslation();
   const drag = useDockDrag(floating);
 
   const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
@@ -312,15 +315,15 @@ export default function OnboardingDock({
             titre ne donne deja, et coutait 44px de largeur sur une carte qu'on
             veut discrete. Le titre tient sur une ligne. */}
         <p className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-          {allDone ? 'Configuration terminée' : title}
+          {allDone ? t('onboarding.dock.allDoneTitle') : title}
         </p>
         <Button
           variant="ghost"
           size="icon-sm"
           className="shrink-0"
           aria-expanded={isOpen}
-          aria-label={isOpen ? 'Replier le guide' : 'Déplier le guide'}
-          title={isOpen ? 'Replier le guide' : 'Déplier le guide'}
+          aria-label={t(isOpen ? 'onboarding.dock.collapse' : 'onboarding.dock.expand')}
+          title={t(isOpen ? 'onboarding.dock.collapse' : 'onboarding.dock.expand')}
           onClick={() => setOpen(!isOpen)}
         >
           {isOpen ? <Minimize2Icon /> : <Maximize2Icon />}
@@ -335,7 +338,7 @@ export default function OnboardingDock({
                 <PartyPopperIcon />
               </span>
               <div className="min-w-0 text-sm text-foreground">
-                {completion ?? 'Toutes les étapes sont terminées. Bonne exploitation.'}
+                {completion ?? t('onboarding.dock.allDoneBody')}
               </div>
             </div>
           ) : (
@@ -353,7 +356,7 @@ export default function OnboardingDock({
                   <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Groupe précédent"
+                    aria-label={t('onboarding.previousGroup')}
                     disabled={activeIndex === 0}
                     onClick={() => selectGroupAt(activeIndex - 1)}
                   >
@@ -413,7 +416,7 @@ export default function OnboardingDock({
             'focus-visible:ring-[3px] focus-visible:ring-ring/50',
           )}
         >
-          Étape suivante : <span className="font-medium text-primary">{nextStep.title}</span>
+          {t('onboarding.nextStep')} <span className="font-medium text-primary">{nextStep.title}</span>
         </button>
       )}
 

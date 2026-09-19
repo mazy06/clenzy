@@ -14,6 +14,7 @@
 import { SupervisionView } from './SupervisionView';
 import { cn } from '../../../utils/cn';
 import { MOCK_RESERVATION_FAMILLE_ROUX, MOCK_RESERVATION_LEA_MARCHAND } from '../provider/mockData';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // `bg` : fond pastel Baitly UI (§2.4 — les `-soft` sont des FONDS, l'encre
 // reste `text-foreground`). Trois teintes seulement pour distinguer les cellules.
@@ -24,10 +25,11 @@ const CELLS = [
 ];
 
 export function SupervisionDemo() {
+  const { t } = useTranslation();
   return (
     <div className="p-3 max-w-[1100px] mx-auto">
       <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-        Planning (démo) — cible des comètes
+        {t('supervision.demo.planning')}
       </p>
       <div className="flex gap-1.5 mb-3">
         {CELLS.map((cell) => (

@@ -83,3 +83,25 @@ export const arabicTextSx = {
 export function arabicDirProp(text: string | null | undefined): 'rtl' | undefined {
   return containsArabic(text) ? 'rtl' : undefined;
 }
+
+/**
+ * Ordre d'affichage d'un nom de personne sur un écran lu de DROITE à GAUCHE.
+ *
+ * <p>« Emma Rossi » posé dans une interface arabe reste un run latin : le moteur
+ * le rend de gauche à droite, donc l'œil qui balaie de droite à gauche
+ * rencontre « Rossi » d'abord. Dans un bloc où le nom est collé à son avatar —
+ * à droite, puisque la ligne se lit de ce côté — on veut lire le prénom en
+ * premier. On inverse donc l'ordre des MOTS : rendue de gauche à droite,
+ * « Rossi Emma » place bien « Emma » contre l'avatar.</p>
+ *
+ * <p><b>Un nom déjà arabe n'est pas touché</b> : il se lit nativement de droite
+ * à gauche, l'inverser le casserait. Et en interface latine, rien ne bouge.</p>
+ *
+ * <p>C'est un ordre d'AFFICHAGE : la donnée n'est jamais réécrite, et rien
+ * n'est envoyé au serveur dans cet ordre.</p>
+ */
+export function orderNameForReading(name: string | null | undefined, isRtl: boolean): string {
+  if (!name || !isRtl || containsArabic(name)) return name ?? '';
+  const words = name.trim().split(/\s+/);
+  return words.length < 2 ? name : words.reverse().join(' ');
+}

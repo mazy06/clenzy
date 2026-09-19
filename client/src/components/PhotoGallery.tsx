@@ -7,6 +7,7 @@ import {
   Delete as DeleteIcon,
 } from '../icons';
 import PhotoLightbox from './PhotoLightbox';
+import { useTranslation } from '../hooks/useTranslation';
 
 // ============================================================
 // PhotoGallery — Galerie de photos avec lightbox intégré
@@ -31,11 +32,12 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   photoIds,
   columns = 3,
   maxDisplay,
-  emptyMessage = 'Aucune photo disponible',
+  emptyMessage,
   showDownload = false,
   onDelete,
   deletingPhotoId,
 }) => {
+  const { t } = useTranslation();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -62,7 +64,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
         <span className="inline-flex mb-1.5 text-faint"><PhotoCameraIcon size={48} strokeWidth={1.5} /></span>
         <p className="text-xs text-muted-foreground">
-          {emptyMessage}
+          {emptyMessage ?? t('photos.none')}
         </p>
       </div>
     );

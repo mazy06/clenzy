@@ -92,6 +92,7 @@ const initialConnectForm: ConnectFormState = {
 };
 
 function StatusBadge({ status }: { status: ChannexSyncStatus }) {
+  const { t } = useTranslation();
   const meta = CHANNEX_STATUS_META[status];
   const icon = useMemo(() => {
     switch (status) {
@@ -112,10 +113,10 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
         {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
             (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
         <span className="inline-flex">
-          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-2xs" />
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={t(meta.labelKey)} icon={icon} className="text-2xs" />
         </span>
       </TooltipTrigger>
-      <TooltipContent side="top">{meta.description}</TooltipContent>
+      <TooltipContent side="top">{t(meta.descriptionKey)}</TooltipContent>
     </Tooltip>
   );
 }
@@ -320,7 +321,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       } else {
         setOtasError(err instanceof Error
           ? err.message
-          : 'Impossible de charger la liste des OTAs connectes.');
+          : t('channexHub.otaListError'));
       }
     } finally {
       setOtasLoading(false);
@@ -343,8 +344,8 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       await refreshConnectedOtas();
     } catch (err) {
       setOtasError(err instanceof Error
-        ? `Echec de la deconnexion : ${err.message}`
-        : 'Echec de la deconnexion.');
+        ? t('channexHub.disconnectFailedWith', { message: err.message })
+        : t('channexHub.disconnectFailed'));
     }
   };
 
@@ -383,7 +384,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       if (guided) {
         setGuidedDegraded(true);
       } else {
-        setGlobalError(err instanceof Error ? err.message : 'Erreur lors du chargement.');
+        setGlobalError(err instanceof Error ? err.message : t('common.loadingError'));
       }
     } finally {
       setLoading(false);
@@ -405,7 +406,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       setGroupBackfill({
         running: false,
         report: null,
-        error: err instanceof Error ? err.message : 'Le cloisonnement a echoue.',
+        error: err instanceof Error ? err.message : t('channexHub.backfillFailed'),
       });
     }
   };
@@ -420,7 +421,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       setPurge({
         running: false,
         report: null,
-        error: err instanceof Error ? err.message : 'La purge a echoue.',
+        error: err instanceof Error ? err.message : t('channexHub.purgeFailed'),
         confirming: false,
       });
     }
@@ -445,7 +446,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         channexDefaultRatePlanId: connectForm.channexDefaultRatePlanId.trim(),
       };
       if (!ids.channexPropertyId || !ids.channexRoomTypeId || !ids.channexDefaultRatePlanId) {
-        setConnectForm((s) => ({ ...s, error: 'Les 3 IDs Channex sont obligatoires en mode import.' }));
+        setConnectForm((s) => ({ ...s, error: t('channexHub.threeIdsRequired') }));
         return;
       }
       Object.assign(payload, ids);
@@ -469,7 +470,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       setPickerDialog({ open: true, property: connectedProperty });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la connexion au hub de distribution.';
+        err instanceof Error ? err.message : t('channexHub.connectError');
       setConnectForm((s) => ({ ...s, submitting: false, error: message }));
     }
   };
@@ -515,7 +516,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         });
       }
     } catch (err) {
-      setGlobalError(err instanceof Error ? err.message : 'Erreur lors du re-sync.');
+      setGlobalError(err instanceof Error ? err.message : t('channexHub.resyncError'));
     } finally {
       setBusyPropertyId(null);
     }
@@ -574,7 +575,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         + `. Va dans Settings > Commodites OTA pour mapper les restantes.`;
       window.alert(msg);
     } catch (err) {
-      setGlobalError(err instanceof Error ? err.message : 'Erreur lors du re-sync content.');
+      setGlobalError(err instanceof Error ? err.message : t('channexHub.resyncContentError'));
     } finally {
       setBusyPropertyId(null);
     }
@@ -593,24 +594,24 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       ? {
         title: guided
           ? t('channexGuided.title', 'Distribuez vos logements')
-          : 'Distribution — que voulez-vous faire ?',
+          : t('channexHub.rootTitle'),
         subtitle: guided
           ? t('channexGuided.subtitle', 'Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.')
-          : 'Importer un logement déjà en ligne, en connecter un déjà présent dans Baitly, ou gérer vos plateformes.',
+          : t('channexHub.rootSubtitle'),
       }
       : view === 'IMPORT_FROM_OTA'
         ? {
-          title: 'Importer un logement déjà en ligne',
-          subtitle: 'Autorisez votre compte, puis choisissez les annonces détectées à importer dans Baitly.',
+          title: t('channexHub.importTitle'),
+          subtitle: t('channexHub.importSubtitle'),
         }
         : view === 'MANAGE_OTAS'
           ? {
-            title: 'Mes plateformes connectées',
-            subtitle: 'Les plateformes reliées au hub de distribution, et leur déconnexion.',
+            title: t('channexHub.manageTitle'),
+            subtitle: t('channexHub.manageSubtitle'),
           }
           : {
-            title: 'Connecter un logement Baitly',
-            subtitle: 'Sélectionnez un logement pour l\'enregistrer dans le hub, puis y brancher Airbnb, Booking, etc.',
+            title: t('channexHub.connectTitle'),
+            subtitle: t('channexHub.connectSubtitle'),
           };
 
   return (
@@ -633,14 +634,14 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Retour au choix initial"
+                      aria-label={t('settings.channex.backToChoice')}
                       onClick={() => setView('CHOICE')}
                     >
                       <ArrowLeft size={18} className="cn-rtl-flip" />
                     </Button>
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>Retour au choix initial</TooltipContent>
+                <TooltipContent>{t('settings.channex.backToChoice')}</TooltipContent>
               </Tooltip>
             )}
             <div className="min-w-0 flex-1">
@@ -724,10 +725,10 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   onClick={() => setView('IMPORT_FROM_OTA')}
                   title={guided
                     ? t('channexGuided.importTitle', 'Importer mes annonces existantes')
-                    : 'Importer un logement déjà en ligne'}
+                    : t('channexHub.importTitle')}
                   description={guided
                     ? t('channexGuided.importDesc', 'Depuis Airbnb, Booking ou Vrbo — infos pré-remplies.')
-                    : 'Vos annonces Airbnb, Booking ou Vrbo pas encore dans Baitly : détectées et importées en lot, métadonnées pré-remplies.'}
+                    : t('channexHub.importCardDesc')}
                 />
 
                 {/* Entrée 2 : connecter un logement déjà dans le PMS */}
@@ -752,7 +753,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   onClick={() => setView('MANAGE_OTAS')}
                   title={guided
                     ? t('channexGuided.manageTitle', 'Gérer mes plateformes connectées')
-                    : 'Gérer les plateformes connectées'}
+                    : t('settings.channex.manageConnected')}
                   description={guided
                     ? t('channexGuided.manageDesc', 'Voir et déconnecter vos plateformes reliées.')
                     : 'Voir les plateformes reliées au hub et les déconnecter (supprime le canal et les autorisations).'}
@@ -799,7 +800,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                       onClick={handleGroupBackfill}
                     >
                       {groupBackfill.running ? <Spinner className="size-3" /> : <SettingsIcon size={14} />}
-                      {groupBackfill.running ? 'Cloisonnement…' : 'Cloisonner le hub par organisation'}
+                      {groupBackfill.running ? t('channexHub.backfilling') : t('channexHub.backfill')}
                     </Button>
                   </div>
                   {groupBackfill.error && (
@@ -818,7 +819,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                         {' · '}<strong>{groupBackfill.report.propertiesAlreadyIsolated}</strong> déjà cloisonné(s)
                         {' · '}<strong>{groupBackfill.report.organizationsProvisioned}</strong> groupe(s) créé(s)
                         {groupBackfill.report.failures > 0 && (
-                          <> · <strong>{groupBackfill.report.failures}</strong> échec(s)</>
+                          <> · <strong>{groupBackfill.report.failures}</strong> {t('settings.channex.failures', { count: groupBackfill.report.failures })}</>
                         )}
                         {groupBackfill.report.messages.length > 0 && (
                           <span className="block mt-0.5 opacity-80">
@@ -846,7 +847,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                       onClick={() => runPurge(false)}
                     >
                       {purge.running ? <Spinner className="size-3" /> : <Trash2 size={14} />}
-                      {purge.running ? 'Analyse…' : 'Analyser les logements sans organisation'}
+                      {purge.running ? t('channexHub.analysing') : t('channexHub.analyseOrphans')}
                     </Button>
                   </div>
                   {purge.error && (
@@ -889,7 +890,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                           <>
                             <strong>{purge.report.deleted}</strong> logement(s) supprimé(s) du hub
                             {purge.report.failures > 0 && (
-                              <> · <strong>{purge.report.failures}</strong> échec(s)</>
+                              <> · <strong>{purge.report.failures}</strong> {t('settings.channex.failuresShort', { count: purge.report.failures })}</>
                             )}
                           </>
                         )}
@@ -961,18 +962,17 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     <Link2 size={24} />
                   </div>
                   <p className="text-xs font-semibold mb-0.5 text-foreground">
-                    Aucun OTA connecte
+                    {t('settings.channex.noOtaConnected')}
                   </p>
                   <span className="text-xs text-muted-foreground block mb-3">
-                    Pour connecter Airbnb / Booking / Vrbo, retournez au choix initial et selectionnez
-                    "Importer une propriete deja en ligne".
+                    {t('settings.channex.noOtaConnectedHint')}
                   </span>
                   <Button
                     size="sm"
                     onClick={() => setView('CHOICE')}
                     variant="outline"
                   >
-                    Retour au choix
+                    {t('settings.channex.backToChoiceShort')}
                   </Button>
                 </div>
               ) : (
@@ -999,7 +999,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-row items-center gap-1.5 mb-[1.5px] flex-wrap">
                             <p className="text-xs font-semibold truncate text-foreground">
-                              {otaOption?.name ?? ota.otaName} — {ota.title || 'Sans titre'}
+                              {otaOption?.name ?? ota.otaName} — {ota.title || t('common.untitled')}
                             </p>
                             {ota.isActive ? (
                               <Badge variant="success" className="h-[18px] text-2xs">Actif</Badge>
@@ -1050,7 +1050,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
             </div>
           ) : properties.length === 0 ? (
             <p className="text-sm text-center py-6 text-muted-foreground">
-              Aucune propriete dans votre organisation.
+              {t('settings.channex.noProperty')}
             </p>
           ) : (
             // Le separateur du Stack MUI devient une bordure haute par ligne
@@ -1062,7 +1062,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 return (
                   <div className="py-2 flex items-center justify-between gap-3 border-t border-solid border-border first:border-t-0" key={property.id}>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate text-foreground">
+                      <p dir="auto" className="text-sm font-semibold truncate text-foreground">
                         {property.name}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -1178,7 +1178,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                 </Button>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Re-sync contenu OTA (nom, commodités) — re-scrape Airbnb + applique vos aliases</TooltipContent>
+                            <TooltipContent>{t('settings.channex.resyncContent')}</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1186,7 +1186,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"
-                                  aria-label="Re-pousser prix et disponibilites"
+                                  aria-label={t('settings.channex.repushPricesAria')}
                                   disabled={isBusy}
                                   onClick={() => handleResync(property)}
                                   className="text-primary"
@@ -1195,7 +1195,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                 </Button>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Re-pousser prix + dispo Baitly vers les OTAs (6 mois)</TooltipContent>
+                            <TooltipContent>{t('settings.channex.repushPrices')}</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1203,7 +1203,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"
-                                  aria-label="Importer les bookings OTA existants"
+                                  aria-label={t('settings.channex.pullBookingsAria')}
                                   disabled={isBusy}
                                   onClick={() => handlePullBookings(property)}
                                   className="text-info"
@@ -1212,7 +1212,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                 </Button>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Importer les bookings OTA existants (Airbnb / Booking / ...)</TooltipContent>
+                            <TooltipContent>{t('settings.channex.pullBookings')}</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1273,8 +1273,8 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
             </DialogTitle>
             <DialogDescription className="text-xs mt-0.5">
               {connectForm.mode === 'AUTO_CREATE'
-                ? "Baitly va creer Property + Room Type + Rate Plan automatiquement dans le hub"
-                : "Renseignez les 3 identifiants du hub (visibles dans votre dashboard)"}
+                ? t('channexHub.autoCreateHint')
+                : t('channexHub.manualIdsHint')}
             </DialogDescription>
           </DialogHeader>
           {connectForm.error && (
@@ -1303,11 +1303,11 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     invalide, silencieusement ignoree. Le trait du kit est --border. */}
                 <div className={cn('size-4 rounded-full border-2 border-solid shrink-0', connectForm.mode === 'AUTO_CREATE' ? 'border-primary bg-primary' : 'border-border bg-transparent')} />
                 <p className="text-sm font-semibold text-foreground">
-                  Creation automatique <span className="text-xs font-bold text-primary">RECOMMANDE</span>
+                  {t('settings.channex.autoCreate')} <span className="text-xs font-bold text-primary">{t('settings.channex.recommended')}</span>
                 </p>
               </div>
               <p className="text-xs text-muted-foreground ms-4 mt-0.5">
-                Baitly cree la Property, le Room Type et le Rate Plan automatiquement dans le hub de distribution en utilisant les infos de votre propriete.
+                {t('settings.channex.autoCreateHint')}
               </p>
             </div>
 
@@ -1326,11 +1326,11 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               <div className="flex items-center gap-1.5">
                 <div className={cn('size-4 rounded-full border-2 border-solid shrink-0', connectForm.mode === 'IMPORT_EXISTING' ? 'border-primary bg-primary' : 'border-border bg-transparent')} />
                 <p className="text-sm font-semibold text-foreground">
-                  Importer des IDs existants
+                  {t('settings.channex.importExisting')}
                 </p>
               </div>
               <p className="text-xs text-muted-foreground ms-4 mt-0.5">
-                Vous avez deja cree la propriete dans le hub de distribution et possedez les 3 UUIDs.
+                {t('settings.channex.importExistingHint')}
               </p>
             </div>
           </div>
@@ -1350,7 +1350,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   disabled={connectForm.submitting}
                   placeholder="ex: 8f8a2c1a-4b5e-..."
                 />
-                <FieldDescription>UUID de la Property dans le hub de distribution</FieldDescription>
+                <FieldDescription>{t('settings.channex.propertyUuidHint')}</FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="channex-room-type-id">Room Type ID (hub)</FieldLabel>
@@ -1364,7 +1364,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   disabled={connectForm.submitting}
                   placeholder="ex: 1d2e3f4a-..."
                 />
-                <FieldDescription>Room Type rattache a la property</FieldDescription>
+                <FieldDescription>{t('settings.channex.roomTypeHint')}</FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="channex-rate-plan-id">Default Rate Plan ID (hub)</FieldLabel>
@@ -1378,7 +1378,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   disabled={connectForm.submitting}
                   placeholder="ex: 5b6c7d8e-..."
                 />
-                <FieldDescription>Rate Plan par defaut utilise pour pousser les prix</FieldDescription>
+                <FieldDescription>{t('settings.channex.ratePlanHint')}</FieldDescription>
               </Field>
             </div>
           )}
@@ -1387,9 +1387,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           {connectForm.mode === 'AUTO_CREATE' && connectForm.property && (
             <UiAlert variant="info" className="text-xs">
               <Info />
-              <AlertDescription><strong>Sera cree dans le hub de distribution :</strong><ul className="m-0 ps-3 mt-[3px]">
+              <AlertDescription><strong>{t('settings.channex.willBeCreated')}</strong><ul className="m-0 ps-3 mt-[3px]">
                 <li>Property : <em>{connectForm.property.name}</em> ({connectForm.property.city}, {connectForm.property.country})</li>
-                <li>Room Type : 1 unite, capacite {connectForm.property.maxGuests} personnes</li>
+                <li>{t('settings.channex.roomTypeSummary', { guests: connectForm.property.maxGuests })}</li>
                 <li>Rate Plan : Standard Rate, per_room</li>
               </ul></AlertDescription>
             </UiAlert>
@@ -1397,9 +1397,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
 
           <UiAlert variant="info" className="mt-3 text-xs">
             <Info />
-            <AlertDescription>Apres connexion, un push initial de 6 mois (prix + disponibilites) sera declenche automatiquement.
+            <AlertDescription>{t('settings.channex.initialPush')}
             {connectForm.mode === 'AUTO_CREATE' && (
-              <> Pour connecter ensuite Airbnb / Booking / Vrbo, utilisez le bouton de connexion (lien) sur la propriete une fois creee.</>
+              <> {t('settings.channex.autoCreateFooter')}</>
             )}</AlertDescription>
           </UiAlert>
 
@@ -1602,7 +1602,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               onClick={() => runPurge(true)}
             >
               {purge.running ? <Spinner className="size-3" /> : <Trash2 size={14} />}
-              {purge.running ? 'Suppression…' : 'Supprimer définitivement'}
+              {purge.running ? t('common.deleting') : t('common.deletePermanently')}
             </Button>
           </DialogFooter>
         </DialogContent>

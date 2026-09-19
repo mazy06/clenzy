@@ -14,6 +14,8 @@ import {
 import { Sparkles, Rocket, AlertTriangle, ArrowLeft, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 import { SidebarTrigger, useSidebar } from '../../../components/ui/sidebar';
+import { useTranslation } from '../../../hooks/useTranslation';
+import i18n from '../../../i18n/config';
 
 /**
  * Studio de site IMMERSIF (surface user org, hors GrapesJS) — expérience « open-design » :
@@ -35,13 +37,15 @@ interface Turn {
  * un placeholder lisible et thémé (avec un libellé du module) au lieu d'un `<div>` vide. Ne modifie PAS
  * le contenu stocké — sur le site publié, le SDK hydrate ces marqueurs avec les vrais widgets.
  */
-const WIDGET_LABELS: Record<string, string> = {
-  search: 'Barre de recherche', results: 'Grille des logements', 'property-list': 'Grille des logements',
-  property: 'Détail du logement', dates: 'Sélecteur de dates', guests: 'Voyageurs', currency: 'Devise',
-  cart: 'Panier', price: 'Filtre prix', 'guest-form': 'Coordonnées voyageur', checkout: 'Paiement',
-  account: 'Compte', confirmation: 'Confirmation', upsells: 'Options & extras',
+const WIDGET_LABEL_KEYS: Record<string, string> = {
+  search: 'sitePreview.widgets.search', results: 'sitePreview.widgets.results', 'property-list': 'sitePreview.widgets.results',
+  property: 'sitePreview.widgets.property', dates: 'sitePreview.widgets.dates', guests: 'sitePreview.widgets.guests',
+  currency: 'sitePreview.widgets.currency', cart: 'sitePreview.widgets.cart', price: 'sitePreview.widgets.price',
+  'guest-form': 'sitePreview.widgets.guestForm', checkout: 'sitePreview.widgets.checkout',
+  account: 'sitePreview.widgets.account', confirmation: 'sitePreview.widgets.confirmation',
+  upsells: 'sitePreview.widgets.upsells',
 };
-const PREVIEW_WIDGET_CSS = `
+const previewWidgetCss = (): string => `
 [data-clenzy-widget]{
   display:flex!important; align-items:center; justify-content:center; text-align:center;
   min-height:56px; margin:14px 0; padding:18px 16px; box-sizing:border-box;
@@ -52,11 +56,11 @@ const PREVIEW_WIDGET_CSS = `
   font: 600 13px/1.4 var(--bt-font-body, system-ui, sans-serif);
   letter-spacing:.01em;
 }
-[data-clenzy-widget]::before{ content:"Module de réservation"; }
+[data-clenzy-widget]::before{ content:"${i18n.t('sitePreview.bookingModule')}"; }
 [data-clenzy-widget="search"], [data-clenzy-widget="results"], [data-clenzy-widget="property-list"]{ min-height:76px; }
 `
-  + Object.entries(WIDGET_LABELS)
-    .map(([k, v]) => `[data-clenzy-widget="${k}"]::before{ content:"${v}"; }`)
+  + Object.entries(WIDGET_LABEL_KEYS)
+    .map(([k, key]) => `[data-clenzy-widget="${k}"]::before{ content:"${i18n.t(key)}"; }`)
     .join('\n');
 
 /** Extrait html+css de l'enveloppe GrapesJS stockée dans `SitePage.blocks` (repli : blocks brut = HTML). */
@@ -81,6 +85,7 @@ function stripBodyWrapper(html: string): string {
 }
 
 export default function SiteManagerPage() {
+  const { t } = useTranslation();
   const { siteId: siteIdParam } = useParams();
   const siteId = Number(siteIdParam);
   const navigate = useNavigate();
@@ -105,7 +110,7 @@ export default function SiteManagerPage() {
       setPages(ps);
       setSelectedId((cur) => cur ?? ps.find((p) => p.type === 'HOME')?.id ?? ps[0]?.id ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Chargement du site impossible');
+      setError(e instanceof Error ? e.message : t('siteManager.loadFailed'));
     }
   }, [siteId]);
 
@@ -118,7 +123,7 @@ export default function SiteManagerPage() {
   const srcDoc = useMemo(() => {
     if (!selected) return '';
     const { html, css } = parseEnvelope(selected.blocks);
-    return `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0}${css}${PREVIEW_WIDGET_CSS}</style></head><body>${html}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0}${css}${previewWidgetCss()}</style></head><body>${html}</body></html>`;
   }, [selected?.id, selected?.blocks]);
 
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight }); }, [turns, refining]);
@@ -139,9 +144,9 @@ export default function SiteManagerPage() {
     try {
       const updated = await sitesApi.refinePage(siteId, pageId, text);
       replacePage(updated);
-      pushTurn(pageId, { role: 'assistant', text: 'Modification appliquée.' });
+      pushTurn(pageId, { role: 'assistant', text: t('siteManager.editApplied') });
     } catch (e) {
-      pushTurn(pageId, { role: 'assistant', text: e instanceof Error ? e.message : 'La retouche a échoué.', error: true });
+      pushTurn(pageId, { role: 'assistant', text: e instanceof Error ? e.message : t('siteManager.editFailed'), error: true });
     } finally {
       setRefining(false);
     }
@@ -155,7 +160,7 @@ export default function SiteManagerPage() {
       const updated = await sitesApi.publishPage(siteId, selected.id);
       replacePage(updated);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'La publication a échoué.');
+      setError(e instanceof Error ? e.message : t('siteManager.publishFailed'));
     } finally {
       setPublishing(false);
     }
@@ -181,7 +186,7 @@ export default function SiteManagerPage() {
         {/* Navigation de l'application : ici plutot que dans une bande a elle
             seule (cf. MainLayoutFull), qui coutait 48 px de haut pour un bouton. */}
         {isMobile && <SidebarTrigger className="shrink-0" />}
-        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="shrink-0 text-muted-foreground" aria-label="Retour au Studio">
+        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="shrink-0 text-muted-foreground" aria-label={t('studio.siteManager.backToStudio')}>
           <ArrowLeft size={16} strokeWidth={2} />
           <span className="hidden min-[900px]:inline">Studio</span>
         </Button>
@@ -192,10 +197,10 @@ export default function SiteManagerPage() {
           onClick={() => { if (site?.bookingEngineConfigId) navigate(`/booking-engine/studio/${site.bookingEngineConfigId}`); }}
           disabled={!site?.bookingEngineConfigId}
           className="shrink-0 text-muted-foreground"
-          aria-label="Édition manuelle"
+          aria-label={t('studio.siteManager.manualEdit')}
         >
           <SquarePen size={16} strokeWidth={2} />
-          <span className="hidden min-[900px]:inline">Édition manuelle</span>
+          <span className="hidden min-[900px]:inline">{t('studio.siteManager.manualEdit')}</span>
         </Button>
         <Button
           onClick={handlePublish}
@@ -210,7 +215,7 @@ export default function SiteManagerPage() {
             {publishing ? 'Publication…' : selected?.dirty ? 'Publier' : 'Publié'}
           </span>
           <span className="hidden min-[900px]:inline">
-            {publishing ? 'Publication…' : selected?.dirty ? 'Publier cette page' : 'Publié'}
+            {publishing ? 'Publication…' : selected?.dirty ? t('siteManager.publishPage') : 'Publié'}
           </span>
         </Button>
       </div>
@@ -241,7 +246,7 @@ export default function SiteManagerPage() {
               <div className="flex-1 flex justify-center min-w-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-field-line bg-field rounded-full px-[9px] py-[2.4px] text-muted-foreground text-xs transition-[border-color] duration-150 ease-out-quart motion-reduce:transition-none hover:border-primary" type="button" aria-label="Changer de page">
+                    <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-field-line bg-field rounded-full px-[9px] py-[2.4px] text-muted-foreground text-xs transition-[border-color] duration-150 ease-out-quart motion-reduce:transition-none hover:border-primary" type="button" aria-label={t('studio.siteManager.changePage')}>
                       <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
                         {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
                       </span>
@@ -261,7 +266,7 @@ export default function SiteManagerPage() {
                           <div className="text-2xs text-muted-foreground tabular-nums">{p.path}</div>
                         </div>
                         {p.dirty
-                          ? <div className="w-[7px] h-[7px] rounded-full bg-primary shrink-0" title="Brouillon non publié" />
+                          ? <div className="w-[7px] h-[7px] rounded-full bg-primary shrink-0" title="{t('studio.siteManager.unpublishedDraft')}" />
                           : <Check size={14} strokeWidth={2.4} color="var(--color-muted-foreground)" />}
                       </DropdownMenuItem>
                     ))}
@@ -277,7 +282,7 @@ export default function SiteManagerPage() {
                   <Wand2 size={20} strokeWidth={1.8} /> Retouche en cours…
                 </div>
               )}
-              <iframe title="Aperçu de la page" srcDoc={srcDoc} sandbox="" style={{ width: '100%', height: '100%', border: 0, background: '#fff', display: 'block' }} />
+              <iframe title={t('studio.siteManager.pagePreview')} srcDoc={srcDoc} sandbox="" style={{ width: '100%', height: '100%', border: 0, background: '#fff', display: 'block' }} />
             </div>
           </div>
         </div>
@@ -286,13 +291,13 @@ export default function SiteManagerPage() {
         <div className="border-t border-border flex flex-col min-h-0 min-[900px]:border-t-0 min-[900px]:border-s">
           <div className="px-3 py-2 border-b border-border flex items-center gap-1.5 shrink-0">
             <Sparkles size={16} strokeWidth={2} color="var(--color-primary)" />
-            <div className="text-sm font-semibold text-foreground">Assistant de design</div>
+            <div className="text-sm font-semibold text-foreground">{t('studio.siteManager.designAssistant')}</div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2" ref={logRef}>
             {turns.length === 0 && !refining && (
               <div className="text-muted-foreground text-sm leading-[1.6]">
-                Décrivez une modification de la page <b>{selected?.title || selected?.path}</b> en langage naturel.
+                {t('studio.siteManager.describeChange')} <b>{selected?.title || selected?.path}</b>.
                 <ul className="ps-3.5 mt-1.5 flex flex-col gap-0.5">
                   <li>« Rends le hero plus chaleureux »</li>
                   <li>« Passe la liste des logements en 2 colonnes »</li>
@@ -318,7 +323,7 @@ export default function SiteManagerPage() {
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
-                placeholder="Décrivez une modification…"
+                placeholder={t('studio.siteManager.describeChangePlaceholder')}
                 disabled={refining}
                 rows={2}
                 className="flex-1 resize-none border-0 outline-0 bg-transparent [font-family:inherit] text-sm text-foreground leading-[1.5] py-[3px]"

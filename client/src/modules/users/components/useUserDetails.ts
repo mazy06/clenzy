@@ -4,8 +4,10 @@ import { usersApi } from '../../../services/api/usersApi';
 import { deferredPaymentsApi } from '../../../services/api/deferredPaymentsApi';
 import type { HostBalanceSummary, LockoutStatus } from '../../../services/api';
 import type { UserDetailsData, UseUserDetailsReturn } from './userDetailsTypes';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export function useUserDetails(id: string | undefined): UseUserDetailsReturn {
+  const { t } = useTranslation();
   const { hasPermissionAsync } = useAuth();
 
   const [canManageUsers, setCanManageUsers] = useState(false);
@@ -77,7 +79,7 @@ export function useUserDetails(id: string | undefined): UseUserDetailsReturn {
         };
         setUser(convertedUser);
       } catch {
-        setError('Erreur lors du chargement de l\'utilisateur');
+        setError(t('users.loadError'));
       } finally {
         setLoading(false);
       }
@@ -131,10 +133,10 @@ export function useUserDetails(id: string | undefined): UseUserDetailsReturn {
     setUnlocking(true);
     try {
       await usersApi.unlockUser(user.id);
-      setSnackMessage('Utilisateur debloque avec succes');
+      setSnackMessage(t('users.unblocked'));
       await loadLockoutStatus();
     } catch {
-      setSnackMessage('Erreur lors du deblocage');
+      setSnackMessage(t('users.unblockError'));
     } finally {
       setUnlocking(false);
     }
@@ -161,9 +163,9 @@ export function useUserDetails(id: string | undefined): UseUserDetailsReturn {
     try {
       const res = await deferredPaymentsApi.sendPaymentLink(user.id);
       await navigator.clipboard.writeText(res.sessionUrl);
-      setSnackMessage('Lien de paiement copie dans le presse-papier !');
+      setSnackMessage(t('payments.linkCopied'));
     } catch {
-      setSnackMessage('Erreur lors de la creation du lien de paiement');
+      setSnackMessage(t('payments.linkCreateError'));
     } finally {
       setPaymentLinkLoading(false);
     }

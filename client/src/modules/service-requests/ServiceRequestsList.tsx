@@ -52,6 +52,7 @@ import ServiceRequestsMapView from './ServiceRequestsMapView';
 import ServiceRequestsGridView from './ServiceRequestsGridView';
 import ServiceRequestsTableView from './ServiceRequestsTableView';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 interface ServiceRequestsListProps {
   embedded?: boolean;
@@ -297,8 +298,8 @@ function ManagedServiceRequestsList({ embedded = false, actionsContainer, filter
     { key: 'propertyName', label: 'Propriété' },
     { key: 'requestorName', label: 'Demandeur' },
     { key: 'assignedToName', label: 'Assigné à' },
-    { key: 'dueDate', label: "Date d'échéance", formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
-    { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
+    { key: 'dueDate', label: "Date d'échéance", formatter: (v: string) => v ? new Date(v).toLocaleDateString(activeIntlLocale()) : '' },
+    { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString(activeIntlLocale()) : '' },
   ], []);
 
   const actionButtons = (

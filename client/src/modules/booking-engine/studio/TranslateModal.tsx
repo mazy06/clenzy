@@ -12,7 +12,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '../../../components/ui';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { X, Languages, AlertTriangle } from 'lucide-react';
 import type { AutoTranslateResult } from '../../../services/api/sitesApi';
 

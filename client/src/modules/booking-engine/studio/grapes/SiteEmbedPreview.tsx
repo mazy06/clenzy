@@ -13,6 +13,7 @@ import { widgetThemeFromTokens } from '../../widgetTheme';
 import { API_CONFIG } from '../../../../config/api';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
 import type { Breakpoint } from '../StudioShell';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Aperçu « Site » (R4 — parité ex-mode `Site` de DesignBuilder) : capture le SITE CIBLE du client
@@ -29,10 +30,10 @@ const FRAME_WIDTH: Record<Breakpoint, number | string> = { desktop: '100%', tabl
 
 export type WidgetPlacement = 'bottom' | 'floating' | 'top';
 
-const PLACEMENTS: { value: WidgetPlacement; label: string }[] = [
-  { value: 'bottom', label: 'Bas' },
-  { value: 'floating', label: 'Flottant' },
-  { value: 'top', label: 'Haut' },
+const PLACEMENTS: { value: WidgetPlacement; labelKey: string }[] = [
+  { value: 'bottom', labelKey: 'studio.embed.placements.bottom' },
+  { value: 'floating', labelKey: 'studio.embed.placements.floating' },
+  { value: 'top', labelKey: 'studio.embed.placements.top' },
 ];
 
 function parseTokens(json: string | null): DesignTokens | null {
@@ -59,6 +60,7 @@ export interface SiteEmbedPreviewProps {
 }
 
 export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPreviewProps) {
+  const { t } = useTranslation();
   const [placement, setPlacement] = useState<WidgetPlacement>('bottom');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const widgetRef = useRef<BaitlyWidget | null>(null);
@@ -82,7 +84,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
     fetch(`${API_BASE}/public/preview-proxy/snapshot?url=${encodeURIComponent(url)}`)
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((t) => { if (alive) { setHtml(t); setLoading(false); } })
-      .catch(() => { if (alive) { setError('Impossible de capturer ce site.'); setLoading(false); } });
+      .catch(() => { if (alive) { setError(t('studio.embed.captureFailed')); setLoading(false); } });
     return () => { alive = false; };
   }, [url]);
 
@@ -130,7 +132,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
             <Wand2 strokeWidth={1.6} />
           </EmptyMedia>
           <EmptyDescription className="max-w-[360px]">
-            Lance d’abord <strong>Analyse du design</strong> (⌘K) avec l’URL du site du client :
+            Lance d’abord <strong>{t('studio.designAnalysis.title')}</strong> (⌘K) avec l’URL du site du client :
             le site sera capturé ici et le widget posé dessus.
           </EmptyDescription>
         </EmptyHeader>
@@ -156,7 +158,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
         <iframe
           key={html.length}
           ref={iframeRef}
-          title="Aperçu du site cible avec le widget"
+          title={t('studio.embed.previewAlt')}
           srcDoc={html}
           sandbox="allow-same-origin"
           onLoad={() => { loadedRef.current = true; mountWidget(); }}
@@ -176,7 +178,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
     <div className="flex flex-col h-full min-h-0">
       {/* Barre : sélecteur de placement du widget (bas / flottant / haut). */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-card px-3 py-2">
-        <span className="me-0.5 text-sm text-muted-foreground">Position du widget</span>
+        <span className="me-0.5 text-sm text-muted-foreground">{t('studio.embed.widgetPosition')}</span>
         <div className="inline-flex gap-0.5 rounded-lg border border-border bg-background p-0.5">
           {PLACEMENTS.map((p) => (
             <button
@@ -194,7 +196,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
                   : 'bg-transparent text-foreground hover:bg-muted',
               )}
             >
-              {p.label}
+              {t(p.labelKey)}
             </button>
           ))}
         </div>

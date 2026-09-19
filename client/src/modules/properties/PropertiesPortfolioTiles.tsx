@@ -5,6 +5,7 @@ import { Money } from '../../components/Money';
 import { Percent, Euro, TrendingUp } from '../../icons';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Tuiles portefeuille (projection Logements) ──────────────────────────────
 //
@@ -62,6 +63,7 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
   properties,
   kpiMap,
 }) => {
+  const { t } = useTranslation();
   const aggregates = useMemo(
     () => computePortfolioAggregates(properties, kpiMap),
     [properties, kpiMap],
@@ -73,16 +75,16 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
     <StatTileRow compact className="mb-[9px] shrink-0">
       <StatTile
         icon={<Percent />}
-        label="Occupation moyenne"
+        label={t('properties.tiles.avgOccupancy')}
         value={aggregates.occupancyPct != null ? String(aggregates.occupancyPct) : '—'}
         unit="%"
-        hint={`sur ${aggregates.covered} logement${aggregates.covered > 1 ? 's' : ''} ce mois-ci`}
+        hint={t('properties.tiles.coveredHint', { count: aggregates.covered })}
       />
       <StatTile
         icon={<Euro />}
-        label="ADR portefeuille"
+        label={t('properties.tiles.portfolioAdr')}
         value={aggregates.adr != null ? <Money value={aggregates.adr} decimals={0} /> : '—'}
-        hint="prix moyen par nuit vendue"
+        hint={t('properties.tiles.adrHint')}
       />
       {/* Le moment engagé de cet écran. Un portefeuille se juge à ce qu'il
           rapporte : l'occupation et l'ADR expliquent ce chiffre, elles ne le
@@ -91,9 +93,9 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
       <StatTile
         feature
         icon={<TrendingUp />}
-        label="Revenu du mois"
+        label={t('properties.tiles.monthRevenue')}
         value={aggregates.revenue != null ? <Money value={aggregates.revenue} decimals={0} /> : '—'}
-        hint="alloué au mois courant, au prorata des nuits"
+        hint={t('properties.tiles.monthRevenueHint')}
       />
     </StatTileRow>
   );

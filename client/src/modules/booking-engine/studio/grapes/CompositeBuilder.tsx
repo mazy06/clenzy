@@ -8,6 +8,8 @@ import { ensureStructuralStyles, STRUCTURAL_STYLE_ID } from '../../sdk/headless'
 import { buildFilterGroupHtml } from './searchBarRules';
 import { buildCompositeInner, type CompositeWidget } from './compositeWidgets';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import i18n from '../../../../i18n/config';
 
 /** Icône « ouvrir le groupe » (ungroup) — contenu SVG de l'item toolbar (hérite du style natif GrapesJS). */
 const EXPLODE_ICON_SVG =
@@ -90,20 +92,21 @@ function injectStyle(doc: Document | null | undefined, id: string, css: string):
 function registerLayoutBlocks(editor: Editor): void {
   const bm = editor.BlockManager;
   bm.add('cz-row', {
-    label: blockLabelHtml('Ligne', 'Aligne les widgets côte à côte (adaptatif).'),
-    category: 'Mise en page',
+    label: blockLabelHtml(i18n.t('studioBlocks.base.row'), i18n.t('studioBlocks.base.rowDesc')),
+    category: i18n.t('studioBlocks.categories.layout'),
     media: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="5" height="8" rx="1"/><rect x="10" y="8" width="5" height="8" rx="1"/><rect x="17" y="8" width="4" height="8" rx="1"/></svg>',
     content: '<div data-cz-row style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;width:100%"></div>',
   });
   bm.add('cz-stack', {
-    label: blockLabelHtml('Colonne', 'Empile les widgets les uns sous les autres.'),
-    category: 'Mise en page',
+    label: blockLabelHtml(i18n.t('studioBlocks.base.stack'), i18n.t('studioBlocks.base.stackDesc')),
+    category: i18n.t('studioBlocks.categories.layout'),
     media: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="5" rx="1"/><rect x="4" y="11" width="16" height="5" rx="1"/></svg>',
     content: '<div data-cz-stack style="display:flex;flex-direction:column;gap:12px;width:100%"></div>',
   });
 }
 
 export default function CompositeBuilder({ open, config, initial, getTemplateCss, getSkinCss, onClose, onInsert, onSave }: CompositeBuilderProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   // `interactive` = mode INTERAGIR (contenu vivant : ouvrir le filtre, voir le caché, tester). false = ÉDITION (inerte).
   const [interactive, setInteractive] = useState(false);
@@ -153,10 +156,10 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
       styleManager: {
         appendTo: styleEl ?? undefined,
         sectors: [
-          { name: 'Disposition', open: true, properties: ['display', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'align-self', 'gap'] },
-          { name: 'Dimensions', open: false, properties: ['width', 'min-width', 'max-width', 'height', 'padding', 'margin'] },
-          { name: 'Typographie', open: false, properties: ['font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing', 'color', 'text-align'] },
-          { name: 'Décoration', open: false, properties: ['background-color', 'border-radius', 'border', 'box-shadow', 'opacity'] },
+          { name: i18n.t('studioStyle.layout'), open: true, properties: ['display', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'align-self', 'gap'] },
+          { name: i18n.t('studioStyle.dimensions'), open: false, properties: ['width', 'min-width', 'max-width', 'height', 'padding', 'margin'] },
+          { name: i18n.t('studioStyle.typography'), open: false, properties: ['font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing', 'color', 'text-align'] },
+          { name: i18n.t('studioStyle.decoration'), open: false, properties: ['background-color', 'border-radius', 'border', 'box-shadow', 'opacity'] },
         ],
       },
     });
@@ -232,11 +235,11 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
       const tb: ToolbarButtonProps[] = [...((comp.get('toolbar') as ToolbarButtonProps[] | undefined) ?? [])];
       let changed = false;
       if (EXPLODE_BUILDERS[String(comp.get('type'))] && !tb.some((t) => t.command === 'cz-explode')) {
-        tb.push({ attributes: { class: 'cz-tlb-explode', title: 'Ouvrir le groupe : éditer les sous-widgets (déplacer, aligner)' }, command: 'cz-explode', label: EXPLODE_ICON_SVG });
+        tb.push({ attributes: { class: 'cz-tlb-explode', title: i18n.t('studio.composite.openGroup') }, command: 'cz-explode', label: EXPLODE_ICON_SVG });
         changed = true;
       }
       if (comp.getAttributes()['data-cz-filter'] != null && !tb.some((t) => t.command === 'cz-filter-mode')) {
-        tb.push({ attributes: { class: 'cz-tlb-explode', title: 'Basculer le filtre : compact (icône) ↔ déplié (critères en ligne)' }, command: 'cz-filter-mode', label: MODE_ICON_SVG });
+        tb.push({ attributes: { class: 'cz-tlb-explode', title: i18n.t('studio.composite.toggleFilter') }, command: 'cz-filter-mode', label: MODE_ICON_SVG });
         changed = true;
       }
       if (changed) comp.set('toolbar', tb);
@@ -275,7 +278,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-3.5 py-2">
         <div className="inline-flex items-center gap-1.5 text-foreground">
           <Boxes size={18} strokeWidth={2} />
-          <span className="text-sm font-semibold">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
+          <span className="text-sm font-semibold">{initial ? t('studio.composite.edit') : t('studio.composite.builder')}</span>
         </div>
         <div className="flex-1" />
         <Button
@@ -283,13 +286,13 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           variant="outline"
           onClick={toggleInteractive}
           aria-pressed={interactive}
-          title={interactive ? 'Revenir au mode édition (sélection / déplacement des widgets)' : 'Mode interagir : ouvrir le filtre, voir le contenu caché, tester'}
+          title={interactive ? t('studio.composite.backToEdit') : t('studio.composite.interactMode')}
           className={cn(interactive && 'border-primary bg-primary-soft text-primary')}
         >
-          <Eye size={14} strokeWidth={2} /> {interactive ? 'Éditer' : 'Interagir'}
+          <Eye size={14} strokeWidth={2} /> {interactive ? t('studio.composite.editShort') : t('studio.composite.interactShort')}
         </Button>
         <Button type="button" variant="outline" onClick={insert}>
-          <Plus size={14} strokeWidth={2} /> Insérer sans enregistrer
+          <Plus size={14} strokeWidth={2} /> {t('studio.composite.insertWithoutSaving')}
         </Button>
         <Button type="button" onClick={save} disabled={!name.trim()}>
           <Save size={15} strokeWidth={2} /> Enregistrer
@@ -319,8 +322,8 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
                 du composite est porte par le placeholder + aria-label. */}
             <Input
               id="composite-name"
-              aria-label="Nom du composite"
-              placeholder="Nom du composite"
+              aria-label={t('studio.composite.name')}
+              placeholder={t('studio.composite.name')}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -347,8 +350,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           {/* Onglet BLOCS : aide + palette de blocs GrapesJS (montée via `appendTo`, toujours montée). */}
           <div className={cn('flex-col gap-[7.5px] flex-1 min-h-0 px-3 pb-3 overflow-y-auto', rightTab === 'blocks' ? 'flex' : 'hidden')}>
             <p className="text-2xs leading-snug text-muted-foreground">
-              Glisse les blocs sur le canvas (ou dans une « Ligne » pour les aligner). L'agencement que tu crées EST le composite.
-              Sélectionne le widget « Filtre » puis l'icône <span className="font-medium text-foreground">⧉ Ouvrir le groupe</span> : le filtre est <span className="font-medium text-foreground">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="font-medium text-foreground">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
+              {t('studio.composite.canvasHint')} <span className="font-medium text-foreground">{t('studio.composite.openGroup')}</span> : {t('studio.composite.kept')} {t('studio.composite.canvasHint2')} <span className="font-medium text-foreground">{t('studio.composite.compactToggle')}</span> {t('studio.composite.canvasHint3')}
             </p>
             <div className="flex-1 min-h-0" ref={blocksElRef} />
           </div>
@@ -356,7 +358,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           {/* Onglet STYLE : sélecteurs (classes) + Style Manager. Toujours montés (cibles `appendTo`). */}
           <div className={cn('flex-col flex-1 min-h-0 overflow-y-auto', rightTab === 'style' ? 'flex' : 'hidden')}>
             <p className="px-3 pb-1.5 text-2xs leading-snug text-muted-foreground">
-              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="font-medium text-foreground">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
+              {t('studio.composite.selectHint')} <span className="font-medium text-foreground">{t('studio.composite.byClass')}</span> {t('studio.composite.styleTail')}
             </p>
             <div className="shrink-0" ref={selectorElRef} />
             <div className="flex-1 min-h-0" ref={styleElRef} />

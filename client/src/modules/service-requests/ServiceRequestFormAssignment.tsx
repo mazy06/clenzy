@@ -187,14 +187,14 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                 if (cat === 'cleaning') {
                   return (
                     <p className="text-2xs text-faint italic mt-0.5">
-                      Type nettoyage → assignation équipe pré-sélectionnée
+                      {t('serviceRequests.assignment.cleaningPreselected')}
                     </p>
                   );
                 }
                 if (cat === 'maintenance') {
                   return (
                     <p className="text-2xs text-faint italic mt-0.5">
-                      Type maintenance → assignation équipe pré-sélectionnée
+                      {t('serviceRequests.assignment.maintenancePreselected')}
                     </p>
                   );
                 }

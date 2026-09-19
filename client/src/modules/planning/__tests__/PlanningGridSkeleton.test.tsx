@@ -79,11 +79,15 @@ describe('PlanningGridSkeleton — la grille avant ses donnees', () => {
     const { container } = renderSkeleton();
     // Les briques portent leur geometrie en style inline (une classe Tailwind
     // ne peut pas naitre d'une variable) : c'est a cela qu'on les reconnait.
+    //
+    // Le decalage est porte par `inset-inline-start` et non `left` : en arabe
+    // la frise se lit de droite a gauche, et `left` compterait les colonnes
+    // depuis sa FIN.
     const bars = Array.from(container.querySelectorAll<HTMLElement>('[data-slot="skeleton"]'))
-      .filter((el) => el.style.borderRadius !== '' && el.style.left !== '');
+      .filter((el) => el.style.borderRadius !== '' && el.style.insetInlineStart !== '');
     expect(bars.length).toBeGreaterThan(0);
     for (const bar of bars) {
-      expect(parseFloat(bar.style.left) % DAY_WIDTH).toBe(0);
+      expect(parseFloat(bar.style.insetInlineStart) % DAY_WIDTH).toBe(0);
       expect(parseFloat(bar.style.width) % DAY_WIDTH).toBe(0);
       expect(bar.style.height).toBe(`${ROW_CONFIG.normal.reservationBarHeight}px`);
       expect(bar.style.top).toBe(`${ROW_CONFIG.normal.barPadding}px`);

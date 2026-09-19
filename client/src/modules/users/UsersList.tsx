@@ -52,6 +52,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import HousekeeperRatesDialog from './components/HousekeeperRatesDialog';
 import { useNotification } from '../../hooks/useNotification';
+import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
@@ -67,6 +68,7 @@ import type { ExportColumn } from '../../utils/exportUtils';
 import type { ChipColor } from '../../types';
 import type { LucideIcon } from 'lucide-react';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 interface User {
   id: number;
@@ -89,31 +91,31 @@ interface User {
 // vive est admise. Baitly UI n'expose pas de sixieme teinte : le violet et le
 // gris chaud de l'ancienne palette Clenzy retombent respectivement sur
 // `warning` et `neutral`, ce qui garde les roles distincts deux a deux.
-const userRoles: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone; iconClass: string }> = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', tone: 'err', iconClass: 'text-destructive' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', Icon: SupervisorAccount, color: 'secondary', tone: 'warn', iconClass: 'text-warning' },
-  { value: 'SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info', iconClass: 'text-info' },
-  { value: 'TECHNICIAN', label: 'Technicien', Icon: Build, color: 'primary', tone: 'accent', iconClass: 'text-primary' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', Icon: CleaningServices, color: 'default', tone: 'neutral', iconClass: 'text-muted-foreground' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', Icon: CleaningServices, color: 'default', tone: 'neutral', iconClass: 'text-muted-foreground' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', tone: 'accent', iconClass: 'text-primary' },
-  { value: 'HOST', label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok', iconClass: 'text-success' },
+const userRoles: Array<{ value: string; labelKey: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone; iconClass: string }> = [
+  { value: 'SUPER_ADMIN', labelKey: 'roles.platform.SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', tone: 'err', iconClass: 'text-destructive' },
+  { value: 'SUPER_MANAGER', labelKey: 'roles.platform.SUPER_MANAGER', label: 'Super Manager', Icon: SupervisorAccount, color: 'secondary', tone: 'warn', iconClass: 'text-warning' },
+  { value: 'SUPERVISOR', labelKey: 'roles.platform.SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info', iconClass: 'text-info' },
+  { value: 'TECHNICIAN', labelKey: 'roles.platform.TECHNICIAN', label: 'Technicien', Icon: Build, color: 'primary', tone: 'accent', iconClass: 'text-primary' },
+  { value: 'HOUSEKEEPER', labelKey: 'roles.platform.HOUSEKEEPER', label: 'Agent de ménage', Icon: CleaningServices, color: 'default', tone: 'neutral', iconClass: 'text-muted-foreground' },
+  { value: 'LAUNDRY', labelKey: 'roles.platform.LAUNDRY', label: 'Blanchisserie', Icon: CleaningServices, color: 'default', tone: 'neutral', iconClass: 'text-muted-foreground' },
+  { value: 'EXTERIOR_TECH', labelKey: 'roles.platform.EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', tone: 'accent', iconClass: 'text-primary' },
+  { value: 'HOST', labelKey: 'roles.platform.HOST', label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok', iconClass: 'text-success' },
 ];
 
 // Libellés/visuels des rôles d'ORGANISATION (OrgMemberRole), affichés dans
 // l'Annuaire pour les membres d'org. Distinct de userRoles (rôles plateforme) :
 // un Manager/Admin d'org a le rôle plateforme HOST, mais on veut afficher son rôle réel.
-const orgRoleDisplay: Record<string, { label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone }> = {
-  OWNER: { label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok' },
-  ADMIN: { label: 'Administrateur', Icon: AdminPanelSettings, color: 'error', tone: 'err' },
-  MANAGER: { label: 'Manager', Icon: SupervisorAccount, color: 'warning', tone: 'warn' },
-  SUPERVISOR: { label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info' },
-  HOUSEKEEPER: { label: 'Agent de ménage', Icon: CleaningServices, color: 'default', tone: 'neutral' },
-  TECHNICIAN: { label: 'Technicien', Icon: Build, color: 'primary', tone: 'accent' },
-  LAUNDRY: { label: 'Blanchisserie', Icon: CleaningServices, color: 'default', tone: 'neutral' },
-  EXTERIOR_TECH: { label: 'Tech. Extérieur', Icon: Build, color: 'primary', tone: 'accent' },
-  HOST: { label: 'Hôte', Icon: Home, color: 'success', tone: 'ok' },
-  MEMBER: { label: 'Membre', Icon: Home, color: 'default', tone: 'neutral' },
+const orgRoleDisplay: Record<string, { labelKey: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone }> = {
+  OWNER: { labelKey: 'roles.org.OWNER', label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok' },
+  ADMIN: { labelKey: 'roles.org.ADMIN', label: 'Administrateur', Icon: AdminPanelSettings, color: 'error', tone: 'err' },
+  MANAGER: { labelKey: 'roles.org.MANAGER', label: 'Manager', Icon: SupervisorAccount, color: 'warning', tone: 'warn' },
+  SUPERVISOR: { labelKey: 'roles.org.SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info' },
+  HOUSEKEEPER: { labelKey: 'roles.org.HOUSEKEEPER', label: 'Agent de ménage', Icon: CleaningServices, color: 'default', tone: 'neutral' },
+  TECHNICIAN: { labelKey: 'roles.org.TECHNICIAN', label: 'Technicien', Icon: Build, color: 'primary', tone: 'accent' },
+  LAUNDRY: { labelKey: 'roles.org.LAUNDRY', label: 'Blanchisserie', Icon: CleaningServices, color: 'default', tone: 'neutral' },
+  EXTERIOR_TECH: { labelKey: 'roles.org.EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', tone: 'accent' },
+  HOST: { labelKey: 'roles.org.HOST', label: 'Hôte', Icon: Home, color: 'success', tone: 'ok' },
+  MEMBER: { labelKey: 'roles.org.MEMBER', label: 'Membre', Icon: Home, color: 'default', tone: 'neutral' },
 };
 
 // Statuts utilisateur → ton de la primitive StatusChip.
@@ -129,6 +131,7 @@ const USER_STATUS_TONE: Record<string, StatusTone> = {
 // Utilisation des enums partagés pour les statuts utilisateur
 const userStatuses = USER_STATUS_OPTIONS.map(option => ({
   value: option.value,
+  labelKey: option.labelKey,
   label: option.label,
   color: option.color
 }));
@@ -149,7 +152,7 @@ const getStatusInfo = (status: string) => {
 };
 
 const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('fr-FR', {
+  return new Date(dateString).toLocaleDateString(activeIntlLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -172,6 +175,7 @@ interface UsersListProps {
 }
 
 const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -269,9 +273,9 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       setEditDialogOpen(false);
       setEditFormData({});
       setSelectedUser(null);
-      notify.success('Utilisateur mis à jour avec succès');
+      notify.success(t('users.updated'));
     } catch (err: unknown) {
-      notify.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'utilisateur');
+      notify.error(err instanceof Error ? err.message : t('users.updateError'));
     } finally {
       setSaving(false);
     }
@@ -283,9 +287,9 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         await usersApi.delete(selectedUser.id);
         setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
         setDeleteDialogOpen(false);
-        notify.success('Utilisateur supprimé avec succès');
+        notify.success(t('users.deleted'));
       } catch (err: unknown) {
-        notify.error(err instanceof Error ? err.message : 'Erreur lors de la suppression de l\'utilisateur');
+        notify.error(err instanceof Error ? err.message : t('users.deleteError'));
         setDeleteDialogOpen(false);
       }
     } else {
@@ -304,14 +308,14 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   });
 
   const exportColumns: ExportColumn[] = [
-    { key: 'id', label: 'ID' },
-    { key: 'firstName', label: 'Prénom' },
-    { key: 'lastName', label: 'Nom' },
-    { key: 'email', label: 'Email' },
-    { key: 'phoneNumber', label: 'Téléphone' },
-    { key: 'role', label: 'Rôle', formatter: (v: string) => getRoleInfo(v).label },
-    { key: 'status', label: 'Statut', formatter: (v: string) => getStatusInfo(v).label },
-    { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
+    { key: 'id', label: t('common.id') },
+    { key: 'firstName', label: t('users.firstName') },
+    { key: 'lastName', label: t('users.lastName') },
+    { key: 'email', label: t('users.email') },
+    { key: 'phoneNumber', label: t('common.phone') },
+    { key: 'role', label: t('users.role'), formatter: (v: string) => { const r = getRoleInfo(v); return t(r.labelKey, r.label); } },
+    { key: 'status', label: t('common.status'), formatter: (v: string) => { const st = getStatusInfo(v); return t(st.labelKey, st.label); } },
+    { key: 'createdAt', label: t('common.createdAt'), formatter: (v: string) => v ? new Date(v).toLocaleDateString(activeIntlLocale()) : '' },
   ];
 
   // Exposer les actions au parent (UsersAndOrganizations)
@@ -331,11 +335,11 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
               un <h6>/<p> natif recupere sinon les marges du navigateur. */}
           <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
-            Accès non autorisé
+            {t('users.accessDenied.title')}
           </h6><p className="m-0 text-sm">
-            Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
+            {t('users.accessDenied.manage')}
             <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+            {t('users.accessDenied.contact')}
           </p></AlertDescription>
         </Alert>
       </div>
@@ -394,20 +398,20 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         type: {
           value: selectedRole,
           options: [
-            { value: 'all', label: 'Tous les rôles' },
-            ...userRoles.map(role => ({ value: role.value, label: role.label }))
+            { value: 'all', label: t('users.list.allRoles') },
+            ...userRoles.map(role => ({ value: role.value, label: t(role.labelKey, role.label) }))
           ],
           onChange: setSelectedRole,
-          label: "Rôle"
+          label: t('users.role')
         },
         status: {
           value: selectedStatus,
           options: [
-            { value: 'all', label: 'Tous les statuts' },
-            ...userStatuses.map(status => ({ value: status.value, label: status.label }))
+            { value: 'all', label: t('users.list.allStatuses') },
+            ...userStatuses.map(status => ({ value: status.value, label: t(status.labelKey, status.label) }))
           ],
           onChange: setSelectedStatus,
-          label: "Statut"
+          label: t('common.status')
         }
       }}
       counter={{
@@ -460,7 +464,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         />
         <StatTile
           icon={<Build />}
-          label="Personnel opérationnel"
+          label={t('users.list.operationalStaff')}
           value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
           iconClassName="text-info"
         />
@@ -477,11 +481,11 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           <div className="col-span-12">
             <EmptyState
               icon={<Person />}
-              title={users.length === 0 ? 'Aucun utilisateur' : 'Aucun résultat'}
+              title={users.length === 0 ? t('users.none') : 'Aucun résultat'}
               description={
                 users.length === 0
-                  ? 'Créez le premier compte avec le bouton « Nouvel utilisateur ».'
-                  : 'Aucun utilisateur ne correspond aux filtres sélectionnés.'
+                  ? t('users.emptyHint')
+                  : t('users.noMatch')
               }
             />
           </div>
@@ -490,7 +494,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             const platformRole = getRoleInfo(user.role);
             const orgRole = getOrgRoleInfo(user);
             // Eviter le doublon si le role d'org a le meme libelle que le role plateforme.
-            const showOrgRole = orgRole && orgRole.label !== platformRole.label;
+            const showOrgRole = orgRole && orgRole.labelKey !== platformRole.labelKey;
             const s = getStatusInfo(user.status);
             // Couple `-soft` / `-ink` du ton du role : teinte calculee a
             // l'execution, donc valeur CSS et non classe Tailwind.
@@ -518,7 +522,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       <div className="flex-1 min-w-0">
                         {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les
                             marges UA que `cn-text-*` neutralisait. */}
-                        <p className="m-0 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                        <p dir="auto" className="m-0 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.firstName} {user.lastName}
                         </p>
                         <p className="m-0 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block">
@@ -539,7 +543,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
                         <DropdownMenuItem onClick={() => navigate(`/users/${user.id}`)}>
                           <Visibility size={18} strokeWidth={1.75} />
-                          Voir détails
+                          {t('users.list.viewDetails')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEdit(user)}>
                           <Edit size={18} strokeWidth={1.75} />
@@ -569,10 +573,10 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         {/* TooltipTrigger pose une ref sur son enfant, que StatusChip ne transmet
                             pas (React 18, composant fonction) : sans ce span, rien ne s'ancre. */}
                         <span className="inline-flex">
-                          <StatusChip tone={platformRole.tone} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
+                          <StatusChip tone={platformRole.tone} label={t(platformRole.labelKey, platformRole.label)} icon={<PlatformIcon size={11} strokeWidth={2} />} />
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Rôle sur la plateforme</TooltipContent>
+                      <TooltipContent>{t('users.list.platformRole')}</TooltipContent>
                     </Tooltip>
                     {showOrgRole && orgRole && OrgIcon && (
                       <Tooltip>
@@ -584,17 +588,17 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                                 `-ink` du ton, filet tire de la meme encre. */}
                             <StatusChip
                               tokens={{ color: STATUS_TONES[orgRole.tone].color, bg: 'transparent' }}
-                              label={orgRole.label}
+                              label={t(orgRole.labelKey, orgRole.label)}
                               icon={<OrgIcon size={11} strokeWidth={2} />}
                               className="border border-solid"
                               sx={{ borderColor: `color-mix(in srgb, ${STATUS_TONES[orgRole.tone].color} 40%, transparent)` }}
                             />
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent>Rôle dans l'organisation</TooltipContent>
+                        <TooltipContent>{t('users.list.orgRole')}</TooltipContent>
                       </Tooltip>
                     )}
-                    <StatusChip tone={statusTone} label={s.label} />
+                    <StatusChip tone={statusTone} label={t(s.labelKey, s.label)} />
                   </div>
 
                   {/* Informations supplémentaires */}
@@ -638,7 +642,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     className="w-full"
                   >
                     <Visibility strokeWidth={1.75} />
-                    Voir détails
+                    {t('users.list.viewDetails')}
                   </Button>
                 </div>
               </Card>
@@ -662,12 +666,12 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       >
         <DialogContent className="max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Modifier l'utilisateur</DialogTitle>
+            <DialogTitle>{t('users.edit.title')}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 min-[900px]:col-span-6">
               <Field>
-                <FieldLabel htmlFor="user-edit-first-name">Prénom *</FieldLabel>
+                <FieldLabel htmlFor="user-edit-first-name">{t('users.firstName')} *</FieldLabel>
                 <Input
                   id="user-edit-first-name"
                   className="w-full"
@@ -704,7 +708,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             </div>
             <div className="col-span-12">
               <Field>
-                <FieldLabel htmlFor="user-edit-phone">Téléphone</FieldLabel>
+                <FieldLabel htmlFor="user-edit-phone">{t('common.phone')}</FieldLabel>
                 <Input
                   id="user-edit-phone"
                   className="w-full"
@@ -717,13 +721,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               {/* Liste riche (pastille de couleur par role) -> Select du kit et non
                   NativeSelect : une <option> native ne peut pas porter d'icone. */}
               <Field>
-                <FieldLabel htmlFor="user-edit-role">Rôle</FieldLabel>
+                <FieldLabel htmlFor="user-edit-role">{t('users.role')}</FieldLabel>
                 <Select
                   value={editFormData.role || ''}
                   onValueChange={(value) => setEditFormData(prev => ({ ...prev, role: value }))}
                 >
                   <SelectTrigger id="user-edit-role" size="sm" className="w-full">
-                    <SelectValue placeholder="Rôle" />
+                    <SelectValue placeholder={t('users.role')} />
                   </SelectTrigger>
                   <SelectContent>
                     {userRoles.map((role) => {
@@ -733,7 +737,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                           <span className={`inline-flex ${role.iconClass}`}>
                             <RoleIcon size={16} strokeWidth={1.75} />
                           </span>
-                          {role.label}
+                          {t(role.labelKey, role.label)}
                         </SelectItem>
                       );
                     })}
@@ -743,7 +747,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
               <Field>
-                <FieldLabel htmlFor="user-edit-status">Statut</FieldLabel>
+                <FieldLabel htmlFor="user-edit-status">{t('common.status')}</FieldLabel>
                 <NativeSelect
                   id="user-edit-status"
                   className="w-full"
@@ -752,7 +756,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 >
                   {userStatuses.map((status) => (
                     <NativeSelectOption key={status.value} value={status.value}>
-                      {status.label}
+                      {t(status.labelKey, status.label)}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
@@ -776,7 +780,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) setDeleteDialogOpen(false); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogTitle>{t('users.list.confirmDelete')}</DialogTitle>
           </DialogHeader>
           <p className="m-0 text-xs">
             Êtes-vous sûr de vouloir supprimer l'utilisateur "{selectedUser?.firstName} {selectedUser?.lastName}" ?

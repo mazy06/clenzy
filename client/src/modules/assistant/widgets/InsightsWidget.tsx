@@ -1,5 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 import {
   TrendingUp as TrendIcon,
@@ -46,6 +47,7 @@ interface InsightsWidgetProps {
  * <p>Design borderless avec bg tonal — aligne avec la directive design du chat.</p>
  */
 export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
+  const { t } = useTranslation();
   const items = data.items ?? [];
 
   if (items.length === 0) {
@@ -53,7 +55,7 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
       <div className="mt-1.5 mb-2">
         <div className="p-4 rounded-xl bg-success-soft text-center">
           <p className="text-xs font-semibold text-success-ink">
-            Aucun insight detecte — tout va bien sur cette propriete.
+            {t('assistant.widgets.noInsight')}
           </p>
         </div>
       </div>

@@ -24,6 +24,7 @@ import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
 import { Money } from '../../components/Money';
 import type { PropertyPerformance } from '../../services/api/propertiesApi';
 import type { PlanningProperty } from './types';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Popover logement (maquette Signature) ───────────────────────────────────
 //
@@ -67,7 +68,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
   const address = [property.address, property.city].filter(Boolean).join(', ');
   const currency = property.currency || 'EUR';
   const fmt = React.useMemo(
-    () => new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }),
+    () => new Intl.NumberFormat(activeIntlLocale(), { style: 'currency', currency, maximumFractionDigits: 0 }),
     [currency],
   );
 
@@ -121,7 +122,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
             className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.74), rgba(0,0,0,0))' }}
           />
-          <span className="pointer-events-none absolute start-[10px] end-[10px] bottom-[10px] text-[0.8125rem] font-bold text-white leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+          <span dir="auto" className="pointer-events-none absolute start-[10px] end-[10px] bottom-[10px] text-[0.8125rem] font-bold text-white leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {property.name}
           </span>
         </div>
@@ -130,7 +131,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           <div className="inline-flex text-[var(--brand-ink)] opacity-55 mb-3.5">
             <Business size={26} strokeWidth={1.5} />
           </div>
-          <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+          <span dir="auto" className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {property.name}
           </span>
         </div>
@@ -178,21 +179,21 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               {property.maxGuests != null && (
                 <StatPill
                   icon={<People size={STAT_ICON_SIZE} strokeWidth={1.75} />}
-                  label="Voyageurs max"
+                  label={t('planning.popover.maxGuests', 'Voyageurs max')}
                   value={`${property.maxGuests}`}
                 />
               )}
               {property.minimumNights != null && property.minimumNights > 0 && (
                 <StatPill
                   icon={<Bed size={STAT_ICON_SIZE} strokeWidth={1.75} />}
-                  label="Nuits min."
+                  label={t('planning.popover.minNights', 'Nuits min.')}
                   value={`${property.minimumNights}`}
                 />
               )}
               {property.nightlyPrice != null && property.nightlyPrice > 0 && (
                 <StatPill
                   icon={<Euro size={STAT_ICON_SIZE} strokeWidth={1.75} />}
-                  label="Prix / nuit"
+                  label={t('planning.popover.nightlyPrice', 'Prix / nuit')}
                   value={fmt.format(property.nightlyPrice)}
                   highlight
                 />
@@ -200,7 +201,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
                 <StatPill
                   icon={<CleaningServices size={STAT_ICON_SIZE} strokeWidth={1.75} />}
-                  label="Ménage"
+                  label={t('planning.popover.cleaning', 'Ménage')}
                   value={fmt.format(property.cleaningBasePrice)}
                 />
               )}
@@ -215,7 +216,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
                   </span>
                   <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
-                    Check-in <strong className="text-[var(--ink)]">{property.defaultCheckInTime.slice(0, 5)}</strong>
+                    {t('planning.popover.checkIn', 'Check-in')} <strong className="text-[var(--ink)]">{property.defaultCheckInTime.slice(0, 5)}</strong>
                   </span>
                 </div>
               )}
@@ -225,7 +226,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
                   </span>
                   <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
-                    Check-out <strong className="text-[var(--ink)]">{property.defaultCheckOutTime.slice(0, 5)}</strong>
+                    {t('planning.popover.checkOut', 'Check-out')} <strong className="text-[var(--ink)]">{property.defaultCheckOutTime.slice(0, 5)}</strong>
                   </span>
                 </div>
               )}
@@ -238,7 +239,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
                 <CalendarMonth size={STAT_ICON_SIZE} strokeWidth={1.75} />
               </span>
               <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
-                Fréquence ménage : <strong className="text-[var(--ink)]">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</strong>
+                {t('planning.popover.cleaningFrequency', 'Fréquence ménage :')} <strong className="text-[var(--ink)]">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</strong>
               </span>
             </div>
           )}
@@ -254,13 +255,13 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               <Speed size={STAT_ICON_SIZE} strokeWidth={1.75} />
             </div>
             <span className="font-bold uppercase tracking-[0.3px] text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>
-              Performance · {perf.windowDays} j
+              {t('planning.popover.performance', { days: perf.windowDays })}
             </span>
           </div>
 
           {/* Score + barre de progression */}
           <div className="flex justify-between mb-0.5">
-            <span className="text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>Score</span>
+            <span className="text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>{t('planning.popover.score', 'Score')}</span>
             <span className="font-bold tabular-nums" style={{ fontSize: BODY_FS, color: scoreColor(perf.score) }}>
               {perf.score}/100
             </span>
@@ -275,11 +276,11 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
 
           {/* Lignes label / valeur */}
           <div className="flex flex-col gap-0.5">
-            <PerfRow label="RevPAN" value={<Money value={perf.revPan} from="EUR" decimals={2} />} />
-            <PerfRow label="Taux d'occupation" value={`${Math.round(perf.occupancyRate)} %`} />
-            <PerfRow label="Revenu total" value={<Money value={perf.revenue} from="EUR" decimals={0} />} />
+            <PerfRow label={t('planning.popover.revPan', 'RevPAN')} value={<Money value={perf.revPan} from="EUR" decimals={2} />} />
+            <PerfRow label={t('planning.popover.occupancyRate', "Taux d'occupation")} value={`${Math.round(perf.occupancyRate)} %`} />
+            <PerfRow label={t('planning.popover.totalRevenue', 'Revenu total')} value={<Money value={perf.revenue} from="EUR" decimals={0} />} />
             <PerfRow
-              label="Marge nette"
+              label={t('planning.popover.netMargin', 'Marge nette')}
               value={`${Math.round(perf.netMargin)} %`}
               valueColor={perf.netMargin >= 60 ? '#4A9B8E' : perf.netMargin >= 40 ? '#D4A574' : '#C97A7A'}
             />
@@ -295,7 +296,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--bui-border)' }}>
         <Button size="sm" variant="outline" className="flex-1 shrink" onClick={onClose}>
           <Close size={ICON_SIZE} strokeWidth={1.75} />
-          Fermer
+          {t('planning.popover.close', 'Fermer')}
         </Button>
         <Button
           size="sm"
@@ -306,7 +307,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           }}
         >
           <Visibility size={ICON_SIZE} strokeWidth={1.75} />
-          Voir la fiche
+          {t('planning.popover.openProperty', 'Voir la fiche')}
         </Button>
       </div>
       </PopoverContent>

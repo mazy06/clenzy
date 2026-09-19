@@ -1,6 +1,7 @@
 import { Button, Card } from '../../../components/ui';
 import { Smartphone, Refresh } from '../../../icons';
 import { BAITLY_APP } from '../baitlyApp';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Guidage d'appairage (modèle C) : oriente l'hôte depuis le PMS vers l'app mobile de marque
@@ -17,13 +18,14 @@ interface DevicePairingGuideProps {
   refreshing?: boolean;
 }
 
-const STEPS = [
-  `Ouvrez l'app ${BAITLY_APP.name} sur votre téléphone`,
-  'Appairez votre appareil (caméra, serrure, capteur…) à proximité',
-  'Revenez ici et rafraîchissez la liste',
+const STEP_KEYS = [
+  'connectedObjects.pairing.step1',
+  'connectedObjects.pairing.step2',
+  'connectedObjects.pairing.step3',
 ];
 
 export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePairingGuideProps) {
+  const { t } = useTranslation();
   return (
     // Le panneau du kit plutot qu'un <div> borde a la main : meme surface que les
     // cartes du hub (fond de carte, filet, rayon), sans le redefinir ici.
@@ -33,17 +35,16 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
           <Smartphone size={16} />
         </span>
         <p className="text-[0.82rem] font-semibold">
-          Appairez votre appareil dans l'app {BAITLY_APP.name}
+          {t('connectedObjects.pairing.title', { app: BAITLY_APP.name })}
         </p>
       </div>
       <p className="text-[0.72rem] text-muted-foreground mb-1.5">
-        L'appairage d'un objet neuf se fait dans l'app mobile {BAITLY_APP.name} (au plus près de
-        l'appareil). Il apparaîtra ensuite ici automatiquement, rattaché au compte de l'organisation.
+        {t('connectedObjects.pairing.body', { app: BAITLY_APP.name })}
       </p>
 
       <ol className="m-0 mb-1.5 ps-[13.5px] [&_li]:mb-[1.5px] [&_li]:text-[0.74rem] [&_li]:text-muted-foreground">
-        {STEPS.map((s) => (
-          <li key={s}>{s}</li>
+        {STEP_KEYS.map((key) => (
+          <li key={key}>{t(key, { app: BAITLY_APP.name })}</li>
         ))}
       </ol>
 
@@ -54,7 +55,7 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
               <Button size="sm" asChild>
                 <a href={BAITLY_APP.pairingDeepLink}>
                   <Smartphone size={15} strokeWidth={2} />
-                  Ouvrir l'app {BAITLY_APP.name}
+                  {t('connectedObjects.pairing.openApp', { app: BAITLY_APP.name })}
                 </a>
               </Button>
             )}

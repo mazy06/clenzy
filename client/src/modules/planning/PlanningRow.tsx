@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
@@ -9,6 +10,8 @@ import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
 import { cn } from '../../utils/cn';
+import { isRtlLanguage } from '../../utils/localeDate';
+import { inlineOffsetInRect } from '../../utils/inlineScroll';
 import { Money } from '../../components/Money';
 import { NightsStay } from '../../icons';
 
@@ -88,6 +91,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   loadedReservations,
 }) => {
   const config = ROW_CONFIG[density];
+  // Sens de lecture de la frise. La selection de dates convertit une abscisse
+  // de souris en index de colonne : en arabe, la colonne 0 est a DROITE.
+  const { i18n, t } = useTranslation();
+  const isRtl = isRtlLanguage(i18n.language);
+  const isRtlRef = useRef(isRtl);
+  isRtlRef.current = isRtl;
 
   // ── Interventions rattachées à une réservation (maquette) ────────────────
   // RÈGLE UNIQUE : une intervention RATTACHÉE (lien explicite
@@ -309,7 +318,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
     const y = e.clientY - rect.top;
     if (y > config.rowHeight) return;
 
-    const x = e.clientX - rect.left;
+    const x = inlineOffsetInRect(e.clientX, rect, isRtlRef.current);
     const dayIndex = Math.floor(x / dayWidthRef.current);
 
     if (dayIndex < 0 || dayIndex >= daysRef.current.length) return;
@@ -332,7 +341,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       const sel = selectionRef.current;
       if (!sel) return;
 
-      const currentX = ev.clientX - sel.rect.left;
+      const currentX = inlineOffsetInRect(ev.clientX, sel.rect, isRtlRef.current);
       const currentDayIndex = Math.max(0, Math.min(
         daysRef.current.length - 1,
         Math.floor(currentX / dayWidthRef.current),
@@ -511,7 +520,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               ],
             )}
             style={{
-              left: leftPx,
+              // Logique et non physique : la frise se lit a l'envers en arabe.
+              insetInlineStart: leftPx,
               top: config.barPadding,
               width: Math.max(widthPx, 4), // Minimum 4px so the bar is always visible
               height: config.reservationBarHeight,
@@ -527,7 +537,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               className="cn-text-body1 text-[0.6875rem] font-semibold truncate leading-[1.2]"
               style={{ color: selColor }}
             >
-              {isError ? 'Pas de place' : `${nightCount}${nightCount === 1 ? ' nuit' : ' nuits'}`}
+              {isError ? t('planning.noRoom') : `${nightCount}${nightCount === 1 ? ' nuit' : ' nuits'}`}
             </p>
           </div>
         );
@@ -587,7 +597,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         if (dayWidth < 30) return null;
 
         return (
-          <div className="absolute top-0 flex items-center justify-center pointer-events-none z-[0] px-[1.5px] overflow-hidden" style={{ left: idx * dayWidth, width: dayWidth, height: activeRowHeight }} key={`cell-info-${dateStr}`}>
+          <div className="absolute top-0 flex items-center justify-center pointer-events-none z-[0] px-[1.5px] overflow-hidden" style={{ insetInlineStart: idx * dayWidth, width: dayWidth, height: activeRowHeight }} key={`cell-info-${dateStr}`}>
             {price != null && (
               <span
                 className={cn(

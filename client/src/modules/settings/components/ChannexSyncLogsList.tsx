@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 
 import { channexApi } from '../../../services/api/channexApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type {
   ChannexSyncLogDto,
   ChannexSyncLogStatus,
@@ -119,6 +120,7 @@ export default function ChannexSyncLogsList({
   defaultCollapsed = true,
   maxItems = 10,
 }: ChannexSyncLogsListProps) {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<ChannexSyncLogDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export default function ChannexSyncLogsList({
       const data = await channexApi.syncLogs(propertyId, 50);
       setLogs(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement de l historique');
+      setError(err instanceof Error ? err.message : t('channexLogs.loadError'));
     } finally {
       setLoading(false);
     }
@@ -211,7 +213,7 @@ export default function ChannexSyncLogsList({
           )}
           {!loading && !error && logs.length === 0 && (
             <span className="text-xs text-muted-foreground opacity-60 block py-1.5 italic">
-              Aucune operation sync enregistree pour cette propriete.
+              {t('settings.channex.logs.empty')}
             </span>
           )}
           {logs.length > 0 && (

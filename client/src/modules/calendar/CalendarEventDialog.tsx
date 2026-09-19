@@ -27,6 +27,7 @@ import {
 import { getTypeLabel } from '../interventions/interventionUtils';
 import { semanticToHex } from '../../utils/statusUtils';
 import type { ChipColor } from '../../types';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Chips soft (pilule fond -soft + encre -ink — règle Baitly UI §2.4) ──────
 
@@ -64,9 +65,9 @@ const getStatusChipColor = (status: string): ChipColor => {
   return (option?.color as ChipColor) || 'default';
 };
 
-const getStatusLabel = (status: string): string => {
+const getStatusLabel = (status: string, t: (key: string) => string): string => {
   const option = INTERVENTION_STATUS_OPTIONS.find(opt => opt.value === status);
-  return option?.label || status;
+  return option ? t(option.labelKey) : status;
 };
 
 const getPriorityChipColor = (priority: string): ChipColor => {
@@ -74,13 +75,13 @@ const getPriorityChipColor = (priority: string): ChipColor => {
   return (option?.color as ChipColor) || 'default';
 };
 
-const getPriorityLabel = (priority: string): string => {
+const getPriorityLabel = (priority: string, t: (key: string) => string): string => {
   const option = PRIORITY_OPTIONS.find(opt => opt.value === priority);
-  return option?.label || priority;
+  return option ? t(option.labelKey) : priority;
 };
 
 const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('fr-FR', {
+  return new Date(dateString).toLocaleDateString(activeIntlLocale(), {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
@@ -123,8 +124,8 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
         {/* Chips: Status, Priority, Type — pilules soft (jamais d'aplat plein) */}
         <div className="mb-3 flex flex-wrap gap-1.5">
-          <StatusChip pill tokens={chipColorTokens(getStatusChipColor(intervention.status))} label={getStatusLabel(intervention.status)} />
-          <StatusChip pill tokens={chipColorTokens(getPriorityChipColor(intervention.priority))} label={getPriorityLabel(intervention.priority)} />
+          <StatusChip pill tokens={chipColorTokens(getStatusChipColor(intervention.status))} label={getStatusLabel(intervention.status, t)} />
+          <StatusChip pill tokens={chipColorTokens(getPriorityChipColor(intervention.priority))} label={getPriorityLabel(intervention.priority, t)} />
           <StatusChip pill tokens={chipColorTokens('primary')} label={getTypeLabel(intervention.type, t)} />
         </div>
 
@@ -192,7 +193,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
             Fermer
           </Button>
           <Button size="sm" onClick={handleViewDetails}>
-            Voir les details
+            {t('common.viewDetails')}
           </Button>
         </DialogFooter>
       </DialogContent>

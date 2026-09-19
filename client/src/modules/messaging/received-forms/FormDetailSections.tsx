@@ -18,6 +18,7 @@ import {
 } from '../../../icons';
 import type { ReceivedForm } from '../../../services/api/receivedFormsApi';
 import { formatFieldValue, toList } from './formatters';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ─── Primitives de section ───────────────────────────────────────────────────
 
@@ -81,13 +82,14 @@ function BodyText({ text }: { text: string }) {
 // ─── Sections par type de formulaire ─────────────────────────────────────────
 
 function DevisSections({ data }: { data: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const has = (k: string) => {
     const v = data[k];
     return v != null && v !== '' && !(Array.isArray(v) && v.length === 0);
   };
 
   const tiles: { key: string; icon: React.ReactNode; label: string; value: string; unit?: string }[] = [];
-  if (has('propertyType')) tiles.push({ key: 'propertyType', icon: <HomeIcon />, label: 'Type de bien', value: formatFieldValue('propertyType', data.propertyType) });
+  if (has('propertyType')) tiles.push({ key: 'propertyType', icon: <HomeIcon />, label: t('properties.type'), value: formatFieldValue('propertyType', data.propertyType) });
   if (has('surface')) tiles.push({ key: 'surface', icon: <RulerIcon />, label: 'Surface', value: String(data.surface), unit: 'm²' });
   if (has('guestCapacity')) tiles.push({ key: 'guestCapacity', icon: <UsersIcon />, label: 'Voyageurs', value: formatFieldValue('guestCapacity', data.guestCapacity) });
   if (has('propertyCount')) tiles.push({ key: 'propertyCount', icon: <BuildingIcon />, label: 'Logements', value: String(data.propertyCount) });
@@ -99,7 +101,7 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
   return (
     <>
       {tiles.length > 0 && (
-        <Section title="Aperçu du bien">
+        <Section title={t('receivedForms.propertyPreview')}>
           <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
             {tiles.map((tile) => (
               <StatTile key={tile.key} icon={tile.icon} label={tile.label} value={tile.value} unit={tile.unit} />
@@ -109,28 +111,28 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
       )}
 
       {hasServices && (
-        <Section title="Services souhaités">
+        <Section title={t('receivedForms.servicesWanted')}>
           <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-2">
             <div className="flex flex-col gap-2">
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <SparklesIcon size={14} strokeWidth={1.75} className="text-primary" />
-                Services forfait
+                {t('receivedForms.packageServices')}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {forfait.length > 0
                   ? forfait.map((s) => <ServiceChip key={s} label={formatFieldValue('services', s)} />)
-                  : <ServiceChip variant="muted" label="Aucun" />}
+                  : <ServiceChip variant="muted" label={t('receivedForms.none')} />}
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <FileTextIcon size={14} strokeWidth={1.75} className="text-primary" />
-                Services sur devis
+                {t('receivedForms.quoteServices')}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {devis.length > 0
                   ? devis.map((s) => <ServiceChip key={s} variant="devis" label={formatFieldValue('servicesDevis', s)} />)
-                  : <ServiceChip variant="muted" label="Aucun" />}
+                  : <ServiceChip variant="muted" label={t('receivedForms.none')} />}
               </div>
             </div>
           </div>
@@ -143,14 +145,14 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
             {has('bookingFrequency') && (
               <PlanCard
                 icon={<CalendarRangeIcon />}
-                label="Fréquence des réservations"
+                label={t('receivedForms.bookingFrequency')}
                 value={formatFieldValue('bookingFrequency', data.bookingFrequency)}
               />
             )}
             {has('cleaningSchedule') && (
               <PlanCard
                 icon={<ClockIcon />}
-                label="Planning ménage"
+                label={t('receivedForms.cleaningSchedule')}
                 value={formatFieldValue('cleaningSchedule', data.cleaningSchedule)}
               />
             )}
@@ -172,6 +174,7 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
 }
 
 function MaintenanceSections({ data }: { data: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const works = toList(data.selectedWorks);
   const description = (data.customNeed as string) || (data.description as string) || '';
   const hasUrgency = data.urgency != null && data.urgency !== '';
@@ -179,7 +182,7 @@ function MaintenanceSections({ data }: { data: Record<string, unknown> }) {
   return (
     <>
       {works.length > 0 && (
-        <Section title="Travaux demandés">
+        <Section title={t('receivedForms.worksRequested')}>
           <div className="flex flex-wrap gap-1.5">
             {works.map((w) => (
               <Badge key={w} variant="secondary">
@@ -235,11 +238,12 @@ function SupportSections({ data }: { data: Record<string, unknown> }) {
 
 /** Rend les sections du détail à partir du payload JSON du formulaire. */
 export default function FormPayloadSections({ form }: { form: ReceivedForm }) {
+  const { t } = useTranslation();
   let data: Record<string, unknown>;
   try {
     data = JSON.parse(form.payload);
   } catch {
-    return <p className="text-sm text-muted-foreground">Données non lisibles</p>;
+    return <p className="text-sm text-muted-foreground">{t('receivedForms.unreadableData')}</p>;
   }
 
   if (form.formType === 'DEVIS') return <DevisSections data={data} />;

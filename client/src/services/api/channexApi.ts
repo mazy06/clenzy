@@ -746,8 +746,8 @@ export type ChannexOtaCode = 'ABB' | 'BDC' | 'VRB' | 'EXP' | 'AGO';
 export interface ChannexOtaCreateSetting {
   /** Cle envoyee dans `settings` (ex. `hotel_id`). */
   key: string;
-  label: string;
-  help: string;
+  labelKey: string;
+  helpKey: string;
   placeholder: string;
 }
 
@@ -787,8 +787,8 @@ export const CHANNEX_OTA_OPTIONS: readonly ChannexOtaOption[] = [
     description: 'XML API · credentials hotel',
     createSetting: {
       key: 'hotel_id',
-      label: 'Identifiant Booking.com du logement',
-      help: "Visible en haut de l'extranet Booking.com, à côté du nom de l'établissement.",
+      labelKey: 'settings.channex.createSetting.hotelId.label',
+      helpKey: 'settings.channex.createSetting.hotelId.help',
       placeholder: '10485037',
     },
   },
@@ -1030,26 +1030,26 @@ export interface ChannexSyncLogDto {
 /** UI helpers : couleurs + labels par statut de sync. */
 export const CHANNEX_STATUS_META: Record<
   ChannexSyncStatus,
-  { label: string; color: string; description: string }
+  { labelKey: string; color: string; descriptionKey: string }
 > = {
   PENDING: {
-    label: 'En cours de configuration',
+    labelKey: 'settings.channex.syncStatus.pending.label',
     color: '#D97706',
-    description: 'Mapping cree, push initial en cours ou pas encore tente.',
+    descriptionKey: 'settings.channex.syncStatus.pending.description',
   },
   ACTIVE: {
-    label: 'Connectee',
+    labelKey: 'settings.channex.syncStatus.active.label',
     color: '#059669',
-    description: 'Sync operationnelle, derniere mise a jour reussie.',
+    descriptionKey: 'settings.channex.syncStatus.active.description',
   },
   ERROR: {
-    label: 'Erreur',
+    labelKey: 'settings.channex.syncStatus.error.label',
     color: '#EF4444',
-    description: 'Derniere sync a echoue. Le scheduler retentera dans l\'heure.',
+    descriptionKey: 'settings.channex.syncStatus.error.description',
   },
   DISABLED: {
-    label: 'Desactivee',
+    labelKey: 'settings.channex.syncStatus.disabled.label',
     color: '#6B7280',
-    description: 'Sync manuellement desactivee. Cliquez sur "Resync" pour reactiver.',
+    descriptionKey: 'settings.channex.syncStatus.disabled.description',
   },
 };

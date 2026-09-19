@@ -108,7 +108,9 @@ interface Team {
 }
 
 // ── Steps ───────────────────────────────────────────────────────────────────
-const STEPS = ['Service', 'Chiffrage', 'Planification', 'Assignation'];
+// Les libellés des étapes se lisent au rendu : figés à l'import, ils
+// resteraient français après un changement de langue.
+const STEP_KEYS = ['service', 'pricing', 'planning', 'assignment'] as const;
 
 // ── Props ───────────────────────────────────────────────────────────────────
 interface CreateServiceRequestDialogProps {
@@ -295,7 +297,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         });
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement de la demande');
+        if (!cancelled) setError(err instanceof Error ? err.message : t('serviceRequests.loadError'));
       })
       .finally(() => {
         if (!cancelled) setLoadingEdit(false);
@@ -725,7 +727,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
   const handleNext = useCallback(() => {
     if (canGoNext()) {
-      setActiveStep(prev => Math.min(prev + 1, STEPS.length - 1));
+      setActiveStep(prev => Math.min(prev + 1, STEP_KEYS.length - 1));
     }
   }, [canGoNext]);
 
@@ -799,7 +801,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       onCreated?.(savedId as number);
       onClose();
     } catch (err: unknown) {
-      const message = getErrorMessage(err, "Impossible d’enregistrer la demande");
+      const message = getErrorMessage(err, t('serviceRequests.saveError'));
       setError(message);
     } finally {
       await Promise.allSettled([
@@ -829,20 +831,22 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="inline-flex text-[var(--brand-ink)]"><Send size={20} strokeWidth={1.75} /></span>
           <DialogTitle className="cn-text-h6 font-bold text-[1rem]">
-            {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
+            {isEditMode
+              ? t('planning.panel.newRequest.editTitle', "Modifier l'intervention")
+              : t('planning.panel.newRequest.createTitle', 'Nouvelle intervention')}
           </DialogTitle>
         </div>
         {/* Stepper à droite, sur la même ligne que le titre. Le gabarit du
             libelle (0.72rem / 600 / nowrap) est deja celui du primitif : seul
             le placement a droite reste a exprimer. */}
         <Stepper activeStep={activeStep} className="ms-auto min-w-0 grow-0 shrink basis-[480px]">
-          {STEPS.map((label) => (
-            <Step key={label} className="px-[3px]">
-              <StepLabel>{label}</StepLabel>
+          {STEP_KEYS.map((key) => (
+            <Step key={key} className="px-[3px]">
+              <StepLabel>{t(`planning.panel.newRequest.steps.${key}`)}</StepLabel>
             </Step>
           ))}
         </Stepper>
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer" className="shrink-0">
+        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t('planning.panel.newRequest.close', 'Fermer')} className="shrink-0">
           <Close size={18} strokeWidth={1.75} />
         </Button>
         </DialogHeader>
@@ -869,7 +873,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 majuscule au-dessus + champ encadré). */}
             <div className="flex-[7]">
               <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
-                Titre de la demande *
+                {t('planning.panel.newRequest.titleLabel', 'Titre de la demande *')}
               </p>
               {/* La ref react-hook-form reste portee par l'enveloppe, comme le
                   faisait le root de l'InputBase MUI : les primitifs du kit sont
@@ -884,7 +888,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       <Input
                         {...field}
                         value={field.value ?? ''}
-                        placeholder="Ex: Détartrage ballon d'eau chaude"
+                        placeholder={t('planning.panel.newRequest.titlePlaceholder')}
                         className="flex-1 h-auto border-0 bg-transparent px-0 py-0 text-[0.8125rem] text-[var(--ink)] placeholder:text-[var(--faint)] placeholder:opacity-100 focus-visible:ring-0"
                       />
                     </div>
@@ -901,7 +905,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
             {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
             <div className="flex-[5]">
               <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
-                Demandeur
+                {t('planning.panel.newRequest.requester', 'Demandeur')}
               </p>
               <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
                 <span className="inline-flex text-[var(--brand-ink)]"><Person size={16} strokeWidth={1.75} /></span>
@@ -951,20 +955,20 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                         <div className="flex items-center gap-1">
                           <span className="inline-flex text-[var(--brand-ink)]"><Timer size={18} strokeWidth={1.75} /></span>
                           <div>
-                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Durée estimée</p>
+                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">{t('planning.panel.newRequest.estimatedDuration', 'Durée estimée')}</p>
                             <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">{formatDuration(estimatedDuration)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="inline-flex text-[var(--brand-ink)]"><Euro size={18} strokeWidth={1.75} /></span>
                           <div>
-                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Prix estimé</p>
+                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">{t('planning.panel.newRequest.estimatedPrice', 'Prix estimé')}</p>
                             {priceRange ? (
                               <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">
                                 {priceRange.min === priceRange.max ? <Money value={priceRange.min} from="EUR" /> : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
                               </p>
                             ) : (
-                              <p className="cn-text-body1 text-[0.75rem] font-medium text-[var(--faint)] leading-[1.3]">Non disponible</p>
+                              <p className="cn-text-body1 text-[0.75rem] font-medium text-[var(--faint)] leading-[1.3]">{t('planning.panel.newRequest.unavailable', 'Non disponible')}</p>
                             )}
                           </div>
                         </div>
@@ -1027,8 +1031,8 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                     <Spinner className="size-3.5" />
                     <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                       {watchedAssignedToType === 'team'
-                        ? "Vérification de la disponibilité de l'équipe..."
-                        : "Vérification de la disponibilité de l'utilisateur..."}
+                        ? t('planning.panel.newRequest.checkingTeam')
+                        : t('planning.panel.newRequest.checkingUser')}
                     </span>
                   </div>
                 )}
@@ -1038,15 +1042,16 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   <UiAlert variant="destructive" className="mt-[9px] text-[0.75rem]">
                     <WarningIcon size={20} strokeWidth={1.75} />
                     <AlertTitle className="font-bold text-[0.8125rem]">
-                      Conflit de planification détecté
+                      {t('planning.panel.newRequest.conflictTitle')}
                     </AlertTitle>
                     <AlertDescription className="text-[0.75rem]">
                       <p className="mb-1.5">
-                        L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
-                        {conflictInfo.teamConflictCount > 0
-                          ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
-                          : 'des membres occupés'}{' '}
-                        sur ce créneau. Choisissez une autre équipe ou une autre date.
+                        {t('planning.panel.newRequest.teamConflict', {
+                          team: conflictInfo.teamName,
+                          detail: conflictInfo.teamConflictCount > 0
+                            ? t('planning.panel.newRequest.teamConflictCount', { count: conflictInfo.teamConflictCount })
+                            : t('planning.panel.newRequest.membersBusy'),
+                        })}
                       </p>
                       {conflictMembers.length > 0 && (
                         <div className="mt-0.5 ps-0.5">
@@ -1057,7 +1062,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                                 {member.firstName} {member.lastName}
                                 {!member.available && (
                                   <span className="text-[0.6875rem] text-[var(--err)] font-semibold">
-                                    {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
+                                    {' '}— {t('planning.panel.newRequest.memberConflicts', { count: member.conflictCount })}
                                   </span>
                                 )}
                               </p>
@@ -1073,7 +1078,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   <UiAlert variant="success" className="mt-[9px] text-[0.6875rem]">
                     <CircleCheck />
                     <AlertDescription className="text-[0.6875rem]">
-                      L'équipe <strong>{conflictInfo.teamName}</strong> est disponible sur ce créneau
+                      {t('planning.panel.newRequest.teamAvailable', { team: conflictInfo.teamName })}
                     </AlertDescription>
                   </UiAlert>
                 )}
@@ -1083,12 +1088,13 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   <UiAlert variant="destructive" className="mt-[9px] text-[0.75rem]">
                     <WarningIcon size={20} strokeWidth={1.75} />
                     <AlertTitle className="font-bold text-[0.8125rem]">
-                      Conflit de planification détecté
+                      {t('planning.panel.newRequest.conflictTitle')}
                     </AlertTitle>
                     <AlertDescription className="text-[0.75rem]">
-                      <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> a déjà{' '}
-                      {userConflictInfo.conflictCount} intervention{userConflictInfo.conflictCount > 1 ? 's' : ''}{' '}
-                      sur ce créneau. Choisissez un autre intervenant ou une autre date.
+                      {t('planning.panel.newRequest.userConflict', {
+                        name: `${userConflictInfo.firstName} ${userConflictInfo.lastName}`,
+                        detail: t('planning.panel.newRequest.userConflictCount', { count: userConflictInfo.conflictCount }),
+                      })}
                     </AlertDescription>
                   </UiAlert>
                 )}
@@ -1097,7 +1103,9 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   <UiAlert variant="success" className="mt-[9px] text-[0.6875rem]">
                     <CircleCheck />
                     <AlertDescription className="text-[0.6875rem]">
-                      <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> est disponible sur ce créneau
+                      {t('planning.panel.newRequest.userAvailable', {
+                        name: `${userConflictInfo.firstName} ${userConflictInfo.lastName}`,
+                      })}
                     </AlertDescription>
                   </UiAlert>
                 )}
@@ -1106,7 +1114,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 <UiAlert variant="info" className="mt-3 text-[0.6875rem]">
                   <Info size={16} strokeWidth={1.75} />
                   <AlertDescription className="text-[0.6875rem]">
-                    La demande sera soumise au workflow : validation → assignation → paiement → intervention planifiée.
+                    {t('planning.panel.newRequest.workflow')}
                   </AlertDescription>
                 </UiAlert>
               </div>
@@ -1125,12 +1133,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         {createdId && (
           <UiAlert variant="success" className="text-[0.75rem] mt-2">
             <CircleCheck />
-            <AlertDescription>Demande créée.{' '}<button
+            <AlertDescription>{t('planning.panel.newRequest.created', 'Demande créée.')}{' '}<button
               type="button"
               onClick={() => navigate(`/service-requests/${createdId}`)}
               className="text-[0.75rem] underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0 text-inherit"
             >
-              Voir la demande
+              {t('planning.panel.newRequest.seeRequest', 'Voir la demande')}
             </button></AlertDescription>
           </UiAlert>
         )}
@@ -1139,21 +1147,21 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         {/* ── Actions ── */}
         <DialogFooter className="flex-row justify-between sm:justify-between mx-0 mb-0 px-[15px] pb-3 pt-[9px] bg-transparent">
         <Button variant="ghost" size="sm" onClick={onClose}>
-          Annuler
+          {t('planning.panel.newRequest.cancel', 'Annuler')}
         </Button>
 
         <div className="flex gap-1.5">
           {activeStep > 0 && (
             <Button variant="ghost" size="sm" onClick={handleBack}>
               <ArrowBack size={14} strokeWidth={1.75} />
-              Retour
+              {t('planning.panel.newRequest.back', 'Retour')}
             </Button>
           )}
 
-          {activeStep < STEPS.length - 1 ? (
+          {activeStep < STEP_KEYS.length - 1 ? (
             <Button size="sm" onClick={handleNext} disabled={!canGoNext()}>
-              Suivant
-              <ArrowForward size={14} strokeWidth={1.75} />
+              {t('planning.panel.newRequest.next', 'Suivant')}
+              <ArrowForward className="cn-rtl-flip" size={14} strokeWidth={1.75} />
             </Button>
           ) : (
             // Le bouton bascule en `destructive` quand un conflit bloque l'envoi :
@@ -1165,7 +1173,11 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               disabled={saving || hasConflict || conflictLoading || loadingEdit}
             >
               {saving ? <Spinner className="size-3.5" /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
-              {hasConflict ? 'Conflit détecté' : isEditMode ? 'Enregistrer' : 'Créer la demande'}
+              {hasConflict
+                ? t('planning.panel.newRequest.conflictCta', 'Conflit détecté')
+                : isEditMode
+                  ? t('planning.panel.newRequest.save', 'Enregistrer')
+                  : t('planning.panel.newRequest.create', 'Créer la demande')}
             </Button>
           )}
         </div>

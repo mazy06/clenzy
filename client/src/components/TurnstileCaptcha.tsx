@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Spinner } from './ui';
+import { useTranslation } from '../hooks/useTranslation';
 
 
 interface TurnstileCaptchaProps {
@@ -21,6 +22,7 @@ const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
 export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptchaProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const scriptLoadedRef = useRef(false);
@@ -32,8 +34,8 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
       sitekey: SITE_KEY,
       theme: 'light',
       callback: (token: string) => onVerified(token),
-      'error-callback': () => onError?.('Erreur de vérification. Réessayez.'),
-      'expired-callback': () => onError?.('Vérification expirée. Réessayez.'),
+      'error-callback': () => onError?.(t('captcha.error')),
+      'expired-callback': () => onError?.(t('captcha.expired')),
     });
   }, [onVerified, onError]);
 
@@ -72,7 +74,7 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
       }, 50);
       setTimeout(() => clearInterval(interval), 5000);
     };
-    script.onerror = () => onError?.('Impossible de charger la vérification.');
+    script.onerror = () => onError?.(t('captcha.loadFailed'));
     document.head.appendChild(script);
 
     return () => {
@@ -86,7 +88,7 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
   if (!SITE_KEY) {
     return (
       <p className="py-1.5 text-center text-xs text-muted-foreground">
-        Vérification CAPTCHA non configurée.
+        {t('captcha.notConfigured')}
       </p>
     );
   }

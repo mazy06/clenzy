@@ -21,6 +21,8 @@ import { usePlatformSettings, useSetProspectDevisEmails, useSetDevisLeadsToWaitl
 import { useWaitlistStats, useWaitlistList } from '../../hooks/useWaitlist';
 import InternalNotificationEmailsRow from './components/InternalNotificationEmailsRow';
 import SenderEmailRow from './components/SenderEmailRow';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Réglages de pré-lancement (SUPER_ADMIN / SUPER_MANAGER) :
@@ -29,13 +31,14 @@ import SenderEmailRow from './components/SenderEmailRow';
  */
 const fmtDate = (d: string) => {
   try {
-    return new Date(d).toLocaleDateString('fr-FR', {
+    return new Date(d).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   } catch { return d; }
 };
 
 const LaunchSettingsSection: React.FC = () => {
+  const { t } = useTranslation();
   const { data: settings, isLoading } = usePlatformSettings();
   const setProspectEmails = useSetProspectDevisEmails();
   const setDevisToWaitlist = useSetDevisLeadsToWaitlist();
@@ -48,7 +51,7 @@ const LaunchSettingsSection: React.FC = () => {
   const founderSpots = stats?.founderSpots ?? 20;
 
   return (
-    <SettingsSection title="Pré-lancement" icon={Rocket} accent="primary">
+    <SettingsSection title={t('settings.launch.preLaunch')} icon={Rocket} accent="primary">
       {isLoading ? (
         <div className="flex justify-center py-3">
           <Spinner className="size-5" />
@@ -57,7 +60,7 @@ const LaunchSettingsSection: React.FC = () => {
         <>
           <SettingsToggleRow
             icon={Mail}
-            title="Emails de devis aux prospects"
+            title="{t('settings.launch.quoteEmails')}"
             description="Quand c'est désactivé, aucun email ni devis n'est envoyé aux prospects depuis la landing (utile tant que le PMS n'est pas public). info@ reste notifié dans tous les cas."
             checked={settings?.sendProspectDevisEmails ?? true}
             onChange={(c) => setProspectEmails.mutate(c)}
@@ -65,7 +68,7 @@ const LaunchSettingsSection: React.FC = () => {
           />
           <SettingsToggleRow
             icon={UserPlus}
-            title="Ajouter les demandes de devis à la waitlist"
+            title="{t('settings.launch.addToWaitlist')}"
             description="Pendant le pré-lancement, chaque demande de devis depuis la landing inscrit aussi l'email à la liste d'attente de lancement."
             checked={settings?.addDevisLeadsToWaitlist ?? true}
             onChange={(c) => setDevisToWaitlist.mutate(c)}
@@ -102,7 +105,7 @@ const LaunchSettingsSection: React.FC = () => {
                 {' · '}
                 {stats.founderSpotsLeft > 0
                   ? `${stats.founderSpotsLeft} / ${founderSpots} place${founderSpots > 1 ? 's' : ''} fondateur restante${stats.founderSpotsLeft > 1 ? 's' : ''}`
-                  : 'Places fondateur complètes'}
+                  : t('launch.founderSpotsFull')}
               </>
             ) : '—'}
           </span>
@@ -110,7 +113,7 @@ const LaunchSettingsSection: React.FC = () => {
         divider={false}
         control={(
           <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setShowList((v) => !v)}>
-            {showList ? 'Masquer' : 'Voir les inscrits'}
+            {showList ? t('common.hide') : t('launch.seeSignups')}
             {showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </Button>
         )}
@@ -122,7 +125,7 @@ const LaunchSettingsSection: React.FC = () => {
         <div className="max-h-[320px] overflow-y-auto">
           {(list ?? []).length === 0 ? (
             <p className="py-3 text-center text-[0.78rem] text-muted-foreground">
-              Aucun inscrit pour le moment.
+              {t('settings.launch.noSignup')}
             </p>
           ) : (
             <ItemGroup>

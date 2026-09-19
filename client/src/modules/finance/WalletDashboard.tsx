@@ -18,24 +18,26 @@ import StatTile from '../../components/baitly/StatTile';
 import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Accents = palette Baitly validée (ESCROW : mauve désaturé, propre à cet écran)
-const WALLET_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  PLATFORM: { label: 'Plateforme', icon: <Business size={16} strokeWidth={1.75} />, color: '#6B8A9A' },
-  OWNER: { label: 'Propriétaire', icon: <TrendingUp size={16} strokeWidth={1.75} />, color: '#4A9B8E' },
-  CONCIERGE: { label: 'Conciergerie', icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />, color: '#D4A574' },
-  ESCROW: { label: 'Séquestre', icon: <Lock size={16} strokeWidth={1.75} />, color: '#9A7FA3' },
+const WALLET_TYPE_LABELS: Record<string, { labelKey: string; icon: React.ReactNode; color: string }> = {
+  PLATFORM: { labelKey: 'finance.walletTypes.platform', icon: <Business size={16} strokeWidth={1.75} />, color: '#6B8A9A' },
+  OWNER: { labelKey: 'finance.walletTypes.owner', icon: <TrendingUp size={16} strokeWidth={1.75} />, color: '#4A9B8E' },
+  CONCIERGE: { labelKey: 'finance.walletTypes.concierge', icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />, color: '#D4A574' },
+  ESCROW: { labelKey: 'finance.walletTypes.escrow', icon: <Lock size={16} strokeWidth={1.75} />, color: '#9A7FA3' },
 };
 
 // Neutre (ADJUSTMENT) : pas de token sémantique dédié — repli muted-foreground
-const REF_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  PAYMENT: { label: 'Paiement', color: '#6B8A9A' },
-  SPLIT: { label: 'Répartition', color: '#7BA3C2' },
-  ESCROW_HOLD: { label: 'Séquestre', color: '#D4A574' },
-  ESCROW_RELEASE: { label: 'Libération', color: '#4A9B8E' },
-  REFUND: { label: 'Remboursement', color: '#C97A7A' },
-  PAYOUT: { label: 'Versement', color: '#4A9B8E' },
-  ADJUSTMENT: { label: 'Ajustement', color: 'var(--bui-muted-foreground)' },
+const REF_TYPE_LABELS: Record<string, { labelKey: string; color: string }> = {
+  PAYMENT: { labelKey: 'finance.refTypes.payment', color: '#6B8A9A' },
+  SPLIT: { labelKey: 'finance.refTypes.split', color: '#7BA3C2' },
+  ESCROW_HOLD: { labelKey: 'finance.refTypes.escrowHold', color: '#D4A574' },
+  ESCROW_RELEASE: { labelKey: 'finance.refTypes.escrowRelease', color: '#4A9B8E' },
+  REFUND: { labelKey: 'finance.refTypes.refund', color: '#C97A7A' },
+  PAYOUT: { labelKey: 'finance.refTypes.payout', color: '#4A9B8E' },
+  ADJUSTMENT: { labelKey: 'finance.refTypes.adjustment', color: 'var(--bui-muted-foreground)' },
 };
 
 /** Montants : display tabular-nums (jamais proportional) */
@@ -52,6 +54,7 @@ interface WalletDashboardProps {
 }
 
 export default function WalletDashboard({ embedded = false }: WalletDashboardProps) {
+  const { t } = useTranslation();
   const [wallets, setWallets] = useState<WalletDto[]>([]);
   const [selectedWallet, setSelectedWallet] = useState<WalletDto | null>(null);
   const [entries, setEntries] = useState<LedgerEntryDto[]>([]);
@@ -147,8 +150,8 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
         <div className="mt-3">
           <EmptyState
             icon={<AccountBalanceWallet />}
-            title="Aucun portefeuille trouvé"
-            description="Les portefeuilles seront créés automatiquement lors du premier paiement."
+            title="{t('finance.noWallet')}"
+            description="{t('finance.noWalletHint')}"
           />
         </div>
       ) : (
@@ -171,7 +174,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                       {typeInfo.icon}
                     </span>
                   )}
-                  label={typeInfo.label}
+                  label={t(typeInfo.labelKey)}
                   value={<Money value={wallet.balance} from={wallet.currency} />}
                   hint={wallet.currency}
                   onClick={() => { setSelectedWallet(wallet); setPage(0); }}
@@ -186,7 +189,11 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
             <Card className="gap-0 py-0 mt-4 border-border overflow-hidden">
               <div className="p-3 flex justify-between items-center">
                 <p className="font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-foreground">
-                  Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
+                  {t('finance.historyOf', {
+                    wallet: WALLET_TYPE_LABELS[selectedWallet.walletType]
+                      ? t(WALLET_TYPE_LABELS[selectedWallet.walletType].labelKey)
+                      : selectedWallet.walletType,
+                  })}
                 </p>
               </div>
 
@@ -200,7 +207,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                 <div className="px-3 pb-3">
                   <EmptyState
                     icon={<AccountBalanceWallet />}
-                    title="Aucune transaction"
+                    title="{t('finance.noTransaction')}"
                     variant="transparent"
                   />
                 </div>
@@ -213,7 +220,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                           <TableHead>Date</TableHead>
                           <TableHead>Description</TableHead>
                           <TableHead>Type</TableHead>
-                          <TableHead>Référence</TableHead>
+                          <TableHead>{t('common.reference')}</TableHead>
                           <TableHead className="text-end">Montant</TableHead>
                           <TableHead className="text-end">Solde</TableHead>
                         </TableRow>
@@ -222,7 +229,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                         {entries.map((entry) => (
                           <TableRow key={entry.id}>
                             <TableCell className="text-muted-foreground tabular-nums">
-                              {new Date(entry.createdAt).toLocaleDateString('fr-FR', {
+                              {new Date(entry.createdAt).toLocaleDateString(activeIntlLocale(), {
                                 day: '2-digit', month: '2-digit', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit',
                               })}
@@ -232,7 +239,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                               <StatusChip color={ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--bui-muted-foreground)'} label={entry.entryType} />
                             </TableCell>
                             <TableCell>
-                              <StatusChip color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--bui-muted-foreground)'} label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType} />
+                              <StatusChip color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--bui-muted-foreground)'} label={REF_TYPE_LABELS[entry.referenceType] ? t(REF_TYPE_LABELS[entry.referenceType].labelKey) : entry.referenceType} />
                             </TableCell>
                             <TableCell className="text-end">
                               {/* Montant signé : display tabular-nums, encre `-ink` (AA) */}

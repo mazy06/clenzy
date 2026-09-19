@@ -1,56 +1,15 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import { useMediaQuery } from '../../hooks/use-media-query';
-import { ChevronLeft, ChevronRight, NightsStay } from '../../icons';
+import { ChevronPrev, ChevronNext, NightsStay } from '../../icons';
+import { weekdayHeaders, weekStartsOnForLanguage } from '../../utils/localeDate';
+import { buildMonthGrid, type MonthGridCell } from '../../utils/monthGrid';
 
 // ─── Calendrier range (.rm-cal) ─────────────────────────────────────────────
 // Extrait de PlanningQuickCreateDialog pour être partagé par ReservationDialog.
 // Comportement : sélection début → fin, reset si fin < début, Effacer. Rendu
 // Baitly UI : grille 7 col gap 3, jours aspect 1, in-range `primary-soft` sans
 // radius, extrémités en aplat `primary`. Arrondis logiques (RTL).
-
-interface CalCell {
-  date: Date;
-  dateStr: string;
-  inMonth: boolean;
-}
-
-function toISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function buildCalGrid(month: Date): CalCell[] {
-  const year = month.getFullYear();
-  const m = month.getMonth();
-  const firstDay = new Date(year, m, 1);
-  const lastDay = new Date(year, m + 1, 0);
-
-  let startDow = firstDay.getDay() - 1;
-  if (startDow < 0) startDow = 6;
-
-  const cells: CalCell[] = [];
-  for (let i = startDow - 1; i >= 0; i--) {
-    const d = new Date(year, m, -i);
-    cells.push({ date: d, dateStr: toISO(d), inMonth: false });
-  }
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    const d = new Date(year, m, day);
-    cells.push({ date: d, dateStr: toISO(d), inMonth: true });
-  }
-  const remaining = 7 - (cells.length % 7);
-  if (remaining < 7) {
-    for (let i = 1; i <= remaining; i++) {
-      const d = new Date(year, m + 1, i);
-      cells.push({ date: d, dateStr: toISO(d), inMonth: false });
-    }
-  }
-  return cells;
-}
-
-const DEFAULT_WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 const CAL_NAV_BTN_CLS =
   'w-[28px] h-[28px] rounded-md border border-solid border-border bg-card ' +
@@ -106,9 +65,15 @@ export interface ReservationRangeCalendarProps {
   nightsText: string;
   prevMonthLabel: string;
   nextMonthLabel: string;
-  /** Locale pour le libellé du mois (ex. 'fr-FR', 'en-US', 'ar'). */
+  /**
+   * Étiquette `Intl` pour le libellé du mois. Grégorienne même en arabe : la
+   * grille ci-dessous est bâtie sur des mois civils (cf. `activeLocale`).
+   */
   locale: string;
-  /** 7 initiales de jours (Lun→Dim). */
+  /**
+   * 7 initiales de jours, dans l'ordre des colonnes. Par defaut celles de la
+   * langue portee par `locale` — la liste etait figee sur le francais.
+   */
   weekdayLabels?: string[];
 }
 
@@ -125,7 +90,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
   prevMonthLabel,
   nextMonthLabel,
   locale,
-  weekdayLabels = DEFAULT_WEEKDAYS,
+  weekdayLabels,
 }) => {
   const [viewMonth, setViewMonth] = useState<Date>(() => {
     if (startDate) {
@@ -154,8 +119,15 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
     () => new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1),
     [viewMonth],
   );
-  const cells1 = useMemo(() => buildCalGrid(viewMonth), [viewMonth]);
-  const cells2 = useMemo(() => buildCalGrid(secondMonth), [secondMonth]);
+  // Le decoupage de la semaine suit la langue portee par `locale` : lundi
+  // partout, dimanche en arabe, ou le week-end (vendredi-samedi) ferme la rangee.
+  const weekStartsOn = weekStartsOnForLanguage(locale);
+  const cells1 = useMemo(() => buildMonthGrid(viewMonth, weekStartsOn), [viewMonth, weekStartsOn]);
+  const cells2 = useMemo(() => buildMonthGrid(secondMonth, weekStartsOn), [secondMonth, weekStartsOn]);
+  const weekdays = useMemo(
+    () => weekdayLabels ?? weekdayHeaders(locale, 'narrow').map((header) => header.label),
+    [weekdayLabels, locale],
+  );
 
   const handleCellClick = useCallback(
     (dateStr: string) => {
@@ -191,13 +163,13 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
 
   // Rend UN mois : libellé + en-tête jours + grille 7 colonnes. La plage (edges /
   // in-range) fonctionne à cheval sur les deux mois via les mêmes handlers.
-  const renderMonth = (cells: CalCell[], label: string) => (
+  const renderMonth = (cells: MonthGridCell[], label: string) => (
     <div className="flex-1 min-w-0">
       <b className="block [font-family:var(--font-display)] text-sm font-semibold text-foreground text-center capitalize mb-[6px]">
         {label}
       </b>
       <div className="grid grid-cols-[repeat(7,_1fr)] gap-[3px]">
-        {weekdayLabels.map((wl, i) => (
+        {weekdays.map((wl, i) => (
           <div key={`${wl}-${i}`} className="text-center text-2xs font-bold text-faint py-[4px]">
             {wl}
           </div>
@@ -269,7 +241,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
             onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
             className={cn(CAL_NAV_BTN_CLS, 'absolute start-0 top-0')}
           >
-            <ChevronLeft size={15} strokeWidth={1.75} />
+            <ChevronPrev size={15} strokeWidth={1.75} />
           </button>
           <button
             type="button"
@@ -277,7 +249,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
             onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
             className={cn(CAL_NAV_BTN_CLS, 'absolute end-0 top-0')}
           >
-            <ChevronRight size={15} strokeWidth={1.75} />
+            <ChevronNext size={15} strokeWidth={1.75} />
           </button>
         </div>
 

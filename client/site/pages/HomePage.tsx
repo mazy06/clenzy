@@ -1,226 +1,319 @@
 import { Link } from 'react-router-dom';
 import {
+  ArrowDownIcon,
   ArrowRightIcon,
-  BotIcon,
   CheckIcon,
+  CircleCheckIcon,
+  GlobeIcon,
   MapPinIcon,
-  MessageCircleIcon,
+  PlayIcon,
+  PlusIcon,
   ShieldCheckIcon,
-  TrendingUpIcon,
+  SparklesIcon,
 } from 'lucide-react';
-import { Badge, Button } from '../../src/components/ui';
 import Reveal from '../components/Reveal';
-import AnimatedHitlMockup from '../components/AnimatedHitlMockup';
+import BaitlyAgentDemo from '../components/BaitlyAgentDemo';
+import LandingPlanningMockup from '../components/LandingPlanningMockup';
 import { BRANDS } from '../components/BrandLogos';
-import PartnerMarquee from '../components/PartnerMarquee';
 import { MODULES } from '../data/catalog';
-
-/* ─── Hero ─────────────────────────────────────────────────────────────────── */
+import riadPhoto from '../assets/photos/baitly-riad.webp';
+import riadSmall from '../assets/photos/baitly-riad-small.webp';
+import interiorPhoto from '../assets/photos/riad.jpg';
+import poolPhoto from '../assets/photos/pool.jpg';
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="site-shell grid grid-cols-1 items-center gap-12 pt-16 pb-16 lg:grid-cols-[1.05fr_1fr]">
-        <div>
+    <section className="baitly-hero" aria-labelledby="home-title">
+      <div className="site-shell baitly-hero-grid">
+        <div className="baitly-hero-copy">
           <Reveal>
-            <Badge variant="outline">Le PMS conçu pour le Maroc et la France</Badge>
+            <p className="baitly-eyebrow">
+              <span /> L’hospitalité, augmentée.
+            </p>
           </Reveal>
           <Reveal delay={1}>
-            <h1 className="mt-4 text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-              Gérez vos locations.
+            <h1 id="home-title">
+              Vos locations.
               <br />
-              <span className="text-primary-deep">Vos agents IA font le reste.</span>
+              <span>L’esprit libre.</span>
             </h1>
           </Reveal>
           <Reveal delay={2}>
-            <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-              Réservations, prix, ménage, conformité : Baitly réunit tout — et une équipe d'agents
-              IA le fait tourner. Vous approuvez, ils exécutent.
+            <p className="baitly-lead">
+              Vous créez des séjours mémorables.
+              <br className="baitly-desktop-break" /> Vos agents IA s’occupent
+              des coulisses.
             </p>
-          </Reveal>
-          <Reveal delay={3}>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Button size="lg" asChild>
-                <Link to="/demo">
-                  Réserver une démo <ArrowRightIcon />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/produit/agents-ia">Découvrir les agents</Link>
-              </Button>
+            <p className="baitly-hero-description">
+              Réservations, tarifs, voyageurs et équipes : tout votre quotidien
+              réuni dans un seul PMS. Pensé pour le Maroc et la France.
+            </p>
+            <div className="baitly-actions">
+              <Link className="baitly-button" to="/demo">
+                Réserver une démo <ArrowRightIcon />
+              </Link>
+              <a className="baitly-play-link" href="#en-action">
+                <span>
+                  <PlayIcon />
+                </span>{' '}
+                Voir Baitly en action
+              </a>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Essai sans carte bancaire · Interface FR / AR · Tarifs publics en dirhams
+            <p className="baitly-reassurance">
+              <CheckIcon /> Sans engagement <span>·</span> Démo personnalisée de
+              30 min
             </p>
           </Reveal>
         </div>
-        <Reveal delay={2}>
-          <AnimatedHitlMockup />
+        <Reveal delay={2} className="baitly-hero-visual">
+          <img
+            className="baitly-hero-photo"
+            src={riadPhoto}
+            srcSet={`${riadSmall} 700w, ${riadPhoto} 1400w`}
+            sizes="(max-width: 767px) 100vw, 50vw"
+            alt="Patio de riad, arches en tadelakt et bassin à la lumière du matin"
+            width="1400"
+            height="933"
+            // React 18 forwards the lowercase HTML attribute without a warning.
+            {...{ fetchpriority: 'high' }}
+          />
+          <div className="baitly-photo-location">
+            <MapPinIcon /> L’esprit des lieux. La sérénité en plus.
+          </div>
+          <div className="baitly-hero-note">
+            <span className="baitly-note-icon">
+              <SparklesIcon />
+            </span>
+            <div>
+              <span className="baitly-note-label">
+                Votre équipe d’agents IA
+              </span>
+              <strong>Le prochain séjour se prépare.</strong>
+              <p>Message d’accueil prêt. Équipe informée.</p>
+            </div>
+            <CircleCheckIcon className="baitly-note-check" />
+          </div>
+          <span className="baitly-example-label">
+            Illustration d’un séjour avec Baitly
+          </span>
         </Reveal>
+      </div>
+      <div className="site-shell baitly-hero-bottom">
+        <span>Pour les hôtes, les riads et les conciergeries.</span>
+        <a href="#plateforme">
+          Prenez le temps d’accueillir <ArrowDownIcon />
+        </a>
       </div>
     </section>
   );
 }
 
-/* ─── Canaux & partenaires ─────────────────────────────────────────────────── */
-
-/** Écosystème réparti en 3 lignes défilantes, groupées par famille. */
-const ECOSYSTEM_ROWS = [
-  ['Canaux', 'Channel manager', 'Activités'],
-  ['Paiements', 'Versements', 'Comptabilité', 'Conformité'],
-  ['Messagerie', 'Serrures', 'Capteurs', 'IA', 'Plateforme'],
-].map((families) => BRANDS.filter((brand) => families.includes(brand.category)));
-
+const FEATURED_BRANDS = BRANDS.filter(({ name }) =>
+  [
+    'Airbnb',
+    'Booking.com',
+    'Expedia',
+    'Stripe',
+    'WhatsApp',
+    'PayZone',
+  ].includes(name),
+);
 function ChannelsBar() {
   return (
-    /* Le mur est volontairement HORS du conteneur centré : il occupe toute la
-       largeur de l'écran, quelle qu'elle soit — un marquee borné à 1152 px
-       laisserait des marges vides sur grand écran. */
-    <section className="overflow-hidden border-y border-border bg-card py-10">
-      <p className="text-center text-xs tracking-wide text-muted-foreground uppercase">
-        Connecté à tout votre écosystème
+    <section
+      className="site-shell baitly-channels"
+      aria-label="Intégrations disponibles"
+    >
+      <p>
+        Vos outils préférés.
+        <br />
+        <strong>Enfin réunis.</strong>
       </p>
-      <div className="mt-6">
-        <PartnerMarquee rows={ECOSYSTEM_ROWS} />
-      </div>
-    </section>
-  );
-}
-
-/* ─── Bento modules ────────────────────────────────────────────────────────── */
-
-function ModulesBento() {
-  const agents = MODULES.find((module) => module.slug === 'agents-ia')!;
-  const others = MODULES.filter((module) => module.slug !== 'agents-ia');
-  return (
-    <section className="site-shell py-16">
-      <Reveal className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Un seul outil. Huit métiers couverts.
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Chaque module a sa page dédiée — voici la carte.
-          </p>
-        </div>
-      </Reveal>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Cellule signature : Agents IA, sombre, double largeur */}
-        <Reveal className="sm:col-span-2">
-          <Link
-            to="/produit/agents-ia"
-            className="group flex h-full flex-col justify-between gap-6 rounded-xl bg-foreground p-6 text-background transition-colors hover:bg-primary-deep"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-lg bg-background/10">
-                <BotIcon className="size-5" />
-              </span>
-              <Badge variant="outline" className="border-background/25 text-background">
-                La différence Baitly
-              </Badge>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold">{agents.name}</h3>
-              <p className="mt-1.5 max-w-md text-sm text-background/70">
-                Quatre agents nommés surveillent prix, séjours, opérations et canaux. Vous
-                approuvez, ils exécutent — chaque décision expliquée.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium">
-                Voir la page <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </div>
-          </Link>
-        </Reveal>
-        {others.map((module, index) => (
-          <Reveal key={module.slug} delay={((index % 3) + 1) as 1 | 2 | 3}>
-            <Link
-              to={`/produit/${module.slug}`}
-              className="group flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
-            >
-              <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <module.icon className="size-4.5" />
-              </span>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold">{module.name}</h3>
-                <p className="mt-1 text-xs leading-snug text-muted-foreground">{module.menuCopy}</p>
-              </div>
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                En savoir plus
-                <ArrowRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-          </Reveal>
+      <div className="baitly-brand-list">
+        {FEATURED_BRANDS.map((brand) => (
+          <div className="baitly-brand" key={brand.name}>
+            <img
+              src={brand.logoUrl}
+              alt=""
+              width="26"
+              height="26"
+              loading="lazy"
+            />
+            <span>{brand.name}</span>
+          </div>
         ))}
       </div>
     </section>
   );
 }
 
-/* ─── Conformité Maroc ─────────────────────────────────────────────────────── */
-
-const COMPLIANCE_POINTS = [
-  'Fiche de police au format DGSN, générée à chaque arrivée',
-  'Taxe de séjour calculée par commune, barème par logement possible',
-  'Encaissement en dirhams : CMI / PayZone, YouCan Pay',
-  'Factures à numérotation inaltérable, mentions légales complètes',
-];
-
-function ComplianceSection() {
+function PlatformSection() {
+  const otherModules = MODULES.filter(
+    ({ slug }) =>
+      !['agents-ia', 'pms-channel-manager', 'booking-engine'].includes(slug),
+  );
   return (
-    <section className="border-y border-border bg-card">
-      <div className="site-shell grid grid-cols-1 items-center gap-10 py-16 lg:grid-cols-2">
-        <Reveal>
-          <Badge variant="success">
-            <MapPinIcon /> Conçu pour le Maroc
-          </Badge>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
-            La conformité n'est pas une option. C'est le produit.
-          </h2>
-          <p className="mt-3 max-w-xl text-muted-foreground">
-            Les PMS internationaux ignorent la réglementation marocaine ; les outils locaux
-            s'arrêtent à la fiche police. Baitly fait les deux — et le reste.
+    <section
+      className="site-shell baitly-section"
+      id="plateforme"
+      aria-labelledby="platform-title"
+    >
+      <Reveal className="baitly-section-heading">
+        <div>
+          <p className="baitly-section-label">
+            Un seul espace, tout votre métier
           </p>
-          <ul className="mt-6 flex flex-col gap-3">
-            {COMPLIANCE_POINTS.map((point) => (
-              <li key={point} className="flex items-start gap-2.5 text-sm">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
-                  <CheckIcon className="size-3" />
-                </span>
-                {point}
+          <h2 id="platform-title">
+            Moins d’onglets.
+            <br />
+            Plus de présence.
+          </h2>
+        </div>
+        <p>
+          Du premier clic au prochain check-in, Baitly relie chaque détail du
+          séjour. Et vous redonne une vue d’ensemble.
+        </p>
+      </Reveal>
+      <div className="baitly-feature-grid">
+        <Reveal className="baitly-feature baitly-feature-planning">
+          <div className="baitly-feature-copy">
+            <span className="baitly-feature-number">01 / PILOTER</span>
+            <h3>
+              Votre activité,
+              <br />
+              en un regard.
+            </h3>
+            <p>
+              Un planning partagé. Tous vos logements, tous vos canaux, les
+              bonnes informations au bon endroit.
+            </p>
+            <Link
+              className="baitly-text-link"
+              to="/produit/pms-channel-manager"
+            >
+              Découvrir le PMS <ArrowRightIcon />
+            </Link>
+          </div>
+          <div
+            className="baitly-planning-stage"
+            aria-label="Planning PMS animé : réservations, canaux et disponibilités"
+          >
+            <LandingPlanningMockup />
+          </div>
+        </Reveal>
+        <Reveal delay={1} className="baitly-feature baitly-feature-direct">
+          <div className="baitly-direct-photo">
+            <img
+              src={interiorPhoto}
+              alt="Salon lumineux ouvert sur une terrasse, prêt à accueillir des voyageurs"
+              width="640"
+              height="435"
+              loading="lazy"
+            />
+            <div className="baitly-booking-note">
+              <GlobeIcon />
+              <div>
+                <strong>Votre adresse. Votre site.</strong>
+                <span>La réservation, en direct.</span>
+              </div>
+              <CheckIcon />
+            </div>
+          </div>
+          <div className="baitly-feature-copy">
+            <span className="baitly-feature-number">02 / DÉVELOPPER</span>
+            <h3>
+              Le prochain séjour
+              <br />
+              commence chez vous.
+            </h3>
+            <p>
+              Un site à votre image et un moteur de réservation intégré pour
+              créer une relation directe avec vos voyageurs.
+            </p>
+            <Link className="baitly-text-link" to="/produit/booking-engine">
+              Explorer la réservation directe <ArrowRightIcon />
+            </Link>
+          </div>
+        </Reveal>
+      </div>
+      <div className="baitly-module-list">
+        {otherModules.map((module) => (
+          <Link to={`/produit/${module.slug}`} key={module.slug}>
+            <module.icon className="baitly-module-icon" />
+            <span>{module.name}</span>
+            <ArrowRightIcon />
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const LOCAL_POINTS = [
+  [
+    'Des arrivées bien préparées',
+    'Fiches voyageurs et fiche de police au format DGSN.',
+  ],
+  ['Des paiements ancrés dans le réel', 'Dirhams, CMI, PayZone et YouCan Pay.'],
+  [
+    'Une gestion qui parle votre langue',
+    'Interface en français et en arabe, taxe de séjour et facturation.',
+  ],
+];
+function LocalSection() {
+  return (
+    <section className="baitly-local-section">
+      <div className="site-shell baitly-local-grid">
+        <Reveal className="baitly-local-visual">
+          <img
+            src={riadSmall}
+            alt="Détail des arches et de la végétation d’un riad marocain"
+            width="700"
+            height="467"
+            loading="lazy"
+          />
+          <div>
+            <MapPinIcon />
+            <span>
+              Des racines locales.
+              <br />
+              <strong>Une vision sans frontières.</strong>
+            </span>
+          </div>
+        </Reveal>
+        <Reveal delay={1} className="baitly-local-copy">
+          <p className="baitly-section-label">Maroc d’abord. France aussi.</p>
+          <h2>
+            À l’aise avec votre métier.
+            <br />
+            Et votre réalité.
+          </h2>
+          <p>
+            Un riad à Marrakech ne se gère pas comme un appartement à Paris.
+            Votre outil doit connaître la différence.
+          </p>
+          <ul>
+            {LOCAL_POINTS.map(([title, copy]) => (
+              <li key={title}>
+                <CheckIcon />
+                <div>
+                  <strong>{title}</strong>
+                  <p>{copy}</p>
+                </div>
               </li>
             ))}
           </ul>
-          <Button variant="outline" className="mt-6" asChild>
-            <Link to="/solutions#maroc">
-              La page conformité Maroc <ArrowRightIcon />
-            </Link>
-          </Button>
-        </Reveal>
-        <Reveal delay={2}>
-          <div className="rounded-xl border border-border bg-background p-5">
-            <div className="flex items-center gap-2">
-              <ShieldCheckIcon className="size-4 text-success" />
-              <span className="text-sm font-semibold">Go Siyaha — jusqu'à 90 % subventionné</span>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Le programme national de digitalisation du tourisme peut financer votre première année
-              Baitly. Le test d'éligibilité prend deux minutes.
+          <Link className="baitly-text-link" to="/solutions#maroc">
+            Découvrir Baitly au Maroc <ArrowRightIcon />
+          </Link>
+          <div className="baitly-local-support">
+            <ShieldCheckIcon />
+            <p>
+              <strong>Vous lancez votre digitalisation ?</strong>
+              <br />
+              Parlons migration, accompagnement et programme Go Siyaha lors de
+              votre démo.
             </p>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              {[
-                { value: '90 %', label: 'de subvention max' },
-                { value: '15 min', label: 'pour déposer' },
-                { value: '48 h', label: 'pour déployer' },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-lg border border-border p-2.5">
-                  <p className="text-lg font-semibold tabular-nums">{stat.value}</p>
-                  <p className="text-[11px] text-muted-foreground">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-            <Button className="mt-4 w-full" asChild>
-              <Link to="/demo">Suis-je éligible ?</Link>
-            </Button>
           </div>
         </Reveal>
       </div>
@@ -228,83 +321,94 @@ function ComplianceSection() {
   );
 }
 
-/* ─── Preuve + témoignage ──────────────────────────────────────────────────── */
-
-function OutcomesSection() {
+const FAQS = [
+  [
+    'Est-ce adapté à mon nombre de logements ?',
+    'Baitly s’adresse aux hôtes indépendants, aux riads et aux conciergeries. La démo permet de parcourir les modules utiles à votre organisation, que vous gériez un logement ou un portefeuille.',
+  ],
+  [
+    'Les agents IA prennent-ils les décisions à ma place ?',
+    'Vous définissez leur autonomie. Les actions qui demandent votre accord vous sont présentées avec leur contexte : vous pouvez approuver, ajuster ou refuser. Les décisions sont journalisées.',
+  ],
+  [
+    'Puis-je garder mes annonces Airbnb et Booking.com ?',
+    'Oui. Baitly réunit vos réservations et synchronise les disponibilités de vos canaux connectés. Vous conservez vos annonces et vos comptes existants.',
+  ],
+  [
+    'Comment se passe le changement de logiciel ?',
+    'Nous faisons le point sur vos logements, vos canaux et vos données pour préparer la migration. Le périmètre et les étapes sont définis avec vous avant la bascule.',
+  ],
+];
+function FaqSection() {
   return (
-    <section className="site-shell py-16">
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
-        {[
-          { value: '15 h', label: 'rendues chaque semaine à votre équipe' },
-          { value: '+12 %', label: 'de RevPAR visé par le yield automatique' },
-          { value: '0', label: 'double booking par conception' },
-        ].map((metric, index) => (
-          <Reveal key={metric.label} delay={(index + 1) as 1 | 2 | 3} className="bg-card p-6">
-            <p className="flex items-center gap-2 text-3xl font-semibold tracking-tight tabular-nums">
-              <TrendingUpIcon className="size-5 text-success" /> {metric.value}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">{metric.label}</p>
-          </Reveal>
+    <section
+      className="site-shell baitly-section baitly-faq"
+      aria-labelledby="faq-title"
+    >
+      <Reveal>
+        <p className="baitly-section-label">On en parle ?</p>
+        <h2 id="faq-title">
+          Les bonnes questions,
+          <br />
+          avant de se lancer.
+        </h2>
+        <Link to="/demo" className="baitly-text-link">
+          Échanger avec notre équipe <ArrowRightIcon />
+        </Link>
+      </Reveal>
+      <div>
+        {FAQS.map(([question, answer]) => (
+          <details key={question}>
+            <summary>
+              {question}
+              <PlusIcon />
+            </summary>
+            <p>{answer}</p>
+          </details>
         ))}
       </div>
-      <Reveal className="mx-auto mt-14 max-w-3xl text-center">
-        <p className="text-xl leading-relaxed font-medium sm:text-2xl">
-          « L'Agent Revenue a rattrapé notre basse saison : 9 nuits de plus sur octobre, sans
-          toucher au prix des week-ends. Et je vois pourquoi il propose chaque baisse. »
-        </p>
-        <p className="mt-4 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Salma B.</span> · Médina Stays, 14 logements
-          à Marrakech
-        </p>
-      </Reveal>
     </section>
   );
 }
-
-/* ─── CTA final ────────────────────────────────────────────────────────────── */
-
 function FinalCta() {
   return (
-    <section className="site-shell pb-16">
-      <Reveal>
-        <div className="rounded-2xl bg-foreground px-6 py-12 text-center text-background sm:px-12">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Voyez Baitly tourner sur vos logements.
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-background/70">
-            Démo en 30 minutes, en français ou en darija. Ou explorez par vous-même — sans carte
-            bancaire.
+    <section className="site-shell baitly-final-wrap">
+      <div className="baitly-final-cta">
+        <img src={poolPhoto} alt="" width="640" height="828" loading="lazy" />
+        <div>
+          <p className="baitly-section-label">
+            Votre prochain chapitre commence ici
           </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/demo">Réserver une démo</Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-background/30 text-background hover:bg-background/10"
-              asChild
-            >
-              <a href="https://wa.me/212600000000" target="_blank" rel="noreferrer">
-                <MessageCircleIcon /> Discuter sur WhatsApp
-              </a>
-            </Button>
-          </div>
+          <h2>
+            Laissez de la place
+            <br />à ce qui compte.
+          </h2>
+          <p>
+            30 minutes pour découvrir ce que Baitly
+            <br className="baitly-desktop-break" /> peut changer dans votre
+            quotidien.
+          </p>
+          <Link className="baitly-button baitly-button-light" to="/demo">
+            Rencontrons-nous <ArrowRightIcon />
+          </Link>
+          <span className="baitly-final-note">
+            En français, en darija ou en anglais. Sans engagement.
+          </span>
         </div>
-      </Reveal>
+      </div>
     </section>
   );
 }
-
 export default function HomePage() {
   return (
-    <>
+    <div className="baitly-home">
       <Hero />
       <ChannelsBar />
-      <ModulesBento />
-      <ComplianceSection />
-      <OutcomesSection />
+      <PlatformSection />
+      <BaitlyAgentDemo />
+      <LocalSection />
+      <FaqSection />
       <FinalCta />
-    </>
+    </div>
   );
 }

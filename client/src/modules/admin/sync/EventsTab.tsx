@@ -12,6 +12,7 @@ import StatTile from '../../../components/baitly/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
@@ -44,6 +45,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
 const OVERLINE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 const EventsTab: React.FC = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<SyncLog[]>([]);
   const [stats, setStats] = useState<SyncEventStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ const EventsTab: React.FC = () => {
       setEvents(data.content);
       setTotalElements(data.totalElements);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des events');
+      setError(err instanceof Error ? err.message : t('admin.sync.eventsLoadError'));
     } finally {
       setLoading(false);
     }
@@ -150,14 +152,14 @@ const EventsTab: React.FC = () => {
           <div className="col-span-12 min-[600px]:col-span-4">
             <Card>
               <CardContent>
-                <p className={cn(OVERLINE_CLASS, 'mb-[3px]')}>Par Channel</p>
+                <p className={cn(OVERLINE_CLASS, 'mb-[3px]')}>{t('admin.sync.byChannel')}</p>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
                   <p className="text-xs tabular-nums" key={ch}>
                     {ch}: {count}
                   </p>
                 ))}
                 {Object.keys(stats.byChannel).length === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucune donnee</p>
+                  <p className="text-xs text-muted-foreground">{t('admin.sync.noData')}</p>
                 )}
               </CardContent>
             </Card>
@@ -165,14 +167,14 @@ const EventsTab: React.FC = () => {
           <div className="col-span-12 min-[600px]:col-span-4">
             <Card>
               <CardContent>
-                <p className={cn(OVERLINE_CLASS, 'mb-[3px]')}>Par Status</p>
+                <p className={cn(OVERLINE_CLASS, 'mb-[3px]')}>{t('admin.sync.byStatus')}</p>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
                   <p className="text-xs tabular-nums" key={s}>
                     {s}: {count}
                   </p>
                 ))}
                 {Object.keys(stats.byStatus).length === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucune donnee</p>
+                  <p className="text-xs text-muted-foreground">{t('admin.sync.noData')}</p>
                 )}
               </CardContent>
             </Card>
@@ -210,7 +212,7 @@ const EventsTab: React.FC = () => {
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">Aucun event</TableCell>
+                    <TableCell colSpan={8} className="text-center">{t('admin.sync.noEvent')}</TableCell>
                   </TableRow>
                 ) : (
                   events.map((evt) => (

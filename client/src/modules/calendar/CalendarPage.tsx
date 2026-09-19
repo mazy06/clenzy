@@ -253,26 +253,26 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
   // -----------------------------------------------------------------------
   const statusOptions = useMemo(
     () => [
-      { value: 'all', label: 'Tous les statuts' },
-      ...INTERVENTION_STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+      { value: 'all', label: t('calendar.allStatuses') },
+      ...INTERVENTION_STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) })),
     ],
-    [],
+    [t],
   );
 
   const typeOptions = useMemo(
     () => [
-      { value: 'all', label: 'Tous les types' },
-      ...INTERVENTION_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+      { value: 'all', label: t('calendar.allTypes') },
+      ...INTERVENTION_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) })),
     ],
-    [],
+    [t],
   );
 
   const priorityOptions = useMemo(
     () => [
-      { value: 'all', label: 'Toutes les priorites' },
-      ...PRIORITY_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+      { value: 'all', label: t('calendar.allPriorities') },
+      ...PRIORITY_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) })),
     ],
-    [],
+    [t],
   );
 
   const hasActiveFilters =
@@ -343,7 +343,7 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
       {hasActiveFilters && (
         <Button size="sm" variant="ghost" onClick={clearFilters}>
           <FilterAltOffIcon size={14} strokeWidth={1.75} />
-          Effacer les filtres
+          {t('calendar.clearFilters')}
         </Button>
       )}
 
@@ -362,8 +362,8 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
       ) : (
         <PageHeader
           className="shrink-0"
-          title="Planning des interventions"
-          subtitle="Vue calendrier de toutes les interventions planifiees"
+          title="{t('calendar.title')}"
+          subtitle="{t('calendar.subtitle')}"
           iconBadge={<CalendarMonth />}
           backPath="/interventions"
           showBackButton={false}
@@ -384,8 +384,8 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
       ) : !error && interventions.length === 0 ? (
         <EmptyState
           icon={<CalendarMonth />}
-          title="Aucune intervention planifiee"
-          description="Les interventions planifiees (menage, maintenance, check-in/out) apparaitront ici dans une vue calendrier."
+          title={t('calendar.empty')}
+          description="{t('calendar.emptyHint')}"
         />
       ) : (
         <Card className="flex min-h-0 flex-1 flex-col gap-0 py-0 cal-signature p-3">
@@ -418,7 +418,7 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
               // la cellule (le reste passe en « +N autres »), au lieu d'un palier fixe.
               dayMaxEvents={isMobile ? 3 : true}
               moreLinkText={(n) => `+${n} autres`}
-              noEventsText="Aucune intervention planifiee"
+              noEventsText={t('calendar.empty')}
               allDaySlot={false}
               slotMinTime="06:00:00"
               slotMaxTime="22:00:00"

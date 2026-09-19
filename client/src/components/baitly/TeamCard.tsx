@@ -4,6 +4,7 @@ import { Button, Card } from '../ui';
 import StatusChip from './StatusChip';
 import GuestAvatar from './GuestAvatar';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/TeamCard.tsx (MUI, 401 lignes).
@@ -56,6 +57,7 @@ export default function TeamCard({
   canEdit = true,
   className,
 }: TeamCardProps) {
+  const { t } = useTranslation();
   const type = TYPE_CONFIG[team.interventionType] ?? {
     icon: <UsersIcon />,
     accent: 'bg-muted text-muted-foreground',
@@ -76,7 +78,7 @@ export default function TeamCard({
             {type.icon}
           </span>
           <div className="min-w-0">
-            <h3 className="m-0 truncate text-sm font-semibold text-foreground">{team.name}</h3>
+            <h3 dir="auto" className="m-0 truncate text-sm font-semibold text-foreground">{team.name}</h3>
             {team.description && (
               <p className="m-0 mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                 {team.description}
@@ -120,7 +122,7 @@ export default function TeamCard({
             </span>
           )}
           {members.length === 0 && (
-            <span className="text-xs text-faint">Aucun membre</span>
+            <span className="text-xs text-faint">{t('common.noMember')}</span>
           )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">

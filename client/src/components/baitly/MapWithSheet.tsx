@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Drawer as Vaul } from 'vaul';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Vue « carte + liste » — surface UNIQUE des trois écrans qui l'utilisent
@@ -69,6 +70,7 @@ export default function MapWithSheet({
   desktopLayout = 'stack',
   className,
 }: MapWithSheetProps) {
+  const { t } = useTranslation();
   const isNarrow = useIsMobile(640);
   const [snap, setSnap] = React.useState<number | string | null>(SNAP_POINTS[0]);
 
@@ -149,7 +151,7 @@ export default function MapWithSheet({
             <button
               type="button"
               onClick={cycleSnap}
-              aria-label="Déplier ou replier la liste"
+              aria-label={t('mapSheet.toggle')}
               className="min-w-0 flex-1 cursor-pointer rounded-t-2xl pt-2 pb-2.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <span aria-hidden className="mx-auto mb-2 block h-1 w-9 rounded-full bg-border" />

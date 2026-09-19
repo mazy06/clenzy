@@ -11,6 +11,7 @@ import { FileUp, FileText, TriangleAlert } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import { loadHtmlIntoEditor } from './loadIntoEditor';
 import { importToHtml } from './import/registry';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Onglet « Fichier » de l'Importer.
@@ -48,6 +49,7 @@ function isHtmlFile(name: string): boolean {
 }
 
 export default function ImportFile({ editor, onDone }: ImportFileProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -66,7 +68,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
 
     const reader = new FileReader();
     reader.onerror = () => {
-      setError("Échec de la lecture du fichier. Réessayez ou choisissez un autre fichier.");
+      setError(t('studio.import.readFailed'));
       setLoading(false);
     };
     reader.onload = () => {
@@ -126,7 +128,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm leading-normal text-muted-foreground">
-        Déposez ou sélectionnez un fichier <strong>.html</strong>, <strong>.htm</strong>,{' '}
+        {t('studio.import.dropFile')} <strong>.html</strong>, <strong>.htm</strong>,{' '}
         <strong>.json</strong> (export de builder) ou <strong>.md</strong>. Le contenu est lu localement,
         converti en HTML + styles puis assaini avant d'être chargé. Le canevas actuel sera remplacé.
       </p>
@@ -167,10 +169,10 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
         )}
         <span className="text-sm font-semibold text-foreground">
           {loading
-            ? 'Lecture du fichier…'
+            ? t('studio.import.reading')
             : fileName
               ? fileName
-              : 'Glissez un fichier ici, ou cliquez pour parcourir'}
+              : t('studio.import.dropHint')}
         </span>
         {!loading && !fileName ? (
           <span className="text-sm text-faint">
@@ -189,7 +191,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       {warnings.length ? (
         <Alert variant="warning">
           <TriangleAlert />
-          <AlertTitle>Conversion partielle — relecture conseillée</AlertTitle>
+          <AlertTitle>{t('studio.import.partialConversion')}</AlertTitle>
           <AlertDescription>
             <ul className="m-0 flex flex-col gap-0.5 ps-3.5">
               {warnings.map((w, i) => (
@@ -203,7 +205,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       <div className="flex justify-end">
         <Button type="button" onClick={openPicker} disabled={loading}>
           {loading ? <Spinner /> : <FileUp size={15} strokeWidth={2} />}
-          {loading ? 'Lecture en cours…' : 'Choisir un fichier'}
+          {loading ? t('studio.import.readingShort') : t('studio.import.chooseFile')}
         </Button>
       </div>
     </div>

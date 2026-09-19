@@ -4,6 +4,7 @@ import { interventionsApi } from '../../../services/api/interventionsApi';
 import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
 import { planningKeys } from './usePlanningData';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ActionResult {
   success: boolean;
@@ -19,6 +20,7 @@ export function useInterventionActions(
   events: PlanningEvent[],
   interventions: PlanningIntervention[],
 ) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // ── Helper: insert intervention into cache ──────────────────────────────
@@ -48,7 +50,7 @@ export function useInterventionActions(
         (i) => i.linkedReservationId === reservationId && i.type === 'cleaning' && i.status !== 'cancelled',
       );
       if (existingCleaning) {
-        return { success: false, error: 'Un menage est deja planifie pour cette reservation' };
+        return { success: false, error: t('planning.cleaningAlreadyPlanned') };
       }
 
       const res = event.reservation;
@@ -88,7 +90,7 @@ export function useInterventionActions(
         queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors de la creation du menage' };
+        return { success: false, error: t('planning.cleaningCreateError') };
       }
     },
     [queryClient, events, interventions, insertInterventionInCache],
@@ -154,7 +156,7 @@ export function useInterventionActions(
         queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors du changement de priorite' };
+        return { success: false, error: t('planning.priorityChangeError') };
       }
     },
     [queryClient],
@@ -181,7 +183,7 @@ export function useInterventionActions(
         queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
-        return { success: false, error: 'Erreur lors de la mise a jour des dates' };
+        return { success: false, error: t('planning.datesUpdateError') };
       }
     },
     [queryClient, interventions],

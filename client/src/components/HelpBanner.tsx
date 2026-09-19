@@ -3,6 +3,7 @@ import { cn } from '../utils/cn';
 import { Button } from './ui';
 import { Close as CloseIcon } from '../icons';
 import { useUserPreference } from '../hooks/useUserPreference';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Semantic colour for a help step. Determines the icon badge tint, the title accent,
@@ -133,12 +134,13 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
   title,
   description,
   steps,
-  dismissLabel = 'Ne plus afficher',
+  dismissLabel,
 }) => {
   // Nettoyer le prefixe legacy `clenzy_` et le suffixe `_dismissed` pour
   // produire une cle backend lisible (ex: `clenzy_payouts_help_dismissed`
   // -> `help.payouts`). Backward-compat : on accepte les anciennes cles
   // brutes pour ne pas casser des callers eventuels.
+  const { t } = useTranslation();
   const normalized = storageKey
     .replace(/^clenzy_/, '')
     .replace(/_dismissed$/, '')
@@ -203,7 +205,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
           variant="ghost"
           size="icon-sm"
           onClick={handleDismiss}
-          aria-label={dismissLabel}
+          aria-label={dismissLabel ?? t('common.dontShowAgain')}
           className="text-faint hover:text-foreground hover:bg-muted"
         >
           <CloseIcon size={16} strokeWidth={1.75} />

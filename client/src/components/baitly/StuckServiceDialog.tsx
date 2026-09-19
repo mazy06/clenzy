@@ -10,6 +10,7 @@ import { extractApiList } from '../../types';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { dateFnsLocale, weekStartsOnForLanguage } from '../../utils/localeDate';
 import { cn } from '../../utils/cn';
 
 /**
@@ -58,7 +59,7 @@ export default function StuckServiceDialog({
   // grégorien : c'est celui que lisent réellement les utilisateurs. La date
   // envoyée au serveur reste grégorienne — le composant ne change que
   // l'affichage, un `Date` reste un `Date`.
-  const { t, isArabic } = useTranslation();
+  const { t, isArabic, currentLanguage } = useTranslation();
   const queryClient = useQueryClient();
   const [mode, setMode] = React.useState<'idle' | 'reschedule'>('idle');
   const [day, setDay] = React.useState<Date | undefined>(undefined);
@@ -211,9 +212,14 @@ export default function StuckServiceDialog({
                 obligeait à naviguer pour voir la semaine suivante. */}
             <Card size="sm" className="mx-auto w-fit">
               <CardContent>
+                {/* Sans `locale`, react-day-picker retombe sur `enUS` : initiales
+                    de jours en anglais et semaine ouverte au dimanche, meme en
+                    francais. `weekStartsOn` porte la regle produit. */}
                 <Calendar
                   mode="single"
                   numberOfMonths={2}
+                  locale={dateFnsLocale(currentLanguage)}
+                  weekStartsOn={weekStartsOnForLanguage(currentLanguage)}
                   calendarSystem={isArabic ? 'hijri' : 'gregorian'}
                   selected={day}
                   onSelect={setDay}

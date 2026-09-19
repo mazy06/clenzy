@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import StatusChip from '../../../components/StatusChip';
 import { Button, Dialog, DialogContent, DialogTitle } from '../../../components/ui';
 import {
@@ -19,6 +20,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
   label,
   maxVisible = 4,
 }) => {
+  const { t } = useTranslation();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -27,7 +29,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
       <div className="flex items-center gap-0.5 py-1.5">
         <span className="inline-flex text-[var(--faint)]"><PhotoLibrary size={14} strokeWidth={1.75} /></span>
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
-          Aucune photo — {label}
+          {t('planning.panel.photos.empty', { label })}
         </p>
       </div>
     );
@@ -81,7 +83,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
               variant="ghost"
               size="icon"
               onClick={() => setLightboxOpen(false)}
-              aria-label="Fermer"
+              aria-label={t('planning.panel.photos.close', 'Fermer')}
               className="absolute top-2 right-2 z-[2] text-[var(--on-accent)] hover:text-[var(--on-accent)] hover:bg-[rgba(255,255,255,.12)]"
             >
               <Close />
@@ -93,19 +95,19 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
                   variant="ghost"
                   size="icon"
                   onClick={() => setLightboxIndex((p) => (p > 0 ? p - 1 : photos.length - 1))}
-                  aria-label="Photo precedente"
+                  aria-label={t('planning.panel.photos.previous', 'Photo précédente')}
                   className="absolute left-2 z-[2] text-[var(--on-accent)] hover:text-[var(--on-accent)] hover:bg-[rgba(255,255,255,.12)]"
                 >
-                  <ChevronLeft />
+                  <ChevronLeft className="cn-rtl-flip" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setLightboxIndex((p) => (p < photos.length - 1 ? p + 1 : 0))}
-                  aria-label="Photo suivante"
+                  aria-label={t('planning.panel.photos.next', 'Photo suivante')}
                   className="absolute right-2 z-[2] text-[var(--on-accent)] hover:text-[var(--on-accent)] hover:bg-[rgba(255,255,255,.12)]"
                 >
-                  <ChevronRight />
+                  <ChevronRight className="cn-rtl-flip" />
                 </Button>
               </>
             )}

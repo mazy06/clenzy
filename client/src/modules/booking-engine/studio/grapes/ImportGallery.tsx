@@ -7,6 +7,7 @@ import {
   EmptyTitle,
 } from '../../../../components/ui';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Onglet « Galerie » de l'Importer : grille de templates NATIFS multi-page. Au clic, le template est
@@ -21,6 +22,7 @@ export interface ImportGalleryProps {
 }
 
 export default function ImportGallery({ onImportTemplate, onDone }: ImportGalleryProps) {
+  const { t } = useTranslation();
   const choose = (tpl: GalleryTemplate) => {
     onImportTemplate(tpl);
     onDone();
@@ -33,8 +35,8 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
           <EmptyMedia variant="icon">
             <LayoutTemplate strokeWidth={1.75} />
           </EmptyMedia>
-          <EmptyTitle>Galerie de templates</EmptyTitle>
-          <EmptyDescription>Catalogue en cours de constitution.</EmptyDescription>
+          <EmptyTitle>{t('studio.import.galleryTitle')}</EmptyTitle>
+          <EmptyDescription>{t('studio.import.galleryBuilding')}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -43,7 +45,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm leading-normal text-muted-foreground">
-        Choisissez un modèle de départ. Le canevas actuel sera remplacé ; vous pourrez tout éditer ensuite.
+        {t('studio.import.galleryHint')}
       </p>
       <div className="grid grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] gap-2.5">
         {GALLERY_TEMPLATES.map((tpl) => (

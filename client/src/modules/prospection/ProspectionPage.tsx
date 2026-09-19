@@ -43,6 +43,7 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -67,12 +68,12 @@ const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string }> = 
 };
 
 // Couleurs data par categorie — palette Baitly desaturee
-const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactElement; color: string }> = {
-  CONCIERGERIES: { label: 'Conciergeries & Agences', icon: <Business size={20} strokeWidth={1.75} />, color: '#7BA3C2' },
-  MENAGE: { label: 'Societes de menage', icon: <CleaningServices size={20} strokeWidth={1.75} />, color: '#7B68A8' },
-  ARTISANS: { label: 'Artisans & Travaux', icon: <Handyman size={20} strokeWidth={1.75} />, color: '#7EBAD0' },
-  ENTRETIEN: { label: 'Entretien exterieur', icon: <Yard size={20} strokeWidth={1.75} />, color: '#4A9B8E' },
-  BLANCHISSERIES: { label: 'Blanchisseries', icon: <LocalLaundryService size={20} strokeWidth={1.75} />, color: '#9A7FA3' },
+const CATEGORY_CONFIG: Record<string, { labelKey: string; icon: React.ReactElement; color: string }> = {
+  CONCIERGERIES: { labelKey: 'prospection.categories.CONCIERGERIES', icon: <Business size={20} strokeWidth={1.75} />, color: '#7BA3C2' },
+  MENAGE: { labelKey: 'prospection.categories.MENAGE', icon: <CleaningServices size={20} strokeWidth={1.75} />, color: '#7B68A8' },
+  ARTISANS: { labelKey: 'prospection.categories.ARTISANS', icon: <Handyman size={20} strokeWidth={1.75} />, color: '#7EBAD0' },
+  ENTRETIEN: { labelKey: 'prospection.categories.ENTRETIEN', icon: <Yard size={20} strokeWidth={1.75} />, color: '#4A9B8E' },
+  BLANCHISSERIES: { labelKey: 'prospection.categories.BLANCHISSERIES', icon: <LocalLaundryService size={20} strokeWidth={1.75} />, color: '#9A7FA3' },
 };
 
 const CATEGORY_ORDER = ['CONCIERGERIES', 'MENAGE', 'ARTISANS', 'ENTRETIEN', 'BLANCHISSERIES'];
@@ -87,9 +88,10 @@ interface ProspectionPageProps {
 // ─── Component ──────────────────────────────────────────────────────────────────
 
 const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsContainer }) => {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
-  useScreenSearch(search, setSearch, 'Rechercher un prospect…');
+  useScreenSearch(search, setSearch, t('prospection.searchPlaceholder'));
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
@@ -113,12 +115,12 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
     return CATEGORY_ORDER
       .filter((key) => grouped.has(key) || categoryFilter === 'all')
       .map((key) => {
-        const cfg = CATEGORY_CONFIG[key] || { label: key, icon: <Business size={20} strokeWidth={1.75} />, color: '#8A8378' };
+        const cfg = CATEGORY_CONFIG[key];
         return {
           key,
-          label: cfg.label,
-          icon: cfg.icon,
-          color: cfg.color,
+          label: cfg ? t(cfg.labelKey) : key,
+          icon: cfg?.icon ?? <Business size={20} strokeWidth={1.75} />,
+          color: cfg?.color ?? '#8A8378',
           prospects: grouped.get(key) || [],
         };
       });
@@ -195,7 +197,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       {!embedded && (
         <PageHeader
           title="Prospection"
-          subtitle="Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifiés."
+          subtitle="{t('prospection.subtitle')}"
           iconBadge={<TrendingUp />}
           backPath="/dashboard"
           showBackButton={false}
@@ -219,10 +221,10 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toutes</SelectItem>
+                <SelectItem value="all">{t('common.all_f')}</SelectItem>
                 {CATEGORY_ORDER.map((key) => (
                   <SelectItem key={key} value={key}>
-                    {CATEGORY_CONFIG[key]?.label || key}
+                    {CATEGORY_CONFIG[key] ? t(CATEGORY_CONFIG[key].labelKey) : key}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -239,7 +241,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="all">{t('common.all_m')}</SelectItem>
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                   <SelectItem key={key} value={key}>
                     <span className="inline-flex items-center gap-1.5">
@@ -260,19 +262,19 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       {prospects.length === 0 && !isLoading ? (
         <EmptyState
           icon={<CloudUpload />}
-          title="Aucun prospect pour le moment"
-          description="Importez un fichier CSV depuis Vibe Prospecting pour commencer."
+          title="{t('prospection.empty')}"
+          description="{t('prospection.emptyHint')}"
           action={(
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <CloudUpload size={16} strokeWidth={1.75} />
-              Importer des prospects
+              {t('prospection.import')}
             </Button>
           )}
         />
       ) : filteredCategories.length === 0 ? (
         <EmptyState
           icon={<FilterList />}
-          title="Aucun prospect ne correspond aux filtres"
+          title="{t('prospection.noMatch')}"
           variant="plain"
         />
       ) : (

@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '../components/ui';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Page 404 affichee quand aucune route ne matche.
@@ -10,6 +11,7 @@ import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
  * (ex: /assitant au lieu de /assistant) — au lieu d'un ecran blanc silencieux.</p>
  */
 const NotFoundPage: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -41,7 +43,7 @@ const NotFoundPage: React.FC = () => {
         </Button>
         <Button onClick={() => navigate('/dashboard')}>
           <HomeIcon size={16} />
-          Aller au dashboard
+          {t('notFound.goToDashboard')}
         </Button>
       </div>
     </div>

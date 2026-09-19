@@ -168,7 +168,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       <div className="p-3">
         <UiAlert variant="destructive">
           <TriangleAlert />
-          <AlertDescription>Erreur de chargement des données. Veuillez rafraîchir la page.</AlertDescription>
+          <AlertDescription>{t('interventions.list.loadError')}</AlertDescription>
         </UiAlert>
       </div>
     );
@@ -237,7 +237,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     { value: 'all', label: t('interventions.allStatuses') },
     ...INTERVENTION_STATUS_OPTIONS.map((option) => ({
       value: option.value,
-      label: option.label,
+      label: t(option.labelKey),
     })),
   ];
 
@@ -246,7 +246,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     { value: 'all', label: t('interventions.allPriorities') },
     ...PRIORITY_OPTIONS.map((option) => ({
       value: option.value,
-      label: option.label,
+      label: t(option.labelKey),
     })),
   ];
 

@@ -4,13 +4,13 @@ export type Protocol = 'wifi' | 'zigbee' | 'both';
 export interface ShopProduct {
   id: string;
   sku: string;
-  name: string;
-  shortDescription: string;
-  description: string;
+  nameKey: string;
+  shortDescriptionKey: string;
+  descriptionKey: string;
   price: number; // in cents
   originalPrice?: number; // for kits showing savings
   category: ProductCategory;
-  features: string[];
+  featureKeys: string[];
   protocol?: Protocol;
   badge?: 'new' | 'bestseller' | 'promo';
   kitProductIds?: string[]; // for kit products
@@ -21,164 +21,155 @@ export interface ShopProduct {
    * Drop JPG/PNG files into `client/public/images/shop/` and set the path here.
    */
   imageUrl?: string;
-  imageAlt: string;
+  imageAltKey: string;
 }
 
 export const SHOP_PRODUCTS: ShopProduct[] = [
   {
     id: 'clenzy-nm-01',
     sku: 'CLENZY-NM-01',
-    name: 'Capteur Bruit 5-in-1',
-    shortDescription: 'Bruit + Température + Humidité + Horloge',
-    description:
-      "Capteur mural WiFi mesurant le niveau sonore (30-130 dBA), la température, l'humidité avec écran LED et horloge intégrée.",
+    nameKey: 'shop.products.nm_01.name',
+    shortDescriptionKey: 'shop.products.nm_01.short',
+    descriptionKey: 'shop.products.nm_01.description',
     price: 4900,
     category: 'noise',
     protocol: 'wifi',
     badge: 'bestseller',
-    features: [
-      'Mesure sonore 30-130 dBA',
-      'Température + Humidité',
-      'Écran LED',
-      'WiFi 2.4GHz',
-      'Alertes temps réel',
-      'Intégration Baitly native',
+    featureKeys: [
+      'shop.products.nm_01.f1',
+      'shop.products.nm_01.f2',
+      'shop.products.nm_01.f3',
+      'shop.products.nm_01.f4',
+      'shop.products.nm_01.f5',
+      'shop.products.nm_01.f6',
     ],
     icon: 'VolumeUp',
-    imageAlt: 'Capteur de bruit mural Baitly avec écran LED',
+    imageAltKey: 'shop.products.nm_01.alt',
   },
   {
     id: 'clenzy-sl-01',
     sku: 'CLENZY-SL-01',
-    name: 'Serrure Connectée',
-    shortDescription: 'Code + Empreinte + RFID + App',
-    description:
-      'Serrure intelligente avec code temporaire par guest, empreinte digitale, carte RFID et contrôle via application.',
+    nameKey: 'shop.products.sl_01.name',
+    shortDescriptionKey: 'shop.products.sl_01.short',
+    descriptionKey: 'shop.products.sl_01.description',
     price: 14900,
     category: 'lock',
     protocol: 'both',
     badge: 'new',
-    features: [
-      'Code temporaire par guest',
-      'Empreinte digitale',
-      'Carte RFID',
-      'Contrôle via App',
-      'WiFi + Zigbee 3.0',
-      "Historique d'accès",
+    featureKeys: [
+      'shop.products.sl_01.f1',
+      'shop.products.sl_01.f2',
+      'shop.products.sl_01.f3',
+      'shop.products.sl_01.f4',
+      'shop.products.sl_01.f5',
+      'shop.products.sl_01.f6',
     ],
     icon: 'Lock',
-    imageAlt: 'Serrure connectée Baitly avec lecteur empreinte',
+    imageAltKey: 'shop.products.sl_01.alt',
   },
   {
     id: 'clenzy-th-01',
     sku: 'CLENZY-TH-01',
-    name: 'Capteur Temp/Humidité',
-    shortDescription: 'Température + Humidité avec écran LCD',
-    description:
-      'Capteur compact avec écran LCD affichant température et humidité en temps réel.',
+    nameKey: 'shop.products.th_01.name',
+    shortDescriptionKey: 'shop.products.th_01.short',
+    descriptionKey: 'shop.products.th_01.description',
     price: 1900,
     category: 'environment',
     protocol: 'zigbee',
-    features: ['Précision ±0.3°C', 'Écran LCD', 'Zigbee 3.0', 'Batterie 1 an+', 'Compact'],
+    featureKeys: ['shop.products.th_01.f1', 'shop.products.th_01.f2', 'shop.products.th_01.f3', 'shop.products.th_01.f4', 'shop.products.th_01.f5'],
     icon: 'Thermostat',
-    imageAlt: 'Capteur de température et humidité avec écran LCD',
+    imageAltKey: 'shop.products.th_01.alt',
   },
   {
     id: 'clenzy-dw-01',
     sku: 'CLENZY-DW-01',
-    name: 'Capteur Porte/Fenêtre',
-    shortDescription: 'Détection ouverture/fermeture',
-    description:
-      'Capteur magnétique pour portes et fenêtres avec alertes en temps réel.',
+    nameKey: 'shop.products.dw_01.name',
+    shortDescriptionKey: 'shop.products.dw_01.short',
+    descriptionKey: 'shop.products.dw_01.description',
     price: 1200,
     category: 'environment',
     protocol: 'zigbee',
-    features: [
-      'Détection ouverture/fermeture',
-      'Zigbee 3.0',
-      'Batterie longue durée',
-      'Installation facile',
+    featureKeys: [
+      'shop.products.dw_01.f1',
+      'shop.products.dw_01.f2',
+      'shop.products.dw_01.f3',
+      'shop.products.dw_01.f4',
     ],
     icon: 'SensorDoor',
-    imageAlt: 'Capteur magnétique porte et fenêtre Zigbee',
+    imageAltKey: 'shop.products.dw_01.alt',
   },
   {
     id: 'clenzy-mo-01',
     sku: 'CLENZY-MO-01',
-    name: 'Capteur Mouvement',
-    shortDescription: 'Détection mouvement/occupation PIR',
-    description:
-      "Capteur de mouvement PIR pour détecter la présence et l'occupation des pièces.",
+    nameKey: 'shop.products.mo_01.name',
+    shortDescriptionKey: 'shop.products.mo_01.short',
+    descriptionKey: 'shop.products.mo_01.description',
     price: 1500,
     category: 'environment',
     protocol: 'zigbee',
-    features: ['Détection PIR', 'Occupation intelligente', 'Zigbee 3.0', 'Batterie longue durée'],
+    featureKeys: ['shop.products.mo_01.f1', 'shop.products.mo_01.f2', 'shop.products.mo_01.f3', 'shop.products.mo_01.f4'],
     icon: 'DirectionsWalk',
-    imageAlt: 'Capteur de mouvement PIR Zigbee',
+    imageAltKey: 'shop.products.mo_01.alt',
   },
   {
     id: 'clenzy-sm-01',
     sku: 'CLENZY-SM-01',
-    name: 'Détecteur Fumée/Vape',
-    shortDescription: 'Détection fumée cigarette et vape',
-    description:
-      'Détecteur de fumée et de vapeur pour alerter en cas de tabagisme dans le logement.',
+    nameKey: 'shop.products.sm_01.name',
+    shortDescriptionKey: 'shop.products.sm_01.short',
+    descriptionKey: 'shop.products.sm_01.description',
     price: 2900,
     category: 'environment',
     protocol: 'wifi',
-    features: ['Détection fumée', 'Détection vape', 'WiFi 2.4GHz', 'Alertes instantanées'],
+    featureKeys: ['shop.products.sm_01.f1', 'shop.products.sm_01.f2', 'shop.products.sm_01.f3', 'shop.products.sm_01.f4'],
     icon: 'SmokeFree',
-    imageAlt: 'Détecteur de fumée et de vapeur connecté WiFi',
+    imageAltKey: 'shop.products.sm_01.alt',
   },
   {
     id: 'kit-essential',
     sku: 'KIT-ESSENTIAL',
-    name: 'Kit Essentiel',
-    shortDescription: 'Monitoring sonore + environnement de base',
-    description:
-      'Le kit parfait pour démarrer : capteur bruit, température/humidité et 2 capteurs porte/fenêtre.',
+    nameKey: 'shop.products.kit_essential.name',
+    shortDescriptionKey: 'shop.products.kit_essential.short',
+    descriptionKey: 'shop.products.kit_essential.description',
     price: 7900,
     originalPrice: 9300,
     category: 'kit',
     badge: 'bestseller',
     kitProductIds: ['clenzy-nm-01', 'clenzy-th-01', 'clenzy-dw-01', 'clenzy-dw-01'],
-    features: [
-      'Capteur Bruit 5-in-1',
-      'Capteur Temp/Humidité',
-      '2× Capteur Porte/Fenêtre',
-      'Économie de 15%',
+    featureKeys: [
+      'shop.products.kit_essential.f1',
+      'shop.products.kit_essential.f2',
+      'shop.products.kit_essential.f3',
+      'shop.products.kit_essential.f4',
     ],
     icon: 'Inventory2',
-    imageAlt: 'Kit Essentiel — capteurs bruit, température et porte/fenêtre',
+    imageAltKey: 'shop.products.kit_essential.alt',
   },
   {
     id: 'kit-security',
     sku: 'KIT-SECURITY',
-    name: 'Kit Sécurité',
-    shortDescription: 'Serrure + capteurs accès',
-    description:
-      'Kit sécurité complet avec serrure connectée, capteurs porte/fenêtre et détection de mouvement.',
+    nameKey: 'shop.products.kit_security.name',
+    shortDescriptionKey: 'shop.products.kit_security.short',
+    descriptionKey: 'shop.products.kit_security.description',
     price: 16900,
     originalPrice: 18800,
     category: 'kit',
     badge: 'new',
     kitProductIds: ['clenzy-sl-01', 'clenzy-dw-01', 'clenzy-dw-01', 'clenzy-mo-01'],
-    features: [
-      'Serrure Connectée',
-      '2× Capteur Porte/Fenêtre',
-      'Capteur Mouvement',
-      'Économie de 10%',
+    featureKeys: [
+      'shop.products.kit_security.f1',
+      'shop.products.kit_security.f2',
+      'shop.products.kit_security.f3',
+      'shop.products.kit_security.f4',
     ],
     icon: 'Security',
-    imageAlt: 'Kit Sécurité — serrure connectée et capteurs accès',
+    imageAltKey: 'shop.products.kit_security.alt',
   },
   {
     id: 'kit-complete',
     sku: 'KIT-COMPLETE',
-    name: 'Kit Complet',
-    shortDescription: 'Tous les capteurs pour une propriété',
-    description:
-      "L'équipement complet pour une propriété : monitoring sonore, serrure connectée, tous les capteurs environnementaux et détection fumée.",
+    nameKey: 'shop.products.kit_complete.name',
+    shortDescriptionKey: 'shop.products.kit_complete.short',
+    descriptionKey: 'shop.products.kit_complete.description',
     price: 25900,
     originalPrice: 31300,
     category: 'kit',
@@ -192,17 +183,17 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'clenzy-mo-01',
       'clenzy-sm-01',
     ],
-    features: [
-      'Capteur Bruit 5-in-1',
-      'Serrure Connectée',
-      'Capteur Temp/Humidité',
-      '2× Capteur Porte/Fenêtre',
-      'Capteur Mouvement',
-      'Détecteur Fumée',
-      'Économie de 17%',
+    featureKeys: [
+      'shop.products.kit_complete.f1',
+      'shop.products.kit_complete.f2',
+      'shop.products.kit_complete.f3',
+      'shop.products.kit_complete.f4',
+      'shop.products.kit_complete.f5',
+      'shop.products.kit_complete.f6',
+      'shop.products.kit_complete.f7',
     ],
     icon: 'AllInclusive',
-    imageAlt: 'Kit Complet — tous les capteurs Baitly pour une propriété',
+    imageAltKey: 'shop.products.kit_complete.alt',
   },
 ];
 

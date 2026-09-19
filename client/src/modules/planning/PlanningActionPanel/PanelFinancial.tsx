@@ -1,4 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { cn } from '../../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
@@ -88,14 +90,10 @@ interface GeneratedInvoice {
   createdAt: string;
 }
 
-const PAYMENT_METHODS = [
-  { value: 'card', label: 'Carte bancaire' },
-  { value: 'transfer', label: 'Virement bancaire' },
-  { value: 'cash', label: 'Especes' },
-  { value: 'check', label: 'Cheque' },
-  { value: 'stripe', label: 'Stripe' },
-  { value: 'other', label: 'Autre' },
-];
+// Les moyens de paiement ne portent que leur VALEUR : le libellé se lit dans
+// `planning.panel.fin.methods.<valeur>` au rendu. Figé à l'import, il resterait
+// français après un changement de langue.
+const PAYMENT_METHOD_VALUES = ['card', 'transfer', 'cash', 'check', 'stripe', 'other'] as const;
 
 type SoftTokens = ToneTokens;
 
@@ -128,27 +126,14 @@ const OVERLINE_SX = {
 /** Report en classes de `OVERLINE_SX`. */
 const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
-const STATUS_LABELS: Record<string, string> = {
-  PAID: 'Paye',
-  PENDING: 'En attente',
-  REFUNDED: 'Rembourse',
-  DRAFT: 'Brouillon',
-  ISSUED: 'Emise',
-  PROCESSING: 'En cours',
-  FAILED: 'Echoue',
-  CANCELLED: 'Annule',
-};
+const PAYMENT_STATUS_KEYS = [
+  'PAID', 'PENDING', 'REFUNDED', 'DRAFT', 'ISSUED', 'PROCESSING', 'FAILED', 'CANCELLED',
+] as const;
 
-const INTERVENTION_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Planifie',
-  in_progress: 'En cours',
-  completed: 'Termine',
-  cancelled: 'Annule',
-  pending: 'En attente',
-  assigned: 'Assigne',
-  awaiting_payment: 'Att. paiement',
-  awaiting_validation: 'Att. validation',
-};
+const INTERVENTION_STATUS_KEYS = [
+  'scheduled', 'in_progress', 'completed', 'cancelled',
+  'pending', 'assigned', 'awaiting_payment', 'awaiting_validation',
+] as const;
 
 const INTERVENTION_STATUS_TOKENS: Record<string, SoftTokens> = {
   scheduled: INFO_TOKENS,
@@ -187,16 +172,25 @@ const SectionCard: React.FC<{
 //    StatusChip partagé (taille sm), rayon pilule conservé. ──────────────────
 const DomainStatusChip: React.FC<{ status: string; map?: Record<string, string>; tokenMap?: Record<string, SoftTokens> }> = ({
   status,
-  map = STATUS_LABELS,
+  map,
   tokenMap = STATUS_TOKENS,
-}) => (
-  <StatusChip
-    tokens={tokenMap[status] || NEUTRAL_TOKENS}
-    label={map[status] || status}
-    size="sm"
-    sx={{ borderRadius: 'var(--radius-pill)' }}
-  />
-);
+}) => {
+  // Sans table fournie, le statut est un statut de PAIEMENT : il se traduit
+  // ici. La table était naguère un objet de module, figé en français.
+  const { t } = useTranslation();
+  const label = map
+    ? map[status] || status
+    : t(`planning.panel.fin.statuses.${status}`, status);
+
+  return (
+    <StatusChip
+      tokens={tokenMap[status] || NEUTRAL_TOKENS}
+      label={label}
+      size="sm"
+      sx={{ borderRadius: 'var(--radius-pill)' }}
+    />
+  );
+};
 
 // ── Row helper ──────────────────────────────────────────────────────────────
 const FinRow: React.FC<{
@@ -251,11 +245,6 @@ interface PanelFinancialProps {
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────
-const fmtDate = (iso: string) => {
-  try {
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return iso; }
-};
 
 // Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
 // convertAndFormat directement (cf. notifier).
@@ -272,9 +261,35 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   onGenerateInvoice,
   onPaymentComplete,
 }) => {
+  const { t } = useTranslation();
+  // Dates de l'écran : calendrier de la langue active.
+  const fmt = useDateFormat();
   const reservation = event.reservation;
   const intervention = event.intervention;
   const { convertAndFormat } = useCurrency();
+
+  /** « 12/08/2026 14:30 » dans le calendrier affiché. */
+  const fmtDate = useCallback((iso: string) => {
+    try {
+      const d = new Date(iso);
+      return `${fmt.formatShortDate(d)} ${fmt.formatPattern(d, 'HH:mm')}`;
+    } catch { return iso; }
+  }, [fmt]);
+
+  // Les tables de libellés passées à `DomainStatusChip` se rebrassent avec la
+  // langue : construites hors composant, elles resteraient françaises.
+  const paymentMethods = useMemo(
+    () => PAYMENT_METHOD_VALUES.map((value) => ({ value, label: t(`planning.panel.fin.methods.${value}`) })),
+    [t],
+  );
+  const STATUS_LABELS = useMemo(
+    () => Object.fromEntries(PAYMENT_STATUS_KEYS.map((k) => [k, t(`planning.panel.fin.statuses.${k}`)])),
+    [t],
+  );
+  const INTERVENTION_STATUS_LABELS = useMemo(
+    () => Object.fromEntries(INTERVENTION_STATUS_KEYS.map((k) => [k, t(`planning.panel.fin.intervention.${k}`)])),
+    [t],
+  );
   const { notify } = useNotification();
 
   // Latest-ref : le polling de paiement lit toujours le callback frais sans
@@ -526,7 +541,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       setLinkSent(true);
       setShowEmailInput(false);
       setLinkEmail('');
-      notifier('Lien de paiement envoye avec succes');
+      notifier(t('payments.linkSent'));
       setTimeout(() => setLinkSent(false), 4000);
     } catch {
       notifier("Erreur lors de l'envoi du lien", 'error');
@@ -693,11 +708,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {reservation && (
         <div>
           <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-0.5">
-            Montant
+            {t('planning.panel.fin.amount', 'Montant')}
           </span>
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="font-[family-name:var(--font-display)] text-[1.75rem] font-bold text-[var(--ink)] leading-[1.1] tabular-nums">
-              {isICalImport && !hasTotalPrice ? 'Non communiqué' : fmtCurrency(grandTotal)}
+              {isICalImport && !hasTotalPrice ? t('planning.panel.fin.notDisclosed') : fmtCurrency(grandTotal)}
             </span>
             {(hasTotalPrice || isOTABooking) && (
               <span className={cn('self-center px-1.5 py-[3px] rounded-[var(--radius-pill)] text-[0.6875rem] font-semibold', isSettled ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', isSettled ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
@@ -714,12 +729,16 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {reservation && (
         <SectionCard
           icon={<span className="inline-flex text-[var(--info)]"><Person size={18} strokeWidth={1.75} /></span>}
-          title="Paiement reservation"
-          badge="Voyageur"
+          title={t('planning.panel.fin.reservationPayment', 'Paiement réservation')}
+          badge={t('planning.panel.fin.guestBadge', 'Voyageur')}
           badgeTokens={INFO_TOKENS}
         >
           {/* Summary */}
-          <FinRow label="Montant reservation" value={isICalImport && !hasTotalPrice ? 'Non communique' : fmtCurrency(totalPrice)} bold />
+          <FinRow
+            label={t('planning.panel.fin.reservationAmount', 'Montant réservation')}
+            value={isICalImport && !hasTotalPrice ? t('planning.panel.fin.notDisclosed') : fmtCurrency(totalPrice)}
+            bold
+          />
 
           {/* Commission du canal. Affichee sous le montant brut parce qu'elle
               s'y retranche : c'est l'ecart entre ce que paie le voyageur et ce
@@ -729,8 +748,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <FinRow
               label={
                 reservation?.otaFeeEstimated
-                  ? `Commission ${otaChannelLabel} (estimee)`
-                  : `Commission ${otaChannelLabel}`
+                  ? t('planning.panel.fin.commissionEstimated', { channel: otaChannelLabel })
+                  : t('planning.panel.fin.commission', { channel: otaChannelLabel })
               }
               value={<>-{fmtCurrency(otaFee)}</>}
               color="var(--err)"
@@ -750,23 +769,25 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 </div>
               ))}
               <Separator className="my-[3px]" />
-              <FinRow label="Total" value={fmtCurrency(grandTotal)} bold />
+              <FinRow label={t('planning.panel.fin.total', 'Total')} value={fmtCurrency(grandTotal)} bold />
             </>
           )}
 
           <FinRow
-            label={isOTABooking ? `Paye sur ${otaChannelLabel}` : 'Paye'}
+            label={isOTABooking
+              ? t('planning.panel.fin.paidOn', { channel: otaChannelLabel })
+              : t('planning.panel.fin.paid', 'Payé')}
             value={fmtCurrency(effectiveTotalPaid)}
             color="var(--ok)"
           />
 
           {totalRefunded > 0 && (
-            <FinRow label="Rembourse" value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--err)" />
+            <FinRow label={t('planning.panel.fin.refunded', 'Remboursé')} value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--err)" />
           )}
 
           <div className="flex justify-between items-center mb-1.5">
             <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
-              Reste a payer
+              {t('planning.panel.fin.balanceDue', 'Reste à payer')}
             </p>
             <div className="flex items-center gap-1.5">
               <p className={cn('cn-text-body2 font-semibold tabular-nums', effectiveBalanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
@@ -780,7 +801,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {invoices.length > 0 && (
             <div className="mb-1.5">
               <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
-                Factures ({invoices.length})
+                {t('planning.panel.fin.invoices', { count: invoices.length })}
               </span>
               {invoices.map((inv) => (
                 <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
@@ -796,7 +817,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            aria-label="Telecharger"
+                            aria-label={t('planning.panel.fin.download', 'Télécharger')}
                             onClick={async () => {
                               const { documentsApi } = await import('../../../services/api/documentsApi');
                               await documentsApi.downloadGeneration(inv.id, inv.fileName);
@@ -806,7 +827,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <PlanningTooltipContent>Telecharger</PlanningTooltipContent>
+                      <PlanningTooltipContent>{t('planning.panel.fin.download', 'Télécharger')}</PlanningTooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -814,7 +835,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            aria-label="Duplicata"
+                            aria-label={t('planning.panel.fin.duplicate', 'Duplicata')}
                             onClick={async () => {
                               const { documentsApi } = await import('../../../services/api/documentsApi');
                               await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
@@ -824,7 +845,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <PlanningTooltipContent>Duplicata</PlanningTooltipContent>
+                      <PlanningTooltipContent>{t('planning.panel.fin.duplicate', 'Duplicata')}</PlanningTooltipContent>
                     </Tooltip>
                   </div>
                 </div>
@@ -840,11 +861,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <span className="inline-flex mt-0.5 text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
                 <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-semibold">
-                  Lien envoye le {fmtDate(lastSentAt)}
+                  {t('planning.panel.fin.linkSentOn', { date: fmtDate(lastSentAt) })}
                 </span>
                 {lastSentEmail && (
                   <span className="cn-text-caption block text-[0.625rem] text-muted-foreground">
-                    a {lastSentEmail}
+                    {t('planning.panel.fin.linkSentTo', { email: lastSentEmail })}
                   </span>
                 )}
               </div>
@@ -854,7 +875,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {linkSent && (
             <UiAlert variant="success" className="my-[3px] py-1 text-[0.6875rem]">
               <CheckCircle size={14} strokeWidth={1.75} />
-              <AlertDescription className="text-[0.6875rem]">Lien envoye avec succes !</AlertDescription>
+              <AlertDescription className="text-[0.6875rem]">{t('planning.panel.fin.linkSent')}</AlertDescription>
             </UiAlert>
           )}
 
@@ -866,7 +887,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <div className="flex-1 flex items-center justify-center gap-[4.5px] px-[7.5px] py-[5.25px] rounded-[9px] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]">
                 <span className="inline-flex text-[var(--ok)]"><CheckCircle size={14} strokeWidth={1.75} /></span>
                 <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-medium">
-                  Reglement effectue sur {otaChannelLabel}
+                  {t('planning.panel.fin.settledOn', { channel: otaChannelLabel })}
                 </span>
               </div>
             ) : (
@@ -883,7 +904,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 className="flex-1"
               >
                 {sendingLink ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
-                {lastSentAt ? 'Renvoyer lien' : 'Lien paiement'}
+                {lastSentAt
+                  ? t('planning.panel.fin.resendLink', 'Renvoyer lien')
+                  : t('planning.panel.fin.paymentLink', 'Lien paiement')}
               </Button>
             )}
 
@@ -899,7 +922,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 className="flex-1"
               >
                 <Download size={12} strokeWidth={1.75} />
-                Duplicata
+                {t('planning.panel.fin.duplicate', 'Duplicata')}
               </Button>
             ) : (
               <Button
@@ -910,7 +933,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 className="flex-1"
               >
                 {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
-                Facture
+                {t('planning.panel.fin.invoice', 'Facture')}
               </Button>
             )}
           </div>
@@ -927,8 +950,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 </InputGroupAddon>
                 <InputGroupInput
                   id="panel-financial-link-email"
-                  aria-label="Email du voyageur"
-                  placeholder="Email du voyageur"
+                  aria-label={t('planning.panel.fin.guestEmail', 'Email du voyageur')}
+                  placeholder={t('planning.panel.fin.guestEmail', 'Email du voyageur')}
                   type="email"
                   className="text-[0.75rem]"
                   value={linkEmail}
@@ -942,7 +965,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 onClick={() => handleSendPaymentLink(linkEmail)}
                 className="min-w-0 px-[9px]"
               >
-                Envoyer
+                {t('planning.panel.fin.send', 'Envoyer')}
               </Button>
             </div>
             </CollapsibleContent>
@@ -957,8 +980,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {reservation && (linkedInterventions.length > 0 || payableServiceRequests.length > 0) && (
         <SectionCard
           icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
-          title="Paiement interventions"
-          badge="Proprietaire"
+          title={t('planning.panel.fin.interventionPayment', 'Paiement interventions')}
+          badge={t('planning.panel.fin.ownerBadge', 'Propriétaire')}
           badgeTokens={WARN_TOKENS}
         >
           {/* ── Interventions proposees (SR assignees, en attente de paiement) ── */}
@@ -966,7 +989,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <>
               <div className="flex items-center justify-between mb-0.5">
                 <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--warn)]">
-                  Interventions proposees ({payableServiceRequests.length})
+                  {t('planning.panel.fin.proposed', { count: payableServiceRequests.length })}
                 </span>
               </div>
               {payableServiceRequests.map((sr) => {
@@ -997,7 +1020,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     <p className="cn-text-body1 text-[0.75rem] font-semibold min-w-[50px] text-end tabular-nums">
                       {cost > 0 ? <Money value={cost} from="EUR" decimals={0} /> : '\u2014'}
                     </p>
-                    <StatusChip pill size="sm" tokens={WARN_TOKENS} label="A payer" />
+                    <StatusChip pill size="sm" tokens={WARN_TOKENS} label={t('planning.panel.fin.toPay', 'À payer')} />
                   </div>
                 );
               })}
@@ -1010,12 +1033,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <>
               <div className="flex items-center justify-between mb-0.5">
                 <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
-                  Prestations liees ({linkedInterventions.length})
+                  {t('planning.panel.fin.linkedServices', { count: linkedInterventions.length })}
                 </span>
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label={interventionsExpanded ? 'Replier les prestations liees' : 'Deplier les prestations liees'}
+                  aria-label={interventionsExpanded
+                    ? t('planning.panel.fin.collapseLinked')
+                    : t('planning.panel.fin.expandLinked')}
                   aria-expanded={interventionsExpanded}
                   onClick={() => setInterventionsExpanded(!interventionsExpanded)}
                 >
@@ -1066,14 +1091,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
           {/* Summary */}
           {srProposedTotal > 0 && (
-            <FinRow label="Interventions proposees" value={fmtCurrency(srProposedTotal)} color="var(--warn)" />
+            <FinRow label={t('planning.panel.fin.proposedTotal', 'Interventions proposées')} value={fmtCurrency(srProposedTotal)} color="var(--warn)" />
           )}
-          <FinRow label="Total interventions" value={fmtCurrency(interventionCostTotal + srProposedTotal)} bold />
+          <FinRow label={t('planning.panel.fin.interventionsTotal', 'Total interventions')} value={fmtCurrency(interventionCostTotal + srProposedTotal)} bold />
           {interventionPaid > 0 && (
-            <FinRow label="Paye" value={fmtCurrency(interventionPaid)} color="var(--ok)" />
+            <FinRow label={t('planning.panel.fin.paid', 'Payé')} value={fmtCurrency(interventionPaid)} color="var(--ok)" />
           )}
           {interventionAwaitingTotal > 0 && (
-            <FinRow label="En attente" value={fmtCurrency(interventionAwaitingTotal)} color="var(--warn)" />
+            <FinRow label={t('planning.panel.fin.awaiting', 'En attente')} value={fmtCurrency(interventionAwaitingTotal)} color="var(--warn)" />
           )}
 
           {/* Action buttons */}
@@ -1096,7 +1121,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {payingSR ? <Spinner className="size-3.5" /> : <CreditCard size={14} strokeWidth={1.75} />}
-              Payer
+              {t('planning.panel.fin.pay', 'Payer')}
             </Button>
             {/* Generate invoice for linked interventions — always visible */}
             <Button
@@ -1112,7 +1137,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
-              Facture
+              {t('planning.panel.fin.invoice', 'Facture')}
             </Button>
             {/* Refund button — always visible */}
             <Button
@@ -1123,7 +1148,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               <MoneyOff size={12} strokeWidth={1.75} />
-              Remboursement
+              {t('planning.panel.fin.refund', 'Remboursement')}
             </Button>
           </div>
         </SectionCard>
@@ -1133,12 +1158,12 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {reservation && linkedInterventions.length === 0 && payableServiceRequests.length === 0 && (
         <SectionCard
           icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
-          title="Paiement interventions"
-          badge="Proprietaire"
+          title={t('planning.panel.fin.interventionPayment', 'Paiement interventions')}
+          badge={t('planning.panel.fin.ownerBadge', 'Propriétaire')}
           badgeTokens={WARN_TOKENS}
         >
           <p className="cn-text-body2 text-[0.75rem] italic text-[var(--muted)]">
-            Aucune intervention liee a cette reservation.
+            {t('planning.panel.fin.noLinked')}
           </p>
         </SectionCard>
       )}
@@ -1149,26 +1174,26 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {!reservation && intervention && (
         <SectionCard
           icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
-          title="Cout intervention"
-          badge="Proprietaire"
+          title={t('planning.panel.fin.interventionCost', 'Coût intervention')}
+          badge={t('planning.panel.fin.ownerBadge', 'Propriétaire')}
           badgeTokens={WARN_TOKENS}
         >
-          <FinRow label="Duree estimee" value={intervention.estimatedDurationHours ? `${intervention.estimatedDurationHours}h` : '-'} />
+          <FinRow label={t('planning.panel.fin.estimatedDuration', 'Durée estimée')} value={intervention.estimatedDurationHours ? `${intervention.estimatedDurationHours}h` : '-'} />
           {intervention.estimatedDurationHours && (
             <FinRow
-              label="Cout estime (25 EUR/h)"
+              label={t('planning.panel.fin.estimatedCost', 'Coût estimé (25 €/h)')}
               value={fmtCurrency(intervention.estimatedDurationHours * 25)}
               bold
             />
           )}
           {intervention.actualCost != null && intervention.actualCost > 0 && (
-            <FinRow label="Cout reel" value={fmtCurrency(intervention.actualCost)} bold color="var(--ok)" />
+            <FinRow label={t('planning.panel.fin.actualCost', 'Coût réel')} value={fmtCurrency(intervention.actualCost)} bold color="var(--ok)" />
           )}
 
           <Separator className="my-[4.5px]" />
 
           <FinRow
-            label="Statut paiement"
+            label={t('planning.panel.fin.paymentStatus', 'Statut paiement')}
             value=""
           >
             <DomainStatusChip
@@ -1191,7 +1216,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               className="w-full mt-[6px] text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               <CreditCard size={14} strokeWidth={1.75} />
-              Payer {fmtCurrency(intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0))}
+              {t('planning.panel.fin.pay', 'Payer')} {fmtCurrency(intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0))}
             </Button>
           )}
 
@@ -1206,7 +1231,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               className="w-full mt-[4.5px] text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
-              Generer facture
+              {t('planning.panel.fin.generateInvoice', 'Générer facture')}
             </Button>
           )}
 
@@ -1214,7 +1239,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {invoices.length > 0 && (
             <div className="mt-1.5">
               <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
-                Factures ({invoices.length})
+                {t('planning.panel.fin.invoices', { count: invoices.length })}
               </span>
               {invoices.map((inv) => (
                 <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
@@ -1230,7 +1255,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            aria-label="Telecharger"
+                            aria-label={t('planning.panel.fin.download', 'Télécharger')}
                             onClick={async () => {
                               const { documentsApi } = await import('../../../services/api/documentsApi');
                               await documentsApi.downloadGeneration(inv.id, inv.fileName);
@@ -1240,7 +1265,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <PlanningTooltipContent>Telecharger</PlanningTooltipContent>
+                      <PlanningTooltipContent>{t('planning.panel.fin.download', 'Télécharger')}</PlanningTooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1248,7 +1273,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            aria-label="Duplicata"
+                            aria-label={t('planning.panel.fin.duplicate', 'Duplicata')}
                             onClick={async () => {
                               const { documentsApi } = await import('../../../services/api/documentsApi');
                               await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
@@ -1258,7 +1283,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <PlanningTooltipContent>Duplicata</PlanningTooltipContent>
+                      <PlanningTooltipContent>{t('planning.panel.fin.duplicate', 'Duplicata')}</PlanningTooltipContent>
                     </Tooltip>
                   </div>
                 </div>
@@ -1278,13 +1303,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               <span className="inline-flex text-[var(--brand-ink)]"><Payment size={20} strokeWidth={1.75} /></span>
-              <span>Historique des paiements</span>
+              <span>{t('planning.panel.fin.historyTitle', 'Historique des paiements')}</span>
             </DialogTitle>
           </DialogHeader>
           {payments.length === 0 ? (
             <UiAlert variant="info" className="text-[0.8125rem]">
               <Info />
-              <AlertDescription>Aucun paiement enregistre.</AlertDescription>
+              <AlertDescription>{t('planning.panel.fin.noPayments')}</AlertDescription>
             </UiAlert>
           ) : (
             // La modale du kit est une grille : sans ce conteneur, un tableau
@@ -1293,18 +1318,18 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Methode</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead className="text-end">Montant</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TableHead>{t('planning.panel.fin.colDate', 'Date')}</TableHead>
+                  <TableHead>{t('planning.panel.fin.colMethod', 'Méthode')}</TableHead>
+                  <TableHead>{t('planning.panel.fin.colReference', 'Référence')}</TableHead>
+                  <TableHead className="text-end">{t('planning.panel.fin.colAmount', 'Montant')}</TableHead>
+                  <TableHead>{t('planning.panel.fin.colStatus', 'Statut')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="tabular-nums">{p.date}</TableCell>
-                    <TableCell>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
+                    <TableCell>{paymentMethods.find((m) => m.value === p.method)?.label || p.method}</TableCell>
                     <TableCell className="text-[var(--muted)]">{p.reference || '-'}</TableCell>
                     <TableCell className="text-end font-semibold tabular-nums">
                       {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
@@ -1319,17 +1344,17 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {payments.length > 0 && (
             <div className="mt-2 pt-1.5 border-t border-[var(--bui-border)]">
               <div className="flex justify-between mb-0.5">
-                <span className="cn-text-caption font-semibold text-[0.75rem]">Total paye</span>
+                <span className="cn-text-caption font-semibold text-[0.75rem]">{t('planning.panel.fin.totalPaid', 'Total payé')}</span>
                 <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--ok)]">{fmtCurrency(totalPaid)}</span>
               </div>
               {totalRefunded > 0 && (
                 <div className="flex justify-between mb-0.5">
-                  <span className="cn-text-caption font-semibold text-[0.75rem]">Total rembourse</span>
+                  <span className="cn-text-caption font-semibold text-[0.75rem]">{t('planning.panel.fin.totalRefunded', 'Total remboursé')}</span>
                   <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--err)]">-{fmtCurrency(totalRefunded)}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="cn-text-caption font-semibold text-[0.75rem]">Reste a payer</span>
+                <span className="cn-text-caption font-semibold text-[0.75rem]">{t('planning.panel.fin.balanceDue', 'Reste à payer')}</span>
                 <span className={cn('cn-text-caption font-bold text-[0.75rem] tabular-nums', balanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')}>
                   <Money value={Math.max(0, balanceDue)} from="EUR" />
                 </span>
@@ -1345,17 +1370,20 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               <span className="inline-flex text-[var(--brand-ink)]"><Add size={20} strokeWidth={1.75} /></span>
-              <span>Ajouter un paiement</span>
+              <span>{t('planning.panel.fin.addPayment', 'Ajouter un paiement')}</span>
             </DialogTitle>
           </DialogHeader>
           {reservation && (
             <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
-              Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong><Money value={Math.max(0, balanceDue)} from="EUR" /></strong>
+              {t('planning.panel.fin.addPaymentIntro', {
+                guest: reservation.guestName,
+                balance: convertAndFormat(Math.max(0, balanceDue), 'EUR'),
+              })}
             </span>
           )}
           <div className="flex flex-col gap-3">
             <Field>
-              <FieldLabel htmlFor="panel-financial-payment-amount">Montant (EUR)</FieldLabel>
+              <FieldLabel htmlFor="panel-financial-payment-amount">{t('planning.panel.fin.amountEur', 'Montant (€)')}</FieldLabel>
               <Input
                 id="panel-financial-payment-amount"
                 type="number"
@@ -1368,20 +1396,20 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="panel-financial-payment-method">Methode de paiement</FieldLabel>
+              <FieldLabel htmlFor="panel-financial-payment-method">{t('planning.panel.fin.paymentMethod', 'Méthode de paiement')}</FieldLabel>
               <NativeSelect
                 id="panel-financial-payment-method"
                 className="w-full text-[0.8125rem]"
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               >
-                {PAYMENT_METHODS.map((m) => (
+                {paymentMethods.map((m) => (
                   <NativeSelectOption key={m.value} value={m.value}>{m.label}</NativeSelectOption>
                 ))}
               </NativeSelect>
             </Field>
             <Field>
-              <FieldLabel htmlFor="panel-financial-payment-date">Date du paiement</FieldLabel>
+              <FieldLabel htmlFor="panel-financial-payment-date">{t('planning.panel.fin.paymentDate', 'Date du paiement')}</FieldLabel>
               <Input
                 id="panel-financial-payment-date"
                 type="date"
@@ -1391,10 +1419,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="panel-financial-payment-reference">Reference (optionnel)</FieldLabel>
+              <FieldLabel htmlFor="panel-financial-payment-reference">{t('planning.panel.fin.reference', 'Référence (optionnel)')}</FieldLabel>
               <Input
                 id="panel-financial-payment-reference"
-                placeholder="N° transaction, cheque..."
+                placeholder={t('planning.panel.fin.referencePlaceholder')}
                 className="w-full text-[0.8125rem]"
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
@@ -1402,10 +1430,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </Field>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddPaymentOpen(false)} size="sm">Annuler</Button>
+            <Button variant="ghost" onClick={() => setAddPaymentOpen(false)} size="sm">{t('planning.panel.fin.cancel', 'Annuler')}</Button>
             <Button onClick={handleAddPayment} size="sm" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading}>
               {paymentLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-              Enregistrer
+              {t('planning.panel.fin.save', 'Enregistrer')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1417,23 +1445,23 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               <span className="inline-flex text-[var(--brand-ink)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
-              <span>Frais supplementaires</span>
+              <span>{t('planning.panel.fin.extraFees', 'Frais supplémentaires')}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <Field>
-              <FieldLabel htmlFor="panel-financial-fee-description">Description</FieldLabel>
+              <FieldLabel htmlFor="panel-financial-fee-description">{t('planning.panel.fin.description', 'Description')}</FieldLabel>
               <Input
                 id="panel-financial-fee-description"
                 required
-                placeholder="Ex: Menage supplementaire, cle perdue..."
+                placeholder={t('planning.panel.fin.feePlaceholder')}
                 className="w-full text-[0.8125rem]"
                 value={feeDescription}
                 onChange={(e) => setFeeDescription(e.target.value)}
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="panel-financial-fee-amount">Montant (EUR)</FieldLabel>
+              <FieldLabel htmlFor="panel-financial-fee-amount">{t('planning.panel.fin.amountEur', 'Montant (€)')}</FieldLabel>
               <Input
                 id="panel-financial-fee-amount"
                 type="number"
@@ -1450,15 +1478,15 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <UiAlert variant="info" className="mt-3 text-[0.75rem]">
               <Info />
               <AlertDescription className="text-[0.75rem]">
-                Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
+                {t('planning.panel.fin.newTotal', 'Nouveau total :')} <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
               </AlertDescription>
             </UiAlert>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddFeeOpen(false)} size="sm">Annuler</Button>
+            <Button variant="ghost" onClick={() => setAddFeeOpen(false)} size="sm">{t('planning.panel.fin.cancel', 'Annuler')}</Button>
             <Button onClick={handleAddFee} size="sm" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading}>
               {feeLoading ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={1.75} />}
-              Ajouter
+              {t('planning.panel.fin.add', 'Ajouter')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1470,35 +1498,35 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
-              <span>Confirmer le remboursement</span>
+              <span>{t('planning.panel.fin.confirmRefund', 'Confirmer le remboursement')}</span>
             </DialogTitle>
           </DialogHeader>
           <UiAlert variant="warning" className="mb-3 text-[0.8125rem]">
             <Warning size={18} strokeWidth={1.75} />
             <AlertDescription className="text-[0.8125rem]">
-              Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
+              {t('planning.panel.fin.refundWarning')}
             </AlertDescription>
           </UiAlert>
           <div className="flex flex-col gap-0.5 p-2 rounded-[10px] bg-[var(--field)]">
             <div className="flex justify-between">
-              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant total paye</p>
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">{t('planning.panel.fin.totalPaidAmount', 'Montant total payé')}</p>
               <p className="cn-text-body2 font-bold text-[0.8125rem] tabular-nums">{fmtCurrency(totalPaid)}</p>
             </div>
             {reservation && (
               <div className="flex justify-between">
-                <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Client</p>
+                <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">{t('planning.panel.fin.client', 'Client')}</p>
                 <p className="cn-text-body2 font-semibold text-[0.8125rem]">{reservation.guestName}</p>
               </div>
             )}
             <div className="flex justify-between">
-              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant rembourse</p>
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">{t('planning.panel.fin.refundedAmount', 'Montant remboursé')}</p>
               <p className="cn-text-body2 font-bold text-[0.8125rem] text-[var(--err)] tabular-nums">
                 -{fmtCurrency(totalPaid)}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRefundDialogOpen(false)} size="sm">Annuler</Button>
+            <Button variant="ghost" onClick={() => setRefundDialogOpen(false)} size="sm">{t('planning.panel.fin.cancel', 'Annuler')}</Button>
             {/* Teinte --warn conservee (pas de variante « warning » au kit) :
                 l'action est irreversible mais ce n'est pas une suppression. */}
             <Button
@@ -1509,7 +1537,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {refundLoading ? <Spinner className="size-3.5" /> : <MoneyOff size={16} strokeWidth={1.75} />}
-              Confirmer le remboursement
+              {t('planning.panel.fin.confirmRefund', 'Confirmer le remboursement')}
             </Button>
           </DialogFooter>
         </DialogContent>

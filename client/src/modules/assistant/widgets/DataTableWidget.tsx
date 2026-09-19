@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../../utils/cn';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 type DataItem = Record<string, unknown>;
 
@@ -175,7 +176,7 @@ function formatCell(value: unknown, col: ColumnDef): string {
     case 'currency':
       if (typeof value === 'number' || typeof value === 'string') {
         const num = Number(value);
-        return isNaN(num) ? String(value) : num.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+        return isNaN(num) ? String(value) : num.toLocaleString(activeIntlLocale(), { maximumFractionDigits: 2 });
       }
       return String(value);
     case 'plain':

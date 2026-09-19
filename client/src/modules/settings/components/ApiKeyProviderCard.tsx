@@ -6,6 +6,7 @@ import {
   type ApiKeyProvider,
 } from '../../../services/api/externalConnectionApi';
 import ApiKeyConnectionCard, { type ApiKeyConnectionApi } from './ApiKeyConnectionCard';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Wrapper Signature autour du composant generique {@link ApiKeyConnectionCard}.
@@ -22,6 +23,7 @@ interface Props {
 const ACCENT = 'var(--bui-success-ink)';
 
 const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
+  const { t } = useTranslation();
   const meta = PROVIDER_META[provider];
 
   const qtspChip = meta.qtspFrance ? (
@@ -32,7 +34,7 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
           <span aria-hidden="true" style={{ fontSize: '0.85em' }}>🇫🇷</span>
         </span>
       </TooltipTrigger>
-      <TooltipContent side="top">Qualified Trust Service Provider certifié ANSSI (France)</TooltipContent>
+      <TooltipContent side="top">{t('settings.integrations.yousign.qtsp')}</TooltipContent>
     </Tooltip>
   ) : undefined;
 
@@ -44,7 +46,7 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
       logoId={provider}
       onStatusChange={onStatusChange}
       headerChip={qtspChip}
-      scaffoldingNote={`L'intégration ${meta.label} est en cours de développement. La connexion permet de valider et stocker vos credentials ; les appels signature seront ajoutés prochainement.`}
+      scaffoldingNote={t('settings.integrations.scaffolding.signature', { provider: meta.label })}
     />
   );
 };

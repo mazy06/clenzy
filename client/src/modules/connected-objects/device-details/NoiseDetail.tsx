@@ -16,6 +16,7 @@ import { useNoiseDeviceDetail } from '../useNoiseDeviceDetail';
 import { NOISE_THRESHOLDS } from '../../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const NEUTRAL = 'text-muted-foreground';
 
@@ -36,6 +37,7 @@ function levelAccent(level: number): string {
  * Réutilise les composants riches existants en variante `device`/`embedded`.
  */
 export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
+  const { t } = useTranslation();
   const { data, combinedChartData, loading } = useNoiseDeviceDetail(device);
   const [activeThresholds, setActiveThresholds] = useState<ActiveThresholds | null>(null);
   const [subTab, setSubTab] = useState(0);
@@ -122,7 +124,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
                 </Alert>
               )}
               {configStatus.isSaved && (
-                <Badge variant="success" className="text-[0.6875rem] h-[22px] font-semibold rounded-full">Sauvegardé</Badge>
+                <Badge variant="success" className="text-[0.6875rem] h-[22px] font-semibold rounded-full">{t('connectedObjects.noise.saved')}</Badge>
               )}
               <Button
                 size="sm"
@@ -149,8 +151,8 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
             ) : (
               <EmptyState
                 icon={<VolumeUp />}
-                title="Aucun logement associé"
-                description="Associez ce capteur à un logement pour configurer les seuils d'alerte."
+                title={t('connectedObjects.noise.noProperty')}
+                description={t('connectedObjects.noise.noPropertyHint')}
               />
             )
           )}

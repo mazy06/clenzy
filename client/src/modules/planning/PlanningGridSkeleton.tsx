@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
+import { isRtlLanguage } from '../../utils/localeDate';
+import { setInlineScroll } from '../../utils/inlineScroll';
 import PlanningDateHeaders from './PlanningDateHeaders';
 import PlanningRowBackdrop from './PlanningRowBackdrop';
 import { BAR_BORDER_RADIUS, PAGINATION_BAR_HEIGHT, ROW_CONFIG } from './constants';
-import { scrollLeftForDateIn } from './hooks/useInfiniteTimeline';
+import { inlineScrollForDateIn } from './hooks/useInfiniteTimeline';
 import type { DensityMode, ZoomLevel } from './types';
 
 /**
@@ -76,19 +79,21 @@ export default function PlanningGridSkeleton({
   totalGridWidth: number;
   collapsed?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const isRtl = isRtlLanguage(i18n.language);
   const { rowHeight, reservationBarHeight, barPadding } = ROW_CONFIG[density];
 
   // Le defileur s'ouvre sur la MEME fenetre de dates que la grille reelle, qui
   // se recale sur son ancre des qu'elle est peinte. Sans cela, le squelette
-  // montrerait le bord gauche du buffer — plusieurs semaines avant — et la
+  // montrerait le bord amont du buffer — plusieurs semaines avant — et la
   // grille sauterait lateralement en apparaissant.
   const openAt = React.useCallback(
     (el: HTMLDivElement | null) => {
       if (!el) return;
-      const left = scrollLeftForDateIn(days, anchorDate, dayWidth);
-      if (left !== null) el.scrollLeft = left;
+      const offset = inlineScrollForDateIn(days, anchorDate, dayWidth);
+      if (offset !== null) setInlineScroll(el, offset, isRtl);
     },
-    [days, anchorDate, dayWidth],
+    [days, anchorDate, dayWidth, isRtl],
   );
 
   // Assez de rangées pour remplir n'importe quelle hauteur d'écran : la carte
@@ -100,7 +105,7 @@ export default function PlanningGridSkeleton({
     <>
     <Card
       aria-busy
-      aria-label="Chargement du planning"
+      aria-label={t('planning.empty.loading', 'Chargement du planning')}
       className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--bui-card)] overflow-hidden rounded-none ring-0 min-[900px]:rounded-xl min-[900px]:ring-1"
     >
       {/* Memes classes que le defileur de PlanningTimeline. */}
@@ -183,7 +188,7 @@ export default function PlanningGridSkeleton({
                         key={i}
                         className="absolute"
                         style={{
-                          left: start * dayWidth,
+                          insetInlineStart: start * dayWidth,
                           width: Math.min(nights, days.length - start) * dayWidth,
                           top: barPadding,
                           height: reservationBarHeight,

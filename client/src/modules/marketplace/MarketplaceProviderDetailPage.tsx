@@ -1,5 +1,7 @@
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import { useTranslation } from "react-i18next";
+// Hors composant : la langue se lit a l'appel, pas au chargement du module.
+import i18nInstance from '../../i18n/config';
 import { formatDate as formatLocalizedDate } from '../quotes/quotePresentation';
 import ProviderDecisionJournal from './ProviderDecisionJournal';
 import ProviderDocumentaryPanel from './ProviderDocumentaryPanel';
@@ -79,7 +81,7 @@ function statusErrorMessage(error: unknown): string {
   const message = (error as { message?: string } | null)?.message;
   return message && message.trim().length > 0
     ? message
-    : 'Le changement d’état a échoué. Réessayez.';
+    : i18nInstance.t('marketplaceAdmin.stateChangeFailed');
 }
 
 // ─── Blocs de présentation ──────────────────────────────────────────────────

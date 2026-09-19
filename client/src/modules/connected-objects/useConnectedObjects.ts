@@ -13,6 +13,7 @@ import type {
   DeviceStatusLevel,
   PropertyDeviceGroup,
 } from './types';
+import i18n from '../../i18n/config';
 
 const LOW_BATTERY = 20;
 
@@ -33,12 +34,12 @@ function mapLock(d: SmartLockDeviceDto): ConnectedDevice {
     id: d.id,
     name: d.name,
     propertyId: d.propertyId ?? null,
-    propertyName: d.propertyName || 'Sans logement',
+    propertyName: d.propertyName || i18n.t('connectedObjects.noProperty'),
     roomName: d.roomName,
     provider: (d.brand as DeviceProvider) || 'UNKNOWN',
     statusLevel: !known ? 'unknown' : !online ? 'offline' : lowBattery ? 'warning' : 'ok',
-    statusLabel: !known ? 'État inconnu' : !online ? 'Hors ligne' : locked ? 'Verrouillée' : unlocked ? 'Déverrouillée' : 'État inconnu',
-    primaryMetric: d.batteryLevel != null ? { label: 'Batterie', value: `${d.batteryLevel}%` } : null,
+    statusLabel: !known ? i18n.t('connectedObjects.status.unknown') : !online ? i18n.t('connectedObjects.status.offline') : locked ? i18n.t('connectedObjects.status.locked') : unlocked ? i18n.t('connectedObjects.status.unlocked') : i18n.t('connectedObjects.status.unknown'),
+    primaryMetric: d.batteryLevel != null ? { label: i18n.t('connectedObjects.metrics.battery'), value: `${d.batteryLevel}%` } : null,
     battery: d.batteryLevel,
     online,
     alertCount: 0,
@@ -57,11 +58,11 @@ function mapNoise(d: NoiseDeviceDto): ConnectedDevice {
     id: d.id,
     name: d.name,
     propertyId: d.propertyId ?? null,
-    propertyName: d.propertyName || 'Sans logement',
+    propertyName: d.propertyName || i18n.t('connectedObjects.noProperty'),
     roomName: d.roomName,
     provider: (d.deviceType?.toUpperCase() as DeviceProvider) || 'UNKNOWN',
     statusLevel: !known ? 'unknown' : online ? 'ok' : 'offline',
-    statusLabel: !known ? 'En attente' : online ? 'Surveillance active' : 'Hors ligne',
+    statusLabel: !known ? i18n.t('connectedObjects.status.pending') : online ? 'Surveillance active' : i18n.t('connectedObjects.status.offline'),
     primaryMetric: null,
     battery: null,
     online,
@@ -79,7 +80,7 @@ function mapPoint(d: KeyExchangePointDto): ConnectedDevice {
     id: d.id,
     name: d.storeName || 'Point de remise',
     propertyId: d.propertyId ?? null,
-    propertyName: d.propertyName || 'Sans logement',
+    propertyName: d.propertyName || i18n.t('connectedObjects.noProperty'),
     roomName: null,
     provider: d.provider || 'UNKNOWN',
     statusLevel: online ? 'ok' : 'offline',
@@ -113,7 +114,7 @@ function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
 
   let metric: { label: string; value: string } | null = null;
   let level: DeviceStatusLevel = !known ? 'unknown' : online ? 'ok' : 'offline';
-  let label = !known ? 'En attente' : online ? 'En ligne' : 'Hors ligne';
+  let label = !known ? i18n.t('connectedObjects.status.pending') : online ? i18n.t('connectedObjects.status.online') : i18n.t('connectedObjects.status.offline');
   let alert = 0;
 
   if (online) {
@@ -124,23 +125,23 @@ function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
         d.co2 != null ? `${d.co2} ppm` : null,
         d.noiseDb != null ? `${d.noiseDb} dB` : null,
       ].filter(Boolean) as string[];
-      metric = parts.length ? { label: 'Mesure', value: parts.join(' · ') } : null;
+      metric = parts.length ? { label: i18n.t('connectedObjects.metrics.measure'), value: parts.join(' · ') } : null;
       if (parts.length) label = parts.join(' · ');
     } else if (kind === 'contact') {
       const open = d.contactOpen === true;
-      metric = { label: 'État', value: open ? 'Ouvert' : 'Fermé' };
+      metric = { label: i18n.t('connectedObjects.metrics.state'), value: open ? i18n.t('connectedObjects.state.open') : i18n.t('connectedObjects.state.closed') };
       level = open ? 'warning' : 'ok';
-      label = open ? 'Ouvert' : 'Fermé';
+      label = open ? i18n.t('connectedObjects.state.open') : i18n.t('connectedObjects.state.closed');
     } else if (kind === 'motion') {
       const moving = d.motionDetected === true;
-      metric = { label: 'Mouvement', value: moving ? 'Détecté' : 'Aucun' };
+      metric = { label: i18n.t('connectedObjects.metrics.motion'), value: moving ? i18n.t('connectedObjects.state.detected') : i18n.t('connectedObjects.state.none') };
       if (moving) { level = 'warning'; alert = 1; }
-      label = moving ? 'Mouvement détecté' : 'Aucun mouvement';
+      label = moving ? i18n.t('connectedObjects.state.motionDetected') : i18n.t('connectedObjects.state.noMotion');
     } else if (kind === 'smoke') {
       const smoke = d.smokeDetected === true;
-      metric = { label: 'Fumée', value: smoke ? 'Détectée' : 'OK' };
+      metric = { label: i18n.t('connectedObjects.metrics.smoke'), value: smoke ? i18n.t('connectedObjects.state.detectedF') : 'OK' };
       if (smoke) { level = 'critical'; alert = 1; }
-      label = smoke ? 'Fumée détectée' : 'Aucune fumée';
+      label = smoke ? i18n.t('connectedObjects.state.smokeDetected') : i18n.t('connectedObjects.state.noSmoke');
     }
   }
   // Batterie faible : dégrade en attention si rien de plus grave.
@@ -152,7 +153,7 @@ function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
     id: d.id,
     name: d.name,
     propertyId: d.propertyId ?? null,
-    propertyName: d.propertyName || 'Sans logement',
+    propertyName: d.propertyName || i18n.t('connectedObjects.noProperty'),
     roomName: d.roomName,
     provider: (d.brand as DeviceProvider) || 'UNKNOWN',
     statusLevel: level,
@@ -174,7 +175,7 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
   const known = d.online != null;
   const online = d.online === true;
   const provider = (d.provider as DeviceProvider) || 'UNKNOWN';
-  const propertyName = d.propertyName || 'Sans logement';
+  const propertyName = d.propertyName || i18n.t('connectedObjects.noProperty');
   const propertyId = d.propertyId ?? null;
 
   if (d.kind === 'lock') {
@@ -184,8 +185,8 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
     return {
       uid: `lock:${d.id}`, kind: 'lock', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
       statusLevel: !known ? 'unknown' : !online ? 'offline' : lowBattery ? 'warning' : 'ok',
-      statusLabel: !known ? 'État inconnu' : !online ? 'Hors ligne' : locked ? 'Verrouillée' : unlocked ? 'Déverrouillée' : 'État inconnu',
-      primaryMetric: d.batteryLevel != null ? { label: 'Batterie', value: `${d.batteryLevel}%` } : null,
+      statusLabel: !known ? i18n.t('connectedObjects.status.unknown') : !online ? i18n.t('connectedObjects.status.offline') : locked ? i18n.t('connectedObjects.status.locked') : unlocked ? i18n.t('connectedObjects.status.unlocked') : i18n.t('connectedObjects.status.unknown'),
+      primaryMetric: d.batteryLevel != null ? { label: i18n.t('connectedObjects.metrics.battery'), value: `${d.batteryLevel}%` } : null,
       battery: d.batteryLevel, online, alertCount: 0, actions: ['lock', 'unlock'], raw: d,
     };
   }
@@ -193,7 +194,7 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
     return {
       uid: `noise:${d.id}`, kind: 'noise', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
       statusLevel: !known ? 'unknown' : online ? 'ok' : 'offline',
-      statusLabel: !known ? 'En attente' : online ? 'Surveillance active' : 'Hors ligne',
+      statusLabel: !known ? i18n.t('connectedObjects.status.pending') : online ? 'Surveillance active' : i18n.t('connectedObjects.status.offline'),
       primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], raw: d,
     };
   }
@@ -201,7 +202,7 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
     return {
       uid: `camera:${d.id}`, kind: 'camera', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
       statusLevel: online ? 'ok' : 'offline',
-      statusLabel: online ? 'En ligne' : 'Hors ligne',
+      statusLabel: online ? i18n.t('connectedObjects.status.online') : i18n.t('connectedObjects.status.offline'),
       primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], previewUrl: d.snapshotUrl, raw: d,
     };
   }

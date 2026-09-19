@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '../../../components/ui';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
+import { createBookingI18n } from '../sdk/i18n';
 
 /**
  * Concierge IA du site public (2.13) — bulle de chat flottante. Réponses en RAG côté serveur
@@ -16,7 +17,10 @@ const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 
-export default function PublicConcierge({ apiKey }: { apiKey: string }) {
+export default function PublicConcierge({ apiKey, lang = 'fr' }: { apiKey: string; lang?: string }) {
+  // La page guest est standalone : ses libellés viennent du dictionnaire du SDK,
+  // dans la langue DU SITE — i18next sert le PMS, pas le visiteur.
+  const { t } = useMemo(() => createBookingI18n(lang), [lang]);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -74,7 +78,7 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Ouvrir le concierge"
+          aria-label={t('concierge.open')}
           className={
             'fixed bottom-6 end-6 z-[2147483600] w-[56px] h-[56px] rounded-full cursor-pointer '
             + 'inline-flex items-center justify-center border-none '
@@ -111,7 +115,7 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
           <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5" ref={scrollRef}>
             {messages.length === 0 && (
               <div className="m-auto text-center text-[var(--muted,_#6b7280)] text-[13.5px] px-3 leading-[1.5]">
-                Bonjour ! Une question sur les logements, l'arrivée, les équipements ? Je suis là pour vous aider.
+                {t('concierge.greeting')}
               </div>
             )}
             {messages.map((m, i) => (
@@ -127,7 +131,7 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
           </div>
 
           <div className="flex items-center gap-1.5 p-[7.5px] shrink-0" style={{ borderTop: '1px solid var(--line, #e5e7eb)' }}>
-            <input className="flex-1 h-[40px] px-[9px] text-[14px] text-[var(--ink,_#14181c)] bg-[var(--field,_#f3f4f6)] border border-solid border-[var(--line,_#e5e7eb)] rounded-[var(--radius-md,_12px)] focus:border-[var(--accent,_#5453D6)]" style={{ outline: 'none' }} value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') send(); }} placeholder="Posez votre question…" aria-label="Votre question" />
+            <input className="flex-1 h-[40px] px-[9px] text-[14px] text-[var(--ink,_#14181c)] bg-[var(--field,_#f3f4f6)] border border-solid border-[var(--line,_#e5e7eb)] rounded-[var(--radius-md,_12px)] focus:border-[var(--accent,_#5453D6)]" style={{ outline: 'none' }} value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') send(); }} placeholder={t('concierge.placeholder')} aria-label={t('concierge.inputLabel')} />
             <button
               type="button"
               onClick={send}

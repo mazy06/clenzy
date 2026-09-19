@@ -158,14 +158,14 @@ const CreateWizard: React.FC<{
         <div className="ms-auto flex gap-2.5">
           {step > 1 && (
             <button type="button" onClick={() => setStep((s) => s - 1)} className={BTN_GHOST_CLS}>
-              <ArrowBack size={15} strokeWidth={2} />
+              <ArrowBack className="cn-rtl-flip" size={15} strokeWidth={2} />
               {t('reservations.dialog.previous')}
             </button>
           )}
           {step < 4 ? (
             <button type="button" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext} className={BTN_PRIMARY_CLS}>
               {t('reservations.dialog.next')}
-              <ArrowForward size={15} strokeWidth={2} />
+              <ArrowForward className="cn-rtl-flip" size={15} strokeWidth={2} />
             </button>
           ) : (
             <button type="button" onClick={form.handleSubmit} disabled={finalizeDisabled} className={BTN_PRIMARY_CLS}>

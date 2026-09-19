@@ -1,4 +1,5 @@
 import type { Editor } from 'grapesjs';
+import i18n from '../../../../i18n/config';
 
 /**
  * Redimensionnement (échelle) + déplacement au pixel des éléments, RESPONSIVE-SAFE.
@@ -80,8 +81,8 @@ function addScaleToolbar(cmp: { get: (k: string) => unknown; set: (k: string, v:
   const toolbar = (cmp.get('toolbar') as Array<{ command?: string }> | undefined) ?? [];
   if (toolbar.some((t) => t.command === SCALE_DOWN_CMD)) return;
   cmp.set('toolbar', [
-    { attributes: { class: 'fa fa-search-minus', title: 'Réduire la taille' }, command: SCALE_DOWN_CMD },
-    { attributes: { class: 'fa fa-search-plus', title: 'Agrandir la taille' }, command: SCALE_UP_CMD },
+    { attributes: { class: 'fa fa-search-minus', title: i18n.t('studio.shrink') }, command: SCALE_DOWN_CMD },
+    { attributes: { class: 'fa fa-search-plus', title: i18n.t('studio.grow') }, command: SCALE_UP_CMD },
     ...toolbar,
   ]);
 }

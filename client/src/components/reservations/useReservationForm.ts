@@ -19,6 +19,8 @@ import type {
 import { planningKeys } from '../../modules/planning/hooks/usePlanningData';
 import { reservationsKeys } from '../../hooks/useReservations';
 import type { PlanningEvent } from '../../modules/planning/types';
+import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
+import { weekdayHeaders } from '../../utils/localeDate';
 
 // ─── Types publics ────────────────────────────────────────────────────────────
 
@@ -248,7 +250,7 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   const { open, onClose, mode, lockedProperty, initialDates, reservation, events, onCreated, onUpdated } = props;
 
   const queryClient = useQueryClient();
-  const { t, isEnglish, isArabic } = useTranslation();
+  const { t, isArabic } = useTranslation();
   const { user } = useAuth();
 
   const isEdit = mode === 'edit';
@@ -844,8 +846,12 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   }, []);
 
   // ── Derived labels & flags ────────────────────────────────────────────────
-  const locale = isArabic ? 'ar' : isEnglish ? 'en-US' : 'fr-FR';
-  const weekdayLabels = isEnglish ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  // Étiquette du sélecteur de dates : sa grille est grégorienne, seul le nom
+  // du mois se traduit. Cf. `MiniDateRangePicker`.
+  const locale = activeIntlLocaleGregorian();
+  // Initiales ET ordre des colonnes viennent de la langue : les deux tableaux
+  // figes FR/EN laissaient l'arabe en anglais, dans une semaine calee au lundi.
+  const weekdayLabels = weekdayHeaders(locale, 'narrow').map((header) => header.label);
   const nightsText = `${numberOfNights} ${t(numberOfNights > 1 ? 'reservations.dialog.nights' : 'reservations.dialog.night')}`;
 
   const sourceKey = isEdit && reservation ? reservation.source : 'direct';

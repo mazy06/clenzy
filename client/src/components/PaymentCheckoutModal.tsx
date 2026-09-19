@@ -21,6 +21,7 @@ import { Money } from './Money';
 import { paymentsApi } from '../services/api/paymentsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { useTranslation } from '../hooks/useTranslation';
 
 // Ne PAS appeler loadStripe('') si la clef n'est pas configuree : ça log un
 // `IntegrationError: empty string` sur les pages publiques (accept-invitation,
@@ -50,6 +51,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   amount,
   interventionTitle,
 }) => {
+  const { t } = useTranslation();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,7 +78,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             setClientSecret(session.clientSecret);
             setSessionId(session.sessionId || null);
           } else {
-            setError('Impossible de creer la session de paiement.');
+            setError(t('payments.sessionCreateFailed'));
           }
         }
       } catch (err: unknown) {
@@ -84,7 +86,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
           // Le serveur explique pourquoi il refuse (statut, montant, provider) :
           // afficher « Erreur lors de la création de la session » à la place
           // laissait l'utilisateur sans aucune piste.
-          setError(getErrorMessage(err, 'Erreur lors de la création de la session de paiement'));
+          setError(getErrorMessage(err, t('payments.sessionCreateError')));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -167,7 +169,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               Paiement reussi !
             </DialogTitle>
             <p className="max-w-[360px] text-center text-[13px] text-muted-foreground">
-              Le paiement de <Money value={amount} from="EUR" /> pour{' '}
+              {t('payment.amountOf')} <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
             </p>
             {/* Seule action de l'ecran de succes : elle est principale (default).
@@ -219,7 +221,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Spinner className="size-8 text-primary" />
                 <p className="text-[12.5px] text-muted-foreground">
-                  Chargement du formulaire de paiement...
+                  {t('payment.loadingForm')}
                 </p>
               </div>
             )}
@@ -253,7 +255,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               <div className="px-4 py-2 flex items-center justify-center gap-0.5 border-t border-border bg-muted">
                 <span className="inline-flex text-faint"><LockIcon size={12} strokeWidth={1.75} /></span>
                 <span className="text-[11.5px] text-faint">
-                  Paiement securise par Stripe. Vos donnees sont chiffrees.
+                  {t('payment.secureNotice')}
                 </span>
               </div>
             )}

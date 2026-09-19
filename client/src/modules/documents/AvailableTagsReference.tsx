@@ -19,6 +19,7 @@ import {
 } from '../../components/ui';
 import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   ContentCopy,
   Info,
@@ -56,6 +57,7 @@ const toneTokens = (tone: Tone): ToneTokens => ({ color: tone.c, bg: tone.bg });
 
 interface TagDefinition {
   tag: string;
+  descriptionKey: string;
   description: string;
   example: string;
   type: 'text' | 'date' | 'money' | 'number';
@@ -63,6 +65,7 @@ interface TagDefinition {
 
 interface TagCategory {
   id: string;
+  /** Libelles en locales : `docTagCategories.<id>.{label,description}`. */
   label: string;
   description: string;
   icon: React.ReactNode;
@@ -78,25 +81,25 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Email />,
     tone: TONES.info,
     tags: [
-      { tag: '{guestName}', description: 'Nom complet du voyageur', example: 'Jean Dupont', type: 'text' },
-      { tag: '{guestFirstName}', description: 'Prénom du voyageur', example: 'Jean', type: 'text' },
-      { tag: '{propertyName}', description: 'Nom de la propriété', example: 'Villa Méditerranée', type: 'text' },
-      { tag: '{propertyAddress}', description: 'Adresse de la propriété', example: '12 rue de la Mer, 06000 Nice', type: 'text' },
-      { tag: '{checkInDate}', description: 'Date d\'arrivée', example: '15/03/2025', type: 'date' },
-      { tag: '{checkOutDate}', description: 'Date de départ', example: '20/03/2025', type: 'date' },
-      { tag: '{checkInTime}', description: 'Heure d\'arrivée', example: '15:00', type: 'text' },
-      { tag: '{checkOutTime}', description: 'Heure de départ', example: '11:00', type: 'text' },
-      { tag: '{accessCode}', description: 'Code d\'accès au logement', example: '4521', type: 'text' },
-      { tag: '{wifiName}', description: 'Nom du réseau WiFi', example: 'Villa-Guest', type: 'text' },
-      { tag: '{wifiPassword}', description: 'Mot de passe WiFi', example: 'welcome2025', type: 'text' },
-      { tag: '{parkingInfo}', description: 'Informations parking', example: 'Place n°12, sous-sol -1', type: 'text' },
-      { tag: '{arrivalInstructions}', description: 'Instructions d\'arrivée', example: 'Entrez le code à la porte...', type: 'text' },
-      { tag: '{departureInstructions}', description: 'Instructions de départ', example: 'Laissez les clés sur...', type: 'text' },
-      { tag: '{houseRules}', description: 'Règlement intérieur', example: 'Pas de bruit après 22h...', type: 'text' },
-      { tag: '{emergencyContact}', description: 'Contact d\'urgence', example: '+33 6 12 34 56 78', type: 'text' },
-      { tag: '{confirmationCode}', description: 'Code de confirmation de la réservation', example: 'RES-2025-001', type: 'text' },
-      { tag: '{checkInLink}', description: 'Lien de check-in en ligne', example: 'https://app.clenzy.com/checkin/abc123', type: 'text' },
-      { tag: '{guideLink}', description: 'Lien du guide voyageur', example: 'https://app.clenzy.com/guide/abc123', type: 'text' },
+      { tag: '{guestName}', descriptionKey: 'docTags.guestName', description: 'Nom complet du voyageur', example: 'Jean Dupont', type: 'text' },
+      { tag: '{guestFirstName}', descriptionKey: 'docTags.guestFirstName', description: 'Prénom du voyageur', example: 'Jean', type: 'text' },
+      { tag: '{propertyName}', descriptionKey: 'docTags.propertyName', description: 'Nom de la propriété', example: 'Villa Méditerranée', type: 'text' },
+      { tag: '{propertyAddress}', descriptionKey: 'docTags.propertyAddress', description: 'Adresse de la propriété', example: '12 rue de la Mer, 06000 Nice', type: 'text' },
+      { tag: '{checkInDate}', descriptionKey: 'docTags.checkInDate', description: 'Date d\'arrivée', example: '15/03/2025', type: 'date' },
+      { tag: '{checkOutDate}', descriptionKey: 'docTags.checkOutDate', description: 'Date de départ', example: '20/03/2025', type: 'date' },
+      { tag: '{checkInTime}', descriptionKey: 'docTags.checkInTime', description: 'Heure d\'arrivée', example: '15:00', type: 'text' },
+      { tag: '{checkOutTime}', descriptionKey: 'docTags.checkOutTime', description: 'Heure de départ', example: '11:00', type: 'text' },
+      { tag: '{accessCode}', descriptionKey: 'docTags.accessCode', description: 'Code d\'accès au logement', example: '4521', type: 'text' },
+      { tag: '{wifiName}', descriptionKey: 'docTags.wifiName', description: 'Nom du réseau WiFi', example: 'Villa-Guest', type: 'text' },
+      { tag: '{wifiPassword}', descriptionKey: 'docTags.wifiPassword', description: 'Mot de passe WiFi', example: 'welcome2025', type: 'text' },
+      { tag: '{parkingInfo}', descriptionKey: 'docTags.parkingInfo', description: 'Informations parking', example: 'Place n°12, sous-sol -1', type: 'text' },
+      { tag: '{arrivalInstructions}', descriptionKey: 'docTags.arrivalInstructions', description: 'Instructions d\'arrivée', example: 'Entrez le code à la porte...', type: 'text' },
+      { tag: '{departureInstructions}', descriptionKey: 'docTags.departureInstructions', description: 'Instructions de départ', example: 'Laissez les clés sur...', type: 'text' },
+      { tag: '{houseRules}', descriptionKey: 'docTags.houseRules', description: 'Règlement intérieur', example: 'Pas de bruit après 22h...', type: 'text' },
+      { tag: '{emergencyContact}', descriptionKey: 'docTags.emergencyContact', description: 'Contact d\'urgence', example: '+33 6 12 34 56 78', type: 'text' },
+      { tag: '{confirmationCode}', descriptionKey: 'docTags.confirmationCode', description: 'Code de confirmation de la réservation', example: 'RES-2025-001', type: 'text' },
+      { tag: '{checkInLink}', descriptionKey: 'docTags.checkInLink', description: 'Lien de check-in en ligne', example: 'https://app.clenzy.com/checkin/abc123', type: 'text' },
+      { tag: '{guideLink}', descriptionKey: 'docTags.guideLink', description: 'Lien du guide voyageur', example: 'https://app.clenzy.com/guide/abc123', type: 'text' },
     ],
   },
   {
@@ -106,10 +109,10 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Computer />,
     tone: TONES.muted,
     tags: [
-      { tag: 'system.date', description: 'Date du jour', example: '15/01/2025', type: 'date' },
-      { tag: 'system.datetime', description: 'Date et heure', example: '15/01/2025 14:30', type: 'date' },
-      { tag: 'system.annee', description: 'Année en cours', example: '2025', type: 'text' },
-      { tag: 'system.numero_auto', description: 'Numéro unique auto-généré (8 car.)', example: 'A3F2B1C9', type: 'text' },
+      { tag: 'system.date', descriptionKey: 'docTags.system_date', description: 'Date du jour', example: '15/01/2025', type: 'date' },
+      { tag: 'system.datetime', descriptionKey: 'docTags.system_datetime', description: 'Date et heure', example: '15/01/2025 14:30', type: 'date' },
+      { tag: 'system.annee', descriptionKey: 'docTags.system_annee', description: 'Année en cours', example: '2025', type: 'text' },
+      { tag: 'system.numero_auto', descriptionKey: 'docTags.system_numero_auto', description: 'Numéro unique auto-généré (8 car.)', example: 'A3F2B1C9', type: 'text' },
     ],
   },
   {
@@ -119,11 +122,11 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Business />,
     tone: TONES.accent,
     tags: [
-      { tag: 'entreprise.nom', description: 'Nom de la société', example: 'Baitly', type: 'text' },
-      { tag: 'entreprise.adresse', description: 'Adresse complète', example: '12 rue de la Paix, 75002 Paris', type: 'text' },
-      { tag: 'entreprise.siret', description: 'Numéro SIRET', example: '123 456 789 00012', type: 'text' },
-      { tag: 'entreprise.email', description: 'Email de contact', example: 'info@clenzy.fr', type: 'text' },
-      { tag: 'entreprise.telephone', description: 'Téléphone', example: '01 23 45 67 89', type: 'text' },
+      { tag: 'entreprise.nom', descriptionKey: 'docTags.entreprise_nom', description: 'Nom de la société', example: 'Baitly', type: 'text' },
+      { tag: 'entreprise.adresse', descriptionKey: 'docTags.entreprise_adresse', description: 'Adresse complète', example: '12 rue de la Paix, 75002 Paris', type: 'text' },
+      { tag: 'entreprise.siret', descriptionKey: 'docTags.entreprise_siret', description: 'Numéro SIRET', example: '123 456 789 00012', type: 'text' },
+      { tag: 'entreprise.email', descriptionKey: 'docTags.entreprise_email', description: 'Email de contact', example: 'info@clenzy.fr', type: 'text' },
+      { tag: 'entreprise.telephone', descriptionKey: 'docTags.entreprise_telephone', description: 'Téléphone', example: '01 23 45 67 89', type: 'text' },
     ],
   },
   {
@@ -133,15 +136,15 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Person />,
     tone: TONES.ok,
     tags: [
-      { tag: 'client.nom', description: 'Nom de famille', example: 'Dupont', type: 'text' },
-      { tag: 'client.prenom', description: 'Prénom', example: 'Jean', type: 'text' },
-      { tag: 'client.nom_complet', description: 'Nom complet (prénom + nom)', example: 'Jean Dupont', type: 'text' },
-      { tag: 'client.email', description: 'Adresse email', example: 'jean.dupont@email.com', type: 'text' },
-      { tag: 'client.telephone', description: 'Numéro de téléphone', example: '06 12 34 56 78', type: 'text' },
-      { tag: 'client.societe', description: 'Nom de la société', example: 'Dupont SCI', type: 'text' },
-      { tag: 'client.ville', description: 'Ville', example: 'Paris', type: 'text' },
-      { tag: 'client.code_postal', description: 'Code postal', example: '75001', type: 'text' },
-      { tag: 'client.role', description: 'Rôle dans le système', example: 'HOST', type: 'text' },
+      { tag: 'client.nom', descriptionKey: 'docTags.client_nom', description: 'Nom de famille', example: 'Dupont', type: 'text' },
+      { tag: 'client.prenom', descriptionKey: 'docTags.client_prenom', description: 'Prénom', example: 'Jean', type: 'text' },
+      { tag: 'client.nom_complet', descriptionKey: 'docTags.client_nom_complet', description: 'Nom complet (prénom + nom)', example: 'Jean Dupont', type: 'text' },
+      { tag: 'client.email', descriptionKey: 'docTags.client_email', description: 'Adresse email', example: 'jean.dupont@email.com', type: 'text' },
+      { tag: 'client.telephone', descriptionKey: 'docTags.client_telephone', description: 'Numéro de téléphone', example: '06 12 34 56 78', type: 'text' },
+      { tag: 'client.societe', descriptionKey: 'docTags.client_societe', description: 'Nom de la société', example: 'Dupont SCI', type: 'text' },
+      { tag: 'client.ville', descriptionKey: 'docTags.client_ville', description: 'Ville', example: 'Paris', type: 'text' },
+      { tag: 'client.code_postal', descriptionKey: 'docTags.client_code_postal', description: 'Code postal', example: '75001', type: 'text' },
+      { tag: 'client.role', descriptionKey: 'docTags.client_role', description: 'Rôle dans le système', example: 'HOST', type: 'text' },
     ],
   },
   {
@@ -151,15 +154,15 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Person />,
     tone: TONES.accent,
     tags: [
-      { tag: 'technicien.nom', description: 'Nom de famille', example: 'Martin', type: 'text' },
-      { tag: 'technicien.prenom', description: 'Prénom', example: 'Pierre', type: 'text' },
-      { tag: 'technicien.nom_complet', description: 'Nom complet', example: 'Pierre Martin', type: 'text' },
-      { tag: 'technicien.email', description: 'Adresse email', example: 'p.martin@clenzy.fr', type: 'text' },
-      { tag: 'technicien.telephone', description: 'Numéro de téléphone', example: '06 98 76 54 32', type: 'text' },
-      { tag: 'technicien.societe', description: 'Société', example: 'Baitly', type: 'text' },
-      { tag: 'technicien.ville', description: 'Ville', example: 'Lyon', type: 'text' },
-      { tag: 'technicien.code_postal', description: 'Code postal', example: '69001', type: 'text' },
-      { tag: 'technicien.role', description: 'Rôle', example: 'TECHNICIAN', type: 'text' },
+      { tag: 'technicien.nom', descriptionKey: 'docTags.technicien_nom', description: 'Nom de famille', example: 'Martin', type: 'text' },
+      { tag: 'technicien.prenom', descriptionKey: 'docTags.technicien_prenom', description: 'Prénom', example: 'Pierre', type: 'text' },
+      { tag: 'technicien.nom_complet', descriptionKey: 'docTags.technicien_nom_complet', description: 'Nom complet', example: 'Pierre Martin', type: 'text' },
+      { tag: 'technicien.email', descriptionKey: 'docTags.technicien_email', description: 'Adresse email', example: 'p.martin@clenzy.fr', type: 'text' },
+      { tag: 'technicien.telephone', descriptionKey: 'docTags.technicien_telephone', description: 'Numéro de téléphone', example: '06 98 76 54 32', type: 'text' },
+      { tag: 'technicien.societe', descriptionKey: 'docTags.technicien_societe', description: 'Société', example: 'Baitly', type: 'text' },
+      { tag: 'technicien.ville', descriptionKey: 'docTags.technicien_ville', description: 'Ville', example: 'Lyon', type: 'text' },
+      { tag: 'technicien.code_postal', descriptionKey: 'docTags.technicien_code_postal', description: 'Code postal', example: '69001', type: 'text' },
+      { tag: 'technicien.role', descriptionKey: 'docTags.technicien_role', description: 'Rôle', example: 'TECHNICIAN', type: 'text' },
     ],
   },
   {
@@ -169,20 +172,20 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Home />,
     tone: TONES.warn,
     tags: [
-      { tag: 'property.nom', description: 'Nom du bien', example: 'Appartement Marais', type: 'text' },
-      { tag: 'property.adresse', description: 'Adresse complète', example: '5 rue des Rosiers', type: 'text' },
-      { tag: 'property.ville', description: 'Ville', example: 'Paris', type: 'text' },
-      { tag: 'property.code_postal', description: 'Code postal', example: '75004', type: 'text' },
-      { tag: 'property.pays', description: 'Pays', example: 'France', type: 'text' },
-      { tag: 'property.type', description: 'Type de bien', example: 'APARTMENT', type: 'text' },
-      { tag: 'property.surface', description: 'Surface', example: '65 m²', type: 'text' },
-      { tag: 'property.chambres', description: 'Nombre de chambres', example: '2', type: 'number' },
-      { tag: 'property.salles_bain', description: 'Nombre de salles de bain', example: '1', type: 'number' },
-      { tag: 'property.capacite', description: 'Capacité maximale (voyageurs)', example: '4', type: 'number' },
-      { tag: 'property.prix_nuit', description: 'Prix par nuit', example: '120,00 €', type: 'money' },
-      { tag: 'property.check_in', description: 'Heure de check-in', example: '15:00', type: 'text' },
-      { tag: 'property.check_out', description: 'Heure de check-out', example: '11:00', type: 'text' },
-      { tag: 'property.instructions_acces', description: "Instructions d'accès", example: 'Code porte: 1234A', type: 'text' },
+      { tag: 'property.nom', descriptionKey: 'docTags.property_nom', description: 'Nom du bien', example: 'Appartement Marais', type: 'text' },
+      { tag: 'property.adresse', descriptionKey: 'docTags.property_adresse', description: 'Adresse complète', example: '5 rue des Rosiers', type: 'text' },
+      { tag: 'property.ville', descriptionKey: 'docTags.property_ville', description: 'Ville', example: 'Paris', type: 'text' },
+      { tag: 'property.code_postal', descriptionKey: 'docTags.property_code_postal', description: 'Code postal', example: '75004', type: 'text' },
+      { tag: 'property.pays', descriptionKey: 'docTags.property_pays', description: 'Pays', example: 'France', type: 'text' },
+      { tag: 'property.type', descriptionKey: 'docTags.property_type', description: 'Type de bien', example: 'APARTMENT', type: 'text' },
+      { tag: 'property.surface', descriptionKey: 'docTags.property_surface', description: 'Surface', example: '65 m²', type: 'text' },
+      { tag: 'property.chambres', descriptionKey: 'docTags.property_chambres', description: 'Nombre de chambres', example: '2', type: 'number' },
+      { tag: 'property.salles_bain', descriptionKey: 'docTags.property_salles_bain', description: 'Nombre de salles de bain', example: '1', type: 'number' },
+      { tag: 'property.capacite', descriptionKey: 'docTags.property_capacite', description: 'Capacité maximale (voyageurs)', example: '4', type: 'number' },
+      { tag: 'property.prix_nuit', descriptionKey: 'docTags.property_prix_nuit', description: 'Prix par nuit', example: '120,00 €', type: 'money' },
+      { tag: 'property.check_in', descriptionKey: 'docTags.property_check_in', description: 'Heure de check-in', example: '15:00', type: 'text' },
+      { tag: 'property.check_out', descriptionKey: 'docTags.property_check_out', description: 'Heure de check-out', example: '11:00', type: 'text' },
+      { tag: 'property.instructions_acces', descriptionKey: 'docTags.property_instructions_acces', description: "Instructions d'accès", example: 'Code porte: 1234A', type: 'text' },
     ],
   },
   {
@@ -192,28 +195,28 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Build />,
     tone: TONES.err,
     tags: [
-      { tag: 'intervention.id', description: 'Identifiant unique', example: '1042', type: 'number' },
-      { tag: 'intervention.titre', description: "Titre de l'intervention", example: 'Ménage post-départ', type: 'text' },
-      { tag: 'intervention.description', description: 'Description détaillée', example: 'Nettoyage complet...', type: 'text' },
-      { tag: 'intervention.type', description: "Type d'intervention", example: 'CLEANING', type: 'text' },
-      { tag: 'intervention.statut', description: 'Statut actuel', example: 'COMPLETED', type: 'text' },
-      { tag: 'intervention.priorite', description: 'Niveau de priorité', example: 'HIGH', type: 'text' },
-      { tag: 'intervention.date_planifiee', description: 'Date planifiée', example: '20/01/2025', type: 'date' },
-      { tag: 'intervention.date_debut', description: 'Date et heure de début', example: '20/01/2025 09:00', type: 'date' },
-      { tag: 'intervention.date_fin', description: 'Date et heure de fin', example: '20/01/2025 12:30', type: 'date' },
-      { tag: 'intervention.date_completion', description: 'Date de complétion', example: '20/01/2025 12:30', type: 'date' },
-      { tag: 'intervention.duree_estimee', description: 'Durée estimée', example: '3h', type: 'text' },
-      { tag: 'intervention.duree_reelle', description: 'Durée réelle', example: '210 min', type: 'text' },
-      { tag: 'intervention.cout_estime', description: 'Coût estimé', example: '150,00 €', type: 'money' },
-      { tag: 'intervention.cout_reel', description: 'Coût réel', example: '165,00 €', type: 'money' },
-      { tag: 'intervention.notes', description: 'Notes générales', example: 'RAS', type: 'text' },
-      { tag: 'intervention.notes_technicien', description: 'Notes du technicien', example: 'Produits fournis', type: 'text' },
-      { tag: 'intervention.instructions', description: 'Instructions spéciales', example: 'Attention au parquet', type: 'text' },
-      { tag: 'intervention.progression', description: 'Progression', example: '100%', type: 'text' },
-      { tag: 'intervention.prix_conseil', description: 'Prix conseillé par le moteur ménage', example: '95,00 €', type: 'money' },
-      { tag: 'intervention.fourchette', description: 'Fourchette de prix conseil (min – max)', example: '80,00 € – 110,00 €', type: 'text' },
-      { tag: 'intervention.duree_normee', description: 'Durée normée calculée par le moteur', example: '2h15', type: 'text' },
-      { tag: 'intervention.decomposition', description: 'Décomposition des minutes par composant', example: 'Base : 120 min · Extérieur : 20 min', type: 'text' },
+      { tag: 'intervention.id', descriptionKey: 'docTags.intervention_id', description: 'Identifiant unique', example: '1042', type: 'number' },
+      { tag: 'intervention.titre', descriptionKey: 'docTags.intervention_titre', description: "Titre de l'intervention", example: 'Ménage post-départ', type: 'text' },
+      { tag: 'intervention.description', descriptionKey: 'docTags.intervention_description', description: 'Description détaillée', example: 'Nettoyage complet...', type: 'text' },
+      { tag: 'intervention.type', descriptionKey: 'docTags.intervention_type', description: "Type d'intervention", example: 'CLEANING', type: 'text' },
+      { tag: 'intervention.statut', descriptionKey: 'docTags.intervention_statut', description: 'Statut actuel', example: 'COMPLETED', type: 'text' },
+      { tag: 'intervention.priorite', descriptionKey: 'docTags.intervention_priorite', description: 'Niveau de priorité', example: 'HIGH', type: 'text' },
+      { tag: 'intervention.date_planifiee', descriptionKey: 'docTags.intervention_date_planifiee', description: 'Date planifiée', example: '20/01/2025', type: 'date' },
+      { tag: 'intervention.date_debut', descriptionKey: 'docTags.intervention_date_debut', description: 'Date et heure de début', example: '20/01/2025 09:00', type: 'date' },
+      { tag: 'intervention.date_fin', descriptionKey: 'docTags.intervention_date_fin', description: 'Date et heure de fin', example: '20/01/2025 12:30', type: 'date' },
+      { tag: 'intervention.date_completion', descriptionKey: 'docTags.intervention_date_completion', description: 'Date de complétion', example: '20/01/2025 12:30', type: 'date' },
+      { tag: 'intervention.duree_estimee', descriptionKey: 'docTags.intervention_duree_estimee', description: 'Durée estimée', example: '3h', type: 'text' },
+      { tag: 'intervention.duree_reelle', descriptionKey: 'docTags.intervention_duree_reelle', description: 'Durée réelle', example: '210 min', type: 'text' },
+      { tag: 'intervention.cout_estime', descriptionKey: 'docTags.intervention_cout_estime', description: 'Coût estimé', example: '150,00 €', type: 'money' },
+      { tag: 'intervention.cout_reel', descriptionKey: 'docTags.intervention_cout_reel', description: 'Coût réel', example: '165,00 €', type: 'money' },
+      { tag: 'intervention.notes', descriptionKey: 'docTags.intervention_notes', description: 'Notes générales', example: 'RAS', type: 'text' },
+      { tag: 'intervention.notes_technicien', descriptionKey: 'docTags.intervention_notes_technicien', description: 'Notes du technicien', example: 'Produits fournis', type: 'text' },
+      { tag: 'intervention.instructions', descriptionKey: 'docTags.intervention_instructions', description: 'Instructions spéciales', example: 'Attention au parquet', type: 'text' },
+      { tag: 'intervention.progression', descriptionKey: 'docTags.intervention_progression', description: 'Progression', example: '100%', type: 'text' },
+      { tag: 'intervention.prix_conseil', descriptionKey: 'docTags.intervention_prix_conseil', description: 'Prix conseillé par le moteur ménage', example: '95,00 €', type: 'money' },
+      { tag: 'intervention.fourchette', descriptionKey: 'docTags.intervention_fourchette', description: 'Fourchette de prix conseil (min – max)', example: '80,00 € – 110,00 €', type: 'text' },
+      { tag: 'intervention.duree_normee', descriptionKey: 'docTags.intervention_duree_normee', description: 'Durée normée calculée par le moteur', example: '2h15', type: 'text' },
+      { tag: 'intervention.decomposition', descriptionKey: 'docTags.intervention_decomposition', description: 'Décomposition des minutes par composant', example: 'Base : 120 min · Extérieur : 20 min', type: 'text' },
     ],
   },
   {
@@ -223,17 +226,17 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Build />,
     tone: TONES.ok,
     tags: [
-      { tag: 'menage.express_prix', description: 'Prix conseillé ménage express', example: '65,00 €', type: 'money' },
-      { tag: 'menage.express_fourchette', description: 'Fourchette ménage express', example: '55,00 € – 75,00 €', type: 'text' },
-      { tag: 'menage.express_duree', description: 'Durée normée ménage express', example: '1h30', type: 'text' },
-      { tag: 'menage.standard_prix', description: 'Prix conseillé ménage standard', example: '95,00 €', type: 'money' },
-      { tag: 'menage.standard_fourchette', description: 'Fourchette ménage standard', example: '80,00 € – 110,00 €', type: 'text' },
-      { tag: 'menage.standard_duree', description: 'Durée normée ménage standard', example: '2h15', type: 'text' },
-      { tag: 'menage.deep_prix', description: 'Prix conseillé grand ménage', example: '150,00 €', type: 'money' },
-      { tag: 'menage.deep_fourchette', description: 'Fourchette grand ménage', example: '130,00 € – 175,00 €', type: 'text' },
-      { tag: 'menage.deep_duree', description: 'Durée normée grand ménage', example: '3h35', type: 'text' },
-      { tag: 'menage.decomposition', description: 'Décomposition des minutes par composant', example: 'Base : 120 min · Extérieur : 20 min', type: 'text' },
-      { tag: 'menage.taux_horaire', description: 'Taux horaire de référence', example: '42,00 €/h', type: 'money' },
+      { tag: 'menage.express_prix', descriptionKey: 'docTags.menage_express_prix', description: 'Prix conseillé ménage express', example: '65,00 €', type: 'money' },
+      { tag: 'menage.express_fourchette', descriptionKey: 'docTags.menage_express_fourchette', description: 'Fourchette ménage express', example: '55,00 € – 75,00 €', type: 'text' },
+      { tag: 'menage.express_duree', descriptionKey: 'docTags.menage_express_duree', description: 'Durée normée ménage express', example: '1h30', type: 'text' },
+      { tag: 'menage.standard_prix', descriptionKey: 'docTags.menage_standard_prix', description: 'Prix conseillé ménage standard', example: '95,00 €', type: 'money' },
+      { tag: 'menage.standard_fourchette', descriptionKey: 'docTags.menage_standard_fourchette', description: 'Fourchette ménage standard', example: '80,00 € – 110,00 €', type: 'text' },
+      { tag: 'menage.standard_duree', descriptionKey: 'docTags.menage_standard_duree', description: 'Durée normée ménage standard', example: '2h15', type: 'text' },
+      { tag: 'menage.deep_prix', descriptionKey: 'docTags.menage_deep_prix', description: 'Prix conseillé grand ménage', example: '150,00 €', type: 'money' },
+      { tag: 'menage.deep_fourchette', descriptionKey: 'docTags.menage_deep_fourchette', description: 'Fourchette grand ménage', example: '130,00 € – 175,00 €', type: 'text' },
+      { tag: 'menage.deep_duree', descriptionKey: 'docTags.menage_deep_duree', description: 'Durée normée grand ménage', example: '3h35', type: 'text' },
+      { tag: 'menage.decomposition', descriptionKey: 'docTags.menage_decomposition', description: 'Décomposition des minutes par composant', example: 'Base : 120 min · Extérieur : 20 min', type: 'text' },
+      { tag: 'menage.taux_horaire', descriptionKey: 'docTags.menage_taux_horaire', description: 'Taux horaire de référence', example: '42,00 €/h', type: 'money' },
     ],
   },
   {
@@ -243,18 +246,18 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Assignment />,
     tone: TONES.accent,
     tags: [
-      { tag: 'demande.id', description: 'Identifiant unique', example: '507', type: 'number' },
-      { tag: 'demande.titre', description: 'Titre de la demande', example: 'Réparation chauffe-eau', type: 'text' },
-      { tag: 'demande.description', description: 'Description détaillée', example: 'Le chauffe-eau fuit...', type: 'text' },
-      { tag: 'demande.type_service', description: 'Type de service', example: 'MAINTENANCE', type: 'text' },
-      { tag: 'demande.priorite', description: 'Priorité', example: 'URGENT', type: 'text' },
-      { tag: 'demande.statut', description: 'Statut', example: 'IN_PROGRESS', type: 'text' },
-      { tag: 'demande.date_souhaitee', description: 'Date souhaitée', example: '25/01/2025', type: 'date' },
-      { tag: 'demande.creneau', description: 'Créneau préféré', example: 'Matin', type: 'text' },
-      { tag: 'demande.cout_estime', description: 'Coût estimé', example: '200,00 €', type: 'money' },
-      { tag: 'demande.cout_reel', description: 'Coût réel', example: '185,00 €', type: 'money' },
-      { tag: 'demande.instructions', description: 'Instructions spéciales', example: 'Accès par le garage', type: 'text' },
-      { tag: 'demande.date_creation', description: 'Date de création', example: '18/01/2025 10:15', type: 'date' },
+      { tag: 'demande.id', descriptionKey: 'docTags.demande_id', description: 'Identifiant unique', example: '507', type: 'number' },
+      { tag: 'demande.titre', descriptionKey: 'docTags.demande_titre', description: 'Titre de la demande', example: 'Réparation chauffe-eau', type: 'text' },
+      { tag: 'demande.description', descriptionKey: 'docTags.demande_description', description: 'Description détaillée', example: 'Le chauffe-eau fuit...', type: 'text' },
+      { tag: 'demande.type_service', descriptionKey: 'docTags.demande_type_service', description: 'Type de service', example: 'MAINTENANCE', type: 'text' },
+      { tag: 'demande.priorite', descriptionKey: 'docTags.demande_priorite', description: 'Priorité', example: 'URGENT', type: 'text' },
+      { tag: 'demande.statut', descriptionKey: 'docTags.demande_statut', description: 'Statut', example: 'IN_PROGRESS', type: 'text' },
+      { tag: 'demande.date_souhaitee', descriptionKey: 'docTags.demande_date_souhaitee', description: 'Date souhaitée', example: '25/01/2025', type: 'date' },
+      { tag: 'demande.creneau', descriptionKey: 'docTags.demande_creneau', description: 'Créneau préféré', example: 'Matin', type: 'text' },
+      { tag: 'demande.cout_estime', descriptionKey: 'docTags.demande_cout_estime', description: 'Coût estimé', example: '200,00 €', type: 'money' },
+      { tag: 'demande.cout_reel', descriptionKey: 'docTags.demande_cout_reel', description: 'Coût réel', example: '185,00 €', type: 'money' },
+      { tag: 'demande.instructions', descriptionKey: 'docTags.demande_instructions', description: 'Instructions spéciales', example: 'Accès par le garage', type: 'text' },
+      { tag: 'demande.date_creation', descriptionKey: 'docTags.demande_date_creation', description: 'Date de création', example: '18/01/2025 10:15', type: 'date' },
     ],
   },
   {
@@ -264,10 +267,10 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Payment />,
     tone: TONES.ok,
     tags: [
-      { tag: 'paiement.statut', description: 'Statut du paiement', example: 'PAID', type: 'text' },
-      { tag: 'paiement.montant', description: 'Montant payé', example: '165,00 €', type: 'money' },
-      { tag: 'paiement.date_paiement', description: 'Date du paiement', example: '22/01/2025 16:45', type: 'date' },
-      { tag: 'paiement.reference_stripe', description: 'Référence Stripe', example: 'pi_3Ox...', type: 'text' },
+      { tag: 'paiement.statut', descriptionKey: 'docTags.paiement_statut', description: 'Statut du paiement', example: 'PAID', type: 'text' },
+      { tag: 'paiement.montant', descriptionKey: 'docTags.paiement_montant', description: 'Montant payé', example: '165,00 €', type: 'money' },
+      { tag: 'paiement.date_paiement', descriptionKey: 'docTags.paiement_date_paiement', description: 'Date du paiement', example: '22/01/2025 16:45', type: 'date' },
+      { tag: 'paiement.reference_stripe', descriptionKey: 'docTags.paiement_reference_stripe', description: 'Référence Stripe', example: 'pi_3Ox...', type: 'text' },
     ],
   },
   {
@@ -277,11 +280,11 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <GppGood />,
     tone: TONES.warn,
     tags: [
-      { tag: 'nf.numero_legal', description: 'Numéro légal séquentiel (sans trou)', example: 'FAC-2025-00001', type: 'text' },
-      { tag: 'nf.date_emission', description: "Date d'émission du document", example: '18/01/2025', type: 'date' },
-      { tag: 'nf.conditions_paiement', description: 'Conditions de paiement (FACTURE)', example: 'Paiement à réception...', type: 'text' },
-      { tag: 'nf.duree_validite', description: 'Durée de validité (DEVIS)', example: 'Ce devis est valable 30 jours...', type: 'text' },
-      { tag: 'nf.mentions', description: 'Liste des mentions légales obligatoires', example: '[Numéro, Date, ...]', type: 'text' },
+      { tag: 'nf.numero_legal', descriptionKey: 'docTags.nf_numero_legal', description: 'Numéro légal séquentiel (sans trou)', example: 'FAC-2025-00001', type: 'text' },
+      { tag: 'nf.date_emission', descriptionKey: 'docTags.nf_date_emission', description: "Date d'émission du document", example: '18/01/2025', type: 'date' },
+      { tag: 'nf.conditions_paiement', descriptionKey: 'docTags.nf_conditions_paiement', description: 'Conditions de paiement (FACTURE)', example: 'Paiement à réception...', type: 'text' },
+      { tag: 'nf.duree_validite', descriptionKey: 'docTags.nf_duree_validite', description: 'Durée de validité (DEVIS)', example: 'Ce devis est valable 30 jours...', type: 'text' },
+      { tag: 'nf.mentions', descriptionKey: 'docTags.nf_mentions', description: 'Liste des mentions légales obligatoires', example: '[Numéro, Date, ...]', type: 'text' },
     ],
   },
 ];
@@ -316,6 +319,7 @@ const CODE_CHIP_CLASS =
   "[font-family:'SF_Mono',_Menlo,_Consolas,_monospace]";
 
 const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search }) => {
+  const { t } = useTranslation();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
 
@@ -350,7 +354,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
       <Alert variant="info" className="mb-[18px]">
         <Info />
         <AlertDescription className="text-[0.8125rem] leading-[1.6]">
-          <strong className="font-semibold">Comment utiliser les tags :</strong>{' '}
+          <strong className="font-semibold">{t('documents.tags.howTo')}</strong>{' '}
           Dans votre fichier .odt, insérez les tags sous la forme{' '}
           <code className={CODE_CHIP_CLASS}>{'${categorie.champ}'}</code>
           . Par exemple{' '}
@@ -389,10 +393,10 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-[0.875rem] text-foreground">
-                  {category.label}
+                  {t('docTagCategories.' + category.id + '.label', category.label)}
                 </p>
                 <span className="text-muted-foreground text-[0.7rem] block leading-[1.4]">
-                  {category.description}
+                  {t('docTagCategories.' + category.id + '.description', category.description)}
                 </span>
               </div>
               <StatusChip
@@ -427,7 +431,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                       </TableCell>
                       <TableCell>
                         <p className="text-[0.8125rem]">
-                          {tagDef.description}
+                          {t(tagDef.descriptionKey, tagDef.description)}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -459,7 +463,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'}
+                            {copiedTag === tagDef.tag ? 'Copié !' : t('documents.copyTag')}
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>

@@ -42,6 +42,7 @@ import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../servi
 import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
 import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
 import { formatDuration } from '../../utils/durationUtils';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   useChartTokens,
   axisTick,
@@ -73,19 +74,20 @@ const formatTimestamp = (ts: string): string => {
   }
 };
 
-const KPI_TOOLTIPS: Record<string, string> = {
-  UPTIME: 'Disponibilite du serveur backend. Mesure le pourcentage de temps ou le service repond correctement aux health checks.',
-  CALENDAR_LATENCY_P95: 'Temps de propagation des modifications de calendrier vers les channels (Airbnb, iCal). Le P95 represente le temps maximum pour 95% des synchronisations.',
-  SYNC_ERROR_RATE: 'Pourcentage de synchronisations de calendrier echouees par rapport au total. Un taux eleve indique des problemes de connexion avec les channels.',
-  INVENTORY_COHERENCE: 'Coherence entre les disponibilites affichees sur les channels et le calendrier interne Baitly. 100% = parfaitement synchronise.',
-  DOUBLE_BOOKINGS: 'Nombre de doubles reservations detectees sur la periode. Un double booking signifie que deux reservations se chevauchent sur le meme logement.',
-  API_LATENCY_P95: 'Temps de reponse du backend API. Le P95 represente le temps maximum pour 95% des requetes. Inclut tous les endpoints REST.',
-  SYNC_AVAILABILITY: 'Disponibilite du service de synchronisation des calendriers. Mesure si le systeme de sync iCal/Airbnb est operationnel.',
-  P1_RESOLUTION: 'Temps moyen de resolution des incidents priorite P1 (pannes critiques : SMTP, Kafka, base de donnees). Cliquez pour voir le detail des incidents recents.',
-  KAFKA_LAG: 'Retard des consommateurs Kafka. Un lag eleve signifie que les messages (notifications, sync, emails) s\'accumulent sans etre traites.',
-  OUTBOX_DRAIN: 'Temps pour vider la table outbox. L\'outbox stocke les evenements a envoyer vers Kafka. Un drain lent ralentit les notifications et syncs.',
-  RECON_DIVERGENCE: 'Ecart entre les donnees internes et celles des channels apres reconciliation. 0% = aucune divergence detectee.',
-  TEST_COVERAGE: 'Pourcentage de couverture des tests automatises sur le code backend. Mesure la proportion de code couverte par au moins un test.',
+/** Chaque KPI porte la CLE de son explication : `admin.kpi.tooltips.<id>`. */
+const KPI_TOOLTIP_KEYS: Record<string, string> = {
+  UPTIME: 'admin.kpi.tooltips.uptime',
+  CALENDAR_LATENCY_P95: 'admin.kpi.tooltips.calendarLatencyP95',
+  SYNC_ERROR_RATE: 'admin.kpi.tooltips.syncErrorRate',
+  INVENTORY_COHERENCE: 'admin.kpi.tooltips.inventoryCoherence',
+  DOUBLE_BOOKINGS: 'admin.kpi.tooltips.doubleBookings',
+  API_LATENCY_P95: 'admin.kpi.tooltips.apiLatencyP95',
+  SYNC_AVAILABILITY: 'admin.kpi.tooltips.syncAvailability',
+  P1_RESOLUTION: 'admin.kpi.tooltips.p1Resolution',
+  KAFKA_LAG: 'admin.kpi.tooltips.kafkaLag',
+  OUTBOX_DRAIN: 'admin.kpi.tooltips.outboxDrain',
+  RECON_DIVERGENCE: 'admin.kpi.tooltips.reconDivergence',
+  TEST_COVERAGE: 'admin.kpi.tooltips.testCoverage',
 };
 
 // ─── Score Gauge ─────────────────────────────────────────────────────────────
@@ -319,6 +321,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 const KpiReadinessPage: React.FC = () => {
+  const { t } = useTranslation();
   const chartTokens = useChartTokens();
   const queryClient = useQueryClient();
   /** Erreur d'une action manuelle (refresh) — distincte de l'erreur du poll. */
@@ -355,7 +358,7 @@ const KpiReadinessPage: React.FC = () => {
   const history: KpiHistory | null = data?.history ?? null;
   const error = actionError
     ?? (queryError
-      ? (queryError instanceof Error ? queryError.message : 'Erreur lors du chargement des KPIs')
+      ? (queryError instanceof Error ? queryError.message : t('admin.kpi.loadError'))
       : null);
 
   // Incident detail dialog state
@@ -380,7 +383,7 @@ const KpiReadinessPage: React.FC = () => {
       const hist = await kpiApi.getHistory(historyHours);
       queryClient.setQueryData(kpiQueryKey, { snapshot: snap, history: hist });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors du refresh');
+      setActionError(err instanceof Error ? err.message : t('common.refreshError'));
     } finally {
       setRefreshing(false);
     }
@@ -451,7 +454,7 @@ const KpiReadinessPage: React.FC = () => {
     <div>
       <PageHeader
         title="KPI Readiness"
-        subtitle="Indicateurs de performance pour la certification Airbnb Partner"
+        subtitle="{t('admin.kpi.subtitle')}"
         iconBadge={<BarChartIcon />}
         backPath="/admin"
         showBackButton={false}
@@ -542,7 +545,7 @@ const KpiReadinessPage: React.FC = () => {
                   kpi={kpi}
                   onClick={kpi.id === 'P1_RESOLUTION' ? handleOpenIncidentDialog : undefined}
                   badgeCount={kpi.id === 'P1_RESOLUTION' ? openIncidentCount : undefined}
-                  tooltipContent={KPI_TOOLTIPS[kpi.id]}
+                  tooltipContent={KPI_TOOLTIP_KEYS[kpi.id] ? t(KPI_TOOLTIP_KEYS[kpi.id]) : undefined}
                 />
               </div>
             ))}
@@ -610,8 +613,8 @@ const KpiReadinessPage: React.FC = () => {
               // La carte porte deja sa bordure : variante transparente.
               <EmptyState
                 icon={<BarChartIcon />}
-                title="Aucune donnee historique disponible"
-                description="Les snapshots sont captures automatiquement toutes les heures."
+                title="{t('admin.kpi.noHistory')}"
+                description="{t('admin.kpi.snapshotHint')}"
                 variant="transparent"
               />
             )}

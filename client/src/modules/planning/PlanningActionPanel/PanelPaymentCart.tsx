@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Button, Checkbox, Separator, Spinner } from '../../../components/ui';
@@ -27,12 +28,13 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
     paymentSuccess,
     initiatePayment,
   } = payment;
+  const { t } = useTranslation();
 
   if (cartItems.length === 0) {
     return (
       <div className="py-1.5">
         <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
-          Aucune intervention en attente de paiement
+          {t('planning.panel.cart.empty', 'Aucune intervention en attente de paiement')}
         </p>
       </div>
     );
@@ -45,16 +47,16 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         <div className="flex items-center gap-0.5">
           <span className="inline-flex text-primary"><ShoppingCart size={16} strokeWidth={1.75} /></span>
           <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground">
-            Panier ({cartItems.length})
+            {t('planning.panel.cart.title', { count: cartItems.length })}
           </p>
         </div>
         <div className="flex gap-0.5">
           {/* Raccourcis de selection repetes dans un en-tete : registre tertiaire. */}
           <Button variant="ghost" size="xs" onClick={selectAll}>
-            Tout
+            {t('planning.panel.cart.selectAll', 'Tout')}
           </Button>
           <Button variant="ghost" size="xs" onClick={deselectAll}>
-            Aucun
+            {t('planning.panel.cart.selectNone', 'Aucun')}
           </Button>
         </div>
       </div>
@@ -95,7 +97,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
 
       {/* Total */}
       <div className="flex justify-between items-center mb-2">
-        <p className="cn-text-body1 text-[0.75rem] font-semibold">Total sélectionné</p>
+        <p className="cn-text-body1 text-[0.75rem] font-semibold">{t('planning.panel.cart.selectedTotal', 'Total sélectionné')}</p>
         <p className="cn-text-body1 text-[1rem] font-bold text-primary">
           <Money value={selectedTotal} />
         </p>
@@ -111,7 +113,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
       {paymentSuccess && (
         <UiAlert variant="success" className="text-[0.6875rem] mb-1.5">
           <CheckCircle size={18} strokeWidth={1.75} />
-          <AlertDescription>Paiement effectué avec succès !</AlertDescription>
+          <AlertDescription>{t('planning.panel.cart.paid', 'Paiement effectué avec succès !')}</AlertDescription>
         </UiAlert>
       )}
 
@@ -124,7 +126,9 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         disabled={paying || selectedIds.length === 0}
       >
         {paying ? <Spinner className="size-3.5" /> : <Payment size={16} strokeWidth={1.75} />}
-        {paying ? 'Paiement en cours...' : <>Payer <Money value={selectedTotal} /></>}
+        {paying
+          ? t('planning.panel.cart.paying', 'Paiement en cours...')
+          : <>{t('planning.panel.cart.pay', 'Payer')} <Money value={selectedTotal} /></>}
       </Button>
     </div>
   );

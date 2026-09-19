@@ -1,22 +1,27 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Public as GlobeIcon, BroomFill, WrenchFill } from '../../icons';
 import type { ReservationStatus } from '../../services/api';
 import { RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
 import type { PlanningChannelKey } from './constants';
-import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
+import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import { getSourceLogo } from './utils/sourceLogos';
 import { PlanningTooltipContent } from './PlanningTooltip';
 
 // ─── Options partagées (toolbar + modale de filtres) ─────────────────────────
 
-export const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
-  { value: 'confirmed', label: RESERVATION_STATUS_LABELS.confirmed },
-  { value: 'pending', label: RESERVATION_STATUS_LABELS.pending },
-  { value: 'checked_in', label: RESERVATION_STATUS_LABELS.checked_in },
-  { value: 'checked_out', label: RESERVATION_STATUS_LABELS.checked_out },
-  { value: 'cancelled', label: RESERVATION_STATUS_LABELS.cancelled },
+/**
+ * Statuts de la legende, dans l'ordre d'affichage.
+ *
+ * <p>Le LIBELLE n'est plus fige a l'import : il se lit dans
+ * `planning.legend.status.<statut>` au moment du rendu. Fige, il restait
+ * francais quel que soit l'etat de l'interface — un module charge une fois
+ * pour toutes ne repasse pas au changement de langue.</p>
+ */
+export const STATUS_OPTIONS: readonly ReservationStatus[] = [
+  'confirmed', 'pending', 'checked_in', 'checked_out', 'cancelled',
 ];
 
 // Le logo de chaque canal est RESOLU, jamais figé : les assets existent pour
@@ -137,7 +142,9 @@ export const ChannelLegendChips: React.FC<{
    */
   presentChannels?: ReadonlySet<PlanningChannelKey>;
   variant?: LegendChipVariant;
-}> = ({ activeChannels, onToggleChannel, presentChannels, variant = 'legend' }) => (
+}> = ({ activeChannels, onToggleChannel, presentChannels, variant = 'legend' }) => {
+  const { t } = useTranslation();
+  return (
   <>
     {CHANNEL_LEGEND.filter((ch) => !presentChannels || presentChannels.has(ch.key)).map((ch) => {
       const selected = activeChannels.has(ch.key);
@@ -161,13 +168,16 @@ export const ChannelLegendChips: React.FC<{
             </button>
           </TooltipTrigger>
           <PlanningTooltipContent>
-            {selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`}
+            {selected
+              ? t('planning.legend.hideChannel', { channel: ch.label })
+              : t('planning.legend.showChannel', { channel: ch.label })}
           </PlanningTooltipContent>
         </Tooltip>
       );
     })}
   </>
-);
+  );
+};
 
 /** Chips togglables de la rangée Statuts : puce colorée (couleur de brique) +
  *  libellé. Un statut désélectionné masque les briques de ce statut. */
@@ -175,33 +185,38 @@ export const StatusLegendChips: React.FC<{
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
   variant?: LegendChipVariant;
-}> = ({ activeStatuses, onToggleStatus, variant = 'legend' }) => (
+}> = ({ activeStatuses, onToggleStatus, variant = 'legend' }) => {
+  const { t } = useTranslation();
+  return (
   <>
-    {STATUS_OPTIONS.map((opt) => {
-      const selected = activeStatuses.has(opt.value);
+    {STATUS_OPTIONS.map((status) => {
+      const selected = activeStatuses.has(status);
       return (
         <button
-          key={opt.value}
+          key={status}
           type="button"
           aria-pressed={selected}
-          onClick={() => onToggleStatus(opt.value)}
+          onClick={() => onToggleStatus(status)}
           className={chipClsFor(variant, selected)}
         >
           {/* Puce 9px radius 3 (spec .s-dot) = couleur exacte du statut. */}
-          <span className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)' }} />
-          {opt.label}
+          <span className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--faint)' }} />
+          {t(`planning.legend.status.${status}`)}
         </button>
       );
     })}
   </>
-);
+  );
+};
 
 /** Chip togglable « Interventions » (ménage + maintenance sur la grille). */
 export const InterventionLegendChip: React.FC<{
   active: boolean;
   onToggle: () => void;
   variant?: LegendChipVariant;
-}> = ({ active, onToggle, variant = 'legend' }) => (
+}> = ({ active, onToggle, variant = 'legend' }) => {
+  const { t } = useTranslation();
+  return (
   <button
     type="button"
     aria-pressed={active}
@@ -215,6 +230,7 @@ export const InterventionLegendChip: React.FC<{
     <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
       <WrenchFill size={15} />
     </span>
-    Interventions
+    {t('planning.legend.interventions', 'Interventions')}
   </button>
-);
+  );
+};

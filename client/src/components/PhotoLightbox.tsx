@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle, Button } from './ui';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   Close as CloseIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
+  ChevronPrev as ChevronPrevIcon,
+  ChevronNext as ChevronNextIcon,
 } from '../icons';
 
 // ============================================================
@@ -23,6 +24,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   initialIndex = 0,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
   // Réinitialiser l'index quand le lightbox s'ouvre
@@ -106,11 +108,11 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
           <Button
             variant="ghost"
             size="icon-lg"
-            aria-label="Photo précédente"
+            aria-label={t('common.previousPhoto')}
             onClick={handlePrev}
             className="absolute start-4 top-1/2 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20 hover:text-white"
           >
-            <ChevronLeftIcon size={36} strokeWidth={1.75} />
+            <ChevronPrevIcon size={36} strokeWidth={1.75} />
           </Button>
         )}
 
@@ -123,7 +125,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             onClick={handleNext}
             className="absolute end-4 top-1/2 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20 hover:text-white"
           >
-            <ChevronRightIcon size={36} strokeWidth={1.75} />
+            <ChevronNextIcon size={36} strokeWidth={1.75} />
           </Button>
         )}
       </DialogContent>

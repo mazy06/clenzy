@@ -3,6 +3,7 @@ import StatusChip from '../../../components/StatusChip';
 import ServiceGridCard from './ServiceGridCard';
 import type { ProviderId } from './ProviderLogos';
 import type { SignatureProvider } from '../../../services/api/integrationsApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Grille des providers de signature électronique — Phase 2 : les deux
@@ -23,13 +24,13 @@ interface ProviderCardSpec {
   id: ProviderId;
   value: SelectableProvider;
   label: string;
-  description: string;
+  descriptionKey: string;
   qtspFr?: boolean;
 }
 
 const PROVIDERS: ProviderCardSpec[] = [
-  { id: 'YOUSIGN',  value: 'YOUSIGN',  label: 'Yousign',  description: 'QTSP français · SES + AES + QES · clé API', qtspFr: true },
-  { id: 'DOCUSEAL', value: 'DOCUSEAL', label: 'DocuSeal', description: 'Open source self-hosted · SES + scellement PDF' },
+  { id: 'YOUSIGN',  value: 'YOUSIGN',  label: 'Yousign',  descriptionKey: 'settings.integrations.qtspHint', qtspFr: true },
+  { id: 'DOCUSEAL', value: 'DOCUSEAL', label: 'DocuSeal', descriptionKey: 'settings.integrations.docusealHint' },
 ];
 
 /** Badge "QTSP 🇫🇷" (rendu dans le titre via titleAdornment, sans tooltip propre pour eviter l'imbrication). */
@@ -41,8 +42,8 @@ const qtspBadge = (
 );
 
 /** Provider implémenté côté code mais pas encore branché (config/clé manquante). */
-const readyToWireBadge = (
-  <StatusChip size="sm" tokens={{ color: READY, bg: 'var(--bui-warning-soft)' }} label="Prêt — à brancher" className="text-[0.6rem]" />
+const readyToWireBadge = (label: string) => (
+  <StatusChip size="sm" tokens={{ color: READY, bg: 'var(--bui-warning-soft)' }} label={label} className="text-[0.6rem]" />
 );
 
 interface SignatureProviderCardsProps {
@@ -64,11 +65,12 @@ export default function SignatureProviderCards({
   connectedSet,
   serviceFilter = null,
 }: SignatureProviderCardsProps) {
+  const { t } = useTranslation();
   const visibleProviders = serviceFilter
     ? PROVIDERS.filter((p) => p.value === serviceFilter)
     : PROVIDERS;
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5" role="radiogroup" aria-label="Fournisseur de signature electronique">
+    <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5" role="radiogroup" aria-label={t('settings.integrations.signatureProviderLabel')}>
       {visibleProviders.map((p) => {
         const connected = connectedSet?.has(p.value) ?? false;
         return (
@@ -77,11 +79,11 @@ export default function SignatureProviderCards({
             providerId={p.id}
             serviceTooltipId={p.value}
             label={p.label}
-            description={p.description}
+            description={t(p.descriptionKey)}
             role="radio"
             selected={value === p.value}
             status={connected ? 'connected' : 'idle'}
-            badge={connected ? undefined : readyToWireBadge}
+            badge={connected ? undefined : readyToWireBadge(t('settings.integrations.status.readyToWire2'))}
             onClick={() => onChange(p.value)}
             titleAdornment={p.qtspFr ? qtspBadge : undefined}
           />

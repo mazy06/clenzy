@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Progress, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { batteryTone } from '../../../components/baitly/BatteryGauge';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface BatteryIndicatorProps {
   /** Niveau 0–100, ou null/undefined si inconnu (rien n'est rendu). */
@@ -17,6 +18,7 @@ interface BatteryIndicatorProps {
  * conforme AA sur une carte claire.</p>
  */
 export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
+  const { t } = useTranslation();
   if (level == null) return null;
 
   // Seuils partages avec la jauge des fiches d'alerte : un meme niveau ne peut
@@ -34,7 +36,7 @@ export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
               custom property, la classe qui la consomme reste statique. */}
           <Progress
             value={level}
-            aria-label="Niveau de batterie"
+            aria-label={t('connectedObjects.battery.level')}
             className="w-[34px] h-[5px] shrink-0 [&_[data-slot=progress-indicator]]:bg-(--battery-bar)"
             style={{ '--battery-bar': barColor } as CSSProperties}
           />

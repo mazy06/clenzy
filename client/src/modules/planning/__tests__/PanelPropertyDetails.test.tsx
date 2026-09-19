@@ -1,5 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+// `<Money>` passe par `useCurrency`, qui exige `CurrencyProvider` + react-query
+// (matrice de taux). Pour un test unitaire on injecte le meme stub que les
+// autres tests du panneau : devise d'affichage EUR, aucune conversion.
+vi.mock('../../../hooks/useCurrency', () => ({
+  useCurrency: () => ({
+    currency: 'EUR',
+    setCurrency: vi.fn(),
+    currencySymbol: '\u20AC',
+    currencyLabel: 'EUR (\u20AC)',
+    convertAndFormat: (amount: number | null | undefined) =>
+      amount == null ? '\u2014' : `${amount.toFixed(2)} \u20AC`,
+    convert: (amount: number) => amount,
+    isConverting: false,
+    rateDate: null,
+    rates: null,
+    ratesLoading: false,
+  }),
+}));
+
 import PanelPropertyDetails from '../PlanningActionPanel/PanelPropertyDetails';
 
 // ─── Mock usePropertyDetails ─────────────────────────────────────────────────
@@ -138,7 +157,9 @@ describe('PanelPropertyDetails', () => {
       // gardait dans le DOM a hauteur 0. Les deux sont replies au depart : rien
       // n'a bouge a l'ecran, mais le test doit maintenant ouvrir avant de lire.
       fireEvent.click(screen.getByText('Configuration ménage'));
-      expect(screen.getByText('60 EUR')).toBeInTheDocument();
+      // Le montant passe par `<Money>` : il porte le SIGNE de la devise, plus
+      // son code ISO. « 60 EUR » se lit désormais « 60.00 € ».
+      expect(screen.getByText('60.00 \u20AC')).toBeInTheDocument();
     });
 
     it('should display cleaning duration', () => {

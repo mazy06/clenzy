@@ -1,5 +1,6 @@
 import { type ImportedHtml, type TemplateImporter, newReport, escapeHtml } from './TemplateImporter';
 import { sanitizeHtml } from './sanitizeHtml';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur Webflow — JSON du presse-papier Webflow Designer (`@webflow/XscpData`).
@@ -88,7 +89,7 @@ const webflowImporter: TemplateImporter = {
     };
     const roots = [...byId.keys()].filter((id) => !childIds.has(id));
     const html = sanitizeHtml(roots.map((id) => toHtmlNode(id, 0)).join('\n'));
-    if (!html.trim()) report.warnings.push('Aucun nœud Webflow exploitable.');
+    if (!html.trim()) report.warnings.push(i18n.t('studioImport.webflow.noNode'));
     report.warnings.push(
       'Conversion structurelle Webflow (les classes/styles générés ne sont pas rematérialisés) — fidélité limitée. Pour un rendu fidèle, utilisez « Export code » de Webflow (onglet Coller/Fichier) ou l’import URL.',
     );

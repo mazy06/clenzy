@@ -70,7 +70,7 @@ export default function ThermostatsScreen() {
   const addButton = (
     <Button size="sm" onClick={() => setWizardOpen(true)}>
       <Add size={16} strokeWidth={2} />
-      Ajouter un thermostat
+      {t('connectedObjects.thermostats.add')}
     </Button>
   );
 
@@ -92,10 +92,10 @@ export default function ThermostatsScreen() {
       ) : thermostats.length === 0 ? (
         <EmptyState
           icon={<Thermostat />}
-          title="Aucun thermostat pour l'instant"
-          description="Ajoutez un thermostat Tuya pour piloter le confort thermique de vos logements (température, consigne, mode)."
+          title={t('connectedObjects.thermostats.empty')}
+          description={t('connectedObjects.thermostats.emptyHint')}
           action={addButton}
-          tip="Le compte Tuya doit être relié dans Réglages → Services connectés."
+          tip={t('connectedObjects.thermostats.tip')}
         />
       ) : (
         groups.map(([propertyName, items]) => (
@@ -120,9 +120,9 @@ export default function ThermostatsScreen() {
         open={pendingDeleteId != null}
         onClose={() => setPendingDeleteId(null)}
         onConfirm={confirmDelete}
-        title="Supprimer le thermostat"
+        title={t('connectedObjects.thermostats.delete')}
         message={pendingThermostat
-          ? `Supprimer définitivement le thermostat « ${pendingThermostat.name} » ? Cette action est irréversible.`
+          ? t('connectedObjects.thermostats.deleteConfirm', { name: pendingThermostat.name })
           : 'Supprimer définitivement ce thermostat ? Cette action est irréversible.'}
         confirmText="Supprimer"
         severity="error"

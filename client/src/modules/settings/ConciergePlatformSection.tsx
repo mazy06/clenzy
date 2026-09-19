@@ -4,6 +4,7 @@ import { Bot, PenLine, Send, Gem } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
 import { usePlatformSettings, useSetConciergeSettings } from '../../hooks/usePlatformSettings';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const FORFAITS = ['essentiel', 'confort', 'premium'] as const;
 const FORFAIT_LABELS: Record<string, string> = {
@@ -20,6 +21,7 @@ const FORFAIT_LABELS: Record<string, string> = {
  * gouverné par le module « Communication » de chaque org (activation + autonomie).
  */
 const ConciergePlatformSection: React.FC = () => {
+  const { t } = useTranslation();
   const { data: settings, isLoading } = usePlatformSettings();
   const setConcierge = useSetConciergeSettings();
 
@@ -50,7 +52,7 @@ const ConciergePlatformSection: React.FC = () => {
         <>
           <SettingsToggleRow
             icon={PenLine}
-            title="Brouillons de réponse"
+            title="{t('settings.concierge.drafts')}"
             description="À chaque message guest entrant, le concierge prépare un brouillon de réponse à valider par l'opérateur (aucun envoi automatique)."
             checked={draftEnabled}
             onChange={(c) => save({ draftEnabled: c, ...(c ? {} : { autosendEnabled: false }) })}
@@ -58,7 +60,7 @@ const ConciergePlatformSection: React.FC = () => {
           />
           <SettingsToggleRow
             icon={Send}
-            title="Auto-envoi des réponses"
+            title="{t('settings.concierge.autoSend')}"
             description="Ouvre l'auto-envoi au niveau plateforme. Un org n'auto-envoie que si son autonomie « Communication » est ≥ Notifie, sur une intention FAQ sûre, et si son palier atteint le seuil ci-dessous."
             checked={autosendEnabled}
             onChange={(c) => save({ autosendEnabled: c })}
@@ -66,8 +68,8 @@ const ConciergePlatformSection: React.FC = () => {
           />
           <SettingsToggleRow
             icon={Gem}
-            title="Palier minimal pour l'auto-envoi"
-            description="Forfait minimal requis pour qu'un org bénéficie de l'auto-envoi concierge."
+            title={t('concierge.minTierTitle')}
+            description={t('concierge.minTierDesc')}
             divider={false}
             control={
               // Le libelle de la rangee (« Palier minimal… ») nomme la saisie :

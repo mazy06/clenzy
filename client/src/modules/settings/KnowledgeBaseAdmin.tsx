@@ -15,6 +15,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import EmptyState from '../../components/baitly/EmptyState';
 import AiSettingsCard from './AiSettingsCard';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /** Surface « tuile » : encart discret posé sur la carte de réglages. */
 const TILE_CLASS = 'rounded-xl border border-border bg-muted/40';
@@ -87,6 +89,7 @@ interface KbSearchTestResponse {
  * backend (PreAuthorize hasAnyRole...).
  */
 export const KnowledgeBaseAdmin: React.FC = () => {
+  const { t } = useTranslation();
   const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -114,7 +117,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       const data = await apiClient.get<KbDoc[]>('/admin/kb/documents');
       setDocs(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Chargement impossible');
+      setError(e instanceof Error ? e.message : t('common.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -143,7 +146,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       notify.success(`Document indexe : ${file.name}`);
       await loadDocs();
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Upload echoue');
+      notify.error(e instanceof Error ? e.message : t('kb.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -177,14 +180,14 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         if (status.state === 'done' && status.report) {
           setEvalReport(status.report);
         } else if (status.state === 'failed') {
-          notify.error(status.error || 'Évaluation échouée');
+          notify.error(status.error || t('kb.evalFailed'));
         }
         return;
       }
     } catch (e) {
       setEvaluating(false);
       setEvalProgress(null);
-      notify.error(e instanceof Error ? e.message : 'Suivi de l’évaluation impossible');
+      notify.error(e instanceof Error ? e.message : t('kb.evalTrackFailed'));
     } finally {
       evalPollRef.current = false;
     }
@@ -197,7 +200,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       setEvaluating(true);
       pollEvalStatus();
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Évaluation impossible');
+      notify.error(e instanceof Error ? e.message : t('kb.evalImpossible'));
     }
   }, [notify, pollEvalStatus]);
 
@@ -217,7 +220,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       );
       setTestResult(data);
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Test de recherche impossible');
+      notify.error(e instanceof Error ? e.message : t('kb.searchTestFailed'));
     } finally {
       setTesting(false);
     }
@@ -232,7 +235,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       notify.success('Document supprime');
       await loadDocs();
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Suppression impossible');
+      notify.error(e instanceof Error ? e.message : t('common.deleteFailed'));
     }
   }, [notify, loadDocs]);
 
@@ -241,9 +244,9 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       title="Knowledge base (RAG)"
       subtitle={
         <>
-          Documents indexés que l'assistant peut citer. Les docs <strong>globaux</strong> sont
-          accessibles à toutes les organisations (doc produit Baitly) ; les docs <strong>org</strong>
-          {' '}sont privés à la vôtre. Format supporté : Markdown (.md), max 2&nbsp;MB.
+          {t('settings.kb.subtitleHead')} <strong>{t('settings.kb.global')}</strong>{' '}
+          {t('settings.kb.subtitleMid')} <strong>{t('settings.kb.org')}</strong>{' '}
+          {t('settings.kb.subtitleTail')}
         </>
       }
     >
@@ -251,11 +254,11 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         <>
           <div className="mb-3 flex gap-2 flex-wrap">
             {[
-              { label: 'Documents', value: stats.documents.total, detail: `${stats.documents.global} globaux · ${stats.documents.org} org` },
-              { label: 'Extraits indexés', value: stats.chunks.indexed, detail: `sur ${stats.chunks.total}` },
-              { label: 'Sans embedding', value: stats.chunks.orphans, detail: stats.chunks.orphans > 0 ? 'ré-indexation en cours' : 'aucun retard' },
+              { label: t('kb.documents'), value: stats.documents.total, detail: t('kb.documentsDetail', { global: stats.documents.global, org: stats.documents.org }) },
+              { label: t('kb.indexedChunks'), value: stats.chunks.indexed, detail: t('kb.outOf', { total: stats.chunks.total }) },
+              { label: t('kb.noEmbedding'), value: stats.chunks.orphans, detail: stats.chunks.orphans > 0 ? t('kb.reindexing') : t('kb.noBacklog') },
               {
-                label: 'Index vectoriel',
+                label: t('kb.vectorIndex'),
                 value: stats.index.currentLists ?? '—',
                 detail: `lists · optimal ${stats.index.optimalLists ?? '—'}${stats.index.autoTuneEnabled ? ' · auto-tune actif' : ''}`,
               },
@@ -301,7 +304,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               disabled={uploading}
             >
               <AttachFile size={16} />
-              {uploading ? 'Indexation...' : 'Uploader un document'}
+              {uploading ? t('kb.indexing') : t('kb.uploadDocument')}
             </Button>
             {uploading && <Spinner className="size-5" />}
           </>
@@ -329,8 +332,8 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       ) : docs.length === 0 ? (
         <EmptyState
           icon={<Description />}
-          title="Aucun document indexé"
-          description="Upload ton premier markdown pour activer le RAG."
+          title={t('settings.kb.empty')}
+          description={t('settings.kb.emptyHint')}
         />
       ) : (
         <div className="overflow-x-auto">
@@ -348,7 +351,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               {docs.map((doc) => (
                 <TableRow key={doc.id}>
                   <TableCell className="font-medium">
-                    {doc.title || '(sans titre)'}
+                    {doc.title || t('common.untitled')}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {doc.sourcePath}
@@ -364,7 +367,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
+                    {new Date(doc.updatedAt).toLocaleDateString(activeIntlLocale())}
                   </TableCell>
                   <TableCell className="text-end">
                     {canEdit && (
@@ -400,7 +403,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           <div className="flex gap-1.5 items-start flex-wrap">
             <div className="flex-1 min-w-[240px]">
               <h6 className="text-xs font-semibold mb-0.5">
-                Évaluer le retrieval
+                {t('settings.kb.evaluate')}
               </h6>
               <p className="text-xs text-muted-foreground">
                 Lance les {evalReport?.total ?? 40} questions du jeu de test officiel sur le
@@ -416,9 +419,9 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             >
               {evaluating
                 ? evalProgress
-                  ? `Évaluation… ${evalProgress.done}/${evalProgress.total}`
-                  : 'Évaluation en cours…'
-                : "Lancer l'évaluation"}
+                  ? t('kb.evaluatingProgress', { done: evalProgress.done, total: evalProgress.total })
+                  : t('kb.evaluating')
+                : t('kb.runEvaluation')}
             </Button>
           </div>
           {evaluating && (
@@ -426,8 +429,8 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               <Spinner className="size-5" />
               <span className="text-xs text-muted-foreground">
                 {evalProgress && evalProgress.done < evalProgress.total
-                  ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
-                  : 'Démarrage du run…'}
+                  ? t('kb.evalPace', { done: evalProgress.done, total: evalProgress.total })
+                  : t('kb.startingRun')}
               </span>
             </div>
           )}
@@ -438,12 +441,12 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   {
                     label: `Recall@${evalReport.topK}`,
                     value: `${Math.round(evalReport.recallAtK * 100)} %`,
-                    detail: `${evalReport.hits}/${evalReport.total} questions trouvent leur fiche`,
+                    detail: t('kb.recallDetail', { hits: evalReport.hits, total: evalReport.total }),
                   },
                   {
                     label: 'MRR',
                     value: evalReport.mrr.toFixed(3),
-                    detail: 'position moyenne du bon résultat',
+                    detail: t('kb.mrrDetail'),
                   },
                 ].map((kpi) => (
                   <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[170px]')} key={kpi.label}>
@@ -462,7 +465,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               {evalReport.misses.length === 0 ? (
                 <Alert variant="success">
                   <CircleCheck />
-                  <AlertDescription>Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.</AlertDescription>
+                  <AlertDescription>{t('settings.kb.healthy')}</AlertDescription>
                 </Alert>
               ) : (
                 <>
@@ -492,18 +495,17 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         <>
           <Separator className="my-[18px]" />
           <h6 className="text-xs font-semibold mb-0.5">
-            Tester la recherche
+            {t('settings.kb.testSearch')}
           </h6>
           <p className="text-xs text-muted-foreground mb-2">
-            Exécute la même recherche que l'assistant (vectorielle + mots-clés + re-ranking)
-            et montre les extraits retrouvés avec leur score de pertinence.
+            {t('settings.kb.testSearchHint')}
           </p>
           <div className="flex gap-1.5 items-center mb-3">
             {/* Pas de libelle visible : le champ suit le titre « Tester la
                 recherche » — d'ou l'aria-label qui le nomme pour l'assistance. */}
             <Input
-              aria-label="Question à tester"
-              placeholder="Ex. : comment configurer la taxe de séjour ?"
+              aria-label={t('settings.kb.questionLabel')}
+              placeholder={t('settings.kb.questionPlaceholder')}
               value={testQuery}
               onChange={(e) => setTestQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSearchTest(); }}
@@ -525,8 +527,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           {testResult && testResult.items.length === 0 && (
             <Alert variant="warning">
               <TriangleAlert />
-              <AlertDescription>Aucun extrait trouvé pour cette question. L'assistant répondra sans contexte
-              documentaire — envisagez d'ajouter ou de compléter un document.</AlertDescription>
+              <AlertDescription>{t('settings.kb.noExcerpt')}</AlertDescription>
             </Alert>
           )}
           {testResult && testResult.items.length > 0 && (

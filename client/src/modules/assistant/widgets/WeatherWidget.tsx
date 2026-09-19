@@ -10,6 +10,8 @@ import {
   WeatherFog,
   WeatherDroplets,
 } from '../../../icons';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface WeatherItem {
   date: string;
@@ -46,6 +48,7 @@ interface WeatherWidgetProps {
  * <p>Borderless, bg tonal, scroll horizontal sur mobile si necessaire.</p>
  */
 export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
+  const { t } = useTranslation();
   const items = data.items ?? [];
 
   if (items.length === 0) {
@@ -53,7 +56,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
       <div className="mt-1.5 mb-2">
         <div className="p-3 rounded-xl bg-warning-soft text-center">
           <p className="text-xs text-warning-ink">
-            Aucune donnee meteo disponible.
+            {t('assistant.widgets.noWeather')}
           </p>
         </div>
       </div>
@@ -154,7 +157,7 @@ function iconColor(code: number | null | undefined): string {
 function formatDay(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '');
+    return d.toLocaleDateString(activeIntlLocale(), { weekday: 'short' }).replace('.', '');
   } catch {
     return '';
   }
@@ -163,7 +166,7 @@ function formatDay(iso: string): string {
 function formatDate(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    return d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: '2-digit' });
   } catch {
     return iso;
   }

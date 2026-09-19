@@ -3,6 +3,7 @@ import { RefreshCwIcon, XIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle, Button, Spinner } from '../ui';
 import ListSkeleton from './ListSkeleton';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/DataFetchWrapper.tsx (MUI).
@@ -40,6 +41,7 @@ export default function DataFetchWrapper({
   isEmpty = false,
   className,
 }: DataFetchWrapperProps) {
+  const { t } = useTranslation();
   if (loading) {
     if (variant === 'skeleton') return <ListSkeleton rows={skeletonCount} className={className} />;
     return (
@@ -61,12 +63,12 @@ export default function DataFetchWrapper({
     <div style={{ minHeight }} className={className}>
       {error && (
         <Alert variant="destructive" className="mb-3">
-          <AlertTitle>Erreur de chargement</AlertTitle>
+          <AlertTitle>{t('common.loadError')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
           <div className="col-start-2 mt-2 flex gap-2">
             {onRetry && (
               <Button size="xs" variant="outline" onClick={onRetry}>
-                <RefreshCwIcon /> Réessayer
+                <RefreshCwIcon /> {t('common.retry')}
               </Button>
             )}
             {onClearError && (

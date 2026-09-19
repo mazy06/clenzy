@@ -3,6 +3,7 @@ import { Field, FieldDescription, FieldError, FieldLabel, InputGroupAddon, Spinn
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from './ui/combobox';
 import { LocationOn as LocationOnIcon } from '../icons';
 import { useAddressAutocomplete } from '../hooks/useAddressAutocomplete';
+import { useTranslation } from '../hooks/useTranslation';
 import type { GeocodedAddress } from '../services/geocoderApi';
 
 interface AddressAutocompleteProps {
@@ -31,13 +32,16 @@ export function AddressAutocomplete({
   onSelect,
   onChange,
   countryCode = 'FR',
-  label = 'Adresse',
-  placeholder = 'Rechercher une adresse...',
+  label,
+  placeholder,
   error,
   helperText,
   required,
 }: AddressAutocompleteProps) {
+  const { t } = useTranslation();
   const inputId = useId();
+  const fieldLabel = label ?? t('common.address');
+  const fieldPlaceholder = placeholder ?? t('address.searchPlaceholder');
   const {
     options,
     isLoading,
@@ -47,7 +51,7 @@ export function AddressAutocomplete({
 
   return (
     <Field>
-      <FieldLabel htmlFor={inputId}>{required ? `${label} *` : label}</FieldLabel>
+      <FieldLabel htmlFor={inputId}>{required ? `${fieldLabel} *` : fieldLabel}</FieldLabel>
       {/* `filter={null}` : la liste est deja filtree par le geocodeur cote
           serveur — c'est l'equivalent du `filterOptions={(x) => x}` de MUI.
           `value` reste NON controle : seule la saisie l'est, la selection est
@@ -75,7 +79,7 @@ export function AddressAutocomplete({
       >
         <ComboboxInput
           id={inputId}
-          placeholder={placeholder}
+          placeholder={fieldPlaceholder}
           required={required}
           aria-invalid={error || undefined}
         >
@@ -86,7 +90,7 @@ export function AddressAutocomplete({
           )}
         </ComboboxInput>
         <ComboboxContent>
-          <ComboboxEmpty>{isLoading ? 'Recherche...' : 'Aucune adresse trouvee'}</ComboboxEmpty>
+          <ComboboxEmpty>{isLoading ? t('common.searching') : t('address.noneFound')}</ComboboxEmpty>
           <ComboboxList>
             {(option: GeocodedAddress) => (
               <ComboboxItem key={option.label} value={option}>

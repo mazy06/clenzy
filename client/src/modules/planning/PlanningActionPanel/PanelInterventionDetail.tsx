@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Alert, AlertDescription, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -87,6 +88,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
   onUploadPhotos,
   onAssignIntervention,
 }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,11 +118,11 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       setAmountEditOpen(false);
       setAmountValue('');
     } catch {
-      setError("Impossible de mettre à jour le montant");
+      setError(t('planning.panel.detail.amountError', 'Impossible de mettre à jour le montant'));
     } finally {
       setAmountSaving(false);
     }
-  }, [amountValue, amountMode, interventionId]);
+  }, [amountValue, amountMode, interventionId, t]);
 
   const handleStart = useCallback(async () => {
     if (!onStartIntervention) return;
@@ -190,7 +192,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           <p className="cn-text-body1 font-bold text-[0.875rem] overflow-hidden text-ellipsis whitespace-nowrap">
             {intervention.title}
           </p>
-          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
+          <p dir="auto" className="cn-text-body1 text-[0.625rem] text-muted-foreground">
             {intervention.propertyName}
           </p>
         </div>
@@ -220,7 +222,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             </span>
           }
           onClick={() => setAmountEditOpen((o) => !o)}
-          ariaLabel="Modifier le montant"
+          ariaLabel={t('planning.panel.detail.editAmount', 'Modifier le montant')}
           className="text-[0.5625rem] border border-solid border-[#4A9B8E40]"
         />
       </div>
@@ -229,11 +231,8 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {amountEditOpen && (
         <div className="mb-2 p-2 rounded-[10px] border border-[var(--bui-border)] bg-[var(--field)]">
           <div className="flex gap-0.5 mb-1.5 flex-wrap">
-            {([
-              ['SET', 'Nouveau montant'],
-              ['DISCOUNT_AMOUNT', 'Remise €'],
-              ['DISCOUNT_PERCENT', 'Remise %'],
-            ] as const).map(([mode, label]) => {
+            {(['SET', 'DISCOUNT_AMOUNT', 'DISCOUNT_PERCENT'] as const).map((mode) => {
+              const label = t(`planning.panel.detail.amountModes.${mode}`);
               const active = amountMode === mode;
               return (
                 <StatusChip
@@ -262,7 +261,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
                 disabled={amountSaving}
                 min={0}
                 step={amountMode === 'DISCOUNT_PERCENT' ? 1 : 5}
-                aria-label={amountMode === 'DISCOUNT_PERCENT' ? 'Remise en pourcentage' : amountMode === 'DISCOUNT_AMOUNT' ? 'Remise en euros' : 'Nouveau montant'}
+                aria-label={t(`planning.panel.detail.amountAria.${amountMode}`)}
                 className="text-end text-[0.8125rem]"
               />
               <InputGroupAddon align="inline-end">
@@ -277,7 +276,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
               size="icon-sm"
               onClick={applyAmount}
               disabled={amountSaving || !amountValue.trim()}
-              aria-label="Appliquer"
+              aria-label={t('planning.panel.detail.apply', 'Appliquer')}
               className="text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
             >
               {amountSaving ? <Spinner className="size-4" /> : <EnterKey size={16} strokeWidth={1.75} />}
@@ -308,7 +307,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       <div className="mb-3">
         <div className="flex justify-between items-center mb-0.5">
           <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground">
-            Progression
+            {t('planning.panel.intervention.progress', 'Progression')}
           </p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : '#757575'; return (
           <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="text-[0.5625rem]" />
@@ -321,10 +320,9 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         <div className="flex gap-0.5 mt-1">
           {['inspection', 'rooms', 'after_photos'].map((step) => {
             const done = completedSteps.has(step);
-            const labels: Record<string, string> = { inspection: 'Inspection', rooms: 'Pièces', after_photos: 'Photos' };
             const c = done ? '#4A9B8E' : '#757575';
             return (
-              <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={labels[step]} className="text-[0.5rem]" key={step} />
+              <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={t(`planning.panel.detail.steps.${step}`)} className="text-[0.5rem]" key={step} />
             );
           })}
         </div>
@@ -344,7 +342,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           className="w-full mb-1.5 shrink"
         >
           {loading ? <Spinner className="size-3.5" /> : <PlayArrow strokeWidth={1.75} />}
-          Démarrer l'intervention
+          {t('planning.panel.intervention.start', "Démarrer l'intervention")}
         </Button>
       )}
 
@@ -359,7 +357,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           className="w-full mb-1.5 text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)] shrink"
         >
           {loading ? <Spinner className="size-3.5" /> : <CheckCircle strokeWidth={1.75} />}
-          Terminer l'intervention
+          {t('planning.panel.detail.finish', "Terminer l'intervention")}
         </Button>
       )}
 
@@ -370,14 +368,14 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       <Accordion type="single" collapsible className={ACCORDION_CLASS + ' mb-1'}>
         <AccordionItem value="photos" className="border-b-0">
           <AccordionTrigger className={ACCORDION_TRIGGER_CLASS}>
-            <p className="cn-text-body1 text-[0.75rem] font-semibold">Photos ({beforePhotos.length + afterPhotos.length})</p>
+            <p className="cn-text-body1 text-[0.75rem] font-semibold">{t('planning.panel.detail.photos', { count: beforePhotos.length + afterPhotos.length })}</p>
           </AccordionTrigger>
           <AccordionContent className="px-2 pt-0">
-            {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label="Avant" maxVisible={2} />}
-            {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label="Après" maxVisible={2} />}
+            {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label={t('planning.panel.detail.before', 'Avant')} maxVisible={2} />}
+            {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label={t('planning.panel.detail.after', 'Après')} maxVisible={2} />}
             {beforePhotos.length === 0 && afterPhotos.length === 0 && (
               <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
-                Aucune photo
+                {t('planning.panel.detail.noPhoto', 'Aucune photo')}
               </p>
             )}
           </AccordionContent>
@@ -389,7 +387,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         <Accordion type="single" collapsible className={ACCORDION_CLASS}>
           <AccordionItem value="notes" className="border-b-0">
             <AccordionTrigger className={ACCORDION_TRIGGER_CLASS}>
-              <p className="cn-text-body1 text-[0.75rem] font-semibold">Notes</p>
+              <p className="cn-text-body1 text-[0.75rem] font-semibold">{t('planning.panel.recap.notes', 'Notes')}</p>
             </AccordionTrigger>
             <AccordionContent className="px-2 pt-0">
               <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{intervention.notes}</p>

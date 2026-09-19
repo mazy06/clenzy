@@ -30,6 +30,7 @@ import {
   Label,
 } from '../../../components/ui';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 import {
   CHANNEX_OTA_OPTIONS,
@@ -55,6 +56,7 @@ export default function ChannexOtaPickerDialog({
   propertyName,
   onPick,
 }: ChannexOtaPickerDialogProps) {
+  const { t } = useTranslation();
   // OTA en attente de son reglage de creation. null = on est sur la liste.
   const [pendingOption, setPendingOption] = useState<ChannexOtaOption | null>(null);
   const [settingValue, setSettingValue] = useState('');
@@ -93,16 +95,16 @@ export default function ChannexOtaPickerDialog({
         <DialogContent className="max-w-[600px]">
           <DialogHeader className="pe-7">
             <DialogTitle className="leading-[1.3]">
-              Connecter {pendingOption.name}
+              {t('settings.channex.picker.connectTo', { name: pendingOption.name })}
             </DialogTitle>
             <DialogDescription className="text-xs leading-[1.4]">
-              « {propertyName} » — le canal sera créé et rattaché à ce logement
+              {t('settings.channex.picker.willAttach', { property: propertyName })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ota-create-setting" className="text-xs">
-              {setting.label}
+              {t(setting.labelKey)}
             </Label>
             <Input
               id="ota-create-setting"
@@ -113,7 +115,7 @@ export default function ChannexOtaPickerDialog({
               autoFocus
             />
             <span className="text-xs text-muted-foreground leading-[1.5]">
-              {setting.help}
+              {t(setting.helpKey)}
             </span>
           </div>
 
@@ -125,16 +127,16 @@ export default function ChannexOtaPickerDialog({
               className="gap-1"
             >
               <ArrowLeft size={14} className="cn-rtl-flip" />
-              Retour
+              {t('common.back')}
             </Button>
             <div className="flex items-center gap-2">
               {/* Sans identifiant on ouvre quand meme le wizard : c'est le
                   comportement d'avant, pas une impasse. */}
               <Button variant="ghost" size="sm" onClick={() => onPick(pendingOption.code)}>
-                Je ne l'ai pas
+                {t('settings.channex.picker.dontHaveIt')}
               </Button>
               <Button size="sm" onClick={handleConfirmSetting} disabled={!settingValue.trim()}>
-                Continuer
+                {t('common.continue')}
               </Button>
             </div>
           </div>
@@ -187,8 +189,7 @@ export default function ChannexOtaPickerDialog({
         </div>
 
         <span className="text-xs text-muted-foreground block text-center leading-[1.5]">
-          Vous serez redirige vers le widget de configuration OTA pour finaliser la
-          connexion (login OTA + mapping des chambres).
+          {t('settings.channex.picker.redirectNote')}
         </span>
       </DialogContent>
     </Dialog>

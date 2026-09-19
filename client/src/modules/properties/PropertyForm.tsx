@@ -101,7 +101,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
 
   const propertyStatuses = PROPERTY_STATUS_OPTIONS.map(option => ({
     value: option.value,
-    label: option.label,
+    label: t(option.labelKey),
   }));
 
   const cleaningFrequencies = [

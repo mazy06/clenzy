@@ -46,6 +46,7 @@ import { Money } from '../../components/Money';
 import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import MissingContractChip from './MissingContractChip';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetails {
@@ -200,7 +201,7 @@ function relativeCheckoutLabel(
     ? t('properties.ops.today')
     : diffDays === 1
       ? t('properties.ops.tomorrow')
-      : target.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      : target.toLocaleDateString(activeIntlLocale(), { day: 'numeric', month: 'short' });
   return time ? `${when} ${time}` : when;
 }
 
@@ -400,7 +401,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             variant="outline"
           >
             <Visibility size={15} strokeWidth={1.75} />
-            Détails
+            {t('properties.table.details')}
           </Button>
           {canEdit && onEdit && (
             <Button
@@ -457,7 +458,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             {/* Caractéristiques */}
             <div className="col-span-12">
               <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
-                Caractéristiques
+                {t('properties.table.features')}
               </p>
               <div className="flex gap-3 flex-wrap">
                 {[
@@ -520,7 +521,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 </div>
                 <div className="col-span-12">
                   <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
-                    Commodités
+                    {t('properties.table.amenities')}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {property.amenities.map((amenity) => (
@@ -545,10 +546,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 Contact
               </p>
               <p className="mt-0 mb-0.5 text-xs">
-                {property.contactPhone || 'Téléphone non renseigné'}
+                {property.contactPhone || t('properties.noPhone')}
               </p>
               <p className="my-0 text-xs text-muted-foreground">
-                {property.contactEmail || 'Email non renseigné'}
+                {property.contactEmail || t('properties.noEmail')}
               </p>
             </div>
 

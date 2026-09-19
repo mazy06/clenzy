@@ -14,39 +14,8 @@ import {
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
-interface MessageTemplate {
-  id: string;
-  label: string;
-  text: string;
-}
-
-const MESSAGE_TEMPLATES: MessageTemplate[] = [
-  {
-    id: 'acknowledge',
-    label: 'Accusé de réception',
-    text: 'Merci pour votre message. Nous avons bien reçu votre demande et nous vous répondrons dans les plus brefs délais.'
-  },
-  {
-    id: 'schedule',
-    label: 'Planification',
-    text: 'Nous avons planifié une intervention pour répondre à votre demande. Vous serez notifié des détails prochainement.'
-  },
-  {
-    id: 'completed',
-    label: 'Travaux terminés',
-    text: 'Les travaux demandés ont été effectués avec succès. N\'hésitez pas à nous contacter si vous avez des questions.'
-  },
-  {
-    id: 'info_needed',
-    label: 'Informations requises',
-    text: 'Afin de traiter votre demande, nous aurions besoin d\'informations complémentaires. Pourriez-vous nous préciser :'
-  },
-  {
-    id: 'urgent',
-    label: 'Urgence',
-    text: 'Votre demande a été classée comme urgente. Notre équipe d\'intervention va prendre en charge cette situation dans les plus brefs délais.'
-  }
-];
+/** Libelles et corps en locales : `contact.messageTemplates.<id>.{label,text}`. */
+const MESSAGE_TEMPLATE_IDS = ['acknowledge', 'schedule', 'completed', 'info_needed', 'urgent'];
 
 interface ContactTemplatesProps {
   onSelectTemplate: (text: string) => void;
@@ -76,20 +45,22 @@ const ContactTemplates: React.FC<ContactTemplatesProps> = ({ onSelectTemplate })
           {t('contact.templates')}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {MESSAGE_TEMPLATES.map((template) => (
-          <DropdownMenuItem
-            key={template.id}
-            onSelect={() => onSelectTemplate(template.text)}
-            className="whitespace-normal items-start py-[9px]"
-          >
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-sm font-medium">{template.label}</span>
-              <span className="text-xs text-muted-foreground line-clamp-2">
-                {template.text}
-              </span>
-            </div>
-          </DropdownMenuItem>
-        ))}
+        {MESSAGE_TEMPLATE_IDS.map((id) => {
+          const label = t(`contact.messageTemplates.${id}.label`);
+          const text = t(`contact.messageTemplates.${id}.text`);
+          return (
+            <DropdownMenuItem
+              key={id}
+              onSelect={() => onSelectTemplate(text)}
+              className="whitespace-normal items-start py-[9px]"
+            >
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-sm font-medium">{label}</span>
+                <span className="text-xs text-muted-foreground line-clamp-2">{text}</span>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

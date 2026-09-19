@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../hooks/useTranslation';
+import { useLocation } from 'react-router-dom';
+import { useScreenTabs } from '../hooks/useScreenTabs';
+import { useHeaderSeam, HEADER_FLYOUT_CLASS } from '../hooks/useHeaderSeam';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui';
 import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from './ui/drawer';
@@ -40,6 +43,25 @@ export default function PageTabsMenu<T extends string | number>({
   // pouce (Drawer) plutot qu'ancree en haut de l'ecran.
   const isPhone = useMediaQuery('(max-width: 639.98px)');
   const [open, setOpen] = useState(false);
+  const { triggerRef, seam, measure } = useHeaderSeam<HTMLButtonElement>();
+  /**
+   * Icones de l'ecran, lues dans le registre partage (`config/screenTabs`) —
+   * celui-la meme que deplie la barre laterale. Les pages qui declarent leurs
+   * onglets a la main n'en portent pas ; plutot que de leur en faire ajouter
+   * une par une (et de les voir diverger de la barre), on les retrouve ici.
+   *
+   * Appariement par CLE d'abord, par libelle traduit ensuite. Jamais par
+   * index : les onglets masques par les droits decalent la liste d'un rang.
+   */
+  const { pathname } = useLocation();
+  const registry = useScreenTabs(pathname);
+  const iconFor = (opt: PageTabItem<T>): React.ReactNode | undefined =>
+    opt.icon
+    ?? registry.find((tab) => (opt.key ? tab.key === opt.key : tab.label === opt.label))?.icon;
+  const handleOpenChange = (next: boolean) => {
+    if (next) measure();
+    setOpen(next);
+  };
 
   const active = activeIndex >= 0 ? options[activeIndex] : undefined;
   const current = active ?? options[0];
@@ -57,6 +79,7 @@ export default function PageTabsMenu<T extends string | number>({
 
   const trigger = (
     <button
+      ref={triggerRef}
       type="button"
       aria-label={`${label} — ${current.label}`}
       /* Pas de gabarit de bouton ici : le declencheur EST le second segment du
@@ -86,10 +109,12 @@ export default function PageTabsMenu<T extends string | number>({
     </button>
   );
 
-  const itemContent = (opt: PageTabItem<T>, index: number) => (
+  const itemContent = (opt: PageTabItem<T>, index: number) => {
+    const icon = iconFor(opt);
+    return (
     <>
-      {opt.icon ? (
-        sizedIcon(opt.icon, 16, 1.75)
+      {icon ? (
+        sizedIcon(icon, 16, 1.75)
       ) : (
         <span aria-hidden className="size-4 shrink-0" />
       )}
@@ -97,7 +122,8 @@ export default function PageTabsMenu<T extends string | number>({
       <NavCountBadge count={opt.badge} tone={opt.badgeColor} />
       {index === activeIndex && <Check className="size-4 shrink-0 text-primary" />}
     </>
-  );
+    );
+  };
 
   const select = (index: number) => {
     const opt = options[index];
@@ -143,25 +169,46 @@ export default function PageTabsMenu<T extends string | number>({
     );
   }
 
+  const items = options.map((opt, index) => (
+    <DropdownMenuItem
+      key={opt.key ?? String(opt.value ?? index)}
+      disabled={opt.disabled}
+      onSelect={() => select(index)}
+      className={cn(
+        'min-h-9 cursor-pointer gap-2.5',
+        index === activeIndex && 'font-medium text-foreground',
+      )}
+    >
+      {itemContent(opt, index)}
+    </DropdownMenuItem>
+  ));
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       {/* Ancre a gauche : le declencheur est accole au titre, a gauche de la
           barre — un menu aligne a droite partirait chercher le bord oppose. */}
-      <DropdownMenuContent align="start" className="min-w-56 max-w-[min(20rem,90vw)]">
-        {options.map((opt, index) => (
-          <DropdownMenuItem
-            key={opt.key ?? String(opt.value ?? index)}
-            disabled={opt.disabled}
-            onSelect={() => select(index)}
-            className={cn(
-              'min-h-9 cursor-pointer gap-2.5',
-              index === activeIndex && 'font-medium text-foreground',
-            )}
-          >
-            {itemContent(opt, index)}
-          </DropdownMenuItem>
-        ))}
+      {/* Le panneau SORT du bandeau, conges concaves compris — cf.
+          `.bui-header-flyout`. Ne rien passer ici qui touche au fond, a la
+          bordure, au rayon ou a l'ombre : une utility Tailwind vit dans la
+          couche `utilities` et repasserait devant la regle. */}
+      <DropdownMenuContent
+        align="start"
+        sideOffset={seam ?? undefined}
+        className={cn(
+          'min-w-56 max-w-[min(20rem,90vw)]',
+          seam !== null && HEADER_FLYOUT_CLASS,
+        )}
+      >
+        {/* Accroche au bandeau : le panneau lui-meme passe en `overflow:
+            visible` pour laisser sortir les conges, le defilement d'une liste
+            longue est donc repris ici. Radix retrouve ses items a travers ce
+            conteneur (sa collection ne passe pas par les enfants directs). */}
+        {seam !== null ? (
+          <div className="max-h-[inherit] overflow-y-auto">{items}</div>
+        ) : (
+          items
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

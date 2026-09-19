@@ -8,6 +8,7 @@ import {
 } from '../../icons';
 import type { ConversationDto } from '../../services/api/conversationApi';
 import { formatPhoneNumber } from '../../utils/formatPhone';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 /**
  * Configuration visuelle partagée des canaux de l'inbox unifiée (Contact >
@@ -59,7 +60,7 @@ function formatStayRange(checkIn?: string | null, checkOut?: string | null): str
   if (!checkIn) return '';
   const ci = new Date(checkIn);
   const co = checkOut ? new Date(checkOut) : null;
-  const dayMonth = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  const dayMonth = (d: Date) => d.toLocaleDateString(activeIntlLocale(), { day: 'numeric', month: 'short' });
   if (!co) return dayMonth(ci);
   const sameMonth = ci.getMonth() === co.getMonth() && ci.getFullYear() === co.getFullYear();
   return sameMonth ? `${ci.getDate()}–${dayMonth(co)}` : `${dayMonth(ci)} – ${dayMonth(co)}`;

@@ -6,6 +6,7 @@ import { Settings2 } from 'lucide-react';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
 import ServiceTooltip from './ServiceTooltip';
 import type { ServiceTooltipData } from '../../../services/integrations/serviceTooltips';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Carte de service unifiée de l'onglet Intégrations — <b>même design que les cartes IoT</b>
@@ -58,18 +59,19 @@ export default function ServiceGridCard({
   role = 'button',
   actions,
 }: ServiceGridCardProps) {
+  const { t } = useTranslation();
   const statusChip =
     status === 'connected' ? (
       <Badge variant="success">
         <CheckCircleIcon size={11} strokeWidth={2} />
-        Connecté
+        {t('settings.integrations.status.connected')}
       </Badge>
     ) : status === 'comingSoon' ? (
-      <Badge variant="secondary">Bientôt disponible</Badge>
+      <Badge variant="secondary">{t('settings.integrations.status.comingSoon')}</Badge>
     ) : (
       <Badge variant="secondary">
         <ErrorOutline size={11} strokeWidth={2} />
-        Non connecté
+        {t('settings.integrations.status.notConnected')}
       </Badge>
     );
 

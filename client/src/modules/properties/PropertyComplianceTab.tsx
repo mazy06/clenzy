@@ -13,11 +13,11 @@ interface Props {
   canEdit: boolean;
 }
 
-const TYPE_LABELS: Record<PropertyLicense['licenseType'], string> = {
-  SHORT_TERM_RENTAL: 'Licence courte durée',
-  TOURISM_REGISTRATION: 'Enregistrement touristique',
-  SAFETY_CERT: 'Certificat de sécurité',
-  OTHER: 'Autre autorisation',
+const TYPE_KEYS: Record<PropertyLicense['licenseType'], string> = {
+  SHORT_TERM_RENTAL: 'properties.compliance.types.shortTermRental',
+  TOURISM_REGISTRATION: 'properties.compliance.types.tourismRegistration',
+  SAFETY_CERT: 'properties.compliance.types.safetyCert',
+  OTHER: 'properties.compliance.types.other',
 };
 
 const EMPTY_FORM: PropertyLicenseRequest = {
@@ -117,7 +117,7 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
           <TableBody>
             {licenses.map((license) => (
               <TableRow key={license.id}>
-                <TableCell>{TYPE_LABELS[license.licenseType]}</TableCell>
+                <TableCell>{t(TYPE_KEYS[license.licenseType])}</TableCell>
                 <TableCell className="tabular-nums">{license.licenseNumber ?? '—'}</TableCell>
                 <TableCell>{license.issuedBy ?? '—'}</TableCell>
                 <TableCell className="tabular-nums">{license.expiresAt ?? '—'}</TableCell>
@@ -178,8 +178,8 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
                   value={editing.form.licenseType}
                   onChange={(e) => setField('licenseType', e.target.value as PropertyLicense['licenseType'])}
                 >
-                  {Object.entries(TYPE_LABELS).map(([value, label]) => (
-                    <NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>
+                  {Object.entries(TYPE_KEYS).map(([value, key]) => (
+                    <NativeSelectOption key={value} value={value}>{t(key)}</NativeSelectOption>
                   ))}
                 </NativeSelect>
               </Field>

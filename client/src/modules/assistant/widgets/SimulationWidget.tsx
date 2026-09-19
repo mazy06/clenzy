@@ -3,6 +3,8 @@ import { cn } from '../../../utils/cn';
 
 import { BarChartWidget } from './charts/BarChartWidget';
 import { CHART_PRIMARY } from './charts/chartConstants';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ScenarioPayload {
   label: string;
@@ -63,6 +65,7 @@ interface SimulationWidgetProps {
  * sémantiques {@code success}/{@code destructive}/{@code warning}.</p>
  */
 export const SimulationWidget: React.FC<SimulationWidgetProps> = ({ data }) => {
+  const { t } = useTranslation();
   if (data && typeof data === 'object' && 'kind' in data) {
     if (data.kind === 'pricing_change') {
       return <PricingChangeView data={data as PricingChangePayload} />;
@@ -188,6 +191,7 @@ const MetricInline: React.FC<{ label: string; value: string }> = ({ label, value
 // ─── Calendar block ──────────────────────────────────────────────────────────
 
 const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) => {
+  const { t } = useTranslation();
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
@@ -198,7 +202,7 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
 
       <div className="px-2 py-2 rounded-xl bg-warning-soft flex flex-col gap-0.5">
         <p className="text-2xs font-bold uppercase tracking-[.05em] text-warning-ink">
-          Perte estimee de revenue
+          {t('assistant.widgets.estimatedLoss')}
         </p>
         <p className="text-[1.75rem] font-semibold text-warning-ink tabular-nums tracking-[-0.02em] leading-[1]">
           {formatCurrency(data.estimatedLostRevenue)}
@@ -258,12 +262,13 @@ const FallbackUnknown: React.FC = () => (
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
-});
-
+// Un `Intl.NumberFormat` de module se fige sur la langue du chargement : il
+// resterait en français après un passage en arabe. On le construit donc à
+// l'appel — `Intl` met déjà ses formateurs en cache en interne.
 function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
+  return new Intl.NumberFormat(activeIntlLocale(), {
+    style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function formatCurrencySigned(value: number): string {

@@ -314,7 +314,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     { value: 'all', label: t('properties.allStatuses') },
     ...PROPERTY_STATUS_OPTIONS.map(option => ({
       value: option.value.toLowerCase(),
-      label: option.label
+      label: t(option.labelKey)
     }))
   ];
 
@@ -445,7 +445,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               </Button>
             )}
             tip={(isAdmin() || isManager() || isHost())
-              ? 'Astuce : une fois une propriété créée, branche son lien iCal pour synchroniser automatiquement les réservations Airbnb.'
+              ? t('properties.icalTip')
               : undefined}
           />
         ) : viewMode === 'map' ? (

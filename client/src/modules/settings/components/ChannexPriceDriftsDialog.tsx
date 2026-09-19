@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 
 import { channexApi } from '../../../services/api/channexApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type {
   ChannexPriceDriftDto,
   ChannexPriceDriftResolution,
@@ -180,6 +181,7 @@ export default function ChannexPriceDriftsDialog({
   propertyId,
   onDriftResolved,
 }: ChannexPriceDriftsDialogProps) {
+  const { t } = useTranslation();
   const [drifts, setDrifts] = useState<ChannexPriceDriftDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -194,7 +196,7 @@ export default function ChannexPriceDriftsDialog({
         : await channexApi.listPriceDrifts();
       setDrifts(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement des drifts');
+      setError(err instanceof Error ? err.message : t('channexDrifts.loadError'));
     } finally {
       setLoading(false);
     }
@@ -259,11 +261,11 @@ export default function ChannexPriceDriftsDialog({
           </div>
           <div className="flex-1 min-w-0">
             <DialogTitle className="text-base font-semibold tracking-tight text-balance leading-[1.3]">
-              Conflits de prix Baitly ↔ Channex
+              {t('settings.channex.drifts.title')}
             </DialogTitle>
             <DialogDescription className="text-xs block mt-0.5 tabular-nums">
               {drifts.length === 0 && !loading
-                ? 'Aucun conflit actif'
+                ? t('channexDrifts.noConflict')
                 : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
             </DialogDescription>
           </div>
@@ -314,7 +316,7 @@ export default function ChannexPriceDriftsDialog({
                   <CheckCircle2 strokeWidth={2} />
                 </EmptyMedia>
                 <EmptyDescription>
-                  Tous les prix sont alignes entre Baitly et Channex.
+                  {t('settings.channex.drifts.allAligned')}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

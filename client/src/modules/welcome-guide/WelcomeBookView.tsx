@@ -321,8 +321,9 @@ const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
   border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
 });
 
-function HeroLightbox({ images, index, setIndex, onClose }: {
+function HeroLightbox({ images, index, setIndex, onClose, labels }: {
   images: string[]; index: number; setIndex: React.Dispatch<React.SetStateAction<number>>; onClose: () => void;
+  labels: GuideLabels;
 }) {
   const touchX = useRef<number | null>(null);
   const go = (dir: number) => setIndex((i) => (i + dir + images.length) % images.length);
@@ -342,13 +343,13 @@ function HeroLightbox({ images, index, setIndex, onClose }: {
       onTouchEnd={(e) => { if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); touchX.current = null; }}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(15,12,8,.94)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <img src={images[index]} alt="" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '94%', maxHeight: '86%', objectFit: 'contain', borderRadius: 12 }} />
-      <button type="button" onClick={onClose} aria-label="Fermer" style={lightboxCloseButtonStyle}>
+      <button type="button" onClick={onClose} aria-label={labels.galleryClose} style={lightboxCloseButtonStyle}>
         <X size={20} strokeWidth={1.9} />
       </button>
       {images.length > 1 ? (
         <>
-          <button type="button" aria-label="Précédent" onClick={(e) => { e.stopPropagation(); go(-1); }} style={navBtn('left')}><ChevronLeft size={22} strokeWidth={1.9} /></button>
-          <button type="button" aria-label="Suivant" onClick={(e) => { e.stopPropagation(); go(1); }} style={navBtn('right')}><ChevronRight size={22} strokeWidth={1.9} /></button>
+          <button type="button" aria-label={labels.galleryPrev} onClick={(e) => { e.stopPropagation(); go(-1); }} style={navBtn('left')}><ChevronLeft className="cn-rtl-flip" size={22} strokeWidth={1.9} /></button>
+          <button type="button" aria-label={labels.galleryNext} onClick={(e) => { e.stopPropagation(); go(1); }} style={navBtn('right')}><ChevronRight className="cn-rtl-flip" size={22} strokeWidth={1.9} /></button>
           <div style={lightboxCounterStyle}>{index + 1} / {images.length}</div>
         </>
       ) : null}
@@ -356,7 +357,7 @@ function HeroLightbox({ images, index, setIndex, onClose }: {
   );
 }
 
-function HeroCarousel({ images, interactive, children }: { images: string[]; interactive: boolean; children: React.ReactNode }) {
+function HeroCarousel({ images, interactive, children, labels }: { images: string[]; interactive: boolean; children: React.ReactNode; labels: GuideLabels }) {
   const [idx, setIdx] = useState(0);
   const [full, setFull] = useState(false);
   const touchX = useRef<number | null>(null);
@@ -394,7 +395,7 @@ function HeroCarousel({ images, interactive, children }: { images: string[]; int
         </div>
       ) : null}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>{children}</div>
-      {full ? <HeroLightbox images={images} index={safeIdx} setIndex={setIdx} onClose={() => setFull(false)} /> : null}
+      {full ? <HeroLightbox images={images} index={safeIdx} setIndex={setIdx} onClose={() => setFull(false)} labels={labels} /> : null}
     </div>
   );
 }
@@ -611,7 +612,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
           Le titre du livret reste donc toujours lisible (le hero ne disparaît jamais), et le
           contenu défile DERRIÈRE lui (z-index supérieur du hero). */}
       <div style={{ position: 'sticky', top: -212, zIndex: 2 }}>
-      <HeroCarousel images={heroImages} interactive={interactive}>
+      <HeroCarousel images={heroImages} interactive={interactive} labels={L}>
         {model.logoUrl ? <img src={model.logoUrl} alt="" style={{ position: 'absolute', top: 22, left: 22, maxHeight: 40, maxWidth: 150, objectFit: 'contain' }} /> : null}
         {langToggle ? <div style={{ position: 'absolute', top: 22, right: 16, pointerEvents: 'auto' }}>{langToggle}</div> : null}
         <div style={{ position: 'absolute', left: 22, right: 22, bottom: 22 }}>

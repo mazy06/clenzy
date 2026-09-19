@@ -10,6 +10,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../contexts/AuthContext';
 import { serviceQuotesApi } from '../../services/api/serviceQuotesApi';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { intlLocale } from '../../utils/localeDate';
 
 /** Bibliothèque Baitly des décisions acceptées, sans commande de modification du devis. */
 export default function AmendmentArchives() {
@@ -50,7 +51,7 @@ export default function AmendmentArchives() {
     finally { downloadInProgress.current = false; setDownloading(null); }
   };
   const pending = query.isPending || querySearch !== search.trim();
-  const dates = new Intl.DateTimeFormat(currentLanguage, { dateStyle: 'medium', timeStyle: 'short' });
+  const dates = new Intl.DateTimeFormat(intlLocale(currentLanguage), { dateStyle: 'medium', timeStyle: 'short' });
 
   return <>
     {actions}

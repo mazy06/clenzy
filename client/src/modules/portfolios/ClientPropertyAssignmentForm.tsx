@@ -157,7 +157,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                     type="button"
                     className="flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-solid border-border bg-transparent px-2.5 py-1 text-start text-[0.85rem] transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span className={cn('truncate', selectedClients.length === 0 && 'text-muted-foreground')}>
+                    <span dir="auto" className={cn('truncate', selectedClients.length === 0 && 'text-muted-foreground')}>
                       {selectedClients.length === 0
                         ? t('portfolios.fields.selectClients')
                         : selectedClients
@@ -190,7 +190,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                           {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="truncate text-[0.85rem]">
+                      <p dir="auto" className="truncate text-[0.85rem]">
                         {client.firstName} {client.lastName} - {client.email}
                       </p>
                     </button>
@@ -258,7 +258,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                           className="me-1"
                         />
                         <span className="inline-flex text-info me-1"><Home size={18} strokeWidth={1.75} /></span>
-                        <h6 className="text-xs font-semibold truncate">
+                        <h6 dir="auto" className="text-xs font-semibold truncate">
                           {property.name}
                         </h6>
                       </div>
@@ -434,7 +434,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
           ) : (
             <Button size="sm" onClick={handleNext} disabled={!canGoNext}>
               {t('portfolios.forms.next')}
-              <ArrowForward strokeWidth={1.75} />
+              <ArrowForward className="cn-rtl-flip" strokeWidth={1.75} />
             </Button>
           )}
         </div>

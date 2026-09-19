@@ -25,6 +25,10 @@ import {
 } from '../icons';
 import { useParams } from 'react-router-dom';
 import { API_CONFIG } from '../config/api';
+import { activeIntlLocale } from '../utils/activeLocale';
+import { useTranslation } from '../hooks/useTranslation';
+// Hors composant / valeur par defaut : la langue se lit a l'appel.
+import i18n from '../i18n/config';
 
 // ─── API base URL (no auth needed for public endpoints) ─────────────────────
 // Origine de l'API (les chemins passés à publicFetch incluent déjà /api).
@@ -40,8 +44,8 @@ async function publicFetch<T>(url: string, options?: RequestInit): Promise<T> {
     ...options,
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ message: 'Erreur serveur' }));
-    throw new Error(err.message || 'Erreur');
+    const err = await response.json().catch(() => ({ message: i18n.t('common.serverError') }));
+    throw new Error(err.message || i18n.t('common.error'));
   }
   return response.json();
 }
@@ -60,6 +64,7 @@ interface VerifyResult {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PublicKeyVerification: React.FC = () => {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
 
   const [code, setCode] = useState('');
@@ -97,7 +102,7 @@ const PublicKeyVerification: React.FC = () => {
       });
       setConfirmed(true);
     } catch (e: any) {
-      setError(e.message || 'Erreur lors de la confirmation');
+      setError(e.message || t('keyVerification.errors.confirm'));
     } finally {
       setLoading(false);
     }
@@ -108,7 +113,7 @@ const PublicKeyVerification: React.FC = () => {
       <div className="flex justify-center items-center min-h-svh bg-background p-3">
         <Alert variant="destructive" className="max-w-[420px]">
           <TriangleAlert />
-          <AlertDescription>Lien de vérification invalide</AlertDescription>
+          <AlertDescription>{t('keyVerification.invalidLink')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -121,10 +126,10 @@ const PublicKeyVerification: React.FC = () => {
         <div className="text-center mb-4">
           <span className="inline-flex mb-1.5 text-primary"><VpnKey size={40} strokeWidth={1.75} /></span>
           <h1 className="text-lg font-semibold tracking-tight text-balance">
-            Vérification de code
+            {t('keyVerification.title')}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Entrez le code présenté par le voyageur
+            {t('keyVerification.subtitle')}
           </p>
         </div>
 
@@ -132,7 +137,7 @@ const PublicKeyVerification: React.FC = () => {
         {!confirmed && (
           <div className="mb-3">
             <Field>
-              <FieldLabel htmlFor="key-verification-code">Code à 6 chiffres</FieldLabel>
+              <FieldLabel htmlFor="key-verification-code">{t('keyVerification.codePlaceholder')}</FieldLabel>
               {/* Saisie de code : corps genereux, chasse fixe et interlettrage
                   large pour que les six chiffres se lisent un a un. La hauteur
                   est explicite — le champ compact du kit (h32) ne contient pas
@@ -203,11 +208,13 @@ const PublicKeyVerification: React.FC = () => {
                 <div className="mb-3 flex items-center gap-1.5">
                   <StatusChip
                     tone={verifyResult.codeType === 'COLLECTION' ? 'info' : 'ok'}
-                    label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'}
+                    label={t(verifyResult.codeType === 'COLLECTION'
+                      ? 'keyVerification.collection'
+                      : 'keyVerification.deposit')}
                   />
                   {verifyResult.validUntil && (
                     <p className="text-xs tabular-nums text-muted-foreground">
-                      Valide jusqu'au {new Date(verifyResult.validUntil).toLocaleDateString('fr-FR')}
+                      Valide jusqu'au {new Date(verifyResult.validUntil).toLocaleDateString(activeIntlLocale())}
                     </p>
                   )}
                 </div>
@@ -219,7 +226,7 @@ const PublicKeyVerification: React.FC = () => {
                     disabled={loading}
                     className="w-full"
                   >
-                    Clé remise au voyageur
+                    {t('keyVerification.handedOver')}
                   </Button>
                   <Button
                     variant="outline"
@@ -227,7 +234,7 @@ const PublicKeyVerification: React.FC = () => {
                     disabled={loading}
                     className="w-full"
                   >
-                    Clé récupérée
+                    {t('keyVerification.collected')}
                   </Button>
                 </div>
               </>
@@ -245,10 +252,10 @@ const PublicKeyVerification: React.FC = () => {
           <div className="text-center py-3">
             <span className="inline-flex text-success mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
             <p className="mb-1.5 text-base font-semibold tracking-tight text-balance">
-              Mouvement confirmé
+              {t('keyVerification.confirmed')}
             </p>
             <p className="mb-3 text-xs text-muted-foreground">
-              Le mouvement de clé a été enregistré avec succès.
+              {t('keyVerification.confirmedHint')}
             </p>
             <Button
               variant="outline"
@@ -259,7 +266,7 @@ const PublicKeyVerification: React.FC = () => {
                 setError(null);
               }}
             >
-              Vérifier un autre code
+              {t('keyVerification.verifyAnother')}
             </Button>
           </div>
         )}
@@ -267,7 +274,7 @@ const PublicKeyVerification: React.FC = () => {
         {/* Footer */}
         <div className="text-center mt-4 pt-3 border-t border-border">
           <p className="text-2xs text-faint">
-            Propulsé par Baitly — Gestion immobilière
+            {t('keyVerification.poweredBy')}
           </p>
         </div>
       </Card>

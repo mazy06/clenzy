@@ -5,6 +5,7 @@ import {
   type KycProvider,
 } from '../../../services/api/kycConnectionApi';
 import ApiKeyConnectionCard, { type ApiKeyConnectionApi } from './ApiKeyConnectionCard';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Wrapper KYC autour du composant generique {@link ApiKeyConnectionCard}.
@@ -15,6 +16,7 @@ interface Props {
 }
 
 const KycProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
+  const { t } = useTranslation();
   const meta = KYC_PROVIDER_META[provider];
   return (
     <ApiKeyConnectionCard
@@ -23,7 +25,7 @@ const KycProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
       meta={meta}
       logoId={provider}
       onStatusChange={onStatusChange}
-      scaffoldingNote={`Vos credentials sont validées par un appel réel à l'API ${meta.label} lors de la connexion. Le flux de vérification des voyageurs (création de la demande KYC, récupération du résultat) sera branché dans une prochaine itération.`}
+      scaffoldingNote={t('settings.integrations.scaffolding.kyc', { provider: meta.label })}
     />
   );
 };

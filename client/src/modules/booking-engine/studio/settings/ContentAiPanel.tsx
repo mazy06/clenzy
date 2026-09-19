@@ -5,6 +5,7 @@ import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from 'lucide-reac
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import { propertyContentAiApi, type GeneratedContent } from '../../../../services/api/propertyContentAiApi';
 import { SettingsPage, SettingCard, SettingRow, SelectControl } from './settingsControls';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Section « Contenu » du Studio (F4) — génération IA branchée sur le vrai PropertyContentAiService.
@@ -30,6 +31,7 @@ const TONES = [
 type GenKind = 'description' | 'seo';
 
 export default function ContentAiPanel() {
+  const { t } = useTranslation();
   const [properties, setProperties] = useState<Property[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [propertyId, setPropertyId] = useState<string>('');
@@ -48,7 +50,7 @@ export default function ContentAiPanel() {
         setProperties(list);
         if (list.length > 0) setPropertyId(String(list[0].id));
       })
-      .catch((e) => { if (alive) setLoadError(e instanceof Error ? e.message : 'Chargement des propriétés impossible'); });
+      .catch((e) => { if (alive) setLoadError(e instanceof Error ? e.message : t('studio.content.propertiesLoadFailed')); });
     return () => { alive = false; };
   }, []);
 
@@ -65,7 +67,7 @@ export default function ContentAiPanel() {
         : await propertyContentAiApi.generateSeoMeta(id, language);
       setResult(dto);
     } catch (e) {
-      setGenError(e instanceof Error ? e.message : 'Génération impossible');
+      setGenError(e instanceof Error ? e.message : t('studio.content.generationFailed'));
     } finally {
       setGenerating(null);
     }
@@ -102,7 +104,7 @@ export default function ContentAiPanel() {
       <div className="px-6 py-12">
         <EmptyState
           icon={<Sparkles />}
-          title="Aucune propriété"
+          title="{t('studio.contentAi.noProperty')}"
           description="Ajoutez une propriété pour générer son contenu avec l'IA."
         />
       </div>
@@ -112,22 +114,22 @@ export default function ContentAiPanel() {
   const propertyOptions = (properties ?? []).map((p) => ({ value: String(p.id), label: p.city ? `${p.name} — ${p.city}` : p.name }));
 
   return (
-    <SettingsPage title="Contenu IA" description="Générez descriptions et meta SEO de vos biens, en français, anglais ou arabe.">
-      <SettingCard title="Paramètres">
-        <SettingRow label="Propriété" htmlFor="ai-property" control={
+    <SettingsPage title="Contenu IA" description="{t('studio.contentAi.subtitle')}">
+      <SettingCard title={t('studio.contentAi.settings')}>
+        <SettingRow label={t('studio.contentAi.property')} htmlFor="ai-property" control={
           <SelectControl id="ai-property" value={propertyId} onChange={setPropertyId} options={propertyOptions} />
         } />
         <SettingRow label="Langue" htmlFor="ai-lang" control={
           <SelectControl id="ai-lang" value={language} onChange={setLanguage} options={LANGUAGES} />
         } />
-        <SettingRow label="Ton (description)" helper="Appliqué à la génération de description." htmlFor="ai-tone" control={
+        <SettingRow label="Ton (description)" helper={t('studio.content.appliedToDescription')} htmlFor="ai-tone" control={
           <SelectControl id="ai-tone" value={tone} onChange={setTone} options={TONES} />
         } />
       </SettingCard>
 
       <div className="flex gap-2 flex-wrap mb-3.5">
-        <GenButton icon={Wand2} label="Générer une description" loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
-        <GenButton icon={Search} label="Générer le SEO" variant="outline" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
+        <GenButton icon={Wand2} label="{t('studio.contentAi.generateDescription')}" loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
+        <GenButton icon={Search} label="{t('studio.contentAi.generateSeo')}" variant="outline" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
       </div>
 
       {genError && (
@@ -138,7 +140,7 @@ export default function ContentAiPanel() {
       )}
 
       {result && (
-        <SettingCard title={result.kind === 'SEO_META' ? 'Meta SEO générée' : 'Description générée'}>
+        <SettingCard title={result.kind === 'SEO_META' ? t('studio.content.seoGenerated') : t('studio.content.descriptionGenerated')}>
           <div className="py-2">
             {result.title && (
               <div className="mb-2">

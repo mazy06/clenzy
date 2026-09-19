@@ -22,6 +22,7 @@ import TeamMembersList from './TeamMembersList';
 import { teamsKeys } from './useTeamsList';
 import { getInterventionTypeHex, getInterventionTypeLabel } from '../../utils/statusUtils';
 import { useTranslation } from '../../hooks/useTranslation';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 interface Team {
   id: number;
@@ -74,7 +75,7 @@ const TeamDetails: React.FC = () => {
 
   const team = teamQuery.data ?? null;
   const loading = teamQuery.isLoading;
-  const error = teamQuery.isError ? 'Erreur lors du chargement de l\'équipe' : null;
+  const error = teamQuery.isError ? t('teams.errors.load') : null;
 
   const handleEdit = () => {
     navigate(`/teams/${id}/edit`);
@@ -105,7 +106,7 @@ const TeamDetails: React.FC = () => {
       <div className="p-4">
         <Alert variant="warning">
           <TriangleAlert />
-          <AlertDescription>Équipe non trouvée</AlertDescription>
+          <AlertDescription>{t('teams.details.notFound')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -115,9 +116,9 @@ const TeamDetails: React.FC = () => {
     <div>
       <PageHeader
         title={team.name}
-        subtitle="Détails de l'équipe et de ses membres"
+        subtitle={t('teams.details.subtitle')}
         backPath="/teams"
-        backLabel="Retour aux équipes"
+        backLabel={t('teams.backToTeams')}
         showBackButton={true}
         actions={
           canEdit && (
@@ -151,10 +152,10 @@ const TeamDetails: React.FC = () => {
 
           <div className="mb-4 p-3 bg-field rounded-xl border border-field-line">
             <h6 className="text-xs font-medium mb-1.5 text-primary">
-              Description de l'équipe
+              {t('teams.details.description')}
             </h6>
             <p className="text-sm text-muted-foreground">
-              {team.description || 'Aucune description disponible pour cette équipe.'}
+              {team.description || t('teams.noDescription')}
             </p>
           </div>
 
@@ -170,30 +171,30 @@ const TeamDetails: React.FC = () => {
               <div className="text-center">
                 <span className="inline-flex text-muted-foreground mb-0.5"><Build size={20} strokeWidth={1.75} /></span>
                 <p className="text-xs font-medium"><ServiceReferenceLabels codes={team.serviceItemCodes} /></p>
-                <span className="text-xs text-muted-foreground">Spécialité</span>
+                <span className="text-xs text-muted-foreground">{t('teams.details.speciality')}</span>
               </div>
             </div>
           </div>
 
           <div className="p-3 bg-field rounded-xl border border-field-line">
             <h6 className="text-xs font-medium mb-1.5 text-primary">
-              Informations de l'équipe
+              {t('teams.details.info')}
             </h6>
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground font-medium">Créée le:</span>
+                  <span className="text-xs text-muted-foreground font-medium">{t('teams.details.createdOn')}</span>
                   <span className="text-xs text-foreground tabular-nums">
-                    {team.createdAt ? new Date(team.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
+                    {team.createdAt ? new Date(team.createdAt).toLocaleDateString(activeIntlLocale()) : 'N/A'}
                   </span>
                 </div>
               </div>
               {team.updatedAt && (
                 <div className="col-span-12 min-[900px]:col-span-6">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground font-medium">Modifiée le:</span>
+                    <span className="text-xs text-muted-foreground font-medium">{t('teams.details.updatedOn')}</span>
                     <span className="text-xs text-foreground tabular-nums">
-                      {new Date(team.updatedAt).toLocaleDateString('fr-FR')}
+                      {new Date(team.updatedAt).toLocaleDateString(activeIntlLocale())}
                     </span>
                   </div>
                 </div>

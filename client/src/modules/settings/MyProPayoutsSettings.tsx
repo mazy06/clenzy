@@ -16,6 +16,7 @@ import type { StripeConnectInstance } from '@stripe/connect-js';
 import { useTranslation } from '../../hooks/useTranslation';
 import { housekeeperPayoutsApi } from '../../services/api/housekeeperPayoutsApi';
 import type { HousekeeperPayoutRecord } from '../../services/api/housekeeperPayoutsApi';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── « Mes versements » (Moteur Ménage 3B — P9) — HOUSEKEEPER / TECHNICIAN ───
 // Onboarding Stripe Connect Express EMBARQUÉ (@stripe/connect-js — le pro ne
@@ -207,7 +208,7 @@ export default function MyProPayoutsSettings() {
                 {records.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell className="tabular-nums">
-                      {new Date(record.createdAt).toLocaleDateString('fr-FR')}
+                      {new Date(record.createdAt).toLocaleDateString(activeIntlLocale())}
                     </TableCell>
                     <TableCell>
                       <a

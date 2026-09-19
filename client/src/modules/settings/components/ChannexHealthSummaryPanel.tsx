@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 
 import { channexApi, CHANNEX_STATUS_META } from '../../../services/api/channexApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type {
   ChannexHealthSummary,
   ChannexAttentionItem,
@@ -143,6 +144,7 @@ export default function ChannexHealthSummaryPanel({
   onAttentionItemClick,
   maxVisibleItems = 5,
 }: ChannexHealthSummaryPanelProps) {
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<ChannexHealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export default function ChannexHealthSummaryPanel({
       const res = await channexApi.healthSummary();
       setSummary(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement du resume Channex');
+      setError(err instanceof Error ? err.message : t('channexHealth.summaryLoadError'));
     } finally {
       setLoading(false);
     }
@@ -199,7 +201,7 @@ export default function ChannexHealthSummaryPanel({
         <div className="flex items-center gap-1.5">
           <Activity size={16} strokeWidth={2.2} className="text-muted-foreground" />
           <span className="text-xs text-muted-foreground">
-            Aucune propriete connectee a Channex pour l'instant.
+            {t('settings.channex.health.empty')}
           </span>
         </div>
       </div>
@@ -225,7 +227,7 @@ export default function ChannexHealthSummaryPanel({
             if (n === 0) return null;
             const meta = CHANNEX_STATUS_META[st];
             return (
-              <StatusChip tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 10%, transparent)` }} label={`${n} ${meta.label.toLowerCase()}`} className="h-5 text-2xs tabular-nums" key={st} />
+              <StatusChip tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 10%, transparent)` }} label={`${n} ${t(meta.labelKey).toLowerCase()}`} className="h-5 text-2xs tabular-nums" key={st} />
             );
           })}
         </div>

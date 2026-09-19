@@ -188,7 +188,7 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
             {t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
           </span>
         )}
-        {propertyName && <span className="ms-auto min-w-0 truncate">{propertyName}</span>}
+        {propertyName && <span dir="auto" className="ms-auto min-w-0 truncate">{propertyName}</span>}
       </div>
 
       <h3 className="m-0 mt-2 text-sm font-medium text-foreground [text-wrap:balance]">

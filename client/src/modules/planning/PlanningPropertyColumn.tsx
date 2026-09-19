@@ -163,7 +163,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         <div
           onMouseDown={handleResizeMouseDown}
           role="separator"
-          aria-label="Redimensionner la colonne logements"
+          aria-label={t('planning.grid.resizeColumn', 'Redimensionner la colonne logements')}
           aria-orientation="vertical"
           // right:-3px = chevauche legerement la grille pour faciliter la prise.
           // Ligne verticale (::after) visible uniquement au hover ou pendant le drag.
@@ -267,6 +267,10 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   surcharger la taille en breakpoint large. */}
               {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
               <span
+                dir="auto"
+                // `dir="auto"` : la direction vient du NOM, pas de l'écran.
+                // Héritée du RTL ambiant, l'ellipsis se posait en tête et
+                // rognait le début du libellé au lieu de sa fin.
                 className={cn(
                   'font-semibold text-[var(--ink)] leading-[1.25] tracking-[-0.01em] whitespace-nowrap overflow-hidden text-ellipsis min-w-0',
                   density === 'compact' ? 'text-[11.5px]' : 'text-[12.5px]',
@@ -277,6 +281,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               {/* Spec .pl-name .ci : 10.5px var(--muted) */}
               {subtitle && (
                 <span
+                  dir="auto"
                   className={cn(
                     'block font-normal text-[var(--muted)] leading-[1.2] overflow-hidden text-ellipsis whitespace-nowrap',
                     density === 'compact' ? 'text-[9.5px]' : 'text-[10.5px]',
@@ -363,7 +368,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             )}
             {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}
             {onToggleExpanded && (
-              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--brand-ink)]', expandedPropertyId === property.id ? 'text-[var(--brand-ink)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label="Superviseur d'agents" aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
+              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--brand-ink)]', expandedPropertyId === property.id ? 'text-[var(--brand-ink)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label={t('planning.grid.agentSupervisor', "Superviseur d'agents")} aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
                   e.stopPropagation();
                   onToggleExpanded(property.id);
                 }}>

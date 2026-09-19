@@ -37,6 +37,7 @@ const SEM_TONE: Partial<Record<ChipColor, StatusTone>> = {
 /** Ton de la primitive pour une couleur semantique. */
 const semTone = (color: ChipColor): StatusTone => SEM_TONE[color] ?? 'neutral';
 import DetailSection from './components/DetailSection';
+import { useTranslation } from '../../hooks/useTranslation';
 import AvatarUploader from './components/AvatarUploader';
 import { USER_ROLES, getRoleEntry, RoleIconBadge } from './components/userRoleCatalog';
 
@@ -62,6 +63,7 @@ const userStatuses: Array<{ value: string; label: string; color: ChipColor }> = 
 ];
 
 const UserEdit: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
@@ -154,9 +156,9 @@ const UserEdit: React.FC = () => {
           {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
               un <h6>/<p> natif recupere sinon les marges du navigateur. */}
           <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
-            Acces non autorise
+            {t('users.accessDenied.title')}
           </h6><p className="m-0 text-sm">
-            Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.
+            {t('users.accessDenied.edit')}
           </p></AlertDescription>
         </BuiAlert>
       </div>
@@ -168,18 +170,18 @@ const UserEdit: React.FC = () => {
   };
 
   const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) return 'Le prenom est obligatoire';
+    if (!formData.firstName.trim()) return t('validation.firstNameRequired');
     if (!formData.lastName.trim()) return 'Le nom est obligatoire';
     if (!formData.email.trim()) return "L'email est obligatoire";
     if (!formData.email.includes('@')) return "L'email doit etre valide";
-    if (!formData.role) return 'Le role est obligatoire';
-    if (!formData.status) return 'Le statut est obligatoire';
+    if (!formData.role) return t('validation.roleRequired');
+    if (!formData.status) return t('validation.statusRequired');
 
     if (formData.newPassword && !formData.confirmPassword) {
-      return 'Veuillez confirmer le nouveau mot de passe';
+      return t('users.confirmNewPassword');
     }
     if (!formData.newPassword && formData.confirmPassword) {
-      return 'Veuillez saisir le nouveau mot de passe';
+      return t('users.enterNewPassword');
     }
     if (formData.newPassword && formData.confirmPassword) {
       if (formData.newPassword.length < 8) {
@@ -317,7 +319,7 @@ const UserEdit: React.FC = () => {
       {success && (
         <BuiAlert variant="success" className="mb-3 py-1.5">
           <CircleCheck />
-          <AlertDescription>Utilisateur modifie avec succes ! Redirection en cours...</AlertDescription>
+          <AlertDescription>{t('users.form.updateSuccess')}</AlertDescription>
         </BuiAlert>
       )}
 
@@ -326,7 +328,7 @@ const UserEdit: React.FC = () => {
           {/* Photo de profil — first section, OTA-aware */}
           {user && (
             <DetailSection
-              title="Photo de profil"
+              title={t('users.form.photo')}
               accentColor="var(--bui-info)"
               icon={<Person size={14} strokeWidth={1.75} />}
               disableGrid
@@ -340,22 +342,22 @@ const UserEdit: React.FC = () => {
 
           {/* Personnel — accent primaire */}
           <DetailSection
-            title="Informations personnelles"
+            title={t('users.form.personalInfo')}
             accentColor="var(--bui-primary)"
             icon={<Person size={14} strokeWidth={1.75} />}
           >
             <Field>
-              <FieldLabel htmlFor="user-first-name">Prénom</FieldLabel>
+              <FieldLabel htmlFor="user-first-name">{t('users.firstName')}</FieldLabel>
               <Input
                 id="user-first-name"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 required
-                placeholder="Ex: Jean"
+                placeholder={t('users.form.firstNamePlaceholder')}
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="user-last-name">Nom</FieldLabel>
+              <FieldLabel htmlFor="user-last-name">{t('users.lastName')}</FieldLabel>
               <Input
                 id="user-last-name"
                 value={formData.lastName}
@@ -368,12 +370,12 @@ const UserEdit: React.FC = () => {
 
           {/* Contact — accent succès */}
           <DetailSection
-            title="Informations de contact"
+            title={t('users.form.contactInfo')}
             accentColor="var(--bui-success)"
             icon={<Email size={14} strokeWidth={1.75} />}
           >
             <Field>
-              <FieldLabel htmlFor="user-email">Email</FieldLabel>
+              <FieldLabel htmlFor="user-email">{t('users.email')}</FieldLabel>
               <InputGroup>
                 <InputGroupAddon>
                   <span className="inline-flex text-muted-foreground opacity-60">
@@ -386,12 +388,12 @@ const UserEdit: React.FC = () => {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   required
-                  placeholder="Ex: jean.dupont@baitly.fr"
+                  placeholder={t('users.form.emailPlaceholder')}
                 />
               </InputGroup>
             </Field>
             <Field>
-              <FieldLabel htmlFor="user-phone">Téléphone</FieldLabel>
+              <FieldLabel htmlFor="user-phone">{t('common.phone')}</FieldLabel>
               <InputGroup>
                 <InputGroupAddon>
                   <span className="inline-flex text-muted-foreground opacity-60">
@@ -410,14 +412,14 @@ const UserEdit: React.FC = () => {
 
           {/* Rôle et statut — accent froid */}
           <DetailSection
-            title="Rôle et statut"
+            title={t('users.form.roleAndStatus')}
             accentColor="var(--bui-info)"
             icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
             disableGrid
           >
             <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
               <Field>
-                <FieldLabel htmlFor="user-role">Rôle</FieldLabel>
+                <FieldLabel htmlFor="user-role">{t('users.role')}</FieldLabel>
                 {/* SelectValue avec enfants = report du `renderValue` MUI : la
                     pastille reste compacte dans le declencheur alors que l'option
                     deroulee porte en plus sa description. `h-auto` car la pastille
@@ -427,7 +429,7 @@ const UserEdit: React.FC = () => {
                   onValueChange={(value) => handleInputChange('role', value)}
                 >
                   <SelectTrigger id="user-role" className="w-full h-auto min-h-9">
-                    <SelectValue placeholder="Sélectionner un rôle">
+                    <SelectValue placeholder={t('users.form.selectRole')}>
                       {selectedRoleInfo && (
                         <div className="flex items-center gap-1.5 min-w-0">
                           <RoleIconBadge role={selectedRoleInfo.value} size={22} />
@@ -455,7 +457,7 @@ const UserEdit: React.FC = () => {
                   </SelectContent>
                 </Select>
                 <FieldDescription className="text-[0.7rem]">
-                  Le rôle détermine les permissions de l'utilisateur
+                  {t('users.form.roleHint')}
                 </FieldDescription>
               </Field>
 
@@ -466,7 +468,7 @@ const UserEdit: React.FC = () => {
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
                   <SelectTrigger id="user-status" className="w-full h-auto min-h-9">
-                    <SelectValue placeholder="Sélectionner un statut">
+                    <SelectValue placeholder={t('users.form.selectStatus')}>
                       {selectedStatusInfo && (
                         <StatusChip tone={semTone(selectedStatusInfo.color)} label={selectedStatusInfo.label} />
                       )}
@@ -481,7 +483,7 @@ const UserEdit: React.FC = () => {
                   </SelectContent>
                 </Select>
                 <FieldDescription className="text-[0.7rem]">
-                  Le statut détermine si l'utilisateur peut se connecter
+                  {t('users.form.statusHint')}
                 </FieldDescription>
               </Field>
             </div>
@@ -522,7 +524,7 @@ const UserEdit: React.FC = () => {
                 >
                   <ComboboxInput
                     id="user-organization"
-                    placeholder="Sélectionner une organisation"
+                    placeholder={t('users.form.selectOrganization')}
                   >
                     {/* Report de l'`endAdornment` : la roue tourne tant que la
                         liste des organisations n'est pas chargée. */}
@@ -533,7 +535,7 @@ const UserEdit: React.FC = () => {
                     ) : null}
                   </ComboboxInput>
                   <ComboboxContent>
-                    <ComboboxEmpty>Aucune organisation</ComboboxEmpty>
+                    <ComboboxEmpty>{t('users.form.noOrganization')}</ComboboxEmpty>
                     <ComboboxList>
                       {(option: OrganizationDto) => (
                         <ComboboxItem key={option.id} value={option}>
@@ -552,7 +554,7 @@ const UserEdit: React.FC = () => {
                   </ComboboxContent>
                 </Combobox>
                 <FieldDescription className="text-[0.7rem] mt-[3px]">
-                  Organisation à laquelle l'utilisateur est rattaché
+                  {t('users.form.orgHint')}
                 </FieldDescription>
               </Field>
             </div>
@@ -560,24 +562,24 @@ const UserEdit: React.FC = () => {
 
           {/* Changement de mot de passe — accent rouge désaturé (repère sécurité) */}
           <DetailSection
-            title="Changement de mot de passe"
+            title={t('users.form.passwordChange')}
             accentColor="var(--bui-destructive)"
             icon={<Lock size={14} strokeWidth={1.75} />}
             disableGrid
             action={
               passwordsMatch ? (
-                <StatusChip tone={semTone('success')} label="Les mots de passe correspondent" />
+                <StatusChip tone={semTone('success')} label={t('users.form.passwordsMatch')} />
               ) : passwordsMismatch ? (
-                <StatusChip tone={semTone('error')} label="Les mots de passe ne correspondent pas" />
+                <StatusChip tone={semTone('error')} label={t('users.form.passwordsMismatch')} />
               ) : undefined
             }
           >
             <p className="m-0 mb-3 text-xs text-muted-foreground">
-              Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
+              {t('users.form.passwordOptional')}
             </p>
             <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
               <Field>
-                <FieldLabel htmlFor="user-new-password">Nouveau mot de passe</FieldLabel>
+                <FieldLabel htmlFor="user-new-password">{t('users.form.newPassword')}</FieldLabel>
                 <InputGroup>
                   <InputGroupAddon>
                     <span className="inline-flex text-muted-foreground opacity-60">
@@ -589,13 +591,13 @@ const UserEdit: React.FC = () => {
                     type={showNewPassword ? 'text' : 'password'}
                     value={formData.newPassword}
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                    placeholder="Minimum 8 caractères"
+                    placeholder={t('users.form.passwordHint')}
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupButton
                       size="icon-xs"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      aria-label={showNewPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-label={showNewPassword ? t('users.form.hidePassword') : t('users.form.showPassword')}
                     >
                       {showNewPassword ? (
                         <VisibilityOff size={16} strokeWidth={1.75} />
@@ -607,7 +609,7 @@ const UserEdit: React.FC = () => {
                 </InputGroup>
               </Field>
               <Field>
-                <FieldLabel htmlFor="user-confirm-password">Confirmer le mot de passe</FieldLabel>
+                <FieldLabel htmlFor="user-confirm-password">{t('users.form.passwordConfirm')}</FieldLabel>
                 <InputGroup>
                   <InputGroupAddon>
                     <span className="inline-flex text-muted-foreground opacity-60">
@@ -619,13 +621,13 @@ const UserEdit: React.FC = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    placeholder="Répétez le mot de passe"
+                    placeholder={t('users.form.passwordRetype')}
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupButton
                       size="icon-xs"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-label={showConfirmPassword ? t('users.form.hidePassword') : t('users.form.showPassword')}
                     >
                       {showConfirmPassword ? (
                         <VisibilityOff size={16} strokeWidth={1.75} />

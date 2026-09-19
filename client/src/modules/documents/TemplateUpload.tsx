@@ -21,6 +21,7 @@ import {
 } from '../../components/ui';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TemplateUploadProps {
   open: boolean;
@@ -29,6 +30,7 @@ interface TemplateUploadProps {
 }
 
 const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -45,7 +47,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
     if (f) {
       if (!f.name.toLowerCase().endsWith('.odt')
           || (f.type && f.type !== 'application/vnd.oasis.opendocument.text')) {
-        setError('Seuls les fichiers .odt sont acceptés');
+        setError(t('documents.onlyOdt'));
         return;
       }
       setFile(f);
@@ -56,7 +58,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
 
   const handleSubmit = async () => {
     if (!file || !name || !documentType) {
-      setError('Veuillez remplir les champs obligatoires');
+      setError(t('common.fillRequiredFields'));
       return;
     }
 
@@ -75,7 +77,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
       resetForm();
       onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'upload du template');
+      setError(err instanceof Error ? err.message : t('documents.uploadError'));
     }
   };
 
@@ -100,7 +102,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouveau template de document</DialogTitle>
+          <DialogTitle>{t('documents.upload.title')}</DialogTitle>
         </DialogHeader>
         {error && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
@@ -117,7 +119,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
               file ? 'border-success bg-success-soft' : 'border-border bg-field',
             )}
           >
-            <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
+            <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label={t('documents.upload.selectFile')} />
             <span className={cn('inline-flex mb-1.5', file ? 'text-success' : 'text-faint')}><CloudUpload size={40} strokeWidth={1.75} /></span>
             <p className="text-sm font-medium">
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
@@ -130,7 +132,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           </label>
 
           <Field>
-            <FieldLabel htmlFor="template-name">Nom du template *</FieldLabel>
+            <FieldLabel htmlFor="template-name">{t('documents.upload.name')}</FieldLabel>
             <Input
               id="template-name"
               className="w-full"
@@ -140,7 +142,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="template-document-type">Type de document *</FieldLabel>
+            <FieldLabel htmlFor="template-document-type">{t('documents.upload.documentType')}</FieldLabel>
             <NativeSelect
               className="w-full"
               id="template-document-type"
@@ -174,18 +176,18 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           </FieldSeparator>
 
           <Field>
-            <FieldLabel htmlFor="template-email-subject">Objet de l'email</FieldLabel>
+            <FieldLabel htmlFor="template-email-subject">{t('documents.upload.emailSubject')}</FieldLabel>
             <Input
               id="template-email-subject"
               className="w-full"
               value={emailSubject}
               onChange={(e) => setEmailSubject(e.target.value)}
-              placeholder="Ex: Votre facture Baitly"
+              placeholder={t('documents.upload.emailSubjectPlaceholder')}
             />
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="template-email-body">Corps de l'email (HTML)</FieldLabel>
+            <FieldLabel htmlFor="template-email-body">{t('documents.upload.emailBody')}</FieldLabel>
             <Textarea
               id="template-email-body"
               className="w-full"

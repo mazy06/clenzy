@@ -1,5 +1,6 @@
 import { type ImportedHtml, type TemplateImporter, newReport } from './TemplateImporter';
 import { sanitizeHtml } from './sanitizeHtml';
+import i18n from '../../../../../i18n/config';
 
 /**
  * Adaptateur WordPress Gutenberg → HTML.
@@ -27,7 +28,7 @@ const gutenbergImporter: TemplateImporter = {
     const report = newReport('gutenberg');
     const src = input ?? '';
     if (!src.trim()) {
-      report.warnings.push('Entrée Gutenberg vide.');
+      report.warnings.push(i18n.t('studioImport.gutenberg.empty'));
       return { html: '', report };
     }
     const html = sanitizeHtml(stripBlockComments(src));

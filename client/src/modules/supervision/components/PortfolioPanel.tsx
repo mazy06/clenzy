@@ -388,7 +388,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
                     )}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className={cn('m-0 truncate text-xs font-semibold', on ? 'text-primary' : 'text-foreground')}>
+                      <p dir="auto" className={cn('m-0 truncate text-xs font-semibold', on ? 'text-primary' : 'text-foreground')}>
                         {row.name}
                       </p>
                       <p className="m-0 truncate text-2xs text-muted-foreground">

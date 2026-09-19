@@ -7,6 +7,7 @@ import { statusCssColors, priorityCssColors } from './serviceRequestsUtils';
 import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
 import PagePagination from '../../components/PagePagination';
 import RequestCommercialDetails, { RequestCommercialBatch } from './RequestCommercialDetails';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 interface ServiceRequestsGridViewProps {
   serviceRequests: ServiceRequest[];
@@ -27,8 +28,8 @@ const formatDue = (d?: string) => {
   if (!d) return undefined;
   const date = new Date(d);
   if (Number.isNaN(date.getTime())) return undefined;
-  const jour = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-  const heure = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const jour = date.toLocaleDateString(activeIntlLocale(), { day: 'numeric', month: 'short' });
+  const heure = date.toLocaleTimeString(activeIntlLocale(), { hour: '2-digit', minute: '2-digit' });
   return `${jour}, ${heure}`;
 };
 

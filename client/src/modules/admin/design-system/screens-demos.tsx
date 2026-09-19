@@ -623,7 +623,7 @@ export function BBillingSectionDemo() {
           />
         }
         filters={
-          <DateRangePicker startDate={start} endDate={end} onChangeStart={setStart} onChangeEnd={setEnd} isFrench />
+          <DateRangePicker startDate={start} endDate={end} onChangeStart={setStart} onChangeEnd={setEnd} />
         }
       />
 

@@ -11,6 +11,8 @@ import React from 'react';
 import { Alert, AlertDescription, Badge, Spinner } from '../../../../components/ui';
 import { Warning } from '../../../../icons';
 import { cn } from '../../../../utils/cn';
+import { activeIntlLocale } from '../../../../utils/activeLocale';
+import i18n from '../../../../i18n/config';
 
 /**
  * Palette de séries du bar chart. Jetons graphiques Baitly (`--bui-chart-*`)
@@ -56,7 +58,7 @@ export const ErrorCard: React.FC<{ message?: string }> = ({ message }) => (
   <Alert variant="destructive" className="mt-1.5 mb-2">
     <Warning />
     <AlertDescription>
-      {message && message.trim() !== '' ? message : 'L’outil a échoué.'}
+      {message && message.trim() !== '' ? message : i18n.t('supervision.agui.toolFailed')}
     </AlertDescription>
   </Alert>
 );
@@ -109,11 +111,11 @@ function currencySymbol(code?: string): string {
   }
 }
 
-/** Montant formaté fr-FR + symbole devise (ex: "1 200,50 €"). */
+/** Montant formaté dans la langue active + symbole devise (ex. « 1 200,50 € »). */
 export function formatMoney(value: unknown, currency?: string): string {
   const num = typeof value === 'number' ? value : Number(value);
   if (value === null || value === undefined || Number.isNaN(num)) return '—';
-  const formatted = num.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  const formatted = num.toLocaleString(activeIntlLocale(), { maximumFractionDigits: 2 });
   const sym = currencySymbol(currency);
   return sym ? `${formatted} ${sym}` : formatted;
 }

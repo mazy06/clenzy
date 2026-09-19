@@ -23,6 +23,8 @@ import { useLockAccessCodeHistory, lockAccessCodesKey } from '../useLockAccessCo
 import { usePropertyAccessCode } from '../usePropertyAccessCode';
 import type { SmartLockAccessCodeHistoryDto } from '../../../services/api/smartLockApi';
 import { smartLockApi, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import i18n from '../../../i18n/config';
 
 interface AccessCodeSectionProps {
   deviceId: number;
@@ -54,7 +56,7 @@ function describeAbsence(history: SmartLockAccessCodeHistoryDto | undefined): {
   const lastEvent = history?.events?.[0];
   if (lastEvent?.eventType === 'GENERATION_FAILED') {
     return {
-      label: 'Dernière génération en échec',
+      label: i18n.t('accessCodes.lastGenerationFailed'),
       hint: lastEvent.notes
         ? `${lastEvent.notes} — ${formatUntil(lastEvent.createdAt)}`
         : `Échec le ${formatUntil(lastEvent.createdAt)}. Aucun code n'a été posé sur la serrure.`,
@@ -65,7 +67,7 @@ function describeAbsence(history: SmartLockAccessCodeHistoryDto | undefined): {
   const lastCode = history?.past?.[0];
   if (lastCode?.status === 'REVOKED') {
     return {
-      label: 'Code révoqué',
+      label: i18n.t('accessCodes.revoked'),
       hint: lastCode.revokedAt
         ? `Le code du séjour précédent a été révoqué le ${formatUntil(lastCode.revokedAt)}. Le prochain sera généré à l'arrivée du voyageur.`
         : "Le code du séjour précédent a été révoqué. Le prochain sera généré à l'arrivée du voyageur.",
@@ -73,7 +75,7 @@ function describeAbsence(history: SmartLockAccessCodeHistoryDto | undefined): {
   }
   if (lastCode?.status === 'EXPIRED') {
     return {
-      label: 'Code expiré',
+      label: i18n.t('accessCodes.expired'),
       hint: lastCode.validUntil
         ? `Le code du séjour précédent a expiré le ${formatUntil(lastCode.validUntil)}. Le prochain sera généré à l'arrivée du voyageur.`
         : "Le code du séjour précédent a expiré. Le prochain sera généré à l'arrivée du voyageur.",
@@ -81,7 +83,7 @@ function describeAbsence(history: SmartLockAccessCodeHistoryDto | undefined): {
   }
 
   return {
-    label: 'Aucun code de séjour',
+    label: i18n.t('accessCodes.noStayCode'),
     hint: "Le prochain sera généré à l'arrivée du voyageur.",
   };
 }
@@ -89,7 +91,7 @@ function describeAbsence(history: SmartLockAccessCodeHistoryDto | undefined): {
 /** Date seule (une date de départ n'a pas d'heure dans la réservation). */
 function formatDay(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' });
+    return new Date(iso).toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'long' });
   } catch {
     return iso;
   }
@@ -97,7 +99,7 @@ function formatDay(iso: string): string {
 
 function formatUntil(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('fr-FR', {
+    return new Date(iso).toLocaleString(activeIntlLocale(), {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   } catch {
@@ -175,9 +177,9 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
     if (!staticCode) return;
     try {
       await navigator.clipboard.writeText(staticCode);
-      notify.success('Digicode copié');
+      notify.success(t('accessCodes.keypadCopied'));
     } catch {
-      notify.error('Copie impossible');
+      notify.error(t('common.copyFailed'));
     }
   };
 
@@ -185,9 +187,9 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
     if (!code?.code) return;
     try {
       await navigator.clipboard.writeText(code.code);
-      notify.success('Code copié');
+      notify.success(t('accessCodes.codeCopied'));
     } catch {
-      notify.error('Copie impossible');
+      notify.error(t('common.copyFailed'));
     }
   };
 
@@ -197,9 +199,9 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
       await smartLockApi.rotateAccessCode(deviceId);
       await qc.invalidateQueries({ queryKey: lockAccessCodesKey(deviceId) });
       setConfirmOpen(false);
-      notify.success('Nouveau code généré');
+      notify.success(t('accessCodes.newCodeGenerated'));
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : 'Échec de la génération');
+      notify.error(e instanceof Error ? e.message : t('accessCodes.generationFailed'));
     } finally {
       setRotating(false);
     }
@@ -215,14 +217,14 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
               <VpnKey size={14} strokeWidth={1.75} />
             </span>
           </TooltipTrigger>
-          <TooltipContent>Code de séjour — poussé sur cette serrure</TooltipContent>
+          <TooltipContent>{t('connectedObjects.accessCode.stayCode')}</TooltipContent>
         </Tooltip>
 
         {isLoading ? (
-          <span className="text-xs text-muted-foreground opacity-60">Code de séjour…</span>
+          <span className="text-xs text-muted-foreground opacity-60">{t('connectedObjects.accessCode.stayCodePlaceholder')}</span>
         ) : hasCode ? (
           <>
-            <span className="text-xs text-muted-foreground shrink-0">Séjour</span>
+            <span className="text-xs text-muted-foreground shrink-0">{t('connectedObjects.accessCode.stay')}</span>
             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond de champ.
                 Sa validité se lit au survol — elle qualifie CE code, elle n'a pas
                 à occuper une ligne de la carte. */}
@@ -246,7 +248,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={revealed ? 'Masquer le code' : 'Afficher le code'}
+                    aria-label={revealed ? t('accessCodes.hideCode') : t('accessCodes.showCode')}
                     onClick={() => setRevealed((v) => !v)}
                   >
                     {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
@@ -258,7 +260,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex">
-                  <Button variant="ghost" size="icon-xs" aria-label="Copier le code" onClick={handleCopy}>
+                  <Button variant="ghost" size="icon-xs" aria-label={t('connectedObjects.accessCode.copyCode')} onClick={handleCopy}>
                     <ContentCopy size={14} strokeWidth={1.75} />
                   </Button>
                 </span>
@@ -273,7 +275,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    aria-label="Régénérer le code"
+                    aria-label={t('connectedObjects.accessCode.regenerate')}
                     onClick={() => setConfirmOpen(true)}
                     disabled={rotating}
                     className="text-muted-foreground"
@@ -282,7 +284,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>Régénérer le code</TooltipContent>
+              <TooltipContent>{t('connectedObjects.accessCode.regenerate')}</TooltipContent>
             </Tooltip>
           </>
         ) : (
@@ -326,9 +328,9 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
                   <Lock size={14} strokeWidth={1.75} />
                 </span>
               </TooltipTrigger>
-              <TooltipContent>Digicode / boîte à clés — code du logement</TooltipContent>
+              <TooltipContent>{t('connectedObjects.accessCode.keypadCode')}</TooltipContent>
             </Tooltip>
-            <span className="text-xs text-muted-foreground shrink-0">Logement</span>
+            <span className="text-xs text-muted-foreground shrink-0">{t('connectedObjects.accessCode.propertyLabel')}</span>
             <p
               className={cn(
                 'text-sm tabular-nums font-semibold text-foreground bg-field rounded-md px-1.5 py-[1.5px] leading-[1.4]',
@@ -344,7 +346,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={staticRevealed ? 'Masquer le digicode' : 'Afficher le digicode'}
+                    aria-label={staticRevealed ? t('accessCodes.hideKeypad') : t('accessCodes.showKeypad')}
                     onClick={() => setStaticRevealed((v) => !v)}
                   >
                     {staticRevealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
@@ -356,7 +358,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex">
-                  <Button variant="ghost" size="icon-xs" aria-label="Copier le digicode" onClick={() => { void handleCopyStatic(); }}>
+                  <Button variant="ghost" size="icon-xs" aria-label={t('connectedObjects.accessCode.copyKeypad')} onClick={() => { void handleCopyStatic(); }}>
                     <ContentCopy size={14} strokeWidth={1.75} />
                   </Button>
                 </span>
@@ -366,8 +368,8 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
           </div>
           <span className="text-xs text-muted-foreground opacity-60 ps-3.5 block leading-[1.2]">
             {instructions?.accessCodeAutoRotate
-              ? 'Renouvelé après chaque départ — à reporter sur la boîte.'
-              : 'Code du logement, commun à tous ses accès.'}
+              ? t('accessCodes.renewedHint')
+              : t('accessCodes.propertyCodeHint')}
           </span>
         </>
       )}
@@ -408,7 +410,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{hasCode ? 'Régénérer le code ?' : 'Générer un code ?'}</DialogTitle>
+            <DialogTitle>{hasCode ? 'Régénérer le code ?' : t('accessCodes.generateTitle')}</DialogTitle>
             <DialogDescription>
               {/* Un séjour en cours change la nature du geste : ce n'est plus une
                   rotation de confort, c'est le code d'un voyageur présent qu'on
@@ -417,7 +419,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
                 ? `Un voyageur séjourne ici jusqu'au ${formatDay(ongoingStay.checkOut)} : son code actuel cessera de fonctionner et le nouveau code lui sera envoyé.`
                 : hasCode
                   ? "L'ancien code sera révoqué sur la serrure et un nouveau code prendra effet. Un évènement est enregistré."
-                  : 'Un nouveau code d\'accès sera programmé sur la serrure. Un évènement est enregistré.'}
+                  : t('accessCodes.generateBody')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -428,7 +430,7 @@ export default function AccessCodeSection({ deviceId, propertyId = null }: Acces
               disabled={rotating}
             >
               {rotating ? <Spinner className="size-3.5" /> : null}
-              {hasCode ? 'Régénérer' : 'Générer'}
+              {hasCode ? t('accessCodes.regenerate') : 'Générer'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -14,11 +14,11 @@ interface Props {
   canEdit: boolean;
 }
 
-const CATEGORY_LABELS: Record<PropertyStockItem['category'], string> = {
-  LINEN: 'Linge',
-  TOILETRIES: 'Accueil / toilette',
-  CLEANING: 'Produits ménage',
-  CONSUMABLES: 'Consommables',
+const CATEGORY_KEYS: Record<PropertyStockItem['category'], string> = {
+  LINEN: 'properties.stock.categories.linen',
+  TOILETRIES: 'properties.stock.categories.toiletries',
+  CLEANING: 'properties.stock.categories.cleaning',
+  CONSUMABLES: 'properties.stock.categories.consumables',
 };
 
 const EMPTY_FORM: PropertyStockItemRequest = {
@@ -133,7 +133,7 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
                   <TableCell>
                     <span className="font-medium">{item.name}</span>
                     <span className="block text-2xs text-muted-foreground">
-                      {CATEGORY_LABELS[item.category]}
+                      {t(CATEGORY_KEYS[item.category])}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -213,8 +213,8 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
                     value={form.category}
                     onChange={(e) => setField('category', e.target.value as PropertyStockItem['category'])}
                   >
-                    {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                      <NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>
+                    {Object.entries(CATEGORY_KEYS).map(([value, key]) => (
+                      <NativeSelectOption key={value} value={value}>{t(key)}</NativeSelectOption>
                     ))}
                   </NativeSelect>
                 </Field>

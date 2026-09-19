@@ -20,11 +20,11 @@ const STATUS_TONE: Record<PrivacyRequest['status'], 'ok' | 'warn' | 'err' | 'neu
   REFUSED: 'neutral',
 };
 
-const STATUS_LABELS: Record<PrivacyRequest['status'], string> = {
-  RECEIVED: 'Reçue',
-  IN_PROGRESS: 'En cours',
-  COMPLETED: 'Traitée',
-  REFUSED: 'Refusée',
+const STATUS_KEYS: Record<PrivacyRequest['status'], string> = {
+  RECEIVED: 'privacyRequests.status.received',
+  IN_PROGRESS: 'privacyRequests.status.inProgress',
+  COMPLETED: 'privacyRequests.status.completed',
+  REFUSED: 'privacyRequests.status.refused',
 };
 
 interface CreateForm {
@@ -174,7 +174,7 @@ export default function PrivacyRequestsSection() {
                   <TableCell className="tabular-nums">{request.dueAt}</TableCell>
                   <TableCell>
                     <StatusChip tone={STATUS_TONE[request.status]}
-                      label={STATUS_LABELS[request.status]} size="sm" />
+                      label={t(STATUS_KEYS[request.status])} size="sm" />
                   </TableCell>
                   <TableCell className="text-end whitespace-nowrap">
                     {request.status === 'RECEIVED' && (

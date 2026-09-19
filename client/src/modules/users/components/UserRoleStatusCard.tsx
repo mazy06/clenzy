@@ -3,6 +3,7 @@ import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Business, AdminPanelSettings } from '../../../icons';
 import type { ChipColor } from '../../../types';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { getRoleInfo, getStatusInfo } from './userDetailsTypes';
 import DetailField from './DetailField';
 import DetailSection from './DetailSection';
@@ -49,6 +50,7 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
  * (no two consecutive sections share an accent).
  */
 const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, statuses }) => {
+  const { t } = useTranslation();
   const roleInfo = getRoleInfo(user.role, roles);
   const statusInfo = getStatusInfo(user.status, statuses);
   const roleTone = SEM_TONE[roleInfo.color] ?? 'neutral';
@@ -58,26 +60,26 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
     <div className="flex flex-col gap-2">
       {/* Organisation — warm accent */}
       <DetailSection
-        title="Organisation"
+        title={t('users.form.organization')}
         accentColor="var(--bui-warning)"
         icon={<Business size={14} strokeWidth={1.75} />}
       >
         <DetailField
-          label="Organisation rattachée"
+          label={t('users.form.linkedOrganization')}
           value={user.organizationName || undefined}
         />
       </DetailSection>
 
       {/* Rôle et statut — accent froid, pour ne pas répéter celui de la section au-dessus */}
       <DetailSection
-        title="Rôle et statut"
+        title={t('users.form.roleAndStatus')}
         accentColor="var(--bui-info)"
         icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
       >
         {/* Role chip + description */}
         <div className="min-w-0">
           <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
-            Rôle
+            {t('users.role')}
           </span>
           <StatusChip tone={roleTone} label={roleInfo.label} icon={<span className="inline-flex">
                 {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {

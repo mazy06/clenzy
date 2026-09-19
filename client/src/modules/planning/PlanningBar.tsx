@@ -1,5 +1,6 @@
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipRoot, TooltipProvider, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { useDraggable } from '@dnd-kit/core';
@@ -25,6 +26,8 @@ import { Money } from '../../components/Money';
 import GuestAvatar from '../../components/GuestAvatar';
 import './planningUrgency.css';
 import { PlanningTooltipContent } from './PlanningTooltip';
+import { orderNameForReading } from '../../utils/textDirection';
+import { isRtlLanguage } from '../../utils/localeDate';
 
 // Les trois @keyframes de la brique vivaient dans le `sx` MUI, qui les injectait
 // lui-meme dans le document. Sans MUI il faut une vraie feuille de style : on la
@@ -184,6 +187,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   linkedInterventions,
   currency,
 }) => {
+  const { t, i18n } = useTranslation();
+  // Sens de lecture de l'écran : il décide de l'ordre d'affichage du nom.
+  const isRtl = isRtlLanguage(i18n.language);
   const { event, left, top, height } = layout;
   const isIntervention = event.type !== 'reservation';
   const isReservation = event.type === 'reservation';
@@ -230,7 +236,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // étiquette texte. Clic = détail intervention existant, drag conservé.
   if (event.type === 'cleaning' || event.type === 'maintenance') {
     const isCleaning = event.type === 'cleaning';
-    const typeLabel = INTERVENTION_TYPE_LABELS[event.type as PlanningInterventionType];
+    const typeLabel = t(`planning.bar.interventionTypes.${event.type}`,
+      INTERVENTION_TYPE_LABELS[event.type as PlanningInterventionType]);
     const tooltipTitle = [
       typeLabel,
       event.label && event.label !== typeLabel ? event.label : null,
@@ -252,10 +259,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             e.stopPropagation();
             onClick(event);
           }}
-          // left/top et la couleur du type (lookup dans un Record) sont des
-          // valeurs d'execution : aucune classe Tailwind ne peut les porter.
+          // Position et couleur du type (lookup dans un Record) sont des valeurs
+          // d'execution : aucune classe Tailwind ne peut les porter.
+          //
+          // `insetInlineStart` et non `left` : en arabe la frise se lit de droite a
+          // gauche, et `left` compterait depuis sa FIN.
           style={{
-            left: left + 2,
+            insetInlineStart: left + 2,
             top: top + (height - BAR_BADGE_SIZE) / 2,
             color: isCleaning
               ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning
@@ -315,10 +325,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   let showAvatar = showAvatarByWidth;
 
   const paymentTooltip = event.paymentBadgeStatus === 'FAILED'
-    ? 'Paiement échoué'
+    ? t('planning.bar.paymentFailed', 'Paiement échoué')
     : event.paymentBadgeStatus === 'PROCESSING'
-      ? 'Paiement en cours de traitement'
-      : 'Paiement en attente';
+      ? t('planning.bar.paymentProcessing', 'Paiement en cours de traitement')
+      : t('planning.bar.paymentPending', 'Paiement en attente');
 
   // ── Prix réservation (pilule .pl-price) — toujours affiché, couleur = état ─
   // Montant stocké en EUR, converti vers la devise d'affichage. L'état réutilise
@@ -361,7 +371,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     indicators.push({
       key: 'miss',
       label: 'Infos client manquantes',
-      tooltip: 'Email voyageur manquant — les messages automatiques ne seront pas envoyés',
+      tooltip: t('planning.missingGuestEmail'),
       color: 'var(--warn)',
       icon: <Warning size={13} strokeWidth={2} />,
     });
@@ -371,7 +381,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // « icône + montant » (.pl-badge--fee) ; sinon elle reste le carré-icône.
   for (const linked of linkedInterventions ?? []) {
     const isCleaning = linked.type === 'cleaning';
-    const typeLabel = INTERVENTION_TYPE_LABELS[(isCleaning ? 'cleaning' : 'maintenance') as PlanningInterventionType];
+    const typeKey = isCleaning ? 'cleaning' : 'maintenance';
+    const typeLabel = t(`planning.bar.interventionTypes.${typeKey}`,
+      INTERVENTION_TYPE_LABELS[typeKey as PlanningInterventionType]);
     const rawFee = linked.intervention?.actualCost || linked.intervention?.estimatedCost || linked.serviceRequest?.estimatedCost || 0;
     const feeLabel = rawFee > 0 ? compactMoney(convertAndFormat(rawFee, srcCurrency)) : undefined;
     indicators.push({
@@ -476,7 +488,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     ...(priceFolded
       ? [{
           key: 'price',
-          label: priceUnpaid ? `${paymentTooltip} · ${priceLabel}` : `Réglé · ${priceLabel}`,
+          label: priceUnpaid
+            ? `${paymentTooltip} · ${priceLabel}`
+            : `${t('planning.bar.settled', 'Réglé')} · ${priceLabel}`,
           color: priceUnpaid ? 'var(--unpaid-strong)' : 'var(--paid)',
           icon: priceUnpaid ? <CreditCardFill size={13} /> : <CheckBold size={12} />,
         }]
@@ -485,7 +499,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     ...(channelFolded
       ? [{
           key: 'channel',
-          label: `Canal : ${event.sublabel || '—'}`,
+          label: t('planning.bar.channel', { channel: event.sublabel || '—' }),
           icon: (
             <div className="w-[16px] h-[16px] rounded-[5px] bg-[#fff] flex items-center justify-center">
               <img className="w-[11px] h-[11px] object-contain block" src={sourceLogo!} alt="" />
@@ -561,7 +575,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       // Geometrie, couleur de statut et opacite de drag sont resolues a
       // l'execution : aucune classe Tailwind ne peut les porter.
       style={{
-        left,
+        // Decalage LOGIQUE : `left` poserait la brique depuis le bord physique
+        // gauche, donc a l'oppose de sa date quand la frise se lit a l'envers.
+        insetInlineStart: left,
         top,
         width: displayWidth,
         height,
@@ -628,7 +644,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           <div className="min-w-0 flex-1 flex flex-col justify-center leading-[1.2]">
             {/* Ligne 1 (spec .s-brick__n) : nombre de nuits — 9.5px fw600 */}
             <span className="text-[9.5px] font-semibold opacity-85 whitespace-nowrap overflow-hidden text-ellipsis">
-              {nights} {nights > 1 ? 'nuits' : 'nuit'}
+              {t('planning.panel.nights', { count: nights })}
             </span>
             {/* Ligne 2 (spec .pl-bar__g) : nom du voyageur — 12px fw600 */}
             {showLabel && (
@@ -638,7 +654,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   isCancelled && 'line-through',
                 )}
               >
-                {event.label}
+                {orderNameForReading(event.label, isRtl)}
               </span>
             )}
           </div>
@@ -743,7 +759,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   <div
                     role="button"
                     tabIndex={0}
-                    aria-label={`${overflowItems.length} ${overflowItems.length > 1 ? 'indicateurs masqués' : 'indicateur masqué'} : ${overflowItems.map((it) => it.label).join(', ')}`}
+                    aria-label={`${t('planning.hiddenIndicators', { count: overflowItems.length })} : ${overflowItems.map((it) => it.label).join(', ')}`}
                     onClick={(e) => {
                       // Ne déclenche PAS le popover réservation de la brique.
                       e.stopPropagation();
@@ -834,7 +850,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             <div
               role="button"
               tabIndex={0}
-              aria-label="Masquer du planning"
+              aria-label={t('planning.bar.hide', 'Masquer du planning')}
               onClick={(e) => {
                 e.stopPropagation();
                 onHide(event);
@@ -849,7 +865,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               <Close size={10} strokeWidth={1.75} />
             </div>
           </TooltipTrigger>
-          <PlanningTooltipContent>Masquer du planning</PlanningTooltipContent>
+          <PlanningTooltipContent>{t('planning.bar.hide', 'Masquer du planning')}</PlanningTooltipContent>
         </TooltipRoot>
       )}
 
@@ -858,7 +874,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       {!showBadgeGroup && missingEmail && (
         <RadarPastille
           color="var(--warn)"
-          tooltip="Email voyageur manquant — les messages automatiques ne seront pas envoyés"
+          tooltip={t('planning.bar.missingEmail')}
           right={-4}
         />
       )}

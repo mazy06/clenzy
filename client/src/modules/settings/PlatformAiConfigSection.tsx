@@ -123,48 +123,48 @@ const PROVIDER_API_KEY_URLS: Record<string, { url: string; label: string }> = {
   voyage:    { url: 'https://dashboard.voyageai.com/api-keys',             label: 'Voyage AI : Dashboard > API Keys' },
 };
 
-const MODELS_BY_PROVIDER: Record<string, Array<{ id: string; label: string; desc: string }>> = {
+const MODELS_BY_PROVIDER: Record<string, Array<{ id: string; label: string; descKey: string }>> = {
   nvidia: [
     // Qwen 2.5 famille en EOL chez NVIDIA Build (depuis 2026-05-12) -> Qwen 3
-    { id: 'qwen/qwen3-coder-480b-a35b-instruct', label: 'Qwen 3 Coder 480B', desc: 'Specialise code (CSS/JS), successeur de Qwen 2.5 Coder' },
-    { id: 'qwen/qwen3-235b-a22b', label: 'Qwen 3 235B', desc: 'Multilingue, analytique, generaliste' },
-    { id: 'deepseek-ai/deepseek-r1', label: 'DeepSeek R1', desc: 'Raisonnement avance (full model)' },
-    { id: 'deepseek-ai/deepseek-r1-distill-qwen-32b', label: 'DeepSeek R1 Distill 32B', desc: 'Raisonnement, plus leger' },
-    { id: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B', desc: 'Haute qualite generaliste' },
-    { id: 'meta/llama-3.1-8b-instruct', label: 'Llama 3.1 8B', desc: 'Rapide et economique' },
-    { id: 'nvidia/llama-3.3-nemotron-super-49b-v1', label: 'Nemotron Super 49B', desc: 'NVIDIA, reasoning-tuned' },
-    { id: 'google/gemma-2-9b-it', label: 'Gemma 2 9B', desc: 'Google, compact' },
+    { id: 'qwen/qwen3-coder-480b-a35b-instruct', label: 'Qwen 3 Coder 480B', descKey: 'aiModels.qwen_qwen3_coder_480b_a35b_instruct.desc' },
+    { id: 'qwen/qwen3-235b-a22b', label: 'Qwen 3 235B', descKey: 'aiModels.qwen_qwen3_235b_a22b.desc' },
+    { id: 'deepseek-ai/deepseek-r1', label: 'DeepSeek R1', descKey: 'aiModels.deepseek_ai_deepseek_r1.desc' },
+    { id: 'deepseek-ai/deepseek-r1-distill-qwen-32b', label: 'DeepSeek R1 Distill 32B', descKey: 'aiModels.deepseek_ai_deepseek_r1_distill_qwen_32b.desc' },
+    { id: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B', descKey: 'aiModels.meta_llama_3_3_70b_instruct.desc' },
+    { id: 'meta/llama-3.1-8b-instruct', label: 'Llama 3.1 8B', descKey: 'aiModels.meta_llama_3_1_8b_instruct.desc' },
+    { id: 'nvidia/llama-3.3-nemotron-super-49b-v1', label: 'Nemotron Super 49B', descKey: 'aiModels.nvidia_llama_3_3_nemotron_super_49b_v1.desc' },
+    { id: 'google/gemma-2-9b-it', label: 'Gemma 2 9B', descKey: 'aiModels.google_gemma_2_9b_it.desc' },
   ],
   bedrock: [
-    { id: 'amazon.nova-micro-v1:0', label: 'Nova Micro', desc: 'Texte, latence minimale' },
-    { id: 'amazon.nova-lite-v1:0', label: 'Nova Lite', desc: 'Multimodal, economique' },
-    { id: 'amazon.nova-pro-v1:0', label: 'Nova Pro', desc: 'Meilleur equilibre' },
-    { id: 'amazon.nova-premier-v1:0', label: 'Nova Premier', desc: 'Raisonnement complexe' },
-    { id: 'meta.llama3-1-70b-instruct-v1:0', label: 'Llama 3.1 70B', desc: 'Meta, haute qualite' },
+    { id: 'amazon.nova-micro-v1:0', label: 'Nova Micro', descKey: 'aiModels.amazon_nova_micro_v1_0.desc' },
+    { id: 'amazon.nova-lite-v1:0', label: 'Nova Lite', descKey: 'aiModels.amazon_nova_lite_v1_0.desc' },
+    { id: 'amazon.nova-pro-v1:0', label: 'Nova Pro', descKey: 'aiModels.amazon_nova_pro_v1_0.desc' },
+    { id: 'amazon.nova-premier-v1:0', label: 'Nova Premier', descKey: 'aiModels.amazon_nova_premier_v1_0.desc' },
+    { id: 'meta.llama3-1-70b-instruct-v1:0', label: 'Llama 3.1 70B', descKey: 'aiModels.meta_llama3_1_70b_instruct_v1_0.desc' },
   ],
   openai: [
-    { id: 'gpt-4o', label: 'GPT-4o', desc: 'Multimodal, meilleur rapport qualite/prix' },
-    { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Rapide et economique' },
-    { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', desc: 'Haute qualite, 128K' },
+    { id: 'gpt-4o', label: 'GPT-4o', descKey: 'aiModels.gpt_4o.desc' },
+    { id: 'gpt-4o-mini', label: 'GPT-4o Mini', descKey: 'aiModels.gpt_4o_mini.desc' },
+    { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', descKey: 'aiModels.gpt_4_turbo.desc' },
   ],
   anthropic: [
-    { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', desc: 'Equilibre qualite/prix' },
-    { id: 'claude-haiku-4-20250514', label: 'Claude Haiku 4', desc: 'Tres rapide' },
-    { id: 'claude-opus-4-20250514', label: 'Claude Opus 4', desc: 'Meilleure qualite' },
+    { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', descKey: 'aiModels.claude_sonnet_4_20250514.desc' },
+    { id: 'claude-haiku-4-20250514', label: 'Claude Haiku 4', descKey: 'aiModels.claude_haiku_4_20250514.desc' },
+    { id: 'claude-opus-4-20250514', label: 'Claude Opus 4', descKey: 'aiModels.claude_opus_4_20250514.desc' },
   ],
   // Voyage AI : embeddings (et rerank) — feature EMBEDDINGS uniquement, 1024d.
   voyage: [
-    { id: 'voyage-3-large', label: 'Voyage 3 Large', desc: 'Embeddings 1024d, meilleure qualite (RAG)' },
-    { id: 'voyage-3', label: 'Voyage 3', desc: 'Embeddings 1024d, equilibre cout/qualite' },
-    { id: 'voyage-3-lite', label: 'Voyage 3 Lite', desc: 'Embeddings 1024d, economique' },
+    { id: 'voyage-3-large', label: 'Voyage 3 Large', descKey: 'aiModels.voyage_3_large.desc' },
+    { id: 'voyage-3', label: 'Voyage 3', descKey: 'aiModels.voyage_3.desc' },
+    { id: 'voyage-3-lite', label: 'Voyage 3 Lite', descKey: 'aiModels.voyage_3_lite.desc' },
   ],
 };
 
 // Modeles d'embeddings OpenAI (feature EMBEDDINGS) — proposes en plus des modeles chat.
 MODELS_BY_PROVIDER.openai = [
   ...MODELS_BY_PROVIDER.openai,
-  { id: 'text-embedding-3-large', label: 'Text Embedding 3 Large', desc: 'Embeddings (tronque a 1024d)' },
-  { id: 'text-embedding-3-small', label: 'Text Embedding 3 Small', desc: 'Embeddings economiques (1024d)' },
+  { id: 'text-embedding-3-large', label: 'Text Embedding 3 Large', descKey: 'aiModels.text_embedding_3_large.desc' },
+  { id: 'text-embedding-3-small', label: 'Text Embedding 3 Small', descKey: 'aiModels.text_embedding_3_small.desc' },
 ];
 
 const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
@@ -182,17 +182,17 @@ const softBg = (color: string, ratio: number): string =>
 // Signature (= valeurs de --ok/--warn/--err/--info + mauve planning + slate).
 // En hex littéral (non var()) car ces couleurs partent en style inline calculé.
 const AI_FEATURES = [
-  { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
-  { key: 'ASSISTANT_SMALL', label: 'Assistant IA — tier éco', desc: "Modèle économique des rôles utilitaires (classification, résumés). Non assigné = tiering inactif ; ne s'applique que si le provider correspond au modèle résolu", icon: <AutoAwesome />, color: '#7BA3C2' }, // info
-  { key: 'ASSISTANT_STRONG', label: 'Assistant IA — tier fort', desc: "Modèle haut de gamme des rôles d'analyse (Insights). Mêmes règles que le tier éco", icon: <AutoAwesome />, color: '#5A7684' }, // slate foncé
-  { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#9A7FA3' }, // mauve, propre a cet agent
-  { key: 'PRICING', label: 'Tarification IA', desc: 'Recommandations de prix', icon: <AttachMoney />, color: '#4A9B8E' }, // = --ok
-  { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#7BA3C2' }, // = --info
-  { key: 'ANALYTICS', label: 'Analytics IA', desc: 'Insights performance', icon: <BarChart />, color: '#C28A52' }, // = --warn
-  { key: 'SENTIMENT', label: 'Sentiment IA', desc: 'Analyse avis guests', icon: <StarRate />, color: '#C97A7A' }, // = --err
-  { key: 'CONTENT', label: 'Contenu IA', desc: 'Descriptions de biens + SEO multilingue', icon: <Article />, color: '#6FA38A' }, // sage
-  { key: 'STUDIO_ASSIST', label: 'Assistant Studio IA', desc: "Aide à la création : analyse de site, import d'annonce, livret d'accueil", icon: <AutoFixHigh />, color: '#8A7FB0' }, // periwinkle
-  { key: 'EMBEDDINGS', label: 'Embeddings RAG', desc: 'Recherche sémantique de la base de connaissances (Voyage / OpenAI, 1024d)', icon: <Hub />, color: '#6E8AAD' }, // steel
+  { key: 'ASSISTANT_CHAT', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
+  { key: 'ASSISTANT_SMALL', icon: <AutoAwesome />, color: '#7BA3C2' }, // info
+  { key: 'ASSISTANT_STRONG', icon: <AutoAwesome />, color: '#5A7684' }, // slate foncé
+  { key: 'DESIGN', icon: <Palette />, color: '#9A7FA3' }, // mauve, propre a cet agent
+  { key: 'PRICING', icon: <AttachMoney />, color: '#4A9B8E' }, // = --ok
+  { key: 'MESSAGING', icon: <Chat />, color: '#7BA3C2' }, // = --info
+  { key: 'ANALYTICS', icon: <BarChart />, color: '#C28A52' }, // = --warn
+  { key: 'SENTIMENT', icon: <StarRate />, color: '#C97A7A' }, // = --err
+  { key: 'CONTENT', icon: <Article />, color: '#6FA38A' }, // sage
+  { key: 'STUDIO_ASSIST', icon: <AutoFixHigh />, color: '#8A7FB0' }, // periwinkle
+  { key: 'EMBEDDINGS', icon: <Hub />, color: '#6E8AAD' }, // steel
 ];
 
 // Gabarit de ligne partage par ModelRow et FeatureRow (memes metriques).
@@ -457,7 +457,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                     </NativeSelectOption>
                     {models.map((m) => (
                       <NativeSelectOption key={m.id} value={m.id}>
-                        {`${m.label} · ${m.desc}`}
+                        {`${m.label} · ${t(m.descKey)}`}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
@@ -550,8 +550,8 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
               <BuiButton asChild variant="ghost" size="xs" className="text-xs font-medium text-muted-foreground">
                 <a href={keyHelpUrl()} target="_blank" rel="noopener noreferrer">
                   {provider === 'nvidia' && modelId
-                    ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
-                    : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
+                    ? t('platformAi.keyHelpModelPage')
+                    : t('platformAi.keyHelp', { provider: PROVIDER_API_KEY_URLS[provider].label })}
                   <OpenInNew size={12} strokeWidth={1.75} />
                 </a>
               </BuiButton>
@@ -773,6 +773,7 @@ function UsageBreakdownTooltip({
   feature: typeof AI_FEATURES[number];
   children: React.ReactElement;
 }) {
+  const { t } = useTranslation();
   if (breakdown.length === 0) {
     return children;
   }
@@ -789,7 +790,7 @@ function UsageBreakdownTooltip({
           {/* Header */}
           <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-border">
             <span className="text-2xs font-semibold uppercase tracking-wide" style={{ color: feature.color }}>
-              {feature.label.toUpperCase()}
+              {t('aiFeatures.' + feature.key + '.label').toUpperCase()}
             </span>
             <span className="text-xs font-semibold tabular-nums">
               ${totalCost.toFixed(4)} USD
@@ -912,7 +913,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       <Switch
         size="sm"
         className="shrink-0"
-        aria-label={feature.label}
+        aria-label={t('aiFeatures.' + feature.key + '.label')}
         checked={enabled}
         onCheckedChange={(next) => onToggle(feature.key, next)}
       />
@@ -920,10 +921,10 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       {/* Feature name + desc */}
       <div className={cn('flex-1 min-w-0', enabled ? 'opacity-100' : 'opacity-50')}>
         <p className="text-xs font-semibold leading-[1.3]">
-          {feature.label}
+          {t('aiFeatures.' + feature.key + '.label')}
         </p>
         <span className="text-xs text-muted-foreground">
-          {feature.desc}
+          {t('aiFeatures.' + feature.key + '.desc')}
         </span>
       </div>
 

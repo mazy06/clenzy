@@ -102,11 +102,11 @@ export default function ReservationActionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 pe-8">
             {guestName && <GuestAvatar name={guestName} size={32} />}
-            <span className="truncate">
+            <span dir="auto" className="truncate">
               {guestName ?? t('dashboard.reservationDialog.fallback', 'Séjour')}
             </span>
           </DialogTitle>
-          {propertyName && <DialogDescription>{propertyName}</DialogDescription>}
+          {propertyName && <DialogDescription dir="auto">{propertyName}</DialogDescription>}
         </DialogHeader>
 
         {isLoading ? (

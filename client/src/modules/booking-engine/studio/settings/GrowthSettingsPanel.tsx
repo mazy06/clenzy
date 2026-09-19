@@ -4,6 +4,9 @@ import StatTile from '../../../../components/baitly/StatTile';
 import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { useCurrency } from '../../../../hooks/useCurrency';
+import { currencySign } from '../../../../utils/currencyUtils';
 
 /**
  * Section « Croissance » du Studio (2) — réglages org-level RÉELLEMENT appliqués :
@@ -12,6 +15,8 @@ import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberCo
  */
 
 export default function GrowthSettingsPanel() {
+  const { t } = useTranslation();
+  const { currency } = useCurrency();
   const [loaded, setLoaded] = useState<GrowthSettings | null>(null);
   const [leadCapture, setLeadCapture] = useState(false);
   const [leadCapturePopup, setLeadCapturePopup] = useState(false);
@@ -81,60 +86,60 @@ export default function GrowthSettingsPanel() {
   return (
     <SettingsPage
       title="Croissance"
-      description="Capture de leads et relance de panier — réellement appliquées côté serveur."
+      description="{t('studio.growth.subtitle')}"
       footer={<SaveBar dirty={dirty} saving={saving} onSave={save} error={error} />}
       intro={
         <Alert variant="info" className="mb-3.5">
           <Info />
           <AlertDescription>
-            Ces réglages s’appliquent à <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
+            {t('studio.growth.appliesTo')} <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
           </AlertDescription>
         </Alert>
       }
     >
-      <SettingCard title="Capture de leads" description="Newsletter / liste d’attente avec consentement RGPD.">
+      <SettingCard title={t('studio.growth.leadCapture')} description={t('studio.growth.leadCaptureHint')}>
         <SettingRow
-          label="Activer la capture de leads"
+          label="{t('studio.growth.enableLeadCapture')}"
           helper="Désactivé, l’endpoint public de capture est refusé (403)."
           control={<ToggleControl checked={leadCapture} onChange={setLeadCapture} />}
         />
         <SettingRow
-          label="Popup de sortie (exit-intent)"
+          label="{t('studio.growth.exitIntent')}"
           helper="Affiche un popup « Ne partez pas les mains vides » à l’intention de sortie. Désactivé par défaut."
           control={<ToggleControl checked={leadCapturePopup} onChange={setLeadCapturePopup} />}
         />
       </SettingCard>
 
-      <SettingCard title="Relance de panier abandonné" description="Email de récupération automatique pour les réservations non finalisées.">
+      <SettingCard title={t('studio.growth.cartRecovery')} description={t('studio.growth.cartRecoveryHint')}>
         <SettingRow
-          label="Activer la relance automatique"
+          label="{t('studio.growth.enableCartRecovery')}"
           helper="Désactivé, le planificateur n’envoie plus d’email de relance pour votre organisation."
           control={<ToggleControl checked={abandoned} onChange={setAbandoned} />}
         />
       </SettingCard>
 
-      <SettingCard title="Crédit fidélité" description="« Book Direct & Save » : récompensez la réservation en direct par du crédit réutilisable.">
+      <SettingCard title="{t('studio.growth.loyaltyCredit')}" description="{t('studio.growth.loyaltyHint')}">
         <SettingRow
-          label="Crédit gagné par séjour direct (%)"
+          label="{t('studio.growth.creditPerStay')}"
           helper="Crédité APRÈS le séjour (check-out passé), réutilisable lors d'une prochaine réservation. 0 = programme désactivé."
           control={<NumberControl value={loyalty} onChange={(v) => setLoyalty(v)} min={0} max={100} />}
         />
       </SettingCard>
 
-      <SettingCard title="Parrainage" description="Récompensez le bouche-à-oreille : parrain et filleul crédités quand le filleul réserve.">
+      <SettingCard title="Parrainage" description="{t('studio.growth.referralHint')}">
         <SettingRow
-          label="Crédit par parrainage réussi (€)"
+          label={t('studio.growth.creditPerReferral', { currency: currencySign(currency) })}
           helper="Montant crédité À CHAQUE côté (parrain et filleul) lorsque le filleul termine son 1er séjour direct. 0 = programme désactivé."
           control={<NumberControl value={referralEuros} onChange={(v) => setReferralEuros(v)} min={0} max={500} />}
         />
       </SettingCard>
 
-      <SettingCard title="Impact" description="Mesures cumulées sur votre organisation.">
+      <SettingCard title="Impact" description="{t('studio.growth.metricsHint')}">
         {/* `bg-muted/40` : les tuiles se détachent de la carte qui les contient
             plutôt que d'empiler deux surfaces `bg-card` identiques. */}
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 py-[9px]">
-          <StatTile icon={<Users />} label="Contacts captés" value={loaded.contactsCaptured} className="bg-muted/40" />
-          <StatTile icon={<ShoppingCart />} label="Paniers relancés" value={loaded.cartsRecovered} className="bg-muted/40" />
+          <StatTile icon={<Users />} label="{t('studio.growth.leadsCaptured')}" value={loaded.contactsCaptured} className="bg-muted/40" />
+          <StatTile icon={<ShoppingCart />} label="{t('studio.growth.cartsRecovered')}" value={loaded.cartsRecovered} className="bg-muted/40" />
         </div>
       </SettingCard>
     </SettingsPage>

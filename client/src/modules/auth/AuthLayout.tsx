@@ -56,13 +56,10 @@ interface ServiceBadge {
 
 interface CarouselSlide {
   /** Texte d'intro avant le highlight (peut etre vide). */
-  tagline: string;
+  id: string;
   /** Phrase mise en exergue en couleur primary. */
-  highlight: string;
   /** Texte court apres le highlight (typiquement la ponctuation). */
-  end: string;
   /** Body texte de preuve / detail. */
-  subtitle: string;
   /**
    * Services / partenaires proeminents pour ce slide. Affiches en puces avec
    * logo monochrome sous le subtitle. Optionnel — slides "hook" sans
@@ -84,36 +81,21 @@ interface CarouselSlide {
 const SLIDES: CarouselSlide[] = [
   // ─── Hook benefit (1-2) ────────────────────────────────────────────────
   {
-    tagline: 'Pendant que vous dormez,',
-    highlight: '8 agents IA optimisent votre revenue par nuit',
-    end: '.',
-    subtitle: 'Pricing dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. La seule chose que vous gardez en main : la stratégie.',
+    id: 's0',
   },
   {
-    tagline: 'Récupérez',
-    highlight: '12h par semaine. Sans embaucher',
-    end: '.',
-    subtitle: 'Vos agents IA pricent vos nuits, répondent aux guests, génèrent vos briefings du matin et alertent sur les anomalies. Vous reprenez le contrôle de votre temps.',
+    id: 's1',
   },
   // ─── Emotional / 24/7 (3-4) ────────────────────────────────────────────
   {
-    tagline: 'Vos guests servis à 3h du matin.',
-    highlight: 'Sans vous réveiller',
-    end: '.',
-    subtitle: "Messagerie IA multilingue qui répond aux questions check-in, codes wifi, recommandations resto. Vous gérez les exceptions, l'IA gère la routine.",
+    id: 's2',
   },
   {
-    tagline: 'De 1 à 100 propriétés,',
-    highlight: 'sans embaucher un seul gestionnaire',
-    end: '.',
-    subtitle: 'Architecture multi-agents qui scale linéairement. Pricing, messaging, analytics, briefings, sentiment — tout reste fluide quand votre portefeuille grossit.',
+    id: 's3',
   },
   // ─── Onboarding speed (5) ──────────────────────────────────────────────
   {
-    tagline: 'De zéro à',
-    highlight: '1ère réservation en 24 heures',
-    end: '.',
-    subtitle: "Import automatique depuis vos canaux existants, descriptions générées par IA, photos analysées et notées. Setup en 15 minutes, première nuit vendue le lendemain. Pas 3 semaines comme chez les autres.",
+    id: 's4',
     services: [
       { slug: 'airbnb', name: 'Airbnb' },
       { slug: 'bookingdotcom', name: 'Booking.com' },
@@ -121,10 +103,7 @@ const SLIDES: CarouselSlide[] = [
   },
   // ─── Channels integration (6) — enrichi avec les 7 OTAs deployees ─────
   {
-    tagline: 'Un seul calendrier pour',
-    highlight: 'tous vos canaux de distribution',
-    end: '.',
-    subtitle: "Synchronisation temps réel via Channex et nos connecteurs natifs. Plus de double-booking, plus de prix incohérents entre canaux. CalendarEngine source-of-truth, push instantané via outbox + Kafka.",
+    id: 's5',
     services: [
       { slug: 'airbnb', name: 'Airbnb' },
       { slug: 'bookingdotcom', name: 'Booking.com' },
@@ -136,10 +115,7 @@ const SLIDES: CarouselSlide[] = [
   },
   // ─── Smart locks orchestration (7) — Nuki + KeyNest + Tuya prod ───────
   {
-    tagline: 'Codes d’accès générés à la volée.',
-    highlight: 'Toutes vos serrures connectées orchestrées',
-    end: '.',
-    subtitle: "Le code expire automatiquement au checkout, la batterie de la serrure est monitorée, les clés perdues chez KeyNest sont tracées en temps réel. Vous ne donnez plus jamais un code à la main.",
+    id: 's6',
     services: [
       { slug: null, name: 'Nuki' },
       { slug: null, name: 'KeyNest' },
@@ -151,11 +127,7 @@ const SLIDES: CarouselSlide[] = [
   // (`MessageChannelType.SMS` existe dans le modèle mais n'a pas de canal
   // d'envoi). Annoncer le contraire promettait une capacité inexistante.
   {
-    tagline: '',
-    highlight: 'WhatsApp et email — tout sur un seul fil de discussion',
-    end: '.',
-    subtitle:
-      "Vos guests vous répondent où ils sont, sans installer d'app. Conversations centralisées côté Baitly, traduction automatique et réponses IA suggérées. La concurrence éclate ça en plusieurs outils, vous l'avez en un.",
+    id: 's7',
     services: [
       { slug: 'whatsapp', name: 'WhatsApp' },
       { slug: 'gmail', name: 'Email' },
@@ -163,10 +135,7 @@ const SLIDES: CarouselSlide[] = [
   },
   // ─── Multi-country accounting (9) — Pennylane/QB/Xero/Sage prod ──────
   {
-    tagline: 'Votre comptabilité connectée,',
-    highlight: 'que vous soyez en France, UK, Australie ou USA',
-    end: '.',
-    subtitle: "Baitly s'adapte à votre juridiction. Factures synchronisées, supplier invoices importées, déclarations fiscales préparées. Vos revenus consolidés multi-pays en un seul dashboard.",
+    id: 's8',
     services: [
       { slug: null, name: 'Pennylane' },
       { slug: 'quickbooks', name: 'QuickBooks' },
@@ -176,19 +145,13 @@ const SLIDES: CarouselSlide[] = [
   },
   // ─── Comparative differentiators (10-11) — attaque frontale vs concurrence
   {
-    tagline: 'Vos contrats signés',
-    highlight: 'en 30 secondes, sans quitter Baitly',
-    end: '.',
-    subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. Signature eIDAS intégrée nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
+    id: 's9',
     services: [
       { slug: 'docusign', name: 'DocuSign' },
     ],
   },
   {
-    tagline: '',
-    highlight: 'API ouverte, données exportables en un clic',
-    end: '.',
-    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Webhooks et intégrations natives. Pas de lock-in. Là où Guesty vous emprisonne, Baitly vous libère.",
+    id: 's10',
     services: [
       { slug: 'zapier', name: 'Zapier' },
       { slug: 'notion', name: 'Notion' },
@@ -420,13 +383,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
                   }}
                 >
-                  {current.tagline && (
+                  {t('auth.slides.' + current.id + '.tagline') && (
                     <>
-                      {/* Fallback i18n sur le slide 0 (les autres slides
-                          sont hardcodes FR — cf. TODO sur SLIDES ci-dessus) */}
-                      {slideIndex === 0
-                        ? t('auth.layout.tagline', current.tagline)
-                        : current.tagline}{' '}
+                      {t('auth.slides.' + current.id + '.tagline')}{' '}
                     </>
                   )}
                   {/* Highlight : brand-light renforce (#A8C8D6) en photo mode
@@ -434,13 +393,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                       sober. #A8C8D6 vs #89B1C2 = +20% luminosite => meilleure
                       lisibilite sur l'overlay+photo darkened. */}
                   <span style={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
-                    {slideIndex === 0
-                      ? t('auth.layout.taglineHighlight', current.highlight)
-                      : current.highlight}
+                    {t('auth.slides.' + current.id + '.highlight')}
                   </span>
-                  {slideIndex === 0
-                    ? t('auth.layout.taglineEnd', current.end)
-                    : current.end}
+                  {t('auth.slides.' + current.id + '.end')}
                 </h2>
                 {/* Subtitle — reduit de 0.95rem a 0.8125rem (13px) pour
                     creer une hierarchie nette avec le titre. Lineheight 1.7
@@ -453,9 +408,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
                   }}
                 >
-                  {slideIndex === 0
-                    ? t('auth.layout.subtitle', current.subtitle)
-                    : current.subtitle}
+                  {t('auth.slides.' + current.id + '.subtitle')}
                 </p>
 
                 {/* Services chips — affichees uniquement si le slide a des

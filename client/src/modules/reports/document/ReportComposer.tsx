@@ -31,6 +31,9 @@ import {
 } from '../../../services/api/reportDocumentsApi';
 import SnapshotView from './SnapshotView';
 import ReportLibrary from './ReportLibrary';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { Trans } from 'react-i18next';
 
 /**
  * Composition d'un rapport d'analyse.
@@ -47,33 +50,35 @@ import ReportLibrary from './ReportLibrary';
  */
 
 /** Les sections disponibles, dans l'ordre de lecture du document. */
-const SECTIONS: Array<{ id: string; label: string; always?: boolean }> = [
-  { id: 'highlights', label: 'Faits marquants' },
-  { id: 'performance', label: 'Performance commerciale', always: true },
-  { id: 'occupancy', label: 'Occupation' },
-  { id: 'cancellations', label: 'Réservations annulées' },
-  { id: 'distribution', label: 'Mix de distribution' },
-  { id: 'pnl', label: 'Compte de résultat' },
-  { id: 'settlement', label: 'Encaissements' },
-  { id: 'upsells', label: 'Ventes additionnelles' },
-  { id: 'properties', label: 'Détail par bien' },
-  { id: 'benchmark', label: 'Comparaison entre biens' },
-  { id: 'outlook', label: 'Perspectives' },
-  { id: 'pricing', label: 'Positionnement tarifaire' },
-  { id: 'seasonality', label: 'Saisonnalité' },
-  { id: 'leadtime', label: 'Délai de réservation' },
-  { id: 'decisions', label: 'Ce qu’il faut décider' },
-  { id: 'reputation', label: 'Avis voyageurs' },
-  { id: 'nuisances', label: 'Nuisances signalées' },
-  { id: 'operations', label: 'Ce que nous avons fait' },
-  { id: 'expenses', label: 'Détail des charges' },
-  { id: 'stays', label: 'Détail des séjours' },
-  { id: 'glossary', label: 'Définitions' },
-  { id: 'notice', label: 'Périmètre et méthode', always: true },
+const SECTIONS: Array<{ id: string; always?: boolean }> = [
+  { id: 'highlights' },
+  { id: 'performance', always: true },
+  { id: 'occupancy' },
+  { id: 'cancellations' },
+  { id: 'distribution' },
+  { id: 'pnl' },
+  { id: 'settlement' },
+  { id: 'upsells' },
+  { id: 'properties' },
+  { id: 'benchmark' },
+  { id: 'outlook' },
+  { id: 'pricing' },
+  { id: 'seasonality' },
+  { id: 'leadtime' },
+  { id: 'decisions' },
+  { id: 'reputation' },
+  { id: 'nuisances' },
+  { id: 'operations' },
+  { id: 'expenses' },
+  { id: 'stays' },
+  { id: 'glossary' },
+  { id: 'notice', always: true },
 ];
 
 const SECTION_ORDER = SECTIONS.map((section) => section.id);
-const LABEL_OF = new Map(SECTIONS.map((section) => [section.id, section.label]));
+const SECTION_IDS = new Set(SECTION_ORDER);
+/** Le libelle d'une section se resout a l'affichage : `reports.sections.<id>`. */
+const sectionLabelKey = (id: string) => `reports.docSections.${id}`;
 
 /**
  * Les sections, par famille.
@@ -82,18 +87,18 @@ const LABEL_OF = new Map(SECTIONS.map((section) => [section.id, section.label]))
  * au lieu de decider par bloc. Regroupees, on retire « tout l'argent » ou « tout
  * l'exploitation » d'un geste.</p>
  */
-const SECTION_GROUPS: Array<{ key: string; label: string; ids: string[] }> = [
+const SECTION_GROUPS: Array<{ key: string; labelKey: string; ids: string[] }> = [
   {
     key: 'activity',
-    label: 'Activité',
+    labelKey: 'reports.sectionGroups.activity',
     ids: ['highlights', 'performance', 'occupancy', 'cancellations', 'distribution',
       'leadtime', 'seasonality', 'pricing'],
   },
-  { key: 'money', label: 'Argent', ids: ['pnl', 'settlement', 'upsells', 'expenses'] },
-  { key: 'assets', label: 'Biens et séjours', ids: ['properties', 'benchmark', 'stays'] },
-  { key: 'ops', label: 'Exploitation', ids: ['operations', 'reputation', 'nuisances'] },
-  { key: 'forward', label: 'Suites à donner', ids: ['outlook', 'decisions'] },
-  { key: 'annex', label: 'Annexes', ids: ['glossary', 'notice'] },
+  { key: 'money', labelKey: 'reports.sectionGroups.money', ids: ['pnl', 'settlement', 'upsells', 'expenses'] },
+  { key: 'assets', labelKey: 'reports.sectionGroups.assets', ids: ['properties', 'benchmark', 'stays'] },
+  { key: 'ops', labelKey: 'reports.sectionGroups.ops', ids: ['operations', 'reputation', 'nuisances'] },
+  { key: 'forward', labelKey: 'reports.sectionGroups.forward', ids: ['outlook', 'decisions'] },
+  { key: 'annex', labelKey: 'reports.sectionGroups.annex', ids: ['glossary', 'notice'] },
 ];
 
 /**
@@ -111,41 +116,43 @@ const SECTION_GROUPS: Array<{ key: string; label: string; ids: string[] }> = [
  */
 const AUDIENCES: Array<{
   profile: ReportProfile;
-  label: string;
+  labelKey: string;
+  /**
+   * NON traduit, et c'est deliberé : {@code ReportSnapshotBuilder.title} ecrit
+   * ce libelle EN DUR en francais dans le document produit. Le traduire ici
+   * ferait annoncer a l'ecran un titre que le document ne portera pas.
+   */
   nature: string;
-  description: string;
+  descriptionKey: string;
   icon: LucideIcon;
   sections: string[];
 }> = [
   {
     profile: 'OWNER',
-    label: 'Propriétaire',
+    labelKey: 'reports.audiences.owner.label',
     nature: 'Relevé de gestion',
     icon: House,
-    description:
-      'Le ton d’un relevé de gestion : compte de résultat, encaissements et définitions des indicateurs.',
+    descriptionKey: 'reports.audiences.owner.description',
     sections: ['highlights', 'performance', 'occupancy', 'cancellations', 'distribution', 'pnl',
       'settlement', 'upsells', 'outlook', 'pricing', 'seasonality', 'decisions', 'reputation',
       'nuisances', 'operations', 'expenses', 'stays', 'glossary', 'notice'],
   },
   {
     profile: 'INTERNAL',
-    label: 'Équipe interne',
+    labelKey: 'reports.audiences.internal.label',
     nature: 'Revue de performance',
     icon: Users,
-    description:
-      'Dense et sans glossaire : le détail bien par bien, les écarts et ce qu’il faut arbitrer.',
+    descriptionKey: 'reports.audiences.internal.description',
     sections: ['highlights', 'performance', 'occupancy', 'cancellations', 'distribution',
       'properties', 'benchmark', 'outlook', 'pricing', 'seasonality', 'leadtime', 'decisions',
       'reputation', 'nuisances', 'operations', 'expenses', 'stays', 'notice'],
   },
   {
     profile: 'PROSPECT',
-    label: 'Prospect',
+    labelKey: 'reports.audiences.prospect.label',
     nature: 'Dossier de performance',
     icon: TrendingUp,
-    description:
-      'Une preuve de performance : aucun nom de propriétaire, aucune adresse, aucun montant nominatif.',
+    descriptionKey: 'reports.audiences.prospect.description',
     sections: ['highlights', 'performance', 'occupancy', 'distribution', 'outlook', 'pricing',
       'seasonality', 'notice'],
   },
@@ -160,10 +167,10 @@ const AUDIENCES: Array<{
  */
 const CONSOLIDATED_EXTRAS = ['properties', 'benchmark', 'leadtime'];
 
-const GROUPINGS: Array<{ value: ReportGroupBy; label: string }> = [
-  { value: 'NONE', label: 'Un seul document' },
-  { value: 'OWNER', label: 'Un par propriétaire' },
-  { value: 'PROPERTY', label: 'Un par bien' },
+const GROUPINGS: Array<{ value: ReportGroupBy; labelKey: string }> = [
+  { value: 'NONE', labelKey: 'reports.groupings.none' },
+  { value: 'OWNER', labelKey: 'reports.groupings.owner' },
+  { value: 'PROPERTY', labelKey: 'reports.groupings.property' },
 ];
 
 const sectionsFor = (profile: ReportProfile, groupBy: ReportGroupBy): string[] => {
@@ -187,6 +194,7 @@ const isoDate = (date: Date) => date.toISOString().slice(0, 10);
  */
 const documentTitle = (profile: ReportProfile, from: string, to: string): string => {
   const nature = AUDIENCES.find((item) => item.profile === profile)?.nature ?? 'Rapport';
+  // `nature` reste francais : c'est le titre que le serveur ecrira (cf. AUDIENCES).
   return `${nature} — ${titlePeriod(from, to)}`;
 };
 
@@ -198,7 +206,7 @@ const titlePeriod = (from: string, to: string): string => {
 
   const lastOfMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0);
   if (start.getDate() === 1 && end.getTime() === lastOfMonth.getTime()) {
-    return start.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return start.toLocaleDateString(activeIntlLocale(), { month: 'long', year: 'numeric' });
   }
   const isFullYear =
     start.getMonth() === 0 && start.getDate() === 1
@@ -207,15 +215,15 @@ const titlePeriod = (from: string, to: string): string => {
   if (isFullYear) return String(start.getFullYear());
 
   const day = (date: Date) =>
-    date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    date.toLocaleDateString(activeIntlLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
   return `${day(start)} – ${day(end)}`;
 };
 
 /** Raccourcis de periode : on compose presque toujours sur un mois clos. */
-const PERIODS: Array<{ value: string; label: string; range: () => [string, string] }> = [
+const PERIODS: Array<{ value: string; labelKey: string; range: () => [string, string] }> = [
   {
     value: 'last-month',
-    label: 'Mois dernier',
+    labelKey: 'reports.periods.lastMonth',
     range: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -225,7 +233,7 @@ const PERIODS: Array<{ value: string; label: string; range: () => [string, strin
   },
   {
     value: 'quarter',
-    label: 'Trimestre',
+    labelKey: 'reports.periods.quarter',
     range: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
@@ -235,7 +243,7 @@ const PERIODS: Array<{ value: string; label: string; range: () => [string, strin
   },
   {
     value: 'year',
-    label: 'Année en cours',
+    labelKey: 'reports.periods.year',
     range: () => {
       const now = new Date();
       return [isoDate(new Date(now.getFullYear(), 0, 1)), isoDate(now)];
@@ -249,6 +257,7 @@ type Viewer =
   | { kind: 'document'; document: ReportDocumentSummary; batch: number };
 
 const ReportComposer: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [profile, setProfile] = useState<ReportProfile>('OWNER');
@@ -402,8 +411,8 @@ const ReportComposer: React.FC = () => {
         <div className="flex min-w-0 flex-col gap-3">
           <ChartTile
             fluid
-            title="Pour qui ce rapport ?"
-            hint="Le destinataire décide du ton, du contenu et de ce qui est masqué"
+            title={t('reports.composer.audienceTitle')}
+            hint={t('reports.composer.audienceHint')}
           >
             <div className="flex flex-col gap-3 pt-1">
               <div className="grid gap-2 min-[720px]:grid-cols-3">
@@ -411,9 +420,9 @@ const ReportComposer: React.FC = () => {
                   <AudienceCard
                     key={audience.profile}
                     icon={audience.icon}
-                    label={audience.label}
+                    label={t(audience.labelKey)}
                     nature={audience.nature}
-                    description={audience.description}
+                    description={t(audience.descriptionKey)}
                     count={sectionsFor(audience.profile, groupBy).length}
                     selected={profile === audience.profile}
                     onSelect={() => applyAudience(audience.profile)}
@@ -423,37 +432,40 @@ const ReportComposer: React.FC = () => {
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-foreground">Découpage</span>
+                  <span className="text-xs font-medium text-foreground">{t('reports.composer.split')}</span>
                   <PeriodSegmented
-                    ariaLabel="Découpage des documents"
+                    ariaLabel={t('reports.composer.splitAria')}
                     value={groupBy}
                     onChange={(value) => applyGrouping(value as ReportGroupBy)}
-                    options={GROUPINGS}
+                    options={GROUPINGS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
                   />
                 </div>
                 <p className="m-0 text-xs text-muted-foreground">
-                  Cette demande produira{' '}
-                  <b className="tabular-nums text-foreground">{documentCount}</b>{' '}
-                  document{documentCount > 1 ? 's' : ''}
+                  <Trans
+                    i18nKey="reports.composer.willProduce"
+                    count={documentCount}
+                    values={{ count: documentCount }}
+                    components={{ b: <b className="tabular-nums text-foreground" /> }}
+                  />
                 </p>
               </div>
             </div>
           </ChartTile>
 
-          <ChartTile fluid title="Sur quoi ?" hint="Période et biens couverts">
+          <ChartTile fluid title={t('reports.composer.scopeTitle')} hint={t('reports.composer.scopeHint')}>
             <div className="flex flex-col gap-3 pt-1">
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-foreground">Période</span>
+                  <span className="text-xs font-medium text-foreground">{t('reports.composer.period')}</span>
                   <PeriodSegmented
-                    ariaLabel="Période du rapport"
+                    ariaLabel={t('reports.composer.periodAria')}
                     value={period}
                     onChange={applyPeriod}
-                    options={PERIODS.map(({ value, label }) => ({ value, label }))}
+                    options={PERIODS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
                   />
                 </div>
                 <Field className="w-36">
-                  <FieldLabel htmlFor="report-from">Du</FieldLabel>
+                  <FieldLabel htmlFor="report-from">{t('reports.composer.from')}</FieldLabel>
                   <Input
                     id="report-from"
                     type="date"
@@ -462,7 +474,7 @@ const ReportComposer: React.FC = () => {
                   />
                 </Field>
                 <Field className="w-36">
-                  <FieldLabel htmlFor="report-to">Au</FieldLabel>
+                  <FieldLabel htmlFor="report-to">{t('reports.composer.to')}</FieldLabel>
                   <Input
                     id="report-to"
                     type="date"
@@ -474,14 +486,14 @@ const ReportComposer: React.FC = () => {
 
               {!canRun && (
                 <p className="m-0 text-xs text-destructive">
-                  La date de fin précède la date de début.
+                  {t('reports.composer.endBeforeStart')}
                 </p>
               )}
 
               {owners.length > 0 && (
                 <Picker
-                  label="Propriétaires"
-                  hint={ownerIds.length === 0 ? 'tous' : `${ownerIds.length} sélectionné(s)`}
+                  label={t('reports.composer.owners')}
+                  hint={ownerIds.length === 0 ? t('reports.composer.pickerAll') : t('reports.composer.pickerSelected', { count: ownerIds.length })}
                   onClear={ownerIds.length ? () => setOwnerIds([]) : undefined}
                 >
                   {owners.map((owner) => (
@@ -499,8 +511,8 @@ const ReportComposer: React.FC = () => {
               )}
 
               <Picker
-                label="Biens"
-                hint={propertyIds.length === 0 ? 'tous' : `${propertyIds.length} sélectionné(s)`}
+                label={t('reports.composer.properties')}
+                hint={propertyIds.length === 0 ? t('reports.composer.pickerAll') : t('reports.composer.pickerSelected', { count: propertyIds.length })}
                 onClear={propertyIds.length ? () => setPropertyIds([]) : undefined}
                 scroll
               >
@@ -521,17 +533,17 @@ const ReportComposer: React.FC = () => {
 
           <ChartTile
             fluid
-            title="Que contient-il ?"
-            hint={`${sections.length} section${sections.length > 1 ? 's' : ''} retenue${sections.length > 1 ? 's' : ''}`}
+            title={t('reports.composer.contentTitle')}
+            hint={t('reports.composer.sectionsKept', { count: sections.length })}
           >
             <div className="flex flex-col gap-3 pt-1">
               {SECTION_GROUPS.map((group) => {
-                const ids = group.ids.filter((id) => LABEL_OF.has(id));
+                const ids = group.ids.filter((id) => SECTION_IDS.has(id));
                 const on = ids.filter((id) => sections.includes(id)).length;
                 return (
                   <div key={group.key} className="flex flex-col gap-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-medium text-foreground">{group.label}</span>
+                      <span className="text-xs font-medium text-foreground">{t(group.labelKey)}</span>
                       <span className="text-2xs tabular-nums text-muted-foreground">
                         {on}/{ids.length}
                       </span>
@@ -540,7 +552,9 @@ const ReportComposer: React.FC = () => {
                         onClick={() => setGroup(ids, on < ids.length)}
                         className="cursor-pointer text-2xs text-muted-foreground underline-offset-2 transition-colors duration-200 hover:text-foreground hover:underline"
                       >
-                        {on < ids.length ? 'tout inclure' : 'tout retirer'}
+                        {on < ids.length
+                          ? t('reports.composer.includeAll')
+                          : t('reports.composer.removeAll')}
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -553,7 +567,7 @@ const ReportComposer: React.FC = () => {
                             tone="accent"
                             selected={sections.includes(id)}
                             pressed={sections.includes(id)}
-                            label={LABEL_OF.get(id) ?? id}
+                            label={SECTION_IDS.has(id) ? t(sectionLabelKey(id)) : id}
                             onClick={locked ? undefined : () => toggle(sections, id, (next) =>
                               setSections(SECTION_ORDER.filter((sid) => next.includes(sid))))}
                           />
@@ -572,32 +586,28 @@ const ReportComposer: React.FC = () => {
                   onChange={(e) => setWithNarrative(e.target.checked)}
                 />
                 <span>
-                  <span className="font-semibold text-foreground">Faire commenter par l'assistant</span>
+                  <span className="font-semibold text-foreground">{t('reports.composer.narrativeTitle')}</span>
                   <span className="block text-muted-foreground">
-                    L'assistant commente les chiffres présentés, jamais il n'en produit : tout nombre
-                    absent du document fait rejeter le commentaire. Le rapport reste en brouillon
-                    jusqu'à votre relecture.
+                    {t('reports.composer.narrativeBody')}
                   </span>
                 </span>
               </label>
 
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-foreground">Titre du document</span>
+              <span className="text-xs font-medium text-foreground">{t('reports.composer.documentTitle')}</span>
               {/* Etabli, pas saisi : le nom d'un document dit ce qu'il contient. */}
               <p className="m-0 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-sm font-semibold text-foreground">
                 {documentTitle(profile, from, to)}
               </p>
               <span className="text-2xs text-muted-foreground">
-                Le titre découle du destinataire et de la période — il n’est pas modifiable pour
-                qu’un document ne puisse jamais annoncer autre chose que ce qu’il contient.
+                {t('reports.composer.documentTitleHint')}
               </span>
             </div>
             </div>
           </ChartTile>
 
           <p className="m-0 text-2xs text-muted-foreground">
-            L’aperçu ne consomme pas l’assistant et ne crée aucun document. La génération produit
-            un brouillon, qu’il reste à envoyer.
+            {t('reports.composer.previewNote')}
           </p>
         </div>
 
@@ -612,14 +622,14 @@ const ReportComposer: React.FC = () => {
         <Alert variant="destructive">
           <TriangleAlert />
           <AlertDescription>
-            La génération a échoué. Vérifiez que le périmètre contient au moins un bien.
+            {t('reports.composer.generateError')}
           </AlertDescription>
         </Alert>
       )}
       {previewMutation.isError && (
         <Alert variant="destructive">
           <TriangleAlert />
-          <AlertDescription>L’aperçu a échoué. Vérifiez la période et le périmètre.</AlertDescription>
+          <AlertDescription>{t('reports.composer.previewError')}</AlertDescription>
         </Alert>
       )}
 
@@ -629,14 +639,14 @@ const ReportComposer: React.FC = () => {
             <DialogTitle>
               {viewer?.kind === 'document'
                 ? `${viewer.document.title} · ${viewer.document.documentNumber}`
-                : 'Aperçu du rapport'}
+                : t('reports.composer.previewTitle')}
             </DialogTitle>
             <DialogDescription>
               {viewer?.kind === 'document'
-                ? `Version ${viewer.document.version}${
+                ? `${t('reports.composer.version', { version: viewer.document.version })}${
                     viewer.document.recipientName ? ` · ${viewer.document.recipientName}` : ''
-                  }${viewer.batch > 1 ? ` · ${viewer.batch} documents produits` : ''}`
-                : 'Calculé sans rien enregistrer — ce que vous voyez est ce qui sera rendu.'}
+                  }${viewer.batch > 1 ? ` · ${t('reports.composer.producedDocuments', { count: viewer.batch })}` : ''}`
+                : t('reports.composer.previewSubtitle')}
             </DialogDescription>
           </DialogHeader>
 
@@ -662,11 +672,11 @@ const ReportComposer: React.FC = () => {
                   )
                 }
               >
-                Télécharger le PDF
+                {t('reports.composer.downloadPdf')}
               </Button>
             ) : null}
             <Button size="sm" onClick={() => setViewer(null)}>
-              Fermer
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -690,7 +700,9 @@ const AudienceCard: React.FC<{
   count: number;
   selected: boolean;
   onSelect: () => void;
-}> = ({ icon: Icon, label, nature, description, count, selected, onSelect }) => (
+}> = ({ icon: Icon, label, nature, description, count, selected, onSelect }) => {
+  const { t } = useTranslation();
+  return (
   <button
     type="button"
     onClick={onSelect}
@@ -725,9 +737,12 @@ const AudienceCard: React.FC<{
       />
     </span>
     <span className="text-xs text-muted-foreground">{description}</span>
-    <span className="mt-auto text-2xs tabular-nums text-muted-foreground">{count} sections</span>
+    <span className="mt-auto text-2xs tabular-nums text-muted-foreground">
+      {t('reports.composer.sectionCount', { count })}
+    </span>
   </button>
-);
+  );
+};
 
 /** Une liste d'étiquettes à cocher, avec son compteur et sa remise à zéro. */
 const Picker: React.FC<{
@@ -736,7 +751,9 @@ const Picker: React.FC<{
   onClear?: () => void;
   scroll?: boolean;
   children: React.ReactNode;
-}> = ({ label, hint, onClear, scroll, children }) => (
+}> = ({ label, hint, onClear, scroll, children }) => {
+  const { t } = useTranslation();
+  return (
   <div className="flex flex-col gap-1">
     <div className="flex items-baseline gap-2">
       <span className="text-xs font-medium text-foreground">{label}</span>
@@ -747,7 +764,7 @@ const Picker: React.FC<{
           onClick={onClear}
           className="cursor-pointer text-2xs text-muted-foreground underline-offset-2 transition-colors duration-200 hover:text-foreground hover:underline"
         >
-          tout désélectionner
+          {t('reports.composer.clearAll')}
         </button>
       ) : null}
     </div>
@@ -755,6 +772,7 @@ const Picker: React.FC<{
       {children}
     </div>
   </div>
-);
+  );
+};
 
 export default ReportComposer;

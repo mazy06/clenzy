@@ -143,7 +143,7 @@ function ActivityFeedInner({
                 {isOrchestrator
                   ? t('supervision.hud.orchestrator')
                   : t('supervision.feed.agentLine', { name: t(meta.nameKey), defaultValue: 'Agent {{name}}' })}
-                {propertyName && <span className="min-w-0 truncate">· {propertyName}</span>}
+                {propertyName && <span dir="auto" className="min-w-0 truncate">· {propertyName}</span>}
                 {awaitsValidation && (
                   <span className="font-medium text-warning-ink">
                     {t('supervision.feed.validationRequired', 'validation requise')}

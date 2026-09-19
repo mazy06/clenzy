@@ -64,7 +64,7 @@ describe('SimulationWidget (smoke)', () => {
     }} />);
 
     expect(screen.getByText('Simulation blocage Loft (10 jours)')).toBeInTheDocument();
-    expect(screen.getByText('Perte estimee de revenue')).toBeInTheDocument();
+    expect(screen.getByText('Perte estimée de revenu')).toBeInTheDocument();
     // KPI tiles
     expect(screen.getByText('Occupation attendue')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();

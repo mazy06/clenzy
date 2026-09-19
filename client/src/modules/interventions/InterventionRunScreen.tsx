@@ -134,7 +134,7 @@ export default function InterventionRunScreen() {
             <p className="truncate text-sm font-semibold leading-tight text-foreground">
               {intervention?.title}
             </p>
-            <p className="truncate text-xs text-muted-foreground">{intervention?.propertyName}</p>
+            <p dir="auto" className="truncate text-xs text-muted-foreground">{intervention?.propertyName}</p>
           </div>
           {elapsed && (
             <span

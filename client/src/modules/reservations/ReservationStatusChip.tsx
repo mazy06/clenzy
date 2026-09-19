@@ -1,29 +1,40 @@
 import React from 'react';
 import type { ReservationStatus, ReservationSource } from '../../services/api/reservationsApi';
 import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
-import {
-  RESERVATION_STATUS_TOKEN_COLORS,
-  PLANNING_DEPARTURE_TINT,
-} from '../planning/constants';
 import { getSourceLogo } from '../planning/utils/sourceLogos';
 import { getChannelChipTokens } from '../../utils/channelChipTokens';
 import { useTranslation } from '../../hooks/useTranslation';
-import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 
-// ─── Statuts : couleurs VALIDÉES planning (constantes locales planning) ──────
-//
-// Texte couleur + fond `-soft` (pattern chips statut du PanelReservationInfo).
-// Annulée = fantôme neutre (--hover / --muted), cohérent avec la brique hachurée.
+/**
+ * Statut et source d'une réservation, SANS pastille.
+ *
+ * <p>Les deux colonnes se suivent dans le tableau. Chacune portait un aplat
+ * coloré sur CHAQUE ligne : deux murs de pastel côte à côte, qui pesaient plus
+ * que les dates et le montant qu'on vient y lire. La couleur revient donc à
+ * une marque de 7 px pour le statut, et au logo du canal pour la source — elle
+ * ne sert plus de fond, seulement de repère.</p>
+ *
+ * <p>Au passage, un vrai défaut disparaît : l'encre du statut « Confirmée »
+ * était un BRUN (#7A5230, palette du planning, calibrée pour ses fonds sable)
+ * posé sur le vert de {@code --ok-soft}. Les deux viennent désormais de la même
+ * famille sémantique.</p>
+ */
 
-const STATUS_SOFT: Record<string, string> = {
-  confirmed: 'var(--ok-soft)',
-  pending: 'var(--warn-soft)',
-  checked_in: 'var(--info-soft)',
-  checked_out: `${PLANNING_DEPARTURE_TINT}1F`,
-  cancelled: 'var(--hover)',
+/**
+ * La FORME dit l'état, pas seulement la couleur : marque pleine tant que le
+ * séjour est devant ou en cours, creuse une fois qu'il est derrière. Un coup
+ * d'œil sur la colonne sépare l'actif du clos sans lire un mot.
+ */
+const STATUS_TONE: Record<string, { ink: string; hollow?: boolean }> = {
+  confirmed: { ink: 'var(--bui-success-ink)' },
+  pending: { ink: 'var(--bui-warning-ink)' },
+  checked_in: { ink: 'var(--bui-info-ink)' },
+  checked_out: { ink: 'var(--bui-muted-foreground)', hollow: true },
+  cancelled: { ink: 'var(--bui-destructive-ink)', hollow: true },
 };
 
-// ─── Status Chip ─────────────────────────────────────────────────────────────
+const NEUTRAL_TONE = { ink: 'var(--bui-muted-foreground)', hollow: true };
 
 interface StatusChipProps {
   status: ReservationStatus;
@@ -31,51 +42,53 @@ interface StatusChipProps {
 
 export const ReservationStatusChip: React.FC<StatusChipProps> = ({ status }) => {
   const { t } = useTranslation();
-  const color =
-    status === 'cancelled'
-      ? 'var(--muted)'
-      : RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--muted)';
-  const soft = STATUS_SOFT[status] ?? 'var(--hover)';
+  const tone = STATUS_TONE[status] ?? NEUTRAL_TONE;
   const label = t(`reservations.status.${status}`) as string;
 
   return (
-    <StatusChip
-      pill
-      tokens={{ color, bg: soft }}
-      label={label}
-      icon={
-        <span
-          aria-hidden
-          className="size-[9px] shrink-0 rounded-[3px]"
-          style={{ backgroundColor: color }}
-        />
-      }
-    />
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      <span
+        aria-hidden
+        className="size-[7px] shrink-0 rounded-full"
+        style={
+          tone.hollow
+            ? { boxShadow: `inset 0 0 0 1.5px ${tone.ink}` }
+            : { backgroundColor: tone.ink }
+        }
+      />
+      <span className="text-xs font-medium" style={{ color: tone.ink }}>
+        {label}
+      </span>
+    </span>
   );
 };
 
-// ─── Source Badge : pastille canal (logo + tokens de canal) ──────────────────
-
-/** Tokens de canal (airbnb / booking / direct), repli neutre — pattern planning. */
 interface SourceBadgeProps {
   source: ReservationSource;
 }
 
 export const ReservationSourceBadge: React.FC<SourceBadgeProps> = ({ source }) => {
-  const tokens = getChannelChipTokens(source);
   const label = RESERVATION_SOURCE_LABELS[source] ?? source;
   const logo = getSourceLogo(source);
+  /* Réservé aux canaux SANS logo — une réservation directe n'en a pas. La
+     pastille des canaux reste la source de vérité de leur couleur. */
+  const tokens = getChannelChipTokens(source);
 
   return (
-    <StatusChip
-      pill
-      tokens={tokens}
-      label={label}
-      icon={
-        logo ? (
-          <img className="block size-[13px] object-contain" src={logo} alt="" />
-        ) : undefined
-      }
-    />
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      {/* Boîte de largeur fixe, logo ou pas : les libellés de la colonne
+          s'alignent, sinon « Direct » partait seul de trois pixels à gauche. */}
+      <span aria-hidden className="flex size-4 shrink-0 items-center justify-center">
+        {logo ? (
+          <img className="block size-4 object-contain" src={logo} alt="" />
+        ) : (
+          <span
+            className="size-[7px] rounded-full"
+            style={{ backgroundColor: tokens.color }}
+          />
+        )}
+      </span>
+      <span className={cn('text-xs font-medium text-foreground')}>{label}</span>
+    </span>
   );
 };

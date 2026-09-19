@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui';
 import AiDesignMatcher from '../AiDesignMatcher';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Modale « Analyse du design » du Studio (reprise de la feature de l'ancienne config).
@@ -17,6 +18,7 @@ export interface DesignAnalysisModalProps {
 }
 
 export default function DesignAnalysisModal({ open, onClose, configId, initialUrl, onApply }: DesignAnalysisModalProps) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState(initialUrl);
 
   return (
@@ -26,13 +28,12 @@ export default function DesignAnalysisModal({ open, onClose, configId, initialUr
       <DialogContent className="w-full sm:max-w-[600px] rounded-xl">
         <DialogHeader>
           <DialogTitle className="font-[family-name:var(--font-display)] text-base font-bold text-foreground pe-8">
-            Analyse du design
+            {t('studio.designAnalysis.title')}
           </DialogTitle>
         </DialogHeader>
         <div>
           <div className="text-xs text-muted-foreground mb-3 leading-[1.5]">
-            Renseigne l’URL du site du client : l’IA en extrait les couleurs/typo et applique le design
-            au widget de réservation et aux blocs de la page.
+            {t('studio.designAnalysis.hint')}
           </div>
           <AiDesignMatcher
             configId={configId}

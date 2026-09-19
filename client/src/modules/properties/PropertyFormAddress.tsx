@@ -271,7 +271,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               {latitude != null && longitude != null && (
                 <Badge variant="success" className="ms-0.5 gap-0.5 rounded-full px-1 text-2xs font-semibold">
                   <Check size={10} strokeWidth={2.5} />
-                  DÉFINIE
+                  {t('properties.form.addressSet')}
                 </Badge>
               )}
             </p>

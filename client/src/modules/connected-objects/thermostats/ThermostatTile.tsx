@@ -3,16 +3,17 @@ import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Thermostat, AcUnit, Wifi, WifiOff, Add, Remove, Delete } from '../../../icons';
 import type { ThermostatDto } from '../../../services/api/thermostatsApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // Modes de consigne → tons sémantiques Baitly UI : chauffer réchauffe (warn),
 // climatiser refroidit (info), éco est un état sain (ok), éteint est neutre.
 // Passer par les tons donne l'encre `-ink` : les hex bruts d'origine
 // plafonnaient à ~2,2:1 sur leur propre fond doux.
-const MODE_META: Record<string, { label: string; tone: StatusTone }> = {
-  heat: { label: 'Chauffage', tone: 'warn' },
-  cool: { label: 'Climatisation', tone: 'info' },
-  eco: { label: 'Éco', tone: 'ok' },
-  off: { label: 'Éteint', tone: 'neutral' },
+const MODE_META: Record<string, { labelKey: string; tone: StatusTone }> = {
+  heat: { labelKey: 'connectedObjects.thermostat.heat', tone: 'warn' },
+  cool: { labelKey: 'connectedObjects.thermostat.cool', tone: 'info' },
+  eco: { labelKey: 'connectedObjects.thermostat.eco', tone: 'ok' },
+  off: { labelKey: 'connectedObjects.thermostat.off', tone: 'neutral' },
 };
 
 const fmt = (n: number | null) => (n == null ? '—' : n.toFixed(1).replace('.', ','));
@@ -31,6 +32,7 @@ interface ThermostatTileProps {
  * Tuya (currentTempC/targetTempC/humidity/mode). Consigne pilotable (±0.5°C).
  */
 export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acting = false }: ThermostatTileProps) {
+  const { t } = useTranslation();
   const { id, name, roomName, brand, online, currentTempC, targetTempC, humidity, mode, preset } = thermostat;
   const m = MODE_META[mode ?? 'off'] ?? MODE_META.off;
   const canControl = online && targetTempC != null && !acting;
@@ -51,7 +53,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
           <Thermostat size={17} strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">{name}</p>
+          <p dir="auto" className="text-sm font-semibold leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">{name}</p>
           <span className="text-xs text-muted-foreground">{roomName ? `${roomName} · ` : ''}{brand || 'Thermostat'}</span>
         </div>
         <Tooltip>
@@ -71,7 +73,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Supprimer le thermostat"
+                  aria-label={t('connectedObjects.thermostats.delete')}
                   disabled={acting}
                   onClick={() => onDelete(id)}
                   className="text-faint hover:text-destructive"
@@ -94,7 +96,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
 
       {/* Mode + humidité */}
       <div className="flex items-center gap-1 flex-wrap">
-        <StatusChip tone={m.tone} label={m.label} icon={mode === 'cool' ? <AcUnit size={12} /> : undefined} className="text-2xs" />
+        <StatusChip tone={m.tone} label={t(m.labelKey)} icon={mode === 'cool' ? <AcUnit size={12} /> : undefined} className="text-2xs" />
         {humidity != null && (
           <span className="text-xs text-muted-foreground tabular-nums">Humidité {humidity}%</span>
         )}
@@ -105,12 +107,12 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
-              <Button variant="ghost" size="icon-sm" aria-label="Baisser la consigne" disabled={!canControl} onClick={() => adjust(-0.5)} className="border border-solid border-border">
+              <Button variant="ghost" size="icon-sm" aria-label={t('connectedObjects.thermostats.lower')} disabled={!canControl} onClick={() => adjust(-0.5)} className="border border-solid border-border">
                 <Remove size={15} />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Baisser la consigne</TooltipContent>
+          <TooltipContent>{t('connectedObjects.thermostats.lower')}</TooltipContent>
         </Tooltip>
         <span className="text-xs flex-1 text-center text-muted-foreground font-semibold">
           {acting ? <Spinner className="size-[13px]" /> : (preset || 'Consigne')}
@@ -118,12 +120,12 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
-              <Button variant="ghost" size="icon-sm" aria-label="Monter la consigne" disabled={!canControl} onClick={() => adjust(0.5)} className="border border-solid border-border">
+              <Button variant="ghost" size="icon-sm" aria-label={t('connectedObjects.thermostats.raise')} disabled={!canControl} onClick={() => adjust(0.5)} className="border border-solid border-border">
                 <Add size={15} />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Monter la consigne</TooltipContent>
+          <TooltipContent>{t('connectedObjects.thermostats.raise')}</TooltipContent>
         </Tooltip>
       </div>
     </div>

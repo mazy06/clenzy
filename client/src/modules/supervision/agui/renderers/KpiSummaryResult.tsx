@@ -11,6 +11,7 @@ import React from 'react';
 import { cn } from '../../../../utils/cn';
 
 import { Overline } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface Kpi {
   id?: string;
@@ -43,25 +44,31 @@ function statusDotClass(status?: string): string {
   }
 }
 
-const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
+const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => {
+  const { t } = useTranslation();
+  return (
   <div className="relative rounded-lg border border-border bg-card px-2 py-1.5">
     <span
       aria-hidden
       className={cn('absolute end-2 top-2 size-1.5 rounded-full', statusDotClass(kpi.status))}
     />
     <Overline className="mb-0.5 truncate pe-2.5">
-      {kpi.name ?? kpi.id ?? `KPI ${idx + 1}`}
+      {kpi.name ?? kpi.id ?? t('supervision.agui.kpiIndex', { index: idx + 1 })}
     </Overline>
     <p className="text-[1.05rem] font-semibold leading-tight tabular-nums text-foreground font-[family-name:var(--font-display)]">
       {kpi.value ?? '—'}
     </p>
     {kpi.target && (
-      <p className="mt-0.5 block text-2xs tabular-nums text-muted-foreground">cible {kpi.target}</p>
+      <p className="mt-0.5 block text-2xs tabular-nums text-muted-foreground">
+        {t('supervision.agui.kpiTarget', { value: kpi.target })}
+      </p>
     )}
   </div>
-);
+  );
+};
 
 export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
+  const { t } = useTranslation();
   const score = typeof data.readinessScore === 'number' ? data.readinessScore : null;
   // Le score backend est une fraction (0–1) ; tolère aussi un pourcentage déjà 0–100.
   const scorePct = score === null ? null : Math.round(score <= 1 ? score * 100 : score);
@@ -87,10 +94,13 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
             <span className="ms-0.5 text-[1.25rem] font-medium">%</span>
           </p>
           <div>
-            <Overline>Readiness score</Overline>
+            <Overline>{t('supervision.agui.readinessScore')}</Overline>
             <p className="text-2xs text-muted-foreground">
-              {critical ? 'KPI critique en défaut' : 'Tous les KPI critiques OK'}
-              {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
+              {critical
+                ? t('supervision.agui.criticalKpiFailed')
+                : t('supervision.agui.criticalKpiOk')}
+              {data.kpiCount !== undefined &&
+                ` · ${t('supervision.agui.indicators', { count: data.kpiCount })}`}
             </p>
           </div>
         </div>

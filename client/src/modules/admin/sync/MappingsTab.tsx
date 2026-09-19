@@ -5,8 +5,10 @@ import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 import StatusChip from '../../../components/StatusChip';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';
 import PagePagination from '../../../components/PagePagination';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const MappingsTab: React.FC = () => {
+  const { t } = useTranslation();
   const [mappings, setMappings] = useState<MappingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ const MappingsTab: React.FC = () => {
       setMappings(data.content);
       setTotalElements(data.totalElements);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des mappings');
+      setError(err instanceof Error ? err.message : t('admin.sync.mappingsLoadError'));
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,7 @@ const MappingsTab: React.FC = () => {
             {mappings.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-[18px]">
-                  Aucun mapping
+                  {t('admin.sync.noMapping')}
                 </TableCell>
               </TableRow>
             ) : (

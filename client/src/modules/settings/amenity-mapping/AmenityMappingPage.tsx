@@ -80,6 +80,7 @@ import {
 } from '../../../utils/amenities';
 import CreateCustomAmenityModal from './CreateCustomAmenityModal';
 import PageTabs from '../../../components/PageTabs';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 // Pastille d'icone cliquable (tabs Custom + Referentiel). Les variantes sont
 // deux chaines constantes et non une interpolation : une classe Tailwind est
@@ -143,7 +144,7 @@ export default function AmenityMappingPage() {
       setIgnored(i);
       setSelectedRaw(new Set());
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur lors du chargement.');
+      setError(e instanceof Error ? e.message : t('common.loadingError'));
     } finally {
       setLoading(false);
     }
@@ -196,10 +197,10 @@ export default function AmenityMappingPage() {
         otaSource: raw.otaSources[0] ?? undefined,
         applyToProperties: true,
       });
-      notify.success(`«${raw.rawOtaName}» mappé sur ${codeLabelOf(code)} et appliqué aux ${raw.occurrences} propriété(s)`);
+      notify.success(t('settings.amenities.mappedToast', { name: raw.rawOtaName, code: codeLabelOf(code), count: raw.occurrences }));
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors du mapping.');
+      notify.error(e instanceof Error ? e.message : t('amenityMapping.mapError'));
     }
   };
 
@@ -213,7 +214,7 @@ export default function AmenityMappingPage() {
       notify.success(`«${raw.rawOtaName}» ignoré`);
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors de l\'ignore.');
+      notify.error(e instanceof Error ? e.message : t('amenityMapping.ignoreError'));
     }
   };
 
@@ -233,7 +234,7 @@ export default function AmenityMappingPage() {
       setBulkCode('');
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors du bulk mapping.');
+      notify.error(e instanceof Error ? e.message : t('amenityMapping.bulkMapError'));
     } finally {
       setBulkBusy(false);
     }
@@ -242,30 +243,30 @@ export default function AmenityMappingPage() {
   const handleDeleteAlias = async (id: number) => {
     try {
       await amenitiesManagementApi.deleteAlias(id);
-      notify.success('Alias supprimé');
+      notify.success(t('amenityMapping.aliasDeleted'));
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      notify.error(e instanceof Error ? e.message : t('common.deleteError'));
     }
   };
 
   const handleDeleteCustom = async (id: number) => {
     try {
       await amenitiesManagementApi.deleteCustom(id);
-      notify.success('Commodité custom supprimée (et ses aliases associés)');
+      notify.success(t('amenityMapping.customDeleted'));
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      notify.error(e instanceof Error ? e.message : t('common.deleteError'));
     }
   };
 
   const handleDeleteIgnored = async (id: number) => {
     try {
       await amenitiesManagementApi.deleteIgnored(id);
-      notify.success('Retiré de la liste des ignorés');
+      notify.success(t('amenityMapping.unignored'));
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      notify.error(e instanceof Error ? e.message : t('common.deleteError'));
     }
   };
 
@@ -280,7 +281,7 @@ export default function AmenityMappingPage() {
       );
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors du re-traitement.');
+      notify.error(e instanceof Error ? e.message : t('amenityMapping.reprocessError'));
     } finally {
       setReprocessing(false);
     }
@@ -299,7 +300,7 @@ export default function AmenityMappingPage() {
       );
       await loadAll();
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : 'Erreur lors du re-scrape.');
+      notify.error(e instanceof Error ? e.message : t('amenityMapping.rescrapeError'));
     } finally {
       setRescraping(false);
     }
@@ -325,12 +326,12 @@ export default function AmenityMappingPage() {
               className="border-[#8B5CF6] text-[#8B5CF6] hover:border-[#7C3AED] hover:bg-[color-mix(in_srgb,#8B5CF6_10%,transparent)] hover:text-[#7C3AED]"
             >
               <Sparkles size={14} />
-              {rescraping ? 'Re-scrape en cours…' : 'Re-scrape OTA'}
+              {rescraping ? t('amenityMapping.rescraping') : t('amenityMapping.rescrape')}
             </Button>
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          Re-scrape Airbnb pour TOUTES vos propriétés importées (récupère nom + commodités fraîches)
+          {t('settings.amenities.rescrapeTooltip')}
         </TooltipContent>
       </Tooltip>
       <Tooltip>
@@ -348,7 +349,7 @@ export default function AmenityMappingPage() {
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          Applique tous vos aliases + ignored sur les propriétés existantes (utile après modifications)
+          {t('settings.amenities.reprocessTooltip')}
         </TooltipContent>
       </Tooltip>
     </>
@@ -362,20 +363,20 @@ export default function AmenityMappingPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 min-[900px]:grid-cols-4 gap-[9px] mb-[18px]">
-        <StatTile icon={<AlertCircle />} label="À mapper" value={unmapped.length} iconClassName="text-warning" loading={loading} />
-        <StatTile icon={<Link2 />} label="Mappings actifs" value={aliases.length} iconClassName="text-success" loading={loading} />
-        <StatTile icon={<Sparkles />} label="Custom" value={customs.length} iconClassName="text-info" loading={loading} />
-        <StatTile icon={<Building2 />} label="Propriétés concernées" value={totalAffectedProperties} iconClassName="text-primary" loading={loading} />
+        <StatTile icon={<AlertCircle />} label={t('settings.amenities.tileToMap')} value={unmapped.length} iconClassName="text-warning" loading={loading} />
+        <StatTile icon={<Link2 />} label={t('settings.amenities.tileActiveMappings')} value={aliases.length} iconClassName="text-success" loading={loading} />
+        <StatTile icon={<Sparkles />} label={t('settings.amenities.tileCustom')} value={customs.length} iconClassName="text-info" loading={loading} />
+        <StatTile icon={<Building2 />} label={t('settings.amenities.tileAffected')} value={totalAffectedProperties} iconClassName="text-primary" loading={loading} />
       </div>
 
       {/* Tabs */}
       <div className="border-b border-border mb-3">
         <PageTabs
           options={[
-            { value: 'unmapped' as TabKey, label: 'À mapper', badge: unmapped.length, badgeColor: 'warning' },
-            { value: 'aliases' as TabKey, label: 'Mes mappings', badge: aliases.length, badgeColor: 'primary' },
-            { value: 'custom' as TabKey, label: 'Commodités custom', badge: customs.length, badgeColor: 'primary' },
-            { value: 'ignored' as TabKey, label: 'Ignorés', badge: ignored.length, badgeColor: 'primary' },
+            { value: 'unmapped' as TabKey, label: t('amenityMapping.tabUnmapped'), badge: unmapped.length, badgeColor: 'warning' },
+            { value: 'aliases' as TabKey, label: t('amenityMapping.tabAliases'), badge: aliases.length, badgeColor: 'primary' },
+            { value: 'custom' as TabKey, label: t('amenityMapping.tabCustom'), badge: customs.length, badgeColor: 'primary' },
+            { value: 'ignored' as TabKey, label: t('amenityMapping.tabIgnored'), badge: ignored.length, badgeColor: 'primary' },
             {
               value: 'reference' as TabKey,
               label: t('settings.amenities.tabs.reference', 'Référentiel Baitly'),
@@ -407,7 +408,7 @@ export default function AmenityMappingPage() {
             <HeaderSearchField
               value={search}
               onChange={setSearch}
-              placeholder="Rechercher une commodité OTA…"
+              placeholder={t('settings.amenities.searchPlaceholder')}
             />
             <div className="flex-1" />
             {selectedRaw.size > 0 && (
@@ -416,8 +417,8 @@ export default function AmenityMappingPage() {
                   {selectedRaw.size} sélectionné{selectedRaw.size > 1 ? 's' : ''}
                 </span>
                 <Select value={bulkCode} onValueChange={setBulkCode}>
-                  <SelectTrigger size="sm" className="min-w-[200px] text-[0.8rem]" aria-label="Mapper la sélection sur">
-                    <SelectValue placeholder="Mapper la sélection sur…" />
+                  <SelectTrigger size="sm" className="min-w-[200px] text-[0.8rem]" aria-label={t('settings.amenities.mapSelection')}>
+                    <SelectValue placeholder={t('settings.amenities.mapSelectionPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {allCodeOptions.map((opt) => (
@@ -454,10 +455,10 @@ export default function AmenityMappingPage() {
           ) : filteredUnmapped.length === 0 ? (
             <EmptyState
               icon={search.trim() ? <Search /> : <CheckCheck />}
-              title={search.trim() ? 'Aucun résultat' : 'Toutes vos commodités sont mappées'}
+              title={search.trim() ? t('common.noResult') : t('amenityMapping.allMapped')}
               description={search.trim()
-                ? 'Aucune amenity OTA ne correspond à votre recherche.'
-                : 'Les commodités détectées sur vos listings OTA ont toutes un mapping. Bien joué.'}
+                ? t('amenityMapping.noMatch')
+                : t('amenityMapping.allMappedHint')}
             />
           ) : (
             <div className="flex flex-col gap-1.5">
@@ -496,8 +497,8 @@ export default function AmenityMappingPage() {
           ) : aliases.length === 0 ? (
             <EmptyState
               icon={<Link2 />}
-              title="Aucun mapping créé"
-              description="Quand vous mappez une amenity OTA, elle apparaît ici."
+              title={t('settings.amenities.noMapping')}
+              description={t('settings.amenities.noMappingHint')}
             />
           ) : (
             aliases.map((a) => (
@@ -514,7 +515,7 @@ export default function AmenityMappingPage() {
                     )}
                   </div>
                   <span className="block text-xs text-faint">
-                    Créé le {new Date(a.createdAt).toLocaleDateString('fr-FR')}
+                    Créé le {new Date(a.createdAt).toLocaleDateString(activeIntlLocale())}
                     {a.createdByEmail && ` · par ${a.createdByEmail}`}
                   </span>
                 </ItemContent>
@@ -545,7 +546,7 @@ export default function AmenityMappingPage() {
               onClick={() => setCreateModal({ open: true, prefillRawName: null, prefillAffectedCount: 0 })}
             >
               <Plus size={14} />
-              Nouvelle commodité
+              {t('settings.amenities.newAmenity')}
             </Button>
           </div>
           {loading ? (
@@ -822,7 +823,7 @@ export default function AmenityMappingPage() {
         prefillRawName={createModal.prefillRawName}
         prefillAffectedCount={createModal.prefillAffectedCount}
         onClose={() => setCreateModal({ open: false, prefillRawName: null, prefillAffectedCount: 0 })}
-        onCreated={() => { void loadAll(); notify.success('Commodité créée'); }}
+        onCreated={() => { void loadAll(); notify.success(t('amenityMapping.created')); }}
       />
 
       <Dialog open={confirmReprocess} onOpenChange={(next) => !next && setConfirmReprocess(false)}>
@@ -830,18 +831,17 @@ export default function AmenityMappingPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               <AlertCircle size={18} className="text-warning" />
-              Re-traiter les propriétés ?
+              {t('settings.amenities.reprocessTitle')}
             </DialogTitle>
             <DialogDescription>
-              Cette action applique <strong>{aliases.length}</strong> alias et <strong>{ignored.length}</strong> ignored à
-              toutes les propriétés de votre organisation. Les commodités OTA brutes seront soit converties en codes
-              Baitly, soit retirées si ignorées. Sans effet sur les amenities déjà mappées manuellement.
+              {t('settings.amenities.reprocessBodyHead')} <strong>{aliases.length}</strong> {t('settings.amenities.reprocessBodyMid')} <strong>{ignored.length}</strong>{' '}
+              {t('settings.amenities.reprocessBodyTail')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setConfirmReprocess(false)}>Annuler</Button>
             <Button variant="default" size="sm" onClick={handleReprocess}>
-              Re-traiter
+              {t('settings.amenities.reprocess')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -852,22 +852,20 @@ export default function AmenityMappingPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               <Sparkles size={18} color="#8B5CF6" />
-              Re-scrape les pages Airbnb ?
+              {t('settings.amenities.rescrapeTitle')}
             </DialogTitle>
             <DialogDescription>
-              Cette action <strong>re-télécharge la page publique Airbnb</strong> de chaque propriété
-              de votre organisation pour récupérer le nom à jour + les commodités JSON-LD,
-              puis applique automatiquement vos {aliases.length} alias et {ignored.length} ignored.
+              {t('settings.amenities.rescrapeBodyHead')} <strong>{t('settings.amenities.rescrapeBodyStrong')}</strong>{' '}
+              {t('settings.amenities.rescrapeBodyTail', { aliases: aliases.length, ignored: ignored.length })}
             </DialogDescription>
           </DialogHeader>
           <span className="block text-xs text-faint">
-            Peut prendre quelques secondes par propriété (1 HTTP GET vers airbnb.com).
-            Les amenities déjà cochées manuellement sont préservées.
+            {t('settings.amenities.rescrapeNote')}
           </span>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setConfirmRescrape(false)}>Annuler</Button>
             <Button variant="default" size="sm" onClick={handleRescrape}>
-              Lancer le re-scrape
+              {t('settings.amenities.rescrapeCta')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -893,6 +891,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
   onCreateCustom: () => void;
   onIgnore: () => void;
 }) {
+  const { t } = useTranslation();
   const [pendingCode, setPendingCode] = useState<string>('');
 
   return (
@@ -938,8 +937,8 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
             if (code) onMap(code);
           }}
         >
-          <SelectTrigger size="sm" className="min-w-[180px] text-[0.8rem]" aria-label="Mapper sur">
-            <SelectValue placeholder="Mapper sur…" />
+          <SelectTrigger size="sm" className="min-w-[180px] text-[0.8rem]" aria-label={t('settings.amenities.mapOn')}>
+            <SelectValue placeholder={t('settings.amenities.mapOnPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {allCodeOptions.map((opt) => (
@@ -963,14 +962,14 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
                 variant="outline"
                 size="icon-sm"
                 onClick={onCreateCustom}
-                aria-label="Créer une nouvelle commodité Baitly à partir de ce nom"
+                aria-label={t('settings.amenities.createFromName')}
                 className="text-primary border-primary/25 hover:bg-primary-soft hover:text-primary"
               >
                 <Plus size={14} />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Créer une nouvelle commodité Baitly à partir de ce nom</TooltipContent>
+          <TooltipContent>{t('settings.amenities.createFromName')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -979,14 +978,14 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
                 variant="ghost"
                 size="icon-sm"
                 onClick={onIgnore}
-                aria-label="Ignorer définitivement (sera masqué et retiré des propriétés)"
+                aria-label={t('settings.amenities.ignoreForever')}
                 className="text-muted-foreground"
               >
                 <Ban size={14} />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Ignorer définitivement (sera masqué et retiré des propriétés)</TooltipContent>
+          <TooltipContent>{t('settings.amenities.ignoreForever')}</TooltipContent>
         </Tooltip>
       </ItemActions>
     </Item>

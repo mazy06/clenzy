@@ -6,7 +6,7 @@ import { PortfolioOverviewWidget } from '../PortfolioOverviewWidget';
 describe('PortfolioOverviewWidget (smoke)', () => {
   it('renders the empty-portfolio fallback when totalProperties = 0', () => {
     render(<PortfolioOverviewWidget data={{ totalProperties: 0 }} />);
-    expect(screen.getByText(/Aucune propriete/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aucune propriété/i)).toBeInTheDocument();
   });
 
   it('renders KPI stats + top performer + under-performer + pattern', () => {

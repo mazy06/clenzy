@@ -38,6 +38,7 @@ import type {
 import VoucherAnalyticsPanel from './VoucherAnalyticsPanel';
 import VoucherEditorDialog from './VoucherEditorDialog';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { intlLocale } from '../../utils/localeDate';
 
 // ─── Tons Baitly UI : chips -soft par statut (§2.4) ──────────────────────────
 
@@ -483,7 +484,7 @@ function makeFormatDiscount(t: (...args: any[]) => string) {
 
 function formatValidity(from: string | null, until: string | null, locale: string): string {
   // Utilise la langue active (FR/EN/AR) pour le formatage Intl, pas un hardcode.
-  const df = new Intl.DateTimeFormat(locale, { dateStyle: 'short' });
+  const df = new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: 'short' });
   const fmt = (iso: string) => df.format(new Date(iso));
   if (from && until) return `${fmt(from)} → ${fmt(until)}`;
   if (until) return `→ ${fmt(until)}`;

@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDateFormat, type DateFormatApi } from '../../../hooks/useDateFormat';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
@@ -26,7 +28,7 @@ import {
 import { Money } from '../../../components/Money';
 import type { PlanningEvent } from '../types';
 import type { Reservation } from '../../../services/api';
-import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../services/api/reservationsApi';
+import { RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../services/api/reservationsApi';
 import { RESERVATION_STATUS_TOKEN_COLORS } from '../constants';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
 
@@ -52,6 +54,9 @@ const CHAMP_EN_PLACE =
   'h-auto w-full rounded-none border-0 border-b border-solid border-[var(--line-2)] bg-transparent px-0 py-0.5 focus-visible:border-[var(--accent)] focus-visible:ring-0';
 
 const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reservation, allEvents, onUpdateGuestInfo }) => {
+  const { t } = useTranslation();
+  // Dates du séjour et de l'historique : calendrier de la langue active.
+  const fmt = useDateFormat();
   // Find all reservations from the same guest (by name match)
   const guestReservations = useMemo(() => {
     const name = reservation.guestName.toLowerCase().trim();
@@ -164,9 +169,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
         <DialogHeader className="flex-row items-center justify-between gap-0">
           <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold">
             <span className="inline-flex text-[var(--brand-ink)]"><Person size={20} strokeWidth={1.75} /></span>
-            Fiche client
+            {t('planning.panel.guest.title', 'Fiche client')}
           </DialogTitle>
-          <Button variant="ghost" size="icon-sm" aria-label="Fermer" onClick={onClose}>
+          <Button variant="ghost" size="icon-sm" aria-label={t('planning.panel.guest.close', 'Fermer')} onClick={onClose}>
             <Close size={'1rem'} strokeWidth={1.75} />
           </Button>
         </DialogHeader>
@@ -192,7 +197,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     onKeyDown={handleEditKeyDown}
                     onBlur={commitEdit}
                     disabled={saving}
-                    aria-label="Nom du voyageur"
+                    aria-label={t('planning.panel.guest.nameAria', 'Nom du voyageur')}
                     className={cn(CHAMP_EN_PLACE, 'text-[1rem] font-bold')}
                   />
                   {saving && <Spinner className="size-3.5" />}
@@ -232,11 +237,11 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       onKeyDown={handleEditKeyDown}
                       disabled={saving}
                       placeholder="email@exemple.com"
-                      aria-label="Email du voyageur"
+                      aria-label={t('planning.panel.guest.emailAria', 'Email du voyageur')}
                       className={cn(CHAMP_EN_PLACE, 'text-[0.75rem]')}
                     />
                     {saving ? <Spinner className="size-3" /> : (
-                      <Button variant="ghost" size="icon-xs" aria-label="Valider l'email" onClick={commitEdit}>
+                      <Button variant="ghost" size="icon-xs" aria-label={t('planning.panel.guest.emailConfirm', "Valider l'email")} onClick={commitEdit}>
                         <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>
                       </Button>
                     )}
@@ -253,7 +258,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   >
                     <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
                     <p className={cn('cn-text-body1 text-[0.75rem]', displayEmail ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayEmail ? 'not-italic' : 'italic')}>
-                      {displayEmail || 'Ajouter un email'}
+                      {displayEmail || t('planning.panel.guest.addEmail', 'Ajouter un email')}
                     </p>
                     {onUpdateGuestInfo && (
                       <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
@@ -274,7 +279,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       onBlur={commitEdit}
                       disabled={saving}
                       placeholder="+33 6 12 34 56 78"
-                      aria-label="Telephone du voyageur"
+                      aria-label={t('planning.panel.guest.phoneAria', 'Téléphone du voyageur')}
                       className={cn(CHAMP_EN_PLACE, 'text-[0.75rem]')}
                     />
                     {saving && <Spinner className="size-3" />}
@@ -291,7 +296,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   >
                     <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
                     <p className={cn('cn-text-body1 text-[0.75rem]', displayPhone ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayPhone ? 'not-italic' : 'italic')}>
-                      {displayPhone || 'Ajouter un telephone'}
+                      {displayPhone || t('planning.panel.guest.addPhone', 'Ajouter un téléphone')}
                     </p>
                     {onUpdateGuestInfo && (
                       <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
@@ -305,20 +310,20 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
 
           {/* Stats */}
           <div className="flex gap-2">
-            <StatBox label="Sejours" value={String(guestReservations.length)} />
+            <StatBox label={t('planning.panel.guest.stays', 'Séjours')} value={String(guestReservations.length)} />
             <StatBox
-              label="Total depense"
+              label={t('planning.panel.guest.totalSpent', 'Total dépensé')}
               value={totalSpent <= 0 && isICalSource ? '—' : <Money value={totalSpent} from="EUR" decimals={0} />}
             />
             <StatBox
-              label="Source"
+              label={t('planning.panel.guest.source', 'Source')}
               value={
                 RESERVATION_SOURCE_LABELS[reservation.source as ReservationSource] ||
                 reservation.source
               }
             />
             <StatBox
-              label="Voyageurs"
+              label={t('planning.panel.guest.guests', 'Voyageurs')}
               value={String(reservation.guestCount)}
             />
           </div>
@@ -328,7 +333,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
           {/* Current reservation */}
           <div>
             <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground mb-1">
-              Reservation actuelle
+              {t('planning.panel.guest.current', 'Réservation actuelle')}
             </p>
             <div className="border border-[var(--accent)] rounded-[10px] p-2 bg-[var(--accent-soft)]">
               <div className="flex justify-between items-start">
@@ -342,14 +347,14 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   <div className="flex items-center gap-0.5">
                     <span className="inline-flex text-muted-foreground"><CalendarMonth size={12} strokeWidth={1.75} /></span>
                     <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
-                      {formatDate(reservation.checkIn)} → {formatDate(reservation.checkOut)}
+                      {formatDate(reservation.checkIn, fmt)} → {formatDate(reservation.checkOut, fmt)}
                     </p>
                   </div>
                   {(reservation.checkInTime || reservation.checkOutTime) && (
                     <p className="cn-text-body1 text-[0.625rem] text-muted-foreground mt-0.5 ms-3.5">
-                      {reservation.checkInTime && `Arrivee ${reservation.checkInTime}`}
+                      {reservation.checkInTime && t('planning.panel.guest.arrival', { time: reservation.checkInTime })}
                       {reservation.checkInTime && reservation.checkOutTime && ' · '}
-                      {reservation.checkOutTime && `Depart ${reservation.checkOutTime}`}
+                      {reservation.checkOutTime && t('planning.panel.guest.departure', { time: reservation.checkOutTime })}
                     </p>
                   )}
                 </div>
@@ -358,7 +363,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     <span className="inline-flex text-muted-foreground"><AttachMoney size={14} strokeWidth={1.75} /></span>
                     {hasNoPrice && isICalSource ? (
                       <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
-                        Non communiqué
+                        {t('planning.panel.guest.noPrice', 'Non communiqué')}
                       </p>
                     ) : (
                       <p className="cn-text-body1 text-[0.8125rem] font-bold">
@@ -367,8 +372,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     )}
                   </div>
                   {/* Statut : texte couleur + fond soft (jamais d'aplat plein) */}
-                  <StatusChip tokens={{ color: statusTokenColor(reservation.status), bg: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)` }} label={RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] ||
-                      reservation.status} className="text-[10.5px] h-[20px]" />
+                  <StatusChip tokens={{ color: statusTokenColor(reservation.status), bg: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)` }} label={t(`planning.legend.status.${reservation.status}`, reservation.status)} className="text-[10.5px] h-[20px]" />
                 </div>
               </div>
               {reservation.notes && (
@@ -388,7 +392,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   <span className="inline-flex me-[1.5px] align-[middle]">
                     <CalendarMonth size={12} strokeWidth={1.75} />
                   </span>
-                  Historique des sejours ({guestReservations.length})
+                  {t('planning.panel.guest.history', { count: guestReservations.length })}
                 </p>
                 <div className="flex flex-col gap-0.5">
                   {guestReservations
@@ -399,14 +403,14 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                             {r.propertyName}
                           </p>
                           <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
-                            {formatDate(r.checkIn)} → {formatDate(r.checkOut)}
+                            {formatDate(r.checkIn, fmt)} → {formatDate(r.checkOut, fmt)}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             <Money value={r.totalPrice} from="EUR" decimals={0} />
                           </p>
-                          <StatusChip size="sm" tokens={{ color: statusTokenColor(r.status), bg: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)` }} label={RESERVATION_STATUS_LABELS[r.status as ReservationStatus] || r.status} className="text-[10.5px]" />
+                          <StatusChip size="sm" tokens={{ color: statusTokenColor(r.status), bg: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)` }} label={t(`planning.legend.status.${r.status}`, r.status)} className="text-[10.5px]" />
                         </div>
                       </div>
                     )] : []))}
@@ -420,7 +424,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               <Separator />
               <div className="flex items-center gap-1.5">
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
-                  Code de confirmation :
+                  {t('planning.panel.guest.confirmationCode', 'Code de confirmation :')}
                 </p>
                 <Badge variant="outline" className="text-[0.6875rem] font-semibold">{reservation.confirmationCode}</Badge>
               </div>
@@ -434,13 +438,15 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string): string {
+/**
+ * « 12 août 2026 » dans le calendrier AFFICHÉ — hégirien en arabe.
+ *
+ * <p>Le formateur est injecté plutôt que lu d'un singleton : la fonction reste
+ * pure et le composant, lui, s'abonne au changement de langue.</p>
+ */
+function formatDate(dateStr: string, fmt: DateFormatApi): string {
   try {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return fmt.formatDayMonthYearShort(new Date(dateStr));
   } catch {
     return dateStr;
   }

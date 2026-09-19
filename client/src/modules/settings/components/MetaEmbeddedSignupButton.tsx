@@ -142,7 +142,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
       script.async = true;
       script.defer = true;
       script.crossOrigin = 'anonymous';
-      script.onerror = () => reject(new Error('Impossible de charger le SDK Facebook'));
+      script.onerror = () => reject(new Error(t('settings.whatsapp.sdkLoadFailed')));
       document.body.appendChild(script);
     });
   }, []);
@@ -204,7 +204,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
           setSuccess(result);
           onSuccessRef.current(result);
         } catch (e) {
-          setError(e instanceof Error ? e.message : 'Erreur lors de la finalisation');
+          setError(e instanceof Error ? e.message : t('settings.whatsapp.finalizeError'));
         } finally {
           setSigningIn(false);
         }

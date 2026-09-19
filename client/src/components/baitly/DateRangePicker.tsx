@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { CalendarIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import { Button, Label, Popover, PopoverContent, PopoverTrigger } from '../ui';
 import { Calendar } from '../ui/calendar';
+import { useTranslation } from 'react-i18next';
+import { dateFnsLocale, weekStartsOnForLanguage } from '../../utils/localeDate';
 
 /**
  * Baitly — remaster de components/MiniDateRangePicker.tsx (MUI).
@@ -18,7 +19,6 @@ export interface DateRangePickerProps {
   endDate: string;
   onChangeStart: (d: string) => void;
   onChangeEnd: (d: string) => void;
-  isFrench: boolean;
   label?: string;
 }
 
@@ -33,19 +33,20 @@ export default function DateRangePicker({
   endDate,
   onChangeStart,
   onChangeEnd,
-  isFrench,
   label,
 }: DateRangePickerProps) {
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
-  const locale = isFrench ? fr : enUS;
+  // La langue vient d'i18next, plus d'un booleen passe par l'appelant : la
+  // liste des factures le cablait en dur a `true`, et son selecteur restait
+  // francais quelle que soit la langue de l'interface.
+  const locale = dateFnsLocale(i18n.language);
   const from = parse(startDate);
   const to = parse(endDate);
   const display =
     from && to
       ? `${format(from, 'd MMM yyyy', { locale })} – ${format(to, 'd MMM yyyy', { locale })}`
-      : isFrench
-        ? 'Choisir les dates'
-        : 'Pick dates';
+      : t('common.pickDates', 'Choisir les dates');
 
   return (
     <div className="flex flex-col gap-2">
@@ -58,8 +59,14 @@ export default function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+          {/* `locale` n'etait pas transmise : react-day-picker retombait sur
+              `enUS` — initiales de jours en anglais et semaine ouverte au
+              dimanche, dans les trois langues. `weekStartsOn` porte la regle
+              produit (lundi partout, dimanche en arabe). */}
           <Calendar
             mode="range"
+            locale={locale}
+            weekStartsOn={weekStartsOnForLanguage(i18n.language)}
             numberOfMonths={2}
             defaultMonth={from}
             selected={{ from, to } as DateRange}

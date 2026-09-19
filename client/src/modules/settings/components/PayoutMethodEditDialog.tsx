@@ -32,6 +32,8 @@ import type {
   OpenBankingInstitution,
   UpdateSepaRequest,
 } from '../../../services/api/accountingApi';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Modale unifiée d'édition de la méthode de payout d'un propriétaire.
@@ -65,49 +67,38 @@ const extractErrorMessage = (e: unknown): string => {
     if (err.body?.message) return err.body.message;
     if (err.message) return err.message;
   }
-  return 'Erreur inconnue lors de la sauvegarde.';
+  return '';
 };
 
 const METHOD_OPTIONS: Array<{
   value: PayoutMethod;
-  label: string;
-  description: string;
+  /** Libelles en locales : `payouts.methods.<value>.{label,description}`. */
   badge?: string;
   /** Ton semantique de la puce, resolu par la primitive StatusChip. */
   badgeTone?: StatusTone;
 }> = [
   {
     value: 'STRIPE_CONNECT',
-    label: 'Stripe Connect',
-    description: 'Virement automatique vers compte Stripe Express. EU, US, UK et 40+ pays.',
     badge: 'AUTO',
     badgeTone: 'ok',
   },
   {
     value: 'WISE',
-    label: 'Wise Business',
-    description: 'Virement international auto, 80+ pays dont Maroc et Arabie Saoudite. Frais ~0.5%.',
     badge: 'AUTO',
     badgeTone: 'ok',
   },
   {
     value: 'OPEN_BANKING',
-    label: 'Open Banking PIS',
-    description: 'Virement SEPA auto via PSD2. Validation SCA bancaire tous les 90 jours.',
     badge: 'AUTO',
     badgeTone: 'ok',
   },
   {
     value: 'SEPA_TRANSFER',
-    label: 'Virement SEPA',
-    description: 'Génération XML pain.001 + upload manuel sur le portail bancaire Baitly.',
     badge: 'SEMI-AUTO',
     badgeTone: 'warn',
   },
   {
     value: 'MANUAL',
-    label: 'Manuel',
-    description: 'Paiement hors-Baitly (espèces, chèque, virement perso). Aucune automatisation.',
     badge: 'MANUEL',
     badgeTone: 'neutral',
   },
@@ -137,6 +128,7 @@ export default function PayoutMethodEditDialog({
   onClose,
   onSaved,
 }: PayoutMethodEditDialogProps) {
+  const { t } = useTranslation();
   const [selectedMethod, setSelectedMethod] = useState<PayoutMethod>('MANUAL');
 
   // Champs IBAN (partagés SEPA + Wise)
@@ -256,7 +248,7 @@ export default function PayoutMethodEditDialog({
       return false;
     }
     if (!holder.trim()) {
-      setIbanError('Titulaire du compte requis.');
+      setIbanError(t('payouts.holderRequired'));
       return false;
     }
 
@@ -333,7 +325,7 @@ export default function PayoutMethodEditDialog({
       onSaved();
       onClose();
     } catch (e) {
-      setError(extractErrorMessage(e));
+      setError(extractErrorMessage(e) || t('payouts.unknownSaveError'));
     } finally {
       setSaving(false);
     }
@@ -376,7 +368,7 @@ export default function PayoutMethodEditDialog({
           <div className="flex items-center justify-between gap-2">
             <div>
               <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
-                Méthode de reversement
+                {t('settings.payoutMethod.title')}
               </DialogTitle>
               {ownerName && (
                 <DialogDescription className="text-[0.72rem] mt-0.5">
@@ -401,7 +393,7 @@ export default function PayoutMethodEditDialog({
           {/* ─── Sélecteur de méthode ───────────────────────────── */}
           <div>
             <p className="text-sm font-semibold tracking-tight text-foreground mb-1.5">
-              Choisissez le rail de virement
+              {t('settings.payoutMethod.chooseRail')}
             </p>
             <RadioGroup
               value={selectedMethod}
@@ -426,14 +418,14 @@ export default function PayoutMethodEditDialog({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-semibold">
-                        {opt.label}
+                        {t('payouts.methods.' + opt.value + '.label')}
                       </p>
                       {opt.badge && (
                         <StatusChip size="sm" tone={opt.badgeTone ?? 'neutral'} label={opt.badge} className="tracking-[0.04em]" />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground leading-[1.4] mt-0.5">
-                      {opt.description}
+                      {t('payouts.methods.' + opt.value + '.description')}
                     </p>
                   </div>
                 </label>
@@ -447,10 +439,10 @@ export default function PayoutMethodEditDialog({
             <Alert variant="info" className="text-[0.8rem]">
               <Info />
               <AlertDescription>{hasExistingIban
-                ? 'Les coordonnées bancaires actuelles sont affichées et conservées par défaut. Cliquez dans le champ IBAN pour saisir un nouveau numéro — sinon, gardez les valeurs existantes.'
+                ? t('payouts.currentDetailsKept')
                 : selectedMethod === 'WISE'
-                ? 'Wise utilisera ces coordonnées pour créer le recipient. Le virement sera converti automatiquement dans la devise du compte destinataire.'
-                : 'Coordonnées du compte destinataire utilisées pour le fichier SEPA pain.001 et le virement bancaire.'}</AlertDescription>
+                ? t('payouts.wiseHint')
+                : t('payouts.sepaHint')}</AlertDescription>
             </Alert>
             <Field>
               <FieldLabel htmlFor="payout-iban">IBAN</FieldLabel>
@@ -478,7 +470,7 @@ export default function PayoutMethodEditDialog({
                 <FieldDescription>
                   {hasExistingIban
                     ? ibanUnchanged
-                      ? 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.'
+                      ? t('payouts.ibanKept')
                       : 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'
                     : 'Format : FR76 1234 5678 9012 3456 7890 123'}
                 </FieldDescription>
@@ -495,7 +487,7 @@ export default function PayoutMethodEditDialog({
                 />
               </Field>
               <Field className="flex-[2]">
-                <FieldLabel htmlFor="payout-holder">Titulaire du compte</FieldLabel>
+                <FieldLabel htmlFor="payout-holder">{t('settings.payoutMethod.accountHolder')}</FieldLabel>
                 <Input
                   id="payout-holder"
                   value={holder}
@@ -538,28 +530,28 @@ export default function PayoutMethodEditDialog({
                       Sandbox Finance (test uniquement)
                     </NativeSelectOption>
                     <NativeSelectOption value="BNP_PARIBAS_BNPAFRPP">BNP Paribas</NativeSelectOption>
-                    <NativeSelectOption value="SOCIETE_GENERALE_SOGEFRPP">Société Générale</NativeSelectOption>
+                    <NativeSelectOption value="SOCIETE_GENERALE_SOGEFRPP">{t('settings.payoutMethod.bankSg')}</NativeSelectOption>
                     <NativeSelectOption value="LCL_CRLYFRPP">LCL</NativeSelectOption>
-                    <NativeSelectOption value="CREDIT_AGRICOLE_AGRIFRPP">Crédit Agricole</NativeSelectOption>
+                    <NativeSelectOption value="CREDIT_AGRICOLE_AGRIFRPP">{t('settings.payoutMethod.bankCa')}</NativeSelectOption>
                     <NativeSelectOption value="CIC_CMCIFRPP">CIC</NativeSelectOption>
-                    <NativeSelectOption value="BANQUE_POSTALE_PSSTFRPP">La Banque Postale</NativeSelectOption>
+                    <NativeSelectOption value="BANQUE_POSTALE_PSSTFRPP">{t('settings.payoutMethod.bankLbp')}</NativeSelectOption>
                     <NativeSelectOption value="HSBC_FR_CCFRFRPP">HSBC</NativeSelectOption>
                   </>
                 )}
               </NativeSelect>
               <FieldDescription>
                 {institutionsLoading
-                  ? 'Chargement de la liste des banques…'
+                  ? t('payouts.loadingBanks')
                   : institutions && institutions.length > 0
                     ? `${institutions.length} banques disponibles via GoCardless.`
-                    : 'Liste GoCardless indisponible — utilisez la liste de secours ci-dessous ou Sandbox pour les tests.'}
+                    : t('payouts.bankListUnavailable')}
               </FieldDescription>
             </Field>
             {currentConfig?.openBankingConsentActive && (
               <Alert variant="success" className="text-[0.8rem]">
                 <CircleCheck />
                 <AlertDescription>Consent SCA déjà actif{currentConfig.openBankingConsentExpiresAt
-                  ? ` jusqu'au ${new Date(currentConfig.openBankingConsentExpiresAt).toLocaleDateString('fr-FR')}`
+                  ? ` jusqu'au ${new Date(currentConfig.openBankingConsentExpiresAt).toLocaleDateString(activeIntlLocale())}`
                   : ''}.</AlertDescription>
               </Alert>
             )}
@@ -575,7 +567,7 @@ export default function PayoutMethodEditDialog({
               : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}{currentConfig?.stripeOnboardingComplete && (
               <span className="mt-[3px] flex items-center gap-1 font-semibold text-success-ink">
                 <Check className="size-3.5 shrink-0" aria-hidden />
-                Onboarding Stripe complété pour ce propriétaire.
+                {t('settings.payoutMethod.stripeDone')}
               </span>
             )}</AlertDescription>
           </Alert>
@@ -585,8 +577,7 @@ export default function PayoutMethodEditDialog({
         {selectedMethod === 'MANUAL' && (
           <Alert variant="warning" className="text-[0.8rem]">
             <TriangleAlert />
-            <AlertDescription>Le propriétaire reçoit ses paiements hors-Baitly (espèces, chèque, virement perso).
-            Aucune exécution automatique possible : les payouts devront être marqués comme payés à la main.</AlertDescription>
+            <AlertDescription>{t('settings.payoutMethod.offPlatformHint')}</AlertDescription>
           </Alert>
         )}
 

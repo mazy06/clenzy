@@ -2,6 +2,7 @@ import * as React from 'react';
 import { XIcon } from 'lucide-react';
 import { Button } from '../ui';
 import { useUserPreference } from '../../hooks/useUserPreference';
+import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 
 /**
@@ -42,8 +43,9 @@ export default function HelpBanner({
   title,
   description,
   steps,
-  dismissLabel = 'Masquer cette aide',
+  dismissLabel,
 }: HelpBannerProps) {
+  const { t } = useTranslation();
   const normalized = storageKey
     .replace(/^clenzy_/, '')
     .replace(/_dismissed$/, '')
@@ -65,8 +67,8 @@ export default function HelpBanner({
         <Button
           size="icon-xs"
           variant="ghost"
-          aria-label={dismissLabel}
-          title={dismissLabel}
+          aria-label={dismissLabel ?? t('common.hideHelp')}
+          title={dismissLabel ?? t('common.hideHelp')}
           onClick={() => setDismissed(true)}
         >
           <XIcon />

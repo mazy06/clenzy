@@ -24,6 +24,7 @@ import NavCountBadge from './NavCountBadge';
 import { useScreenSearch } from './ScreenChrome';
 import { useIsMobile } from '../hooks/use-mobile';
 import { cn } from '../utils/cn';
+import { useTranslation } from '../hooks/useTranslation';
 
 const VIEW_ICON: Record<'grid' | 'list' | 'map', React.ReactNode> = {
   grid: <GridView size={16} strokeWidth={1.75} />,
@@ -118,6 +119,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   bare = false,
   sx: _sx,
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [inHeaderPanel, setInHeaderPanel] = useState(false);
   // Le DOM identifie aussi les filtres arrivés par portail : le contexte React
@@ -331,7 +333,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
                 Sans cet hote, le panneau s'ouvrait hors ecran. */}
             <PopoverTrigger asChild>
               <span className="relative inline-flex">
-                <Button variant="outline" size="icon" aria-label="Affichage et filtres">
+                <Button variant="outline" size="icon" aria-label={t('common.displayAndFilters')}>
                   <FilterListIcon size={16} strokeWidth={1.75} />
                 </Button>
                 <NavCountBadge
@@ -345,7 +347,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
             <PopoverContent align="end" className="w-80 p-0">
               <div className="flex items-center justify-between px-3 py-2.5">
                 <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
-                  Affichage et filtres
+                  {t('common.displayAndFilters')}
                 </span>
                 <Button
                   variant="ghost"

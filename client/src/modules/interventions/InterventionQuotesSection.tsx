@@ -534,7 +534,7 @@ export default function InterventionQuotesSection({
                       >
                         {formatCurrency(quote.amount, quote.currency)}
                       </span>
-                      <span className="truncate text-[13px] text-muted-foreground">
+                      <span dir="auto" className="truncate text-[13px] text-muted-foreground">
                         {quote.providerName}
                       </span>
                       <StatusChip

@@ -181,6 +181,16 @@
   --bui-card: #FDFDFE; /* paper — pas blanc pur */
   --bui-popover: #FDFDFE;
 
+  /* Bleu nuit Baitly — la TEINTE du fond de la barre latérale (221°), remontée
+     en luminosité. Le fond de la barre lui-même (#0D1526, 5 % de luminosité) se
+     lit navy sur un aplat de la hauteur de l'écran, mais NOIR dès qu'il habille
+     une icône, une pastille ou un filet ; le wordmark (#1B2A35) a le même
+     défaut, en anthracite. D'où cette valeur : même famille, lisible en petit.
+     10,1:1 sur une carte, 8,8:1 sur le fond de page. */
+  --bui-navy: #25406E;
+  --bui-navy-deep: #1B3155;
+  --bui-navy-soft: rgba(37, 64, 110, 0.10);
+
   --bui-primary: #1B2A35; /* bleu nuit Baitly — couleur du wordmark */
   --bui-primary-deep: #2E4356; /* survols secondaires (le Button utilise primary/90) */
   --bui-primary-soft: rgba(27, 42, 53, 0.08);
@@ -256,8 +266,11 @@
      PLEINE, ce qui rendrait la pastille opaque et l'icône invisible.
      --bui-primary-soft est figé pour la même raison. Les deux bougent
      ensemble si la teinte de la sidebar change. */
-  --bui-screen-icon-bg: rgba(13, 21, 38, 0.16); /* --bui-sidebar à 16 % */
-  --bui-screen-icon-fg: var(--bui-sidebar);
+  /* Pastille d'icône du titre d'écran. `--bui-sidebar` était une ERREUR : sa
+     valeur SOMBRE n'existe que dans l'îlot de la barre latérale, et sur la page
+     ce token vaut #FBFCFD — l'icône était donc blanche sur fond gris. */
+  --bui-screen-icon-bg: rgba(37, 64, 110, 0.14); /* --bui-navy à 14 % */
+  --bui-screen-icon-fg: var(--bui-navy);
 
   /* Sidebar (tokens shadcn dédiés) */
   --bui-sidebar: #FBFCFD;
@@ -323,6 +336,12 @@
   --bui-popover: #111B31;
 
   /* Primaire inversée (comme le wordmark : bleu nuit en clair, blanc en sombre) */
+  /* Sombre : le fond de page rejoint celui de la barre, la teinte passe donc du
+     côté clair. 8,2:1 sur une carte. */
+  --bui-navy: #9CB4E2;
+  --bui-navy-deep: #B8CBEE;
+  --bui-navy-soft: rgba(156, 180, 226, 0.14);
+
   --bui-primary: #E8EEF5;
   --bui-primary-deep: #D2DDE9;
   --bui-primary-soft: rgba(232, 238, 245, 0.1);
@@ -366,8 +385,8 @@
   /* En sombre, la couleur de la sidebar est celle du fond de page : une
      pastille teintée avec elle serait invisible. Le primaire clair reprend
      donc son rôle. */
-  --bui-screen-icon-bg: rgba(232, 238, 245, 0.12); /* --bui-primary à 12 % */
-  --bui-screen-icon-fg: var(--bui-primary);
+  --bui-screen-icon-bg: rgba(156, 180, 226, 0.14); /* --bui-navy à 14 % */
+  --bui-screen-icon-fg: var(--bui-navy);
 
   --bui-sidebar: #0D1526;
   --bui-sidebar-foreground: #D7E1EE;
@@ -506,4 +525,32 @@
   [data-slot='sidebar-group-label'] {
     transition: none;
   }
+}
+
+/* ---- Sidebar : une taille de texte de plus ----
+   Les entrées du menu héritaient du `text-sm` (14 px) du kit et les intitulés
+   de rubrique de son `text-xs` (12 px) — trop petit pour une colonne que l'œil
+   balaie en permanence, l'arabe en particulier, dont le Tajawal à 12 px perd
+   ses points diacritiques. Même arbitrage que le bloc ci-dessus : la surcharge
+   vit ici, la feuille Nova portée reste fidèle à shadcn.
+
+   Elle vise les SLOTS et non la barre : le volet (`SidebarFlyout`) et le
+   tiroir d'onglets sont portalisés sur `body`, donc hors du DOM de la barre,
+   et tiennent la même échelle. Hors couche, comme le bloc ci-dessus : les
+   classes du kit vivent dans `@layer base`, et une déclaration sans couche
+   l'emporte sur toute déclaration en couche, quel que soit l'ordre des imports.
+
+   L'interligne monte avec le corps : ces boutons sont à hauteur FIXE (h-8,
+   h-7) et en `overflow: hidden`. Garder les 20 px de `text-sm` sous un corps
+   de 15 rognait les hampes basses, et en arabe les diacritiques, qui débordent
+   la boîte de contenu. 22 px tiennent dans les 28 px du plus court des deux. */
+[data-slot='sidebar-menu-button'],
+[data-slot='sidebar-menu-sub-button'] {
+  font-size: 0.9375rem; /* 15 px */
+  line-height: 1.375rem; /* 22 px */
+}
+
+[data-slot='sidebar-group-label'] {
+  font-size: 0.8125rem; /* 13 px */
+  line-height: 1.125rem; /* 18 px */
 }

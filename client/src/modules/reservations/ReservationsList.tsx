@@ -29,6 +29,8 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { useReservations } from '../../hooks/useReservations';
+import { usePropertiesList } from '../../hooks/usePropertiesList';
+import PropertyThumb from '../../components/PropertyThumb';
 import type { Reservation, ReservationStatus, ReservationSource } from '../../services/api/reservationsApi';
 import { ReservationStatusChip, ReservationSourceBadge } from './ReservationStatusChip';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
@@ -42,6 +44,7 @@ import { Money } from '../../components/Money';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import PagePagination from '../../components/PagePagination';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -75,7 +78,7 @@ const SOURCE_OPTIONS: ReservationSource[] = [
 function formatDate(dateStr: string): string {
   if (!dateStr) return '-';
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 const formatPrice = (price: number | undefined, currency = 'EUR') => {
@@ -131,6 +134,19 @@ const ReservationsList: React.FC = () => {
     pagination: { page, size: rowsPerPage, search: debouncedSearch },
   });
 
+  // Vignettes des logements. UNE requete pour la page — la liste des logements
+  // est deja en cache react-query (60 s), partagee avec l'ecran Proprietes : la
+  // reservation ne porte que `propertyId`, et une photo par ligne aurait coute
+  // une requete par ligne.
+  const { properties } = usePropertiesList();
+  const photoByProperty = useMemo(() => {
+    const map = new Map<string, string | undefined>();
+    for (const property of properties) {
+      map.set(String(property.id), property.imageUrl ?? property.photoUrls?.[0]);
+    }
+    return map;
+  }, [properties]);
+
   // ─── Handlers ────────────────────────────────────────────────────
 
   const handleCreate = useCallback(() => {
@@ -154,7 +170,7 @@ const ReservationsList: React.FC = () => {
       await cancelReservation(cancelTarget.id);
       notify.success('Reservation annulee');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur lors de l\'annulation';
+      const msg = err instanceof Error ? err.message : t('reservations.cancelError');
       notify.error(msg);
     } finally {
       setCancelDialogOpen(false);
@@ -259,7 +275,7 @@ const ReservationsList: React.FC = () => {
         {isError && (
           <Alert variant="destructive" className="mb-3 shrink-0">
             <TriangleAlert />
-            <AlertDescription>{error ?? 'Erreur lors du chargement des reservations'}</AlertDescription>
+            <AlertDescription>{error ?? t('reservations.loadError')}</AlertDescription>
           </Alert>
         )}
 
@@ -270,14 +286,14 @@ const ReservationsList: React.FC = () => {
           <EmptyState
             icon={<EventNoteIcon />}
             title={t('reservations.noReservations')}
-            description="Ajoutez votre première réservation manuellement, ou laissez Baitly importer vos calendriers Airbnb / Booking automatiquement."
+            description="{t('reservations.emptyHint')}"
             action={(
               <Button variant="outline" size="sm" onClick={handleCreate}>
                 <AddIcon strokeWidth={1.75} />
                 {t('reservations.create')}
               </Button>
             )}
-            tip="Astuce : configure un lien iCal une fois et les nouvelles réservations apparaissent ici dans la minute."
+            tip={t('reservations.icalTip')}
           />
         ) : (
           /* Data table */
@@ -303,9 +319,16 @@ const ReservationsList: React.FC = () => {
                       data-highlight-id={String(r.id)}
                     >
                       <TableCell>
-                        <p className="text-xs font-medium text-foreground">
-                          {r.propertyName}
-                        </p>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <PropertyThumb
+                            size="sm"
+                            seed={String(r.propertyId ?? r.propertyName)}
+                            photo={photoByProperty.get(String(r.propertyId))}
+                          />
+                          <p dir="auto" className="min-w-0 truncate text-xs font-medium text-foreground">
+                            {r.propertyName}
+                          </p>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <p className="text-xs text-foreground cursor-pointer hover:text-primary hover:underline" onClick={() => {

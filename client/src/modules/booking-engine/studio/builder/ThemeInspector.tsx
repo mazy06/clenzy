@@ -3,6 +3,8 @@ import { Button, Input } from '../../../../components/ui';
 import { cn } from '../../../../utils/cn';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
 import { SelectControl } from '../settings/settingsControls';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import i18n from '../../../../i18n/config';
 
 /**
  * Inspecteur de thème (onglet « Thème », étape 1 — édition granulaire des design tokens).
@@ -15,38 +17,38 @@ const FONTS = ['Inter', 'Poppins', 'Montserrat', 'Playfair Display', 'Lora', 'Me
 const FONT_OPTIONS = FONTS.map((f) => ({ value: f, label: f }));
 
 const WEIGHT_OPTIONS = [
-  { value: '500', label: 'Medium' },
-  { value: '600', label: 'Semi-bold' },
-  { value: '700', label: 'Bold' },
-  { value: '800', label: 'Extra-bold' },
+  { value: '500', label: i18n.t('studioTheme.weight.medium') },
+  { value: '600', label: i18n.t('studioTheme.weight.semibold') },
+  { value: '700', label: i18n.t('studioTheme.weight.bold') },
+  { value: '800', label: i18n.t('studioTheme.weight.extrabold') },
 ];
 
 const SIZE_OPTIONS = [
-  { value: '14px', label: 'Compacte (14)' },
-  { value: '15px', label: 'Moyenne (15)' },
-  { value: '16px', label: 'Normale (16)' },
-  { value: '17px', label: 'Confort (17)' },
+  { value: '14px', label: i18n.t('studioTheme.size.compact') },
+  { value: '15px', label: i18n.t('studioTheme.size.medium') },
+  { value: '16px', label: i18n.t('studioTheme.size.normal') },
+  { value: '17px', label: i18n.t('studioTheme.size.comfort') },
 ];
 const RADIUS_OPTIONS = [
-  { value: '0px', label: 'Carré' },
-  { value: '6px', label: 'Léger' },
-  { value: '12px', label: 'Arrondi' },
-  { value: '18px', label: 'Très arrondi' },
+  { value: '0px', label: i18n.t('studioTheme.radius.square') },
+  { value: '6px', label: i18n.t('studioTheme.radius.light') },
+  { value: '12px', label: i18n.t('studioTheme.radius.rounded') },
+  { value: '18px', label: i18n.t('studioTheme.radius.veryRounded') },
 ];
 const SHADOW_OPTIONS = [
-  { value: 'none', label: 'Aucune' },
-  { value: '0 1px 3px rgba(0,0,0,0.08)', label: 'Légère' },
-  { value: '0 4px 14px rgba(0,0,0,0.10)', label: 'Moyenne' },
-  { value: '0 14px 36px rgba(0,0,0,0.16)', label: 'Prononcée' },
+  { value: 'none', label: i18n.t('studioTheme.shadow.none') },
+  { value: '0 1px 3px rgba(0,0,0,0.08)', label: i18n.t('studioTheme.shadow.light') },
+  { value: '0 4px 14px rgba(0,0,0,0.10)', label: i18n.t('studioTheme.shadow.medium') },
+  { value: '0 14px 36px rgba(0,0,0,0.16)', label: i18n.t('studioTheme.shadow.strong') },
 ];
 const DENSITY_OPTIONS = [
-  { value: 'compact', label: 'Compacte' },
-  { value: 'normal', label: 'Normale' },
-  { value: 'spacious', label: 'Spacieuse' },
+  { value: 'compact', label: i18n.t('studioTheme.density.compact') },
+  { value: 'normal', label: i18n.t('studioTheme.density.normal') },
+  { value: 'spacious', label: i18n.t('studioTheme.density.spacious') },
 ];
 const BUTTON_OPTIONS = [
-  { value: 'filled', label: 'Plein' },
-  { value: 'outlined', label: 'Contour' },
+  { value: 'filled', label: i18n.t('studioTheme.button.filled') },
+  { value: 'outlined', label: i18n.t('studioTheme.button.outlined') },
 ];
 
 const SWATCHES = ['#5453D6', '#0F7A6B', '#C2410C', '#B91C6B', '#1D4ED8', '#15803D', '#7C3AED', '#0E7490'];
@@ -57,6 +59,7 @@ export interface ThemeInspectorProps {
 }
 
 export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
+  const { t } = useTranslation();
   const tokens = useMemo<DesignTokens>(() => {
     if (!config?.designTokens) return {};
     try { return JSON.parse(config.designTokens) as DesignTokens; } catch { return {}; }
@@ -65,7 +68,7 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
   if (!config) {
     return (
       <div className="h-full flex items-center justify-center px-4 text-xs text-muted-foreground">
-        Chargement du thème…
+        {t('studio.theme.loading')}
       </div>
     );
   }
@@ -98,7 +101,7 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
             className={COLOR_INPUT_CLS}
           />
           <Input
-            aria-label="Couleur principale (hexadécimal)"
+            aria-label={t('studio.theme.primaryColorHex')}
             value={primary}
             onChange={(e) => setColor(e.target.value)}
             className={HEX_INPUT_CLS}
@@ -122,14 +125,14 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
 
       {/* Couleur de fond de la page (site publié). L'éditeur GrapesJS garde, lui, un canvas blanc neutre. */}
       <div>
-        <label htmlFor="theme-bg" className={LABEL_CLS}>Couleur de fond</label>
+        <label htmlFor="theme-bg" className={LABEL_CLS}>{t('studio.theme.backgroundColor')}</label>
         <div className="flex items-center gap-1.5 mt-1">
           <input id="theme-bg" type="color" value={bg}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => writeTokens({ backgroundColor: e.target.value })}
             className={COLOR_INPUT_CLS}
           />
           <Input
-            aria-label="Couleur de fond (hexadécimal)"
+            aria-label={t('studio.theme.backgroundColorHex')}
             value={bg}
             onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
             className={HEX_INPUT_CLS}
@@ -140,35 +143,35 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
         </div>
       </div>
 
-      <Field label="Police du corps" htmlFor="theme-bodyfont">
+      <Field label={t('studio.theme.bodyFont')} htmlFor="theme-bodyfont">
         <SelectControl id="theme-bodyfont" value={bodyFont} onChange={setBodyFont} options={FONT_OPTIONS} />
       </Field>
-      <Field label="Police des titres" htmlFor="theme-headfont">
+      <Field label={t('studio.theme.headingFont')} htmlFor="theme-headfont">
         <SelectControl id="theme-headfont" value={headingFont} onChange={(v) => writeTokens({ headingFontFamily: v })} options={FONT_OPTIONS} />
       </Field>
-      <Field label="Graisse des titres" htmlFor="theme-headweight">
+      <Field label={t('studio.theme.headingWeight')} htmlFor="theme-headweight">
         <SelectControl id="theme-headweight" value={headingWeight} onChange={(v) => writeTokens({ headingFontWeight: v })} options={WEIGHT_OPTIONS} />
       </Field>
-      <Field label="Taille de texte" htmlFor="theme-size">
+      <Field label={t('studio.theme.textSize')} htmlFor="theme-size">
         <SelectControl id="theme-size" value={baseSize} onChange={(v) => writeTokens({ baseFontSize: v })} options={SIZE_OPTIONS} />
       </Field>
-      <Field label="Rayon des coins" htmlFor="theme-radius">
+      <Field label={t('studio.theme.radius')} htmlFor="theme-radius">
         <SelectControl id="theme-radius" value={radius}
           onChange={(v) => writeTokens({ borderRadius: v, cardBorderRadius: v, buttonBorderRadius: v })} options={RADIUS_OPTIONS} />
       </Field>
-      <Field label="Ombre des cartes" htmlFor="theme-shadow">
+      <Field label={t('studio.theme.cardShadow')} htmlFor="theme-shadow">
         <SelectControl id="theme-shadow" value={shadow}
           onChange={(v) => writeTokens({ boxShadow: v, cardShadow: v })} options={SHADOW_OPTIONS} />
       </Field>
-      <Field label="Densité" htmlFor="theme-density">
+      <Field label={t('studio.theme.density')} htmlFor="theme-density">
         <SelectControl id="theme-density" value={density} onChange={(v) => writeTokens({ spacing: v })} options={DENSITY_OPTIONS} />
       </Field>
-      <Field label="Style des boutons" htmlFor="theme-btn">
+      <Field label={t('studio.theme.buttonStyle')} htmlFor="theme-btn">
         <SelectControl id="theme-btn" value={buttonStyle} onChange={(v) => writeTokens({ buttonStyle: v })} options={BUTTON_OPTIONS} />
       </Field>
 
       <div className="text-2xs text-faint leading-relaxed">
-        Couleur, polices, rayon et ombre se reflètent dans l’aperçu. Taille, densité et style de bouton s’appliquent au widget de réservation sur la page publiée.
+        {t('studio.theme.hint')}
       </div>
     </div>
   );

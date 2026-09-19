@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Article as FileTextIcon,
   Download as DownloadIcon,
@@ -29,40 +30,17 @@ import {
 
 interface ProcedureStep {
   index: number;
+  /** Prefixe de cle en locales : `accounting.sepa.steps.<id>`. */
+  id: string;
   icon: React.ReactNode;
-  title: string;
-  body: string;
 }
 
+// Libelles en locales : `accounting.sepa.steps.<id>.{title,body}`.
 const STEPS: ProcedureStep[] = [
-  {
-    index: 1,
-    icon: <FileTextIcon size={12} strokeWidth={2} />,
-    title: 'Génération pain.001',
-    body:
-      'Baitly compile les payouts approuvés en un fichier XML ISO 20022 (norme pain.001.001.03), prêt à être traité par votre banque.',
-  },
-  {
-    index: 2,
-    icon: <DownloadIcon size={12} strokeWidth={2} />,
-    title: 'Téléchargement',
-    body:
-      'Cliquez sur l\'icône télécharger pour récupérer le XML. Le payout passe en statut « En cours » — il n\'est pas encore débité.',
-  },
-  {
-    index: 3,
-    icon: <ExternalLinkIcon size={12} strokeWidth={2} />,
-    title: 'Upload sur votre portail bancaire',
-    body:
-      'Connectez-vous à l\'espace pro de votre banque (HSBC, SG, BNP, etc.), section « Virements groupés » ou « Import SEPA », et uploadez le fichier. La banque exécute le virement (J ou J+1).',
-  },
-  {
-    index: 4,
-    icon: <VerifiedIcon size={12} strokeWidth={2} />,
-    title: 'Marquer comme payé',
-    body:
-      'Une fois le virement confirmé par la banque, revenez sur Baitly et cliquez sur l\'icône « Payé » du payout. Renseignez la référence du virement (visible sur votre portail bancaire) pour traçabilité.',
-  },
+  { index: 1, id: 'generate', icon: <FileTextIcon size={12} strokeWidth={2} /> },
+  { index: 2, id: 'download', icon: <DownloadIcon size={12} strokeWidth={2} /> },
+  { index: 3, id: 'upload', icon: <ExternalLinkIcon size={12} strokeWidth={2} /> },
+  { index: 4, id: 'markPaid', icon: <VerifiedIcon size={12} strokeWidth={2} /> },
 ];
 
 interface SepaTransferProcedureTooltipProps {
@@ -75,6 +53,7 @@ export default function SepaTransferProcedureTooltip({
   children,
   placement = 'top',
 }: SepaTransferProcedureTooltipProps) {
+  const { t } = useTranslation();
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
@@ -89,7 +68,7 @@ export default function SepaTransferProcedureTooltip({
           {/* Header */}
           <div className="flex items-center gap-1 mb-1">
             <span className="text-[0.78rem] font-bold text-foreground">
-              Virement SEPA — Procédure
+              {t('accounting.sepa.title')}
             </span>
             <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[24px] border border-[currentColor] opacity-70">
               MANUEL
@@ -97,9 +76,7 @@ export default function SepaTransferProcedureTooltip({
           </div>
 
           <span className="block text-[0.68rem] text-inherit opacity-82 leading-[1.45] mb-1.5">
-            4 étapes pour exécuter un virement groupé. L'automatisation
-            arrivera via Wise (hors EU) et Open Banking (auto-SEPA) — voir
-            roadmap.
+            {t('accounting.sepa.intro')}
           </span>
 
           {/* Steps */}
@@ -116,11 +93,11 @@ export default function SepaTransferProcedureTooltip({
                       {step.icon}
                     </span>
                     <span className="text-[0.7rem] font-bold text-foreground">
-                      {step.title}
+                      {t(`accounting.sepa.steps.${step.id}.title`)}
                     </span>
                   </div>
                   <span className="block text-[0.66rem] text-inherit opacity-78 leading-[1.45] mt-0">
-                    {step.body}
+                    {t(`accounting.sepa.steps.${step.id}.body`)}
                   </span>
                 </div>
               </div>
@@ -131,9 +108,7 @@ export default function SepaTransferProcedureTooltip({
           <div className="flex items-start gap-0.5 mt-2 pt-1.5 border-t border-border opacity-78">
             <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
             <span className="text-[0.64rem] text-inherit leading-[1.4]">
-              Tant que vous n'avez pas marqué comme payé, le propriétaire ne
-              reçoit pas de notification. Pensez à le faire pour fermer la
-              boucle.
+              {t('accounting.sepa.markPaidHint')}
             </span>
           </div>
         </div>

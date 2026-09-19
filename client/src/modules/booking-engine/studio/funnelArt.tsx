@@ -1,6 +1,6 @@
 /**
  * Mini-maquettes (schémas line-art) par funnel — style « aperçu » à la Claude Design, bien plus
- * explicites que des icônes génériques. Couleur = `currentColor` (l'accent indigo via `.fan__vig`),
+ * explicites que des icônes génériques. Couleur = `currentColor` (l'accent du module via `.fan__vig`),
  * opacités pour la hiérarchie. Aucune dépendance externe (SVG inline, sur-mesure, on-brand).
  *
  * viewBox 168×104 (paysage, marge interne ~14px). Rendu en `width/height: 100%` dans la vignette.

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, CardContent, Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -12,27 +13,17 @@ import { subscriptionApi } from '../../services/api/subscriptionApi';
 // ─── Forfaits ──────────────────────────────────────────────────────────────
 
 interface ForfaitInfo {
+  /** Nom commercial du forfait — celui du contrat, jamais traduit. */
   label: string;
-  features: string[];
+  /** Nombre de lignes de la fiche ; leur texte vit dans `dashboard.upgrade.features`. */
+  featureCount: number;
   highlight: boolean;
 }
 
 const FORFAITS: Record<string, ForfaitInfo> = {
-  essentiel: {
-    label: 'Essentiel',
-    features: ['Gestion des proprietes', 'Interventions manuelles', 'Suivi basique'],
-    highlight: false,
-  },
-  confort: {
-    label: 'Confort',
-    features: ['Planning interactif', 'Import iCal automatique', 'Interventions auto', 'Notifications'],
-    highlight: true,
-  },
-  premium: {
-    label: 'Premium',
-    features: ['Tout Confort inclus', 'Rapports & analytics', 'Support prioritaire', 'API dediee'],
-    highlight: false,
-  },
+  essentiel: { label: 'Essentiel', featureCount: 3, highlight: false },
+  confort: { label: 'Confort', featureCount: 4, highlight: true },
+  premium: { label: 'Premium', featureCount: 4, highlight: false },
 };
 
 // ─── Composant ─────────────────────────────────────────────────────────────
@@ -43,6 +34,7 @@ interface UpgradeBannerProps {
 }
 
 const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +47,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
         window.location.href = checkoutUrl;
       }
     } catch {
-      setError('Impossible de lancer la mise a niveau. Veuillez reessayer.');
+      setError(t('dashboard.upgrade.error'));
       setLoading(false);
     }
   };
@@ -81,21 +73,19 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
             <div className="min-w-0 flex-1">
               <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
                 <h6 className="text-base font-semibold tracking-tight text-balance text-foreground">
-                  Debloquez le Planning & l'import iCal
+                  {t('dashboard.upgrade.title')}
                 </h6>
                 <Badge variant="secondary">Forfait Essentiel</Badge>
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
-                automatique de vos calendriers Airbnb, Booking et autres plateformes. Passez au
-                forfait Confort pour automatiser la gestion de vos reservations.
+                {t('dashboard.upgrade.body')}
               </p>
             </div>
           </div>
 
           {/* Colonne droite : 3 forfaits cote a cote */}
           <div className="flex flex-[1_1_0] min-w-0 shrink-0 gap-[9px]">
-            {Object.entries(FORFAITS).map(([key, { label, features, highlight }]) => {
+            {Object.entries(FORFAITS).map(([key, { label, featureCount, highlight }]) => {
               const isCurrent = key === currentForfait?.toLowerCase();
               return (
                 <div
@@ -118,7 +108,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                       variant="outline"
                       className="absolute -top-2.5 end-2 h-5 border-solid border-primary bg-card px-1.5 text-2xs font-bold text-primary"
                     >
-                      Recommande
+                      {t('dashboard.upgrade.recommended', 'Recommandé')}
                     </Badge>
                   )}
                   {/* Branches LITTERALES : Tailwind n'emet que les classes qu'il
@@ -133,11 +123,11 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                     {label}
                     {isCurrent && (
                       <span className="ms-0.5 text-2xs font-normal text-muted-foreground">
-                        (actuel)
+                        {t('dashboard.upgrade.current', '(actuel)')}
                       </span>
                     )}
                   </h6>
-                  {features.map((f) => (
+                  {Array.from({ length: featureCount }, (_, i) => t(`dashboard.upgrade.features.${key}.${i}`)).map((f) => (
                     <div className="mb-0.5 flex items-center gap-1" key={f}>
                       <span
                         className={cn(
@@ -172,7 +162,9 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
             onClick={() => handleUpgrade('confort')}
           >
             {loading ? <Spinner className="size-4" /> : <CalendarIcon />}
-            {loading ? 'Redirection...' : 'Passer au Confort'}
+            {loading
+              ? t('dashboard.upgrade.redirecting', 'Redirection…')
+              : t('dashboard.upgrade.toConfort', 'Passer au Confort')}
             {!loading && <ArrowIcon size={18} strokeWidth={1.75} />}
           </Button>
           <Button
@@ -182,7 +174,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
             onClick={() => handleUpgrade('premium')}
           >
             <TrendingIcon size={16} strokeWidth={1.75} />
-            Passer au Premium
+            {t('dashboard.upgrade.toPremium', 'Passer au Premium')}
           </Button>
 
           {/* Error message */}

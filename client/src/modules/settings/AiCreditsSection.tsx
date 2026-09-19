@@ -6,7 +6,7 @@ import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Card, Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Coins, History } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../hooks/useTranslation';
 import { useSearchParams } from 'react-router-dom';
 import {
   aiCreditsApi,

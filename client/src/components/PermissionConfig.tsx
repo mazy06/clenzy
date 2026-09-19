@@ -44,6 +44,7 @@ import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
 import { permissionsApi } from '../services/api/permissionsApi';
+import { useTranslation } from '../hooks/useTranslation';
 
 // ─── Role tabs config ────────────────────────────────────────────────────────
 
@@ -114,32 +115,33 @@ const getModuleDisplayName = (module: string): string => {
 // Fonction pour obtenir l'icône appropriée pour chaque module
 const getModuleIcon = (moduleName: string) => {
   const iconMap: { [key: string]: React.ReactNode } = {
-    'Dashboard': <span className="inline-flex text-muted-foreground"><DashboardIcon size={20} strokeWidth={1.75} /></span>,
-    'Propriétés': <span className="inline-flex text-muted-foreground"><HomeIcon size={20} strokeWidth={1.75} /></span>,
-    'Demandes de Service': <span className="inline-flex text-muted-foreground"><AssignmentIcon size={20} strokeWidth={1.75} /></span>,
-    'Interventions': <span className="inline-flex text-muted-foreground"><BuildIcon size={20} strokeWidth={1.75} /></span>,
-    'Équipes': <span className="inline-flex text-muted-foreground"><GroupIcon size={20} strokeWidth={1.75} /></span>,
-    'Portefeuilles': <span className="inline-flex text-muted-foreground"><BusinessIcon size={20} strokeWidth={1.75} /></span>,
-    'Contact': <span className="inline-flex text-muted-foreground"><NotificationsIcon size={20} strokeWidth={1.75} /></span>,
-    'Utilisateurs': <span className="inline-flex text-muted-foreground"><PersonIcon size={20} strokeWidth={1.75} /></span>,
-    'Paramètres': <span className="inline-flex text-muted-foreground"><SettingsIcon size={20} strokeWidth={1.75} /></span>,
-    'Rapports': <span className="inline-flex text-muted-foreground"><AssessmentIcon size={20} strokeWidth={1.75} /></span>,
-    'Documents': <span className="inline-flex text-muted-foreground"><DescriptionIcon size={20} strokeWidth={1.75} /></span>,
-    'Réservations': <span className="inline-flex text-muted-foreground"><EventNoteIcon size={20} strokeWidth={1.75} /></span>,
-    'Prix Dynamiques': <span className="inline-flex text-muted-foreground"><TrendingUpIcon size={20} strokeWidth={1.75} /></span>,
-    'Tarification': <span className="inline-flex text-muted-foreground"><TarificationIcon size={20} strokeWidth={1.75} /></span>,
-    'Paiements': <span className="inline-flex text-muted-foreground"><PaymentIcon size={20} strokeWidth={1.75} /></span>,
-    'Canaux': <span className="inline-flex text-muted-foreground"><ChannelsIcon size={20} strokeWidth={1.75} /></span>,
-    'Messagerie': <span className="inline-flex text-muted-foreground"><ChatIcon size={20} strokeWidth={1.75} /></span>,
-    'Monitoring': <span className="inline-flex text-muted-foreground"><MonitorIcon size={20} strokeWidth={1.75} /></span>,
-    'Synchronisation': <span className="inline-flex text-muted-foreground"><SyncIcon size={20} strokeWidth={1.75} /></span>,
-    'KPI Readiness': <span className="inline-flex text-muted-foreground"><SpeedIcon size={20} strokeWidth={1.75} /></span>,
-    'Base de Données': <span className="inline-flex text-muted-foreground"><DatabaseIcon size={20} strokeWidth={1.75} /></span>,
+    'dashboard': <span className="inline-flex text-muted-foreground"><DashboardIcon size={20} strokeWidth={1.75} /></span>,
+    'properties': <span className="inline-flex text-muted-foreground"><HomeIcon size={20} strokeWidth={1.75} /></span>,
+    'service-requests': <span className="inline-flex text-muted-foreground"><AssignmentIcon size={20} strokeWidth={1.75} /></span>,
+    'interventions': <span className="inline-flex text-muted-foreground"><BuildIcon size={20} strokeWidth={1.75} /></span>,
+    'teams': <span className="inline-flex text-muted-foreground"><GroupIcon size={20} strokeWidth={1.75} /></span>,
+    'portfolios': <span className="inline-flex text-muted-foreground"><BusinessIcon size={20} strokeWidth={1.75} /></span>,
+    'contact': <span className="inline-flex text-muted-foreground"><NotificationsIcon size={20} strokeWidth={1.75} /></span>,
+    'users': <span className="inline-flex text-muted-foreground"><PersonIcon size={20} strokeWidth={1.75} /></span>,
+    'settings': <span className="inline-flex text-muted-foreground"><SettingsIcon size={20} strokeWidth={1.75} /></span>,
+    'reports': <span className="inline-flex text-muted-foreground"><AssessmentIcon size={20} strokeWidth={1.75} /></span>,
+    'documents': <span className="inline-flex text-muted-foreground"><DescriptionIcon size={20} strokeWidth={1.75} /></span>,
+    'reservations': <span className="inline-flex text-muted-foreground"><EventNoteIcon size={20} strokeWidth={1.75} /></span>,
+    'pricing': <span className="inline-flex text-muted-foreground"><TrendingUpIcon size={20} strokeWidth={1.75} /></span>,
+    'tarification': <span className="inline-flex text-muted-foreground"><TarificationIcon size={20} strokeWidth={1.75} /></span>,
+    'payments': <span className="inline-flex text-muted-foreground"><PaymentIcon size={20} strokeWidth={1.75} /></span>,
+    'channels': <span className="inline-flex text-muted-foreground"><ChannelsIcon size={20} strokeWidth={1.75} /></span>,
+    'messaging': <span className="inline-flex text-muted-foreground"><ChatIcon size={20} strokeWidth={1.75} /></span>,
+    'monitoring': <span className="inline-flex text-muted-foreground"><MonitorIcon size={20} strokeWidth={1.75} /></span>,
+    'sync': <span className="inline-flex text-muted-foreground"><SyncIcon size={20} strokeWidth={1.75} /></span>,
+    'kpi': <span className="inline-flex text-muted-foreground"><SpeedIcon size={20} strokeWidth={1.75} /></span>,
+    'database': <span className="inline-flex text-muted-foreground"><DatabaseIcon size={20} strokeWidth={1.75} /></span>,
   };
   return iconMap[moduleName] || <span className="inline-flex text-muted-foreground"><InfoIcon size={20} strokeWidth={1.75} /></span>;
 };
 
 const PermissionConfig: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { notify } = useNotification();
   const {
@@ -181,11 +183,10 @@ const PermissionConfig: React.FC = () => {
         const grouped: Record<string, string[]> = {};
         permissions.forEach((permission: string) => {
           const [module] = permission.split(':');
-          const moduleName = getModuleDisplayName(module);
-          if (!grouped[moduleName]) {
-            grouped[moduleName] = [];
+          if (!grouped[module]) {
+            grouped[module] = [];
           }
-          grouped[moduleName].push(permission);
+          grouped[module].push(permission);
         });
         
         // Trier les permissions dans chaque module
@@ -221,27 +222,27 @@ const PermissionConfig: React.FC = () => {
         ];
         setAllPermissions(defaultPermissions);
         setPermissionsByModule({
-          'Dashboard': ['dashboard:view'],
-          'Propriétés': ['properties:view', 'properties:create', 'properties:edit', 'properties:delete'],
-          'Demandes de Service': ['service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete'],
-          'Interventions': ['interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete'],
-          'Réservations': ['reservations:view', 'reservations:create', 'reservations:edit'],
-          'Prix Dynamiques': ['pricing:view', 'pricing:manage'],
-          'Équipes': ['teams:view', 'teams:create', 'teams:edit', 'teams:delete'],
-          'Portefeuilles': ['portfolios:view', 'portfolios:manage'],
-          'Contact': ['contact:view', 'contact:send', 'contact:manage'],
-          'Documents': ['documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance'],
-          'Rapports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
-          'Tarification': ['tarification:view', 'tarification:edit'],
-          'Paiements': ['payments:view', 'payments:manage'],
-          'Canaux': ['channels:view', 'channels:manage'],
-          'Messagerie': ['messaging:view', 'messaging:send'],
-          'Utilisateurs': ['users:manage'],
-          'Paramètres': ['settings:view', 'settings:edit'],
-          'Monitoring': ['monitoring:view'],
-          'Synchronisation': ['sync:view', 'sync:manage'],
-          'KPI Readiness': ['kpi:view'],
-          'Base de Données': ['database:view', 'database:manage'],
+          'dashboard': ['dashboard:view'],
+          'properties': ['properties:view', 'properties:create', 'properties:edit', 'properties:delete'],
+          'service-requests': ['service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete'],
+          'interventions': ['interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete'],
+          'reservations': ['reservations:view', 'reservations:create', 'reservations:edit'],
+          'pricing': ['pricing:view', 'pricing:manage'],
+          'teams': ['teams:view', 'teams:create', 'teams:edit', 'teams:delete'],
+          'portfolios': ['portfolios:view', 'portfolios:manage'],
+          'contact': ['contact:view', 'contact:send', 'contact:manage'],
+          'documents': ['documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance'],
+          'reports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
+          'tarification': ['tarification:view', 'tarification:edit'],
+          'payments': ['payments:view', 'payments:manage'],
+          'channels': ['channels:view', 'channels:manage'],
+          'messaging': ['messaging:view', 'messaging:send'],
+          'users': ['users:manage'],
+          'settings': ['settings:view', 'settings:edit'],
+          'monitoring': ['monitoring:view'],
+          'sync': ['sync:view', 'sync:manage'],
+          'kpi': ['kpi:view'],
+          'database': ['database:view', 'database:manage'],
         });
       } finally {
         setLoadingPermissions(false);
@@ -256,7 +257,7 @@ const PermissionConfig: React.FC = () => {
       <div>
         <UiAlert variant="warning">
           <TriangleAlert />
-          <AlertDescription>Aucun utilisateur connecté</AlertDescription>
+          <AlertDescription>{t('permissions.noUser')}</AlertDescription>
         </UiAlert>
       </div>
     );
@@ -304,10 +305,10 @@ const PermissionConfig: React.FC = () => {
                   triggerGlobalRefresh();
                 }}
                 disabled={rolePermissions.isDefault}
-                title="Remet les permissions aux valeurs par défaut"
+                title={t('permissions.resetDefaults')}
               >
                 <RefreshIcon strokeWidth={1.75} />
-                Réinitialiser
+                {t('common.reset')}
               </Button>
               {/* Ecrase la config courante par celle stockee en base : geste
                   irreversible du point de vue de l'utilisateur -> destructive. */}
@@ -318,16 +319,16 @@ const PermissionConfig: React.FC = () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
                     triggerGlobalRefresh();
-                    notify.success('Permissions réinitialisées aux valeurs initiales.');
+                    notify.success(t('permissions.resetDone'));
                   } catch (error) {
-                    notify.error('Erreur lors de la réinitialisation aux valeurs initiales');
+                    notify.error(t('permissions.resetError'));
                   }
                 }}
                 disabled={loading}
-                title="Remet les permissions aux valeurs initiales stockées en base de données"
+                title={t('permissions.resetStored')}
               >
                 <StorageIcon strokeWidth={1.75} />
-                Valeurs Initiales
+                {t('permissions.initialValues')}
               </Button>
               <Button
                 size="sm"
@@ -339,13 +340,13 @@ const PermissionConfig: React.FC = () => {
                     }
                     triggerGlobalRefresh();
                     window.dispatchEvent(new CustomEvent('force-user-reload'));
-                    notify.success('Permissions sauvegardées.');
+                    notify.success(t('permissions.saved'));
                   } catch (error) {
-                    notify.error('Erreur lors de la sauvegarde des permissions');
+                    notify.error(t('permissions.saveError'));
                   }
                 }}
                 disabled={loading || rolePermissions?.isDefault}
-                title="Sauvegarder"
+                title={t('common.save')}
               >
                 <SaveIcon strokeWidth={1.75} />
                 Sauvegarder
@@ -364,7 +365,7 @@ const PermissionConfig: React.FC = () => {
         }))}
         value={selectedRole ?? ''}
         onChange={(v) => setSelectedRole(v as string)}
-        ariaLabel="Sélection du rôle"
+        ariaLabel={t('permissions.roleSelection')}
       />
 
       {/* Résumé du rôle sélectionné */}
@@ -373,16 +374,16 @@ const PermissionConfig: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-xs m-0 text-muted-foreground">
-                Rôle sélectionné : <strong>{selectedRole}</strong>
+                {t('permissions.selectedRole')} <strong>{selectedRole}</strong>
               </p>
               {rolePermissions && (
                 <>
                   <p className="text-xs m-0 text-muted-foreground tabular-nums">
-                    • {rolePermissions.permissions.length} permissions actives
+                    • {t('permissions.activeCount', { count: rolePermissions.permissions.length })}
                   </p>
                   <StatusChip
                     tone={rolePermissions.isDefault ? 'ok' : 'warn'}
-                    label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
+                    label={rolePermissions.isDefault ? t('permissions.byDefault') : t('permissions.modified')}
                   />
                 </>
               )}
@@ -398,7 +399,7 @@ const PermissionConfig: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <h6 className="text-xs font-medium m-0 text-muted-foreground">
-                  Résumé des permissions
+                  {t('permissions.summary')}
                 </h6>
               </div>
 
@@ -461,8 +462,8 @@ const PermissionConfig: React.FC = () => {
           <div className="mb-3">
             <PageTabs
               options={[
-                { label: 'Édition des Permissions', icon: <SettingsIcon />, disabled: !selectedRole || !rolePermissions },
-                { label: 'Démonstration des Effets', icon: <SecurityIcon />, disabled: !selectedRole || !rolePermissions },
+                { label: t('permissions.tabEdit'), icon: <SettingsIcon />, disabled: !selectedRole || !rolePermissions },
+                { label: t('permissions.tabDemo'), icon: <SecurityIcon />, disabled: !selectedRole || !rolePermissions },
               ]}
               value={activeTab}
               onChange={setActiveTab}
@@ -471,7 +472,7 @@ const PermissionConfig: React.FC = () => {
               /* Rangee INTERNE au panneau du role : la navigation de l'ecran,
                  c'est le selecteur de role au-dessus, qui occupe deja le titre. */
               trail={false}
-              ariaLabel="Configuration des permissions"
+              ariaLabel={t('permissions.configAria')}
             />
           </div>
 
@@ -481,22 +482,22 @@ const PermissionConfig: React.FC = () => {
               {/* Configuration des permissions par module */}
               <div className="mb-6">
                 <h5 className="text-sm font-semibold tracking-tight mt-0 mb-[0.35em] mb-4 text-foreground">
-                  Permissions par Module
+                  {t('permissions.byModule')}
                 </h5>
                 
                 {/* Instructions pour la modification des permissions */}
                 <UiAlert variant="info" className="mb-4 text-[1rem]">
                   <Info />
-                  <AlertDescription><strong>Mode modification :</strong>Cliquez sur les badges de permissions (chips) pour les activer/désactiver. 
-                  Les permissions <strong>vertes</strong>sont actives, les permissions <strong>grises</strong>sont inactives.
-                  Les modifications sont temporaires jusqu'à la sauvegarde. Utilisez le bouton <strong>"Sauvegarder"</strong>en haut de page pour persister les changements.</AlertDescription>
+                  <AlertDescription><strong>{t('permissions.editMode')}</strong> {t('permissions.chipsHintHead')}{' '}
+                  <strong>{t('permissions.green')}</strong> {t('permissions.chipsHintMid')} <strong>{t('permissions.grey')}</strong> {t('permissions.chipsHintTail')}{' '}
+                  {t('permissions.saveHint')}</AlertDescription>
                 </UiAlert>
                 
                 {/* Message si aucune permission n'est disponible */}
                 {allPermissions.length === 0 && (
                   <UiAlert variant="warning" className="mb-4">
                     <TriangleAlert />
-                    <AlertDescription>Aucune permission disponible. Veuillez vérifier que la base de données contient les permissions nécessaires.</AlertDescription>
+                    <AlertDescription>{t('permissions.empty')}</AlertDescription>
                   </UiAlert>
                 )}
                 
@@ -523,7 +524,7 @@ const PermissionConfig: React.FC = () => {
                                 {getModuleIcon(moduleName)}
                               </span>
                               <span className="text-xs font-semibold flex-1">
-                                {moduleName}
+                                {t('permissionModules.' + moduleName, getModuleDisplayName(moduleName))}
                               </span>
                               <StatusChip
                                 tone={allActive ? 'ok' : noneActive ? 'neutral' : 'accent'}
@@ -603,7 +604,7 @@ const PermissionConfig: React.FC = () => {
           {!selectedRole && (
             <div className="p-4 text-center">
               <p className="text-sm m-0 text-muted-foreground">
-                Veuillez sélectionner un rôle pour commencer la configuration des permissions
+                {t('permissions.selectRole')}
               </p>
             </div>
           )}

@@ -35,9 +35,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import type { PanelView } from '../types';
 import { PropertyImageCarousel } from '../../../components/PropertyImageCarousel';
 import { MapboxPropertyMap } from '../../../components/MapboxPropertyMap';
-import { formatShortDate, formatTimeFromDate } from '../../../utils/formatUtils';
+import { formatTimeFromDate } from '../../../utils/formatUtils';
+import { useDateFormat, type DateFormatApi } from '../../../hooks/useDateFormat';
 import { getCleaningFrequencyLabel } from '../../../utils/statusUtils';
 import PageTabs from '../../../components/PageTabs';
+import { Money } from '../../../components/Money';
 
 // ─── Type scale du panneau ───────────────────────────────────────────────────
 //
@@ -129,12 +131,17 @@ function hexToRgbaTuple(hex: string, alpha: number): string {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Format un datetime ISO en "25 juil. · 11h" / "25 juil." si pas d'heure. */
-function formatItemDate(dateString: string | undefined | null): string {
+/**
+ * Format un datetime ISO en « 25 juil. · 11h » / « 25 juil. » si pas d'heure.
+ *
+ * <p>Le formateur est injecté : la date suit le calendrier de la langue
+ * (hégirien en arabe), l'heure reste une heure.</p>
+ */
+function formatItemDate(dateString: string | undefined | null, fmt: DateFormatApi): string {
   if (!dateString) return '—';
-  const d = formatShortDate(dateString);
-  const t = formatTimeFromDate(dateString);
-  return t ? `${d} · ${t}` : d;
+  const d = fmt.formatDayMonthShort(new Date(dateString));
+  const time = formatTimeFromDate(dateString);
+  return time ? `${d} · ${time}` : d;
 }
 
 // ─── Status mappings ─────────────────────────────────────────────────────────
@@ -149,14 +156,15 @@ const SR_STATUS_COLORS: Record<string, string> = {
   CANCELLED:         '#757575',
 };
 
-const SR_STATUS_LABELS: Record<string, string> = {
-  PENDING:           'En attente',
-  ASSIGNED:          'Assignée',
-  AWAITING_PAYMENT:  'En attente de paiement',
-  IN_PROGRESS:       'En cours',
-  COMPLETED:         'Terminée',
-  REJECTED:          'Rejetée',
-  CANCELLED:         'Annulée',
+/** Statut de demande → clef i18n déjà servie par `serviceRequests.statuses`. */
+const SR_STATUS_KEYS: Record<string, string> = {
+  PENDING:           'pending',
+  ASSIGNED:          'assigned',
+  AWAITING_PAYMENT:  'awaitingPayment',
+  IN_PROGRESS:       'inProgress',
+  COMPLETED:         'completed',
+  REJECTED:          'rejected',
+  CANCELLED:         'cancelled',
 };
 
 const INTERVENTION_STATUS_COLORS: Record<string, string> = {
@@ -166,12 +174,8 @@ const INTERVENTION_STATUS_COLORS: Record<string, string> = {
   pending:      '#ED6C02',
 };
 
-const INTERVENTION_STATUS_LABELS: Record<string, string> = {
-  completed:    'Terminée',
-  in_progress:  'En cours',
-  cancelled:    'Annulée',
-  pending:      'En attente',
-};
+// Les libellés d'intervention vivent dans `interventions.statuses.*`, en clefs
+// majuscules : le statut brut y mène directement.
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -188,6 +192,8 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  // Dates des listes : calendrier de la langue active.
+  const fmt = useDateFormat();
   const [activeSubTab, setActiveSubTab] = useState<'requests' | 'interventions'>('requests');
   const { property, interventions, serviceRequests = [], isLoading, isError, error } = usePropertyDetails(
     propertyId?.toString(),
@@ -205,28 +211,28 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
     return (
       <Alert variant="destructive">
         <AlertDescription className="text-[0.75rem]">
-          {error || 'Impossible de charger le logement'}
+          {error || t('planning.panel.property.loadError', 'Impossible de charger le logement')}
         </AlertDescription>
       </Alert>
     );
   }
 
   const metrics = [
-    { icon: <Bed size={13} strokeWidth={1.75} />,        label: 'Chambres', value: property.bedrooms },
-    { icon: <Bathtub size={13} strokeWidth={1.75} />,    label: 'SDB',      value: property.bathrooms },
-    { icon: <SquareFoot size={13} strokeWidth={1.75} />, label: 'm²',       value: property.surfaceArea || '—' },
-    { icon: <People size={13} strokeWidth={1.75} />,     label: 'Capacité', value: property.maxGuests },
+    { icon: <Bed size={13} strokeWidth={1.75} />,        label: t('planning.panel.property.bedrooms'),  value: property.bedrooms },
+    { icon: <Bathtub size={13} strokeWidth={1.75} />,    label: t('planning.panel.property.bathrooms'), value: property.bathrooms },
+    { icon: <SquareFoot size={13} strokeWidth={1.75} />, label: t('planning.panel.property.surface'),   value: property.surfaceArea || '—' },
+    { icon: <People size={13} strokeWidth={1.75} />,     label: t('planning.panel.property.capacity'),  value: property.maxGuests },
     ...(property.numberOfFloors
-      ? [{ icon: <Stairs size={13} strokeWidth={1.75} />, label: 'Étages', value: property.numberOfFloors }]
+      ? [{ icon: <Stairs size={13} strokeWidth={1.75} />, label: t('planning.panel.property.floors'), value: property.numberOfFloors }]
       : []),
   ];
 
   const cleaningFeatures = [
-    property.hasExterior && 'Extérieur',
-    property.hasLaundry && 'Linge',
-    property.hasIroning && 'Repassage',
-    property.hasDeepKitchen && 'Cuisine profonde',
-    property.hasDisinfection && 'Désinfection',
+    property.hasExterior && t('planning.panel.property.features.exterior'),
+    property.hasLaundry && t('planning.panel.property.features.laundry'),
+    property.hasIroning && t('planning.panel.property.features.ironing'),
+    property.hasDeepKitchen && t('planning.panel.property.features.deepKitchen'),
+    property.hasDisinfection && t('planning.panel.property.features.disinfection'),
   ].filter(Boolean);
 
   const isActive = property.status === 'active';
@@ -244,13 +250,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   // Section « ACCÈS » : uniquement les données existantes, sinon omise.
   const accessRows = [
     property.checkInInstructions?.accessCode
-      ? { icon: <Lock size={13} strokeWidth={1.75} />, label: 'Digicode', value: property.checkInInstructions.accessCode }
+      ? { icon: <Lock size={13} strokeWidth={1.75} />, label: t('planning.panel.property.accessCode'), value: property.checkInInstructions.accessCode }
       : null,
     property.numberOfFloors
-      ? { icon: <Stairs size={13} strokeWidth={1.75} />, label: 'Étage', value: String(property.numberOfFloors) }
+      ? { icon: <Stairs size={13} strokeWidth={1.75} />, label: t('planning.panel.property.floor'), value: String(property.numberOfFloors) }
       : null,
     property.checkInInstructions?.wifiName
-      ? { icon: <Wifi size={13} strokeWidth={1.75} />, label: 'Wi-Fi', value: property.checkInInstructions.wifiName }
+      ? { icon: <Wifi size={13} strokeWidth={1.75} />, label: t('planning.panel.property.wifi'), value: property.checkInInstructions.wifiName }
       : null,
   ].filter((r): r is { icon: React.ReactElement; label: string; value: string } => r !== null);
 
@@ -303,7 +309,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {/* ─── ACCÈS : Digicode / Étage / Wi-Fi (si données) ───────────── */}
       {accessRows.length > 0 && (
         <div className="mb-2">
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Accès</p>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('planning.panel.property.access', 'Accès')}</p>
           <div className="[&>*+*]:[border-top:1px_solid_var(--bui-border)]">
             {accessRows.map((row) => (
               <div className="flex items-center gap-1.5 py-[7px]" key={row.label}>
@@ -357,7 +363,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             par categorie sans surcharge "rainbow". */}
       {property.amenities.length > 0 && (
         <div className="mb-2">
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Équipements</p>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('planning.panel.property.amenities', 'Équipements')}</p>
           <div className="flex flex-wrap gap-0.5">
             {property.amenities.map((a) => {
               const palette = getAmenityChipStyle(a);
@@ -389,26 +395,26 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
               <span className="inline-flex text-primary">
                 <CleaningServices size={14} strokeWidth={1.75} />
               </span>
-              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Configuration ménage</p>
+              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>{t('planning.panel.property.cleaningConfig', 'Configuration ménage')}</p>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pt-0 pb-[7.5px]">
           <div className="flex flex-col gap-0.5">
-            <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label="Fréquence">
+            <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label={t('planning.panel.property.frequency', 'Fréquence')}>
               {property.cleaningFrequency ? getCleaningFrequencyLabel(property.cleaningFrequency, t) : '—'}
             </ConfigRow>
             {property.cleaningBasePrice != null && (
-              <ConfigRow icon={<AttachMoney size={12} strokeWidth={1.75} />} label="Prix base">
-                {property.cleaningBasePrice} EUR
+              <ConfigRow icon={<AttachMoney size={12} strokeWidth={1.75} />} label={t('planning.panel.property.basePrice', 'Prix base')}>
+                <Money value={property.cleaningBasePrice} from="EUR" />
               </ConfigRow>
             )}
             {property.cleaningDurationMinutes != null && (
-              <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label="Durée">
-                {property.cleaningDurationMinutes} min
+              <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label={t('planning.panel.property.duration', 'Durée')}>
+                {t('planning.panel.property.minutes', { count: property.cleaningDurationMinutes })}
               </ConfigRow>
             )}
             {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
-              <ConfigRow label="Check-in / out">
+              <ConfigRow label={t('planning.panel.property.checkInOut', 'Check-in / out')}>
                 <span className="font-semibold">{property.defaultCheckInTime || '—'}</span>
                 {' / '}
                 <span className="font-semibold">{property.defaultCheckOutTime || '—'}</span>
@@ -443,7 +449,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         >
           <AccordionItem value="cleaning-notes" className="border-b-0">
             <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
-              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Notes ménage</p>
+              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>{t('planning.panel.property.cleaningNotes', 'Notes ménage')}</p>
             </AccordionTrigger>
             <AccordionContent className="pt-0 pb-[7.5px]">
               <p className="cn-text-body1 text-[var(--muted)] whitespace-pre-wrap leading-[1.5]" style={{ fontSize: BODY_FS }}>
@@ -461,14 +467,14 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         options={[
           {
             value: 'requests',
-            label: 'Demandes',
+            label: t('planning.panel.property.tabs.requests', 'Demandes'),
             icon: <Assignment />,
             badge: serviceRequests.length,
             badgeColor: 'primary',
           },
           {
             value: 'interventions',
-            label: 'Interventions',
+            label: t('planning.panel.property.tabs.interventions', 'Interventions'),
             icon: <Handyman />,
             badge: interventions.length,
             badgeColor: 'primary',
@@ -486,7 +492,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         <>
           {serviceRequests.length === 0 ? (
             <p className="cn-text-body1 text-[var(--muted)] italic text-center py-1.5" style={{ fontSize: BODY_FS }}>
-              Aucune demande de service
+              {t('planning.panel.property.noRequests', 'Aucune demande de service')}
             </p>
           ) : (
             <div className="flex flex-col gap-0.5">
@@ -501,20 +507,22 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                       onClick={() => navigate(`/service-requests/${sr.id}`)}
                       icon={<Assignment size={13} strokeWidth={1.75} />}
                       title={sr.title}
-                      meta={`${(sr.serviceType ?? '').replace(/_/g, ' ').toLowerCase()} · ${formatItemDate(sr.desiredDate)}`}
-                      statusLabel={SR_STATUS_LABELS[sr.status] || sr.status}
+                      meta={`${(sr.serviceType ?? '').replace(/_/g, ' ').toLowerCase()} · ${formatItemDate(sr.desiredDate, fmt)}`}
+                      statusLabel={SR_STATUS_KEYS[sr.status]
+                        ? t(`serviceRequests.statuses.${SR_STATUS_KEYS[sr.status]}`)
+                        : sr.status}
                       statusColor={c}
                     />
                   );
                 })}
               {serviceRequests.length > 5 && (
                 <FooterLink onClick={() => navigate(`/service-requests?propertyId=${propertyId}`)}>
-                  Voir les {serviceRequests.length} demandes
+                  {t('planning.panel.property.seeNRequests', { count: serviceRequests.length })}
                 </FooterLink>
               )}
               {serviceRequests.length <= 5 && (
                 <FooterLink onClick={() => navigate(`/service-requests?propertyId=${propertyId}`)}>
-                  Voir toutes les demandes
+                  {t('planning.panel.property.seeAllRequests', 'Voir toutes les demandes')}
                 </FooterLink>
               )}
             </div>
@@ -527,7 +535,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         <>
           {interventions.length === 0 ? (
             <p className="cn-text-body1 text-[var(--muted)] italic text-center py-1.5" style={{ fontSize: BODY_FS }}>
-              Aucune intervention planifiée
+              {t('planning.panel.property.noInterventions', 'Aucune intervention planifiée')}
             </p>
           ) : (
             <div className="flex flex-col gap-0.5">
@@ -542,20 +550,20 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                       onClick={() => onDrillDown?.({ type: 'intervention-detail', interventionId: Number(intv.id) })}
                       icon={<Handyman size={13} strokeWidth={1.75} />}
                       title={intv.description || intv.type}
-                      meta={`${formatItemDate(intv.scheduledDate)}${intv.assignedTo ? ` · ${intv.assignedTo}` : ''}`}
-                      statusLabel={INTERVENTION_STATUS_LABELS[intv.status] || intv.status}
+                      meta={`${formatItemDate(intv.scheduledDate, fmt)}${intv.assignedTo ? ` · ${intv.assignedTo}` : ''}`}
+                      statusLabel={t(`interventions.statuses.${String(intv.status).toUpperCase()}`, intv.status)}
                       statusColor={c}
                     />
                   );
                 })}
               {interventions.length > 5 && (
                 <FooterLink onClick={() => navigate(`/interventions?propertyId=${propertyId}`)}>
-                  Voir les {interventions.length} interventions
+                  {t('planning.panel.property.seeNInterventions', { count: interventions.length })}
                 </FooterLink>
               )}
               {interventions.length <= 5 && (
                 <FooterLink onClick={() => navigate(`/interventions?propertyId=${propertyId}`)}>
-                  Voir toutes les interventions
+                  {t('planning.panel.property.seeAllInterventions', 'Voir toutes les interventions')}
                 </FooterLink>
               )}
             </div>
@@ -573,7 +581,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         onClick={() => navigate(`/properties/${propertyId}`)}
       >
         <OpenInNew size={13} strokeWidth={1.75} />
-        Ouvrir la fiche logement
+        {t('planning.panel.property.openProperty', 'Ouvrir la fiche logement')}
       </Button>
     </div>
   );

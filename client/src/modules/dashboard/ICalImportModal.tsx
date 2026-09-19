@@ -49,6 +49,7 @@ import {
 } from '../../icons';
 import type { ICalPreviewResponse, ICalImportResponse, ICalEventPreview } from '../../services/api/iCalApi';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   useICalAccess,
   useICalProperties,
@@ -62,6 +63,7 @@ import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
 import leboncoinLogo from '../../assets/logo/Leboncoin-logo.png';
+import { activeIntlLocale } from '../../utils/activeLocale';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -74,6 +76,8 @@ interface ICalImportModalProps {
 interface SourceDef {
   value: string;
   label: string;
+  /** Renseignée pour les libellés traduisibles ; `value` reste l'identifiant backend. */
+  labelKey?: string;
   logo?: string;
   patterns: string[];
 }
@@ -85,7 +89,7 @@ const SOURCES: SourceDef[] = [
   { value: 'Expedia', label: 'Expedia', logo: expediaLogo, patterns: ['expedia.com', 'expedia.fr'] },
   { value: 'Leboncoin', label: 'Leboncoin', logo: leboncoinLogo, patterns: ['leboncoin.fr'] },
   { value: 'Google Calendar', label: 'Google Calendar', logo: undefined, patterns: ['google.com/calendar', 'calendar.google'] },
-  { value: 'Autre', label: 'Autre', logo: undefined, patterns: [] },
+  { value: 'Autre', label: 'Autre', labelKey: 'icalImport.sources.other', logo: undefined, patterns: [] },
 ];
 
 /** Detect the source platform from an iCal URL */
@@ -114,7 +118,7 @@ const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> 
   );
 };
 
-const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
+const STEP_KEYS = ['icalImport.steps.config', 'icalImport.steps.preview', 'icalImport.steps.result'];
 
 // Les champs de ce formulaire sont passes aux primitives du kit : le libelle
 // notche sur la bordure (pattern .rm-field) laisse place au libelle statique.
@@ -157,7 +161,7 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-';
   try {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
+    return new Date(dateStr).toLocaleDateString(activeIntlLocale(), {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -170,6 +174,7 @@ const formatDate = (dateStr: string) => {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImportSuccess }) => {
+  const { t } = useTranslation();
   const { user, isAdmin, isManager, isHost } = useAuth();
 
   // Stepper
@@ -184,6 +189,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   // Auto-detected source from URL
   const detectedSource = detectSourceFromUrl(url);
   const sourceName = detectedSource.value;
+  const sourceLabel = detectedSource.labelKey ? t(detectedSource.labelKey) : detectedSource.label;
 
   // Step 2: Preview
   const [preview, setPreview] = useState<ICalPreviewResponse | null>(null);
@@ -278,7 +284,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
   const handlePreview = async () => {
     if (!url.trim() || !propertyId) {
-      setFormError('Veuillez renseigner l\'URL du calendrier et sélectionner une propriété.');
+      setFormError(t('icalImport.validationError'));
       return;
     }
 
@@ -327,22 +333,22 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       {!hasAccess && (
         <BuiAlert variant="warning">
           <TriangleAlert />
-          <AlertDescription>L'import iCal est disponible avec les forfaits Confort et Premium.</AlertDescription>
+          <AlertDescription>{t('icalImport.planGate')}</AlertDescription>
         </BuiAlert>
       )}
 
       {/* Info banner — primitive Alert du kit plutot qu'un encart dessine a la main */}
       <BuiAlert variant="info">
         <InfoIcon strokeWidth={1.75} />
-        <AlertTitle>Collez le lien iCal de votre calendrier externe pour importer vos réservations.</AlertTitle>
+        <AlertTitle>{t('icalImport.info.title')}</AlertTitle>
         <AlertDescription>
-          Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
+          {t('icalImport.info.airbnb')}
         </AlertDescription>
       </BuiAlert>
 
       {/* URL du calendrier */}
       <Field>
-        <FieldLabel htmlFor="ical-url">Lien iCal (.ics)</FieldLabel>
+        <FieldLabel htmlFor="ical-url">{t('icalImport.urlLabel')}</FieldLabel>
         <InputGroup>
           <InputGroupAddon>
             <span className="inline-flex text-faint"><CalendarIcon size={18} strokeWidth={1.75} /></span>
@@ -356,7 +362,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             disabled={!hasAccess}
           />
         </InputGroup>
-        <FieldDescription>Copiez le lien iCal depuis votre plateforme de réservation</FieldDescription>
+        <FieldDescription>{t('icalImport.urlHelp')}</FieldDescription>
       </Field>
 
       {/* 2-column grid — champs principaux */}
@@ -364,7 +370,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         {/* Proprietaire */}
         {canChangeOwner ? (
           <Field>
-            <FieldLabel htmlFor="ical-owner">Propriétaire</FieldLabel>
+            <FieldLabel htmlFor="ical-owner">{t('icalImport.owner')}</FieldLabel>
             <NativeSelect
               id="ical-owner"
               className="w-full"
@@ -377,7 +383,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               }}
               disabled={!hasAccess}
             >
-              <NativeSelectOption value="">Sélectionner un propriétaire</NativeSelectOption>
+              <NativeSelectOption value="">{t('icalImport.selectOwner')}</NativeSelectOption>
               {owners.map((owner) => (
                 <NativeSelectOption key={owner.id} value={owner.id}>
                   {owner.firstName} {owner.lastName} — {owner.email}
@@ -387,7 +393,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </Field>
         ) : (
           <Field>
-            <FieldLabel htmlFor="ical-owner-readonly">Propriétaire</FieldLabel>
+            <FieldLabel htmlFor="ical-owner-readonly">{t('icalImport.owner')}</FieldLabel>
             <Input
               id="ical-owner-readonly"
               className="w-full"
@@ -399,26 +405,26 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
         {/* Source (auto-detected from URL) */}
         <Field>
-          <FieldLabel htmlFor="ical-source">Source</FieldLabel>
+          <FieldLabel htmlFor="ical-source">{t('icalImport.source')}</FieldLabel>
           <InputGroup>
             {detectedSource.logo && (
               <InputGroupAddon>
-                <SourceLogoIcon logo={detectedSource.logo} label={detectedSource.label} size={22} />
+                <SourceLogoIcon logo={detectedSource.logo} label={sourceLabel} size={22} />
               </InputGroupAddon>
             )}
             <InputGroupInput
               id="ical-source"
               className="font-semibold"
-              value={detectedSource.label}
+              value={sourceLabel}
               disabled
             />
           </InputGroup>
-          <FieldDescription>Détecté automatiquement depuis l'URL</FieldDescription>
+          <FieldDescription>{t('icalImport.sourceHelp')}</FieldDescription>
         </Field>
 
         {/* Propriete */}
         <Field>
-          <FieldLabel htmlFor="ical-property">Propriété</FieldLabel>
+          <FieldLabel htmlFor="ical-property">{t('icalImport.property')}</FieldLabel>
           <NativeSelect
             id="ical-property"
             className="w-full"
@@ -430,9 +436,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             <NativeSelectOption value="">
               {filteredProperties.length === 0
                 ? (canChangeOwner && !ownerId
-                  ? 'Sélectionnez d\'abord un propriétaire'
-                  : 'Aucune propriété disponible')
-                : 'Sélectionner une propriété'}
+                  ? t('icalImport.selectOwnerFirst')
+                  : t('icalImport.noProperty'))
+                : t('icalImport.selectProperty')}
             </NativeSelectOption>
             {filteredProperties.map((p) => (
               <NativeSelectOption key={p.id} value={p.id}>
@@ -460,14 +466,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                 <Switch checked={autoCreateInterventions} disabled size="sm" />
               </span>
             </TooltipTrigger>
-            <TooltipContent>Disponible avec le forfait Confort ou Premium</TooltipContent>
+            <TooltipContent>{t('icalImport.planGateSwitch')}</TooltipContent>
           </Tooltip>
         )}
         <p className="text-sm font-medium text-foreground">
-          Ménage automatique
+          {t('icalImport.autoCleaning')}
         </p>
         <span className="text-xs text-muted-foreground">
-          — Crée une demande de ménage le jour du checkout à l'heure de départ du voyageur
+          {t('icalImport.autoCleaningHint')}
         </span>
       </div>
 
@@ -476,7 +482,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           <TriangleAlert />
           <AlertDescription>{error}</AlertDescription>
           <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => { setFormError(null); previewMutation.reset(); }}>
+            <BuiButton variant="ghost" size="icon-xs" aria-label={t('common.close')} onClick={() => { setFormError(null); previewMutation.reset(); }}>
               <X />
             </BuiButton>
           </AlertAction>
@@ -501,16 +507,16 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           <h6 className="text-sm font-semibold tracking-tight">
             {preview.propertyName}
           </h6>
-          <StatusChip tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' }} label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`} icon={<EventIcon size={14} strokeWidth={1.75} />} className="h-6" />
+          <StatusChip tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' }} label={t('icalImport.reservationsCount', { count: reservationCount })} icon={<EventIcon size={14} strokeWidth={1.75} />} className="h-6" />
           {blockedCount > 0 && (
-            <StatusChip tokens={{ color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' }} label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`} className="h-6" />
+            <StatusChip tokens={{ color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' }} label={t('icalImport.blockedCount', { count: blockedCount })} className="h-6" />
           )}
         </div>
 
         {totalCount === 0 && (
           <BuiAlert variant="info">
             <Info />
-            <AlertDescription>Aucune réservation ni période bloquée trouvée dans ce calendrier.</AlertDescription>
+            <AlertDescription>{t('icalImport.emptyCalendar')}</AlertDescription>
           </BuiAlert>
         )}
 
@@ -523,10 +529,10 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             <TableHeader>
               <TableRow>
                 {/* Fond opaque obligatoire : sans lui les lignes defilent par transparence. */}
-                <TableHead className="sticky top-0 z-10 bg-card">Arrivée</TableHead>
-                <TableHead className="sticky top-0 z-10 bg-card">Départ</TableHead>
-                <TableHead className="sticky top-0 z-10 bg-card text-center">Nuits</TableHead>
-                <TableHead className="sticky top-0 z-10 bg-card">Guest / Détails</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card">{t('icalImport.table.checkIn')}</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card">{t('icalImport.table.checkOut')}</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card text-center">{t('icalImport.table.nights')}</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card">{t('icalImport.table.guest')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -540,15 +546,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                   <TableCell>
                     {event.type === 'blocked' ? (
                       <div className="flex items-center gap-1">
-                        <StatusChip size="sm" tokens={{ color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' }} label="Bloqué" className="h-5" />
+                        <StatusChip size="sm" tokens={{ color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' }} label={t('icalImport.blocked')} className="h-5" />
                         <p className="text-sm text-muted-foreground">
-                          Période bloquée
+                          {t('icalImport.blockedPeriod')}
                         </p>
                       </div>
                     ) : (
                       <>
                         <p className="text-sm font-medium">
-                          {event.guestName || event.summary || 'Réservation'}
+                          {event.guestName || event.summary || t('icalImport.reservation')}
                         </p>
                         {event.confirmationCode && (
                           <span className="text-xs text-muted-foreground">
@@ -568,8 +574,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           <BuiAlert variant="info">
             <SyncIcon strokeWidth={1.75} />
             <AlertDescription>
-              {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
-              {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
+              {t('icalImport.cleaningNotice', { count: totalCount })}
             </AlertDescription>
           </BuiAlert>
         )}
@@ -579,7 +584,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             <TriangleAlert />
             <AlertDescription>{error}</AlertDescription>
             <AlertAction>
-              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => { setFormError(null); importMutation.reset(); }}>
+              <BuiButton variant="ghost" size="icon-xs" aria-label={t('common.close')} onClick={() => { setFormError(null); importMutation.reset(); }}>
                 <X />
               </BuiButton>
             </AlertAction>
@@ -608,24 +613,24 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </div>
 
         <h6 className="text-base font-semibold tracking-tight">
-          Import terminé
+          {t('icalImport.done')}
         </h6>
 
         <div className="flex flex-wrap justify-center gap-1.5">
-          <Badge variant="success" className="h-7 text-2xs font-semibold tabular-nums"><CheckCircleIcon size={14} strokeWidth={1.75} />{`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}</Badge>
-          <Badge variant="outline" className="h-7 text-2xs font-semibold tabular-nums text-muted-foreground">{`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}</Badge>
+          <Badge variant="success" className="h-7 text-2xs font-semibold tabular-nums"><CheckCircleIcon size={14} strokeWidth={1.75} />{t('icalImport.importedCount', { count: importResult.imported })}</Badge>
+          <Badge variant="outline" className="h-7 text-2xs font-semibold tabular-nums text-muted-foreground">{t('icalImport.skippedCount', { count: importResult.skipped })}</Badge>
           {!!importResult.daysBlocked && importResult.daysBlocked > 0 && (
-            <Badge variant="outline" className="h-7 text-2xs font-semibold tabular-nums text-muted-foreground">{`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="h-7 text-2xs font-semibold tabular-nums text-muted-foreground">{t('icalImport.blockedDaysCount', { count: importResult.daysBlocked })}</Badge>
           )}
           {hasErrors && (
-            <Badge variant="destructive" className="h-7 text-2xs font-semibold tabular-nums"><ErrorIcon size={14} strokeWidth={1.75} />{`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="destructive" className="h-7 text-2xs font-semibold tabular-nums"><ErrorIcon size={14} strokeWidth={1.75} />{t('icalImport.errorsCount', { count: importResult.errors.length })}</Badge>
           )}
         </div>
 
         {hasErrors && (
           <BuiAlert variant="warning" className="w-full">
             <TriangleAlert />
-            <AlertTitle>Certains événements n'ont pas pu être importés :</AlertTitle>
+            <AlertTitle>{t('icalImport.partialErrors')}</AlertTitle>
             <AlertDescription>{importResult.errors.map((err, i) => (
               <span className="block text-xs" key={i}>
                 &bull; {err}
@@ -637,8 +642,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         <BuiAlert variant="info" className="w-full">
           <SyncIcon strokeWidth={1.75} />
           <AlertDescription>
-            Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
-            Les doublons sont ignorés automatiquement.
+            {t('icalImport.resyncNotice')}
           </AlertDescription>
         </BuiAlert>
       </div>
@@ -652,10 +656,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const previewBlocked = preview?.events.filter((e) => e.type === 'blocked').length || 0;
   const importButtonLabel =
     previewBlocked === 0
-      ? `Importer ${previewReservations} réservation${previewReservations > 1 ? 's' : ''}`
+      ? t('icalImport.importReservations', { count: previewReservations })
       : previewReservations === 0
-        ? `Importer ${previewBlocked} blocage${previewBlocked > 1 ? 's' : ''}`
-        : `Importer ${previewReservations} résa. + ${previewBlocked} blocage${previewBlocked > 1 ? 's' : ''}`;
+        ? t('icalImport.importBlocks', { count: previewBlocked })
+        : t('icalImport.importMixed', {
+          res: previewReservations,
+          blocks: t('icalImport.blocksPart', { count: previewBlocked }),
+        });
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
@@ -671,12 +678,12 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             <span className="flex size-8 items-center justify-center rounded-md bg-primary-soft text-primary">
               <CalendarIcon size={18} strokeWidth={1.75} />
             </span>
-            Import Calendrier iCal
+            {t('icalImport.title')}
           </DialogTitle>
           <BuiButton
             variant="ghost"
             size="icon-sm"
-            aria-label="Fermer"
+            aria-label={t('common.close')}
             onClick={handleClose}
             className="text-muted-foreground hover:bg-muted hover:text-destructive-ink"
           >
@@ -684,7 +691,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </BuiButton>
         </DialogHeader>
 
-        <StepIndicator steps={STEPS} activeStep={activeStep} />
+        <StepIndicator steps={STEP_KEYS.map((key) => t(key))} activeStep={activeStep} />
 
         {/* Hauteur bornee + defilement : le Dialog MUI faisait defiler son corps. */}
         <div className="max-h-[60vh] overflow-y-auto">
@@ -697,7 +704,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         {activeStep === 0 && (
           <>
             <BuiButton onClick={handleClose} variant="outline" size="sm">
-              Annuler
+              {t('common.cancel')}
             </BuiButton>
             <BuiButton
               onClick={handlePreview}
@@ -706,7 +713,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
             >
               {loading ? <Spinner className="size-4" /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
-              {loading ? 'Chargement...' : 'Prévisualiser'}
+              {loading ? t('icalImport.loading') : t('icalImport.preview')}
             </BuiButton>
           </>
         )}
@@ -720,7 +727,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               disabled={loading}
             >
               <ArrowBackIcon size={16} strokeWidth={1.75} />
-              Retour
+              {t('common.back')}
             </BuiButton>
             <BuiButton
               onClick={handleImport}
@@ -729,14 +736,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               disabled={loading || !preview || totalPreviewEvents === 0}
             >
               {loading ? <Spinner className="size-4" /> : <ImportIcon size={16} strokeWidth={1.75} />}
-              {loading ? 'Import en cours...' : importButtonLabel}
+              {loading ? t('icalImport.importing') : importButtonLabel}
             </BuiButton>
           </>
         )}
 
         {activeStep === 2 && (
           <BuiButton onClick={handleClose} variant="default" size="sm">
-            Fermer
+            {t('common.close')}
           </BuiButton>
         )}
         </DialogFooter>

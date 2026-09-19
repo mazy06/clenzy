@@ -7,6 +7,7 @@ import {
   type ComplianceProvider,
 } from '../../../services/api/complianceConnectionApi';
 import ApiKeyConnectionCard, { type ApiKeyConnectionApi } from './ApiKeyConnectionCard';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Wrapper Compliance autour du composant generique {@link ApiKeyConnectionCard}.
@@ -20,6 +21,7 @@ interface Props {
 }
 
 const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
+  const { t } = useTranslation();
   const meta = COMPLIANCE_PROVIDER_META[provider];
   // Drapeau national : aucune icone lucide n'en tient lieu, et il ne porte
   // aucun sens a lui seul — le code pays le precede, le drapeau est masque
@@ -50,7 +52,7 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
     >
       <TriangleAlert />
       <AlertDescription className="text-xs">
-        <strong>Obligation légale :</strong> {meta.legalNote}
+        <strong>{t('settings.integrations.legalObligation')}</strong> {t(meta.legalNoteKey)}
       </AlertDescription>
     </Alert>
   );
@@ -61,8 +63,8 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
   // enregistre les credentials mais aucune transmission n'a lieu.
   const scaffoldingNote =
     provider === 'CHEKIN'
-      ? 'Votre clé API est validée par un appel réel à Chekin lors de la connexion. Les fiches de police des voyageurs sont ensuite transmises automatiquement dès que le check-in en ligne est complété.'
-      : `L'intégration ${meta.label} nécessite un accès officiel de l'autorité concernée (pas d'API publique). Vos credentials sont enregistrés dès maintenant ; la transmission automatique sera activée dès que le partenariat sera établi.`;
+      ? t('settings.integrations.chekinHint')
+      : t('settings.integrations.scaffolding.compliance', { provider: meta.label });
 
   return (
     <ApiKeyConnectionCard

@@ -31,6 +31,7 @@ import { monitoringApi } from '../services/api/monitoringApi';
 import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import PagePagination from './PagePagination';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Chip -soft : encre `-ink` sur fond `-soft`.
@@ -99,6 +100,7 @@ const formatEventType = (eventType: string) => {
 };
 
 const AuditLogging: React.FC = () => {
+  const { t } = useTranslation();
   const [page, setPage] = useState<AuditLogPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,14 +158,14 @@ const AuditLogging: React.FC = () => {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Actualiser les logs"
+                aria-label={t('auditLog.refresh')}
                 onClick={handleRefresh}
               >
                 <Refresh size={20} strokeWidth={1.75} />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Actualiser les logs</TooltipContent>
+          <TooltipContent>{t('auditLog.refresh')}</TooltipContent>
         </Tooltip>
       </div>,
     );
@@ -199,7 +201,7 @@ const AuditLogging: React.FC = () => {
         <AlertDescription>{error}</AlertDescription>
         <AlertAction>
           <Button variant="outline" size="sm" onClick={handleRefresh}>
-            Réessayer
+            {t('common.retry')}
           </Button>
         </AlertAction>
       </BuiAlert>
@@ -221,7 +223,7 @@ const AuditLogging: React.FC = () => {
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <Field>
-                <FieldLabel htmlFor="audit-event-type">Type d'événement</FieldLabel>
+                <FieldLabel htmlFor="audit-event-type">{t('auditLog.eventType')}</FieldLabel>
                 <NativeSelect
                   id="audit-event-type"
                   size="sm"
@@ -229,20 +231,20 @@ const AuditLogging: React.FC = () => {
                   value={filters.eventType}
                   onChange={(e) => handleFilterChange('eventType', e.target.value)}
                 >
-                  <NativeSelectOption value="">Tous</NativeSelectOption>
-                  <NativeSelectOption value="LOGIN_SUCCESS">Connexion réussie</NativeSelectOption>
-                  <NativeSelectOption value="LOGIN_FAILURE">Échec de connexion</NativeSelectOption>
-                  <NativeSelectOption value="PERMISSION_DENIED">Accès refusé</NativeSelectOption>
-                  <NativeSelectOption value="DATA_ACCESS">Accès aux données</NativeSelectOption>
+                  <NativeSelectOption value="">{t('auditLog.all')}</NativeSelectOption>
+                  <NativeSelectOption value="LOGIN_SUCCESS">{t('auditLog.loginSuccess')}</NativeSelectOption>
+                  <NativeSelectOption value="LOGIN_FAILURE">{t('auditLog.loginFailure')}</NativeSelectOption>
+                  <NativeSelectOption value="PERMISSION_DENIED">{t('auditLog.accessDenied')}</NativeSelectOption>
+                  <NativeSelectOption value="DATA_ACCESS">{t('auditLog.dataAccess')}</NativeSelectOption>
                   <NativeSelectOption value="ADMIN_ACTION">Action admin</NativeSelectOption>
-                  <NativeSelectOption value="SECRET_ROTATION">Rotation de secret</NativeSelectOption>
-                  <NativeSelectOption value="SUSPICIOUS_ACTIVITY">Activité suspecte</NativeSelectOption>
+                  <NativeSelectOption value="SECRET_ROTATION">{t('auditLog.secretRotation')}</NativeSelectOption>
+                  <NativeSelectOption value="SUSPICIOUS_ACTIVITY">{t('auditLog.suspicious')}</NativeSelectOption>
                 </NativeSelect>
               </Field>
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <Field>
-                <FieldLabel htmlFor="audit-result">Résultat</FieldLabel>
+                <FieldLabel htmlFor="audit-result">{t('auditLog.result')}</FieldLabel>
                 <NativeSelect
                   id="audit-result"
                   size="sm"
@@ -250,10 +252,10 @@ const AuditLogging: React.FC = () => {
                   value={filters.result}
                   onChange={(e) => handleFilterChange('result', e.target.value)}
                 >
-                  <NativeSelectOption value="">Tous</NativeSelectOption>
-                  <NativeSelectOption value="SUCCESS">Succès</NativeSelectOption>
-                  <NativeSelectOption value="DENIED">Refusé</NativeSelectOption>
-                  <NativeSelectOption value="ERROR">Erreur</NativeSelectOption>
+                  <NativeSelectOption value="">{t('auditLog.all')}</NativeSelectOption>
+                  <NativeSelectOption value="SUCCESS">{t('auditLog.success')}</NativeSelectOption>
+                  <NativeSelectOption value="DENIED">{t('auditLog.denied')}</NativeSelectOption>
+                  <NativeSelectOption value="ERROR">{t('auditLog.error')}</NativeSelectOption>
                 </NativeSelect>
               </Field>
             </div>
@@ -293,7 +295,7 @@ const AuditLogging: React.FC = () => {
           {logs.length === 0 ? (
             <BuiAlert variant="info">
               <BuiInfo />
-              <AlertDescription>Aucun log d'audit trouvé pour les filtres sélectionnés</AlertDescription>
+              <AlertDescription>{t('auditLog.empty')}</AlertDescription>
             </BuiAlert>
           ) : (
             <div className="flex flex-col">

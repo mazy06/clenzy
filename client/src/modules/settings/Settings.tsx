@@ -410,11 +410,11 @@ export default function Settings() {
       <div className="p-4">
         <BuiAlert variant="info">
           <Info />
-          <AlertTitle>Accès non autorisé</AlertTitle>
+          <AlertTitle>{t('settings.accessDenied.title')}</AlertTitle>
           <AlertDescription>
-            Vous n'avez pas les permissions nécessaires pour accéder aux paramètres.
+            {t('settings.accessDenied.body')}
             <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+            {t('settings.accessDenied.contact')}
           </AlertDescription>
         </BuiAlert>
       </div>
@@ -457,12 +457,12 @@ export default function Settings() {
       // 4. Invalidate onboarding auto-checks
       queryClient.invalidateQueries({ queryKey: ['onboarding', 'me'] });
 
-      notify.success('Paramètres sauvegardés avec succès');
+      notify.success(t('settings.savedSuccess'));
       if (!isConfigureOrgDone) {
         completeStep('configure_org');
       }
     } catch {
-      notify.error('Erreur lors de la sauvegarde des paramètres');
+      notify.error(t('settings.saveError'));
     }
   };
 
@@ -485,7 +485,7 @@ export default function Settings() {
         notifySms: false,
       });
     } catch { /* ignore */ }
-    notify.success('Paramètres réinitialisés');
+    notify.success(t('settings.resetDone'));
   };
 
   // useTabKeyParam ecrit la cle de l'onglet actif dans l'URL (?tab=<key>), robuste au role.
@@ -535,13 +535,13 @@ export default function Settings() {
   // (default), « Réinitialiser » reste une secondaire a poids egal (outline).
   const headerActions = tabValue === tabIdx.general ? (
     <>
-      <UiButton variant="outline" size="sm" onClick={handleReset} title="Réinitialiser">
+      <UiButton variant="outline" size="sm" onClick={handleReset} title={t('settings.reset')}>
         <Refresh size={14} strokeWidth={1.75} />
-        Réinitialiser
+        {t('settings.reset')}
       </UiButton>
-      <UiButton size="sm" onClick={handleSave} title="Sauvegarder">
+      <UiButton size="sm" onClick={handleSave} title={t('settings.save')}>
         <Save size={14} strokeWidth={1.75} />
-        Sauvegarder
+        {t('settings.save')}
       </UiButton>
     </>
   ) : tabValue === tabIdx.notifications && notifRef.current?.hasChanges() ? (
@@ -697,10 +697,10 @@ export default function Settings() {
           {/* Mon compte */}
           <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
-              title="Mon compte"
+              title={t('settings.general.title')}
               icon={Person}
               accent="primary"
-              description="Identité, organisation et préférences régionales"
+              description={t('settings.general.description')}
               avatar={{
                 src: userAvatarSrc(user ?? undefined),
                 initials: [user?.firstName?.[0], user?.lastName?.[0]]
@@ -737,7 +737,7 @@ export default function Settings() {
                 </div>
 
                 <Field>
-                  <FieldLabel htmlFor="settings-company-name">Nom de l'entreprise</FieldLabel>
+                  <FieldLabel htmlFor="settings-company-name">{t('settings.general.companyName')}</FieldLabel>
                   <Input
                     id="settings-company-name"
                     value={settings.business.companyName}
@@ -747,7 +747,7 @@ export default function Settings() {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field>
-                    <FieldLabel htmlFor="settings-timezone">Fuseau horaire</FieldLabel>
+                    <FieldLabel htmlFor="settings-timezone">{t('settings.general.timezone')}</FieldLabel>
                     <NativeSelect
                       id="settings-timezone"
                       className="w-full"
@@ -762,7 +762,7 @@ export default function Settings() {
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="settings-currency">Devise</FieldLabel>
+                    <FieldLabel htmlFor="settings-currency">{t('settings.general.currency')}</FieldLabel>
                     <NativeSelect
                       id="settings-currency"
                       className="w-full"
@@ -770,14 +770,16 @@ export default function Settings() {
                       onChange={(e) => handleSettingChange('business', 'currency', e.target.value)}
                     >
                       {CURRENCY_OPTIONS.map(c => (
-                        <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                        <NativeSelectOption key={c.code} value={c.code}>
+                          {t(`currencies.${c.code}`, c.label)}
+                        </NativeSelectOption>
                       ))}
                     </NativeSelect>
                   </Field>
                 </div>
 
                 <Field>
-                  <FieldLabel htmlFor="settings-language">Langue</FieldLabel>
+                  <FieldLabel htmlFor="settings-language">{t('settings.general.language')}</FieldLabel>
                   <NativeSelect
                     id="settings-language"
                     className="w-full"
@@ -809,14 +811,14 @@ export default function Settings() {
           {/* Workflow */}
           <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
-              title="Workflow"
+              title={t('settings.workflow.title')}
               icon={Storage}
               accent="accent"
-              description="Règles d'orchestration des interventions et des prix"
+              description={t('settings.workflow.description')}
             >
               <SettingsToggleRow
-                title="Délai d'annulation"
-                description="Temps limite pour annuler une demande approuvée"
+                title={t('settings.workflow.cancellationDeadline')}
+                description={t('settings.workflow.cancellationDeadlineDesc')}
                 control={(
                   <div className="flex items-center gap-0.5">
                     <Input
@@ -824,7 +826,7 @@ export default function Settings() {
                       value={workflowSettings.cancellationDeadlineHours}
                       onChange={(e) => updateWorkflowSettings({ cancellationDeadlineHours: parseInt(e.target.value) })}
                       min={0}
-                      aria-label="Délai d'annulation en heures"
+                      aria-label={t('settings.workflow.cancellationDeadlineAria')}
                       className="w-[72px] text-center font-semibold tabular-nums"
                     />
                     <p className="text-[0.72rem] font-semibold tracking-[0.02em] text-muted-foreground">
@@ -836,24 +838,24 @@ export default function Settings() {
               <SettingsToggleRow
                 icon={Person}
                 iconColor="var(--bui-primary)"
-                title="Attribution automatique"
-                description="Attribuer automatiquement les interventions"
+                title={t('settings.workflow.autoAssign')}
+                description={t('settings.workflow.autoAssignDesc')}
                 checked={workflowSettings.autoAssignInterventions}
                 onChange={(v) => updateWorkflowSettings({ autoAssignInterventions: v })}
               />
               <SettingsToggleRow
                 icon={Security}
                 iconColor="var(--bui-info)"
-                title="Approbation requise"
-                description="Demander approbation pour les modifications"
+                title={t('settings.workflow.requireApproval')}
+                description={t('settings.workflow.requireApprovalDesc')}
                 checked={workflowSettings.requireApprovalForChanges}
                 onChange={(v) => updateWorkflowSettings({ requireApprovalForChanges: v })}
               />
               <SettingsToggleRow
                 icon={TrendingUp}
                 iconColor="var(--bui-success)"
-                title="Push automatique des prix"
-                description="Pousser automatiquement les prix vers Airbnb (toutes les heures)"
+                title={t('settings.workflow.autoPushPricing')}
+                description={t('settings.workflow.autoPushPricingDesc')}
                 checked={autoPushPricingEnabled}
                 onChange={handleToggleAutoPushPricing}
                 divider={false}
@@ -872,14 +874,14 @@ export default function Settings() {
           {/* Affichage */}
           <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
-              title="Affichage"
+              title={t('settings.display.title')}
               icon={Palette}
               accent="warm"
-              description="Apparence, densité et préférences visuelles"
+              description={t('settings.display.description')}
             >
               <div className="pb-2 border-b border-border">
                 <p className="mb-0 text-[0.8125rem] font-semibold text-foreground">
-                  Apparence
+                  {t('settings.display.appearance')}
                 </p>
                 <p className="mb-1.5 text-[0.72rem] text-muted-foreground">
                   {themeMode === 'auto'
@@ -901,36 +903,36 @@ export default function Settings() {
                     handleSettingChange('display', 'theme', newMode);
                     setThemeMode(newMode as typeof themeMode);
                   }}
-                  aria-label="Apparence"
+                  aria-label={t('settings.display.appearance')}
                   className="w-full [&>*]:flex-1"
                 >
                   <ToggleGroupItem value="light" className="gap-1.5 text-[0.78rem] font-semibold">
                     <LightMode size={14} strokeWidth={1.75} />
-                    Clair
+                    {t('settings.themeMode.light')}
                   </ToggleGroupItem>
                   <ToggleGroupItem value="dark" className="gap-1.5 text-[0.78rem] font-semibold">
                     <DarkMode size={14} strokeWidth={1.75} />
-                    Sombre
+                    {t('settings.themeMode.dark')}
                   </ToggleGroupItem>
                   <ToggleGroupItem value="auto" className="gap-1.5 text-[0.78rem] font-semibold">
                     <SettingsBrightness size={14} strokeWidth={1.75} />
-                    Système
+                    {t('settings.themeMode.system')}
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
               <SettingsToggleRow
                 icon={Storage}
                 iconColor="var(--bui-muted-foreground)"
-                title="Mode compact"
-                description="Réduire l'espacement des éléments"
+                title={t('settings.display.compactMode')}
+                description={t('settings.display.compactModeDesc')}
                 checked={settings.display.compactMode}
                 onChange={(v) => handleSettingChange('display', 'compactMode', v)}
               />
               <SettingsToggleRow
                 icon={Person}
                 iconColor="var(--bui-primary)"
-                title="Afficher les avatars"
-                description="Montrer les photos de profil des utilisateurs"
+                title={t('settings.display.showAvatars')}
+                description={t('settings.display.showAvatarsDesc')}
                 checked={settings.display.showAvatars}
                 onChange={(v) => handleSettingChange('display', 'showAvatars', v)}
                 divider={false}

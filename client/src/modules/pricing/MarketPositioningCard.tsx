@@ -12,11 +12,11 @@ import { marketPositioningApi, type MarketPositioning } from '../../services/api
 /** Chiffres alignes en colonne (KPI, prix). */
 const NUM_CLASS = 'tabular-nums';
 
-const SOURCE_LABEL: Record<string, string> = {
-  FIRST_PARTY: 'Réseau Baitly',
-  OPEN_DATA: 'Open data',
-  AIRBTICS: 'Airbtics',
-  AIRROI: 'AirROI',
+const SOURCE_KEYS: Record<string, string> = {
+  FIRST_PARTY: 'pricing.marketSources.firstParty',
+  OPEN_DATA: 'pricing.marketSources.openData',
+  AIRBTICS: 'pricing.marketSources.airbtics',
+  AIRROI: 'pricing.marketSources.airroi',
 };
 
 /**
@@ -92,7 +92,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
                 primitive Badge (simple fonction) ne transmet pas. */}
             <TooltipTrigger asChild>
               <span className="inline-flex">
-                <Badge variant="outline" className="text-muted-foreground border-border"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
+                <Badge variant="outline" className="text-muted-foreground border-border"><Info size={13} />{`${SOURCE_KEYS[data.source] ? t(SOURCE_KEYS[data.source]) : data.source} · ${
                     data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}</Badge>
               </span>
             </TooltipTrigger>

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import {
   Alert,
   AlertDescription,
@@ -16,6 +16,18 @@ import {
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
+import { activeIntlLocale } from '../../../utils/activeLocale';
+import { createBookingI18n } from '../sdk/i18n';
+
+/**
+ * Langue du visiteur : cette page n'a pas de config de site (elle n'est atteinte
+ * qu'avec un code de réservation), donc le navigateur fait foi.
+ */
+function browserLang(): string {
+  const raw = typeof navigator === 'undefined' ? 'fr' : (navigator.language || 'fr');
+  const base = raw.slice(0, 2).toLowerCase();
+  return ['fr', 'en', 'ar'].includes(base) ? base : 'fr';
+}
 
 const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
 
@@ -42,9 +54,10 @@ interface CancelResult {
 type Step = 'form' | 'preview' | 'done';
 
 const fmt = (amount: number, currency: string | null) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'EUR' }).format(amount);
+  new Intl.NumberFormat(activeIntlLocale(), { style: 'currency', currency: currency || 'EUR' }).format(amount);
 
 export default function CancelBookingPage() {
+  const { t } = useMemo(() => createBookingI18n(browserLang()), []);
   const { apiKey } = useParams<{ apiKey: string }>();
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
@@ -85,9 +98,9 @@ export default function CancelBookingPage() {
       <Card className="w-full max-w-[460px]">
         <CardHeader>
           <CardTitle className="[font-family:var(--font-display)] text-xl font-bold text-balance">
-            Annuler ma réservation
+            {t('page.cancelTitle')}
           </CardTitle>
-          <CardDescription>Renseignez votre code de confirmation et votre email.</CardDescription>
+          <CardDescription>{t('page.cancelIntro')}</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -99,10 +112,10 @@ export default function CancelBookingPage() {
 
           {step === 'form' && (
             <>
-              <FormField label="Code de confirmation" value={code} onChange={setCode} placeholder="ABC123" />
-              <FormField label="Email" value={email} onChange={setEmail} placeholder="vous@exemple.com" type="email" />
+              <FormField label={t('page.confirmationCode')} value={code} onChange={setCode} placeholder="ABC123" />
+              <FormField label={t('page.email')} value={email} onChange={setEmail} placeholder={t('page.emailPlaceholder')} type="email" />
               <Button size="lg" className="w-full" onClick={loadPreview} disabled={loading}>
-                {loading ? <Spinner className="size-5" /> : 'Voir le remboursement'}
+                {loading ? <Spinner className="size-5" /> : t('page.seeRefund')}
               </Button>
             </>
           )}
@@ -117,11 +130,11 @@ export default function CancelBookingPage() {
                 <div className="text-xs text-foreground mt-0.5">{preview.explanation}</div>
               </div>
               <Button variant="destructive" size="lg" className="w-full" onClick={confirmCancel} disabled={loading}>
-                {loading ? <Spinner className="size-5" /> : "Confirmer l'annulation"}
+                {loading ? <Spinner className="size-5" /> : t('page.confirmCancel')}
               </Button>
               {/* Retour en arriere : action tertiaire, pas un second bouton plein. */}
               <Button variant="ghost" size="sm" className="mt-1.5 w-full text-muted-foreground" onClick={() => setStep('form')}>
-                Retour
+                {t('page.back')}
               </Button>
             </>
           )}
@@ -130,7 +143,7 @@ export default function CancelBookingPage() {
             <div className="text-center py-3">
               <div className="text-success flex justify-center mb-2"><CheckCircle2 size={40} strokeWidth={1.75} /></div>
               <div className="text-base font-semibold text-balance mb-0.5">
-                {result.status === 'already_cancelled' ? 'Réservation déjà annulée' : 'Réservation annulée'}
+                {result.status === 'already_cancelled' ? t('page.alreadyCancelled') : t('page.cancelled')}
               </div>
               {result.refundAmount > 0 && (
                 <div className="text-sm text-muted-foreground tabular-nums">

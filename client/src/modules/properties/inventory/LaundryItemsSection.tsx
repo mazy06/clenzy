@@ -19,6 +19,7 @@ import {
 } from '../../../components/ui';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface Props {
   items: PropertyLaundryItem[];
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, onUpdate, onDelete }: Props) {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -78,9 +80,9 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
         <div className="flex items-center gap-1.5">
           <span className="inline-flex text-info"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
           <div>
-            <h6 className="text-sm font-semibold tracking-tight">Linge de maison</h6>
+            <h6 className="text-sm font-semibold tracking-tight">{t('properties.laundry.title')}</h6>
             <p className="text-xs text-muted-foreground">
-              Articles de linge a preparer apres chaque sejour
+              {t('properties.laundry.subtitle')}
             </p>
           </div>
         </div>
@@ -100,14 +102,14 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
       {items.length === 0 ? (
         <EmptyState
           icon={<LocalLaundryService />}
-          title="Aucun article de linge configure"
+          title={t('properties.laundry.empty')}
           description={catalog.length === 0
-            ? "Configurez d'abord le catalogue blanchisserie dans Configuration tarifaire"
+            ? t('properties.laundry.emptyNoCatalog')
             : undefined}
           action={canEdit && catalog.length > 0 ? (
             <Button size="sm" variant="ghost" onClick={openAdd}>
               <Add size={18} strokeWidth={1.75} />
-              Ajouter un article
+              {t('properties.laundry.addItem')}
             </Button>
           ) : undefined}
         />
@@ -184,7 +186,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                 {/* Total row */}
                 <TableRow>
                   <TableCell colSpan={3} className="text-end font-bold">
-                    Total par sejour
+                    {t('properties.laundry.totalPerStay')}
                   </TableCell>
                   <TableCell className="text-end font-bold text-[0.95rem]">
                     {totalPerStay.toFixed(2)} {'\u20AC'}
@@ -201,17 +203,17 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
       <Dialog open={dialogOpen} onOpenChange={(next) => { if (!next) setDialogOpen(false); }}>
         <DialogContent className="max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Ajouter un article de linge</DialogTitle>
+            <DialogTitle>{t('properties.laundry.addTitle')}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
           {/* Aucun libelle visible a l'origine : l'aria-label porte le sens. */}
           <NativeSelect
             className="w-full"
-            aria-label="Article de linge"
+            aria-label={t('properties.laundry.itemLabel')}
             value={selectedKey}
             onChange={(e) => setSelectedKey(e.target.value)}
           >
-            <NativeSelectOption value="" disabled>— Choisir un article —</NativeSelectOption>
+            <NativeSelectOption value="" disabled>{t('properties.laundry.chooseItem')}</NativeSelectOption>
             {availableCatalog.map((c) => (
               <NativeSelectOption key={c.key} value={c.key}>
                 {c.label} ({c.price.toFixed(2)} {'\u20AC'})
@@ -219,7 +221,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
             ))}
           </NativeSelect>
           <Field className="w-[160px]">
-            <FieldLabel htmlFor="laundry-add-quantity">Quantite par sejour</FieldLabel>
+            <FieldLabel htmlFor="laundry-add-quantity">{t('properties.laundry.quantityPerStay')}</FieldLabel>
             <Input
               id="laundry-add-quantity"
               className="w-full"

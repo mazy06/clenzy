@@ -12,6 +12,7 @@ import {
 import StatusChip from '../../components/baitly/StatusChip';
 import { Delete } from '../../icons';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   useCreateUpsellType,
   useDeactivateUpsellType,
@@ -39,6 +40,7 @@ export default function UpsellTypesManager({ open, onOpenChange }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const { data: types = [], isLoading } = useUpsellTypes();
   const createType = useCreateUpsellType();
   const deactivateType = useDeactivateUpsellType();
@@ -66,10 +68,9 @@ export default function UpsellTypesManager({ open, onOpenChange }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Types de services payants</DialogTitle>
+          <DialogTitle>{t('upsells.types.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Les types disponibles pour vos offres. Ajoutez les vôtres si aucun ne
-            correspond à ce que vous vendez.
+            {t('upsells.types.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,43 +83,43 @@ export default function UpsellTypesManager({ open, onOpenChange }: {
                 onChange={(event) => setLabel(event.target.value)}
                 onKeyDown={(event) => { if (event.key === 'Enter') submit(); }}
                 maxLength={120}
-                placeholder="Cours de surf, location de paddle…"
-                aria-label="Libellé du nouveau type"
+                placeholder={t('upsells.types.newPlaceholder')}
+                aria-label={t('upsells.types.newAria')}
               />
               <Button
                 onClick={submit}
                 disabled={!label.trim() || createType.isPending}
               >
-                Ajouter
+                {t('upsells.preview.add')}
               </Button>
             </div>
             {createType.isError && (
               <p className="m-0 text-xs text-destructive-ink">
                 {(createType.error as Error)?.message
-                  ?? 'Création impossible. Ce type existe peut-être déjà.'}
+                  ?? t('upsells.types.createError')}
               </p>
             )}
           </div>
 
           {isLoading ? (
-            <p className="m-0 text-sm text-muted-foreground">Chargement du référentiel…</p>
+            <p className="m-0 text-sm text-muted-foreground">{t('upsells.types.loading')}</p>
           ) : (
             <div className="flex max-h-[22rem] flex-col gap-4 overflow-y-auto">
               <TypeGroup
-                title="Les vôtres"
-                emptyLabel="Vous n’avez ajouté aucun type."
+                title={t('upsells.types.mine')}
+                emptyLabel={t('upsells.types.mineEmpty')}
                 types={mine}
                 onRemove={(id) => deactivateType.mutate(id)}
                 removing={deactivateType.isPending}
               />
               <TypeGroup
-                title="Issus du catalogue de la place de marché"
-                emptyLabel="Aucun type issu du catalogue."
+                title={t('upsells.types.fromCatalogue')}
+                emptyLabel={t('upsells.types.fromCatalogueEmpty')}
                 types={fromCatalogue}
               />
               <TypeGroup
-                title="Historiques"
-                emptyLabel="Aucun."
+                title={t('upsells.types.historical')}
+                emptyLabel={t('upsells.types.historicalEmpty')}
                 types={historical}
               />
             </div>
@@ -126,7 +127,7 @@ export default function UpsellTypesManager({ open, onOpenChange }: {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fermer</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -140,6 +141,7 @@ function TypeGroup({ title, types, emptyLabel, onRemove, removing }: {
   onRemove?: (id: number) => void;
   removing?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section>
       <h3 className="m-0 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -159,14 +161,14 @@ function TypeGroup({ title, types, emptyLabel, onRemove, removing }: {
               )}
             >
               {type.labelFr}
-              {type.system && <StatusChip size="sm" tone="neutral" label="système" />}
+              {type.system && <StatusChip size="sm" tone="neutral" label={t('upsells.types.system')} />}
               {onRemove && (
                 <button
                   type="button"
                   onClick={() => onRemove(type.id)}
                   disabled={removing}
-                  aria-label={`Retirer ${type.labelFr}`}
-                  title="Retire le type du choix. Les offres existantes le conservent."
+                  aria-label={t('upsells.types.removeAria', { name: type.labelFr })}
+                  title={t('upsells.types.removeTitle')}
                   className="cursor-pointer rounded-sm text-primary/70 outline-none hover:text-primary focus-visible:ring-[2px] focus-visible:ring-ring/50 disabled:opacity-50"
                 >
                   <Delete className="size-3" />

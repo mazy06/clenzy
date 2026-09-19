@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
@@ -52,6 +53,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
   onUploadPhotos,
   onUpdateInterventionProgress,
 }) => {
+  const { t } = useTranslation();
   const intervention = event.intervention;
 
   // Hooks must run unconditionally in the same order every render (rules-of-hooks):
@@ -95,7 +97,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
     return (
       <Alert variant="info" className="text-[0.75rem]">
         <Info />
-        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
+        <AlertDescription>{t('planning.panel.intervention.noData')}</AlertDescription>
       </Alert>
     );
   }
@@ -122,10 +124,10 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
   // Room names (mock)
   const totalRooms = (intervention as any).totalRooms || 5;
   const roomNames = Array.from({ length: totalRooms }, (_, i) =>
-    i === 0 ? 'Salon / Séjour'
-      : i === totalRooms - 1 ? 'Cuisine'
-        : i <= 2 ? `Chambre ${i}`
-          : `Salle de bain ${i - 2}`
+    i === 0 ? t('planning.panel.rooms.living', 'Salon / Séjour')
+      : i === totalRooms - 1 ? t('planning.panel.rooms.kitchen', 'Cuisine')
+        : i <= 2 ? t('planning.panel.rooms.bedroom', { n: i })
+          : t('planning.panel.rooms.bathroom', { n: i - 2 })
   );
 
   return (
@@ -133,7 +135,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex justify-between items-center mb-0.5">
-          <p className="cn-text-body1 text-[0.75rem] font-bold">Progression</p>
+          <p className="cn-text-body1 text-[0.75rem] font-bold">{t('planning.panel.intervention.progress', 'Progression')}</p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : progress > 0 ? '#0288d1' : '#757575'; return (
           <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="h-[20px]" />
           ); })()}
@@ -151,7 +153,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
           disabled={loading || !onStartIntervention}
         >
           {loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
-          Démarrer l'intervention
+          {t('planning.panel.intervention.start', "Démarrer l'intervention")}
         </Button>
       )}
 
@@ -166,10 +168,10 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
       <Stepper activeStep={activeStep} orientation="vertical">
         {/* Step 1: Inspection */}
         <Step>
-          <StepLabel>Inspection</StepLabel>
+          <StepLabel>{t('planning.panel.intervention.inspection', 'Inspection')}</StepLabel>
           <StepBody>
             <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
-              Prenez les photos avant intervention et notez les observations.
+              {t('planning.panel.intervention.inspectionHint')}
             </p>
             <input
               ref={beforeInputRef}
@@ -187,7 +189,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               disabled={loading || !onUploadPhotos}
             >
               <CameraAlt size={14} strokeWidth={1.75} />
-              Photos avant
+              {t('planning.panel.intervention.photosBefore', 'Photos avant')}
             </Button>
           </StepBody>
         </Step>
@@ -196,7 +198,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         <Step>
           <StepLabel>
             <span className="inline-flex items-center gap-0.5">
-              Validation pièces
+              {t('planning.panel.intervention.roomsStep', 'Validation pièces')}
               {(() => { const c = validatedRooms.size === totalRooms ? '#4A9B8E' : '#757575'; return (
               <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${validatedRooms.size}/${totalRooms}`} className="text-[0.5625rem]" />
               ); })()}
@@ -222,10 +224,10 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
 
         {/* Step 3: After photos */}
         <Step>
-          <StepLabel>Photos après &amp; finalisation</StepLabel>
+          <StepLabel>{t('planning.panel.intervention.afterStep', 'Photos après & finalisation')}</StepLabel>
           <StepBody>
             <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
-              Prenez les photos après intervention, puis finalisez.
+              {t('planning.panel.intervention.afterHint')}
             </p>
             <input
               ref={afterInputRef}
@@ -243,7 +245,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 disabled={loading || !onUploadPhotos}
               >
                 <CameraAlt size={14} strokeWidth={1.75} />
-                Photos après
+                {t('planning.panel.intervention.photosAfter', 'Photos après')}
               </Button>
               {/* Action qui cloture l'etape : elle garde l'encre pleine face au
                   bouton photo qui l'accompagne. Le kit n'a pas de variante succes,
@@ -255,7 +257,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 disabled={loading || !onCompleteIntervention || isCompleted}
               >
                 {loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
-                Terminer
+                {t('planning.panel.intervention.finish', 'Terminer')}
               </Button>
             </div>
           </StepBody>
@@ -266,7 +268,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
       {isCompleted && (
         <Alert variant="success" className="mt-3 text-[0.6875rem]">
           <CircleCheck />
-          <AlertDescription>Intervention terminée — en attente de validation</AlertDescription>
+          <AlertDescription>{t('planning.panel.intervention.doneBanner')}</AlertDescription>
         </Alert>
       )}
     </div>
