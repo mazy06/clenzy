@@ -1,22 +1,25 @@
-import { StrictMode } from 'react';
+import { lazy, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import '../src/theme/baitly-ui.css';
 import './site.css';
+import './home.css';
 import SiteLayout from './components/SiteLayout';
 import HomePage from './pages/HomePage';
-import ModulePage from './pages/ModulePage';
 import SolutionsPage from './pages/SolutionsPage';
 import PricingPage from './pages/PricingPage';
 import MigrationPage from './pages/MigrationPage';
 import ComparePage from './pages/ComparePage';
 import ResourcesPage from './pages/ResourcesPage';
-import ProvidersPage from './pages/ProvidersPage';
 import ProviderSignupPage from './pages/ProviderSignupPage';
 import ProviderActivationPage from './pages/ProviderActivationPage';
 import DemoPage from './pages/DemoPage';
 import LegalPage from './pages/legal/LegalPage';
 import StatusPage from './pages/StatusPage';
+
+// Product projections are only needed after the visitor opens their route.
+const ModulePage = lazy(() => import('./pages/ModulePage'));
+const ProvidersPage = lazy(() => import('./pages/ProvidersPage'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -33,8 +36,14 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/prestataires" element={<ProvidersPage />} />
           {/* Le parcours prestataire : candidature + dépôt de pièces sur la
               première, définition du mot de passe sur la seconde. */}
-          <Route path="/prestataires/inscription" element={<ProviderSignupPage />} />
-          <Route path="/prestataires/activation" element={<ProviderActivationPage />} />
+          <Route
+            path="/prestataires/inscription"
+            element={<ProviderSignupPage />}
+          />
+          <Route
+            path="/prestataires/activation"
+            element={<ProviderActivationPage />}
+          />
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/legal/:slug" element={<LegalPage />} />
           <Route path="/statut" element={<StatusPage />} />
