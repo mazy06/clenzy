@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react';
 import {
   Button,
@@ -178,7 +179,7 @@ function SiteHeader() {
             className="site-login hidden sm:inline-flex"
             asChild
           >
-            <a href="https://app.clenzy.fr" rel="noreferrer">
+            <a href={runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000')} rel="noreferrer">
               Se connecter
             </a>
           </Button>

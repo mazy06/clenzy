@@ -89,7 +89,7 @@ public class LoginProtectionService {
         String attemptsStr = redisTemplate.opsForValue().get(attemptsKey);
         int attempts = parseAttempts(attemptsStr);
 
-        boolean captchaRequired = captchaEnabled && attempts >= CAPTCHA_THRESHOLD;
+        boolean captchaRequired = isCaptchaOperational() && attempts >= CAPTCHA_THRESHOLD;
         return new LoginStatus(false, 0, captchaRequired);
     }
 
@@ -133,10 +133,28 @@ public class LoginProtectionService {
     }
 
     /**
+     * Le CAPTCHA n'est operationnel que si son secret est configure.
+     *
+     * <p>Sans secret, {@link #validateCaptchaToken} accepte deja tout : il n'y a
+     * rien a verifier. Continuer a ANNONCER un CAPTCHA requis dans ce cas
+     * enfermait l'utilisateur dehors — le frontend affiche alors le widget
+     * Turnstile, qui ne peut pas se charger faute de cle publique, et le
+     * formulaire reste bloque. Trois echecs de saisie suffisaient a rendre un
+     * compte inaccessible pendant quinze minutes, sans aucun gain de securite.</p>
+     *
+     * <p>Le verrouillage a {@code MAX_FAILED_ATTEMPTS} reste actif : c'est lui
+     * la vraie protection contre la force brute. Le CAPTCHA n'en est qu'un
+     * palier intermediaire, inutile tant qu'il n'est pas configure.</p>
+     */
+    private boolean isCaptchaOperational() {
+        return captchaEnabled && turnstileSecretKey != null && !turnstileSecretKey.isBlank();
+    }
+
+    /**
      * Verifie si le CAPTCHA est requis pour un compte donne.
      */
     public boolean isCaptchaRequired(String username) {
-        if (!captchaEnabled) return false;
+        if (!isCaptchaOperational()) return false;
         return checkLoginAllowed(username).captchaRequired();
     }
 
