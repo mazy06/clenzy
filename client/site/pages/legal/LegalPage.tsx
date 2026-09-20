@@ -1,11 +1,15 @@
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge } from '../../../src/components/ui';
-import { LEGAL_DOCS, getLegalDoc } from './legalContent';
+// Source UNIQUE, partagee avec le PMS : les deux applications portaient chacune
+// leur texte, et ils se contredisaient sur le droit applicable.
+import { legalDocs, getLegalDoc } from '../../../src/modules/legal/corpus';
 
 /** Gabarit des documents juridiques : sommaire latéral + corps typographié. */
 export default function LegalPage() {
   const { slug } = useParams();
-  const doc = getLegalDoc(slug);
+  // La landing est servie en francais ; le corpus porte deja les trois langues
+  // pour le PMS, qui laisse son lecteur choisir.
+  const doc = getLegalDoc(slug, 'fr');
   if (!doc) return <Navigate to="/" replace />;
 
   return (
@@ -16,7 +20,7 @@ export default function LegalPage() {
           Documents
         </p>
         <nav className="mt-3 flex flex-col gap-1">
-          {LEGAL_DOCS.map((entry) => (
+          {legalDocs('fr').map((entry) => (
             <Link
               key={entry.slug}
               to={`/legal/${entry.slug}`}

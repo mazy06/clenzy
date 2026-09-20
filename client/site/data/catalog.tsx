@@ -253,6 +253,14 @@ export const SOLUTIONS: SolutionDef[] = [
     points: ['Fiche police DGSN', 'Taxe de séjour auto', 'Interface FR/AR', 'Boutique & extras'],
   },
   {
+    slug: 'arabie-saoudite',
+    icon: MapPinIcon,
+    name: 'Arabie saoudite — conformité',
+    menuCopy: 'Shomoos, TVA 15 %, frais municipaux, facture ZATCA, encaissement en SAR.',
+    copy: 'La conformité saoudienne traitée comme un produit : déclaration des voyageurs, fiscalité et facture électronique.',
+    points: ['Enregistrement Shomoos (شموس)', 'TVA 15 % et frais municipaux 5 %', 'Facture électronique ZATCA', 'PayTabs et encaissement en riyals'],
+  },
+  {
     slug: 'maroc',
     icon: MapPinIcon,
     name: 'Maroc — conformité',
