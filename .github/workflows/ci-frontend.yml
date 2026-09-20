@@ -258,6 +258,12 @@ jobs:
             exit 1
           fi
 
+      # Ce job construit DEUX images : le PMS (clenzy-client) et la landing
+      # (clenzy-baitly-site). Le payload ne demandait le deploiement que du
+      # premier, et `deploy.sh` restreint alors son `pull` a ce seul service :
+      # la landing n'etait donc JAMAIS redeployee. Invisible tant que
+      # SITE_DOMAIN ne pointait nulle part ; sur une instance ou la landing est
+      # la page d'accueil, le site restait fige sur une image ancienne.
       - name: Trigger infra deployment
         uses: peter-evans/repository-dispatch@v3
         with:
@@ -266,7 +272,7 @@ jobs:
           event-type: deploy-clenzy-frontend
           client-payload: >-
             {
-              "service": "pms-client",
+              "services": "pms-client,baitly-site",
               "environment": "production",
               "image": "ghcr.io/${{ env.IMAGE_NAME }}:latest",
               "source_repo": "${{ github.repository }}",
