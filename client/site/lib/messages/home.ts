@@ -1,0 +1,358 @@
+import type { SiteLanguage } from '../siteLanguage';
+
+/**
+ * Copie de la page d'accueil, dans les trois langues.
+ *
+ * <p>Un dictionnaire par langue, de meme forme — comme le corpus juridique. Un
+ * texte de marketing se relit comme un texte : eclate en clés plates, il ne se
+ * relit plus, et personne ne voit qu'une promesse a derive.</p>
+ *
+ * <p>Les titres coupes a dessein gardent leurs deux moitiés (`…1`, `…2`) : la
+ * cesure fait partie de la composition, et l'arabe ne la place pas au meme
+ * endroit que le francais.</p>
+ */
+const fr = {
+  hero: {
+    eyebrow: 'L’hospitalité, augmentée.',
+    title1: 'Vos locations.',
+    title2: 'L’esprit libre.',
+    lead1: 'Vous créez des séjours mémorables.',
+    lead2: 'Vos agents IA s’occupent des coulisses.',
+    description:
+      'Réservations, tarifs, voyageurs et équipes : tout votre quotidien réuni dans un seul PMS. Pensé pour l’Arabie saoudite, le Maroc et la France.',
+    demo: 'Réserver une démo',
+    watch: 'Voir Baitly en action',
+    reassurance1: 'Sans engagement',
+    reassurance2: 'Démo personnalisée de 30 min',
+    photoAlt: 'Terrasse ombragée d’une villa, table dressée face à la vallée',
+    photoCaption: 'L’esprit des lieux. La sérénité en plus.',
+    noteLabel: 'Votre équipe d’agents IA',
+    agentDeck: [
+      { agent: 'Communication', title: 'Le prochain séjour se prépare.', detail: 'Message d’accueil prêt. Équipe informée.' },
+      { agent: 'Revenue', title: 'Trois nuits creuses à Marrakech.', detail: 'Baisse proposée, plancher de 680 MAD respecté.' },
+      { agent: 'Opérations', title: 'Départ tardif accepté.', detail: 'Le ménage s’est replanifié tout seul.' },
+      { agent: 'Conformité', title: 'Voyageur enregistré.', detail: 'Fiche de police au format DGSN, transmise.' },
+      { agent: 'Synchronisation', title: 'Réservation reçue sur Airbnb.', detail: 'Les mêmes dates fermées ailleurs.' },
+      { agent: 'Finance', title: 'Encaissement CMI confirmé.', detail: '4 800 MAD reçus, facture émise.' },
+      { agent: 'Voyageur', title: 'Départ tardif vendu.', detail: '150 MAD, proposés dans le livret d’accueil.' },
+      { agent: 'Avis & Réputation', title: 'Avis 5 étoiles publié.', detail: 'Réponse rédigée, prête à envoyer.' },
+      { agent: 'Propriétaire', title: 'Relevé de juillet prêt.', detail: 'Net à verser et commission, en dirhams.' },
+      { agent: 'Croissance', title: 'Votre site direct a converti.', detail: 'Zéro commission sur cette réservation.' },
+      { agent: 'Objets connectés', title: 'Code d’entrée généré.', detail: 'Valable du check-in au départ, pas après.' },
+    ],
+    noteTitle: 'Le prochain séjour se prépare.',
+    noteBody: 'Message d’accueil prêt. Équipe informée.',
+    exampleLabel: 'Illustration d’un séjour avec Baitly',
+    audience: 'Pour les hôtes, les istirahas et les conciergeries.',
+    scroll: 'Prenez le temps d’accueillir',
+  },
+  channels: {
+    aria: 'Intégrations disponibles',
+    line1: 'Vos outils préférés.',
+    line2: 'Enfin réunis.',
+  },
+  platform: {
+    label: 'Un seul espace, tout votre métier',
+    title1: 'Moins d’onglets.',
+    title2: 'Plus de présence.',
+    intro:
+      'Du premier clic au prochain check-in, Baitly relie chaque détail du séjour. Et vous redonne une vue d’ensemble.',
+    planningNumber: '01 / PILOTER',
+    planningTitle1: 'Votre activité,',
+    planningTitle2: 'en un regard.',
+    planningCopy:
+      'Un planning partagé. Tous vos logements, tous vos canaux, les bonnes informations au bon endroit.',
+    planningLink: 'Découvrir le PMS',
+    planningAria: 'Planning PMS animé : réservations, canaux et disponibilités',
+    directPhotoAlt: 'Chambre meublée et préparée, prête à accueillir des voyageurs',
+    directNoteTitle: 'Votre adresse. Votre site.',
+    directNoteBody: 'La réservation, en direct.',
+    directNumber: '02 / DÉVELOPPER',
+    directTitle1: 'Le prochain séjour',
+    directTitle2: 'commence chez vous.',
+    directCopy:
+      'Un site à votre image et un moteur de réservation intégré pour créer une relation directe avec vos voyageurs.',
+    directLink: 'Explorer la réservation directe',
+  },
+  local: {
+    photoAlt: 'Entrée d’une maison d’hôtes traditionnelle, portes ouvertes sur le patio',
+    rootsLine1: 'Des racines locales.',
+    rootsLine2: 'Une vision sans frontières.',
+    label: 'Arabie saoudite d’abord. Maroc et France ensuite.',
+    title1: 'À l’aise avec votre métier.',
+    title2: 'Et votre réalité.',
+    copy:
+      'Une istiraha à Riyad ne se gère pas comme un appartement à Paris. Votre outil doit connaître la différence.',
+    points: [
+      ['Des arrivées déclarées',
+        'Enregistrement des voyageurs sur Shomoos (شموس), obligatoire pour l’hébergement.'],
+      ['Une fiscalité juste du premier coup',
+        'TVA à 15 %, frais municipaux à 5 %, facture électronique ZATCA.'],
+      ['Des paiements que vos voyageurs utilisent',
+        'PayTabs et encaissement en riyals, en plus de Stripe.'],
+      ['Une interface arabe, vraiment',
+        'Lecture de droite à gauche, calendrier hégirien, montants en riyals.'],
+    ] as ReadonlyArray<readonly [string, string]>,
+    link: 'Découvrir Baitly en Arabie saoudite',
+    supportTitle: 'Vous lancez votre digitalisation ?',
+    supportBody:
+      'Parlons migration, accompagnement et aides à la digitalisation lors de votre démo.',
+  },
+  faq: {
+    label: 'On en parle ?',
+    title1: 'Les bonnes questions,',
+    title2: 'avant de se lancer.',
+    link: 'Échanger avec notre équipe',
+    items: [
+      ['Est-ce adapté à mon nombre de logements ?',
+        'Baitly s’adresse aux hôtes indépendants, aux istirahas et aux conciergeries. La démo permet de parcourir les modules utiles à votre organisation, que vous gériez un logement ou un portefeuille.'],
+      ['Les agents IA prennent-ils les décisions à ma place ?',
+        'Vous définissez leur autonomie. Les actions qui demandent votre accord vous sont présentées avec leur contexte : vous pouvez approuver, ajuster ou refuser. Les décisions sont journalisées.'],
+      ['Puis-je garder mes annonces Airbnb et Booking.com ?',
+        'Oui. Baitly réunit vos réservations et synchronise les disponibilités de vos canaux connectés. Vous conservez vos annonces et vos comptes existants.'],
+      ['Comment se passe le changement de logiciel ?',
+        'Nous faisons le point sur vos logements, vos canaux et vos données pour préparer la migration. Le périmètre et les étapes sont définis avec vous avant la bascule.'],
+    ] as ReadonlyArray<readonly [string, string]>,
+  },
+  final: {
+    label: 'Votre prochain chapitre commence ici',
+    title1: 'Laissez de la place',
+    title2: 'à ce qui compte.',
+    copy1: '30 minutes pour découvrir ce que Baitly',
+    copy2: 'peut changer dans votre quotidien.',
+    cta: 'Rencontrons-nous',
+    note: 'En arabe, en français ou en anglais. Sans engagement.',
+  },
+};
+
+export type HomeMessages = typeof fr;
+
+const en: HomeMessages = {
+  hero: {
+    eyebrow: 'Hospitality, amplified.',
+    title1: 'Your rentals.',
+    title2: 'A clear mind.',
+    lead1: 'You create stays worth remembering.',
+    lead2: 'Your AI agents handle what goes on backstage.',
+    description:
+      'Bookings, rates, guests and teams: your whole day-to-day in a single PMS. Built for Saudi Arabia, Morocco and France.',
+    demo: 'Book a demo',
+    watch: 'See Baitly in action',
+    reassurance1: 'No commitment',
+    reassurance2: '30-minute tailored demo',
+    photoAlt: 'Shaded terrace of a villa, table set facing the valley',
+    photoCaption: 'The spirit of the place. Calm on top.',
+    noteLabel: 'Your team of AI agents',
+    agentDeck: [
+      { agent: 'Communication', title: 'The next stay is getting ready.', detail: 'Welcome message drafted. Team notified.' },
+      { agent: 'Revenue', title: 'Three empty nights in Riyadh.', detail: 'Cut proposed, 450 SAR floor respected.' },
+      { agent: 'Operations', title: 'Late checkout accepted.', detail: 'Housekeeping rescheduled itself.' },
+      { agent: 'Compliance', title: 'Guest registered with Shomoos.', detail: 'Filing sent, nothing to re-enter.' },
+      { agent: 'Sync', title: 'Booking received on Airbnb.', detail: 'The same dates closed everywhere else.' },
+      { agent: 'Finance', title: 'PayTabs payment confirmed.', detail: '1,850 SAR received, ZATCA invoice issued.' },
+      { agent: 'Guest', title: 'Late checkout sold.', detail: '60 SAR, offered in the guest guide.' },
+      { agent: 'Reviews', title: 'Five-star review published.', detail: 'Reply drafted, ready to send.' },
+      { agent: 'Owner', title: 'July statement ready.', detail: 'Net payout and commission, in riyals.' },
+      { agent: 'Growth', title: 'Your direct site converted.', detail: 'No commission on this booking.' },
+      { agent: 'Connected devices', title: 'Entry code generated.', detail: 'Valid from check-in to departure, not after.' },
+    ],
+    noteTitle: 'The next stay is being prepared.',
+    noteBody: 'Welcome message ready. Team notified.',
+    exampleLabel: 'An illustration of a stay with Baitly',
+    audience: 'For hosts, istirahas and property managers.',
+    scroll: 'Take the time to welcome',
+  },
+  channels: {
+    aria: 'Available integrations',
+    line1: 'Your favourite tools.',
+    line2: 'Together at last.',
+  },
+  platform: {
+    label: 'One place, your whole trade',
+    title1: 'Fewer tabs.',
+    title2: 'More presence.',
+    intro:
+      'From the first click to the next check-in, Baitly connects every detail of the stay. And gives you the whole picture back.',
+    planningNumber: '01 / RUN',
+    planningTitle1: 'Your business,',
+    planningTitle2: 'at a glance.',
+    planningCopy:
+      'One shared planning board. Every property, every channel, the right information in the right place.',
+    planningLink: 'Explore the PMS',
+    planningAria: 'Animated PMS planning: bookings, channels and availability',
+    directPhotoAlt: 'A furnished bedroom, made up and ready for guests',
+    directNoteTitle: 'Your address. Your site.',
+    directNoteBody: 'Booking, direct.',
+    directNumber: '02 / GROW',
+    directTitle1: 'The next stay',
+    directTitle2: 'starts at your place.',
+    directCopy:
+      'A site in your image and a built-in booking engine, to build a direct relationship with your guests.',
+    directLink: 'Explore direct booking',
+  },
+  local: {
+    photoAlt: 'Entrance of a traditional guesthouse, doors open onto the courtyard',
+    rootsLine1: 'Local roots.',
+    rootsLine2: 'A view without borders.',
+    label: 'Saudi Arabia first. Morocco and France next.',
+    title1: 'At ease with your trade.',
+    title2: 'And your reality.',
+    copy:
+      'An istiraha in Riyadh is not run like a flat in Paris. Your tool should know the difference.',
+    points: [
+      ['Arrivals properly declared',
+        'Guest registration on Shomoos (شموس), mandatory for accommodation.'],
+      ['Tax right the first time',
+        '15% VAT, 5% municipality fee, ZATCA electronic invoicing.'],
+      ['Payments your guests actually use',
+        'PayTabs and collection in riyals, alongside Stripe.'],
+      ['Arabic, properly',
+        'Right-to-left reading, Hijri calendar, amounts in riyals.'],
+    ],
+    link: 'Discover Baitly in Saudi Arabia',
+    supportTitle: 'Starting your digital shift?',
+    supportBody:
+      'Let’s talk migration, onboarding and digitalisation support at your demo.',
+  },
+  faq: {
+    label: 'Shall we talk?',
+    title1: 'The right questions,',
+    title2: 'before you start.',
+    link: 'Talk to our team',
+    items: [
+      ['Does it suit the number of properties I have?',
+        'Baitly is for independent hosts, istirahas and property managers. The demo walks through the modules that matter to your organisation, whether you run one property or a portfolio.'],
+      ['Do the AI agents decide in my place?',
+        'You set how much autonomy they have. Actions that need your approval are shown with their context: you can approve, adjust or refuse. Decisions are logged.'],
+      ['Can I keep my Airbnb and Booking.com listings?',
+        'Yes. Baitly brings your bookings together and syncs availability across your connected channels. You keep your listings and your existing accounts.'],
+      ['How does switching software work?',
+        'We review your properties, your channels and your data to prepare the migration. The scope and the steps are agreed with you before the switch.'],
+    ],
+  },
+  final: {
+    label: 'Your next chapter starts here',
+    title1: 'Make room',
+    title2: 'for what matters.',
+    copy1: '30 minutes to see what Baitly',
+    copy2: 'can change in your day-to-day.',
+    cta: 'Let’s meet',
+    note: 'In Arabic, French or English. No commitment.',
+  },
+};
+
+const ar: HomeMessages = {
+  hero: {
+    eyebrow: 'ضيافة، بقدرات أوسع.',
+    title1: 'عقاراتك للإيجار.',
+    title2: 'وذهنك صافٍ.',
+    lead1: 'أنت تصنع إقامات لا تُنسى.',
+    lead2: 'ووكلاء الذكاء الاصطناعي يتولّون ما وراء الكواليس.',
+    description:
+      'الحجوزات والأسعار والنزلاء والفرق: يومك كله في نظام إدارة واحد. مصمَّم للسعودية والمغرب وفرنسا.',
+    demo: 'احجز عرضاً توضيحياً',
+    watch: 'شاهد بايتلي أثناء العمل',
+    reassurance1: 'بلا التزام',
+    reassurance2: 'عرض مخصّص في 30 دقيقة',
+    photoAlt: 'شرفة مظلّلة في فيلا، وطاولة مُعدّة تطل على الوادي',
+    photoCaption: 'روح المكان، وطمأنينة إضافية.',
+    noteLabel: 'فريقك من وكلاء الذكاء الاصطناعي',
+    agentDeck: [
+      { agent: 'التواصل', title: 'الإقامة القادمة قيد التحضير.', detail: 'رسالة الترحيب جاهزة. والفريق على علم.' },
+      { agent: 'الإيرادات', title: 'ثلاث ليالٍ فارغة في الرياض.', detail: 'اقتُرح خفض، مع احترام حدّ 450 ر.س.' },
+      { agent: 'العمليات', title: 'قُبلت مغادرة متأخرة.', detail: 'وأُعيدت جدولة التنظيف وحدها.' },
+      { agent: 'الامتثال', title: 'سُجِّل النزيل في شموس.', detail: 'أُرسل الإقرار، ولا شيء يُعاد إدخاله.' },
+      { agent: 'المزامنة', title: 'وصل حجز من Airbnb.', detail: 'وأُغلقت التواريخ نفسها في بقية القنوات.' },
+      { agent: 'المالية', title: 'تأكّد التحصيل عبر PayTabs.', detail: 'وصل 1٬850 ر.س، وصدرت الفاتورة الإلكترونية.' },
+      { agent: 'الضيف', title: 'بيعت مغادرة متأخرة.', detail: '60 ر.س، عُرضت في دليل الاستقبال.' },
+      { agent: 'التقييمات', title: 'نُشر تقييم بخمس نجوم.', detail: 'الرد محرَّر وجاهز للإرسال.' },
+      { agent: 'المالك', title: 'كشف يوليو جاهز.', detail: 'الصافي والعمولة، بالريال.' },
+      { agent: 'النمو', title: 'موقعك المباشر حقّق حجزاً.', detail: 'بلا أي عمولة على هذا الحجز.' },
+      { agent: 'الأجهزة المتصلة', title: 'أُنشئ رمز الدخول.', detail: 'صالح من الوصول إلى المغادرة، لا بعدها.' },
+    ],
+    noteTitle: 'الإقامة القادمة قيد التحضير.',
+    noteBody: 'رسالة الترحيب جاهزة. والفريق على علم.',
+    exampleLabel: 'مثال توضيحي لإقامة مع بايتلي',
+    audience: 'للمضيفين، والاستراحات، وشركات الإدارة.',
+    scroll: 'خُذ وقتك في حسن الاستقبال',
+  },
+  channels: {
+    aria: 'التكاملات المتاحة',
+    line1: 'أدواتك المفضّلة.',
+    line2: 'مجتمعة أخيراً.',
+  },
+  platform: {
+    label: 'مساحة واحدة، ومهنتك كلها',
+    title1: 'تبويبات أقل.',
+    title2: 'وحضور أكبر.',
+    intro:
+      'من النقرة الأولى إلى الوصول التالي، تربط بايتلي كل تفصيل من الإقامة. وتعيد إليك الصورة كاملة.',
+    planningNumber: '01 / القيادة',
+    planningTitle1: 'نشاطك،',
+    planningTitle2: 'في نظرة واحدة.',
+    planningCopy:
+      'لوحة تخطيط مشتركة. كل عقاراتك، وكل قنواتك، والمعلومة المناسبة في مكانها.',
+    planningLink: 'اكتشف نظام الإدارة',
+    planningAria: 'لوحة تخطيط متحركة: الحجوزات والقنوات والتوفر',
+    directPhotoAlt: 'غرفة نوم مفروشة ومجهّزة، جاهزة لاستقبال النزلاء',
+    directNoteTitle: 'عنوانك. وموقعك.',
+    directNoteBody: 'والحجز مباشرةً.',
+    directNumber: '02 / النمو',
+    directTitle1: 'الإقامة القادمة',
+    directTitle2: 'تبدأ من عندك.',
+    directCopy:
+      'موقع على صورتك ومحرك حجز مدمج، لبناء علاقة مباشرة مع نزلائك.',
+    directLink: 'استكشف الحجز المباشر',
+  },
+  local: {
+    photoAlt: 'مدخل دار ضيافة تقليدية، وأبوابها مفتوحة على الفناء',
+    rootsLine1: 'جذور محلية.',
+    rootsLine2: 'ورؤية بلا حدود.',
+    label: 'السعودية أولاً. ثم المغرب وفرنسا.',
+    title1: 'على دراية بمهنتك.',
+    title2: 'وبواقعك.',
+    copy:
+      'الاستراحة في الرياض لا تُدار كشقة في باريس. وأداتك ينبغي أن تعرف الفرق.',
+    points: [
+      ['وصول مُبلَّغ عنه حسب الأصول',
+        'تسجيل النزلاء على منصة شموس، وهو إلزامي لقطاع الإيواء.'],
+      ['ضريبة صحيحة من أول مرة',
+        'ضريبة قيمة مضافة 15 %، ورسوم بلدية 5 %، وفاتورة إلكترونية عبر هيئة الزكاة والضريبة والجمارك.'],
+      ['وسائل دفع يستخدمها نزلاؤك فعلاً',
+        'PayTabs والتحصيل بالريال، إلى جانب Stripe.'],
+      ['واجهة عربية، بحق',
+        'قراءة من اليمين إلى اليسار، وتقويم هجري، ومبالغ بالريال.'],
+    ],
+    link: 'اكتشف بايتلي في السعودية',
+    supportTitle: 'هل تبدأ تحوّلك الرقمي؟',
+    supportBody:
+      'لنتحدث في العرض التوضيحي عن الترحيل والمواكبة ودعم التحوّل الرقمي.',
+  },
+  faq: {
+    label: 'هل نتحدث؟',
+    title1: 'الأسئلة الصحيحة،',
+    title2: 'قبل الانطلاق.',
+    link: 'تحدّث مع فريقنا',
+    items: [
+      ['هل يناسب عدد عقاراتي؟',
+        'بايتلي موجّهة للمضيفين المستقلين والاستراحات وشركات الإدارة. ويتيح العرض التوضيحي استعراض الوحدات المفيدة لمؤسستك، سواء أدرت عقاراً واحداً أو محفظة كاملة.'],
+      ['هل يقرر وكلاء الذكاء الاصطناعي بدلاً عني؟',
+        'أنت من يحدّد مدى استقلاليتهم. وتُعرض عليك الإجراءات التي تتطلب موافقتك مع سياقها: يمكنك الموافقة أو التعديل أو الرفض. وتُسجَّل القرارات في السجل.'],
+      ['هل يمكنني الاحتفاظ بإعلاناتي على Airbnb وBooking.com؟',
+        'نعم. تجمع بايتلي حجوزاتك وتزامن التوفر عبر قنواتك المتصلة. وتحتفظ أنت بإعلاناتك وحساباتك القائمة.'],
+      ['كيف يجري تغيير البرنامج؟',
+        'نراجع معك عقاراتك وقنواتك وبياناتك لتحضير الترحيل. ويُتفق على النطاق والمراحل معك قبل التبديل.'],
+    ],
+  },
+  final: {
+    label: 'فصلك التالي يبدأ هنا',
+    title1: 'أفسِح مكاناً',
+    title2: 'لما يستحق.',
+    copy1: 'ثلاثون دقيقة لاكتشاف ما يمكن لبايتلي',
+    copy2: 'أن تغيّره في يومك.',
+    cta: 'لنلتقِ',
+    note: 'بالعربية أو الفرنسية أو الإنجليزية. بلا التزام.',
+  },
+};
+
+export const HOME_MESSAGES: Record<SiteLanguage, HomeMessages> = { fr, en, ar };

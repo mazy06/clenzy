@@ -24,6 +24,21 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
 // (Tooltip, Popover, Select — tout ce qui positionne une fleche) le lisent au
 // montage via @radix-ui/react-use-size. MUI n'en avait pas besoin, si bien que
 // le manque n'apparait qu'une fois l'ecran passe a Baitly UI.
+// jsdom n'implemente pas IntersectionObserver, dont depend `Reveal` — present
+// sur toutes les sections de la landing. Sans ce bouchon, monter une page du
+// site publique leve avant meme la premiere assertion.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class {
+    readonly root = null;
+    readonly rootMargin = '';
+    readonly thresholds: readonly number[] = [];
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords(): IntersectionObserverEntry[] { return []; }
+  } as unknown as typeof IntersectionObserver;
+}
+
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class {
     observe() {}

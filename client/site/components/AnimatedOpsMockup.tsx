@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { BInterventionsSectionDemo } from '../../src/modules/admin/design-system/sections-demos';
 import ProjectionRuntime from './ProjectionRuntime';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 
 /**
  * Mockup animé — Opérations & ménage. AUCUN écran réinventé : la PROJECTION
@@ -12,11 +14,16 @@ import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mock
  * prefers-reduced-motion → projection statique, sans curseur.
  */
 
-const DESIGN_WIDTH = 1240;
-const WINDOW_HEIGHT = 540;
-const ZOOM = 0.72;
+/* La vue carte se compose en DEUX colonnes, pas en pleine largeur d'ecran :
+   la dessiner sur 1240 px puis la reduire a 55 % rendait tout illisible. Une
+   largeur de conception proche de celle du cadre la laisse a son echelle. */
+const DESIGN_WIDTH = 880;
+const WINDOW_HEIGHT = 420;
+const ZOOM = 1;
 
-const STEPS = ['Ménage', 'Maintenance', 'Check-in/out'];
+/** La vue carte : cinq marqueurs, trois missions dans le panneau. */
+const PIN_COUNT = 5;
+const MISSION_COUNT = 3;
 
 export default function AnimatedOpsMockup() {
   const [cycle, setCycle] = useState(0);
@@ -25,26 +32,38 @@ export default function AnimatedOpsMockup() {
 
 function OpsScene({ onCycleEnd }: { onCycleEnd: () => void }) {
   const reduced = useReducedMotion();
+  const { language } = useSiteLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(ZOOM);
+  const [frameHeight, setFrameHeight] = useState(WINDOW_HEIGHT);
   const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef);
 
+  /* La hauteur du cadre suit la projection : figee, elle laissait du vide sous
+     un contenu plus court que la fenetre. Un `ResizeObserver` la reprend quand
+     la projection grandit (panneau qui s'ouvre, liste qui s'allonge). */
   useLayoutEffect(() => {
     const measure = () => {
       const width = containerRef.current?.clientWidth ?? DESIGN_WIDTH;
-      setScale(Math.min(1, width / DESIGN_WIDTH) * ZOOM);
+      const next = Math.min(1, width / DESIGN_WIDTH) * ZOOM;
+      setScale(next);
+      const content = stageRef.current?.scrollHeight ?? 0;
+      if (content > 0) setFrameHeight(Math.round(content * next));
     };
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    const observer = stageRef.current ? new ResizeObserver(measure) : null;
+    if (observer && stageRef.current) observer.observe(stageRef.current);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+    };
   }, []);
 
-  /** Retrouve un vrai chip de filtre par son libellé (bouton aria-pressed). */
-  const findChip = (label: string) =>
-    [...(stageRef.current?.querySelectorAll<HTMLElement>('button[aria-pressed]') ?? [])].find(
-      (button) => button.textContent?.includes(label),
-    ) ?? null;
+  /* Repere par attribut : la vue carte n'a plus de puces de filtre, et ses
+     libelles changent avec la langue. */
+  const find = (selector: string) =>
+    stageRef.current?.querySelector<HTMLElement>(selector) ?? null;
 
   useTimeline(!reduced, (at) => {
     const clickReal = (el: HTMLElement | null) => {
@@ -56,17 +75,22 @@ function OpsScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     };
 
     at(1500, park);
-    STEPS.forEach((label, index) => {
-      const base = 3500 + index * 3600;
-      at(base, () => moveTo(findChip(label), 0, 1));
-      at(base + 900, () => clickReal(findChip(label)));
-    });
-    // Dernier clic sur le chip actif → désélection (retour à « tout »)
-    const resetBase = 3500 + STEPS.length * 3600;
-    at(resetBase, () => moveTo(findChip(STEPS[STEPS.length - 1]), 0, 1));
-    at(resetBase + 900, () => clickReal(findChip(STEPS[STEPS.length - 1])));
-    at(resetBase + 2400, hide);
-    at(resetBase + 3400, onCycleEnd);
+    /* Le geste de cet ecran : parcourir les marqueurs de la carte, puis les
+       missions que le panneau liste pour la zone visible. */
+    for (let index = 0; index < PIN_COUNT; index += 1) {
+      const base = 3000 + index * 1600;
+      at(base, () => moveTo(find(`[data-demo-pin="${index}"]`), 0, 1));
+      at(base + 700, () => clickReal(find(`[data-demo-pin="${index}"]`)));
+    }
+    const panelBase = 3000 + PIN_COUNT * 1600;
+    for (let index = 0; index < MISSION_COUNT; index += 1) {
+      const base = panelBase + index * 2000;
+      at(base, () => moveTo(find(`[data-demo-mission="${index}"]`), 0, 1));
+      at(base + 800, () => clickReal(find(`[data-demo-mission="${index}"]`)));
+    }
+    const end = panelBase + MISSION_COUNT * 2000;
+    at(end + 600, hide);
+    at(end + 1600, onCycleEnd);
   });
 
   return (
@@ -78,12 +102,12 @@ function OpsScene({ onCycleEnd }: { onCycleEnd: () => void }) {
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
-          <span className="ms-3 text-xs text-muted-foreground">app.baitly — Interventions</span>
+          <span className="ms-3 text-xs text-muted-foreground">{MOCKUP_MESSAGES[language].windowTitles.ops}</span>
         </div>
         {/* La PROJECTION réelle, à l'échelle et centrée — hauteur de fenêtre fixe */}
         <div
           className="flex justify-center overflow-hidden bg-background"
-          style={{ height: WINDOW_HEIGHT }}
+          style={{ height: frameHeight }}
         >
           <div
             ref={stageRef}

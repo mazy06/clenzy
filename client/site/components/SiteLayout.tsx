@@ -20,105 +20,112 @@ import {
   navigationMenuTriggerStyle,
 } from '../../src/components/ui';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
+import NavMegaPanel, { type NavMegaItem } from './NavMegaPanel';
+import PublicLanguagePicker from '../../src/components/PublicLanguagePicker';
+import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
+import { LAYOUT_MESSAGES, type LayoutMessages } from '../lib/messages/layout';
+import { moduleText } from '../lib/messages/modules';
+import { resourceText, solutionText } from '../lib/messages/solutions';
 import { cn } from '../../src/utils/cn';
 import { MODULES, RESOURCES, SOLUTIONS } from '../data/catalog';
-
-/** Lien de panneau du mega-menu : icône teintée + titre + description. */
-function PanelLink({
-  to,
-  title,
-  copy,
-  icon: Icon,
-}: {
-  to: string;
-  title: string;
-  copy?: string;
-  icon?: ComponentType<{ className?: string }>;
-}) {
-  return (
-    <NavigationMenuLink asChild>
-      <Link to={to} className="group/nav-link flex flex-col items-start gap-1">
-        <span className="flex items-center gap-2 text-sm leading-none font-medium whitespace-nowrap">
-          {Icon && (
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary transition-colors group-hover/nav-link:bg-primary group-hover/nav-link:text-primary-foreground">
-              <Icon className="size-4" />
-            </span>
-          )}
-          {title}
-        </span>
-        {copy && (
-          <span className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {copy}
-          </span>
-        )}
-      </Link>
-    </NavigationMenuLink>
-  );
-}
+import { MODULE_PHOTO, SOLUTION_PHOTO } from '../data/navVisuals';
 
 function DesktopNav() {
+  const { language } = useSiteLanguage();
+  const m = LAYOUT_MESSAGES[language].nav;
+  const mega = LAYOUT_MESSAGES[language].mega;
+
+  /* Les trois volets partagent la meme piece : seule la matiere change. Les
+     points viennent des VRAIES fonctionnalites deja ecrites pour les pages —
+     rien n'est redige pour le menu, rien n'est donc a retraduire. */
+  const modules: NavMegaItem[] = MODULES.map((module) => {
+    const text = moduleText(module.slug, language);
+    return {
+      key: module.slug,
+      to: `/produit/${module.slug}`,
+      icon: module.icon,
+      title: text.name,
+      copy: text.menuCopy,
+      points: text.features.map((feature) => feature.title),
+      photo: MODULE_PHOTO[module.slug],
+    };
+  });
+
+  const solutions: NavMegaItem[] = SOLUTIONS.map((solution) => {
+    const text = solutionText(solution.slug, language);
+    return {
+      key: solution.slug,
+      to: `/solutions#${solution.slug}`,
+      icon: solution.icon,
+      title: text.name,
+      copy: text.copy,
+      points: text.points,
+      photo: SOLUTION_PHOTO[solution.slug],
+    };
+  });
+
+  /* Les ressources sont des documents et des outils, pas des lieux : elles
+     n'ont pas de photo, et portent leur etiquette a la place. */
+  const resources: NavMegaItem[] = RESOURCES.map((resource) => {
+    const text = resourceText(resource.id, language);
+    return {
+      key: resource.id,
+      to: '/ressources',
+      icon: resource.icon,
+      title: text.name,
+      copy: text.copy,
+      tag: text.tag,
+    };
+  });
+
   return (
-    <NavigationMenu
-      className="site-nav hidden lg:flex"
-      aria-label="Navigation principale"
-    >
+    <NavigationMenu className="site-nav hidden lg:flex" aria-label={m.aria}>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Produit</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{m.product}</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <div className="grid gap-1 sm:w-[480px] md:w-[620px] md:grid-cols-2">
-              {MODULES.map((module) => (
-                <PanelLink
-                  key={module.slug}
-                  to={`/produit/${module.slug}`}
-                  title={module.name}
-                  copy={module.menuCopy}
-                  icon={module.icon}
-                />
-              ))}
-            </div>
+            <NavMegaPanel
+              items={modules}
+              discoverLabel={mega.discover}
+              footer={{ to: '/comparer', label: mega.productAll }}
+            />
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Solutions</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{m.solutions}</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <div className="grid gap-1 sm:w-[440px] md:w-[560px] md:grid-cols-2">
-              {SOLUTIONS.map((solution) => (
-                <PanelLink
-                  key={solution.slug}
-                  to={`/solutions#${solution.slug}`}
-                  title={solution.name}
-                  copy={solution.menuCopy}
-                  icon={solution.icon}
-                />
-              ))}
-            </div>
+            <NavMegaPanel
+              items={solutions}
+              discoverLabel={mega.discover}
+              footer={{ to: '/solutions', label: mega.solutionsAll }}
+            />
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/tarifs">Tarifs</Link>
+            <Link to="/tarifs">{m.pricing}</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/migration">Migration</Link>
+            <Link to="/migration">{m.migration}</Link>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+        {/* La place de marche des prestataires vivait dans le menu mobile et
+            le pied de page seulement : introuvable pour qui navigue au large. */}
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <Link to="/prestataires">{m.providers}</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Ressources</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{m.resources}</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <div className="grid gap-1 sm:w-[440px] md:w-[560px] md:grid-cols-2">
-              {RESOURCES.map((resource) => (
-                <PanelLink
-                  key={resource.name}
-                  to="/ressources"
-                  title={resource.name}
-                  copy={resource.copy}
-                  icon={resource.icon}
-                />
-              ))}
-            </div>
+            <NavMegaPanel
+              items={resources}
+              discoverLabel={mega.discover}
+              footer={{ to: '/ressources', label: mega.resourcesAll }}
+            />
           </NavigationMenuContent>
         </NavigationMenuItem>
       </NavigationMenuList>
@@ -126,17 +133,19 @@ function DesktopNav() {
   );
 }
 
-const MOBILE_LINKS: Array<{ to: string; label: string }> = [
-  { to: '/produit/agents-ia', label: 'Produit' },
-  { to: '/solutions', label: 'Solutions' },
-  { to: '/tarifs', label: 'Tarifs' },
-  { to: '/migration', label: 'Migration' },
-  { to: '/comparer', label: 'Comparer' },
-  { to: '/prestataires', label: 'Prestataires' },
-  { to: '/ressources', label: 'Ressources' },
+const MOBILE_LINKS: Array<{ to: string; key: keyof LayoutMessages['nav'] }> = [
+  { to: '/produit/agents-ia', key: 'product' },
+  { to: '/solutions', key: 'solutions' },
+  { to: '/tarifs', key: 'pricing' },
+  { to: '/migration', key: 'migration' },
+  { to: '/comparer', key: 'compare' },
+  { to: '/prestataires', key: 'providers' },
+  { to: '/ressources', key: 'resources' },
 ];
 
 function SiteHeader() {
+  const { language } = useSiteLanguage();
+  const h = LAYOUT_MESSAGES[language].header;
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
@@ -162,7 +171,7 @@ function SiteHeader() {
         <Link
           to="/"
           className="flex items-center gap-2.5"
-          aria-label="Baitly, accueil"
+          aria-label={h.homeAria}
         >
           <span className="text-primary">
             <BaitlyMarkLogo variant="mark" size={30} colorMode="inherit" />
@@ -180,12 +189,12 @@ function SiteHeader() {
             asChild
           >
             <a href={runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000')} rel="noreferrer">
-              Se connecter
+              {h.login}
             </a>
           </Button>
           <Button size="sm" className="site-header-cta" asChild>
             <Link to="/demo">
-              Réserver une démo <ArrowRightIcon />
+              {h.demo} <ArrowRightIcon />
             </Link>
           </Button>
           <Button
@@ -193,7 +202,7 @@ function SiteHeader() {
             size="icon-sm"
             ref={menuTriggerRef}
             className="site-mobile-trigger lg:hidden"
-            aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-label={mobileOpen ? h.closeMenu : h.openMenu}
             aria-expanded={mobileOpen}
             aria-controls="site-mobile-nav"
             onClick={() => setMobileOpen((open) => !open)}
@@ -205,7 +214,7 @@ function SiteHeader() {
       {mobileOpen && (
         <nav
           id="site-mobile-nav"
-          aria-label="Navigation mobile"
+          aria-label={LAYOUT_MESSAGES[language].nav.mobileAria}
           className="site-mobile-nav border-t border-border bg-background lg:hidden"
         >
           <div className="site-shell flex flex-col py-2">
@@ -222,7 +231,7 @@ function SiteHeader() {
                   )
                 }
               >
-                {link.label}
+                {LAYOUT_MESSAGES[language].nav[link.key]}
               </NavLink>
             ))}
           </div>
@@ -234,47 +243,50 @@ function SiteHeader() {
 
 /* ─── Footer ───────────────────────────────────────────────────────────────── */
 
-const FOOTER_COLUMNS: Array<{
-  title: string;
-  links: Array<{ label: string; to: string }>;
-}> = [
-  {
-    title: 'Produit',
-    links: MODULES.map((module) => ({
-      label: module.name,
-      to: `/produit/${module.slug}`,
-    })),
-  },
-  {
-    title: 'Solutions',
-    links: SOLUTIONS.map((solution) => ({
-      label: solution.name,
-      to: `/solutions#${solution.slug}`,
-    })),
-  },
-  {
-    title: 'Ressources',
-    links: [
-      { label: 'Baromètre STR Maroc', to: '/ressources' },
-      { label: 'Calculateur de revenus', to: '/ressources' },
-      { label: 'Guide des obligations', to: '/ressources' },
-      { label: 'Académie', to: '/ressources' },
-      { label: 'Blog', to: '/ressources' },
-    ],
-  },
-  {
-    title: 'Entreprise',
-    links: [
-      { label: 'Tarifs', to: '/tarifs' },
-      { label: 'Migration', to: '/migration' },
-      { label: 'Comparer', to: '/comparer' },
-      { label: 'Devenir prestataire', to: '/prestataires' },
-      { label: 'Réserver une démo', to: '/demo' },
-    ],
-  },
-];
+/**
+ * Colonnes du pied de page, dans la langue du lecteur.
+ *
+ * <p>C'etait une constante de module, donc figee sur le francais du
+ * chargement : elle ne pouvait pas suivre la langue. Les noms de modules et de
+ * solutions viennent encore du catalogue, lui non traduit a ce jour.</p>
+ */
+function footerColumns(language: SiteLanguage) {
+  const m = LAYOUT_MESSAGES[language].footer;
+  return [
+    {
+      title: m.columns.product,
+      links: MODULES.map((module) => ({
+        label: moduleText(module.slug, language).name,
+        to: `/produit/${module.slug}`,
+      })),
+    },
+    {
+      title: m.columns.solutions,
+      links: SOLUTIONS.map((solution) => ({
+        label: solutionText(solution.slug, language).name,
+        to: `/solutions#${solution.slug}`,
+      })),
+    },
+    {
+      title: m.columns.resources,
+      links: m.resources.map((label) => ({ label, to: '/ressources' })),
+    },
+    {
+      title: m.columns.company,
+      links: m.company.map((label, index) => ({
+        label,
+        to: ['/tarifs', '/migration', '/comparer', '/prestataires', '/demo'][index],
+      })),
+    },
+  ];
+}
+
+/** Libelle accessible du groupe de langues, dans la langue affichee. */
+const LANGUAGE_LABEL = { fr: 'Langue', en: 'Language', ar: 'اللغة' } as const;
 
 function SiteFooter() {
+  const { language, changeLanguage } = useSiteLanguage();
+  const m = LAYOUT_MESSAGES[language].footer;
   return (
     <footer className="site-footer border-t border-border bg-card">
       <div className="site-shell py-12">
@@ -287,12 +299,19 @@ function SiteFooter() {
               <span className="site-wordmark font-semibold">baitly</span>
             </Link>
             <p className="mt-3 max-w-xs text-xs text-muted-foreground">
-              Le PMS avec une équipe d'agents IA, conçu pour le Maroc et la
-              France. Fiche police, taxe de séjour et facturation conformes, dès
-              le premier jour.
+              {m.pitch}
             </p>
+            {/* Le choix de langue vit ici depuis qu'il a quitte l'en-tete :
+                dans la colonne d'identite, il se trouve a toute largeur — il
+                etait masque sous 640 px la-haut. */}
+            <PublicLanguagePicker
+              value={language}
+              onChange={changeLanguage}
+              label={LANGUAGE_LABEL[language]}
+              className="mt-5"
+            />
           </div>
-          {FOOTER_COLUMNS.map((column) => (
+          {footerColumns(language).map((column) => (
             <div key={column.title}>
               <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {column.title}
@@ -313,13 +332,13 @@ function SiteFooter() {
           ))}
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground">
-          <span>© 2026 Baitly. Tous droits réservés.</span>
+          <span>{m.rights}</span>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {[
-              { label: 'Mentions légales', to: '/legal/mentions-legales' },
-              { label: 'Confidentialité', to: '/legal/confidentialite' },
-              { label: 'CGV', to: '/legal/cgv' },
-              { label: 'Statut du service', to: '/statut' },
+              { label: m.legal.notice, to: '/legal/mentions-legales' },
+              { label: m.legal.privacy, to: '/legal/confidentialite' },
+              { label: m.legal.terms, to: '/legal/cgv' },
+              { label: m.legal.status, to: '/statut' },
             ].map((link) => (
               <Link
                 key={link.to}
@@ -354,10 +373,12 @@ function ScrollRestore() {
 }
 
 export default function SiteLayout(): ReactNode {
+  const { language } = useSiteLanguage();
+  const m = LAYOUT_MESSAGES[language].shell;
   return (
     <div className="baitly-marketing min-h-screen">
       <a href="#site-content" className="site-skip-link">
-        Aller au contenu
+        {m.skip}
       </a>
       <ScrollRestore />
       <SiteHeader />
@@ -365,7 +386,7 @@ export default function SiteLayout(): ReactNode {
         <Suspense
           fallback={
             <div className="site-shell site-route-loading" role="status">
-              <span>Chargement de la page…</span>
+              <span>{m.loading}</span>
               <div />
               <div />
             </div>

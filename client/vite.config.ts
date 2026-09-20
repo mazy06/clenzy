@@ -256,7 +256,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    // `site/` aussi : la landing porte ses propres tests, et le motif
+    // precedent les laissait hors de la suite — verts par absence, jamais
+    // executes.
+    include: ['src/**/*.test.{ts,tsx}', 'site/**/*.test.{ts,tsx}'],
     // `localeFetchStub` AVANT `setup.ts` : ce dernier attend `i18nInitPromise`,
     // dont le backend passe desormais par `fetch('/locales/...')` — sans serveur
     // sous jsdom. Le stub sert les memes fichiers depuis le disque.

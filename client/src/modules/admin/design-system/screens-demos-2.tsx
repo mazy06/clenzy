@@ -5,6 +5,8 @@ import {
   BarChart3Icon,
   BotIcon,
   BuildingIcon,
+  CalendarDaysIcon,
+  StarIcon,
   CameraIcon,
   CheckIcon,
   ChevronLeftIcon,
@@ -40,6 +42,8 @@ import ExportButton from '../../../components/baitly/ExportButton';
 import { Money } from '../../../components/baitly/Money';
 import { cn } from '../../../utils/cn';
 import { activeIntlLocale } from '../../../utils/activeLocale';
+import StatTileRow from '../../../components/baitly/StatTileRow';
+import { ownerDemoText } from './ownerDemoMessages';
 
 /**
  * Projections d'écrans PMS (vague 6, enrichies) — galerie uniquement.
@@ -1232,89 +1236,79 @@ export function BOnboardingSectionDemo() {
 
 // ─── Section — Portail propriétaire ──────────────────────────────────────────
 
-const OWNER_PAYOUTS = [
-  { period: 'Juillet 2026', gross: 84200, commission: 16840, net: 67360, status: 'warn' as const, statusLabel: 'À verser' },
-  { period: 'Juin 2026', gross: 61800, commission: 12360, net: 49440, status: 'ok' as const, statusLabel: 'Versé' },
-  { period: 'Mai 2026', gross: 57300, commission: 11460, net: 45840, status: 'ok' as const, statusLabel: 'Versé' },
+/** Performance par propriete — le tableau de `OwnerPortalPage`. */
+const OWNER_PROPERTY_ROWS = [
+  { revenue: 84200, occupancy: 78, reservations: 12 },
+  { revenue: 61800, occupancy: 71, reservations: 9 },
+  { revenue: 45840, occupancy: 64, reservations: 7 },
 ];
 
 const OWNER_REVENUE_CONFIG = {
   net: { label: 'Net propriétaire', color: 'var(--bui-chart-2)' },
 } satisfies ChartConfig;
 
-const OWNER_REVENUE_DATA = [
-  { month: 'Février', net: 31200 },
-  { month: 'Mars', net: 39800 },
-  { month: 'Avril', net: 43900 },
-  { month: 'Mai', net: 45840 },
-  { month: 'Juin', net: 49440 },
-  { month: 'Juillet', net: 67360 },
-];
+const OWNER_REVENUE_VALUES = [31200, 39800, 43900, 45840, 49440, 67360];
 
 export function BOwnerPortalSectionDemo() {
+  const m = ownerDemoText();
+  const revenueData = OWNER_REVENUE_VALUES.map((net, index) => ({ month: m.months[index], net }));
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title="Espace propriétaire"
-        subtitle="Villa Palmeraie · M. Alaoui"
+        title={m.title}
+        subtitle={m.subtitle}
         iconBadge={<BuildingIcon />}
         showBackButton={false}
         className="mb-0"
       />
       <Alert className="max-w-2xl">
         <InfoIcon />
-        <AlertTitle>Relevé de juillet disponible</AlertTitle>
-        <AlertDescription>
-          Le versement de <Money value={67360} decimals={0} /> sera effectué le 5 août sur votre
-          compte se terminant par 4412.
-        </AlertDescription>
+        <AlertTitle>{m.noticeTitle}</AlertTitle>
+        <AlertDescription>{m.noticeBody}</AlertDescription>
       </Alert>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+      {/* Cinq tuiles, comme l'ecran : la teinte ne porte que sur l'icone,
+          et seulement la ou elle dit quelque chose. */}
+      <StatTileRow compact>
+        <StatTile icon={<BuildingIcon />} label={m.kpi.properties} value="3" />
+        <StatTile icon={<CalendarDaysIcon />} label={m.kpi.reservations} value="28" />
         <StatTile
           icon={<BanknoteIcon />}
-          label="Net à verser (juillet)"
+          label={m.kpi.netRevenue}
           value={<Money value={67360} decimals={0} />}
           iconClassName="text-success"
         />
-        <StatTile icon={<BarChart3Icon />} label="Occupation (juillet)" value="78" unit="%" />
-        <StatTile
-          icon={<TrendingUpIcon />}
-          label="Revenus 12 mois"
-          value={<Money value={612400} decimals={0} />}
-          hint={<><b>+12 %</b> vs année précédente</>}
-        />
-      </div>
+        <StatTile icon={<BarChart3Icon />} label={m.kpi.occupancy} value="78" unit="%" />
+        <StatTile icon={<StarIcon />} label={m.kpi.rating} value="4,8" unit="/5" iconClassName="text-warning" />
+      </StatTileRow>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.4fr_1fr]">
         <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="m-0 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Net propriétaire — 6 derniers mois
+          <h3 className="m-0 mb-2 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {m.revenueByMonth}
           </h3>
           <ChartContainer config={OWNER_REVENUE_CONFIG} className="h-44 w-full">
-            <AreaChart accessibilityLayer data={OWNER_REVENUE_DATA} margin={{ left: 12, right: 12 }}>
+            <AreaChart accessibilityLayer data={revenueData} margin={{ left: 12, right: 12 }}>
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="month"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tickFormatter={(value: string) => value.slice(0, 3)}
-              />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
               <Area dataKey="net" type="natural" fill="var(--color-net)" fillOpacity={0.4} stroke="var(--color-net)" />
             </AreaChart>
           </ChartContainer>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="m-0 mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            <FileTextIcon className="size-3.5" /> Relevés mensuels
+          <h3 className="m-0 mb-3 flex items-center gap-1.5 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+            <FileTextIcon className="size-3.5" /> {m.statements}
           </h3>
           <div className="flex flex-col gap-2">
-            {['Relevé juillet 2026', 'Relevé juin 2026', 'Relevé mai 2026'].map((statement) => (
+            {m.statementLabels.map((statement, index) => (
               <div key={statement} className="flex items-center gap-2.5 rounded-lg border border-border p-2.5">
                 <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">{statement}</span>
-                <Button size="icon-xs" variant="ghost" aria-label={`Télécharger ${statement}`}>
+                {/* Repere de la maquette animee : un index, pas un libelle —
+                    qui change avec la langue. */}
+                <Button size="icon-xs" variant="ghost" aria-label={`${m.download} ${statement}`} data-demo-statement={index}>
                   <DownloadIcon />
                 </Button>
               </div>
@@ -1323,32 +1317,28 @@ export function BOwnerPortalSectionDemo() {
         </div>
       </div>
 
+      {/* Performance par propriete — le tableau que l'ecran reel affiche sous
+          le graphique, et que la projection n'avait pas. */}
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Période</TableHead>
-            <TableHead className="text-end">Brut</TableHead>
-            <TableHead className="text-end">Commission (20 %)</TableHead>
-            <TableHead className="text-end">Net propriétaire</TableHead>
-            <TableHead>Statut</TableHead>
+            <TableHead>{m.columns.property}</TableHead>
+            <TableHead className="text-end">{m.columns.revenue}</TableHead>
+            <TableHead className="text-center">{m.columns.occupancy}</TableHead>
+            <TableHead className="text-center">{m.columns.reservations}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {OWNER_PAYOUTS.map((payout) => (
-            <TableRow key={payout.period}>
-              <TableCell className="font-medium">{payout.period}</TableCell>
+          {OWNER_PROPERTY_ROWS.map((row, index) => (
+            <TableRow key={m.properties[index]}>
+              <TableCell className="font-medium">{m.properties[index]}</TableCell>
               <TableCell className="text-end tabular-nums">
-                <Money value={payout.gross} decimals={0} />
+                <Money value={row.revenue} decimals={0} />
               </TableCell>
-              <TableCell className="text-end text-muted-foreground tabular-nums">
-                −<Money value={payout.commission} decimals={0} />
+              <TableCell className="text-center">
+                <StatusChip tone={row.occupancy >= 70 ? 'ok' : 'warn'} label={`${row.occupancy} %`} size="sm" />
               </TableCell>
-              <TableCell className="text-end font-semibold tabular-nums">
-                <Money value={payout.net} decimals={0} />
-              </TableCell>
-              <TableCell>
-                <StatusChip tone={payout.status} label={payout.statusLabel} dot size="sm" />
-              </TableCell>
+              <TableCell className="text-center tabular-nums">{row.reservations}</TableCell>
             </TableRow>
           ))}
         </TableBody>

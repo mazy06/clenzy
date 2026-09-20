@@ -30,7 +30,19 @@
   --bl-space-section: clamp(64px, 7.8vw, 112px);
   --bl-radius-control: 8px;
   --bl-radius-panel: 16px;
-  font-family: 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif;
+  /* Surface des boutons pleins : le bleu de marque du PMS — `--brand-ink`,
+     c'est-a-dire `--bui-navy`, la pastille du jour dans le planning. Distinct
+     de `--bl-ink`, qui reste l'encre du TEXTE : un bouton et un paragraphe
+     n'ont pas a bouger ensemble. (Il a d'abord porte le `--chrome-1` de la
+     barre laterale, #1C2832 : plus gris que bleu, il se lisait noir.) */
+  --bl-surface-ink: #25406e;
+  /* Les boutons du kit (`cn-button`) lisent `--bui-primary` : la landing le
+     redefinit pour elle seule, sans toucher au theme de l'application. */
+  --bui-primary: #25406e;
+  /* Le defaut vit dans le repli de `var()`, PAS dans une declaration locale :
+     une variable redefinie ici ecraserait celle que `site.css` pose sur le
+     document pour l'arabe, et Manrope n'a aucun glyphe arabe a offrir. */
+  font-family: var(--bl-font-body, 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif);
   color: var(--bl-ink);
   background: var(--bl-paper);
 }
@@ -50,12 +62,542 @@
   gap: 30px;
 }
 .baitly-marketing .site-wordmark {
+  /* Les memes valeurs que `BaitlyMarkLogo` : une marque, un dessin. La famille
+     est posee ici meme, donc le mot reste latin quand le document passe en
+     arabe — et l'interlettrage echappe au jeton `--bl-tracking`, qui ne vaut
+     que pour le texte courant. */
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', -apple-system, 'Segoe UI',
+    sans-serif;
   font-size: 27px;
-  font-weight: 700;
-  letter-spacing: -0.06em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  direction: ltr;
 }
 .baitly-marketing .site-nav {
   margin-inline: auto;
+  /* Le volet est pose a `top: 100%` de la barre de navigation. Sans cet
+     etirement, la barre ne fait que la hauteur de ses onglets et le volet
+     pendait a mi-hauteur de l'en-tete : il n'y avait aucune couture a
+     raccorder. Etiree, elle fait la hauteur de l'en-tete, et `top: 100%`
+     tombe donc PILE sur sa ligne du bas. Les onglets restent centres : c'est
+     le `items-center` de la barre qui les place, pas sa hauteur. */
+  align-self: stretch;
+}
+
+/* ─── Les volets du mega-menu — le tiroir de la barre laterale du PMS ────────
+   Meme piece que `.bui-sidebar-flyout` (cf. `theme/baitly-nova.css`, ou la
+   construction est commentee en detail), tournee d'un quart de tour : la
+   couture n'est plus le bord VERTICAL d'une barre laterale mais la ligne
+   HORIZONTALE du bas de l'en-tete, et le tiroir sort vers le BAS.
+
+   Trois pieces, comme la-bas :
+
+     * le volet n'a pas de bordure du cote de la couture et porte le fond de
+       l'en-tete : il se lit comme un morceau de la barre qui descend, pas
+       comme une carte posee dessous ;
+     * deux conges CONCAVES aux angles hauts emmenent la ligne de l'en-tete
+       dans les bordures laterales du volet ;
+     * un effet TIROIR : le corps sort de la barre pendant que sa fenetre de
+       decoupe se ferme d'autant. Les deux se compensent exactement, le bord
+       haut reste donc pile sur la couture a chaque image, et ce qui depasse
+       encore dans la barre est masque.
+
+   <b>Les conges vivent sur l'ENVELOPPE, pas sur le volet</b>, pour deux
+   raisons. Le volet est en `overflow: hidden` — le kit y fait morpher la
+   taille d'un panneau a l'autre — et les aurait rognes net. Et l'enveloppe ne
+   bouge pas : ils gagnent gratuitement l'immobilite a la couture que le volet
+   de la barre laterale doit obtenir, lui, par une contre-translation. */
+
+@property --bl-flyout-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* Une seule deceleration, sans rebond ; l'opacite suit la meme courbe, le
+   volet est donc lisible bien avant d'avoir fini de sortir. Un SEUL jeu
+   d'images-cles par etat : Radix demonte le volet sur `animationend` en
+   comparant le nom porte par l'evenement a celui du style calcule, et deux
+   animations simultanees rendent « a, b », qui n'egale jamais un nom. */
+@keyframes bl-flyout-in {
+  from {
+    opacity: 0;
+    --bl-flyout-progress: 1;
+  }
+  to {
+    opacity: 1;
+    --bl-flyout-progress: 0;
+  }
+}
+
+@keyframes bl-flyout-out {
+  from {
+    opacity: 1;
+    --bl-flyout-progress: 0;
+  }
+  to {
+    opacity: 0;
+    --bl-flyout-progress: 1;
+  }
+}
+
+.baitly-marketing .cn-navigation-menu-viewport-wrapper {
+  /* Rayon du conge, et rayon des deux coins BAS du volet : la piece n'a qu'un
+     seul rayon. Declare ici, lu par le volet qui en herite. */
+  --bl-flyout-radius: 14px;
+}
+
+.baitly-marketing .cn-navigation-menu-viewport {
+  /* Course du tiroir : le volet sort de la barre sur sa propre HAUTEUR. Il est
+     tout juste rentre au premier instant, et toute la course est visible.
+     `100%` se resout sur la meme boite pour `translateY` que pour `inset()` :
+     aucune hauteur a mesurer, n'importe quel panneau est servi sans reglage. */
+  --bl-flyout-slide: 100%;
+  /* Position du tiroir, derivee de la progression animee : 1 = rentre dans
+     l'en-tete, 0 = sorti et en place. La regle est STATIQUE et relit la
+     variable a chaque image — c'est ce qui garde le corps et sa fenetre de
+     decoupe dans le meme mouvement, sans deux animations a synchroniser. */
+  --bl-flyout-reveal: calc(var(--bl-flyout-progress) * var(--bl-flyout-slide));
+  /* Bord de la fenetre de decoupe. Au repos il coincide avec le bord du volet,
+     qui MORD de 2 px sur l'en-tete : la ligne est recouverte avec de la marge,
+     et non posee au pixel pres — sans quoi l'arrondi de position a la densite
+     de l'affichage laisse passer un lisere au raccord. Pendant la course, en
+     revanche, la decoupe remonte de 3 px de plus, sur la face EXTERIEURE de la
+     ligne : l'en-tete reste intact tant que le volet n'est pas sorti, et la
+     ligne se scelle derriere lui sur la fin de la course. */
+  --bl-flyout-cut: calc(
+    var(--bl-flyout-reveal) + min(3px, var(--bl-flyout-progress) * 10px)
+  );
+
+  /* La morsure. Le kit posait ici un `mt-1.5` : le volet flottait. */
+  margin-block-start: -2px;
+  background: var(--bl-paper);
+  color: var(--bl-ink);
+  border: 1px solid var(--bl-line);
+  border-block-start: 0;
+  border-radius: 0 0 var(--bl-flyout-radius) var(--bl-flyout-radius);
+  /* L'ombre ne porte que vers le bas et les cotes : l'etalement negatif rentre
+     la forme de 14 px avant de la decaler de 16, cote couture elle finit donc
+     sous le volet opaque, flou compris, et rien ne vient noircir le raccord.
+     Elle remplace le `ring-1` du kit, qui est une ombre et redessinerait un
+     trait pile sur la jonction qu'on vient d'effacer. */
+  box-shadow: 0 16px 34px -14px rgb(27 42 53 / 0.26);
+  transform: translateY(calc(-1 * var(--bl-flyout-reveal)));
+  /* Genereuse sur les trois autres cotes, pour ne rogner ni l'ombre ni rien de
+     ce qui depasse. */
+  clip-path: inset(var(--bl-flyout-cut) -40px -36px -40px);
+}
+
+.baitly-marketing .cn-navigation-menu-viewport[data-state='open'] {
+  animation: bl-flyout-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.baitly-marketing .cn-navigation-menu-viewport[data-state='closed'] {
+  animation: bl-flyout-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* Le retrait vit dans `.bl-mega-panel`, qui connait son rythme ; le kit en
+   posait 4 px ici, qui s'ajoutaient au sien. */
+.baitly-marketing .cn-navigation-menu-content {
+  padding: 0;
+}
+
+/* ─── Le contenu d'un volet : un rail, une vitrine ───────────────────────────
+   Construction et intentions dans `components/NavMegaPanel`. Ici la peinture :
+   le rail se balaye (une icone, un titre, un curseur qui glisse), la vitrine
+   ne montre QUE l'entree survolee, et le mouvement fait le lien entre les
+   deux. */
+.baitly-marketing .bl-mega-panel {
+  /* Hauteur de rangee UNIQUE : c'est ce qui permet au curseur d'etre un simple
+     decalage, sans rien mesurer au montage. */
+  --bl-mega-row-h: 34px;
+  width: 620px;
+  max-width: 88vw;
+  padding: 14px;
+}
+
+.baitly-marketing .bl-mega {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.baitly-marketing .bl-mega-rail {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.baitly-marketing .bl-mega-stage {
+  /* La vitrine ne prend pas le pointeur : l'entree active reste celle de la
+     derniere rangee survolee, meme quand la souris la traverse. */
+  pointer-events: none;
+  flex: 0 0 254px;
+}
+
+.baitly-marketing .bl-mega-marker {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: var(--bl-mega-row-h);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bl-surface-ink) 8%, transparent);
+  transform: translateY(calc(var(--bl-mega-i) * var(--bl-mega-row-h)));
+}
+
+.baitly-marketing .bl-mega-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--bl-mega-row-h);
+  padding-inline: 8px;
+  border-radius: 9px;
+  /* Le survol du kit repeindrait le fond par-dessus le curseur. */
+  background: transparent;
+  color: var(--bl-muted);
+  text-decoration: none;
+}
+
+.baitly-marketing .bl-mega-row[data-active] {
+  color: var(--bl-ink);
+}
+
+.baitly-marketing .bl-mega-row-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--bl-line);
+  border-radius: 7px;
+  background: var(--bl-paper);
+  color: var(--bl-surface-ink);
+  transition:
+    background 180ms var(--bl-ease),
+    color 180ms var(--bl-ease),
+    border-color 180ms var(--bl-ease);
+}
+
+.baitly-marketing .bl-mega-row[data-active] .bl-mega-row-icon {
+  border-color: transparent;
+  background: var(--bl-surface-ink);
+  color: var(--bl-paper);
+}
+
+.baitly-marketing .bl-mega-row-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La fleche ne bouge pas, elle apparait : une translation aurait demande un
+   sens, et le sens s'inverse en arabe. */
+.baitly-marketing .bl-mega-row-arrow {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  transition: opacity 180ms var(--bl-ease);
+}
+
+.baitly-marketing .bl-mega-row[data-active] .bl-mega-row-arrow {
+  opacity: 1;
+}
+
+[dir='rtl'] .baitly-marketing .bl-mega-row-arrow,
+[dir='rtl'] .baitly-marketing .bl-mega-card-more svg,
+[dir='rtl'] .baitly-marketing .bl-mega-footer svg {
+  transform: scaleX(-1);
+}
+
+.baitly-marketing .bl-mega-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bl-line);
+  border-radius: 12px;
+  background: var(--bl-paper);
+}
+
+.baitly-marketing .bl-mega-card-media {
+  position: relative;
+  display: block;
+  height: 124px;
+  flex: 0 0 auto;
+  background: var(--bl-surface);
+}
+
+.baitly-marketing .bl-mega-card-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Sans photo — les ressources sont des documents, pas des lieux. */
+.baitly-marketing .bl-mega-card-media-plain {
+  display: flex;
+  height: 86px;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bl-blue) 55%, var(--bl-paper));
+  color: var(--bl-surface-ink);
+}
+
+/* L'icone de l'entree, a cheval sur la photo : elle rattache le decor au
+   module, ce que la photo seule ne fait pas. */
+.baitly-marketing .bl-mega-card-plate {
+  position: absolute;
+  inset-block-end: -15px;
+  inset-inline-start: 12px;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bl-line);
+  border-radius: 9px;
+  background: var(--bl-paper);
+  color: var(--bl-surface-ink);
+  box-shadow: 0 6px 14px -8px rgb(27 42 53 / 0.35);
+}
+
+.baitly-marketing .bl-mega-card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px 14px 14px;
+}
+
+.baitly-marketing .bl-mega-card-tag {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bl-blue);
+  color: var(--bl-surface-ink);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.baitly-marketing .bl-mega-card-body > strong {
+  color: var(--bl-ink);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.baitly-marketing .bl-mega-card-copy {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: var(--bl-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.baitly-marketing .bl-mega-card-points {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-block-start: 2px;
+}
+
+.baitly-marketing .bl-mega-card-points > span {
+  display: flex;
+  gap: 6px;
+  color: var(--bl-muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.baitly-marketing .bl-mega-card-points svg {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  margin-block-start: 2px;
+  color: var(--bl-surface-ink);
+}
+
+.baitly-marketing .bl-mega-card-more {
+  display: inline-flex;
+  align-items: center;
+  margin-block-start: auto;
+  padding-block-start: 8px;
+  gap: 5px;
+  color: var(--bl-surface-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.baitly-marketing .bl-mega-card-more svg {
+  width: 13px;
+  height: 13px;
+}
+
+.baitly-marketing .bl-mega-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block-start: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bl-blue) 60%, var(--bl-paper));
+  color: var(--bl-surface-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 180ms var(--bl-ease);
+}
+
+.baitly-marketing .bl-mega-footer:hover {
+  background: var(--bl-blue);
+}
+
+.baitly-marketing .bl-mega-footer svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+/* Le mouvement. Les images-cles n'ont qu'un `from` : le `to` est l'etat
+   calcule de l'element, il n'y a donc rien a tenir en double. Tout est dans
+   un `no-preference` — la landing declare son mouvement, elle ne le retire
+   pas apres coup. */
+@keyframes bl-mega-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes bl-mega-media-in {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes bl-mega-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Les rangees se posent en cascade, dans la foulee du tiroir. */
+  .baitly-marketing .bl-mega-row {
+    animation: bl-mega-row-in 320ms var(--bl-ease) both;
+    animation-delay: calc(60ms + var(--bl-mega-i) * 22ms);
+  }
+  .baitly-marketing .bl-mega-marker {
+    transition: transform 280ms var(--bl-ease);
+  }
+  /* La carte est remontee a chaque changement d'entree (cf. la cle React) :
+     ces deux animations rejouent donc a chaque survol, sans rien a remettre
+     a zero. La photo entre en fondu depuis un leger sur-cadrage, le texte la
+     suit d'un souffle. */
+  .baitly-marketing .bl-mega-card-media img,
+  .baitly-marketing .bl-mega-card-media-plain {
+    animation: bl-mega-media-in 420ms var(--bl-ease) both;
+  }
+  .baitly-marketing .bl-mega-card-body {
+    animation: bl-mega-body-in 340ms var(--bl-ease) both;
+    animation-delay: 60ms;
+  }
+}
+
+/* Les deux conges. Hauteur = la morsure (2) + la rangee de bordure (1) + le
+   rayon : l'arc part de l'INTERIEUR de l'en-tete et descend jusqu'au flanc du
+   volet. Largeur = le rayon + la rangee de bordure.
+
+   Le centre du cercle est cale sur le croisement des MEDIANES des deux lignes
+   a raccorder : la tangente horizontale tombe donc sur la ligne de l'en-tete,
+   la verticale sur la bordure laterale du volet, et l'arc passe de l'une a
+   l'autre sans rupture.
+
+   <b>La boite MORD d'un pixel sur cette bordure</b> (`-rayon`, et non
+   `-1px - rayon`) : c'est ce qui la fait disparaitre au-dessus de la jonction.
+   Sans cela, la bordure laterale courait sur toute la hauteur du volet,
+   morsure comprise, et remontait donc de trois pixels au-dessus de la couture
+   — les deux moignons verticaux qu'on voyait depasser dans l'en-tete. Dans le
+   PMS ce pixel est gratuit : les congés y sont des pseudo-elements DU VOLET, et
+   leur `top` / `left` se resout sur sa boite de REMPLISSAGE, deja en retrait de
+   sa bordure. Sur l'enveloppe, qui n'en a pas, il faut le poser a la main.
+
+   `left` / `right` plutot que les proprietes logiques : la couture est
+   horizontale, la piece est symetrique, et une inversion en arabe deplacerait
+   les boites sans deplacer le centre de leur cercle. */
+.baitly-marketing .cn-navigation-menu-viewport-wrapper::before,
+.baitly-marketing .cn-navigation-menu-viewport-wrapper::after {
+  content: '';
+  position: absolute;
+  /* `::before` est le PREMIER enfant de l'enveloppe, le volet vient apres : a
+     `z-index` automatique l'ordre de l'arbre le peindrait DESSOUS, et le conge
+     gauche s'effacerait pile sur le pixel de bordure qu'il doit recouvrir.
+     L'enveloppe est en `isolate`, la couche ne deborde donc pas. */
+  z-index: 1;
+  top: -2px;
+  width: calc(var(--bl-flyout-radius) + 1px);
+  height: calc(var(--bl-flyout-radius) + 3px);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--bl-flyout-cx) var(--bl-flyout-cy),
+    transparent 0 calc(var(--bl-flyout-radius) - 0.75px),
+    var(--bl-line) calc(var(--bl-flyout-radius) - 0.25px)
+      calc(var(--bl-flyout-radius) + 0.25px),
+    var(--bl-paper) calc(var(--bl-flyout-radius) + 0.75px)
+  );
+  --bl-flyout-cy: calc(100% - 0.5px);
+  /* Immobiles a la couture, ils n'ont donc rien a animer qu'une opacite — et
+     elle suit celle du volet, courbe et duree comprises. */
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.baitly-marketing .cn-navigation-menu-viewport-wrapper::before {
+  left: calc(-1 * var(--bl-flyout-radius));
+  --bl-flyout-cx: 0.5px;
+}
+
+.baitly-marketing .cn-navigation-menu-viewport-wrapper::after {
+  right: calc(-1 * var(--bl-flyout-radius));
+  --bl-flyout-cx: calc(100% - 0.5px);
+}
+
+/* L'enveloppe reste montee en permanence : sans cette condition, les deux arcs
+   resteraient a l'ecran, accroches a rien. */
+.baitly-marketing
+  .cn-navigation-menu-viewport-wrapper:has(> [data-state='open'])::before,
+.baitly-marketing
+  .cn-navigation-menu-viewport-wrapper:has(> [data-state='open'])::after {
+  opacity: 1;
+  transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mouvement reduit : le volet prend sa place d'un coup. `animation: none` est
+   sans danger ici — Radix demonte immediatement ce qui n'a aucune animation a
+   attendre — et la progression retombe sur son initiale, 0, c'est-a-dire la
+   geometrie de repos. */
+@media (prefers-reduced-motion: reduce) {
+  .baitly-marketing .cn-navigation-menu-viewport[data-state] {
+    animation: none;
+  }
+  .baitly-marketing .cn-navigation-menu-viewport-wrapper::before,
+  .baitly-marketing .cn-navigation-menu-viewport-wrapper::after {
+    transition: none;
+  }
 }
 .baitly-marketing .site-header-cta {
   min-height: 42px;
@@ -79,7 +621,7 @@
   transform: translateY(-180%);
   z-index: 60;
   padding: 12px 18px;
-  background: var(--bl-ink);
+  background: var(--bl-surface-ink);
   color: var(--bl-paper);
   border-radius: 6px;
 }
@@ -104,9 +646,16 @@
 .baitly-home {
   font-variant-numeric: tabular-nums;
 }
+/* Tous les titres de la landing, pas seulement ceux de l'accueil : les pages
+   secondaires composent leurs titres en classes utilitaires, qui n'ont pas de
+   famille propre et heritaient donc du corps. */
+.baitly-marketing :is(h1, h2, h3) {
+  font-family: var(--bl-font-title, 'Space Grotesk', 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif);
+}
+
 .baitly-home :is(h1, h2, h3) {
   font-weight: 700;
-  letter-spacing: -0.05em;
+  letter-spacing: calc(-0.05em * var(--bl-tracking, 1));
   text-wrap: balance;
 }
 .baitly-home h2 {
@@ -137,7 +686,7 @@
   min-height: 52px;
   padding: 14px 23px;
   border-radius: var(--bl-radius-control);
-  background: var(--bl-ink);
+  background: var(--bl-surface-ink);
   color: var(--bl-paper);
   font-size: 14px;
   font-weight: 700;
@@ -227,9 +776,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--bl-tracking, 1));
   text-transform: uppercase;
   margin-block-end: 26px;
 }
@@ -242,7 +791,7 @@
 .baitly-home h1 {
   font-size: var(--bl-type-display);
   line-height: 1.09;
-  letter-spacing: -0.065em;
+  letter-spacing: calc(-0.065em * var(--bl-tracking, 1));
 }
 .baitly-home h1 > span {
   color: var(--bl-accent);
@@ -251,7 +800,7 @@
   font-size: clamp(17px, 1.5vw, 21px);
   line-height: 1.65;
   margin-block-start: 27px;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--bl-tracking, 1));
 }
 .baitly-hero-description {
   font-size: 15px;
@@ -291,7 +840,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   color: var(--bl-muted);
   margin-block-start: 18px;
 }
@@ -324,17 +873,27 @@
   padding: 8px 12px;
   background: var(--bl-paper);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
 }
 .baitly-photo-location svg {
   width: 13px;
   height: 13px;
 }
-.baitly-hero-note {
+/* La pile occupe la place de l'ancienne note ; les cartes s'y superposent en
+   absolu, d'ou un conteneur a hauteur fixe — sans elle, chaque changement de
+   carte ferait sauter le visuel du hero. */
+.baitly-agent-deck {
   position: absolute;
   inset-block-end: 20px;
   inset-inline-start: -26px;
   inset-inline-end: 35px;
+  height: 104px;
+}
+
+.baitly-agent-deck-card {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -343,6 +902,12 @@
   border-radius: 12px;
   background: var(--bl-paper);
   box-shadow: 0 16px 45px oklch(28% 0.027 240 / 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .baitly-agent-deck-card {
+    transition: none !important;
+  }
 }
 .baitly-note-icon {
   display: grid;
@@ -361,12 +926,12 @@
   font-weight: 700;
   margin-block-end: 3px;
 }
-.baitly-hero-note strong {
+.baitly-agent-deck-card strong {
   display: block;
   font-size: 14px;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--bl-tracking, 1));
 }
-.baitly-hero-note p {
+.baitly-agent-deck-card p {
   color: var(--bl-muted);
   font-size: 12px;
   margin-block-start: 4px;
@@ -379,7 +944,7 @@
   position: absolute;
   inset-block-end: -5px;
   inset-inline-end: 0;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   color: var(--bl-muted);
 }
 .baitly-hero-bottom {
@@ -389,7 +954,7 @@
   gap: 20px;
   padding-block: 20px 24px;
   color: var(--bl-muted);
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
 }
 .baitly-hero-bottom a {
   display: inline-flex;
@@ -409,7 +974,7 @@
 }
 .baitly-channels > p {
   min-width: 140px;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   line-height: 1.65;
   color: var(--bl-muted);
 }
@@ -430,7 +995,7 @@
   align-items: center;
   font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--bl-tracking, 1));
 }
 .baitly-brand img {
   width: 23px;
@@ -456,8 +1021,8 @@
 }
 .baitly-feature-number {
   display: block;
-  font-size: 12px;
-  letter-spacing: 0.09em;
+  font-size: var(--bl-fs-xs, 12px);
+  letter-spacing: calc(0.09em * var(--bl-tracking, 1));
   color: var(--bl-muted);
   margin-block-end: 20px;
 }
@@ -516,7 +1081,7 @@
   color: var(--bl-accent);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--bl-tracking, 1));
   line-height: 1;
   text-transform: uppercase;
 }
@@ -527,7 +1092,7 @@
 .landing-planning-heading > strong {
   color: var(--bl-ink);
   font-size: clamp(17px, 1.7vw, 21px);
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--bl-tracking, 1));
 }
 .landing-planning-month {
   flex-shrink: 0;
@@ -552,7 +1117,7 @@
   color: var(--bl-muted);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--bl-tracking, 1));
   text-transform: uppercase;
 }
 .landing-planning-head > span {
@@ -574,24 +1139,41 @@
 .landing-planning-property {
   display: flex;
   min-width: 0;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  gap: 9px;
   padding-inline-end: 12px;
 }
-.landing-planning-property strong,
-.landing-planning-property span {
+
+/* Vignette du logement — la colonne de gauche de l'ecran en porte une. */
+.landing-planning-thumb {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--bl-line);
+}
+
+.landing-planning-property-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+.landing-planning-property-text strong,
+.landing-planning-property-text span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.landing-planning-property strong {
+.landing-planning-property-text strong {
   color: var(--bl-ink);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--bl-tracking, 1));
 }
-.landing-planning-property span {
-  margin-block-start: 4px;
+.landing-planning-property-text span {
+  margin-block-start: 3px;
   color: var(--bl-muted);
   font-size: 10px;
 }
@@ -616,39 +1198,76 @@
   align-items: center;
   gap: 7px;
   min-width: 0;
-  height: 40px;
+  height: 42px;
   margin-inline: 4px;
-  padding: 6px 9px;
+  padding: 5px 7px 5px 5px;
   border: 1px solid transparent;
   border-radius: 7px;
   opacity: 0;
   animation: landing-planning-stay-in 7.2s var(--bl-ease) infinite;
 }
-.landing-planning-stay-coral {
-  border-color: oklch(78% 0.06 32);
-  background: oklch(93% 0.035 32);
-  color: oklch(37% 0.08 32);
+/* L'entree des briques reste decalee, une ligne apres l'autre. */
+.landing-planning-row:nth-of-type(2) .landing-planning-stay {
   animation-delay: 120ms;
 }
-.landing-planning-stay-blue {
-  border-color: oklch(77% 0.06 240);
-  background: oklch(91.5% 0.035 240);
-  color: oklch(34% 0.07 240);
+.landing-planning-row:nth-of-type(3) .landing-planning-stay {
   animation-delay: 420ms;
 }
-.landing-planning-stay-green {
-  border-color: oklch(77% 0.06 174);
-  background: oklch(89.5% 0.045 174);
-  color: oklch(34% 0.07 174);
+.landing-planning-row:nth-of-type(4) .landing-planning-stay {
   animation-delay: 720ms;
 }
-.landing-planning-stay-dot {
-  width: 7px;
-  height: 7px;
+
+/* Avatar du voyageur — 26 px, comme la spec `.pl-bar__av` de l'application. */
+.landing-planning-stay-avatar {
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: currentColor;
-  opacity: 0.65;
+  object-fit: cover;
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+}
+
+/* Pilule de prix — spec `.pl-price` : 21 px de haut, rayon 7, chiffres gras
+   en chasse fixe. Le fond blanc et l'icone de carte signalent un sejour non
+   regle ; le verre translucide et la coche, un sejour encaisse. */
+.landing-planning-stay-price {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  margin-inline-start: auto;
+  padding-inline: 8px;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 0.55);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.5);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.landing-planning-stay-price[data-unpaid] {
+  background: #fff;
+  color: oklch(52% 0.11 65);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.14);
+}
+.landing-planning-stay-price svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+/* Logo du canal, en fin de brique — comme le groupe de pastilles de l'ecran. */
+.landing-planning-stay-channel {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  opacity: 0.85;
+}
+.landing-planning-stay-channel svg {
+  width: 13px;
+  height: 13px;
 }
 .landing-planning-stay-copy {
   display: grid;
@@ -762,11 +1381,11 @@
 }
 .baitly-booking-note strong {
   display: block;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
 }
 .baitly-booking-note span {
   display: block;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   color: var(--bl-muted);
   margin-block-start: 3px;
 }
@@ -855,14 +1474,14 @@
 }
 .baitly-agent-choices small {
   display: block;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   color: var(--bl-muted);
   margin-block-start: 6px;
 }
 .baitly-agent-choices .baitly-text-link {
   margin-block-start: 25px;
   margin-inline-start: 18px;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
 }
 .baitly-demo-window {
   min-width: 0;
@@ -952,7 +1571,7 @@
   font-size: 22px;
   line-height: 1.35;
   margin-block: 17px 10px;
-  letter-spacing: -0.035em;
+  letter-spacing: calc(-0.035em * var(--bl-tracking, 1));
 }
 .baitly-demo-content > p:not([class]) {
   font-size: 12px;
@@ -1094,7 +1713,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   line-height: 1.7;
 }
 .baitly-local-copy h2 {
@@ -1122,7 +1741,7 @@
   width: 17px;
 }
 .baitly-local-copy li p {
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   line-height: 1.8;
   color: var(--bl-muted);
   margin-block-start: 5px;
@@ -1136,7 +1755,7 @@
   border-block-start: 1px solid var(--bl-line);
 }
 .baitly-local-support p {
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   line-height: 1.9;
   color: var(--bl-muted);
 }
@@ -1245,7 +1864,7 @@
 }
 .baitly-final-note {
   display: block;
-  font-size: 12px;
+  font-size: var(--bl-fs-xs, 12px);
   color: oklch(86% 0.014 230);
   margin-block-start: 17px;
 }
@@ -1295,15 +1914,18 @@
   .baitly-actions {
     gap: 14px;
   }
-  .baitly-hero-note {
+  .baitly-agent-deck {
     inset-inline-start: -12px;
     inset-inline-end: 10px;
+    height: 92px;
+  }
+  .baitly-agent-deck-card {
     padding: 15px;
   }
   .baitly-note-icon {
     display: none;
   }
-  .baitly-hero-note strong {
+  .baitly-agent-deck-card strong {
     font-size: 12px;
   }
   .baitly-channels {
@@ -1335,7 +1957,7 @@
     font-size: 24px;
   }
   .baitly-marketing .site-header-cta {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     min-height: 40px;
     padding-inline: 12px;
   }
@@ -1349,7 +1971,7 @@
   }
   .baitly-eyebrow {
     margin-block-end: 22px;
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-lead {
     margin-block-start: 22px;
@@ -1366,37 +1988,40 @@
   .baitly-button {
     min-height: 48px;
     padding: 13px 18px;
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     gap: 10px;
   }
   .baitly-play-link {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     gap: 7px;
   }
   .baitly-reassurance {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-hero-photo {
     height: 390px;
     border-start-start-radius: 90px;
   }
   .baitly-photo-location {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     inset-block-start: 16px;
     inset-inline-end: 14px;
   }
-  .baitly-hero-note {
+  .baitly-agent-deck {
     inset-inline: 12px;
+    height: 98px;
+  }
+  .baitly-agent-deck-card {
     padding: 18px 15px;
   }
   .baitly-note-icon {
     display: grid;
   }
-  .baitly-hero-note strong {
+  .baitly-agent-deck-card strong {
     font-size: 13px;
   }
   .baitly-hero-bottom {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     padding-block: 20px;
   }
   .baitly-hero-bottom a {
@@ -1437,7 +2062,7 @@
     max-width: 470px;
   }
   .baitly-section-label {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     margin-block-end: 15px;
   }
   .baitly-feature-grid {
@@ -1523,7 +2148,7 @@
     gap: 9px;
   }
   .baitly-agent-choices strong {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-agent-choices small,
   .baitly-agent-choices > button > svg:last-child {
@@ -1537,7 +2162,7 @@
     grid-column: 1 / -1;
     margin: 5px 0 0;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-demo-top {
     padding: 15px;
@@ -1606,7 +2231,7 @@
   }
   .baitly-faq .baitly-text-link {
     margin-block-start: 14px;
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-final-wrap {
     padding-block-end: 45px;
@@ -1628,7 +2253,7 @@
     font-size: 13px;
   }
   .baitly-final-note {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     max-width: 230px;
     line-height: 1.8;
   }
@@ -1653,14 +2278,45 @@
   .baitly-note-icon {
     display: none;
   }
-  .baitly-hero-note {
+  .baitly-agent-deck-card {
     gap: 8px;
   }
   .baitly-demo-top > span:first-child {
     gap: 6px;
   }
   .baitly-brand {
-    font-size: 12px;
+    font-size: var(--bl-fs-xs, 12px);
     gap: 5px;
   }
+}
+
+/* ---- Arabe ----------------------------------------------------------------
+   Meme echelle de corps, d'autres reglages. Le jeton d'interlettrage tombe a
+   zero (cf. plus haut), et les titres reprennent de l'air : l'arabe porte ses
+   signes au-dessus et au-dessous de la ligne, la ou le latin tient dans sa
+   boite.
+
+   Declare sur `html` et non sur le conteneur : c'est ce qui permet au jeton
+   de descendre jusqu'aux regles qui le lisent. */
+html[lang='ar'],
+html[lang^='ar-'] {
+  --bl-tracking: 0;
+  /* Tajawal perd ses points diacritiques sous 13 px : les libelles de contenu
+     gagnent un pixel. Les maquettes gardent le leur (cf. plus haut). */
+  --bl-fs-xs: 13px;
+}
+
+html[lang='ar'] .baitly-home h1,
+html[lang^='ar-'] .baitly-home h1 {
+  line-height: 1.45;
+}
+
+html[lang='ar'] .baitly-home h2,
+html[lang^='ar-'] .baitly-home h2 {
+  line-height: 1.4;
+}
+
+html[lang='ar'] .baitly-home h3,
+html[lang^='ar-'] .baitly-home h3 {
+  line-height: 1.45;
 }
