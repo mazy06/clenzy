@@ -10,6 +10,7 @@ import {
 } from '../../src/components/ui';
 import { cn } from '../../src/utils/cn';
 import Reveal from '../components/Reveal';
+import { AGENT_IDS } from '../../src/modules/supervision/constants';
 
 const PLANS = [
   {
@@ -25,7 +26,7 @@ const PLANS = [
     price: '490 MAD',
     unit: '/logement/mois',
     copy: 'Le PMS piloté par les agents.',
-    features: ['Tout Essentiel', 'Agents IA (4 agents, HITL)', 'Yield automatique borné', 'Market data par ville', 'Portail propriétaire + e-signature', 'Opérations ménage avec preuve photo'],
+    features: ['Tout Essentiel', `Agents IA (${AGENT_IDS.length} agents, HITL)`, 'Yield automatique borné', 'Market data par ville', 'Portail propriétaire + e-signature', 'Opérations ménage avec preuve photo'],
     featured: true,
   },
   {

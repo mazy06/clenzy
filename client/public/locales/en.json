@@ -10448,10 +10448,6 @@
       }
     },
     "layout": {
-      "tagline": "While you sleep,",
-      "taglineHighlight": "8 AI agents optimize your revenue per night",
-      "taglineEnd": ".",
-      "subtitle": "Dynamic pricing, multilingual guest messaging, daily briefings, sentiment analysis. The only thing you keep in your hands: strategy.",
       "trustEurope": "Hosted in Europe",
       "trustCompliance": "NF 525 / GDPR",
       "trustSupport": "Support 7 days a week"
@@ -10681,51 +10677,39 @@
     "slides": {
       "s0": {
         "tagline": "While you sleep,",
-        "highlight": "8 AI agents optimise your revenue night after night",
+        "highlight": "{{agentCount}} AI agents watch over every side of your business",
         "end": ".",
-        "subtitle": "Dynamic pricing, multilingual guest messaging, daily briefings, review analysis. The only thing left in your hands: the strategy."
+        "subtitle": "Pricing, guest messaging, housekeeping, payments, reviews, calendars, compliance, owner relations, distribution: each holds its own trade, all of them in step. The only thing left in your hands: the strategy."
       },
       "s1": {
-        "tagline": "Reclaim",
-        "highlight": "12 hours a week, without hiring",
+        "tagline": "They propose,",
+        "highlight": "you keep the final say on every action",
         "end": ".",
-        "subtitle": "Your AI agents set the prices, answer the guests, write your morning briefings and flag anomalies. You take back control of your time."
+        "subtitle": "Your agents set prices, answer guests, write your briefings and flag anomalies. Every sensitive action waits for your approval, and the ones you delegate stay in the log."
       },
       "s2": {
         "tagline": "Your guests served at 3 a.m.",
         "highlight": "Without waking you",
         "end": ".",
-        "subtitle": "Multilingual AI messaging that answers check-in questions, Wi-Fi codes and restaurant recommendations. You handle the exceptions, the AI handles the routine."
-      },
-      "s3": {
-        "tagline": "From 1 to 100 properties,",
-        "highlight": "without hiring a single manager",
-        "end": ".",
-        "subtitle": "A multi-agent architecture that scales linearly. Pricing, messaging, analytics, briefings, sentiment: everything stays smooth as your portfolio grows."
+        "subtitle": "Multilingual messaging that answers arrival questions, Wi-Fi codes and local recommendations — over WhatsApp and email alike, in a single thread. You handle the exceptions, the AI handles the routine."
       },
       "s4": {
-        "tagline": "From zero to",
-        "highlight": "your first booking in 24 hours",
+        "tagline": "Your properties arrive",
+        "highlight": "with their calendar and their bookings",
         "end": ".",
-        "subtitle": "Automatic import from your existing channels, AI-generated descriptions, photos analysed and scored. Set up in 15 minutes, first night sold the next day."
+        "subtitle": "Import from your existing channels, over iCal or a direct connection. Your current stays are carried over, not retyped. Listing descriptions are AI-generated, then reworked by you."
       },
       "s5": {
         "tagline": "One calendar for",
-        "highlight": "all your distribution channels",
+        "highlight": "every one of your distribution channels",
         "end": ".",
-        "subtitle": "Real-time synchronisation through our native connectors. No more double bookings, no more inconsistent prices across channels."
+        "subtitle": "One calendar is the source of truth: after every change, availability goes back out to each channel. Gaps and double bookings are detected and surfaced — not discovered by the guest."
       },
       "s6": {
         "tagline": "Access codes generated on the fly.",
         "highlight": "All your smart locks orchestrated",
         "end": ".",
         "subtitle": "The code expires automatically at check-out, the lock battery is monitored, keys left at a key-box are tracked in real time. You never hand out a code manually again."
-      },
-      "s7": {
-        "tagline": "",
-        "highlight": "WhatsApp and email, all in one thread",
-        "end": ".",
-        "subtitle": "Your guests reply where they already are, with no app to install. Centralised conversations, automatic translation and AI-suggested replies."
       },
       "s8": {
         "tagline": "Your accounting connected,",
@@ -10735,15 +10719,45 @@
       },
       "s9": {
         "tagline": "Your contracts signed",
-        "highlight": "in 30 seconds, without leaving Baitly",
+        "highlight": "without leaving Baitly",
         "end": ".",
-        "subtitle": "Management mandates, short-term rental contracts, check-in authorisations. Electronic signature built in natively, with no third-party tool to pay for alongside."
+        "subtitle": "Management mandates, short-term rental contracts, arrival authorisations. Built-in electronic signature backed by a timestamped certificate, with no third-party tool to pay for alongside."
       },
-      "s10": {
-        "tagline": "",
-        "highlight": "Open API, data exportable in one click",
+      "s11": {
+        "tagline": "Your direct bookings,",
+        "highlight": "with no middleman commission",
         "end": ".",
-        "subtitle": "Your bookings, guests, finances and photos: everything exports in an open format. Native webhooks and integrations. No lock-in."
+        "subtitle": "A booking site you compose without writing a line of code, wired to your calendar, your prices and your payments. What you sell direct, you keep."
+      },
+      "s12": {
+        "tagline": "The welcome guide",
+        "highlight": "your guests actually open",
+        "end": ".",
+        "subtitle": "Wi-Fi, arrival, house rules, the good addresses nearby: a web page that opens from a link, with no app to install. You build it once, it follows every stay."
+      },
+      "s13": {
+        "tagline": "Cleaning, plumbing, laundry:",
+        "highlight": "every trade, inside the PMS",
+        "end": ".",
+        "subtitle": "Operations, technical and regulatory, guest services, owner services: you find the provider, you request a quote and you follow the job without leaving Baitly."
+      },
+      "s14": {
+        "tagline": "Early check-in, transfer, breakfast:",
+        "highlight": "the same stay earns more",
+        "end": ".",
+        "subtitle": "Your add-ons appear at booking time and in the welcome guide, are paid online and land in your statements. Nothing to chase by hand."
+      },
+      "s15": {
+        "tagline": "A party at your place at midnight:",
+        "highlight": "you hear about it before the neighbour does",
+        "end": ".",
+        "subtitle": "Sensors measure the sound level against the threshold you set. Above it, the guest gets a reminder and you get the alert, with the level and the time slot. Decibels, never a recording."
+      },
+      "s16": {
+        "tagline": "Your prices against the market,",
+        "highlight": "within the limits you set",
+        "end": ".",
+        "subtitle": "Comparables in your city, booking pace, price positioning. The Revenue agent proposes an adjustment, and never steps outside the floor and ceiling you set for each property."
       }
     },
     "errors": {

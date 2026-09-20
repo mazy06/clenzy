@@ -3,6 +3,9 @@ import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
+import { AGENT_IDS } from '../supervision/constants';
+import PublicLanguagePicker from '../../components/PublicLanguagePicker';
+import type { AppLanguage } from '../../utils/localeDate';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 
 /**
@@ -12,10 +15,11 @@ import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
  * Pattern split-screen B2B SaaS modern (cf. Linear, Vercel, Stripe Dashboard) :
  * <ul>
  *   <li><b>Desktop ≥md</b> : panneau brand a gauche (40%) + zone form a droite (60%).
- *       Le panneau brand contient un <b>carrousel marketing 8 slides</b> qui
- *       cycle toutes les 6s — chaque slide adresse un pain point different du
- *       host courte duree (revenue, time saved, scaling, 24/7 support, multi-
- *       channel sync, anomaly detection, compliance, sentiment proactif).</li>
+ *       Le panneau brand contient un <b>carrousel marketing</b> qui cycle
+ *       toutes les 6s — chaque slide adresse un pain point different du host
+ *       courte duree (revenue, temps gagne, montee en charge, support 24/7,
+ *       synchronisation des canaux, serrures, messagerie, comptabilite,
+ *       signature, ouverture des donnees).</li>
  *   <li><b>Mobile</b> : panneau brand disparait, seul le form reste centre avec
  *       un logo compact en haut pour preserver l'identite.</li>
  * </ul>
@@ -40,7 +44,7 @@ export interface AuthLayoutProps {
   maxFormWidth?: number | string;
 }
 
-// ─── Carrousel marketing : 8 slides cyclant automatiquement ────────────────
+// ─── Carrousel marketing : slides cyclant automatiquement ──────────────────
 
 /**
  * Service tier integre a Baitly, affiche sous le slide en "chip" avec logo
@@ -69,39 +73,29 @@ interface CarouselSlide {
 }
 
 /**
- * Liste des 8 slides du carrousel marketing. Chaque slide adresse un pain
- * point ou benefice specifique aux hosts/gestionnaires de location courte
- * duree (cible Baitly). Validees par l'user 2026-05-28.
+ * Slides du carrousel marketing. Chaque slide adresse un pain point ou benefice
+ * specifique aux hosts/gestionnaires de location courte duree (cible Baitly).
  *
- * <p><b>TODO i18n</b> : actuellement hardcode en FR. Les utilisateurs hors-FR
- * voient le francais (acceptable V1, le marche prioritaire est FR/MAGHREB).
- * A migrer vers i18n keys auth.layout.slides[0..7].{tagline,highlight,end,subtitle}
- * quand les traductions EN/AR seront validees par un native speaker.</p>
+ * <p>Seuls les identifiants vivent ici : le texte est en locales, sous
+ * `auth.slides.<id>.{tagline,highlight,end,subtitle}`, dans les trois langues.</p>
+ *
+ * <p><b>Le nombre d'agents ne s'ecrit pas a la main.</b> La premiere slide
+ * l'annonce, et il a vecu a « 8 » pendant que la constellation en comptait dix —
+ * une promesse fausse sur le premier ecran du produit. Il est desormais
+ * interpole depuis {@link AGENT_IDS}, seul endroit qui fait foi.</p>
  */
 const SLIDES: CarouselSlide[] = [
-  // ─── Hook benefit (1-2) ────────────────────────────────────────────────
-  {
-    id: 's0',
-  },
-  {
-    id: 's1',
-  },
-  // ─── Emotional / 24/7 (3-4) ────────────────────────────────────────────
-  {
-    id: 's2',
-  },
-  {
-    id: 's3',
-  },
-  // ─── Onboarding speed (5) ──────────────────────────────────────────────
-  {
-    id: 's4',
-    services: [
-      { slug: 'airbnb', name: 'Airbnb' },
-      { slug: 'bookingdotcom', name: 'Booking.com' },
-    ],
-  },
-  // ─── Channels integration (6) — enrichi avec les 7 OTAs deployees ─────
+  // Ce qu'est Baitly : une constellation d'agents
+  { id: 's0' },
+  // ARGENT — la reservation directe, sans commission
+  { id: 's11' },
+  // ARGENT — les ventes additionnelles
+  { id: 's14' },
+  // ARGENT — le prix face au marche, borne par l'hote
+  { id: 's16' },
+  // CONFIANCE — repond a l'objection immediate faite a l'IA
+  { id: 's1' },
+  // Le coeur du PMS : un calendrier, tous les canaux
   {
     id: 's5',
     services: [
@@ -113,7 +107,13 @@ const SLIDES: CarouselSlide[] = [
       { slug: 'tripadvisor', name: 'Tripadvisor' },
     ],
   },
-  // ─── Smart locks orchestration (7) — Nuki + KeyNest + Tuya prod ───────
+  // Differenciant — les corps de metier reunis dans le PMS
+  { id: 's13' },
+  // La douleur la plus concrete : le message a 3 h du matin
+  { id: 's2' },
+  // Experience voyageur — et support des ventes additionnelles
+  { id: 's12' },
+  // Exploitation — acces et serrures
   {
     id: 's6',
     services: [
@@ -122,18 +122,17 @@ const SLIDES: CarouselSlide[] = [
       { slug: null, name: 'Tuya' },
     ],
   },
-  // ─── Guest messaging multi-channel (8) — WhatsApp Business Cloud + email ──
-  // Pas de SMS ni de Twilio : aucun provider SMS n'est implémenté côté serveur
-  // (`MessageChannelType.SMS` existe dans le modèle mais n'a pas de canal
-  // d'envoi). Annoncer le contraire promettait une capacité inexistante.
+  // Exploitation — le bruit, avant la plainte du voisin
+  { id: 's15' },
+  // Leve le frein a la migration
   {
-    id: 's7',
+    id: 's4',
     services: [
-      { slug: 'whatsapp', name: 'WhatsApp' },
-      { slug: 'gmail', name: 'Email' },
+      { slug: 'airbnb', name: 'Airbnb' },
+      { slug: 'bookingdotcom', name: 'Booking.com' },
     ],
   },
-  // ─── Multi-country accounting (9) — Pennylane/QB/Xero/Sage prod ──────
+  // Administratif — comptabilite
   {
     id: 's8',
     services: [
@@ -143,23 +142,23 @@ const SLIDES: CarouselSlide[] = [
       { slug: 'sage', name: 'Sage' },
     ],
   },
-  // ─── Comparative differentiators (10-11) — attaque frontale vs concurrence
+  // Administratif — contrats et signature
   {
     id: 's9',
     services: [
       { slug: 'docusign', name: 'DocuSign' },
     ],
   },
-  {
-    id: 's10',
-    services: [
-      { slug: 'zapier', name: 'Zapier' },
-      { slug: 'notion', name: 'Notion' },
-      { slug: 'slack', name: 'Slack' },
-      { slug: null, name: 'Make' },
-    ],
-  },
 ];
+
+/**
+ * Identifiants des slides, dans l'ordre d'affichage.
+ *
+ * <p>Expose pour que la suite de tests verifie qu'AUCUNE slide ne part sans son
+ * texte : un identifiant sans cles affiche `auth.slides.sN.highlight` en clair
+ * sur la premiere page du produit, et rien dans le typage ne le signale.</p>
+ */
+export const SLIDE_IDS: readonly string[] = SLIDES.map((slide) => slide.id);
 
 /** Duree d'affichage par slide en millisecondes. 6s = ~lecture confortable. */
 const SLIDE_DURATION_MS = 6000;
@@ -199,17 +198,32 @@ export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutP
   // Geo-detected language : ces pages NE respectent PAS les preferences user.
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
   // Hook override l'i18n au mount + restore au unmount.
-  useGeoAuthLanguage();
+  // La geolocalisation DEVINE la langue ; le selecteur permet d'en sortir.
+  const { language, chooseLanguage } = useGeoAuthLanguage();
 
   // Ces pages s'affichent TOUJOURS en clair, quelle que soit la preference de
   // l'utilisateur : elles precedent la session. Un ThemeProvider local
   // l'imposait auparavant ; `AuthLayoutInner` porte deja le `data-theme="light"`
   // que lisent les jetons CSS, ainsi que le fond plein ecran — il n'y a donc
   // rien a ajouter par-dessus.
-  return <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>;
+  return (
+    <AuthLayoutInner
+      maxFormWidth={maxFormWidth}
+      language={language}
+      onChooseLanguage={chooseLanguage}
+    >
+      {children}
+    </AuthLayoutInner>
+  );
 }
 
-function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
+/** Le choix de langue descend du parent : c'est lui qui porte l'effet i18n. */
+interface AuthLayoutInnerProps extends AuthLayoutProps {
+  language: AppLanguage;
+  onChooseLanguage: (language: AppLanguage) => void;
+}
+
+function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }: AuthLayoutInnerProps) {
   const { t } = useTranslation();
   const isMdUp = useMediaQuery(MD_UP_QUERY);
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -280,7 +294,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
       // device peut être en data-theme="dark") pour que les jetons de surfaces et
       // de champs repassent en clair. `brand-accent` reste posée pour les rares
       // descendants encore branchés sur l'accent de marque (cf. tokens.css).
-      className="brand-accent min-h-screen flex flex-col min-[900px]:flex-row bg-card"
+      className="brand-accent relative min-h-screen flex flex-col min-[900px]:flex-row bg-card"
       data-theme="light"
     >
       {/* ── PANNEAU BRAND (desktop) ─────────────────────────────────────── */}
@@ -393,7 +407,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                       sober. #A8C8D6 vs #89B1C2 = +20% luminosite => meilleure
                       lisibilite sur l'overlay+photo darkened. */}
                   <span style={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
-                    {t('auth.slides.' + current.id + '.highlight')}
+                    {t('auth.slides.' + current.id + '.highlight', { agentCount: AGENT_IDS.length })}
                   </span>
                   {t('auth.slides.' + current.id + '.end')}
                 </h2>
@@ -503,6 +517,16 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           </div>
         </div>
       )}
+
+      {/* Choix de langue : au-dessus des deux panneaux, donc atteignable que
+          le panneau de marque soit affiche ou non (il disparait sur mobile). */}
+      <div className="absolute top-3 end-3 z-[2] min-[600px]:top-4 min-[600px]:end-4">
+        <PublicLanguagePicker
+          value={language}
+          onChange={onChooseLanguage}
+          label={t('navigation.language')}
+        />
+      </div>
 
       {/* ── ZONE FORM ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-card">
