@@ -16,7 +16,7 @@ import { useReducedMotion } from './mockupKit';
  *
  * Chaque carte porte une capacité RÉELLE du produit (rien de prospectif) :
  * les points « mieux que le marché » sont ceux où les PMS internationaux sont
- * effectivement absents au Maroc.
+ * effectivement absents sur nos marchés — l'Arabie saoudite d'abord.
  */
 
 interface Advantage {
@@ -37,16 +37,16 @@ const CARDS: Advantage[] = [
   },
   {
     icon: LandmarkIcon,
-    tag: 'Conformité Maroc',
-    title: 'Fiche police et taxe de séjour intégrées.',
-    copy: 'Déclaration DGSN, taxe par commune et facturation conforme sont dans le produit, pas dans un tableur à côté.',
+    tag: 'Conformité Arabie saoudite',
+    title: 'Shomoos, TVA et facture ZATCA intégrées.',
+    copy: 'Enregistrement des voyageurs, TVA à 15 %, frais municipaux et facture électronique sont dans le produit, pas dans un tableur à côté.',
     edge: 'Absent des PMS internationaux',
   },
   {
     icon: BanknoteIcon,
     tag: 'Encaissement local',
-    title: 'CMI, PayZone, YouCan Pay — et Stripe.',
-    copy: 'Vous encaissez en dirhams avec les moyens de paiement que vos voyageurs utilisent réellement.',
+    title: 'PayTabs, CMI, PayZone — et Stripe.',
+    copy: 'Vous encaissez en riyals ou en dirhams, avec les moyens de paiement que vos voyageurs utilisent réellement.',
     edge: 'Là où Stripe seul ne suffit pas',
   },
   {

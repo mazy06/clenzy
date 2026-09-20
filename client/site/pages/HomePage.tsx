@@ -16,9 +16,11 @@ import BaitlyAgentDemo from '../components/BaitlyAgentDemo';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
 import { BRANDS } from '../components/BrandLogos';
 import { MODULES } from '../data/catalog';
-import riadPhoto from '../assets/photos/baitly-riad.webp';
-import riadSmall from '../assets/photos/baitly-riad-small.webp';
+// Visuels NEUTRES : le riad marocain contredisait la promesse saoudienne.
+// A remplacer par des photos du marche de lancement des qu'elles existent.
+import heroPhoto from '../assets/photos/desert.jpg';
 import interiorPhoto from '../assets/photos/riad.jpg';
+import localPhoto from '../assets/photos/salon.jpg';
 import poolPhoto from '../assets/photos/pool.jpg';
 
 function Hero() {
@@ -46,7 +48,8 @@ function Hero() {
             </p>
             <p className="baitly-hero-description">
               Réservations, tarifs, voyageurs et équipes : tout votre quotidien
-              réuni dans un seul PMS. Pensé pour le Maroc et la France.
+              réuni dans un seul PMS. Pensé pour l’Arabie saoudite, le Maroc et
+              la France.
             </p>
             <div className="baitly-actions">
               <Link className="baitly-button" to="/demo">
@@ -68,12 +71,11 @@ function Hero() {
         <Reveal delay={2} className="baitly-hero-visual">
           <img
             className="baitly-hero-photo"
-            src={riadPhoto}
-            srcSet={`${riadSmall} 700w, ${riadPhoto} 1400w`}
+            src={heroPhoto}
             sizes="(max-width: 767px) 100vw, 50vw"
-            alt="Patio de riad, arches en tadelakt et bassin à la lumière du matin"
-            width="1400"
-            height="933"
+            alt="Paysage désertique au lever du jour"
+            width="640"
+            height="424"
             // React 18 forwards the lowercase HTML attribute without a warning.
             {...{ fetchpriority: 'high' }}
           />
@@ -99,7 +101,7 @@ function Hero() {
         </Reveal>
       </div>
       <div className="site-shell baitly-hero-bottom">
-        <span>Pour les hôtes, les riads et les conciergeries.</span>
+        <span>Pour les hôtes, les istirahas et les conciergeries.</span>
         <a href="#plateforme">
           Prenez le temps d’accueillir <ArrowDownIcon />
         </a>
@@ -251,13 +253,20 @@ function PlatformSection() {
 
 const LOCAL_POINTS = [
   [
-    'Des arrivées bien préparées',
-    'Fiches voyageurs et fiche de police au format DGSN.',
+    'Des arrivées déclarées',
+    'Enregistrement des voyageurs sur Shomoos (شموس), obligatoire pour l’hébergement.',
   ],
-  ['Des paiements ancrés dans le réel', 'Dirhams, CMI, PayZone et YouCan Pay.'],
   [
-    'Une gestion qui parle votre langue',
-    'Interface en français et en arabe, taxe de séjour et facturation.',
+    'Une fiscalité juste du premier coup',
+    'TVA à 15 %, frais municipaux à 5 %, facture électronique ZATCA.',
+  ],
+  [
+    'Des paiements que vos voyageurs utilisent',
+    'PayTabs et encaissement en riyals, en plus de Stripe.',
+  ],
+  [
+    'Une interface arabe, vraiment',
+    'Lecture de droite à gauche, calendrier hégirien, montants en riyals.',
   ],
 ];
 function LocalSection() {
@@ -266,10 +275,10 @@ function LocalSection() {
       <div className="site-shell baitly-local-grid">
         <Reveal className="baitly-local-visual">
           <img
-            src={riadSmall}
-            alt="Détail des arches et de la végétation d’un riad marocain"
-            width="700"
-            height="467"
+            src={localPhoto}
+            alt="Salon d’un logement meublé, prêt à accueillir"
+            width="640"
+            height="427"
             loading="lazy"
           />
           <div>
@@ -282,14 +291,16 @@ function LocalSection() {
           </div>
         </Reveal>
         <Reveal delay={1} className="baitly-local-copy">
-          <p className="baitly-section-label">Maroc d’abord. France aussi.</p>
+          <p className="baitly-section-label">
+            Arabie saoudite d’abord. Maroc et France ensuite.
+          </p>
           <h2>
             À l’aise avec votre métier.
             <br />
             Et votre réalité.
           </h2>
           <p>
-            Un riad à Marrakech ne se gère pas comme un appartement à Paris.
+            Une istiraha à Riyad ne se gère pas comme un appartement à Paris.
             Votre outil doit connaître la différence.
           </p>
           <ul>
@@ -303,16 +314,16 @@ function LocalSection() {
               </li>
             ))}
           </ul>
-          <Link className="baitly-text-link" to="/solutions#maroc">
-            Découvrir Baitly au Maroc <ArrowRightIcon />
+          <Link className="baitly-text-link" to="/solutions#arabie-saoudite">
+            Découvrir Baitly en Arabie saoudite <ArrowRightIcon />
           </Link>
           <div className="baitly-local-support">
             <ShieldCheckIcon />
             <p>
               <strong>Vous lancez votre digitalisation ?</strong>
               <br />
-              Parlons migration, accompagnement et programme Go Siyaha lors de
-              votre démo.
+              Parlons migration, accompagnement et aides à la digitalisation
+              lors de votre démo.
             </p>
           </div>
         </Reveal>
@@ -324,7 +335,7 @@ function LocalSection() {
 const FAQS = [
   [
     'Est-ce adapté à mon nombre de logements ?',
-    'Baitly s’adresse aux hôtes indépendants, aux riads et aux conciergeries. La démo permet de parcourir les modules utiles à votre organisation, que vous gériez un logement ou un portefeuille.',
+    'Baitly s’adresse aux hôtes indépendants, aux istirahas et aux conciergeries. La démo permet de parcourir les modules utiles à votre organisation, que vous gériez un logement ou un portefeuille.',
   ],
   [
     'Les agents IA prennent-ils les décisions à ma place ?',

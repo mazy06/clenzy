@@ -72,10 +72,10 @@ export const BRANDS: BrandDef[] = [
 
   /* ─── Paiements ──────────────────────────────────────────────────────────── */
   { name: 'Stripe', logoUrl: stripeUrl, mask: true, color: '#635BFF', category: 'Paiements' },
+  { name: 'PayTabs', mono: 'Pt', color: '#00A9CE', category: 'Paiements' },
   { name: 'CMI', mono: 'CMI', color: '#00843D', category: 'Paiements' },
   { name: 'PayZone', logoUrl: payzoneUrl, wide: true, category: 'Paiements' },
   { name: 'YouCan Pay', logoUrl: youcanUrl, wide: true, category: 'Paiements' },
-  { name: 'PayTabs', mono: 'Pt', color: '#00A9CE', category: 'Paiements' },
   { name: 'Attijariwafa', mono: 'Aw', color: '#E9500E', category: 'Paiements' },
 
   /* ─── Versements & banque ────────────────────────────────────────────────── */

@@ -25,9 +25,9 @@ const SCENARIOS = [
     title: 'Trois nuits cherchent leurs voyageurs.',
     copy: 'La demande ralentit du 21 au 24 septembre. Une baisse ciblée peut rendre votre annonce plus attractive.',
     detail: 'Prix par nuit',
-    before: '950 MAD',
-    after: '880 MAD',
-    note: 'Votre plancher de 850 MAD est respecté.',
+    before: '520 SAR',
+    after: '470 SAR',
+    note: 'Votre plancher de 450 SAR est respecté.',
     action: 'Approuver le tarif',
     done: 'Nouveau tarif appliqué aux dates proposées.',
   },
@@ -218,7 +218,7 @@ function AgentScene({ demo }: { demo: ReturnType<typeof useAgentDemo> }) {
         <img src={riadPhoto} alt="" width="56" height="56" loading="lazy" />
         <div>
           <strong>Riad Azur</strong>
-          <span>Marrakech · Exemple de logement</span>
+          <span>Riyad · Exemple de logement</span>
         </div>
         <CalendarDaysIcon />
       </div>

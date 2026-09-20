@@ -7,7 +7,7 @@ const PLANNING_LABEL =
 const ROWS = [
   {
     name: 'Riad Azur',
-    detail: 'Marrakech · Médina',
+    detail: 'Riyad · Al-Olaya',
     guest: 'Sophie L.',
     channel: 'Airbnb',
     tone: 'coral',
@@ -23,7 +23,7 @@ const ROWS = [
   },
   {
     name: 'Appartement Atlas',
-    detail: 'Casablanca · Anfa',
+    detail: 'Djeddah · Al-Hamra',
     guest: 'Lina B.',
     channel: 'En direct',
     tone: 'green',

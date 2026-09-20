@@ -7,7 +7,7 @@ const COMPONENTS = [
   { name: 'API & webhooks', status: 'ok' },
   { name: 'Booking engine & sites', status: 'ok' },
   { name: 'Synchronisation des canaux (ARI)', status: 'ok' },
-  { name: 'Paiements (CMI / PayZone · YouCan Pay · Stripe)', status: 'ok' },
+  { name: 'Paiements (PayTabs · CMI / PayZone · YouCan Pay · Stripe)', status: 'ok' },
   { name: 'Messagerie (email · WhatsApp)', status: 'ok' },
   { name: 'Agents IA', status: 'ok' },
 ];
