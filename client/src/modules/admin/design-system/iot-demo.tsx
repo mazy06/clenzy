@@ -8,7 +8,6 @@ import {
   FlameIcon,
   HomeIcon,
   KeyRoundIcon,
-  LinkIcon,
   LockIcon,
   LockOpenIcon,
   MoreVerticalIcon,
@@ -23,13 +22,15 @@ import {
   WifiOffIcon,
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
-import { Badge, Button, Dialog, DialogContent, DialogTitle, Input, Label, NativeSelect, NativeSelectOption, Progress, Slider, Switch, Tabs, TabsList, TabsTrigger } from '../../../components/ui';
+import { Badge, Button, Dialog, DialogContent, DialogTitle, Input, Label, NativeSelect, NativeSelectOption, Progress, Slider, Switch } from '../../../components/ui';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';
 import PageHeader from '../../../components/baitly/PageHeader';
 import StatTile from '../../../components/baitly/StatTile';
 import StatusChip from '../../../components/baitly/StatusChip';
-import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import { cn } from '../../../utils/cn';
+import StatTileRow from '../../../components/baitly/StatTileRow';
+import FilterChipRow from '../../../components/baitly/FilterChipRow';
+import { iotDemoText, type IotDemoMessages } from './iotDemoMessages';
 
 /**
  * Projection — Objets connectés (domotique location courte durée) :
@@ -40,7 +41,24 @@ import { cn } from '../../../utils/cn';
 
 // ─── Parc d'objets ───────────────────────────────────────────────────────────
 
+/**
+ * Types d'objets du registre reel (`connected-objects/deviceRegistry`), avec
+ * leurs couleurs de domaine — la projection filtre sur les memes.
+ */
+export type DemoKind = 'lock' | 'noise' | 'camera' | 'thermostat' | 'sensor';
+
+const DEMO_KIND_ORDER: DemoKind[] = ['lock', 'noise', 'camera', 'thermostat', 'sensor'];
+
+const DEMO_KIND_COLORS: Record<DemoKind, string> = {
+  lock: '#7BA3C2',
+  noise: '#4A9B8E',
+  camera: '#C97A7A',
+  thermostat: '#6B8A9A',
+  sensor: '#D4A574',
+};
+
 interface DeviceCard {
+  kind: DemoKind;
   name: string;
   room: string;
   type: string;
@@ -51,29 +69,107 @@ interface DeviceCard {
   alert?: string;
 }
 
-const DEVICES_BY_PROPERTY: Array<{ property: string; devices: DeviceCard[] }> = [
-  {
-    property: 'Riad Yasmine',
-    devices: [
-      { name: 'Serrure entrée', room: 'Porte principale', type: 'Serrure · Nuki', icon: <LockIcon />, online: true, metric: <span className="flex items-center gap-1"><LockIcon className="size-3" /> Verrouillée</span>, battery: 82 },
-      { name: 'Capteur Noise', room: 'Patio', type: 'Capteur de bruit · Minut', icon: <Volume2Icon />, online: true, metric: <span className="tabular-nums">48 dB</span> },
-      { name: 'Caméra entrée', room: 'Extérieur', type: 'Caméra · Tuya', icon: <VideoIcon />, online: true, metric: <span className="flex items-center gap-1"><span className="size-1.5 animate-pulse rounded-full bg-destructive" /> LIVE</span> },
-      { name: 'Thermostat salon', room: 'Salon', type: 'Thermostat · Netatmo', icon: <ThermometerIcon />, online: true, metric: <span className="tabular-nums">22,5° → 21°</span> },
-      { name: 'Détecteur de fumée', room: 'Cuisine', type: 'Sécurité · Tuya', icon: <FlameIcon />, online: true, metric: 'OK' },
-    ],
-  },
-  {
-    property: 'Appartement Duplex Marrakech',
-    devices: [
-      { name: 'Capteur Noise', room: 'Salon', type: 'Capteur de bruit · Minut', icon: <Volume2Icon />, online: false, alert: 'Hors ligne depuis 26 h' },
-      { name: 'Serrure entrée', room: 'Porte palière', type: 'Serrure · Nuki', icon: <LockIcon />, online: true, metric: <span className="flex items-center gap-1"><LockIcon className="size-3" /> Verrouillée</span>, battery: 12 },
-    ],
-  },
-];
+/** Le parc de demonstration, dans la langue du document. */
+function devicesByProperty(m: IotDemoMessages): Array<{ property: string; devices: DeviceCard[] }> {
+  return [
+    {
+      property: m.properties[0],
+      devices: [
+        {
+          kind: 'lock',
+          name: m.deviceNames.entryLock,
+          room: m.rooms.frontDoor,
+          type: 'Nuki',
+          icon: <LockIcon />,
+          online: true,
+          metric: (
+            <span className="flex items-center gap-1">
+              <LockIcon className="size-3" /> {m.locked}
+            </span>
+          ),
+          battery: 82,
+        },
+        {
+          kind: 'noise',
+          name: m.deviceNames.noiseSensor,
+          room: m.rooms.patio,
+          type: 'Minut',
+          icon: <Volume2Icon />,
+          online: true,
+          metric: <span className="tabular-nums">48 dB</span>,
+        },
+        {
+          kind: 'camera',
+          name: m.deviceNames.entryCamera,
+          room: m.rooms.outside,
+          type: 'Tuya',
+          icon: <VideoIcon />,
+          online: true,
+          metric: (
+            <span className="flex items-center gap-1">
+              <span className="size-1.5 animate-pulse rounded-full bg-destructive" /> {m.live}
+            </span>
+          ),
+        },
+        {
+          kind: 'thermostat',
+          name: m.deviceNames.thermostat,
+          room: m.rooms.lounge,
+          type: 'Netatmo',
+          icon: <ThermometerIcon />,
+          online: true,
+          metric: <span className="tabular-nums">22,5° → 21°</span>,
+        },
+        {
+          kind: 'sensor',
+          name: m.deviceNames.smokeDetector,
+          room: m.rooms.kitchen,
+          type: 'Tuya',
+          icon: <FlameIcon />,
+          online: true,
+          metric: m.ok,
+        },
+      ],
+    },
+    {
+      property: m.properties[1],
+      devices: [
+        {
+          kind: 'noise',
+          name: m.deviceNames.noiseSensor,
+          room: m.rooms.lounge,
+          type: 'Minut',
+          icon: <Volume2Icon />,
+          online: false,
+          alert: m.offlineSince,
+        },
+        {
+          kind: 'lock',
+          name: m.deviceNames.entryLock,
+          room: m.rooms.landingDoor,
+          type: 'Nuki',
+          icon: <LockIcon />,
+          online: true,
+          metric: (
+            <span className="flex items-center gap-1">
+              <LockIcon className="size-3" /> {m.locked}
+            </span>
+          ),
+          battery: 12,
+        },
+      ],
+    },
+  ];
+}
 
-function DeviceCardView({ device }: { device: DeviceCard }) {
+function DeviceCardView({ device, onOpen }: { device: DeviceCard; onOpen?: () => void }) {
+  const m = iotDemoText();
   return (
     <div
+      onClick={onOpen}
+      data-demo-device={device.kind}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
       className={cn(
         'flex flex-col gap-2.5 rounded-xl border bg-card p-3.5',
         device.alert ? 'border-warning/40' : 'border-border'
@@ -104,13 +200,13 @@ function DeviceCardView({ device }: { device: DeviceCard }) {
       </div>
       <div className="flex items-center gap-1.5">
         {device.online ? (
-          <StatusChip tone="ok" label="En ligne" dot size="sm" />
+          <StatusChip tone="ok" label={m.kpi.online} dot size="sm" />
         ) : (
-          <StatusChip tone="err" label="Hors ligne" dot size="sm" />
+          <StatusChip tone="err" label={m.kpi.offline} dot size="sm" />
         )}
         {device.battery !== undefined &&
           (device.battery <= 20 ? (
-            <StatusChip tone="warn" label={`Batterie ${device.battery} %`} size="sm" icon={<BatteryLowIcon className="size-3" />} />
+            <StatusChip tone="warn" label={`${m.kpi.lowBattery} ${device.battery} %`} size="sm" icon={<BatteryLowIcon className="size-3" />} />
           ) : (
             <StatusChip tone="neutral" label={`${device.battery} %`} size="sm" icon={<BatteryFullIcon className="size-3" />} />
           ))}
@@ -119,7 +215,7 @@ function DeviceCardView({ device }: { device: DeviceCard }) {
       <div className="flex items-center justify-between border-t border-border pt-2.5">
         <span className="text-xs font-medium text-foreground">{device.metric ?? <span className="text-faint">—</span>}</span>
         <Button size="xs" variant="ghost" className="text-muted-foreground">
-          Gérer <ChevronRightIcon className="cn-rtl-flip" />
+          {m.manage} <ChevronRightIcon className="cn-rtl-flip" />
         </Button>
       </div>
     </div>
@@ -129,14 +225,15 @@ function DeviceCardView({ device }: { device: DeviceCard }) {
 // ─── Vidéosurveillance ───────────────────────────────────────────────────────
 
 const CAMERAS = [
-  { name: 'Entrée principale', property: 'Riad Yasmine', online: true, motion: false },
-  { name: 'Terrasse toit', property: 'Riad Yasmine', online: true, motion: true },
-  { name: 'Porte palière', property: 'Duplex Marrakech', online: true, motion: false },
-  { name: 'Jardin', property: 'Villa Palmeraie', online: false, motion: false },
+  { nameIndex: 0, property: 'Riad Yasmine', online: true, motion: false },
+  { nameIndex: 1, property: 'Riad Yasmine', online: true, motion: true },
+  { nameIndex: 2, property: 'Duplex Marrakech', online: true, motion: false },
+  { nameIndex: 3, property: 'Villa Palmeraie', online: false, motion: false },
 ];
 
 /** Viewer principal — grande dalle plein cadre de la caméra sélectionnée. */
 function CameraMainViewer({ camera }: { camera: (typeof CAMERAS)[number] }) {
+  const m = iotDemoText();
   return (
     <div className="group/camera overflow-hidden rounded-xl border border-border bg-card">
       <div
@@ -155,18 +252,18 @@ function CameraMainViewer({ camera }: { camera: (typeof CAMERAS)[number] }) {
               </span>
               {camera.motion && (
                 <span className="absolute end-3 top-3">
-                  <StatusChip tone="warn" label="Mouvement détecté" dot />
+                  <StatusChip tone="warn" label={m.cameras.motionDetected} dot />
                 </span>
               )}
               <span className="absolute start-3 bottom-3 rounded-md bg-black/50 px-2 py-1 text-xs text-white">
-                <span className="font-semibold">{camera.name}</span>
+                <span className="font-semibold">{m.cameras.names[camera.nameIndex]}</span>
                 <span className="text-white/70"> · {camera.property}</span>
               </span>
               <span className="absolute end-3 bottom-3 flex items-center gap-1.5">
                 <span className="rounded-md bg-black/50 px-2 py-1 text-xs text-white tabular-nums">
                   16:42:08
                 </span>
-                <Button size="icon-sm" variant="secondary" aria-label="Plein écran">
+                <Button size="icon-sm" variant="secondary" aria-label={m.cameras.fullscreen}>
                   <ExpandIcon />
                 </Button>
               </span>
@@ -174,7 +271,7 @@ function CameraMainViewer({ camera }: { camera: (typeof CAMERAS)[number] }) {
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <VideoOffIcon className="size-10" />
-              <span className="text-sm font-medium">{camera.name} — Hors ligne</span>
+              <span className="text-sm font-medium">{m.cameras.names[camera.nameIndex]} — Hors ligne</span>
               <Button size="xs" variant="outline">
                 Relancer le flux
               </Button>
@@ -193,11 +290,12 @@ function CameraThumbnail({
   camera: (typeof CAMERAS)[number];
   onOpen: () => void;
 }) {
+  const m = iotDemoText();
   return (
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`Agrandir ${camera.name}`}
+      aria-label={`Agrandir ${m.cameras.names[camera.nameIndex]}`}
       className="group/thumb cursor-pointer overflow-hidden rounded-xl border border-border bg-card text-start transition-shadow outline-none hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <div
@@ -216,7 +314,7 @@ function CameraThumbnail({
               </span>
               {camera.motion && (
                 <span className="absolute end-2 top-2">
-                  <StatusChip tone="warn" label="Mouvement" dot size="sm" />
+                  <StatusChip tone="warn" label={m.cameras.motion} dot size="sm" />
                 </span>
               )}
               <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover/thumb:bg-black/25 group-hover/thumb:opacity-100">
@@ -234,7 +332,7 @@ function CameraThumbnail({
       </div>
       <div className="flex items-center justify-between gap-2 p-2.5">
         <div className="min-w-0">
-          <div className="truncate text-xs font-semibold text-foreground">{camera.name}</div>
+          <div className="truncate text-xs font-semibold text-foreground">{m.cameras.names[camera.nameIndex]}</div>
           <div className="truncate text-2xs text-muted-foreground">{camera.property}</div>
         </div>
         {camera.online ? (
@@ -248,6 +346,38 @@ function CameraThumbnail({
 }
 
 // ─── Détail capteur de bruit ─────────────────────────────────────────────────
+
+/**
+ * Mur de videosurveillance — l'ecran de detail d'une camera dans
+ * l'application. Ouvert ici depuis une carte, comme le hub ouvre sa page.
+ */
+function CameraWall() {
+  const m = iotDemoText();
+  const [selected, setSelected] = useState<number | null>(null);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {CAMERAS.map((camera, index) => (
+          <CameraThumbnail
+            key={`${camera.property}-${m.cameras.names[camera.nameIndex]}`}
+            camera={camera}
+            onOpen={() => setSelected(index)}
+          />
+        ))}
+      </div>
+      <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="sm:max-w-3xl">
+          {selected !== null && (
+            <>
+              <DialogTitle className="sr-only">{m.cameras.names[CAMERAS[selected].nameIndex]}</DialogTitle>
+              <CameraMainViewer camera={CAMERAS[selected]} />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 const NOISE_CONFIG = {
   db: { label: 'Niveau sonore (dB)', color: 'var(--bui-chart-1)' },
@@ -270,15 +400,16 @@ const NOISE_DATA = [
 ];
 
 function NoiseSensorDetail() {
+  const m = iotDemoText();
   const [warningLevel, setWarningLevel] = useState([70]);
   const [criticalLevel, setCriticalLevel] = useState([85]);
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={<RouterIcon />} label="Connexion" value="En ligne" iconClassName="text-success" hint="signal fort · MàJ il y a 40 s" />
-        <StatTile icon={<Volume2Icon />} label="Niveau actuel" value="48" unit="dB" hint="calme" />
-        <StatTile icon={<Volume2Icon />} label="Moyenne 24 h" value="42" unit="dB" />
-        <StatTile icon={<Volume2Icon />} label="Pic 24 h" value="76" unit="dB" iconClassName="text-warning" hint="hier à 23 h 41" />
+        <StatTile icon={<RouterIcon />} label={m.noise.connection} value={m.kpi.online} iconClassName="text-success" hint={m.noise.signalHint} />
+        <StatTile icon={<Volume2Icon />} label={m.noise.current} value="48" unit="dB" hint={m.noise.calm} />
+        <StatTile icon={<Volume2Icon />} label={m.noise.average24} value="42" unit="dB" />
+        <StatTile icon={<Volume2Icon />} label={m.noise.peak24} value="76" unit="dB" iconClassName="text-warning" hint={m.noise.peakHint} />
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4">
@@ -288,7 +419,7 @@ function NoiseSensorDetail() {
           </h4>
           <span className="text-2xs text-muted-foreground">
             <span className="me-3 text-warning-ink">— seuil avertissement 70 dB</span>
-            <span className="text-destructive">— seuil critique 85 dB</span>
+            <span className="text-destructive">{m.noise.criticalThreshold}</span>
           </span>
         </div>
         <ChartContainer config={NOISE_CONFIG} className="h-48 w-full">
@@ -306,7 +437,7 @@ function NoiseSensorDetail() {
 
       <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h4 className="m-0 text-sm font-semibold text-foreground">Configuration des alertes bruit</h4>
+          <h4 className="m-0 text-sm font-semibold text-foreground">{m.noise.configTitle}</h4>
           <div className="flex items-center gap-2">
             <Label htmlFor="iot-alerts" className="text-xs text-muted-foreground">
               Alertes activées
@@ -326,23 +457,23 @@ function NoiseSensorDetail() {
               </Button>
             </div>
             {[
-              { label: 'Jour', start: '07:00', end: '22:00' },
-              { label: 'Nuit', start: '22:00', end: '07:00' },
+              { label: m.noise.day, start: '07:00', end: '22:00' },
+              { label: m.noise.night, start: '22:00', end: '07:00' },
             ].map((slot) => (
               <div key={slot.label} className="flex items-end gap-2 rounded-lg border border-border p-2.5">
                 <div className="flex-1">
-                  <Label className="mb-1 text-2xs text-muted-foreground">Label</Label>
+                  <Label className="mb-1 text-2xs text-muted-foreground">{m.noise.slotLabel}</Label>
                   <Input defaultValue={slot.label} className="h-8" />
                 </div>
                 <div className="w-24">
-                  <Label className="mb-1 text-2xs text-muted-foreground">Début</Label>
+                  <Label className="mb-1 text-2xs text-muted-foreground">{m.noise.start}</Label>
                   <Input type="time" defaultValue={slot.start} className="h-8" />
                 </div>
                 <div className="w-24">
-                  <Label className="mb-1 text-2xs text-muted-foreground">Fin</Label>
+                  <Label className="mb-1 text-2xs text-muted-foreground">{m.noise.end}</Label>
                   <Input type="time" defaultValue={slot.end} className="h-8" />
                 </div>
-                <Button size="icon-sm" variant="ghost" className="text-destructive" aria-label={`Supprimer ${slot.label}`}>
+                <Button size="icon-sm" variant="ghost" className="text-destructive" aria-label={`${m.noise.remove} ${slot.label}`}>
                   <TrashIcon />
                 </Button>
               </div>
@@ -368,9 +499,9 @@ function NoiseSensorDetail() {
               Canaux de notification
             </h5>
             {[
-              { label: 'In-app', on: true },
-              { label: 'Email', on: true },
-              { label: 'Message voyageur (WhatsApp)', on: false },
+              { label: m.noise.inApp, on: true },
+              { label: m.noise.email, on: true },
+              { label: m.noise.guestMessage, on: false },
             ].map((channel) => (
               <div key={channel.label} className="flex items-center justify-between gap-2">
                 <span className="text-sm text-foreground">{channel.label}</span>
@@ -400,6 +531,7 @@ function NoiseSensorDetail() {
 // ─── Détail serrure connectée ────────────────────────────────────────────────
 
 function SmartLockDetail() {
+  const m = iotDemoText();
   const [locked, setLocked] = useState(true);
   return (
     <div className="flex flex-col gap-4">
@@ -414,27 +546,30 @@ function SmartLockDetail() {
             {locked ? <LockIcon className="size-7" /> : <LockOpenIcon className="size-7" />}
           </span>
           <div className="text-center">
-            <div className="text-sm font-semibold text-foreground">{locked ? 'Verrouillée' : 'Déverrouillée'}</div>
-            <div className="text-xs text-muted-foreground">Serrure entrée · Riad Yasmine · Nuki Smart Lock 4</div>
+            <div className="text-sm font-semibold text-foreground">{locked ? m.locked : m.unlocked}</div>
+            <div className="text-xs text-muted-foreground">{m.lockDetail.subtitle}</div>
           </div>
           <Button
             size="sm"
             variant={locked ? 'outline' : 'default'}
             onClick={() => setLocked((v) => !v)}
+            /* Repere de la maquette animee : il suit l'ETAT de la serrure, pas
+               le libelle — qui change avec la langue. */
+            data-demo-action={locked ? 'unlock' : 'lock'}
           >
             {locked ? (
               <>
-                <LockOpenIcon /> Déverrouiller
+                <LockOpenIcon /> {m.unlock}
               </>
             ) : (
               <>
-                <LockIcon /> Verrouiller
+                <LockIcon /> {m.lock}
               </>
             )}
           </Button>
           <div className="w-full border-t border-border pt-3">
             <div className="mb-1 flex items-center justify-between text-2xs text-muted-foreground">
-              <span>Batterie</span>
+              <span>{m.lockDetail.battery}</span>
               <span className="tabular-nums">82 %</span>
             </div>
             <Progress value={82} />
@@ -453,17 +588,17 @@ function SmartLockDetail() {
           <div className="flex flex-col gap-2.5">
             <div className="rounded-lg border border-border p-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground">Amina Benali</span>
+                <span className="text-sm font-medium text-foreground">{m.lockDetail.guestName}</span>
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs text-primary tabular-nums">4482</code>
               </div>
-              <div className="mt-0.5 text-2xs text-muted-foreground">RES-1042 · valide du 12 au 19 août, 11 h</div>
+              <div className="mt-0.5 text-2xs text-muted-foreground">{m.lockDetail.guestCode}</div>
             </div>
             <div className="rounded-lg border border-border p-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground">Équipe ménage</span>
+                <span className="text-sm font-medium text-foreground">{m.lockDetail.cleaningTeam}</span>
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs text-primary tabular-nums">7091</code>
               </div>
-              <div className="mt-0.5 text-2xs text-muted-foreground">Permanent · 09 h → 17 h uniquement</div>
+              <div className="mt-0.5 text-2xs text-muted-foreground">{m.lockDetail.cleaningWindow}</div>
             </div>
           </div>
         </div>
@@ -474,10 +609,10 @@ function SmartLockDetail() {
           </h4>
           <div className="flex flex-col gap-2.5">
             {[
-              { who: 'Amina Benali', what: 'Ouverture par code guest', time: '15:02', icon: <LockOpenIcon /> , tone: 'text-success bg-success-soft' },
-              { who: 'Auto', what: 'Verrouillage automatique (3 min)', time: '15:05', icon: <LockIcon />, tone: 'text-info bg-info-soft' },
-              { who: 'Fatima Zahra', what: 'Ouverture code ménage', time: '11:12', icon: <LockOpenIcon />, tone: 'text-success bg-success-soft' },
-              { who: 'Système', what: 'Code guest RES-1039 expiré', time: 'hier', icon: <KeyRoundIcon />, tone: 'text-muted-foreground bg-muted' },
+              { ...m.lockDetail.journal[0], icon: <LockOpenIcon />, tone: 'text-success bg-success-soft' },
+              { ...m.lockDetail.journal[1], icon: <LockIcon />, tone: 'text-info bg-info-soft' },
+              { ...m.lockDetail.journal[2], icon: <LockOpenIcon />, tone: 'text-success bg-success-soft' },
+              { ...m.lockDetail.journal[3], icon: <KeyRoundIcon />, tone: 'text-muted-foreground bg-muted' },
             ].map((event, index) => (
               <div key={index} className="flex items-center gap-2.5">
                 <span className={cn('inline-flex size-6 shrink-0 items-center justify-center rounded-full [&>svg]:size-3', event.tone)}>
@@ -500,134 +635,162 @@ function SmartLockDetail() {
 // ─── Section complète ────────────────────────────────────────────────────────
 
 export function BIotSectionDemo() {
-  const [tab, setTab] = useState('fleet');
-  const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
+  const m = iotDemoText();
+  /* L'ecran reel filtre par TYPE d'objet et ouvre le detail depuis une carte.
+     `detail` rejoue cette seconde partie sans quitter la projection. */
+  const [kindFilter, setKindFilter] = useState<DemoKind | ''>('');
+  const [detail, setDetail] = useState<'noise' | 'lock' | 'camera' | null>(null);
+
+  const groups = devicesByProperty(m);
+  const allDevices = groups.flatMap((group) => group.devices);
+  const filteredGroups = kindFilter
+    ? groups.flatMap((group) => {
+        const devices = group.devices.filter((device) => device.kind === kindFilter);
+        return devices.length > 0 ? [{ ...group, devices }] : [];
+      })
+    : groups;
+
+  const online = allDevices.filter((device) => device.online).length;
+  const offline = allDevices.length - online;
+  const lowBattery = allDevices.filter((d) => d.battery != null && d.battery <= 20).length;
+  const alerts = allDevices.filter((device) => device.alert).length;
+
+  const kindsPresent = DEMO_KIND_ORDER.filter((kind) => allDevices.some((d) => d.kind === kind));
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title="Objets connectés"
-        subtitle="Domotique de vos logements : accès, bruit, vidéo, énergie"
+        title={m.title}
+        subtitle={m.subtitle}
         iconBadge={<RouterIcon />}
-        titleAdornment={<Badge variant="warning">1 alerte</Badge>}
         showBackButton={false}
         className="mb-0"
         actions={
-          <>
-            <Button size="sm" variant="outline">
-              <LinkIcon /> Connecter Netatmo
-            </Button>
-            <Button size="sm" variant="ghost" className="text-muted-foreground">
-              Gérer les intégrations <ChevronRightIcon className="cn-rtl-flip" />
-            </Button>
-          </>
+          <Button size="sm">
+            <PlusIcon /> {m.addDevice}
+          </Button>
         }
       />
 
-      {/* Services reliés */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5">
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Services reliés
+      {/* Bandeau des services relies — pont vers les reglages. Le compteur
+          porte la graisse : c'est la donnee qu'on vient lire, pas le nom. */}
+      <div className="flex flex-row flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-border bg-card p-1.5">
+        <span className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {m.linkedServices}
         </span>
-        <StatusChip tone="ok" label="Tuya · 3" size="sm" />
-        <StatusChip tone="ok" label="Minut · 2" size="sm" />
-        <StatusChip tone="ok" label="Nuki · 2" size="sm" />
-        <StatusChip tone="neutral" label="Netatmo — non connecté" size="sm" />
+        {([
+          ['Tuya', 3, true],
+          ['Minut', 2, true],
+          ['Nuki', 2, true],
+          ['Netatmo', 0, false],
+        ] as const).map(([name, count, connected]) => (
+          <StatusChip
+            key={name}
+            tone={connected ? 'ok' : 'warn'}
+            size="sm"
+            label={
+              <span className="inline-flex items-center gap-1">
+                {!connected && <WifiOffIcon className="size-3" />}
+                <span>{name}</span>
+                <span className="font-semibold tabular-nums">{count}</span>
+              </span>
+            }
+          />
+        ))}
+        <Button variant="outline" size="sm" className="ms-auto">
+          {m.connectNetatmo}
+        </Button>
+        <Button variant="ghost" size="sm" className="ms-1.5 text-muted-foreground">
+          {m.manageIntegrations} <ChevronRightIcon className="cn-rtl-flip" />
+        </Button>
       </div>
 
-      {/* KPIs parc */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <StatTile icon={<RouterIcon />} label="Objets" value="9" hint="sur 3 logements" />
-        <StatTile icon={<RouterIcon />} label="En ligne" value="7" unit="/ 9" iconClassName="text-success" hint="78 % du parc" />
-        <StatTile icon={<WifiOffIcon />} label="Hors ligne" value="2" iconClassName="text-destructive" hint="Duplex : capteur bruit 26 h" />
-        <StatTile icon={<Volume2Icon />} label="Alertes (24 h)" value="1" iconClassName="text-warning" hint="bruit 76 dB à 23 h 41" />
-        <StatTile icon={<BatteryLowIcon />} label="Batterie faible" value="1" iconClassName="text-warning" hint="Serrure Duplex : 12 %" />
+      {/* Cinq tuiles, comme l'ecran : la teinte ne porte que sur l'icone, et
+          seulement la ou elle dit quelque chose. */}
+      <StatTileRow compact>
+        <StatTile icon={<RouterIcon />} label={m.kpi.devices} value={String(allDevices.length)} />
+        <StatTile
+          icon={<RouterIcon />}
+          label={m.kpi.online}
+          value={String(online)}
+          unit={`/ ${allDevices.length}`}
+          iconClassName="text-success"
+          hint={`${Math.round((online / allDevices.length) * 100)} ${m.kpi.fleetShare}`}
+        />
+        <StatTile icon={<WifiOffIcon />} label={m.kpi.offline} value={String(offline)} iconClassName={offline > 0 ? 'text-destructive' : undefined} />
+        <StatTile icon={<Volume2Icon />} label={m.kpi.alerts} value={String(alerts)} iconClassName={alerts > 0 ? 'text-warning' : undefined} />
+        <StatTile icon={<BatteryLowIcon />} label={m.kpi.lowBattery} value={String(lowBattery)} iconClassName={lowBattery > 0 ? 'text-warning' : undefined} />
+      </StatTileRow>
+
+      {/* Filtre par type — ce qui a remplace les onglets. */}
+      {/* Le conteneur porte le repere : `FilterChipRow` est une primitive
+          partagee, on ne lui ajoute pas d'attribut pour une demonstration.
+          L'ordre des puces est deterministe — « tous », puis DEMO_KIND_ORDER. */}
+      <div data-demo-filters>
+      <FilterChipRow<DemoKind>
+        value={kindFilter}
+        onChange={(value) => { setKindFilter(value); setDetail(null); }}
+        allLabel={m.allDevices}
+        allCount={allDevices.length}
+        options={kindsPresent.map((kind) => ({
+          value: kind,
+          label: m.kinds[kind],
+          color: DEMO_KIND_COLORS[kind],
+          count: allDevices.filter((device) => device.kind === kind).length,
+        }))}
+      />
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList variant="line">
-          <TabsTrigger value="fleet">Parc d'objets</TabsTrigger>
-          <TabsTrigger value="cameras">Vidéosurveillance</TabsTrigger>
-          <TabsTrigger value="noise">Capteur de bruit</TabsTrigger>
-          <TabsTrigger value="lock">Serrure connectée</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {tab === 'fleet' && (
-        <div className="flex flex-col gap-5">
-          {DEVICES_BY_PROPERTY.map((group) => (
-            <div key={group.property} className="flex flex-col gap-2.5">
-              <h3 className="m-0 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <HomeIcon className="size-4 text-muted-foreground" /> {group.property}
-                <span className="text-xs font-normal text-muted-foreground">
-                  · {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}
-                </span>
-              </h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {group.devices.map((device) => (
-                  <DeviceCardView key={`${group.property}-${device.name}-${device.room}`} device={device} />
-                ))}
-              </div>
+      {filteredGroups.map((group) => (
+        <div key={group.property} className="flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="group flex w-fit items-center gap-[4.5px]">
+              <span className="inline-flex text-muted-foreground">
+                <HomeIcon className="size-4" />
+              </span>
+              <p className="text-[0.9375rem] font-semibold text-foreground">{group.property}</p>
+              <span className="text-xs text-muted-foreground opacity-60">
+                · {m.deviceCount(group.devices.length)}
+              </span>
+              <span className="ms-0.5 inline-flex text-muted-foreground opacity-60">
+                <ChevronRightIcon className="cn-rtl-flip size-4" />
+              </span>
             </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'cameras' && (
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {CAMERAS.map((camera, index) => (
-              <CameraThumbnail
-                key={`${camera.property}-${camera.name}`}
-                camera={camera}
-                onOpen={() => setSelectedCamera(index)}
+            {/* Le digicode appartient au LOGEMENT, pas a chaque serrure : une
+                seule pastille par groupe, et seulement s'il porte une serrure. */}
+            {group.devices.some((device) => device.kind === 'lock') && (
+              <StatusChip
+                tone="neutral"
+                size="sm"
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <KeyRoundIcon className="size-3" />
+                    <span>{m.accessCode}</span>
+                    <span className="font-semibold tabular-nums">4821</span>
+                  </span>
+                }
+              />
+            )}
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5">
+            {group.devices.map((device) => (
+              <DeviceCardView
+                key={`${group.property}-${device.name}-${device.room}`}
+                device={device}
+                onOpen={() => setDetail(
+                  device.kind === 'noise' ? 'noise' : device.kind === 'lock' ? 'lock' : device.kind === 'camera' ? 'camera' : null,
+                )}
               />
             ))}
           </div>
-          <Dialog open={selectedCamera !== null} onOpenChange={(open) => !open && setSelectedCamera(null)}>
-            <DialogContent className="sm:max-w-3xl">
-              {selectedCamera !== null && (
-                <>
-                  <DialogTitle className="sr-only">
-                    {CAMERAS[selectedCamera].name} — flux vidéo
-                  </DialogTitle>
-                  <CameraMainViewer camera={CAMERAS[selectedCamera]} />
-                </>
-              )}
-            </DialogContent>
-          </Dialog>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h4 className="m-0 mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Détections récentes
-            </h4>
-            <div className="flex flex-col gap-2.5">
-              {[
-                { camera: 'Terrasse toit', what: 'Mouvement détecté', time: 'il y a 4 min', tone: 'warn' as const },
-                { camera: 'Entrée principale', what: 'Personne détectée — arrivée guest', time: '15:02', tone: 'ok' as const },
-                { camera: 'Jardin', what: 'Caméra hors ligne', time: 'il y a 3 h', tone: 'err' as const },
-              ].map((event, index) => (
-                <div key={index} className="flex items-center gap-2.5 text-xs">
-                  <StatusChip tone={event.tone} label={event.camera} dot size="sm" />
-                  <span className="min-w-0 flex-1 truncate text-foreground">{event.what}</span>
-                  <span className="shrink-0 text-2xs text-faint">{event.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <p className="m-0 text-2xs text-muted-foreground">
-            Caméras extérieures et parties communes uniquement — les flux intérieurs sont interdits en location courte durée.
-          </p>
         </div>
-      )}
+      ))}
 
-      {tab === 'noise' && <NoiseSensorDetail />}
-      {tab === 'lock' && <SmartLockDetail />}
-
-      {tab === 'lock' && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <GuestAvatar name="Amina Benali" size={20} />
-          Le code guest est envoyé automatiquement à J-1 via le template « Instructions de check-in ».
-        </div>
-      )}
+      {/* Detail d'objet — un ECRAN a part dans l'application, ouvert ici sous
+          la grille pour que la projection tienne dans un seul cadre. */}
+      {detail === 'noise' && <NoiseSensorDetail />}
+      {detail === 'lock' && <SmartLockDetail />}
+      {detail === 'camera' && <CameraWall />}
     </div>
   );
 }

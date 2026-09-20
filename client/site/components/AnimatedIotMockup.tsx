@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { BIotSectionDemo } from '../../src/modules/admin/design-system/iot-demo';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 
 /**
  * Mockup animé — Objets connectés. AUCUN écran réinventé : la PROJECTION
@@ -25,36 +27,41 @@ export default function AnimatedIotMockup() {
 
 function IotScene({ onCycleEnd }: { onCycleEnd: () => void }) {
   const reduced = useReducedMotion();
+  const { language } = useSiteLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.9);
+  const [frameHeight, setFrameHeight] = useState(WINDOW_HEIGHT);
   const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef);
 
+  /* La hauteur du cadre suit la projection : figee, elle laissait du vide sous
+     un contenu plus court que la fenetre. Un `ResizeObserver` la reprend quand
+     la projection grandit (panneau qui s'ouvre, liste qui s'allonge). */
   useLayoutEffect(() => {
     const measure = () => {
       const width = containerRef.current?.clientWidth ?? DESIGN_WIDTH;
-      setScale(Math.min(1, width / DESIGN_WIDTH) * ZOOM);
+      const next = Math.min(1, width / DESIGN_WIDTH) * ZOOM;
+      setScale(next);
+      const content = stageRef.current?.scrollHeight ?? 0;
+      if (content > 0) setFrameHeight(Math.round(content * next));
     };
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    const observer = stageRef.current ? new ResizeObserver(measure) : null;
+    if (observer && stageRef.current) observer.observe(stageRef.current);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+    };
   }, []);
 
-  /** Retrouve un vrai onglet de la projection par son libellé. */
-  const findTab = (label: string) =>
-    [...(stageRef.current?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])].find((tab) =>
-      tab.textContent?.includes(label),
-    ) ?? null;
-
-  /** Retrouve un vrai bouton de la projection par son libellé. */
-  const findButton = (label: string) =>
-    [...(stageRef.current?.querySelectorAll<HTMLElement>('button') ?? [])].find((button) =>
-      button.textContent?.trim().startsWith(label),
-    ) ?? null;
+  /** Repere un element de la projection par son attribut de demonstration. */
+  const find = (selector: string) =>
+    stageRef.current?.querySelector<HTMLElement>(selector) ?? null;
 
   useTimeline(!reduced, (at) => {
-    /* Radix (Tabs…) s'active au mousedown : on rejoue la séquence pointeur
-       complète, pas un simple click(). */
+    /* Radix s'active au mousedown : on rejoue la sequence pointeur complete,
+       pas un simple click(). */
     const clickReal = (el: HTMLElement | null) => {
       if (!el) return;
       for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'] as const) {
@@ -64,26 +71,24 @@ function IotScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     };
 
     at(1500, park);
-    // → Capteur de bruit (chart 24 h + seuils, l'écran réel de la projection)
-    at(4500, () => moveTo(findTab('Capteur de bruit'), 0, 1));
-    at(5500, () => clickReal(findTab('Capteur de bruit')));
-    // → Serrure connectée
-    at(11500, () => moveTo(findTab('Serrure connectée'), 0, 1));
-    at(12500, () => clickReal(findTab('Serrure connectée')));
-    // Déverrouiller (vrai bouton, vrai état de la projection)…
-    at(15000, () => moveTo(findButton('Déverrouiller'), -6, 1));
-    at(16000, () => clickReal(findButton('Déverrouiller')));
-    // …puis re-verrouiller
-    at(19000, () => moveTo(findButton('Verrouiller'), -6, 1));
-    at(20000, () => clickReal(findButton('Verrouiller')));
-    // → Vidéosurveillance (mur de dalles)
-    at(23500, () => moveTo(findTab('Vidéosurveillance'), 0, 1));
-    at(24500, () => clickReal(findTab('Vidéosurveillance')));
-    // → Retour au parc d'objets, fin de cycle
-    at(30500, () => moveTo(findTab("Parc d'objets"), 0, 1));
-    at(31500, () => clickReal(findTab("Parc d'objets")));
-    at(33500, hide);
-    at(35000, onCycleEnd);
+    // Filtrer le parc sur les serrures — le geste qui a remplace les onglets.
+    at(4000, () => moveTo(find('[data-demo-filters] button:nth-of-type(2)'), 0, 1));
+    at(5000, () => clickReal(find('[data-demo-filters] button:nth-of-type(2)')));
+    // Ouvrir une serrure : dans l'application, la carte mene a son ecran.
+    at(8000, () => moveTo(find('[data-demo-device="lock"]'), 0, 1));
+    at(9000, () => clickReal(find('[data-demo-device="lock"]')));
+    // Deverrouiller, puis re-verrouiller — vrais boutons, vrai etat.
+    at(12000, () => moveTo(find('[data-demo-action="unlock"]'), -6, 1));
+    at(13000, () => clickReal(find('[data-demo-action="unlock"]')));
+    at(16000, () => moveTo(find('[data-demo-action="lock"]'), -6, 1));
+    at(17000, () => clickReal(find('[data-demo-action="lock"]')));
+    // Revenir au parc entier, puis ouvrir un capteur de bruit.
+    at(20000, () => moveTo(find('[data-demo-filters] button:nth-of-type(1)'), 0, 1));
+    at(21000, () => clickReal(find('[data-demo-filters] button:nth-of-type(1)')));
+    at(24000, () => moveTo(find('[data-demo-device="noise"]'), 0, 1));
+    at(25000, () => clickReal(find('[data-demo-device="noise"]')));
+    at(30000, hide);
+    at(32000, onCycleEnd);
   });
 
   return (
@@ -95,13 +100,13 @@ function IotScene({ onCycleEnd }: { onCycleEnd: () => void }) {
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
-          <span className="ms-3 text-xs text-muted-foreground">app.baitly — Objets connectés</span>
+          <span className="ms-3 text-xs text-muted-foreground">{MOCKUP_MESSAGES[language].windowTitles.iot}</span>
         </div>
         {/* La PROJECTION réelle, à l'échelle — hauteur de fenêtre fixe,
             stage dézoomé et centré horizontalement. */}
         <div
           className="flex justify-center overflow-hidden bg-background"
-          style={{ height: WINDOW_HEIGHT }}
+          style={{ height: frameHeight }}
         >
           <div
             ref={stageRef}

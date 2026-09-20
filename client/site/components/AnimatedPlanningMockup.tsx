@@ -23,6 +23,7 @@ import {
   CheckBold,
   CreditCardFill,
   MoroccanDirham,
+  SaudiRiyal,
   Warning,
   WrenchFill,
 } from '../../src/icons';
@@ -41,6 +42,8 @@ import g10 from '../assets/guests/g10.jpg';
 import g11 from '../assets/guests/g11.jpg';
 import g12 from '../assets/guests/g12.jpg';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
 
 /**
  * Mockup animé — écran Planning. Reproduit le design RÉEL du module
@@ -112,23 +115,17 @@ const STATUS = {
 };
 
 const CHANNELS = {
-  airbnb: { label: 'Airbnb', color: '#E0735A', logo: airbnbLogo },
-  booking: { label: 'Booking.com', color: '#4A6B9A', logo: bookingLogo },
-  direct: { label: 'Direct', color: '#5453D6', logo: null },
+  airbnb: { color: '#E0735A', logo: airbnbLogo },
+  booking: { color: '#4A6B9A', logo: bookingLogo },
+  direct: { color: '#5453D6', logo: null },
 };
 
 /* ─── Données de la grille ──────────────────────────────────────────────────── */
 
-const PROPERTIES = [
-  /* Portefeuille réparti sur le pays — un seul bien à Marrakech, comme demandé.
-     Les noms suivent le quartier ou le repère local de chaque ville. */
-  { name: 'Riad Bab Doukkala', city: 'Fès · Médina', count: 4 },
-  { name: 'Duplex Anfa Place', city: 'Casablanca · Anfa', count: 3 },
-  { name: 'Villa Founty', city: 'Agadir · Founty', count: 5 },
-  { name: 'Appart. Guéliz', city: 'Marrakech · Guéliz', count: 3 },
-  { name: 'Dar Bab Bhar', city: 'Rabat · Kasbah des Oudayas', count: 4 },
-  { name: 'Studio Malabata', city: 'Tanger · Malabata', count: 2 },
-];
+/* Nombre d'unites par logement. Les noms et les villes vivent dans
+   `lib/messages/planningMockup.ts`, dans le meme ordre : le portefeuille de
+   demonstration suit le marche de la langue. */
+const UNIT_COUNTS = [4, 3, 5, 3, 4, 2];
 
 type Status = keyof typeof STATUS;
 type Channel = keyof typeof CHANNELS;
@@ -185,7 +182,7 @@ const CREATED_RESA: Resa = {
 };
 
 /** Plage bloquée (indisponibilité manuelle) — bande hachurée, pas une brique. */
-const BLOCKED = { row: 5, start: 3, nights: 4, reason: 'Travaux salle de bain' };
+const BLOCKED = { row: 5, start: 3, nights: 4 };
 
 /** Réservation annulée : brique fantôme hachurée, nom barré, avatar grisé. */
 const CANCELLED: Resa = {
@@ -196,7 +193,7 @@ const CANCELLED: Resa = {
 /** Prix par nuit affichés dans les cellules libres (par logement). */
 const NIGHTLY = [1250, 980, 2100, 850, 1400, 720];
 
-const DAY_LABELS = ['SAM', 'DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN'];
+
 const FIRST_DOW = 5; // la grille commence un jeudi
 const TODAY_INDEX = 3;
 
@@ -210,20 +207,23 @@ const FIRST_DAY = 23;
 const AUGUST_DAYS = 31;
 const dayNumber = (day: number) => ((FIRST_DAY + day - 1) % AUGUST_DAYS) + 1;
 
-const fmt = (value: number) => value.toLocaleString('fr-FR');
-
 /**
- * Montant en dirhams. Le composant `Money` de l'application rend MAD en ICÔNE
- * (jamais le code « MAD ») — on reprend le même glyphe `MoroccanDirham`, sans
- * embarquer le contexte devise ni MUI dans le site.
+ * Montant, dans la devise du marche que la langue designe. Le composant `Money`
+ * de l'application rend la devise en ICÔNE (jamais le code « MAD » ni « SAR ») —
+ * on reprend les memes glyphes, sans embarquer le contexte devise ni MUI dans
+ * le site. Le portefeuille de demonstration suit la langue : des riyals en
+ * arabe, des dirhams ailleurs.
  */
 function Amount({ value, size = 11 }: { value: number; size?: number }) {
+  const { language } = useSiteLanguage();
+  const Currency = language === 'ar' ? SaudiRiyal : MoroccanDirham;
+  const locale = language === 'ar' ? 'ar' : 'fr-FR';
   /* Montant et glyphe forment un bloc insécable : rendus en frères libres, le
      symbole se retrouvait renvoyé à la ligne dès que le conteneur se resserrait. */
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-      {fmt(value)}
-      <MoroccanDirham size={size + 2} style={{ marginInlineStart: 2 }} />
+      {value.toLocaleString(locale)}
+      <Currency size={size + 2} style={{ marginInlineStart: 2 }} />
     </span>
   );
 }
@@ -242,9 +242,16 @@ function BarBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Raccourci : le texte de la maquette dans la langue du site. */
+function usePlanningText() {
+  const { language } = useSiteLanguage();
+  return PLANNING_MOCKUP_MESSAGES[language];
+}
+
 /** Pastille du canal d'origine : logo officiel, ou globe pour le direct. */
 function ChannelBadge({ channel }: { channel: Channel }) {
-  const { logo, label } = CHANNELS[channel];
+  const { logo } = CHANNELS[channel];
+  const label = usePlanningText().channels[channel];
   return (
     <BarBadge>
       {logo ? (
@@ -441,8 +448,10 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     at(t + 4200, onCycleEnd);
   });
 
+  const m = usePlanningText();
+  const properties = m.properties;
   const gridWidth = DAYS * DAY_W;
-  const bodyHeight = (PROPERTIES.length + FILLER_ROWS) * ROW_H;
+  const bodyHeight = (properties.length + FILLER_ROWS) * ROW_H;
 
   return (
     <div className="relative" ref={containerRef} style={TOKENS}>
@@ -460,7 +469,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
           <span className="size-2.5 rounded-full" style={{ background: 'var(--pl-line2)' }} />
           <span className="size-2.5 rounded-full" style={{ background: 'var(--pl-line2)' }} />
           <span className="ms-3 text-xs" style={{ color: 'var(--pl-muted)' }}>
-            app.baitly — Planning
+            {m.windowTitle}
           </span>
         </div>
 
@@ -486,10 +495,10 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                   className="text-[10.5px] font-bold tracking-[.05em] uppercase tabular-nums"
                   style={{ color: 'var(--pl-faint)' }}
                 >
-                  {PROPERTIES.length} logements
+                  {properties.length} {m.pageRange.split(' ').pop()}
                 </span>
               </div>
-              {PROPERTIES.map((property) => (
+              {properties.map((property, index) => (
                 <div
                   key={property.name}
                   data-prop={property.name}
@@ -511,7 +520,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                       style={{ color: 'var(--pl-faint)' }}
                     >
                       <TagIcon size={10} strokeWidth={1.75} />
-                      {property.count}
+                      {UNIT_COUNTS[index]}
                     </span>
                   </span>
                   <span className="truncate text-[10.5px]" style={{ color: 'var(--pl-muted)' }}>
@@ -528,7 +537,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
             <div className="relative" style={{ width: gridWidth }}>
               <DateHeaders />
               <div ref={bodyRef} className="relative" style={{ height: bodyHeight }}>
-                {PROPERTIES.map((property, row) => (
+                {properties.map((property, row) => (
                   <Row key={property.name} row={row} selection={selection} />
                 ))}
                 {Array.from({ length: FILLER_ROWS }, (_, i) => (
@@ -536,7 +545,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                     key={`grid-fill-${i}`}
                     className="absolute inset-x-0"
                     style={{
-                      top: (PROPERTIES.length + i) * ROW_H,
+                      top: (properties.length + i) * ROW_H,
                       height: ROW_H,
                       backgroundImage:
                         `repeating-linear-gradient(to right, transparent 0 ${DAY_W - 1}px, var(--pl-line) ${DAY_W - 1}px ${DAY_W}px)`,
@@ -585,9 +594,9 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
             className="flex items-center justify-center gap-4 text-[11.5px] font-semibold tabular-nums"
             style={{ height: 32, borderTop: '1px solid var(--pl-line)', color: 'var(--pl-ink)' }}
           >
-            <span>Page 1 / 2</span>
+            <span>{m.page}</span>
             <span className="text-[10.5px] font-normal" style={{ color: 'var(--pl-muted)' }}>
-              1-6 sur 10 logements
+              {m.pageRange}
             </span>
           </div>
         </div>
@@ -618,6 +627,7 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
 /* ─── Barre d'outils ────────────────────────────────────────────────────────── */
 
 function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
+  const m = usePlanningText();
   const chip = (active: boolean): CSSProperties => ({
     display: 'inline-flex',
     alignItems: 'center',
@@ -642,22 +652,22 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
           className="text-[15px] font-semibold"
           style={{ color: 'var(--pl-ink)', fontFamily: 'var(--font-heading, inherit)' }}
         >
-          Août 2026
+          {m.month}
         </span>
         <span style={chip(true)}>
           <CalendarCheckIcon className="size-[13px]" style={{ color: 'var(--pl-accent)' }} />
-          Aujourd'hui
+          {m.today}
         </span>
         <span
           className="flex items-center gap-0.5 rounded-[10px] p-[3px]"
           style={{ background: 'var(--pl-field)', border: '1px solid var(--pl-line2)' }}
         >
-          {['Semaine', 'Quinzaine', 'Mois'].map((zoom) => (
+          {m.zooms.map((zoom, index) => (
             <span
               key={zoom}
               className="rounded-[7px] px-[13px] py-[6px] text-[12px] font-semibold"
               style={
-                zoom === 'Quinzaine'
+                index === 1
                   ? { background: 'var(--pl-card)', color: 'var(--pl-ink)', boxShadow: '0 1px 3px rgba(21,36,45,.10)' }
                   : { color: 'var(--pl-muted)' }
               }
@@ -676,15 +686,15 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
             ) : (
               <GlobeIcon className="size-[15px]" style={{ color: 'var(--pl-accent)' }} />
             )}
-            {CHANNELS[channel].label}
+            {m.channels[channel]}
           </span>
         ))}
         {(
           [
-            ['Confirmée', STATUS.confirmed],
-            ['En attente', STATUS.pending],
-            ['Check-in', STATUS.checked_in],
-            ['Check-out', STATUS.checked_out],
+            [m.statuses.confirmed, STATUS.confirmed],
+            [m.statuses.pending, STATUS.pending],
+            [m.statuses.checkedIn, STATUS.checked_in],
+            [m.statuses.checkedOut, STATUS.checked_out],
           ] as const
         ).map(([label, color]) => (
           <span key={label} style={chip(true)}>
@@ -695,7 +705,7 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
         <span style={chip(true)}>
           <BroomFill size={16} style={{ color: '#2F9E8D' }} />
           <WrenchFill size={15} style={{ color: '#4F86C6' }} />
-          Interventions
+          {m.interventions}
         </span>
       </div>
     </div>
@@ -705,6 +715,7 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
 /* ─── En-tête de dates ──────────────────────────────────────────────────────── */
 
 function DateHeaders() {
+  const dayLabels = usePlanningText().dayLabels;
   return (
     <div
       className="flex"
@@ -730,7 +741,7 @@ function DateHeaders() {
               className="text-[9.5px] leading-none font-bold tracking-[.04em] uppercase"
               style={{ color: today ? 'var(--pl-accent)' : 'var(--pl-faint)' }}
             >
-              {DAY_LABELS[(FIRST_DOW + day) % 7]}
+              {dayLabels[(FIRST_DOW + day) % 7]}
             </span>
             {today ? (
               <span
@@ -763,6 +774,7 @@ function Row({
   row: number;
   selection: { row: number; start: number; nights: number } | null;
 }) {
+  const { nightOne, nightMany } = usePlanningText();
   return (
     <div
       className="absolute inset-x-0"
@@ -812,7 +824,7 @@ function Row({
             className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold"
             style={{ color: '#1F5F55' }}
           >
-            {selection.nights} nuit{selection.nights > 1 ? 's' : ''}
+            {selection.nights} {selection.nights > 1 ? nightMany : nightOne}
           </span>
         </div>
       )}
@@ -908,6 +920,7 @@ function Overlay({
 /** Bande hachurée pleine hauteur de ligne (PlanningBlockedBand) : pas de brique
     colorée, un cadenas et le libellé « Bloqué » quand la place le permet. */
 function BlockedBand() {
+  const reason = usePlanningText().blockedReason;
   const width = BLOCKED.nights * DAY_W;
   return (
     <div
@@ -923,7 +936,7 @@ function BlockedBand() {
         boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--pl-muted) 14%, transparent)',
         zIndex: 2,
       }}
-      title={BLOCKED.reason}
+      title={reason}
     >
       <LockIcon className="size-3" style={{ color: 'var(--pl-muted)' }} />
       <span className="text-[11px] font-semibold" style={{ color: 'var(--pl-muted)' }}>
@@ -936,6 +949,7 @@ function BlockedBand() {
 /** Brique annulée : fond hachuré, bordure tiretée, nom barré, avatar désaturé,
     et le petit bouton rond de masquage en haut à droite. */
 function CancelledBar() {
+  const label = usePlanningText().cancelled;
   const left = CANCELLED.start * DAY_W + DAY_W * 0.42;
   const width = CANCELLED.nights * DAY_W - DAY_W * 0.17;
   return (
@@ -967,7 +981,7 @@ function CancelledBar() {
         />
       </span>
       <span className="flex min-w-0 flex-col leading-[1.2]" style={{ color: 'var(--pl-muted)' }}>
-        <span className="text-[9.5px] font-semibold opacity-85">Annulée</span>
+        <span className="text-[9.5px] font-semibold opacity-85">{label}</span>
         <span className="truncate text-[12px] font-semibold line-through">{CANCELLED.guest}</span>
       </span>
       {/* Bouton de masquage (hideFromPlanning) */}
@@ -986,6 +1000,8 @@ function CancelledBar() {
 /** Reprend la fiche ouverte au clic sur un logement : identité, capacités,
     horaires, puis le bloc Performance 90 j (score, RevPAN, occupation, marge). */
 function PropertyPopover() {
+  const t = usePlanningText();
+  const m = t.property;
   const tile = (icon: React.ReactNode, label: string, value: React.ReactNode, accent = false) => (
     <div
       className="flex-1 rounded-[10px] px-2.5 py-1.5"
@@ -1053,33 +1069,33 @@ function PropertyPopover() {
         </p>
         <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--pl-body)' }}>
           <UserIcon className="size-3.5 shrink-0" style={{ color: 'var(--pl-faint)' }} />
-          Toufik Mazy
+          {t.owner}
         </p>
       </div>
 
       {/* Capacités */}
       <div className="mt-2 flex gap-2">
-        {tile(<UsersIcon className="size-3" />, 'Voyageurs max', 6)}
-        {tile(<BedDoubleIcon className="size-3" />, 'Nuits min.', 2)}
+        {tile(<UsersIcon className="size-3" />, m.maxGuests, 6)}
+        {tile(<BedDoubleIcon className="size-3" />, m.minNights, 2)}
       </div>
       <div className="mt-2 flex">
-        {tile(<MoroccanDirham size={12} />, 'Prix / nuit', <Amount value={850} size={13} />, true)}
+        {tile(<MoroccanDirham size={12} />, m.nightlyPrice, <Amount value={850} size={13} />, true)}
       </div>
 
       <div className="mt-2 flex flex-col gap-1 border-b pb-2" style={{ borderColor: 'var(--pl-line)' }}>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--pl-body)' }}>
           <span className="flex items-center gap-1">
             <ClockIcon className="size-3.5" style={{ color: 'var(--pl-faint)' }} />
-            Check-in <b style={{ color: 'var(--pl-ink)' }}>15:00</b>
+            {m.checkIn} <b style={{ color: 'var(--pl-ink)' }}>15:00</b>
           </span>
           <span className="flex items-center gap-1">
             <ClockIcon className="size-3.5" style={{ color: '#C28A52' }} />
-            Check-out <b style={{ color: 'var(--pl-ink)' }}>11:00</b>
+            {m.checkOut} <b style={{ color: 'var(--pl-ink)' }}>11:00</b>
           </span>
         </p>
         <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--pl-body)' }}>
           <CalendarIcon className="size-3.5 shrink-0" style={{ color: 'var(--pl-faint)' }} />
-          Fréquence ménage : <b style={{ color: 'var(--pl-ink)' }}>Après chaque séjour</b>
+          {m.cleaningFrequency} <b style={{ color: 'var(--pl-ink)' }}>{m.cleaningValue}</b>
         </p>
       </div>
 
@@ -1088,10 +1104,10 @@ function PropertyPopover() {
         className="mt-2 flex items-center gap-1.5 text-[9.5px] font-bold tracking-[.04em] uppercase"
         style={{ color: 'var(--pl-muted)' }}
       >
-        <GaugeIcon className="size-3.5" /> Performance · 90 j
+        <GaugeIcon className="size-3.5" /> {m.performance}
       </p>
       <div className="mt-1.5 flex items-center justify-between text-[11px]">
-        <span style={{ color: 'var(--pl-muted)' }}>Score</span>
+        <span style={{ color: 'var(--pl-muted)' }}>{m.score}</span>
         <span className="font-bold tabular-nums" style={{ color: '#C28A52' }}>
           64/100
         </span>
@@ -1100,10 +1116,10 @@ function PropertyPopover() {
         <div className="h-full rounded-full" style={{ width: '64%', background: '#C28A52' }} />
       </div>
       <div className="mt-1.5 flex flex-col gap-0.5">
-        {stat('RevPAN', <Amount value={548} size={10} />)}
-        {stat("Taux d'occupation", '64 %')}
-        {stat('Revenu total', <Amount value={49320} size={10} />)}
-        {stat('Marge nette', '86 %', '#3E9C80')}
+        {stat(m.revpan, <Amount value={548} size={10} />)}
+        {stat(m.occupancy, '64 %')}
+        {stat(m.totalRevenue, <Amount value={49320} size={10} />)}
+        {stat(m.netMargin, '86 %', '#3E9C80')}
       </div>
 
       <div className="mt-2 flex gap-2">
@@ -1111,13 +1127,13 @@ function PropertyPopover() {
           className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[11px] font-semibold"
           style={{ border: '1px solid var(--pl-line2)', color: 'var(--pl-body)' }}
         >
-          <XIcon className="size-3.5" /> Fermer
+          <XIcon className="size-3.5" /> {m.close}
         </span>
         <span
           className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[11px] font-semibold"
           style={{ border: '1px solid var(--pl-accent)', color: 'var(--pl-accent)' }}
         >
-          <EyeIcon className="size-3.5" /> Voir la fiche
+          <EyeIcon className="size-3.5" /> {m.openRecord}
         </span>
       </div>
     </div>
@@ -1129,6 +1145,8 @@ function PropertyPopover() {
 /** Reprend ce que `ReservationDialog` pré-remplit depuis un drag-to-select :
     logement verrouillé, dates, nuits, prix/nuit et heures d'arrivée/départ. */
 function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
+  const t = usePlanningText();
+  const m = t.create;
   const line = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between gap-3">
       <span style={{ color: 'var(--pl-muted)' }}>{label}</span>
@@ -1148,21 +1166,21 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
       }}
     >
       <p className="text-[12px] font-semibold" style={{ color: 'var(--pl-ink)' }}>
-        Nouvelle réservation
+        {m.title}
       </p>
       <p className="mt-0.5 text-[10.5px]" style={{ color: 'var(--pl-muted)' }}>
-        Riad Bab Doukkala · Fès · Médina
+        {t.createProperty}
       </p>
       <div className="mt-2.5 flex flex-col gap-1.5 text-[11px]">
-        {line('Séjour', '28 → 31 août')}
-        {line('Nuits', '3')}
-        {line('Prix / nuit', <Amount value={1250} size={10} />)}
-        {line('Arrivée / départ', '15:00 · 11:00')}
+        {line(m.stay, m.stayValue)}
+        {line(m.nights, '3')}
+        {line(m.nightlyPrice, <Amount value={1250} size={10} />)}
+        {line(m.arrivalDeparture, '15:00 · 11:00')}
         <div
           className="mt-1 flex items-center justify-between gap-3 border-t pt-2 text-[12px]"
           style={{ borderColor: 'var(--pl-line)' }}
         >
-          <span style={{ color: 'var(--pl-muted)' }}>Total</span>
+          <span style={{ color: 'var(--pl-muted)' }}>{m.total}</span>
           <span className="font-bold tabular-nums" style={{ color: 'var(--pl-ink)' }}>
             <Amount value={3750} size={11} />
           </span>
@@ -1171,7 +1189,7 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
       {/* Voyageur : recherche dans le carnet, ou création à la volée. */}
       <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: 'var(--pl-line)' }}>
         <p className="text-[9.5px] font-bold tracking-[.04em] uppercase" style={{ color: 'var(--pl-muted)' }}>
-          Voyageur
+          {m.guest}
         </p>
         <div
           data-guest-field
@@ -1180,7 +1198,7 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
         >
           <SearchIcon className="size-3.5" style={{ color: 'var(--pl-faint)' }} />
           <span style={{ color: query ? 'var(--pl-ink)' : 'var(--pl-faint)' }}>
-            {query || 'Rechercher un voyageur…'}
+            {query || t.searchGuest}
           </span>
         </div>
         {/* Le carnet ne répond qu'à partir de 3 caractères — sinon la fiche
@@ -1223,7 +1241,7 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
           className="rounded-[8px] px-3 py-1.5 text-[11px] font-semibold"
           style={{ background: 'var(--pl-accent)', color: '#FFF' }}
         >
-          Créer la réservation
+          {m.submit}
         </span>
       </div>
     </div>
@@ -1250,6 +1268,7 @@ function Bar({
   /** La fiche voyageur vient d'être complétée → l'alerte s'éteint. */
   infoFilled: boolean;
 }) {
+  const { nightOne, nightMany } = usePlanningText();
   const nights = resa.nights + extra;
   const left = (resa.start + shift) * DAY_W + DAY_W * 0.42;
   const width = nights * DAY_W - DAY_W * 0.17;
@@ -1373,7 +1392,9 @@ function Bar({
 
         {showName && (
           <span className="flex min-w-0 flex-col leading-[1.2]">
-            <span className="text-[9.5px] font-semibold opacity-85">{nights} nuits</span>
+            <span className="text-[9.5px] font-semibold opacity-85">
+              {nights} {nights > 1 ? nightMany : nightOne}
+            </span>
             <span className="truncate text-[12px] font-semibold">{resa.guest}</span>
           </span>
         )}

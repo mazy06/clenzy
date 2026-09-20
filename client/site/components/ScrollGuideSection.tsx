@@ -15,12 +15,14 @@ import { Link } from 'react-router-dom';
 import { Badge, Button } from '../../src/components/ui';
 import { cn } from '../../src/utils/cn';
 import Reveal from './Reveal';
-import salon from '../assets/photos/salon.jpg';
-import riad from '../assets/photos/riad.jpg';
+import salon from '../assets/photos/guesthouse.jpg';
+import riad from '../assets/photos/bedroom.jpg';
 import pool from '../assets/photos/pool.jpg';
 import balloon from '../assets/photos/balloon.jpg';
-import desert from '../assets/photos/desert.jpg';
+import desert from '../assets/photos/excursion.jpg';
 import food from '../assets/photos/food.jpg';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { GUIDE_MESSAGES } from '../lib/messages/guide';
 
 /**
  * Livret d'accueil numérique — mockup mobile NEUTRE et photo-riche, dans le
@@ -33,28 +35,13 @@ import food from '../assets/photos/food.jpg';
 const PHONE_W = 300;
 const WINDOW_H = 580;
 
-const ESSENTIALS = [
-  { icon: WifiIcon, label: 'Wi-Fi', value: 'DUPLEX-BADII' },
-  { icon: KeyRoundIcon, label: 'Code d’accès', value: '4821' },
-  { icon: ClockIcon, label: 'Arrivée', value: 'dès 15:00' },
-  { icon: ClockIcon, label: 'Départ', value: 'avant 11:00' },
-];
-
-const SECTIONS = [
-  { icon: KeyRoundIcon, title: 'Arrivée & accès', sub: 'Trouver le logement, entrer' },
-  { icon: ShieldCheckIcon, title: 'Règlement intérieur', sub: 'Les règles de la maison' },
-  { icon: MapPinIcon, title: 'Le quartier', sub: 'Nos adresses autour de vous' },
-];
+/** Icones des essentiels et des sections, dans l'ordre du dictionnaire. */
+const ESSENTIAL_ICONS = [WifiIcon, KeyRoundIcon, ClockIcon, ClockIcon];
+const SECTION_ICONS = [KeyRoundIcon, ShieldCheckIcon, MapPinIcon];
 
 const GALLERY = [riad, pool, salon];
 
-/** Champs de la fiche d'arrivée, remplis un à un au fil du défilement. */
-const CHECKIN_FIELDS = [
-  { label: 'Nom complet', value: 'Marie Lefebvre' },
-  { label: 'Pièce d’identité', value: 'Passeport · 21FR8842' },
-  { label: 'Date de naissance', value: '14/03/1991' },
-  { label: 'Nationalité', value: 'France' },
-];
+
 
 /* Découpe de la course de scroll : saisie des champs, puis validation du
    formulaire, puis défilement du livret. La porte se franchit d'abord. */
@@ -66,14 +53,14 @@ const CHECKIN_PHASE = 0.42; // fin du remplissage des champs
 const PRESS_AT = 0.5; // le curseur appuie sur le bouton
 const OPENED_AT = 0.56; // formulaire replié, livret accessible
 
-const ACTIVITIES = [
-  { img: balloon, title: 'Montgolfière au lever du soleil', price: '1 200 MAD', tag: 'Coup de cœur' },
-  { img: desert, title: 'Désert d’Agafay & dîner', price: '650 MAD', tag: null },
-  { img: food, title: 'Cours de cuisine marocaine', price: '450 MAD', tag: null },
-];
+/** Visuels des activites, dans l'ordre du dictionnaire. */
+const ACTIVITY_IMAGES = [balloon, desert, food];
 
 /** Contenu du livret (neutre, design system) — rendu dans le cadre téléphone. */
 function GuideContent({ filled, pressing, opened }: { filled: number; pressing: boolean; opened: boolean }) {
+  const { language } = useSiteLanguage();
+  const m = GUIDE_MESSAGES[language];
+  const fields = m.checkinFields;
   return (
     <div className="bg-background pb-6 text-foreground">
       {/* Hero photo */}
@@ -84,7 +71,7 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
           <p className="text-[10px] font-medium tracking-wide uppercase opacity-80">Bienvenue, Marie</p>
           <h3 className="mt-0.5 text-lg leading-tight font-semibold">Duplex Al Badii</h3>
           <p className="mt-1 flex items-center gap-1 text-[11px] opacity-90">
-            <MapPinIcon className="size-3" /> Marrakech · 20 → 25 juillet
+            <MapPinIcon className="size-3" /> {m.stay}
           </p>
         </div>
       </div>
@@ -106,14 +93,12 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
               <ShieldCheckIcon className="size-3.5" />
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-semibold">Complétez votre arrivée</p>
-              <p className="text-[10px] leading-snug text-muted-foreground">
-                Obligatoire pour accéder au livret
-              </p>
+              <p className="text-xs font-semibold">{m.checkinTitle}</p>
+              <p className="text-[10px] leading-snug text-muted-foreground">{m.checkinSub}</p>
             </div>
           </div>
           <div className="mt-2.5 flex flex-col gap-1.5">
-            {CHECKIN_FIELDS.map((field, index) => {
+            {fields.map((field, index) => {
               const done = index < filled;
               const typing = index === filled;
               return (
@@ -142,26 +127,26 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
               );
             })}
           </div>
-          {filled >= CHECKIN_FIELDS.length && (
+          {filled >= fields.length && (
             <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-success/12 px-2 py-1.5">
               <ShieldCheckIcon className="size-3 shrink-0 text-success" />
               <p className="text-[10px] leading-snug text-success">
-                Fiche de police transmise à la DGSN — rien à ressaisir pour l’hôte.
+                {m.checkinDone}
               </p>
             </div>
           )}
           <span
             className={cn(
               'mt-2.5 flex w-full items-center justify-center rounded-lg py-2 text-[11px] font-semibold transition-colors duration-300',
-              filled >= CHECKIN_FIELDS.length
+              filled >= fields.length
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground',
               pressing && 'scale-[.97]',
             )}
           >
-            {filled >= CHECKIN_FIELDS.length
-              ? 'Accéder au livret'
-              : `${filled} / ${CHECKIN_FIELDS.length} renseignés`}
+            {filled >= fields.length
+              ? m.openGuide
+              : `${filled} / ${fields.length} ${m.fieldsFilled}`}
           </span>
 
           {/* Curseur qui vient appuyer sur le bouton, piloté par le scroll */}
@@ -183,43 +168,45 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
             A
           </span>
           <div>
-            <p className="text-xs font-semibold">Votre hôte Amine</p>
-            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              Bienvenue chez nous ! Installez-vous, tout ce qu’il faut pour un séjour parfait est
-              dans ce livret.
-            </p>
+            <p className="text-xs font-semibold">{m.hostName}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{m.hostWord}</p>
           </div>
         </div>
 
         {/* Essentiels */}
         <div>
           <p className="mb-2 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-            Les essentiels
+            {m.essentialsTitle}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {ESSENTIALS.map((item) => (
+            {m.essentials.map((item, index) => {
+              const Icon = ESSENTIAL_ICONS[index];
+              return (
               <div key={item.label} className="rounded-xl border border-border bg-card p-2.5">
-                <item.icon className="size-3.5 text-primary" />
+                <Icon className="size-3.5 text-primary" />
                 <p className="mt-1.5 text-[10px] text-muted-foreground">{item.label}</p>
                 <p className="text-xs font-semibold tabular-nums">{item.value}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Explorer le livret */}
         <div>
           <p className="mb-2 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-            Explorer le livret
+            {m.exploreTitle}
           </p>
           <div className="flex flex-col gap-1.5">
-            {SECTIONS.map((section) => (
+            {m.sections.map((section, index) => {
+              const Icon = SECTION_ICONS[index];
+              return (
               <div
                 key={section.title}
                 className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-2.5"
               >
                 <span className="flex size-7 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                  <section.icon className="size-3.5" />
+                  <Icon className="size-3.5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold">{section.title}</p>
@@ -227,7 +214,8 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
                 </div>
                 <ChevronRightIcon className="size-3.5 text-muted-foreground" />
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -247,16 +235,21 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
         {/* Expériences (marketplace) */}
         <div>
           <p className="mb-2 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-            Expériences à réserver
+            {m.activitiesTitle}
           </p>
           <div className="flex flex-col gap-2.5">
-            {ACTIVITIES.map((activity) => (
+            {m.activities.map((activity, index) => (
               <div
                 key={activity.title}
                 className="overflow-hidden rounded-xl border border-border bg-card"
               >
                 <div className="relative">
-                  <img src={activity.img} alt="" className="h-24 w-full object-cover" loading="lazy" />
+                  <img
+                    src={ACTIVITY_IMAGES[index]}
+                    alt=""
+                    className="h-24 w-full object-cover"
+                    loading="lazy"
+                  />
                   {activity.tag && (
                     <span className="absolute top-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
                       {activity.tag}
@@ -271,7 +264,7 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
                     </p>
                   </div>
                   <span className="rounded-md bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground">
-                    Réserver
+                    {m.book}
                   </span>
                 </div>
               </div>
@@ -280,26 +273,19 @@ function GuideContent({ filled, pressing, opened }: { filled: number; pressing: 
         </div>
 
         <p className="pt-1 text-center text-[9px] text-muted-foreground">
-          Propulsé par <span className="font-semibold text-foreground">Baitly</span>
+          {m.poweredBy} <span className="font-semibold text-foreground">Baitly</span>
         </p>
       </div>
     </div>
   );
 }
 
-/** Étapes du livret : la courante s'allume au rythme du défilement. */
-const STEPS = [
-  {
-    title: 'Check-in en ligne',
-    copy: 'Le voyageur saisit son identité — la fiche de police part toute seule.',
-  },
-  { title: 'Accueil personnalisé', copy: 'Le mot de l’hôte, une fois l’arrivée validée.' },
-  { title: 'Les essentiels', copy: 'Wi-Fi, code d’accès, horaires — sans avoir à les écrire.' },
-  { title: 'Le quartier', copy: 'Vos adresses, pas celles d’un guide générique.' },
-  { title: 'Expériences à réserver', copy: 'Activités et services, réservables en un geste.' },
-];
+
 
 export default function ScrollGuideSection() {
+  const { language } = useSiteLanguage();
+  const m = GUIDE_MESSAGES[language];
+  const STEPS = m.steps;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -341,9 +327,10 @@ export default function ScrollGuideSection() {
 
   const p = reduced ? 1 : progress;
   /* Phase 1 — les champs se remplissent ; phase 2 — le livret défile. */
+  const fieldCount = m.checkinFields.length;
   const filled = Math.min(
-    CHECKIN_FIELDS.length,
-    Math.floor((Math.min(p, CHECKIN_PHASE) / CHECKIN_PHASE) * (CHECKIN_FIELDS.length + 0.5)),
+    fieldCount,
+    Math.floor((Math.min(p, CHECKIN_PHASE) / CHECKIN_PHASE) * (fieldCount + 0.5)),
   );
   const pressing = p >= PRESS_AT && p < OPENED_AT;
   const opened = p >= OPENED_AT;
@@ -364,12 +351,12 @@ export default function ScrollGuideSection() {
         <div className="site-shell grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
           {/* Colonne récit : le fil d'étapes se synchronise avec le téléphone */}
           <Reveal>
-            <Badge variant="outline">Aperçu</Badge>
+            <Badge variant="outline">{m.eyebrow}</Badge>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Le livret que reçoit votre voyageur.
+              {m.title}
             </h2>
             <p className="mt-3 max-w-md text-muted-foreground">
-              Un simple lien, sans application — tout le séjour dans sa poche.
+              {m.intro}
             </p>
             <ol className="mt-7 flex flex-col">
               {STEPS.map((step, index) => {
@@ -411,7 +398,7 @@ export default function ScrollGuideSection() {
             </ol>
             <Button variant="outline" asChild>
               <Link to="/demo">
-                Voir une démo <ArrowRightIcon />
+                {m.cta} <ArrowRightIcon />
               </Link>
             </Button>
           </Reveal>
@@ -423,9 +410,9 @@ export default function ScrollGuideSection() {
               style={{ transform: `translateY(${p * -120}px)` }}
             >
               <KeyRoundIcon className="size-4 text-primary" />
-              <p className="mt-2 text-[11px] text-muted-foreground">Code d’accès</p>
-              <p className="text-lg font-semibold tabular-nums">4821</p>
-              <p className="mt-1 text-[10px] text-muted-foreground">Actif du 20 au 25 juillet</p>
+              <p className="mt-2 text-[11px] text-muted-foreground">{m.accessCode}</p>
+              <p className="text-lg font-semibold tabular-nums">{m.essentials[1].value}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">{m.accessCodeValidity}</p>
             </div>
 
             <div
@@ -434,12 +421,12 @@ export default function ScrollGuideSection() {
             >
               <img src={balloon} alt="" className="h-20 w-full object-cover" loading="lazy" />
               <div className="p-3">
-                <p className="text-xs font-semibold">Montgolfière au lever du soleil</p>
+                <p className="text-xs font-semibold">{m.activities[0].title}</p>
                 <p className="mt-0.5 text-[11px] font-semibold text-primary-deep tabular-nums">
-                  1 200 MAD
+                  {m.activities[0].price}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[10px] text-success">
-                  <SparklesIcon className="size-3" /> Commission reversée
+                  <SparklesIcon className="size-3" /> {m.commission}
                 </p>
               </div>
             </div>

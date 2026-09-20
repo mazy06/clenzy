@@ -13,6 +13,14 @@ import {
 import { Badge, Progress, Separator } from '../../src/components/ui';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
 import { cn } from '../../src/utils/cn';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
+
+/** Raccourci : le bloc `hitl` de la langue courante. */
+function useHitlText() {
+  const { language } = useSiteLanguage();
+  return MOCKUP_MESSAGES[language].hitl;
+}
 
 /**
  * Pile de cartes HITL animées (design des cartes de la projection Constellation).
@@ -59,7 +67,8 @@ interface CardChromeProps {
   children: ReactNode;
 }
 
-function CardChrome({ agent, tag, done, doneLabel = 'Validé', title, children }: CardChromeProps) {
+function CardChrome({ agent, tag, done, doneLabel, title, children }: CardChromeProps) {
+  const m = useHitlText();
   return (
     <div
       className={cn(
@@ -72,11 +81,11 @@ function CardChrome({ agent, tag, done, doneLabel = 'Validé', title, children }
         <Badge variant="outline">{tag}</Badge>
         {done ? (
           <Badge variant="success" className="ms-auto">
-            <CheckIcon /> {doneLabel}
+            <CheckIcon /> {doneLabel ?? m.approved}
           </Badge>
         ) : (
           <Badge variant="warning" className="ms-auto">
-            En attente
+            {m.waiting}
           </Badge>
         )}
       </div>
@@ -88,7 +97,6 @@ function CardChrome({ agent, tag, done, doneLabel = 'Validé', title, children }
 
 /* ─── Carte 1 — Agent Revenue (ajustement de prix + validation) ────────────── */
 
-const BASE_PRICE = 70;
 
 function RevenueCard({ active, reduced, onDone }: { active: boolean; reduced: boolean; onDone: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,8 +145,10 @@ function RevenueCard({ active, reduced, onDone }: { active: boolean; reduced: bo
     at(15800, onDone);
   });
 
-  const price = BASE_PRICE + delta;
-  const revenue = 680 - delta * 34;
+  const m = useHitlText();
+  const t = m.revenue;
+  const price = m.basePrice + delta;
+  const revenue = m.baseRevenue - delta * 34;
   const probability = 74 - delta * 2;
   const done = phase === 'applied' || reduced;
   const adjustVisible =
@@ -146,17 +156,18 @@ function RevenueCard({ active, reduced, onDone }: { active: boolean; reduced: bo
 
   return (
     <div className="relative" ref={containerRef}>
-      <CardChrome agent="Agent Revenue" tag="Expire dans 22 h" done={done} title="Baisse tarifaire proposée — Riad Yasmine">
+      <CardChrome agent={t.agent} tag={t.tag} done={done} title={t.title}>
         <p className="mt-1 text-xs text-muted-foreground">
-          9 nuits invendues du 18 au 27 août (block-aware). Proposition :{' '}
-          <span className="font-semibold text-foreground">−12 %</span>, plancher respecté (68 €).
+          {t.copyBefore}
+          <span className="font-semibold text-foreground">{t.copyDelta}</span>
+          {t.copyAfter} ({m.floorPrice} {m.currency}).
         </p>
 
         <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-muted p-2.5 text-center">
           {[
-            { label: 'Prix actuel', value: '80 €' },
-            { label: 'Prix proposé', value: `${reduced ? BASE_PRICE + 2 : price} €`, accent: delta > 0 && !done },
-            { label: 'Revenu estimé', value: `+${reduced ? 612 : revenue} €`, success: true },
+            { label: t.currentLabel, value: `${m.basePrice} ${m.currency}` },
+            { label: t.proposedLabel, value: `${reduced ? m.basePrice + 2 : price} ${m.currency}`, accent: delta > 0 && !done },
+            { label: t.revenueLabel, value: `+${reduced ? m.baseRevenue - 68 : revenue} ${m.currency}`, success: true },
           ].map((cell) => (
             <div key={cell.label}>
               <p className="text-[10px] text-muted-foreground">{cell.label}</p>
@@ -184,12 +195,14 @@ function RevenueCard({ active, reduced, onDone }: { active: boolean; reduced: bo
         >
           <div className="overflow-hidden">
             <div className="flex h-8 items-center justify-between rounded-md border border-border px-2.5">
-              <span className="text-[11px] text-muted-foreground">Ajuster le prix proposé</span>
+              <span className="text-[11px] text-muted-foreground">{t.adjustLabel}</span>
               <span className="flex items-center gap-1">
                 <span className="flex size-5 items-center justify-center rounded border border-border">
                   <MinusIcon className="size-3" />
                 </span>
-                <span className="w-10 text-center text-xs font-semibold tabular-nums">{price} €</span>
+                <span className="w-10 text-center text-xs font-semibold tabular-nums">
+                  {price} {m.currency}
+                </span>
                 <span
                   ref={plusRef}
                   className={cn(
@@ -208,7 +221,7 @@ function RevenueCard({ active, reduced, onDone }: { active: boolean; reduced: bo
         </div>
 
         <div className="mt-3 flex items-center justify-between text-[11px]">
-          <span className="text-muted-foreground">Probabilité de remplissage (élasticité)</span>
+          <span className="text-muted-foreground">{t.probabilityLabel}</span>
           <span className="text-xs font-semibold tabular-nums">{done ? 100 : probability} %</span>
         </div>
         <Progress value={done ? 100 : probability} className="mt-1" />
@@ -218,18 +231,20 @@ function RevenueCard({ active, reduced, onDone }: { active: boolean; reduced: bo
         {done ? (
           <p className="flex h-7 items-center gap-1.5 truncate text-xs text-success">
             <CheckIcon className="size-3.5 shrink-0" />
-            Validé à {reduced ? 72 : price} € — poussé vers Airbnb & Booking, audit à jour.
+            {t.doneBefore}
+            {reduced ? m.basePrice - 8 : price} {m.currency}
+            {t.doneAfter}
           </p>
         ) : (
           <div className="flex h-7 items-center gap-1.5">
             <ActionButton primary refEl={applyRef} clicked={phase === 'clickApply'}>
-              <CheckIcon className="size-3" /> Appliquer
+              <CheckIcon className="size-3" /> {t.apply}
             </ActionButton>
             <ActionButton refEl={adjustRef} clicked={phase === 'clickAdjust'}>
-              <SlidersHorizontalIcon className="size-3" /> Ajuster
+              <SlidersHorizontalIcon className="size-3" /> {t.adjust}
             </ActionButton>
             <span className="ms-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <XIcon className="size-3" /> Refuser
+              <XIcon className="size-3" /> {t.refuse}
             </span>
           </div>
         )}
@@ -264,21 +279,21 @@ function MessagingCard({ active, reduced, onDone }: { active: boolean; reduced: 
     at(12000, onDone);
   });
 
+  const m = useHitlText();
+  const t = m.messaging;
   const done = phase === 'sent' || reduced;
 
   return (
     <div className="relative" ref={containerRef}>
-      <CardChrome agent="Agent Séjours" tag="Relance S1" done={done} doneLabel="Envoyé" title="Relance panier abandonné — Karim El Fassi">
+      <CardChrome agent={t.agent} tag={t.tag} done={done} doneLabel={t.doneLabel} title={t.title}>
         <p className="mt-1 text-xs text-muted-foreground">
-          Panier de 2 nuits (Duplex Guéliz, 940 €) abandonné il y a 26 h. Message proposé :
+          {t.copy.replace('{value}', m.cartValue)}
         </p>
         <p className="mt-2.5 rounded-lg border-s-2 border-border bg-muted p-2.5 text-xs italic">
-          « Bonjour Karim, votre séjour du 14 au 16 août au Duplex Guéliz est toujours disponible.
-          Réservez avant ce soir et profitez du petit-déjeuner offert. »
+          {t.quote}
         </p>
-        <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>Canal : WhatsApp · langue détectée : FR</span>
-          <span className="tabular-nums">Conversion relances : 31 %</span>
+        <div className="mt-2.5 text-[11px] text-muted-foreground">
+          <span>{t.channel}</span>
         </div>
 
         <Separator className="my-3" />
@@ -286,18 +301,18 @@ function MessagingCard({ active, reduced, onDone }: { active: boolean; reduced: 
         {done ? (
           <p className="flex h-7 items-center gap-1.5 truncate text-xs text-success">
             <CheckIcon className="size-3.5 shrink-0" />
-            Envoyé sur WhatsApp — relance de suivi programmée demain 19 h.
+            {t.done}
           </p>
         ) : (
           <div className="flex h-7 items-center gap-1.5">
             <ActionButton primary refEl={sendRef} clicked={phase === 'clickSend'}>
-              <SendIcon className="size-3" /> Envoyer
+              <SendIcon className="size-3" /> {t.send}
             </ActionButton>
             <ActionButton>
-              <PencilIcon className="size-3" /> Modifier
+              <PencilIcon className="size-3" /> {t.edit}
             </ActionButton>
             <span className="ms-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <XIcon className="size-3" /> Ignorer
+              <XIcon className="size-3" /> {t.dismiss}
             </span>
           </div>
         )}
@@ -332,14 +347,14 @@ function OpsCard({ active, reduced, onDone }: { active: boolean; reduced: boolea
     at(12000, onDone);
   });
 
+  const m = useHitlText();
+  const t = m.ops;
   const done = phase === 'paid' || reduced;
 
   return (
     <div className="relative" ref={containerRef}>
-      <CardChrome agent="Agent Opérations" tag="Preuve photo" done={done} doneLabel="Débloqué" title="Payout ménage à débloquer — Villa Palmeraie">
-        <p className="mt-1 text-xs text-muted-foreground">
-          Mission terminée à 14 h 20 par Fatima — checklist complète, 8 photos de preuve reçues.
-        </p>
+      <CardChrome agent={t.agent} tag={t.tag} done={done} doneLabel={t.doneLabel} title={t.title}>
+        <p className="mt-1 text-xs text-muted-foreground">{t.copy}</p>
         <div className="mt-2.5 flex items-center gap-1.5">
           {[0, 1, 2, 3].map((index) => (
             <span
@@ -351,7 +366,7 @@ function OpsCard({ active, reduced, onDone }: { active: boolean; reduced: boolea
           ))}
           <span className="text-[11px] text-muted-foreground">+4</span>
           <Badge variant="success" className="ms-auto">
-            Checklist 12/12
+            {t.checklist}
           </Badge>
         </div>
 
@@ -360,18 +375,20 @@ function OpsCard({ active, reduced, onDone }: { active: boolean; reduced: boolea
         {done ? (
           <p className="flex h-7 items-center gap-1.5 truncate text-xs text-success">
             <CheckIcon className="size-3.5 shrink-0" />
-            Payout de 45 € débloqué — versé à Fatima vendredi.
+            {t.doneBefore}
+            {m.payout} {m.currency}
+            {t.doneAfter}
           </p>
         ) : (
           <div className="flex h-7 items-center gap-1.5">
             <ActionButton primary refEl={payRef} clicked={phase === 'clickPay'}>
-              <BanknoteIcon className="size-3" /> Débloquer 45 €
+              <BanknoteIcon className="size-3" /> {t.release} {m.payout} {m.currency}
             </ActionButton>
             <ActionButton>
-              <ImageIcon className="size-3" /> Voir les photos
+              <ImageIcon className="size-3" /> {t.seePhotos}
             </ActionButton>
             <span className="ms-auto flex items-center gap-1 text-xs text-muted-foreground">
-              <XIcon className="size-3" /> Signaler
+              <XIcon className="size-3" /> {t.report}
             </span>
           </div>
         )}
@@ -386,6 +403,7 @@ function OpsCard({ active, reduced, onDone }: { active: boolean; reduced: boolea
 const CARDS = [RevenueCard, MessagingCard, OpsCard];
 
 export default function AnimatedHitlMockup() {
+  const m = useHitlText();
   const reduced = useReducedMotion();
   const [order, setOrder] = useState([0, 1, 2]);
 
@@ -419,7 +437,7 @@ export default function AnimatedHitlMockup() {
       </div>
       <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
         <PencilIcon className="size-3" />
-        Vous ajustez, vous approuvez — les agents exécutent et journalisent.
+        {m.caption}
       </p>
     </div>
   );

@@ -3,6 +3,8 @@ import { CheckIcon, DownloadIcon } from 'lucide-react';
 import { BOwnerPortalSectionDemo } from '../../src/modules/admin/design-system/screens-demos-2';
 import ProjectionRuntime from './ProjectionRuntime';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 
 /**
  * Mockup animé — Portail propriétaire. AUCUN écran réinventé : la PROJECTION
@@ -17,7 +19,8 @@ const DESIGN_WIDTH = 1240;
 const WINDOW_HEIGHT = 540;
 const ZOOM = 0.74;
 
-const STATEMENTS = ['Relevé juillet 2026', 'Relevé juin 2026', 'Relevé mai 2026'];
+/** Trois releves dans la projection ; leurs libelles viennent du DOM. */
+const STATEMENT_COUNT = 3;
 
 export default function AnimatedOwnerMockup() {
   const [cycle, setCycle] = useState(0);
@@ -26,27 +29,44 @@ export default function AnimatedOwnerMockup() {
 
 function OwnerScene({ onCycleEnd }: { onCycleEnd: () => void }) {
   const reduced = useReducedMotion();
+  const { language } = useSiteLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(ZOOM);
+  const [frameHeight, setFrameHeight] = useState(WINDOW_HEIGHT);
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef);
 
+  /* La hauteur du cadre suit la projection : figee, elle laissait du vide sous
+     un contenu plus court que la fenetre. Un `ResizeObserver` la reprend quand
+     la projection grandit (panneau qui s'ouvre, liste qui s'allonge). */
   useLayoutEffect(() => {
     const measure = () => {
       const width = containerRef.current?.clientWidth ?? DESIGN_WIDTH;
-      setScale(Math.min(1, width / DESIGN_WIDTH) * ZOOM);
+      const next = Math.min(1, width / DESIGN_WIDTH) * ZOOM;
+      setScale(next);
+      const content = stageRef.current?.scrollHeight ?? 0;
+      if (content > 0) setFrameHeight(Math.round(content * next));
     };
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    const observer = stageRef.current ? new ResizeObserver(measure) : null;
+    if (observer && stageRef.current) observer.observe(stageRef.current);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+    };
   }, []);
 
-  const findDownload = (statement: string) =>
-    [...(stageRef.current?.querySelectorAll<HTMLElement>('button') ?? [])].find((button) =>
-      button.getAttribute('aria-label')?.includes(statement),
-    ) ?? null;
+  /* Le bouton est repere par son INDEX : son libelle change avec la langue,
+     sa position dans la liste non. */
+  const findDownload = (index: number) =>
+    stageRef.current?.querySelector<HTMLElement>(`[data-demo-statement="${index}"]`) ?? null;
+
+  /** Le nom du releve, lu sur la ligne que porte le bouton. */
+  const statementLabel = (index: number) =>
+    findDownload(index)?.closest('div')?.querySelector('span')?.textContent?.trim() ?? '';
 
   /** Ripple positionné sur la cible, dans le repère du conteneur. */
   const rippleAt = (el: HTMLElement | null) => {
@@ -60,16 +80,16 @@ function OwnerScene({ onCycleEnd }: { onCycleEnd: () => void }) {
 
   useTimeline(!reduced, (at) => {
     at(1500, park);
-    STATEMENTS.forEach((statement, index) => {
+    Array.from({ length: STATEMENT_COUNT }, (_, index) => index).forEach((index) => {
       const base = 3000 + index * 3400;
-      at(base, () => moveTo(findDownload(statement), 0, 1));
+      at(base, () => moveTo(findDownload(index), 0, 1));
       at(base + 900, () => {
-        rippleAt(findDownload(statement));
-        setToast(statement);
+        rippleAt(findDownload(index));
+        setToast(statementLabel(index));
       });
       at(base + 2600, () => setToast(null));
     });
-    const end = 3000 + STATEMENTS.length * 3400;
+    const end = 3000 + STATEMENT_COUNT * 3400;
     at(end + 400, hide);
     at(end + 1400, onCycleEnd);
   });
@@ -83,12 +103,12 @@ function OwnerScene({ onCycleEnd }: { onCycleEnd: () => void }) {
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
-          <span className="ms-3 text-xs text-muted-foreground">app.baitly — Portail propriétaire</span>
+          <span className="ms-3 text-xs text-muted-foreground">{MOCKUP_MESSAGES[language].windowTitles.owner}</span>
         </div>
         {/* La PROJECTION réelle, à l'échelle et centrée — hauteur de fenêtre fixe */}
         <div
           className="flex justify-center overflow-hidden bg-background"
-          style={{ height: WINDOW_HEIGHT }}
+          style={{ height: frameHeight }}
         >
           <div
             ref={stageRef}
@@ -119,7 +139,7 @@ function OwnerScene({ onCycleEnd }: { onCycleEnd: () => void }) {
         }`}
       >
         <CheckIcon className="size-3.5 text-success" />
-        {toast} téléchargé
+        {toast} {MOCKUP_MESSAGES[language].windowTitles.downloaded}
         <DownloadIcon className="size-3 opacity-60" />
       </div>
 

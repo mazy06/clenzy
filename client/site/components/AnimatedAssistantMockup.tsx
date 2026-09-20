@@ -14,6 +14,9 @@ import {
 } from '../../src/components/ui';
 import StatusChip from '../../src/components/baitly/StatusChip';
 import { Money } from '../../src/components/baitly/Money';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { ASSISTANT_MESSAGES, type AssistantMessages } from '../lib/messages/assistant';
+import { richText } from '../lib/richText';
 import { cn } from '../../src/utils/cn';
 import ProjectionRuntime from './ProjectionRuntime';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
@@ -40,115 +43,16 @@ const END_PAUSE_MS = 9000;
 
 /* ─── Script de la conversation ─────────────────────────────────────────────── */
 
-interface HitlDef {
-  id: string;
-  title: string;
-  left: React.ReactNode;
-  right: React.ReactNode;
-  done: string;
-}
-
-interface TurnDef {
-  /** Question posée : tapée au clavier, ou choisie parmi les suggestions. */
-  ask: string;
-  viaSuggestion?: boolean;
-  answer: React.ReactNode;
-  /** Précision envoyée juste après la réponse : donne à lire, et laisse le
-      temps de suivre l'échange avant la carte à décider. */
-  detail?: React.ReactNode;
-  hitl?: HitlDef;
-  /** Réponse de l'assistant après validation de la carte. */
-  after?: string;
-}
-
-const TURNS: TurnDef[] = [
-  {
-    ask: "Quel est mon taux d'occupation en août ?",
-    answer: (
-      <>
-        Ton occupation d'août est à <b>72 %</b> (+6 pts vs juillet). Il reste 9 nuits creuses sur le
-        Riad Yasmine entre le 18 et le 27 : une baisse ciblée de 12 % devrait les combler.
-      </>
-    ),
-    detail: (
-      <>
-        Dans le détail : 4 nuits en semaine, 5 sur les week-ends. Les biens comparables du quartier
-        sont à <b>1 180 MAD</b> en moyenne sur la période — tu es 6 % au-dessus.
-      </>
-    ),
-    hitl: {
-      id: 'yield',
-      title: 'Baisse −12 % · 18 → 27 août',
-      left: (
-        <>
-          <Money value={1250} decimals={0} /> →{' '}
-          <b className="text-primary">
-            <Money value={1100} decimals={0} />
-          </b>{' '}
-          /nuit
-        </>
-      ),
-      right: (
-        <>
-          revenu estimé{' '}
-          <b className="text-success">
-            +<Money value={6800} decimals={0} />
-          </b>
-        </>
-      ),
-      done: 'Proposition appliquée',
-    },
-    after: "C'est fait — les 9 nuits sont à 1 100 MAD. Je te préviens dès la première réservation captée.",
-  },
-  {
-    ask: 'Prépare le digest du lundi',
-    viaSuggestion: true,
-    answer: (
-      <>
-        Semaine 30 : <b>14 arrivées</b>, 11 départs, 2 avis reçus (4,6 ★). Un ménage reste à
-        replanifier — Fatima est en congé lundi sur le Riad Kasbah.
-      </>
-    ),
-    detail: (
-      <>
-        À surveiller aussi : 3 arrivées après 20 h à préparer, et le stock de linge du Riad Yasmine
-        passe sous le seuil jeudi.
-      </>
-    ),
-    hitl: {
-      id: 'ops',
-      title: 'Réassigner le ménage · Riad Kasbah',
-      left: <>Fatima Z. → <b className="text-primary">Samira B.</b></>,
-      right: <>lundi 10:00 · 2 h</>,
-      done: 'Mission réassignée',
-    },
-    after: 'Samira est notifiée sur WhatsApp, la check-list photo est déjà attachée à la mission.',
-  },
-  {
-    ask: "Réponds à l'avis 3★ de Julien",
-    answer: (
-      <>
-        Julien reproche le bruit de la rue le samedi soir. Je propose une réponse publique qui
-        reconnaît la gêne et mentionne les bouchons d'oreilles désormais fournis.
-      </>
-    ),
-    detail: (
-      <>
-        Brouillon : « Merci Julien pour ce retour honnête. Le bruit du samedi soir est réel — nous
-        fournissons désormais des bouchons d'oreilles et proposons la chambre côté patio. »
-      </>
-    ),
-    hitl: {
-      id: 'review',
-      title: 'Publier la réponse à l’avis',
-      left: <>Ton : <b className="text-primary">empathique</b></>,
-      right: <>FR · 412 signes</>,
-      done: 'Réponse publiée',
-    },
-  },
+/**
+ * Ce que le scenario a de non traduisible : l'identifiant de la carte (il
+ * relie le clic scripte a son bouton) et le fait que la question soit posee
+ * en cliquant une suggestion plutot qu'en la tapant.
+ */
+const TURN_META = [
+  { id: 'yield', viaSuggestion: false },
+  { id: 'ops', viaSuggestion: true },
+  { id: 'review', viaSuggestion: false },
 ];
-
-const SUGGESTIONS = ['Montre les nuits creuses', 'Prépare le digest du lundi', 'Compare à 2025'];
 
 /* ─── Éléments de conversation ──────────────────────────────────────────────── */
 
@@ -190,16 +94,47 @@ function HostAvatar() {
 }
 
 /** Carte HITL — même structure que la projection (bordure warning, 2 actions). */
-function HitlBubble({ hitl, applied }: { hitl: HitlDef; applied: boolean }) {
+function HitlBubble({
+  hitl,
+  id,
+  applied,
+  m,
+}: {
+  hitl: AssistantMessages['turns'][number]['hitl'];
+  id: string;
+  applied: boolean;
+  m: AssistantMessages;
+}) {
   return (
     <div className="ms-9 flex max-w-sm flex-col gap-2.5 rounded-xl border border-warning/40 bg-background p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-foreground">{hitl.title}</span>
-        <Badge variant="outline">{applied ? 'Validé' : 'En attente'}</Badge>
+        <Badge variant="outline">{applied ? m.applied : m.pending}</Badge>
       </div>
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>{hitl.left}</span>
-        <span>{hitl.right}</span>
+        <span>
+          {hitl.left ? (
+            richText(hitl.left)
+          ) : (
+            <>
+              <Money value={m.yield.from} decimals={0} /> →{' '}
+              <b className="text-primary">
+                <Money value={m.yield.to} decimals={0} />
+              </b>{' '}
+              {m.perNight}
+            </>
+          )}
+        </span>
+        <span>
+          {hitl.right ?? (
+            <>
+              {m.estimatedRevenue}{' '}
+              <b className="text-success">
+                +<Money value={m.yield.revenue} decimals={0} />
+              </b>
+            </>
+          )}
+        </span>
       </div>
       {applied ? (
         <div className="flex items-center gap-1.5 rounded-md bg-success-soft px-2 py-1.5 text-xs text-success">
@@ -207,11 +142,11 @@ function HitlBubble({ hitl, applied }: { hitl: HitlDef; applied: boolean }) {
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <Button size="xs" data-apply={hitl.id}>
-            <CheckIcon /> Appliquer
+          <Button size="xs" data-apply={id}>
+            <CheckIcon /> {m.apply}
           </Button>
           <Button size="xs" variant="ghost" className="text-muted-foreground">
-            <XIcon /> Refuser
+            <XIcon /> {m.refuse}
           </Button>
         </div>
       )}
@@ -225,7 +160,7 @@ function Thinking() {
     <Message>
       <Avatar />
       <MessageContent className={BOT_BUBBLE}>
-        <span className="flex items-center gap-1 py-0.5" aria-label="L'assistant rédige">
+        <span className="flex items-center gap-1 py-0.5">
           {[0, 1, 2].map((dot) => (
             <span
               key={dot}
@@ -247,6 +182,9 @@ export default function AnimatedAssistantMockup() {
 }
 
 function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
+  const { language } = useSiteLanguage();
+  const m = ASSISTANT_MESSAGES[language];
+  const TURNS = m.turns;
   const reduced = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -264,11 +202,11 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     TURNS.forEach((turn, index) => {
       all.push({ kind: 'ask', text: turn.ask });
       all.push({ kind: 'answer', turn: index });
-      if (turn.hitl) all.push({ kind: 'hitl', turn: index });
+      all.push({ kind: 'hitl', turn: index });
       if (turn.after) all.push({ kind: 'after', text: turn.after });
     });
     setBubbles(all);
-    setApplied(Object.fromEntries(TURNS.filter((t) => t.hitl).map((t) => [t.hitl!.id, true])));
+    setApplied(Object.fromEntries(TURN_META.map((meta) => [meta.id, true])));
   }, [reduced]);
 
   /* La conversation grandit → on suit toujours le dernier message. */
@@ -285,9 +223,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     at(clock, park);
 
     TURNS.forEach((turn, index) => {
-      const hitl = turn.hitl;
+      const meta = TURN_META[index];
 
-      if (turn.viaSuggestion) {
+      if (meta.viaSuggestion) {
         // Question posée en cliquant une suggestion.
         clock += 1100;
         at(clock, () => moveTo(find(`[data-suggestion="${turn.ask}"]`), 0, 0));
@@ -330,14 +268,12 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
         });
       }
 
-      if (hitl) {
-        clock += 1400;
-        at(clock, () => setBubbles((list) => [...list, { kind: 'hitl', turn: index }]));
-        clock += 1600;
-        at(clock, () => moveTo(find(`[data-apply="${hitl.id}"]`), 0, 0));
-        clock += 1300;
-        at(clock, () => setApplied((state) => ({ ...state, [hitl.id]: true })));
-      }
+      clock += 1400;
+      at(clock, () => setBubbles((list) => [...list, { kind: 'hitl', turn: index }]));
+      clock += 1600;
+      at(clock, () => moveTo(find(`[data-apply="${meta.id}"]`), 0, 0));
+      clock += 1300;
+      at(clock, () => setApplied((state) => ({ ...state, [meta.id]: true })));
 
       if (turn.after) {
         clock += 900;
@@ -369,7 +305,7 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
-          <span className="ms-3 text-xs text-muted-foreground">app.baitly — Assistant</span>
+          <span className="ms-3 text-xs text-muted-foreground">{m.windowTitle}</span>
         </div>
 
         <ProjectionRuntime>
@@ -380,14 +316,14 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                 <BotIcon className="size-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold">Assistant Baitly</p>
-                <p className="text-xs text-muted-foreground">Analyse, actions et réponses sur vos données</p>
+                <p className="text-sm font-semibold">{m.name}</p>
+                <p className="text-xs text-muted-foreground">{m.tagline}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <StatusChip tone="accent" label="Occupation août : 72 %" size="sm" />
-              <StatusChip tone="warn" label="2 propositions HITL" size="sm" />
-              <StatusChip tone="info" label="3 arrivées demain" size="sm" />
+              <StatusChip tone="accent" label={m.chips[0]} size="sm" />
+              <StatusChip tone="warn" label={m.chips[1]} size="sm" />
+              <StatusChip tone="info" label={m.chips[2]} size="sm" />
             </div>
 
             {/* Fil de conversation — hauteur fixe, défilement interne */}
@@ -415,10 +351,15 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                     );
                   }
                   if (bubble.kind === 'hitl') {
-                    const hitl = TURNS[bubble.turn].hitl!;
+                    const hitl = TURNS[bubble.turn].hitl;
                     return (
                       <Message key={index}>
-                        <HitlBubble hitl={hitl} applied={!!applied[hitl.id]} />
+                        <HitlBubble
+                          hitl={hitl}
+                          id={TURN_META[bubble.turn].id}
+                          applied={!!applied[TURN_META[bubble.turn].id]}
+                          m={m}
+                        />
                       </Message>
                     );
                   }
@@ -427,7 +368,7 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                       <Message key={index}>
                         <Avatar />
                         <MessageContent className={BOT_BUBBLE}>
-                          {TURNS[bubble.turn].detail}
+                          {richText(TURNS[bubble.turn].detail)}
                         </MessageContent>
                       </Message>
                     );
@@ -435,7 +376,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                   return (
                     <Message key={index}>
                       <Avatar />
-                      <MessageContent className={BOT_BUBBLE}>{TURNS[bubble.turn].answer}</MessageContent>
+                      <MessageContent className={BOT_BUBBLE}>
+                        {richText(TURNS[bubble.turn].answer)}
+                      </MessageContent>
                     </Message>
                   );
                 })}
@@ -445,7 +388,7 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
 
             {/* Suggestions cliquables (cibles du curseur) */}
             <div className="flex flex-wrap gap-1.5">
-              {SUGGESTIONS.map((suggestion) => (
+              {m.suggestions.map((suggestion) => (
                 <Button
                   key={suggestion}
                   size="xs"
@@ -461,19 +404,19 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
             {/* Composeur : le texte s'y écrit pendant l'animation */}
             <InputGroup data-composer>
               <InputGroupTextarea
-                placeholder="Demande une analyse, une action, un chiffre…"
+                placeholder={m.placeholder}
                 rows={2}
                 value={draft}
                 readOnly
               />
               <InputGroupAddon align="block-end">
                 <span className="text-2xs text-faint">
-                  L'assistant agit sur vos tarifs après confirmation.
+                  {m.disclaimer}
                 </span>
                 <InputGroupButton
                   size="icon-xs"
                   className={cn('ms-auto', draft && 'bg-primary text-primary-foreground')}
-                  aria-label="Envoyer"
+                  aria-label={m.send}
                   data-send
                 >
                   <SendIcon />

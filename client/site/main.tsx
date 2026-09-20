@@ -5,6 +5,7 @@ import '../src/theme/baitly-ui.css';
 import './site.css';
 import './home.css';
 import SiteLayout from './components/SiteLayout';
+import { SiteLanguageProvider } from './lib/siteLanguage';
 import HomePage from './pages/HomePage';
 import SolutionsPage from './pages/SolutionsPage';
 import PricingPage from './pages/PricingPage';
@@ -24,6 +25,7 @@ const ProvidersPage = lazy(() => import('./pages/ProvidersPage'));
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <SiteLanguageProvider>
       <Routes>
         <Route element={<SiteLayout />}>
           <Route index element={<HomePage />} />
@@ -50,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="*" element={<HomePage />} />
         </Route>
       </Routes>
+      </SiteLanguageProvider>
     </BrowserRouter>
   </StrictMode>,
 );

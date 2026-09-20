@@ -8,6 +8,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BaitlyAgentDemo from './BaitlyAgentDemo';
+import { SiteLanguageProvider } from '../lib/siteLanguage';
 
 function mockMotionPreference(reduced: boolean) {
   vi.stubGlobal('matchMedia', () => ({
@@ -20,6 +21,9 @@ function mockMotionPreference(reduced: boolean) {
 beforeEach(() => {
   vi.useFakeTimers();
   mockMotionPreference(false);
+  // Les assertions lisent la copie FRANCAISE : sans cet ancrage, jsdom annonce
+  // 'en-US' et le provider sert — correctement — la demo en anglais.
+  vi.stubGlobal('navigator', { ...navigator, languages: ['fr-FR'], language: 'fr-FR' });
   vi.stubGlobal(
     'IntersectionObserver',
     class {
@@ -45,7 +49,9 @@ afterEach(() => {
 function renderDemo() {
   render(
     <MemoryRouter>
-      <BaitlyAgentDemo />
+      <SiteLanguageProvider>
+        <BaitlyAgentDemo />
+      </SiteLanguageProvider>
     </MemoryRouter>,
   );
 }

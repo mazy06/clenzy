@@ -8,6 +8,17 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useReducedMotion } from './mockupKit';
+import { useSiteLanguage } from '../lib/siteLanguage';
+import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
+
+/** Une icone par carte, dans l'ordre du dictionnaire. */
+const CARD_ICONS: LucideIcon[] = [
+  ShieldCheckIcon,
+  LandmarkIcon,
+  BanknoteIcon,
+  CalendarCheckIcon,
+  BotIcon,
+];
 
 /**
  * Jeu de cartes empilées présentant ce que le PMS sait faire, et ce qu'il fait
@@ -19,56 +30,13 @@ import { useReducedMotion } from './mockupKit';
  * effectivement absents sur nos marchés — l'Arabie saoudite d'abord.
  */
 
-interface Advantage {
-  icon: LucideIcon;
-  tag: string;
-  title: string;
-  copy: string;
-  edge?: string;
-}
-
-const CARDS: Advantage[] = [
-  {
-    icon: ShieldCheckIcon,
-    tag: 'Anti-surbooking',
-    title: 'Le double booking est refusé avant d’exister.',
-    copy: 'Chaque déplacement ou étirement de séjour est vérifié en direct contre les autres réservations et les ménages liés.',
-    edge: 'Refus au geste, pas après coup',
-  },
-  {
-    icon: LandmarkIcon,
-    tag: 'Conformité Arabie saoudite',
-    title: 'Shomoos, TVA et facture ZATCA intégrées.',
-    copy: 'Enregistrement des voyageurs, TVA à 15 %, frais municipaux et facture électronique sont dans le produit, pas dans un tableur à côté.',
-    edge: 'Absent des PMS internationaux',
-  },
-  {
-    icon: BanknoteIcon,
-    tag: 'Encaissement local',
-    title: 'PayTabs, CMI, PayZone — et Stripe.',
-    copy: 'Vous encaissez en riyals ou en dirhams, avec les moyens de paiement que vos voyageurs utilisent réellement.',
-    edge: 'Là où Stripe seul ne suffit pas',
-  },
-  {
-    icon: CalendarCheckIcon,
-    tag: 'Multi-canal',
-    title: 'Airbnb, Booking, Expedia, Agoda sur une grille.',
-    copy: 'Connecteurs directs et Channex en repli : disponibilités, tarifs et restrictions poussés en continu.',
-  },
-  {
-    icon: BotIcon,
-    tag: 'Agents IA',
-    title: 'Ils proposent, vous validez, ils exécutent.',
-    copy: 'Prix, séjours, ménage et canaux surveillés en continu — chaque décision est expliquée et traçable.',
-    edge: 'Validation humaine par défaut',
-  },
-];
-
 /** Temps d'affichage d'une carte : assez long pour lire les trois lignes de
     corps sans se sentir pressé (~2 s de lecture + une pause). */
 const INTERVAL_MS = 8000;
 
 export default function AdvantageDeck() {
+  const { language } = useSiteLanguage();
+  const CARDS = MOCKUP_MESSAGES[language].advantages;
   const reduced = useReducedMotion();
   const [top, setTop] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -83,7 +51,7 @@ export default function AdvantageDeck() {
       }, 420);
     }, INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [reduced]);
+  }, [reduced, CARDS.length]);
 
   return (
     <div className="relative mx-auto h-[326px] w-full max-w-md">
@@ -92,6 +60,7 @@ export default function AdvantageDeck() {
         const depth = (index - top + CARDS.length) % CARDS.length;
         if (depth > 2) return null;
         const isTop = depth === 0;
+        const CardIcon = CARD_ICONS[index];
         return (
           <article
             key={card.title}
@@ -110,7 +79,7 @@ export default function AdvantageDeck() {
             }}
           >
             <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
-              <card.icon className="size-4" />
+              <CardIcon className="size-4" />
             </span>
             <p className="mt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               {card.tag}

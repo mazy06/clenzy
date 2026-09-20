@@ -19,13 +19,30 @@ Hero photographique et promesse → intégrations sélectionnées → planning e
 
 Les composants de section de `HomePage.tsx` conservent les routes du catalogue. La démonstration `BaitlyAgentDemo.tsx` est locale : ses données sont illustratives et ses boutons ne déclenchent aucune requête métier. La lecture est volontaire, se suspend hors écran et se désactive avec `prefers-reduced-motion`. Chaque scénario peut être choisi manuellement. La FAQ utilise les éléments natifs `details` / `summary`.
 
-Le header et le footer partagent la même identité. Le menu mobile expose son état, se ferme avec Échap, et rend le focus au déclencheur. Un lien d'évitement rejoint le contenu principal.
+Le header et le footer partagent la même identité ; le choix de langue vit dans la colonne
+d'identité du footer, où il est visible à toute largeur — dans le header il était masqué
+sous 640 px. Les volets du méga-menu reprennent la pièce du PMS (`.bui-sidebar-flyout`) tournée d'un quart de tour : ils sortent de la ligne du bas de l'en-tête, sans bordure de ce côté-là, avec deux raccords concaves aux angles hauts et un effet tiroir. La barre de navigation est étirée sur la hauteur de l'en-tête pour que la couture existe. Leur contenu est un rail et une vitrine (`NavMegaPanel`) : le rail ne porte qu'une icône et un titre par entrée, la vitrine ne montre que l'entrée survolée — photo d'ambiance, phrase et trois fonctionnalités réelles. Un curseur glisse d'une rangée à l'autre, la photo entre en fondu depuis un léger sur-cadrage et le texte la suit ; la vitrine est redondante avec le rail, donc masquée aux lecteurs d'écran et sans prise sur le pointeur. Le menu mobile expose son état, se ferme avec Échap, et rend le focus au déclencheur. Un lien d'évitement rejoint le contenu principal.
+
+Les familles de la place de marché et les rangées de `/solutions` suivent la même règle :
+**la photo remplace la pastille d'icône**, et la grille perd son uniformité — deux familles
+sur six s'étendent sur deux colonnes en composition horizontale, les rangées de solutions
+alternent le côté de leur image, à fond perdu jusqu'au bord de la carte.
 
 ## Assets et chargement
 
-- `assets/photos/baitly-riad.webp` : image ImageGen intégrée, 1400 px, environ 240 ko.
-- `assets/photos/baitly-riad-small.webp` : variante responsive 700 px, environ 65 ko.
-- `assets/photos/riad.jpg` et `pool.jpg` : photos déjà présentes, réutilisées.
+- Toutes les photos montrent un **logement** : `terrace.jpg` (terrasse de villa, hero),
+  `bedroom.jpg` (chambre prête à accueillir), `guesthouse.jpg` (entrée d'une maison
+  d'hôtes traditionnelle), `pool.jpg` (istiraha avec piscine). `baitly-riad.webp` et sa
+  variante `-small` en dérivent pour la vignette de la démonstration d'agent.
+- Deux exceptions assumées, qui illustrent des **activités** vendues dans le livret
+  d'accueil et non l'hébergement : `excursion.jpg` (désert) et `balloon.jpg`
+  (montgolfière), plus `food.jpg` (plat servi).
+- `assets/services/` porte six photos d'un autre registre : elles montrent le **geste du
+  métier** (ménage, bricolage, linge, jardin, remise de clés, cuisine) et non un décor.
+  Elles habillent les familles de la place de marché, à la place des pictogrammes.
+  Recadrées à 1000x560 à la prise.
+- Source : Unsplash et Pexels, licences libres pour usage commercial, sans attribution
+  requise. `host.jpg` est l'avatar générique d'origine.
 - Le hero utilise `srcset`, `sizes` et `fetchPriority=high`. Images secondaires en chargement différé, dimensions réservées.
 - Les pages produit et prestataires, qui embarquent les projections lourdes, se chargent à l'ouverture de leur route via React.lazy. Un squelette maintient la structure pendant le chargement.
 

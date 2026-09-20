@@ -16,6 +16,38 @@
     scroll-behavior: smooth;
   }
 
+  /* Arabe : meme pile que `src/theme/base.css`, a l'identique — les deux
+     surfaces doivent se lire dans le meme dessin. `--font-sans` sert les
+     composants Baitly UI, `--font-heading` le corps du site (cf. `body`
+     ci-dessous) et les titres. Le fournisseur de langue pose `lang` sur
+     `<html>` : c'est ce qui declenche la bascule. */
+  html[lang='ar'],
+  html[lang^='ar-'] {
+    --font-arabic: 'Tajawal', 'Tahoma', 'Geeza Pro', 'Arabic Typesetting',
+      'Traditional Arabic', sans-serif;
+    --font-sans: var(--font-arabic);
+    --font-heading: var(--font-arabic);
+    --font-display: var(--font-arabic);
+    /* Le conteneur `.baitly-marketing` de `home.css` lit ce jeton : sans lui,
+       il garderait Manrope, qui ne dessine pas l'arabe. */
+    --bl-font-body: var(--font-arabic);
+    /* Space Grotesk ne dessine pas l'arabe : les titres reprennent Tajawal,
+       comme le corps. Le mot-symbole, lui, reste latin — il pose sa propre
+       famille et ne lit pas ce jeton. */
+    --bl-font-title: var(--font-arabic);
+  }
+
+  /* Plancher de corps. Tajawal perd ses points diacritiques sous 13 px —
+     meme arbitrage que la barre laterale du PMS (`theme/baitly-ui.css`) — et
+     l'interligne de 1,33 du `text-xs` latin fait se toucher les signes hauts
+     d'une ligne et les hampes basses de la precedente. Verifie sur l'accueil,
+     les tarifs et la page agents : aucun conteneur ne rogne son contenu. */
+  html[lang='ar'] :is(.text-xs, .text-2xs),
+  html[lang^='ar-'] :is(.text-xs, .text-2xs) {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
   body {
     font-family: var(--font-heading, ui-sans-serif, system-ui, sans-serif);
     background: var(--bui-background);
@@ -123,6 +155,29 @@
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--brand) 42%, var(--bui-border));
   box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
+/* Tuiles de familles de service : le titre est en réserve sur la photo, posé
+   sur un voile dégradé — sans lui, un titre blanc tombe sur ce que la photo a
+   de clair à cet endroit-là, et cela change d'une image à l'autre. */
+.service-tile-title {
+  background: linear-gradient(
+    to top,
+    rgb(17 26 34 / 0.86),
+    rgb(17 26 34 / 0.55) 45%,
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* La photo avance lentement au survol. Le cadre est en `overflow: hidden` :
+     l'échelle ne déplace donc rien autour d'elle. */
+  .service-tile img {
+    transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .service-tile:hover img {
+    transform: scale(1.05);
+  }
 }
 
 /* ─── Mur de logos partenaires (3 lignes défilantes, pattern Mobbin) ───────── */
