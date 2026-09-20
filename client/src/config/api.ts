@@ -1,5 +1,7 @@
 // Configuration centralisée de l'API
 
+import { runtimeEnvOr } from './runtimeConfig';
+
 /**
  * Hôtes de boucle locale : depuis un autre appareil, ils ne désignent plus la
  * machine de dev mais l'appareil lui-même.
@@ -12,14 +14,16 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
  * En dev, le backend et Keycloak sont configurés en `localhost` (docker-compose
  * injecte VITE_API_BASE_URL / VITE_KEYCLOAK_URL dans le conteneur du front, et
  * ces variables d'environnement priment sur les fichiers `.env` — les éditer
- * n'a donc aucun effet). Quand on ouvre l'app depuis un téléphone du réseau
+ * n'a donc aucun effet). En production ces valeurs viennent désormais de
+ * `runtimeConfig` : elles sont écrites par le conteneur à son démarrage, plus
+ * gravées dans le bundle. Quand on ouvre l'app depuis un téléphone du réseau
  * local (http://192.168.x.y:3000), `localhost` désigne le téléphone : l'API et
  * Keycloak sont injoignables.
  *
  * On recopie donc l'hôte de la page dans l'URL du service, en gardant schéma,
  * port et chemin. La réécriture ne se déclenche que si l'URL configurée EST
- * une boucle locale et que la page ne l'est PAS : la prod
- * (https://api.clenzy.fr servi depuis app.clenzy.fr) n'est jamais touchée.
+ * une boucle locale et que la page ne l'est PAS : une origine de production
+ * (app.baitly.fr, app.clenzy.fr) n'est jamais touchée.
  */
 const alignHostWithPage = (url: string): string => {
   if (typeof window === 'undefined') return url;
@@ -35,8 +39,8 @@ const alignHostWithPage = (url: string): string => {
   }
 };
 
-const API_BASE_URL = alignHostWithPage(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8084');
-const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH || '/api';
+const API_BASE_URL = alignHostWithPage(runtimeEnvOr('VITE_API_BASE_URL', 'http://localhost:8084'));
+const API_BASE_PATH = runtimeEnvOr('VITE_API_BASE_PATH', '/api');
 
 /**
  * Rend absolue une URL de media renvoyee par le serveur.
@@ -46,7 +50,7 @@ const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH || '/api';
  * navigateur le resout contre l'origine de la PAGE : juste seulement quand
  * l'API est co-hebergee. Ce n'est le cas ni en developpement (page sur :3000,
  * API sur :8084, et le proxy Vite ne couvre que /api/copilotkit) ni en
- * production (app.clenzy.fr contre api.clenzy.com). L'image partait donc en
+ * production lorsque l'API est servie sous une autre origine que la page. L'image partait donc en
  * 404 et l'avatar retombait silencieusement sur les initiales.</p>
  *
  * <p>La chaine de requete est preservee : c'est elle qui porte le ticket HMAC
@@ -81,14 +85,14 @@ export const API_CONFIG = {
 
 // Configuration Keycloak
 export const KEYCLOAK_CONFIG = {
-  URL: alignHostWithPage(import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8083'),
-  REALM: import.meta.env.VITE_KEYCLOAK_REALM || 'clenzy',
-  CLIENT_ID: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'clenzy-web',
+  URL: alignHostWithPage(runtimeEnvOr('VITE_KEYCLOAK_URL', 'http://localhost:8083')),
+  REALM: runtimeEnvOr('VITE_KEYCLOAK_REALM', 'clenzy'),
+  CLIENT_ID: runtimeEnvOr('VITE_KEYCLOAK_CLIENT_ID', 'clenzy-web'),
 } as const;
 
 // Configuration de l'application
 export const APP_CONFIG = {
-  NAME: import.meta.env.VITE_APP_NAME || 'Baitly',
+  NAME: runtimeEnvOr('VITE_APP_NAME', 'Baitly'),
   VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
 } as const;
 

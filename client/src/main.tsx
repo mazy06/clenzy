@@ -9,6 +9,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import posthog from 'posthog-js'
+import { runtimeEnv, runtimeEnvOr } from './config/runtimeConfig';
 import App from './modules/App'
 import AppUpdateBanner from './components/AppUpdateBanner'
 import './theme/signature/tokens.css'
@@ -81,10 +82,11 @@ const rtlCache = createCache({
 })
 
 // ─── Sentry — Error tracking & performance monitoring ────────────────────────
-if (import.meta.env.VITE_SENTRY_DSN) {
+const sentryDsn = runtimeEnv('VITE_SENTRY_DSN');
+if (sentryDsn) {
   Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.VITE_ENV || 'production',
+    dsn: sentryDsn,
+    environment: runtimeEnvOr('VITE_ENV', 'production'),
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
@@ -104,9 +106,10 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 }
 
 // ─── PostHog — Product analytics & session replay ────────────────────────────
-if (import.meta.env.VITE_POSTHOG_KEY) {
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://eu.i.posthog.com',
+const posthogKey = runtimeEnv('VITE_POSTHOG_KEY');
+if (posthogKey) {
+  posthog.init(posthogKey, {
+    api_host: runtimeEnvOr('VITE_POSTHOG_HOST', 'https://eu.i.posthog.com'),
     person_profiles: 'identified_only',
     autocapture: true,
     capture_pageview: true,
@@ -138,9 +141,10 @@ if (import.meta.env.VITE_POSTHOG_KEY) {
 }
 
 // ─── Crisp — Live chat support widget ────────────────────────────────────────
-if (import.meta.env.VITE_CRISP_WEBSITE_ID) {
+const crispWebsiteId = runtimeEnv('VITE_CRISP_WEBSITE_ID');
+if (crispWebsiteId) {
   (window as any).$crisp = [];
-  (window as any).CRISP_WEBSITE_ID = import.meta.env.VITE_CRISP_WEBSITE_ID;
+  (window as any).CRISP_WEBSITE_ID = crispWebsiteId;
   const d = document;
   const s = d.createElement('script');
   s.src = 'https://client.crisp.chat/l.js';

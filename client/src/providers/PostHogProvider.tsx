@@ -3,11 +3,12 @@ import { useLocation } from 'react-router-dom';
 import posthog from 'posthog-js';
 import { useAuth } from '../hooks/useAuth';
 
+import { runtimeEnv } from '../config/runtimeConfig';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Returns true if PostHog was initialized (key is present). */
 function isActive(): boolean {
-  return !!import.meta.env.VITE_POSTHOG_KEY;
+  return !!runtimeEnv('VITE_POSTHOG_KEY');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

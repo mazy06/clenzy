@@ -37,6 +37,15 @@ FROM nginx:alpine
 # dist-site, et non dist : c'est l'outDir declare par vite.site.config.ts.
 COPY --from=build /app/dist-site /usr/share/nginx/html
 # Meme politique de cache que le PMS (assets hashes immutables, SPA fallback).
+# Elle porte aussi la regle `location = /baitly-config.js` en no-cache, sans
+# laquelle la configuration ci-dessous serait figee 1 an chez les visiteurs.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Meme configuration d'EXECUTION que le PMS : l'URL de l'API et celle du PMS
+# sont ecrites au demarrage du conteneur, pas gravees dans le bundle. Une image
+# unique sert donc plusieurs instances.
+COPY docker-runtime-config.sh /docker-entrypoint.d/40-baitly-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-baitly-runtime-config.sh
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

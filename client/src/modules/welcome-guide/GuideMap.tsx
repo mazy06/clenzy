@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+import { runtimeEnv } from '../../config/runtimeConfig';
+const MAPBOX_TOKEN = runtimeEnv('VITE_MAPBOX_TOKEN');
 
 export interface GuideMapPin {
   lat: number;

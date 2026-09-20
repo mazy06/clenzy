@@ -42,6 +42,14 @@
         window.__baitlyLocale.promise.catch(function () { /* repris a l'init */ });
       })();
     </script>
+    <!-- Configuration d'EXECUTION (URL de l'API, de Keycloak, cles publiques).
+         Ecrite par le conteneur a son demarrage, pas gravee dans le bundle :
+         c'est ce qui permet a une image unique de servir plusieurs domaines.
+         En `vite dev`, le fichier de `public/` ne declare qu'un objet vide et
+         `runtimeConfig.ts` retombe sur les `.env`. Doit rester AVANT le
+         bundle, qui le lit des son evaluation. -->
+    <script src="/baitly-config.js"></script>
+
     <title>Baitly — PMS pour locations courte durée</title>
     <meta name="description" content="Baitly est le Property Management System (PMS) pour gestionnaires de location courte durée : synchronisation multi-OTA, automation messaging WhatsApp/email, briefings IA, comptabilité multi-pays." />
     <meta name="author" content="Baitly" />

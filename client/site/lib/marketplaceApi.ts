@@ -7,7 +7,9 @@
  * des requêtes qui les utilisent.</p>
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8084';
+import { runtimeEnvOr } from '../../src/config/runtimeConfig';
+
+const API_BASE_URL = runtimeEnvOr('VITE_API_URL', 'http://localhost:8084');
 const BASE = `${API_BASE_URL}/api/public/marketplace`;
 
 export type PricingModel = import('../../src/types/providerPricing').ProviderPricingModel;
@@ -98,21 +100,64 @@ export class ApiError extends Error {
   }
 }
 
-async function readError(response: Response, fallback: string): Promise<never> {
+/**
+ * Messages de repli, quand le serveur ne dit rien d'exploitable.
+ *
+ * <p>Ce module n'est pas un composant : il ne peut pas lire le contexte de
+ * langue. Il lit donc l'attribut `lang` du document, que le fournisseur de
+ * langue tient a jour — la meme source que celle sur laquelle s'appuient le
+ * lecteur d'ecran et la bascule de police.</p>
+ */
+const FALLBACKS: Record<string, Record<string, string>> = {
+  fr: {
+    catalog: 'Catalogue indisponible.',
+    terms: 'Conditions indisponibles.',
+    send: 'L’envoi a échoué. Réessayez.',
+    resume: 'Le dossier ne peut pas être repris.',
+    confirm: 'La confirmation a échoué.',
+    upload: 'Le dépôt a échoué.',
+    activate: 'L’activation a échoué.',
+  },
+  en: {
+    catalog: 'Catalogue unavailable.',
+    terms: 'Terms unavailable.',
+    send: 'Sending failed. Please try again.',
+    resume: 'This application cannot be resumed.',
+    confirm: 'Confirmation failed.',
+    upload: 'The upload failed.',
+    activate: 'Activation failed.',
+  },
+  ar: {
+    catalog: 'الكتالوج غير متاح.',
+    terms: 'الشروط غير متاحة.',
+    send: 'فشل الإرسال. حاول مرة أخرى.',
+    resume: 'لا يمكن استئناف هذا الطلب.',
+    confirm: 'فشل التأكيد.',
+    upload: 'فشل الرفع.',
+    activate: 'فشل التفعيل.',
+  },
+};
+
+function fallbackMessage(key: string): string {
+  const lang = (document.documentElement.lang || 'fr').split('-')[0];
+  return (FALLBACKS[lang] ?? FALLBACKS.fr)[key] ?? FALLBACKS.fr[key];
+}
+
+async function readError(response: Response, key: string): Promise<never> {
   const body = await response.json().catch(() => null);
-  throw new ApiError(body?.message || fallback, response.status);
+  throw new ApiError(body?.message || fallbackMessage(key), response.status);
 }
 
 export const marketplaceApi = {
   async getCategories(): Promise<ServiceCategory[]> {
     const response = await fetch(`${BASE}/categories`);
-    if (!response.ok) await readError(response, 'Catalogue indisponible.');
+    if (!response.ok) await readError(response, 'catalog');
     return response.json();
   },
 
   async getTermsVersion(): Promise<string> {
     const response = await fetch(`${BASE}/terms-version`);
-    if (!response.ok) await readError(response, 'Conditions indisponibles.');
+    if (!response.ok) await readError(response, 'terms');
     return (await response.json()).version as string;
   },
 
@@ -124,7 +169,7 @@ export const marketplaceApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!response.ok) await readError(response, "L'envoi a échoué. Réessayez.");
+    if (!response.ok) await readError(response, 'send');
     return 'session';
   },
 
@@ -134,7 +179,7 @@ export const marketplaceApi = {
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'BaitlyApplication' },
       body: JSON.stringify({ token }),
     });
-    if (!response.ok) await readError(response, 'Le dossier ne peut pas être repris.');
+    if (!response.ok) await readError(response, 'resume');
   },
 
   /**
@@ -146,7 +191,7 @@ export const marketplaceApi = {
   async confirmEmail(token: string): Promise<string> {
     const response = await fetch(
       `${BASE}/applications/confirm/${encodeURIComponent(token)}`, { method: 'POST' });
-    if (!response.ok) await readError(response, 'La confirmation a échoué.');
+    if (!response.ok) await readError(response, 'confirm');
     return (await response.json()).message as string;
   },
 
@@ -170,7 +215,7 @@ export const marketplaceApi = {
       `${BASE}/applications/${encodeURIComponent(token)}/documents`,
       { method: 'POST', body: form, credentials: 'include', headers: { 'X-Requested-With': 'BaitlyApplication' } },
     );
-    if (!response.ok) await readError(response, 'Le dépôt a échoué.');
+    if (!response.ok) await readError(response, 'upload');
     return response.json();
   },
 
@@ -193,7 +238,7 @@ export const marketplaceApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, password }),
     });
-    if (!response.ok) await readError(response, "L'activation a échoué.");
+    if (!response.ok) await readError(response, 'activate');
     return (await response.json()).message as string;
   },
 };

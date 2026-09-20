@@ -58,5 +58,15 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Configuration d'EXECUTION : le script reecrit /baitly-config.js au demarrage
+# du conteneur a partir des variables d'environnement. C'est ce qui permet a
+# cette image UNIQUE de servir plusieurs domaines (app.clenzy.fr, app.baitly.fr)
+# sans rebuild — les ARG VITE_* ci-dessus ne restent qu'un repli de build.
+# L'image nginx execute d'elle-meme tout `.sh` de /docker-entrypoint.d/ avant
+# de lancer le serveur : on ne remplace pas son entrypoint, on s'y greffe.
+COPY docker-runtime-config.sh /docker-entrypoint.d/40-baitly-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-baitly-runtime-config.sh
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

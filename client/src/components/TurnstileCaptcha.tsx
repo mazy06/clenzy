@@ -3,6 +3,7 @@ import { Spinner } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
 
 
+import { runtimeEnvOr } from '../config/runtimeConfig';
 interface TurnstileCaptchaProps {
   onVerified: (token: string) => void;
   onError?: (message: string) => void;
@@ -19,7 +20,7 @@ declare global {
 }
 
 const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+const SITE_KEY = runtimeEnvOr('VITE_TURNSTILE_SITE_KEY', '');
 
 export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptchaProps) {
   const { t } = useTranslation();

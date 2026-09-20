@@ -5,6 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useThemeMode } from '../hooks/useThemeMode';
 
+import { runtimeEnv } from '../config/runtimeConfig';
 export interface PropertyMarker {
   lat: number;
   lng: number;
@@ -29,7 +30,7 @@ interface MapboxPropertyMapProps {
   onBoundsChange?: (bounds: MapBounds) => void;
 }
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = runtimeEnv('VITE_MAPBOX_TOKEN');
 /**
  * Dernier recours seulement. Le centre normal est la ville du compte
  * (`useHomeMapCenter`) ; Paris ne sert plus qu'aux comptes sans ville

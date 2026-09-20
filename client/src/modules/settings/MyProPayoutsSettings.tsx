@@ -18,6 +18,7 @@ import { housekeeperPayoutsApi } from '../../services/api/housekeeperPayoutsApi'
 import type { HousekeeperPayoutRecord } from '../../services/api/housekeeperPayoutsApi';
 import { activeIntlLocale } from '../../utils/activeLocale';
 
+import { runtimeEnv } from '../../config/runtimeConfig';
 // ─── « Mes versements » (Moteur Ménage 3B — P9) — HOUSEKEEPER / TECHNICIAN ───
 // Onboarding Stripe Connect Express EMBARQUÉ (@stripe/connect-js — le pro ne
 // quitte pas Baitly) + historique des versements (payout à la validation de la
@@ -63,7 +64,7 @@ export default function MyProPayoutsSettings() {
     setOnboardingError(null);
     setInitializing(true);
     try {
-      const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+      const publishableKey = runtimeEnv('VITE_STRIPE_PUBLISHABLE_KEY');
       if (!publishableKey) {
         setOnboardingError(t('settings.myProPayouts.noPublishableKey'));
         return;

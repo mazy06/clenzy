@@ -25,6 +25,7 @@ import { WELCOME_BOOK_THEMES, normalizeTheme, injectWelcomeBookCss } from './wel
 import { GUIDE_LABELS as LABELS } from './guideLabels';
 import { API_CONFIG } from '../../config/api';
 
+import { runtimeEnv } from '../../config/runtimeConfig';
 // Origine de l'API (SANS le préfixe /api : les chemins ci-dessous et les URLs
 // relatives du payload — hero-photo, access-photos — l'incluent déjà).
 // Résolution standard de l'app via VITE_API_BASE_URL : dev = http://localhost:8084,
@@ -49,10 +50,10 @@ function parseArrivalPhotos(json: string | null | undefined): Array<{ key: strin
   }
 }
 
-// Clé publishable Stripe (build-time, dispo aussi sur la page publique). Null si non configurée.
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
-  : null;
+// Clé publishable Stripe (résolue à l'exécution, dispo aussi sur la page
+// publique). Null si non configurée.
+const stripePublishableKey = runtimeEnv('VITE_STRIPE_PUBLISHABLE_KEY');
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const guideIconBadge56Style: React.CSSProperties = {
   width: 56,
