@@ -36,6 +36,8 @@ const ForgotPassword = lazy(() => import('./auth/ForgotPassword'));
 const Support = lazy(() => import('./auth/Support'));
 const Cgu = lazy(() => import('./legal/Cgu'));
 const Privacy = lazy(() => import('./legal/Privacy'));
+// Troisieme document du corpus : le seul qui identifie l'editeur.
+const MentionsLegales = lazy(() => import('./legal/MentionsLegales'));
 const AcceptInvitationPage = lazy(() => import('./invitations/AcceptInvitationPage'));
 const PublicKeyVerification = lazy(() => import('../pages/PublicKeyVerification'));
 const PublicGuide = lazy(() => import('./welcome-guide/PublicGuide'));
@@ -392,6 +394,7 @@ const App: React.FC = () => {
           {/* Routes publiques legales (CGU + Politique de confidentialite RGPD) */}
           <Route path="/cgu" element={<Cgu />} />
           <Route path="/confidentialite" element={<Privacy />} />
+          <Route path="/mentions-legales" element={<MentionsLegales />} />
 
           {/* Route publique/semi-publique pour accepter une invitation */}
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />

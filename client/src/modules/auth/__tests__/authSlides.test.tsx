@@ -131,6 +131,23 @@ describe('Couverture des slides', () => {
     expect(orphans).toEqual([]);
   });
 
+  it('nomme les trois pays couverts au lieu d’une formule vague', () => {
+    // « ou que vous soyez » promettait une couverture mondiale que rien
+    // n'etaye : `countryDefaults` ne distingue que FR, MA et SA. Les nommer
+    // est plus honnete ET plus vendeur — un hote marocain s'y reconnait.
+    const EXPECTED: Record<string, RegExp> = {
+      fr: /France.*Maroc.*Arabie saoudite/i,
+      en: /France.*Morocco.*Saudi Arabia/i,
+      ar: /فرنسا.*المغرب.*السعودية/,
+    };
+    for (const language of LANGUAGES) {
+      const bundle = i18n.getResourceBundle(language, 'translation');
+      const slide = JSON.stringify(bundle?.auth?.slides?.s8 ?? {});
+      expect(slide).toMatch(EXPECTED[language]);
+      expect(slide).not.toMatch(/o[uù] que vous soyez|wherever you are|juridiction/i);
+    }
+  });
+
   it('couvre les modules vendeurs du produit', () => {
     // Le moteur de reservation est le deuxieme module du produit par la taille
     // et n'apparaissait nulle part ; le livret, la marketplace et les ventes

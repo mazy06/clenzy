@@ -5617,7 +5617,7 @@
       },
       "tax": {
         "title": "Fiscalité — Taxe de séjour",
-        "description": "Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international."
+        "description": "Calcul, collecte et déclaration automatique de la taxe de séjour. Barèmes France, Maroc et Arabie saoudite."
       },
       "insurance": {
         "title": "Assurance & screening",
@@ -10668,7 +10668,8 @@
       "lastUpdated": "Dernière mise à jour : {{date}}",
       "footerCgu": "CGU",
       "footerPrivacy": "Politique de confidentialité",
-      "footerSupport": "Support"
+      "footerSupport": "Support",
+      "footerNotice": "Mentions légales"
     },
     "slides": {
       "s0": {
@@ -10708,10 +10709,10 @@
         "subtitle": "Le code expire automatiquement au départ, la batterie de la serrure est surveillée, les clés déposées en consigne sont suivies en temps réel. Vous ne donnez plus jamais un code à la main."
       },
       "s8": {
-        "tagline": "Votre comptabilité connectée,",
-        "highlight": "où que vous soyez",
+        "tagline": "Votre comptabilité,",
+        "highlight": "en France, au Maroc et en Arabie saoudite",
         "end": ".",
-        "subtitle": "Baitly s'adapte à votre juridiction. Factures synchronisées, factures fournisseurs importées, déclarations préparées. Vos revenus consolidés multi-pays sur un seul tableau de bord."
+        "subtitle": "Chaque pays a son profil fiscal, sa devise et sa numérotation de factures. Déclarations préparées, factures fournisseurs importées, et vos revenus consolidés sur un seul tableau de bord."
       },
       "s9": {
         "tagline": "Vos contrats signés",
@@ -17459,117 +17460,5 @@
   },
   "stats": {
     "noChartData": "Aucune donnée à représenter."
-  },
-  "legal": {
-    "cgu": {
-      "title": "Conditions Générales d'Utilisation",
-      "draftNotice": "Cette page est un brouillon. Les conditions générales définitives seront publiées prochainement. Pour toute question urgente, contactez <support>support@clenzy.fr</support>.",
-      "purpose": {
-        "title": "1. Objet",
-        "p1": "Les présentes conditions générales d'utilisation (ci-après « CGU ») ont pour objet de définir les modalités d'utilisation de la plateforme Baitly, un logiciel de gestion de locations courte durée (Property Management System) édité par la société Baitly.",
-        "p2": "L'inscription au service vaut acceptation pleine et entière des présentes CGU."
-      },
-      "account": {
-        "title": "2. Compte utilisateur",
-        "p1": "L'utilisateur s'engage à fournir des informations exactes lors de la création de son compte et à maintenir ces informations à jour. Il est seul responsable de la confidentialité de ses identifiants de connexion."
-      },
-      "subscription": {
-        "title": "3. Abonnement et facturation",
-        "p1": "L'accès à la plateforme nécessite la souscription à un abonnement mensuel, annuel ou biennal. Les prix en vigueur sont affichés sur la page d'inscription. Le paiement est traité par notre partenaire Stripe.",
-        "p2": "L'abonnement est reconduit tacitement à chaque échéance, sauf résiliation par l'utilisateur depuis son espace de gestion."
-      },
-      "ip": {
-        "title": "4. Propriété intellectuelle",
-        "p1": "L'ensemble des éléments composant la plateforme Baitly (interface, code, marques, logos, contenus) est protégé par le droit de la propriété intellectuelle. Toute reproduction non autorisée est strictement interdite."
-      },
-      "availability": {
-        "title": "5. Disponibilité du service",
-        "p1": "Baitly met en œuvre les moyens raisonnables pour assurer la disponibilité de la plateforme 24h/24, 7j/7. Des interruptions peuvent survenir pour maintenance ou en cas de force majeure."
-      },
-      "liability": {
-        "title": "6. Responsabilité",
-        "p1": "Baitly est tenu à une obligation de moyens et ne saurait être tenu responsable des pertes indirectes, pertes de données ou pertes de chiffre d'affaires subies par l'utilisateur."
-      },
-      "personalData": {
-        "title": "7. Données personnelles",
-        "p1": "Le traitement des données personnelles est régi par notre <privacy>Politique de confidentialité</privacy>, accessible à tout moment depuis le pied de page."
-      },
-      "termination": {
-        "title": "8. Résiliation",
-        "p1": "L'utilisateur peut résilier son abonnement à tout moment depuis son espace de gestion. La résiliation prend effet à la fin de la période en cours déjà payée."
-      },
-      "law": {
-        "title": "9. Droit applicable",
-        "p1": "Les présentes CGU sont régies par le droit français. Tout litige relatif à l'utilisation du service relève de la compétence exclusive des tribunaux français.",
-        "p2": "Les présentes CGU sont publiées en français, en anglais et en arabe. En cas de divergence entre ces versions, la version française prévaut."
-      },
-      "contact": {
-        "title": "10. Contact",
-        "p1": "Pour toute question relative aux présentes CGU, contactez-nous à <support>support@clenzy.fr</support>."
-      }
-    },
-    "privacy": {
-      "title": "Politique de confidentialité",
-      "draftNotice": "Cette page est un brouillon. La politique définitive sera publiée prochainement. Pour toute question RGPD, contactez <dpo>dpo@clenzy.fr</dpo>.",
-      "controller": {
-        "title": "1. Responsable du traitement",
-        "p1": "Le responsable du traitement de vos données personnelles est la société Baitly. Pour toute demande relative à vos données, contactez notre Délégué à la Protection des Données (DPO) à <dpo>dpo@clenzy.fr</dpo>."
-      },
-      "data": {
-        "title": "2. Données collectées",
-        "p1": "Lors de votre inscription et de votre utilisation de la plateforme, nous collectons les catégories de données suivantes :",
-        "i1": "Données d'identité : nom, prénom, adresse email, numéro de téléphone",
-        "i2": "Données professionnelles : type d'organisation, nom de société, ville",
-        "i3": "Données de facturation : via notre partenaire Stripe (nous ne stockons aucun numéro de carte)",
-        "i4": "Données d'utilisation : logs techniques, préférences d'interface",
-        "i5": "Données d'attribution (optionnelles) : code promo, canal d'acquisition déclaré"
-      },
-      "purposes": {
-        "title": "3. Finalités",
-        "p1": "Vos données sont utilisées pour :",
-        "i1": "Créer et gérer votre compte (base légale : exécution du contrat)",
-        "i2": "Vous facturer le service (base légale : exécution du contrat)",
-        "i3": "Vous envoyer des notifications relatives à votre activité (base légale : intérêt légitime)",
-        "i4": "Vous envoyer notre newsletter (base légale : consentement explicite, retirable à tout moment)",
-        "i5": "Améliorer le service via des statistiques d'usage agrégées et anonymisées"
-      },
-      "recipients": {
-        "title": "4. Destinataires",
-        "p1": "Vos données sont accessibles aux équipes Baitly strictement habilitées et à nos sous-traitants techniques :",
-        "i1": "Stripe, CMI, PayZone, YouCan Pay et PayTabs (encaissement des paiements)",
-        "i2": "Brevo (envoi d'emails transactionnels)",
-        "i3": "Meta Platforms — WhatsApp Business Cloud API (messagerie voyageurs)",
-        "i4": "Hébergeur cloud (stockage et calcul)"
-      },
-      "retention": {
-        "title": "5. Durée de conservation",
-        "p1": "Vos données sont conservées le temps de la relation contractuelle, puis archivées pendant la durée légale (notamment 10 ans pour les pièces comptables)."
-      },
-      "rights": {
-        "title": "6. Vos droits (RGPD)",
-        "p1": "Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits suivants :",
-        "i1": "<b>Accès</b> : obtenir une copie de vos données",
-        "i2": "<b>Rectification</b> : corriger des données inexactes",
-        "i3": "<b>Effacement</b> : demander la suppression de vos données",
-        "i4": "<b>Limitation</b> : limiter le traitement",
-        "i5": "<b>Portabilité</b> : récupérer vos données dans un format structuré",
-        "i6": "<b>Opposition</b> : vous opposer à un traitement",
-        "i7": "<b>Retrait du consentement</b> : retirer votre consentement à tout moment (notamment pour la newsletter, depuis la page Préférences de notifications)",
-        "after1": "Pour exercer ces droits, contactez <dpo>dpo@clenzy.fr</dpo>. Vous pouvez également déposer une réclamation auprès de la CNIL."
-      },
-      "security": {
-        "title": "7. Sécurité",
-        "p1": "Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos données : chiffrement TLS en transit, hash des mots de passe, contrôles d'accès, audits de sécurité réguliers."
-      },
-      "cookies": {
-        "title": "8. Cookies",
-        "p1": "La plateforme utilise uniquement des cookies strictement nécessaires au fonctionnement du service (authentification, préférences d'interface). Aucun cookie publicitaire ou de tracking tiers n'est déposé."
-      },
-      "changes": {
-        "title": "9. Modifications",
-        "p1": "La présente politique peut être mise à jour. La date de dernière modification est affichée en haut de cette page. Toute modification substantielle vous sera notifiée par email.",
-        "p2": "La présente politique est publiée en français, en anglais et en arabe. En cas de divergence entre ces versions, la version française fait référence ; les droits que vous tenez du RGPD s'appliquent quelle que soit la langue de consultation."
-      }
-    }
   }
 }

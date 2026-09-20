@@ -1,26 +1,25 @@
 /**
- * Contenus juridiques du site Baitly — rédigés pour un éditeur SaaS marocain
- * opérant aussi vers l'UE. Les identifiants entre crochets 〔…〕 sont à
- * compléter à l'immatriculation ; faire relire par un conseil avant mise en
- * production publique.
+ * Corpus juridique Baitly — version FRANCAISE, qui fait foi.
+ *
+ * <p>Redige pour un editeur SaaS marocain operant aussi vers l'UE. Les
+ * identifiants entre crochets 〔…〕 restent a completer a l'immatriculation ;
+ * faire relire par un conseil avant mise en production publique.</p>
+ *
+ * <p><b>Source unique.</b> Le PMS et la landing rendent ce meme corpus. Ils ont
+ * longtemps porte deux textes distincts, qui se contredisaient sur le droit
+ * applicable, l'editeur, l'autorite de controle et le role RGPD — et c'est le
+ * brouillon du PMS que la case d'inscription faisait accepter.</p>
+ *
+ * <p><b>Pourquoi pas des cles i18n.</b> Un document juridique se relit comme un
+ * document : un conseil doit pouvoir le lire d'un bout a l'autre. Eclate en
+ * trois cents cles plates, il devient irrelisable — et donc non relu. Chaque
+ * langue est donc un fichier, de meme forme. Le livret d'accueil et le SDK de
+ * reservation suivent deja cette regle.</p>
  */
 
-export interface LegalBlock {
-  heading: string;
-  paragraphs?: string[];
-  list?: string[];
-  table?: { headers: string[]; rows: string[][] };
-}
+import type { LegalDoc } from './types';
 
-export interface LegalDoc {
-  slug: string;
-  title: string;
-  intro: string;
-  updated: string;
-  blocks: LegalBlock[];
-}
-
-export const LEGAL_DOCS: LegalDoc[] = [
+export const LEGAL_DOCS_FR: LegalDoc[] = [
   /* ─────────────────────────── MENTIONS LÉGALES ─────────────────────────── */
   {
     slug: 'mentions-legales',
@@ -298,12 +297,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
         heading: 'Article 15 — Droit applicable et juridiction',
         paragraphs: [
           'Les présentes sont régies par le droit marocain. À défaut de résolution amiable dans les 30 jours d’une notification écrite, tout litige relèvera de la compétence exclusive du Tribunal de commerce de 〔Casablanca / Marrakech〕, nonobstant pluralité de défendeurs ou appel en garantie. Des conditions particulières peuvent stipuler un droit et un for différents pour les clients établis dans l’UE.',
+          'Les présentes sont publiées en français, en anglais et en arabe. En cas de divergence entre ces versions, la version française prévaut.',
         ],
       },
     ],
   },
 ];
-
-export function getLegalDoc(slug: string | undefined): LegalDoc | undefined {
-  return LEGAL_DOCS.find((doc) => doc.slug === slug);
-}

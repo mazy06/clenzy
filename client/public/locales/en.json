@@ -5621,7 +5621,7 @@
       },
       "tax": {
         "title": "Tax — Tourist tax",
-        "description": "Automatic calculation, collection and filing of the tourist tax. Supports French and international rate schedules."
+        "description": "Automatic calculation, collection and filing of the tourist tax. Rate schedules for France, Morocco and Saudi Arabia."
       },
       "insurance": {
         "title": "Insurance & screening",
@@ -10672,7 +10672,8 @@
       "lastUpdated": "Last updated: {{date}}",
       "footerCgu": "Terms",
       "footerPrivacy": "Privacy policy",
-      "footerSupport": "Support"
+      "footerSupport": "Support",
+      "footerNotice": "Legal notice"
     },
     "slides": {
       "s0": {
@@ -10712,10 +10713,10 @@
         "subtitle": "The code expires automatically at check-out, the lock battery is monitored, keys left at a key-box are tracked in real time. You never hand out a code manually again."
       },
       "s8": {
-        "tagline": "Your accounting connected,",
-        "highlight": "wherever you are",
+        "tagline": "Your accounting,",
+        "highlight": "in France, Morocco and Saudi Arabia",
         "end": ".",
-        "subtitle": "Baitly adapts to your jurisdiction. Invoices synced, supplier invoices imported, filings prepared. Your multi-country revenue consolidated on a single dashboard."
+        "subtitle": "Each country has its own tax profile, currency and invoice numbering. Filings prepared, supplier invoices imported, and your revenue consolidated on a single dashboard."
       },
       "s9": {
         "tagline": "Your contracts signed",
@@ -17463,117 +17464,5 @@
   },
   "stats": {
     "noChartData": "No data to plot."
-  },
-  "legal": {
-    "cgu": {
-      "title": "Terms of Use",
-      "draftNotice": "This page is a draft. The final terms of use will be published shortly. For anything urgent, contact <support>support@clenzy.fr</support>.",
-      "purpose": {
-        "title": "1. Purpose",
-        "p1": "These terms of use (hereinafter the “Terms”) set out how the Baitly platform may be used. Baitly is a short-term rental management system (Property Management System) published by the company Baitly.",
-        "p2": "Signing up for the service constitutes full and unreserved acceptance of these Terms."
-      },
-      "account": {
-        "title": "2. User account",
-        "p1": "The user undertakes to provide accurate information when creating their account and to keep that information up to date. They are solely responsible for keeping their login credentials confidential."
-      },
-      "subscription": {
-        "title": "3. Subscription and billing",
-        "p1": "Access to the platform requires a monthly, yearly or two-yearly subscription. Current prices are shown on the sign-up page. Payment is processed by our partner Stripe.",
-        "p2": "The subscription renews automatically at each term unless the user cancels it from their management area."
-      },
-      "ip": {
-        "title": "4. Intellectual property",
-        "p1": "Every element of the Baitly platform (interface, code, trademarks, logos, content) is protected by intellectual property law. Any unauthorised reproduction is strictly prohibited."
-      },
-      "availability": {
-        "title": "5. Service availability",
-        "p1": "Baitly uses reasonable means to keep the platform available 24/7. Interruptions may occur for maintenance or in cases of force majeure."
-      },
-      "liability": {
-        "title": "6. Liability",
-        "p1": "Baitly is bound by an obligation of means and cannot be held liable for indirect losses, loss of data or loss of revenue suffered by the user."
-      },
-      "personalData": {
-        "title": "7. Personal data",
-        "p1": "The processing of personal data is governed by our <privacy>Privacy policy</privacy>, available at any time from the footer."
-      },
-      "termination": {
-        "title": "8. Termination",
-        "p1": "The user may cancel their subscription at any time from their management area. Cancellation takes effect at the end of the current period already paid for."
-      },
-      "law": {
-        "title": "9. Governing law",
-        "p1": "These Terms are governed by French law. Any dispute relating to the use of the service falls under the exclusive jurisdiction of the French courts.",
-        "p2": "These Terms are published in French, English and Arabic. In the event of any discrepancy between these versions, the French version prevails."
-      },
-      "contact": {
-        "title": "10. Contact",
-        "p1": "For any question about these Terms, contact us at <support>support@clenzy.fr</support>."
-      }
-    },
-    "privacy": {
-      "title": "Privacy policy",
-      "draftNotice": "This page is a draft. The final policy will be published shortly. For any GDPR question, contact <dpo>dpo@clenzy.fr</dpo>.",
-      "controller": {
-        "title": "1. Data controller",
-        "p1": "The controller of your personal data is the company Baitly. For any request about your data, contact our Data Protection Officer (DPO) at <dpo>dpo@clenzy.fr</dpo>."
-      },
-      "data": {
-        "title": "2. Data collected",
-        "p1": "When you sign up and use the platform, we collect the following categories of data:",
-        "i1": "Identity data: last name, first name, email address, phone number",
-        "i2": "Business data: type of organisation, company name, city",
-        "i3": "Billing data: through our partner Stripe (we store no card numbers)",
-        "i4": "Usage data: technical logs, interface preferences",
-        "i5": "Attribution data (optional): promo code, declared acquisition channel"
-      },
-      "purposes": {
-        "title": "3. Purposes",
-        "p1": "Your data is used to:",
-        "i1": "Create and manage your account (legal basis: performance of the contract)",
-        "i2": "Bill you for the service (legal basis: performance of the contract)",
-        "i3": "Send you notifications about your activity (legal basis: legitimate interest)",
-        "i4": "Send you our newsletter (legal basis: explicit consent, withdrawable at any time)",
-        "i5": "Improve the service through aggregated, anonymised usage statistics"
-      },
-      "recipients": {
-        "title": "4. Recipients",
-        "p1": "Your data is accessible to strictly authorised Baitly teams and to our technical subprocessors:",
-        "i1": "Stripe, CMI, PayZone, YouCan Pay and PayTabs (payment collection)",
-        "i2": "Brevo (transactional email delivery)",
-        "i3": "Meta Platforms — WhatsApp Business Cloud API (guest messaging)",
-        "i4": "Cloud host (storage and compute)"
-      },
-      "retention": {
-        "title": "5. Retention period",
-        "p1": "Your data is kept for the duration of the contractual relationship, then archived for the statutory period (in particular 10 years for accounting records)."
-      },
-      "rights": {
-        "title": "6. Your rights (GDPR)",
-        "p1": "Under the General Data Protection Regulation (GDPR), you have the following rights:",
-        "i1": "<b>Access</b>: obtain a copy of your data",
-        "i2": "<b>Rectification</b>: correct inaccurate data",
-        "i3": "<b>Erasure</b>: request the deletion of your data",
-        "i4": "<b>Restriction</b>: restrict the processing",
-        "i5": "<b>Portability</b>: retrieve your data in a structured format",
-        "i6": "<b>Objection</b>: object to a processing operation",
-        "i7": "<b>Withdrawal of consent</b>: withdraw your consent at any time (in particular for the newsletter, from the Notification preferences page)",
-        "after1": "To exercise these rights, contact <dpo>dpo@clenzy.fr</dpo>. You may also lodge a complaint with the CNIL, the French data protection authority."
-      },
-      "security": {
-        "title": "7. Security",
-        "p1": "We apply appropriate technical and organisational measures to protect your data: TLS encryption in transit, password hashing, access controls, regular security audits."
-      },
-      "cookies": {
-        "title": "8. Cookies",
-        "p1": "The platform only uses cookies that are strictly necessary for the service to work (authentication, interface preferences). No advertising or third-party tracking cookie is set."
-      },
-      "changes": {
-        "title": "9. Changes",
-        "p1": "This policy may be updated. The date of the last change is shown at the top of this page. Any substantial change will be notified to you by email.",
-        "p2": "This policy is published in French, English and Arabic. In the event of any discrepancy between these versions, the French version is the reference version; the rights you hold under the GDPR apply whichever language you read it in."
-      }
-    }
   }
 }

@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Separator } from '../../components/ui';
 import { ArrowBack } from '../../icons';
 import { cn } from '../../utils/cn';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import PublicLanguagePicker from '../../components/PublicLanguagePicker';
 
@@ -22,8 +21,14 @@ import PublicLanguagePicker from '../../components/PublicLanguagePicker';
  */
 export interface LegalLayoutProps {
   title: string;
-  /** Date ISO (`AAAA-MM-JJ`) de derniere modification du document. */
-  lastUpdated: string;
+  /**
+   * Date de derniere modification, DEJA redigee dans la langue du document.
+   *
+   * <p>Elle vient du corpus et reste gregorienne dans les trois langues : en
+   * hegirien, la version arabe annoncerait une autre date d'effet que la
+   * francaise, pour le meme document.</p>
+   */
+  updated: string;
   children: React.ReactNode;
 }
 
@@ -37,88 +42,7 @@ const CONTAINER = 'mx-auto w-full max-w-[900px] px-4 min-[600px]:px-6';
 const QUIET_LINK =
   'text-muted-foreground no-underline transition-colors duration-150 hover:text-primary motion-reduce:transition-none';
 
-/**
- * Date d'effet d'un document legal — TOUJOURS gregorienne.
- *
- * <p>La langue suit le lecteur, le calendrier non : rendue en hegirien, la
- * version arabe annoncerait une autre date que la version francaise du meme
- * document. Or c'est la meme date d'effet qui engage.</p>
- */
-function formatEffectiveDate(iso: string): string {
-  const date = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(activeIntlLocaleGregorian(), {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
-}
-
-/**
- * Un bloc de texte legal.
- *
- * <p>Chaque entree porte une CLE, jamais du texte : ces documents existent en
- * trois langues, et un repli en dur laisserait du francais a l'ecran pour un
- * lecteur arabophone — precisement ce qu'on ne peut pas se permettre sur une
- * page qui engage.</p>
- */
-export interface LegalSection {
-  /** Prefixe de cle : `<base>.<id>.title`, `.p1`, `.i1`, `.after1`… */
-  id: string;
-  /** Cles des paragraphes d'introduction, dans l'ordre. */
-  paragraphs: readonly string[];
-  /** Cles des puces, si la section porte une liste. */
-  items?: readonly string[];
-  /** Cles des paragraphes qui suivent la liste. */
-  after?: readonly string[];
-}
-
-/**
- * Rend les sections d'un document legal.
- *
- * <p>Les corps passent tous par {@code Trans} : plusieurs portent un lien
- * (contact DPO, renvoi a la politique de confidentialite) que le traducteur
- * doit pouvoir deplacer dans la phrase. Les composants non references par une
- * traduction sont simplement ignores.</p>
- */
-export function LegalSections({
-  base,
-  sections,
-  components,
-}: {
-  /** Racine des cles, p. ex. `legal.cgu`. */
-  base: string;
-  sections: readonly LegalSection[];
-  components?: Record<string, React.ReactElement>;
-}) {
-  const { t } = useTranslation();
-  const body = (key: string) => (
-    <Trans i18nKey={`${base}.${key}`} components={components} />
-  );
-
-  return (
-    <>
-      {sections.map((section) => (
-        <React.Fragment key={section.id}>
-          <h2>{t(`${base}.${section.id}.title`)}</h2>
-          {section.paragraphs.map((key) => (
-            <p key={key}>{body(`${section.id}.${key}`)}</p>
-          ))}
-          {section.items && (
-            <ul>
-              {section.items.map((key) => (
-                <li key={key}>{body(`${section.id}.${key}`)}</li>
-              ))}
-            </ul>
-          )}
-          {section.after?.map((key) => (
-            <p key={key}>{body(`${section.id}.${key}`)}</p>
-          ))}
-        </React.Fragment>
-      ))}
-    </>
-  );
-}
-
-export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
+export default function LegalLayout({ title, updated, children }: LegalLayoutProps) {
   const { t } = useTranslation();
   // La geolocalisation POSE la langue (pays arabes -> ar, Maghreb-France -> fr,
   // sinon en) ; le selecteur permet d'en sortir. Un document qui engage doit
@@ -159,7 +83,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           {title}
         </h1>
         <span className="block mb-6 text-xs tabular-nums text-muted-foreground">
-          {t('auth.legal.lastUpdated', { date: formatEffectiveDate(lastUpdated) })}
+          {t('auth.legal.lastUpdated', { date: updated })}
         </span>
         <Separator className="mb-6" />
         {/* Habillage typographique du contenu legal : les selecteurs imbriques
@@ -191,6 +115,9 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
             </RouterLink>
             <RouterLink to="/confidentialite" className={cn(QUIET_LINK, 'text-xs')}>
               {t('auth.legal.footerPrivacy', 'Politique de confidentialité')}
+            </RouterLink>
+            <RouterLink to="/mentions-legales" className={cn(QUIET_LINK, 'text-xs')}>
+              {t('auth.legal.footerNotice')}
             </RouterLink>
             <RouterLink to="/support" className={cn(QUIET_LINK, 'text-xs')}>
               {t('auth.legal.footerSupport', 'Support')}
