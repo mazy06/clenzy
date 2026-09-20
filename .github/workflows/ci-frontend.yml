@@ -62,12 +62,10 @@ jobs:
           # Heap Node augmente : le bundle (SDK + app + module supervision) depassait
           # la limite par defaut → "JavaScript heap out of memory" (exit 134) au vite build.
           NODE_OPTIONS: --max-old-space-size=4096
-          VITE_API_BASE_URL: https://app.clenzy.fr
-          VITE_API_BASE_PATH: /api
-          VITE_KEYCLOAK_URL: https://auth.clenzy.fr
-          VITE_KEYCLOAK_REALM: clenzy
-          VITE_KEYCLOAK_CLIENT_ID: clenzy-web
-          VITE_APP_NAME: Clenzy
+          # Aucune URL ici : depuis la config d'execution, elles sont resolues
+          # au demarrage du conteneur (client/docker-runtime-config.sh), pas au
+          # build. Ce job ne valide que la compilation du bundle.
+          VITE_APP_NAME: Baitly
           VITE_APP_VERSION: ${{ github.sha }}
         run: npm run build
 
@@ -160,13 +158,20 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # PLUS AUCUNE URL en build-arg. Vite substitue `import.meta.env.VITE_*`
+          # au build : une URL ici serait gravee dans le bundle et l'image ne
+          # pourrait plus servir qu'un seul domaine. Elles viennent desormais des
+          # variables d'environnement du conteneur (docker-compose.prod.yml ->
+          # /baitly-config.js -> src/config/runtimeConfig.ts), ce qui permet a
+          # CETTE image unique de servir clenzy.fr et baitly.fr.
+          #
+          # On ne remet volontairement PAS app.clenzy.fr en repli : si la config
+          # d'execution manquait sur une instance, un repli code en dur la ferait
+          # taper EN SILENCE sur le domaine de l'autre instance. Sans repli, elle
+          # retombe sur http://localhost:8084 — visiblement casse, donc detecte
+          # immediatement.
           build-args: |
-            VITE_API_BASE_URL=https://app.clenzy.fr
-            VITE_API_BASE_PATH=/api
-            VITE_KEYCLOAK_URL=https://auth.clenzy.fr
-            VITE_KEYCLOAK_REALM=clenzy
-            VITE_KEYCLOAK_CLIENT_ID=clenzy-web
-            VITE_APP_NAME=Clenzy
+            VITE_APP_NAME=Baitly
             VITE_APP_VERSION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

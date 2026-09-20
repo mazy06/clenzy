@@ -5,18 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Vos locations. L’esprit libre. Baitly réunit réservations, tarifs, voyageurs et équipes avec des agents IA. Pensé pour le Maroc et la France."
+      content="Vos locations. L’esprit libre. Baitly réunit réservations, tarifs, voyageurs et équipes avec des agents IA. Conçu pour l’Arabie saoudite, le Maroc et la France."
     />
+    <!-- Configuration d'EXECUTION (URL de l'API, du PMS). Ecrite par le
+         conteneur a son demarrage, pas gravee dans le bundle : une image
+         unique sert ainsi baitly.fr et toute autre instance. -->
+    <script src="/baitly-config.js"></script>
     <meta name="theme-color" content="#1B2A35" />
     <meta property="og:type" content="website" />
-    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale" content="ar_SA" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
     <meta
       property="og:title"
       content="Baitly | Vos locations. L’esprit libre."
     />
     <meta
       property="og:description"
-      content="Le PMS avec une équipe d’agents IA, pensé pour le Maroc et la France."
+      content="Le PMS avec une équipe d’agents IA, conçu pour l’Arabie saoudite, le Maroc et la France."
+    />
+    <!-- Les deux fontes que la landing partage avec l'application :
+         Space Grotesk pour le mot-symbole (cf. BaitlyMarkLogo) et Tajawal
+         pour l'arabe, afin que les deux surfaces se lisent pareil. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap"
     />
     <title>Baitly | Vos locations. L’esprit libre.</title>
   </head>

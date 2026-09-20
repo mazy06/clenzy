@@ -8,6 +8,7 @@ import { formatFactDate } from './notificationMeta';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import type { Property } from '../../services/api/propertiesApi';
 
+import { runtimeEnv } from '../../config/runtimeConfig';
 /**
  * Les pieces communes aux fiches de TERRAIN — intervention, demande de service,
  * signalement.
@@ -97,7 +98,7 @@ export function MapTile({ property, address }: { property: Property | null; addr
   const { isDark } = useThemeMode();
   const [failed, setFailed] = React.useState(false);
 
-  const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+  const token = runtimeEnv('VITE_MAPBOX_TOKEN');
   const lat = property?.latitude;
   const lon = property?.longitude;
   const hasCoords = typeof lat === 'number' && typeof lon === 'number';

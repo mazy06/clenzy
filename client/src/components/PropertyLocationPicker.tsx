@@ -9,7 +9,8 @@ import { LocationOn, DirectionsWalk } from '../icons';
 import { useThemeMode } from '../hooks/useThemeMode';
 import { useTranslation } from '../hooks/useTranslation';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+import { runtimeEnv } from '../config/runtimeConfig';
+const MAPBOX_TOKEN = runtimeEnv('VITE_MAPBOX_TOKEN');
 
 const MAP_STYLES = {
   light: 'mapbox://styles/mapbox/streets-v12',

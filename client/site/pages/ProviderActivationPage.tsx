@@ -13,7 +13,8 @@ import { providerActivationMessages } from '../lib/providerActivationMessages';
 import { ProviderLanguagePicker, useProviderLanguage } from '../lib/providerLanguage';
 import { ApiError, marketplaceApi } from '../lib/marketplaceApi';
 
-const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:3000';
+import { runtimeEnvOr } from '../../src/config/runtimeConfig';
+const APP_URL = runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000');
 const MIN_LENGTH = 8;
 
 /**
