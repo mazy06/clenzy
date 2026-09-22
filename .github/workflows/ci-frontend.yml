@@ -1,5 +1,5 @@
 # ===========================================
-# Clenzy — CI/CD Frontend (React + TypeScript + Vite)
+# Baitly — CI/CD Frontend (React + TypeScript + Vite)
 # ===========================================
 # Flux :
 #   - push main/develop  → CI (typecheck + build) + push image GHCR
@@ -68,6 +68,23 @@ jobs:
           VITE_APP_NAME: Baitly
           VITE_APP_VERSION: ${{ github.sha }}
         run: npm run build
+
+      - name: Validate public discovery content
+        working-directory: client
+        run: npx vitest run site/lib/discovery.test.ts
+
+      - name: Build marketing site and discovery documents
+        working-directory: client
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npm run build:site
+
+      - name: Install native nginx for HTTP checks
+        run: sudo apt-get update -qq && sudo apt-get install -y nginx
+
+      - name: Check discovery HTTP responses and PMS isolation
+        working-directory: client
+        run: python3 tooling/check_baitly_discovery.py --nginx /usr/sbin/nginx
 
       - name: Check bundle size
         working-directory: client
