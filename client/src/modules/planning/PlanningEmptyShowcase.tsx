@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Skeleton } from '../../components/ui';
+import { Button } from '../../components/ui';
 import {
   AutoAwesome,
   Block,
@@ -11,6 +11,7 @@ import {
   Build,
   SwapHoriz,
   TrendingUp,
+  Check,
 } from '../../icons';
 import {
   StoryPage,
@@ -33,6 +34,10 @@ import {
 import airbnbLogo from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogo from '../../assets/logo/booking-logo-small.svg';
 import vrboLogo from '../../assets/logo/vrbo-logo-small.svg';
+import airbnbPartner from '../../assets/channels/partners/airbnb-preferred-partner-2025.svg';
+import bookingPartner from '../../assets/channels/partners/booking-premier-partner-2025.svg';
+import vrboPartner from '../../assets/channels/partners/vrbo-elite-partner-2025.svg';
+import expediaPartner from '../../assets/channels/partners/expedia-preferred-partner-2025.svg';
 import './planningEmpty.css';
 
 /**
@@ -63,7 +68,7 @@ import './planningEmpty.css';
  * </ul>
  *
  * L'animation n'est pas décorative : **chaque jalon pilote la démonstration**,
- * de sorte que ce qui est promis à gauche est montré à droite au même instant.
+ * de sorte que chaque explication sous la grille montre sa scène au même instant.
  * Le défilement s'arrête dès que l'utilisateur choisit lui-même un jalon.
  *
  * La grille de démonstration emprunte les **vraies couleurs du planning**
@@ -77,6 +82,12 @@ import './planningEmpty.css';
 // Les jalons ne portent que leur CLEF : libellé et détail se lisent dans
 // `planning.empty.showcase.milestones.<clef>.*` au rendu.
 const MILESTONE_KEYS = ['sync', 'move', 'ops', 'money'] as const;
+const CHANNEL_PARTNERS = [
+  { name: 'Airbnb', badge: airbnbPartner, certification: 'Preferred Software Partner 2025' },
+  { name: 'Booking.com', badge: bookingPartner, certification: 'Premier Connectivity Partner 2025' },
+  { name: 'Vrbo', badge: vrboPartner, certification: 'Elite Partner 2025' },
+  { name: 'Expedia', badge: expediaPartner, certification: 'Preferred Partner 2025' },
+];
 
 // ─── Grille de démonstration ────────────────────────────────────────────────
 
@@ -110,7 +121,7 @@ function DemoGrid({ scene }: { scene: number }) {
   const moved = scene === 1;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
       <div className="flex gap-2">
         {/* Colonne des logements — squelettes : rien à traduire, aucune fausse
             donnée crédible à maintenir (convention des aperçus Baitly). */}
@@ -118,7 +129,7 @@ function DemoGrid({ scene }: { scene: number }) {
           {DEMO_STAYS.map((_, row) => (
             <div key={row} className="flex h-6 items-center gap-1.5">
               <span className="size-4 shrink-0 rounded-[4px] bg-muted" />
-              <Skeleton className="h-2 flex-1" />
+              <span className="h-2 flex-1 rounded-full bg-muted" />
             </div>
           ))}
         </div>
@@ -277,12 +288,12 @@ function DemoGrid({ scene }: { scene: number }) {
 
       {/* Confirmation du renvoi vers les canaux — n'apparaît qu'au jalon du
           déplacement, au moment où elle veut dire quelque chose. */}
-      {moved && (
-        <p className="pl-empty-pop m-0 mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-medium text-primary">
+      <div className="pl-empty-sync-note mt-3">
+        <p className={`m-0 flex items-center gap-1.5 text-xs font-medium text-foreground transition-opacity duration-200 ${moved ? 'opacity-100' : 'opacity-0'}`}>
           <SwapHoriz size={12} strokeWidth={2} />
           {t('planning.empty.showcase.pushedBack')}
         </p>
-      )}
+      </div>
     </div>
   );
 }
@@ -300,6 +311,7 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
   const reducedMotion = usePrefersReducedMotion();
   const [active, setActive] = useState(0);
   const [touched, setTouched] = useState(false);
+  const demoId = useId();
 
   useEffect(() => {
     if (touched || reducedMotion) return;
@@ -316,21 +328,21 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pt-2 pb-10 sm:px-6">
+    <div className="pl-empty-showcase mx-auto w-full max-w-6xl px-4 pt-5 pb-10 sm:px-6 sm:pt-7">
       <StoryPage className="gap-10 sm:gap-12">
         {/* ── Accroche : la promesse et l'action à gauche, la démonstration à
             droite. Pas de hauteur minimale : le bloc doit finir au-dessus de
             la ligne de flottaison, pas l'occuper de force. ── */}
-        <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
+        <section className="pl-empty-intro grid items-start gap-8">
           <div className="min-w-0">
             <Reveal>
-              <h2 className="cn-font-heading m-0 text-3xl leading-tight font-semibold text-balance text-foreground sm:text-4xl">
+              <h2 className="cn-font-heading m-0 text-2xl leading-tight font-semibold text-balance text-foreground sm:text-3xl xl:text-4xl">
                 {t('planning.empty.showcase.title')}
               </h2>
             </Reveal>
 
             <Reveal delay={70}>
-              <p className="m-0 mt-3 text-base text-muted-foreground">
+              <p className="m-0 mt-4 max-w-prose text-base leading-relaxed text-muted-foreground">
                 {t('planning.empty.showcase.lede')}
               </p>
             </Reveal>
@@ -354,32 +366,69 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
                 <button
                   type="button"
                   onClick={onImport}
-                  className="cursor-pointer bg-transparent p-0 font-medium text-primary underline underline-offset-4"
+                  className="cursor-pointer rounded-sm bg-transparent p-0 font-medium text-primary underline underline-offset-4 outline-none transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {t('planning.empty.showcase.importWithCalendars')}
                 </button>
               </p>
             </Reveal>
 
-            {/* Jalons — seul l'actif est déplié : quatre détails empilés
-                poussaient la démonstration hors de l'écran. */}
-            <ul className="m-0 mt-6 flex list-none flex-col gap-0.5 border-t border-border p-0 pt-4">
+            <section className="mt-7 border-t border-border pt-5" aria-labelledby={`${demoId}-channels`}>
+              <h3 id={`${demoId}-channels`} className="m-0 text-base font-semibold text-foreground">
+                {t('planning.empty.showcase.channelsTitle')}
+              </h3>
+              <p className="m-0 mt-2 text-sm leading-relaxed text-muted-foreground">
+                {t('planning.empty.showcase.channelsDescription')}
+              </p>
+              <ul className="pl-empty-partners m-0 mt-4 grid list-none grid-cols-2 gap-3 p-0" aria-label={t('planning.empty.showcase.partnersLabel')}>
+                {CHANNEL_PARTNERS.map((partner) => (
+                  <li key={partner.name} className="min-w-0">
+                    <img
+                      src={partner.badge}
+                      alt={`${partner.name}, ${partner.certification}`}
+                      width={110}
+                      height={44}
+                      className="block h-auto w-full"
+                      decoding="async"
+                    />
+                  </li>
+                ))}
+              </ul>
+              <p className="m-0 mt-4 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+                <Check size={16} className="mt-0.5 shrink-0" aria-hidden />
+                <span>{t('planning.empty.showcase.icalNote')}</span>
+              </p>
+            </section>
+          </div>
+
+          <div className="min-w-0" role="group" aria-label={t('planning.empty.showcase.demoLabel')}>
+            <p className="m-0 mb-3 text-xs font-medium text-muted-foreground">
+              {t('planning.empty.showcase.demoLabel')}
+            </p>
+            <div id={demoId} className="rounded-2xl bg-muted/60 p-3 select-none sm:p-4" aria-hidden>
+              <MockupSlot
+                brief="Quatre scènes pilotées par les étapes sous le planning : canaux réunis, déplacement d'un séjour, interventions entre deux séjours, tarifs et occupation."
+                poster={<DemoGrid scene={active} />}
+              />
+            </div>
+
+            <ol className="m-0 mt-4 flex list-none flex-col gap-1 p-0">
               {MILESTONE_KEYS.map((milestoneKey, index) => {
                 const selected = index === active;
                 return (
                   <li key={milestoneKey}>
-                    <Reveal delay={230 + index * 60}>
                       <button
                         type="button"
                         aria-current={selected || undefined}
                         aria-expanded={selected}
+                        aria-controls={`${demoId}-step-${index}`}
                         onClick={() => select(index)}
                         className={`flex w-full cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 text-start outline-none transition-colors duration-200 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                           selected ? 'bg-accent' : ''
                         }`}
                       >
                         <span
-                          className={`mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums transition-colors duration-200 ${
+                          className={`mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-colors duration-200 ${
                             selected
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted text-muted-foreground'
@@ -391,32 +440,18 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
                           <span className="block text-sm font-medium text-foreground">
                             {t(`planning.empty.showcase.milestones.${milestoneKey}.label`)}
                           </span>
-                          <span className="pl-empty-detail" data-open={selected}>
-                            <span>
-                              <span className="block pt-1 text-sm text-muted-foreground">
-                                {t(`planning.empty.showcase.milestones.${milestoneKey}.detail`)}
-                              </span>
+                          <span id={`${demoId}-step-${index}`} className="pl-empty-detail" hidden={!selected}>
+                            <span className="block pt-1 text-sm text-muted-foreground">
+                              {t(`planning.empty.showcase.milestones.${milestoneKey}.detail`)}
                             </span>
                           </span>
                         </span>
                       </button>
-                    </Reveal>
                   </li>
                 );
               })}
-            </ul>
+            </ol>
           </div>
-
-          {/* La démonstration reste dans le champ pendant que les jalons
-              défilent : collée en haut sur grand écran. */}
-          <Reveal delay={260} className="min-w-0 lg:sticky lg:top-4">
-            <div aria-hidden className="rounded-2xl bg-muted/60 p-4 select-none sm:p-5">
-              <MockupSlot
-                brief="Quatre séquences enchaînables, une par jalon : (1) les séjours se posent sur la grille, le logo du canal d'origine pulse en bout de brique ; (2) une brique est glissée sur d'autres nuits et les disponibilités repartent vers les canaux ; (3) un ménage s'intercale au départ et une maintenance se pose sur une nuit libre ; (4) les tarifs des nuits libres et la bande d'occupation montent. Chaque séquence doit pouvoir être jouée seule, à la demande du jalon sélectionné."
-                poster={<DemoGrid scene={active} />}
-              />
-            </div>
-          </Reveal>
         </section>
 
         {/* ── Le mécanisme ET son garde-fou : un seul bloc. Les quatre étapes

@@ -1,0 +1,68 @@
+/* Baitly : un aperçu des vrais widgets, avec des exemples isolés du compte. */
+.db-empty-showcase { container: dashboard-onboarding / inline-size; }
+
+@container dashboard-onboarding (min-width: 52rem) {
+  .db-empty-intro {
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    column-gap: 2.5rem;
+  }
+  .db-empty-sources { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.db-empty-demo-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.db-empty-panel {
+  gap: 0;
+  transition: box-shadow 220ms cubic-bezier(.22, 1, .36, 1);
+}
+.db-empty-panel[data-active="true"] {
+  box-shadow: 0 0 0 1px var(--bui-muted-foreground);
+}
+.db-empty-day[data-active="true"] { background: var(--bui-card); }
+.db-empty-label {
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  width: 100%;
+  min-height: 1.5rem;
+  padding: 0;
+  border-radius: .25rem;
+  background: transparent;
+  color: var(--bui-foreground);
+  text-align: start;
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 180ms cubic-bezier(.22, 1, .36, 1);
+}
+.db-empty-label:hover { color: var(--bui-muted-foreground); }
+.db-empty-label:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 3px; }
+.db-empty-bottom { min-block-size: 6.25rem; }
+
+/* Les valeurs restent stables ; seul le dessin des barres révèle la tendance. */
+.db-empty-revenue-bar {
+  transform: scaleY(var(--bar-height));
+  transform-origin: bottom;
+}
+.db-empty-panel[data-active="true"] .db-empty-revenue-bar {
+  animation: dbEmptyBar 650ms cubic-bezier(.22, 1, .36, 1) var(--bar-delay) both;
+}
+.db-empty-appear,
+.db-empty-detail:not([hidden]) { animation: dbEmptyAppear 220ms cubic-bezier(.22, 1, .36, 1); }
+.db-empty-detail:not([hidden]) { display: block; }
+
+@keyframes dbEmptyBar {
+  from { transform: scaleY(.04); }
+  to { transform: scaleY(var(--bar-height)); }
+}
+@keyframes dbEmptyAppear {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .db-empty-showcase *, .db-empty-showcase *::before, .db-empty-showcase *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

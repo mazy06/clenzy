@@ -4335,3 +4335,9 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0478__platform_prelaunch.sql
             relativeToChangelogFile: true
+
+  # Isolated entry point for the Baitly production repair; the normal boot uses
+  # this same file and therefore the same Liquibase identity and checksum.
+  - include:
+      file: 0479-platform-users-organization.yaml
+      relativeToChangelogFile: true

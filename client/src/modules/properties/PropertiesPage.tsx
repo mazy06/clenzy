@@ -15,6 +15,11 @@ import PropertiesList from './PropertiesList';
 import DynamicPricing from '../pricing/DynamicPricing';
 import VouchersPage from '../vouchers/VouchersPage';
 import ConnectedObjectsHub from '../connected-objects/ConnectedObjectsHub';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
+import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
+import PropertiesEmptyShowcase, { isPropertyIntroduction } from './PropertiesEmptyShowcase';
+import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 
 // ─── Portal container for child actions in PageHeader ────────────────────────
 const PORTAL_STYLE = { display: 'contents' } as const;
@@ -29,6 +34,11 @@ const PORTAL_STYLE = { display: 'contents' } as const;
 
 const PropertiesPage: React.FC = () => {
   const { t } = useTranslation();
+  const { properties, isLoading, isError } = usePropertiesList();
+  const queryClient = useQueryClient();
+  const [importOpen, setImportOpen] = useState(false);
+  const hasProperties = properties.length > 0;
+  const refreshProperties = () => queryClient.invalidateQueries({ queryKey: propertiesListKeys.all });
 
   // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
   // Definie AVANT useTabKeyParam (qui en derive l'onglet actif) et AVANT tout early return.
@@ -82,36 +92,55 @@ const PropertiesPage: React.FC = () => {
             iconBadge={<Home />}
             backPath="/dashboard"
             showBackButton={false}
-            actions={
+            actions={hasProperties ? (
               <div className="flex items-center gap-1.5">
                 {headerActionsPortal}
                 <div ref={setActionsContainer} style={PORTAL_STYLE} />
               </div>
-            }
-            filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
+            ) : undefined}
+            filters={hasProperties ? <div ref={setFiltersContainer} style={PORTAL_STYLE} /> : undefined}
           />
           <PageTabs
             options={tabs}
             value={activeTab}
             onChange={handleTabChange}
-            inlineActions={<div ref={setTabInlineContainer} style={PORTAL_STYLE} />}
+            inlineActions={hasProperties ? <div ref={setTabInlineContainer} style={PORTAL_STYLE} /> : undefined}
           />
         </div>
 
         {/* ── Tab content ── */}
-        {activeKey === 'properties' && (
+        {!hasProperties && isLoading ? (
+          <div className="grid gap-6 p-6 md:grid-cols-2" role="status" aria-label={t('common.loading')}>
+            <div><Skeleton className="mb-4 h-20 w-4/5" /><Skeleton className="h-40 w-full" /></div>
+            <Skeleton className="h-80 w-full rounded-2xl" />
+          </div>
+        ) : !hasProperties && isError ? (
+          <Alert className="m-4 w-auto" variant="destructive">
+            <AlertDescription>
+              {t('propertiesFirstUse.loadError')}
+              <Button variant="outline" className="ms-3" onClick={() => { void refreshProperties(); }}>{t('common.retry')}</Button>
+            </AlertDescription>
+          </Alert>
+        ) : !hasProperties && isPropertyIntroduction(activeKey) ? (
+          <PropertiesEmptyShowcase key={activeKey} screen={activeKey} onImport={() => setImportOpen(true)} />
+        ) : null}
+        {hasProperties && activeKey === 'properties' && (
           <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
-        {activeKey === 'pricing' && (
+        {hasProperties && activeKey === 'pricing' && (
           <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} tabInlineContainer={tabInlineContainer} />
         )}
-        {activeKey === 'vouchers' && (
+        {hasProperties && activeKey === 'vouchers' && (
           <VouchersPage embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
-        {activeKey === 'connected-objects' && (
+        {hasProperties && activeKey === 'connected-objects' && (
           <ConnectedObjectsHub embedded actionsContainer={actionsContainer} />
         )}
       </div>
+      {importOpen && <ChannexMappingDialog open guided onClose={() => {
+        setImportOpen(false);
+        void refreshProperties();
+      }} />}
     </PageHeaderActionsProvider>
   );
 };

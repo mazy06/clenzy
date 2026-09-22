@@ -85,7 +85,7 @@ interface DashboardOverviewProps {
 }
 
 /** Squelette de chargement — même trame que la grille finale, sans décalage. */
-function OverviewSkeleton() {
+export function OverviewSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">

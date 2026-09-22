@@ -119,7 +119,8 @@ export function usePropertiesList(): UsePropertiesListReturn {
       const data = await propertiesApi.getAll();
       return extractApiList<ApiProperty>(data).map(convertProperty);
     },
-    staleTime: 60_000,
+    // Revérifier un portefeuille vide au retour d'une création ou d'un import.
+    staleTime: (query) => query.state.data?.length === 0 ? 0 : 60_000,
   });
 
   // ─── Delete mutation ───────────────────────────────────────────────

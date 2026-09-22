@@ -2218,6 +2218,95 @@
     }
   },
   "dashboard": {
+    "firstUse": {
+      "title": "Your activity, clear at a glance",
+      "lede": "Who arrives today? Which properties are filling up? What needs attention? Your dashboard brings the answers together so you can plan the day and keep track of your business.",
+      "addProperty": "Add a property",
+      "connectChannels": "Connect my channels",
+      "activationNote": "Add your first property, or import it from your channels, to open your dashboard.",
+      "setupTitle": "Your first widgets, step by step",
+      "setup": {
+        "properties": {
+          "title": "Add your properties",
+          "detail": "Create a property or import your listings. The dashboard uses this portfolio to bring your activity together."
+        },
+        "bookings": {
+          "title": "Bring in your bookings",
+          "detail": "Connect a channel, import a calendar or enter a stay. Arrivals, departures and occupancy start taking shape."
+        },
+        "widgets": {
+          "title": "Adapt the view to your day",
+          "detail": "The starter widgets are already selected. On desktop, use “Customize” to move, remove or add widgets."
+        }
+      },
+      "demoTitle": "Explore your future dashboard",
+      "scenes": {
+        "day": {
+          "title": "Prepare for the day",
+          "detail": "Arrivals, departures, cleaning and upcoming guests: see the day’s operations together."
+        },
+        "performance": {
+          "title": "Understand your results",
+          "detail": "Occupancy, revenue, average rates and booking channels: compare a period and spot trends."
+        },
+        "priorities": {
+          "title": "See what needs your attention",
+          "detail": "Payments to check and services to organize appear here. Try handling the cleaning task in the preview."
+        },
+        "customize": {
+          "title": "Build a view that works for you",
+          "detail": "Keep the widgets you need and add others from reports. Try adding occupancy in the preview."
+        }
+      },
+      "demo": {
+        "accessibleLabel": "Interactive dashboard demonstration with sample data",
+        "example": "Sample data",
+        "occupancy": "Occupancy",
+        "revenue": "Revenue",
+        "bookings": "Bookings",
+        "today": "Today’s operations",
+        "arrivals": "Arrivals",
+        "departures": "Departures",
+        "cleaning": "Cleaning",
+        "trend": "Revenue and payouts",
+        "period": "Over the last 30 days",
+        "priorities": "To handle",
+        "assignCleaning": "Cleaning to assign",
+        "assigned": "Cleaning assigned in the example",
+        "done": "Handled",
+        "tryAction": "Try it",
+        "checkPayment": "A payout to check",
+        "yourWidgets": "Your widgets",
+        "addWidget": "Add occupancy",
+        "widgetAdded": "Widget added",
+        "propertyOccupancy": "Property occupancy",
+        "addHint": "Choose an indicator to complete this view.",
+        "nextArrivals": "Upcoming arrivals",
+        "sampleProperty": "Olive Tree Apartment"
+      },
+      "sourcesTitle": "What feeds your widgets?",
+      "sourcesLede": "Information builds up gradually. Each widget becomes useful when its source data is available.",
+      "sources": {
+        "stays": {
+          "title": "Your properties and stays",
+          "detail": "They feed occupancy, booking counts and your arrival and departure lists."
+        },
+        "amounts": {
+          "title": "Booking amounts and payouts",
+          "detail": "Booking amounts feed revenue and average rates. Payouts complete the financial picture."
+        },
+        "operations": {
+          "title": "Services and their status",
+          "detail": "Scheduled cleaning and maintenance appear in operations. Issues that need resolving join your priorities."
+        },
+        "reviews": {
+          "title": "Your guest reviews",
+          "detail": "Available reviews feed the average rating and guest satisfaction widgets."
+        }
+      },
+      "liveNote": "The figures shown here are illustrative. Your real data will replace them after you add your first property.",
+      "retry": "Try again"
+    },
     "title": "Dashboard",
     "titleAdmin": "Administrator Dashboard",
     "titleManager": "Manager Dashboard",
@@ -7252,6 +7341,239 @@
       "removePhoto": "Remove photo"
     }
   },
+  "propertiesFirstUse": {
+    "add": "Add a property",
+    "import": "Import from a channel",
+    "activation": "Add or import one property to access your tools. Connecting a channel is optional.",
+    "setupTitle": "Where to start",
+    "example": "Example data",
+    "exampleHome": "Arts Apartment",
+    "loadError": "Unable to load your properties. Try again to display this screen.",
+    "properties": {
+      "title": "One place for every property detail",
+      "lede": "Keep photos, amenities, rates and practical information together. Your calendar and other screens use these property records.",
+      "preview": "Explore your future property record",
+      "setup": [
+        {
+          "title": "Add or import your first property",
+          "detail": "Create its record manually or import a property from a channel."
+        },
+        {
+          "title": "Complete the useful details",
+          "detail": "Address, capacity, bedrooms, photos and instructions: everything your team needs."
+        },
+        {
+          "title": "Prepare for day-to-day management",
+          "detail": "Set the base rate and arrival times, then connect your channels if needed."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Find your properties at a glance",
+          "detail": "Choose either sample property: its capacity, rate and details update together."
+        },
+        {
+          "title": "Keep property information together",
+          "detail": "Photos, rooms and amenities stay linked to the right property. Complete the record as you go."
+        },
+        {
+          "title": "Prepare arrivals and service visits",
+          "detail": "Times and instructions give the people working on site a shared reference."
+        },
+        {
+          "title": "Link listings to the right property",
+          "detail": "Review channel connections and their synchronization status from the property record."
+        }
+      ],
+      "note": "Start with one property. Add more detail and grow your portfolio at your own pace.",
+      "demo": {
+        "villa": "Olive Grove Villa",
+        "active": "Active",
+        "choose": "Choose a sample property",
+        "guests": "{{count}} guests",
+        "rooms": "{{count}} bedrooms",
+        "night": "/ night",
+        "focus": [
+          {
+            "label": "The essentials in one record",
+            "detail": "Capacity, address and base rate in the same place."
+          },
+          {
+            "label": "Rooms and amenities recorded",
+            "detail": "Bedrooms, kitchen and amenities described for your team."
+          },
+          {
+            "label": "Check-in from 3 pm",
+            "detail": "Instructions and arrival times are available in the record."
+          },
+          {
+            "label": "Airbnb · Booking.com",
+            "detail": "Connections and availability synchronized in this example."
+          }
+        ]
+      }
+    },
+    "pricing": {
+      "title": "The right rate for each night",
+      "lede": "Manage nightly rates for each property. Adjust key dates, set length-of-stay rules and send rates to your connected channels.",
+      "preview": "Try your future pricing calendar",
+      "setup": [
+        {
+          "title": "Add your first property",
+          "detail": "Each pricing calendar belongs to a property, even when you manage bookings manually."
+        },
+        {
+          "title": "Set your reference rate",
+          "detail": "Enter a base rate, then adjust the nights and periods that need it."
+        },
+        {
+          "title": "Choose your stay rules",
+          "detail": "Review restrictions and rate plans before publishing to connected channels."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Start with a reference rate",
+          "detail": "A base rate makes adjustments easier. This example starts at €100 per night."
+        },
+        {
+          "title": "Adjust the nights that matter",
+          "detail": "Select a day and move the slider to try a rate. The calendar reflects your choice."
+        },
+        {
+          "title": "Set length-of-stay rules",
+          "detail": "Restrictions can require a stay of at least two nights for a given period."
+        },
+        {
+          "title": "Publish to connected channels",
+          "detail": "The preview button simulates sending rates. In your account, you control when they are published."
+        }
+      ],
+      "note": "Preview rates are fictional. Configure actual rates and restrictions after adding your properties.",
+      "demo": {
+        "base": "Base rate",
+        "night": "/ night",
+        "week": "Example pricing week",
+        "selectDay": "{{day}}, {{price}}: adjust this rate",
+        "adjust": "Rate for {{day}}",
+        "minimum": "Minimum stay",
+        "nights": "{{count}} nights",
+        "channels": "Connected channels",
+        "published": "Simulated send, no rates changed",
+        "done": "Send simulated",
+        "try": "Simulate sending"
+      }
+    },
+    "vouchers": {
+      "title": "Offers tailored to your guests",
+      "lede": "Create promo codes, choose eligible properties and control their conditions. Then track the discounts used.",
+      "preview": "Test your future promo code",
+      "setup": [
+        {
+          "title": "Add the eligible properties",
+          "detail": "Offers can target one or more properties in your portfolio."
+        },
+        {
+          "title": "Prepare your first offer",
+          "detail": "Choose a code, a percentage or fixed discount, and a validity period."
+        },
+        {
+          "title": "Review conditions before activating",
+          "detail": "Set the scope and usage limits, then track redemptions on this screen."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Choose a clear discount",
+          "detail": "Try 10% or 20% in the preview. You can also create fixed-amount discounts."
+        },
+        {
+          "title": "Define properties and conditions",
+          "detail": "An offer applies according to its dates, selected properties and the limits you set."
+        },
+        {
+          "title": "See the effect on a stay",
+          "detail": "Apply the sample code: the discount and nightly total update immediately."
+        },
+        {
+          "title": "Track your offers",
+          "detail": "Review status, redemptions and discounts granted to manage your campaigns."
+        }
+      ],
+      "note": "Manage promo codes here; you choose how to share them with guests. This preview creates no real offer.",
+      "demo": {
+        "code": "Promo code",
+        "draft": "Draft",
+        "discount": "Choose the sample discount",
+        "scope": "Eligible property",
+        "conditions": "Example: at least 3 nights, one use per guest.",
+        "stay": "Sample stay",
+        "subtotal": "3 nights × €100",
+        "reduction": "Discount on nights",
+        "total": "Nightly total",
+        "apply": "Test the code",
+        "applied": "Code applied",
+        "tracking": "After activation: track status, redemptions and discounts here.",
+        "note": "Excluding fees and taxes, to illustrate the discount calculation."
+      }
+    },
+    "connected-objects": {
+      "title": "Your connected properties, in view",
+      "lede": "Group locks, sensors and key exchange points by property. Check their status and spot devices that need your attention.",
+      "preview": "Try your future connected devices",
+      "setup": [
+        {
+          "title": "Add the property to equip",
+          "detail": "Each device can be linked to the right property for easier monitoring."
+        },
+        {
+          "title": "Connect a compatible service",
+          "detail": "Add your provider, then link its devices using the add-device flow."
+        },
+        {
+          "title": "Check devices and access",
+          "detail": "Review connectivity, battery levels and the actions available for each device."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Control a lock remotely",
+          "detail": "Try the sample lock. In your account, available actions depend on the device and your permissions."
+        },
+        {
+          "title": "Read sensor measurements",
+          "detail": "Switch between noise and temperature to explore readings for different sensor types."
+        },
+        {
+          "title": "Spot devices that need attention",
+          "detail": "Low batteries and offline devices are flagged to help you prioritize checks."
+        },
+        {
+          "title": "Keep devices linked to their property",
+          "detail": "Grouping by property helps you tell devices apart as your portfolio grows."
+        }
+      ],
+      "note": "These devices and controls are fictional. Available features depend on your hardware and provider.",
+      "demo": {
+        "online": "{{count}} devices online",
+        "entrance": "Entrance lock",
+        "locked": "Locked",
+        "unlocked": "Unlocked in the example",
+        "lock": "Lock the example",
+        "unlock": "Unlock the example",
+        "sensors": "Choose a sensor",
+        "noise": "Noise",
+        "climate": "Temperature",
+        "normal": "Normal reading",
+        "batteryAlert": "Low battery · living room sensor",
+        "batteryDetail": "18% remaining. Plan to replace the battery.",
+        "monitoring": "Device status",
+        "monitoringDetail": "Connectivity and battery tracked for each device.",
+        "grouping": "Locks, sensors and keys grouped under the same property.",
+        "simulation": "Local simulation: no commands sent to a device."
+      }
+    }
+  },
   "propertiesPage": {
     "title": "Properties",
     "subtitle": "Manage properties and dynamic pricing",
@@ -11466,7 +11788,12 @@
             "title": "Actions to approve",
             "text": "The agents' proposals show on the row of the property concerned, ready to accept or decline."
           }
-        }
+        },
+        "channelsTitle": "Your channels, in one place",
+        "channelsDescription": "See bookings from all your listings in one calendar once your channels are connected.",
+        "partnersLabel": "Distribution partners",
+        "icalNote": "Already listed elsewhere? You can also import your iCal calendars.",
+        "demoLabel": "A preview of your future calendar"
       }
     },
     "popover": {

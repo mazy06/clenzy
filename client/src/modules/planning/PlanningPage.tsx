@@ -179,9 +179,6 @@ const PlanningPage: React.FC = () => {
       setExpandedPropertyId(propertyId);
     }
   }, [expandedPropertyId, setExpandedPropertyId, resetExpandedProperty]);
-  // Mode « Vue d'ensemble » : masque la grille + les contrôles propres au planning.
-  const isOverview = canSupervise && supervisionScope === 'portfolio';
-
   // Largeur de la colonne logements : breakpoint-based + redimensionnable
   // par l'utilisateur (persiste dans localStorage).
   const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
@@ -219,6 +216,11 @@ const PlanningPage: React.FC = () => {
     fetchRange.start,
     fetchRange.end,
   );
+  // Le portefeuille réel pilote les commandes, jamais la liste filtrée :
+  // un filtre sans résultat doit toujours pouvoir être effacé.
+  const hasProperties = properties.length > 0;
+  const isOverview = hasProperties && canSupervise && supervisionScope === 'portfolio';
+  const isFullscreen = hasProperties && nav.isFullscreen;
 
   // TOUTES les réservations chargées (avant filtres/légende) : servent à
   // PlanningRow pour rattacher chaque intervention à sa réservation (lien
@@ -391,7 +393,7 @@ const PlanningPage: React.FC = () => {
   const pagination = usePlanningPagination({
     totalProperties: orderedProperties,
     density: nav.density,
-    isFullscreen: nav.isFullscreen,
+    isFullscreen,
     showPrices: filters.showPrices,
     firstItemAlone: supervisorExpanded,
     gridHeight,
@@ -485,7 +487,7 @@ const PlanningPage: React.FC = () => {
   // porteuse.
   const canInlineDateNav = useMediaQuery(INLINE_CONTROLS_QUERY);
   const dateNavInHeader =
-    !isOverview && !nav.isFullscreen && (canInlineDateNav || supervisorExpanded);
+    hasProperties && !isOverview && !isFullscreen && (canInlineDateNav || supervisorExpanded);
 
   // Source UNIQUE des entrées d'action : la même liste alimente le menu ⋯ propre
   // au planning (desktop) et les lignes à plat du menu du header (mobile).
@@ -836,21 +838,21 @@ const PlanningPage: React.FC = () => {
     <div
       className={cn(
         'flex flex-col',
-        nav.isFullscreen
+        isFullscreen
           ? 'fixed inset-0 m-0 z-[1300] h-screen bg-[var(--bui-background)]'
           : 'm-[-9px] min-[900px]:m-[-12px] h-svh min-[900px]:h-screen',
       )}
     >
       {/* Page header — masqué en plein écran (le fullscreen masque déjà le
           chrome ; la toolbar garde les actions critiques) */}
-      {!nav.isFullscreen && (
+      {!isFullscreen && (
         <div className="shrink-0 px-[9px] min-[900px]:px-3 pt-[9px] min-[900px]:pt-3">
           {/* Pont vers la recherche UNIQUE de l'app : ne dessine rien, publie
               seulement la valeur et le placeholder que le champ du header
               pilotera. Il vivait dans le slot `filters` du PageHeader — le seul
               qui restait a y passer, et qui suffisait a y faire dessiner un
               entonnoir pour un panneau vide. */}
-          {!isOverview && (
+          {hasProperties && !isOverview && (
             supervisorExpanded ? (
               <HeaderSearchField
                 value={agentAsk}
@@ -890,7 +892,8 @@ const PlanningPage: React.FC = () => {
               ) : undefined
             }
             actions={
-              <>
+              hasProperties ? (
+                <>
                 {/* Portee de supervision — remplace le declencheur « Filtres »,
                     qui n'ouvrait plus qu'un panneau a un seul reglage. Rendue a
                     TOUTES les portees : c'est le seul chemin de retour depuis la
@@ -977,7 +980,8 @@ const PlanningPage: React.FC = () => {
                     />
                   </>
                 )}
-              </>
+                </>
+              ) : undefined
             }
           />
         </div>
@@ -988,12 +992,12 @@ const PlanningPage: React.FC = () => {
           alors dans le PageHeader, en clair puis repliée dans son menu selon la
           largeur) — SAUF en plein écran, où le header n'existe pas : la toolbar
           reste la seule porteuse de la navigation. */}
-      {!isOverview && (!supervisorExpanded || nav.isFullscreen) && (
+      {hasProperties && !isOverview && (!supervisorExpanded || isFullscreen) && (
         <div className="shrink-0 mb-1.5">
           <PlanningToolbar
             currentDate={visibleMonthDate}
             zoom={nav.zoom}
-            isFullscreen={nav.isFullscreen}
+            isFullscreen={isFullscreen}
             filters={filters}
             legendInModal={legendInModal}
             showDateNav={!dateNavInHeader}

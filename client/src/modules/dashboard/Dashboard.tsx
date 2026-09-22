@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Badge } from '../../components/ui';
+import { Alert, AlertDescription, Badge, Button } from '../../components/ui';
 import {
   Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
-  Sync as SyncIcon,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -15,13 +14,12 @@ import {
 } from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import DashboardDateFilter from './DashboardDateFilter';
-import DashboardErrorBoundary from './DashboardErrorBoundary';
-import DashboardOverview from './DashboardOverview';
+import DashboardOverview, { OverviewSkeleton } from './DashboardOverview';
+import DashboardEmptyShowcase from './DashboardEmptyShowcase';
 import UpgradeBanner from './UpgradeBanner';
 import { getVisibleTabs } from '../../config/dashboardConfig';
 import { useNavigate } from 'react-router-dom';
 import { PlusIcon } from 'lucide-react';
-import { Button } from '../../components/ui';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
@@ -48,8 +46,6 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
   { value: 'month', label: '30j' },
   { value: 'quarter', label: '90j' },
 ];
-
-const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; type: string; status: string; scheduledDate?: string; createdAt?: string }> = [];
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -120,8 +116,19 @@ const Dashboard: React.FC = () => {
   // Sous-titre et badge de l'en-tête (projection §1.2 et §1.4).
   // Les deux hooks sont déjà montés par DashboardOverview : React Query
   // dédoublonne par clé de requête, il n'y a donc aucun appel supplémentaire.
-  const { stats: headerStats } = useDashboardOverview({ period, t });
-  const { data: headerActionItems } = useDashboardActionItems(activeTabKey === 'overview' && !isFieldWorker);
+  const {
+    stats: headerStats,
+    loading: overviewLoading,
+    error: overviewError,
+    refreshAll,
+  } = useDashboardOverview({ period, t });
+  // Le total du portefeuille est indépendant de la période et des canaux.
+  // Un logement saisi manuellement suffit ; un revenu nul n'est pas un premier usage.
+  const hasProperties = (headerStats?.properties.total ?? 0) > 0;
+  const showIntroduction = !isFieldWorker && !overviewLoading && !overviewError
+    && headerStats?.properties.total === 0;
+  const showManagementActions = !isFieldWorker && hasProperties;
+  const { data: headerActionItems } = useDashboardActionItems(activeTabKey === 'overview' && showManagementActions);
   const actionItemsCount = countActionItems(headerActionItems);
 
   /** « Mercredi 23 juillet · 4 logements actifs » — contexte du jour. */
@@ -156,7 +163,7 @@ const Dashboard: React.FC = () => {
   );
 
   // ─── Filtre de période — la vue d'ensemble est le seul onglet restant.
-  const showDateFilter = activeTabKey === 'overview' && !isFieldWorker;
+  const showDateFilter = activeTabKey === 'overview' && showManagementActions;
   const dateFilterElement = useMemo(() => {
     if (!showDateFilter) return null;
     return (
@@ -178,20 +185,20 @@ const Dashboard: React.FC = () => {
             subtitle={subtitle}
             iconBadge={<DashboardIcon />}
             titleAdornment={
-              activeTabKey === 'overview' && actionItemsCount > 0 ? (
+              activeTabKey === 'overview' && showManagementActions && actionItemsCount > 0 ? (
                 <Badge variant="warning" className="h-[22px] text-2xs font-semibold tabular-nums">{`${actionItemsCount} ${t('dashboard.toHandle', 'à traiter')}`}</Badge>
               ) : undefined
             }
             backPath="/"
             showBackButton={false}
             actions={
-              <div className="flex items-center gap-1">
+              isFieldWorker || hasProperties ? <div className="flex items-center gap-1">
                 {headerActionsPortal}
                 {dateFilterElement}
                 {/* Action primaire de la projection : créer une réservation.
                     Réservée à qui a le droit d'en créer — elle menait sinon à
                     une route inexistante depuis un compte terrain. */}
-                {!isFieldWorker && (
+                {showManagementActions && (
                   <Button
                     size="sm"
                     onClick={() => navigate('/reservations/new')}
@@ -200,7 +207,7 @@ const Dashboard: React.FC = () => {
                     {t('dashboard.newReservation', 'Réservation')}
                   </Button>
                 )}
-              </div>
+              </div> : undefined
             }
           />
         </div>
@@ -224,17 +231,33 @@ const Dashboard: React.FC = () => {
         {/* ─── Tab content ────────────────────────────────────────────────── */}
         {activeTabKey === 'overview' && (
           <div className="flex-1 min-h-0 flex flex-col overflow-auto pt-1.5" role="tabpanel" id="dashboard-tabpanel-0">
-            {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
+            {hasProperties && isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
               <UpgradeBanner currentForfait={user.forfait} />
             )}
-            <DashboardOverview period={period} />
+            {!isFieldWorker && overviewLoading ? (
+              <div className="pt-2"><OverviewSkeleton /></div>
+            ) : !isFieldWorker && overviewError && !hasProperties ? (
+              <Alert className="mt-4">
+                <AlertDescription>{overviewError}</AlertDescription>
+                <Button variant="outline" size="sm" onClick={refreshAll}>
+                  {t('dashboard.firstUse.retry')}
+                </Button>
+              </Alert>
+            ) : showIntroduction ? (
+              <DashboardEmptyShowcase onConnect={() => setCmOpen(true)} />
+            ) : (
+              <DashboardOverview period={period} />
+            )}
           </div>
         )}
 
 
         {/* Channel Manager : modale guidee de distribution OTA (Channex).
             Mode guided = formulation end-user + degradation gracieuse. */}
-        <ChannexMappingDialog open={cmOpen} guided onClose={() => setCmOpen(false)} />
+        <ChannexMappingDialog open={cmOpen} guided onClose={() => {
+          setCmOpen(false);
+          refreshAll();
+        }} />
       </div>
     </PageHeaderActionsProvider>
   );
