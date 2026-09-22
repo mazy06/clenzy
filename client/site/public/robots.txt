@@ -1,0 +1,9 @@
+# Baitly marketing site: public pages may be crawled.
+User-agent: *
+Allow: /
+
+# Application and account workflows are not crawl targets.
+Disallow: /api/
+Disallow: /admin/
+Disallow: /prestataires/inscription
+Disallow: /prestataires/activation

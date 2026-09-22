@@ -1,0 +1,17 @@
+# Baitly PMS: keep account pages and private links out of crawl paths.
+User-agent: *
+Disallow: /
+
+# Public booking pages and the assets needed to render them remain crawlable.
+Allow: /booking/
+Disallow: /booking/*/cancel
+Allow: /assets/
+Allow: /locales/
+Allow: /icons/
+Allow: /baitly-config.js$
+
+# Public support and legal information.
+Allow: /support$
+Allow: /cgu$
+Allow: /confidentialite$
+Allow: /mentions-legales$
