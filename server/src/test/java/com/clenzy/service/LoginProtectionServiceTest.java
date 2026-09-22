@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClientException;
 
 import java.time.Duration;
 import java.util.Map;
@@ -36,6 +37,7 @@ class LoginProtectionServiceTest {
         service = new LoginProtectionService(redisTemplate, restTemplate);
         ReflectionTestUtils.setField(service, "captchaEnabled", true);
         ReflectionTestUtils.setField(service, "turnstileSecretKey", "test-secret");
+        ReflectionTestUtils.setField(service, "turnstileAllowedHostnames", "app.baitly.fr,baitly.fr");
     }
 
     // ─── checkLoginAllowed ──────────────────────────────────────────────────
@@ -153,10 +155,10 @@ class LoginProtectionServiceTest {
     // ─── validateCaptchaToken (Turnstile) ────────────────────────────────────
 
     @Test
-    void validateCaptchaToken_captchaDisabled_returnsTrue() {
+    void validateCaptchaToken_captchaDisabled_stillRequiresVerification() {
         ReflectionTestUtils.setField(service, "captchaEnabled", false);
 
-        assertTrue(service.validateCaptchaToken("any-token"));
+        assertFalse(service.validateCaptchaToken("any-token"));
     }
 
     @Test
@@ -170,27 +172,25 @@ class LoginProtectionServiceTest {
     }
 
     @Test
-    void validateCaptchaToken_noSecretKey_missingToken_returnsTrue() {
-        // Sans secret, aucune verification n'est possible : accepter un jeton
-        // present et refuser un jeton absent etait incoherent, et ne refusait
-        // que les clients honnetes. La protection etait nulle dans les deux cas.
+    void validateCaptchaToken_noSecretKey_missingToken_returnsFalse() {
+        // Explicit validation always fails closed when configuration is missing.
         ReflectionTestUtils.setField(service, "turnstileSecretKey", "");
 
-        assertTrue(service.validateCaptchaToken(null));
-        assertTrue(service.validateCaptchaToken("   "));
+        assertFalse(service.validateCaptchaToken(null));
+        assertFalse(service.validateCaptchaToken("   "));
     }
 
     @Test
-    void validateCaptchaToken_noSecretKey_returnsTrue() {
+    void validateCaptchaToken_noSecretKey_returnsFalse() {
         ReflectionTestUtils.setField(service, "turnstileSecretKey", "");
 
-        assertTrue(service.validateCaptchaToken("some-token"));
+        assertFalse(service.validateCaptchaToken("some-token"));
     }
 
     @SuppressWarnings("unchecked")
     @Test
     void validateCaptchaToken_turnstileSuccess_returnsTrue() {
-        Map<String, Object> response = Map.of("success", true);
+        Map<String, Object> response = Map.of("success", true, "hostname", "app.baitly.fr", "action", "login");
         when(restTemplate.postForObject(anyString(), any(), eq(Map.class))).thenReturn(response);
 
         assertTrue(service.validateCaptchaToken("valid-turnstile-token"));
@@ -209,9 +209,45 @@ class LoginProtectionServiceTest {
     @Test
     void validateCaptchaToken_turnstileException_returnsFalse() {
         when(restTemplate.postForObject(anyString(), any(), eq(Map.class)))
-                .thenThrow(new RuntimeException("Network error"));
+                .thenThrow(new RestClientException("Network error"));
 
         assertFalse(service.validateCaptchaToken("some-token"));
+    }
+
+
+    @Test
+    void enabledCaptchaRequiresCompleteConfigurationAtStartup() {
+        assertDoesNotThrow(service::validateCaptchaConfiguration);
+        ReflectionTestUtils.setField(service, "turnstileAllowedHostnames", "");
+        assertThrows(IllegalStateException.class, service::validateCaptchaConfiguration);
+        ReflectionTestUtils.setField(service, "captchaEnabled", false);
+        assertDoesNotThrow(service::validateCaptchaConfiguration);
+        ReflectionTestUtils.setField(service, "marketplaceCaptchaEnabled", true);
+        assertThrows(IllegalStateException.class, service::validateCaptchaConfiguration);
+    }
+
+    @Test
+    void tokensFromAnotherHostOrActionAreRejected() {
+        when(restTemplate.postForObject(anyString(), any(), eq(Map.class)))
+                .thenReturn(Map.of("success", true, "hostname", "attacker.example", "action", "login"))
+                .thenReturn(Map.of("success", true, "hostname", "app.baitly.fr", "action", "marketplace-application"))
+                .thenReturn(Map.of("success", true));
+        assertFalse(service.validateCaptchaToken("token"));
+        assertFalse(service.validateCaptchaToken("token"));
+        assertFalse(service.validateCaptchaToken("token"));
+    }
+
+    @Test
+    void marketplaceTokenMustMatchExpectedActionAndAllowlistedHost() {
+        when(restTemplate.postForObject(anyString(), any(), eq(Map.class)))
+                .thenReturn(Map.of("success", true, "hostname", "baitly.fr", "action", "marketplace-application"));
+        assertTrue(service.validateCaptchaToken("token", "marketplace-application"));
+    }
+
+    @Test
+    void oversizedTokenIsRejectedWithoutCallingCloudflare() {
+        assertFalse(service.validateCaptchaToken("x".repeat(2049)));
+        verifyNoInteractions(restTemplate);
     }
 
     // ─── forceUnlock ────────────────────────────────────────────────────────
