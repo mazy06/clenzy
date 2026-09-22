@@ -48,6 +48,8 @@ export default function Login() {
   const [captchaRequired, setCaptchaRequired] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
+  const [captchaReset, setCaptchaReset] = useState(0);
+
   // ─── Login logic ────────────────────────────────────────────
 
   const doLogin = useCallback(async (overrideCaptchaToken?: string) => {
@@ -78,6 +80,8 @@ export default function Login() {
       setSessionCookie(data.access_token);
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
     } catch (err) {
+      setCaptchaToken(null);
+      if (tokenToSend) setCaptchaReset(value => value + 1);
       const apiErr = err as ApiError;
       const details = apiErr.details as Record<string, unknown> | undefined;
 
@@ -146,15 +150,9 @@ export default function Login() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (loading || (captchaRequired && !captchaToken)) return;
     doLogin();
   };
-
-  const handleCaptchaVerified = useCallback((token: string) => {
-    setCaptchaToken(token);
-    setTimeout(() => {
-      doLogin(token);
-    }, 500);
-  }, [doLogin]);
 
   // ─── Render ─────────────────────────────────────────────────
 
@@ -259,8 +257,9 @@ export default function Login() {
           {captchaRequired && (
             <div>
               <TurnstileCaptcha
-                onVerified={handleCaptchaVerified}
-                onError={(msg) => setError(msg)}
+                onVerified={setCaptchaToken}
+                onInvalidated={() => setCaptchaToken(null)}
+                resetKey={captchaReset}
               />
             </div>
           )}

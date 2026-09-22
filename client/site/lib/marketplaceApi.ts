@@ -69,6 +69,7 @@ export interface ApplicationPayload {
   availability: { dayOfWeek: number; startTime: string; endTime: string }[];
   acceptedTerms: boolean;
   termsVersion: string;
+  captchaToken?: string;
 }
 
 export type DocumentType =

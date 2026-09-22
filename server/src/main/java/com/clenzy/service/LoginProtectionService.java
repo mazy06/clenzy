@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,9 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClientException;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service centralise de protection des tentatives de connexion.
@@ -47,11 +53,26 @@ public class LoginProtectionService {
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
 
-    @Value("${captcha.enabled:true}")
+    @Value("${captcha.enabled:false}")
     private boolean captchaEnabled;
 
     @Value("${turnstile.secret-key:}")
     private String turnstileSecretKey;
+
+    @Value("${turnstile.allowed-hostnames:}")
+    private String turnstileAllowedHostnames = "";
+
+    @Value("${clenzy.marketplace.captcha-enabled:${captcha.enabled:false}}")
+    private boolean marketplaceCaptchaEnabled;
+
+    @PostConstruct
+    void validateCaptchaConfiguration() {
+        if ((captchaEnabled || marketplaceCaptchaEnabled)
+                && (!hasCaptchaSecret() || allowedCaptchaHostnames().isEmpty())) {
+            throw new IllegalStateException("CAPTCHA active : TURNSTILE_SECRET_KEY et "
+                    + "TURNSTILE_ALLOWED_HOSTNAMES sont obligatoires.");
+        }
+    }
 
     public LoginProtectionService(StringRedisTemplate redisTemplate, RestTemplate restTemplate) {
         this.redisTemplate = redisTemplate;
@@ -89,7 +110,7 @@ public class LoginProtectionService {
         String attemptsStr = redisTemplate.opsForValue().get(attemptsKey);
         int attempts = parseAttempts(attemptsStr);
 
-        boolean captchaRequired = isCaptchaOperational() && attempts >= CAPTCHA_THRESHOLD;
+        boolean captchaRequired = captchaEnabled && attempts >= CAPTCHA_THRESHOLD;
         return new LoginStatus(false, 0, captchaRequired);
     }
 
@@ -132,29 +153,21 @@ public class LoginProtectionService {
         redisTemplate.delete(REDIS_LOCKED_PREFIX + normalized);
     }
 
-    /**
-     * Le CAPTCHA n'est operationnel que si son secret est configure.
-     *
-     * <p>Sans secret, {@link #validateCaptchaToken} accepte deja tout : il n'y a
-     * rien a verifier. Continuer a ANNONCER un CAPTCHA requis dans ce cas
-     * enfermait l'utilisateur dehors — le frontend affiche alors le widget
-     * Turnstile, qui ne peut pas se charger faute de cle publique, et le
-     * formulaire reste bloque. Trois echecs de saisie suffisaient a rendre un
-     * compte inaccessible pendant quinze minutes, sans aucun gain de securite.</p>
-     *
-     * <p>Le verrouillage a {@code MAX_FAILED_ATTEMPTS} reste actif : c'est lui
-     * la vraie protection contre la force brute. Le CAPTCHA n'en est qu'un
-     * palier intermediaire, inutile tant qu'il n'est pas configure.</p>
-     */
-    private boolean isCaptchaOperational() {
-        return captchaEnabled && turnstileSecretKey != null && !turnstileSecretKey.isBlank();
+    private boolean hasCaptchaSecret() {
+        return turnstileSecretKey != null && !turnstileSecretKey.isBlank();
+    }
+
+    private Set<String> allowedCaptchaHostnames() {
+        return Arrays.stream(turnstileAllowedHostnames.split(","))
+                .map(String::trim).filter(host -> !host.isEmpty())
+                .map(host -> host.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet());
     }
 
     /**
      * Verifie si le CAPTCHA est requis pour un compte donne.
      */
     public boolean isCaptchaRequired(String username) {
-        if (!isCaptchaOperational()) return false;
+        if (!captchaEnabled) return false;
         return checkLoginAllowed(username).captchaRequired();
     }
 
@@ -168,24 +181,15 @@ public class LoginProtectionService {
      * 4. Frontend envoie le token dans le body du login (captchaToken)
      * 5. Cette methode valide le token aupres de Cloudflare
      */
-    @SuppressWarnings("unchecked")
     public boolean validateCaptchaToken(String captchaToken) {
-        if (!captchaEnabled) return true;
+        return validateCaptchaToken(captchaToken, "login");
+    }
 
-        // L'absence de secret est testee AVANT le jeton, et pas apres.
-        //
-        // Dans l'autre ordre, un environnement sans secret acceptait un jeton
-        // PRESENT (verification impossible, donc `true`) mais refusait un jeton
-        // ABSENT — alors qu'aucune verification n'a lieu dans les deux cas. La
-        // protection etait nulle de toute facon ; seuls les clients honnetes
-        // etaient refuses. Ce n'est donc pas un assouplissement, c'est la levee
-        // d'une incoherence.
-        if (turnstileSecretKey == null || turnstileSecretKey.isBlank()) {
-            log.warn("Turnstile secret key non configuree, validation CAPTCHA ignoree");
-            return true;
-        }
-
-        if (captchaToken == null || captchaToken.isBlank()) return false;
+    /** Un appel explicite valide toujours le jeton, meme si le login ne l'exige pas. */
+    public boolean validateCaptchaToken(String captchaToken, String expectedAction) {
+        if (!hasCaptchaSecret() || allowedCaptchaHostnames().isEmpty()
+                || captchaToken == null || captchaToken.isBlank() || captchaToken.length() > 2048
+                || expectedAction == null || expectedAction.isBlank()) return false;
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -197,18 +201,16 @@ public class LoginProtectionService {
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-            Map<String, Object> response = restTemplate.postForObject(
+            Map<?, ?> response = restTemplate.postForObject(
                     TURNSTILE_VERIFY_URL, request, Map.class);
 
-            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
-                return true;
-            }
-
-            log.warn("Turnstile validation echouee: {}", response);
-            return false;
-
-        } catch (Exception e) {
-            log.error("Erreur lors de la validation Turnstile: {}", e.getMessage());
+            return response != null && Boolean.TRUE.equals(response.get("success"))
+                    && response.get("hostname") instanceof String hostname
+                    && allowedCaptchaHostnames().contains(hostname.toLowerCase(Locale.ROOT))
+                    && expectedAction.equals(response.get("action"));
+        } catch (RestClientException e) {
+            // Ne pas recopier le corps du fournisseur ni un jeton dans les logs.
+            log.warn("Verification Turnstile indisponible ({})", e.getClass().getSimpleName());
             return false;
         }
     }
