@@ -2218,6 +2218,95 @@
     }
   },
   "dashboard": {
+    "firstUse": {
+      "title": "Votre activité, lisible en un coup d’œil",
+      "lede": "Qui arrive aujourd’hui ? Quels logements se remplissent ? Que faut-il traiter ? Votre tableau de bord réunit les réponses pour organiser la journée et suivre votre activité.",
+      "addProperty": "Ajouter un logement",
+      "connectChannels": "Connecter mes canaux",
+      "activationNote": "Ajoutez un premier logement, ou importez-le depuis vos canaux, pour ouvrir votre tableau de bord.",
+      "setupTitle": "Vos premiers widgets, pas à pas",
+      "setup": {
+        "properties": {
+          "title": "Ajoutez vos logements",
+          "detail": "Créez une fiche ou importez vos annonces. Le tableau de bord utilise ce portefeuille pour réunir votre activité."
+        },
+        "bookings": {
+          "title": "Faites remonter vos réservations",
+          "detail": "Connectez un canal, importez un calendrier ou saisissez un séjour. Les arrivées, les départs et l’occupation se mettent en place."
+        },
+        "widgets": {
+          "title": "Adaptez la vue à votre quotidien",
+          "detail": "Les widgets de départ sont déjà prévus. Sur ordinateur, « Personnaliser » permet de les déplacer, d’en retirer ou d’en ajouter."
+        }
+      },
+      "demoTitle": "Explorez votre futur tableau de bord",
+      "scenes": {
+        "day": {
+          "title": "Préparer la journée",
+          "detail": "Arrivées, départs, ménages et prochains voyageurs : les opérations du jour se lisent ensemble."
+        },
+        "performance": {
+          "title": "Comprendre vos résultats",
+          "detail": "Occupation, revenus, prix moyen et canaux de réservation : comparez une période et repérez les tendances."
+        },
+        "priorities": {
+          "title": "Voir ce qui demande votre attention",
+          "detail": "Paiements à vérifier et interventions à organiser remontent ici. Essayez de traiter le ménage dans l’aperçu."
+        },
+        "customize": {
+          "title": "Composer une vue qui vous ressemble",
+          "detail": "Gardez les widgets utiles et ajoutez ceux des rapports. Essayez d’ajouter l’occupation dans l’aperçu."
+        }
+      },
+      "demo": {
+        "accessibleLabel": "Démonstration interactive du tableau de bord, avec des données d’exemple",
+        "example": "Données d’exemple",
+        "occupancy": "Occupation",
+        "revenue": "Revenus",
+        "bookings": "Réservations",
+        "today": "Opérations du jour",
+        "arrivals": "Arrivées",
+        "departures": "Départs",
+        "cleaning": "Ménages",
+        "trend": "Revenus et versements",
+        "period": "Sur les 30 derniers jours",
+        "priorities": "À traiter",
+        "assignCleaning": "Un ménage à attribuer",
+        "assigned": "Ménage attribué dans l’exemple",
+        "done": "Traité",
+        "tryAction": "Essayer",
+        "checkPayment": "Un versement à vérifier",
+        "yourWidgets": "Vos widgets",
+        "addWidget": "Ajouter l’occupation",
+        "widgetAdded": "Widget ajouté",
+        "propertyOccupancy": "Occupation des logements",
+        "addHint": "Choisissez un indicateur pour compléter cette vue.",
+        "nextArrivals": "Prochaines arrivées",
+        "sampleProperty": "Appartement des Oliviers"
+      },
+      "sourcesTitle": "Qu’est-ce qui alimente les widgets ?",
+      "sourcesLede": "Les informations arrivent progressivement. Un widget devient utile quand les données correspondantes sont renseignées.",
+      "sources": {
+        "stays": {
+          "title": "Vos logements et vos séjours",
+          "detail": "Ils alimentent l’occupation, le nombre de réservations et les listes d’arrivées et de départs."
+        },
+        "amounts": {
+          "title": "Les montants et les versements",
+          "detail": "Les montants des réservations alimentent les revenus et les prix moyens. Les versements complètent le suivi financier."
+        },
+        "operations": {
+          "title": "Les interventions et leur statut",
+          "detail": "Les ménages et les maintenances planifiés apparaissent dans les opérations. Les situations à résoudre rejoignent les priorités."
+        },
+        "reviews": {
+          "title": "Les avis de vos voyageurs",
+          "detail": "Les avis disponibles alimentent la note moyenne et les widgets de suivi de la satisfaction."
+        }
+      },
+      "liveNote": "Les chiffres présentés ici sont illustratifs. Vos données réelles les remplaceront après l’ajout de votre premier logement.",
+      "retry": "Réessayer"
+    },
     "title": "Tableau de bord",
     "titleAdmin": "Tableau de bord Administrateur",
     "titleManager": "Tableau de bord Manager",
@@ -7248,6 +7337,239 @@
       "removePhoto": "Retirer la photo"
     }
   },
+  "propertiesFirstUse": {
+    "add": "Ajouter un logement",
+    "import": "Importer depuis un canal",
+    "activation": "Un logement ajouté ou importé suffit pour retrouver vos outils. La connexion à un canal reste facultative.",
+    "setupTitle": "Par où commencer ?",
+    "example": "Données d’exemple",
+    "exampleHome": "Appartement des Arts",
+    "loadError": "Impossible de charger vos logements. Réessayez pour afficher cet écran.",
+    "properties": {
+      "title": "Chaque logement, une fiche de référence",
+      "lede": "Réunissez les photos, les équipements, les tarifs et les informations pratiques de vos biens. Le planning et les autres écrans s’appuient sur ces fiches.",
+      "preview": "Explorez votre future fiche logement",
+      "setup": [
+        {
+          "title": "Ajoutez ou importez votre premier bien",
+          "detail": "Créez sa fiche manuellement ou récupérez un logement depuis un canal."
+        },
+        {
+          "title": "Complétez les informations utiles",
+          "detail": "Adresse, capacité, chambres, photos et consignes : tout ce dont votre équipe a besoin."
+        },
+        {
+          "title": "Préparez la gestion au quotidien",
+          "detail": "Définissez le tarif de base et les horaires, puis connectez vos canaux si nécessaire."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Retrouver ses biens en un coup d’œil",
+          "detail": "Choisissez un des deux logements de l’aperçu : sa capacité, son prix et sa fiche changent ensemble."
+        },
+        {
+          "title": "Centraliser les informations du logement",
+          "detail": "Photos, pièces et équipements restent rattachés au bon bien. Une fiche à compléter progressivement."
+        },
+        {
+          "title": "Préparer les arrivées et les interventions",
+          "detail": "Horaires et consignes donnent un point de référence aux personnes qui interviennent sur place."
+        },
+        {
+          "title": "Relier ses annonces au bon bien",
+          "detail": "Les connexions aux canaux et leur état de synchronisation se consultent depuis le logement."
+        }
+      ],
+      "note": "Commencez avec un seul logement. Vous pourrez enrichir sa fiche et développer votre portefeuille à votre rythme.",
+      "demo": {
+        "villa": "Villa des Oliviers",
+        "active": "Actif",
+        "choose": "Choisir un logement d’exemple",
+        "guests": "{{count}} voyageurs",
+        "rooms": "{{count}} chambres",
+        "night": "/ nuit",
+        "focus": [
+          {
+            "label": "Une fiche, les informations essentielles",
+            "detail": "Capacité, adresse et prix de base réunis au même endroit."
+          },
+          {
+            "label": "Pièces et équipements renseignés",
+            "detail": "Chambres, cuisine et équipements décrits pour votre équipe."
+          },
+          {
+            "label": "Arrivée à partir de 15 h",
+            "detail": "Les consignes et les horaires sont disponibles dans la fiche."
+          },
+          {
+            "label": "Airbnb · Booking.com",
+            "detail": "Connexions et disponibilités synchronisées dans cet exemple."
+          }
+        ]
+      }
+    },
+    "pricing": {
+      "title": "Le bon tarif, au bon moment",
+      "lede": "Pilotez les prix par logement et par nuit. Ajustez les périodes clés, encadrez la durée des séjours et envoyez vos tarifs vers les canaux connectés.",
+      "preview": "Essayez votre futur calendrier tarifaire",
+      "setup": [
+        {
+          "title": "Ajoutez votre premier logement",
+          "detail": "Chaque grille tarifaire est liée à un bien, même si vous gérez vos réservations manuellement."
+        },
+        {
+          "title": "Définissez votre prix de référence",
+          "detail": "Renseignez un tarif de base puis adaptez les nuits et les périodes qui le nécessitent."
+        },
+        {
+          "title": "Choisissez les règles de séjour",
+          "detail": "Vérifiez les restrictions et vos plans tarifaires avant de les publier vers les canaux connectés."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Partir d’un prix de référence",
+          "detail": "Un tarif de base facilite les ajustements. L’exemple démarre à 100 € par nuit."
+        },
+        {
+          "title": "Adapter les nuits qui comptent",
+          "detail": "Sélectionnez un jour puis déplacez le curseur pour essayer un prix. Le calendrier reflète votre choix."
+        },
+        {
+          "title": "Encadrer la durée des séjours",
+          "detail": "Les restrictions permettent, par exemple, de demander au moins deux nuits sur une période."
+        },
+        {
+          "title": "Publier vers les canaux connectés",
+          "detail": "Le bouton de l’aperçu simule un envoi. Dans votre compte, vous contrôlez la publication des tarifs."
+        }
+      ],
+      "note": "Les prix de l’aperçu sont fictifs. Les tarifs et les restrictions de vos biens se configurent après leur ajout.",
+      "demo": {
+        "base": "Tarif de base",
+        "night": "/ nuit",
+        "week": "Semaine tarifaire d’exemple",
+        "selectDay": "{{day}}, {{price}} : ajuster ce tarif",
+        "adjust": "Prix du {{day}}",
+        "minimum": "Séjour minimum",
+        "nights": "{{count}} nuits",
+        "channels": "Canaux connectés",
+        "published": "Envoi simulé, aucun tarif modifié",
+        "done": "Envoi simulé",
+        "try": "Simuler l’envoi"
+      }
+    },
+    "vouchers": {
+      "title": "Des offres pensées pour vos voyageurs",
+      "lede": "Créez vos codes promo, choisissez les logements concernés et gardez la main sur leurs conditions d’utilisation. Suivez ensuite les remises utilisées.",
+      "preview": "Testez votre futur code promo",
+      "setup": [
+        {
+          "title": "Ajoutez les logements concernés",
+          "detail": "Vos offres pourront cibler un bien ou plusieurs logements de votre portefeuille."
+        },
+        {
+          "title": "Préparez votre première offre",
+          "detail": "Choisissez le code, une remise en pourcentage ou en montant, et sa période de validité."
+        },
+        {
+          "title": "Vérifiez les conditions avant d’activer",
+          "detail": "Définissez la portée et les limites d’utilisation, puis suivez les utilisations dans cet écran."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Choisir une remise lisible",
+          "detail": "Essayez 10 % ou 20 % dans l’aperçu. Vous pourrez aussi créer des remises en montant fixe."
+        },
+        {
+          "title": "Définir les logements et les conditions",
+          "detail": "Une offre s’applique selon sa période, les logements choisis et les limites que vous définissez."
+        },
+        {
+          "title": "Comprendre l’effet sur un séjour",
+          "detail": "Appliquez le code fictif : la réduction et le total des nuitées se recalculent immédiatement."
+        },
+        {
+          "title": "Suivre l’utilisation de vos offres",
+          "detail": "Retrouvez le statut, les utilisations et les remises accordées pour piloter vos campagnes."
+        }
+      ],
+      "note": "Un code promo se gère ici ; sa diffusion aux voyageurs reste à votre initiative. L’aperçu ne crée aucune offre.",
+      "demo": {
+        "code": "Code promo",
+        "draft": "Brouillon",
+        "discount": "Choisir la remise d’exemple",
+        "scope": "Logement concerné",
+        "conditions": "Exemple : séjour d’au moins 3 nuits, une utilisation par voyageur.",
+        "stay": "Simulation d’un séjour",
+        "subtotal": "3 nuits × 100 €",
+        "reduction": "Réduction sur les nuitées",
+        "total": "Total des nuitées",
+        "apply": "Tester le code",
+        "applied": "Code appliqué",
+        "tracking": "Après activation : statut, utilisations et remises suivis ici.",
+        "note": "Hors frais et taxes, pour illustrer le calcul de la remise."
+      }
+    },
+    "connected-objects": {
+      "title": "Vos logements connectés, sous vos yeux",
+      "lede": "Regroupez les serrures, capteurs et points de remise de clés par logement. Consultez leur état et repérez les appareils qui demandent votre attention.",
+      "preview": "Manipulez vos futurs objets connectés",
+      "setup": [
+        {
+          "title": "Ajoutez le logement à équiper",
+          "detail": "Chaque objet pourra être rattaché au bon bien pour faciliter sa supervision."
+        },
+        {
+          "title": "Connectez un service compatible",
+          "detail": "Ajoutez votre fournisseur puis associez ses appareils depuis le parcours d’ajout d’objet."
+        },
+        {
+          "title": "Vérifiez les appareils et leurs accès",
+          "detail": "Contrôlez l’état de connexion, les batteries et les actions proposées pour chaque équipement."
+        }
+      ],
+      "scenes": [
+        {
+          "title": "Contrôler une serrure à distance",
+          "detail": "Essayez le verrouillage dans l’aperçu. Dans votre compte, les actions dépendent de la serrure et de vos droits."
+        },
+        {
+          "title": "Lire les mesures de vos capteurs",
+          "detail": "Passez du bruit à la température pour découvrir les informations disponibles selon le type de capteur."
+        },
+        {
+          "title": "Repérer ce qui demande une intervention",
+          "detail": "Une batterie faible ou un objet hors ligne est signalé pour vous aider à prioriser vos vérifications."
+        },
+        {
+          "title": "Garder les objets rattachés au bon logement",
+          "detail": "Le regroupement par bien évite de confondre les appareils lorsque votre portefeuille grandit."
+        }
+      ],
+      "note": "Les équipements et commandes présentés sont fictifs. Les fonctions disponibles dépendent de vos appareils et de leur fournisseur.",
+      "demo": {
+        "online": "{{count}} objets en ligne",
+        "entrance": "Serrure de l’entrée",
+        "locked": "Verrouillée",
+        "unlocked": "Déverrouillée dans l’exemple",
+        "lock": "Verrouiller l’exemple",
+        "unlock": "Déverrouiller l’exemple",
+        "sensors": "Choisir un capteur",
+        "noise": "Bruit",
+        "climate": "Température",
+        "normal": "Mesure normale",
+        "batteryAlert": "Batterie faible · capteur du séjour",
+        "batteryDetail": "18 % restants. Prévoyez le remplacement de la pile.",
+        "monitoring": "État des équipements",
+        "monitoringDetail": "Connexion et batterie suivies pour chaque appareil.",
+        "grouping": "Serrure, capteurs et clés réunis sous le même logement.",
+        "simulation": "Simulation locale : aucune commande envoyée à un appareil."
+      }
+    }
+  },
   "propertiesPage": {
     "title": "Propriétés",
     "subtitle": "Gestion des propriétés et des tarifs dynamiques",
@@ -11462,7 +11784,12 @@
             "title": "Actions à valider",
             "text": "Les propositions des agents remontent sur la ligne du logement concerné, prêtes à accepter ou refuser."
           }
-        }
+        },
+        "channelsTitle": "Vos canaux, au même endroit",
+        "channelsDescription": "Retrouvez les réservations de vos annonces dans un seul planning, une fois vos canaux connectés.",
+        "partnersLabel": "Partenaires de distribution",
+        "icalNote": "Déjà en ligne ailleurs ? Importez aussi vos calendriers iCal.",
+        "demoLabel": "Un aperçu de votre futur planning"
       }
     },
     "popover": {

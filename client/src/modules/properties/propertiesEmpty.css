@@ -1,0 +1,42 @@
+/* Baitly : même langage que les écrans opérationnels, démonstrations isolées. */
+.pr-empty-showcase { container: property-onboarding / inline-size; }
+@container property-onboarding (min-width: 52rem) {
+  .pr-empty-intro { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 2.5rem; }
+}
+.pr-empty-demo-body { min-block-size: 23rem; }
+.pr-empty-panel { gap: 0; transition: box-shadow 220ms cubic-bezier(.22, 1, .36, 1); }
+.pr-empty-panel[data-active="true"] { box-shadow: 0 0 0 1px var(--bui-muted-foreground); }
+.pr-empty-home-cover { block-size: 7rem; background: var(--bui-field); }
+.pr-empty-home-cover img { object-position: center 55%; }
+.pr-empty-choice, .pr-empty-date {
+  border: 1px solid var(--bui-border);
+  border-radius: .5rem;
+  background: var(--bui-card);
+  color: var(--bui-muted-foreground);
+  padding: .5rem;
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 180ms cubic-bezier(.22, 1, .36, 1), border-color 180ms cubic-bezier(.22, 1, .36, 1);
+}
+.pr-empty-date { min-inline-size: 0; padding: .5rem .125rem; text-align: center; }
+.pr-empty-choice:hover, .pr-empty-date:hover { background: var(--bui-accent); }
+.pr-empty-choice[aria-pressed="true"], .pr-empty-date[aria-pressed="true"] {
+  border-color: var(--bui-primary);
+  background: var(--bui-primary-soft);
+  color: var(--bui-foreground);
+}
+.pr-empty-choice:focus-visible, .pr-empty-date:focus-visible, .pr-empty-range:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 3px; }
+.pr-empty-range { accent-color: var(--bui-primary); block-size: 1.5rem; margin-inline: 0; box-sizing: border-box; }
+.pr-empty-sensor-track { block-size: .25rem; overflow: hidden; border-radius: 1rem; background: var(--bui-muted); }
+.pr-empty-sensor-fill { display: block; block-size: 100%; background: var(--bui-success); transform: scaleX(.44); transform-origin: left; }
+[dir="rtl"] .pr-empty-sensor-fill { transform-origin: right; }
+.pr-empty-sensor-animated { animation: prEmptyMeasure 650ms cubic-bezier(.22, 1, .36, 1) both; }
+.pr-empty-appear, .pr-empty-lock, .pr-empty-detail:not([hidden]) { animation: prEmptyAppear 220ms cubic-bezier(.22, 1, .36, 1); }
+.pr-empty-detail:not([hidden]) { display: block; }
+@keyframes prEmptyAppear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes prEmptyMeasure { from { transform: scaleX(.05); } to { transform: scaleX(.44); } }
+@media (prefers-reduced-motion: reduce) {
+  .pr-empty-showcase *, .pr-empty-showcase *::before, .pr-empty-showcase *::after { animation: none !important; transition: none !important; }
+}

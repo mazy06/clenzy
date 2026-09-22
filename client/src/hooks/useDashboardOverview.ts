@@ -46,7 +46,9 @@ export function useDashboardOverview({ period, t }: UseDashboardOverviewParams) 
   const summaryQuery = useQuery({
     queryKey: overviewKeys.summary(period),
     queryFn: () => dashboardOverviewApi.getSummary(period),
-    staleTime: 30_000,
+    // Un portefeuille vide est revérifié au retour depuis la création/import :
+    // le premier logement doit ouvrir les widgets sans attendre 30 secondes.
+    staleTime: (query) => query.state.data?.properties.total === 0 ? 0 : 30_000,
   });
 
   const summary: DashboardOverviewSummary | undefined = summaryQuery.data;
