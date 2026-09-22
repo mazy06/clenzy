@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Réglages plateforme Baitly — singleton (une seule ligne, id = 1).
@@ -30,6 +31,17 @@ public class PlatformSettings {
      *  seules les inscriptions via le formulaire /bientot-disponible alimentent la waitlist. */
     @Column(name = "add_devis_leads_to_waitlist", nullable = false)
     private boolean addDevisLeadsToWaitlist = false;
+
+    /** Suspension explicite des nouvelles inscriptions PMS, sans effet sur les comptes existants. */
+    @Column(name = "registrations_paused", nullable = false)
+    private boolean registrationsPaused = true;
+
+    /** Instant du lancement annoncé. Ne rouvre pas automatiquement les inscriptions. */
+    @Column(name = "launch_at")
+    private Instant launchAt;
+
+    @Column(name = "launch_time_zone", nullable = false)
+    private String launchTimeZone = "Europe/Paris";
 
     /**
      * Destinataires des notifications internes equipe (lead devis, copie devis,
@@ -98,6 +110,12 @@ public class PlatformSettings {
     private String updatedBy;
 
     public Long getId() { return id; }
+    public boolean isRegistrationsPaused() { return registrationsPaused; }
+    public void setRegistrationsPaused(boolean paused) { this.registrationsPaused = paused; }
+    public Instant getLaunchAt() { return launchAt; }
+    public void setLaunchAt(Instant launchAt) { this.launchAt = launchAt; }
+    public String getLaunchTimeZone() { return launchTimeZone; }
+    public void setLaunchTimeZone(String zone) { this.launchTimeZone = zone; }
     public void setId(Long id) { this.id = id; }
 
     public boolean isSendProspectDevisEmails() { return sendProspectDevisEmails; }

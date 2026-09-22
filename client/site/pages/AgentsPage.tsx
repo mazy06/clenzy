@@ -1,3 +1,4 @@
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import type { ComponentType, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -371,7 +372,7 @@ function FinalCta({ m }: { m: AgentsMessages }) {
         </p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Button size="lg" variant="secondary" asChild>
-            <Link to="/demo">{m.finalCta.primary}</Link>
+            <SiteAcquisitionLink to="/demo">{m.finalCta.primary}</SiteAcquisitionLink>
           </Button>
           <Button size="lg" variant="outline" className="border-background/30 text-background hover:bg-background/10">
             <MessageCircleIcon /> {m.finalCta.secondary}

@@ -22,6 +22,14 @@ export function useSetProspectDevisEmails() {
   });
 }
 
+export function useSetLaunchSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: platformSettingsApi.setLaunch,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY }),
+  });
+}
+
 export function useSetDevisLeadsToWaitlist() {
   const queryClient = useQueryClient();
   return useMutation({

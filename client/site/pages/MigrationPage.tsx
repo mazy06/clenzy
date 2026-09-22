@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { ArrowRightIcon, CheckIcon, DatabaseIcon, FileSpreadsheetIcon, GlobeIcon, PlugIcon } from 'lucide-react';
 import { Badge, Button } from '../../src/components/ui';
 import Reveal from '../components/Reveal';
@@ -110,9 +110,9 @@ export default function MigrationPage() {
                 {m.limitsCopy}
               </p>
               <Button variant="secondary" className="mt-5" asChild>
-                <Link to="/demo">
+                <SiteAcquisitionLink to="/demo">
                   {m.cta} <ArrowRightIcon />
-                </Link>
+                </SiteAcquisitionLink>
               </Button>
             </div>
           </Reveal>

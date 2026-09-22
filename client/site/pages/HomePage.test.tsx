@@ -1,9 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { SiteLanguageProvider, SITE_LANGUAGES } from '../lib/siteLanguage';
 import { HOME_MESSAGES } from '../lib/messages/home';
 import HomePage from './HomePage';
+
+vi.mock('../lib/siteLaunch', () => ({
+  useSiteLaunch: () => ({ paused: false }),
+}));
 
 /**
  * La landing etait en francais EN DUR alors que le lancement se prepare en
@@ -44,8 +48,9 @@ describe('Accueil du site public', () => {
 
     expect(document.documentElement.lang).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
-    expect(screen.getByRole('heading', { level: 1 }).textContent)
-      .toContain(HOME_MESSAGES.ar.hero.title1);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain(
+      HOME_MESSAGES.ar.hero.title1,
+    );
   });
 
   it('ne laisse aucune section en français quand la page est en arabe', () => {
@@ -74,7 +79,9 @@ describe('Accueil du site public', () => {
   it('reste en LTR dans les autres langues', () => {
     mount('?lang=en');
     expect(document.documentElement.dir).toBe('ltr');
-    expect(document.body.textContent).toContain(HOME_MESSAGES.en.hero.description);
+    expect(document.body.textContent).toContain(
+      HOME_MESSAGES.en.hero.description,
+    );
   });
 
   it('garde la promesse saoudienne dans les trois langues', () => {
@@ -87,7 +94,9 @@ describe('Accueil du site public', () => {
     for (const language of SITE_LANGUAGES) {
       cleanup();
       mount(`?lang=${language}`);
-      expect(document.body.textContent ?? '', language).toMatch(EXPECTED[language]);
+      expect(document.body.textContent ?? '', language).toMatch(
+        EXPECTED[language],
+      );
     }
   });
 });

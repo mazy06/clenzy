@@ -3,13 +3,14 @@ import { PAGE_MESSAGES } from '../site/lib/messages/pages';
 import { PRICING_MESSAGES } from '../site/lib/messages/pricing';
 import { PROVIDERS_MESSAGES } from '../site/lib/messages/providers';
 import { AGENTS_MESSAGES } from '../site/lib/messages/agents';
+import { PRELAUNCH_MESSAGES } from '../site/lib/messages/prelaunch';
 import { moduleText } from '../site/lib/messages/modules';
 import { resourceText, solutionText } from '../site/lib/messages/solutions';
 import { legalDocs } from '../src/modules/legal/corpus';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 
 export const DISCOVERY_LANGUAGES = ['fr', 'en', 'ar'] as const;
-export const PRIVATE_SITE_PATHS = ['/prestataires/inscription', '/prestataires/activation'];
+export const PRIVATE_SITE_PATHS = ['/prestataires/inscription', '/prestataires/activation', '/inscription', '/register'];
 export interface DiscoveryCatalog { modules: string[]; solutions: string[]; resources: string[] }
 
 const section = (title: string, ...text: string[]) => `## ${title}\n\n${text.join('\n\n')}`;
@@ -65,6 +66,13 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
       ...compare.competitors.map((item) => section(item.name, item.copy, compare.soon))),
     section(compare.closingTitle, compare.closingCopy));
   add('/demo', pages.demo.title, pages.demo.intro, list(pages.demo.expectations), pages.demo.legal);
+  // The launch date and registration status are server state, never build-time content.
+  const prelaunch = PRELAUNCH_MESSAGES[language];
+  for (const path of ['/bientot-disponible', '/pre-lancement']) {
+    add(path, prelaunch.title, prelaunch.intro,
+      `[${prelaunch.cta}](/bientot-disponible?lang=${language})`,
+      `[${prelaunch.privacy}](/legal/confidentialite?lang=${language})`);
+  }
   add('/statut', pages.status.title, pages.status.intro,
     list(pages.status.components), section(pages.status.measurementTitle, pages.status.measurementCopy),
     section(pages.status.incidentsTitle, pages.status.noIncidents));

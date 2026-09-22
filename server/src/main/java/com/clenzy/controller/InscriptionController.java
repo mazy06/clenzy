@@ -3,6 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.dto.SetPasswordDto;
 import com.clenzy.service.InscriptionService;
+import com.clenzy.service.PlatformSettingsService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,14 +26,17 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/public/inscription")
+@PreAuthorize("permitAll()")
 public class InscriptionController {
 
     private static final Logger logger = LoggerFactory.getLogger(InscriptionController.class);
 
     private final InscriptionService inscriptionService;
+    private final PlatformSettingsService platformSettings;
 
-    public InscriptionController(InscriptionService inscriptionService) {
+    public InscriptionController(InscriptionService inscriptionService, PlatformSettingsService platformSettings) {
         this.inscriptionService = inscriptionService;
+        this.platformSettings = platformSettings;
     }
 
     /**
@@ -42,6 +47,11 @@ public class InscriptionController {
      */
     @PostMapping
     public ResponseEntity<?> register(@Valid @RequestBody InscriptionDto dto) {
+        if (platformSettings.isRegistrationsPaused()) {
+            return ResponseEntity.status(HttpStatus.LOCKED).body(Map.of(
+                    "error", true, "code", "REGISTRATIONS_PAUSED",
+                    "message", "Les inscriptions Baitly sont en pré-lancement."));
+        }
         try {
             logger.info("Demande d'inscription recue pour: {}", dto.getEmail());
 

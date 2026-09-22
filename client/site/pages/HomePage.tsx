@@ -1,3 +1,4 @@
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { Link } from 'react-router-dom';
 import {
   ArrowDownIcon,
@@ -13,6 +14,8 @@ import Reveal from '../components/Reveal';
 import AgentActionDeck from '../components/AgentActionDeck';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { HOME_MESSAGES } from '../lib/messages/home';
+import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
+import { useSiteLaunch } from '../lib/siteLaunch';
 import { moduleText } from '../lib/messages/modules';
 import BaitlyAgentDemo from '../components/BaitlyAgentDemo';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
@@ -27,6 +30,7 @@ import poolPhoto from '../assets/photos/pool.jpg';
 
 function Hero() {
   const { language } = useSiteLanguage();
+  const { paused } = useSiteLaunch();
   const m = HOME_MESSAGES[language].hero;
   return (
     <section className="baitly-hero" aria-labelledby="home-title">
@@ -49,13 +53,11 @@ function Hero() {
               {m.lead1}
               <br className="baitly-desktop-break" /> {m.lead2}
             </p>
-            <p className="baitly-hero-description">
-              {m.description}
-            </p>
+            <p className="baitly-hero-description">{m.description}</p>
             <div className="baitly-actions">
-              <Link className="baitly-button" to="/demo">
+              <SiteAcquisitionLink className="baitly-button" to="/demo">
                 {m.demo} <ArrowRightIcon />
-              </Link>
+              </SiteAcquisitionLink>
               <a className="baitly-play-link" href="#en-action">
                 <span>
                   <PlayIcon />
@@ -64,7 +66,14 @@ function Hero() {
               </a>
             </div>
             <p className="baitly-reassurance">
-              <CheckIcon /> {m.reassurance1} <span>·</span> {m.reassurance2}
+              <CheckIcon />{' '}
+              {paused ? (
+                PRELAUNCH_MESSAGES[language].note
+              ) : (
+                <>
+                  {m.reassurance1} <span>·</span> {m.reassurance2}
+                </>
+              )}
             </p>
           </Reveal>
         </div>
@@ -110,10 +119,7 @@ function ChannelsBar() {
   const { language } = useSiteLanguage();
   const m = HOME_MESSAGES[language].channels;
   return (
-    <section
-      className="site-shell baitly-channels"
-      aria-label={m.aria}
-    >
+    <section className="site-shell baitly-channels" aria-label={m.aria}>
       <p>
         {m.line1}
         <br />
@@ -159,9 +165,7 @@ function PlatformSection() {
             {m.title2}
           </h2>
         </div>
-        <p>
-          {m.intro}
-        </p>
+        <p>{m.intro}</p>
       </Reveal>
       <div className="baitly-feature-grid">
         <Reveal className="baitly-feature baitly-feature-planning">
@@ -180,10 +184,7 @@ function PlatformSection() {
               {m.planningLink} <ArrowRightIcon />
             </Link>
           </div>
-          <div
-            className="baitly-planning-stage"
-            aria-label={m.planningAria}
-          >
+          <div className="baitly-planning-stage" aria-label={m.planningAria}>
             <LandingPlanningMockup />
           </div>
         </Reveal>
@@ -306,9 +307,9 @@ function FaqSection() {
           <br />
           {m.title2}
         </h2>
-        <Link to="/demo" className="baitly-text-link">
+        <SiteAcquisitionLink to="/demo" className="baitly-text-link">
           {m.link} <ArrowRightIcon />
-        </Link>
+        </SiteAcquisitionLink>
       </Reveal>
       <div>
         {m.items.map(([question, answer]) => (
@@ -326,6 +327,7 @@ function FaqSection() {
 }
 function FinalCta() {
   const { language } = useSiteLanguage();
+  const { paused } = useSiteLaunch();
   const m = HOME_MESSAGES[language].final;
   return (
     <section className="site-shell baitly-final-wrap">
@@ -342,10 +344,15 @@ function FinalCta() {
             {m.copy1}
             <br className="baitly-desktop-break" /> {m.copy2}
           </p>
-          <Link className="baitly-button baitly-button-light" to="/demo">
+          <SiteAcquisitionLink
+            className="baitly-button baitly-button-light"
+            to="/demo"
+          >
             {m.cta} <ArrowRightIcon />
-          </Link>
-          <span className="baitly-final-note">{m.note}</span>
+          </SiteAcquisitionLink>
+          <span className="baitly-final-note">
+            {paused ? PRELAUNCH_MESSAGES[language].note : m.note}
+          </span>
         </div>
       </div>
     </section>

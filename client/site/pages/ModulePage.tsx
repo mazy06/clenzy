@@ -1,3 +1,4 @@
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, CheckIcon, Share2Icon, SparklesIcon } from 'lucide-react';
 import {
@@ -71,9 +72,9 @@ export default function ModulePage() {
             </Reveal>
             <Reveal delay={3} className="mt-7 flex flex-wrap items-center gap-3">
               <Button size="lg" asChild>
-                <Link to="/demo">
+                <SiteAcquisitionLink to="/demo">
                   {m.ctaDemo} <ArrowRightIcon />
-                </Link>
+                </SiteAcquisitionLink>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link to="/tarifs">{m.ctaPricing}</Link>

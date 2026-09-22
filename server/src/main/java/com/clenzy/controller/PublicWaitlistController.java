@@ -2,6 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.WaitlistSignupDto;
 import com.clenzy.service.WaitlistService;
+import com.clenzy.service.PlatformSettingsService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,18 +25,30 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @RestController
 @RequestMapping("/api/public/waitlist")
+@PreAuthorize("permitAll()")
 public class PublicWaitlistController {
 
     private static final Logger log = LoggerFactory.getLogger(PublicWaitlistController.class);
 
     private final WaitlistService waitlistService;
+    private final PlatformSettingsService platformSettings;
 
     // Rate limiter simple en mémoire : IP -> timestamps.
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 10;
 
-    public PublicWaitlistController(WaitlistService waitlistService) {
+    public PublicWaitlistController(WaitlistService waitlistService, PlatformSettingsService platformSettings) {
         this.waitlistService = waitlistService;
+        this.platformSettings = platformSettings;
+    }
+
+    /** Projection publique explicite : aucun email interne ni paramètre privé. */
+    public record LaunchStatus(boolean registrationsPaused, Instant launchAt, String launchTimeZone) {}
+
+    @GetMapping("/launch")
+    public LaunchStatus launch() {
+        var settings = platformSettings.getOrDefault();
+        return new LaunchStatus(settings.isRegistrationsPaused(), settings.getLaunchAt(), settings.getLaunchTimeZone());
     }
 
     @PostMapping
