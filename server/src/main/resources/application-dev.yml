@@ -214,7 +214,7 @@ stripe:
 
 # Cloudflare Turnstile (CAPTCHA)
 turnstile:
-  secret-key: ${TURNSTILE_SECRET_KEY:0x4AAAAAACsyHk5ar4VkwtwXyBJg3ywOkFU}
+  secret-key: ${TURNSTILE_SECRET_KEY:}
 
 clenzy:
   ai:

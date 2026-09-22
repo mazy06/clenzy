@@ -1,3 +1,5 @@
+import BaitlyTurnstile from '../../src/components/BaitlyTurnstile';
+import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckIcon, ChevronDownIcon, Loader2Icon, PlusIcon, Trash2Icon, UploadIcon } from 'lucide-react';
@@ -186,6 +188,9 @@ function ApplicationForm({ onSubmitted }: { onSubmitted: (token: string) => void
   const [basePostalCode, setBasePostalCode] = useState('');
   const [travelRadiusKm, setTravelRadiusKm] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const captchaEnabled = runtimeEnvOr('VITE_BAITLY_CAPTCHA_ENABLED', 'false') === 'true';
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState<'submitFailed' | 'limited' | null>(null);
@@ -244,7 +249,7 @@ function ApplicationForm({ onSubmitted }: { onSubmitted: (token: string) => void
       && (row.pricingModel !== 'PER_UNIT' || row.unitLabel?.trim())) &&
     availability.every(slot => slot.startTime && slot.endTime > slot.startTime) &&
     acceptedTerms && termsVersion.trim().length > 0 &&
-    status !== 'loading';
+    status !== 'loading' && (!captchaEnabled || !!captchaToken);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -281,10 +286,13 @@ function ApplicationForm({ onSubmitted }: { onSubmitted: (token: string) => void
             currency,
             unitLabel: row.unitLabel?.trim() || undefined,
           })),
+        captchaToken: captchaToken ?? undefined,
         acceptedTerms: true,
         termsVersion,
       }));
     } catch (error) {
+      setCaptchaToken(null);
+      setCaptchaReset(value => value + 1);
       setStatus('error');
       setMessage(error instanceof ApiError && error.status === 429 ? 'limited' : 'submitFailed');
     }
@@ -591,6 +599,12 @@ function ApplicationForm({ onSubmitted }: { onSubmitted: (token: string) => void
             {message && m[message]}
           </p>
         )}
+
+        {captchaEnabled && <BaitlyTurnstile
+          siteKey={runtimeEnvOr('VITE_TURNSTILE_SITE_KEY', '')}
+          action="marketplace-application" language={language}
+          resetKey={captchaReset} onToken={setCaptchaToken}
+        />}
 
         <Button type="submit" size="lg" disabled={!canSubmit} className="mt-6">
           {status === 'loading' && <Loader2Icon className="size-4 animate-spin motion-reduce:animate-none" />}
