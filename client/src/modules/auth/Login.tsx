@@ -286,7 +286,7 @@ export default function Login() {
             to="/inscription"
             className="font-semibold no-underline text-primary hover:underline"
           >
-            {t('auth.login.createAccount', 'Crée le tien')}
+            {t('auth.login.createAccount', 'Créer un compte')}
           </RouterLink>
         </p>
         <span className="text-xs text-muted-foreground block text-center">

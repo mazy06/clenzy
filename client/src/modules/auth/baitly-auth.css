@@ -1,0 +1,106 @@
+@import '../../theme/baitly-brand.css';
+
+/* L'hote rejoint son espace depuis la landing, sur mobile ou au bureau.
+   Le formulaire reste clair et le panneau photo porte le bleu nuit de marque. */
+.baitly-auth[data-theme='light'] {
+  /* Meme encre que --pl-st-confirmed-ink en theme sombre (planningUrgency.css).
+     Le panneau reste sombre meme lorsque le formulaire est en theme clair. */
+  --baitly-auth-highlight: #CFA06A;
+  --bui-primary: var(--bl-surface-ink);
+  --bui-primary-deep: #1b3155;
+  --bui-primary-soft: color-mix(in oklch, var(--bl-surface-ink) 8%, var(--bl-paper));
+  --bui-primary-foreground: var(--bl-paper);
+  --bui-foreground: var(--bl-surface-ink);
+  --bui-ink: var(--bl-surface-ink);
+  --bui-card: var(--bl-paper);
+  --bui-background: var(--bl-paper);
+  --bui-muted: var(--bl-surface);
+  --bui-secondary: var(--bl-surface);
+  --bui-muted-foreground: var(--bl-muted);
+  --bui-border: var(--bl-line);
+  --bui-input: color-mix(in oklch, var(--bl-surface-ink) 55%, var(--bl-paper));
+  --bui-field: var(--bl-paper);
+  --bui-field-line: var(--bui-input);
+  --bui-ring: var(--bl-surface-ink);
+  --font-heading: var(--bl-font-title, 'Space Grotesk', 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif);
+  color: var(--bui-foreground);
+  color-scheme: light;
+  letter-spacing: 0;
+}
+
+.baitly-auth:lang(ar) {
+  --bl-font-body: 'Tajawal', 'Tahoma', 'Geeza Pro', sans-serif;
+  --bl-font-title: var(--bl-font-body);
+}
+
+.baitly-auth :is(h1, h2, h3, h4) {
+  font-family: var(--font-heading);
+}
+
+.baitly-auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--bui-primary);
+}
+
+.baitly-auth-logo[data-on-dark='true'] {
+  color: var(--bl-paper);
+}
+
+.baitly-auth :is(a, button, input) {
+  transition: color 200ms var(--bl-ease), background-color 200ms var(--bl-ease), border-color 200ms var(--bl-ease);
+}
+
+.baitly-auth a:focus-visible {
+  outline: 2px solid var(--bui-ring);
+  outline-offset: 4px;
+}
+
+/* Les champs simples et les groupes mot de passe ont la meme surface,
+   y compris quand le document a conserve le theme sombre de la session. */
+.baitly-auth-form :is([data-slot='input'], [data-slot='input-group']) {
+  min-height: 44px;
+  border-color: var(--bui-input);
+  background: var(--bui-field);
+  border-radius: 8px;
+}
+
+.baitly-auth-form :is([data-slot='input'], [data-slot='input-group']):hover:not(:disabled):not(:has(:disabled)) {
+  border-color: var(--bui-primary);
+}
+
+.baitly-auth-form :is([data-slot='input'], [data-slot='input-group']):focus-within {
+  border-color: var(--bui-primary);
+  background: var(--bui-primary-soft);
+}
+
+.baitly-auth-form [data-slot='input'][aria-invalid='true'],
+.baitly-auth-form [data-slot='input-group']:has([aria-invalid='true']) {
+  border-color: var(--bui-destructive-ink);
+}
+
+.baitly-auth-form :is([data-slot='input'], [data-slot='input-group']):is(:disabled, :has(:disabled)) {
+  background: var(--bui-muted);
+}
+
+.baitly-auth-form .cn-button-size-lg {
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.baitly-auth .cn-button-variant-default:hover:not(:disabled) {
+  background: var(--bui-primary-deep);
+}
+
+@media (max-width: 899px) {
+  .baitly-auth .baitly-auth-wordmark {
+    font-size: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .baitly-auth :is(a, button, input, [data-slot='input-group']) {
+    transition: none;
+  }
+}

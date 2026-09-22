@@ -1,0 +1,43 @@
+/* Identite commune a la landing et aux pages publiques d'authentification. */
+@font-face {
+  font-family: 'Baitly Manrope';
+  src: url('../../site/assets/fonts/manrope-regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Baitly Manrope';
+  src: url('../../site/assets/fonts/manrope-bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+}
+
+.baitly-marketing,
+.baitly-auth {
+  --bl-ink: oklch(28% 0.027 240);
+  --bl-muted: oklch(46% 0.023 240);
+  --bl-accent: oklch(49% 0.045 230);
+  --bl-paper: oklch(98.5% 0.004 230);
+  --bl-surface: oklch(95.5% 0.011 230);
+  --bl-blue: oklch(91.5% 0.021 230);
+  --bl-line: oklch(87% 0.016 230);
+  --bl-success: oklch(40% 0.055 173);
+  --bl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --bl-surface-ink: #25406e;
+  --bui-primary: var(--bl-surface-ink);
+  /* Les replis laissent le document choisir Tajawal pour les langues arabes. */
+  font-family: var(--bl-font-body, 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif);
+  color: var(--bl-ink);
+  background: var(--bl-paper);
+}
+
+.baitly-marketing .site-wordmark,
+.baitly-auth .baitly-auth-wordmark {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', -apple-system, 'Segoe UI', sans-serif;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  direction: ltr;
+}

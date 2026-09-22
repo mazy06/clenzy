@@ -1,28 +1,7 @@
+@import '../src/theme/baitly-brand.css';
+
 /* Brand layer: daylight, architectural photography, blue-grey ink. PMS tokens stay intact. */
-@font-face {
-  font-family: 'Baitly Manrope';
-  src: url('./assets/fonts/manrope-regular.ttf') format('truetype');
-  font-style: normal;
-  font-weight: 400 500;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Baitly Manrope';
-  src: url('./assets/fonts/manrope-bold.ttf') format('truetype');
-  font-style: normal;
-  font-weight: 600 800;
-  font-display: swap;
-}
 .baitly-marketing {
-  --bl-ink: oklch(28% 0.027 240);
-  --bl-muted: oklch(46% 0.023 240);
-  --bl-accent: oklch(49% 0.045 230);
-  --bl-paper: oklch(98.5% 0.004 230);
-  --bl-surface: oklch(95.5% 0.011 230);
-  --bl-blue: oklch(91.5% 0.021 230);
-  --bl-line: oklch(87% 0.016 230);
-  --bl-success: oklch(40% 0.055 173);
-  --bl-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --site-shell-max: 1440px;
   --bl-type-display: clamp(48px, 5.6vw, 80px);
   --bl-type-title: clamp(32px, 3.6vw, 50px);
@@ -30,21 +9,6 @@
   --bl-space-section: clamp(64px, 7.8vw, 112px);
   --bl-radius-control: 8px;
   --bl-radius-panel: 16px;
-  /* Surface des boutons pleins : le bleu de marque du PMS — `--brand-ink`,
-     c'est-a-dire `--bui-navy`, la pastille du jour dans le planning. Distinct
-     de `--bl-ink`, qui reste l'encre du TEXTE : un bouton et un paragraphe
-     n'ont pas a bouger ensemble. (Il a d'abord porte le `--chrome-1` de la
-     barre laterale, #1C2832 : plus gris que bleu, il se lisait noir.) */
-  --bl-surface-ink: #25406e;
-  /* Les boutons du kit (`cn-button`) lisent `--bui-primary` : la landing le
-     redefinit pour elle seule, sans toucher au theme de l'application. */
-  --bui-primary: #25406e;
-  /* Le defaut vit dans le repli de `var()`, PAS dans une declaration locale :
-     une variable redefinie ici ecraserait celle que `site.css` pose sur le
-     document pour l'arabe, et Manrope n'a aucun glyphe arabe a offrir. */
-  font-family: var(--bl-font-body, 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif);
-  color: var(--bl-ink);
-  background: var(--bl-paper);
 }
 .baitly-marketing :is(a, button, summary) {
   cursor: pointer;
@@ -60,18 +24,6 @@
 .baitly-marketing .site-header-inner {
   height: 88px;
   gap: 30px;
-}
-.baitly-marketing .site-wordmark {
-  /* Les memes valeurs que `BaitlyMarkLogo` : une marque, un dessin. La famille
-     est posee ici meme, donc le mot reste latin quand le document passe en
-     arabe — et l'interlettrage echappe au jeton `--bl-tracking`, qui ne vaut
-     que pour le texte courant. */
-  font-family: 'Space Grotesk', 'Plus Jakarta Sans', -apple-system, 'Segoe UI',
-    sans-serif;
-  font-size: 27px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  direction: ltr;
 }
 .baitly-marketing .site-nav {
   margin-inline: auto;
