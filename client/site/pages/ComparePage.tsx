@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { ArrowRightIcon, CheckIcon, MinusIcon } from 'lucide-react';
 import { Badge, Button } from '../../src/components/ui';
 import Reveal from '../components/Reveal';
@@ -126,9 +126,9 @@ export default function ComparePage() {
             {m.closingCopy}
           </p>
           <Button size="lg" className="mt-6" asChild>
-            <Link to="/demo">
+            <SiteAcquisitionLink to="/demo">
               {m.cta} <ArrowRightIcon />
-            </Link>
+            </SiteAcquisitionLink>
           </Button>
         </Reveal>
       </section>

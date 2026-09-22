@@ -21,6 +21,7 @@ import { usePlatformSettings, useSetProspectDevisEmails, useSetDevisLeadsToWaitl
 import { useWaitlistStats, useWaitlistList } from '../../hooks/useWaitlist';
 import InternalNotificationEmailsRow from './components/InternalNotificationEmailsRow';
 import SenderEmailRow from './components/SenderEmailRow';
+import LaunchScheduleSettings from './components/LaunchScheduleSettings';
 import { activeIntlLocale } from '../../utils/activeLocale';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -39,7 +40,7 @@ const fmtDate = (d: string) => {
 
 const LaunchSettingsSection: React.FC = () => {
   const { t } = useTranslation();
-  const { data: settings, isLoading } = usePlatformSettings();
+  const { data: settings, isLoading, isError, refetch } = usePlatformSettings();
   const setProspectEmails = useSetProspectDevisEmails();
   const setDevisToWaitlist = useSetDevisLeadsToWaitlist();
   const setInternalEmails = useSetInternalNotificationEmails();
@@ -56,20 +57,26 @@ const LaunchSettingsSection: React.FC = () => {
         <div className="flex justify-center py-3">
           <Spinner className="size-5" />
         </div>
+      ) : isError || !settings ? (
+        <div role="alert" className="py-4 text-sm text-muted-foreground">
+          <p>{t('settings.launch.loadError')}</p>
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>{t('common.retry')}</Button>
+        </div>
       ) : (
         <>
+          <LaunchScheduleSettings settings={settings} />
           <SettingsToggleRow
             icon={Mail}
-            title="{t('settings.launch.quoteEmails')}"
-            description="Quand c'est désactivé, aucun email ni devis n'est envoyé aux prospects depuis la landing (utile tant que le PMS n'est pas public). info@ reste notifié dans tous les cas."
+            title={t('settings.launch.quoteEmails')}
+            description={t('settings.launch.quoteEmailsHint')}
             checked={settings?.sendProspectDevisEmails ?? true}
             onChange={(c) => setProspectEmails.mutate(c)}
             disabled={setProspectEmails.isPending}
           />
           <SettingsToggleRow
             icon={UserPlus}
-            title="{t('settings.launch.addToWaitlist')}"
-            description="Pendant le pré-lancement, chaque demande de devis depuis la landing inscrit aussi l'email à la liste d'attente de lancement."
+            title={t('settings.launch.addToWaitlist')}
+            description={t('settings.launch.addToWaitlistHint')}
             checked={settings?.addDevisLeadsToWaitlist ?? true}
             onChange={(c) => setDevisToWaitlist.mutate(c)}
             disabled={setDevisToWaitlist.isPending}
@@ -96,16 +103,12 @@ const LaunchSettingsSection: React.FC = () => {
       <SettingsToggleRow
         icon={Users}
         iconColor="var(--bui-muted-foreground)"
-        title="Liste d'attente de lancement"
+        title={t('settings.launch.waitlistTitle')}
         description={(
           <span className="tabular-nums">
             {stats ? (
               <>
-                {stats.total} inscrit{stats.total > 1 ? 's' : ''}
-                {' · '}
-                {stats.founderSpotsLeft > 0
-                  ? `${stats.founderSpotsLeft} / ${founderSpots} place${founderSpots > 1 ? 's' : ''} fondateur restante${stats.founderSpotsLeft > 1 ? 's' : ''}`
-                  : t('launch.founderSpotsFull')}
+                {t('settings.launch.waitlistStats', { total: stats.total, remaining: stats.founderSpotsLeft, spots: founderSpots })}
               </>
             ) : '—'}
           </span>

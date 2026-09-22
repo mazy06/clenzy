@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
 import {
   Accordion,
@@ -66,9 +66,9 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <Button className="mt-6" variant={plan.featured ? 'default' : 'outline'} asChild>
-                  <Link to="/demo">
+                  <SiteAcquisitionLink to="/demo">
                     {plan.quoteOnly ? m.ctaTalk : m.ctaStart}
-                  </Link>
+                  </SiteAcquisitionLink>
                 </Button>
               </div>
             </Reveal>
@@ -78,9 +78,9 @@ export default function PricingPage() {
           <Reveal className="mt-4">
             <p className="text-center text-xs text-muted-foreground">
               {m.subsidy.copy}{' '}
-              <Link to="/demo" className="font-medium text-foreground underline">
+              <SiteAcquisitionLink to="/demo" className="font-medium text-foreground underline">
                 {m.subsidy.link}
-              </Link>
+              </SiteAcquisitionLink>
             </p>
           </Reveal>
         )}
@@ -132,9 +132,9 @@ export default function PricingPage() {
         </Accordion>
         <Reveal className="mt-8 text-center">
           <Button size="lg" asChild>
-            <Link to="/demo">
+            <SiteAcquisitionLink to="/demo">
               {m.ctaDemo} <ArrowRightIcon />
-            </Link>
+            </SiteAcquisitionLink>
           </Button>
         </Reveal>
       </section>

@@ -6,6 +6,9 @@ import './site.css';
 import './home.css';
 import SiteLayout from './components/SiteLayout';
 import { SiteLanguageProvider } from './lib/siteLanguage';
+import { SiteLaunchProvider } from './lib/siteLaunch';
+import { DemoRoute, RegistrationRoute } from './components/AcquisitionRoutes';
+import PrelaunchPage from './pages/PrelaunchPage';
 import HomePage from './pages/HomePage';
 import SolutionsPage from './pages/SolutionsPage';
 import PricingPage from './pages/PricingPage';
@@ -14,7 +17,6 @@ import ComparePage from './pages/ComparePage';
 import ResourcesPage from './pages/ResourcesPage';
 import ProviderSignupPage from './pages/ProviderSignupPage';
 import ProviderActivationPage from './pages/ProviderActivationPage';
-import DemoPage from './pages/DemoPage';
 import LegalPage from './pages/legal/LegalPage';
 import StatusPage from './pages/StatusPage';
 
@@ -26,32 +28,38 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <SiteLanguageProvider>
-      <Routes>
-        <Route element={<SiteLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="/produit/:slug" element={<ModulePage />} />
-          <Route path="/solutions" element={<SolutionsPage />} />
-          <Route path="/tarifs" element={<PricingPage />} />
-          <Route path="/migration" element={<MigrationPage />} />
-          <Route path="/comparer" element={<ComparePage />} />
-          <Route path="/ressources" element={<ResourcesPage />} />
-          <Route path="/prestataires" element={<ProvidersPage />} />
-          {/* Le parcours prestataire : candidature + dépôt de pièces sur la
+        <SiteLaunchProvider>
+          <Routes>
+            <Route element={<SiteLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="/produit/:slug" element={<ModulePage />} />
+              <Route path="/solutions" element={<SolutionsPage />} />
+              <Route path="/tarifs" element={<PricingPage />} />
+              <Route path="/migration" element={<MigrationPage />} />
+              <Route path="/comparer" element={<ComparePage />} />
+              <Route path="/ressources" element={<ResourcesPage />} />
+              <Route path="/prestataires" element={<ProvidersPage />} />
+              {/* Le parcours prestataire : candidature + dépôt de pièces sur la
               première, définition du mot de passe sur la seconde. */}
-          <Route
-            path="/prestataires/inscription"
-            element={<ProviderSignupPage />}
-          />
-          <Route
-            path="/prestataires/activation"
-            element={<ProviderActivationPage />}
-          />
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/legal/:slug" element={<LegalPage />} />
-          <Route path="/statut" element={<StatusPage />} />
-          <Route path="*" element={<HomePage />} />
-        </Route>
-      </Routes>
+              <Route
+                path="/prestataires/inscription"
+                element={<ProviderSignupPage />}
+              />
+              <Route
+                path="/prestataires/activation"
+                element={<ProviderActivationPage />}
+              />
+              <Route path="/demo" element={<DemoRoute />} />
+              <Route path="/bientot-disponible" element={<PrelaunchPage />} />
+              <Route path="/pre-lancement" element={<PrelaunchPage />} />
+              <Route path="/inscription" element={<RegistrationRoute />} />
+              <Route path="/register" element={<RegistrationRoute />} />
+              <Route path="/legal/:slug" element={<LegalPage />} />
+              <Route path="/statut" element={<StatusPage />} />
+              <Route path="*" element={<HomePage />} />
+            </Route>
+          </Routes>
+        </SiteLaunchProvider>
       </SiteLanguageProvider>
     </BrowserRouter>
   </StrictMode>,

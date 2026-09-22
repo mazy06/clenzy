@@ -4327,3 +4327,11 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  - changeSet:
+      id: "0478-platform-prelaunch"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0478__platform_prelaunch.sql
+            relativeToChangelogFile: true

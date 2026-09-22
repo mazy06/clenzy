@@ -29,7 +29,7 @@ import { clearTokens } from '../services/storageService';
 // elle importait `@stripe/react-stripe-js` + `@stripe/stripe-js`, qui
 // atterrissaient dans le chunk d'entrée et se faisaient préloader au boot de
 // TOUS les utilisateurs du PMS — dont aucun ne repasse jamais par l'inscription.
-const Inscription = lazy(() => import('./auth/Inscription'));
+const Inscription = lazy(() => import('./auth/RegistrationEntry'));
 const InscriptionSuccess = lazy(() => import('./auth/InscriptionSuccess'));
 const InscriptionConfirm = lazy(() => import('./auth/InscriptionConfirm'));
 const ForgotPassword = lazy(() => import('./auth/ForgotPassword'));

@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.dto.SetPasswordDto;
 import com.clenzy.service.InscriptionService;
+import com.clenzy.service.PlatformSettingsService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -19,17 +20,29 @@ import static org.mockito.Mockito.*;
 class InscriptionControllerTest {
 
     @Mock private InscriptionService inscriptionService;
+    @Mock private PlatformSettingsService platformSettings;
 
     private InscriptionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new InscriptionController(inscriptionService);
+        controller = new InscriptionController(inscriptionService, platformSettings);
     }
 
     @Nested
     @DisplayName("register")
     class Register {
+        @Test
+        void whenPaused_thenRejectsBeforeCreatingPaymentSession() {
+            when(platformSettings.isRegistrationsPaused()).thenReturn(true);
+
+            ResponseEntity<?> response = controller.register(mock(InscriptionDto.class));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(423);
+            assertThat(((Map<?, ?>) response.getBody()).get("code")).isEqualTo("REGISTRATIONS_PAUSED");
+            verifyNoInteractions(inscriptionService);
+        }
+
         @Test
         void whenSuccess_thenReturnsOkWithClientSecret() throws Exception {
             InscriptionDto dto = mock(InscriptionDto.class);

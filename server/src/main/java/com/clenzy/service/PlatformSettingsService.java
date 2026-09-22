@@ -46,6 +46,23 @@ public class PlatformSettingsService {
         return getOrDefault().isAddDevisLeadsToWaitlist();
     }
 
+    @Transactional(readOnly = true)
+    public boolean isRegistrationsPaused() {
+        return getOrDefault().isRegistrationsPaused();
+    }
+
+    @Transactional
+    public PlatformSettings updateLaunch(boolean paused, java.time.Instant launchAt,
+                                         String timeZone, String updatedBy) {
+        // ZoneId rejette les fuseaux inconnus avant toute écriture.
+        String zone = java.time.ZoneId.of(timeZone).getId();
+        return update(s -> {
+            s.setRegistrationsPaused(paused);
+            s.setLaunchAt(launchAt);
+            s.setLaunchTimeZone(zone);
+        }, updatedBy);
+    }
+
     /** Validation basique d'une adresse email. */
     private static final Pattern EMAIL =
             Pattern.compile("^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$");

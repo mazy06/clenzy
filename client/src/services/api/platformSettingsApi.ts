@@ -1,6 +1,9 @@
 import apiClient from '../apiClient';
 
 export interface PlatformSettings {
+  registrationsPaused: boolean;
+  launchAt: string | null;
+  launchTimeZone: string;
   sendProspectDevisEmails: boolean;
   addDevisLeadsToWaitlist: boolean;
   /** Destinataires des notifications internes (lead devis, copie devis, waitlist, maintenance). */
@@ -27,6 +30,9 @@ export interface ConciergeSettingsUpdate {
 
 /** Réglages plateforme Baitly — réservés aux SUPER_ADMIN / SUPER_MANAGER. */
 export const platformSettingsApi = {
+  setLaunch(payload: Pick<PlatformSettings, 'registrationsPaused' | 'launchAt' | 'launchTimeZone'>): Promise<PlatformSettings> {
+    return apiClient.put('/admin/platform-settings/launch', payload);
+  },
   get(): Promise<PlatformSettings> {
     return apiClient.get<PlatformSettings>('/admin/platform-settings');
   },

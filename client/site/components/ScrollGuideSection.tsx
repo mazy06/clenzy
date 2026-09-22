@@ -1,3 +1,4 @@
+import SiteAcquisitionLink from './SiteAcquisitionLink';
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRightIcon,
@@ -11,7 +12,6 @@ import {
   SparklesIcon,
   WifiIcon,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Badge, Button } from '../../src/components/ui';
 import { cn } from '../../src/utils/cn';
 import Reveal from './Reveal';
@@ -397,9 +397,9 @@ export default function ScrollGuideSection() {
               })}
             </ol>
             <Button variant="outline" asChild>
-              <Link to="/demo">
+              <SiteAcquisitionLink to="/demo">
                 {m.cta} <ArrowRightIcon />
-              </Link>
+              </SiteAcquisitionLink>
             </Button>
           </Reveal>
 

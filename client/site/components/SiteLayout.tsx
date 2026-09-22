@@ -1,3 +1,4 @@
+import SiteAcquisitionLink from './SiteAcquisitionLink';
 import {
   Suspense,
   useEffect,
@@ -23,6 +24,8 @@ import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import NavMegaPanel, { type NavMegaItem } from './NavMegaPanel';
 import PublicLanguagePicker from '../../src/components/PublicLanguagePicker';
 import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
+import { useSiteLaunch } from '../lib/siteLaunch';
+import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
 import { LAYOUT_MESSAGES, type LayoutMessages } from '../lib/messages/layout';
 import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
@@ -188,14 +191,17 @@ function SiteHeader() {
             className="site-login hidden sm:inline-flex"
             asChild
           >
-            <a href={runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000')} rel="noreferrer">
+            <a
+              href={runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000')}
+              rel="noreferrer"
+            >
               {h.login}
             </a>
           </Button>
           <Button size="sm" className="site-header-cta" asChild>
-            <Link to="/demo">
+            <SiteAcquisitionLink to="/demo">
               {h.demo} <ArrowRightIcon />
-            </Link>
+            </SiteAcquisitionLink>
           </Button>
           <Button
             variant="ghost"
@@ -275,7 +281,9 @@ function footerColumns(language: SiteLanguage) {
       title: m.columns.company,
       links: m.company.map((label, index) => ({
         label,
-        to: ['/tarifs', '/migration', '/comparer', '/prestataires', '/demo'][index],
+        to: ['/tarifs', '/migration', '/comparer', '/prestataires', '/demo'][
+          index
+        ],
       })),
     },
   ];
@@ -286,6 +294,7 @@ const LANGUAGE_LABEL = { fr: 'Langue', en: 'Language', ar: 'اللغة' } as con
 
 function SiteFooter() {
   const { language, changeLanguage } = useSiteLanguage();
+  const { paused } = useSiteLaunch();
   const m = LAYOUT_MESSAGES[language].footer;
   return (
     <footer className="site-footer border-t border-border bg-card">
@@ -320,10 +329,16 @@ function SiteFooter() {
                 {column.links.map((link) => (
                   <li key={link.label}>
                     <Link
-                      to={link.to}
+                      to={
+                        paused && link.to === '/demo'
+                          ? `/bientot-disponible?lang=${language}`
+                          : link.to
+                      }
                       className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      {link.label}
+                      {paused && link.to === '/demo'
+                        ? PRELAUNCH_MESSAGES[language].cta
+                        : link.label}
                     </Link>
                   </li>
                 ))}

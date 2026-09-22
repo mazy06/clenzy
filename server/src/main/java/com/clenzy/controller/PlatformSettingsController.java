@@ -36,6 +36,9 @@ public class PlatformSettingsController {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("sendProspectDevisEmails", s.isSendProspectDevisEmails());
         body.put("addDevisLeadsToWaitlist", s.isAddDevisLeadsToWaitlist());
+        body.put("registrationsPaused", s.isRegistrationsPaused());
+        body.put("launchAt", s.getLaunchAt());
+        body.put("launchTimeZone", s.getLaunchTimeZone());
         body.put("internalNotificationEmails", service.getInternalNotificationEmails());
         body.put("senderEmail", s.getSenderEmail());
         body.put("senderName", s.getSenderName());
@@ -46,6 +49,23 @@ public class PlatformSettingsController {
         body.put("updatedAt", s.getUpdatedAt());
         body.put("updatedBy", s.getUpdatedBy());
         return ResponseEntity.ok(body);
+    }
+
+    public record LaunchSettingsRequest(
+            @jakarta.validation.constraints.NotNull Boolean registrationsPaused,
+            java.time.Instant launchAt,
+            @jakarta.validation.constraints.NotBlank String launchTimeZone) {}
+
+    @PutMapping("/launch")
+    public ResponseEntity<?> setLaunch(
+            @jakarta.validation.Valid @RequestBody LaunchSettingsRequest req,
+            @AuthenticationPrincipal Jwt jwt) {
+        try {
+            service.updateLaunch(req.registrationsPaused(), req.launchAt(), req.launchTimeZone(), updatedBy(jwt));
+            return get();
+        } catch (java.time.DateTimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "INVALID_TIME_ZONE"));
+        }
     }
 
     @PutMapping("/prospect-devis-emails")
