@@ -34,6 +34,7 @@ export type RuntimeConfigKey =
   | 'VITE_POSTHOG_KEY'
   | 'VITE_POSTHOG_HOST'
   | 'VITE_MAPBOX_TOKEN'
+  | 'VITE_BAITLY_CAPTCHA_ENABLED'
   | 'VITE_TURNSTILE_SITE_KEY'
   | 'VITE_CRISP_WEBSITE_ID'
   // Cles propres a la landing Baitly (bundle `site/`, image clenzy-baitly-site).
@@ -68,6 +69,7 @@ const BUILD_TIME: Partial<Record<RuntimeConfigKey, string>> = {
   VITE_POSTHOG_KEY: import.meta.env.VITE_POSTHOG_KEY,
   VITE_POSTHOG_HOST: import.meta.env.VITE_POSTHOG_HOST,
   VITE_MAPBOX_TOKEN: import.meta.env.VITE_MAPBOX_TOKEN,
+  VITE_BAITLY_CAPTCHA_ENABLED: import.meta.env.VITE_BAITLY_CAPTCHA_ENABLED,
   VITE_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY,
   VITE_CRISP_WEBSITE_ID: import.meta.env.VITE_CRISP_WEBSITE_ID,
   VITE_API_URL: import.meta.env.VITE_API_URL,

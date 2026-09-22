@@ -65,7 +65,7 @@ public class PublicMarketplaceController {
      * publique du site (VITE_TURNSTILE_SITE_KEY) : sans widget, aucun jeton
      * n'est envoye, et toute candidature serait refusee.</p>
      */
-    @Value("${clenzy.marketplace.captcha-enabled:false}")
+    @Value("${clenzy.marketplace.captcha-enabled:${captcha.enabled:false}}")
     private boolean captchaEnabled;
 
     public PublicMarketplaceController(MarketplaceApplicationService applicationService,
@@ -116,15 +116,11 @@ public class PublicMarketplaceController {
                     "message", "Trop de tentatives. Reessayez dans une heure."));
         }
 
-        // Captcha ETEINT par defaut, et volontairement : il sera allume quand le
-        // parcours complet sera stabilise. Toute la plomberie reste en place —
-        // champ de requete, widget, validation — pour que l'activation soit une
-        // ligne de configuration et non une reprise de code.
-        //
         // Place apres la limite de debit, qui ne coute qu'un INCR Redis :
         // verifier le captcha d'abord ferait payer un aller-retour reseau a
         // chaque martelement, ce qui est exactement ce qu'on cherche a eviter.
-        if (captchaEnabled && !loginProtectionService.validateCaptchaToken(request.captchaToken())) {
+        if (captchaEnabled && !loginProtectionService.validateCaptchaToken(
+                request.captchaToken(), "marketplace-application")) {
             return ResponseEntity.badRequest()
                 .body(Map.of("status", "error",
                     "message", "Verification anti-robot echouee. Rechargez la page et reessayez."));

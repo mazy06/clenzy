@@ -340,3 +340,10 @@ clenzy:
     dir: ${BACKUP_DIR:/app/backups}
   libreoffice:
     url: ${LIBREOFFICE_URL:http://clenzy-libreoffice:3000}
+
+# Activate only after the public widgets, CSP and private secret are deployed.
+captcha:
+  enabled: ${BAITLY_CAPTCHA_ENABLED:false}
+turnstile:
+  secret-key: ${TURNSTILE_SECRET_KEY:}
+  allowed-hostnames: ${TURNSTILE_ALLOWED_HOSTNAMES:}
