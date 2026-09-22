@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: "0479-platform-users-organization"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0479__platform_users_organization.sql
+            relativeToChangelogFile: true
