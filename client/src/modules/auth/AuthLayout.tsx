@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { useMediaQuery } from '../../hooks/use-media-query';
@@ -7,6 +7,7 @@ import { AGENT_IDS } from '../supervision/constants';
 import PublicLanguagePicker from '../../components/PublicLanguagePicker';
 import type { AppLanguage } from '../../utils/localeDate';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
+import './baitly-auth.css';
 
 /**
  * Layout partage par les pages d'auth (Login, Inscription, mot de passe oublie).
@@ -165,9 +166,7 @@ const SLIDE_DURATION_MS = 6000;
 
 // ─── Feature flag : hero photo en arriere-plan du brand panel ─────────────
 //
-// Si true : photo d'interieur (Airbnb-style cozy) en bg + overlay tinted
-//           primary alpha 0.78 pour lisibilite. Text en blanc. Plus de
-//           profondeur visuelle, mais plus charge.
+// Si true : photo d'interieur en fond, teintee par le bleu nuit de la landing.
 // Si false : dot pattern + bg primary alpha 0.04 (etat originel sobre).
 //
 // REVERT : change ENABLE_PHOTO_HERO a false, save, commit. Aucune autre
@@ -190,6 +189,8 @@ const softColor = (color: string, percent: number) =>
 
 /** Primary Baitly UI, seule teinte du theme utilisee par ce layout. */
 const PRIMARY = 'var(--bui-primary)';
+const BRAND_PAPER = 'var(--bl-paper)';
+const BRAND_BLUE = 'var(--bl-blue)';
 
 /** Le point de bascule desktop de ce layout vaut 900px, pas les 768px de Tailwind. */
 const MD_UP_QUERY = '(min-width: 900px)';
@@ -294,8 +295,10 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
       // device peut être en data-theme="dark") pour que les jetons de surfaces et
       // de champs repassent en clair. `brand-accent` reste posée pour les rares
       // descendants encore branchés sur l'accent de marque (cf. tokens.css).
-      className="brand-accent relative min-h-screen flex flex-col min-[900px]:flex-row bg-card"
+      className="brand-accent baitly-auth relative min-h-dvh flex flex-col min-[900px]:flex-row bg-card"
       data-theme="light"
+      lang={language}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {/* ── PANNEAU BRAND (desktop) ─────────────────────────────────────── */}
       {isMdUp && (
@@ -304,10 +307,10 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
           style={{
             // Photo mode : bg ratio composite (photo darkening overlay sous
             // le dot pattern translucide). Sober mode : bg primary alpha 0.04.
-            backgroundColor: ENABLE_PHOTO_HERO ? '#0F1A22' : softColor(primary, 4),
+            backgroundColor: ENABLE_PHOTO_HERO ? primary : softColor(primary, 4),
             // Dot pattern visible dans les deux modes, alpha ajuste selon le bg
             backgroundImage: ENABLE_PHOTO_HERO
-              ? `radial-gradient(${softColor('#FFFFFF', 10)} 1px, transparent 1px)`
+              ? `radial-gradient(${softColor(BRAND_PAPER, 10)} 1px, transparent 1px)`
               : `radial-gradient(${softColor(primary, 12)} 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
             backgroundPosition: '0 0',
@@ -315,18 +318,8 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Photo hero en arriere-plan (uniquement si ENABLE_PHOTO_HERO).
-              Layers depuis le fond vers le devant :
-              1. Photo Unsplash, fortement attenuee (saturate 0.6, brightness
-                 0.55, blur 1.5px). Le blur reduit le bruit visuel derriere
-                 le texte sans completement masquer l'image — on devine encore
-                 la scene d'interieur, mais elle ne distrait plus de la lecture.
-              2. Overlay uniforme tinted brand-dark, alpha 0.85 (montee depuis
-                 0.78 — testee : 0.85 garantit WCAG AAA pour texte blanc sur
-                 n'importe quelle zone de la photo).
-              3. Gradient diagonal : zone encore plus sombre en bas-gauche
-                 (la ou le texte vit), transparente en haut-droite. Cree un
-                 "spotlight" subtil sur le texte sans surcharger. */}
+          {/* Photo attenuee sous un voile bleu nuit a 93 % : la teinte reste
+              celle de la landing, meme sur les parties claires de l'image. */}
           {ENABLE_PHOTO_HERO && (
             <>
               <div
@@ -340,21 +333,13 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
                   transform: 'scale(1.05)',
                 }}
               />
-              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: softColor('#0F1E28', 85) }} aria-hidden />
-              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ background: `linear-gradient(to top right, ${softColor('#0F1E28', 55)} 0%, transparent 60%)` }} aria-hidden />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: softColor(primary, 93) }} aria-hidden />
             </>
           )}
 
-          {/* Accent decoratif top-right : cercle radial diffus.
-              En photo mode : color brand-light pour rester visible sur fond fonce.
-              En sober mode : color brand classic. */}
-          <div className="absolute w-[360px] h-[360px] rounded-[50%] pointer-events-none z-[0]" style={{ top: -120, right: -120, background: ENABLE_PHOTO_HERO
-                ? `radial-gradient(circle, ${softColor('#89B1C2', 22)}, transparent 70%)`
-                : `radial-gradient(circle, ${softColor(primary, 18)}, transparent 70%)` }} aria-hidden />
-
-          {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
+          {/* Memes proportions que le header de la landing : mark 30, mot 27. */}
           <div className="relative z-[1]">
-            <BaitlyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
+            <AuthBrandLogo onDark={ENABLE_PHOTO_HERO} />
           </div>
 
           {/* Centre : carrousel slide actuel + dots verticaux a droite.
@@ -391,10 +376,7 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
                   style={{
                     // Texte titre : blanc en photo mode (sur fond fonce),
                     // encre du theme en sober mode (sur fond clair)
-                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'var(--bui-foreground)',
-                    // text-shadow subtil en photo mode : renforce la lisibilite
-                    // sur photo+overlay (sans tomber dans le "drop-shadow lourd")
-                    textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
+                    color: ENABLE_PHOTO_HERO ? BRAND_PAPER : 'var(--bui-foreground)',
                   }}
                 >
                   {t('auth.slides.' + current.id + '.tagline') && (
@@ -402,11 +384,8 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
                       {t('auth.slides.' + current.id + '.tagline')}{' '}
                     </>
                   )}
-                  {/* Highlight : brand-light renforce (#A8C8D6) en photo mode
-                      pour contraste WCAG sur fond fonce. Primary classic en
-                      sober. #A8C8D6 vs #89B1C2 = +20% luminosite => meilleure
-                      lisibilite sur l'overlay+photo darkened. */}
-                  <span style={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
+                  {/* Encre marron du planning sur fond sombre, reste du titre blanc. */}
+                  <span style={{ color: ENABLE_PHOTO_HERO ? 'var(--baitly-auth-highlight)' : primary }}>
                     {t('auth.slides.' + current.id + '.highlight', { agentCount: AGENT_IDS.length })}
                   </span>
                   {t('auth.slides.' + current.id + '.end')}
@@ -418,8 +397,7 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
                 <p
                   className="text-[0.8125rem] font-normal leading-[1.7]"
                   style={{
-                    color: ENABLE_PHOTO_HERO ? softColor('#FFFFFF', 78) : 'var(--bui-muted-foreground)',
-                    textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
+                    color: ENABLE_PHOTO_HERO ? softColor(BRAND_PAPER, 82) : 'var(--bui-muted-foreground)',
                   }}
                 >
                   {t('auth.slides.' + current.id + '.subtitle')}
@@ -452,12 +430,12 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
                 const isActive = i === slideIndex;
                 // Dots : white-translucent en photo mode pour contraster
                 // avec le bg fonce. Primary en sober mode.
-                const dotActiveBg = ENABLE_PHOTO_HERO ? '#FFFFFF' : primary;
+                const dotActiveBg = ENABLE_PHOTO_HERO ? BRAND_PAPER : primary;
                 const dotInactiveBg = ENABLE_PHOTO_HERO
-                  ? softColor('#FFFFFF', 35)
+                  ? softColor(BRAND_PAPER, 55)
                   : softColor(primary, 25);
                 const dotInactiveHoverBg = ENABLE_PHOTO_HERO
-                  ? softColor('#FFFFFF', 55)
+                  ? softColor(BRAND_PAPER, 75)
                   : softColor(primary, 45);
                 return (
                   // Les 3 teintes du dot dependent du mode photo et du theme :
@@ -485,8 +463,7 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
                     style={{
                       '--dot-bg': isActive ? dotActiveBg : dotInactiveBg,
                       '--dot-bg-hover': isActive ? dotActiveBg : dotInactiveHoverBg,
-                      '--dot-ring': ENABLE_PHOTO_HERO ? '#FFFFFF' : primary,
-                      transition: 'height 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
+                      '--dot-ring': ENABLE_PHOTO_HERO ? BRAND_PAPER : primary,
                     } as React.CSSProperties}
                   />
                 );
@@ -499,17 +476,17 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
           <div className="relative z-[1]">
             <div className="flex items-center gap-4 flex-wrap">
               <TrustItem
-                dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
+                dot={ENABLE_PHOTO_HERO ? BRAND_BLUE : primary}
                 label={t('auth.layout.trustEurope', 'Hébergé en Europe')}
                 onDark={ENABLE_PHOTO_HERO}
               />
               <TrustItem
-                dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
+                dot={ENABLE_PHOTO_HERO ? BRAND_BLUE : primary}
                 label={t('auth.layout.trustCompliance', 'NF 525 / RGPD')}
                 onDark={ENABLE_PHOTO_HERO}
               />
               <TrustItem
-                dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
+                dot={ENABLE_PHOTO_HERO ? BRAND_BLUE : primary}
                 label={t('auth.layout.trustSupport', 'Support 7j/7')}
                 onDark={ENABLE_PHOTO_HERO}
               />
@@ -529,32 +506,32 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
       </div>
 
       {/* ── ZONE FORM ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-card">
-        {/* Champs auth uniformisés sur la primary Baitly (bordure + remplissage
-            soft au survol/focus), alignés sur le bouton primary — cohérent sur
-            TOUTES les pages auth (Login, Inscription…). Le sélecteur d'erreur
-            est plus spécifique que celui de repos : un champ invalide garde sa
-            bordure rouge. */}
+      <div className="flex-1 min-w-0 flex items-center justify-center px-[18px] pt-20 pb-9 min-[600px]:px-[30px] min-[900px]:p-9 bg-card">
+        {/* Les champs simples et groupes partagent la peinture de baitly-auth.css. */}
         <div
-          className={cn(
-            'w-full flex flex-col',
-            '[&_[data-slot=input]]:border-primary [&_[data-slot=input]]:transition-colors',
-            '[&_[data-slot=input]:hover]:bg-primary-soft',
-            '[&_[data-slot=input]:focus]:bg-primary-soft',
-            '[&_[data-slot=input][aria-invalid=true]]:border-destructive',
-          )}
+          className="baitly-auth-form w-full flex flex-col"
           style={{ maxWidth: maxFormWidth }}
         >
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}
           {!isMdUp && (
             <div className="flex justify-center mb-6">
-              <BaitlyMarkLogo scale={0.85} />
+              <AuthBrandLogo />
             </div>
           )}
 
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Assemblage du logo identique a la landing, sans modifier celui du PMS. */
+function AuthBrandLogo({ onDark = false }: { onDark?: boolean }) {
+  return (
+    <div className="baitly-auth-logo" data-on-dark={onDark}>
+      <BaitlyMarkLogo variant="mark" size={30} colorMode="inherit" />
+      <span className="baitly-auth-wordmark">baitly</span>
     </div>
   );
 }
@@ -585,7 +562,7 @@ function ServiceChip({
 }) {
   // Couleur du logo : blanc en photo mode, hex brand Baitly en sober mode.
   // simple-icons accepte hex sans `#` ou keyword `white`/`black`.
-  const iconColor = onDark ? 'white' : '1B2A35';
+  const iconColor = onDark ? 'F5FAFC' : '25406E';
 
   return (
     // Les teintes dependent du mode photo : custom properties, la variante
@@ -593,10 +570,9 @@ function ServiceChip({
     <div
       className="inline-flex items-center gap-[3.75px] px-[6.75px] py-[3px] rounded-full border border-solid border-[var(--chip-border)] bg-[var(--chip-bg)] hover:bg-[var(--chip-bg-hover)]"
       style={{
-        '--chip-bg': onDark ? softColor('#FFFFFF', 8) : softColor('#000000', 4),
-        '--chip-bg-hover': onDark ? softColor('#FFFFFF', 14) : softColor('#000000', 6),
-        '--chip-border': onDark ? softColor('#FFFFFF', 12) : softColor('#000000', 6),
-        transition: 'background-color 200ms ease-out',
+        '--chip-bg': onDark ? softColor(BRAND_PAPER, 8) : softColor(PRIMARY, 4),
+        '--chip-bg-hover': onDark ? softColor(BRAND_PAPER, 14) : softColor(PRIMARY, 6),
+        '--chip-border': onDark ? softColor(BRAND_PAPER, 12) : softColor(PRIMARY, 6),
       } as React.CSSProperties}
     >
       {service.slug && (
@@ -613,8 +589,8 @@ function ServiceChip({
         />
       )}
       <span
-        className="text-[0.7rem] font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
-        style={{ color: onDark ? softColor('#FFFFFF', 88) : 'var(--bui-foreground)' }}
+        className="text-xs font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
+        style={{ color: onDark ? softColor(BRAND_PAPER, 88) : 'var(--bui-foreground)' }}
       >
         {service.name}
       </span>
@@ -631,7 +607,7 @@ function TrustItem({ dot, label, onDark = false }: { dot: string; label: string;
       <div className={cn('w-[5px] h-[5px] rounded-[50%]', onDark ? 'opacity-85' : 'opacity-60')} style={{ backgroundColor: dot }} />
       <span
         className="text-xs font-medium"
-        style={{ color: onDark ? softColor('#FFFFFF', 75) : 'var(--bui-muted-foreground)' }}
+        style={{ color: onDark ? softColor(BRAND_PAPER, 82) : 'var(--bui-muted-foreground)' }}
       >
         {label}
       </span>
