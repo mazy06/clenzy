@@ -7,7 +7,7 @@
      baseline Emotion/CssBaseline de l'app legacy. On n'importe que
      le thème + les utilities + un sous-ensemble minimal (plus bas).
    - Identité BAITLY (validée 2026-07-23, rupture avec le bleu-gris
-     Clenzy #6B8A9A) : primaire = BLEU NUIT #1B2A35 (couleur du
+     Baitly historique #6B8A9A) : primaire = BLEU NUIT #1B2A35 (couleur du
      wordmark « Baitly » de la sidebar), inversée en sombre (#E8EEF5
      sur navy) comme le wordmark. Dark = navy profond #0A1120, cards
      #111B31. Teintes du nouveau mark : #2563EB (request → info),
@@ -534,8 +534,8 @@
    ses points diacritiques. Même arbitrage que le bloc ci-dessus : la surcharge
    vit ici, la feuille Nova portée reste fidèle à shadcn.
 
-   Elle vise les SLOTS et non la barre : le volet (`SidebarFlyout`) et le
-   tiroir d'onglets sont portalisés sur `body`, donc hors du DOM de la barre,
+   Elle vise les marqueurs de navigation et non la barre : le volet
+   (`SidebarFlyout`) et le tiroir d'onglets sont portalisés sur `body`, hors du DOM de la barre,
    et tiennent la même échelle. Hors couche, comme le bloc ci-dessus : les
    classes du kit vivent dans `@layer base`, et une déclaration sans couche
    l'emporte sur toute déclaration en couche, quel que soit l'ordre des imports.
@@ -544,8 +544,10 @@
    h-7) et en `overflow: hidden`. Garder les 20 px de `text-sm` sous un corps
    de 15 rognait les hampes basses, et en arabe les diacritiques, qui débordent
    la boîte de contenu. 22 px tiennent dans les 28 px du plus court des deux. */
-[data-slot='sidebar-menu-button'],
-[data-slot='sidebar-menu-sub-button'] {
+/* `CollapsibleTrigger asChild` remplace data-slot par collapsible-trigger.
+   data-sidebar reste stable : liens, onglets et groupes gardent le même corps. */
+[data-sidebar='menu-button'],
+[data-sidebar='menu-sub-button'] {
   font-size: 0.9375rem; /* 15 px */
   line-height: 1.375rem; /* 22 px */
 }
