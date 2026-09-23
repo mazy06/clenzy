@@ -453,6 +453,8 @@ public class AuthController {
 
             if (user != null) {
                 claims.put("id", user.getId());
+                // Le JWT courant peut encore porter l'email precedent apres une modification.
+                claims.put("email", user.getEmail());
                 claims.put("firstName", user.getFirstName());
                 claims.put("lastName", user.getLastName());
                 claims.put("role", user.getRole().name());

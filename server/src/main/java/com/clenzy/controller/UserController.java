@@ -219,7 +219,7 @@ public class UserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Mettre à jour un utilisateur")
-    public UserDto update(@PathVariable Long id, @RequestBody UserDto dto, @AuthenticationPrincipal Jwt jwt) {
+    public UserDto update(@PathVariable Long id, @Validated @RequestBody UserDto dto, @AuthenticationPrincipal Jwt jwt) {
         validateOwnershipOrAdmin(id, jwt);
         return userService.update(id, dto);
     }

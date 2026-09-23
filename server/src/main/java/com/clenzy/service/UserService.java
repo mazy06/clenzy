@@ -33,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -163,6 +164,20 @@ public class UserService {
 
     public UserDto update(Long id, UserDto dto) {
         User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+        String email = dto.email == null ? null : dto.email.trim().toLowerCase(Locale.ROOT);
+        if (email != null && email.isBlank()) {
+            throw new IllegalArgumentException("L'adresse email ne peut pas etre vide");
+        }
+        boolean emailChanged = email != null && !email.equalsIgnoreCase(user.getEmail());
+        if (emailChanged) {
+            userRepository.findByEmailHash(StringUtils.computeEmailHash(email))
+                    .filter(other -> !other.getId().equals(id))
+                    .ifPresent(other -> {
+                        throw new IllegalArgumentException("Cette adresse email est deja utilisee");
+                    });
+            user.setEmail(email); // Met aussi a jour le hash utilise pour rechercher le compte.
+            user.setEmailVerified(false);
+        }
         UserRole previousRole = user.getRole();
         if (dto.firstName != null) user.setFirstName(dto.firstName);
         if (dto.lastName != null) user.setLastName(dto.lastName);
@@ -211,7 +226,15 @@ public class UserService {
                 }
             });
         }
-        
+        if (emailChanged) {
+            // Valider les contraintes SQL avant l'appel externe. Un refus Keycloak
+            // doit remonter et annuler la transaction, jamais produire un faux succes.
+            userRepository.flush();
+            if (user.getKeycloakId() != null && !user.getKeycloakId().isBlank()) {
+                newUserService.updateEmail(user.getKeycloakId(), email);
+            }
+        }
+
         try {
             if (user.getKeycloakId() != null) {
                 notificationService.notify(
@@ -786,7 +809,7 @@ public class UserService {
             // Self-heal : clear le champ pour que le prochain /me ne renvoie plus
             // la claim, ce qui evite le 404 cosmetique a chaque requete frontend.
             // Cas typique : storage local efface (dev restart sans volume nomme)
-            // ou objet S3 supprime hors workflow Clenzy.
+            // ou objet S3 supprime hors workflow Baitly.
             // Delegue a avatarSelfHealer (Spring proxy externe) car
             // @Transactional via self-invocation ne marcherait pas.
             avatarSelfHealer.clearStaleReference(userId);
@@ -846,5 +869,3 @@ public class UserService {
         }
     }
 }
-
-

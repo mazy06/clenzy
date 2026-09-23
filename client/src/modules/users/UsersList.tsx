@@ -89,7 +89,7 @@ interface User {
 // `-ink` / `-soft` de la primitive StatusChip (seul couple conforme AA) ;
 // `iconClass` habille l'icone decorative de la liste deroulante, ou la teinte
 // vive est admise. Baitly UI n'expose pas de sixieme teinte : le violet et le
-// gris chaud de l'ancienne palette Clenzy retombent respectivement sur
+// gris chaud de l'ancienne palette Baitly retombent respectivement sur
 // `warning` et `neutral`, ce qui garde les roles distincts deux a deux.
 const userRoles: Array<{ value: string; labelKey: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone; iconClass: string }> = [
   { value: 'SUPER_ADMIN', labelKey: 'roles.platform.SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', tone: 'err', iconClass: 'text-destructive' },
@@ -266,9 +266,20 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
     setSaving(true);
     try {
-      await usersApi.update(selectedUser.id, editFormData);
+      const updatedUser = await usersApi.update(selectedUser.id, {
+        ...editFormData,
+        email: editFormData.email.trim(),
+      });
       setUsers(prev => prev.map(u =>
-        u.id === selectedUser.id ? { ...u, ...editFormData } : u
+        u.id === selectedUser.id ? {
+          ...u,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          phoneNumber: updatedUser.phoneNumber,
+          role: updatedUser.role,
+          status: updatedUser.status ?? u.status,
+        } : u
       ));
       setEditDialogOpen(false);
       setEditFormData({});
