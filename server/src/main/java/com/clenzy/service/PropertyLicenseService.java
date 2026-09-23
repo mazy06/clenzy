@@ -4,6 +4,7 @@ import com.clenzy.dto.PropertyLicenseDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.PropertyLicense;
 import com.clenzy.repository.PropertyLicenseRepository;
+import com.clenzy.repository.PropertyRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +20,22 @@ import java.util.List;
 public class PropertyLicenseService {
 
     private final PropertyLicenseRepository repository;
+    private final PropertyRepository properties;
 
-    public PropertyLicenseService(PropertyLicenseRepository repository) {
+    public PropertyLicenseService(PropertyLicenseRepository repository, PropertyRepository properties) {
+        this.properties = properties;
         this.repository = repository;
     }
 
     @Transactional(readOnly = true)
     public List<PropertyLicenseDto> list(Long propertyId, Long orgId) {
+        // Pays et fuseau lus UNE fois : le format d'une licence est national et sa
+        // peremption se juge chez le logement, mais les deux valent pour toute la liste.
+        Context context = contextOf(propertyId, orgId);
         return repository.findByPropertyIdAndOrganizationIdOrderByExpiresAtAsc(propertyId, orgId)
-                .stream().map(PropertyLicenseDto::from).toList();
+                .stream()
+                .map(license -> PropertyLicenseDto.from(license, context.countryCode(), context.zone()))
+                .toList();
     }
 
     @Transactional
@@ -36,19 +44,36 @@ public class PropertyLicenseService {
         license.setOrganizationId(orgId);
         license.setPropertyId(propertyId);
         applyRequest(license, request);
-        return PropertyLicenseDto.from(repository.save(license));
+        Context context = contextOf(propertyId, orgId);
+        return PropertyLicenseDto.from(repository.save(license), context.countryCode(), context.zone());
     }
 
     @Transactional
     public PropertyLicenseDto update(Long id, Long propertyId, Long orgId, PropertyLicenseDto request) {
         PropertyLicense license = requireOwned(id, propertyId, orgId);
         applyRequest(license, request);
-        return PropertyLicenseDto.from(repository.save(license));
+        Context context = contextOf(propertyId, orgId);
+        return PropertyLicenseDto.from(repository.save(license), context.countryCode(), context.zone());
     }
 
     @Transactional
     public void delete(Long id, Long propertyId, Long orgId) {
         repository.delete(requireOwned(id, propertyId, orgId));
+    }
+
+    /** Ce que le logement apporte a la lecture d'une licence : son pays, son fuseau. */
+    private record Context(String countryCode, String zone) {
+    }
+
+    /**
+     * Charge le logement BORNE A L'ORGANISATION — {@code findById} contournerait le
+     * filtre Hibernate. Un logement introuvable ne fait pas echouer la lecture des
+     * licences : on perd seulement le controle de forme, pas la donnee.
+     */
+    private Context contextOf(Long propertyId, Long orgId) {
+        return properties.findByIdWithOwner(propertyId, orgId)
+                .map(property -> new Context(property.getCountryCode(), property.getTimezone()))
+                .orElseGet(() -> new Context(null, null));
     }
 
     private PropertyLicense requireOwned(Long id, Long propertyId, Long orgId) {

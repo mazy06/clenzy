@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
+import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { cn } from '../../utils/cn';
 import { Add, DeleteOutline, Edit, GppGood } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -118,9 +120,47 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
             {licenses.map((license) => (
               <TableRow key={license.id}>
                 <TableCell>{t(TYPE_KEYS[license.licenseType])}</TableCell>
-                <TableCell className="tabular-nums">{license.licenseNumber ?? '—'}</TableCell>
+                <TableCell className="tabular-nums">
+                  <span className="inline-flex items-center gap-1.5">
+                    {license.licenseNumber ?? '—'}
+                    {/* Le serveur ne se prononce que sur les formats qu'il connaît :
+                        un avertissement, jamais un blocage. Notre règle saoudienne
+                        vient d'une source secondaire, refuser l'enregistrement sur
+                        cette base coûterait plus qu'un numéro mal saisi. */}
+                    {license.formatVerdict === 'MALFORMED' && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex text-warning-ink">
+                            <TriangleAlert className="size-3.5" aria-hidden />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t(
+                            'properties.compliance.formatSuspect',
+                            "Ce numéro ne suit pas le format attendu pour le pays du logement",
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </span>
+                </TableCell>
                 <TableCell>{license.issuedBy ?? '—'}</TableCell>
-                <TableCell className="tabular-nums">{license.expiresAt ?? '—'}</TableCell>
+                <TableCell className="tabular-nums">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5',
+                      license.expiringSoon && 'font-medium text-warning-ink',
+                    )}
+                  >
+                    {license.expiresAt ?? '—'}
+                    {license.expiringSoon && (
+                      <span
+                        aria-label={t('properties.compliance.expiringSoon', 'Échéance proche')}
+                        className="size-[7px] shrink-0 rounded-full bg-warning-ink"
+                      />
+                    )}
+                  </span>
+                </TableCell>
                 <TableCell className="tabular-nums">{license.renewalLeadDays}</TableCell>
                 {canEdit && (
                   <TableCell className="text-right">

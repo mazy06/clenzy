@@ -4341,3 +4341,11 @@ databaseChangeLog:
   - include:
       file: 0479-platform-users-organization.yaml
       relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0480-regulatory-connections"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0480__regulatory_connections.sql
+            relativeToChangelogFile: true
