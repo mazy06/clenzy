@@ -4327,6 +4327,8 @@
     "orgCanCreateVouchers": "Let my management company create promo codes",
     "orgCanCreateVouchersHelper": "Allows the organisation managing this property to create promo codes (vouchers) on nightly rates. A signed voucher agreement is also required on the platform side.",
     "compliance": {
+        "formatSuspect": "This number does not match the format expected for the property's country",
+        "expiringSoon": "Expiring soon",
       "add": "Add",
       "addTitle": "Add a licence",
       "editTitle": "Edit the licence",
