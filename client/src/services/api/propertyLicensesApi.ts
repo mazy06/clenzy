@@ -12,9 +12,22 @@ export interface PropertyLicense {
   renewalLeadDays: number;
   documentRef: string | null;
   notes: string | null;
+  /**
+   * Calculés par le serveur, ignorés en écriture.
+   *
+   * `formatVerdict` ne vaut que pour une licence d'exploitation touristique : le
+   * format est national, et un pays sans règle connue renvoie `UNCHECKED` plutôt
+   * que de se prononcer. `expiringSoon` se juge au fuseau du logement, pas à
+   * celui du navigateur.
+   */
+  formatVerdict: 'ABSENT' | 'VALID' | 'MALFORMED' | 'UNCHECKED';
+  expiringSoon: boolean;
 }
 
-export type PropertyLicenseRequest = Omit<PropertyLicense, 'id' | 'propertyId'>;
+export type PropertyLicenseRequest = Omit<
+  PropertyLicense,
+  'id' | 'propertyId' | 'formatVerdict' | 'expiringSoon'
+>;
 
 export const propertyLicensesApi = {
   list(propertyId: number): Promise<PropertyLicense[]> {
