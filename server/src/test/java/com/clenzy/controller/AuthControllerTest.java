@@ -217,7 +217,7 @@ class AuthControllerTest {
             user.setId(1L);
             user.setFirstName("Jean");
             user.setLastName("Dupont");
-            user.setEmail("test@example.com");
+            user.setEmail("updated@example.com");
             user.setRole(UserRole.HOST);
             user.setStatus(UserStatus.ACTIVE);
             user.setOrganizationId(10L);
@@ -239,6 +239,7 @@ class AuthControllerTest {
             assertThat(result.get("id")).isEqualTo(1L);
             assertThat(result.get("role")).isEqualTo("HOST");
             assertThat(result.get("organizationName")).isEqualTo("Org A");
+            assertThat(result.get("email")).isEqualTo("updated@example.com");
         }
 
         @Test

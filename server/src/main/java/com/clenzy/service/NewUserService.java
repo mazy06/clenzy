@@ -158,6 +158,13 @@ public class NewUserService {
         }
     }
 
+    /** Synchronise l'email de connexion sans modifier les roles ou relire le profil. */
+    public void updateEmail(String externalId, String email) {
+        UpdateUserDto update = new UpdateUserDto();
+        update.setEmail(email);
+        keycloakService.updateUser(externalId, update);
+    }
+
     /**
      * Supprimer un utilisateur
      */

@@ -102,6 +102,20 @@ class UserControllerTest {
     @DisplayName("update")
     class Update {
 
+        @Test
+        void whenEmailIsInvalid_thenRejectsBeforeCallingService() throws Exception {
+            var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                    .standaloneSetup(controller).build();
+
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                            .put("/api/users/1")
+                            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"not-an-email\"}"))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
+
+            verifyNoInteractions(userService);
+        }
+
         /**
          * Verifie la delegation et la garde d'ownership de la couche service.
          *

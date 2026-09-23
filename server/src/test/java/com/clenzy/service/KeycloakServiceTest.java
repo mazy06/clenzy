@@ -379,6 +379,34 @@ class KeycloakServiceTest {
             assertThat(existing.getFirstName()).isEqualTo("New");
             assertThat(existing.getLastName()).isEqualTo("Name");
             assertThat(existing.getEmail()).isEqualTo("new@x.com");
+            assertThat(existing.getUsername()).isEqualTo("new@x.com");
+            assertThat(existing.isEmailVerified()).isFalse();
+        }
+
+        @Test
+        void whenChangingAdminEmail_thenKeepsExplicitUsername() {
+            UserRepresentation existing = buildUserRepresentation("u-1", "old@x.com");
+            existing.setUsername("admin");
+            when(usersResource.get("u-1")).thenReturn(userResource);
+            when(userResource.toRepresentation()).thenReturn(existing);
+
+            service.updateUser("u-1", new UpdateUserDto(null, null, "new@x.com", null));
+
+            assertThat(existing.getUsername()).isEqualTo("admin");
+            assertThat(existing.getEmail()).isEqualTo("new@x.com");
+            assertThat(existing.isEmailVerified()).isFalse();
+            verify(userResource, never()).roles();
+        }
+
+        @Test
+        void whenSyncingUnchangedEmail_thenKeepsVerification() {
+            UserRepresentation existing = buildUserRepresentation("u-1", "same@x.com");
+            when(usersResource.get("u-1")).thenReturn(userResource);
+            when(userResource.toRepresentation()).thenReturn(existing);
+
+            service.updateUser("u-1", new UpdateUserDto(null, null, "same@x.com", null));
+
+            assertThat(existing.isEmailVerified()).isTrue();
         }
 
         @Test

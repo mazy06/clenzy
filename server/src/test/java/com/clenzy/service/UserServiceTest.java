@@ -4,6 +4,7 @@ import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.UserDto;
 import com.clenzy.dto.UserProfileDto;
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.exception.KeycloakOperationException;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OrgMemberRole;
 import com.clenzy.model.OrganizationMember;
@@ -15,6 +16,7 @@ import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -213,6 +215,110 @@ class UserServiceTest {
 
     @Nested
     class Update {
+
+        @Test
+        void whenEmailChanges_thenPersistsHashAndSynchronizesKeycloakBeforeReturning() {
+            User existing = buildUser(1L, "old@example.com", UserRole.SUPER_ADMIN);
+            existing.setEmailVerified(true);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+            UserDto dto = new UserDto();
+            dto.email = " NEW@Example.com ";
+
+            UserDto result = userService.update(1L, dto);
+
+            assertThat(result.email).isEqualTo("new@example.com");
+            assertThat(userService.getById(1L).email).isEqualTo("new@example.com");
+            assertThat(existing.getEmailHash()).isEqualTo(StringUtils.computeEmailHash("new@example.com"));
+            assertThat(existing.isEmailVerified()).isFalse();
+            assertThat(existing.getKeycloakId()).isEqualTo("kc-1");
+            assertThat(result.role).isEqualTo(UserRole.SUPER_ADMIN);
+            assertThat(result.organizationId).isEqualTo(ORG_ID);
+            var order = org.mockito.Mockito.inOrder(userRepository, newUserService);
+            order.verify(userRepository).save(existing);
+            order.verify(userRepository).flush();
+            order.verify(newUserService).updateEmail("kc-1", "new@example.com");
+        }
+
+        @Test
+        void whenEmailIsUnchanged_thenKeepsVerificationAndDoesNotCallKeycloak() {
+            User existing = buildUser(1L, "same@example.com", UserRole.HOST);
+            existing.setEmailVerified(true);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+            UserDto dto = new UserDto();
+            dto.email = "SAME@example.com";
+
+            userService.update(1L, dto);
+
+            assertThat(existing.isEmailVerified()).isTrue();
+            verify(newUserService, never()).updateEmail(anyString(), anyString());
+        }
+
+        @Test
+        void whenEmailIsOmitted_thenKeepsCurrentEmail() {
+            User existing = buildUser(1L, "old@example.com", UserRole.HOST);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            assertThat(userService.update(1L, new UserDto()).email).isEqualTo("old@example.com");
+            verify(newUserService, never()).updateEmail(anyString(), anyString());
+        }
+
+        @Test
+        void whenEmailIsBlank_thenRejectsBeforeSaving() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(buildUser(1L, "old@example.com", UserRole.HOST)));
+            UserDto dto = new UserDto();
+            dto.email = " ";
+
+            assertThatThrownBy(() -> userService.update(1L, dto)).isInstanceOf(IllegalArgumentException.class);
+            verify(userRepository, never()).save(any());
+            verify(newUserService, never()).updateEmail(anyString(), anyString());
+        }
+
+        @Test
+        void whenEmailBelongsToAnotherUser_thenRejectsWithoutChangingEitherAccount() {
+            User existing = buildUser(1L, "old@example.com", UserRole.HOST);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+            when(userRepository.findByEmailHash(StringUtils.computeEmailHash("taken@example.com")))
+                    .thenReturn(Optional.of(buildUser(2L, "taken@example.com", UserRole.HOST)));
+            UserDto dto = new UserDto();
+            dto.email = "taken@example.com";
+
+            assertThatThrownBy(() -> userService.update(1L, dto)).isInstanceOf(IllegalArgumentException.class);
+            assertThat(existing.getEmail()).isEqualTo("old@example.com");
+            verify(userRepository, never()).save(any());
+            verify(newUserService, never()).updateEmail(anyString(), anyString());
+        }
+
+        @Test
+        void whenKeycloakRejectsEmail_thenFailsWithoutSendingSuccessNotification() {
+            User existing = buildUser(1L, "old@example.com", UserRole.HOST);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+            doThrow(new KeycloakOperationException("Email refused"))
+                    .when(newUserService).updateEmail("kc-1", "new@example.com");
+            UserDto dto = new UserDto();
+            dto.email = "new@example.com";
+
+            assertThatThrownBy(() -> userService.update(1L, dto)).isInstanceOf(KeycloakOperationException.class);
+            verify(notificationService, never()).notify(anyString(), any(), anyString(), anyString(), anyString());
+        }
+
+        @Test
+        void whenDatabaseRejectsEmail_thenDoesNotChangeKeycloak() {
+            User existing = buildUser(1L, "old@example.com", UserRole.HOST);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+            doThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate email"))
+                    .when(userRepository).flush();
+            UserDto dto = new UserDto();
+            dto.email = "new@example.com";
+
+            assertThatThrownBy(() -> userService.update(1L, dto))
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+            verify(newUserService, never()).updateEmail(anyString(), anyString());
+        }
 
         @Test
         void whenUpdatingExistingUser_thenFieldsAreUpdated() {

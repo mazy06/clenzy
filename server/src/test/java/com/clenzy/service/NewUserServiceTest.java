@@ -126,6 +126,18 @@ class NewUserServiceTest {
     class UpdateUser {
 
         @Test
+        void whenUpdatingEmail_thenChangesOnlyEmailInKeycloak() {
+            service.updateEmail("kc-1", "new@example.com");
+
+            ArgumentCaptor<UpdateUserDto> update = ArgumentCaptor.forClass(UpdateUserDto.class);
+            verify(keycloakService).updateUser(eq("kc-1"), update.capture());
+            assertThat(update.getValue().getEmail()).isEqualTo("new@example.com");
+            assertThat(update.getValue().getRole()).isNull();
+            assertThat(update.getValue().getFirstName()).isNull();
+            verifyNoInteractions(userRepository);
+        }
+
+        @Test
         void whenRoleChanged_thenUpdatesInDb() {
             UpdateUserDto updateDto = new UpdateUserDto();
             updateDto.setRole("SUPER_ADMIN");

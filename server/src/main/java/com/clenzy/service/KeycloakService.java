@@ -287,8 +287,16 @@ public class KeycloakService {
                     user.setLastName(updateUserDto.getLastName());
                 }
                 if (updateUserDto.getEmail() != null) {
+                    String previousEmail = user.getEmail();
+                    // Les identifiants explicites (ex. admin) restent stables.
+                    // Seuls les comptes dont le login etait l'email le suivent.
+                    if (previousEmail != null && previousEmail.equalsIgnoreCase(user.getUsername())) {
+                        user.setUsername(updateUserDto.getEmail());
+                    }
+                    if (!updateUserDto.getEmail().equalsIgnoreCase(previousEmail)) {
+                        user.setEmailVerified(false);
+                    }
                     user.setEmail(updateUserDto.getEmail());
-                    user.setUsername(updateUserDto.getEmail());
                 }
 
                 userResource.update(user);
