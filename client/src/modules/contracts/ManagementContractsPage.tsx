@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
@@ -52,6 +53,7 @@ const ManagementContractsPage: React.FC = () => {
   const [contracts, setContracts] = useState<ManagementContract[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ContractStatus | ''>('');
 
   // Modal de création/édition. editingContract != null = mode édition.
@@ -67,10 +69,12 @@ const ManagementContractsPage: React.FC = () => {
   const loadContracts = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const params = statusFilter ? { status: statusFilter as ContractStatus } : undefined;
       const data = await managementContractsApi.getAll(params);
       setContracts(data);
     } catch {
+      setLoadError(true);
       notify.error(t('contracts.errorLoading'));
     } finally {
       setLoading(false);
@@ -233,6 +237,7 @@ const ManagementContractsPage: React.FC = () => {
   }));
 
   return (
+    <ModuleFirstUsePage module="contracts" ready={!loading && !loadError && !statusFilter} hasContent={contracts.length > 0}>
     <div className="flex flex-col gap-2">
       {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
       {/* Le conteneur de cette page espace deja ses blocs (gap) : sans ca la
@@ -353,6 +358,7 @@ const ManagementContractsPage: React.FC = () => {
         contract={editingContract}
       />
     </div>
+    </ModuleFirstUsePage>
   );
 };
 

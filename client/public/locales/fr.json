@@ -1,4 +1,664 @@
 {
+  "moduleFirstUse": {
+    "openWorkspace": "Accéder à cet espace",
+    "setupTitle": "Pour commencer",
+    "activation": "Ajoutez ou importez votre premier logement pour retrouver les outils de cet écran. Vous pouvez aussi ouvrir cet espace dès maintenant.",
+    "preview": "Aperçu interactif : {{title}}",
+    "example": "Données d’illustration",
+    "safeDemo": "Explorez librement cet aperçu : aucune réservation, aucun message et aucune opération ne sont créés dans votre compte.",
+    "demo": {
+      "issue": "Fuite signalée dans la salle de bains · Photo jointe · Maintenance à prévoir",
+      "teamIn": "Le ménage est terminé. Les photos sont jointes à la mission.",
+      "teamOut": "Merci, je vérifie la checklist avant l’arrivée.",
+      "teamSent": "Vérification terminée, le logement est prêt.",
+      "formType": "Formulaire de maintenance",
+      "formTitle": "Un problème à examiner",
+      "formBody": "Le robinet de la salle de bains fuit. Une photo accompagne la demande.",
+      "formDone": "Demande marquée comme traitée dans l’exemple.",
+      "property": "Riad Azur",
+      "secondProperty": "Villa des Oliviers",
+      "thirdProperty": "Appartement Atlas",
+      "done": "Terminé dans l’exemple",
+      "toPrepare": "À préparer",
+      "draft": "Brouillon",
+      "stay": "Sofia L. · 3 nuits · 2 voyageurs",
+      "task": "Ménage de départ · Équipe A · Checklist et photos de fin de mission",
+      "day_one": "Jour {{count}}",
+      "day_other": "Jour {{count}}",
+      "channels": "Types de conversation",
+      "messageIn": "Bonjour, à quelle heure pouvons-nous arriver ?",
+      "messageOut": "Bonjour Sofia, votre logement sera prêt à partir de 15 h.",
+      "messageSent": "Les informations d’accès vous attendent dans votre livret.",
+      "owner": "Sofia L.",
+      "signature": "Signature en ligne",
+      "signed": "Signature simulée : Sofia L.",
+      "awaitingSignature": "Emplacement de la signature du propriétaire",
+      "total": "Total de l’exemple",
+      "reconciled": "Opération rapprochée dans l’exemple.",
+      "ledgerHint": "Sélectionnez une ligne pour suivre son traitement.",
+      "indicators": "Indicateurs de l’exemple",
+      "occupied_one": "{{count}} nuit occupée sur 28, données d’illustration.",
+      "occupied_other": "{{count}} nuits occupées sur 28, données d’illustration.",
+      "chartDescription": "Évolution de six valeurs fictives. La comparaison modifie les valeurs de l’exemple.",
+      "referencePeriod": "Revenir à la période de référence",
+      "comparePeriod": "Comparer une autre période",
+      "reset": "Réinitialiser l’exemple",
+      "send": "Simuler une réponse",
+      "sign": "Simuler la signature",
+      "advance": "Simuler le traitement",
+      "simulated": "Simulation terminée. Aucune donnée réelle modifiée.",
+      "interact": "Cliquez dans l’aperçu ou choisissez une étape pour explorer.",
+      "sectionReady": "Section incluse",
+      "period": "Période",
+      "reportReady": "Document préparé dans l’exemple",
+      "unit": "Valeurs d’illustration"
+    },
+    "setup": {
+      "reservations": [
+        "Créez un logement avec ses capacités et ses horaires d’arrivée.",
+        "Importez vos séjours depuis un canal, ou saisissez une réservation directe.",
+        "Complétez les coordonnées du voyageur, le prix et le suivi du règlement."
+      ],
+      "interventions": [
+        "Ajoutez le logement où la mission doit avoir lieu.",
+        "Renseignez le service, sa date et les consignes utiles à l’équipe.",
+        "Affectez un intervenant et suivez la mission jusqu’à sa validation."
+      ],
+      "quotes": [
+        "Ajoutez le logement concerné par la prestation.",
+        "Choisissez un prestataire dans le catalogue et décrivez votre besoin.",
+        "Comparez sa proposition, puis acceptez-la ou demandez des précisions."
+      ],
+      "messaging": [
+        "Ajoutez vos logements et connectez les canaux utilisés avec vos voyageurs.",
+        "Réglez les canaux de messagerie disponibles dans les paramètres.",
+        "Ouvrez une conversation ou rédigez votre premier message. Les échanges internes restent accessibles sans logement."
+      ],
+      "contracts": [
+        "Ajoutez le logement et renseignez son propriétaire.",
+        "Définissez la commission, les services inclus et les dates du mandat.",
+        "Vérifiez le document, puis envoyez la demande de signature au propriétaire."
+      ],
+      "billing": [
+        "Renseignez vos logements et les coordonnées des parties facturées.",
+        "Complétez les paramètres de paiement et les informations fiscales selon vos droits.",
+        "Enregistrez les premières opérations pour alimenter les factures et les suivis."
+      ],
+      "reports": [
+        "Ajoutez ou importez votre portefeuille de logements.",
+        "Alimentez les réservations, les paiements, les dépenses et les missions.",
+        "Choisissez l’onglet utile à votre décision. Les analyses dépendent de l’historique disponible."
+      ]
+    },
+    "screens": {
+      "reservations": {
+        "reservations": {
+          "title": "Suivez chaque séjour, de la réservation au départ",
+          "lede": "Retrouvez les séjours de tous vos canaux et les réservations directes dans une seule liste. Une fiche rassemble le voyageur, les dates, le logement et le statut.",
+          "labels": [
+            "Arrivée à préparer",
+            "Séjour en cours",
+            "Départ prévu"
+          ],
+          "steps": [
+            {
+              "title": "Retrouver un séjour",
+              "detail": "Filtrez par logement, canal ou statut, puis ouvrez la réservation concernée."
+            },
+            {
+              "title": "Préparer l’accueil",
+              "detail": "Vérifiez les voyageurs, les horaires et les informations utiles avant l’arrivée."
+            },
+            {
+              "title": "Suivre son avancement",
+              "detail": "Passez du séjour confirmé à l’arrivée puis au départ, et consultez son règlement."
+            }
+          ]
+        }
+      },
+      "interventions": {
+        "calendar": {
+          "title": "Voyez quand chaque mission doit avoir lieu",
+          "lede": "Le calendrier répartit les interventions dans le temps. Articulez ménage, maintenance et arrivées sans perdre la vue d’ensemble.",
+          "labels": [
+            "Ménage",
+            "Maintenance",
+            "Contrôle"
+          ],
+          "steps": [
+            {
+              "title": "Lire la journée",
+              "detail": "Repérez les créneaux occupés et les interventions à venir."
+            },
+            {
+              "title": "Ouvrir une mission",
+              "detail": "Retrouvez le logement, l’équipe affectée et les consignes."
+            },
+            {
+              "title": "Organiser la suite",
+              "detail": "Consultez les autres périodes et ajustez vos missions depuis leur fiche."
+            }
+          ]
+        },
+        "service-requests": {
+          "title": "Transformez un besoin en demande suivie",
+          "lede": "Une demande de service décrit ce qui doit être fait avant de devenir une mission organisée. Gardez la trace du demandeur, du besoin et de son traitement.",
+          "labels": [
+            "À qualifier",
+            "À planifier",
+            "Prise en charge"
+          ],
+          "steps": [
+            {
+              "title": "Décrire le besoin",
+              "detail": "Indiquez le logement, le service souhaité et les informations nécessaires."
+            },
+            {
+              "title": "Qualifier la demande",
+              "detail": "Précisez la priorité, la date et les consignes avant de planifier."
+            },
+            {
+              "title": "Suivre la prise en charge",
+              "detail": "Retrouvez le statut et les interventions associées à la demande."
+            }
+          ]
+        },
+        "interventions": {
+          "title": "Du travail prévu au travail vérifié",
+          "lede": "La liste des interventions réunit les missions opérationnelles. Sachez ce qui reste à affecter, ce qui est en cours et ce qui attend une validation.",
+          "labels": [
+            "À affecter",
+            "En cours",
+            "À valider"
+          ],
+          "steps": [
+            {
+              "title": "Affecter la mission",
+              "detail": "Choisissez l’équipe ou le prestataire responsable et transmettez les consignes."
+            },
+            {
+              "title": "Suivre l’exécution",
+              "detail": "Consultez l’avancement, les notes, la checklist et les photos."
+            },
+            {
+              "title": "Vérifier le résultat",
+              "detail": "Contrôlez les éléments remontés avant de terminer ou valider l’intervention."
+            }
+          ]
+        },
+        "issues": {
+          "title": "Ne perdez aucun problème signalé",
+          "lede": "L’onglet Anomalies regroupe les problèmes relevés sur vos logements. Chaque signalement conserve son contexte pour faciliter la prise en charge.",
+          "labels": [
+            "À examiner",
+            "À traiter",
+            "Résolue"
+          ],
+          "steps": [
+            {
+              "title": "Comprendre le signalement",
+              "detail": "Consultez le logement concerné, la description et les éléments fournis."
+            },
+            {
+              "title": "Organiser la résolution",
+              "detail": "Évaluez la priorité et préparez la maintenance nécessaire."
+            },
+            {
+              "title": "Suivre jusqu’à la clôture",
+              "detail": "Vérifiez la résolution et conservez la trace du traitement."
+            }
+          ]
+        }
+      },
+      "quotes": {
+        "quotes": {
+          "title": "Un devis clair avant d’engager une prestation",
+          "lede": "Retrouvez les demandes envoyées à vos prestataires et leurs propositions. Montant, délai et décision restent réunis au même endroit.",
+          "labels": [
+            "Prestation hors taxes",
+            "Taxes",
+            "Montant proposé"
+          ],
+          "steps": [
+            {
+              "title": "Attendre la proposition",
+              "detail": "Suivez les demandes envoyées et retirez celles qui ne sont plus nécessaires."
+            },
+            {
+              "title": "Décider en connaissance de cause",
+              "detail": "Consultez le prix, la validité et le message du prestataire avant d’accepter."
+            },
+            {
+              "title": "Retrouver la mission",
+              "detail": "Suivez la prestation associée au devis accepté. La vue Reçus concerne votre activité de prestataire."
+            }
+          ]
+        }
+      },
+      "messaging": {
+        "messaging": {
+          "title": "Le fil de vos échanges, au même endroit",
+          "lede": "La messagerie réunit conversations voyageurs, échanges internes et formulaires reçus selon vos droits. Sélectionnez un fil pour retrouver son contexte et répondre.",
+          "labels": [
+            "Voyageurs",
+            "Équipe",
+            "Formulaires"
+          ],
+          "steps": [
+            {
+              "title": "Retrouver les bons échanges",
+              "detail": "Les vues Tous et Non lus aident à repérer les conversations qui attendent votre attention."
+            },
+            {
+              "title": "Répondre avec le contexte",
+              "detail": "Ouvrez le fil, consultez l’historique et utilisez le canal disponible pour répondre."
+            },
+            {
+              "title": "Classer sans perdre la trace",
+              "detail": "Consultez les formulaires autorisés, archivez les échanges terminés et retrouvez-les dans les archives."
+            }
+          ]
+        }
+      },
+      "contracts": {
+        "contracts": {
+          "title": "Posez le cadre de chaque gestion",
+          "lede": "Le contrat de gestion relie un logement à son propriétaire et définit votre mandat. Commission, période et signature restent consultables dans le dossier.",
+          "labels": [
+            "Propriétaire",
+            "Commission",
+            "Validation"
+          ],
+          "steps": [
+            {
+              "title": "Définir le mandat",
+              "detail": "Renseignez les parties, le logement, les dates et les conditions de gestion."
+            },
+            {
+              "title": "Faire signer le document",
+              "detail": "Vérifiez le mandat avant d’envoyer le lien de signature au propriétaire."
+            },
+            {
+              "title": "Suivre le contrat",
+              "detail": "Distinguez brouillons, contrats actifs, suspendus et terminés."
+            }
+          ]
+        }
+      },
+      "billing": {
+        "payments": {
+          "title": "Retrouvez le parcours de chaque paiement",
+          "lede": "Suivez les règlements voyageurs, leurs statuts et les remboursements. Rapprochez ce qui était attendu de ce qui a été encaissé.",
+          "labels": [
+            "En attente",
+            "Encaissé",
+            "Remboursé"
+          ],
+          "steps": [
+            {
+              "title": "Identifier le règlement",
+              "detail": "Retrouvez la réservation, le montant et le mode de paiement."
+            },
+            {
+              "title": "Contrôler le statut",
+              "detail": "Distinguez les opérations en attente, réussies ou en échec."
+            },
+            {
+              "title": "Vérifier l’historique",
+              "detail": "Consultez les détails et les remboursements pour comprendre les mouvements."
+            }
+          ]
+        },
+        "invoices": {
+          "title": "Les pièces de chaque opération, prêtes à retrouver",
+          "lede": "Consultez les factures et les avoirs liés aux séjours et aux services. Retrouvez leurs montants, leurs destinataires et leurs statuts.",
+          "labels": [
+            "Montant hors taxes",
+            "Taxes",
+            "Montant TTC"
+          ],
+          "steps": [
+            {
+              "title": "Retrouver une facture",
+              "detail": "Filtrez les documents par type, période et statut."
+            },
+            {
+              "title": "Consulter le document",
+              "detail": "Ouvrez le PDF et vérifiez les lignes ainsi que les coordonnées de facturation."
+            },
+            {
+              "title": "Suivre les règlements",
+              "detail": "Identifiez les factures réglées et celles qui demandent encore votre attention."
+            }
+          ]
+        },
+        "wallets": {
+          "title": "Comprenez le solde de chaque propriétaire",
+          "lede": "Le portefeuille regroupe les mouvements financiers d’un propriétaire. Il explique comment se forme son solde et quelles opérations le font évoluer.",
+          "labels": [
+            "Crédit",
+            "Réservation de fonds",
+            "Retrait"
+          ],
+          "steps": [
+            {
+              "title": "Lire le solde",
+              "detail": "Consultez les fonds disponibles et les montants bloqués."
+            },
+            {
+              "title": "Retrouver un mouvement",
+              "detail": "Suivez les crédits et les débits dans l’historique du portefeuille."
+            },
+            {
+              "title": "Contrôler les sorties",
+              "detail": "Vérifiez les retraits et leur statut avant de rapprocher les montants."
+            }
+          ]
+        },
+        "payouts": {
+          "title": "Préparez les reversements aux propriétaires",
+          "lede": "Cet onglet suit les sommes à reverser aux propriétaires. Il relie les calculs, les échéances et les statuts.",
+          "labels": [
+            "À préparer",
+            "Programmé",
+            "Versé"
+          ],
+          "steps": [
+            {
+              "title": "Vérifier les montants",
+              "detail": "Contrôlez la période, le bénéficiaire et les sommes calculées."
+            },
+            {
+              "title": "Préparer le règlement",
+              "detail": "Renseignez les informations nécessaires et consultez les exports disponibles."
+            },
+            {
+              "title": "Suivre le versement",
+              "detail": "Retrouvez les reversements programmés et effectués dans leur historique."
+            }
+          ]
+        },
+        "expenses": {
+          "title": "Rattachez chaque dépense à son logement",
+          "lede": "Les dépenses complètent la lecture de votre activité. Classez les frais d’exploitation et conservez les informations nécessaires à leur suivi.",
+          "labels": [
+            "Entretien",
+            "Fournitures",
+            "Autres frais"
+          ],
+          "steps": [
+            {
+              "title": "Enregistrer un coût",
+              "detail": "Indiquez le montant, la catégorie, la date et le logement concerné."
+            },
+            {
+              "title": "Conserver les justificatifs",
+              "detail": "Associez les informations fournisseur et les pièces utiles."
+            },
+            {
+              "title": "Préparer le suivi comptable",
+              "detail": "Retrouvez les dépenses par bien et leur éventuelle refacturation."
+            }
+          ]
+        },
+        "housekeeper-payouts": {
+          "title": "Suivez les versements des missions",
+          "lede": "Cette vue concerne les prestataires opérationnels. Suivez les versements liés aux missions validées, séparément des propriétaires.",
+          "labels": [
+            "Mission validée",
+            "Versement en cours",
+            "Versement effectué"
+          ],
+          "steps": [
+            {
+              "title": "Vérifier la mission",
+              "detail": "Le versement s’appuie sur la mission et sa validation."
+            },
+            {
+              "title": "Contrôler le bénéficiaire",
+              "detail": "Le prestataire doit avoir terminé la configuration de son compte de versement."
+            },
+            {
+              "title": "Suivre le paiement",
+              "detail": "Consultez le statut Stripe et traitez les versements qui demandent une action."
+            }
+          ]
+        },
+        "reports": {
+          "title": "Préparez vos données pour la comptabilité",
+          "lede": "Deux vues réunissent le rapport fiscal et les exports comptables. Vérifiez vos agrégats et transmettez les données dans le format attendu.",
+          "labels": [
+            "Rapport fiscal",
+            "Taxes",
+            "Export comptable"
+          ],
+          "steps": [
+            {
+              "title": "Lire le rapport fiscal",
+              "detail": "Consultez les montants et les taxes de la période à partir des opérations enregistrées."
+            },
+            {
+              "title": "Préparer les exports",
+              "detail": "Choisissez la période et le format adaptés à votre outil comptable."
+            },
+            {
+              "title": "Vérifier avant de transmettre",
+              "detail": "Contrôlez les données sources et les paramètres fiscaux de votre organisation."
+            }
+          ]
+        }
+      },
+      "reports": {
+        "overview": {
+          "title": "Lisez l’essentiel de votre activité",
+          "lede": "La synthèse rapproche les revenus, l’occupation et les signaux à examiner. Elle sert de point de départ avant une analyse détaillée.",
+          "labels": [
+            "Revenus",
+            "Occupation",
+            "Points à suivre"
+          ],
+          "steps": [
+            {
+              "title": "Choisir le recul",
+              "detail": "Sélectionnez une période cohérente avec la décision à prendre."
+            },
+            {
+              "title": "Repérer les écarts",
+              "detail": "Comparez les indicateurs et identifiez les points à approfondir."
+            },
+            {
+              "title": "Approfondir le bon sujet",
+              "detail": "Ouvrez Revenus, Occupation ou Biens pour comprendre les résultats."
+            }
+          ]
+        },
+        "revenue": {
+          "title": "Comprenez d’où viennent vos revenus",
+          "lede": "Analysez les revenus par période, canal et logement. Les coûts disponibles complètent la lecture de la marge, au-delà du chiffre d’affaires.",
+          "labels": [
+            "Par mois",
+            "Par canal",
+            "Par logement"
+          ],
+          "steps": [
+            {
+              "title": "Lire l’évolution",
+              "detail": "Repérez la répartition des revenus dans le temps."
+            },
+            {
+              "title": "Comparer les sources",
+              "detail": "Identifiez la contribution de chaque canal et de chaque logement."
+            },
+            {
+              "title": "Tenir compte des coûts",
+              "detail": "Consultez les postes de coût pour interpréter la marge calculée."
+            }
+          ]
+        },
+        "occupancy": {
+          "title": "Voyez ce qui remplit votre calendrier",
+          "lede": "Ce rapport distingue les nuits occupées des nuits vacantes. Comparez les logements et comprenez la répartition des réservations.",
+          "labels": [
+            "Nuits occupées",
+            "Nuits vacantes",
+            "Par logement"
+          ],
+          "steps": [
+            {
+              "title": "Lire le remplissage",
+              "detail": "Consultez les nuits occupées sur la période retenue."
+            },
+            {
+              "title": "Comparer les logements",
+              "detail": "Repérez les différences de taux d’occupation entre vos biens."
+            },
+            {
+              "title": "Identifier les sources",
+              "detail": "Croisez les résultats avec les canaux qui apportent les séjours."
+            }
+          ]
+        },
+        "pricing": {
+          "title": "Reliez vos prix à la performance",
+          "lede": "Tarifs & prévisions rapproche le prix moyen et les revenus par nuit disponible. Les scénarios éclairent vos choix à partir des données disponibles.",
+          "labels": [
+            "Prix moyen",
+            "RevPAN",
+            "Scénarios"
+          ],
+          "steps": [
+            {
+              "title": "Comparer les indicateurs",
+              "detail": "Distinguez le prix des nuits vendues du revenu par nuit disponible."
+            },
+            {
+              "title": "Étudier les pistes tarifaires",
+              "detail": "Consultez les repères et recommandations lorsqu’ils sont disponibles."
+            },
+            {
+              "title": "Explorer une projection",
+              "detail": "Comparez les scénarios. Une prévision reste une estimation, pas un revenu acquis."
+            }
+          ]
+        },
+        "pace": {
+          "title": "Comprenez le rythme des réservations à venir",
+          "lede": "Le Pace regarde les nuits déjà réservées pour les prochains mois. Il compare leur progression à l’historique et montre les réservations gagnées récemment.",
+          "labels": [
+            "Réservé à date",
+            "Année précédente",
+            "Pickup"
+          ],
+          "steps": [
+            {
+              "title": "Lire les mois à venir",
+              "detail": "Consultez les nuits déjà réservées pour les futures périodes."
+            },
+            {
+              "title": "Comparer au même recul",
+              "detail": "La comparaison avec l’an dernier demande un historique suffisant."
+            },
+            {
+              "title": "Suivre le pickup",
+              "detail": "Repérez les nouvelles réservations enregistrées entre deux observations."
+            }
+          ]
+        },
+        "properties": {
+          "title": "Comparez vos biens avec le même regard",
+          "lede": "Retrouvez la performance logement par logement : revenus, coûts et marge. Identifiez les biens à examiner en priorité.",
+          "labels": [
+            "Revenus",
+            "Coûts",
+            "Marge"
+          ],
+          "steps": [
+            {
+              "title": "Choisir les biens à examiner",
+              "detail": "Parcourez les performances sur une période commune."
+            },
+            {
+              "title": "Comparer au portefeuille",
+              "detail": "Situez chaque logement par rapport aux repères du parc."
+            },
+            {
+              "title": "Comprendre les différences",
+              "detail": "Examinez l’occupation et les coûts avant de décider d’une action."
+            }
+          ]
+        },
+        "interventions": {
+          "title": "Mesurez le travail accompli et celui qui attend",
+          "lede": "Le rapport opérationnel regroupe le volume des missions, leurs statuts et les priorités. Repérez les retards et la charge restante.",
+          "labels": [
+            "Terminées",
+            "En cours",
+            "En attente"
+          ],
+          "steps": [
+            {
+              "title": "Lire le volume",
+              "detail": "Consultez la répartition des missions par type et par statut."
+            },
+            {
+              "title": "Repérer l’arriéré",
+              "detail": "Identifiez les interventions non terminées et les priorités à traiter."
+            },
+            {
+              "title": "Ajuster l’organisation",
+              "detail": "Revenez aux interventions pour affecter ou replanifier les missions concernées."
+            }
+          ]
+        },
+        "teams": {
+          "title": "Répartissez le travail avec une vue d’ensemble",
+          "lede": "Comparez la charge et le taux de réalisation des équipes. Les retards mettent en évidence les besoins de renfort ou de réorganisation.",
+          "labels": [
+            "Charge",
+            "Réalisation",
+            "Retards"
+          ],
+          "steps": [
+            {
+              "title": "Lire la charge",
+              "detail": "Retrouvez les missions réparties entre les équipes."
+            },
+            {
+              "title": "Suivre la réalisation",
+              "detail": "Comparez les missions terminées et celles qui restent ouvertes."
+            },
+            {
+              "title": "Repérer les difficultés",
+              "detail": "Examinez les retards avant d’ajuster les affectations."
+            }
+          ]
+        },
+        "custom": {
+          "title": "Composez un rapport pour son destinataire",
+          "lede": "Créez un document d’analyse pour un propriétaire, votre équipe ou un prospect. Choisissez le contenu utile, puis préparez sa diffusion.",
+          "labels": [
+            "Destinataire",
+            "Sections",
+            "Document"
+          ],
+          "steps": [
+            {
+              "title": "Définir le cadre",
+              "detail": "Choisissez le destinataire, la période et le périmètre du rapport."
+            },
+            {
+              "title": "Composer les sections",
+              "detail": "Sélectionnez les analyses utiles et vérifiez leur aperçu."
+            },
+            {
+              "title": "Préparer le partage",
+              "detail": "Enregistrez le document, exportez-le en PDF ou utilisez les options d’envoi disponibles."
+            }
+          ]
+        }
+      }
+    }
+  },
   "assignmentProgress": {
     "reassigning": "Délai écoulé · recherche du prestataire suivant",
     "searching": "Recherche d’un prestataire interne",

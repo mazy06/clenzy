@@ -1,4 +1,5 @@
 import { useTranslation } from '../../hooks/useTranslation';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { Link } from "react-router-dom";
 import PagePagination from "../../components/PagePagination";
 import { useState } from 'react';
@@ -73,7 +74,7 @@ export default function SentQuotesPage() {
   };
 
   return (
-    <>
+    <ModuleFirstUsePage module="quotes" ready={!isLoading && !isError && !!data && filterIndex === 0 && page === 0} hasContent={(data?.items.length ?? 0) > 0}>
       <PageHeader
         actions={<Button variant="outline" size="sm" asChild><Link to="/devis/recus">{t('marketplaceQuotes.received')}</Link></Button>}
         title={t('marketplaceQuotes.sentTitle')}
@@ -156,6 +157,6 @@ export default function SentQuotesPage() {
           <PagePagination page={page} onPageChange={setPage} totalPages={data.totalPages} />
         </div>
       )}
-    </>
+    </ModuleFirstUsePage>
   );
 }

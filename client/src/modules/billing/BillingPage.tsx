@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { ToggleGroup, ToggleGroupItem } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
@@ -142,4 +143,6 @@ const BillingPage: React.FC = () => {
   );
 };
 
-export default BillingPage;
+export default function BillingEntry() {
+  return <ModuleFirstUsePage module="billing"><BillingPage /></ModuleFirstUsePage>;
+}

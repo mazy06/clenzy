@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { cn } from '../../utils/cn';
 import { Button, Spinner } from '../../components/ui';
 import {
@@ -482,4 +483,6 @@ const ReservationsList: React.FC = () => {
   );
 };
 
-export default ReservationsList;
+export default function ReservationsPage() {
+  return <ModuleFirstUsePage module="reservations"><ReservationsList /></ModuleFirstUsePage>;
+}

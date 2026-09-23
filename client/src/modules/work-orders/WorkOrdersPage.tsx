@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useVisibleScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -88,4 +89,6 @@ const WorkOrdersPage: React.FC = () => {
   );
 };
 
-export default WorkOrdersPage;
+export default function WorkOrdersEntry() {
+  return <ModuleFirstUsePage module="interventions"><WorkOrdersPage /></ModuleFirstUsePage>;
+}
