@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { cn } from '../../utils/cn';
 import { Button } from '../../components/ui';
 import { useIsMobile } from '../../hooks/use-mobile';
@@ -209,7 +210,7 @@ export default function MessagingHubPage() {
     : `${t('messagingHub.conversationCount', { count: source.items.length })} · ${t('messagingHub.unreadCount', { count: unreadCount })}`;
 
   return (
-    <>
+    <ModuleFirstUsePage module="messaging" ready={!inbox.isLoading && !inbox.error && filter === 'all' && !highlightId && !threadParam} hasContent={inbox.items.length > 0}>
       {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
           (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
           `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
@@ -291,6 +292,6 @@ export default function MessagingHubPage() {
           </div>
         </div>
       </div>
-    </>
+    </ModuleFirstUsePage>
   );
 }

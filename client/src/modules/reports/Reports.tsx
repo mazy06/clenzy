@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { Alert, AlertDescription, Spinner } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { BarChart as BarChartIcon } from '../../icons';
@@ -266,4 +267,6 @@ const Reports: React.FC = () => {
   );
 };
 
-export default Reports;
+export default function ReportsEntry() {
+  return <ModuleFirstUsePage module="reports"><Reports /></ModuleFirstUsePage>;
+}

@@ -1,0 +1,29 @@
+/* Baitly : démonstrations compactes, adaptées à la largeur du contenu du PMS. */
+.mu-first-use { container: module-first-use / inline-size; }
+@container module-first-use (min-width: 52rem) {
+  .mu-intro { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 2.5rem; }
+}
+.mu-demo-body { min-block-size: 22rem; color: var(--bui-foreground); }
+.mu-demo-list { display: flex; flex-direction: column; gap: .5rem; }
+.mu-demo-row { display: flex; align-items: center; gap: .625rem; inline-size: 100%; padding: .75rem; border: 1px solid var(--bui-border); border-radius: .5rem; background: var(--bui-card); text-align: start; font-size: .875rem; }
+.mu-demo-row[aria-pressed="true"], .mu-choice[aria-pressed="true"], .mu-calendar-day[aria-pressed="true"] { border-color: var(--bui-primary); background: var(--bui-primary-soft); color: var(--bui-foreground); }
+.mu-choice { border: 1px solid var(--bui-border); border-radius: .375rem; padding: .5rem .625rem; background: var(--bui-card); color: var(--bui-muted-foreground); font-size: .75rem; text-align: start; }
+.mu-calendar-day { min-inline-size: 0; padding: .5rem .25rem; border: 1px solid var(--bui-border); border-radius: .5rem; background: var(--bui-card); text-align: start; }
+.mu-calendar-task { display: block; min-block-size: 9rem; padding: .625rem .375rem; border-radius: .375rem; background: var(--bui-muted); color: var(--bui-foreground); font-size: .75rem; overflow-wrap: anywhere; }
+.mu-calendar-task-active { background: var(--bui-primary); color: var(--bui-primary-foreground); }
+.mu-demo-status { display: inline-flex; border-radius: .375rem; padding: .25rem .5rem; background: var(--bui-muted); color: var(--bui-muted-foreground); font-size: .75rem; }
+.mu-document-line { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .875rem .5rem; border-block-end: 1px solid var(--bui-border); }
+.mu-document-line[data-active="true"] { background: var(--bui-muted); }
+.mu-demo-row, .mu-choice, .mu-calendar-day { cursor: pointer; transition: background-color 200ms cubic-bezier(.25, 1, .5, 1), border-color 200ms cubic-bezier(.25, 1, .5, 1); }
+.mu-demo-row:hover, .mu-choice:hover, .mu-calendar-day:hover { background: var(--bui-accent); }
+.mu-demo-row:focus-visible, .mu-choice:focus-visible, .mu-calendar-day:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
+.mu-chart { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: .625rem; padding-block: .75rem; border-block-end: 1px solid var(--bui-border); }
+.mu-chart-column { display: flex; align-items: center; flex-direction: column; min-inline-size: 0; }
+.mu-chart-track { position: relative; block-size: 8rem; inline-size: 100%; max-inline-size: 2.25rem; }
+.mu-chart-bar { display: block; block-size: 100%; background: var(--bui-primary); border-radius: .25rem .25rem 0 0; transform-origin: bottom; transition: transform 350ms cubic-bezier(.25, 1, .5, 1); }
+.mu-reveal:not([hidden]) { animation: muReveal 220ms cubic-bezier(.25, 1, .5, 1); }
+span.mu-reveal:not([hidden]) { display: block; }
+@keyframes muReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mu-first-use *, .mu-first-use *::before, .mu-first-use *::after { animation: none !important; transition: none !important; }
+}
