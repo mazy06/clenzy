@@ -4,12 +4,29 @@ import { discoveryArtifacts } from '../../tooling/baitlySiteDiscovery';
 import { PRICING_MESSAGES } from './messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from './messages/baitlyLoyalty';
 import { PRELAUNCH_MESSAGES } from './messages/prelaunch';
+import { BAITLY_PRODUCT_MESSAGES } from './messages/baitlyProducts';
+import { PRODUCT_STORY_SLUGS, type ProductStoryKind } from '../data/baitlyProductStories';
+import { BAITLY_RESOURCE_MESSAGES } from './messages/baitlyResources';
+import { MARKET_SOURCE, type ResourceKind } from '../data/baitlyResources';
 
 const routes = readFileSync('site/main.tsx', 'utf8');
 const robots = readFileSync('site/public/robots.txt', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 
 describe('Baitly public discovery build', () => {
+  it('publie les six ressources avec leur contenu et leurs sources dans les trois langues', () => {
+    const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
+    for (const language of ['fr', 'en', 'ar'] as const) {
+      const m = BAITLY_RESOURCE_MESSAGES[language];
+      for (const id of Object.keys(m.modules) as ResourceKind[]) {
+        expect(paths).toContain(`/ressources/${id}`);
+        expect(assets.get(`_baitly-markdown/${language}/ressources/${id}.md`)).toContain(m.modules[id].title);
+      }
+      expect(assets.get(`_baitly-markdown/${language}/ressources/calculateur.md`)).toContain(m.calc.formulas[2]);
+      expect(assets.get(`_baitly-markdown/${language}/ressources/barometre.md`)).toContain(MARKET_SOURCE);
+      expect(assets.get(`_baitly-markdown/${language}/ressources/academie.md`)).toContain(m.academy.lessons[2].takeaway);
+    }
+  });
   it('covers real routes while excluding private workflows, fragments and tokens', () => {
     const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
     const xml = new DOMParser().parseFromString(assets.get('sitemap.xml')!, 'application/xml');
@@ -31,6 +48,13 @@ describe('Baitly public discovery build', () => {
   it('uses current public copy in each language and leaves legal copy in its actual language', () => {
     const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
     for (const language of ['fr', 'en', 'ar'] as const) {
+      for (const [kind, slug] of Object.entries(PRODUCT_STORY_SLUGS)) {
+        const story = BAITLY_PRODUCT_MESSAGES[language].pages[kind as ProductStoryKind];
+        const markdown = assets.get(`_baitly-markdown/${language}/produit/${slug}.md`);
+        expect(markdown).toContain(story.title.join(' '));
+        expect(markdown).toContain(story.workflowTitle);
+        expect(markdown).not.toContain('Riad Azur');
+      }
       expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(PRICING_MESSAGES[language].plans[0].price);
       expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(BAITLY_LOYALTY_MESSAGES[language].volumeHint);
       expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(`20–49 ${BAITLY_LOYALTY_MESSAGES[language].propertyWords[1]} : −20 %`);

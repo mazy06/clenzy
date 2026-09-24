@@ -73,7 +73,7 @@ function DesktopNav() {
     const text = resourceText(resource.id, language);
     return {
       key: resource.id,
-      to: '/ressources',
+      to: `/ressources/${resource.id}?lang=${language}`,
       icon: resource.icon,
       title: text.name,
       copy: text.copy,
@@ -275,7 +275,10 @@ function footerColumns(language: SiteLanguage) {
     },
     {
       title: m.columns.resources,
-      links: m.resources.map((label) => ({ label, to: '/ressources' })),
+      links: RESOURCES.map(({ id }) => ({
+        label: resourceText(id, language).name,
+        to: `/ressources/${id}?lang=${language}`,
+      })),
     },
     {
       title: m.columns.company,

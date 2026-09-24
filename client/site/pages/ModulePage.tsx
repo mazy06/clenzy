@@ -10,15 +10,13 @@ import {
   Button,
 } from '../../src/components/ui';
 import Reveal from '../components/Reveal';
-import AnimatedIotMockup from '../components/AnimatedIotMockup';
-import AnimatedOwnerMockup from '../components/AnimatedOwnerMockup';
-import AnimatedOpsMockup from '../components/AnimatedOpsMockup';
 import AnimatedPlanningMockup from '../components/AnimatedPlanningMockup';
 import AdvantageDeck from '../components/AdvantageDeck';
 import ScrollGuideSection from '../components/ScrollGuideSection';
 import PartnerMarquee from '../components/PartnerMarquee';
 import { MARKETPLACE_ROWS, MODULES } from '../data/catalog';
-import AgentsPage from './AgentsPage';
+import BaitlyProductPage from './BaitlyProductPage';
+import { productStoryKind } from '../data/baitlyProductStories';
 import BaitlyBookingPage from './BaitlyBookingPage';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { moduleText } from '../lib/messages/modules';
@@ -28,9 +26,6 @@ import { MODULE_PAGE_MESSAGES } from '../lib/messages/modulePage';
 /** Maquettes animees disponibles par module — leurs legendes vivent dans le dictionnaire. */
 const MODULE_MOCKUPS: Record<string, () => JSX.Element> = {
   'pms-channel-manager': AnimatedPlanningMockup,
-  'objets-connectes': AnimatedIotMockup,
-  'portail-proprietaire': AnimatedOwnerMockup,
-  'operations-menage': AnimatedOpsMockup,
 };
 
 /** Gabarit commun des pages produit (benchmark : hero + chiffre → features →
@@ -40,7 +35,8 @@ export default function ModulePage() {
   const { language } = useSiteLanguage();
   const nav = LAYOUT_MESSAGES[language].nav;
   const m = MODULE_PAGE_MESSAGES[language];
-  if (slug === 'agents-ia') return <AgentsPage />;
+  const storyKind = productStoryKind(slug);
+  if (storyKind) return <BaitlyProductPage key={storyKind} kind={storyKind} />;
   if (slug === 'booking-engine') return <BaitlyBookingPage />;
 
   const module = MODULES.find((entry) => entry.slug === slug);

@@ -1,57 +1,251 @@
-import { Badge } from '../../src/components/ui';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Search, BookOpen, Check, TrendingUp } from 'lucide-react';
 import Reveal from '../components/Reveal';
-import { RESOURCES } from '../data/catalog';
+import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import { resourceText } from '../lib/messages/solutions';
-import { PAGE_MESSAGES } from '../lib/messages/pages';
+import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
+import {
+  normalizeResourceSearch,
+  type ResourceKind,
+} from '../data/baitlyResources';
+import { RESOURCES } from '../data/catalog';
+import terrace from '../assets/photos/terrace.jpg';
+import guesthouse from '../assets/photos/guesthouse.jpg';
+import food from '../assets/photos/food.jpg';
+import '../baitly-resources.css';
+
+const ORDER: ResourceKind[] = [
+  'calculateur',
+  'barometre',
+  'obligations',
+  'academie',
+  'blog',
+  'glossaire',
+];
 
 export default function ResourcesPage() {
   const { language } = useSiteLanguage();
-  const m = PAGE_MESSAGES[language].resources;
+  const m = BAITLY_RESOURCE_MESSAGES[language];
+  const [query, setQuery] = useState('');
+  const search = normalizeResourceSearch(query);
+  const visible = ORDER.filter((id) =>
+    normalizeResourceSearch(Object.values(m.modules[id]).join(' ')).includes(
+      search,
+    ),
+  );
   return (
-    <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="site-shell pt-16 pb-12">
-          <Reveal>
-            <Badge variant="outline">{m.eyebrow}</Badge>
-          </Reveal>
-          <Reveal delay={1}>
-            <h1 className="mt-4 max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-              {m.title}
-            </h1>
-          </Reveal>
-          <Reveal delay={2}>
-            <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              {m.intro}
+    <div className="brs-page">
+      <section className="brs-hero site-shell">
+        <div className="brs-hero-copy">
+          <span className="brs-eyebrow">
+            <BookOpen size={17} />
+            {m.hero.eyebrow}
+          </span>
+          <h1>
+            {m.hero.title}
+            <br />
+            <em>{m.hero.accent}</em>
+          </h1>
+          <p>{m.hero.intro}</p>
+          <div className="brs-hero-actions">
+            <a className="brs-button" href="#bibliotheque">
+              {m.hero.action}
+              <ArrowRight size={18} />
+            </a>
+            <Link
+              className="brs-text-link"
+              to={`/ressources/calculateur?lang=${language}`}
+            >
+              {m.hero.secondary}
+              <ArrowRight size={17} />
+            </Link>
+          </div>
+          <small>{m.hero.note}</small>
+        </div>
+        <div className="brs-hero-visual">
+          <img src={terrace} alt="" loading="eager" />
+          <div className="brs-visual-label">
+            <span className="brs-book-spine" aria-hidden="true">
+              B
+            </span>
+            <p>{m.hero.caption}</p>
+            <BookOpen size={25} />
+          </div>
+          <div className="brs-floating-index" aria-hidden="true">
+            <span>01</span>
+            <span>02</span>
+            <span>03</span>
+            <span>04</span>
+            <span>05</span>
+            <span>06</span>
+          </div>
+        </div>
+      </section>
+      <section className="brs-library" id="bibliotheque">
+        <div className="site-shell">
+          <div className="brs-library-heading">
+            <div>
+              <span className="brs-eyebrow">BAITLY / 06</span>
+              <h2>{m.library}</h2>
+              <p>{m.libraryCopy}</p>
+            </div>
+            <div className="brs-search">
+              <Search size={19} />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                aria-label={m.search}
+                placeholder={m.search}
+              />
+            </div>
+          </div>
+          {query && (
+            <p className="brs-small" role="status">
+              {m.results} : {visible.length}
             </p>
-          </Reveal>
+          )}
+          <div className={`brs-library-grid ${query ? 'is-filtered' : ''}`}>
+            {visible.map((id) => {
+              const resource = m.modules[id];
+              const Icon = RESOURCES.find((item) => item.id === id)!.icon;
+              return (
+                <Reveal key={id} className={`brs-entry-wrap brs-entry-${id}`}>
+                  <Link
+                    className={`brs-entry brs-entry-${id}`}
+                    to={`/ressources/${id}?lang=${language}`}
+                  >
+                    <div className="brs-entry-copy">
+                      <span className="brs-eyebrow">
+                        <Icon className="brs-inline-icon" />
+                        {resource.tag}
+                      </span>
+                      <h3>{resource.name}</h3>
+                      <p>{resource.copy}</p>
+                      <span className="brs-entry-action">
+                        {m.open}
+                        <ArrowRight size={20} />
+                      </span>
+                    </div>
+                    {id === 'calculateur' && (
+                      <div className="brs-calc-cover" aria-hidden="true">
+                        <div>
+                          <span>{m.calc.fields[3]}</span>
+                          <strong>
+                            850 <small>MAD</small>
+                          </strong>
+                        </div>
+                        <div className="brs-cover-slider">
+                          <i />
+                        </div>
+                        <div>
+                          <span>{m.calc.fields[2]}</span>
+                          <strong>
+                            65 <small>%</small>
+                          </strong>
+                        </div>
+                        <div className="brs-cover-bars">
+                          {[35, 48, 40, 65, 55, 78, 88].map((height, index) => (
+                            <i
+                              key={index}
+                              style={{
+                                height: `${height}%`,
+                                animationDelay: `${index * 70}ms`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <span className="brs-small">{m.calc.output}</span>
+                      </div>
+                    )}
+                    {id === 'barometre' && (
+                      <div className="brs-market-cover" aria-hidden="true">
+                        <TrendingUp size={48} strokeWidth={1.3} />
+                        <span>{m.market.scope}</span>
+                        <div>
+                          {['MA', 'AG', 'CA', 'TA', 'RA', 'ES'].map(
+                            (city, index) => (
+                              <i
+                                key={city}
+                                style={{
+                                  height: `${[60, 66, 66, 60, 95, 36][index]}%`,
+                                }}
+                              >
+                                <small>{city}</small>
+                              </i>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {id === 'obligations' && (
+                      <div className="brs-guide-cover">
+                        <img src={guesthouse} alt="" loading="lazy" />
+                        <span>{m.guide.countries.join(' · ')}</span>
+                      </div>
+                    )}
+                    {id === 'academie' && (
+                      <div className="brs-academy-cover" aria-hidden="true">
+                        {m.academy.lessons.map((lesson, index) => (
+                          <div key={lesson.title}>
+                            <span>0{index + 1}</span>
+                            <p>{lesson.title}</p>
+                            <Check size={17} />
+                          </div>
+                        ))}
+                        <small>
+                          3 {m.academy.lesson.toLocaleLowerCase()} ·{' '}
+                          {m.academy.quiz}
+                        </small>
+                      </div>
+                    )}
+                    {id === 'blog' && (
+                      <div className="brs-blog-cover">
+                        <img src={food} alt="" loading="lazy" />
+                      </div>
+                    )}
+                    {id === 'glossaire' && (
+                      <div className="brs-glossary-cover" aria-hidden="true">
+                        <span>ADR</span>
+                        <span>RevPAR</span>
+                        <span lang="ar" dir="rtl">
+                          الإشغال
+                        </span>
+                        <small>FR ↔ EN ↔ AR</small>
+                      </div>
+                    )}
+                  </Link>
+                </Reveal>
+              );
+            })}
+          </div>
+          {!visible.length && (
+            <div className="brs-empty">
+              <Search size={28} />
+              <p>{m.empty}</p>
+              <button className="brs-button" onClick={() => setQuery('')}>
+                {m.reset}
+              </button>
+            </div>
+          )}
         </div>
       </section>
-
-      <section className="site-shell py-16">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {RESOURCES.map((resource, index) => {
-            const text = resourceText(resource.id, language);
-            return (
-            <Reveal key={resource.id} delay={((index % 3) + 1) as 1 | 2 | 3}>
-              <div className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-6">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                  <resource.icon className="size-4.5" />
-                </span>
-                <div className="flex-1">
-                  <h2 className="text-base font-semibold">{text.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{text.copy}</p>
-                </div>
-                <Badge variant="outline" className="self-start">
-                  {text.tag}
-                </Badge>
-              </div>
-            </Reveal>
-            );
-          })}
+      <section className="brs-cta">
+        <div className="site-shell">
+          <div>
+            <h2>{m.cta.title}</h2>
+            <p>{m.cta.copy}</p>
+          </div>
+          <SiteAcquisitionLink
+            className="brs-button"
+            to={`/demo?lang=${language}`}
+          >
+            {m.cta.action}
+            <ArrowRight size={18} />
+          </SiteAcquisitionLink>
         </div>
       </section>
-    </>
+    </div>
   );
 }

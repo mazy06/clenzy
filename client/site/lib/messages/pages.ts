@@ -1,4 +1,5 @@
 import type { SiteLanguage } from '../siteLanguage';
+import { BAITLY_MIGRATION_MESSAGES } from './baitlyMigration';
 
 /**
  * Textes propres aux pages secondaires de la landing.
@@ -22,37 +23,7 @@ const fr = {
     intro:
       'Baromètre de marché, calculateurs, guides réglementaires : ce que nous apprenons en opérant Baitly, nous le partageons.',
   },
-  migration: {
-    eyebrow: 'Migration',
-    title: 'Changez de PMS sans rien perdre.',
-    intro:
-      'Que vous veniez d’un autre logiciel ou d’Excel + WhatsApp, l’import Baitly récupère votre historique — et personne d’autre ne le fait en self-service.',
-    channelsTitle: 'Quatre façons d’importer vos données',
-    stepsTitle: 'La bascule, en quatre étapes',
-    guaranteesTitle: 'Ce que nous garantissons',
-    limitsTitle: 'Et ce que personne ne peut migrer',
-    limitsCopy:
-      'L’historique de messages et les avis ne s’exportent d’aucun outil — nous préférons vous le dire ici que vous le laisser découvrir. Vos avis restent attachés à vos annonces sur les plateformes.',
-    cta: 'Planifier ma migration',
-    channels: [
-      { name: 'Extranets Airbnb / Booking', copy: 'CSV « Historique des transactions » et XLS « Réservations », reconnus tels quels.', tag: 'Le plus courant' },
-      { name: 'Export de votre ancien PMS', copy: 'Mapping pré-câblé : Superhote, Smoobu, Guesty, Hostaway, Beds24, OwnerRez…', tag: null },
-      { name: 'Connexion API directe', copy: 'Beds24, OwnerRez, Smoobu, Hostaway, iGMS, Tokeet, Smily — une clé et tout arrive.', tag: null },
-      { name: 'Votre Excel maison', copy: 'Modèle Baitly + écran de mapping des colonnes.', tag: null },
-    ] as readonly { name: string; copy: string; tag: string | null }[],
-    steps: [
-      { title: 'Exportez avant de résilier', copy: 'Aucun PMS ne rend vos données après la coupure. Nous vous donnons la checklist exacte pour votre outil.' },
-      { title: 'Importez votre historique', copy: 'Logements, réservations passées et voyageurs — dédupliqués par code de confirmation, sans déclencher d’automatisation.' },
-      { title: 'Connectez vos canaux', copy: 'Le claim de vos annonces conserve avis et note ; les réservations futures arrivent automatiquement par l’API.' },
-      { title: 'Basculez sans trou', copy: 'Filet iCal pendant la transition — vos calendriers restent bloqués pendant le re-mapping.' },
-    ],
-    guarantees: [
-      'Votre historique importé — vos rapports et votre yield sont nourris dès le premier jour',
-      'Aucune automatisation déclenchée sur les données importées',
-      'Avis et notes conservés sur vos annonces au moment du claim',
-      'Accompagnement humain inclus, en français, en arabe ou en darija',
-    ],
-  },
+  migration: BAITLY_MIGRATION_MESSAGES.fr,
   compare: {
     eyebrow: 'Comparer',
     title: 'Comparez honnêtement. Choisissez sereinement.',
@@ -159,37 +130,7 @@ const en: PageMessages = {
     intro:
       'Market barometer, calculators, regulatory guides: what we learn running Baitly, we share.',
   },
-  migration: {
-    eyebrow: 'Migration',
-    title: 'Switch PMS without losing anything.',
-    intro:
-      'Whether you come from another platform or from Excel + WhatsApp, the Baitly import brings your history across — and nobody else does it self-service.',
-    channelsTitle: 'Four ways to import your data',
-    stepsTitle: 'The switch, in four steps',
-    guaranteesTitle: 'What we guarantee',
-    limitsTitle: 'And what nobody can migrate',
-    limitsCopy:
-      'Message history and reviews export from no tool — we would rather say it here than let you find out. Your reviews stay attached to your listings on the platforms.',
-    cta: 'Plan my migration',
-    channels: [
-      { name: 'Airbnb / Booking extranets', copy: 'The “Transaction history” CSV and “Reservations” XLS, recognised as they are.', tag: 'Most common' },
-      { name: 'An export from your old PMS', copy: 'Pre-wired mapping: Superhote, Smoobu, Guesty, Hostaway, Beds24, OwnerRez…', tag: null },
-      { name: 'Direct API connection', copy: 'Beds24, OwnerRez, Smoobu, Hostaway, iGMS, Tokeet, Smily — one key and it all arrives.', tag: null },
-      { name: 'Your own spreadsheet', copy: 'Baitly template plus a column-mapping screen.', tag: null },
-    ],
-    steps: [
-      { title: 'Export before you cancel', copy: 'No PMS returns your data after the cut-off. We give you the exact checklist for your tool.' },
-      { title: 'Import your history', copy: 'Properties, past bookings and guests — deduplicated by confirmation code, without firing any automation.' },
-      { title: 'Connect your channels', copy: 'Claiming your listings keeps reviews and rating; future bookings arrive automatically over the API.' },
-      { title: 'Switch with no gap', copy: 'An iCal safety net during the transition — your calendars stay blocked while remapping.' },
-    ],
-    guarantees: [
-      'Your history imported — your reports and your yield have data from day one',
-      'No automation fired on imported data',
-      'Reviews and ratings kept on your listings when you claim them',
-      'Human support included, in Arabic, French or English',
-    ],
-  },
+  migration: BAITLY_MIGRATION_MESSAGES.en,
   compare: {
     eyebrow: 'Compare',
     title: 'Compare honestly. Choose calmly.',
@@ -292,37 +233,7 @@ const ar: PageMessages = {
     intro:
       'مؤشر السوق، والحاسبات، والأدلة التنظيمية: ما نتعلّمه من تشغيل بايتلي نشاركه معكم.',
   },
-  migration: {
-    eyebrow: 'الترحيل',
-    title: 'غيّر نظامك دون أن تفقد شيئاً.',
-    intro:
-      'سواء جئت من برنامج آخر أو من إكسل وواتساب، يستعيد استيراد بايتلي سجلّك كاملاً — ولا أحد غيره يتيح ذلك ذاتياً.',
-    channelsTitle: 'أربع طرق لاستيراد بياناتك',
-    stepsTitle: 'الانتقال في أربع خطوات',
-    guaranteesTitle: 'ما نضمنه لك',
-    limitsTitle: 'وما لا يستطيع أحد ترحيله',
-    limitsCopy:
-      'سجلّ الرسائل والتقييمات لا يُصدَّر من أي أداة — نفضّل قول ذلك هنا على أن تكتشفه لاحقاً. تبقى تقييماتك مرتبطة بإعلاناتك على المنصّات.',
-    cta: 'خطّط لترحيلي',
-    channels: [
-      { name: 'لوحتا Airbnb وBooking', copy: 'ملف «سجل المعاملات» وملف «الحجوزات»، يُقرآن كما هما.', tag: 'الأكثر شيوعاً' },
-      { name: 'تصدير من نظامك السابق', copy: 'ربط جاهز: Superhote، Smoobu، Guesty، Hostaway، Beds24، OwnerRez…', tag: null },
-      { name: 'اتصال مباشر بالواجهة البرمجية', copy: 'Beds24، OwnerRez، Smoobu، Hostaway، iGMS، Tokeet، Smily — مفتاح واحد ويصل كل شيء.', tag: null },
-      { name: 'جدولك الخاص', copy: 'قالب بايتلي مع شاشة لمطابقة الأعمدة.', tag: null },
-    ],
-    steps: [
-      { title: 'صدِّر قبل أن تُلغي', copy: 'لا يعيد أي نظام بياناتك بعد قطع الاشتراك. نعطيك القائمة الدقيقة الخاصة بأداتك.' },
-      { title: 'استورد سجلّك', copy: 'الوحدات والحجوزات السابقة والنزلاء — دون تكرار وبلا تشغيل أي أتمتة.' },
-      { title: 'اربط قنواتك', copy: 'المطالبة بإعلاناتك تحفظ التقييمات والتقدير، والحجوزات القادمة تصل تلقائياً عبر الواجهة البرمجية.' },
-      { title: 'انتقل دون فجوة', copy: 'شبكة أمان iCal أثناء الانتقال — تبقى تقاويمك محجوبة خلال إعادة الربط.' },
-    ],
-    guarantees: [
-      'سجلّك مستورَد — تقاريرك وتسعيرك مغذّيان منذ اليوم الأول',
-      'لا أتمتة تُشغَّل على البيانات المستورَدة',
-      'التقييمات والتقديرات محفوظة على إعلاناتك عند المطالبة بها',
-      'مرافقة بشرية مشمولة، بالعربية أو الفرنسية أو الإنجليزية',
-    ],
-  },
+  migration: BAITLY_MIGRATION_MESSAGES.ar,
   compare: {
     eyebrow: 'المقارنة',
     title: 'قارن بنزاهة. واختر باطمئنان.',

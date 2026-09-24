@@ -5,9 +5,14 @@ import { BAITLY_LOYALTY_MESSAGES } from '../site/lib/messages/baitlyLoyalty';
 import { BAITLY_LOYALTY_STAGES, BAITLY_VOLUME_TIERS, DEFAULT_PRICING_MARKET, formatLoyaltyPrice, loyaltyUnitPrice } from '../site/data/baitlyLoyaltyPricing';
 import { PROVIDERS_MESSAGES } from '../site/lib/messages/providers';
 import { AGENTS_MESSAGES } from '../site/lib/messages/agents';
+import { BAITLY_PRODUCT_MESSAGES } from '../site/lib/messages/baitlyProducts';
+import { productStoryKind } from '../site/data/baitlyProductStories';
 import { PRELAUNCH_MESSAGES } from '../site/lib/messages/prelaunch';
 import { moduleText } from '../site/lib/messages/modules';
 import { resourceText, solutionText } from '../site/lib/messages/solutions';
+import { BAITLY_RESOURCE_MESSAGES } from '../site/lib/messages/baitlyResources';
+import { MARKET_CITIES, MARKET_SOURCE, GUIDE_SOURCES, type ResourceKind } from '../site/data/baitlyResources';
+import { RESOURCE_GLOSSARY } from '../site/data/baitlyResourceGlossary';
 import { legalDocs } from '../src/modules/legal/corpus';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 
@@ -49,11 +54,28 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
       const item = solutionText(slug, language);
       return section(item.name, item.copy, list(item.points));
     }));
-  add('/ressources', pages.resources.title, pages.resources.intro,
+  const resources = BAITLY_RESOURCE_MESSAGES[language];
+  add('/ressources', `${resources.hero.title} ${resources.hero.accent}`, resources.hero.intro,
     ...catalog.resources.map((id) => {
       const item = resourceText(id, language);
-      return section(item.name, item.copy, item.tag);
+      return section(item.name, item.copy, `[${resources.open}](/ressources/${id}?lang=${language})`);
     }));
+  for (const id of catalog.resources as ResourceKind[]) {
+    const module = resources.modules[id];
+    const content: string[] = [];
+    if (id === 'calculateur') content.push(resources.calc.note, section(resources.calc.method, list(resources.calc.formulas)));
+    if (id === 'barometre') content.push(resources.market.scope, resources.market.period, resources.market.published,
+      list(MARKET_CITIES.map(city => `${language === 'ar' ? city.ar : city.name} : +${city.growth} %`)),
+      resources.market.methodCopy, resources.market.useCopy, resources.market.unavailable,
+      `[${resources.market.sourceName}](${MARKET_SOURCE})`);
+    if (id === 'obligations') content.push(resources.guide.intro, resources.guide.verified,
+      ...resources.guide.countries.map((country, countryIndex) => section(country, ...resources.guide.steps[countryIndex].map((step, index) => section(step.title, step.copy, step.action,
+        `[${GUIDE_SOURCES[countryIndex][index].label}](${GUIDE_SOURCES[countryIndex][index].url})`)))));
+    if (id === 'academie') content.push(...resources.academy.lessons.map(lesson => section(lesson.title, lesson.intro, features(lesson.sections), lesson.takeaway)));
+    if (id === 'blog') content.push(...resources.blog.articles.map(article => section(article.title, article.intro, features(article.sections), article.takeaway)));
+    if (id === 'glossaire') content.push(...RESOURCE_GLOSSARY.map(entry => section(entry[language].term, entry[language].definition)));
+    add(`/ressources/${id}`, module.title, module.intro, ...content);
+  }
   add('/tarifs', pricing.title, pricing.intro, loyalty.proposal, loyalty.simulationNote,
     ...pricing.plans.map((plan) => section(plan.name, `${plan.price} ${plan.unit}`, plan.copy, list(plan.features))),
     section(loyalty.volumeTitle, loyalty.volumeHint, list(BAITLY_VOLUME_TIERS.map((tier) => `${tier.start}–${tier.end} ${loyalty.propertyWords[1]} : ${tier.discount ? '−' : ''}${tier.discount} %`))),
@@ -62,11 +84,13 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
     section(pricing.addonsTitle, pricing.addonsCopy, pricing.addonsPending,
       ...pricing.addons.map((item) => section(item.name, item.copy))), faq(pricing.faq));
   const migration = pages.migration;
-  add('/migration', migration.title, migration.intro,
-    section(migration.channelsTitle, ...migration.channels.map((item) => section(item.name, item.copy))),
+  add('/migration', `${migration.title} ${migration.titleAccent}`, migration.intro,
+    section(migration.channelsTitle, migration.channelsIntro, ...migration.channels.map((item) => section(item.name, item.copy, list(item.points))), migration.sourceNote),
     section(migration.stepsTitle, features(migration.steps)),
+    section(migration.dataTitle, migration.dataIntro, features(migration.data)),
     section(migration.guaranteesTitle, list(migration.guarantees)),
-    section(migration.limitsTitle, migration.limitsCopy));
+    section(migration.limitsTitle, migration.limitsCopy),
+    section(migration.supportTitle, migration.supportCopy, list(migration.checklist)));
   const compare = pages.compare;
   add('/comparer', compare.title, compare.intro, compare.footnote,
     section(compare.matrixTitle, compare.matrixCopy,
@@ -89,14 +113,21 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
     `[${providers.ctaJoin}](/prestataires/inscription?lang=${language})`);
   for (const slug of catalog.modules) {
     const text = moduleText(slug, language);
-    add(`/produit/${slug}`, text.heroTitle, text.heroCopy, features(text.features), faq(text.faq));
+    const kind = productStoryKind(slug);
+    if (kind) {
+      const story = BAITLY_PRODUCT_MESSAGES[language].pages[kind];
+      add(`/produit/${slug}`, story.title.join(' '), story.intro, list(story.promises),
+        section(story.featuresTitle, story.featuresIntro, features(kind === 'agents' ? agents.tabs : text.features)),
+        section(story.workflowTitle, features(story.steps)),
+        ...(kind === 'agents' ? [section(agents.agentsTitle,
+          ...agents.agents.map((agent) => section(agent.name,
+            `${agents.watchesLabel} : ${agent.watches}`, `${agents.proposesLabel} : ${agent.proposes}`))),
+          section(agents.pricingTitle, agents.pricingCopy)] : []),
+        faq(kind === 'agents' ? agents.faq : text.faq));
+    } else {
+      add(`/produit/${slug}`, text.heroTitle, text.heroCopy, features(text.features), faq(text.faq));
+    }
   }
-  // This route renders AgentsPage, rather than the generic product page.
-  add('/produit/agents-ia', agents.hero.title, agents.hero.copyBefore + agents.hero.copyStrong,
-    list(agents.trust), section(agents.agentsTitle, agents.agentsCopy,
-      ...agents.agents.map((agent) => section(agent.name,
-        `${agents.watchesLabel} : ${agent.watches}`, `${agents.proposesLabel} : ${agent.proposes}`))),
-    section(agents.hitl.title, agents.hitl.copy));
   // LegalPage currently renders the French corpus for every language query.
   for (const doc of legalDocs('fr')) {
     add(`/legal/${doc.slug}`, doc.title, doc.updated, doc.intro,
