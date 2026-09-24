@@ -72,8 +72,34 @@ public class SecurityConfigProd {
         return registration;
     }
 
+    /**
+     * Origines autorisees, nettoyees.
+     *
+     * <p>Un simple {@code split(",")} laissait passer trois defauts, tous
+     * SILENCIEUX — une origine mal formee ne leve rien, elle ne correspond
+     * simplement jamais, et le navigateur bloque sans que le serveur ne
+     * journalise quoi que ce soit :</p>
+     *
+     * <ul>
+     *   <li><b>Espaces</b> — {@code "https://a, https://b"} produisait
+     *       {@code " https://b"}, qui ne vaut aucune origine. Or ecrire un
+     *       espace apres une virgule est le reflexe naturel.</li>
+     *   <li><b>Entrees vides</b> — une variable d'environnement non substituee
+     *       produit {@code "https://"} ou une chaine vide, qui polluent la
+     *       liste sans jamais correspondre.</li>
+     *   <li><b>Doublons</b> — la composition du compose peut repeter une
+     *       origine. Sans effet fonctionnel, mais illisible en diagnostic.</li>
+     * </ul>
+     *
+     * <p>L'ordre est preserve : la liste est parcourue jusqu'a la premiere
+     * correspondance, et l'ordre declare reste donc celui qu'on lit.</p>
+     */
     private List<String> getAllowedOriginsList() {
-        return Arrays.asList(allowedOrigins.split(","));
+        return Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty() && !origin.equals("https://") && !origin.equals("http://"))
+                .distinct()
+                .toList();
     }
 
     @Bean
