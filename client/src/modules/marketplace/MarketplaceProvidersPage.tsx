@@ -1,3 +1,4 @@
+import { DirectoryToolbar, DirectorySegments, DirectorySegment } from '../../components/catalog/DirectoryToolbar';
 import ProviderDirectoryLayout from './ProviderDirectoryLayout';
 import { useMarketplaceFilterState } from './useMarketplaceFilterState';
 import { useUserUiPreferences } from '../../providers/UserUiPreferencesProvider';
@@ -286,36 +287,24 @@ export default function MarketplaceProvidersPage() {
         précédente alignait quarante-six contrôles de poids identique sur sept
         cents pixels de haut, poussant la grille sous la ligne de flottaison.
       */}
-      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
-        <div className="inline-flex overflow-hidden rounded-md border border-border">
-          {VIEWS.map((entry, index) => {
+      <DirectoryToolbar>
+        <DirectorySegments>
+          {VIEWS.map((entry) => {
             const count = viewCount(entry.key);
             const active = view === entry.key;
             return (
-              <button
-                key={entry.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => { setPage(0); setView(entry.key); }}
-                className={cn(
-                  'inline-flex cursor-pointer items-baseline gap-1.5 px-3 py-1.5 text-xs font-medium',
-                  'transition-colors duration-150 outline-none focus-visible:ring-[2px] focus-visible:ring-ring/50',
-                  index > 0 && 'border-s border-border',
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
+              <DirectorySegment key={entry.key} active={active}
+                onClick={() => { setPage(0); setView(entry.key); }}>
                 {entry.label}
                 {/* Une vue à zéro reste affichée mais s'éteint : c'est une
                     réponse, pas un manque. */}
                 <span className={cn('text-[11px] tabular-nums', count === 0 && 'opacity-50')}>
                   {count ?? '—'}
                 </span>
-              </button>
+              </DirectorySegment>
             );
           })}
-        </div>
+        </DirectorySegments>
 
         <Select value={sort} onValueChange={(value) => setSort(value as ProviderSearchParams['sort'])}>
           <SelectTrigger size="sm" className="w-40">
@@ -362,7 +351,7 @@ export default function MarketplaceProvidersPage() {
             </span>
           )}
         </div>
-      </div>
+      </DirectoryToolbar>
 
       {/* ─── Filtres et résultats ────────────────────────────────────── */}
       <ProviderDirectoryLayout filters={<MarketplaceFilterPanel {...filterPanelProps} />}>

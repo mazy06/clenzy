@@ -187,15 +187,20 @@ const SvgBackdrop: React.FC<SvgBackdropProps> = ({ shape, accent }) => {
 interface ProductHeroProps {
   product: ShopProduct;
   height?: number | string;
+  compact?: boolean;
 }
 
-const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168 }) => {
+const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168, compact = false }) => {
   const { t } = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
   const palette = PALETTE[product.icon] ?? DEFAULT_PALETTE;
   const Icon = ICON_MAP[product.icon];
 
   const showImage = !!product.imageUrl && !imgFailed;
+
+  if (compact) return showImage
+    ? <img src={product.imageUrl} alt={t(product.imageAltKey)} loading="lazy" onError={() => setImgFailed(true)} />
+    : <span aria-hidden="true">{Icon && <Icon size={26} strokeWidth={1.5} />}</span>;
 
   return (
     <div

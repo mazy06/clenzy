@@ -1,143 +1,94 @@
+import { useCallback, useState } from 'react';
+import { ArrowDownIcon, ArrowRightIcon, CheckIcon } from 'lucide-react';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
-import { ArrowRightIcon, CheckIcon } from 'lucide-react';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-  Badge,
-  Button,
-} from '../../src/components/ui';
-import { cn } from '../../src/utils/cn';
-import Reveal from '../components/Reveal';
+import BaitlyLoyaltySimulator, {
+  type LoyaltySelection,
+} from '../components/BaitlyLoyaltySimulator';
+import BaitlyPricingPlans from '../components/BaitlyPricingPlans';
+import BaitlyPricingDetails from '../components/BaitlyPricingDetails';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import { PRICING_MESSAGES } from '../lib/messages/pricing';
+import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
+import {
+  DEFAULT_PRICING_MARKET,
+  type BaitlyMarket,
+  type BaitlyPlan,
+} from '../data/baitlyLoyaltyPricing';
+import '../baitly-pricing.css';
 
 export default function PricingPage() {
   const { language } = useSiteLanguage();
-  const m = PRICING_MESSAGES[language];
+  const m = BAITLY_LOYALTY_MESSAGES[language];
+  // A public, ephemeral simulation; no account preference or billing change.
+  const [selection, setSelection] = useState<LoyaltySelection>(() => ({
+    market: DEFAULT_PRICING_MARKET[language],
+    plan: 'pro',
+    properties: 1,
+    month: 1,
+  }));
+  const onMonth = useCallback(
+    (month: number) => setSelection((current) => ({ ...current, month })),
+    [],
+  );
+  const onPlan = (plan: BaitlyPlan) =>
+    setSelection((current) => ({ ...current, plan }));
+  const onMarket = (market: BaitlyMarket) =>
+    setSelection((current) => ({ ...current, market }));
+  const onProperties = (properties: number) =>
+    setSelection((current) => ({ ...current, properties }));
   return (
-    <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="site-shell pt-16 pb-12 text-center">
-          <Reveal>
-            <Badge variant="outline">{m.eyebrow}</Badge>
-          </Reveal>
-          <Reveal delay={1}>
-            <h1 className="mx-auto mt-4 max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-              {m.title}
-            </h1>
-          </Reveal>
-          <Reveal delay={2}>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              {m.intro}
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="site-shell py-16">
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-3">
-          {m.plans.map((plan, index) => (
-            <Reveal key={plan.name} delay={(index + 1) as 1 | 2 | 3}>
-              <div
-                className={cn(
-                  'flex h-full flex-col rounded-2xl border p-6',
-                  plan.featured
-                    ? 'border-primary bg-primary-soft shadow-brand'
-                    : 'border-border bg-card',
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold">{plan.name}</h2>
-                  {plan.featured && <Badge>{m.recommended}</Badge>}
-                </div>
-                <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">
-                  {plan.price}
-                  <span className="text-sm font-normal text-muted-foreground">{plan.unit}</span>
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.copy}</p>
-                <ul className="mt-5 flex flex-1 flex-col gap-2.5">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm">
-                      <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-success" /> {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button className="mt-6" variant={plan.featured ? 'default' : 'outline'} asChild>
-                  <SiteAcquisitionLink to="/demo">
-                    {plan.quoteOnly ? m.ctaTalk : m.ctaStart}
-                  </SiteAcquisitionLink>
-                </Button>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-        {m.subsidy && (
-          <Reveal className="mt-4">
-            <p className="text-center text-xs text-muted-foreground">
-              {m.subsidy.copy}{' '}
-              <SiteAcquisitionLink to="/demo" className="font-medium text-foreground underline">
-                {m.subsidy.link}
-              </SiteAcquisitionLink>
-            </p>
-          </Reveal>
-        )}
-      </section>
-
-      <section className="border-y border-border bg-card">
-        <div className="site-shell py-14">
-          <Reveal>
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {m.addonsTitle}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {m.addonsCopy}
-            </p>
-          </Reveal>
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {m.addons.map((addon, index) => (
-              <Reveal key={addon.name} delay={((index % 4) + 1) as 1 | 2 | 3 | 4}>
-                <div className="rounded-xl border border-border bg-background p-4">
-                  <p className="text-sm font-semibold">{addon.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{addon.copy}</p>
-                  <p className="mt-3 text-xs">
-                    <span className="font-semibold tabular-nums">—</span>
-                    <span className="text-muted-foreground"> {m.perMonth} · </span>
-                    <Badge variant="outline">{m.addonsPending}</Badge>
-                  </p>
-                </div>
-              </Reveal>
-            ))}
+    <div className="bp-page">
+      <section className="bp-hero site-shell">
+        <div className="bp-hero-copy">
+          <p className="bp-eyebrow">{m.eyebrow}</p>
+          <h1>
+            {m.title[0]}
+            <br />
+            <span>{m.title[1]}</span>
+          </h1>
+          <p className="bp-intro">{m.intro}</p>
+          <div className="bp-hero-actions">
+            <a href="#offres" className="baitly-button">
+              {m.explore}
+              <ArrowDownIcon />
+            </a>
+            <a href="#services" className="bp-text-link">
+              {m.compare}
+              <ArrowRightIcon />
+            </a>
           </div>
+          <ul className="bp-promises">
+            {m.promises.map((promise) => (
+              <li key={promise}>
+                <CheckIcon aria-hidden="true" />
+                {promise}
+              </li>
+            ))}
+          </ul>
+          <p className="bp-proposal">{m.proposal}</p>
+        </div>
+        <div>
+          <BaitlyLoyaltySimulator
+            selection={selection}
+            onMonth={onMonth}
+            onPlan={onPlan}
+            onMarket={onMarket}
+            onProperties={onProperties}
+          />
+          <p className="bp-fine-print bp-simulation-note">{m.simulationNote}</p>
         </div>
       </section>
-
-      <section className="mx-auto max-w-3xl px-4 py-16">
-        <Reveal>
-          <h2 className="mb-6 text-xl font-semibold tracking-tight sm:text-2xl">
-            {m.faqTitle}
-          </h2>
-        </Reveal>
-        <Accordion type="single" collapsible className="w-full">
-          {m.faq.map((item, index) => (
-            <AccordionItem key={item.q} value={`faq-${index}`}>
-              <AccordionTrigger>{item.q}</AccordionTrigger>
-              <AccordionContent>
-                <p className="text-muted-foreground">{item.a}</p>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-        <Reveal className="mt-8 text-center">
-          <Button size="lg" asChild>
-            <SiteAcquisitionLink to="/demo">
-              {m.ctaDemo} <ArrowRightIcon />
-            </SiteAcquisitionLink>
-          </Button>
-        </Reveal>
+      <BaitlyPricingPlans selection={selection} onPlan={onPlan} />
+      <BaitlyPricingDetails />
+      <section className="bp-final site-shell">
+        <div>
+          <h2>{m.finalTitle}</h2>
+          <p>{m.finalCopy}</p>
+        </div>
+        <SiteAcquisitionLink to="/demo" className="baitly-button">
+          {m.finalCta}
+          <ArrowRightIcon />
+        </SiteAcquisitionLink>
       </section>
-    </>
+    </div>
   );
 }
