@@ -6,8 +6,8 @@ interface TemplateCopy {
   description: string;
   location: string;
   stay: string;
-  steps: [string, string, string, string];
-  notes: [string, string, string, string];
+  steps: [string, string, string, string, string];
+  notes: [string, string, string, string, string];
   extras: [string, string];
 }
 
@@ -25,7 +25,6 @@ export interface BaitlyBookingMessages {
   demo: string;
   play: string;
   pause: string;
-  replay: string;
   previous: string;
   next: string;
   selected: string;
@@ -76,9 +75,8 @@ const fr: BaitlyBookingMessages = {
     'Choisissez un univers et glissez-vous à la place du voyageur. Découvrez comment le site accompagne sa réservation et lui donne envie d’ajouter un service.',
   choose: 'Choisir un exemple de template',
   demo: 'Démo interactive',
-  play: 'Lire le parcours',
+  play: 'Reprendre le parcours',
   pause: 'Mettre en pause',
-  replay: 'Rejouer le parcours',
   previous: 'Étape précédente',
   next: 'Étape suivante',
   selected: 'Sélectionné',
@@ -97,13 +95,14 @@ const fr: BaitlyBookingMessages = {
   templateCount: '3 univers à explorer',
   month: 'octobre',
   extrasTitle: 'Et si vous en profitiez un peu plus ?',
-  extrasCopy: 'Les petites attentions, avant même votre arrivée.',
+  extrasCopy:
+    'Sélectionnez les services et expériences qui vous font envie. Votre panier se met à jour à chaque choix.',
   add: 'Ajouter',
   added: 'Ajouté',
   stayLabel: 'Hébergement',
   extrasLabel: 'Services ajoutés',
   total: 'Total du séjour',
-  confirmation: 'Votre escapade prend forme.',
+  confirmation: 'Votre réservation est confirmée.',
   confirmationCopy:
     'Le séjour et les services se retrouvent dans une seule réservation.',
   recap: 'Votre séjour',
@@ -123,11 +122,18 @@ const fr: BaitlyBookingMessages = {
         'Une chambre coup de cœur, puis les attentions qui rendent le séjour unique.',
       location: 'Marrakech, Maroc',
       stay: 'Suite Patio · 3 nuits',
-      steps: ['La chambre', 'Les dates', 'Les attentions', 'La réservation'],
+      steps: [
+        'La chambre',
+        'Les dates',
+        'Les extras',
+        'Le paiement',
+        'La confirmation',
+      ],
       notes: [
         'La photo donne envie, la chambre devient le point de départ.',
         'Les dates et les voyageurs donnent le cadre du séjour.',
         'Le dîner et le transfert se proposent avant de finaliser.',
+        'Le voyageur renseigne ses coordonnées et valide un paiement simulé.',
         'Un récapitulatif rassemble la chambre et les services choisis.',
       ],
       extras: ['Dîner pour deux', 'Transfert aéroport'],
@@ -139,11 +145,18 @@ const fr: BaitlyBookingMessages = {
         'Les dates d’abord, la villa ensuite. Les services complètent l’évasion.',
       location: 'Marrakech, Maroc',
       stay: 'Villa privatisée · 3 nuits',
-      steps: ['Les dates', 'La villa', 'Les services', 'La réservation'],
+      steps: [
+        'Les dates',
+        'La villa',
+        'Les extras',
+        'Le paiement',
+        'La confirmation',
+      ],
       notes: [
         'Le voyageur commence par les dates de son escapade.',
         'La villa se dévoile avec son tarif pour le séjour.',
         'Un dîner privé ou un départ tardif enrichit la réservation.',
+        'Le voyageur renseigne ses coordonnées et valide un paiement simulé.',
         'La villa et les services sont réunis dans le récapitulatif.',
       ],
       extras: ['Dîner avec chef privé', 'Départ tardif'],
@@ -155,11 +168,18 @@ const fr: BaitlyBookingMessages = {
         'Plusieurs logements à découvrir et des séjours à réunir dans un panier.',
       location: 'Agafay & Marrakech, Maroc',
       stay: '2 adresses · 3 nuits',
-      steps: ['Les adresses', 'Le panier', 'Les expériences', 'La réservation'],
+      steps: [
+        'Les dates',
+        'Les adresses',
+        'Les extras',
+        'Le paiement',
+        'La confirmation',
+      ],
       notes: [
-        'Une collection permet de découvrir plusieurs adresses.',
-        'Deux étapes du voyage se retrouvent dans le même panier.',
+        'Le calendrier permet de choisir les dates et la durée du séjour.',
+        'Les logements sélectionnés pour ces dates se retrouvent dans le même panier.',
         'Un transfert ou un dîner accompagne ce parcours multi-séjours.',
+        'Le voyageur renseigne ses coordonnées et valide un paiement simulé.',
         'Une vue d’ensemble pour les hébergements et leurs options.',
       ],
       extras: ['Transfert entre les adresses', 'Dîner de bienvenue'],
@@ -181,9 +201,8 @@ const en: BaitlyBookingMessages = {
     'Choose a style and step into your guest’s shoes. See how the website guides their booking and invites them to add a service.',
   choose: 'Choose a template example',
   demo: 'Interactive demo',
-  play: 'Play the journey',
+  play: 'Resume the journey',
   pause: 'Pause',
-  replay: 'Replay the journey',
   previous: 'Previous step',
   next: 'Next step',
   selected: 'Selected',
@@ -202,13 +221,14 @@ const en: BaitlyBookingMessages = {
   templateCount: '3 styles to explore',
   month: 'October',
   extrasTitle: 'Make a little more of your stay.',
-  extrasCopy: 'Thoughtful touches, before you even arrive.',
+  extrasCopy:
+    'Choose the services and experiences you would enjoy. Your cart updates with each selection.',
   add: 'Add',
   added: 'Added',
   stayLabel: 'Accommodation',
   extrasLabel: 'Added services',
   total: 'Stay total',
-  confirmation: 'Your getaway is taking shape.',
+  confirmation: 'Your booking is confirmed.',
   confirmationCopy:
     'Your stay and chosen services come together in one booking.',
   recap: 'Your stay',
@@ -228,11 +248,12 @@ const en: BaitlyBookingMessages = {
         'A favourite room, then the touches that make a stay special.',
       location: 'Marrakech, Morocco',
       stay: 'Patio suite · 3 nights',
-      steps: ['The room', 'The dates', 'The extras', 'The booking'],
+      steps: ['The room', 'The dates', 'The extras', 'Payment', 'Confirmation'],
       notes: [
         'A room and its photography start the journey.',
         'Dates and guests set the scene for the stay.',
         'Dinner and transfers appear before checkout.',
+        'The guest adds their details and completes a simulated payment.',
         'One summary brings the room and selected services together.',
       ],
       extras: ['Dinner for two', 'Airport transfer'],
@@ -244,11 +265,18 @@ const en: BaitlyBookingMessages = {
         'Dates first, then the villa. Services complete the getaway.',
       location: 'Marrakech, Morocco',
       stay: 'Private villa · 3 nights',
-      steps: ['The dates', 'The villa', 'The services', 'The booking'],
+      steps: [
+        'The dates',
+        'The villa',
+        'The extras',
+        'Payment',
+        'Confirmation',
+      ],
       notes: [
         'Guests begin with their getaway dates.',
         'The villa appears with its stay price.',
         'A private dinner or late check-out adds to the booking.',
+        'The guest adds their details and completes a simulated payment.',
         'The villa and services appear in one summary.',
       ],
       extras: ['Private chef dinner', 'Late check-out'],
@@ -259,11 +287,18 @@ const en: BaitlyBookingMessages = {
       description: 'A collection to discover and several stays in one cart.',
       location: 'Agafay & Marrakech, Morocco',
       stay: '2 addresses · 3 nights',
-      steps: ['The addresses', 'The cart', 'The experiences', 'The booking'],
+      steps: [
+        'The dates',
+        'The properties',
+        'The extras',
+        'Payment',
+        'Confirmation',
+      ],
       notes: [
-        'A collection opens up several places to stay.',
-        'Two stops on the journey share a single cart.',
+        'Choose the dates and length of the stay in the calendar.',
+        'Selected properties for these dates share a single cart.',
         'A transfer or dinner adds to a multi-stay journey.',
+        'The guest adds their details and completes a simulated payment.',
         'One overview of properties and their options.',
       ],
       extras: ['Transfer between properties', 'Welcome dinner'],
@@ -285,9 +320,8 @@ const ar: BaitlyBookingMessages = {
     'اختر تصميماً وجرّب الرحلة من منظور الضيف. اكتشف كيف يرافقه الموقع في الحجز ويشجعه على إضافة خدمة.',
   choose: 'اختر نموذج قالب',
   demo: 'عرض تفاعلي',
-  play: 'شغّل رحلة الحجز',
+  play: 'استأنف رحلة الحجز',
   pause: 'إيقاف مؤقت',
-  replay: 'أعد تشغيل الرحلة',
   previous: 'الخطوة السابقة',
   next: 'الخطوة التالية',
   selected: 'محدد',
@@ -306,13 +340,13 @@ const ar: BaitlyBookingMessages = {
   templateCount: '3 تصاميم للاكتشاف',
   month: 'أكتوبر',
   extrasTitle: 'ماذا لو استمتعت بإقامتك أكثر؟',
-  extrasCopy: 'لمسات مميزة، حتى قبل وصولك.',
+  extrasCopy: 'اختر الخدمات والتجارب التي تناسبك. تتحدث سلتك مع كل اختيار.',
   add: 'أضف',
   added: 'تمت الإضافة',
   stayLabel: 'الإقامة',
   extrasLabel: 'الخدمات المضافة',
   total: 'إجمالي الإقامة',
-  confirmation: 'رحلتك بدأت تتشكل.',
+  confirmation: 'تم تأكيد حجزك.',
   confirmationCopy: 'إقامتك والخدمات المختارة تجتمع في حجز واحد.',
   recap: 'إقامتك',
   saleNote: 'قيمة الخدمات في هذه السلة',
@@ -329,11 +363,12 @@ const ar: BaitlyBookingMessages = {
       description: 'غرفة مفضلة، ثم لمسات تجعل الإقامة مميزة.',
       location: 'مراكش، المغرب',
       stay: 'جناح الفناء · 3 ليالٍ',
-      steps: ['الغرفة', 'التواريخ', 'الإضافات', 'الحجز'],
+      steps: ['الغرفة', 'التواريخ', 'الإضافات', 'الدفع', 'التأكيد'],
       notes: [
         'صورة الغرفة تمنح الرغبة وتبدأ رحلة الحجز.',
         'التواريخ والضيوف يحددون تفاصيل الإقامة.',
         'يُعرض العشاء والنقل قبل إتمام الحجز.',
+        'يضيف الضيف بياناته ويؤكد الدفع التجريبي.',
         'ملخص واحد يجمع الغرفة والخدمات المختارة.',
       ],
       extras: ['عشاء لشخصين', 'نقل من المطار'],
@@ -344,11 +379,12 @@ const ar: BaitlyBookingMessages = {
       description: 'التواريخ أولاً، ثم الفيلا. والخدمات تكمل الرحلة.',
       location: 'مراكش، المغرب',
       stay: 'فيلا خاصة · 3 ليالٍ',
-      steps: ['التواريخ', 'الفيلا', 'الخدمات', 'الحجز'],
+      steps: ['التواريخ', 'الفيلا', 'الإضافات', 'الدفع', 'التأكيد'],
       notes: [
         'يبدأ الضيف بتواريخ رحلته.',
         'تظهر الفيلا مع سعر الإقامة.',
         'عشاء خاص أو مغادرة متأخرة لإثراء الحجز.',
+        'يضيف الضيف بياناته ويؤكد الدفع التجريبي.',
         'الفيلا والخدمات في ملخص واحد.',
       ],
       extras: ['عشاء مع طاهٍ خاص', 'مغادرة متأخرة'],
@@ -359,11 +395,12 @@ const ar: BaitlyBookingMessages = {
       description: 'أماكن متعددة للاكتشاف وإقامات تجتمع في سلة واحدة.',
       location: 'أكافاي ومراكش، المغرب',
       stay: 'عنوانان · 3 ليالٍ',
-      steps: ['العناوين', 'السلة', 'التجارب', 'الحجز'],
+      steps: ['التواريخ', 'العناوين', 'الإضافات', 'الدفع', 'التأكيد'],
       notes: [
-        'مجموعة تتيح اكتشاف عدة أماكن للإقامة.',
-        'محطتان من الرحلة تجتمعان في سلة واحدة.',
+        'اختر تواريخ الإقامة ومدتها في التقويم.',
+        'تجتمع أماكن الإقامة المختارة للتواريخ نفسها في سلة واحدة.',
         'نقل أو عشاء يكمل رحلة الإقامات المتعددة.',
+        'يضيف الضيف بياناته ويؤكد الدفع التجريبي.',
         'نظرة شاملة على أماكن الإقامة وخياراتها.',
       ],
       extras: ['نقل بين مكانَي الإقامة', 'عشاء ترحيبي'],

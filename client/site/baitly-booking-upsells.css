@@ -65,7 +65,7 @@
 .bb-upsell-photo img {
   display: block;
   width: 100%;
-  height: 232px;
+  height: 180px;
   object-fit: cover;
 }
 .bb-upsell-photo > span {
@@ -87,10 +87,10 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 22px;
+  padding: 18px;
 }
 .baitly-marketing .bb-upsell-offer h3 {
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.3;
   letter-spacing: -0.035em;
   text-wrap: balance;
@@ -99,7 +99,7 @@
   font-size: 13px;
   line-height: 1.7;
   color: var(--bl-muted);
-  margin-block: 10px 22px;
+  margin-block: 8px 16px;
 }
 .bb-upsell-offer-body > div {
   display: flex;
@@ -110,7 +110,7 @@
   margin-block-start: auto;
 }
 .bb-upsell-offer-body strong {
-  font-size: 23px;
+  font-size: 21px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -216,7 +216,7 @@
   font-size: 13px;
 }
 .bb-upsell-total > strong {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
@@ -278,7 +278,7 @@
     grid-template-columns: 1fr;
   }
   .bb-upsell-photo img {
-    height: 255px;
+    height: 180px;
   }
   .bb-upsell-selection {
     display: grid;
@@ -314,13 +314,32 @@
     display: none;
   }
   .bb-upsell-offers {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
   .bb-upsell-photo img {
-    height: 205px;
+    height: 110px;
+  }
+  .bb-upsell-photo > span {
+    inset-inline: 6px;
+    inset-block-end: 6px;
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+  .baitly-marketing .bb-upsell-offer h3 {
+    font-size: 16px;
   }
   .bb-upsell-offer-body {
-    padding: 20px;
+    padding: 12px;
+  }
+  .bb-upsell-offer-body > p {
+    font-size: 11px;
+    margin-block-end: 12px;
+  }
+  .bb-upsell-offer-body button {
+    width: 100%;
+    padding-inline: 6px;
+    font-size: 11px;
   }
   .bb-upsell-selection {
     display: block;
