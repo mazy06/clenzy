@@ -2066,6 +2066,15 @@
   .landing-planning-stay-pulse {
     display: none;
   }
+  /* Le PRIX disparait sous 768 px. Il est en `flex: 0 0 auto` avec
+     `white-space: nowrap` : c'est lui, et lui seul, qui imposait a la brique une
+     largeur minimale d'environ 70 px de plus que la colonne ne pouvait offrir —
+     d'ou le debordement. Le nom du voyageur, lui, se tronque.
+     Ce qui reste dit l'essentiel : qui vient, combien de nuits, par quel canal.
+     Le logo du canal est conserve, c'est la demande. */
+  .landing-planning-stay-price {
+    display: none;
+  }
   .landing-planning-stay-copy strong {
     font-size: 10px;
   }

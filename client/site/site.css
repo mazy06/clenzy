@@ -106,6 +106,26 @@
   }
 }
 
+/* Une enveloppe `.reveal` est presque toujours un ELEMENT DE GRILLE ou de flex.
+   Par defaut un tel element a `min-width: auto`, c'est-a-dire qu'il refuse de
+   descendre sous la largeur min-content de son contenu. Or les maquettes
+   animees rendent un vrai composant applicatif a largeur FIXE (880 a 1240 px)
+   avant de le reduire par `transform: scale()` — et une mise a l'echelle ne
+   change pas la boite de mise en page. La colonne heritait donc de ces 880 px,
+   et la page entiere debordait : 930 px de large pour un ecran de 375 sur
+   /prestataires, mesure le 24/09.
+
+   Le `overflow-hidden` des maquettes decoupe la PEINTURE, pas la mise en page :
+   il ne suffisait pas. Et poser la regle plus bas dans l'arbre n'a aucun effet,
+   la contrainte venant de l'element de grille lui-meme.
+
+   Hors de la requete de mouvement ci-dessous, a dessein : le debordement ne
+   depend pas de `prefers-reduced-motion`. Sans effet quand `.reveal` est un
+   bloc ordinaire, dont le `min-width` vaut deja 0. */
+.reveal {
+  min-width: 0;
+}
+
 /* ─── Motion — révélation au scroll (ease-out-quint, GPU-only) ─────────────── */
 @media (prefers-reduced-motion: no-preference) {
   .reveal {
@@ -140,6 +160,18 @@
   );
   background-size: 22px 22px;
   mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+
+/* Le fond decoratif est pose en `absolute -inset-8` : il deborde de 32 px de
+   son parent pour respirer. Au bureau le parent est deja en retrait du bord de
+   la fenetre, le debordement ne se voit donc pas. Sur mobile le parent touche
+   les bords, et ces 32 px sortent de l'ecran — 16 px de defilement horizontal
+   sur les quatre pages produit. On lui retire son debordement HORIZONTAL
+   seulement : vertical, il ne coute rien et c'est lui qui fait l'effet. */
+@media (max-width: 767px) {
+  .hero-grid {
+    inset-inline: 0;
+  }
 }
 
 /* Cartes partenaires : glow teinté à la couleur de marque + lift au survol.
