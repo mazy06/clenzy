@@ -1,123 +1,251 @@
+import {
+  ArrowDownIcon,
+  ArrowRightIcon,
+  CalendarCheckIcon,
+  CheckIcon,
+  FileCheck2Icon,
+  FolderOpenIcon,
+  HeadphonesIcon,
+  Link2Icon,
+  MessageSquareIcon,
+  MoveRightIcon,
+  StarIcon,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
-import { ArrowRightIcon, CheckIcon, DatabaseIcon, FileSpreadsheetIcon, GlobeIcon, PlugIcon } from 'lucide-react';
-import { Badge, Button } from '../../src/components/ui';
 import Reveal from '../components/Reveal';
+import {
+  BaitlyMigrationSources,
+  BaitlyMigrationVisual,
+  MigrationChannelMarks,
+} from '../components/BaitlyMigrationVisuals';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import { PAGE_MESSAGES } from '../lib/messages/pages';
+import { BAITLY_MIGRATION_MESSAGES } from '../lib/messages/baitlyMigration';
+import riad from '../assets/photos/baitly-riad.webp';
+import guestOne from '../assets/guests/g1.jpg';
+import guestTwo from '../assets/guests/g2.jpg';
+import guestThree from '../assets/guests/g3.jpg';
+import '../baitly-migration.css';
 
-/** Les icones restent ici : elles ne se traduisent pas, l'ordre suit le dictionnaire. */
-const CHANNEL_ICONS = [GlobeIcon, FileSpreadsheetIcon, PlugIcon, DatabaseIcon];
+const STEP_ICONS = [
+  FolderOpenIcon,
+  FileCheck2Icon,
+  Link2Icon,
+  CalendarCheckIcon,
+];
 
 export default function MigrationPage() {
   const { language } = useSiteLanguage();
-  const m = PAGE_MESSAGES[language].migration;
+  const m = BAITLY_MIGRATION_MESSAGES[language];
   return (
-    <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="site-shell pt-16 pb-12">
-          <Reveal>
-            <Badge variant="outline">{m.eyebrow}</Badge>
-          </Reveal>
-          <Reveal delay={1}>
-            <h1 className="mt-4 max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-              {m.title}
-            </h1>
-          </Reveal>
-          <Reveal delay={2}>
-            <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              {m.intro}
+    <div className="bm-page">
+      <section className="bm-hero">
+        <div className="site-shell bm-hero-layout">
+          <div className="bm-hero-copy">
+            <p className="bm-eyebrow">
+              <MoveRightIcon aria-hidden="true" />
+              {m.eyebrow}
             </p>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="site-shell py-16">
-        <Reveal>
-          <h2 className="mb-6 text-xl font-semibold tracking-tight sm:text-2xl">
-            {m.channelsTitle}
-          </h2>
-        </Reveal>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-          {m.channels.map((channel, index) => {
-            const Icon = CHANNEL_ICONS[index];
-            return (
-            <Reveal key={channel.name} delay={((index % 2) + 1) as 1 | 2}>
-              <div className="flex h-full flex-col gap-2 rounded-xl border border-border bg-card p-6">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                    <Icon className="size-4.5" />
-                  </span>
-                  <h3 className="text-sm font-semibold">{channel.name}</h3>
-                  {channel.tag && (
-                    <Badge variant="success" className="ms-auto">
-                      {channel.tag}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">{channel.copy}</p>
-              </div>
-            </Reveal>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="border-y border-border bg-card">
-        <div className="site-shell py-14">
-          <Reveal>
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {m.stepsTitle}
-            </h2>
-          </Reveal>
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
-            {m.steps.map((step, index) => (
-              <Reveal key={step.title} delay={((index % 4) + 1) as 1 | 2 | 3 | 4}>
-                <div className="relative">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                    {index + 1}
-                  </span>
-                  <h3 className="mt-3 text-sm font-semibold">{step.title}</h3>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{step.copy}</p>
-                </div>
-              </Reveal>
+            <h1>
+              {m.title}
+              <span>{m.titleAccent}</span>
+            </h1>
+            <p className="bm-intro">{m.intro}</p>
+            <div className="bm-actions">
+              <SiteAcquisitionLink
+                to={`/demo?lang=${language}`}
+                className="bm-button"
+              >
+                {m.cta}
+                <ArrowRightIcon aria-hidden="true" />
+              </SiteAcquisitionLink>
+              <a href="#migration-sources" className="bm-text-link">
+                {m.explore}
+                <ArrowDownIcon aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+          <BaitlyMigrationVisual m={m} />
+          <ul className="bm-trust">
+            {m.trust.map((item) => (
+              <li key={item}>
+                <CheckIcon aria-hidden="true" />
+                {item}
+              </li>
             ))}
+          </ul>
+        </div>
+      </section>
+
+      <BaitlyMigrationSources m={m} />
+
+      <section className="bm-journey" aria-labelledby="migration-journey-title">
+        <div className="site-shell">
+          <Reveal className="bm-section-heading">
+            <h2 id="migration-journey-title">{m.stepsTitle}</h2>
+            <p>{m.stepsIntro}</p>
+          </Reveal>
+          <ol className="bm-steps">
+            {m.steps.map((step, index) => {
+              const Icon = STEP_ICONS[index];
+              return (
+                <Reveal
+                  as="li"
+                  key={step.title}
+                  delay={(index + 1) as 1 | 2 | 3 | 4}
+                >
+                  <div className="bm-step-line">
+                    <span>0{index + 1}</span>
+                    <Icon aria-hidden="true" />
+                  </div>
+                  <h3>{step.title}</h3>
+                  <p>{step.copy}</p>
+                  <span className="bm-step-tag">{step.tag}</span>
+                </Reveal>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+
+      <section
+        className="bm-data site-shell"
+        aria-labelledby="migration-data-title"
+      >
+        <Reveal className="bm-section-heading">
+          <h2 id="migration-data-title">{m.dataTitle}</h2>
+          <p>{m.dataIntro}</p>
+        </Reveal>
+        <div className="bm-data-layout">
+          <Reveal className="bm-property-story">
+            <img
+              src={riad}
+              alt={m.visual.location}
+              width="960"
+              height="720"
+              loading="lazy"
+            />
+            <div className="bm-property-caption">
+              <span>{m.visual.property}</span>
+              <span>{m.visual.example}</span>
+            </div>
+            <div className="bm-data-copy">
+              <span className="bm-status">
+                <CheckIcon aria-hidden="true" />
+                {m.data[0].status}
+              </span>
+              <h3>{m.data[0].title}</h3>
+              <p>{m.data[0].copy}</p>
+            </div>
+          </Reveal>
+          <Reveal className="bm-history-story" delay={1}>
+            <div className="bm-stay-illustration" aria-hidden="true">
+              <div className="bm-guest-portraits">
+                {[guestOne, guestTwo, guestThree].map((src) => (
+                  <img
+                    src={src}
+                    key={src}
+                    width="48"
+                    height="48"
+                    alt=""
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+              <div className="bm-stay-path">
+                <span />
+                <span />
+                <span />
+                <CheckIcon />
+              </div>
+              <CalendarCheckIcon />
+            </div>
+            <div className="bm-data-copy">
+              <span className="bm-status">
+                <CheckIcon aria-hidden="true" />
+                {m.data[1].status}
+              </span>
+              <h3>{m.data[1].title}</h3>
+              <p>{m.data[1].copy}</p>
+            </div>
+          </Reveal>
+          <Reveal className="bm-reviews-story" delay={2}>
+            <div className="bm-review-illustration">
+              <MigrationChannelMarks />
+              <Link2Icon aria-hidden="true" />
+              <StarIcon aria-hidden="true" />
+            </div>
+            <div className="bm-data-copy">
+              <span className="bm-status bm-status-neutral">
+                <Link2Icon aria-hidden="true" />
+                {m.data[2].status}
+              </span>
+              <h3>{m.data[2].title}</h3>
+              <p>{m.data[2].copy}</p>
+            </div>
+          </Reveal>
+        </div>
+        <div className="bm-messages-note">
+          <MessageSquareIcon aria-hidden="true" />
+          <div>
+            <h3>{m.limitsTitle}</h3>
+            <p>{m.limitsCopy}</p>
           </div>
         </div>
       </section>
 
-      <section className="site-shell py-16">
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
-          <Reveal>
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {m.guaranteesTitle}
-            </h2>
-            <ul className="mt-5 flex flex-col gap-3">
-              {m.guarantees.map((guarantee) => (
-                <li key={guarantee} className="flex items-start gap-2.5 text-sm">
-                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
-                    <CheckIcon className="size-3" />
-                  </span>
-                  {guarantee}
+      <section
+        className="bm-safety site-shell"
+        aria-labelledby="migration-safety-title"
+      >
+        <h2 id="migration-safety-title">{m.guaranteesTitle}</h2>
+        <ul>
+          {m.guarantees.map((item) => (
+            <li key={item}>
+              <CheckIcon aria-hidden="true" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="bm-support" aria-labelledby="migration-support-title">
+        <div className="site-shell bm-support-layout">
+          <div>
+            <span className="bm-support-intro">
+              <HeadphonesIcon aria-hidden="true" />
+              {m.supportLanguages}
+            </span>
+            <h2 id="migration-support-title">{m.supportTitle}</h2>
+            <p>{m.supportCopy}</p>
+            <div className="bm-actions">
+              <SiteAcquisitionLink
+                to={`/demo?lang=${language}`}
+                className="bm-button"
+              >
+                {m.cta}
+                <ArrowRightIcon aria-hidden="true" />
+              </SiteAcquisitionLink>
+              <Link to={`/tarifs?lang=${language}`} className="bm-text-link">
+                {m.pricing}
+                <ArrowRightIcon aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+          <aside className="bm-checklist">
+            <h3>{m.checklistTitle}</h3>
+            <ol>
+              {m.checklist.map((item, index) => (
+                <li key={item}>
+                  <span>0{index + 1}</span>
+                  {item}
                 </li>
               ))}
-            </ul>
-          </Reveal>
-          <Reveal delay={2}>
-            <div className="rounded-2xl bg-foreground p-8 text-background">
-              <h3 className="text-lg font-semibold">{m.limitsTitle}</h3>
-              <p className="mt-2 text-sm text-background/70">
-                {m.limitsCopy}
-              </p>
-              <Button variant="secondary" className="mt-5" asChild>
-                <SiteAcquisitionLink to="/demo">
-                  {m.cta} <ArrowRightIcon />
-                </SiteAcquisitionLink>
-              </Button>
-            </div>
-          </Reveal>
+            </ol>
+            <span className="bm-checklist-fold" aria-hidden="true" />
+          </aside>
         </div>
       </section>
-    </>
+    </div>
   );
 }

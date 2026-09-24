@@ -36,6 +36,31 @@
   align-self: stretch;
 }
 
+/* Le bouton reste visuellement centre, mais son survol rejoint le volet.
+   Radix ferme le menu 150 ms apres la sortie du trigger : les 24 px vides
+   sous le bouton coupaient donc le trajet avant d'atteindre le panneau.
+   Etirer le rail et ses items donne au pseudo-element la hauteur reelle
+   de l'en-tete, sans dupliquer ses dimensions ni modifier les delais Radix. */
+.baitly-marketing .site-nav > :has(> .cn-navigation-menu-list) {
+  align-self: stretch;
+  display: flex;
+}
+
+.baitly-marketing .site-nav .cn-navigation-menu-list {
+  align-items: stretch;
+}
+
+.baitly-marketing .site-nav .cn-navigation-menu-item {
+  display: flex;
+  align-items: center;
+}
+
+.baitly-marketing .site-nav .cn-navigation-menu-trigger::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
 /* ─── Les volets du mega-menu — le tiroir de la barre laterale du PMS ────────
    Meme piece que `.bui-sidebar-flyout` (cf. `theme/baitly-nova.css`, ou la
    construction est commentee en detail), tournee d'un quart de tour : la
@@ -2280,4 +2305,16 @@ html[lang^='ar-'] .baitly-home h2 {
 html[lang='ar'] .baitly-home h3,
 html[lang^='ar-'] .baitly-home h3 {
   line-height: 1.45;
+}
+
+/* Keep the prelaunch action and the navigation trigger inside narrow screens. */
+@media (max-width: 420px) {
+  .baitly-marketing .site-header-inner { gap: 8px; }
+  .baitly-marketing .site-header-inner > .ms-auto { min-width: 0; }
+  .baitly-marketing .site-header-cta {
+    padding-inline: 8px;
+    flex-shrink: 1;
+    white-space: normal;
+    text-align: center;
+  }
 }

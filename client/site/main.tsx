@@ -23,6 +23,7 @@ import StatusPage from './pages/StatusPage';
 // Product projections are only needed after the visitor opens their route.
 const ModulePage = lazy(() => import('./pages/ModulePage'));
 const ProvidersPage = lazy(() => import('./pages/ProvidersPage'));
+const BaitlyResourcePage = lazy(() => import('./pages/BaitlyResourcePage'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -38,6 +39,30 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/migration" element={<MigrationPage />} />
               <Route path="/comparer" element={<ComparePage />} />
               <Route path="/ressources" element={<ResourcesPage />} />
+              <Route
+                path="/ressources/calculateur"
+                element={<BaitlyResourcePage kind="calculateur" />}
+              />
+              <Route
+                path="/ressources/barometre"
+                element={<BaitlyResourcePage kind="barometre" />}
+              />
+              <Route
+                path="/ressources/obligations"
+                element={<BaitlyResourcePage kind="obligations" />}
+              />
+              <Route
+                path="/ressources/academie"
+                element={<BaitlyResourcePage kind="academie" />}
+              />
+              <Route
+                path="/ressources/blog"
+                element={<BaitlyResourcePage kind="blog" />}
+              />
+              <Route
+                path="/ressources/glossaire"
+                element={<BaitlyResourcePage kind="glossaire" />}
+              />
               <Route path="/prestataires" element={<ProvidersPage />} />
               {/* Le parcours prestataire : candidature + dépôt de pièces sur la
               première, définition du mot de passe sur la seconde. */}
