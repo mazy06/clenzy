@@ -1,6 +1,8 @@
 import { HOME_MESSAGES } from '../site/lib/messages/home';
 import { PAGE_MESSAGES } from '../site/lib/messages/pages';
 import { PRICING_MESSAGES } from '../site/lib/messages/pricing';
+import { BAITLY_LOYALTY_MESSAGES } from '../site/lib/messages/baitlyLoyalty';
+import { BAITLY_LOYALTY_STAGES, BAITLY_VOLUME_TIERS, DEFAULT_PRICING_MARKET, formatLoyaltyPrice, loyaltyUnitPrice } from '../site/data/baitlyLoyaltyPricing';
 import { PROVIDERS_MESSAGES } from '../site/lib/messages/providers';
 import { AGENTS_MESSAGES } from '../site/lib/messages/agents';
 import { PRELAUNCH_MESSAGES } from '../site/lib/messages/prelaunch';
@@ -29,6 +31,8 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
   const home = HOME_MESSAGES[language];
   const pages = PAGE_MESSAGES[language];
   const pricing = PRICING_MESSAGES[language];
+  const loyalty = BAITLY_LOYALTY_MESSAGES[language];
+  const pricingMarket = DEFAULT_PRICING_MARKET[language];
   const providers = PROVIDERS_MESSAGES[language];
   const agents = AGENTS_MESSAGES[language];
   add('/', `Baitly · ${home.hero.title1} ${home.hero.title2}`,
@@ -50,8 +54,11 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
       const item = resourceText(id, language);
       return section(item.name, item.copy, item.tag);
     }));
-  add('/tarifs', pricing.title, pricing.intro,
+  add('/tarifs', pricing.title, pricing.intro, loyalty.proposal, loyalty.simulationNote,
     ...pricing.plans.map((plan) => section(plan.name, `${plan.price} ${plan.unit}`, plan.copy, list(plan.features))),
+    section(loyalty.volumeTitle, loyalty.volumeHint, list(BAITLY_VOLUME_TIERS.map((tier) => `${tier.start}–${tier.end} ${loyalty.propertyWords[1]} : ${tier.discount ? '−' : ''}${tier.discount} %`))),
+    section(loyalty.simulator, `1 ${loyalty.propertyWords[0]}`, ...(['essential', 'pro'] as const).map((plan, index) => section(pricing.plans[index].name,
+      list(BAITLY_LOYALTY_STAGES.map((stage, i) => `${loyalty.periods[i]} : ${formatLoyaltyPrice(loyaltyUnitPrice(pricingMarket, plan, stage.start), pricingMarket, language)} ${loyalty.unit}`))))),
     section(pricing.addonsTitle, pricing.addonsCopy, pricing.addonsPending,
       ...pricing.addons.map((item) => section(item.name, item.copy))), faq(pricing.faq));
   const migration = pages.migration;

@@ -63,7 +63,7 @@ const GuestExperiencePage: React.FC = () => {
           showBackButton={false}
         />
         <PageTabs options={tabs} value={activeTab} onChange={setActiveTab} />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden${activeKey === 'upsells' ? ' flex flex-col' : ''}`}>
           {activeKey === 'booking-engine' ? (
             <StudioHome embedded />
           ) : activeKey === 'upsells' ? (

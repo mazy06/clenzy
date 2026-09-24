@@ -33,12 +33,11 @@ import {
   Textarea,
 } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '../../utils/cn';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
   Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
   LogIn, Clock, Coffee, Car, SquareParking,
-  SlidersHorizontal, Search, BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
+  BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
   MoreHorizontal, Power,
 } from 'lucide-react';
 // Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
@@ -51,7 +50,7 @@ import { useNotification, type NotificationSeverity } from '../../hooks/useNotif
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
-import { usePageHeaderActions, usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { Money } from '../../components/Money';
 import EmptyState from '../../components/EmptyState';
 import { SectionHeading } from './formPrimitives';
@@ -61,6 +60,8 @@ import { activitiesApi } from '../../services/api/activitiesApi';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import { useUpsellTypes } from '../../hooks/useUpsellTypes';
 import UpsellTypesManager from './UpsellTypesManager';
+import { CatalogFilterGroup, CatalogFilter } from '../../components/catalog/BaitlyCatalog';
+import { useUserPreference } from '../../hooks/useUserPreference';
 
 /**
  * Libellés de repli des neuf types historiques.
@@ -83,10 +84,6 @@ const TYPE_FALLBACK: Record<string, string> = {
 };
 const DEFAULT_CURRENCY = 'EUR';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-
-// Filtre du PageHeader actif (Canal / Catégorie) : seule la teinte accent reste
-// a porter, le gabarit (hauteur, rayon, graisse) vient du bouton du kit.
-const HEADER_FILTER_ACTIVE = 'text-primary border-primary bg-primary-soft';
 
 // Icône lucide par type de service.
 const TYPE_ICON: Record<string, typeof Tag> = {
@@ -184,7 +181,7 @@ const UpsellsAdmin: React.FC = () => {
   const { properties } = usePropertiesList();
   const { convert } = useCurrency();
 
-  const { data: offers = [], isLoading, refetch } = useQuery({
+  const { data: offers = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['upsell-offers'],
     queryFn: () => upsellApi.listOffers(),
   });
@@ -200,8 +197,8 @@ const UpsellsAdmin: React.FC = () => {
   const [search, setSearch] = useState('');
   // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
   useScreenSearch(search, setSearch, t('upsells.search.placeholder', 'Rechercher un service…'));
-  const [canalFilter, setCanalFilter] = useState<CanalFilter>('all');
-  const [catFilter, setCatFilter] = useState<string | null>(null);
+  const [canalFilter, setCanalFilter] = useUserPreference<CanalFilter>('baitly.services.channel', 'all');
+  const [catFilter, setCatFilter] = useUserPreference<string | null>('baitly.services.category', null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [previewOffer, setPreviewOffer] = useState<PreviewData | null>(null);
 
@@ -482,63 +479,30 @@ const UpsellsAdmin: React.FC = () => {
     </>,
   );
 
-  // Filtres portés dans le PageHeader (recherche + Canal + Catégorie). Uniquement
-  // en vue catalogue (masqués sur l'écran détaillé d'un service).
-  // Les declencheurs portent eux-memes le gabarit de bouton : passer par
-  // `Button` en asChild casserait la ref dont Radix a besoin pour ancrer le menu.
-  const headerFilters = usePageHeaderFilters(
-    selected ? null : (
-      <>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className={cn(
-              buttonVariants({ variant: 'outline' }),
-              'cursor-pointer',
-              canalFilter !== 'all' ? HEADER_FILTER_ACTIVE : undefined,
-            )}
-          >
-            <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-auto min-w-[180px]">
-            {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
-              <DropdownMenuItem key={v} onSelect={() => setCanalFilter(v)}>
-                {v === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux') : v === 'livret' ? t('upsells.channel.guide', 'Livret') : t('upsells.channel.booking', 'Booking')}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className={cn(
-              buttonVariants({ variant: 'outline' }),
-              'cursor-pointer',
-              catFilter ? HEADER_FILTER_ACTIVE : undefined,
-            )}
-          >
-            <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-auto min-w-[180px]">
-            <DropdownMenuItem onSelect={() => setCatFilter(null)}>
-              {t('upsells.filters.allCategories', 'Toutes les catégories')}
-            </DropdownMenuItem>
-            {presentTypes.map((tp) => (
-              <DropdownMenuItem key={tp} onSelect={() => setCatFilter(tp)}>
-                {typeLabel(tp)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </>
-    ),
-  );
-
   // ── Catalogue (vue liste) ──────────────────────────────────────────────────
   const renderList = () => (
     <>
-      {/* Catalogue unifié : services internes + expériences partenaires (filtre source + pagination).
-          Recherche / filtres Canal-Catégorie restent dans le PageHeader (alimentent filteredOffers). */}
+      {/* Les filtres métier et la source partagent le même panneau latéral. */}
       <ServicesCatalog
         loading={isLoading}
+        error={isError}
+        onRetry={() => { void refetch(); }}
+        internalOnly={canalFilter !== 'all' || !!catFilter}
+        onResetFilters={() => { setSearch(''); setCanalFilter('all'); setCatFilter(null); }}
+        filters={<>
+          <CatalogFilterGroup title={t('baitlyCatalog.distribution')}>
+            {(['all', 'livret', 'booking'] as const).map(channel => <CatalogFilter key={channel}
+              label={channel === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux')
+                : t(channel === 'livret' ? 'upsells.channel.guide' : 'upsells.channel.booking')}
+              active={canalFilter === channel} onClick={() => setCanalFilter(channel)} />)}
+          </CatalogFilterGroup>
+          {presentTypes.length > 0 && <CatalogFilterGroup title={t('baitlyCatalog.categories')}>
+            <CatalogFilter label={t('upsells.filters.allCategories', 'Toutes les catégories')}
+              active={!catFilter} onClick={() => setCatFilter(null)} />
+            {presentTypes.map(type => <CatalogFilter key={type} label={typeLabel(type)}
+              active={catFilter === type} onClick={() => setCatFilter(type)} />)}
+          </CatalogFilterGroup>}
+        </>}
         offers={filteredOffers}
         search={search}
         addedTitles={offers.map((o) => o.title)}
@@ -548,7 +512,7 @@ const UpsellsAdmin: React.FC = () => {
         renderRowMenu={(o) => (
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="mp-imenu"
+              className={buttonVariants({ variant: 'ghost', size: 'icon-sm', className: 'cursor-pointer' })}
               aria-label={t('upsells.actions.menu', 'Actions')}
               onClick={(ev) => ev.stopPropagation()}
             >
@@ -569,13 +533,11 @@ const UpsellsAdmin: React.FC = () => {
           </DropdownMenu>
         )}
         kpis={(
-          <div className="svc-band">
-            <div className="kpis">
-              <div className="kpi"><b>{activeCount}</b><span>{t('upsells.kpi.active', 'Services actifs')}</span></div>
-              <div className="kpi"><b>{bookings30}</b><span>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</span></div>
-              <div className="kpi"><b><Money value={revenue30} decimals={0} /></b><span>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</span></div>
-            </div>
-          </div>
+          <dl className="m-0 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex items-baseline gap-2"><dt>{t('upsells.kpi.active', 'Services actifs')}</dt><dd className="m-0 text-sm font-semibold tabular-nums text-foreground">{isLoading || isError ? '…' : activeCount}</dd></div>
+            <div className="flex items-baseline gap-2"><dt>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</dt><dd className="m-0 text-sm font-semibold tabular-nums text-foreground">{ordersLoading ? '…' : bookings30}</dd></div>
+            <div className="flex items-baseline gap-2"><dt>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</dt><dd className="m-0 text-sm font-semibold tabular-nums text-foreground">{ordersLoading ? '…' : <Money value={revenue30} decimals={0} />}</dd></div>
+          </dl>
         )}
       />
 
@@ -695,9 +657,8 @@ const UpsellsAdmin: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className={selected ? undefined : 'flex min-h-0 flex-1 flex-col'}>
       {headerActions}
-      {headerFilters}
 
       {/* Aperçu guest d'un service : carte telle que le voyageur la voit (livret / booking engine). */}
       <Dialog open={!!previewOffer} onOpenChange={(next) => !next && setPreviewOffer(null)}>
@@ -780,11 +741,9 @@ const UpsellsAdmin: React.FC = () => {
       </Dialog>
 
       {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
-      <div className="be-home">
-        <div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
-          {selected ? renderDetail() : renderList()}
-        </div>
-      </div>
+      {selected ? <div className="be-home"><div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
+        {renderDetail()}
+      </div></div> : renderList()}
 
       {/* Éditeur d'offre */}
       <Dialog open={edit.open} onOpenChange={(next) => !next && setEdit(emptyEdit)}>

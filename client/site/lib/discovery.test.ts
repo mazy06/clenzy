@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { discoveryArtifacts } from '../../tooling/baitlySiteDiscovery';
 import { PRICING_MESSAGES } from './messages/pricing';
+import { BAITLY_LOYALTY_MESSAGES } from './messages/baitlyLoyalty';
 import { PRELAUNCH_MESSAGES } from './messages/prelaunch';
 
 const routes = readFileSync('site/main.tsx', 'utf8');
@@ -31,6 +32,8 @@ describe('Baitly public discovery build', () => {
     const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
     for (const language of ['fr', 'en', 'ar'] as const) {
       expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(PRICING_MESSAGES[language].plans[0].price);
+      expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(BAITLY_LOYALTY_MESSAGES[language].volumeHint);
+      expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(`20–49 ${BAITLY_LOYALTY_MESSAGES[language].propertyWords[1]} : −20 %`);
       for (const path of ['/bientot-disponible', '/pre-lancement']) {
         const markdown = assets.get(`_baitly-markdown/${language}${path}.md`);
         expect(markdown).toContain(PRELAUNCH_MESSAGES[language].intro);

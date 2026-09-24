@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { cn } from '../../utils/cn';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Button, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -10,8 +9,15 @@ import type { ProductCategory } from './shopProducts';
 import ProductCard from './ProductCard';
 import CartDrawer from './CartDrawer';
 import PageHeader from '../../components/PageHeader';
+import { BaitlyCatalog, CatalogFilterGroup, CatalogFilter, CatalogResults, type CatalogView } from '../../components/catalog/BaitlyCatalog';
+import { useScreenSearch } from '../../components/ScreenChrome';
+import { useUserPreference } from '../../hooks/useUserPreference';
+import EmptyState from '../../components/EmptyState';
+import NavCountBadge from '../../components/NavCountBadge';
+import { PackageSearch, Package, AudioLines, LockKeyhole, Thermometer, Boxes } from 'lucide-react';
 
-const ACCENT = '#4A9B8E'; // teinte du badge icône PageHeader (prop hex requise)
+const CATEGORY_ICONS = { all: Package, kit: Boxes, noise: AudioLines, lock: LockKeyhole, environment: Thermometer };
+type Sort = 'catalog' | 'priceAsc' | 'priceDesc';
 
 const categoryTranslationKeys: Record<string, string> = {
   all: 'shop.allProducts',
@@ -25,7 +31,11 @@ const ShopPage: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
 
-  const [selectedCategory, setSelectedCategory] = useState<'all' | ProductCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useUserPreference<'all' | ProductCategory>('baitly.shop.category', 'all');
+  const [view, setView] = useUserPreference<CatalogView>('baitly.catalog.view', 'cards');
+  const [sort, setSort] = useUserPreference<Sort>('baitly.shop.sort', 'catalog');
+  const [search, setSearch] = useState('');
+  useScreenSearch(search, setSearch, t('baitlyCatalog.searchProducts'));
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -35,15 +45,14 @@ const ShopPage: React.FC = () => {
   );
 
   const filteredProducts = useMemo(() => {
-    const filtered =
-      selectedCategory === 'all'
-        ? SHOP_PRODUCTS
-        : SHOP_PRODUCTS.filter((p) => p.category === selectedCategory);
-
-    const kits = filtered.filter((p) => p.category === 'kit');
-    const others = filtered.filter((p) => p.category !== 'kit');
-    return [...kits, ...others];
-  }, [selectedCategory]);
+    const q = search.trim().toLocaleLowerCase();
+    const filtered = SHOP_PRODUCTS.filter(product =>
+      (selectedCategory === 'all' || product.category === selectedCategory) &&
+      (!q || [t(product.nameKey), t(product.shortDescriptionKey), product.sku].some(value => value.toLocaleLowerCase().includes(q))));
+    if (sort === 'priceAsc') return filtered.sort((a, b) => a.price - b.price);
+    if (sort === 'priceDesc') return filtered.sort((a, b) => b.price - a.price);
+    return [...filtered.filter(p => p.category === 'kit'), ...filtered.filter(p => p.category !== 'kit')];
+  }, [selectedCategory, search, sort, t]);
 
   const handleAddToCart = useCallback((productId: string) => {
     setCart((prev) => {
@@ -119,12 +128,11 @@ const ShopPage: React.FC = () => {
   }, []);
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
         iconBadge={<Memory />}
-        iconBadgeColor={ACCENT}
         backPath="/dashboard"
         showBackButton={false}
         actions={(
@@ -138,78 +146,45 @@ const ShopPage: React.FC = () => {
             <span className="inline-flex text-foreground">
               <ShoppingCartOutlined size={20} strokeWidth={1.75} />
             </span>
-            {/* Pastille de compteur : le `Badge` du kit est une puce en flux, pas
-                une pastille en surimpression — d'ou le positionnement explicite. */}
-            {cartCount > 0 && (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -top-1 -end-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-solid border-card bg-primary px-[3px] text-2xs font-bold leading-none tabular-nums text-primary-foreground"
-              >
-                {cartCount > 99 ? '99+' : cartCount}
-              </span>
-            )}
+            <NavCountBadge count={cartCount} className="absolute -top-1 -end-1" />
           </Button>
         )}
       />
 
-      {/* Info banner — primitive `Alert` du kit (variante `info`) */}
-      <Alert variant="info" className="mb-[15px]">
-        <CheckCircleOutline />
-        <AlertDescription>
-          {t('shop.infoBanner')}
-        </AlertDescription>
-      </Alert>
-
-      {/* Category filter — pill row */}
-      <div className="flex gap-1 mb-3.5 flex-wrap" role="tablist">
-        {CATEGORIES.map((cat) => {
-          const active = selectedCategory === cat.id;
-          const count = categoryCounts[cat.id] ?? 0;
-          return (
-            // Demi-pas de la grille (4,5 / 7,5 / 3,75 px) : la rangee doit rester
-            // plus dense que les puces de filtre standard du kit.
-            <div
-              key={cat.id}
-              role="tab"
-              aria-selected={active}
-              tabIndex={0}
-              onClick={() => setSelectedCategory(cat.id as 'all' | ProductCategory)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setSelectedCategory(cat.id as 'all' | ProductCategory);
-                }
-              }}
-              className={cn(
-                'inline-flex items-center gap-[4.5px] px-[7.5px] py-[3.75px] cursor-pointer select-none rounded-md border border-solid text-[0.78rem] font-semibold',
-                'transition-colors duration-150 motion-reduce:transition-none',
-                'focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2',
-                active
-                  ? 'border-primary bg-primary-soft text-primary'
-                  : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted',
-              )}
-            >
-              {t(categoryTranslationKeys[cat.id]) || cat.label}
-              <span className={cn('min-w-[16px] rounded-sm px-[3.75px] py-[0.75px] text-center text-2xs font-bold tabular-nums', active ? 'bg-primary text-primary-foreground' : 'bg-field text-muted-foreground')}>
-                {count}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Product grid */}
-      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1536px]:grid-cols-[repeat(4,_1fr)] gap-3">
-        {filteredProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            quantity={cart.get(product.id) ?? 0}
-            onAddToCart={() => handleAddToCart(product.id)}
-            onRemoveFromCart={() => handleRemoveFromCart(product.id)}
-          />
-        ))}
-      </div>
+      <BaitlyCatalog title={t(categoryTranslationKeys[selectedCategory])} count={filteredProducts.length}
+        view={view} onViewChange={setView}
+        toolbar={<Select value={sort} onValueChange={value => setSort(value as Sort)}>
+          <SelectTrigger size="sm" className="w-40 cursor-pointer" aria-label={t('baitlyCatalog.sort')}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="catalog">{t('baitlyCatalog.catalogOrder')}</SelectItem>
+            <SelectItem value="priceAsc">{t('baitlyCatalog.priceAsc')}</SelectItem>
+            <SelectItem value="priceDesc">{t('baitlyCatalog.priceDesc')}</SelectItem>
+          </SelectContent>
+        </Select>}
+        filters={<>
+          <CatalogFilterGroup title={t('baitlyCatalog.categories')}>
+            {CATEGORIES.map(category => {
+              const Icon = CATEGORY_ICONS[category.id];
+              return <CatalogFilter key={category.id} label={t(categoryTranslationKeys[category.id])}
+                count={categoryCounts[category.id]} active={selectedCategory === category.id}
+                icon={<Icon />} onClick={() => setSelectedCategory(category.id)} />;
+            })}
+          </CatalogFilterGroup>
+          <div className="space-y-2 text-xs leading-relaxed text-muted-foreground">
+            <CheckCircleOutline size={18} className="text-foreground" />
+            <p>{t('shop.infoBanner')}</p>
+          </div>
+        </>}>
+        {filteredProducts.length ? <CatalogResults view={view}>
+          {filteredProducts.map(product => <ProductCard key={product.id} product={product}
+            quantity={cart.get(product.id) ?? 0} onAddToCart={() => handleAddToCart(product.id)}
+            onRemoveFromCart={() => handleRemoveFromCart(product.id)} />)}
+        </CatalogResults> : <EmptyState variant="transparent" icon={<PackageSearch />}
+          title={t('baitlyCatalog.empty')} description={t('baitlyCatalog.emptyHelp')}
+          action={<Button variant="outline" onClick={() => { setSearch(''); setSelectedCategory('all'); }}>
+            {t('baitlyCatalog.reset')}
+          </Button>} />}
+      </BaitlyCatalog>
 
       <CartDrawer
         open={drawerOpen}

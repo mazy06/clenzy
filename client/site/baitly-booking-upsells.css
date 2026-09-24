@@ -1,0 +1,343 @@
+.bb-upsells {
+  background: var(--bl-surface);
+  padding-block: 72px;
+  scroll-margin-block-start: 110px;
+}
+.bb-upsells .bb-section-heading {
+  margin-block-end: 32px;
+}
+.bb-upsell-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bb-upsell-navigation button {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 48px;
+  border: 1px solid var(--bl-line);
+  border-radius: 6px;
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--bl-ink);
+  font-size: 14px;
+  transition: background 200ms var(--bl-ease), color 200ms var(--bl-ease);
+}
+.bb-upsell-navigation button:hover {
+  background: var(--bl-paper);
+}
+.bb-upsell-navigation button[aria-pressed='true'] {
+  background: var(--bl-surface-ink);
+  color: var(--bl-paper);
+  border-color: var(--bl-surface-ink);
+}
+.bb-upsell-description {
+  color: var(--bl-muted);
+  font-size: 14px;
+  line-height: 1.8;
+  margin-block: 18px 24px;
+  min-height: 26px;
+}
+.bb-upsell-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.35fr) minmax(260px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.bb-upsell-offers {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+  animation: bb-upsell-enter 350ms var(--bl-ease) both;
+}
+.bb-upsell-offer {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bl-paper);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.bb-upsell-photo {
+  position: relative;
+}
+.bb-upsell-photo img {
+  display: block;
+  width: 100%;
+  height: 232px;
+  object-fit: cover;
+}
+.bb-upsell-photo > span {
+  position: absolute;
+  inset-inline-start: 14px;
+  inset-block-end: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bl-paper);
+  color: var(--bl-success);
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: var(--bb-small);
+  font-weight: 600;
+  animation: bb-upsell-enter 220ms var(--bl-ease) both;
+}
+.bb-upsell-offer-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 22px;
+}
+.baitly-marketing .bb-upsell-offer h3 {
+  font-size: 22px;
+  line-height: 1.3;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.bb-upsell-offer-body > p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--bl-muted);
+  margin-block: 10px 22px;
+}
+.bb-upsell-offer-body > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-block-start: auto;
+}
+.bb-upsell-offer-body strong {
+  font-size: 23px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.bb-upsell-offer-body button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid var(--bl-line);
+  border-radius: 5px;
+  background: var(--bl-surface);
+  color: var(--bl-ink);
+  padding: 10px;
+  font-size: var(--bb-small);
+  transition: border-color 200ms var(--bl-ease), background 200ms var(--bl-ease);
+}
+.bb-upsell-offer-body button:hover {
+  border-color: var(--bl-accent);
+  background: var(--bl-blue);
+}
+.bb-upsell-offer-body button[aria-pressed='true'] {
+  color: var(--bl-success);
+  border-color: var(--bl-success);
+}
+.bb-upsell-selection {
+  border-block: 1px solid var(--bl-line);
+  padding-block: 22px;
+}
+.bb-upsell-selection-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.baitly-marketing .bb-upsell-selection-heading h3 {
+  flex: 1;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.bb-upsell-selection-heading > span {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.bb-upsell-selection ul {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-block: 24px;
+}
+.bb-upsell-selection li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: bb-upsell-enter 250ms var(--bl-ease) both;
+}
+.bb-upsell-selection li > span {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.bb-upsell-selection li strong {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  margin-block-start: 3px;
+}
+.bb-upsell-selection li button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--bl-muted);
+  transition: background 200ms var(--bl-ease);
+}
+.bb-upsell-selection li button:hover {
+  background: var(--bl-paper);
+}
+.bb-upsell-empty {
+  padding-block: 28px;
+  color: var(--bl-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.bb-upsell-empty > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-block-start: 18px;
+  font-size: var(--bb-small);
+}
+.bb-upsell-total {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  border-block-start: 1px solid var(--bl-line);
+  padding-block-start: 22px;
+}
+.bb-upsell-total > span {
+  font-size: 13px;
+}
+.bb-upsell-total > strong {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--bl-surface-ink);
+  animation: bb-upsell-enter 250ms var(--bl-ease) both;
+}
+.bb-upsell-total > p {
+  grid-column: 1 / -1;
+  font-size: var(--bb-small);
+  line-height: 1.7;
+  color: var(--bl-muted);
+}
+.bb-upsell-business {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  padding-block: 36px;
+  margin-block-start: 20px;
+  border-block-end: 1px solid var(--bl-line);
+}
+.baitly-marketing .bb-upsell-business h3 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  margin-block-end: 12px;
+}
+.bb-upsell-business p {
+  font-size: 14px;
+  color: var(--bl-muted);
+  line-height: 1.85;
+  max-width: 58ch;
+}
+.bb-upsell-continuation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding-block-start: 24px;
+}
+.bb-upsell-continuation p {
+  font-size: 14px;
+  line-height: 1.8;
+  max-width: 65ch;
+}
+.bb-upsell-continuation a {
+  flex-shrink: 0;
+}
+@keyframes bb-upsell-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1100px) {
+  .bb-upsell-layout {
+    grid-template-columns: 1fr;
+  }
+  .bb-upsell-photo img {
+    height: 255px;
+  }
+  .bb-upsell-selection {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    column-gap: 48px;
+  }
+  .bb-upsell-selection-heading {
+    grid-column: 1 / -1;
+  }
+  .bb-upsell-total {
+    align-self: start;
+    margin-block-start: 24px;
+  }
+  .bb-upsell-continuation {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .bb-upsells {
+    padding-block: 48px;
+  }
+  .bb-upsell-navigation {
+    gap: 6px;
+  }
+  .bb-upsell-navigation button {
+    padding: 10px 12px;
+    font-size: 13px;
+    gap: 8px;
+  }
+  .bb-upsell-navigation svg {
+    display: none;
+  }
+  .bb-upsell-offers {
+    grid-template-columns: 1fr;
+  }
+  .bb-upsell-photo img {
+    height: 205px;
+  }
+  .bb-upsell-offer-body {
+    padding: 20px;
+  }
+  .bb-upsell-selection {
+    display: block;
+  }
+  .bb-upsell-total {
+    margin-block-start: 0;
+  }
+  .bb-upsell-business {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb-upsells *,
+  .bb-upsells *::before,
+  .bb-upsells *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

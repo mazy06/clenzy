@@ -19,6 +19,7 @@ import ScrollGuideSection from '../components/ScrollGuideSection';
 import PartnerMarquee from '../components/PartnerMarquee';
 import { MARKETPLACE_ROWS, MODULES } from '../data/catalog';
 import AgentsPage from './AgentsPage';
+import BaitlyBookingPage from './BaitlyBookingPage';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { moduleText } from '../lib/messages/modules';
 import { LAYOUT_MESSAGES } from '../lib/messages/layout';
@@ -40,6 +41,7 @@ export default function ModulePage() {
   const nav = LAYOUT_MESSAGES[language].nav;
   const m = MODULE_PAGE_MESSAGES[language];
   if (slug === 'agents-ia') return <AgentsPage />;
+  if (slug === 'booking-engine') return <BaitlyBookingPage />;
 
   const module = MODULES.find((entry) => entry.slug === slug);
   if (!module) return <Navigate to="/" replace />;

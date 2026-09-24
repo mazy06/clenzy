@@ -2,6 +2,7 @@ import { useState, type ComponentType, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
 import { NavigationMenuLink } from '../../src/components/ui';
+import BaitlyBookingPreview from './BaitlyBookingPreview';
 
 /**
  * Le contenu d'un volet de la barre de navigation : une liste, une vitrine.
@@ -109,7 +110,9 @@ export default function NavMegaPanel({
           {/* La cle remonte la carte a chaque changement : c'est elle qui
               rejoue l'animation d'entree, sans rien a remettre a zero. */}
           <div className="bl-mega-card" key={active.key}>
-            {active.photo ? (
+            {active.key === 'booking-engine' ? (
+              <BaitlyBookingPreview compact />
+            ) : active.photo ? (
               <span className="bl-mega-card-media">
                 <img src={active.photo} alt="" decoding="async" />
                 <span className="bl-mega-card-plate">

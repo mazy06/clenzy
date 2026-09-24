@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Skeleton } from '../../../components/ui';
+import { Button, Badge, Alert, AlertDescription } from '../../../components/ui';
+import { BaitlyCatalog, CatalogFilterGroup, CatalogFilter, CatalogResults, CatalogCard, type CatalogView } from '../../../components/catalog/BaitlyCatalog';
+import EmptyState from '../../../components/EmptyState';
+import { useUserPreference } from '../../../hooks/useUserPreference';
+import { Money } from '../../../components/Money';
 import {
-  LayoutGrid, List, Star, Plus, Check, Clock, Users, Globe, Calendar,
-  ShieldCheck, ArrowLeft, BookOpen, Boxes, MoreHorizontal,
+  Star, Plus, Check, Clock, Users, Globe, Calendar, Search, Store, Layers, ChevronRight,
+  ShieldCheck, ArrowLeft, BookOpen, Boxes, Tag,
 } from 'lucide-react';
-import { ServiceArt } from '../serviceArt';
 import { type UpsellOffer } from '../../../services/api/upsellApi';
 import {
-  MARKETPLACE_EXPERIENCES, PARTNER_COLOR, PARTNERS, countByPartner,
+  MARKETPLACE_EXPERIENCES, PARTNER_COLOR, PARTNERS,
   type MarketplaceExperience, type PartnerName,
 } from './marketplaceData';
 import './marketplace.css';
 import PagePagination from '../../../components/PagePagination';
 import { useTranslation } from '../../../hooks/useTranslation';
 
-type View = 'cards' | 'list';
 type Filter = 'Tous' | 'Internes' | PartnerName;
 /** Item unifié : service interne (géré) OU expérience partenaire (à ajouter). */
 type Item = { kind: 'internal'; o: UpsellOffer } | { kind: 'partner'; e: MarketplaceExperience };
@@ -22,11 +24,16 @@ type Item = { kind: 'internal'; o: UpsellOffer } | { kind: 'partner'; e: Marketp
 interface Props {
   /** Chargement de la liste (skeletons). */
   loading?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
+  filters?: ReactNode;
+  internalOnly?: boolean;
+  onResetFilters?: () => void;
   /** Services internes (déjà filtrés recherche/canal/catégorie par le parent). */
   offers: UpsellOffer[];
   /** Recherche libre (PageHeader) — filtre aussi les expériences partenaires. */
   search?: string;
-  /** Bandeau KPIs rendu par le parent — affiché en vue liste, masqué en détail. */
+  /** Synthèse rendue par le parent, masquée en détail. */
   kpis?: ReactNode;
   /** Titres des services déjà au catalogue → amorce l'état « Ajouté » des partenaires. */
   addedTitles?: string[];
@@ -46,21 +53,18 @@ interface Props {
 }
 
 const fmtEur = (n: number) => `${n} €`;
-const fmtPrice = (n: number, cur?: string) => (!cur || cur === 'EUR' ? `${n} €` : `${n} ${cur}`);
-const tint = (hex: string, pct: number) => `color-mix(in srgb, ${hex} ${pct}%, transparent)`;
-
 /**
  * Catalogue de services unifié : services internes + expériences partenaires dans une
  * seule grille/liste, filtre par source (Tous / Internes / partenaires), toggle Cartes/Liste,
  * pagination, et détail partenaire intégré. (Le détail des services internes vit dans UpsellsAdmin.)
  */
 export default function ServicesCatalog({
-  loading = false, offers, search = '', kpis, addedTitles = [], typeLabel,
+  loading = false, error = false, onRetry, filters, internalOnly = false, onResetFilters, offers, search = '', kpis, addedTitles = [], typeLabel,
   onAdd, onOpenInternal, renderRowMenu,
 }: Props) {
   const { t } = useTranslation();
-  const [view, setView] = useState<View>('cards');
-  const [filter, setFilter] = useState<Filter>('Tous');
+  const [view, setView] = useUserPreference<CatalogView>('baitly.catalog.view', 'cards');
+  const [filter, setFilter] = useUserPreference<Filter>('baitly.services.source', 'Tous');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [added, setAdded] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -68,19 +72,18 @@ export default function ServicesCatalog({
   const [page, setPage] = useState(1);
 
   const experiences = MARKETPLACE_EXPERIENCES;
-  const counts = useMemo(() => countByPartner(experiences), [experiences]);
 
   // Items unifiés (internes d'abord, puis partenaires), filtrés par source + recherche.
   const allItems: Item[] = useMemo(() => {
     const q = search.trim().toLowerCase();
     const internal: Item[] = offers.map((o) => ({ kind: 'internal', o }));
-    const partner: Item[] = experiences.flatMap((e) =>
+    const partner: Item[] = internalOnly ? [] : experiences.flatMap((e) =>
       !q || e.title.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q)
         ? [{ kind: 'partner', e } as Item]
         : [],
     );
     return [...internal, ...partner];
-  }, [offers, experiences, search]);
+  }, [offers, experiences, search, internalOnly]);
 
   const visible = useMemo(() => {
     if (filter === 'Tous') return allItems;
@@ -94,12 +97,12 @@ export default function ServicesCatalog({
   const addedTitleSet = useMemo(() => new Set(addedTitles.map((t) => t.trim().toLowerCase())), [addedTitles]);
   const isAdded = (e: MarketplaceExperience) => !!added[e.id] || addedTitleSet.has(e.title.trim().toLowerCase());
 
-  // Pagination client-side (pattern MembersList) — page-size selon la vue.
-  const pageSize = view === 'cards' ? 8 : 10;
+  // Même pagination dans les deux vues pour conserver les repères du catalogue.
+  const pageSize = 12;
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   const curPage = Math.min(page, totalPages);
   const pageItems = visible.slice((curPage - 1) * pageSize, curPage * pageSize);
-  useEffect(() => { setPage(1); }, [filter, view, search]);
+  useEffect(() => { setPage(1); }, [filter, view, search, offers]);
 
   const handleAdd = async (e: MarketplaceExperience) => {
     if (isAdded(e) || busy[e.id]) return;
@@ -118,18 +121,15 @@ export default function ServicesCatalog({
   const addBtn = (e: MarketplaceExperience) => {
     const done = isAdded(e);
     return (
-      <button
-        type="button"
-        className={'mp-add' + (done ? ' mp-add--done' : '')}
-        disabled={done || !!busy[e.id]}
+      <Button variant="outline" size="sm"
+        disabled={done || !!busy[e.id]} aria-busy={!!busy[e.id]}
         aria-label={done
           ? t('welcomeGuide.marketplace.addedAria', { title: e.title })
           : t('welcomeGuide.marketplace.addAria', { title: e.title })}
-        onClick={(ev) => { ev.stopPropagation(); handleAdd(e); }}
-      >
-        {done ? <Check size={15} strokeWidth={2.4} /> : <Plus size={15} strokeWidth={2.4} />}
-        {done ? t('welcomeGuide.marketplace.added') : t('welcomeGuide.marketplace.add')}
-      </button>
+        onClick={() => { void handleAdd(e); }}>
+        {done ? <Check size={15} /> : <Plus size={15} />}
+        {busy[e.id] ? t('common.processing') : done ? t('welcomeGuide.marketplace.added') : t('welcomeGuide.marketplace.add')}
+      </Button>
     );
   };
 
@@ -147,7 +147,7 @@ export default function ServicesCatalog({
       { icon: Calendar, label: 'Annulation', value: selected.cancel },
     ];
     return (
-      <section className="mp" style={{ ['--mp-action' as string]: 'var(--bui-primary)', ['--mp-action-soft' as string]: 'var(--bui-primary-soft)' }}>
+      <div className="be-home"><section className="mp" style={{ ['--mp-action' as string]: 'var(--bui-primary)', ['--mp-action-soft' as string]: 'var(--bui-primary-soft)' }}>
         <button type="button" className="mp-back" onClick={() => setSelectedId(null)}>
           <ArrowLeft size={16} strokeWidth={2} /> {t('welcomeGuide.marketplace.back')}
         </button>
@@ -241,176 +241,75 @@ export default function ServicesCatalog({
             <p className="mp-detail__mention"><ShieldCheck size={14} strokeWidth={2} /> {t('welcomeGuide.marketplace.partnerHandled')}</p>
           </aside>
         </div>
-      </section>
+      </section></div>
     );
   }
 
-  // ── Vue catalogue (grille / liste unifiée + pagination) ─────────────────────
-  return (
-    <section className="mp" style={{ ['--mp-action' as string]: 'var(--bui-primary)', ['--mp-action-soft' as string]: 'var(--bui-primary-soft)' }}>
-      {kpis}
-      <div className="mp__bar">
-        <div className="mp__pills">
-          <button type="button" className={'mp-pill' + (filter === 'Tous' ? ' mp-pill--on' : '')} onClick={() => setFilter('Tous')}>
-            {t('welcomeGuide.marketplace.filterAll')} <span className="mp-pill__n">{allItems.length}</span>
-          </button>
-          <button type="button" className={'mp-pill' + (filter === 'Internes' ? ' mp-pill--on' : '')} onClick={() => setFilter('Internes')}>
-            <span className="mp-dot mp-dot--int" />{t('welcomeGuide.marketplace.filterInternal')} <span className="mp-pill__n">{offers.length}</span>
-          </button>
-          {PARTNERS.map((p) => (
-            <button type="button" key={p} className={'mp-pill' + (filter === p ? ' mp-pill--on' : '')} onClick={() => setFilter(p)}>
-              <span className="mp-dot" style={{ background: PARTNER_COLOR[p] }} />{p} <span className="mp-pill__n">{counts[p]}</span>
-            </button>
-          ))}
-        </div>
-        <div className="mp__toggle" role="group" aria-label="Affichage">
-          <button type="button" className={view === 'cards' ? 'on' : ''} aria-pressed={view === 'cards'} onClick={() => setView('cards')}><LayoutGrid size={15} strokeWidth={2} /> Cartes</button>
-          <button type="button" className={view === 'list' ? 'on' : ''} aria-pressed={view === 'list'} onClick={() => setView('list')}><List size={15} strokeWidth={2} /> Liste</button>
-        </div>
-      </div>
+  const resetFilters = () => { setFilter('Tous'); onResetFilters?.(); };
+  const sourceLabel = filter === 'Tous' ? t('baitlyCatalog.services')
+    : filter === 'Internes' ? t('welcomeGuide.marketplace.filterInternal') : filter;
 
-      {loading ? (
-        view === 'cards' ? (
-          <div className="mp-grid">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div className="mp-card" key={i}>
-                <Skeleton className="h-[138px] w-full rounded-none bg-muted" />
-                <div className="mp-card__body">
-                  <Skeleton className="h-[18px] w-[80%]" /><Skeleton className="h-[14px] w-[60%]" />
-                  {/* mt: 1 = 6 px (theme.spacing vaut 6). */}
-                  <Skeleton className="h-[24px] w-[40%] mt-[6px]" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[60px] w-full bg-muted" />)}</div>
-        )
-      ) : visible.length === 0 ? (
-        <p className="mp-empty">{t('welcomeGuide.marketplace.emptyFilter')}</p>
-      ) : view === 'cards' ? (
-        <div className="mp-grid">
-          {pageItems.map((it) => (
-            it.kind === 'partner' ? renderPartnerCard(it.e) : renderInternalCard(it.o)
-          ))}
-        </div>
-      ) : (
-        <div className="tbl mp-tbl">
-          <div className="tbl__h">
-            <span>Service</span><span>Source</span><span>Note</span><span>Prix</span><span>Commission</span><span />
-          </div>
-          {pageItems.map((it) => (
-            it.kind === 'partner' ? renderPartnerRow(it.e) : renderInternalRow(it.o)
-          ))}
-        </div>
-      )}
+  return <BaitlyCatalog title={sourceLabel} count={visible.length} view={view} onViewChange={setView}
+    summary={kpis}
+    filters={<>
+      <CatalogFilterGroup title={t('baitlyCatalog.sources')}>
+        <CatalogFilter label={t('welcomeGuide.marketplace.filterAll')} count={allItems.length}
+          active={filter === 'Tous'} onClick={() => setFilter('Tous')} icon={<Layers />} />
+        <CatalogFilter label={t('welcomeGuide.marketplace.filterInternal')} count={offers.length}
+          active={filter === 'Internes'} onClick={() => setFilter('Internes')} icon={<Store />} />
+        {PARTNERS.map(partner => <CatalogFilter key={partner} label={partner}
+          count={allItems.filter(item => item.kind === 'partner' && item.e.partner === partner).length}
+          active={filter === partner} onClick={() => setFilter(partner)} />)}
+      </CatalogFilterGroup>
+      {filters}
+    </>}>
+    {error && <Alert variant="destructive" className="mb-4">
+      <AlertDescription>{t('baitlyCatalog.loadError')}
+        <Button variant="ghost" size="sm" onClick={onRetry}>{t('baitlyCatalog.retry')}</Button>
+      </AlertDescription>
+    </Alert>}
+    {!loading && !visible.length ? <EmptyState variant="transparent" icon={<Search />}
+      title={t('baitlyCatalog.empty')} description={t('baitlyCatalog.emptyHelp')}
+      action={<Button variant="outline" onClick={resetFilters}>{t('baitlyCatalog.reset')}</Button>} />
+      : <CatalogResults view={view} loading={loading}>
+        {pageItems.map(item => item.kind === 'partner' ? renderPartner(item.e) : renderInternal(item.o))}
+      </CatalogResults>}
+    <PagePagination className="mt-4" count={visible.length} rowsPerPage={pageSize}
+      page={curPage - 1} onPageChange={value => setPage(value + 1)} />
+  </BaitlyCatalog>;
 
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-[18px]">
-          <PagePagination
-            totalPages={totalPages}
-            page={curPage - 1}
-            onPageChange={(v) => setPage(v + 1)}
-          />
-        </div>
-      )}
-    </section>
-  );
-
-  // ── Rendus d'item (déclarés après le return : hoisted) ──────────────────────
-  function renderPartnerCard(e: MarketplaceExperience) {
+  function renderPartner(e: MarketplaceExperience) {
     const Icon = e.icon;
-    const color = PARTNER_COLOR[e.partner];
-    return (
-      <article
-        key={e.id} className="mp-card" role="button" tabIndex={0} aria-label={e.title}
-        onClick={() => setSelectedId(e.id)}
-        onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelectedId(e.id); } }}
-      >
-        <div className="mp-card__vis">
-          {e.imageUrl ? <img src={e.imageUrl} alt="" /> : <Icon size={40} strokeWidth={1.5} style={{ color, opacity: 0.4 }} />}
-          <span className="mp-pbadge mp-pbadge--over"><span className="mp-dot" style={{ background: color }} />{e.partner}</span>
-          <span className="mp-rate"><Star size={12} className="mp-star" /> {e.rating}</span>
-        </div>
-        <div className="mp-card__body">
-          <p className="mp-card__title">{e.title}</p>
-          <p className="mp-card__desc">{e.desc}</p>
-          <div className="mp-card__foot">
-            <div className="mp-price">
-              <span className="mp-price__v">{fmtEur(e.price)}</span> <span className="mp-faint">/ pers.</span>
-              <span className="mp-comm">{e.commission}% de commission</span>
-            </div>
-            {addBtn(e)}
-          </div>
-        </div>
-      </article>
-    );
+    return <CatalogCard key={e.id} title={e.title} source={e.partner}
+      media={e.imageUrl ? <img src={e.imageUrl} alt="" loading="lazy" /> : <Icon size={26} strokeWidth={1.5} />}
+      description={e.desc} onOpen={() => setSelectedId(e.id)}
+      trailing={<span className="flex shrink-0 items-center gap-1 text-xs tabular-nums"><Star size={14} className="text-warning-ink" />{e.rating}</span>}
+      metadata={<>
+        <span><Clock size={14} />{e.duration}</span>
+        <span><Users size={14} />{e.group}</span>
+      </>}
+      price={<><Money value={e.price} from="EUR" /><span className="text-xs font-normal text-muted-foreground">{t('baitlyCatalog.perPerson')}</span></>}
+      priceNote={t('baitlyCatalog.commission', { percent: e.commission })}
+      action={addBtn(e)} />;
   }
 
-  function renderInternalCard(o: UpsellOffer) {
-    return (
-      <article
-        key={`int-${o.id}`} className="mp-card mp-card--int" role="button" tabIndex={0} aria-label={o.title}
-        onClick={() => onOpenInternal(o)}
-        onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpenInternal(o); } }}
-      >
-        <div className="mp-card__vis mp-card__vis--int">
-          <span className="mp-art"><ServiceArt type={o.type} /></span>
-          <span className="mp-srcint mp-srcint--over">Interne</span>
-          <span className={'mp-stat mp-stat--over ' + (o.active ? 'on' : 'off')}><span className="mp-stat__led" />{o.active ? 'Actif' : 'Inactif'}</span>
-        </div>
-        <div className="mp-card__body">
-          <p className="mp-card__title">{o.title}</p>
-          <p className="mp-card__desc">{typeLabel(o.type)}</p>
-          <div className="mp-card__foot">
-            <div className="mp-price"><span className="mp-price__v">{fmtPrice(o.price, o.currency)}</span></div>
-            {renderRowMenu(o)}
-          </div>
-        </div>
-      </article>
-    );
-  }
-
-  function renderPartnerRow(e: MarketplaceExperience) {
-    const Icon = e.icon;
-    const color = PARTNER_COLOR[e.partner];
-    return (
-      <div
-        key={e.id} className="row mp-row" role="button" tabIndex={0} aria-label={e.title}
-        onClick={() => setSelectedId(e.id)}
-        onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelectedId(e.id); } }}
-      >
-        <span className="mp-row__exp">
-          <span className="mp-row__vig" style={{ background: tint(color, 14) }}><Icon size={20} strokeWidth={2} style={{ color }} /></span>
-          <span className="mp-row__txt"><b>{e.title}</b><small>{e.desc}</small></span>
-        </span>
-        <span className="mp-row__partner"><span className="mp-dot" style={{ background: color }} />{e.partner}</span>
-        <span className="mp-row__note"><Star size={14} className="mp-star" /> {e.rating}</span>
-        <span className="mp-row__price">{fmtEur(e.price)}</span>
-        <span className="mp-comm">{e.commission}% de commission</span>
-        {addBtn(e)}
-      </div>
-    );
-  }
-
-  function renderInternalRow(o: UpsellOffer) {
-    const chans = [o.diffuseOnLivret && 'Livret', o.diffuseOnBooking && 'Booking'].filter(Boolean).join(' · ') || '—';
-    return (
-      <div
-        key={`int-${o.id}`} className="row mp-row mp-row--int" role="button" tabIndex={0} aria-label={o.title}
-        onClick={() => onOpenInternal(o)}
-        onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpenInternal(o); } }}
-      >
-        <span className="mp-row__exp">
-          <span className="mp-row__vig mp-row__vig--int"><ServiceArt type={o.type} /></span>
-          <span className="mp-row__txt"><b>{o.title}</b><small>{typeLabel(o.type)}</small></span>
-        </span>
-        <span className="mp-row__srcint">Interne</span>
-        <span className={'mp-stat ' + (o.active ? 'on' : 'off')}><span className="mp-stat__led" />{o.active ? 'Actif' : 'Inactif'}</span>
-        <span className="mp-row__price">{fmtPrice(o.price, o.currency)}</span>
-        <span className="mp-row__chans">{chans}</span>
+  function renderInternal(o: UpsellOffer) {
+    return <CatalogCard key={'int-' + o.id} title={o.title} source={t('welcomeGuide.marketplace.filterInternal')}
+      media={o.imageUrl ? <img src={o.imageUrl} alt="" loading="lazy" /> : <Tag size={26} strokeWidth={1.5} />}
+      description={o.description || typeLabel(o.type)} onOpen={() => onOpenInternal(o)}
+      badges={<Badge variant="secondary">{t(o.active ? 'baitlyCatalog.active' : 'baitlyCatalog.inactive')}</Badge>}
+      metadata={<>
+        <span>{typeLabel(o.type)}</span>
+        {o.diffuseOnLivret && <span><BookOpen size={14} />{t('welcomeGuide.marketplace.guide')}</span>}
+        {o.diffuseOnBooking && <span><Boxes size={14} />{t('welcomeGuide.marketplace.booking')}</span>}
+      </>}
+      price={<Money value={o.price} from={o.currency} />}
+      action={<>
+        <Button variant="outline" size="sm" onClick={() => onOpenInternal(o)}
+          aria-label={t('baitlyCatalog.manage') + ' : ' + o.title}>
+          {t('baitlyCatalog.manage')}<ChevronRight size={15} className="rtl:rotate-180" />
+        </Button>
         {renderRowMenu(o)}
-      </div>
-    );
+      </>} />;
   }
 }

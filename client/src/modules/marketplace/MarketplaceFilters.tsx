@@ -6,6 +6,8 @@ import {
 } from '../../components/ui';
 import { Search } from '../../icons';
 import { cn } from '../../utils/cn';
+import { DirectoryFilterGroup as Group, DirectoryFilter as FacetRow } from '../../components/catalog/DirectoryFilters';
+export { DirectoryFilterGroup as Group, DirectoryFilter as FacetRow } from '../../components/catalog/DirectoryFilters';
 import type {
   EngagementMode,
   FacetCount,
@@ -19,11 +21,10 @@ import {
 } from './providerPresentation';
 
 /**
- * Filtres de la place de marché — panneau permanent, tiroir en mobile.
+ * Filtres de la place de marché Baitly, repliables dans le flux en mobile.
  *
- * <p>Deux montages pour un seul contenu : {@link MarketplaceFilterPanel} est
- * rendu en COLONNE FIXE à partir de `lg`, et enveloppé dans un tiroir en
- * dessous. Sur un grand écran, les filtres doivent rester sous les yeux — les
+ * <p>{@link MarketplaceFilterPanel} reste dans le même layout partagé :
+ * colonne fixe à partir de `lg`, panneau repliable en dessous. Sur un grand écran, les filtres doivent rester sous les yeux — les
  * rouvrir à chaque affinage coûte un aller-retour à chaque fois ; sur un
  * téléphone, une colonne de seize rem ne laisserait rien au contenu.</p>
  *
@@ -355,71 +356,6 @@ export function MarketplaceFilterPanel(props: MarketplaceFilterPanelProps) {
 }
 
 // ─── Pièces ─────────────────────────────────────────────────────────────────
-
-export function Group({ title, aside, children }: {
-  title: string;
-  aside?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mb-4 border-b border-border pb-4 last:mb-0 last:border-b-0 last:pb-0">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <h3 className="m-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </h3>
-        {aside && <span className="text-[11px] text-muted-foreground">{aside}</span>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/**
- * Une valeur de filtre et son volume.
- *
- * <p>Le compteur reste lisible à zéro plutôt que masqué : « aucun professionnel
- * ici » est une réponse, et la masquer obligerait à cliquer pour l'obtenir.</p>
- */
-export function FacetRow({ label, icon, count, active, onClick, title, disabled }: {
-  label: string;
-  icon?: React.ReactElement;
-  count?: number;
-  disabled?: boolean;
-  active: boolean;
-  onClick: () => void;
-  title?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      disabled={disabled}
-      aria-pressed={active}
-      className={cn(
-        'flex w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 items-center justify-between gap-2 rounded-md px-1.5 py-1 text-start text-sm',
-        'transition-colors duration-150 outline-none focus-visible:ring-[2px] focus-visible:ring-ring/50',
-        active
-          ? 'bg-primary-soft font-semibold text-primary'
-          : count === 0
-            ? 'text-muted-foreground hover:bg-accent'
-            : 'text-foreground hover:bg-accent',
-      )}
-    >
-      <span className="flex min-w-0 items-center gap-1.5">
-        {icon && <span className="shrink-0 [&>svg]:size-3.5">{icon}</span>}
-        <span className="truncate">{label}</span>
-      </span>
-      {count !== undefined && <span className={cn(
-        'shrink-0 text-xs tabular-nums',
-        active ? 'text-primary' : 'text-muted-foreground',
-        count === 0 && !active && 'opacity-60',
-      )}>
-        {count}
-      </span>}
-    </button>
-  );
-}
 
 export function MoreButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (

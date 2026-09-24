@@ -11,6 +11,9 @@ import { PAGE_MESSAGES } from './pages';
 import { PLANNING_MOCKUP_MESSAGES } from './planningMockup';
 import { PRICING_MESSAGES } from './pricing';
 import { PROVIDERS_MESSAGES } from './providers';
+import { BAITLY_BOOKING_MESSAGES } from './baitlyBooking';
+import { BAITLY_BOOKING_UPSELL_MESSAGES } from './baitlyBookingUpsells';
+import { BAITLY_LOYALTY_MESSAGES } from './baitlyLoyalty';
 
 /**
  * Parite de FORME entre les trois langues.
@@ -26,6 +29,9 @@ import { PROVIDERS_MESSAGES } from './providers';
  * produit un titre ou un bouton muet.</p>
  */
 const DICTIONARIES: Record<string, Record<SiteLanguage, unknown>> = {
+  baitlyBooking: BAITLY_BOOKING_MESSAGES,
+  baitlyBookingUpsells: BAITLY_BOOKING_UPSELL_MESSAGES,
+  baitlyLoyalty: BAITLY_LOYALTY_MESSAGES,
   agents: AGENTS_MESSAGES,
   assistant: ASSISTANT_MESSAGES,
   guide: GUIDE_MESSAGES,
@@ -40,7 +46,12 @@ const DICTIONARIES: Record<string, Record<SiteLanguage, unknown>> = {
 };
 
 /** Signale tout ecart de forme entre une traduction et la reference. */
-function compare(reference: unknown, candidate: unknown, path: string, issues: string[]): void {
+function compare(
+  reference: unknown,
+  candidate: unknown,
+  path: string,
+  issues: string[],
+): void {
   // Une cle facultative peut legitimement manquer : la mention de financement
   // n'existe que la ou un dispositif s'applique. TypeScript garantit deja que
   // les cles OBLIGATOIRES sont toutes presentes.
@@ -51,10 +62,14 @@ function compare(reference: unknown, candidate: unknown, path: string, issues: s
       return;
     }
     if (reference.length !== candidate.length) {
-      issues.push(`${path} : ${candidate.length} entrées au lieu de ${reference.length}`);
+      issues.push(
+        `${path} : ${candidate.length} entrées au lieu de ${reference.length}`,
+      );
       return;
     }
-    reference.forEach((item, index) => compare(item, candidate[index], `${path}[${index}]`, issues));
+    reference.forEach((item, index) =>
+      compare(item, candidate[index], `${path}[${index}]`, issues),
+    );
     return;
   }
   if (reference !== null && typeof reference === 'object') {
@@ -83,7 +98,12 @@ describe('Parité des dictionnaires de la landing', () => {
       const issues: string[] = [];
       for (const language of SITE_LANGUAGES) {
         if (language === 'fr') continue;
-        compare(dictionary.fr, dictionary[language], `${name}(${language})`, issues);
+        compare(
+          dictionary.fr,
+          dictionary[language],
+          `${name}(${language})`,
+          issues,
+        );
       }
       expect(issues).toEqual([]);
     });
