@@ -1,21 +1,16 @@
-import BaitlyBookingSteps from './BaitlyBookingSteps';
+import BaitlyBookingStorefront from './BaitlyBookingStorefront';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
-  LockKeyholeIcon,
-  MapPinIcon,
   PauseIcon,
   PlayIcon,
-  RotateCcwIcon,
 } from 'lucide-react';
 import { BAITLY_BOOKING_TEMPLATES } from '../data/baitlyBookingTemplates';
 import { BAITLY_BOOKING_MESSAGES } from '../lib/messages/baitlyBooking';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BookingThumbnail } from './BaitlyBookingPreview';
 import { useBaitlyBookingDemo } from './useBaitlyBookingDemo';
-
-type Demo = ReturnType<typeof useBaitlyBookingDemo>;
 
 export default function BaitlyBookingDemo() {
   const { language } = useSiteLanguage();
@@ -64,7 +59,7 @@ export default function BaitlyBookingDemo() {
             </button>
           ))}
         </div>
-        <div className="bb-demo" id="bb-booking-scene" ref={demo.sceneRef}>
+        <div className="bb-demo" id="bb-booking-scene">
           <div className="bb-demo-toolbar">
             <span>
               <span className="bb-status-dot" />
@@ -72,14 +67,8 @@ export default function BaitlyBookingDemo() {
             </span>
             {!demo.reduced && (
               <button type="button" onClick={demo.togglePlayback}>
-                {demo.playing ? (
-                  <PauseIcon />
-                ) : demo.step === 3 ? (
-                  <RotateCcwIcon />
-                ) : (
-                  <PlayIcon />
-                )}
-                {demo.playing ? m.pause : demo.step === 3 ? m.replay : m.play}
+                {demo.playing ? <PauseIcon /> : <PlayIcon />}
+                {demo.playing ? m.pause : m.play}
               </button>
             )}
           </div>
@@ -99,7 +88,7 @@ export default function BaitlyBookingDemo() {
               </button>
             ))}
           </nav>
-          <BookingScene demo={demo} />
+          <BaitlyBookingStorefront demo={demo} />
           <div className="bb-demo-foot">
             <p key={`${demo.templateIndex}-${demo.step}`}>
               {copy.notes[demo.step]}
@@ -116,7 +105,7 @@ export default function BaitlyBookingDemo() {
               <button
                 type="button"
                 aria-label={m.next}
-                disabled={demo.step === 3}
+                disabled={demo.step === 4}
                 onClick={() => demo.goToStep(demo.step + 1)}
               >
                 <ArrowRightIcon />
@@ -127,94 +116,5 @@ export default function BaitlyBookingDemo() {
       </div>
       <p className="bb-caption">{m.caption}</p>
     </section>
-  );
-}
-
-function BookingScene({ demo }: { demo: Demo }) {
-  const { language } = useSiteLanguage();
-  const m = BAITLY_BOOKING_MESSAGES[language];
-  const template = BAITLY_BOOKING_TEMPLATES[demo.templateIndex];
-  const copy = m.templates[demo.templateIndex];
-  const money = (amount: number) =>
-    new Intl.NumberFormat(language, {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  const extraTotal = template.prices.reduce(
-    (total, price, index) => total + (demo.extras[index] ? price : 0),
-    0,
-  );
-  return (
-    <div
-      className={`bb-storefront bb-theme-${template.id}`}
-      onFocusCapture={demo.pause}
-    >
-      <div className="bb-storefront-header">
-        <strong>{template.name}</strong>
-        <span>
-          <LockKeyholeIcon /> {m.recap}
-        </span>
-      </div>
-      <div className="bb-storefront-layout">
-        <div className="bb-property-photo" key={template.id}>
-          <img
-            src={template.photo}
-            alt={copy.category}
-            width="560"
-            height="640"
-            loading="lazy"
-          />
-          <div>
-            <span>
-              <MapPinIcon />
-              {copy.location}
-            </span>
-            <h3>{copy.tagline}</h3>
-          </div>
-        </div>
-        <div className="bb-reservation">
-          <div
-            className="bb-reservation-content"
-            key={`${template.id}-${demo.step}`}
-          >
-            <BaitlyBookingSteps
-              demo={demo}
-              template={template}
-              m={m}
-              money={money}
-            />
-          </div>
-          <div
-            className="bb-cart"
-            aria-live={demo.playing ? 'off' : 'polite'}
-            aria-atomic="true"
-          >
-            <div>
-              <span>{m.stayLabel}</span>
-              <span>{money(template.base)}</span>
-            </div>
-            <div className={extraTotal > 0 ? 'bb-cart-extras-active' : ''}>
-              <span>{m.extrasLabel}</span>
-              <span key={extraTotal}>{money(extraTotal)}</span>
-            </div>
-            <div className="bb-cart-total">
-              <strong>{m.total}</strong>
-              <strong data-testid="booking-demo-total">
-                {money(template.base + extraTotal)}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="bb-value-line">
-        <span>
-          Baitly <ArrowRightIcon />
-        </span>
-        <p>
-          <strong key={extraTotal}>+{money(extraTotal)}</strong> {m.saleNote}
-        </p>
-      </div>
-    </div>
   );
 }

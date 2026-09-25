@@ -1,0 +1,95 @@
+.bb-demo-target {
+  position: relative;
+  isolation: isolate;
+}
+.bb-demo-pointer {
+  position: absolute;
+  inset-inline-end: 17%;
+  top: 55%;
+  width: 1px;
+  height: 1px;
+  z-index: 5;
+  pointer-events: none;
+  --bb-pointer-travel: 26px;
+}
+.bb-pointer-hand {
+  position: absolute;
+  top: -5px;
+  left: -12px;
+  display: block;
+  width: 36px;
+  height: 36px;
+  opacity: 1;
+  filter: drop-shadow(0 3px 3px #243c4566);
+  transform-origin: 12px 5px;
+  animation: bb-pointer-tap var(--bb-pointer-duration)
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.baitly-marketing .bb-pointer-hand > svg {
+  display: block;
+  width: 36px;
+  height: 36px;
+  fill: none;
+  stroke: #263e48;
+  stroke-width: 1.6px;
+  transform: none;
+}
+.bb-pointer-ripple {
+  position: absolute;
+  top: -17px;
+  left: -17px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #f5f8f8;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #263e4880;
+  animation: bb-pointer-ripple var(--bb-pointer-duration) ease-out both;
+}
+[dir='rtl'] .bb-demo-pointer {
+  --bb-pointer-travel: -26px;
+}
+@keyframes bb-pointer-tap {
+  0%,
+  20% {
+    visibility: hidden;
+    transform: translate(var(--bb-pointer-travel), 26px);
+  }
+  20.01% {
+    visibility: visible;
+    transform: translate(var(--bb-pointer-travel), 26px);
+  }
+  40%,
+  80% {
+    visibility: visible;
+    transform: translate(0, 0);
+  }
+  88%,
+  94% {
+    visibility: visible;
+    transform: scale(0.84);
+  }
+  100% {
+    visibility: visible;
+    transform: scale(1);
+  }
+}
+@keyframes bb-pointer-ripple {
+  0%,
+  80% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  88% {
+    opacity: 0.9;
+    transform: scale(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb-demo-pointer {
+    display: none;
+  }
+}
