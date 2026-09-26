@@ -297,4 +297,33 @@
         <cve>CVE-2026-47888</cve>
         <cve>CVE-2026-47889</cve>
     </suppress>
+    <!--
+        2026-09-26 : CVE-2026-41707 (7.4), rejeu de preuves DPoP apres eviction
+        du cache de DPoPProofJwtDecoderFactory. Avis de l'editeur :
+        https://spring.io/security/cve-2026-41707/
+
+        CVE reelle, mitigee par le refus explicite de DPoP dans TokenCookieFilter,
+        commun aux configurations prod/dev. Spring Security 6.5 installe son
+        fournisseur DPoP AUTOMATIQUEMENT avec oauth2ResourceServer().jwt().
+        TokenCookieFilter rejette donc le prefixe Authorization: DPoP (toute
+        casse) AVANT le traitement Spring, routes publiques comprises, sans
+        repli sur le cookie. Baitly utilise des tokens Bearer Keycloak.
+        BaitlyBearerAuthenticationTest execute la vraie chaine de production :
+        rejet DPoP avant decodage JWT, avec/sans cookie, refus du downgrade
+        d'un token lie a DPoP vers Bearer, maintien de l'auth Bearer/cookie.
+        Ce test echouait avant l'ajout du blocage explicite.
+
+        6.5.12 corrige cette CVE mais reste Enterprise uniquement ; Maven
+        Central s'arrete a 6.5.11 dans cette branche (verification 2026-09-26).
+        Les versions OSS corrigees 7.0.7/7.1.1 impliquent la migration Spring
+        Boot 4. Exception limitee aux deux artefacts 6.5.11 signales et a
+        cette seule CVE. A lever lors de cette migration, d'un acces au patch
+        Enterprise ou AVANT toute activation DPoP. Reexamen au plus tard a
+        l'expiration ; aucun changement au seuil CVSS du scan.
+    -->
+    <suppress until="2026-12-31Z">
+        <notes>CVE DPoP mitigee : TokenCookieFilter rejette explicitement DPoP avant les filtres Spring ; regression testee sur la chaine de production. Correctif 6.5.12 Enterprise uniquement. Reexaminer avant retrait du blocage ou migration Spring Security.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|oauth2-resource-server)@6\.5\.11$</packageUrl>
+        <cve>CVE-2026-41707</cve>
+    </suppress>
 </suppressions>
