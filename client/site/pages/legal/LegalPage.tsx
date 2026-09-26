@@ -1,4 +1,7 @@
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { useSiteLanguage } from '../../lib/siteLanguage';
+import { BAITLY_CONTACT_MESSAGES } from '../../lib/messages/baitlyContact';
+import NotFoundPage from '../NotFoundPage';
 import { Badge } from '../../../src/components/ui';
 // Source UNIQUE, partagee avec le PMS : les deux applications portaient chacune
 // leur texte, et ils se contredisaient sur le droit applicable.
@@ -7,23 +10,24 @@ import { legalDocs, getLegalDoc } from '../../../src/modules/legal/corpus';
 /** Gabarit des documents juridiques : sommaire latéral + corps typographié. */
 export default function LegalPage() {
   const { slug } = useParams();
-  // La landing est servie en francais ; le corpus porte deja les trois langues
-  // pour le PMS, qui laisse son lecteur choisir.
-  const doc = getLegalDoc(slug, 'fr');
-  if (!doc) return <Navigate to="/" replace />;
+  const { language } = useSiteLanguage();
+  const m = BAITLY_CONTACT_MESSAGES[language];
+  const doc = getLegalDoc(slug, language);
+  if (!doc) return <NotFoundPage />;
 
   return (
     <section className="site-shell grid grid-cols-1 items-start gap-10 py-14 lg:grid-cols-[260px_1fr]">
       {/* Sommaire */}
       <aside className="top-24 lg:sticky">
         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Documents
+          {m.legal}
         </p>
         <nav className="mt-3 flex flex-col gap-1">
-          {legalDocs('fr').map((entry) => (
+          {legalDocs(language).map((entry) => (
             <Link
               key={entry.slug}
-              to={`/legal/${entry.slug}`}
+              to={`/legal/${entry.slug}?lang=${language}`}
+              aria-current={entry.slug === doc.slug ? 'page' : undefined}
               className={
                 entry.slug === doc.slug
                   ? 'rounded-md bg-primary-soft px-3 py-2 text-sm font-medium text-foreground'
@@ -34,41 +38,63 @@ export default function LegalPage() {
             </Link>
           ))}
           <Link
-            to="/statut"
+            to={`/statut?lang=${language}`}
             className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            Statut du service
+            {m.status}
+          </Link>
+          <Link
+            to={`/contact?lang=${language}`}
+            className="rounded-md px-3 py-2 text-sm text-muted-foreground underline"
+          >
+            {m.contact}
           </Link>
         </nav>
         <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-          Les champs 〔…〕 seront complétés à l'immatriculation. Documents à faire relire par un
-          conseil avant publication.
+          {m.reference}
         </p>
       </aside>
 
       {/* Corps */}
-      <article>
-        <Badge variant="outline">Juridique</Badge>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{doc.title}</h1>
+      <article className="min-w-0">
+        <Badge variant="outline">{m.legalTag}</Badge>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          {doc.title}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Dernière mise à jour : {doc.updated}
+          {m.updated} : {doc.updated}
         </p>
-        <p className="mt-5 border-s-2 border-border ps-4 text-sm leading-relaxed text-muted-foreground">
+        <div className="mt-5 rounded-xl border border-border bg-muted p-5 text-sm leading-relaxed">
+          <p className="font-medium">
+            {m.known} : Sinatech · {m.location}
+          </p>
+          <p className="mt-2 text-muted-foreground">{m.legalPending}</p>
+          <p className="mt-2 text-muted-foreground">{m.legalDraft}</p>
+        </div>
+        <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
           {doc.intro}
         </p>
         <div className="mt-8 flex flex-col gap-8">
           {doc.blocks.map((block) => (
             <section key={block.heading}>
-              <h2 className="text-lg font-semibold tracking-tight">{block.heading}</h2>
+              <h2 className="text-lg font-semibold tracking-tight">
+                {block.heading}
+              </h2>
               {block.paragraphs?.map((paragraph) => (
-                <p key={paragraph.slice(0, 40)} className="mt-3 text-sm leading-relaxed text-foreground/85">
+                <p
+                  key={paragraph.slice(0, 40)}
+                  className="mt-3 text-sm leading-relaxed text-foreground/85"
+                >
                   {paragraph}
                 </p>
               ))}
               {block.list && (
                 <ul className="mt-3 flex flex-col gap-2">
                   {block.list.map((item) => (
-                    <li key={item.slice(0, 40)} className="flex gap-2.5 text-sm leading-relaxed text-foreground/85">
+                    <li
+                      key={item.slice(0, 40)}
+                      className="flex gap-2.5 text-sm leading-relaxed text-foreground/85"
+                    >
                       <span className="mt-2 size-1 shrink-0 rounded-full bg-primary/60" />
                       {item}
                     </li>
@@ -81,7 +107,10 @@ export default function LegalPage() {
                     <thead>
                       <tr className="border-b border-border">
                         {block.table.headers.map((header) => (
-                          <th key={header} className="p-3 text-start text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                          <th
+                            key={header}
+                            className="p-3 text-start text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                          >
                             {header}
                           </th>
                         ))}
@@ -89,9 +118,15 @@ export default function LegalPage() {
                     </thead>
                     <tbody>
                       {block.table.rows.map((row) => (
-                        <tr key={row[0]} className="border-b border-border align-top last:border-0">
+                        <tr
+                          key={row[0]}
+                          className="border-b border-border align-top last:border-0"
+                        >
                           {row.map((cell, cellIndex) => (
-                            <td key={cellIndex} className="p-3 text-xs leading-relaxed text-foreground/85">
+                            <td
+                              key={cellIndex}
+                              className="p-3 text-xs leading-relaxed text-foreground/85"
+                            >
                               {cell}
                             </td>
                           ))}

@@ -111,6 +111,33 @@
   align-items: center;
   margin-top: 1.9rem;
 }
+.bps-hero-photo {
+  width: min(100%, 540px);
+  height: clamp(150px, 13vw, 190px);
+  margin-top: 2rem;
+  overflow: hidden;
+  border-radius: 12px 12px 40px 12px;
+  background: var(--bps-tint);
+}
+.bps-hero-photo img,
+.bps-workflow-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bps-agents .bps-hero-photo img {
+  object-position: 50% 32%;
+}
+.bps-operations .bps-hero-photo img {
+  object-position: 50% 38%;
+}
+.bps-devices .bps-hero-photo img {
+  object-position: 50% 62%;
+}
+.bps-owners .bps-hero-photo img {
+  object-position: 50% 38%;
+}
 .bps-button,
 .bps-demo-action {
   display: inline-flex;
@@ -124,7 +151,9 @@
   padding: 0.8rem 1.2rem;
   font-size: 0.875rem;
   font-weight: 550;
-  transition: background 200ms var(--bps-ease), box-shadow 200ms var(--bps-ease);
+  transition:
+    background 200ms var(--bps-ease),
+    box-shadow 200ms var(--bps-ease);
 }
 .bps-button:hover,
 .bps-demo-action:hover:enabled {
@@ -256,7 +285,9 @@
   border-radius: 6px;
   font-size: 0.75rem;
   color: var(--bps-muted);
-  transition: color 180ms var(--bps-ease), background 180ms var(--bps-ease);
+  transition:
+    color 180ms var(--bps-ease),
+    background 180ms var(--bps-ease);
 }
 .bps-choices button:hover {
   background: var(--bps-soft);
@@ -666,7 +697,9 @@
   padding: 1.2rem;
   background: var(--bps-paper);
   border: 1px solid var(--bps-line);
-  box-shadow: 0 5px 0 -2px var(--bps-paper), 0 5px 0 -1px var(--bps-line);
+  box-shadow:
+    0 5px 0 -2px var(--bps-paper),
+    0 5px 0 -1px var(--bps-line);
 }
 .bps-statement-property {
   display: flex;
@@ -941,53 +974,53 @@
   color: var(--bps-paper);
   padding-block: 4.5rem;
 }
-.bps-workflow-heading {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  max-width: 800px;
-  margin-bottom: 3rem;
+.bps-workflow-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: clamp(2.5rem, 6vw, 6rem);
 }
-.bps-workflow-heading > svg {
-  width: 38px;
-  height: 38px;
-  margin-top: 0.2rem;
+.bps-workflow-heading {
+  margin-bottom: 2rem;
 }
 .bps-steps {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2.8rem;
 }
-.bps-step-track {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.6rem;
-  font-size: 1.05rem;
+.bps-steps li {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 1.1rem;
+  padding-block: 1.3rem;
+  border-top: 1px solid color-mix(in oklch, var(--bps-paper) 25%, transparent);
 }
-.bps-step-track:after {
-  content: '';
-  height: 1px;
-  background: oklch(95% 0.015 170 / 0.4);
-  flex: 1;
-  order: 1;
+.bps-steps li:last-child {
+  padding-bottom: 0;
 }
-.bps-step-track svg {
-  width: 19px;
-  height: 19px;
-  order: 2;
-}
-.bps-steps li:last-child .bps-step-track svg {
-  display: none;
+.bps-step-number {
+  padding-top: 0.2rem;
+  font-size: 0.875rem;
+  color: var(--bps-soft);
 }
 .bps-steps h3 {
-  font-size: 1.3rem;
-  margin-bottom: 0.8rem;
+  font-size: 1.2rem;
+  margin-bottom: 0.4rem;
 }
 .bps-steps p {
   font-size: 0.9rem;
   line-height: 1.8;
-  max-width: 36ch;
+  max-width: 48ch;
+}
+.bps-workflow-photo {
+  position: relative;
+  align-self: stretch;
+  min-height: 430px;
+  overflow: hidden;
+  border-radius: 16px 16px 64px 16px;
+  background: var(--bps-soft);
+}
+.bps-workflow-photo img {
+  position: absolute;
+  inset: 0;
 }
 .bps-faq {
   display: grid;
@@ -1147,7 +1180,9 @@
   min-height: 58px;
   text-align: start;
   font-size: 0.8rem;
-  transition: background 180ms var(--bps-ease), color 180ms var(--bps-ease);
+  transition:
+    background 180ms var(--bps-ease),
+    color 180ms var(--bps-ease);
 }
 .bps-agent-list button > svg {
   width: 19px;
@@ -1268,8 +1303,13 @@
 }
 [dir='rtl']
   .bps-page
-  :is(.bps-choices
-    button, .bps-demo-note, .bps-illustration-note, .bps-demo-label, .bps-pass-label) {
+  :is(
+    .bps-choices button,
+    .bps-demo-note,
+    .bps-illustration-note,
+    .bps-demo-label,
+    .bps-pass-label
+  ) {
   font-size: 0.8125rem;
 }
 @media (min-width: 1440px) {
@@ -1340,8 +1380,11 @@
   .bps-agent-detail {
     min-height: 310px;
   }
-  .bps-steps {
-    gap: 1.6rem;
+  .bps-workflow-layout {
+    gap: 2rem;
+  }
+  .bps-workflow-photo {
+    min-height: 380px;
   }
   .bps-final-panel {
     grid-template-columns: minmax(0, 1fr);
@@ -1479,19 +1522,20 @@
     padding-block: 3.3rem;
   }
   .bps-workflow-heading {
-    gap: 0.8rem;
-    margin-bottom: 2.3rem;
+    margin-bottom: 1.6rem;
   }
-  .bps-workflow-heading > svg {
-    width: 25px;
-    height: 25px;
-  }
-  .bps-steps {
+  .bps-workflow-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 2rem;
   }
-  .bps-step-track {
-    margin-bottom: 1rem;
+  .bps-workflow-photo {
+    min-height: 0;
+    height: 260px;
+    border-radius: 12px 12px 40px 12px;
+  }
+  .bps-hero-photo {
+    margin-top: 1.6rem;
+    height: 160px;
   }
   .bps-steps p {
     max-width: none;

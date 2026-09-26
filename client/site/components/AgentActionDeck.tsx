@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SiteMoneyText } from './SiteMoney';
 import {
   BanknoteIcon,
   BotIcon,
@@ -33,17 +34,17 @@ import { HOME_MESSAGES } from '../lib/messages/home';
 
 /** Une icone par carte, dans l'ordre du dictionnaire. */
 const AGENT_ICONS: LucideIcon[] = [
-  MessageCircleIcon,   // Communication
-  TrendingUpIcon,      // Revenue
-  WrenchIcon,          // Operations
-  ShieldCheckIcon,     // Conformite
-  CalendarSyncIcon,    // Synchronisation
-  BanknoteIcon,        // Finance
-  ConciergeBellIcon,   // Voyageur
+  MessageCircleIcon, // Communication
+  TrendingUpIcon, // Revenue
+  WrenchIcon, // Operations
+  ShieldCheckIcon, // Conformite
+  CalendarSyncIcon, // Synchronisation
+  BanknoteIcon, // Finance
+  ConciergeBellIcon, // Voyageur
   MessageSquareQuoteIcon, // Avis
-  HandshakeIcon,       // Proprietaire
-  MegaphoneIcon,       // Croissance
-  KeyRoundIcon,        // Objets connectes
+  HandshakeIcon, // Proprietaire
+  MegaphoneIcon, // Croissance
+  KeyRoundIcon, // Objets connectes
 ];
 
 /** Temps de lecture d'une carte : deux lignes courtes, sans se sentir presse. */
@@ -99,13 +100,14 @@ export default function AgentActionDeck() {
                 {m.noteLabel} · {card.agent}
               </span>
               <strong>{card.title}</strong>
-              <p>{card.detail}</p>
+              <p>
+                <SiteMoneyText>{card.detail}</SiteMoneyText>
+              </p>
             </div>
             <CircleCheckIcon className="baitly-note-check" />
           </article>
         );
       })}
-
     </div>
   );
 }

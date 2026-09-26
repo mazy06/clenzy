@@ -13,13 +13,21 @@ import {
   MessageGroup,
 } from '../../src/components/ui';
 import StatusChip from '../../src/components/baitly/StatusChip';
-import { Money } from '../../src/components/baitly/Money';
+import Money from './SiteMoney';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import { ASSISTANT_MESSAGES, type AssistantMessages } from '../lib/messages/assistant';
+import {
+  ASSISTANT_MESSAGES,
+  type AssistantMessages,
+} from '../lib/messages/assistant';
 import { richText } from '../lib/richText';
 import { cn } from '../../src/utils/cn';
 import ProjectionRuntime from './ProjectionRuntime';
-import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
+import {
+  Cursor,
+  useReducedMotion,
+  useScriptedCursor,
+  useTimeline,
+} from './mockupKit';
 import hostPhoto from '../assets/photos/host.jpg';
 
 /**
@@ -81,14 +89,21 @@ function Avatar() {
  * carte bordée côté agent. Le petit coin redressé côté avatar fait office
  * d'amorce, sans queue dessinée.
  */
-const ASK_BUBBLE = 'w-fit max-w-[82%] rounded-2xl rounded-br-md bg-primary-soft px-3 py-2';
-const BOT_BUBBLE = 'w-fit max-w-[88%] rounded-2xl rounded-bl-md border border-border bg-card px-3 py-2';
+const ASK_BUBBLE =
+  'w-fit max-w-[82%] rounded-2xl rounded-br-md bg-primary-soft px-3 py-2';
+const BOT_BUBBLE =
+  'w-fit max-w-[88%] rounded-2xl rounded-bl-md border border-border bg-card px-3 py-2';
 
 /** Avatar de l'hôte qui dialogue avec l'agent (aligné à droite via `align="end"`). */
 function HostAvatar() {
   return (
     <MessageAvatar>
-      <img src={hostPhoto} alt="" className="size-7 rounded-full object-cover" loading="lazy" />
+      <img
+        src={hostPhoto}
+        alt=""
+        className="size-7 rounded-full object-cover"
+        loading="lazy"
+      />
     </MessageAvatar>
   );
 }
@@ -105,10 +120,13 @@ function HitlBubble({
   applied: boolean;
   m: AssistantMessages;
 }) {
+  const { language } = useSiteLanguage();
   return (
     <div className="ms-9 flex max-w-sm flex-col gap-2.5 rounded-xl border border-warning/40 bg-background p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-foreground">{hitl.title}</span>
+        <span className="text-xs font-semibold text-foreground">
+          {hitl.title}
+        </span>
         <Badge variant="outline">{applied ? m.applied : m.pending}</Badge>
       </div>
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -117,9 +135,18 @@ function HitlBubble({
             richText(hitl.left)
           ) : (
             <>
-              <Money value={m.yield.from} decimals={0} /> →{' '}
+              <Money
+                from={language === 'ar' ? 'SAR' : 'MAD'}
+                value={m.yield.from}
+                decimals={0}
+              />{' '}
+              →{' '}
               <b className="text-primary">
-                <Money value={m.yield.to} decimals={0} />
+                <Money
+                  from={language === 'ar' ? 'SAR' : 'MAD'}
+                  value={m.yield.to}
+                  decimals={0}
+                />
               </b>{' '}
               {m.perNight}
             </>
@@ -130,7 +157,12 @@ function HitlBubble({
             <>
               {m.estimatedRevenue}{' '}
               <b className="text-success">
-                +<Money value={m.yield.revenue} decimals={0} />
+                +
+                <Money
+                  from={language === 'ar' ? 'SAR' : 'MAD'}
+                  value={m.yield.revenue}
+                  decimals={0}
+                />
               </b>
             </>
           )}
@@ -178,7 +210,12 @@ function Thinking() {
 
 export default function AnimatedAssistantMockup() {
   const [cycle, setCycle] = useState(0);
-  return <AssistantScene key={cycle} onCycleEnd={() => setCycle((current) => current + 1)} />;
+  return (
+    <AssistantScene
+      key={cycle}
+      onCycleEnd={() => setCycle((current) => current + 1)}
+    />
+  );
 }
 
 function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
@@ -230,7 +267,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
         clock += 1100;
         at(clock, () => moveTo(find(`[data-suggestion="${turn.ask}"]`), 0, 0));
         clock += 1300;
-        at(clock, () => setBubbles((list) => [...list, { kind: 'ask', text: turn.ask }]));
+        at(clock, () =>
+          setBubbles((list) => [...list, { kind: 'ask', text: turn.ask }]),
+        );
       } else {
         // Question tapée caractère par caractère, puis envoyée.
         clock += 900;
@@ -269,7 +308,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
       }
 
       clock += 1400;
-      at(clock, () => setBubbles((list) => [...list, { kind: 'hitl', turn: index }]));
+      at(clock, () =>
+        setBubbles((list) => [...list, { kind: 'hitl', turn: index }]),
+      );
       clock += 1600;
       at(clock, () => moveTo(find(`[data-apply="${meta.id}"]`), 0, 0));
       clock += 1300;
@@ -305,7 +346,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
           <span className="size-2.5 rounded-full bg-border" />
-          <span className="ms-3 text-xs text-muted-foreground">{m.windowTitle}</span>
+          <span className="ms-3 text-xs text-muted-foreground">
+            {m.windowTitle}
+          </span>
         </div>
 
         <ProjectionRuntime>
@@ -338,7 +381,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                     return (
                       <Message key={index} align="end">
                         <HostAvatar />
-                        <MessageContent className={ASK_BUBBLE}>{bubble.text}</MessageContent>
+                        <MessageContent className={ASK_BUBBLE}>
+                          {bubble.text}
+                        </MessageContent>
                       </Message>
                     );
                   }
@@ -346,7 +391,9 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                     return (
                       <Message key={index}>
                         <Avatar />
-                        <MessageContent className={BOT_BUBBLE}>{bubble.text}</MessageContent>
+                        <MessageContent className={BOT_BUBBLE}>
+                          {bubble.text}
+                        </MessageContent>
                       </Message>
                     );
                   }
@@ -410,12 +457,13 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
                 readOnly
               />
               <InputGroupAddon align="block-end">
-                <span className="text-2xs text-faint">
-                  {m.disclaimer}
-                </span>
+                <span className="text-2xs text-faint">{m.disclaimer}</span>
                 <InputGroupButton
                   size="icon-xs"
-                  className={cn('ms-auto', draft && 'bg-primary text-primary-foreground')}
+                  className={cn(
+                    'ms-auto',
+                    draft && 'bg-primary text-primary-foreground',
+                  )}
                   aria-label={m.send}
                   data-send
                 >

@@ -9,6 +9,7 @@ import {
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SiteHeader } from './SiteLayout';
+vi.mock('./SiteMetadata', () => ({ default: () => null }));
 import { SiteLanguageProvider, type SiteLanguage } from '../lib/siteLanguage';
 import { LAYOUT_MESSAGES } from '../lib/messages/layout';
 

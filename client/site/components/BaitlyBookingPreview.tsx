@@ -1,3 +1,4 @@
+import SiteMoney, { useSiteMoney } from './SiteMoney';
 import { ArrowRightIcon, CheckIcon, LockKeyholeIcon } from 'lucide-react';
 import {
   BAITLY_BOOKING_TEMPLATES,
@@ -20,12 +21,7 @@ function BookingPreviewRate({
   const { language } = useSiteLanguage();
   const s = BOOKING_STOREFRONT_COPY[language];
   const rate = getBookingDemoRate(amount);
-  const money = (value: number) =>
-    new Intl.NumberFormat(language, {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(value);
+  const money = useSiteMoney('EUR', language);
   const discount = new Intl.NumberFormat(language, { style: 'percent' }).format(
     -BOOKING_DEMO_DIRECT_DISCOUNT,
   );
@@ -185,7 +181,9 @@ export default function BaitlyBookingPreview({
               {m.templates[0].extras[0]}
               <small>{m.added}</small>
             </span>
-            <strong>+36 €</strong>
+            <strong>
+              +<SiteMoney value={36} from="EUR" />
+            </strong>
           </div>
         </>
       )}

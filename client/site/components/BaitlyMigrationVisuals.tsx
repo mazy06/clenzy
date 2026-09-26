@@ -14,7 +14,9 @@ import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import type { BaitlyMigrationMessages } from '../lib/messages/baitlyMigration';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
-import riad from '../assets/photos/baitly-riad-small.webp';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const { migrationProperty: riad } = SITE_PHOTOS;
 
 type Props = { m: BaitlyMigrationMessages };
 const RECORD_ICONS = [Building2Icon, CalendarDaysIcon, UsersIcon];

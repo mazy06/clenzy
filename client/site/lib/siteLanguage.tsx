@@ -96,7 +96,7 @@ export function SiteLanguageProvider({ children }: { children: ReactNode }) {
       const params = new URLSearchParams(window.location.search);
       params.set('lang', next);
       window.history.replaceState(
-        window.history.state, '', `${window.location.pathname}?${params.toString()}`);
+        window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
     },
   }), [language, direction]);
 

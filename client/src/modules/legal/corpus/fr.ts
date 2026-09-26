@@ -1,7 +1,7 @@
 /**
  * Corpus juridique Baitly — version FRANCAISE, qui fait foi.
  *
- * <p>Redige pour un editeur SaaS marocain operant aussi vers l'UE. Les
+ * <p>Projet initial pour un éditeur marocain, à réviser pour Sinatech (Riyad). Les
  * identifiants entre crochets 〔…〕 restent a completer a l'immatriculation ;
  * faire relire par un conseil avant mise en production publique.</p>
  *
@@ -24,21 +24,21 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
   {
     slug: 'mentions-legales',
     title: 'Mentions légales',
-    updated: '24 juillet 2026',
+    updated: '26 septembre 2026 (identité de l’éditeur ; clauses à vérifier)',
     intro:
-      'Informations relatives à l’éditeur et à l’hébergement du site baitly et de la plateforme associée, conformément à la loi marocaine n° 53-05 relative à l’échange électronique de données juridiques et, pour les utilisateurs établis dans l’Union européenne, à la loi française n° 2004-575 pour la confiance dans l’économie numérique (LCEN).',
+      'Informations relatives à l’éditeur du site Baitly et de la plateforme associée. Document provisoire : l’identité a été précisée, mais les mentions d’hébergement et les clauses juridiques du projet initial restent à vérifier avant le lancement.',
     blocks: [
       {
         heading: '1. Éditeur du site et de la plateforme',
         paragraphs: [
-          'Le site et la plateforme Baitly (ci-après « le Service ») sont édités par 〔Baitly SARL〕, société à responsabilité limitée de droit marocain au capital de 〔•〕 MAD, dont le siège social est situé 〔adresse du siège, ville〕, Maroc.',
+          'Le site et la plateforme Baitly (ci-après « le Service ») sont édités par Sinatech. Localisation communiquée : Riyad, Arabie saoudite. Cette indication de ville ne constitue pas une adresse légale complète.',
         ],
         list: [
-          'Identifiant Commun de l’Entreprise (ICE) : 〔•〕',
-          'Registre de commerce : RC 〔•〕 — 〔ville〕',
-          'Identifiant fiscal (IF) : 〔•〕 · Taxe professionnelle : 〔•〕 · CNSS : 〔•〕',
-          'Directeur de la publication : 〔nom du gérant〕, en qualité de gérant',
-          'Contact : contact@baitly.ma · +212 〔•〕',
+          'Forme juridique : 〔à confirmer〕',
+          'Immatriculation et identifiants fiscaux : 〔à confirmer〕',
+          'Adresse légale complète : 〔à compléter〕',
+          'Responsable de la publication : 〔à confirmer〕',
+          'Contact : formulaire sur https://baitly.fr/contact',
         ],
       },
       {
@@ -87,12 +87,12 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
     title: 'Politique de confidentialité',
     updated: '24 juillet 2026',
     intro:
-      'La présente politique décrit comment 〔Baitly SARL〕 traite les données à caractère personnel, en conformité avec la loi marocaine n° 09-08 relative à la protection des personnes physiques à l’égard du traitement des données à caractère personnel et, lorsque le traitement relève de son champ d’application territorial, avec le Règlement (UE) 2016/679 (« RGPD »).',
+      'La présente politique décrit comment Sinatech traite les données à caractère personnel, en conformité avec la loi marocaine n° 09-08 relative à la protection des personnes physiques à l’égard du traitement des données à caractère personnel et, lorsque le traitement relève de son champ d’application territorial, avec le Règlement (UE) 2016/679 (« RGPD »).',
     blocks: [
       {
         heading: '1. Responsable de traitement et rôles',
         paragraphs: [
-          'Pour les données des visiteurs du site, des prospects et des utilisateurs titulaires d’un compte, 〔Baitly SARL〕 agit en qualité de responsable de traitement.',
+          'Pour les données des visiteurs du site, des prospects et des utilisateurs titulaires d’un compte, Sinatech agit en qualité de responsable de traitement.',
           'Pour les données que nos clients (conciergeries, hôtes, gestionnaires) importent ou collectent dans la plateforme — notamment les données de leurs voyageurs (identité, coordonnées, pièces d’identité aux fins de fiche de police, données de séjour et de paiement) — Baitly agit en qualité de sous-traitant au sens de l’article 28 du RGPD et de la loi 09-08 : le client demeure responsable de traitement et Baitly ne traite ces données que sur ses instructions documentées. Un accord de traitement des données (DPA) est annexé aux CGV.',
         ],
       },
@@ -162,7 +162,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
         heading: '9. Vos droits',
         paragraphs: [
           'Conformément à la loi 09-08 et, le cas échéant, au RGPD, vous disposez des droits d’accès, de rectification, d’effacement, d’opposition, de limitation et de portabilité de vos données, ainsi que du droit de définir des directives post-mortem et de retirer votre consentement à tout moment.',
-          'Exercice des droits : privacy@baitly.ma (réponse sous 30 jours ; justificatif d’identité requis en cas de doute raisonnable). Les voyageurs dont les données sont traitées pour le compte d’un client sont invités à s’adresser d’abord à leur hébergeur/gestionnaire, responsable de traitement ; Baitly relaie sans délai toute demande reçue directement.',
+          'Exercice des droits : https://baitly.fr/contact (réponse sous 30 jours ; justificatif d’identité requis en cas de doute raisonnable). Les voyageurs dont les données sont traitées pour le compte d’un client sont invités à s’adresser d’abord à leur hébergeur/gestionnaire, responsable de traitement ; Baitly relaie sans délai toute demande reçue directement.',
           'Vous pouvez introduire une réclamation auprès de la CNDP (www.cndp.ma) ou, pour les personnes relevant du RGPD, auprès de l’autorité de contrôle de votre État membre (en France, la CNIL).',
         ],
       },

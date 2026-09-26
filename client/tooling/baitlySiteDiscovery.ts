@@ -82,7 +82,7 @@ export function discoveryArtifacts(routeSource: string, robotsSource: string, ca
     }
   }
   const frenchDocuments = siteDocuments('fr', catalog);
-  assets.set('llms.txt', `# Baitly\n\n> ${frenchDocuments.get('/')!.split('\n\n')[2]}\n\n## Public pages\n\n${paths.map((path) => `- [${frenchDocuments.get(path)!.split('\n')[0].slice(2)}](${path})`).join('\n')}\n\n## Reading these pages\n\nRequest a listed page with Accept: text/markdown. Use ?lang=fr, ?lang=en or ?lang=ar; French is the default Markdown language. The legal corpus is currently French. HTML remains the browser default.\n\n- [Sitemap](/sitemap.xml)\n- [Crawl rules](/robots.txt)\n`);
+  assets.set('llms.txt', `# Baitly\n\n> ${frenchDocuments.get('/')!.split('\n\n')[2]}\n\n## Public pages\n\n${paths.map((path) => `- [${frenchDocuments.get(path)!.split('\n')[0].slice(2)}](${path})`).join('\n')}\n\n## Reading these pages\n\nRequest a listed page with Accept: text/markdown. Use ?lang=fr, ?lang=en or ?lang=ar; French is the default Markdown language. Legal documents are translated; the French version is the reference. HTML remains the browser default.\n\n- [Sitemap](/sitemap.xml)\n- [Crawl rules](/robots.txt)\n`);
   // No request header is interpolated into XML without a DNS-name allowlist.
   // The public HTTPS origin follows the reverse proxy's Host, so one image
   // continues to serve separate Baitly deployments without cross-domain URLs.
@@ -100,7 +100,6 @@ map $arg_lang $baitly_markdown_language {
   ar ar;
 }
 map $uri $baitly_markdown_content_language {
-  ~^/_baitly-markdown/[^/]+/legal/ fr;
   default $baitly_markdown_language;
 }
 `);
@@ -108,19 +107,27 @@ map $uri $baitly_markdown_content_language {
   const returnBody = (body: string) => nginxString(body).replaceAll(CANONICAL_ORIGIN, '$baitly_discovery_origin');
   configs.set('discovery-robots.conf', `return 200 ${returnBody(robots)};\n`);
   configs.set('discovery-sitemap.conf', `return 200 ${returnBody(sitemap)};\n`);
-  const pageLocations = paths.map((path) => {
+  const pageLocations = [...paths, ...PRIVATE_SITE_PATHS].map((path) => {
     const file = path === '/' ? '/index' : path;
-    return `location = ${path} {
-  add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+    const markdownLocation = PRIVATE_SITE_PATHS.includes(path) ? '' : `
   add_header Vary "Accept" always;
   add_header Link ${nginxString(discoveryLink)} always;
   if ($baitly_accept_markdown) {
     rewrite ^ /_baitly-markdown/$baitly_markdown_language${file}.md last;
-  }
-  try_files /index.html =404;
+  }`;
+    return `location = ${path} {
+  add_header Cache-Control "no-cache, no-store, must-revalidate" always;${markdownLocation}
+  try_files /_baitly-html/$baitly_markdown_language${file}.html =404;
 }`;
   }).join('\n');
-  configs.set('discovery-server.conf', `${pageLocations}
+  configs.set('discovery-fallback.conf', 'return 404;\n');
+  configs.set('discovery-server.conf', `error_page 404 /_baitly-html/$baitly_markdown_language/404.html;
+${pageLocations}
+location ^~ /_baitly-html/ {
+  internal;
+  add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+  try_files $uri =404;
+}
 location = /llms.txt {
   default_type text/plain;
   charset utf-8;

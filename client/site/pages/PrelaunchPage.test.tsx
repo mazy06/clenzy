@@ -33,10 +33,15 @@ afterEach(() => {
   window.history.replaceState({}, '', '/');
 });
 
-function mount(language: SiteLanguage = 'fr', route = '/bientot-disponible') {
-  window.history.replaceState({}, '', `${route}?lang=${language}`);
+function mount(
+  language: SiteLanguage = 'fr',
+  route = '/bientot-disponible',
+  query = '',
+) {
+  const location = `${route}?lang=${language}${query}`;
+  window.history.replaceState({}, '', location);
   return render(
-    <MemoryRouter initialEntries={[`${route}?lang=${language}`]}>
+    <MemoryRouter initialEntries={[location]}>
       <SiteLanguageProvider>
         <SiteLaunchProvider>
           <Routes>
@@ -63,6 +68,29 @@ function fillSignup(language: SiteLanguage = 'fr') {
 }
 
 describe('Pré-lancement public', () => {
+  it('conserve la sélection commerciale après la redirection de la démo', async () => {
+    mount('fr', '/demo', '&plan=pro&market=SA&properties=12');
+    const m = PRELAUNCH_MESSAGES.fr;
+    await screen.findByText(m.dateSoon);
+    expect(screen.getByText('12 logements')).toBeVisible();
+    expect(screen.getByText('Pro')).toBeVisible();
+    fetchMock.mockResolvedValueOnce(
+      json({ position: 3, alreadyRegistered: false }),
+    );
+    fillSignup();
+    await screen.findByRole('heading', { name: m.success });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/public/waitlist'),
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: 'guest@example.com',
+          source: 'baitly-prelaunch-fr-pro-SA',
+          propertyCount: '12',
+        }),
+      }),
+    );
+  });
+
   it.each(['fr', 'en', 'ar'] as const)(
     'affiche le parcours et la direction en %s',
     async (language) => {

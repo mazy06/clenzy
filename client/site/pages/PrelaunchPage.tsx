@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { readAcquisitionContext } from '../../src/services/publicAcquisitionContext';
+import AcquisitionSummary from '../components/AcquisitionSummary';
 import { ArrowRightIcon, CheckIcon, MailIcon } from 'lucide-react';
 import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import {
@@ -11,11 +13,17 @@ import { useSiteLanguage } from '../lib/siteLanguage';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
 import LaunchCountdown from '../components/LaunchCountdown';
-import terracePhoto from '../assets/photos/terrace.jpg';
+import BaitlyProductProofs from '../components/BaitlyProductProofs';
+import { BAITLY_READINESS_MESSAGES } from '../lib/messages/baitlyReadiness';
 import '../prelaunch.css';
+import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+
+const { prelaunchReception: terracePhoto } = SITE_PHOTOS;
 
 function WaitlistForm({ applicationEntry }: { applicationEntry: boolean }) {
   const { language } = useSiteLanguage();
+  const { search } = useLocation();
+  const context = readAcquisitionContext(search);
   const m = PRELAUNCH_MESSAGES[language];
   const [email, setEmail] = useState('');
   const [consent, setConsent] = useState(false);
@@ -47,7 +55,9 @@ function WaitlistForm({ applicationEntry }: { applicationEntry: boolean }) {
     setSubmitting(true);
     setError(null);
     try {
-      setResult(await publicLaunchApi.subscribe(email.trim(), language));
+      setResult(
+        await publicLaunchApi.subscribe(email.trim(), language, context),
+      );
     } catch (failure) {
       setError(
         failure instanceof LaunchApiError && failure.status === 429
@@ -93,6 +103,7 @@ function WaitlistForm({ applicationEntry }: { applicationEntry: boolean }) {
       aria-busy={submitting}
     >
       <h2>{m.formTitle}</h2>
+      <AcquisitionSummary context={context} />
       <label htmlFor="prelaunch-email">{m.email}</label>
       <div className="prelaunch-email-row">
         <div className="prelaunch-input-wrap">
@@ -162,18 +173,11 @@ export default function PrelaunchPage({
   const { language, direction } = useSiteLanguage();
   const { status, loading, error, refresh, paused } = useSiteLaunch();
   const m = PRELAUNCH_MESSAGES[language];
+  const next = BAITLY_READINESS_MESSAGES[language].next;
   const appUrl = runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000').replace(
     /\/+$/,
     '',
   );
-  useEffect(() => {
-    const previous = document.title;
-    document.title = m.title;
-    return () => {
-      document.title = previous;
-    };
-  }, [m.title]);
-
   return (
     <section
       className="prelaunch"
@@ -262,7 +266,12 @@ export default function PrelaunchPage({
             </a>
           </div>
           <figure className="prelaunch-visual">
-            <img src={terracePhoto} alt={m.imageAlt} width={640} height={424} />
+            <img
+              src={terracePhoto}
+              alt={sitePhotoAlt('prelaunchReception', language)}
+              width={640}
+              height={424}
+            />
             <figcaption>
               <span>Baitly</span>
               <strong>{m.imageCaption}</strong>
@@ -271,10 +280,37 @@ export default function PrelaunchPage({
           </figure>
         </div>
         {!applicationEntry && (
-          <Link className="prelaunch-back" to="/">
-            {m.back}
-            <ArrowRightIcon aria-hidden="true" />
-          </Link>
+          <>
+            {paused && (
+              <section
+                className="prelaunch-next"
+                aria-labelledby="prelaunch-next-title"
+              >
+                <div>
+                  <h2 id="prelaunch-next-title">{next.title}</h2>
+                  <p>{next.note}</p>
+                </div>
+                <ol>
+                  {next.steps.map((step, index) => (
+                    <li key={step.title}>
+                      <span aria-hidden="true">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div>
+                        <h3>{step.title}</h3>
+                        <p>{step.copy}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+            <BaitlyProductProofs />
+            <Link className="prelaunch-back" to={`/?lang=${language}`}>
+              {m.back}
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+          </>
         )}
       </div>
     </section>

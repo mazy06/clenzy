@@ -1,0 +1,221 @@
+.bct-page {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 540px);
+  align-items: start;
+  gap: 90px;
+  padding-block: 72px 90px;
+  color: var(--bl-ink);
+}
+.bct-eyebrow {
+  color: var(--bl-accent);
+  font-size: 13px;
+  font-weight: 650;
+  margin-block-end: 24px;
+}
+.bct-page h1 {
+  font-size: clamp(36px, 4.2vw, 60px);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.04em;
+  white-space: pre-line;
+  text-wrap: balance;
+}
+.bct-lead {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--bl-muted);
+  margin-block-start: 24px;
+  max-width: 48ch;
+}
+.bct-process {
+  list-style: none;
+  padding: 0;
+  margin: 36px 0;
+  display: grid;
+  gap: 18px;
+}
+.bct-process li {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  font-size: 14px;
+}
+.bct-process span {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bl-accent);
+}
+.bct-publisher {
+  border-block: 1px solid var(--bl-line);
+  padding-block: 24px;
+  max-width: 380px;
+}
+.bct-publisher > span {
+  font-size: 11px;
+  color: var(--bl-muted);
+}
+.bct-publisher strong {
+  display: block;
+  font-size: 25px;
+  font-weight: 650;
+  margin-block: 5px 12px;
+}
+.bct-publisher p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--bl-muted);
+}
+.bct-explore {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  margin-block-start: 24px;
+  font-weight: 600;
+}
+.bct-form-surface {
+  min-width: 0;
+  padding: 32px;
+  border-radius: 18px;
+  background: var(--bl-surface);
+  border: 1px solid var(--bl-line);
+}
+.bct-form-surface h2 {
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-block-end: 26px;
+}
+.bct-form-surface fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.bct-form-surface label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  margin-block-end: 20px;
+}
+.bct-form-surface :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+  display: block;
+  margin-block-start: 8px;
+  min-height: 46px;
+  border: 1px solid var(--bl-line);
+  border-radius: 7px;
+  background: var(--bl-paper);
+  color: var(--bl-ink);
+  font-size: 14px;
+  font-weight: 400;
+  padding: 11px 12px;
+}
+.bct-form-surface textarea {
+  resize: vertical;
+  max-height: 440px;
+}
+.bct-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.bct-hint,
+.bct-privacy {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--bl-muted);
+}
+.bct-hint {
+  margin-block: -10px 20px;
+}
+.bct-privacy {
+  margin-block-start: 18px;
+}
+.bct-privacy a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bct-submit {
+  width: 100%;
+  justify-content: space-between;
+}
+.bct-error {
+  font-size: 13px;
+  color: #924431;
+  line-height: 1.8;
+  margin-block: 12px 20px;
+}
+.bct-success {
+  padding-block: 28px;
+}
+.bct-success > svg {
+  margin-block-end: 22px;
+  color: #326557;
+}
+.bct-success p {
+  color: var(--bl-muted);
+  font-size: 14px;
+  line-height: 1.8;
+  margin-block: 16px;
+}
+.bct-success button {
+  margin-block-start: 20px;
+}
+.bct-page :is(button, a, select) {
+  cursor: pointer;
+}
+.bct-page :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--bl-surface-ink);
+  outline-offset: 3px;
+}
+.bct-page button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.bct-form-surface .bct-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+[dir='rtl'] .bct-page h1 {
+  letter-spacing: normal;
+  line-height: 1.45;
+}
+[dir='rtl'] .bct-page .lucide-arrow-right {
+  transform: scaleX(-1);
+}
+@media (max-width: 1100px) {
+  .bct-page {
+    gap: 40px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .bct-form-surface {
+    padding: 24px;
+  }
+  .bct-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+@media (max-width: 767px) {
+  .bct-page {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-block: 40px;
+  }
+  .bct-publisher {
+    padding-block: 18px;
+  }
+  .bct-form-surface {
+    padding: 22px 18px;
+  }
+}

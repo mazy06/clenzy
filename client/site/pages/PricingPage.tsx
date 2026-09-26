@@ -1,3 +1,4 @@
+import { useSiteCurrency } from '../lib/siteCurrency';
 import { useCallback, useState } from 'react';
 import { ArrowDownIcon, ArrowRightIcon, CheckIcon } from 'lucide-react';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
@@ -10,31 +11,47 @@ import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
 import {
   DEFAULT_PRICING_MARKET,
+  BAITLY_PRICING_MARKETS,
   type BaitlyMarket,
   type BaitlyPlan,
 } from '../data/baitlyLoyaltyPricing';
 import '../baitly-pricing.css';
+import { acquisitionSearch } from '../../src/services/publicAcquisitionContext';
 
 export default function PricingPage() {
   const { language } = useSiteLanguage();
   const m = BAITLY_LOYALTY_MESSAGES[language];
   // A public, ephemeral simulation; no account preference or billing change.
-  const [selection, setSelection] = useState<LoyaltySelection>(() => ({
+  const [storedSelection, setSelection] = useState<LoyaltySelection>(() => ({
     market: DEFAULT_PRICING_MARKET[language],
     plan: 'pro',
     properties: 1,
     month: 1,
   }));
+  const currency = useSiteCurrency();
+  const marketForCurrency = { MAD: 'MA', EUR: 'EU', SAR: 'SA' } as const;
+  const selection = {
+    ...storedSelection,
+    market: currency.currency
+      ? marketForCurrency[currency.currency]
+      : storedSelection.market,
+  };
   const onMonth = useCallback(
     (month: number) => setSelection((current) => ({ ...current, month })),
     [],
   );
-  const onPlan = (plan: BaitlyPlan) =>
+  const onPlan = (plan: BaitlyPlan) => {
+    currency.pause();
     setSelection((current) => ({ ...current, plan }));
-  const onMarket = (market: BaitlyMarket) =>
+  };
+  const onMarket = (market: BaitlyMarket) => {
+    currency.select(BAITLY_PRICING_MARKETS[market].currency);
     setSelection((current) => ({ ...current, market }));
-  const onProperties = (properties: number) =>
+  };
+  const onProperties = (properties: number) => {
+    currency.pause();
     setSelection((current) => ({ ...current, properties }));
+  };
   return (
     <div className="bp-page">
       <section className="bp-hero site-shell">
@@ -84,7 +101,10 @@ export default function PricingPage() {
           <h2>{m.finalTitle}</h2>
           <p>{m.finalCopy}</p>
         </div>
-        <SiteAcquisitionLink to="/demo" className="baitly-button">
+        <SiteAcquisitionLink
+          to={`/demo${acquisitionSearch(selection, language)}`}
+          className="baitly-button"
+        >
           {m.finalCta}
           <ArrowRightIcon />
         </SiteAcquisitionLink>

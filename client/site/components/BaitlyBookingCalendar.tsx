@@ -138,7 +138,7 @@ export default function BaitlyBookingCalendar({ demo, m, money }: StepProps) {
                         iso,
                         language,
                         true,
-                      )} · ${unavailable ? c.unavailable : money(nightly)}`}
+                      )} · ${unavailable ? c.unavailable : money.label(nightly)}`}
                       disabled={unavailable}
                       onClick={() => demo.selectDate(iso)}
                       onKeyDown={(event) => {

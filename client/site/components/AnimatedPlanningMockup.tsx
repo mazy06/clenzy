@@ -1,3 +1,4 @@
+import SiteMoney from './SiteMoney';
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   BedDoubleIcon,
@@ -34,24 +35,11 @@ import {
   CheckBold,
   CreditCardFill,
   MoroccanDirham,
-  SaudiRiyal,
   Warning,
   WrenchFill,
 } from '../../src/icons';
 import airbnbLogo from '../../src/assets/logo/airbnb-logo-small.svg';
 import bookingLogo from '../../src/assets/logo/booking-logo-small.svg';
-import g1 from '../assets/guests/g1.jpg';
-import g2 from '../assets/guests/g2.jpg';
-import g3 from '../assets/guests/g3.jpg';
-import g4 from '../assets/guests/g4.jpg';
-import g5 from '../assets/guests/g5.jpg';
-import g6 from '../assets/guests/g6.jpg';
-import g7 from '../assets/guests/g7.jpg';
-import g8 from '../assets/guests/g8.jpg';
-import g9 from '../assets/guests/g9.jpg';
-import g10 from '../assets/guests/g10.jpg';
-import g11 from '../assets/guests/g11.jpg';
-import g12 from '../assets/guests/g12.jpg';
 import { Cursor, useScriptedCursor } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { useBaitlyPlanningTimeline } from './useBaitlyPlanningTimeline';
@@ -60,13 +48,17 @@ import BaitlyPlanningCallout, {
 } from './BaitlyPlanningCallout';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
-import propertyRiad from '../assets/photos/baitly-riad-small.webp';
-import propertyApartment from '../assets/photos/bedroom.jpg';
-import propertyVilla from '../assets/photos/pool.jpg';
-import propertyHouse from '../assets/photos/guesthouse.jpg';
-import propertyTerrace from '../assets/photos/terrace.jpg';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  planningRiad: propertyRiad,
+  planningApartment: propertyApartment,
+  planningVilla: propertyVilla,
+  planningHouse: propertyHouse,
+  planningCity: propertyTerrace,
+} = SITE_PHOTOS;
 
 /**
  * Mockup animé — écran Planning. Reproduit le design RÉEL du module
@@ -106,7 +98,7 @@ const PROPERTY_PHOTOS = [
   propertyVilla,
   propertyTerrace,
   propertyHouse,
-  propertyApartment,
+  SITE_PHOTOS.planningStudio,
 ];
 
 /* Seuils de repli de la brique — valeurs de planning/constants.ts:112-114.
@@ -178,7 +170,6 @@ interface Resa {
   /** Fiche voyageur incomplète (e-mail manquant) → pastille d'alerte pulsée. */
   missingInfo?: boolean;
   /** Photo du voyageur affichée dans la brique. */
-  photo: string;
 }
 
 const RESAS: Resa[] = [
@@ -188,7 +179,6 @@ const RESAS: Resa[] = [
   // Passé — départs effectués (mauve)
   {
     id: 'r1',
-    photo: g1,
     row: 0,
     start: 0,
     nights: 2,
@@ -200,7 +190,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r11',
-    photo: g11,
     row: 5,
     start: 0,
     nights: 2,
@@ -213,7 +202,6 @@ const RESAS: Resa[] = [
   // En cours — à cheval sur aujourd'hui (bleu)
   {
     id: 'r3',
-    photo: g3,
     row: 1,
     start: 1,
     nights: 4,
@@ -225,7 +213,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r7',
-    photo: g7,
     row: 3,
     start: 2,
     nights: 7,
@@ -239,7 +226,6 @@ const RESAS: Resa[] = [
   // À venir, réglées (vert)
   {
     id: 'r4',
-    photo: g4,
     row: 1,
     start: 8,
     nights: 6,
@@ -252,7 +238,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r5',
-    photo: g5,
     row: 2,
     start: 5,
     nights: 4,
@@ -265,7 +250,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r9',
-    photo: g9,
     row: 4,
     start: 4,
     nights: 4,
@@ -278,7 +262,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r10',
-    photo: g10,
     row: 4,
     start: 11,
     nights: 3,
@@ -290,7 +273,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r8',
-    photo: g8,
     row: 3,
     start: 10,
     nights: 4,
@@ -303,7 +285,6 @@ const RESAS: Resa[] = [
   // À venir, à régler (orange)
   {
     id: 'r2',
-    photo: g2,
     row: 0,
     start: 9,
     nights: 5,
@@ -318,7 +299,6 @@ const RESAS: Resa[] = [
      Toute date antérieure la ferait chevaucher — ce que le planning refuserait. */
   {
     id: 'r6',
-    photo: g6,
     row: 2,
     start: 11,
     nights: 3,
@@ -330,7 +310,6 @@ const RESAS: Resa[] = [
   },
   {
     id: 'r12',
-    photo: g12,
     row: 5,
     start: 8,
     nights: 3,
@@ -347,7 +326,6 @@ const RESAS: Resa[] = [
     `computeEffectiveStatus` : le vert exige un paiement encaissé. */
 const CREATED_RESA: Resa = {
   id: 'rn',
-  photo: g5,
   row: 0,
   start: 5,
   nights: 3,
@@ -364,7 +342,6 @@ const BLOCKED = { row: 5, start: 3, nights: 4 };
 /** Réservation annulée : brique fantôme hachurée, nom barré, avatar grisé. */
 const CANCELLED: Resa = {
   id: 'rc',
-  photo: g8,
   row: 1,
   start: 5,
   nights: 3,
@@ -391,30 +368,15 @@ const FIRST_DAY = 23;
 const MONTH_DAYS = 30;
 const dayNumber = (day: number) => ((FIRST_DAY + day - 1) % MONTH_DAYS) + 1;
 
-/**
- * Montant, dans la devise du marche que la langue designe. Le composant `Money`
- * de l'application rend la devise en ICÔNE (jamais le code « MAD » ni « SAR ») —
- * on reprend les memes glyphes, sans embarquer le contexte devise ni MUI dans
- * le site. Le portefeuille de demonstration suit la langue : des riyals en
- * arabe, des dirhams ailleurs.
- */
+/** Montants fictifs synchronisés avec les autres démonstrations du site. */
 function Amount({ value, size = 11 }: { value: number; size?: number }) {
   const { language } = useSiteLanguage();
-  const Currency = language === 'ar' ? SaudiRiyal : MoroccanDirham;
-  const locale = language === 'ar' ? 'ar' : 'fr-FR';
-  /* Montant et glyphe forment un bloc insécable : rendus en frères libres, le
-     symbole se retrouvait renvoyé à la ligne dès que le conteneur se resserrait. */
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {value.toLocaleString(locale)}
-      <Currency size={size + 2} style={{ marginInlineStart: 2 }} />
-    </span>
+    <SiteMoney
+      value={value}
+      from={language === 'ar' ? 'SAR' : 'MAD'}
+      size={size + 2}
+    />
   );
 }
 
@@ -1230,8 +1192,8 @@ function Row({
               day === TODAY_INDEX
                 ? 'color-mix(in srgb, #264672 5%, transparent)'
                 : isWeekend(day)
-                ? 'var(--pl-we)'
-                : undefined,
+                  ? 'var(--pl-we)'
+                  : undefined,
           }}
         >
           <span
@@ -1441,12 +1403,9 @@ function CancelledBar() {
         className="flex size-[26px] shrink-0 items-center justify-center overflow-hidden rounded-full"
         style={{ border: '1.5px solid var(--pl-line2)' }}
       >
-        <img
-          src={CANCELLED.photo}
-          alt=""
-          className="size-full object-cover"
-          style={{ filter: 'grayscale(1)', opacity: 0.6 }}
-        />
+        <span className="text-[10px]" style={{ color: 'var(--pl-muted)' }}>
+          EP
+        </span>
       </span>
       <span
         className="flex min-w-0 flex-col leading-[1.2]"
@@ -1784,11 +1743,16 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
               }`,
             }}
           >
-            <img
-              src={g5}
-              alt=""
-              className="size-6 shrink-0 rounded-full object-cover"
-            />
+            <span
+              className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px]"
+              style={{
+                background: 'var(--pl-accent-soft)',
+                color: 'var(--pl-accent)',
+              }}
+              aria-hidden="true"
+            >
+              SM
+            </span>
             <span className="flex min-w-0 flex-col leading-tight">
               <span
                 className="text-[11px] font-semibold"
@@ -1962,13 +1926,13 @@ function Bar({
           boxShadow: conflict
             ? '0 0 0 2px var(--pl-err), 0 8px 18px -8px rgba(229,72,77,.6)'
             : dragging
-            ? '0 10px 22px -10px rgba(21,36,45,.55)'
-            : undefined,
+              ? '0 10px 22px -10px rgba(21,36,45,.55)'
+              : undefined,
           transition:
             'transform .22s cubic-bezier(.16,1,.3,1), opacity .18s ease-out, box-shadow .18s ease-out',
         }}
       >
-        {/* Avatar voyageur : photo, initiales en repli (comme GuestAvatar). */}
+        {/* Avatar voyageur : initiales de cette identité fictive. */}
         {showAvatar && (
           <span
             className="flex size-[26px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[9.5px] font-bold"

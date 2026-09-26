@@ -11,7 +11,15 @@ import type { SiteLanguage } from '../siteLanguage';
 const fr = {
   eyebrow: 'Aperçu',
   title: 'Le livret que reçoit votre voyageur.',
-  intro: 'Un simple lien, sans application — tout le séjour dans sa poche.',
+  intro:
+    'Un simple lien, sans application. Suivez son arrivée, puis sa découverte du séjour.',
+  greeting: 'Bienvenue, Marie',
+  property: 'Duplex Al Badii',
+  chapters: 'Les étapes du livret',
+  scrollHint: 'Faites défiler pour suivre le voyageur',
+  manualHint: 'Parcourez le téléphone ou choisissez une étape',
+  skip: 'Passer aux services et expériences',
+  demoNote: 'Démonstration · Données et tarifs fictifs',
   cta: 'Voir une démo',
   stay: 'Marrakech · 20 → 25 juillet',
   checkinTitle: 'Complétez votre arrivée',
@@ -22,7 +30,7 @@ const fr = {
     { label: 'Date de naissance', value: '14/03/1991' },
     { label: 'Nationalité', value: 'France' },
   ],
-  checkinDone: 'Déclaration de voyageur transmise — rien à ressaisir pour l’hôte.',
+  checkinDone: 'Informations complétées dans cet exemple.',
   openGuide: 'Accéder au livret',
   fieldsFilled: 'renseignés',
   hostName: 'Votre hôte Amine',
@@ -43,21 +51,48 @@ const fr = {
   ],
   activitiesTitle: 'Expériences à réserver',
   activities: [
-    { title: 'Montgolfière au lever du soleil', price: '1 200 MAD', tag: 'Coup de cœur' },
-    { title: 'Dîner dans le désert', price: '650 MAD', tag: null as string | null },
-    { title: 'Cours de cuisine locale', price: '450 MAD', tag: null as string | null },
+    {
+      title: 'Montgolfière au lever du soleil',
+      price: '1 200 MAD',
+      tag: 'Coup de cœur',
+    },
+    {
+      title: 'Dîner dans le désert',
+      price: '650 MAD',
+      tag: null as string | null,
+    },
+    {
+      title: 'Cours de cuisine locale',
+      price: '450 MAD',
+      tag: null as string | null,
+    },
   ],
   book: 'Réserver',
   poweredBy: 'Propulsé par',
   accessCode: 'Code d’accès',
   accessCodeValidity: 'Actif du 20 au 25 juillet',
-  commission: 'Commission reversée',
+  commission: 'Exemple d’expérience',
   steps: [
-    { title: 'Check-in en ligne', copy: 'Le voyageur saisit son identité — la déclaration part toute seule.' },
-    { title: 'Accueil personnalisé', copy: 'Le mot de l’hôte, une fois l’arrivée validée.' },
-    { title: 'Les essentiels', copy: 'Wi-Fi, code d’accès, horaires — sans avoir à les écrire.' },
-    { title: 'Le quartier', copy: 'Vos adresses, pas celles d’un guide générique.' },
-    { title: 'Expériences à réserver', copy: 'Activités et services, réservables en un geste.' },
+    {
+      title: 'Check-in en ligne',
+      copy: 'Le voyageur complète ses informations avant de découvrir le livret.',
+    },
+    {
+      title: 'Accueil personnalisé',
+      copy: 'Le mot de l’hôte, une fois l’arrivée validée.',
+    },
+    {
+      title: 'Les essentiels',
+      copy: 'Wi-Fi, code d’accès et horaires, réunis au même endroit.',
+    },
+    {
+      title: 'Le quartier',
+      copy: 'Vos adresses, pas celles d’un guide générique.',
+    },
+    {
+      title: 'Expériences à réserver',
+      copy: 'Activités et services, réservables en un geste.',
+    },
   ],
 };
 
@@ -66,7 +101,15 @@ export type GuideMessages = typeof fr;
 const en: GuideMessages = {
   eyebrow: 'Preview',
   title: 'The guide your guest receives.',
-  intro: 'A single link, no app — the whole stay in their pocket.',
+  intro:
+    'One link, no app. Follow the guest’s arrival, then their discovery of the stay.',
+  greeting: 'Welcome, Marie',
+  property: 'Duplex Al Badii',
+  chapters: 'Guide chapters',
+  scrollHint: 'Scroll to follow the guest journey',
+  manualHint: 'Scroll the phone or choose a chapter',
+  skip: 'Skip to services and experiences',
+  demoNote: 'Demonstration · Fictional data and prices',
   cta: 'See a demo',
   stay: 'Marrakech · 20 → 25 July',
   checkinTitle: 'Complete your check-in',
@@ -77,12 +120,12 @@ const en: GuideMessages = {
     { label: 'Date of birth', value: '14/03/1991' },
     { label: 'Nationality', value: 'France' },
   ],
-  checkinDone: 'Guest registration filed — nothing for the host to re-enter.',
+  checkinDone: 'Information completed in this example.',
   openGuide: 'Open the guide',
   fieldsFilled: 'completed',
   hostName: 'Your host Amine',
   hostWord:
-    'Welcome! Make yourself at home — everything you need for a perfect stay is in this guide.',
+    'Welcome! Make yourself at home. Everything you need for a perfect stay is in this guide.',
   essentialsTitle: 'The essentials',
   essentials: [
     { label: 'Wi-Fi', value: 'DUPLEX-BADII' },
@@ -98,7 +141,11 @@ const en: GuideMessages = {
   ],
   activitiesTitle: 'Experiences to book',
   activities: [
-    { title: 'Hot-air balloon at sunrise', price: '1,200 MAD', tag: 'Favourite' },
+    {
+      title: 'Hot-air balloon at sunrise',
+      price: '1,200 MAD',
+      tag: 'Favourite',
+    },
     { title: 'Dinner in the desert', price: '650 MAD', tag: null },
     { title: 'Local cooking class', price: '450 MAD', tag: null },
   ],
@@ -106,20 +153,42 @@ const en: GuideMessages = {
   poweredBy: 'Powered by',
   accessCode: 'Access code',
   accessCodeValidity: 'Active 20 to 25 July',
-  commission: 'Commission paid back',
+  commission: 'Example experience',
   steps: [
-    { title: 'Online check-in', copy: 'The guest enters their identity — the registration files itself.' },
-    { title: 'Personal welcome', copy: 'The host’s word, once check-in is approved.' },
-    { title: 'The essentials', copy: 'Wi-Fi, access code, times — without writing them out.' },
-    { title: 'The neighbourhood', copy: 'Your addresses, not a generic guidebook’s.' },
-    { title: 'Experiences to book', copy: 'Activities and services, bookable in one tap.' },
+    {
+      title: 'Online check-in',
+      copy: 'The guest completes their information before exploring the guide.',
+    },
+    {
+      title: 'Personal welcome',
+      copy: 'The host’s word, once check-in is approved.',
+    },
+    {
+      title: 'The essentials',
+      copy: 'Wi-Fi, access code and times, all in one place.',
+    },
+    {
+      title: 'The neighbourhood',
+      copy: 'Your addresses, not a generic guidebook’s.',
+    },
+    {
+      title: 'Experiences to book',
+      copy: 'Activities and services, bookable in one tap.',
+    },
   ],
 };
 
 const ar: GuideMessages = {
   eyebrow: 'معاينة',
   title: 'الدليل الذي يستلمه نزيلك.',
-  intro: 'رابط واحد، بلا تطبيق — الإقامة كلها في جيبه.',
+  intro: 'رابط واحد، بلا تطبيق. تابع وصول النزيل ثم اكتشافه للإقامة.',
+  greeting: 'أهلاً، نورة',
+  property: 'دوبلكس البديع',
+  chapters: 'مراحل الدليل',
+  scrollHint: 'مرّر لمتابعة رحلة النزيل',
+  manualHint: 'تصفّح الهاتف أو اختر مرحلة',
+  skip: 'الانتقال إلى الخدمات والتجارب',
+  demoNote: 'عرض توضيحي · بيانات وأسعار افتراضية',
   cta: 'شاهد عرضاً توضيحياً',
   stay: 'الرياض · 20 ← 25 يوليو',
   checkinTitle: 'أكمل إجراءات وصولك',
@@ -130,7 +199,7 @@ const ar: GuideMessages = {
     { label: 'تاريخ الميلاد', value: '1991/03/14' },
     { label: 'الجنسية', value: 'السعودية' },
   ],
-  checkinDone: 'سُجِّل النزيل — ولا شيء يعيد المضيف إدخاله.',
+  checkinDone: 'اكتملت المعلومات في هذا المثال.',
   openGuide: 'ادخل إلى الدليل',
   fieldsFilled: 'مكتملة',
   hostName: 'مضيفك أمين',
@@ -158,14 +227,24 @@ const ar: GuideMessages = {
   poweredBy: 'مدعوم بـ',
   accessCode: 'رمز الدخول',
   accessCodeValidity: 'فعّال من 20 إلى 25 يوليو',
-  commission: 'عمولة مُعادة إليك',
+  commission: 'تجربة توضيحية',
   steps: [
-    { title: 'تسجيل وصول إلكتروني', copy: 'يُدخل النزيل هويته — والتسجيل النظامي يتم وحده.' },
+    {
+      title: 'تسجيل وصول إلكتروني',
+      copy: 'يكمل النزيل معلوماته قبل اكتشاف الدليل.',
+    },
     { title: 'ترحيب شخصي', copy: 'كلمة المضيف، بعد اعتماد الوصول.' },
-    { title: 'الأساسيات', copy: 'الواي فاي ورمز الدخول والمواعيد — دون كتابتها مرّة بعد مرّة.' },
+    {
+      title: 'الأساسيات',
+      copy: 'الواي فاي ورمز الدخول والمواعيد في مكان واحد.',
+    },
     { title: 'الحي', copy: 'عناوينك أنت، لا عناوين دليل عام.' },
     { title: 'تجارب للحجز', copy: 'أنشطة وخدمات، تُحجز بحركة واحدة.' },
   ],
 };
 
-export const GUIDE_MESSAGES: Record<SiteLanguage, GuideMessages> = { fr, en, ar };
+export const GUIDE_MESSAGES: Record<SiteLanguage, GuideMessages> = {
+  fr,
+  en,
+  ar,
+};

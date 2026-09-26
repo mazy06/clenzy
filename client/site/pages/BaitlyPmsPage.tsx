@@ -1,3 +1,4 @@
+import SiteMoney, { SiteMoneyText } from '../components/SiteMoney';
 import {
   ArrowDownIcon,
   ArrowRightIcon,
@@ -17,13 +18,16 @@ import Reveal from '../components/Reveal';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_PMS_MESSAGES } from '../lib/messages/baitlyPms';
 import { moduleText } from '../lib/messages/modules';
-import riad from '../assets/photos/baitly-riad.webp';
-import bedroom from '../assets/photos/bedroom.jpg';
-import cleaning from '../assets/services/menage.jpg';
-import guest from '../assets/guests/g5.jpg';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
 import '../baitly-pms.css';
+import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+
+const {
+  pmsRiad: riad,
+  pmsArrival: bedroom,
+  pmsCleaning: cleaning,
+} = SITE_PHOTOS;
 
 export default function BaitlyPmsPage() {
   const { language } = useSiteLanguage();
@@ -66,7 +70,7 @@ export default function BaitlyPmsPage() {
           <div className="bpm-hero-art">
             <img
               src={riad}
-              alt={m.hero.property}
+              alt={sitePhotoAlt('pmsRiad', language)}
               className="bpm-hero-photo"
               fetchPriority="high"
             />
@@ -80,7 +84,13 @@ export default function BaitlyPmsPage() {
                 <img src={airbnb} alt="Airbnb" width="25" height="25" />
               </div>
               <div className="bpm-ticket-guest">
-                <img src={guest} alt="" />
+                <span className="bpm-guest-initials" aria-hidden="true">
+                  {m.hero.guest
+                    .split(' ')
+                    .map((name) => name[0])
+                    .slice(0, 2)
+                    .join('')}
+                </span>
                 <div>
                   <strong>{m.hero.guest}</strong>
                   <span>{m.hero.nights}</span>
@@ -92,14 +102,10 @@ export default function BaitlyPmsPage() {
                 <strong>{m.hero.dates}</strong>
                 <span>
                   <bdi>
-                    {(4800).toLocaleString(
-                      language === 'ar'
-                        ? 'ar-SA'
-                        : language === 'en'
-                        ? 'en-GB'
-                        : 'fr-FR',
-                    )}{' '}
-                    {language === 'ar' ? 'ر.س' : 'MAD'}
+                    <SiteMoney
+                      value={4800}
+                      from={language === 'ar' ? 'SAR' : 'MAD'}
+                    />
                   </bdi>
                 </span>
               </div>
@@ -215,7 +221,9 @@ export default function BaitlyPmsPage() {
               {m.sync.fields.map((field, i) => (
                 <div key={field}>
                   <span>{field}</span>
-                  <strong>{m.sync.values[i]}</strong>
+                  <strong>
+                    <SiteMoneyText>{m.sync.values[i]}</SiteMoneyText>
+                  </strong>
                 </div>
               ))}
             </div>
@@ -251,9 +259,19 @@ export default function BaitlyPmsPage() {
         <div className="bpm-stay-grid">
           <article className="bpm-arrival-card">
             <div className="bpm-arrival-visual">
-              <img src={bedroom} alt="" loading="lazy" />
+              <img
+                src={bedroom}
+                alt={sitePhotoAlt('pmsArrival', language)}
+                loading="lazy"
+              />
               <div>
-                <img src={guest} alt="" loading="lazy" />
+                <span className="bpm-guest-initials" aria-hidden="true">
+                  {m.stay.guest
+                    .split(' ')
+                    .map((name) => name[0])
+                    .slice(0, 2)
+                    .join('')}
+                </span>
                 <strong>{m.stay.guest}</strong>
                 <span>{m.stay.checkin}</span>
                 <span className="bpm-paid">
@@ -273,7 +291,11 @@ export default function BaitlyPmsPage() {
           </article>
           <article className="bpm-cleaning-card">
             <div className="bpm-cleaning-visual">
-              <img src={cleaning} alt="" loading="lazy" />
+              <img
+                src={cleaning}
+                alt={sitePhotoAlt('pmsCleaning', language)}
+                loading="lazy"
+              />
               <div>
                 <span>
                   <SparklesIcon />

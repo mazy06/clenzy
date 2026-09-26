@@ -1,3 +1,4 @@
+import { useSiteMoney } from './SiteMoney';
 import {
   ArrowRightIcon,
   BedDoubleIcon,
@@ -57,14 +58,9 @@ export default function BaitlyBookingStorefront({ demo }: { demo: Demo }) {
     template.id === 'villa'
       ? [BedDoubleIcon, WavesIcon, TreesIcon]
       : template.id === 'collection'
-      ? [MapPinIcon, MoonIcon, ShoppingBagIcon]
-      : [BedDoubleIcon, SunIcon, CoffeeIcon];
-  const money = (amount: number) =>
-    new Intl.NumberFormat(language, {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(amount);
+        ? [MapPinIcon, MoonIcon, ShoppingBagIcon]
+        : [BedDoubleIcon, SunIcon, CoffeeIcon];
+  const money = useSiteMoney('EUR', language);
   const offers = getBookingDemoExtras(demo.templateIndex, language);
   const extraTotal = getBookingDemoExtraTotal(offers, demo.extras);
   return (
@@ -93,8 +89,8 @@ export default function BaitlyBookingStorefront({ demo }: { demo: Demo }) {
                   index === 0
                     ? demo.propertyStep
                     : index === 1
-                    ? demo.datesStep
-                    : 2,
+                      ? demo.datesStep
+                      : 2,
                 )
               }
             >
@@ -294,8 +290,8 @@ export default function BaitlyBookingStorefront({ demo }: { demo: Demo }) {
                     new Intl.NumberFormat(language).format(properties.length),
                   )
               : template.id === 'collection' && i === 1
-              ? nights
-              : site.amenities[i]}
+                ? nights
+                : site.amenities[i]}
           </span>
         ))}
       </div>

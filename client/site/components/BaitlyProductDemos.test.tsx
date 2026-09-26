@@ -51,13 +51,13 @@ describe('Démonstrations des pages produit', () => {
 
   it('recalcule le séjour et réinitialise la simulation au changement de marché', () => {
     render(<FinanceDemo language="en" />);
-    expect(screen.getByText('2,550 MAD')).toBeVisible();
+    expect(screen.getByLabelText('2,550 Moroccan dirham')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate payment' }));
     expect(screen.getByText('Payment reconciled')).toBeVisible();
     fireEvent.click(
       screen.getByRole('button', { name: 'France', exact: true }),
     );
-    expect(screen.getByText('285 EUR')).toBeVisible();
+    expect(screen.getByLabelText('285 Euro')).toBeVisible();
     expect(
       screen.getByRole('button', { name: 'Simulate payment' }),
     ).toBeEnabled();

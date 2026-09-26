@@ -1,3 +1,11 @@
+import { SiteCurrencySymbol, useSiteMoney } from './SiteMoney';
+import {
+  CURRENCY_NAMES,
+  SITE_CURRENCIES,
+  convertDemoMoney,
+  useSiteCurrency,
+  type SiteCurrency,
+} from '../lib/siteCurrency';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -23,30 +31,30 @@ import {
   type RevenueInputs,
 } from '../data/baitlyResources';
 import { RESOURCE_GLOSSARY } from '../data/baitlyResourceGlossary';
-import terrace from '../assets/photos/terrace.jpg';
-import food from '../assets/photos/food.jpg';
-import cleaning from '../assets/services/menage.jpg';
+import { downloadText } from '../lib/downloadText';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  articleDirect: terrace,
+  articleExtras: food,
+  articleOperations: cleaning,
+} = SITE_PHOTOS;
 
 type Props = { language: SiteLanguage };
 const INPUT_KEYS = Object.keys(
   DEFAULT_REVENUE_INPUTS,
 ) as (keyof RevenueInputs)[];
+const MONETARY_INPUTS = new Set<keyof RevenueInputs>([
+  'rate',
+  'variableCost',
+  'fixedCost',
+  'extras',
+]);
 const LOCALES = { fr: 'fr-FR', en: 'en-GB', ar: 'ar-MA' };
 const amount = (n: number, language: SiteLanguage, digits = 0) =>
   new Intl.NumberFormat(LOCALES[language], {
     maximumFractionDigits: digits,
   }).format(n);
-
-function downloadText(name: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob(['\uFEFF', text], { type }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export function RevenueCalculator({ language }: Props) {
   const m = BAITLY_RESOURCE_MESSAGES[language];
@@ -57,9 +65,33 @@ export function RevenueCalculator({ language }: Props) {
       INPUT_KEYS.map((key) => [key, String(DEFAULT_REVENUE_INPUTS[key])]),
     ),
   );
-  const [currency, setCurrency] = useState('MAD');
+  const siteCurrency = useSiteCurrency();
+  const [inputCurrency, setInputCurrency] = useState<SiteCurrency>('MAD');
+  const currency = siteCurrency.currency ?? inputCurrency;
+  const convertedInput = (key: keyof RevenueInputs, target: SiteCurrency) =>
+    !MONETARY_INPUTS.has(key) ||
+    raw[key].trim() === '' ||
+    inputCurrency === target
+      ? raw[key]
+      : String(convertDemoMoney(Number(raw[key]), inputCurrency, target));
+  const pinInputs = (target: SiteCurrency) => {
+    siteCurrency.select(target);
+    setRaw(
+      Object.fromEntries(
+        INPUT_KEYS.map((key) => [key, convertedInput(key, target)]),
+      ),
+    );
+    setInputCurrency(target);
+  };
+  const limit = (key: keyof RevenueInputs, bound: number) =>
+    MONETARY_INPUTS.has(key) ? convertDemoMoney(bound, 'MAD', currency) : bound;
   const inputs = Object.fromEntries(
-    INPUT_KEYS.map((key) => [key, Number(raw[key])]),
+    INPUT_KEYS.map((key) => [
+      key,
+      MONETARY_INPUTS.has(key)
+        ? convertDemoMoney(Number(raw[key]), inputCurrency, 'MAD')
+        : Number(raw[key]),
+    ]),
   ) as unknown as RevenueInputs;
   const validField = (key: keyof RevenueInputs) => {
     const value = inputs[key];
@@ -81,12 +113,32 @@ export function RevenueCalculator({ language }: Props) {
     result.operatingCosts,
     result.net,
   ];
-  const money = (n: number) => `${amount(n, language, 2)} ${currency}`;
+  // Round the displayed lines first so the visible subtotal adds up to the cent.
+  const displayValues = values.map((value) =>
+    convertDemoMoney(value, 'MAD', currency),
+  );
+  displayValues[4] =
+    Math.round(
+      (displayValues[0] +
+        displayValues[1] -
+        displayValues[2] -
+        displayValues[3]) *
+        100,
+    ) / 100;
+  const money = useSiteMoney(currency, language, currency);
   const exportScenario = () => {
     const rows = [
       [c.currency, currency],
-      ...INPUT_KEYS.map((key, index) => [c.fields[index], inputs[key]]),
-      ...c.labels.map((label, index) => [label, values[index].toFixed(2)]),
+      ...INPUT_KEYS.map((key, index) => [
+        c.fields[index],
+        MONETARY_INPUTS.has(key)
+          ? convertDemoMoney(inputs[key], 'MAD', currency)
+          : inputs[key],
+      ]),
+      ...c.labels.map((label, index) => [
+        label,
+        displayValues[index].toFixed(2),
+      ]),
       [c.note],
     ];
     downloadText(
@@ -109,7 +161,8 @@ export function RevenueCalculator({ language }: Props) {
           <button
             className="brs-icon-button"
             aria-label={m.reset}
-            onClick={() =>
+            onClick={() => {
+              setInputCurrency('MAD');
               setRaw(
                 Object.fromEntries(
                   INPUT_KEYS.map((key) => [
@@ -117,46 +170,64 @@ export function RevenueCalculator({ language }: Props) {
                     String(DEFAULT_REVENUE_INPUTS[key]),
                   ]),
                 ),
-              )
-            }
+              );
+            }}
           >
             <RotateCcw size={18} />
           </button>
         </div>
         <p className="brs-small">{c.example}</p>
-        <label className="brs-field brs-currency">
-          {c.currency}
-          <select
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value)}
-          >
-            <option>MAD</option>
-            <option>SAR</option>
-            <option>EUR</option>
-          </select>
-        </label>
+        <fieldset className="brs-field brs-currency">
+          <legend>{c.currency}</legend>
+          <div className="site-currency-options">
+            {SITE_CURRENCIES.map((code) => (
+              <button
+                type="button"
+                key={code}
+                aria-label={CURRENCY_NAMES[language][code]}
+                aria-pressed={currency === code}
+                onClick={() => pinInputs(code)}
+              >
+                <SiteCurrencySymbol currency={code} />
+                <span>{CURRENCY_NAMES[language][code]}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <div className="brs-fields">
           {INPUT_KEYS.map((key, index) => (
             <label className="brs-field" key={key}>
               <span>{c.fields[index]}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={REVENUE_LIMITS[key][0]}
-                max={REVENUE_LIMITS[key][1]}
-                step={['properties', 'nights'].includes(key) ? 1 : '0.01'}
-                value={raw[key]}
-                aria-invalid={!validField(key)}
-                aria-describedby={`brs-limit-${key}`}
-                onChange={(event) =>
-                  setRaw((previous) => ({
-                    ...previous,
-                    [key]: event.target.value,
-                  }))
+              <div
+                className={
+                  MONETARY_INPUTS.has(key) ? 'site-money-input' : undefined
                 }
-              />
+              >
+                {MONETARY_INPUTS.has(key) && (
+                  <SiteCurrencySymbol currency={currency} />
+                )}
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={limit(key, REVENUE_LIMITS[key][0])}
+                  max={limit(key, REVENUE_LIMITS[key][1])}
+                  step={['properties', 'nights'].includes(key) ? 1 : '0.01'}
+                  value={convertedInput(key, currency)}
+                  onFocus={() => pinInputs(currency)}
+                  aria-invalid={!validField(key)}
+                  aria-describedby={`brs-limit-${key}`}
+                  onChange={(event) =>
+                    setRaw((previous) => ({
+                      ...previous,
+                      [key]: event.target.value,
+                    }))
+                  }
+                />
+              </div>
               <small id={`brs-limit-${key}`} dir="ltr">
-                {REVENUE_LIMITS[key].join(' – ')}
+                {REVENUE_LIMITS[key]
+                  .map((bound) => limit(key, bound))
+                  .join(' – ')}
               </small>
             </label>
           ))}
@@ -170,14 +241,10 @@ export function RevenueCalculator({ language }: Props) {
           </span>
           {valid ? (
             <>
-              <div
-                className="brs-result-total"
-                aria-live="polite"
-                aria-atomic="true"
-              >
+              <div className="brs-result-total">
                 <span>{c.labels[4]}</span>
                 <strong>
-                  <bdi>{money(result.net)}</bdi>
+                  <bdi>{money(displayValues[4])}</bdi>
                 </strong>
                 <small>{c.period}</small>
               </div>
@@ -209,7 +276,7 @@ export function RevenueCalculator({ language }: Props) {
                     <dd>
                       <bdi>
                         {index > 1 ? '−' : ''}
-                        {money(values[index])}
+                        {money(displayValues[index])}
                       </bdi>
                     </dd>
                   </div>
@@ -369,10 +436,15 @@ export function MarketBarometer({ language }: Props) {
   );
 }
 
-export function ObligationsGuide({ language }: Props) {
+export function ObligationsGuide({
+  language,
+  initialCountry = 'MA',
+}: Props & { initialCountry?: string }) {
   const m = BAITLY_RESOURCE_MESSAGES[language];
   const g = m.guide;
-  const [country, setCountry] = useState(0);
+  const [country, setCountry] = useState(() =>
+    Math.max(0, ['MA', 'FR', 'SA'].indexOf(initialCountry)),
+  );
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const done = g.steps[country].filter((_, index) =>
     checked.has(`${country}-${index}`),
@@ -493,7 +565,10 @@ export function BaitlyAcademy({ language }: Props) {
     // Focus brings the beginning of the new lesson into view, including from
     // the quiz at the bottom, and announces its title to screen readers.
     lessonHeading.current?.focus({ preventScroll: true });
-    lessonHeading.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+    lessonHeading.current?.scrollIntoView?.({
+      block: 'start',
+      behavior: 'instant',
+    });
   }, [lesson]);
   const changeLesson = (index: number) => {
     if (index === lesson) return;

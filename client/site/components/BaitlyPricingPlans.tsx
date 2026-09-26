@@ -1,5 +1,7 @@
+import { useSiteMoney } from './SiteMoney';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
 import SiteAcquisitionLink from './SiteAcquisitionLink';
+import { acquisitionSearch } from '../../src/services/publicAcquisitionContext';
 import BaitlyPricingVisual from './BaitlyPricingVisual';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PRICING_MESSAGES } from '../lib/messages/pricing';
@@ -8,7 +10,7 @@ import {
   loyaltyStage,
   loyaltyUnitPrice,
   loyaltyQuote,
-  formatLoyaltyPrice,
+  BAITLY_PRICING_MARKETS,
   type BaitlyPlan,
 } from '../data/baitlyLoyaltyPricing';
 import type { LoyaltySelection } from './BaitlyLoyaltySimulator';
@@ -23,8 +25,11 @@ export default function BaitlyPricingPlans({
   const { language } = useSiteLanguage();
   const m = BAITLY_LOYALTY_MESSAGES[language];
   const plans = PRICING_MESSAGES[language].plans;
-  const money = (value: number) =>
-    formatLoyaltyPrice(value, selection.market, language);
+  const money = useSiteMoney(
+    BAITLY_PRICING_MARKETS[selection.market].currency,
+    language,
+    BAITLY_PRICING_MARKETS[selection.market].currency,
+  );
   return (
     <section
       id="offres"
@@ -142,7 +147,7 @@ export default function BaitlyPricingPlans({
               ))}
             </ul>
             <SiteAcquisitionLink
-              to="/demo"
+              to={`/demo${acquisitionSearch({ ...selection, plan: id }, language)}`}
               className={`baitly-button ${
                 id === 'essential' ? 'bp-button-secondary' : ''
               }`}
@@ -163,7 +168,10 @@ export default function BaitlyPricingPlans({
             ))}
           </ul>
         </div>
-        <SiteAcquisitionLink to="/demo" className="bp-text-link">
+        <SiteAcquisitionLink
+          to={`/demo${acquisitionSearch({ market: selection.market, plan: 'custom' }, language)}`}
+          className="bp-text-link"
+        >
           {m.customCta}
           <ArrowRightIcon />
         </SiteAcquisitionLink>

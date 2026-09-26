@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowDownIcon,
   ArrowRightIcon,
+  CalendarDaysIcon,
   CheckIcon,
   GlobeIcon,
   MapPinIcon,
@@ -18,15 +19,20 @@ import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { moduleText } from '../lib/messages/modules';
 import BaitlyAgentDemo from '../components/BaitlyAgentDemo';
+import BaitlyHomeResources from '../components/BaitlyHomeResources';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
 import { BRANDS } from '../components/BrandLogos';
 import { MODULES } from '../data/catalog';
-// Visuels NEUTRES : le riad marocain contredisait la promesse saoudienne.
-// A remplacer par des photos du marche de lancement des qu'elles existent.
-import heroPhoto from '../assets/photos/terrace.jpg';
+// Editorial photos are separate from the fictional properties in the demos.
 import interiorPhoto from '../assets/photos/bedroom.jpg';
-import localPhoto from '../assets/photos/guesthouse.jpg';
-import poolPhoto from '../assets/photos/pool.jpg';
+import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import heroPhotoSmall from '../assets/photos/editorial/homeReceptionBaitly-720.webp';
+
+const {
+  homeHero: heroPhoto,
+  homeLocal: localPhoto,
+  homeClosing: poolPhoto,
+} = SITE_PHOTOS;
 
 function Hero() {
   const { language } = useSiteLanguage();
@@ -43,15 +49,13 @@ function Hero() {
           </Reveal>
           <Reveal delay={1}>
             <h1 id="home-title">
-              {m.title1}
-              <br />
+              <span className="baitly-hero-title-primary">{m.title1}</span>{' '}
               <span>{m.title2}</span>
             </h1>
           </Reveal>
           <Reveal delay={2}>
             <p className="baitly-lead">
-              {m.lead1}
-              <br className="baitly-desktop-break" /> {m.lead2}
+              {m.lead1} {m.lead2}
             </p>
             <p className="baitly-hero-description">{m.description}</p>
             <div className="baitly-actions">
@@ -81,15 +85,16 @@ function Hero() {
           <img
             className="baitly-hero-photo"
             src={heroPhoto}
-            sizes="(max-width: 767px) 100vw, 50vw"
-            alt={m.photoAlt}
-            width="640"
-            height="424"
+            srcSet={`${heroPhotoSmall} 720w, ${heroPhoto} 1254w`}
+            sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1440px) 48vw, 680px"
+            alt={sitePhotoAlt('homeHero', language)}
+            width="1254"
+            height="1254"
             // React 18 forwards the lowercase HTML attribute without a warning.
             {...{ fetchpriority: 'high' }}
           />
           <div className="baitly-photo-location">
-            <MapPinIcon /> {m.photoCaption}
+            <CalendarDaysIcon /> {m.photoCaption}
           </div>
           <AgentActionDeck />
           <span className="baitly-example-label">{m.exampleLabel}</span>
@@ -242,7 +247,7 @@ function LocalSection() {
         <Reveal className="baitly-local-visual">
           <img
             src={localPhoto}
-            alt={m.photoAlt}
+            alt={sitePhotoAlt('homeLocal', language)}
             width="640"
             height="427"
             loading="lazy"
@@ -332,7 +337,13 @@ function FinalCta() {
   return (
     <section className="site-shell baitly-final-wrap">
       <div className="baitly-final-cta">
-        <img src={poolPhoto} alt="" width="640" height="828" loading="lazy" />
+        <img
+          src={poolPhoto}
+          alt={sitePhotoAlt('homeClosing', language)}
+          width="640"
+          height="828"
+          loading="lazy"
+        />
         <div>
           <p className="baitly-section-label">{m.label}</p>
           <h2>
@@ -366,6 +377,7 @@ export default function HomePage() {
       <PlatformSection />
       <BaitlyAgentDemo />
       <LocalSection />
+      <BaitlyHomeResources />
       <FaqSection />
       <FinalCta />
     </div>

@@ -22,7 +22,7 @@ const fr = {
   /* Vitrines des volets de navigation (cf. `components/NavMegaPanel`). */
   mega: {
     discover: 'Découvrir',
-    productAll: 'Comparer Baitly aux autres PMS',
+    productAll: 'Bien choisir votre PMS',
     solutionsAll: 'Voir toutes les solutions',
     resourcesAll: 'Toutes les ressources',
   },
@@ -39,7 +39,7 @@ const fr = {
   },
   footer: {
     pitch:
-      'Le PMS avec une équipe d’agents IA, conçu pour l’Arabie saoudite, le Maroc et la France. Déclaration des voyageurs, fiscalité et facturation conformes, dès le premier jour.',
+      'Le PMS avec une équipe d’agents IA, conçu pour l’Arabie saoudite, le Maroc et la France. Explorez les parcours de gestion, de réservation directe et d’accueil.',
     columns: {
       product: 'Produit',
       solutions: 'Solutions',
@@ -90,7 +90,7 @@ const en: LayoutMessages = {
   },
   mega: {
     discover: 'Explore',
-    productAll: 'Compare Baitly with other PMS',
+    productAll: 'Choose the right PMS',
     solutionsAll: 'See every solution',
     resourcesAll: 'All resources',
   },
@@ -107,7 +107,7 @@ const en: LayoutMessages = {
   },
   footer: {
     pitch:
-      'The PMS with a team of AI agents, built for Saudi Arabia, Morocco and France. Guest registration, tax and compliant invoicing from day one.',
+      'The PMS with a team of AI agents, built for Saudi Arabia, Morocco and France. Explore property management, direct booking and guest welcome journeys.',
     columns: {
       product: 'Product',
       solutions: 'Solutions',
@@ -156,7 +156,7 @@ const ar: LayoutMessages = {
   },
   mega: {
     discover: 'اكتشف',
-    productAll: 'قارن بايتلي بأنظمة الإدارة الأخرى',
+    productAll: 'اختيار نظام الإدارة المناسب',
     solutionsAll: 'اطّلع على جميع الحلول',
     resourcesAll: 'كل الموارد',
   },
@@ -173,7 +173,7 @@ const ar: LayoutMessages = {
   },
   footer: {
     pitch:
-      'نظام إدارة عقارات مع فريق من وكلاء الذكاء الاصطناعي، مصمَّم للسعودية والمغرب وفرنسا. تسجيل النزلاء والضرائب والفوترة المطابقة، منذ اليوم الأول.',
+      'نظام إدارة عقارات مع فريق من وكلاء الذكاء الاصطناعي، مصمّم للسعودية والمغرب وفرنسا. استكشف مسارات الإدارة والحجز المباشر واستقبال النزلاء.',
     columns: {
       product: 'المنتج',
       solutions: 'الحلول',

@@ -1,0 +1,141 @@
+.site-money {
+  display: inline-block;
+  vertical-align: baseline;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.site-money-motion {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18em;
+  animation: site-money-change 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.site-currency-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+.site-currency-symbol > svg {
+  width: 1em !important;
+  height: 1em !important;
+}
+@keyframes site-money-change {
+  from {
+    opacity: 0.25;
+    transform: translateY(0.2em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.site-currency-control {
+  position: fixed;
+  inset-inline-end: max(16px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid oklch(82% 0.025 230);
+  border-radius: 12px;
+  color: oklch(28% 0.03 235);
+  background: oklch(98% 0.008 230);
+  box-shadow: 0 4px 18px oklch(30% 0.04 230 / 0.12);
+}
+.site-currency-caption {
+  padding-inline: 7px;
+  font-size: 11px;
+}
+.site-currency-control button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.site-currency-control button:hover {
+  background: oklch(91% 0.025 230);
+}
+.site-currency-control button[aria-pressed='true'] {
+  background: oklch(37% 0.07 255);
+  color: oklch(98% 0.008 230);
+}
+.site-currency-control button:focus-visible {
+  outline: 2px solid oklch(37% 0.07 255);
+  outline-offset: 2px;
+}
+.site-currency-play svg {
+  width: 15px;
+  height: 15px;
+}
+.site-currency-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.site-currency-options button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid var(--bui-border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 200ms ease-out;
+}
+.site-currency-options button:hover {
+  background: var(--bui-muted);
+}
+.site-currency-options button[aria-pressed='true'] {
+  background: var(--bui-primary);
+  color: var(--bui-primary-foreground);
+}
+.site-currency-options button:focus-visible {
+  outline: 2px solid var(--bui-primary);
+  outline-offset: 2px;
+}
+.site-money-input {
+  position: relative;
+}
+.site-money-input > .site-currency-symbol {
+  position: absolute;
+  inset-inline-start: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.brs-field .site-money-input input {
+  padding-inline-start: 34px;
+}
+.site-footer {
+  padding-bottom: 65px;
+}
+@media (max-width: 600px) {
+  .site-currency-caption {
+    display: none;
+  }
+  .site-currency-control button {
+    width: 40px;
+    height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-money-motion {
+    animation: none;
+  }
+  .site-currency-control button {
+    transition: none;
+  }
+}

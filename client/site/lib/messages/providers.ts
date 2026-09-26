@@ -1,506 +1,296 @@
-import type { SiteLanguage } from '../siteLanguage';
+import type { SiteLanguage } from "../siteLanguage";
 
-/**
- * Marketplace prestataires : la page `/prestataires` et les donnees qu'elle
- * affiche (metiers, parcours, arguments).
- *
- * <p>Le parcours d'inscription lui-meme a deja son dictionnaire
- * (`providerSignupMessages`) : c'est lui qui a servi de modele a tout le
- * reste du site.</p>
- */
 const fr = {
-  eyebrow: 'Marketplace prestataires',
-  titleBefore: 'Vous rendez les logements impeccables. ',
-  titleAccent: 'Baitly vous apporte les missions.',
+  eyebrow: "Réseau prestataires · En préparation",
+  titleBefore: "Votre savoir-faire. ",
+  titleAccent: "Sa place dans Baitly.",
   intro:
-    'Ménage, maintenance, blanchisserie, jardin, accueil : rejoignez le réseau de prestataires Baitly et recevez un flux régulier d’interventions près de chez vous — planning, preuves photo et paiement, tout au même endroit.',
-  ctaJoin: 'Devenir prestataire',
-  ctaWhatsapp: 'En parler sur WhatsApp',
-  statsTitle: 'Rejoindre, en clair',
-  stats: [
-    { value: '48 h', label: 'Validation du profil' },
-    { value: '0', label: 'Inscription & abonnement' },
-    { value: '6', label: 'Métiers référencés' },
-    { value: 'À la preuve', label: 'Déclenchement du paiement' },
-  ],
-  statsNote:
-    'Baitly prélève une commission de mise en relation uniquement sur les missions réalisées. Aucun frais tant que vous ne travaillez pas.',
-  showcaseTitle: 'Ils vendent déjà leurs services sur Baitly',
-  showcaseCopy:
-    'Artisans, équipes et indépendants : chacun publie son offre, ses tarifs et sa zone. Les hôtes réservent directement depuis le PMS.',
-  sampleNotice: 'Profils d’illustration — la place de marché ouvre avec le lancement.',
-  verified: 'Pièces vérifiées',
-  insured: 'Assurance à jour',
-  zone: 'Zone',
-  from: 'dès',
-  profiles: [
-    {
-      name: 'Fatima Z.',
-      trade: 'Ménage & entretien',
-      city: 'Riyad · Al-Olaya',
-      kind: 'Indépendante',
-      services: ['Ménage entre deux séjours', 'Remise en état', 'Réassort consommables'],
-      price: '90 SAR',
-      unit: '/intervention',
-    },
-    {
-      name: 'Atlas Plomberie',
-      trade: 'Maintenance & petits travaux',
-      city: 'Djeddah · Al-Hamra',
-      kind: 'Entreprise · 4 techniciens',
-      services: ['Dépannage urgent 24/7', 'Plomberie & sanitaires', 'Électricité'],
-      price: '150 SAR',
-      unit: '/heure',
-    },
-    {
-      name: 'Pressing Al Wafa',
-      trade: 'Blanchisserie & linge',
-      city: 'Riyad · Al-Malqa',
-      kind: 'Entreprise',
-      services: ['Collecte & livraison', 'Linge hôtelier', 'Repassage'],
-      price: '12 SAR',
-      unit: '/kg',
-    },
-    {
-      name: 'Youssef A.',
-      trade: 'Accueil & conciergerie',
-      city: 'Riyad · Diriyah',
-      kind: 'Indépendant',
-      services: ['Check-in en personne', 'Remise de clés', 'Assistance voyageurs'],
-      price: '120 SAR',
-      unit: '/accueil',
-    },
-  ],
-  activeTitle: 'Les prestataires les plus actifs',
-  activeCopy:
-    'Toutes les régions, tous les métiers : la place de marché n’est pas réservée aux grandes structures.',
-  activeColumns: { provider: 'Prestataire', trade: 'Métier', area: 'Zone', missions: 'Missions' },
-  activeProfiles: [
-    { name: 'Fatima Z.', trade: 'Ménage & entretien', area: 'Riyad', missions: 128, kind: 'Indépendante' },
-    { name: 'Atlas Plomberie', trade: 'Maintenance', area: 'Djeddah', missions: 96, kind: 'Entreprise' },
-    { name: 'Pressing Al Wafa', trade: 'Blanchisserie', area: 'Riyad', missions: 84, kind: 'Entreprise' },
-    { name: 'Nour H.', trade: 'Jardin & piscine', area: 'Khobar', missions: 61, kind: 'Indépendante' },
-    { name: 'Youssef A.', trade: 'Accueil & conciergerie', area: 'Diriyah', missions: 57, kind: 'Indépendant' },
-    { name: 'Chef Karim', trade: 'Chef & expériences', area: 'Djeddah', missions: 43, kind: 'Indépendant' },
-  ],
-  categoriesTitle: 'Quel que soit votre métier, il a sa place.',
+    "Ménage, maintenance, accueil : découvrez comment vos services pourront accompagner les hôtes et leurs voyageurs. Préparez votre profil pour le lancement.",
+  ctaJoin: "Préparer mon profil",
+  ctaExplore: "Découvrir les métiers",
+  openingNote:
+    "Le réseau se prépare. Les zones couvertes, les frais et les conditions des missions seront précisés avant tout engagement.",
+  previewLabel: "Aperçu produit · Mission fictive",
+  previewTitle: "Un logement prêt pour l’arrivée.",
+  previewCopy:
+    "Les consignes, les photos et la validation réunies dans une même mission.",
+  previewSteps: ["Consignes", "Photos", "Validation"],
+  categoriesTitle: "À chaque séjour, les bons savoir-faire.",
   categoriesCopy:
-    'Vous proposez déjà un service autour de la location courte durée ? Publiez votre offre et laissez les hôtes et conciergeries venir à vous.',
-  categories: [
-    {
-      name: 'Ménage & entretien',
-      copy: 'Ménage entre deux séjours, remise en état, réassort des consommables.',
-      examples: ['Femme / homme de ménage', 'Équipe de nettoyage', 'Remise en état après séjour'],
-    },
-    {
-      name: 'Maintenance & petits travaux',
-      copy: 'Plomberie, électricité, serrurerie, dépannages et interventions urgentes.',
-      examples: ['Plombier / électricien', 'Bricoleur multiservices', 'Astreinte urgence 24/7'],
-    },
-    {
-      name: 'Blanchisserie & linge',
-      copy: 'Collecte, lavage, repassage et livraison du linge de maison et de toilette.',
-      examples: ['Pressing / laverie', 'Location de linge hôtelier', 'Collecte & livraison'],
-    },
-    {
-      name: 'Jardin & piscine',
-      copy: 'Entretien des espaces verts, nettoyage et traitement des piscines.',
-      examples: ['Jardinier / paysagiste', 'Pisciniste', 'Traitement de l’eau'],
-    },
-    {
-      name: 'Accueil & conciergerie',
-      copy: 'Check-in / check-out en personne, remise des clés, assistance voyageurs.',
-      examples: ['Agent d’accueil', 'Remise de clés', 'Conciergerie de proximité'],
-    },
-    {
-      name: 'Chef & expériences',
-      copy: 'Chef à domicile, traiteur, transferts et activités vendus aux voyageurs.',
-      examples: ['Chef à domicile', 'Chauffeur / transferts', 'Guide & activités'],
-    },
-  ],
-  howTitle: 'De l’inscription au paiement, en quatre temps.',
-  howBadge: 'Comment ça marche',
+    "Six familles de services à découvrir. Les visuels illustrent les métiers, sans représenter des prestataires déjà inscrits.",
+  howTitle: "Un parcours à préparer, étape par étape.",
+  howBadge: "Au lancement",
   steps: [
     {
-      title: 'Créez votre profil',
-      copy: 'Métier, zone d’intervention, tarifs, disponibilités et pièces justificatives. Validation sous 48 h.',
+      title: "Présenter votre activité",
+      copy: "Renseignez votre métier, votre zone et les informations utiles à l’étude de votre profil.",
     },
     {
-      title: 'Recevez des missions',
-      copy: 'Les hôtes et conciergeries autour de vous vous proposent des interventions. Zéro prospection.',
+      title: "Examiner une mission",
+      copy: "Consultez le lieu, les consignes, le tarif et les conditions avant de vous engager.",
     },
     {
-      title: 'Intervenez & prouvez',
-      copy: 'Check-list mobile, photos avant / après et validation en un geste depuis votre téléphone.',
+      title: "Partager le travail réalisé",
+      copy: "Retrouvez la checklist et joignez les photos utiles à la validation de l’intervention.",
     },
     {
-      title: 'Soyez payé, sans relance',
-      copy: 'Paiement déclenché à la preuve, viré par la plateforme. Fini les factures qui traînent.',
+      title: "Suivre la validation",
+      copy: "Gardez une trace de la mission et du règlement selon les modalités convenues.",
     },
   ],
-  appEyebrow: 'L’application prestataire',
-  appTitle: 'Vos missions, votre planning, vos preuves — en un écran.',
+  appEyebrow: "Aperçu de l’application",
+  appTitle: "Le travail à faire, en un coup d’œil.",
   appCopy:
-    'Retrouvez vos interventions du jour, l’adresse et les consignes de chaque logement, la check-list à cocher et les photos avant / après à joindre. Une fois validé, le paiement part tout seul.',
+    "Le parcours de démonstration rassemble le planning, les consignes et le suivi d’une intervention. Explorez-le pour vous projeter dans votre quotidien.",
   appPoints: [
-    'Missions assignées automatiquement selon votre zone',
-    'Check-list et preuve photo obligatoires par mission',
-    'Itinéraire optimisé entre deux logements',
-    'Historique et revenus consultables à tout moment',
+    "Le logement et les consignes de la mission",
+    "Une checklist et les photos associées",
+    "Un état d’avancement partagé avec l’hôte",
   ],
-  benefitsTitle: 'Pourquoi rejoindre le réseau Baitly.',
-  benefits: [
-    {
-      title: 'Un carnet qui se remplit',
-      copy: 'Un flux régulier de missions près de chez vous, sans budget pub ni démarchage.',
-    },
-    {
-      title: 'Paiement garanti',
-      copy: 'Le règlement est sécurisé par Baitly et déclenché à la preuve de réalisation.',
-    },
-    {
-      title: 'Une réputation qui compte',
-      copy: 'Chaque mission bien faite nourrit votre note et vous ouvre plus de demandes.',
-    },
-    {
-      title: 'Tout depuis le mobile',
-      copy: 'Planning, itinéraire, check-lists et preuves photo dans une seule application.',
-    },
-  ],
-  finalTitle: 'Prêt à remplir votre carnet de missions ?',
+  sampleNotice: "Démonstration avec des données fictives.",
+  appAction: "Explorer la démo des opérations",
+  finalTitle: "Construisons la suite avec votre métier.",
   finalCopy:
-    'Créez votre profil en quelques minutes. C’est gratuit, et vous ne payez que sur les interventions réalisées.',
-  finalQuestion: 'Poser une question',
+    "Préparez votre profil. L’ouverture du réseau et les conditions d’accès seront communiquées au lancement.",
+  finalQuestion: "Comprendre les étapes",
+  categories: [
+    {
+      name: "Ménage & entretien",
+      copy: "Ménage entre deux séjours, remise en état, réassort des consommables.",
+      examples: [
+        "Femme / homme de ménage",
+        "Équipe de nettoyage",
+        "Remise en état après séjour",
+      ],
+    },
+    {
+      name: "Maintenance & petits travaux",
+      copy: "Plomberie, électricité, serrurerie, dépannages et interventions urgentes.",
+      examples: [
+        "Plombier / électricien",
+        "Bricoleur multiservices",
+        "Astreinte urgence 24/7",
+      ],
+    },
+    {
+      name: "Blanchisserie & linge",
+      copy: "Collecte, lavage, repassage et livraison du linge de maison et de toilette.",
+      examples: [
+        "Pressing / laverie",
+        "Location de linge hôtelier",
+        "Collecte & livraison",
+      ],
+    },
+    {
+      name: "Jardin & piscine",
+      copy: "Entretien des espaces verts, nettoyage et traitement des piscines.",
+      examples: ["Jardinier / paysagiste", "Pisciniste", "Traitement de l’eau"],
+    },
+    {
+      name: "Accueil & conciergerie",
+      copy: "Check-in / check-out en personne, remise des clés, assistance voyageurs.",
+      examples: [
+        "Agent d’accueil",
+        "Remise de clés",
+        "Conciergerie de proximité",
+      ],
+    },
+    {
+      name: "Chef & expériences",
+      copy: "Chef à domicile, traiteur, transferts et activités vendus aux voyageurs.",
+      examples: [
+        "Chef à domicile",
+        "Chauffeur / transferts",
+        "Guide & activités",
+      ],
+    },
+  ],
 };
 
 export type ProvidersMessages = typeof fr;
 
 const en: ProvidersMessages = {
-  eyebrow: 'Provider marketplace',
-  titleBefore: 'You keep the properties spotless. ',
-  titleAccent: 'Baitly brings you the jobs.',
+  eyebrow: "Provider network · In preparation",
+  titleBefore: "Your expertise. ",
+  titleAccent: "A place for it in Baitly.",
   intro:
-    'Cleaning, maintenance, laundry, gardening, check-in: join the Baitly provider network and receive a steady flow of jobs near you — schedule, photo proof and payment, all in one place.',
-  ctaJoin: 'Become a provider',
-  ctaWhatsapp: 'Talk on WhatsApp',
-  statsTitle: 'Joining, plainly',
-  stats: [
-    { value: '48 h', label: 'Profile approval' },
-    { value: '0', label: 'Sign-up & subscription' },
-    { value: '6', label: 'Trades listed' },
-    { value: 'On proof', label: 'Payment trigger' },
-  ],
-  statsNote:
-    'Baitly takes an introduction commission only on completed jobs. Nothing to pay while you are not working.',
-  showcaseTitle: 'They already sell their services on Baitly',
-  showcaseCopy:
-    'Trades, teams and freelancers: each publishes their offer, their rates and their area. Hosts book straight from the PMS.',
-  sampleNotice: 'Illustrative profiles — the marketplace opens with the launch.',
-  verified: 'Documents verified',
-  insured: 'Insurance current',
-  zone: 'Area',
-  from: 'from',
-  profiles: [
-    {
-      name: 'Fatima Z.',
-      trade: 'Cleaning & upkeep',
-      city: 'Riyadh · Al-Olaya',
-      kind: 'Freelance',
-      services: ['Turnover cleaning', 'Deep clean', 'Restocking consumables'],
-      price: 'SAR 90',
-      unit: '/job',
-    },
-    {
-      name: 'Atlas Plumbing',
-      trade: 'Maintenance & small works',
-      city: 'Jeddah · Al-Hamra',
-      kind: 'Company · 4 technicians',
-      services: ['24/7 emergency call-out', 'Plumbing & sanitary', 'Electrics'],
-      price: 'SAR 150',
-      unit: '/hour',
-    },
-    {
-      name: 'Al Wafa Laundry',
-      trade: 'Laundry & linen',
-      city: 'Riyadh · Al-Malqa',
-      kind: 'Company',
-      services: ['Collection & delivery', 'Hotel linen', 'Ironing'],
-      price: 'SAR 12',
-      unit: '/kg',
-    },
-    {
-      name: 'Youssef A.',
-      trade: 'Check-in & concierge',
-      city: 'Riyadh · Diriyah',
-      kind: 'Freelance',
-      services: ['In-person check-in', 'Key handover', 'Guest assistance'],
-      price: 'SAR 120',
-      unit: '/check-in',
-    },
-  ],
-  activeTitle: 'The most active providers',
-  activeCopy:
-    'Every region, every trade: the marketplace is not reserved for large outfits.',
-  activeColumns: { provider: 'Provider', trade: 'Trade', area: 'Area', missions: 'Jobs' },
-  activeProfiles: [
-    { name: 'Fatima Z.', trade: 'Cleaning & upkeep', area: 'Riyadh', missions: 128, kind: 'Freelance' },
-    { name: 'Atlas Plumbing', trade: 'Maintenance', area: 'Jeddah', missions: 96, kind: 'Company' },
-    { name: 'Al Wafa Laundry', trade: 'Laundry', area: 'Riyadh', missions: 84, kind: 'Company' },
-    { name: 'Nour H.', trade: 'Garden & pool', area: 'Khobar', missions: 61, kind: 'Freelance' },
-    { name: 'Youssef A.', trade: 'Check-in & concierge', area: 'Diriyah', missions: 57, kind: 'Freelance' },
-    { name: 'Chef Karim', trade: 'Chef & experiences', area: 'Jeddah', missions: 43, kind: 'Freelance' },
-  ],
-  categoriesTitle: 'Whatever your trade, it has a place.',
+    "Cleaning, maintenance, guest arrivals: discover how your services could support hosts and their guests. Prepare your profile for launch.",
+  ctaJoin: "Prepare my profile",
+  ctaExplore: "Explore the services",
+  openingNote:
+    "The network is being prepared. Coverage, fees and job terms will be clarified before any commitment.",
+  previewLabel: "Product preview · Fictional job",
+  previewTitle: "Ready for the next arrival.",
+  previewCopy: "Instructions, photos and approval brought together in one job.",
+  previewSteps: ["Instructions", "Photos", "Approval"],
+  categoriesTitle: "The right skills for every stay.",
   categoriesCopy:
-    'Already offering a service around short-term rentals? Publish your offer and let hosts and property managers come to you.',
-  categories: [
-    {
-      name: 'Cleaning & upkeep',
-      copy: 'Turnover cleaning, deep cleans, restocking consumables.',
-      examples: ['Cleaner', 'Cleaning team', 'Post-stay restoration'],
-    },
-    {
-      name: 'Maintenance & small works',
-      copy: 'Plumbing, electrics, locks, repairs and urgent call-outs.',
-      examples: ['Plumber / electrician', 'General handyperson', '24/7 emergency cover'],
-    },
-    {
-      name: 'Laundry & linen',
-      copy: 'Collection, washing, ironing and delivery of household and bath linen.',
-      examples: ['Dry cleaner / launderette', 'Hotel linen rental', 'Collection & delivery'],
-    },
-    {
-      name: 'Garden & pool',
-      copy: 'Grounds upkeep, pool cleaning and water treatment.',
-      examples: ['Gardener / landscaper', 'Pool technician', 'Water treatment'],
-    },
-    {
-      name: 'Check-in & concierge',
-      copy: 'In-person check-in and check-out, key handover, guest assistance.',
-      examples: ['Welcome agent', 'Key handover', 'Local concierge'],
-    },
-    {
-      name: 'Chef & experiences',
-      copy: 'Private chef, caterer, transfers and activities sold to guests.',
-      examples: ['Private chef', 'Driver / transfers', 'Guide & activities'],
-    },
-  ],
-  howTitle: 'From sign-up to payment, in four steps.',
-  howBadge: 'How it works',
+    "Explore six service categories. Images illustrate the trades, not providers already registered.",
+  howTitle: "Prepare your journey, step by step.",
+  howBadge: "At launch",
   steps: [
     {
-      title: 'Create your profile',
-      copy: 'Trade, service area, rates, availability and supporting documents. Approved within 48 hours.',
+      title: "Present your business",
+      copy: "Provide your trade, area and the information needed to review your profile.",
     },
     {
-      title: 'Receive jobs',
-      copy: 'Hosts and property managers around you offer you work. No prospecting.',
+      title: "Review a job",
+      copy: "Read the location, instructions, rate and terms before committing.",
     },
     {
-      title: 'Do the job & prove it',
-      copy: 'Mobile checklist, before/after photos and approval in one tap from your phone.',
+      title: "Share the completed work",
+      copy: "Use the checklist and add photos to support approval of the work.",
     },
     {
-      title: 'Get paid, without chasing',
-      copy: 'Payment triggered on proof, transferred by the platform. No more invoices left hanging.',
+      title: "Follow the approval",
+      copy: "Keep a record of the job and payment under the agreed terms.",
     },
   ],
-  appEyebrow: 'The provider app',
-  appTitle: 'Your jobs, your schedule, your proof — on one screen.',
+  appEyebrow: "Application preview",
+  appTitle: "The work ahead, at a glance.",
   appCopy:
-    'Find today’s jobs, each property’s address and instructions, the checklist to tick and the before/after photos to attach. Once approved, payment goes out on its own.',
+    "The demo brings together the schedule, instructions and job progress. Explore a workflow you could use day to day.",
   appPoints: [
-    'Jobs assigned automatically by your area',
-    'Checklist and photo proof required per job',
-    'Optimised route between two properties',
-    'History and earnings available at any time',
+    "The property and job instructions",
+    "A checklist with associated photos",
+    "Progress shared with the host",
   ],
-  benefitsTitle: 'Why join the Baitly network.',
-  benefits: [
-    {
-      title: 'A diary that fills up',
-      copy: 'A steady flow of jobs near you, with no ad budget and no cold calling.',
-    },
-    {
-      title: 'Guaranteed payment',
-      copy: 'The settlement is secured by Baitly and triggered on proof of completion.',
-    },
-    {
-      title: 'A reputation that counts',
-      copy: 'Every job well done feeds your rating and opens up more requests.',
-    },
-    {
-      title: 'Everything from mobile',
-      copy: 'Schedule, route, checklists and photo proof in a single app.',
-    },
-  ],
-  finalTitle: 'Ready to fill your diary?',
+  sampleNotice: "Demonstration with fictional data.",
+  appAction: "Explore the operations demo",
+  finalTitle: "Help shape what comes next.",
   finalCopy:
-    'Create your profile in a few minutes. It is free, and you only pay on completed jobs.',
-  finalQuestion: 'Ask a question',
+    "Prepare your profile. Network opening and access terms will be communicated at launch.",
+  finalQuestion: "Understand the steps",
+  categories: [
+    {
+      name: "Cleaning & upkeep",
+      copy: "Turnover cleaning, deep cleans, restocking consumables.",
+      examples: ["Cleaner", "Cleaning team", "Post-stay restoration"],
+    },
+    {
+      name: "Maintenance & small works",
+      copy: "Plumbing, electrics, locks, repairs and urgent call-outs.",
+      examples: [
+        "Plumber / electrician",
+        "General handyperson",
+        "24/7 emergency cover",
+      ],
+    },
+    {
+      name: "Laundry & linen",
+      copy: "Collection, washing, ironing and delivery of household and bath linen.",
+      examples: [
+        "Dry cleaner / launderette",
+        "Hotel linen rental",
+        "Collection & delivery",
+      ],
+    },
+    {
+      name: "Garden & pool",
+      copy: "Grounds upkeep, pool cleaning and water treatment.",
+      examples: ["Gardener / landscaper", "Pool technician", "Water treatment"],
+    },
+    {
+      name: "Check-in & concierge",
+      copy: "In-person check-in and check-out, key handover, guest assistance.",
+      examples: ["Welcome agent", "Key handover", "Local concierge"],
+    },
+    {
+      name: "Chef & experiences",
+      copy: "Private chef, caterer, transfers and activities sold to guests.",
+      examples: ["Private chef", "Driver / transfers", "Guide & activities"],
+    },
+  ],
 };
 
 const ar: ProvidersMessages = {
-  eyebrow: 'سوق المزوّدين',
-  titleBefore: 'أنت تُبقي الوحدات في أبهى حال. ',
-  titleAccent: 'وبايتلي يجلب إليك المهام.',
+  eyebrow: "شبكة مقدّمي الخدمات · قيد الإعداد",
+  titleBefore: "خبرتك. ",
+  titleAccent: "لها مكان في بايتلي.",
   intro:
-    'تنظيف، وصيانة، وغسيل، وحدائق، واستقبال: انضم إلى شبكة مزوّدي بايتلي واستقبل تدفّقاً منتظماً من المهام قربك — الجدول والإثباتات المصوّرة والدفع، في مكان واحد.',
-  ctaJoin: 'كن مزوّداً',
-  ctaWhatsapp: 'تحدّث على واتساب',
-  statsTitle: 'الانضمام باختصار',
-  stats: [
-    { value: '48 ساعة', label: 'اعتماد الملف' },
-    { value: '0', label: 'التسجيل والاشتراك' },
-    { value: '6', label: 'مهن مدرجة' },
-    { value: 'عند الإثبات', label: 'موعد الدفع' },
-  ],
-  statsNote:
-    'لا يأخذ بايتلي عمولة وساطة إلا على المهام المنجزة. ولا رسوم ما دمت لا تعمل.',
-  showcaseTitle: 'هم يبيعون خدماتهم على بايتلي بالفعل',
-  showcaseCopy:
-    'حرفيون وفرق ومستقلّون: كلٌّ ينشر عرضه وأسعاره ونطاقه. والمضيفون يحجزون مباشرةً من النظام.',
-  sampleNotice: 'ملفات توضيحية — يفتح السوق مع الإطلاق.',
-  verified: 'وثائق موثَّقة',
-  insured: 'تأمين ساري',
-  zone: 'النطاق',
-  from: 'من',
-  profiles: [
-    {
-      name: 'فاطمة ز.',
-      trade: 'التنظيف والعناية',
-      city: 'الرياض · العليا',
-      kind: 'مستقلّة',
-      services: ['تنظيف بين إقامتين', 'تجهيز شامل', 'تجديد المستهلكات'],
-      price: '90 ر.س',
-      unit: '/مهمة',
-    },
-    {
-      name: 'أطلس للسباكة',
-      trade: 'الصيانة والأعمال الصغيرة',
-      city: 'جدة · الحمراء',
-      kind: 'منشأة · 4 فنّيين',
-      services: ['تدخّل طارئ 24/7', 'سباكة وأدوات صحية', 'كهرباء'],
-      price: '150 ر.س',
-      unit: '/ساعة',
-    },
-    {
-      name: 'مغسلة الوفاء',
-      trade: 'الغسيل والبياضات',
-      city: 'الرياض · الملقا',
-      kind: 'منشأة',
-      services: ['جمع وتوصيل', 'بياضات فندقية', 'كي'],
-      price: '12 ر.س',
-      unit: '/كغ',
-    },
-    {
-      name: 'يوسف ع.',
-      trade: 'الاستقبال والكونسيرج',
-      city: 'الرياض · الدرعية',
-      kind: 'مستقلّ',
-      services: ['استقبال بحضور شخصي', 'تسليم المفاتيح', 'مساندة النزلاء'],
-      price: '120 ر.س',
-      unit: '/استقبال',
-    },
-  ],
-  activeTitle: 'أكثر المزوّدين نشاطاً',
-  activeCopy: 'كل المناطق وكل المهن: السوق ليس حكراً على المنشآت الكبيرة.',
-  activeColumns: { provider: 'المزوّد', trade: 'المهنة', area: 'النطاق', missions: 'المهام' },
-  activeProfiles: [
-    { name: 'فاطمة ز.', trade: 'التنظيف والعناية', area: 'الرياض', missions: 128, kind: 'مستقلّة' },
-    { name: 'أطلس للسباكة', trade: 'الصيانة', area: 'جدة', missions: 96, kind: 'منشأة' },
-    { name: 'مغسلة الوفاء', trade: 'الغسيل', area: 'الرياض', missions: 84, kind: 'منشأة' },
-    { name: 'نور ه.', trade: 'الحديقة والمسبح', area: 'الخبر', missions: 61, kind: 'مستقلّة' },
-    { name: 'يوسف ع.', trade: 'الاستقبال والكونسيرج', area: 'الدرعية', missions: 57, kind: 'مستقلّ' },
-    { name: 'الشيف كريم', trade: 'الطهاة والتجارب', area: 'جدة', missions: 43, kind: 'مستقلّ' },
-  ],
-  categoriesTitle: 'مهما كانت مهنتك، لها مكان هنا.',
+    "النظافة والصيانة واستقبال الضيوف: اكتشف كيف يمكن لخدماتك مساعدة المضيفين وضيوفهم. جهّز ملفك للإطلاق.",
+  ctaJoin: "تحضير ملفي",
+  ctaExplore: "اكتشاف المهن",
+  openingNote:
+    "الشبكة قيد الإعداد. سيتم توضيح المناطق والرسوم وشروط المهام قبل أي التزام.",
+  previewLabel: "معاينة المنتج · مهمة توضيحية",
+  previewTitle: "وحدة جاهزة لاستقبال الضيوف.",
+  previewCopy: "التعليمات والصور والاعتماد في مهمة واحدة.",
+  previewSteps: ["التعليمات", "الصور", "الاعتماد"],
+  categoriesTitle: "المهارات المناسبة لكل إقامة.",
   categoriesCopy:
-    'هل تقدّم خدمة في محيط الإيجار قصير الأمد؟ انشر عرضك ودع المضيفين وشركات الإدارة يأتون إليك.',
-  categories: [
-    {
-      name: 'التنظيف والعناية',
-      copy: 'تنظيف بين إقامتين، وتجهيز شامل، وتجديد المستهلكات.',
-      examples: ['عامل أو عاملة تنظيف', 'فريق تنظيف', 'تجهيز ما بعد الإقامة'],
-    },
-    {
-      name: 'الصيانة والأعمال الصغيرة',
-      copy: 'سباكة، وكهرباء، وأقفال، وإصلاحات وتدخّلات عاجلة.',
-      examples: ['سبّاك أو كهربائي', 'فنّي متعدّد المهام', 'استدعاء طارئ 24/7'],
-    },
-    {
-      name: 'الغسيل والبياضات',
-      copy: 'جمع وغسل وكيّ وتوصيل بياضات المنزل والحمّام.',
-      examples: ['مغسلة', 'تأجير بياضات فندقية', 'جمع وتوصيل'],
-    },
-    {
-      name: 'الحديقة والمسبح',
-      copy: 'العناية بالمساحات الخضراء، وتنظيف المسابح ومعالجة مياهها.',
-      examples: ['بستاني أو منسّق حدائق', 'فنّي مسابح', 'معالجة المياه'],
-    },
-    {
-      name: 'الاستقبال والكونسيرج',
-      copy: 'استقبال ومغادرة بحضور شخصي، وتسليم المفاتيح، ومساندة النزلاء.',
-      examples: ['موظف استقبال', 'تسليم مفاتيح', 'كونسيرج محلي'],
-    },
-    {
-      name: 'الطهاة والتجارب',
-      copy: 'طاهٍ في الموقع، وتموين، وتوصيل وأنشطة تُباع للنزلاء.',
-      examples: ['طاهٍ خاص', 'سائق وتوصيل', 'مرشد وأنشطة'],
-    },
-  ],
-  howTitle: 'من التسجيل إلى الدفع، في أربع خطوات.',
-  howBadge: 'كيف يعمل',
+    "اكتشف ست فئات من الخدمات. الصور توضيحية للمهن ولا تمثّل مقدّمي خدمات مسجّلين بالفعل.",
+  howTitle: "جهّز مسارك، خطوة بخطوة.",
+  howBadge: "عند الإطلاق",
   steps: [
     {
-      title: 'أنشئ ملفك',
-      copy: 'المهنة، ونطاق العمل، والأسعار، والتوفّر، والوثائق. الاعتماد خلال 48 ساعة.',
+      title: "التعريف بنشاطك",
+      copy: "حدّد مهنتك ومنطقتك والمعلومات اللازمة لدراسة ملفك.",
     },
     {
-      title: 'استقبل المهام',
-      copy: 'يعرض عليك المضيفون وشركات الإدارة من حولك مهامّهم. بلا أي بحث عن عملاء.',
+      title: "مراجعة المهمة",
+      copy: "اطّلع على المكان والتعليمات والسعر والشروط قبل الالتزام.",
     },
     {
-      title: 'نفّذ وأثبت',
-      copy: 'قائمة تحقّق على الهاتف، وصور قبل وبعد، ومصادقة بحركة واحدة.',
+      title: "مشاركة العمل المنجز",
+      copy: "استخدم قائمة التحقّق وأضف الصور اللازمة لاعتماد التدخّل.",
     },
     {
-      title: 'استلم مستحقك دون مطالبة',
-      copy: 'الدفع يُطلَق عند الإثبات، وتحوّله المنصّة. وانتهى زمن الفواتير المعلّقة.',
+      title: "متابعة الاعتماد",
+      copy: "احتفظ بسجل المهمة والتسوية وفق الشروط المتفق عليها.",
     },
   ],
-  appEyebrow: 'تطبيق المزوّد',
-  appTitle: 'مهامك وجدولك وإثباتاتك — في شاشة واحدة.',
+  appEyebrow: "معاينة التطبيق",
+  appTitle: "العمل المطلوب، بنظرة واحدة.",
   appCopy:
-    'تجد مهام يومك، وعنوان كل وحدة وتعليماتها، وقائمة التحقق، وصور قبل وبعد لإرفاقها. وبمجرد الاعتماد ينطلق الدفع وحده.',
+    "يجمع العرض التوضيحي الجدول والتعليمات وتقدّم المهمة. استكشفه لتتصوّر عملك اليومي.",
   appPoints: [
-    'مهام تُسنَد تلقائياً حسب نطاقك',
-    'قائمة تحقّق وإثبات مصوّر إلزاميان لكل مهمة',
-    'مسار محسَّن بين وحدتين',
-    'السجل والإيرادات متاحان في أي وقت',
+    "الوحدة وتعليمات المهمة",
+    "قائمة تحقّق وصور مرتبطة بها",
+    "تقدّم مشترك مع المضيف",
   ],
-  benefitsTitle: 'لماذا تنضم إلى شبكة بايتلي.',
-  benefits: [
+  sampleNotice: "عرض توضيحي ببيانات افتراضية.",
+  appAction: "استكشاف عرض العمليات",
+  finalTitle: "لنعدّ الخطوة التالية بخبرتك.",
+  finalCopy:
+    "جهّز ملفك. سيتم الإعلان عن فتح الشبكة وشروط الانضمام عند الإطلاق.",
+  finalQuestion: "فهم الخطوات",
+  categories: [
     {
-      title: 'أجندة تمتلئ',
-      copy: 'تدفّق منتظم من المهام قربك، بلا ميزانية إعلان ولا تسويق مباشر.',
+      name: "التنظيف والعناية",
+      copy: "تنظيف بين إقامتين، وتجهيز شامل، وتجديد المستهلكات.",
+      examples: ["عامل أو عاملة تنظيف", "فريق تنظيف", "تجهيز ما بعد الإقامة"],
     },
     {
-      title: 'دفع مضمون',
-      copy: 'التسوية مؤمَّنة لدى بايتلي وتُطلَق عند إثبات الإنجاز.',
+      name: "الصيانة والأعمال الصغيرة",
+      copy: "سباكة، وكهرباء، وأقفال، وإصلاحات وتدخّلات عاجلة.",
+      examples: ["سبّاك أو كهربائي", "فنّي متعدّد المهام", "استدعاء طارئ 24/7"],
     },
     {
-      title: 'سمعة لها وزن',
-      copy: 'كل مهمة مُتقنة ترفع تقديرك وتفتح لك طلبات أكثر.',
+      name: "الغسيل والبياضات",
+      copy: "جمع وغسل وكيّ وتوصيل بياضات المنزل والحمّام.",
+      examples: ["مغسلة", "تأجير بياضات فندقية", "جمع وتوصيل"],
     },
     {
-      title: 'كل شيء من الهاتف',
-      copy: 'الجدول والمسار وقوائم التحقق والإثباتات المصوّرة في تطبيق واحد.',
+      name: "الحديقة والمسبح",
+      copy: "العناية بالمساحات الخضراء، وتنظيف المسابح ومعالجة مياهها.",
+      examples: ["بستاني أو منسّق حدائق", "فنّي مسابح", "معالجة المياه"],
+    },
+    {
+      name: "الاستقبال والكونسيرج",
+      copy: "استقبال ومغادرة بحضور شخصي، وتسليم المفاتيح، ومساندة النزلاء.",
+      examples: ["موظف استقبال", "تسليم مفاتيح", "كونسيرج محلي"],
+    },
+    {
+      name: "الطهاة والتجارب",
+      copy: "طاهٍ في الموقع، وتموين، وتوصيل وأنشطة تُباع للنزلاء.",
+      examples: ["طاهٍ خاص", "سائق وتوصيل", "مرشد وأنشطة"],
     },
   ],
-  finalTitle: 'جاهز لملء أجندتك؟',
-  finalCopy: 'أنشئ ملفك في دقائق. مجاناً، ولا تدفع إلا على المهام المنجزة.',
-  finalQuestion: 'اطرح سؤالاً',
 };
 
-export const PROVIDERS_MESSAGES: Record<SiteLanguage, ProvidersMessages> = { fr, en, ar };
+export const PROVIDERS_MESSAGES: Record<SiteLanguage, ProvidersMessages> = {
+  fr,
+  en,
+  ar,
+};

@@ -1,0 +1,505 @@
+/* Six usages distincts, dans le cadre commun et fixe du mega-menu. */
+.bns-solution {
+  height: 100%;
+  color: var(--bl-ink);
+}
+.bns-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 21px;
+  margin-bottom: 7px;
+  color: var(--bl-surface-ink);
+}
+.bns-heading > strong {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+}
+.bns-heading > svg {
+  width: 14px;
+  height: 14px;
+}
+.bns-heading .bns-example {
+  margin-inline-start: auto;
+}
+.bnv-preview .bns-example {
+  color: var(--bl-muted);
+  font-size: 7px;
+  font-weight: 400;
+}
+.bns-caption {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: 8px;
+  color: #326557;
+}
+.bns-caption svg {
+  width: 12px;
+  height: 12px;
+}
+.bns-dispatch-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 33px;
+  border-bottom: 1px solid var(--bl-line);
+}
+.bns-dispatch-row > img {
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
+}
+.bns-dispatch-row > span {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+}
+.bns-team {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #dce6e9;
+  color: #3d5967;
+  font-size: 7px;
+  font-weight: 500;
+}
+.bns-dispatch-row > svg {
+  width: 12px;
+  height: 12px;
+  color: #326557;
+}
+
+.bnv-preview.bnv-scene-host {
+  background: #e8eeeb;
+}
+.bns-host-layout {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 15px;
+  align-items: center;
+  height: 100%;
+}
+.bns-phone {
+  height: 156px;
+  padding: 8px 7px;
+  border: 2px solid #3c5652;
+  border-radius: 14px;
+  background: #f8faf7;
+}
+.bns-phone-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #3c5652;
+  font-size: 7px;
+}
+.bns-phone-date {
+  display: block;
+  font-size: 8px;
+  margin: 7px 0 6px;
+}
+.bns-message {
+  padding: 6px;
+  border-radius: 0 7px 7px;
+  background: #e6edeb;
+}
+.bns-message > svg {
+  width: 12px;
+  height: 12px;
+  color: #3c5652;
+}
+.bns-message strong {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+.bns-message i {
+  display: block;
+  height: 2px;
+  margin-top: 5px;
+  width: 90%;
+  background: #b2c7c1;
+}
+.bns-message i:last-child {
+  width: 65%;
+}
+.bns-phone-approve {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 5px 6px;
+  border-radius: 4px;
+  background: #365b50;
+  color: #f0f6f3;
+  font-size: 8px;
+}
+.bns-phone-approve svg {
+  width: 11px;
+  height: 11px;
+}
+.bns-host-copy {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+.bns-host-copy > svg {
+  width: 24px;
+  height: 24px;
+  color: #365b50;
+}
+.bns-host-copy > strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.bns-host-copy > span {
+  font-size: 9px;
+  color: #46635c;
+  line-height: 1.5;
+}
+
+.bnv-preview.bnv-scene-riad {
+  background: #f0eade;
+}
+.bns-property-photo {
+  width: 21px;
+  height: 21px;
+  border-radius: 4px;
+}
+.bns-room-calendar {
+  border: 1px solid #d8cebd;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #faf8f1;
+}
+.bns-room-dates {
+  display: grid;
+  grid-template-columns: 52px repeat(5, 1fr);
+  border-bottom: 1px solid #d8cebd;
+  color: #655849;
+  font-size: 8px;
+  text-align: center;
+}
+.bns-room-dates > span {
+  padding-block: 4px;
+}
+.bns-room-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  height: 24px;
+}
+.bns-room-row > span {
+  display: flex;
+  align-items: center;
+  padding-inline-start: 5px;
+  border-inline-end: 1px solid #d8cebd;
+  font-size: 8px;
+  color: #514a3c;
+}
+.bns-room-row + .bns-room-row {
+  border-top: 1px solid #e4ddcf;
+}
+.bns-room-track {
+  position: relative;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0 calc(20% - 1px),
+    #e4ddcf calc(20% - 1px) 20%
+  );
+}
+.bns-room-booking {
+  position: absolute;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 8px;
+  line-height: 1.4;
+}
+.bns-room-booking svg {
+  width: 10px;
+  height: 10px;
+}
+
+.bnv-preview.bnv-scene-saudi {
+  background: #e7eeea;
+}
+.bns-saudi-layout {
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.bns-invoice {
+  padding: 10px 11px;
+  border: 1px solid #c3d2c9;
+  border-radius: 4px 4px 12px 4px;
+  background: #f8faf5;
+  color: #305448;
+}
+.bns-invoice > small {
+  font-size: 7px;
+  color: #5a7569;
+}
+.bns-invoice > strong {
+  display: block;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+.bns-document-lines {
+  margin-block: 8px;
+}
+.bns-document-lines i {
+  display: block;
+  height: 2px;
+  margin-top: 5px;
+  background: #c3d2c9;
+}
+.bns-document-lines i:nth-child(2) {
+  width: 80%;
+}
+.bns-document-lines i:last-child {
+  width: 55%;
+}
+.bns-invoice > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #dae3db;
+  padding-top: 5px;
+  font-size: 9px;
+}
+.bns-compliance-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bns-compliance-steps > span {
+  display: grid;
+  grid-template-columns: 1fr 12px;
+  column-gap: 5px;
+  align-items: center;
+}
+.bns-compliance-steps small {
+  grid-column: 1 / -1;
+  color: #546c61;
+  font-size: 8px;
+}
+.bns-compliance-steps strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: #305448;
+}
+.bns-compliance-steps svg {
+  width: 12px;
+  height: 12px;
+  color: #326557;
+}
+.bns-compliance-steps > span:last-child {
+  --bnv-delay: 650ms;
+}
+
+.bnv-preview.bnv-scene-morocco {
+  background: #f0e8db;
+}
+.bns-guest-file {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 9px;
+  min-height: 77px;
+  padding: 10px;
+  border: 1px solid #d9cdbb;
+  border-radius: 5px;
+  background: #faf8f1;
+  color: #5a4932;
+}
+.bns-guest-initials {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 31px;
+  height: 39px;
+  border-radius: 16px 16px 4px 4px;
+  background: #e5d8c0;
+  font-size: 11px;
+}
+.bns-guest-file > div {
+  flex: 1;
+  min-width: 0;
+}
+.bns-guest-file strong,
+.bns-guest-file small,
+.bns-guest-file > div > span {
+  display: block;
+}
+.bns-guest-file strong {
+  font-size: 9px;
+  font-weight: 600;
+}
+.bns-guest-file small {
+  margin-top: 4px;
+  font-size: 7px;
+  color: #75634d;
+}
+.bns-guest-file > div > span {
+  font-size: 8px;
+}
+.bns-guest-file > b {
+  position: absolute;
+  inset-inline-end: 8px;
+  inset-block-start: 7px;
+  font-size: 7px;
+  color: #75634d;
+  font-weight: 500;
+}
+.bns-guest-file > svg {
+  width: 13px;
+  height: 13px;
+  align-self: flex-end;
+  color: #326557;
+}
+.bns-local-tax {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+.bns-local-tax > span {
+  flex: 1;
+  font-size: 9px;
+}
+.bns-local-tax small {
+  display: block;
+  color: #75634d;
+  font-size: 7px;
+  margin-top: 2px;
+}
+.bns-local-tax > b {
+  font-size: 9px;
+  font-weight: 500;
+  color: #5a4932;
+}
+.bns-local-tax img {
+  width: 42px;
+  height: 17px;
+  object-fit: contain;
+}
+
+.bns-owner-title {
+  margin: 0;
+  font-size: 9px;
+  text-align: center;
+}
+.bnv-preview .bns-owner-routing {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin-top: 4px;
+  overflow: visible;
+}
+.bns-owner-routing path {
+  stroke: #8fa9b5;
+  stroke-width: 1;
+  fill: none;
+}
+.bns-owner-routing .bns-routing-data {
+  stroke: #315477;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.01 200;
+  opacity: 0;
+}
+.bns-owner-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.bns-owner-columns > div {
+  padding: 7px 8px;
+  border: 1px solid var(--bl-line);
+  border-radius: 6px;
+  background: var(--bl-paper);
+}
+.bns-owner-person {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.bns-owner-person > b {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  background: #dce6e9;
+  color: #3d5967;
+  border-radius: 50%;
+  font-size: 7px;
+  font-weight: 400;
+}
+.bns-owner-person > strong {
+  font-size: 9px;
+  font-weight: 500;
+}
+.bns-owner-columns > div > span:not(:first-child) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8px;
+}
+.bns-owner-columns svg {
+  width: 10px;
+  height: 10px;
+}
+.bns-owner-payout {
+  margin-top: 5px;
+  color: #326557;
+}
+.bns-owner-payout > svg:last-child {
+  margin-inline-start: auto;
+}
+.bns-solution[dir='rtl'] .bns-owner-payout > svg:first-child {
+  transform: scaleX(-1);
+}
+
+@keyframes bns-route {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  8% {
+    stroke-dashoffset: -8;
+    opacity: 1;
+  }
+  85% {
+    stroke-dashoffset: -100;
+    opacity: 1;
+  }
+  86%,
+  100% {
+    stroke-dashoffset: -100;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bns-room-booking {
+    animation: bnv-arrive 400ms ease-out var(--bnv-delay, 0ms) both;
+  }
+  .bns-routing-data {
+    animation: bns-route 3s linear infinite;
+  }
+}

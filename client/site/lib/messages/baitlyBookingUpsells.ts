@@ -90,7 +90,7 @@ const fr: BookingUpsellMessages = {
   total: 'Total des extras',
   value: 'de ventes additionnelles dans cet exemple',
   tryIt: 'Essayez d’ajouter une option',
-  note: 'Sélection de démonstration, tarifs illustratifs en euros. Les offres et modalités de réservation dépendent de votre catalogue et de vos partenaires. Aucun achat réel.',
+  note: 'Sélection de démonstration, tarifs et conversions illustratifs. Les offres et modalités de réservation dépendent de votre catalogue et de vos partenaires. Aucun achat réel.',
   ownTitle: 'Vos services, vos prix',
   ownCopy:
     'Mettez en avant vos propres prestations et fixez leurs tarifs. Un départ tardif ou un dîner devient une offre visible, au lieu de rester une demande par message.',
@@ -157,7 +157,7 @@ const en: BookingUpsellMessages = {
   total: 'Extras total',
   value: 'in additional sales in this example',
   tryIt: 'Try adding an option',
-  note: 'Demo selection with illustrative prices in euros. Offers and booking terms depend on your catalogue and partners. No actual purchase.',
+  note: 'Demo selection with illustrative prices and conversions. Offers and booking terms depend on your catalogue and partners. No actual purchase.',
   ownTitle: 'Your services, your prices',
   ownCopy:
     'Showcase your own services and set their prices. Late check-out or dinner becomes a visible offer, instead of a request buried in messages.',
@@ -215,7 +215,7 @@ const ar: BookingUpsellMessages = {
   total: 'إجمالي الإضافات',
   value: 'مبيعات إضافية في هذا المثال',
   tryIt: 'جرّب إضافة خيار',
-  note: 'اختيارات تجريبية وأسعار توضيحية باليورو. تعتمد العروض وشروط الحجز على كتالوجك وشركائك. لا يوجد شراء فعلي.',
+  note: 'اختيارات تجريبية وأسعار وتحويلات توضيحية. تعتمد العروض وشروط الحجز على كتالوجك وشركائك. لا يوجد شراء فعلي.',
   ownTitle: 'خدماتك وأسعارك',
   ownCopy:
     'أبرز خدماتك الخاصة وحدد أسعارها. تصبح المغادرة المتأخرة أو وجبة العشاء عرضاً ظاهراً، بدلاً من طلب ضمن الرسائل.',

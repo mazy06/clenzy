@@ -1,3 +1,5 @@
+import { SiteCurrencySymbol } from "../components/SiteMoney";
+import { SITE_CURRENCIES, type SiteCurrency } from "../lib/siteCurrency";
 import BaitlyTurnstile from '../../src/components/BaitlyTurnstile';
 import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
@@ -386,14 +388,14 @@ function ApplicationForm({ onSubmitted }: { onSubmitted: (token: string) => void
                           ))}
                         </NativeSelect>
                         {row.pricingModel !== 'ON_QUOTE' && (
-                          <Input
+                          <span className="flex items-center gap-1.5"><Input
                             aria-label={m.amount}
                             value={row.amount}
                             onChange={(e) => updateOffer(row.key, { amount: e.target.value })}
                             inputMode="decimal"
-                            placeholder={currency}
+                            placeholder="0"
                             className="tabular-nums sm:w-[110px]"
-                          />
+                          />{SITE_CURRENCIES.includes(currency as SiteCurrency) ? <SiteCurrencySymbol currency={currency as SiteCurrency} /> : <span>{currency}</span>}</span>
                         )}
                         {row.pricingModel === 'PER_UNIT' && <Input aria-label={m.unit} placeholder={m.unitHint}
                           value={row.unitLabel ?? ''} maxLength={40} required

@@ -1,0 +1,208 @@
+import type { SiteLanguage } from '../siteLanguage';
+const fr = {
+  selection: 'Votre sélection',
+  selectionNote: 'Ces choix accompagnent votre demande, sans souscription.',
+  eyebrow: 'Contact & accompagnement',
+  title: 'Parlons de votre\nprochain chapitre.',
+  intro:
+    'Un projet, une migration ou une question précise ? Donnez-nous le contexte pour vous répondre utilement.',
+  demoTitle: 'Une démo qui part\nde votre quotidien.',
+  demoIntro:
+    'Décrivez votre activité et ce que vous souhaitez découvrir. L’équipe vous répondra pour organiser un échange ; ce formulaire ne réserve pas de créneau.',
+  prelaunch: 'Baitly se prépare à ouvrir.',
+  prelaunchCopy:
+    'Vous pouvez déjà explorer les démonstrations et nous écrire. Une demande de contact ne vous inscrit pas à une newsletter.',
+  company: 'Éditeur de Baitly',
+  location: 'Riyad, Arabie saoudite',
+  steps: [
+    'Vous décrivez votre besoin',
+    'Votre demande arrive à l’équipe',
+    'Nous échangeons par email',
+  ],
+  formTitle: 'Votre message',
+  name: 'Votre nom',
+  email: 'Votre email',
+  subject: 'Vous souhaitez…',
+  subjects: [
+    'Poser une question',
+    'Découvrir le produit',
+    'Préparer une migration',
+    'Parler de données personnelles',
+  ],
+  message: 'Votre besoin en quelques mots',
+  messageHint:
+    'Pays, activité, outils actuels… Les informations utiles pour comprendre votre projet.',
+  properties: 'Nombre de logements (facultatif)',
+  tool: 'Outil actuel (facultatif)',
+  optional: 'Facultatif',
+  send: 'Envoyer ma demande',
+  sending: 'Enregistrement…',
+  privacy:
+    'Ces informations servent à traiter votre demande et à vous répondre.',
+  privacyLink: 'Politique de confidentialité',
+  success: 'Votre demande est enregistrée.',
+  successCopy:
+    'Elle est disponible pour l’équipe Baitly. La réponse sera envoyée à l’email que vous avez indiqué.',
+  noAppointment: 'Aucun rendez-vous ni abonnement n’a été créé.',
+  again: 'Écrire un autre message',
+  error:
+    'L’enregistrement n’a pas pu être confirmé. Votre saisie est conservée ; vous pouvez réessayer.',
+  limited:
+    'Trop de tentatives. Votre saisie est conservée ; réessayez dans une heure.',
+  invalid: 'Vérifiez les champs obligatoires et votre adresse email.',
+  explore: 'Explorer les démos',
+  honeypot: 'Laissez ce champ vide',
+  back: 'Retour à l’accueil',
+  notFound: 'Cette page a changé d’adresse,\nou n’existe pas.',
+  notFoundCopy:
+    'Retrouvez les fonctionnalités Baitly ou repartez de l’accueil.',
+  products: 'Découvrir le planning',
+  legal: 'Documents',
+  legalTag: 'Informations légales',
+  updated: 'Dernière mise à jour',
+  legalDraft:
+    'Documents en cours de finalisation. Les informations entre 〔…〕 et les clauses héritées du projet initial doivent encore être vérifiées avant le lancement.',
+  reference: 'La version française est la version de référence du corpus.',
+  status: 'Statut du service',
+  contact: 'Contacter l’équipe',
+  known: 'Informations communiquées par l’éditeur',
+  legalPending:
+    'La forme juridique, l’immatriculation, l’adresse complète et les mentions d’hébergement restent à confirmer.',
+};
+type ContactMessages = typeof fr;
+export const BAITLY_CONTACT_MESSAGES: Record<SiteLanguage, ContactMessages> = {
+  fr,
+  en: {
+    selection: 'Your selection',
+    selectionNote: 'These choices accompany your request. They do not create a subscription.',
+    eyebrow: 'Contact & support',
+    title: 'Let’s talk about\nyour next chapter.',
+    intro:
+      'A project, a migration or a specific question? Share the context so we can give you a useful answer.',
+    demoTitle: 'A demo shaped around\nyour day-to-day work.',
+    demoIntro:
+      'Tell us about your business and what you would like to explore. The team will reply to arrange a conversation; this form does not book a time slot.',
+    prelaunch: 'Baitly is preparing to open.',
+    prelaunchCopy:
+      'You can already explore the demos and contact us. A contact request does not subscribe you to a newsletter.',
+    company: 'Baitly publisher',
+    location: 'Riyadh, Saudi Arabia',
+    steps: [
+      'Describe what you need',
+      'Your request reaches the team',
+      'We follow up by email',
+    ],
+    formTitle: 'Your message',
+    name: 'Your name',
+    email: 'Your email',
+    subject: 'You would like to…',
+    subjects: [
+      'Ask a question',
+      'Explore the product',
+      'Prepare a migration',
+      'Discuss personal data',
+    ],
+    message: 'A few words about your needs',
+    messageHint:
+      'Country, business, current tools… Details that help us understand your project.',
+    properties: 'Number of properties (optional)',
+    tool: 'Current tool (optional)',
+    optional: 'Optional',
+    send: 'Send my request',
+    sending: 'Saving…',
+    privacy: 'These details are used to handle your request and reply to you.',
+    privacyLink: 'Privacy policy',
+    success: 'Your request has been saved.',
+    successCopy:
+      'It is available to the Baitly team. A reply will be sent to the email address you provided.',
+    noAppointment: 'No appointment or subscription has been created.',
+    again: 'Write another message',
+    error:
+      'We could not confirm that your request was saved. Your input is preserved; you can try again.',
+    limited:
+      'Too many attempts. Your input is preserved; please try again in an hour.',
+    invalid: 'Check the required fields and your email address.',
+    explore: 'Explore the demos',
+    honeypot: 'Leave this field empty',
+    back: 'Back to home',
+    notFound: 'This page has moved,\nor does not exist.',
+    notFoundCopy: 'Explore Baitly’s features or return to the home page.',
+    products: 'Explore the calendar',
+    legal: 'Documents',
+    legalTag: 'Legal information',
+    updated: 'Last updated',
+    legalDraft:
+      'Documents are being finalised. Information marked 〔…〕 and clauses inherited from the original project still need to be verified before launch.',
+    reference: 'The French version is the reference version of this corpus.',
+    status: 'Service status',
+    contact: 'Contact the team',
+    known: 'Information supplied by the publisher',
+    legalPending:
+      'Legal form, registration, full address and hosting details still need confirmation.',
+  },
+  ar: {
+    selection: 'اختيارك',
+    selectionNote: 'ترافق هذه الخيارات طلبك ولا تنشئ أي اشتراك.',
+    eyebrow: 'التواصل والمرافقة',
+    title: 'لنتحدث عن\nخطوتك القادمة.',
+    intro: 'مشروع أو انتقال أو سؤال محدد؟ شاركنا السياق لنقدم لك إجابة مفيدة.',
+    demoTitle: 'عرض ينطلق من\nعملك اليومي.',
+    demoIntro:
+      'أخبرنا عن نشاطك وما تريد اكتشافه. سيرد الفريق لترتيب حوار؛ هذا النموذج لا يحجز موعداً.',
+    prelaunch: 'تستعد Baitly للإطلاق.',
+    prelaunchCopy:
+      'يمكنك استكشاف العروض ومراسلتنا الآن. طلب التواصل لا يشترك بك في نشرة بريدية.',
+    company: 'ناشر Baitly',
+    location: 'الرياض، المملكة العربية السعودية',
+    steps: [
+      'تصف احتياجك',
+      'يصل طلبك إلى الفريق',
+      'نتواصل عبر البريد الإلكتروني',
+    ],
+    formTitle: 'رسالتك',
+    name: 'اسمك',
+    email: 'بريدك الإلكتروني',
+    subject: 'تودّ…',
+    subjects: [
+      'طرح سؤال',
+      'اكتشاف المنتج',
+      'التحضير للانتقال',
+      'الاستفسار عن البيانات الشخصية',
+    ],
+    message: 'احتياجك في بضع كلمات',
+    messageHint:
+      'البلد والنشاط والأدوات الحالية… معلومات تساعدنا على فهم مشروعك.',
+    properties: 'عدد الوحدات (اختياري)',
+    tool: 'الأداة الحالية (اختياري)',
+    optional: 'اختياري',
+    send: 'إرسال طلبي',
+    sending: 'جارٍ الحفظ…',
+    privacy: 'تُستخدم هذه المعلومات لمعالجة طلبك والرد عليك.',
+    privacyLink: 'سياسة الخصوصية',
+    success: 'تم حفظ طلبك.',
+    successCopy:
+      'الطلب متاح لفريق Baitly. سيُرسل الرد إلى البريد الإلكتروني الذي أدخلته.',
+    noAppointment: 'لم يتم إنشاء أي موعد أو اشتراك.',
+    again: 'كتابة رسالة أخرى',
+    error: 'تعذّر تأكيد حفظ الطلب. احتُفظ بإدخالاتك ويمكنك المحاولة مجدداً.',
+    limited: 'محاولات كثيرة. احتُفظ بإدخالاتك؛ حاول مجدداً بعد ساعة.',
+    invalid: 'تحقق من الحقول المطلوبة وبريدك الإلكتروني.',
+    explore: 'استكشاف العروض',
+    honeypot: 'اترك هذا الحقل فارغاً',
+    back: 'العودة إلى الرئيسية',
+    notFound: 'انتقلت هذه الصفحة،\nأو أنها غير موجودة.',
+    notFoundCopy: 'اكتشف ميزات Baitly أو عد إلى الصفحة الرئيسية.',
+    products: 'اكتشاف الجدول',
+    legal: 'المستندات',
+    legalTag: 'معلومات قانونية',
+    updated: 'آخر تحديث',
+    legalDraft:
+      'المستندات قيد الاستكمال. المعلومات بين 〔…〕 والبنود الموروثة من المشروع الأصلي تحتاج إلى التحقق قبل الإطلاق.',
+    reference: 'النسخة الفرنسية هي النسخة المرجعية لهذه المستندات.',
+    status: 'حالة الخدمة',
+    contact: 'التواصل مع الفريق',
+    known: 'معلومات قدّمها الناشر',
+    legalPending:
+      'لا يزال الشكل القانوني والتسجيل والعنوان الكامل وتفاصيل الاستضافة بحاجة إلى تأكيد.',
+  },
+};

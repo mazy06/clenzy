@@ -19,6 +19,8 @@ import ProviderSignupPage from './pages/ProviderSignupPage';
 import ProviderActivationPage from './pages/ProviderActivationPage';
 import LegalPage from './pages/legal/LegalPage';
 import StatusPage from './pages/StatusPage';
+import ContactPage from './pages/ContactPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Product projections are only needed after the visitor opens their route.
 const ModulePage = lazy(() => import('./pages/ModulePage'));
@@ -81,7 +83,8 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/register" element={<RegistrationRoute />} />
               <Route path="/legal/:slug" element={<LegalPage />} />
               <Route path="/statut" element={<StatusPage />} />
-              <Route path="*" element={<HomePage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
         </SiteLaunchProvider>

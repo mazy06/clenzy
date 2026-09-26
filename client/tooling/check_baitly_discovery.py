@@ -86,7 +86,7 @@ def check(client, binary):
                 status, headers, body = request(port, f"{path}?lang={language}", "text/markdown")
                 assert status == 200, (path, status)
                 assert headers["content-type"] == "text/markdown; charset=utf-8", (path, headers)
-                assert headers["content-language"] == ("fr" if path.startswith("/legal/") else language)
+                assert headers["content-language"] == language
                 assert body.startswith("# ") and len(body) > 100
                 assert "Accept" in headers["vary"] and "no-store" in headers["cache-control"]
                 assert 'rel="describedby"' in headers["link"]
@@ -102,9 +102,18 @@ def check(client, binary):
         status, headers, body = request(port, "/", "text/markdown", method="HEAD")
         assert status == 200 and headers["content-type"].startswith("text/markdown") and not body
         assert request(port, "/?lang=../en", "text/markdown")[1]["content-language"] == "fr"
-        for path in ["/prestataires/inscription", "/prestataires/activation?token=private", "/unknown"]:
-            assert request(port, path, "text/markdown")[1]["content-type"].startswith("text/html")
+        for path in ["/prestataires/inscription", "/prestataires/activation?token=private", "/inscription", "/register"]:
+            status, headers, body = request(port, path, "text/markdown")
+            assert status == 200 and headers["content-type"].startswith("text/html"), (path, status, headers)
+            assert '<meta name="robots" content="noindex, follow">' in body
+            assert "link" not in headers
+        for language in ["fr", "en", "ar"]:
+            status, headers, body = request(port, f"/unknown?lang={language}")
+            assert status == 404 and headers["content-type"].startswith("text/html")
+            assert f'<html lang="{language}"' in body
+            assert '<title>404 | Baitly</title>' in body
         assert request(port, "/_baitly-markdown/fr/index.md")[0] == 404
+        assert request(port, "/_baitly-html/fr/index.html")[0] == 404
         status, headers, body = request(port, "/llms.txt")
         assert status == 200 and headers["content-type"].startswith("text/plain") and body.startswith("# Baitly")
     with nginx_server(binary, client, "dist", False) as port:

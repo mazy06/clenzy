@@ -1,3 +1,4 @@
+import type { SiteMoneyFormatter } from './SiteMoney';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
@@ -14,7 +15,7 @@ export default function BaitlyBookingDirectRate({
   nights,
 }: {
   amount: number;
-  money: (amount: number) => string;
+  money: SiteMoneyFormatter;
   nights: string;
 }) {
   const { language } = useSiteLanguage();

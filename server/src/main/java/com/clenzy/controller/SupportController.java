@@ -3,20 +3,26 @@ package com.clenzy.controller;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.ReceivedFormService;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.util.ClientIpResolver;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Controleur public pour les demandes de support depuis la page d'authentification PMS.
+ * Réception publique des demandes Baitly (site et page d'authentification PMS).
  * Aucune authentification requise (endpoint public).
  *
  * POST /api/public/support
@@ -26,6 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @RestController
 @RequestMapping("/api/public")
+@PreAuthorize("permitAll()") // Déjà couvert par /api/public/** dans SecurityConfigProd.
 public class SupportController {
 
     private static final Logger log = LoggerFactory.getLogger(SupportController.class);
@@ -34,7 +41,8 @@ public class SupportController {
     private final NotificationService notificationService;
 
     // Rate limiter simple en memoire : IP -> liste de timestamps
-    private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
+    private final Cache<String, List<Instant>> rateLimitMap = Caffeine.newBuilder()
+            .maximumSize(10_000).expireAfterAccess(Duration.ofHours(1)).build();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
     // Labels de sujets correspondant a Support.tsx
@@ -43,7 +51,11 @@ public class SupportController {
             "technical", "Probleme technique",
             "billing", "Facturation / abonnement",
             "feature", "Demande de fonctionnalite",
-            "other", "Autre"
+            "other", "Autre",
+            "demo", "Découverte du produit",
+            "migration", "Préparer une migration",
+            "contact", "Question avant de démarrer",
+            "privacy", "Données personnelles"
     );
 
     public SupportController(ReceivedFormService receivedFormService,
@@ -55,58 +67,70 @@ public class SupportController {
     @PostMapping("/support")
     public ResponseEntity<?> submitSupportRequest(@RequestBody Map<String, String> body, HttpServletRequest request) {
 
-        String name = body.getOrDefault("name", "").trim();
-        String email = body.getOrDefault("email", "").trim();
-        String phone = body.getOrDefault("phone", "").trim();
-        String subject = body.getOrDefault("subject", "").trim();
-        String message = body.getOrDefault("message", "").trim();
+        if (body == null) return ResponseEntity.badRequest().body(Map.of("status", "error"));
+        String name = value(body, "name");
+        String email = value(body, "email");
+        String phone = value(body, "phone");
+        String subject = value(body, "subject");
+        String message = value(body, "message");
 
         // 1. Rate limiting
-        String clientIp = getClientIp(request);
+        String clientIp = ClientIpResolver.resolve(request.getRemoteAddr(),
+                request.getHeader("X-Forwarded-For"), request.getHeader("X-Real-IP"));
         if (isRateLimited(clientIp)) {
-            log.warn("Rate limit support depasse pour l'IP : {}", clientIp);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("status", "error", "message", "Trop de demandes. Veuillez reessayer dans une heure."));
         }
 
         // 2. Validation
-        if (name.isEmpty()) {
+        if (name.isEmpty() || name.length() > 120) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Le nom est requis."));
         }
-        if (email.isEmpty() || !email.matches("^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$")) {
+        if (email.length() > 254 || !email.matches("^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$")) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "L'adresse email n'est pas valide."));
         }
-        if (subject.isEmpty()) {
+        if (subject.isEmpty() || subject.length() > 100 || phone.length() > 50) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Le sujet est requis."));
         }
-        if (message.isEmpty()) {
+        if (message.isEmpty() || message.length() > 5000) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Le message est requis."));
         }
 
-        // 3. Sauvegarde en BDD
+        // Ne conserver que les champs attendus, avec une taille bornée.
+        Map<String, String> payload = new LinkedHashMap<>();
+        for (String key : List.of("name", "email", "phone", "subject", "message", "language", "source", "properties", "tool", "plan", "market")) {
+            String field = value(body, key);
+            if (!"message".equals(key) && field.length() > 254)
+                return ResponseEntity.badRequest().body(Map.of("status", "error"));
+            payload.put(key, field);
+        }
+        // Champ leurre : aucun message ni notification pour une soumission automatisée.
+        if (!value(body, "website").isEmpty()) return ResponseEntity.ok(Map.of("status", "success"));
+
+        String subjectLabel = SUBJECT_LABELS.getOrDefault(subject, subject);
+        final Long savedFormId;
+        // 3. La confirmation dépend de la persistance, pas d'une notification secondaire.
         try {
-            String subjectLabel = SUBJECT_LABELS.getOrDefault(subject, subject);
-
-            Long savedFormId = receivedFormService.recordSupportForm(name, email, phone, subjectLabel, body, clientIp);
-
-            log.info("Demande de support sauvegardee : {} ({}) — Sujet : {}", name, email, subjectLabel);
-
-            // Notification aux admins/managers
-            notificationService.notifyAdminsAndManagers(
+            savedFormId = receivedFormService.recordSupportForm(name, email, phone, subjectLabel, payload, clientIp);
+        } catch (Exception e) {
+            log.error("Erreur de sauvegarde du formulaire Baitly", e);
+            return ResponseEntity.internalServerError().body(Map.of("status", "error"));
+        }
+        try {
+            // Endpoint sans locataire : notifier les responsables de la plateforme.
+            notificationService.notifyAllPlatformStaff(
                     NotificationKey.CONTACT_FORM_RECEIVED,
                     "Nouvelle demande de support — " + name,
                     "Sujet : " + subjectLabel + " — De : " + name + " (" + email + ")",
                     savedFormId != null ? "/contact?highlight=" + savedFormId : "/contact"
             );
         } catch (Exception e) {
-            log.error("Erreur sauvegarde formulaire support : {}", e.getMessage());
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("status", "error", "message", "Erreur lors de l'enregistrement de votre demande."));
+            log.error("Notification indisponible pour le formulaire enregistré #{}", savedFormId, e);
         }
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "message", "Votre demande de support a bien ete envoyee. Notre equipe vous contactera dans les 24 heures."
+                "message", "Votre demande a bien été enregistrée."
         ));
     }
 
@@ -114,22 +138,18 @@ public class SupportController {
     // Rate Limiting & Utils
     // ═══════════════════════════════════════════════════════════════
 
-    private boolean isRateLimited(String ip) {
+    private synchronized boolean isRateLimited(String ip) {
         Instant now = Instant.now();
         Instant oneHourAgo = now.minusSeconds(3600);
-        rateLimitMap.putIfAbsent(ip, new CopyOnWriteArrayList<>());
-        CopyOnWriteArrayList<Instant> timestamps = rateLimitMap.get(ip);
+        List<Instant> timestamps = rateLimitMap.get(ip, key -> new ArrayList<>());
         timestamps.removeIf(t -> t.isBefore(oneHourAgo));
         if (timestamps.size() >= MAX_REQUESTS_PER_HOUR) return true;
         timestamps.add(now);
         return false;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) return xForwardedFor.split(",")[0].trim();
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isBlank()) return xRealIp;
-        return request.getRemoteAddr();
+    private static String value(Map<String, String> body, String key) {
+        String value = body.get(key);
+        return value == null ? "" : value.trim();
     }
 }

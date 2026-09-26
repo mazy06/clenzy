@@ -108,7 +108,7 @@ const fr: BaitlyBookingMessages = {
   recap: 'Votre séjour',
   saleNote: 'de services dans ce panier',
   caption:
-    'Maquettes de démonstration. Hébergements, disponibilités et montants illustratifs en euros ; aucune réservation ni aucun paiement réel. Les options dépendent de votre catalogue.',
+    'Maquettes de démonstration. Hébergements, disponibilités, montants et conversions illustratifs ; aucune réservation ni aucun paiement réel. Les options dépendent de votre catalogue.',
   finalTitle: 'Votre prochaine réservation peut commencer ici.',
   finalCopy:
     'Un template à personnaliser, votre catalogue à proposer, une relation directe avec vos voyageurs.',
@@ -234,7 +234,7 @@ const en: BaitlyBookingMessages = {
   recap: 'Your stay',
   saleNote: 'in services in this cart',
   caption:
-    'Illustrative mockups. Sample properties, availability and prices in euros; no actual bookings or payments. Options depend on your catalogue.',
+    'Illustrative mockups. Sample properties, availability, prices and conversions; no actual bookings or payments. Options depend on your catalogue.',
   finalTitle: 'Your next direct booking can start here.',
   finalCopy:
     'A template to personalise, your catalogue to share, a direct relationship with your guests.',
@@ -351,7 +351,7 @@ const ar: BaitlyBookingMessages = {
   recap: 'إقامتك',
   saleNote: 'قيمة الخدمات في هذه السلة',
   caption:
-    'نماذج توضيحية. أماكن الإقامة والتوافر والأسعار باليورو أمثلة فقط، دون حجز أو دفع فعلي. تعتمد الخيارات على كتالوجك.',
+    'نماذج توضيحية. أماكن الإقامة والتوافر والأسعار والتحويلات أمثلة فقط، دون حجز أو دفع فعلي. تعتمد الخيارات على كتالوجك.',
   finalTitle: 'حجزك المباشر القادم قد يبدأ هنا.',
   finalCopy: 'قالب تخصصه، وكتالوج تعرضه، وعلاقة مباشرة مع ضيوفك.',
   pricing: 'عرض الأسعار',

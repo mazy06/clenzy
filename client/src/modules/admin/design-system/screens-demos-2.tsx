@@ -1292,7 +1292,7 @@ export function BOwnerPortalSectionDemo() {
             <AreaChart accessibilityLayer data={revenueData} margin={{ left: 12, right: 12 }}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" formatter={(value) => <Money value={Number(value)} decimals={0} />} />} />
               <Area dataKey="net" type="natural" fill="var(--color-net)" fillOpacity={0.4} stroke="var(--color-net)" />
             </AreaChart>
           </ChartContainer>

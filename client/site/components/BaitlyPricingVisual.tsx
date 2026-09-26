@@ -9,9 +9,13 @@ import {
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
 import type { BaitlyPlan } from '../data/baitlyLoyaltyPricing';
-import guesthouse from '../assets/photos/guesthouse.jpg';
-import pool from '../assets/photos/pool.jpg';
-import bedroom from '../assets/photos/bedroom.jpg';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  pricingEssential: guesthouse,
+  pricingPro: pool,
+  pricingRoom: bedroom,
+} = SITE_PHOTOS;
 
 /** Lightweight illustrations: no application runtime or simulated live data. */
 export default function BaitlyPricingVisual({ plan }: { plan: BaitlyPlan }) {
@@ -113,7 +117,13 @@ export function BaitlyOptionVisual({ index }: { index: number }) {
             <i />
             <i />
           </span>
-          <img src={pool} width="100" height="70" alt="" loading="lazy" />
+          <img
+            src={SITE_PHOTOS.pricingSite}
+            width="100"
+            height="70"
+            alt=""
+            loading="lazy"
+          />
           <i />
         </div>
       )}

@@ -188,8 +188,8 @@ const ar: PmsMessages = {
   ],
   hero: {
     eyebrow: 'حجزك القادم',
-    property: 'شقة الملقا',
-    location: 'الرياض · الملقا',
+    property: 'رياض باب دكالة',
+    location: 'فاس · المدينة القديمة',
     guest: 'سارة العتيبي',
     dates: '28 سبتمبر ← 2 أكتوبر',
     nights: '4 ليالٍ · ضيفان',

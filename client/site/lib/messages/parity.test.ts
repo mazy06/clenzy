@@ -4,6 +4,7 @@ import { AGENTS_MESSAGES } from './agents';
 import { ASSISTANT_MESSAGES } from './assistant';
 import { GUIDE_MESSAGES } from './guide';
 import { HOME_MESSAGES } from './home';
+import { HOME_RESOURCE_MESSAGES } from './homeResources';
 import { LAYOUT_MESSAGES } from './layout';
 import { MOCKUP_MESSAGES } from './mockups';
 import { MODULE_PAGE_MESSAGES } from './modulePage';
@@ -17,6 +18,9 @@ import { BAITLY_LOYALTY_MESSAGES } from './baitlyLoyalty';
 import { BAITLY_PRODUCT_MESSAGES } from './baitlyProducts';
 import { BAITLY_PRODUCT_DEMO_MESSAGES } from './baitlyProductDemos';
 import { BAITLY_RESOURCE_MESSAGES } from './baitlyResources';
+import { BAITLY_READINESS_MESSAGES } from './baitlyReadiness';
+import { BAITLY_JOURNEY_MESSAGES } from './baitlyJourneys';
+import { BAITLY_CONTACT_MESSAGES } from './baitlyContact';
 
 /**
  * Parite de FORME entre les trois langues.
@@ -32,6 +36,9 @@ import { BAITLY_RESOURCE_MESSAGES } from './baitlyResources';
  * produit un titre ou un bouton muet.</p>
  */
 const DICTIONARIES: Record<string, Record<SiteLanguage, unknown>> = {
+  baitlyReadiness: BAITLY_READINESS_MESSAGES,
+  baitlyJourneys: BAITLY_JOURNEY_MESSAGES,
+  baitlyContact: BAITLY_CONTACT_MESSAGES,
   baitlyResources: BAITLY_RESOURCE_MESSAGES,
   baitlyBooking: BAITLY_BOOKING_MESSAGES,
   baitlyBookingUpsells: BAITLY_BOOKING_UPSELL_MESSAGES,
@@ -42,6 +49,7 @@ const DICTIONARIES: Record<string, Record<SiteLanguage, unknown>> = {
   assistant: ASSISTANT_MESSAGES,
   guide: GUIDE_MESSAGES,
   home: HOME_MESSAGES,
+  homeResources: HOME_RESOURCE_MESSAGES,
   layout: LAYOUT_MESSAGES,
   mockups: MOCKUP_MESSAGES,
   modulePage: MODULE_PAGE_MESSAGES,

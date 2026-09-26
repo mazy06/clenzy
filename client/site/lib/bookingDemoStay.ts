@@ -1,3 +1,4 @@
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
 import { BAITLY_BOOKING_TEMPLATES } from '../data/baitlyBookingTemplates';
 import { BOOKING_STOREFRONT_COPY } from './messages/baitlyBookingStorefront';
 import { BOOKING_STAY_COPY } from './messages/baitlyBookingStay';
@@ -104,7 +105,7 @@ export function getBookingDemoProperties(
         detail: c.terraceDetail,
         feature: c.privateTerrace,
         location: c.marrakech,
-        photo: templates[1].detail,
+        photo: SITE_PHOTOS.bookingTerraceRoom,
         nightly: 150,
       },
     ];
