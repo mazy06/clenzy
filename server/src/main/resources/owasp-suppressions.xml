@@ -316,14 +316,16 @@
         6.5.12 corrige cette CVE mais reste Enterprise uniquement ; Maven
         Central s'arrete a 6.5.11 dans cette branche (verification 2026-09-26).
         Les versions OSS corrigees 7.0.7/7.1.1 impliquent la migration Spring
-        Boot 4. Exception limitee aux deux artefacts 6.5.11 signales et a
-        cette seule CVE. A lever lors de cette migration, d'un acces au patch
+        Boot 4. Le rapprochement CPE du scan rattache la meme CVE a plusieurs
+        modules Spring Security (core, web, oauth2-core, resource-server).
+        Exception limitee a cette famille en 6.5.11 et a cette seule CVE.
+        A lever lors de cette migration, d'un acces au patch
         Enterprise ou AVANT toute activation DPoP. Reexamen au plus tard a
         l'expiration ; aucun changement au seuil CVSS du scan.
     -->
     <suppress until="2026-12-31Z">
         <notes>CVE DPoP mitigee : TokenCookieFilter rejette explicitement DPoP avant les filtres Spring ; regression testee sur la chaine de production. Correctif 6.5.12 Enterprise uniquement. Reexaminer avant retrait du blocage ou migration Spring Security.</notes>
-        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|oauth2-resource-server)@6\.5\.11$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-[a-z0-9-]+@6\.5\.11$</packageUrl>
         <cve>CVE-2026-41707</cve>
     </suppress>
 </suppressions>
