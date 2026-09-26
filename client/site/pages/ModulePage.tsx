@@ -10,7 +10,7 @@ import {
   Button,
 } from '../../src/components/ui';
 import Reveal from '../components/Reveal';
-import AnimatedPlanningMockup from '../components/AnimatedPlanningMockup';
+import BaitlyPmsPage from './BaitlyPmsPage';
 import AdvantageDeck from '../components/AdvantageDeck';
 import ScrollGuideSection from '../components/ScrollGuideSection';
 import PartnerMarquee from '../components/PartnerMarquee';
@@ -23,11 +23,6 @@ import { moduleText } from '../lib/messages/modules';
 import { LAYOUT_MESSAGES } from '../lib/messages/layout';
 import { MODULE_PAGE_MESSAGES } from '../lib/messages/modulePage';
 
-/** Maquettes animees disponibles par module — leurs legendes vivent dans le dictionnaire. */
-const MODULE_MOCKUPS: Record<string, () => JSX.Element> = {
-  'pms-channel-manager': AnimatedPlanningMockup,
-};
-
 /** Gabarit commun des pages produit (benchmark : hero + chiffre → features →
     segmentation → FAQ → CTA). La page Agents IA a sa version signature. */
 export default function ModulePage() {
@@ -38,6 +33,7 @@ export default function ModulePage() {
   const storyKind = productStoryKind(slug);
   if (storyKind) return <BaitlyProductPage key={storyKind} kind={storyKind} />;
   if (slug === 'booking-engine') return <BaitlyBookingPage />;
+  if (slug === 'pms-channel-manager') return <BaitlyPmsPage />;
 
   const module = MODULES.find((entry) => entry.slug === slug);
   if (!module) return <Navigate to="/" replace />;
@@ -45,8 +41,6 @@ export default function ModulePage() {
   const text = moduleText(module.slug, language);
 
   const siblings = MODULES.filter((entry) => entry.slug !== slug).slice(0, 4);
-  const Mockup = slug ? MODULE_MOCKUPS[slug] : undefined;
-  const demo = slug ? m.demos[slug] : undefined;
 
   return (
     <>
@@ -89,28 +83,6 @@ export default function ModulePage() {
 
       {/* Livret d'accueil : section mobile pilotée par le scroll de la page */}
       {module.slug === 'livret-accueil' && <ScrollGuideSection />}
-
-      {/* Démo animée (modules qui en disposent) — projection réelle pilotée */}
-      {demo && Mockup && (
-        <section className="site-shell pt-16">
-          <Reveal className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-2xl">
-              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{demo.title}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{demo.copy}</p>
-            </div>
-            <ul className="flex flex-col gap-1.5 text-sm">
-              {demo.points.map((point) => (
-                <li key={point} className="flex items-center gap-2">
-                  <CheckIcon className="size-3.5 shrink-0 text-success" /> {point}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-          <Reveal delay={1}>
-            <Mockup />
-          </Reveal>
-        </section>
-      )}
 
       {/* Features — 2×2 en tablette, une seule rangée de 4 en grand écran */}
       <section className="site-shell py-16">

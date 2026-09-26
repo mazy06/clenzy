@@ -1,6 +1,17 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   BedDoubleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronDownIcon,
+  HomeIcon,
+  LayoutGridIcon,
+  SettingsIcon,
+  WalletIcon,
+  PauseIcon,
+  PlayIcon,
+  MoreVerticalIcon,
+  MoonIcon,
   BuildingIcon,
   CalendarCheckIcon,
   CalendarIcon,
@@ -41,7 +52,19 @@ import g9 from '../assets/guests/g9.jpg';
 import g10 from '../assets/guests/g10.jpg';
 import g11 from '../assets/guests/g11.jpg';
 import g12 from '../assets/guests/g12.jpg';
-import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
+import { Cursor, useScriptedCursor } from './mockupKit';
+import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
+import { useBaitlyPlanningTimeline } from './useBaitlyPlanningTimeline';
+import BaitlyPlanningCallout, {
+  type PlanningAnnotation,
+} from './BaitlyPlanningCallout';
+import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
+import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
+import propertyRiad from '../assets/photos/baitly-riad-small.webp';
+import propertyApartment from '../assets/photos/bedroom.jpg';
+import propertyVilla from '../assets/photos/pool.jpg';
+import propertyHouse from '../assets/photos/guesthouse.jpg';
+import propertyTerrace from '../assets/photos/terrace.jpg';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
 
@@ -64,18 +87,27 @@ import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
  */
 
 /* ─── Géométrie (miroir de planning/constants.ts) ───────────────────────────── */
-const PROP_W = 176;
+const PROP_W = 188;
 const DAY_W = 74;
 const ROW_H = 54;
-const HEADER_H = 52;
+const HEADER_H = 44;
 const BAR_H = 36;
 const BAR_TOP = 9;
 /* Lignes vides de remplissage, comme le planning quand la page contient moins
    de logements que la hauteur disponible — elles donnent aussi la place
    qu'exige la fiche logement ouverte. */
-const FILLER_ROWS = 3;
+const FILLER_ROWS = 2;
 const DAYS = 14;
 const DESIGN_WIDTH = PROP_W + DAYS * DAY_W;
+const FRAME_WIDTH = DESIGN_WIDTH + 60; // Sidebar + grid gutters.
+const PROPERTY_PHOTOS = [
+  propertyRiad,
+  propertyApartment,
+  propertyVilla,
+  propertyTerrace,
+  propertyHouse,
+  propertyApartment,
+];
 
 /* Seuils de repli de la brique — valeurs de planning/constants.ts:112-114.
    Au-dessus : prix en pilule icône + montant ; entre les deux : icône seule ;
@@ -92,32 +124,32 @@ const BAR_CHANNEL_MIN = 60;
 /** Palette « Signature » du planning, portée localement : le site marketing
     n'expose que les tokens --bui-*, pas ceux de l'application. */
 const TOKENS = {
-  '--pl-card': '#FFFFFF',
+  '--pl-card': '#FCFDFD',
   '--pl-surface2': '#FBFCFC',
-  '--pl-line': '#E7ECEF',
-  '--pl-line2': '#DDE3E7',
+  '--pl-line': '#D5DFE8',
+  '--pl-line2': '#D5DFE8',
   '--pl-ink': '#15242D',
   '--pl-body': '#3B4951',
   '--pl-muted': '#67757C',
-  '--pl-faint': '#98A4AB',
-  '--pl-accent': '#5453D6',
-  '--pl-accent-soft': 'rgba(84,83,214,.10)',
+  '--pl-faint': '#71818D',
+  '--pl-accent': '#264672',
+  '--pl-accent-soft': 'rgba(38,70,114,.10)',
   '--pl-we': '#F8FAFB',
   '--pl-field': '#EFF2F4',
   '--pl-err': '#E5484D',
 } as CSSProperties;
 
 const STATUS = {
-  confirmed: '#3E9C80',
-  pending: '#C28A52',
-  checked_in: '#4F86C6',
-  checked_out: '#9A7FA3',
+  confirmed: BAITLY_PLANNING_STATUS.confirmed.background,
+  pending: BAITLY_PLANNING_STATUS.pending.background,
+  checked_in: BAITLY_PLANNING_STATUS.checked_in.background,
+  checked_out: BAITLY_PLANNING_STATUS.checked_out.background,
 };
 
 const CHANNELS = {
   airbnb: { color: '#E0735A', logo: airbnbLogo },
   booking: { color: '#4A6B9A', logo: bookingLogo },
-  direct: { color: '#5453D6', logo: null },
+  direct: { color: '#264672', logo: null },
 };
 
 /* ─── Données de la grille ──────────────────────────────────────────────────── */
@@ -154,31 +186,176 @@ const RESAS: Resa[] = [
      (check-out) n'existe QUE dans le passé, le bleu (check-in) uniquement à
      cheval sur aujourd'hui, et le futur est vert (réglé) ou orange (à régler). */
   // Passé — départs effectués (mauve)
-  { id: 'r1', photo: g1, row: 0, start: 0, nights: 2, status: 'checked_out', guest: 'Hans Müller', channel: 'airbnb', price: 4800, paid: true },
-  { id: 'r11', photo: g11, row: 5, start: 0, nights: 2, status: 'checked_out', guest: 'Sophie Dubois', channel: 'direct', price: 8200, paid: true },
+  {
+    id: 'r1',
+    photo: g1,
+    row: 0,
+    start: 0,
+    nights: 2,
+    status: 'checked_out',
+    guest: 'Hans Müller',
+    channel: 'airbnb',
+    price: 4800,
+    paid: true,
+  },
+  {
+    id: 'r11',
+    photo: g11,
+    row: 5,
+    start: 0,
+    nights: 2,
+    status: 'checked_out',
+    guest: 'Sophie Dubois',
+    channel: 'direct',
+    price: 8200,
+    paid: true,
+  },
   // En cours — à cheval sur aujourd'hui (bleu)
-  { id: 'r3', photo: g3, row: 1, start: 1, nights: 4, status: 'checked_in', guest: 'Carlos García', channel: 'airbnb', price: 3200, paid: true },
-  { id: 'r7', photo: g7, row: 3, start: 2, nights: 7, status: 'checked_in', guest: 'Ahmed Bennani', channel: 'direct', price: 9800, paid: true, maintenance: true },
+  {
+    id: 'r3',
+    photo: g3,
+    row: 1,
+    start: 1,
+    nights: 4,
+    status: 'checked_in',
+    guest: 'Carlos García',
+    channel: 'airbnb',
+    price: 3200,
+    paid: true,
+  },
+  {
+    id: 'r7',
+    photo: g7,
+    row: 3,
+    start: 2,
+    nights: 7,
+    status: 'checked_in',
+    guest: 'Ahmed Bennani',
+    channel: 'direct',
+    price: 9800,
+    paid: true,
+    maintenance: true,
+  },
   // À venir, réglées (vert)
-  { id: 'r4', photo: g4, row: 1, start: 8, nights: 6, status: 'confirmed', guest: 'Anna Kowalski', channel: 'direct', price: 7100, paid: true, cleaning: { fee: 400, paid: false } },
-  { id: 'r5', photo: g5, row: 2, start: 5, nights: 4, status: 'confirmed', guest: 'Luca Rossi', channel: 'booking', price: 6400, paid: true, cleaning: { fee: 450, paid: false } },
-  { id: 'r9', photo: g9, row: 4, start: 4, nights: 4, status: 'confirmed', guest: 'Mia Andersson', channel: 'airbnb', price: 4400, paid: true, cleaning: { fee: 350, paid: true } },
-  { id: 'r10', photo: g10, row: 4, start: 11, nights: 3, status: 'confirmed', guest: 'Nadia Alami', channel: 'airbnb', price: 3900, paid: true },
-  { id: 'r8', photo: g8, row: 3, start: 10, nights: 4, status: 'confirmed', guest: 'Julia Wagner', channel: 'booking', price: 6900, paid: true },
+  {
+    id: 'r4',
+    photo: g4,
+    row: 1,
+    start: 8,
+    nights: 6,
+    status: 'confirmed',
+    guest: 'Anna Kowalski',
+    channel: 'direct',
+    price: 7100,
+    paid: true,
+    cleaning: { fee: 400, paid: false },
+  },
+  {
+    id: 'r5',
+    photo: g5,
+    row: 2,
+    start: 5,
+    nights: 4,
+    status: 'confirmed',
+    guest: 'Luca Rossi',
+    channel: 'booking',
+    price: 6400,
+    paid: true,
+    cleaning: { fee: 450, paid: false },
+  },
+  {
+    id: 'r9',
+    photo: g9,
+    row: 4,
+    start: 4,
+    nights: 4,
+    status: 'confirmed',
+    guest: 'Mia Andersson',
+    channel: 'airbnb',
+    price: 4400,
+    paid: true,
+    cleaning: { fee: 350, paid: true },
+  },
+  {
+    id: 'r10',
+    photo: g10,
+    row: 4,
+    start: 11,
+    nights: 3,
+    status: 'confirmed',
+    guest: 'Nadia Alami',
+    channel: 'airbnb',
+    price: 3900,
+    paid: true,
+  },
+  {
+    id: 'r8',
+    photo: g8,
+    row: 3,
+    start: 10,
+    nights: 4,
+    status: 'confirmed',
+    guest: 'Julia Wagner',
+    channel: 'booking',
+    price: 6900,
+    paid: true,
+  },
   // À venir, à régler (orange)
-  { id: 'r2', photo: g2, row: 0, start: 9, nights: 5, status: 'pending', guest: 'Kenji Sato', channel: 'booking', price: 5600, paid: false, missingInfo: true },
+  {
+    id: 'r2',
+    photo: g2,
+    row: 0,
+    start: 9,
+    nights: 5,
+    status: 'pending',
+    guest: 'Kenji Sato',
+    channel: 'booking',
+    price: 5600,
+    paid: false,
+    missingInfo: true,
+  },
   /* Départ au jour 11 : `r5` est étirée de 2 nuits par la chorégraphie (5→11).
      Toute date antérieure la ferait chevaucher — ce que le planning refuserait. */
-  { id: 'r6', photo: g6, row: 2, start: 11, nights: 3, status: 'pending', guest: 'Dounia B.', channel: 'airbnb', price: 5200, paid: false },
-  { id: 'r12', photo: g12, row: 5, start: 8, nights: 3, status: 'pending', guest: 'Tom Lefèvre', channel: 'booking', price: 3600, paid: false },
+  {
+    id: 'r6',
+    photo: g6,
+    row: 2,
+    start: 11,
+    nights: 3,
+    status: 'pending',
+    guest: 'Dounia B.',
+    channel: 'airbnb',
+    price: 5200,
+    paid: false,
+  },
+  {
+    id: 'r12',
+    photo: g12,
+    row: 5,
+    start: 8,
+    nights: 3,
+    status: 'pending',
+    guest: 'Tom Lefèvre',
+    channel: 'booking',
+    price: 3600,
+    paid: false,
+  },
 ];
 
 /** Réservation posée par la chorégraphie à l'issue du dialog de création.
     Directe et non encore réglée → « En attente » (orange), conforme à
     `computeEffectiveStatus` : le vert exige un paiement encaissé. */
 const CREATED_RESA: Resa = {
-  id: 'rn', photo: g5, row: 0, start: 5, nights: 3, status: 'pending',
-  guest: 'Sarah Miller', channel: 'direct', price: 3750, paid: false,
+  id: 'rn',
+  photo: g5,
+  row: 0,
+  start: 5,
+  nights: 3,
+  status: 'pending',
+  guest: 'Sarah Miller',
+  channel: 'direct',
+  price: 3750,
+  paid: false,
 };
 
 /** Plage bloquée (indisponibilité manuelle) — bande hachurée, pas une brique. */
@@ -186,15 +363,22 @@ const BLOCKED = { row: 5, start: 3, nights: 4 };
 
 /** Réservation annulée : brique fantôme hachurée, nom barré, avatar grisé. */
 const CANCELLED: Resa = {
-  id: 'rc', photo: g8, row: 1, start: 5, nights: 3, status: 'pending',
-  guest: 'Elena Petrova', channel: 'booking', price: 2940, paid: false,
+  id: 'rc',
+  photo: g8,
+  row: 1,
+  start: 5,
+  nights: 3,
+  status: 'pending',
+  guest: 'Elena Petrova',
+  channel: 'booking',
+  price: 2940,
+  paid: false,
 };
 
 /** Prix par nuit affichés dans les cellules libres (par logement). */
 const NIGHTLY = [1250, 980, 2100, 850, 1400, 720];
 
-
-const FIRST_DOW = 5; // la grille commence un jeudi
+const FIRST_DOW = 4; // Mercredi 23 septembre 2026, samedi = index 0.
 const TODAY_INDEX = 3;
 
 const isWeekend = (day: number) => {
@@ -202,10 +386,10 @@ const isWeekend = (day: number) => {
   return dow === 0 || dow === 1; // SAM / DIM
 };
 
-/** Numéro du jour, avec bascule sur septembre : août compte 31 jours. */
+/** Numéro du jour, avec bascule sur octobre : septembre compte 30 jours. */
 const FIRST_DAY = 23;
-const AUGUST_DAYS = 31;
-const dayNumber = (day: number) => ((FIRST_DAY + day - 1) % AUGUST_DAYS) + 1;
+const MONTH_DAYS = 30;
+const dayNumber = (day: number) => ((FIRST_DAY + day - 1) % MONTH_DAYS) + 1;
 
 /**
  * Montant, dans la devise du marche que la langue designe. Le composant `Money`
@@ -221,7 +405,13 @@ function Amount({ value, size = 11 }: { value: number; size?: number }) {
   /* Montant et glyphe forment un bloc insécable : rendus en frères libres, le
      symbole se retrouvait renvoyé à la ligne dès que le conteneur se resserrait. */
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        whiteSpace: 'nowrap',
+      }}
+    >
       {value.toLocaleString(locale)}
       <Currency size={size + 2} style={{ marginInlineStart: 2 }} />
     </span>
@@ -257,7 +447,11 @@ function ChannelBadge({ channel }: { channel: Channel }) {
       {logo ? (
         <img src={logo} alt="" className="size-[13px] object-contain" />
       ) : (
-        <GlobeIcon className="size-[13px]" style={{ color: '#5453D6' }} aria-label={label} />
+        <GlobeIcon
+          className="size-[13px]"
+          style={{ color: 'var(--pl-accent)' }}
+          aria-label={label}
+        />
       )}
     </BarBadge>
   );
@@ -265,11 +459,79 @@ function ChannelBadge({ channel }: { channel: Channel }) {
 
 export default function AnimatedPlanningMockup() {
   const [cycle, setCycle] = useState(0);
-  return <PlanningScene key={cycle} onCycleEnd={() => setCycle((current) => current + 1)} />;
+  const [paused, setPaused] = useState(false);
+  const [scene, setScene] = useState(0);
+  const [annotation, setAnnotation] = useState<PlanningAnnotation | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { visibilityRef, active, reduced } = useBaitlyDemoVisibility();
+  const m = usePlanningText();
+  const { language } = useSiteLanguage();
+  return (
+    <div ref={visibilityRef}>
+      <div className="bpm-demo-controls">
+        <span>
+          <i aria-hidden="true" />
+          {m.demo} ·{' '}
+          {annotation ? m.guide.steps[annotation.step].title : m.scenes[scene]}
+        </span>
+        {!reduced && (
+          <button
+            type="button"
+            aria-pressed={paused}
+            onClick={() => setPaused((value) => !value)}
+          >
+            {paused ? <PlayIcon /> : <PauseIcon />}
+            {paused ? m.play : m.pause}
+          </button>
+        )}
+      </div>
+      <div className="bpm-planning-stage" ref={stageRef} data-guided={!reduced}>
+        <div
+          className="bpm-planning-scroll"
+          dir="ltr"
+          tabIndex={0}
+          role="region"
+          aria-label={m.demo}
+        >
+          <PlanningScene
+            key={language + cycle}
+            active={active && !paused}
+            reduced={reduced}
+            onSceneChange={setScene}
+            onAnnotationChange={setAnnotation}
+            onCycleEnd={() => {
+              setCycle((current) => current + 1);
+              setScene(0);
+              setAnnotation(null);
+            }}
+          />
+        </div>
+        {annotation && !reduced && (
+          <BaitlyPlanningCallout
+            key={annotation.step}
+            annotation={annotation}
+            stageRef={stageRef}
+            active={active && !paused}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
-function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
-  const reduced = useReducedMotion();
+function PlanningScene({
+  onCycleEnd,
+  active,
+  reduced,
+  onSceneChange,
+  onAnnotationChange,
+}: {
+  onCycleEnd: () => void;
+  active: boolean;
+  reduced: boolean;
+  onSceneChange: (scene: number) => void;
+  onAnnotationChange: (annotation: PlanningAnnotation | null) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -280,10 +542,18 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
 
   /* État piloté par la chorégraphie */
   const [mutedChannel, setMutedChannel] = useState<Channel | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; shift: number; conflict: boolean } | null>(null);
+  const [dragging, setDragging] = useState<{
+    id: string;
+    shift: number;
+    conflict: boolean;
+  } | null>(null);
   const [moved, setMoved] = useState<Record<string, number>>({});
   const [extended, setExtended] = useState<Record<string, number>>({});
-  const [selection, setSelection] = useState<{ row: number; start: number; nights: number } | null>(null);
+  const [selection, setSelection] = useState<{
+    row: number;
+    start: number;
+    nights: number;
+  } | null>(null);
   /* Fiche voyageur : panneau ouvert, e-mail en cours de saisie, alerte levée. */
   const [guestPanel, setGuestPanel] = useState(false);
   const [email, setEmail] = useState('');
@@ -299,8 +569,8 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
 
   useLayoutEffect(() => {
     const measure = () => {
-      const width = containerRef.current?.clientWidth ?? DESIGN_WIDTH;
-      setScale(Math.min(1, width / DESIGN_WIDTH));
+      const width = containerRef.current?.clientWidth ?? FRAME_WIDTH;
+      setScale(width / FRAME_WIDTH);
       const c = containerRef.current;
       const b = bodyRef.current;
       if (c && b) {
@@ -322,53 +592,104 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
   const find = (selector: string) =>
     containerRef.current?.querySelector<HTMLElement>(selector) ?? null;
 
-  useTimeline(!reduced, (at) => {
-    let t = 900;
-    at(t, park);
-
-    /* 0. Clic sur un logement → fiche enrichie (PropertyPopover). */
-    t += 1000;
-    at(t, () => moveTo(find('[data-prop="Appart. Guéliz"]')));
-    t += 900;
-    at(t, () => setPropertyOpen(true));
-    t += 4200;
-    at(t, () => setPropertyOpen(false));
-
-    /* 1. Filtre canal : on éteint Airbnb, puis on le rallume. */
-    t += 1200;
-    at(t, () => moveTo(find('[data-chip="airbnb"]')));
-    t += 1000;
-    at(t, () => setMutedChannel('airbnb'));
-    t += 2400;
-    at(t, () => setMutedChannel(null));
-
-    /* 2. Glisser « Mia Andersson » sur la plage de « Nadia Alami » → refusé. */
-    t += 1000;
-    at(t, () => moveTo(find('[data-bar="r9"]')));
-    t += 900;
-    for (let step = 1; step <= 9; step += 1) {
-      at(t + step * 110, () => {
-        setDragging({ id: 'r9', shift: step, conflict: step >= 6 });
-        moveTo(find('[data-bar="r9"]'), step * DAY_W * 0.55);
+  const explain = (step: number, target: string) => {
+    onAnnotationChange({ step, target });
+    const element = find(target);
+    const scroll = containerRef.current?.closest<HTMLElement>(
+      '.bpm-planning-scroll',
+    );
+    if (element && scroll && scroll.scrollWidth > scroll.clientWidth) {
+      const rect = element.getBoundingClientRect();
+      const viewport = scroll.getBoundingClientRect();
+      // Pan only horizontally, so each action stays visible on a small screen.
+      scroll.scrollTo({
+        left:
+          scroll.scrollLeft +
+          rect.left -
+          viewport.left +
+          rect.width / 2 -
+          viewport.width / 2,
+        behavior: 'smooth',
       });
     }
-    t += 9 * 110 + 900;
-    at(t, () => setDragging(null)); // drop refusé : la brique revient
+  };
 
-    /* 3. Déplacement valide de 2 jours. */
-    t += 1400;
-    for (let step = 1; step <= 2; step += 1) {
-      at(t + step * 220, () => setDragging({ id: 'r9', shift: step, conflict: false }));
+  useBaitlyPlanningTimeline(active, (at) => {
+    let t = 900;
+    at(t, park);
+    // Every result stays still for reading before the next gesture begins.
+    const hold = (duration = 3800) => {
+      t += duration;
+      at(t, () => {
+        hide();
+        onAnnotationChange(null);
+      });
+      t += 700;
+    };
+
+    t += 1000;
+    at(t, () => {
+      explain(0, '[data-prop-index="3"]');
+      moveTo(find('[data-prop-index="3"]'));
+    });
+    t += 900;
+    at(t, () => setPropertyOpen(true));
+    at(t + 100, () => explain(0, '[data-planning-panel="property"]'));
+    hold(4200);
+    at(t, () => setPropertyOpen(false));
+
+    t += 500;
+    at(t, () => {
+      onSceneChange(1);
+      explain(1, '[data-chip="airbnb"]');
+      moveTo(find('[data-chip="airbnb"]'));
+    });
+    t += 1000;
+    at(t, () => setMutedChannel('airbnb'));
+    t += 3000;
+    at(t, () => setMutedChannel(null));
+    hold(1500);
+
+    // Stop at the first occupied dates, without dragging beyond the calendar.
+    at(t, () => {
+      onSceneChange(2);
+      explain(2, '[data-bar="r9"]');
+      moveTo(find('[data-bar="r9"]'));
+    });
+    t += 900;
+    for (let step = 1; step <= 6; step += 1) {
+      at(t + step * 160, () => {
+        setDragging({ id: 'r9', shift: step, conflict: step >= 4 });
+        moveTo(find('[data-bar="r9"]'));
+      });
     }
-    t += 2 * 220 + 700;
+    t += 6 * 160 + 2800;
+    at(t, () => setDragging(null));
+    hold(1800);
+
+    at(t, () => {
+      onSceneChange(3);
+      explain(3, '[data-bar="r9"]');
+      moveTo(find('[data-bar="r9"]'));
+    });
+    t += 900;
+    for (let step = 1; step <= 2; step += 1) {
+      at(t + step * 300, () => {
+        setDragging({ id: 'r9', shift: step, conflict: false });
+        moveTo(find('[data-bar="r9"]'));
+      });
+    }
+    t += 2 * 300 + 300;
     at(t, () => {
       setDragging(null);
       setMoved((state) => ({ ...state, r9: 2 }));
     });
+    hold();
 
-    /* 4. Étirer « Luca Rossi » : le ménage suit le nouveau départ. */
-    t += 1300;
-    at(t, () => moveTo(find('[data-resize="r5"]')));
+    at(t, () => {
+      explain(4, '[data-bar="r5"]');
+      moveTo(find('[data-resize="r5"]'));
+    });
     t += 900;
     for (let step = 1; step <= 2; step += 1) {
       at(t + step * 420, () => {
@@ -376,16 +697,20 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
         moveTo(find('[data-resize="r5"]'));
       });
     }
-    t += 2 * 420 + 1400;
+    t += 2 * 420;
+    hold();
 
-    /* 5. Fiche voyageur incomplète : on clique l'alerte, on saisit l'e-mail,
-          l'alerte s'éteint. */
     const MAIL = 'k.sato@mail.jp';
-    t += 1200;
-    at(t, () => moveTo(find('[data-fix="r2"]')));
+    at(t, () => {
+      onSceneChange(4);
+      explain(5, '[data-bar="r2"]');
+      moveTo(find('[data-fix="r2"]'));
+    });
     t += 950;
     at(t, () => setGuestPanel(true));
-    t += 700;
+    t += 100;
+    at(t, () => explain(5, '[data-planning-panel="guest"]'));
+    t += 600;
     at(t, () => moveTo(find('[data-email-field]')));
     t += 500;
     for (let i = 1; i <= MAIL.length; i += 1) {
@@ -395,22 +720,29 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     at(t, () => moveTo(find('[data-email-save]')));
     t += 800;
     at(t, () => setInfoFilled(true));
-    t += 1600;
+    hold();
     at(t, () => setGuestPanel(false));
 
-    /* 6. Sélection de nuits libres sur un logement vide. */
-    t += 700;
-    at(t, () => moveTo(find('[data-cell="0-5"]')));
-    t += 800;
+    t += 400;
+    at(t, () => {
+      onSceneChange(5);
+      explain(6, '[data-cell="0-5"]');
+      moveTo(find('[data-cell="0-5"]'));
+    });
+    t += 900;
     for (let step = 1; step <= 3; step += 1) {
       at(t + step * 300, () => {
         setSelection({ row: 0, start: 5, nights: step });
-        moveTo(find(`[data-cell="0-${5 + step - 1}"]`));
+        moveTo(find('[data-cell="0-' + (5 + step - 1) + '"]'));
       });
     }
-    t += 3 * 300 + 700;
+    t += 3 * 300 + 100;
+    at(t, () => explain(6, '[data-planning-selection]'));
+    hold(3300);
+
     at(t, () => setCreateDialog(true));
-    // Recherche du voyageur, caractère par caractère, puis sélection.
+    t += 100;
+    at(t, () => explain(7, '[data-planning-panel="create"]'));
     const Q = 'Sarah';
     t += 700;
     at(t, () => moveTo(find('[data-guest-field]')));
@@ -422,30 +754,22 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
     at(t, () => moveTo(find('[data-guest-result]')));
     t += 900;
     at(t, () => setGuestPicked(true));
-
-    t += 1200;
+    t += 3000;
     at(t, () => moveTo(find('[data-create]')));
     t += 1000;
     at(t, () => {
+      onAnnotationChange(null);
       setCreateDialog(false);
       setSelection(null);
       setCreated(true);
     });
-    t += 2400;
-
-    /* Respiration finale avant de rejouer. */
-    t += 900;
-    at(t, hide);
-    at(t + 3000, () => {
-      setMoved({});
-      setExtended({});
-      setInfoFilled(false);
-      setEmail('');
-      setCreated(false);
-      setGuestQuery('');
-      setGuestPicked(false);
+    t += 200;
+    at(t, () => {
+      hide();
+      explain(8, '[data-bar="rn"]');
     });
-    at(t + 4200, onCycleEnd);
+    hold(4500);
+    at(t, onCycleEnd);
   });
 
   const m = usePlanningText();
@@ -453,163 +777,233 @@ function PlanningScene({ onCycleEnd }: { onCycleEnd: () => void }) {
   const gridWidth = DAYS * DAY_W;
   const bodyHeight = (properties.length + FILLER_ROWS) * ROW_H;
 
+  const frameHeight = 50 + 57 + HEADER_H + bodyHeight + 30 + 50 + 2;
+  const occupancy = Array.from({ length: DAYS }, (_, day) => {
+    const occupied = new Set(
+      [...RESAS, ...(created ? [CREATED_RESA] : [])]
+        .filter((r) => {
+          const start = r.start + (moved[r.id] ?? 0);
+          return day >= start && day < start + r.nights + (extended[r.id] ?? 0);
+        })
+        .map((r) => r.row),
+    );
+    return Math.round((occupied.size / properties.length) * 100);
+  });
+
   return (
-    <div className="relative" ref={containerRef} style={TOKENS}>
-      <div className="hero-grid absolute -inset-8 -z-10" aria-hidden />
+    <div
+      className="relative bpm-planning-canvas"
+      dir="ltr"
+      ref={containerRef}
+      style={{ ...TOKENS, height: frameHeight * scale }}
+    >
       <div
-        className="shadow-brand overflow-hidden rounded-xl border"
-        style={{ borderColor: 'var(--pl-line)', background: 'var(--pl-card)' }}
+        className="relative origin-top-left"
+        style={{
+          width: FRAME_WIDTH,
+          height: frameHeight,
+          transform: 'scale(' + scale + ')',
+        }}
+        role="img"
+        aria-label={m.windowTitle}
       >
-        {/* Barre fenêtre */}
-        <div
-          className="flex items-center gap-1.5 border-b px-4 py-2.5"
-          style={{ borderColor: 'var(--pl-line)' }}
-        >
-          <span className="size-2.5 rounded-full" style={{ background: 'var(--pl-line2)' }} />
-          <span className="size-2.5 rounded-full" style={{ background: 'var(--pl-line2)' }} />
-          <span className="size-2.5 rounded-full" style={{ background: 'var(--pl-line2)' }} />
-          <span className="ms-3 text-xs" style={{ color: 'var(--pl-muted)' }}>
-            {m.windowTitle}
+        <aside className="bpm-planning-sidebar" aria-hidden="true">
+          <div className="bpm-planning-brand" data-playing={active}>
+            <BaitlyMarkLogo variant="mark" size={32} tone="dark" />
+          </div>
+          <LayoutGridIcon />
+          <HomeIcon />
+          <span>
+            <CalendarIcon />
           </span>
-        </div>
-
-        <div
-          className="origin-top-left"
-          style={{ width: DESIGN_WIDTH, transform: `scale(${scale})`, height: (HEADER_H + bodyHeight + 96) * scale }}
-        >
+          <WrenchFill size={18} />
+          <WalletIcon />
+          <UsersIcon />
+          <BuildingIcon />
+          <SettingsIcon />
+        </aside>
+        <div className="bpm-planning-main">
           <Toolbar mutedChannel={mutedChannel} />
-
-          <div className="relative flex" style={{ width: DESIGN_WIDTH }}>
-            {/* Colonne logements */}
-            <div style={{ width: PROP_W, flexShrink: 0 }}>
-              <div
-                className="flex items-center px-4"
-                style={{
-                  height: HEADER_H,
-                  background: 'var(--pl-surface2)',
-                  borderBottom: '1px solid var(--pl-line)',
-                  borderRight: '1px solid var(--pl-line)',
-                }}
-              >
-                <span
-                  className="text-[10.5px] font-bold tracking-[.05em] uppercase tabular-nums"
-                  style={{ color: 'var(--pl-faint)' }}
-                >
-                  {properties.length} {m.pageRange.split(' ').pop()}
-                </span>
-              </div>
-              {properties.map((property, index) => (
+          <div className="bpm-planning-grid">
+            <div className="relative flex" style={{ width: DESIGN_WIDTH }}>
+              {/* Colonne logements */}
+              <div style={{ width: PROP_W, flexShrink: 0 }}>
                 <div
-                  key={property.name}
-                  data-prop={property.name}
-                  className="flex flex-col justify-center px-4"
+                  className="flex items-center px-4"
                   style={{
-                    height: ROW_H,
+                    height: HEADER_H,
+                    background: 'var(--pl-surface2)',
                     borderBottom: '1px solid var(--pl-line)',
                     borderRight: '1px solid var(--pl-line)',
-                    background: 'var(--pl-card)',
                   }}
                 >
                   <span
-                    className="flex items-center gap-1.5 truncate text-[12.5px] font-semibold"
-                    style={{ color: 'var(--pl-ink)', letterSpacing: '-0.01em' }}
+                    className="text-[10.5px] font-bold tracking-[.05em] uppercase tabular-nums"
+                    style={{ color: 'var(--pl-faint)' }}
                   >
-                    {property.name}
-                    <span
-                      className="flex items-center gap-0.5 text-[10px] font-semibold tabular-nums"
-                      style={{ color: 'var(--pl-faint)' }}
-                    >
-                      <TagIcon size={10} strokeWidth={1.75} />
-                      {UNIT_COUNTS[index]}
-                    </span>
-                  </span>
-                  <span className="truncate text-[10.5px]" style={{ color: 'var(--pl-muted)' }}>
-                    {property.city}
+                    {properties.length} {m.propertiesLabel}
                   </span>
                 </div>
-              ))}
-              {Array.from({ length: FILLER_ROWS }, (_, i) => (
-                <div key={`fill-${i}`} style={{ height: ROW_H, background: 'var(--pl-card)' }} />
-              ))}
-            </div>
-
-            {/* Grille */}
-            <div className="relative" style={{ width: gridWidth }}>
-              <DateHeaders />
-              <div ref={bodyRef} className="relative" style={{ height: bodyHeight }}>
-                {properties.map((property, row) => (
-                  <Row key={property.name} row={row} selection={selection} />
+                {properties.map((property, index) => (
+                  <div
+                    key={property.name}
+                    data-prop={property.name}
+                    data-prop-index={index}
+                    className="bpm-property"
+                    style={{
+                      height: ROW_H,
+                      borderBottom: '1px solid var(--pl-line)',
+                      borderRight: '1px solid var(--pl-line)',
+                      background: 'var(--pl-card)',
+                    }}
+                  >
+                    <img src={PROPERTY_PHOTOS[index]} alt="" loading="lazy" />
+                    <div>
+                      <strong>{property.name}</strong>
+                      <span>{property.city.split(' · ')[0]}</span>
+                    </div>
+                    <span className="bpm-property-count">
+                      <b>{UNIT_COUNTS[index] + 8}</b>
+                      <small>
+                        <TagIcon size={10} />
+                        {UNIT_COUNTS[index]}
+                      </small>
+                    </span>
+                    <ChevronDownIcon
+                      size={12}
+                      style={{
+                        width: 12,
+                        height: 12,
+                        color: 'var(--pl-muted)',
+                      }}
+                    />
+                  </div>
                 ))}
                 {Array.from({ length: FILLER_ROWS }, (_, i) => (
                   <div
-                    key={`grid-fill-${i}`}
-                    className="absolute inset-x-0"
-                    style={{
-                      top: (properties.length + i) * ROW_H,
-                      height: ROW_H,
-                      backgroundImage:
-                        `repeating-linear-gradient(to right, transparent 0 ${DAY_W - 1}px, var(--pl-line) ${DAY_W - 1}px ${DAY_W}px)`,
-                    }}
+                    key={`fill-${i}`}
+                    style={{ height: ROW_H, background: 'var(--pl-card)' }}
                   />
                 ))}
+              </div>
 
-                {[...RESAS, ...(created ? [CREATED_RESA] : [])].map((resa) => (
-                  <Bar
-                    key={resa.id}
-                    resa={resa}
-                    muted={mutedChannel === resa.channel}
-                    shift={(moved[resa.id] ?? 0) + (dragging?.id === resa.id ? dragging.shift : 0)}
-                    extra={extended[resa.id] ?? 0}
-                    dragging={dragging?.id === resa.id}
-                    conflict={dragging?.id === resa.id && dragging.conflict}
-                    infoFilled={infoFilled}
-                  />
-                ))}
-
-                {/* Fiche voyageur à compléter — panneau ancré sous la brique */}
-                <BlockedBand />
-                <CancelledBar />
-
-                {/* Trait « maintenant » */}
+              {/* Grille */}
+              <div className="relative" style={{ width: gridWidth }}>
+                <DateHeaders />
                 <div
-                  className="pointer-events-none absolute top-0 bottom-0 w-[2px]"
-                  style={{ left: TODAY_INDEX * DAY_W + DAY_W * 0.42, background: 'var(--pl-err)', zIndex: 6 }}
+                  ref={bodyRef}
+                  className="relative"
+                  style={{ height: bodyHeight }}
                 >
-                  <span
-                    className="absolute size-[10px] rounded-full"
+                  {properties.map((property, row) => (
+                    <Row key={property.name} row={row} selection={selection} />
+                  ))}
+                  {Array.from({ length: FILLER_ROWS }, (_, i) => (
+                    <div
+                      key={`grid-fill-${i}`}
+                      className="absolute inset-x-0"
+                      style={{
+                        top: (properties.length + i) * ROW_H,
+                        height: ROW_H,
+                        backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${
+                          DAY_W - 1
+                        }px, var(--pl-line) ${DAY_W - 1}px ${DAY_W}px)`,
+                      }}
+                    />
+                  ))}
+
+                  {[...RESAS, ...(created ? [CREATED_RESA] : [])].map(
+                    (resa) => (
+                      <Bar
+                        key={resa.id}
+                        resa={resa}
+                        muted={mutedChannel === resa.channel}
+                        shift={
+                          (moved[resa.id] ?? 0) +
+                          (dragging?.id === resa.id ? dragging.shift : 0)
+                        }
+                        extra={extended[resa.id] ?? 0}
+                        dragging={dragging?.id === resa.id}
+                        conflict={dragging?.id === resa.id && dragging.conflict}
+                        infoFilled={infoFilled}
+                      />
+                    ),
+                  )}
+
+                  {/* Fiche voyageur à compléter — panneau ancré sous la brique */}
+                  <BlockedBand />
+                  <CancelledBar />
+
+                  {/* Trait « maintenant » */}
+                  <div
+                    className="pointer-events-none absolute top-0 bottom-0 w-[2px]"
                     style={{
-                      top: -1,
-                      left: -4,
+                      left: TODAY_INDEX * DAY_W + DAY_W * 0.42,
                       background: 'var(--pl-err)',
-                      boxShadow: '0 0 0 3px color-mix(in srgb, #E5484D 25%, transparent)',
+                      zIndex: 6,
                     }}
-                  />
+                  >
+                    <span
+                      className="absolute size-[10px] rounded-full"
+                      style={{
+                        top: -1,
+                        left: -4,
+                        background: 'var(--pl-err)',
+                        boxShadow:
+                          '0 0 0 3px color-mix(in srgb, #E5484D 25%, transparent)',
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Pagination */}
-          <div
-            className="flex items-center justify-center gap-4 text-[11.5px] font-semibold tabular-nums"
-            style={{ height: 32, borderTop: '1px solid var(--pl-line)', color: 'var(--pl-ink)' }}
-          >
-            <span>{m.page}</span>
-            <span className="text-[10.5px] font-normal" style={{ color: 'var(--pl-muted)' }}>
-              {m.pageRange}
-            </span>
+            <div className="bpm-occupancy">
+              <span style={{ width: PROP_W }}>{m.occupancyLabel}</span>
+              <div>
+                {occupancy.map((value, index) => (
+                  <small
+                    key={index}
+                    style={{
+                      width: DAY_W,
+                      background: isWeekend(index) ? 'var(--pl-we)' : undefined,
+                    }}
+                  >
+                    {value}%
+                  </small>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="bpm-planning-pagination">
+            <span>{m.pageRange}</span>
+            <ChevronLeftIcon size={14} />
+            {m.previous}
+            <strong>1</strong>
+            {m.next}
+            <ChevronRightIcon size={14} />
           </div>
         </div>
       </div>
 
       {/* Info-bulles : hors du cadre rogné, au-dessus de tout (z-50). */}
       {guestPanel && (
-        <Overlay origin={gridOrigin} scale={scale} gx={9 * DAY_W + DAY_W * 0.42} gy={ROW_H - 2}>
+        <Overlay
+          origin={gridOrigin}
+          scale={scale}
+          gx={9 * DAY_W + DAY_W * 0.42}
+          gy={ROW_H - 2}
+        >
           <GuestPanel email={email} saved={infoFilled} />
         </Overlay>
       )}
       {createDialog && (
-        <Overlay origin={gridOrigin} scale={scale} gx={5 * DAY_W + DAY_W * 0.42} gy={ROW_H - 2}>
+        <Overlay
+          origin={gridOrigin}
+          scale={scale}
+          gx={5 * DAY_W + DAY_W * 0.42}
+          gy={ROW_H - 2}
+        >
           <CreateDialog query={guestQuery} picked={guestPicked} />
         </Overlay>
       )}
@@ -646,29 +1040,41 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
   });
 
   return (
-    <div className="flex flex-col gap-2 px-3 py-2.5">
-      <div className="flex items-center justify-center gap-2">
-        <span
-          className="text-[15px] font-semibold"
-          style={{ color: 'var(--pl-ink)', fontFamily: 'var(--font-heading, inherit)' }}
-        >
-          {m.month}
+    <div>
+      <div className="bpm-planning-header">
+        <span className="bpm-planning-heading">
+          <CalendarIcon />
+          {m.title}
+        </span>
+        <span className="bpm-planning-nav">
+          <ChevronLeftIcon size={15} />
+        </span>
+        <strong className="text-[14px] font-semibold">{m.month}</strong>
+        <span className="bpm-planning-nav">
+          <ChevronRightIcon size={15} />
         </span>
         <span style={chip(true)}>
-          <CalendarCheckIcon className="size-[13px]" style={{ color: 'var(--pl-accent)' }} />
+          <CalendarCheckIcon size={13} />
           {m.today}
         </span>
         <span
           className="flex items-center gap-0.5 rounded-[10px] p-[3px]"
-          style={{ background: 'var(--pl-field)', border: '1px solid var(--pl-line2)' }}
+          style={{
+            background: 'var(--pl-field)',
+            border: '1px solid var(--pl-line2)',
+          }}
         >
           {m.zooms.map((zoom, index) => (
             <span
               key={zoom}
-              className="rounded-[7px] px-[13px] py-[6px] text-[12px] font-semibold"
+              className="rounded-[7px] px-[10px] py-[4px] text-[11px] font-semibold"
               style={
                 index === 1
-                  ? { background: 'var(--pl-card)', color: 'var(--pl-ink)', boxShadow: '0 1px 3px rgba(21,36,45,.10)' }
+                  ? {
+                      background: 'var(--pl-card)',
+                      color: 'var(--pl-ink)',
+                      boxShadow: '0 1px 3px rgba(21,36,45,.10)',
+                    }
                   : { color: 'var(--pl-muted)' }
               }
             >
@@ -676,15 +1082,31 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
             </span>
           ))}
         </span>
+        <span className="bpm-planning-search">
+          <SearchIcon size={14} />
+          {m.search}
+        </span>
+        <BuildingIcon size={15} />
+        <MoreVerticalIcon size={15} />
       </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-1.5">
+      <div className="bpm-planning-filters">
         {(Object.keys(CHANNELS) as Channel[]).map((channel) => (
-          <span key={channel} data-chip={channel} style={chip(mutedChannel !== channel)}>
+          <span
+            key={channel}
+            data-chip={channel}
+            style={chip(mutedChannel !== channel)}
+          >
             {CHANNELS[channel].logo ? (
-              <img src={CHANNELS[channel].logo!} alt="" className="size-[15px] object-contain" />
+              <img
+                src={CHANNELS[channel].logo!}
+                alt=""
+                className="size-[15px] object-contain"
+              />
             ) : (
-              <GlobeIcon className="size-[15px]" style={{ color: 'var(--pl-accent)' }} />
+              <GlobeIcon
+                className="size-[15px]"
+                style={{ color: 'var(--pl-accent)' }}
+              />
             )}
             {m.channels[channel]}
           </span>
@@ -698,10 +1120,20 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
           ] as const
         ).map(([label, color]) => (
           <span key={label} style={chip(true)}>
-            <span className="size-[9px] rounded-[3px]" style={{ background: color }} />
+            <span
+              className="size-[9px] rounded-[3px]"
+              style={{ background: color }}
+            />
             {label}
           </span>
         ))}
+        <span style={chip(true)}>
+          <span
+            className="size-[9px] rounded-[3px]"
+            style={{ background: '#98a5ad' }}
+          />
+          {m.cancelled}
+        </span>
         <span style={chip(true)}>
           <BroomFill size={16} style={{ color: '#2F9E8D' }} />
           <WrenchFill size={15} style={{ color: '#4F86C6' }} />
@@ -733,7 +1165,8 @@ function DateHeaders() {
             className="flex flex-col items-center justify-center gap-px"
             style={{
               width: DAY_W,
-              borderRight: day === DAYS - 1 ? undefined : '1px solid var(--pl-line)',
+              borderRight:
+                day === DAYS - 1 ? undefined : '1px solid var(--pl-line)',
               background: isWeekend(day) ? '#F2F6F7' : undefined,
             }}
           >
@@ -778,7 +1211,11 @@ function Row({
   return (
     <div
       className="absolute inset-x-0"
-      style={{ top: row * ROW_H, height: ROW_H, borderBottom: '1px solid var(--pl-line)' }}
+      style={{
+        top: row * ROW_H,
+        height: ROW_H,
+        borderBottom: '1px solid var(--pl-line)',
+      }}
     >
       {Array.from({ length: DAYS }, (_, day) => (
         <div
@@ -789,9 +1226,10 @@ function Row({
             left: day * DAY_W,
             width: DAY_W,
             borderRight: '1px solid var(--pl-line)',
-            background: day === TODAY_INDEX
-              ? 'color-mix(in srgb, #5453D6 6%, transparent)'
-              : isWeekend(day)
+            background:
+              day === TODAY_INDEX
+                ? 'color-mix(in srgb, #264672 5%, transparent)'
+                : isWeekend(day)
                 ? 'var(--pl-we)'
                 : undefined,
           }}
@@ -802,12 +1240,20 @@ function Row({
           >
             <Amount value={NIGHTLY[row]} size={9} />
           </span>
+          <span
+            className="absolute bottom-1 right-1 flex items-center gap-px text-[8px]"
+            style={{ color: 'var(--pl-faint)', opacity: 0.65 }}
+          >
+            <MoonIcon size={8} style={{ width: 8, height: 8 }} />
+            {(row % 2) + 1}
+          </span>
         </div>
       ))}
 
       {/* Sélection de nuits libres */}
       {selection?.row === row && (
         <div
+          data-planning-selection
           className="absolute rounded-[9px]"
           style={{
             left: selection.start * DAY_W + DAY_W * 0.42,
@@ -838,6 +1284,7 @@ function Row({
 function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
   return (
     <div
+      data-planning-panel="guest"
       className="rounded-[11px] p-3"
       style={{
         width: 246,
@@ -846,11 +1293,18 @@ function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
         boxShadow: '0 22px 50px -16px rgba(21,36,45,.40)',
       }}
     >
-      <p className="text-[11px] font-semibold" style={{ color: 'var(--pl-ink)' }}>
+      <p
+        className="text-[11px] font-semibold"
+        style={{ color: 'var(--pl-ink)' }}
+      >
         Fiche voyageur · Kenji Sato
       </p>
-      <p className="mt-0.5 flex items-center gap-1 text-[10.5px]" style={{ color: '#C28A52' }}>
-        <Warning size={12} strokeWidth={2} /> E-mail manquant — fiche police incomplète
+      <p
+        className="mt-0.5 flex items-center gap-1 text-[10.5px]"
+        style={{ color: '#C28A52' }}
+      >
+        <Warning size={12} strokeWidth={2} /> E-mail manquant — fiche police
+        incomplète
       </p>
       <div
         data-email-field
@@ -863,12 +1317,18 @@ function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
       >
         {email || 'adresse e-mail'}
         {!saved && email && (
-          <span className="ms-px inline-block h-[13px] w-px animate-pulse" style={{ background: 'var(--pl-accent)' }} />
+          <span
+            className="ms-px inline-block h-[13px] w-px animate-pulse"
+            style={{ background: 'var(--pl-accent)' }}
+          />
         )}
       </div>
       <div className="mt-2 flex items-center justify-end gap-2">
         {saved ? (
-          <span className="flex items-center gap-1 text-[10.5px] font-semibold" style={{ color: '#3E9C80' }}>
+          <span
+            className="flex items-center gap-1 text-[10.5px] font-semibold"
+            style={{ color: '#3E9C80' }}
+          >
             <CheckBold size={11} /> Fiche complétée
           </span>
         ) : (
@@ -908,7 +1368,11 @@ function Overlay({
   return (
     <div
       className="absolute"
-      style={{ left: origin.x + gx * scale, top: origin.y + gy * scale, zIndex: 50 }}
+      style={{
+        left: origin.x + gx * scale,
+        top: origin.y + gy * scale,
+        zIndex: 50,
+      }}
     >
       {children}
     </div>
@@ -933,13 +1397,17 @@ function BlockedBand() {
         background: 'color-mix(in srgb, var(--pl-muted) 8%, var(--pl-card))',
         backgroundImage:
           'repeating-linear-gradient(45deg, color-mix(in srgb, var(--pl-muted) 16%, transparent) 0 1px, transparent 1px 7px)',
-        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--pl-muted) 14%, transparent)',
+        boxShadow:
+          'inset 0 0 0 1px color-mix(in srgb, var(--pl-muted) 14%, transparent)',
         zIndex: 2,
       }}
       title={reason}
     >
       <LockIcon className="size-3" style={{ color: 'var(--pl-muted)' }} />
-      <span className="text-[11px] font-semibold" style={{ color: 'var(--pl-muted)' }}>
+      <span
+        className="text-[11px] font-semibold"
+        style={{ color: 'var(--pl-muted)' }}
+      >
         Bloqué
       </span>
     </div>
@@ -980,14 +1448,24 @@ function CancelledBar() {
           style={{ filter: 'grayscale(1)', opacity: 0.6 }}
         />
       </span>
-      <span className="flex min-w-0 flex-col leading-[1.2]" style={{ color: 'var(--pl-muted)' }}>
+      <span
+        className="flex min-w-0 flex-col leading-[1.2]"
+        style={{ color: 'var(--pl-muted)' }}
+      >
         <span className="text-[9.5px] font-semibold opacity-85">{label}</span>
-        <span className="truncate text-[12px] font-semibold line-through">{CANCELLED.guest}</span>
+        <span className="truncate text-[12px] font-semibold line-through">
+          {CANCELLED.guest}
+        </span>
       </span>
       {/* Bouton de masquage (hideFromPlanning) */}
       <span
         className="absolute flex size-4 items-center justify-center rounded-full"
-        style={{ top: -6, right: -6, background: 'var(--pl-muted)', color: '#FFF' }}
+        style={{
+          top: -6,
+          right: -6,
+          background: 'var(--pl-muted)',
+          color: '#FFF',
+        }}
       >
         <XIcon className="size-2.5" />
       </span>
@@ -1002,12 +1480,23 @@ function CancelledBar() {
 function PropertyPopover() {
   const t = usePlanningText();
   const m = t.property;
-  const tile = (icon: React.ReactNode, label: string, value: React.ReactNode, accent = false) => (
+  const tile = (
+    icon: React.ReactNode,
+    label: string,
+    value: React.ReactNode,
+    accent = false,
+  ) => (
     <div
       className="flex-1 rounded-[10px] px-2.5 py-1.5"
       style={{
-        border: `1px solid ${accent ? 'color-mix(in srgb, #3E9C80 45%, transparent)' : 'var(--pl-line2)'}`,
-        background: accent ? 'color-mix(in srgb, #3E9C80 8%, transparent)' : 'transparent',
+        border: `1px solid ${
+          accent
+            ? 'color-mix(in srgb, #3E9C80 45%, transparent)'
+            : 'var(--pl-line2)'
+        }`,
+        background: accent
+          ? 'color-mix(in srgb, #3E9C80 8%, transparent)'
+          : 'transparent',
       }}
     >
       <p
@@ -1029,7 +1518,10 @@ function PropertyPopover() {
   const stat = (label: string, value: React.ReactNode, tone?: string) => (
     <div className="flex items-center justify-between text-[11px]">
       <span style={{ color: 'var(--pl-muted)' }}>{label}</span>
-      <span className="font-semibold tabular-nums" style={{ color: tone ?? 'var(--pl-ink)' }}>
+      <span
+        className="font-semibold tabular-nums"
+        style={{ color: tone ?? 'var(--pl-ink)' }}
+      >
         {value}
       </span>
     </div>
@@ -1037,6 +1529,7 @@ function PropertyPopover() {
 
   return (
     <div
+      data-planning-panel="property"
       className="rounded-[14px] p-3"
       style={{
         width: 292,
@@ -1051,24 +1544,42 @@ function PropertyPopover() {
         style={{ background: 'var(--pl-field)' }}
       >
         <BuildingIcon className="size-5" style={{ color: 'var(--pl-faint)' }} />
-        <p className="text-[14px] font-semibold" style={{ color: 'var(--pl-ink)' }}>
+        <p
+          className="text-[14px] font-semibold"
+          style={{ color: 'var(--pl-ink)' }}
+        >
           Appartement Duplex Guéliz
         </p>
       </div>
 
-      <div className="mt-2 flex flex-col gap-1 border-b pb-2" style={{ borderColor: 'var(--pl-line)' }}>
+      <div
+        className="mt-2 flex flex-col gap-1 border-b pb-2"
+        style={{ borderColor: 'var(--pl-line)' }}
+      >
         <span
           className="w-fit rounded-[6px] px-2 py-0.5 text-[9.5px] font-bold tracking-[.04em] uppercase"
           style={{ background: 'var(--pl-field)', color: 'var(--pl-muted)' }}
         >
           Apartment
         </span>
-        <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--pl-body)' }}>
-          <MapPinIcon className="size-3.5 shrink-0" style={{ color: 'var(--pl-faint)' }} />
+        <p
+          className="flex items-center gap-1.5 text-[11px]"
+          style={{ color: 'var(--pl-body)' }}
+        >
+          <MapPinIcon
+            className="size-3.5 shrink-0"
+            style={{ color: 'var(--pl-faint)' }}
+          />
           Rue Yougoslavie, Guéliz, Marrakech
         </p>
-        <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--pl-body)' }}>
-          <UserIcon className="size-3.5 shrink-0" style={{ color: 'var(--pl-faint)' }} />
+        <p
+          className="flex items-center gap-1.5 text-[11px]"
+          style={{ color: 'var(--pl-body)' }}
+        >
+          <UserIcon
+            className="size-3.5 shrink-0"
+            style={{ color: 'var(--pl-faint)' }}
+          />
           {t.owner}
         </p>
       </div>
@@ -1079,13 +1590,27 @@ function PropertyPopover() {
         {tile(<BedDoubleIcon className="size-3" />, m.minNights, 2)}
       </div>
       <div className="mt-2 flex">
-        {tile(<MoroccanDirham size={12} />, m.nightlyPrice, <Amount value={850} size={13} />, true)}
+        {tile(
+          <MoroccanDirham size={12} />,
+          m.nightlyPrice,
+          <Amount value={850} size={13} />,
+          true,
+        )}
       </div>
 
-      <div className="mt-2 flex flex-col gap-1 border-b pb-2" style={{ borderColor: 'var(--pl-line)' }}>
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--pl-body)' }}>
+      <div
+        className="mt-2 flex flex-col gap-1 border-b pb-2"
+        style={{ borderColor: 'var(--pl-line)' }}
+      >
+        <p
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
+          style={{ color: 'var(--pl-body)' }}
+        >
           <span className="flex items-center gap-1">
-            <ClockIcon className="size-3.5" style={{ color: 'var(--pl-faint)' }} />
+            <ClockIcon
+              className="size-3.5"
+              style={{ color: 'var(--pl-faint)' }}
+            />
             {m.checkIn} <b style={{ color: 'var(--pl-ink)' }}>15:00</b>
           </span>
           <span className="flex items-center gap-1">
@@ -1093,9 +1618,16 @@ function PropertyPopover() {
             {m.checkOut} <b style={{ color: 'var(--pl-ink)' }}>11:00</b>
           </span>
         </p>
-        <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--pl-body)' }}>
-          <CalendarIcon className="size-3.5 shrink-0" style={{ color: 'var(--pl-faint)' }} />
-          {m.cleaningFrequency} <b style={{ color: 'var(--pl-ink)' }}>{m.cleaningValue}</b>
+        <p
+          className="flex items-center gap-1.5 text-[11px]"
+          style={{ color: 'var(--pl-body)' }}
+        >
+          <CalendarIcon
+            className="size-3.5 shrink-0"
+            style={{ color: 'var(--pl-faint)' }}
+          />
+          {m.cleaningFrequency}{' '}
+          <b style={{ color: 'var(--pl-ink)' }}>{m.cleaningValue}</b>
         </p>
       </div>
 
@@ -1112,8 +1644,14 @@ function PropertyPopover() {
           64/100
         </span>
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'var(--pl-field)' }}>
-        <div className="h-full rounded-full" style={{ width: '64%', background: '#C28A52' }} />
+      <div
+        className="mt-1 h-1.5 w-full overflow-hidden rounded-full"
+        style={{ background: 'var(--pl-field)' }}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{ width: '64%', background: '#C28A52' }}
+        />
       </div>
       <div className="mt-1.5 flex flex-col gap-0.5">
         {stat(m.revpan, <Amount value={548} size={10} />)}
@@ -1125,13 +1663,19 @@ function PropertyPopover() {
       <div className="mt-2 flex gap-2">
         <span
           className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[11px] font-semibold"
-          style={{ border: '1px solid var(--pl-line2)', color: 'var(--pl-body)' }}
+          style={{
+            border: '1px solid var(--pl-line2)',
+            color: 'var(--pl-body)',
+          }}
         >
           <XIcon className="size-3.5" /> {m.close}
         </span>
         <span
           className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[11px] font-semibold"
-          style={{ border: '1px solid var(--pl-accent)', color: 'var(--pl-accent)' }}
+          style={{
+            border: '1px solid var(--pl-accent)',
+            color: 'var(--pl-accent)',
+          }}
         >
           <EyeIcon className="size-3.5" /> {m.openRecord}
         </span>
@@ -1150,13 +1694,17 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
   const line = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between gap-3">
       <span style={{ color: 'var(--pl-muted)' }}>{label}</span>
-      <span className="font-semibold tabular-nums" style={{ color: 'var(--pl-ink)' }}>
+      <span
+        className="font-semibold tabular-nums"
+        style={{ color: 'var(--pl-ink)' }}
+      >
         {value}
       </span>
     </div>
   );
   return (
     <div
+      data-planning-panel="create"
       className="rounded-[11px] p-3.5"
       style={{
         width: 268,
@@ -1165,7 +1713,10 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
         boxShadow: '0 22px 50px -16px rgba(21,36,45,.40)',
       }}
     >
-      <p className="text-[12px] font-semibold" style={{ color: 'var(--pl-ink)' }}>
+      <p
+        className="text-[12px] font-semibold"
+        style={{ color: 'var(--pl-ink)' }}
+      >
         {m.title}
       </p>
       <p className="mt-0.5 text-[10.5px]" style={{ color: 'var(--pl-muted)' }}>
@@ -1181,22 +1732,38 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
           style={{ borderColor: 'var(--pl-line)' }}
         >
           <span style={{ color: 'var(--pl-muted)' }}>{m.total}</span>
-          <span className="font-bold tabular-nums" style={{ color: 'var(--pl-ink)' }}>
+          <span
+            className="font-bold tabular-nums"
+            style={{ color: 'var(--pl-ink)' }}
+          >
             <Amount value={3750} size={11} />
           </span>
         </div>
       </div>
       {/* Voyageur : recherche dans le carnet, ou création à la volée. */}
-      <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: 'var(--pl-line)' }}>
-        <p className="text-[9.5px] font-bold tracking-[.04em] uppercase" style={{ color: 'var(--pl-muted)' }}>
+      <div
+        className="mt-2.5 border-t pt-2.5"
+        style={{ borderColor: 'var(--pl-line)' }}
+      >
+        <p
+          className="text-[9.5px] font-bold tracking-[.04em] uppercase"
+          style={{ color: 'var(--pl-muted)' }}
+        >
           {m.guest}
         </p>
         <div
           data-guest-field
           className="mt-1.5 flex h-[28px] items-center gap-1.5 rounded-[8px] px-2 text-[11px]"
-          style={{ background: 'var(--pl-field)', border: '1px solid var(--pl-line2)', color: 'var(--pl-ink)' }}
+          style={{
+            background: 'var(--pl-field)',
+            border: '1px solid var(--pl-line2)',
+            color: 'var(--pl-ink)',
+          }}
         >
-          <SearchIcon className="size-3.5" style={{ color: 'var(--pl-faint)' }} />
+          <SearchIcon
+            className="size-3.5"
+            style={{ color: 'var(--pl-faint)' }}
+          />
           <span style={{ color: query ? 'var(--pl-ink)' : 'var(--pl-faint)' }}>
             {query || t.searchGuest}
           </span>
@@ -1205,29 +1772,49 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
             complète surgirait dès la première lettre, avant même qu'on ait
             saisi quoi que ce soit de discriminant. */}
         {query.length >= 3 && (
-        <div
-          data-guest-result
-          className="mt-1.5 flex items-center gap-2 rounded-[8px] p-1.5"
-          style={{
-            background: picked ? 'var(--pl-accent-soft)' : 'transparent',
-            border: `1px solid ${picked ? 'color-mix(in srgb, #5453D6 30%, transparent)' : 'var(--pl-line2)'}`,
-          }}
-        >
-          <img src={g5} alt="" className="size-6 shrink-0 rounded-full object-cover" />
-          <span className="flex min-w-0 flex-col leading-tight">
-            <span className="text-[11px] font-semibold" style={{ color: 'var(--pl-ink)' }}>
-              Sarah Miller
+          <div
+            data-guest-result
+            className="mt-1.5 flex items-center gap-2 rounded-[8px] p-1.5"
+            style={{
+              background: picked ? 'var(--pl-accent-soft)' : 'transparent',
+              border: `1px solid ${
+                picked
+                  ? 'color-mix(in srgb, var(--pl-accent) 30%, transparent)'
+                  : 'var(--pl-line2)'
+              }`,
+            }}
+          >
+            <img
+              src={g5}
+              alt=""
+              className="size-6 shrink-0 rounded-full object-cover"
+            />
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span
+                className="text-[11px] font-semibold"
+                style={{ color: 'var(--pl-ink)' }}
+              >
+                Sarah Miller
+              </span>
+              <span
+                className="truncate text-[10px]"
+                style={{ color: 'var(--pl-muted)' }}
+              >
+                sarah.miller@mail.com · 3 séjours
+              </span>
             </span>
-            <span className="truncate text-[10px]" style={{ color: 'var(--pl-muted)' }}>
-              sarah.miller@mail.com · 3 séjours
-            </span>
-          </span>
-          {picked && (
-            <CheckBold size={12} style={{ color: 'var(--pl-accent)', marginInlineStart: 'auto' }} />
-          )}
-        </div>
+            {picked && (
+              <CheckBold
+                size={12}
+                style={{ color: 'var(--pl-accent)', marginInlineStart: 'auto' }}
+              />
+            )}
+          </div>
         )}
-        <p className="mt-1.5 flex items-center gap-1 text-[10px]" style={{ color: 'var(--pl-accent)' }}>
+        <p
+          className="mt-1.5 flex items-center gap-1 text-[10px]"
+          style={{ color: 'var(--pl-accent)' }}
+        >
           <PlusIcon className="size-3" /> Créer un nouveau voyageur
         </p>
       </div>
@@ -1270,8 +1857,8 @@ function Bar({
 }) {
   const { nightOne, nightMany } = usePlanningText();
   const nights = resa.nights + extra;
-  const left = (resa.start + shift) * DAY_W + DAY_W * 0.42;
-  const width = nights * DAY_W - DAY_W * 0.17;
+  const left = resa.start * DAY_W + DAY_W * (15 / 24);
+  const width = nights * DAY_W - DAY_W * (4 / 24);
   const color = STATUS[resa.status];
   const initials = resa.guest
     .split(' ')
@@ -1342,11 +1929,15 @@ function Bar({
   /* Nombre de slots disponibles, puis répartition affiché / replié : on garde
      toujours une place pour la pastille « +N » quand il y a du surplus. */
   const slots = width > (priceInline ? 220 : 175) ? 2 : 1;
-  const shown = indicators.length <= slots ? indicators : indicators.slice(0, Math.max(0, slots - 1));
+  const shown =
+    indicators.length <= slots
+      ? indicators
+      : indicators.slice(0, Math.max(0, slots - 1));
   const hiddenCount = indicators.length - shown.length;
 
   const channelFolded = width <= BAR_CHANNEL_MIN;
-  const foldedTotal = hiddenCount + (priceFolded ? 1 : 0) + (channelFolded ? 1 : 0);
+  const foldedTotal =
+    hiddenCount + (priceFolded ? 1 : 0) + (channelFolded ? 1 : 0);
 
   return (
     <>
@@ -1358,35 +1949,35 @@ function Bar({
         style={{
           ['--pl-bc' as string]: color,
           left,
+          transform: 'translateX(' + shift * DAY_W + 'px)',
           width,
           top: resa.row * ROW_H + BAR_TOP,
           height: BAR_H,
           borderRadius: 9,
           background: color,
-          color: '#FFF',
+          color: BAITLY_PLANNING_STATUS[resa.status].foreground,
           padding: '0 7px 0 5px',
           zIndex: dragging ? 8 : 3,
           opacity: muted ? 0.12 : dragging ? 0.85 : 1,
           boxShadow: conflict
             ? '0 0 0 2px var(--pl-err), 0 8px 18px -8px rgba(229,72,77,.6)'
             : dragging
-              ? '0 10px 22px -10px rgba(21,36,45,.55)'
-              : undefined,
+            ? '0 10px 22px -10px rgba(21,36,45,.55)'
+            : undefined,
           transition:
-            'left .22s cubic-bezier(.16,1,.3,1), width .22s cubic-bezier(.16,1,.3,1), opacity .18s ease-out, box-shadow .18s ease-out',
+            'transform .22s cubic-bezier(.16,1,.3,1), opacity .18s ease-out, box-shadow .18s ease-out',
         }}
       >
         {/* Avatar voyageur : photo, initiales en repli (comme GuestAvatar). */}
         {showAvatar && (
           <span
             className="flex size-[26px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[9.5px] font-bold"
-            style={{ border: '1.5px solid rgba(255,255,255,.55)', background: 'rgba(255,255,255,.22)' }}
+            style={{
+              border: '1.5px solid rgba(255,255,255,.55)',
+              background: 'rgba(255,255,255,.22)',
+            }}
           >
-            {resa.photo ? (
-              <img src={resa.photo} alt="" className="size-full object-cover" loading="lazy" />
-            ) : (
-              initials
-            )}
+            {initials}
           </span>
         )}
 
@@ -1395,7 +1986,9 @@ function Bar({
             <span className="text-[9.5px] font-semibold opacity-85">
               {nights} {nights > 1 ? nightMany : nightOne}
             </span>
-            <span className="truncate text-[12px] font-semibold">{resa.guest}</span>
+            <span className="truncate text-[12px] font-semibold">
+              {resa.guest}
+            </span>
           </span>
         )}
 
@@ -1407,8 +2000,20 @@ function Bar({
               style={{
                 padding: priceAmount ? '0 8px' : '0 6px',
                 ...(resa.paid
-                  ? { background: 'rgba(0,0,0,.20)', color: '#FFF', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.22)' }
-                  : { background: '#FFF', color: '#B25A2A', boxShadow: '0 1px 2px rgba(0,0,0,.14)' }),
+                  ? {
+                      background:
+                        resa.status === 'checked_out' ||
+                        resa.status === 'pending'
+                          ? 'rgba(252,250,247,.4)'
+                          : 'rgba(38,24,12,.2)',
+                      color: BAITLY_PLANNING_STATUS[resa.status].foreground,
+                      boxShadow: 'inset 0 0 0 1px rgba(252,252,250,.3)',
+                    }
+                  : {
+                      background: '#FFF',
+                      color: '#B25A2A',
+                      boxShadow: '0 1px 2px rgba(0,0,0,.14)',
+                    }),
               }}
             >
               {resa.paid ? (
@@ -1442,7 +2047,6 @@ function Bar({
           style={{ cursor: 'col-resize' }}
         />
       </div>
-
     </>
   );
 }
