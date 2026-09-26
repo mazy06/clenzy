@@ -33,6 +33,10 @@ const fr = {
     openMenu: 'Ouvrir le menu',
     closeMenu: 'Fermer le menu',
   },
+  mobile: {
+    explore: 'Explorer Baitly',
+    account: 'Votre espace Baitly',
+  },
   footer: {
     pitch:
       'Le PMS avec une équipe d’agents IA, conçu pour l’Arabie saoudite, le Maroc et la France. Déclaration des voyageurs, fiscalité et facturation conformes, dès le premier jour.',
@@ -97,6 +101,10 @@ const en: LayoutMessages = {
     openMenu: 'Open the menu',
     closeMenu: 'Close the menu',
   },
+  mobile: {
+    explore: 'Explore Baitly',
+    account: 'Your Baitly workspace',
+  },
   footer: {
     pitch:
       'The PMS with a team of AI agents, built for Saudi Arabia, Morocco and France. Guest registration, tax and compliant invoicing from day one.',
@@ -159,6 +167,10 @@ const ar: LayoutMessages = {
     openMenu: 'فتح القائمة',
     closeMenu: 'إغلاق القائمة',
   },
+  mobile: {
+    explore: 'اكتشف بايتلي',
+    account: 'مساحتك في بايتلي',
+  },
   footer: {
     pitch:
       'نظام إدارة عقارات مع فريق من وكلاء الذكاء الاصطناعي، مصمَّم للسعودية والمغرب وفرنسا. تسجيل النزلاء والضرائب والفوترة المطابقة، منذ اليوم الأول.',
@@ -196,4 +208,8 @@ const ar: LayoutMessages = {
   },
 };
 
-export const LAYOUT_MESSAGES: Record<SiteLanguage, LayoutMessages> = { fr, en, ar };
+export const LAYOUT_MESSAGES: Record<SiteLanguage, LayoutMessages> = {
+  fr,
+  en,
+  ar,
+};

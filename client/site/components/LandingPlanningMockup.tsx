@@ -1,5 +1,12 @@
-import { CalendarCheckIcon, CheckIcon, CircleIcon, CreditCardIcon, GlobeIcon } from 'lucide-react';
+import {
+  CalendarCheckIcon,
+  CheckIcon,
+  CircleIcon,
+  CreditCardIcon,
+  GlobeIcon,
+} from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
+import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import stayApartment from '../assets/photos/bedroom.jpg';
 import stayVilla from '../assets/photos/pool.jpg';
@@ -29,14 +36,32 @@ const ROW_MEDIA = [
 ];
 
 /**
- * Teintes de statut de l'application (`STATUS` du planning) : mauve pour un
- * depart, bleu pour une arrivee, vert pour une reservation reglee. `paid`
+ * Teintes de statut actuelles : taupe au départ, brun au check-in,
+ * terre cuite pour une réservation confirmée. `paid`
  * decide de l'icone de la pilule de prix — carte bancaire ou coche.
  */
 const STAYS = [
-  { color: '#9A7FA3', range: '2 / span 3', nights: 3, paid: true, channel: airbnbLogo },
-  { color: '#4F86C6', range: '3 / span 3', nights: 3, paid: false, channel: bookingLogo },
-  { color: '#3E9C80', range: '2 / span 2', nights: 2, paid: true, channel: null },
+  {
+    ...BAITLY_PLANNING_STATUS.checked_out,
+    range: '2 / span 3',
+    nights: 3,
+    paid: true,
+    channel: airbnbLogo,
+  },
+  {
+    ...BAITLY_PLANNING_STATUS.checked_in,
+    range: '3 / span 3',
+    nights: 3,
+    paid: false,
+    channel: bookingLogo,
+  },
+  {
+    ...BAITLY_PLANNING_STATUS.confirmed,
+    range: '2 / span 2',
+    nights: 2,
+    paid: true,
+    channel: null,
+  },
 ] as const;
 
 export default function LandingPlanningMockup() {
@@ -92,9 +117,9 @@ export default function LandingPlanningMockup() {
                   className="landing-planning-stay"
                   style={{
                     gridColumn: stay.range,
-                    background: `color-mix(in srgb, ${stay.color} 16%, var(--bl-paper))`,
-                    borderColor: `color-mix(in srgb, ${stay.color} 42%, transparent)`,
-                    color: `color-mix(in srgb, ${stay.color} 72%, var(--bl-ink))`,
+                    background: stay.background,
+                    borderColor: stay.background,
+                    color: stay.foreground,
                   }}
                 >
                   <img
@@ -115,12 +140,27 @@ export default function LandingPlanningMockup() {
                   <span
                     className="landing-planning-stay-price"
                     data-unpaid={stay.paid ? undefined : ''}
+                    style={
+                      stay.paid
+                        ? {
+                            background:
+                              stay.foreground === '#2B211A'
+                                ? 'rgba(252,250,247,.4)'
+                                : 'rgba(38,24,12,.2)',
+                            color: stay.foreground,
+                          }
+                        : undefined
+                    }
                   >
                     {stay.paid ? <CheckIcon /> : <CreditCardIcon />}
                     {row.price}
                   </span>
                   <span className="landing-planning-stay-channel">
-                    {stay.channel ? <img src={stay.channel} alt="" width="14" height="14" /> : <GlobeIcon />}
+                    {stay.channel ? (
+                      <img src={stay.channel} alt="" width="14" height="14" />
+                    ) : (
+                      <GlobeIcon />
+                    )}
                   </span>
                 </div>
               </div>

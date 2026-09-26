@@ -1,13 +1,6 @@
 import SiteAcquisitionLink from './SiteAcquisitionLink';
-import {
-  Suspense,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentType,
-  type ReactNode,
-} from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react';
 import {
@@ -21,135 +14,62 @@ import {
   navigationMenuTriggerStyle,
 } from '../../src/components/ui';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
-import NavMegaPanel, { type NavMegaItem } from './NavMegaPanel';
+import NavMegaPanel from './NavMegaPanel';
+import SiteMobileNav from './SiteMobileNav';
+import {
+  buildBaitlySiteNavigation,
+  type BaitlySiteNavEntry,
+} from '../data/baitlySiteNavigation';
 import PublicLanguagePicker from '../../src/components/PublicLanguagePicker';
 import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
-import { LAYOUT_MESSAGES, type LayoutMessages } from '../lib/messages/layout';
+import { LAYOUT_MESSAGES } from '../lib/messages/layout';
 import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
-import { cn } from '../../src/utils/cn';
 import { MODULES, RESOURCES, SOLUTIONS } from '../data/catalog';
-import { MODULE_PHOTO, SOLUTION_PHOTO } from '../data/navVisuals';
+import '../site-navigation.css';
 
-function DesktopNav() {
+function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
   const { language } = useSiteLanguage();
-  const m = LAYOUT_MESSAGES[language].nav;
-  const mega = LAYOUT_MESSAGES[language].mega;
-
-  /* Les trois volets partagent la meme piece : seule la matiere change. Les
-     points viennent des VRAIES fonctionnalites deja ecrites pour les pages —
-     rien n'est redige pour le menu, rien n'est donc a retraduire. */
-  const modules: NavMegaItem[] = MODULES.map((module) => {
-    const text = moduleText(module.slug, language);
-    return {
-      key: module.slug,
-      to: `/produit/${module.slug}`,
-      icon: module.icon,
-      title: text.name,
-      copy: text.menuCopy,
-      points: text.features.map((feature) => feature.title),
-      photo: MODULE_PHOTO[module.slug],
-    };
-  });
-
-  const solutions: NavMegaItem[] = SOLUTIONS.map((solution) => {
-    const text = solutionText(solution.slug, language);
-    return {
-      key: solution.slug,
-      to: `/solutions#${solution.slug}`,
-      icon: solution.icon,
-      title: text.name,
-      copy: text.copy,
-      points: text.points,
-      photo: SOLUTION_PHOTO[solution.slug],
-    };
-  });
-
-  /* Les ressources sont des documents et des outils, pas des lieux : elles
-     n'ont pas de photo, et portent leur etiquette a la place. */
-  const resources: NavMegaItem[] = RESOURCES.map((resource) => {
-    const text = resourceText(resource.id, language);
-    return {
-      key: resource.id,
-      to: `/ressources/${resource.id}?lang=${language}`,
-      icon: resource.icon,
-      title: text.name,
-      copy: text.copy,
-      tag: text.tag,
-    };
-  });
-
+  const m = LAYOUT_MESSAGES[language];
   return (
-    <NavigationMenu className="site-nav hidden lg:flex" aria-label={m.aria}>
+    <NavigationMenu className="site-nav hidden lg:flex" aria-label={m.nav.aria}>
       <NavigationMenuList>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>{m.product}</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <NavMegaPanel
-              items={modules}
-              discoverLabel={mega.discover}
-              footer={{ to: '/comparer', label: mega.productAll }}
-            />
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>{m.solutions}</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <NavMegaPanel
-              items={solutions}
-              discoverLabel={mega.discover}
-              footer={{ to: '/solutions', label: mega.solutionsAll }}
-            />
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/tarifs">{m.pricing}</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/migration">{m.migration}</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-        {/* La place de marche des prestataires vivait dans le menu mobile et
-            le pied de page seulement : introuvable pour qui navigue au large. */}
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link to="/prestataires">{m.providers}</Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>{m.resources}</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <NavMegaPanel
-              items={resources}
-              discoverLabel={mega.discover}
-              footer={{ to: '/ressources', label: mega.resourcesAll }}
-            />
-          </NavigationMenuContent>
-        </NavigationMenuItem>
+        {entries.map((entry) => (
+          <NavigationMenuItem key={entry.key}>
+            {entry.kind === 'group' ? (
+              <>
+                <NavigationMenuTrigger>{entry.label}</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <NavMegaPanel
+                    items={entry.items}
+                    footer={entry.footer}
+                    discoverLabel={m.mega.discover}
+                  />
+                </NavigationMenuContent>
+              </>
+            ) : (
+              <NavigationMenuLink
+                asChild
+                className={navigationMenuTriggerStyle()}
+              >
+                <Link to={entry.to}>{entry.label}</Link>
+              </NavigationMenuLink>
+            )}
+          </NavigationMenuItem>
+        ))}
       </NavigationMenuList>
     </NavigationMenu>
   );
 }
 
-const MOBILE_LINKS: Array<{ to: string; key: keyof LayoutMessages['nav'] }> = [
-  { to: '/produit/agents-ia', key: 'product' },
-  { to: '/solutions', key: 'solutions' },
-  { to: '/tarifs', key: 'pricing' },
-  { to: '/migration', key: 'migration' },
-  { to: '/comparer', key: 'compare' },
-  { to: '/prestataires', key: 'providers' },
-  { to: '/ressources', key: 'resources' },
-];
-
-function SiteHeader() {
+export function SiteHeader() {
   const { language } = useSiteLanguage();
   const h = LAYOUT_MESSAGES[language].header;
+  const entries = buildBaitlySiteNavigation(language);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
 
@@ -158,18 +78,77 @@ function SiteHeader() {
   }, [location.key]);
 
   useEffect(() => {
-    if (!mobileOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      setMobileOpen(false);
-      menuTriggerRef.current?.focus();
+    const desktop = window.matchMedia('(min-width: 1200px)');
+    const closeOnDesktop = () => {
+      if (desktop.matches) setMobileOpen(false);
     };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const previous = {
+      rootOverflow: root.style.overflow,
+      paddingRight: body.style.paddingRight,
+    };
+    const gutter = window.innerWidth - root.clientWidth;
+    const padding = Number.parseFloat(getComputedStyle(body).paddingRight) || 0;
+    // Lock the document only: body overflow would change the sticky header's scroll container.
+    root.style.overflow = 'hidden';
+    if (gutter > 0) body.style.paddingRight = `${padding + gutter}px`;
+
+    // Only the header and its navigation stay interactive while the layer is open.
+    const background = [
+      ...document.querySelectorAll<HTMLElement>(
+        '.baitly-marketing > main, .baitly-marketing > footer',
+      ),
+    ].map((element) => ({ element, inert: element.inert }));
+    background.forEach(({ element }) => {
+      element.inert = true;
+    });
+
+    const handleMenuKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileOpen(false);
+        menuTriggerRef.current?.focus({ preventScroll: true });
+      }
+      if (event.key !== 'Tab') return;
+      const controls = [
+        ...(headerRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]):not([tabindex="-1"])',
+        ) ?? []),
+      ].filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleMenuKey);
+    return () => {
+      window.removeEventListener('keydown', handleMenuKey);
+      root.style.overflow = previous.rootOverflow;
+      body.style.paddingRight = previous.paddingRight;
+      background.forEach(({ element, inert }) => {
+        element.inert = inert;
+      });
+    };
   }, [mobileOpen]);
 
   return (
-    <header className="site-header sticky top-0 z-40 border-b border-border bg-background">
+    <header
+      ref={headerRef}
+      data-menu-open={mobileOpen || undefined}
+      className="site-header sticky top-0 z-40 border-b border-border bg-background"
+    >
       <div className="site-shell site-header-inner flex h-16 items-center gap-5">
         <Link
           to="/"
@@ -183,7 +162,7 @@ function SiteHeader() {
             baitly
           </span>
         </Link>
-        <DesktopNav />
+        <DesktopNav entries={entries} />
         <div className="ms-auto flex items-center gap-2">
           <Button
             variant="ghost"
@@ -218,30 +197,12 @@ function SiteHeader() {
         </div>
       </div>
       {mobileOpen && (
-        <nav
-          id="site-mobile-nav"
-          aria-label={LAYOUT_MESSAGES[language].nav.mobileAria}
-          className="site-mobile-nav border-t border-border bg-background lg:hidden"
-        >
-          <div className="site-shell flex flex-col py-2">
-            {MOBILE_LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  cn(
-                    'rounded-md px-3 py-2.5 text-sm font-medium',
-                    isActive
-                      ? 'bg-primary-soft text-foreground'
-                      : 'text-muted-foreground',
-                  )
-                }
-              >
-                {LAYOUT_MESSAGES[language].nav[link.key]}
-              </NavLink>
-            ))}
-          </div>
-        </nav>
+        <div className="site-mobile-layer">
+          <SiteMobileNav
+            entries={entries}
+            onNavigate={() => setMobileOpen(false)}
+          />
+        </div>
       )}
     </header>
   );

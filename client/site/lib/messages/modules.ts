@@ -27,10 +27,10 @@ const fr: Record<string, ModuleText> = {
     menuCopy: 'Calendrier multi-biens, réservations, synchronisation OTA en continu.',
     heroTitle: 'Tous vos calendriers, une seule vérité.',
     heroCopy:
-      'Airbnb, Booking.com et vos réservations directes synchronisés en continu (ARI via Channex). Le double booking devient structurellement impossible.',
+      'Airbnb, Booking.com et vos réservations directes synchronisés en continu (ARI via Channex). Les disponibilités sont centralisées pour limiter les conflits de réservation.',
     metricLabel: 'double booking par conception — absence de ligne = disponible',
     features: [
-      { title: 'Planning multi-propriétés', copy: 'Blocs colorés par canal, occupation par jour, drag & drop des séjours.' },
+      { title: 'Planning multi-propriétés', copy: 'Blocs colorés par statut, occupation par jour, drag & drop des séjours.' },
       { title: 'Synchronisation ARI', copy: 'Tarifs, disponibilités et restrictions poussés en continu vers les canaux.' },
       { title: 'Réservations unifiées', copy: 'OTA, direct et imports iCal dans une seule liste, avec cycle de vie complet.' },
       { title: 'Filet iCal', copy: 'Mode dégradé universel pendant les transitions — jamais de trou de couverture.' },
@@ -184,10 +184,10 @@ const en: Record<string, ModuleText> = {
     menuCopy: 'Multi-property calendar, bookings, continuous OTA sync.',
     heroTitle: 'Every calendar, one single truth.',
     heroCopy:
-      'Airbnb, Booking.com and your direct bookings synced continuously (ARI through Channex). Double booking becomes structurally impossible.',
+      'Airbnb, Booking.com and your direct bookings synced continuously (ARI through Channex). Centralised availability helps prevent booking conflicts.',
     metricLabel: 'double bookings by design — no row means available',
     features: [
-      { title: 'Multi-property planning', copy: 'Blocks coloured by channel, daily occupancy, drag & drop stays.' },
+      { title: 'Multi-property planning', copy: 'Blocks coloured by status, daily occupancy, drag & drop stays.' },
       { title: 'ARI synchronisation', copy: 'Rates, availability and restrictions pushed continuously to the channels.' },
       { title: 'Unified bookings', copy: 'OTA, direct and iCal imports in one list, with the full life cycle.' },
       { title: 'iCal safety net', copy: 'A universal fallback during transitions — never a gap in coverage.' },
@@ -341,10 +341,10 @@ const ar: Record<string, ModuleText> = {
     menuCopy: 'تقويم متعدد العقارات، وحجوزات، ومزامنة مستمرة مع منصات الحجز.',
     heroTitle: 'كل تقويماتك، وحقيقة واحدة.',
     heroCopy:
-      'Airbnb وBooking.com وحجوزاتك المباشرة، متزامنة باستمرار (ARI عبر Channex). يصبح الحجز المزدوج مستحيلاً بنيوياً.',
+      'Airbnb وBooking.com وحجوزاتك المباشرة، متزامنة باستمرار (ARI عبر Channex). يساعد توحيد التوافر في الحد من تعارضات الحجز.',
     metricLabel: 'حجز مزدوج بحكم التصميم — غياب السطر يعني التوفر',
     features: [
-      { title: 'تخطيط متعدد العقارات', copy: 'كتل ملوّنة حسب القناة، وإشغال يومي، وسحب وإفلات للإقامات.' },
+      { title: 'تخطيط متعدد العقارات', copy: 'كتل ملوّنة حسب الحالة، وإشغال يومي، وسحب وإفلات للإقامات.' },
       { title: 'مزامنة ARI', copy: 'تُدفع الأسعار والتوفر والقيود باستمرار إلى القنوات.' },
       { title: 'حجوزات موحّدة', copy: 'منصات الحجز والحجز المباشر واستيراد iCal في قائمة واحدة، بدورة حياة كاملة.' },
       { title: 'شبكة أمان iCal', copy: 'وضع احتياطي شامل أثناء التحوّلات — دون أي فجوة في التغطية.' },

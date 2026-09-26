@@ -23,8 +23,66 @@ const fr = {
     checkedIn: 'Check-in',
     checkedOut: 'Check-out',
   },
+  title: 'Planning',
+  search: 'Rechercher une réservation…',
+  propertiesLabel: 'logements',
+  occupancyLabel: 'Occupation',
+  previous: 'Précédent',
+  next: 'Suivant',
+  pause: 'Pause',
+  play: 'Reprendre',
+  demo: 'Démo du planning',
+  guide: {
+    step: 'Étape',
+    steps: [
+      {
+        title: 'Tout savoir sur un logement',
+        body: 'Un clic ouvre sa fiche : capacité, horaires, tarifs et performances, sans quitter le planning.',
+      },
+      {
+        title: 'Isoler un canal',
+        body: 'Masquez Airbnb pour lire les autres réservations. Un second clic réaffiche tous les séjours.',
+      },
+      {
+        title: 'Éviter le chevauchement',
+        body: 'Ces dates sont déjà occupées. Le déplacement est refusé et le séjour retrouve sa place.',
+      },
+      {
+        title: 'Décaler un séjour',
+        body: 'Glissez la réservation vers des dates libres. Ici, le séjour de Mia commence deux jours plus tard.',
+      },
+      {
+        title: 'Prolonger la réservation',
+        body: 'Étirez le bord du séjour de Luca pour ajouter deux nuits. Le ménage reste rattaché à la réservation.',
+      },
+      {
+        title: 'Compléter la fiche voyageur',
+        body: 'Le repère signale une information manquante. Ajoutez l’e-mail de Kenji : l’alerte disparaît.',
+      },
+      {
+        title: 'Choisir les nuits libres',
+        body: 'Sélectionnez trois nuits sur la ligne du logement. Les dates sont prêtes pour une réservation directe.',
+      },
+      {
+        title: 'Retrouver le bon voyageur',
+        body: 'Les dates et le tarif sont préremplis. Recherchez Sarah, sélectionnez sa fiche puis validez.',
+      },
+      {
+        title: 'La réservation est créée',
+        body: 'Le séjour de Sarah apparaît dans le planning. L’occupation se met à jour, sans ressaisie.',
+      },
+    ],
+  },
+  scenes: [
+    'Vos logements et leurs informations',
+    'Filtrer par canal de réservation',
+    'Un conflit de dates ? Le déplacement est refusé.',
+    'Déplacer et prolonger un séjour',
+    'Compléter la fiche du voyageur',
+    'Créer une réservation directe',
+  ],
   windowTitle: 'app.baitly — Planning',
-  month: 'Août 2026',
+  month: 'Septembre 2026',
   today: 'Aujourd’hui',
   /* Pluriel du compteur de nuits pose sur les briques. L'arabe a six formes ;
      ici seules deux valeurs apparaissent (1 et plus), d'ou ce couple. */
@@ -34,7 +92,7 @@ const fr = {
   cancelled: 'Annulée',
   blockedReason: 'Travaux salle de bain',
   page: 'Page 1 / 2',
-  pageRange: '1-6 sur 10 logements',
+  pageRange: '1–6 sur 6',
   searchGuest: 'Rechercher un voyageur…',
   owner: 'Toufik Mazy',
   property: {
@@ -57,7 +115,7 @@ const fr = {
   create: {
     title: 'Nouvelle réservation',
     stay: 'Séjour',
-    stayValue: '28 → 31 août',
+    stayValue: '28 sept. → 1 oct.',
     nights: 'Nuits',
     nightlyPrice: 'Prix / nuit',
     arrivalDeparture: 'Arrivée / départ',
@@ -89,8 +147,66 @@ const en: PlanningMockupMessages = {
     checkedIn: 'Check-in',
     checkedOut: 'Check-out',
   },
+  title: 'Calendar',
+  search: 'Search for a booking…',
+  propertiesLabel: 'properties',
+  occupancyLabel: 'Occupancy',
+  previous: 'Previous',
+  next: 'Next',
+  pause: 'Pause',
+  play: 'Resume',
+  demo: 'Calendar demo',
+  guide: {
+    step: 'Step',
+    steps: [
+      {
+        title: 'Know your property',
+        body: 'One click opens its details: capacity, check-in times, rates and performance, without leaving the calendar.',
+      },
+      {
+        title: 'Focus on a channel',
+        body: 'Hide Airbnb to read the other bookings. A second click brings every stay back.',
+      },
+      {
+        title: 'Prevent overlapping stays',
+        body: 'These dates are already taken. The move is rejected and the stay returns to its original dates.',
+      },
+      {
+        title: 'Move a stay',
+        body: 'Drag the booking to available dates. Here, Mia’s stay starts two days later.',
+      },
+      {
+        title: 'Extend the booking',
+        body: 'Drag the edge of Luca’s stay to add two nights. Cleaning stays linked to the booking.',
+      },
+      {
+        title: 'Complete the guest profile',
+        body: 'The alert flags missing information. Add Kenji’s email and the alert disappears.',
+      },
+      {
+        title: 'Choose available nights',
+        body: 'Select three nights on the property’s row. The dates are ready for a direct booking.',
+      },
+      {
+        title: 'Find the right guest',
+        body: 'Dates and rates are prefilled. Search for Sarah, select her profile and confirm.',
+      },
+      {
+        title: 'The booking is created',
+        body: 'Sarah’s stay appears in the calendar. Occupancy updates without entering the details again.',
+      },
+    ],
+  },
+  scenes: [
+    'Your properties and their details',
+    'Filter by booking channel',
+    'Conflicting dates? The move is rejected.',
+    'Move and extend a stay',
+    'Complete the guest profile',
+    'Create a direct booking',
+  ],
   windowTitle: 'app.baitly — Calendar',
-  month: 'August 2026',
+  month: 'September 2026',
   today: 'Today',
   nightOne: 'night',
   nightMany: 'nights',
@@ -98,7 +214,7 @@ const en: PlanningMockupMessages = {
   cancelled: 'Cancelled',
   blockedReason: 'Bathroom works',
   page: 'Page 1 / 2',
-  pageRange: '1-6 of 10 properties',
+  pageRange: '1–6 of 6',
   searchGuest: 'Search for a guest…',
   owner: 'Toufik Mazy',
   property: {
@@ -121,7 +237,7 @@ const en: PlanningMockupMessages = {
   create: {
     title: 'New booking',
     stay: 'Stay',
-    stayValue: '28 → 31 August',
+    stayValue: '28 Sep → 1 Oct',
     nights: 'Nights',
     nightlyPrice: 'Price / night',
     arrivalDeparture: 'Check-in / check-out',
@@ -150,8 +266,66 @@ const ar: PlanningMockupMessages = {
     checkedIn: 'تسجيل الوصول',
     checkedOut: 'تسجيل المغادرة',
   },
+  title: 'التقويم',
+  search: 'البحث عن حجز…',
+  propertiesLabel: 'عقارات',
+  occupancyLabel: 'الإشغال',
+  previous: 'السابق',
+  next: 'التالي',
+  pause: 'إيقاف مؤقت',
+  play: 'متابعة',
+  demo: 'عرض التقويم',
+  guide: {
+    step: 'الخطوة',
+    steps: [
+      {
+        title: 'كل تفاصيل العقار',
+        body: 'نقرة واحدة تعرض السعة والمواعيد والأسعار والأداء، دون مغادرة التقويم.',
+      },
+      {
+        title: 'التركيز على قناة حجز',
+        body: 'أخفِ حجوزات Airbnb لقراءة الحجوزات الأخرى. نقرة ثانية تعيد جميع الإقامات.',
+      },
+      {
+        title: 'تجنّب تداخل الحجوزات',
+        body: 'هذه التواريخ محجوزة بالفعل. يُرفض النقل وتعود الإقامة إلى تواريخها الأصلية.',
+      },
+      {
+        title: 'تغيير موعد الإقامة',
+        body: 'اسحب الحجز إلى تواريخ متاحة. هنا تبدأ إقامة ميا بعد يومين.',
+      },
+      {
+        title: 'تمديد الحجز',
+        body: 'اسحب حافة إقامة لوكا لإضافة ليلتين. تبقى خدمة التنظيف مرتبطة بالحجز.',
+      },
+      {
+        title: 'إكمال ملف الضيف',
+        body: 'تشير العلامة إلى معلومة ناقصة. أضف بريد كينجي الإلكتروني ليختفي التنبيه.',
+      },
+      {
+        title: 'اختيار الليالي المتاحة',
+        body: 'حدد ثلاث ليالٍ في صف العقار. تصبح التواريخ جاهزة لإنشاء حجز مباشر.',
+      },
+      {
+        title: 'العثور على الضيف',
+        body: 'التواريخ والأسعار معبأة مسبقاً. ابحث عن سارة، واختر ملفها ثم أكّد الحجز.',
+      },
+      {
+        title: 'تم إنشاء الحجز',
+        body: 'تظهر إقامة سارة في التقويم وتُحدّث نسبة الإشغال دون إعادة إدخال البيانات.',
+      },
+    ],
+  },
+  scenes: [
+    'عقاراتك وتفاصيلها',
+    'التصفية حسب قناة الحجز',
+    'تعارض في التواريخ؟ يتم رفض النقل.',
+    'نقل الإقامة وتمديدها',
+    'إكمال ملف الضيف',
+    'إنشاء حجز مباشر',
+  ],
   windowTitle: 'app.baitly — التقويم',
-  month: 'أغسطس 2026',
+  month: 'سبتمبر 2026',
   today: 'اليوم',
   nightOne: 'ليلة',
   nightMany: 'ليالٍ',
@@ -159,7 +333,7 @@ const ar: PlanningMockupMessages = {
   cancelled: 'ملغى',
   blockedReason: 'أشغال في دورة المياه',
   page: 'صفحة 1 / 2',
-  pageRange: '1-6 من 10 وحدات',
+  pageRange: '1–6 من 6',
   searchGuest: 'ابحث عن نزيل…',
   owner: 'توفيق مازي',
   property: {
@@ -182,7 +356,7 @@ const ar: PlanningMockupMessages = {
   create: {
     title: 'حجز جديد',
     stay: 'الإقامة',
-    stayValue: '28 ← 31 أغسطس',
+    stayValue: '28 سبتمبر ← 1 أكتوبر',
     nights: 'الليالي',
     nightlyPrice: 'السعر / ليلة',
     arrivalDeparture: 'الوصول / المغادرة',
@@ -201,6 +375,11 @@ const ar: PlanningMockupMessages = {
   createProperty: 'استراحة الملقا · الرياض · الملقا',
 };
 
-export const PLANNING_MOCKUP_MESSAGES: Record<SiteLanguage, PlanningMockupMessages> = {
-  fr, en, ar,
+export const PLANNING_MOCKUP_MESSAGES: Record<
+  SiteLanguage,
+  PlanningMockupMessages
+> = {
+  fr,
+  en,
+  ar,
 };
