@@ -97,7 +97,9 @@
   min-height: 48px;
   font-size: 0.875rem;
   font-weight: 550;
-  transition: background 200ms var(--bm-ease), box-shadow 200ms var(--bm-ease);
+  transition:
+    background 200ms var(--bm-ease),
+    box-shadow 200ms var(--bm-ease);
 }
 .bm-button:hover {
   background: var(--bm-green);
@@ -361,7 +363,9 @@
   background: var(--bm-paper);
   border: 1px solid var(--bm-line);
   border-radius: 10px;
-  transition: background 200ms var(--bm-ease), border-color 200ms var(--bm-ease),
+  transition:
+    background 200ms var(--bm-ease),
+    border-color 200ms var(--bm-ease),
     color 200ms var(--bm-ease);
 }
 .bm-source-options button > svg {
@@ -685,7 +689,13 @@
   display: flex;
   padding-inline-start: 0.5rem;
 }
-.bm-guest-portraits img {
+.bm-guest-portraits span {
+  display: grid;
+  place-items: center;
+  background: var(--bm-paper);
+  color: var(--bm-ink);
+  font-size: 12px;
+  font-weight: 600;
   width: 42px;
   height: 42px;
   border-radius: 50%;

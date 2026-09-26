@@ -46,7 +46,7 @@ export default function BaitlyBookingExtras({ demo, m, money }: StepProps) {
               type="button"
               role="checkbox"
               aria-checked={demo.extras[index]}
-              aria-label={`${offer.title} · ${money(offer.price)}`}
+              aria-label={`${offer.title} · ${money.label(offer.price)}`}
               className="bb-extras-option bb-demo-target"
               onClick={() => demo.toggleExtra(index)}
             >

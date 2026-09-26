@@ -152,6 +152,7 @@ const fr = {
     'Parlons de votre organisation, de votre PMS actuel et de vos logements. Nous préparons avec vous le périmètre et les étapes de la migration.',
   supportLanguages: 'Français · Arabe · Darija',
   checklistTitle: 'Pour préparer notre échange',
+  downloadChecklist: 'Télécharger la checklist',
   checklist: [
     'Le nom de votre outil actuel',
     'Le nombre de logements à reprendre',
@@ -313,6 +314,7 @@ const en: BaitlyMigrationMessages = {
     'Tell us about your setup, your current PMS and your properties. We will prepare the migration scope and steps together.',
   supportLanguages: 'French · Arabic · Darija',
   checklistTitle: 'For our conversation, prepare',
+  downloadChecklist: 'Download the checklist',
   checklist: [
     'The name of your current tool',
     'The number of properties to transfer',
@@ -466,6 +468,7 @@ const ar: BaitlyMigrationMessages = {
     'أخبرنا عن تنظيمك ونظامك الحالي ووحداتك. نُعدّ معك نطاق النقل وخطوات الانتقال.',
   supportLanguages: 'الفرنسية · العربية · الدارجة',
   checklistTitle: 'لتحضير حديثنا',
+  downloadChecklist: 'تنزيل قائمة التحضير',
   checklist: [
     'اسم أداتك الحالية',
     'عدد الوحدات المراد نقلها',

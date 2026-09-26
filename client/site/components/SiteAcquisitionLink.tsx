@@ -4,6 +4,10 @@ import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
+import {
+  acquisitionSearch,
+  readAcquisitionContext,
+} from '../../src/services/publicAcquisitionContext';
 
 /** Tous les points d'entrée marketing suivent le même réglage serveur. */
 const SiteAcquisitionLink = forwardRef<
@@ -13,12 +17,13 @@ const SiteAcquisitionLink = forwardRef<
   const { paused } = useSiteLaunch();
   const { language } = useSiteLanguage();
   const ArrowIcon = language === 'ar' ? ArrowLeftIcon : ArrowRightIcon;
+  const search =
+    typeof to === 'string'
+      ? new URL(to, 'https://baitly.fr').search
+      : (to.search ?? '');
+  const prelaunch = `/bientot-disponible${acquisitionSearch(readAcquisitionContext(search), language)}`;
   return (
-    <Link
-      {...props}
-      ref={ref}
-      to={paused ? `/bientot-disponible?lang=${language}` : to}
-    >
+    <Link {...props} ref={ref} to={paused ? prelaunch : to}>
       {paused ? (
         <>
           {PRELAUNCH_MESSAGES[language].cta}

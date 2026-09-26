@@ -1,3 +1,4 @@
+import { useSiteMoney, type SiteMoneyFormatter } from './SiteMoney';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -16,13 +17,17 @@ import {
 } from '../lib/messages/baitlyBookingUpsells';
 import balloon from '../assets/photos/balloon.jpg';
 import desert from '../assets/photos/excursion.jpg';
-import chef from '../assets/services/chef.jpg';
-import food from '../assets/photos/food.jpg';
-import bedroom from '../assets/photos/bedroom.jpg';
-import cleaning from '../assets/services/menage.jpg';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import BaitlyDemoPointer from './BaitlyDemoPointer';
 import '../baitly-booking-upsells.css';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  bookingChef: chef,
+  bookingDinner: food,
+  bookingLate: bedroom,
+  bookingCleaning: cleaning,
+} = SITE_PHOTOS;
 
 const OFFERS: {
   id: BookingUpsellId;
@@ -73,12 +78,7 @@ export default function BaitlyBookingUpsells() {
     setGroup(id);
     setBeat(0);
   };
-  const money = (value: number) =>
-    new Intl.NumberFormat(language, {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(value);
+  const money = useSiteMoney('EUR', language);
   const toggle = (id: BookingUpsellId) =>
     setSelected((current) =>
       current.includes(id)
@@ -223,7 +223,7 @@ function UpsellSelection({
   selected: BookingUpsellId[];
   toggle: (id: BookingUpsellId) => void;
   m: BookingUpsellMessages;
-  money: (value: number) => string;
+  money: SiteMoneyFormatter;
   automatic: boolean;
 }) {
   const offers = selected.map((id) => OFFERS.find((offer) => offer.id === id)!);

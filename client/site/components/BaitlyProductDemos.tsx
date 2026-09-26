@@ -1,3 +1,9 @@
+import SiteMoney, {
+  SiteCurrencySymbol,
+  SiteMoneyText,
+  useSiteMoney,
+} from './SiteMoney';
+import { useSiteCurrency } from '../lib/siteCurrency';
 import { useId, useState, type ReactNode } from 'react';
 import {
   ArrowRightIcon,
@@ -20,17 +26,18 @@ import {
   demoOwnerStatement,
   type ProductStoryKind,
 } from '../data/baitlyProductStories';
-import bedroom from '../assets/photos/bedroom.jpg';
-import riad from '../assets/photos/baitly-riad-small.webp';
-import riadFull from '../assets/photos/baitly-riad.webp';
 import cleaner from '../assets/people/provider-1.jpg';
 import stripe from '../assets/brands/stripe.svg';
 import payzone from '../assets/brands/payzone.svg';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  operationsProof: bedroom,
+  financeStay: riad,
+  devicesDoor: riadFull,
+} = SITE_PHOTOS;
 
 type DemoProps = { language: SiteLanguage };
-const LOCALES = { fr: 'fr-FR', en: 'en-GB', ar: 'ar-MA' };
-const number = (value: number, language: SiteLanguage) =>
-  new Intl.NumberFormat(LOCALES[language]).format(value);
 
 function Choices({
   label,
@@ -81,6 +88,8 @@ export function RevenueDemo({ language }: DemoProps) {
   const [floor, setFloor] = useState(650);
   const id = useId();
   const prices = demoNightlyPrices(scenario, floor);
+  const currency = useSiteCurrency();
+  const money = useSiteMoney('MAD', language);
   return (
     <div className="bps-demo bps-revenue-demo">
       <DemoHeader icon={<ShieldCheckIcon aria-hidden="true" />}>
@@ -97,7 +106,14 @@ export function RevenueDemo({ language }: DemoProps) {
         <div className="bps-chart" role="group" aria-label={m.chart}>
           {prices.map((price, index) => (
             <div className="bps-chart-column" key={index}>
-              <strong>{number(price, language)}</strong>
+              <strong>
+                <SiteMoney
+                  language={language}
+                  value={price}
+                  from="MAD"
+                  symbol={false}
+                />
+              </strong>
               <div className="bps-bar-track">
                 <div
                   className="bps-bar"
@@ -109,14 +125,17 @@ export function RevenueDemo({ language }: DemoProps) {
           ))}
         </div>
         <p className="bps-chart-unit">
-          MAD /{' '}
+          <SiteCurrencySymbol currency={currency.currency ?? 'MAD'} /> /{' '}
           {language === 'fr' ? 'nuit' : language === 'en' ? 'night' : 'ليلة'}
         </p>
         <div className="bps-floor">
           <label htmlFor={id}>
             {m.floor}
-            <output htmlFor={id}>
-              {number(floor, language)} <small>MAD</small>
+            <output
+              htmlFor={id}
+              aria-live={currency.playing ? 'off' : 'polite'}
+            >
+              {money(floor)}
             </output>
           </label>
           <input
@@ -126,7 +145,11 @@ export function RevenueDemo({ language }: DemoProps) {
             max="1000"
             step="50"
             value={floor}
-            onChange={(event) => setFloor(Number(event.target.value))}
+            aria-valuetext={money.label(floor)}
+            onChange={(event) => {
+              currency.pause();
+              setFloor(Number(event.target.value));
+            }}
           />
           <span className="bps-status">
             <ShieldCheckIcon aria-hidden="true" />
@@ -143,16 +166,19 @@ const PAYMENT_EXAMPLES = [
   { currency: 'MAD', price: 850, provider: 'Payzone', logo: payzone },
   { currency: 'SAR', price: 350, provider: 'PayTabs', logo: undefined },
   { currency: 'EUR', price: 95, provider: 'Stripe', logo: stripe },
-];
+] as const;
 
 export function FinanceDemo({ language }: DemoProps) {
   const m = BAITLY_PRODUCT_DEMO_MESSAGES[language];
   const f = m.finance;
-  const [country, setCountry] = useState(0);
+  const [selectedCountry, setCountry] = useState(0);
+  const currency = useSiteCurrency();
+  const country = currency.currency
+    ? PAYMENT_EXAMPLES.findIndex((item) => item.currency === currency.currency)
+    : selectedCountry;
   const [paid, setPaid] = useState(false);
   const sample = PAYMENT_EXAMPLES[country];
-  const amount = (value: number) =>
-    `${number(value, language)} ${sample.currency}`;
+  const amount = useSiteMoney(sample.currency, language, sample.currency);
   return (
     <div className="bps-demo bps-finance-demo">
       <DemoHeader icon={<CreditCardIcon aria-hidden="true" />}>
@@ -165,6 +191,7 @@ export function FinanceDemo({ language }: DemoProps) {
           value={country}
           onChange={(value) => {
             setCountry(value);
+            currency.select(PAYMENT_EXAMPLES[value].currency);
             setPaid(false);
           }}
         />
@@ -218,7 +245,10 @@ export function FinanceDemo({ language }: DemoProps) {
             <button
               className="bps-demo-action"
               type="button"
-              onClick={() => setPaid(true)}
+              onClick={() => {
+                currency.pause();
+                setPaid(true);
+              }}
             >
               <LockKeyholeIcon aria-hidden="true" />
               {f.action}
@@ -394,32 +424,56 @@ export function OwnersDemo({ language }: DemoProps) {
               <h3>{m.property}</h3>
               <span>{m.location}</span>
             </div>
-            <img src={riad} alt="" width="84" height="84" />
+            <img src={SITE_PHOTOS.ownersStay} alt="" width="84" height="84" />
           </div>
-          <dl className="bps-money-lines" aria-live="polite" aria-atomic="true">
+          <dl className="bps-money-lines">
             <div>
               <dt>{o.gross}</dt>
               <dd>
-                <bdi>{number(statement.gross, language)}</bdi>
+                <bdi>
+                  <SiteMoney
+                    language={language}
+                    value={statement.gross}
+                    from="MAD"
+                  />
+                </bdi>
               </dd>
             </div>
             <div>
               <dt>{o.commission}</dt>
               <dd>
-                <bdi>−{number(statement.commission, language)}</bdi>
+                <bdi>
+                  −
+                  <SiteMoney
+                    language={language}
+                    value={statement.commission}
+                    from="MAD"
+                  />
+                </bdi>
               </dd>
             </div>
             <div>
               <dt>{o.expenses}</dt>
               <dd>
-                <bdi>−{number(statement.expenses, language)}</bdi>
+                <bdi>
+                  −
+                  <SiteMoney
+                    language={language}
+                    value={statement.expenses}
+                    from="MAD"
+                  />
+                </bdi>
               </dd>
             </div>
             <div className="bps-statement-net" key={month}>
               <dt>{o.net}</dt>
               <dd className="bps-enter">
                 <bdi>
-                  {number(statement.net, language)} <small>MAD</small>
+                  <SiteMoney
+                    language={language}
+                    value={statement.net}
+                    from="MAD"
+                  />
                 </bdi>
               </dd>
             </div>
@@ -470,15 +524,25 @@ export function AgentsDemo({ language }: DemoProps) {
             </div>
           </div>
           <h3>{scenario.title}</h3>
-          <p>{scenario.copy}</p>
+          <p>
+            <SiteMoneyText language={language}>{scenario.copy}</SiteMoneyText>
+          </p>
           <div className="bps-agent-change">
-            <span>{m.steps[selected].before}</span>
+            <span>
+              <SiteMoneyText language={language}>
+                {m.steps[selected].before}
+              </SiteMoneyText>
+            </span>
             <ArrowRightIcon aria-hidden="true" />
-            <strong>{m.steps[selected].after}</strong>
+            <strong>
+              <SiteMoneyText language={language}>
+                {m.steps[selected].after}
+              </SiteMoneyText>
+            </strong>
           </div>
           <p className="bps-agent-reason">
             <ShieldCheckIcon aria-hidden="true" />
-            {scenario.detail}
+            <SiteMoneyText language={language}>{scenario.detail}</SiteMoneyText>
           </p>
         </div>
         <div className="bps-agent-decision" aria-live="polite">
@@ -498,7 +562,9 @@ export function AgentsDemo({ language }: DemoProps) {
             </button>
           )}
         </div>
-        <p className="bps-demo-note">{scenario.note}</p>
+        <p className="bps-demo-note">
+          <SiteMoneyText language={language}>{scenario.note}</SiteMoneyText>
+        </p>
       </div>
     </div>
   );

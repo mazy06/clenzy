@@ -3,11 +3,15 @@ import { BAITLY_BOOKING_MESSAGES } from './messages/baitlyBooking';
 import { BAITLY_BOOKING_UPSELL_MESSAGES } from './messages/baitlyBookingUpsells';
 import { BOOKING_STOREFRONT_COPY } from './messages/baitlyBookingStorefront';
 import type { SiteLanguage } from './siteLanguage';
-import bedroom from '../assets/photos/bedroom.jpg';
-import cleaning from '../assets/services/menage.jpg';
 import balloon from '../assets/photos/balloon.jpg';
 import desert from '../assets/photos/excursion.jpg';
-import chef from '../assets/services/chef.jpg';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  bookingLate: bedroom,
+  bookingCleaning: cleaning,
+  bookingChef: chef,
+} = SITE_PHOTOS;
 
 export interface BookingDemoExtra {
   id: string;
@@ -36,8 +40,8 @@ export function getBookingDemoExtras(
       (template.id === 'collection' && i === 0)
         ? undefined
         : template.id === 'villa' && i === 0
-        ? chef
-        : template.extras[i],
+          ? chef
+          : template.extras[i],
   }));
   return [
     ...featured,

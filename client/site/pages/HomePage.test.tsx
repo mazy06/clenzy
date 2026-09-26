@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { SiteLanguageProvider, SITE_LANGUAGES } from '../lib/siteLanguage';
 import { HOME_MESSAGES } from '../lib/messages/home';
+import { HOME_RESOURCE_MESSAGES } from '../lib/messages/homeResources';
 import HomePage from './HomePage';
 
 vi.mock('../lib/siteLaunch', () => ({
@@ -43,6 +44,29 @@ afterEach(() => {
 });
 
 describe('Accueil du site public', () => {
+  it.each(SITE_LANGUAGES)(
+    'ouvre les ressources et leurs outils dans la langue %s',
+    (language) => {
+      mount(`?lang=${language}`);
+      const m = HOME_RESOURCE_MESSAGES[language];
+      const section = within(screen.getByRole('region', { name: m.title }));
+      expect(
+        section
+          .getByRole('link', { name: m.library.title })
+          .getAttribute('href'),
+      ).toBe(`/ressources?lang=${language}`);
+      expect(
+        section
+          .getByRole('link', { name: m.calculator.title })
+          .getAttribute('href'),
+      ).toBe(`/ressources/calculateur?lang=${language}`);
+      expect(
+        section
+          .getByRole('link', { name: m.obligations.title })
+          .getAttribute('href'),
+      ).toBe(`/ressources/obligations?lang=${language}`);
+    },
+  );
   it('sert l’arabe quand le lien le demande, et bascule en RTL', () => {
     mount('?lang=ar');
 

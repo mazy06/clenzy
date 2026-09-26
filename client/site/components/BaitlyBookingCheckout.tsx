@@ -122,7 +122,7 @@ export default function BaitlyBookingCheckout(props: StepProps) {
         <span>
           {demo.processing
             ? c.processing
-            : c.pay.replace('{amount}', money(stayTotal(props, language)))}
+            : <>{c.pay.split('{amount}')[0]}{money(stayTotal(props, language))}{c.pay.split('{amount}')[1]}</>}
         </span>
         {!demo.processing && <ArrowRightIcon />}
         <BaitlyDemoPointer

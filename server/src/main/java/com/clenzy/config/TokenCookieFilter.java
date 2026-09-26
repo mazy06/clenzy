@@ -30,6 +30,19 @@ public class TokenCookieFilter extends OncePerRequestFilter {
                                      HttpServletResponse response,
                                      FilterChain filterChain) throws ServletException, IOException {
 
+        // Baitly utilise exclusivement des access tokens Bearer. Spring Security
+        // 6.5 ajoute automatiquement un filtre DPoP : refuser ce schema AVANT
+        // son traitement (CVE-2026-41707), y compris sur les routes publiques.
+        // Meme detection de prefixe, insensible a la casse, que le filtre Spring.
+        String authorization = request.getHeader("Authorization");
+        if (authorization != null && authorization.regionMatches(true, 0, "DPoP", 0, 4)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setHeader("WWW-Authenticate", "Bearer");
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"unsupported_authentication_scheme\",\"status\":401}");
+            return;
+        }
+
         // Ne pas injecter le cookie sur les endpoints d'auth (login, register, etc.)
         // Un JWT expire dans le cookie provoquerait un 401 avant que le permitAll() ne soit evalue.
         //
@@ -47,7 +60,7 @@ public class TokenCookieFilter extends OncePerRequestFilter {
         }
 
         // Si le header Authorization est deja present, ne pas le surcharger
-        if (request.getHeader("Authorization") != null) {
+        if (authorization != null) {
             filterChain.doFilter(request, response);
             return;
         }

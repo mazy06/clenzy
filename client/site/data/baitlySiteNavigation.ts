@@ -4,7 +4,7 @@ import { LAYOUT_MESSAGES } from '../lib/messages/layout';
 import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
 import { MODULES, RESOURCES, SOLUTIONS } from './catalog';
-import { MODULE_PHOTO, SOLUTION_PHOTO } from './navVisuals';
+import { BAITLY_NAV_PREVIEWS } from './navVisuals';
 
 export type BaitlySiteNavEntry = {
   key: string;
@@ -36,7 +36,7 @@ export function buildBaitlySiteNavigation(
       title: text.name,
       copy: text.menuCopy,
       points: text.features.map((feature) => feature.title),
-      photo: MODULE_PHOTO[module.slug],
+      preview: BAITLY_NAV_PREVIEWS[module.slug],
     };
   });
 
@@ -49,7 +49,7 @@ export function buildBaitlySiteNavigation(
       title: text.name,
       copy: text.copy,
       points: text.points,
-      photo: SOLUTION_PHOTO[solution.slug],
+      preview: BAITLY_NAV_PREVIEWS[solution.slug],
     };
   });
 
@@ -64,6 +64,7 @@ export function buildBaitlySiteNavigation(
       title: text.name,
       copy: text.copy,
       tag: text.tag,
+      preview: BAITLY_NAV_PREVIEWS[resource.id],
     };
   });
 

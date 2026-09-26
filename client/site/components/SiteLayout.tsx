@@ -1,4 +1,7 @@
 import SiteAcquisitionLink from './SiteAcquisitionLink';
+import SiteMetadata from './SiteMetadata';
+import { SiteCurrencyProvider } from '../lib/siteCurrency';
+import SiteCurrencyControl from './SiteCurrencyControl';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { runtimeEnvOr } from '../../src/config/runtimeConfig';
@@ -318,6 +321,12 @@ function SiteFooter() {
               { label: m.legal.privacy, to: '/legal/confidentialite' },
               { label: m.legal.terms, to: '/legal/cgv' },
               { label: m.legal.status, to: '/statut' },
+              {
+                label: { fr: 'Contact', en: 'Contact', ar: 'تواصل معنا' }[
+                  language
+                ],
+                to: `/contact?lang=${language}`,
+              },
             ].map((link) => (
               <Link
                 key={link.to}
@@ -355,26 +364,30 @@ export default function SiteLayout(): ReactNode {
   const { language } = useSiteLanguage();
   const m = LAYOUT_MESSAGES[language].shell;
   return (
-    <div className="baitly-marketing min-h-screen">
-      <a href="#site-content" className="site-skip-link">
-        {m.skip}
-      </a>
-      <ScrollRestore />
-      <SiteHeader />
-      <main id="site-content" tabIndex={-1}>
-        <Suspense
-          fallback={
-            <div className="site-shell site-route-loading" role="status">
-              <span>{m.loading}</span>
-              <div />
-              <div />
-            </div>
-          }
-        >
-          <Outlet />
-        </Suspense>
-      </main>
-      <SiteFooter />
-    </div>
+    <SiteCurrencyProvider>
+      <div className="baitly-marketing min-h-screen">
+        <a href="#site-content" className="site-skip-link">
+          {m.skip}
+        </a>
+        <ScrollRestore />
+        <SiteMetadata />
+        <SiteHeader />
+        <main id="site-content" tabIndex={-1}>
+          <Suspense
+            fallback={
+              <div className="site-shell site-route-loading" role="status">
+                <span>{m.loading}</span>
+                <div />
+                <div />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
+        </main>
+        <SiteFooter />
+        <SiteCurrencyControl />
+      </div>
+    </SiteCurrencyProvider>
   );
 }

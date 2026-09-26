@@ -30,26 +30,35 @@ import {
   type ProductStoryKind,
 } from '../data/baitlyProductStories';
 import { MODULES } from '../data/catalog';
-import terrace from '../assets/photos/terrace.jpg';
-import guesthouse from '../assets/photos/guesthouse.jpg';
-import bedroom from '../assets/photos/bedroom.jpg';
-import cleaning from '../assets/services/menage.jpg';
-import riad from '../assets/photos/baitly-riad.webp';
-import pool from '../assets/photos/pool.jpg';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
 import stripe from '../assets/brands/stripe.svg';
 import payzone from '../assets/brands/payzone.svg';
 import '../baitly-products.css';
+import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
-const PHOTOS = {
-  agents: terrace,
-  revenue: pool,
-  finance: guesthouse,
-  operations: cleaning,
-  devices: riad,
-  owners: bedroom,
-};
+const PHOTO_KEYS = {
+  agents: 'agentsWork',
+  revenue: 'revenueAnalysis',
+  finance: 'financeDocuments',
+  operations: 'operationsBed',
+  devices: 'devicesLock',
+  owners: 'ownersContract',
+} as const;
+const STORY_PHOTOS = {
+  agents: { intro: 'agentsReception', workflow: 'agentsCollaboration' },
+  revenue: { intro: 'revenueProperty', workflow: 'revenueReview' },
+  finance: { intro: 'financePayment', workflow: 'financeReconciliation' },
+  operations: {
+    intro: 'operationsPreparation',
+    workflow: 'operationsEquipment',
+  },
+  devices: { intro: 'devicesEquipment', workflow: 'devicesEntry' },
+  owners: { intro: 'ownersKeys', workflow: 'ownersMeeting' },
+} as const satisfies Record<
+  ProductStoryKind,
+  { intro: keyof typeof SITE_PHOTOS; workflow: keyof typeof SITE_PHOTOS }
+>;
 const APP_PREVIEWS = {
   operations: lazy(() => import('../components/AnimatedOpsMockup')),
   devices: lazy(() => import('../components/AnimatedIotMockup')),
@@ -204,11 +213,11 @@ function Ecosystem({
           { name: 'PayTabs' },
         ]
       : kind === 'devices'
-      ? [{ name: 'Nuki' }, { name: 'KeyNest' }, { name: 'Minut' }]
-      : [
-          { name: 'Airbnb', src: airbnb },
-          { name: 'Booking.com', src: booking },
-        ];
+        ? [{ name: 'Nuki' }, { name: 'KeyNest' }, { name: 'Minut' }]
+        : [
+            { name: 'Airbnb', src: airbnb },
+            { name: 'Booking.com', src: booking },
+          ];
   return (
     <div className="bps-ecosystem site-shell">
       <span>{BAITLY_PRODUCT_MESSAGES[language].ecosystem}</span>
@@ -241,6 +250,7 @@ export default function BaitlyProductPage({
   const { language } = useSiteLanguage();
   const m = BAITLY_PRODUCT_MESSAGES[language];
   const story = m.pages[kind];
+  const photos = STORY_PHOTOS[kind];
   const slug = PRODUCT_STORY_SLUGS[kind];
   const text = moduleText(slug, language);
   const module = MODULES.find((item) => item.slug === slug)!;
@@ -280,6 +290,15 @@ export default function BaitlyProductPage({
                 {m.explore}
                 <ArrowDownIcon aria-hidden="true" />
               </a>
+            </div>
+            <div className="bps-hero-photo">
+              <img
+                src={SITE_PHOTOS[photos.intro]}
+                alt={sitePhotoAlt(photos.intro, language)}
+                width="1000"
+                height="360"
+                decoding="async"
+              />
             </div>
           </div>
           <div className="bps-hero-visual">
@@ -323,8 +342,8 @@ export default function BaitlyProductPage({
         <div className="bps-feature-layout">
           <Reveal className="bps-editorial-photo">
             <img
-              src={PHOTOS[kind]}
-              alt=""
+              src={SITE_PHOTOS[PHOTO_KEYS[kind]]}
+              alt={sitePhotoAlt(PHOTO_KEYS[kind], language)}
               width="760"
               height="720"
               loading="lazy"
@@ -356,23 +375,39 @@ export default function BaitlyProductPage({
       </section>
 
       <section className="bps-workflow" aria-labelledby="bps-workflow-title">
-        <div className="site-shell">
-          <Reveal className="bps-workflow-heading">
-            <Icon aria-hidden="true" />
-            <h2 id="bps-workflow-title">{story.workflowTitle}</h2>
+        <div className="site-shell bps-workflow-layout">
+          <div className="bps-workflow-copy">
+            <Reveal className="bps-workflow-heading">
+              <h2 id="bps-workflow-title">{story.workflowTitle}</h2>
+            </Reveal>
+            <ol className="bps-steps">
+              {story.steps.map((step, index) => (
+                <Reveal
+                  as="li"
+                  key={step.title}
+                  delay={(index + 1) as 1 | 2 | 3}
+                >
+                  <span className="bps-step-number" aria-hidden="true">
+                    0{index + 1}
+                  </span>
+                  <div>
+                    <h3>{step.title}</h3>
+                    <p>{step.copy}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+          <Reveal className="bps-workflow-photo">
+            <img
+              src={SITE_PHOTOS[photos.workflow]}
+              alt={sitePhotoAlt(photos.workflow, language)}
+              width="1000"
+              height="1000"
+              loading="lazy"
+              decoding="async"
+            />
           </Reveal>
-          <ol className="bps-steps">
-            {story.steps.map((step, index) => (
-              <Reveal as="li" key={step.title} delay={(index + 1) as 1 | 2 | 3}>
-                <div className="bps-step-track">
-                  <span>0{index + 1}</span>
-                  <ArrowRightIcon aria-hidden="true" />
-                </div>
-                <h3>{step.title}</h3>
-                <p>{step.copy}</p>
-              </Reveal>
-            ))}
-          </ol>
         </div>
       </section>
 
@@ -413,7 +448,10 @@ export default function BaitlyProductPage({
               {m.pricing}
               <ArrowRightIcon aria-hidden="true" />
             </Link>
-            <Link to={`/migration?lang=${language}`} className="bps-subtle-link">
+            <Link
+              to={`/migration?lang=${language}`}
+              className="bps-subtle-link"
+            >
               {m.migration}
             </Link>
           </div>

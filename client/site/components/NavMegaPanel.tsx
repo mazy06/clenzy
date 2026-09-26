@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
 import { NavigationMenuLink } from '../../src/components/ui';
 import BaitlyBookingPreview from './BaitlyBookingPreview';
+import BaitlyNavPreview, {
+  type BaitlyNavPreviewKind,
+} from './BaitlyNavPreview';
 
 /**
  * Le contenu d'un volet de la barre de navigation : une liste, une vitrine.
@@ -14,13 +17,13 @@ import BaitlyBookingPreview from './BaitlyBookingPreview';
  *
  * <p>La composition retenue separe les deux gestes. <b>Le rail</b>, a gauche,
  * ne porte qu'une icone et un titre par entree : on le balaye. <b>La vitrine</b>,
- * a droite, ne montre QUE l'entree survolee — sa photo, sa phrase et jusqu'a
+ * a droite, ne montre QUE l'entree survolee : son apercu, sa phrase et jusqu'a
  * trois de ses vraies fonctionnalites. On ne lit donc jamais plus d'un bloc de
  * texte a la fois, et la profondeur est disponible sans etre imposee.</p>
  *
  * <p><b>Le mouvement fait le lien entre les deux.</b> Un curseur glisse d'une
  * rangee a l'autre — c'est lui qui dit ce que la vitrine est en train de
- * montrer —, la photo entre en fondu avec un leger retrait d'echelle, et le
+ * montrer ; l'apercu entre en fondu, et le
  * texte la suit d'un souffle. Les rangees se posent en cascade a l'ouverture,
  * dans la foulee du tiroir.</p>
  *
@@ -41,12 +44,9 @@ export interface NavMegaItem {
   points?: readonly string[];
   /** Etiquette courte (« Outil », « Guide ») ; les ressources en portent une. */
   tag?: string;
-  /**
-   * Photo d'ambiance de la vitrine. C'est le registre de la page — l'hotellerie
-   * — et non l'illustration d'une fonctionnalite : le produit est un logiciel,
-   * la verite du module est dans ses points. Une entree sans photo prend un
-   * aplat teinte et son icone en grand.
-   */
+  /** Miniature fonctionnelle du module ou de la ressource. */
+  preview?: BaitlyNavPreviewKind;
+  /** Photo du type de logement ou du marche pour les solutions. */
   photo?: string;
 }
 
@@ -99,7 +99,10 @@ export default function NavMegaPanel({
                     <Icon className="size-4" />
                   </span>
                   <span className="bl-mega-row-title">{item.title}</span>
-                  <ArrowRightIcon className="bl-mega-row-arrow" aria-hidden="true" />
+                  <ArrowRightIcon
+                    className="bl-mega-row-arrow"
+                    aria-hidden="true"
+                  />
                 </Link>
               </NavigationMenuLink>
             );
@@ -112,6 +115,8 @@ export default function NavMegaPanel({
           <div className="bl-mega-card" key={active.key}>
             {active.key === 'booking-engine' ? (
               <BaitlyBookingPreview compact />
+            ) : active.preview ? (
+              <BaitlyNavPreview kind={active.preview} />
             ) : active.photo ? (
               <span className="bl-mega-card-media">
                 <img src={active.photo} alt="" decoding="async" />
@@ -125,7 +130,9 @@ export default function NavMegaPanel({
               </span>
             )}
             <span className="bl-mega-card-body">
-              {active.tag && <span className="bl-mega-card-tag">{active.tag}</span>}
+              {active.tag && (
+                <span className="bl-mega-card-tag">{active.tag}</span>
+              )}
               <strong>{active.title}</strong>
               <span className="bl-mega-card-copy">{active.copy}</span>
               {active.points && active.points.length > 0 && (

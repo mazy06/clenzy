@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
@@ -33,6 +33,8 @@ const RELATED: Record<ResourceKind, ResourceKind[]> = {
 
 export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
   const { language } = useSiteLanguage();
+  const [params] = useSearchParams();
+  const country = params.get('country') ?? 'MA';
   const m = BAITLY_RESOURCE_MESSAGES[language];
   const module = m.modules[kind];
   const Tool = TOOLS[kind];
@@ -51,7 +53,15 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
         <p>{module.intro}</p>
       </header>
       <div className="site-shell brs-tool-content">
-        <Tool key={kind} language={language} />
+        {kind === 'obligations' ? (
+          <ObligationsGuide
+            key={country}
+            language={language}
+            initialCountry={country}
+          />
+        ) : (
+          <Tool key={kind} language={language} />
+        )}
       </div>
       <section className="site-shell brs-related">
         <span className="brs-eyebrow">{m.related}</span>

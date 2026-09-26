@@ -1,4 +1,5 @@
 import { runtimeEnvOr } from '../config/runtimeConfig';
+import type { AcquisitionContext } from './publicAcquisitionContext';
 
 export interface PublicLaunchStatus {
   registrationsPaused: boolean;
@@ -51,14 +52,21 @@ export const publicLaunchApi = {
     }
     return data;
   },
-  async subscribe(email: string, language: string): Promise<WaitlistResult> {
+  async subscribe(
+    email: string,
+    language: string,
+    context: AcquisitionContext = {},
+  ): Promise<WaitlistResult> {
     const response = await fetch(`${base}/api/public/waitlist`, {
       method: 'POST',
       signal: AbortSignal.timeout(15000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: email.trim(),
-        source: `baitly-prelaunch-${language}`,
+        source: [`baitly-prelaunch-${language}`, context.plan, context.market]
+          .filter(Boolean)
+          .join('-'),
+        propertyCount: context.properties?.toString(),
       }),
     });
     if (!response.ok) throw new LaunchApiError(response.status);

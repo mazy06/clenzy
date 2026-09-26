@@ -8,12 +8,28 @@ import { BAITLY_PRODUCT_MESSAGES } from './messages/baitlyProducts';
 import { PRODUCT_STORY_SLUGS, type ProductStoryKind } from '../data/baitlyProductStories';
 import { BAITLY_RESOURCE_MESSAGES } from './messages/baitlyResources';
 import { MARKET_SOURCE, type ResourceKind } from '../data/baitlyResources';
+import { BAITLY_READINESS_MESSAGES } from './messages/baitlyReadiness';
+import { PROVIDERS_MESSAGES } from './messages/providers';
+import { getLegalDoc } from '../../src/modules/legal/corpus';
 
 const routes = readFileSync('site/main.tsx', 'utf8');
 const robots = readFileSync('site/public/robots.txt', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 
 describe('Baitly public discovery build', () => {
+  it('publishes the pre-launch context without build-time availability claims', () => {
+    const { assets } = discoveryArtifacts(routes, robots, catalog);
+    for (const language of ['fr', 'en', 'ar'] as const) {
+      const m = BAITLY_READINESS_MESSAGES[language];
+      const status = assets.get(`_baitly-markdown/${language}/statut.md`)!;
+      expect(status).toContain(m.status.unmeasured);
+      expect(status).not.toContain(m.status.openTitle);
+      expect(status).not.toContain(m.status.title);
+      expect(assets.get(`_baitly-markdown/${language}/comparer.md`)).toContain(m.compare.note);
+      expect(assets.get(`_baitly-markdown/${language}/prestataires.md`)).toContain(PROVIDERS_MESSAGES[language].openingNote);
+      expect(assets.get(`_baitly-markdown/${language}/bientot-disponible.md`)).toContain(m.next.note);
+    }
+  });
   it('publie les six ressources avec leur contenu et leurs sources dans les trois langues', () => {
     const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
     for (const language of ['fr', 'en', 'ar'] as const) {
@@ -45,7 +61,7 @@ describe('Baitly public discovery build', () => {
     expect(assets.get('robots.txt')).toContain('Sitemap: https://baitly.fr/sitemap.xml');
   });
 
-  it('uses current public copy in each language and leaves legal copy in its actual language', () => {
+  it('uses current public and legal copy in the requested language', () => {
     const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
     for (const language of ['fr', 'en', 'ar'] as const) {
       for (const [kind, slug] of Object.entries(PRODUCT_STORY_SLUGS)) {
@@ -68,7 +84,10 @@ describe('Baitly public discovery build', () => {
         expect(assets.get(`_baitly-markdown/${language}${path === '/' ? '/index' : path}.md`)).toMatch(/^# .+/);
       }
     }
-    expect(assets.get('_baitly-markdown/ar/legal/cgv.md')).toEqual(assets.get('_baitly-markdown/fr/legal/cgv.md'));
+    for (const language of ['fr', 'en', 'ar'] as const) {
+      expect(assets.get(`_baitly-markdown/${language}/legal/cgv.md`)).toContain(getLegalDoc('cgv', language)!.title);
+      expect(assets.get(`_baitly-markdown/${language}/legal/mentions-legales.md`)).toContain('Sinatech');
+    }
     expect([...assets.keys()].some((path) => /inscription|activation|register/.test(path))).toBe(false);
   });
 
@@ -76,6 +95,18 @@ describe('Baitly public discovery build', () => {
     const result = discoveryArtifacts(routes.replace('<Route path="/demo" element={<DemoRoute />} />', ''), robots, catalog);
     expect(result.paths).not.toContain('/demo');
     expect(result.assets.has('_baitly-markdown/fr/demo.md')).toBe(false);
+  });
+
+  it('keeps private workflows available as HTML when Markdown is requested', () => {
+    const { configs } = discoveryArtifacts(routes, robots, catalog);
+    const config = configs.get('discovery-server.conf')!;
+    for (const path of ['/prestataires/inscription', '/prestataires/activation', '/inscription', '/register']) {
+      const location = config.split(`location = ${path} {`)[1]?.split('\n}')[0];
+      expect(location, path).toContain(`try_files /_baitly-html/$baitly_markdown_language${path}.html =404;`);
+      expect(location, path).not.toContain('_baitly-markdown');
+      expect(location, path).not.toContain('add_header Link');
+    }
+    expect(config).toContain('error_page 404 /_baitly-html/$baitly_markdown_language/404.html;');
   });
 
   it('fails publication for new routes without a Markdown representation or dynamic-route policy', () => {

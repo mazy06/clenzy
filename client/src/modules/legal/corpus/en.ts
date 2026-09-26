@@ -17,21 +17,21 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
   {
     slug: 'mentions-legales',
     title: 'Legal notice',
-    updated: '24 July 2026',
+    updated: '26 September 2026 (publisher identity; clauses pending review)',
     intro:
-      'Information about the publisher and the hosting of the baitly site and its platform, under Moroccan law no. 53-05 on the electronic exchange of legal data and, for users established in the European Union, French law no. 2004-575 on confidence in the digital economy (LCEN).',
+      'Information about the publisher of the Baitly site and platform. Provisional document: the publisher identity has been clarified, while hosting information and the original legal clauses still need to be verified before launch.',
     blocks: [
       {
         heading: '1. Publisher of the site and the platform',
         paragraphs: [
-          'The Baitly site and platform (the “Service”) are published by 〔Baitly SARL〕, a limited liability company under Moroccan law with share capital of 〔•〕 MAD, registered office at 〔registered office address, city〕, Morocco.',
+          'The Baitly site and platform (the “Service”) are published by Sinatech. Supplied location: Riyadh, Saudi Arabia. This city designation is not a complete legal address.',
         ],
         list: [
-          'Common Enterprise Identifier (ICE): 〔•〕',
-          'Trade register: RC 〔•〕 — 〔city〕',
-          'Tax identifier (IF): 〔•〕 · Business tax: 〔•〕 · CNSS: 〔•〕',
-          'Publication director: 〔manager’s name〕, as manager',
-          'Contact: contact@baitly.ma · +212 〔•〕',
+          'Legal form: 〔to be confirmed〕',
+          'Registration and tax identifiers: 〔to be confirmed〕',
+          'Complete legal address: 〔to be completed〕',
+          'Publication director: 〔to be confirmed〕',
+          'Contact: form at https://baitly.fr/contact',
         ],
       },
       {
@@ -80,12 +80,12 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
     title: 'Privacy policy',
     updated: '24 July 2026',
     intro:
-      'This policy describes how 〔Baitly SARL〕 processes personal data, in compliance with Moroccan law no. 09-08 on the protection of individuals with regard to the processing of personal data and, where the processing falls within its territorial scope, with Regulation (EU) 2016/679 (“GDPR”).',
+      'This policy describes how Sinatech processes personal data, in compliance with Moroccan law no. 09-08 on the protection of individuals with regard to the processing of personal data and, where the processing falls within its territorial scope, with Regulation (EU) 2016/679 (“GDPR”).',
     blocks: [
       {
         heading: '1. Controller and roles',
         paragraphs: [
-          'For the data of site visitors, prospects and account holders, 〔Baitly SARL〕 acts as controller.',
+          'For the data of site visitors, prospects and account holders, Sinatech acts as controller.',
           'For the data our clients (property managers, hosts, agencies) import or collect in the platform — in particular their guests’ data (identity, contact details, identity documents for police records, stay and payment data) — Baitly acts as processor within the meaning of article 28 of the GDPR and of law 09-08: the client remains the controller and Baitly processes that data only on their documented instructions. A data processing agreement (DPA) is annexed to the Terms of sale.',
         ],
       },
@@ -155,7 +155,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
         heading: '9. Your rights',
         paragraphs: [
           'Under law 09-08 and, where applicable, the GDPR, you have the rights of access, rectification, erasure, objection, restriction and portability of your data, as well as the right to set post-mortem directives and to withdraw your consent at any time.',
-          'Exercising your rights: privacy@baitly.ma (answer within 30 days; proof of identity required in the event of reasonable doubt). Guests whose data is processed on behalf of a client are asked to contact their host or manager first, as controller; Baitly forwards without delay any request received directly.',
+          'Exercising your rights: https://baitly.fr/contact (answer within 30 days; proof of identity required in the event of reasonable doubt). Guests whose data is processed on behalf of a client are asked to contact their host or manager first, as controller; Baitly forwards without delay any request received directly.',
           'You may lodge a complaint with the CNDP (www.cndp.ma) or, for persons covered by the GDPR, with the supervisory authority of your Member State (in France, the CNIL).',
         ],
       },

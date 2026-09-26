@@ -29,6 +29,22 @@ afterEach(() => {
 });
 
 describe('Outils publics Baitly', () => {
+  it.each([
+    ['SA', 2],
+    ['FR', 1],
+    ['unknown', 0],
+  ] as const)(
+    'opens the country selected in Solutions: %s',
+    (country, index) => {
+      render(<ObligationsGuide language="fr" initialCountry={country} />);
+      expect(
+        screen.getByRole('button', {
+          name: BAITLY_RESOURCE_MESSAGES.fr.guide.countries[index],
+          exact: true,
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+    },
+  );
   it('calcule revenus, commissions et charges au même périmètre, y compris plusieurs logements', () => {
     const result = calculateRevenue({
       properties: 2,
@@ -74,7 +90,7 @@ describe('Outils publics Baitly', () => {
     expect(screen.getByRole('button', { name: m.download })).toBeDisabled();
     fireEvent.change(count, { target: { value: '2' } });
     expect(screen.getByRole('button', { name: m.download })).toBeEnabled();
-    expect(screen.getByText(/18\s?887,5 MAD/)).toBeVisible();
+    expect(screen.getByLabelText(/18\s?887,5 Dirham marocain/)).toBeVisible();
     fireEvent.change(count, { target: { value: '1.5' } });
     expect(screen.getByRole('button', { name: m.download })).toBeDisabled();
     fireEvent.click(

@@ -8,8 +8,11 @@ import { AGENTS_MESSAGES } from '../site/lib/messages/agents';
 import { BAITLY_PRODUCT_MESSAGES } from '../site/lib/messages/baitlyProducts';
 import { productStoryKind } from '../site/data/baitlyProductStories';
 import { PRELAUNCH_MESSAGES } from '../site/lib/messages/prelaunch';
+import { BAITLY_READINESS_MESSAGES, BAITLY_COMPARISON_ROUTES } from '../site/lib/messages/baitlyReadiness';
 import { moduleText } from '../site/lib/messages/modules';
-import { resourceText, solutionText } from '../site/lib/messages/solutions';
+import { resourceText } from '../site/lib/messages/solutions';
+import { BAITLY_JOURNEY_MESSAGES } from '../site/lib/messages/baitlyJourneys';
+import { BAITLY_CONTACT_MESSAGES } from '../site/lib/messages/baitlyContact';
 import { BAITLY_RESOURCE_MESSAGES } from '../site/lib/messages/baitlyResources';
 import { MARKET_CITIES, MARKET_SOURCE, GUIDE_SOURCES, type ResourceKind } from '../site/data/baitlyResources';
 import { RESOURCE_GLOSSARY } from '../site/data/baitlyResourceGlossary';
@@ -49,11 +52,12 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
     faq(home.faq.items.map(([q, a]) => ({ q, a }))),
     `[${home.hero.demo}](/demo?lang=${language})`,
     list(catalog.modules.map((slug) => `[${moduleText(slug, language).name}](/produit/${slug}?lang=${language})`)));
-  add('/solutions', pages.solutions.title, pages.solutions.intro,
-    ...catalog.solutions.map((slug) => {
-      const item = solutionText(slug, language);
-      return section(item.name, item.copy, list(item.points));
-    }));
+  const journeys = BAITLY_JOURNEY_MESSAGES[language];
+  add('/solutions', journeys.solutions.title, journeys.solutions.intro,
+    ...journeys.solutions.stories.map(item => section(item.name, item.title, item.copy,
+      features(item.steps), section(item.question, item.answer))),
+    section(journeys.solutions.countriesTitle, journeys.solutions.countriesCopy,
+      ...journeys.solutions.countries.map(item => section(item.name, item.copy))));
   const resources = BAITLY_RESOURCE_MESSAGES[language];
   add('/ressources', `${resources.hero.title} ${resources.hero.accent}`, resources.hero.intro,
     ...catalog.resources.map((id) => {
@@ -92,23 +96,32 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
     section(migration.limitsTitle, migration.limitsCopy),
     section(migration.supportTitle, migration.supportCopy, list(migration.checklist)));
   const compare = pages.compare;
-  add('/comparer', compare.title, compare.intro, compare.footnote,
-    section(compare.matrixTitle, compare.matrixCopy,
-      ...compare.competitors.map((item) => section(item.name, item.copy, compare.soon))),
+  add('/comparer', compare.title.replace('\n', ' '), compare.intro, compare.note,
+    section(compare.criteriaTitle, compare.criteriaCopy,
+      ...compare.criteria.map((item, index) => section(item.title, item.question, item.copy,
+        `[${item.action}](${BAITLY_COMPARISON_ROUTES[index]}?lang=${language})`))),
     section(compare.closingTitle, compare.closingCopy));
-  add('/demo', pages.demo.title, pages.demo.intro, list(pages.demo.expectations), pages.demo.legal);
+  const contact = BAITLY_CONTACT_MESSAGES[language];
+  add('/contact', contact.title.replace('\n', ' '), contact.intro, list(contact.steps), `Sinatech · ${contact.location}`, contact.privacy);
+  add('/demo', contact.demoTitle.replace('\n', ' '), contact.demoIntro, list(contact.steps), contact.noAppointment);
   // The launch date and registration status are server state, never build-time content.
   const prelaunch = PRELAUNCH_MESSAGES[language];
+  const next = BAITLY_READINESS_MESSAGES[language].next;
   for (const path of ['/bientot-disponible', '/pre-lancement']) {
     add(path, prelaunch.title, prelaunch.intro,
+      section(next.title, features(next.steps), next.note),
+      section(next.explore, next.copy,
+        `[${next.planning}](/produit/pms-channel-manager?lang=${language})`,
+        `[${next.booking}](/produit/booking-engine?lang=${language})`),
       `[${prelaunch.cta}](/bientot-disponible?lang=${language})`,
       `[${prelaunch.privacy}](/legal/confidentialite?lang=${language})`);
   }
-  add('/statut', pages.status.title, pages.status.intro,
-    list(pages.status.components), section(pages.status.measurementTitle, pages.status.measurementCopy),
+  add('/statut', pages.status.unknownTitle.replace('\n', ' '), pages.status.contextCopy,
+    list(pages.status.components.map(component => `${component} : ${pages.status.unmeasured}`)),
+    section(pages.status.measurementTitle, pages.status.measurementCopy),
     section(pages.status.incidentsTitle, pages.status.noIncidents));
   add('/prestataires', providers.titleBefore + providers.titleAccent, providers.intro,
-    providers.statsNote, section(providers.categoriesTitle, providers.categoriesCopy,
+    providers.openingNote, section(providers.categoriesTitle, providers.categoriesCopy,
       ...providers.categories.map((item) => section(item.name, item.copy, list(item.examples)))),
     `[${providers.ctaJoin}](/prestataires/inscription?lang=${language})`);
   for (const slug of catalog.modules) {
@@ -124,13 +137,18 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
             `${agents.watchesLabel} : ${agent.watches}`, `${agents.proposesLabel} : ${agent.proposes}`))),
           section(agents.pricingTitle, agents.pricingCopy)] : []),
         faq(kind === 'agents' ? agents.faq : text.faq));
+    } else if (slug === 'livret-accueil') {
+      const welcome = journeys.welcome;
+      add(`/produit/${slug}`, welcome.title, welcome.intro,
+        section(welcome.journeyTitle, features(welcome.journey)),
+        section(welcome.hostTitle, welcome.hostCopy, welcome.note),
+        section(welcome.catalogTitle, welcome.catalogCopy, welcome.catalogNote), faq(welcome.faq));
     } else {
       add(`/produit/${slug}`, text.heroTitle, text.heroCopy, features(text.features), faq(text.faq));
     }
   }
-  // LegalPage currently renders the French corpus for every language query.
-  for (const doc of legalDocs('fr')) {
-    add(`/legal/${doc.slug}`, doc.title, doc.updated, doc.intro,
+  for (const doc of legalDocs(language)) {
+    add(`/legal/${doc.slug}`, doc.title, doc.updated, contact.legalDraft, doc.intro,
       ...doc.blocks.map((block) => section(block.heading,
         ...(block.paragraphs ?? []), list(block.list ?? []),
         block.table ? [block.table.headers, block.table.headers.map(() => '---'), ...block.table.rows]

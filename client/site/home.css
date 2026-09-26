@@ -122,6 +122,12 @@
   /* Rayon du conge, et rayon des deux coins BAS du volet : la piece n'a qu'un
      seul rayon. Declare ici, lu par le volet qui en herite. */
   --bl-flyout-radius: 14px;
+  /* Un ancrage et une ouverture communs aux trois rubriques, sans suivre
+     la taille du contenu ni la position du bouton survole. */
+  --bl-flyout-width: 620px;
+  --bl-flyout-height: 500px;
+  width: var(--bl-flyout-width);
+  left: 0;
 }
 
 .baitly-marketing .cn-navigation-menu-viewport {
@@ -148,6 +154,10 @@
 
   /* La morsure. Le kit posait ici un `mt-1.5` : le volet flottait. */
   margin-block-start: -2px;
+  width: var(--bl-flyout-width);
+  height: var(--bl-flyout-height);
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
   background: var(--bl-paper);
   color: var(--bl-ink);
   border: 1px solid var(--bl-line);
@@ -187,14 +197,19 @@
 .baitly-marketing .bl-mega-panel {
   /* Hauteur de rangee UNIQUE : c'est ce qui permet au curseur d'etre un simple
      decalage, sans rien mesurer au montage. */
-  --bl-mega-row-h: 34px;
-  width: 620px;
+  --bl-mega-row-h: 44px;
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--bl-flyout-width) - 2px);
+  height: calc(var(--bl-flyout-height) - 1px);
   max-width: 88vw;
   padding: 14px;
 }
 
 .baitly-marketing .bl-mega {
   display: flex;
+  flex: 1;
+  min-height: 0;
   align-items: stretch;
   gap: 16px;
 }
@@ -210,6 +225,7 @@
      derniere rangee survolee, meme quand la souris la traverse. */
   pointer-events: none;
   flex: 0 0 254px;
+  min-height: 0;
 }
 
 .baitly-marketing .bl-mega-marker {
@@ -307,7 +323,7 @@
 .baitly-marketing .bl-mega-card-media {
   position: relative;
   display: block;
-  height: 124px;
+  height: 184px;
   flex: 0 0 auto;
   background: var(--bl-surface);
 }
@@ -353,6 +369,28 @@
   flex-direction: column;
   gap: 6px;
   padding: 24px 14px 14px;
+  min-height: 0;
+}
+
+/* Le site miniature garde ses proportions dans le meme cadre que les autres apercus. */
+.baitly-marketing .bl-mega-card > .bb-preview-compact {
+  display: grid;
+  place-items: center;
+  height: 184px;
+  flex: 0 0 184px;
+  padding: 10px;
+}
+
+.baitly-marketing .bl-mega-card .bb-preview-desktop {
+  width: 164px;
+}
+
+.baitly-marketing .bl-mega-card-body > * {
+  flex-shrink: 0;
+}
+
+.baitly-marketing .bnv-preview + .bl-mega-card-body {
+  padding-block-start: 14px;
 }
 
 .baitly-marketing .bl-mega-card-tag {
@@ -423,6 +461,7 @@
 
 .baitly-marketing .bl-mega-footer {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -627,7 +666,14 @@
    secondaires composent leurs titres en classes utilitaires, qui n'ont pas de
    famille propre et heritaient donc du corps. */
 .baitly-marketing :is(h1, h2, h3) {
-  font-family: var(--bl-font-title, 'Space Grotesk', 'Baitly Manrope', ui-sans-serif, system-ui, sans-serif);
+  font-family: var(
+    --bl-font-title,
+    'Space Grotesk',
+    'Baitly Manrope',
+    ui-sans-serif,
+    system-ui,
+    sans-serif
+  );
 }
 
 .baitly-home :is(h1, h2, h3) {
@@ -766,15 +812,21 @@
   border-radius: 50%;
 }
 .baitly-home h1 {
-  font-size: var(--bl-type-display);
+  font-size: clamp(40px, 4.2vw, 60px);
   line-height: 1.09;
-  letter-spacing: calc(-0.065em * var(--bl-tracking, 1));
+  letter-spacing: calc(-0.05em * var(--bl-tracking, 1));
+  text-wrap: balance;
 }
 .baitly-home h1 > span {
+  display: block;
   color: var(--bl-accent);
+  text-wrap: balance;
+}
+.baitly-home h1 > .baitly-hero-title-primary {
+  color: var(--bl-ink);
 }
 .baitly-lead {
-  font-size: clamp(17px, 1.5vw, 21px);
+  font-size: clamp(17px, 1.35vw, 19px);
   line-height: 1.65;
   margin-block-start: 27px;
   letter-spacing: calc(-0.02em * var(--bl-tracking, 1));
@@ -831,14 +883,15 @@
 .baitly-hero-visual {
   min-width: 0;
   position: relative;
-  padding-block-end: 35px;
+  padding-block-end: 44px;
 }
 .baitly-hero-photo {
   width: 100%;
-  height: clamp(430px, 39vw, 565px);
+  height: auto;
+  aspect-ratio: 1;
   object-fit: cover;
-  object-position: 54% center;
-  border-radius: 130px 14px 14px 14px;
+  object-position: center;
+  border-radius: 68px 14px 14px 14px;
 }
 .baitly-photo-location {
   position: absolute;
@@ -851,6 +904,7 @@
   background: var(--bl-paper);
   border-radius: 6px;
   font-size: var(--bl-fs-xs, 12px);
+  max-width: calc(100% - 40px);
 }
 .baitly-photo-location svg {
   width: 13px;
@@ -861,7 +915,7 @@
    carte ferait sauter le visuel du hero. */
 .baitly-agent-deck {
   position: absolute;
-  inset-block-end: 20px;
+  inset-block-end: 40px;
   inset-inline-start: -26px;
   inset-inline-end: 35px;
   height: 104px;
@@ -919,10 +973,12 @@
 }
 .baitly-example-label {
   position: absolute;
-  inset-block-end: -5px;
+  inset-block-end: 0;
   inset-inline-end: 0;
-  font-size: var(--bl-fs-xs, 12px);
+  font-size: 10px;
   color: var(--bl-muted);
+  text-align: end;
+  max-width: 100%;
 }
 .baitly-hero-bottom {
   display: flex;
@@ -1196,6 +1252,11 @@
 
 /* Avatar du voyageur — 26 px, comme la spec `.pl-bar__av` de l'application. */
 .landing-planning-stay-avatar {
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgb(247 250 252 / 0.15);
   width: 26px;
   height: 26px;
   flex: 0 0 auto;
@@ -1944,7 +2005,7 @@
     gap: 35px;
   }
   .baitly-home h1 {
-    font-size: clamp(48px, 9.2vw, 66px);
+    font-size: clamp(36px, 8.8vw, 48px);
   }
   .baitly-eyebrow {
     margin-block-end: 22px;
@@ -1976,8 +2037,8 @@
     font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-hero-photo {
-    height: 390px;
-    border-start-start-radius: 90px;
+    height: auto;
+    border-start-start-radius: 46px;
   }
   .baitly-photo-location {
     font-size: var(--bl-fs-xs, 12px);
@@ -2256,10 +2317,10 @@
 }
 @media (max-width: 390px) {
   .baitly-home h1 {
-    font-size: 48px;
+    font-size: 36px;
   }
   .baitly-hero-photo {
-    height: 345px;
+    height: auto;
   }
   .baitly-note-icon {
     display: none;
@@ -2309,8 +2370,12 @@ html[lang^='ar-'] .baitly-home h3 {
 
 /* Keep the prelaunch action and the navigation trigger inside narrow screens. */
 @media (max-width: 420px) {
-  .baitly-marketing .site-header-inner { gap: 8px; }
-  .baitly-marketing .site-header-inner > .ms-auto { min-width: 0; }
+  .baitly-marketing .site-header-inner {
+    gap: 8px;
+  }
+  .baitly-marketing .site-header-inner > .ms-auto {
+    min-width: 0;
+  }
   .baitly-marketing .site-header-cta {
     padding-inline: 8px;
     flex-shrink: 1;

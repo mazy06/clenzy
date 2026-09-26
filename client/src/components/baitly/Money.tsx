@@ -47,8 +47,9 @@ export interface MoneyProps {
 }
 
 export function Money({ value, from, compact, decimals, symbolSize = 13 }: MoneyProps) {
-  const { currency, convertAndFormat } = useCurrency();
+  const { currency, convertAndFormat, renderAmount } = useCurrency();
   if (value == null || Number.isNaN(value)) return <>—</>;
+  if (renderAmount) return <>{renderAmount(value, { from, decimals: compact ? 0 : decimals, symbolSize })}</>;
 
   let s = convertAndFormat(value, from ?? currency);
   if (compact) s = s.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');

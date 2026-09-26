@@ -18,6 +18,58 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SupportControllerTest {
+    private static Map<String, String> validRequest() {
+        return new HashMap<>(Map.of("name", "Jean", "email", "jean@example.test", "subject", "demo", "message", "Découvrir le planning"));
+    }
+
+    @Test
+    void notificationFailureDoesNotLoseSavedRequest() {
+        when(receivedFormService.recordSupportForm(any(), any(), any(), any(), anyMap(), any())).thenReturn(42L);
+        doThrow(new IllegalStateException("notification unavailable")).when(notificationService)
+                .notifyAllPlatformStaff(any(), any(), any(), any());
+        assertThat(controller.submitSupportRequest(validRequest(), httpRequest).getStatusCode().value()).isEqualTo(200);
+        verify(notificationService, never()).notifyAdminsAndManagers(any(), any(), any(), any());
+    }
+
+    @Test
+    void nullAndOversizedFieldsAreRejectedBeforePersistence() {
+        for (String field : new String[]{"name", "email", "subject", "message"}) {
+            Map<String, String> request = validRequest();
+            request.put(field, null);
+            assertThat(controller.submitSupportRequest(request, httpRequest).getStatusCode().value()).isEqualTo(400);
+        }
+        Map<String, String> request = validRequest();
+        request.put("message", "x".repeat(5001));
+        assertThat(controller.submitSupportRequest(request, httpRequest).getStatusCode().value()).isEqualTo(400);
+        verifyNoInteractions(receivedFormService);
+    }
+
+    @Test
+    void rateLimitCannotBeBypassedWithAnUntrustedForwardedHeader() {
+        when(httpRequest.getRemoteAddr()).thenReturn("203.0.113.10");
+        for (int i = 0; i < 6; i++) {
+            when(httpRequest.getHeader("X-Forwarded-For")).thenReturn("198.51.100." + i);
+            int status = controller.submitSupportRequest(validRequest(), httpRequest).getStatusCode().value();
+            assertThat(status).isEqualTo(i < 5 ? 200 : 429);
+        }
+        verify(receivedFormService, times(5)).recordSupportForm(any(), any(), any(), any(), anyMap(), eq("203.0.113.10"));
+    }
+
+    @Test
+    void keepsExpectedContextWithoutArbitraryPayloadFields() {
+        Map<String, String> request = validRequest();
+        request.put("language", "ar"); request.put("source", "baitly-site"); request.put("injected", "ignored");
+        controller.submitSupportRequest(request, httpRequest);
+        verify(receivedFormService).recordSupportForm(any(), any(), any(), eq("Découverte du produit"), argThat(payload ->
+                "ar".equals(payload.get("language")) && "baitly-site".equals(payload.get("source")) && !payload.containsKey("injected")), any());
+    }
+
+    @Test
+    void honeypotDoesNotCreateARequest() {
+        Map<String, String> request = validRequest(); request.put("website", "bot input");
+        assertThat(controller.submitSupportRequest(request, httpRequest).getStatusCode().value()).isEqualTo(200);
+        verifyNoInteractions(receivedFormService, notificationService);
+    }
 
     @Mock private ReceivedFormService receivedFormService;
     @Mock private NotificationService notificationService;

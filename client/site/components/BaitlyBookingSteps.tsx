@@ -1,3 +1,4 @@
+import type { SiteMoneyFormatter } from './SiteMoney';
 import type { BookingTemplate } from '../data/baitlyBookingTemplates';
 import type { BaitlyBookingMessages } from '../lib/messages/baitlyBooking';
 import type { useBaitlyBookingDemo } from './useBaitlyBookingDemo';
@@ -12,7 +13,7 @@ export interface StepProps {
   demo: ReturnType<typeof useBaitlyBookingDemo>;
   template: BookingTemplate;
   m: BaitlyBookingMessages;
-  money: (amount: number) => string;
+  money: SiteMoneyFormatter;
 }
 
 export default function BaitlyBookingSteps(props: StepProps) {

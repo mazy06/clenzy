@@ -1,3 +1,5 @@
+import { useSiteMoney } from './SiteMoney';
+import { useSiteCurrency } from '../lib/siteCurrency';
 import type { CSSProperties } from 'react';
 import {
   PauseIcon,
@@ -11,12 +13,11 @@ import { PRICING_MESSAGES } from '../lib/messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
 import {
   BAITLY_LOYALTY_STAGES,
-  BAITLY_PRICING_MARKETS,
   loyaltyStage,
   loyaltyUnitPrice,
   loyaltyFirstYear,
   loyaltyQuote,
-  formatLoyaltyPrice,
+  BAITLY_PRICING_MARKETS,
   type BaitlyMarket,
   type BaitlyPlan,
 } from '../data/baitlyLoyaltyPricing';
@@ -45,12 +46,17 @@ export default function BaitlyLoyaltySimulator({
   onMonth,
 }: LoyaltySimulatorProps) {
   const { language } = useSiteLanguage();
+  const currency = useSiteCurrency();
   const m = BAITLY_LOYALTY_MESSAGES[language];
   const plans = PRICING_MESSAGES[language].plans;
   const { market, plan, properties, month } = selection;
   const stageIndex = loyaltyStage(month);
   const motion = useBaitlyLoyaltyMotion(month, onMonth);
-  const money = (value: number) => formatLoyaltyPrice(value, market, language);
+  const money = useSiteMoney(
+    BAITLY_PRICING_MARKETS[market].currency,
+    language,
+    BAITLY_PRICING_MARKETS[market].currency,
+  );
   const quote = loyaltyQuote(market, plan, month, properties);
   const total = quote.total;
   const year = loyaltyFirstYear(market, plan, properties);
@@ -58,6 +64,8 @@ export default function BaitlyLoyaltySimulator({
     <section
       ref={motion.ref}
       className="bp-simulator"
+      onPointerDownCapture={currency.pause}
+      onFocusCapture={currency.pause}
       aria-labelledby="bp-simulator-title"
     >
       <div className="bp-simulator-heading">
@@ -168,7 +176,12 @@ export default function BaitlyLoyaltySimulator({
           </button>
         )}
       </div>
-      <div className="bp-monthly" role="status" aria-atomic="true">
+      <div
+        className="bp-monthly"
+        role="status"
+        aria-live={currency.playing ? 'off' : 'polite'}
+        aria-atomic="true"
+      >
         <div>
           <span>{m.monthly}</span>
           <p>

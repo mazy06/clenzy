@@ -1,0 +1,30 @@
+.sac-summary {
+  padding: 16px 18px;
+  border: 1px solid var(--bl-line);
+  border-radius: 9px;
+  background: var(--bl-paper);
+  margin-block: 0 24px;
+  color: var(--bl-ink);
+}
+.sac-summary > strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.sac-summary ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0;
+  margin: 10px 0;
+  list-style: none;
+}
+.sac-summary li {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.sac-summary > p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--bl-muted);
+  margin: 0;
+}

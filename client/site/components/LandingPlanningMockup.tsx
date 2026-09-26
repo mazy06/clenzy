@@ -1,3 +1,4 @@
+import { SiteMoneyText } from './SiteMoney';
 import {
   CalendarCheckIcon,
   CheckIcon,
@@ -8,14 +9,15 @@ import {
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
-import stayApartment from '../assets/photos/bedroom.jpg';
-import stayVilla from '../assets/photos/pool.jpg';
-import stayHouse from '../assets/photos/guesthouse.jpg';
-import guest1 from '../assets/guests/g1.jpg';
-import guest2 from '../assets/guests/g3.jpg';
-import guest3 from '../assets/guests/g5.jpg';
 import airbnbLogo from '../assets/brands/airbnb.svg';
 import bookingLogo from '../assets/brands/bookingdotcom.svg';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const {
+  homePlanningApartment: stayApartment,
+  homePlanningVilla: stayVilla,
+  homePlanningHouse: stayHouse,
+} = SITE_PHOTOS;
 
 /**
  * Apercu du planning, dans le visuel d'accueil.
@@ -30,9 +32,9 @@ import bookingLogo from '../assets/brands/bookingdotcom.svg';
 
 /** Vignette du logement et avatar du voyageur, dans l'ordre du dictionnaire. */
 const ROW_MEDIA = [
-  { stay: stayApartment, guest: guest1 },
-  { stay: stayVilla, guest: guest2 },
-  { stay: stayHouse, guest: guest3 },
+  { stay: stayApartment },
+  { stay: stayVilla },
+  { stay: stayHouse },
 ];
 
 /**
@@ -106,7 +108,9 @@ export default function LandingPlanningMockup() {
                 />
                 <span className="landing-planning-property-text">
                   <strong>{row.name}</strong>
-                  <span>{row.detail}</span>
+                  <span>
+                    <SiteMoneyText>{row.detail}</SiteMoneyText>
+                  </span>
                 </span>
               </div>
               <div className="landing-planning-days landing-planning-stays">
@@ -122,14 +126,16 @@ export default function LandingPlanningMockup() {
                     color: stay.foreground,
                   }}
                 >
-                  <img
+                  <span
                     className="landing-planning-stay-avatar"
-                    src={ROW_MEDIA[index].guest}
-                    alt=""
-                    width="26"
-                    height="26"
-                    loading="lazy"
-                  />
+                    aria-hidden="true"
+                  >
+                    {row.guest
+                      .split(' ')
+                      .map((name) => name[0])
+                      .slice(0, 2)
+                      .join('')}
+                  </span>
                   <span className="landing-planning-stay-copy">
                     <small>{m.nights(stay.nights)}</small>
                     <strong>{row.guest}</strong>
@@ -153,7 +159,7 @@ export default function LandingPlanningMockup() {
                     }
                   >
                     {stay.paid ? <CheckIcon /> : <CreditCardIcon />}
-                    {row.price}
+                    <SiteMoneyText>{row.price}</SiteMoneyText>
                   </span>
                   <span className="landing-planning-stay-channel">
                     {stay.channel ? (

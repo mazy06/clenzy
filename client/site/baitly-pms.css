@@ -165,7 +165,7 @@
   gap: 10px;
   margin-top: 12px;
 }
-.bpm-ticket-guest > img {
+.bpm-ticket-guest > .bpm-guest-initials {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -588,7 +588,7 @@
   border-radius: 10px;
   box-shadow: 0 12px 22px -12px #46505c;
 }
-.bpm-arrival-visual > div > img {
+.bpm-arrival-visual > div > .bpm-guest-initials {
   width: 39px;
   height: 39px;
   border-radius: 50%;
@@ -797,7 +797,9 @@
   border: 1px solid #b8c9d7;
   border-radius: 13px;
   background: #f9fcfd;
-  box-shadow: 0 10px 28px -9px #31506b45, 0 2px 5px #31506b12;
+  box-shadow:
+    0 10px 28px -9px #31506b45,
+    0 2px 5px #31506b12;
   animation: bpm-guide-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   text-align: start;
 }
@@ -855,13 +857,13 @@
   border-radius: 2px;
   background: #dfe7ed;
 }
-.bpm-guide-progress i[data-done="true"] {
+.bpm-guide-progress i[data-done='true'] {
   background: #8ca8b8;
 }
-.bpm-guide-progress i[data-current="true"] {
+.bpm-guide-progress i[data-current='true'] {
   background: #264672;
 }
-.bpm-guide-layer[data-playing="false"] .bpm-guide-card {
+.bpm-guide-layer[data-playing='false'] .bpm-guide-card {
   animation-play-state: paused;
 }
 @keyframes bpm-guide-enter {
@@ -875,7 +877,7 @@
   }
 }
 @media (max-width: 650px) {
-  .bpm-planning-stage[data-guided="true"] {
+  .bpm-planning-stage[data-guided='true'] {
     padding-bottom: 214px;
   }
 }
@@ -953,7 +955,7 @@
   width: 32px;
   height: 32px;
 }
-.bpm-planning-brand[data-playing="false"] path {
+.bpm-planning-brand[data-playing='false'] path {
   animation-play-state: paused;
 }
 .bpm-planning-sidebar > span {
@@ -1153,7 +1155,7 @@
   border: 1px solid #d4dee8;
 }
 .bpm-planning-pagination::after {
-  content: "";
+  content: '';
   flex: 1;
 }
 @keyframes bpm-sync-turn {
@@ -1407,4 +1409,14 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+.bpm-guest-initials {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--bpm-soft);
+  color: var(--bpm-blue);
+  font-weight: 600;
+  font-size: 12px;
 }

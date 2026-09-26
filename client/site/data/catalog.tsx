@@ -84,11 +84,9 @@ export interface PartnerDef {
   glyph?: string;
 }
 
-import serviceBlanchisserie from '../assets/services/blanchisserie.jpg';
 import serviceChef from '../assets/services/chef.jpg';
 import serviceConciergerie from '../assets/services/conciergerie.jpg';
 import serviceJardin from '../assets/services/jardin.jpg';
-import serviceMaintenance from '../assets/services/maintenance.jpg';
 import serviceMenage from '../assets/services/menage.jpg';
 
 import gyg from '../assets/brands/pl-getyourguide.svg';
@@ -100,27 +98,99 @@ import musement from '../assets/brands/pl-musement.png';
 
 /** Partenaires de la marketplace d'activités & expériences du livret d'accueil. */
 export const GUIDE_PARTNERS: PartnerDef[] = [
-  { mono: 'GYG', name: 'GetYourGuide', color: '#FF5533', copy: 'Marketplace mondiale d’activités', tag: '~15 % commission', logoUrl: gyg },
-  { mono: 'VI', name: 'Viator', color: '#1A8917', copy: 'Réseau TripAdvisor', tag: 'Affiliation', logoUrl: viator },
-  { mono: 'KL', name: 'Klook', color: '#FF5B00', copy: 'Focus Asie & Golfe (KSA)', tag: 'Configurable', logoUrl: klook },
-  { mono: 'CI', name: 'Civitatis', color: '#F5333F', copy: 'Visites guidées FR / ES', tag: 'Affiliation', logoUrl: civitatis },
-  { mono: 'TQ', name: 'Tiqets', color: '#FF4E00', copy: 'Billets musées & attractions', tag: 'Affiliation', logoUrl: tiqets },
-  { mono: 'MU', name: 'Musement', color: '#0A7EF2', copy: 'Expériences en Europe', tag: 'Affiliation', logoUrl: musement },
+  {
+    mono: 'GYG',
+    name: 'GetYourGuide',
+    color: '#FF5533',
+    copy: 'Marketplace mondiale d’activités',
+    tag: '~15 % commission',
+    logoUrl: gyg,
+  },
+  {
+    mono: 'VI',
+    name: 'Viator',
+    color: '#1A8917',
+    copy: 'Réseau TripAdvisor',
+    tag: 'Affiliation',
+    logoUrl: viator,
+  },
+  {
+    mono: 'KL',
+    name: 'Klook',
+    color: '#FF5B00',
+    copy: 'Focus Asie & Golfe (KSA)',
+    tag: 'Configurable',
+    logoUrl: klook,
+  },
+  {
+    mono: 'CI',
+    name: 'Civitatis',
+    color: '#F5333F',
+    copy: 'Visites guidées FR / ES',
+    tag: 'Affiliation',
+    logoUrl: civitatis,
+  },
+  {
+    mono: 'TQ',
+    name: 'Tiqets',
+    color: '#FF4E00',
+    copy: 'Billets musées & attractions',
+    tag: 'Affiliation',
+    logoUrl: tiqets,
+  },
+  {
+    mono: 'MU',
+    name: 'Musement',
+    color: '#0A7EF2',
+    copy: 'Expériences en Europe',
+    tag: 'Affiliation',
+    logoUrl: musement,
+  },
 ];
 
 /** Partenaires de services à domicile / conciergerie proposés dans le livret.
     Services first-party Baitly → tuile = mark Baitly teinté (couleur par service). */
 export const SERVICE_PARTNERS: PartnerDef[] = [
-  { mono: 'CH', name: 'Chef à domicile', color: '#B5651D', copy: 'Dîners privés & petits-déjeuners', baitly: true },
-  { mono: 'SP', name: 'Spa & massage', color: '#7A6A95', copy: 'Soins à domicile sur réservation', baitly: true },
-  { mono: 'TR', name: 'Transferts', color: '#2E6E8E', copy: 'Aéroport, gare, excursions privées', baitly: true },
-  { mono: 'MN', name: 'Ménage & linge', color: '#14B8A6', copy: 'Ménage en cours de séjour', baitly: true },
+  {
+    mono: 'CH',
+    name: 'Chef à domicile',
+    color: '#B5651D',
+    copy: 'Dîners privés & petits-déjeuners',
+    baitly: true,
+  },
+  {
+    mono: 'SP',
+    name: 'Spa & massage',
+    color: '#7A6A95',
+    copy: 'Soins à domicile sur réservation',
+    baitly: true,
+  },
+  {
+    mono: 'TR',
+    name: 'Transferts',
+    color: '#2E6E8E',
+    copy: 'Aéroport, gare, excursions privées',
+    baitly: true,
+  },
+  {
+    mono: 'MN',
+    name: 'Ménage & linge',
+    color: '#14B8A6',
+    copy: 'Ménage en cours de séjour',
+    baitly: true,
+  },
 ];
 
 import uber from '../assets/brands/si-uber.svg';
 import tripadvisor from '../assets/brands/si-tripadvisor.svg';
 import glovo from '../assets/brands/si-glovo.svg';
 import deliveroo from '../assets/brands/si-deliveroo.svg';
+import { SITE_PHOTOS } from './baitlyPhotography';
+
+const {
+  serviceLaundry: serviceBlanchisserie,
+  serviceMaintenance: serviceMaintenance,
+} = SITE_PHOTOS;
 
 /**
  * Mur de logos partenaires — 3 lignes défilantes (pattern Mobbin) : chaque
@@ -132,21 +202,99 @@ export const MARKETPLACE_ROWS: PartnerDef[][] = [
   GUIDE_PARTNERS,
   // Transport, table & découverte.
   [
-    { mono: 'UB', name: 'Uber', color: '#000000', copy: 'Course & transfert', logoUrl: uber, mask: true },
-    { mono: 'TA', name: 'Tripadvisor', color: '#34E0A1', copy: 'Avis & réservations', logoUrl: tripadvisor, mask: true, glyph: '#0B3B2E' },
-    { mono: 'GL', name: 'Glovo', color: '#FFC244', copy: 'Livraison de repas & courses', logoUrl: glovo, mask: true, glyph: '#1F2937' },
-    { mono: 'DL', name: 'Deliveroo', color: '#00CCBC', copy: 'Livraison de repas', logoUrl: deliveroo, mask: true },
-    { mono: 'TR', name: 'Transferts Baitly', color: '#2E6E8E', copy: 'Aéroport & excursions', baitly: true },
-    { mono: 'CH', name: 'Chef à domicile', color: '#B5651D', copy: 'Dîners privés', baitly: true },
+    {
+      mono: 'UB',
+      name: 'Uber',
+      color: '#000000',
+      copy: 'Course & transfert',
+      logoUrl: uber,
+      mask: true,
+    },
+    {
+      mono: 'TA',
+      name: 'Tripadvisor',
+      color: '#34E0A1',
+      copy: 'Avis & réservations',
+      logoUrl: tripadvisor,
+      mask: true,
+      glyph: '#0B3B2E',
+    },
+    {
+      mono: 'GL',
+      name: 'Glovo',
+      color: '#FFC244',
+      copy: 'Livraison de repas & courses',
+      logoUrl: glovo,
+      mask: true,
+      glyph: '#1F2937',
+    },
+    {
+      mono: 'DL',
+      name: 'Deliveroo',
+      color: '#00CCBC',
+      copy: 'Livraison de repas',
+      logoUrl: deliveroo,
+      mask: true,
+    },
+    {
+      mono: 'TR',
+      name: 'Transferts Baitly',
+      color: '#2E6E8E',
+      copy: 'Aéroport & excursions',
+      baitly: true,
+    },
+    {
+      mono: 'CH',
+      name: 'Chef à domicile',
+      color: '#B5651D',
+      copy: 'Dîners privés',
+      baitly: true,
+    },
   ],
   // Services à domicile opérés par Baitly.
   [
-    { mono: 'MN', name: 'Ménage & linge', color: '#14B8A6', copy: 'Ménage en cours de séjour', baitly: true },
-    { mono: 'SP', name: 'Spa & massage', color: '#7A6A95', copy: 'Soins à domicile', baitly: true },
-    { mono: 'BL', name: 'Blanchisserie', color: '#7BA3C2', copy: 'Collecte & livraison', baitly: true },
-    { mono: 'CO', name: 'Conciergerie', color: '#D4A574', copy: 'Assistance sur place', baitly: true },
-    { mono: 'BS', name: 'Baby-sitting', color: '#C97A7A', copy: 'Garde d’enfants', baitly: true },
-    { mono: 'CS', name: 'Livraison de courses', color: '#6FA96A', copy: 'Panier d’arrivée', baitly: true },
+    {
+      mono: 'MN',
+      name: 'Ménage & linge',
+      color: '#14B8A6',
+      copy: 'Ménage en cours de séjour',
+      baitly: true,
+    },
+    {
+      mono: 'SP',
+      name: 'Spa & massage',
+      color: '#7A6A95',
+      copy: 'Soins à domicile',
+      baitly: true,
+    },
+    {
+      mono: 'BL',
+      name: 'Blanchisserie',
+      color: '#7BA3C2',
+      copy: 'Collecte & livraison',
+      baitly: true,
+    },
+    {
+      mono: 'CO',
+      name: 'Conciergerie',
+      color: '#D4A574',
+      copy: 'Assistance sur place',
+      baitly: true,
+    },
+    {
+      mono: 'BS',
+      name: 'Baby-sitting',
+      color: '#C97A7A',
+      copy: 'Garde d’enfants',
+      baitly: true,
+    },
+    {
+      mono: 'CS',
+      name: 'Livraison de courses',
+      color: '#6FA96A',
+      copy: 'Panier d’arrivée',
+      baitly: true,
+    },
   ],
 ];
 

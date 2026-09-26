@@ -1,0 +1,733 @@
+[
+  {
+    "key": "homeResources",
+    "file": "editorial/homeHero.webp",
+    "source": "https://unsplash.com/photos/white-concrete-building-with-swimming-pool-y3_AHHrxUBY",
+    "author": "John Fornander",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1613977257365-aaae5a9817ff?fit=max&w=1200&q=78&fm=webp",
+    "description": "white concrete building with swimming pool",
+    "bytes": 211950
+  },
+  {
+    "key": "homeHero",
+    "file": "editorial/homeReceptionBaitly.webp",
+    "responsiveFile": "editorial/homeReceptionBaitly-720.webp",
+    "source": "Generated with the built-in Imagegen tool, using the user-provided Baitly planning screenshot as a visual reference",
+    "author": "AI-generated for Baitly",
+    "description": "An illustrative reception scene with a host working on the Baitly planning interface",
+    "prompt": "home-reception-prompt.md",
+    "bytes": 160830,
+    "responsiveBytes": 76568
+  },
+  {
+    "key": "homeLocal",
+    "file": "editorial/homeLocal.webp",
+    "source": "https://unsplash.com/photos/modern-skyscraper-against-a-clear-blue-sky-ZiN8NGVd2pE",
+    "author": "Oualid Lakhrouti",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1778846266217-6a7783e6eabd?fit=max&w=1100&q=78&fm=webp",
+    "description": "Modern skyscraper against a clear blue sky",
+    "bytes": 84708
+  },
+  {
+    "key": "homeClosing",
+    "file": "editorial/homeClosing.webp",
+    "source": "https://unsplash.com/photos/a-house-with-a-car-parked-in-front-of-it-4LLHJHyXQVk",
+    "author": "Don Kaveen",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1688653802629-5360086bf632?fit=max&w=1000&q=78&fm=webp",
+    "description": "a house with a car parked in front of it",
+    "bytes": 147482
+  },
+  {
+    "key": "agentsWork",
+    "file": "editorial/agentsWork.webp",
+    "source": "https://unsplash.com/photos/person-using-macbook-pro-npxXWgQ33ZQ",
+    "author": "Glenn Carstens-Peters",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?fit=max&w=1000&q=78&fm=webp",
+    "description": "person using MacBook Pro",
+    "bytes": 51232
+  },
+  {
+    "key": "revenueAnalysis",
+    "file": "editorial/revenueAnalysis.webp",
+    "source": "https://unsplash.com/photos/laptop-computer-on-glass-top-table-hpjSkU2UYSU",
+    "author": "Carlos Muza",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?fit=max&w=1000&q=78&fm=webp",
+    "description": "laptop computer on glass-top table",
+    "bytes": 68812
+  },
+  {
+    "key": "financeDocuments",
+    "file": "editorial/financeDocuments.webp",
+    "source": "https://unsplash.com/photos/desk-with-papers-glasses-calculator-and-office-supplies-sW02MHv37yk",
+    "author": "Cht Gsml",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1762427907123-c7ab022a5de7?fit=max&w=1000&q=78&fm=webp",
+    "description": "Desk with papers, glasses, calculator, and office supplies",
+    "bytes": 63134
+  },
+  {
+    "key": "operationsBed",
+    "file": "editorial/operationsBed.webp",
+    "source": "https://unsplash.com/photos/a-woman-putting-a-blue-blanket-on-top-of-a-bed-Y9xl0rnRd1I",
+    "author": "Slaapwijsheid.nl",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1686828751885-040f0a0fb77a?fit=max&w=1000&q=78&fm=webp",
+    "description": "a woman putting a blue blanket on top of a bed",
+    "bytes": 71878
+  },
+  {
+    "key": "devicesLock",
+    "file": "editorial/devicesLock.webp",
+    "source": "https://unsplash.com/photos/gold-apple-iphone-smartphone-held-at-the-door-IJkSskfEqrM",
+    "author": "Sebastian Scholz (Nuki)",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1558002038-1055907df827?fit=max&w=1000&q=78&fm=webp",
+    "description": "gold Apple iPhone smartphone held at the door",
+    "bytes": 36466
+  },
+  {
+    "key": "ownersContract",
+    "file": "editorial/ownersContract.webp",
+    "source": "https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E",
+    "author": "Romain Dancre",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1603796846097-bee99e4a601f?fit=max&w=1000&q=78&fm=webp",
+    "description": "person in orange long sleeve shirt writing on white paper",
+    "bytes": 48212
+  },
+  {
+    "key": "solutionConcierge",
+    "file": "editorial/solutionConcierge.webp",
+    "source": "https://unsplash.com/photos/person-about-to-touch-black-android-tablet-computer-VnACB-m22es",
+    "author": "Proxyclick Visitor Management System",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1558959357-685f9c7ace7b?fit=max&w=1100&q=78&fm=webp",
+    "description": "person about to touch black Android tablet computer",
+    "bytes": 79710
+  },
+  {
+    "key": "solutionHost",
+    "file": "editorial/solutionHost.webp",
+    "source": "https://unsplash.com/photos/home-office-living-room-workspace-xtDpXi_a-YQ",
+    "author": "Med Badr  Chemmaoui",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1613575831056-0acd5da8f085?fit=max&w=1100&q=78&fm=webp",
+    "description": "A sunlit home office with a desk, computer, and sofa in a living room",
+    "bytes": 90228
+  },
+  {
+    "key": "solutionRiad",
+    "file": "editorial/solutionRiad.webp",
+    "source": "https://unsplash.com/photos/pool-on-the-middle-of-2-storey-building-bnoPZ9aTyWQ",
+    "author": "Toa Heftiba",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1527853787696-f7be74f2e39a?fit=max&w=1100&q=78&fm=webp",
+    "description": "pool on the middle of 2-storey building",
+    "bytes": 143816
+  },
+  {
+    "key": "solutionOwners",
+    "file": "editorial/solutionOwners.webp",
+    "source": "https://unsplash.com/photos/beige-couch-and-armchair-tHkJAMcO3QE",
+    "author": "Francesca Tosolini",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?fit=max&w=1100&q=78&fm=webp",
+    "description": "beige couch and armchair",
+    "bytes": 101896
+  },
+  {
+    "key": "resourcesReading",
+    "file": "editorial/resourcesReading.webp",
+    "source": "https://unsplash.com/photos/macbook-pro-beside-white-ceramic-mug-on-brown-wooden-table-WmVtCFR1C1g",
+    "author": "Social Mode",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1593425546383-260c8b86730b?fit=max&w=1000&q=78&fm=webp",
+    "description": "macbook pro beside white ceramic mug on brown wooden table",
+    "bytes": 99300
+  },
+  {
+    "key": "resourcesObligations",
+    "file": "editorial/resourcesObligations.webp",
+    "source": "https://unsplash.com/photos/a-woman-sitting-at-a-table-reading-a-paper-ecHGTPfjNfA",
+    "author": "Anastassia Anufrieva",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1695388474402-ed805a890d8d?fit=max&w=640&q=78&fm=webp",
+    "description": "a woman sitting at a table reading a paper",
+    "bytes": 20004
+  },
+  {
+    "key": "resourcesJournal",
+    "file": "editorial/resourcesJournal.webp",
+    "source": "https://unsplash.com/photos/a-pen-and-a-cup-of-coffee-on-a-table-hD9nj1vvVgk",
+    "author": "dlxmedia.hu",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1650735311937-1876825e971b?fit=max&w=640&q=78&fm=webp",
+    "description": "a pen and a cup of coffee on a table",
+    "bytes": 40938
+  },
+  {
+    "key": "articleDirect",
+    "file": "editorial/articleDirect.webp",
+    "source": "https://unsplash.com/photos/white-printer-paper-on-brown-wooden-table-9OGNpJPVMZ8",
+    "author": "Kelly Sikkema",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1599008633840-052c7f756385?fit=max&w=760&q=78&fm=webp",
+    "description": "white printer paper on brown wooden table",
+    "bytes": 57276
+  },
+  {
+    "key": "articleExtras",
+    "file": "editorial/articleExtras.webp",
+    "source": "https://unsplash.com/photos/a-wooden-table-topped-with-plates-of-food-DnZiQ0hSk6M",
+    "author": "Antonio Araujo",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1728051104003-aa16971b44b3?fit=max&w=760&q=78&fm=webp",
+    "description": "A wooden table topped with plates of food",
+    "bytes": 71256
+  },
+  {
+    "key": "articleOperations",
+    "file": "editorial/articleOperations.webp",
+    "source": "https://unsplash.com/photos/a-woman-standing-in-a-kitchen-holding-a-broom-MwxsRSG1A2s",
+    "author": "Josue Michel",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1647381518264-97ff1835026f?fit=max&w=760&q=78&fm=webp",
+    "description": "a woman standing in a kitchen holding a broom",
+    "bytes": 48050
+  },
+  {
+    "key": "prelaunchReception",
+    "file": "editorial/prelaunchReception.webp",
+    "source": "https://unsplash.com/photos/hotel-reception-desk-with-modern-wooden-furniture-and-seating-kfnWOD1Tbp8",
+    "author": "Neon Wang",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1759038085950-1234ca8f5fed?fit=max&w=1100&q=78&fm=webp",
+    "description": "Hotel reception desk with modern wooden furniture and seating",
+    "bytes": 119824
+  },
+  {
+    "key": "pmsRiad",
+    "file": "editorial/pmsRiad.webp",
+    "source": "https://unsplash.com/photos/swimming-pool-tPS8MlttnwY",
+    "author": "Serge Taeymans",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1565020244281-fe53df7df170?fit=max&w=1100&q=78&fm=webp",
+    "description": "swimming pool",
+    "bytes": 230662
+  },
+  {
+    "key": "pmsArrival",
+    "file": "editorial/pmsArrival.webp",
+    "source": "https://unsplash.com/photos/a-bed-with-white-sheets-and-pillows-in-a-room-qifUgNsrWmU",
+    "author": "Lisha Riabinina",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1711059985570-4c32ed12a12c?fit=max&w=850&q=78&fm=webp",
+    "description": "a bed with white sheets and pillows in a room",
+    "bytes": 98684
+  },
+  {
+    "key": "pmsCleaning",
+    "file": "editorial/pmsCleaning.webp",
+    "source": "https://unsplash.com/photos/woman-cleaning-stairs-in-home-FhsFUo-Wfc0",
+    "author": "Josue Michel",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1646980241033-cd7abda2ee88?fit=max&w=850&q=78&fm=webp",
+    "description": "A woman carrying a cleaning caddy and broom up tiled stairs in a home",
+    "bytes": 50526
+  },
+  {
+    "key": "migrationProperty",
+    "file": "editorial/migrationProperty.webp",
+    "source": "https://unsplash.com/photos/blue-swimming-pool-lBPwkc0g3Bo",
+    "author": "Alex Azabache",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1570133435807-5feefeb2d196?fit=max&w=1000&q=78&fm=webp",
+    "description": "blue swimming pool",
+    "bytes": 500782
+  },
+  {
+    "key": "pricingEssential",
+    "file": "editorial/pricingEssential.webp",
+    "source": "https://unsplash.com/photos/living-room-with-brown-leather-sofa-GHCVUtBECuY",
+    "author": "Michael Oxendine",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1589834390005-5d4fb9bf3d32?fit=max&w=800&q=78&fm=webp",
+    "description": "A brown leather sofa, snake plant, and marble coffee table in a living room",
+    "bytes": 117404
+  },
+  {
+    "key": "pricingPro",
+    "file": "editorial/pricingPro.webp",
+    "source": "https://unsplash.com/photos/white-and-brown-concrete-building-under-blue-sky-during-daytime-_TPTXZd9mOo",
+    "author": "Ярослав Алексеенко",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?fit=max&w=800&q=78&fm=webp",
+    "description": "white and brown concrete building under blue sky during daytime",
+    "bytes": 109238
+  },
+  {
+    "key": "pricingRoom",
+    "file": "editorial/pricingRoom.webp",
+    "source": "https://unsplash.com/photos/white-bed-with-gray-pillow-p3UWyaujtQo",
+    "author": "Linus Mimietz",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1629140727571-9b5c6f6267b4?fit=max&w=400&q=78&fm=webp",
+    "description": "white bed with gray pillow",
+    "bytes": 35902
+  },
+  {
+    "key": "pricingSite",
+    "file": "editorial/pricingSite.webp",
+    "source": "https://unsplash.com/photos/a-house-with-a-lot-of-windows-lit-up-at-night-7OFTxbGWqwk",
+    "author": "Lissete Laverde",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1623298317883-6b70254edf31?fit=max&w=400&q=78&fm=webp",
+    "description": "a house with a lot of windows lit up at night",
+    "bytes": 37350
+  },
+  {
+    "key": "planningRiad",
+    "file": "editorial/planningRiad.webp",
+    "source": "https://unsplash.com/photos/palm-tree-near-swimming-pool-PLoVluwF3gQ",
+    "author": "rigel",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1624804823268-7d5454caa8c8?fit=max&w=400&q=78&fm=webp",
+    "description": "palm tree near swimming pool",
+    "bytes": 37388
+  },
+  {
+    "key": "planningApartment",
+    "file": "editorial/planningApartment.webp",
+    "source": "https://unsplash.com/photos/tidy-room-filled-with-furnitures-gREquCUXQLI",
+    "author": "deborah cortelazzi",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?fit=max&w=400&q=78&fm=webp",
+    "description": "tidy room filled with furnitures",
+    "bytes": 20926
+  },
+  {
+    "key": "planningVilla",
+    "file": "editorial/planningVilla.webp",
+    "source": "https://unsplash.com/photos/white-and-brown-house-near-swimming-pool-ylyn5r4vxcA",
+    "author": "Alejandra Cifre González",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1602343168117-bb8ffe3e2e9f?fit=max&w=400&q=78&fm=webp",
+    "description": "white and brown house near swimming pool",
+    "bytes": 54888
+  },
+  {
+    "key": "planningCity",
+    "file": "editorial/planningCity.webp",
+    "source": "https://unsplash.com/photos/living-room-with-television-and-armchair-AB-q9lwCVv8",
+    "author": "Huy Nguyen",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1628592102751-ba83b0314276?fit=max&w=400&q=78&fm=webp",
+    "description": "A modern living room with a television, armchair, and framed abstract art",
+    "bytes": 17758
+  },
+  {
+    "key": "planningHouse",
+    "file": "editorial/planningHouse.webp",
+    "source": "https://unsplash.com/photos/pink-bougainvillea-blooms-peek-through-a-tan-curtain-4O5fDGsxfx8",
+    "author": "Raúl Mermans García",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1757009400553-48283071014c?fit=max&w=400&q=78&fm=webp",
+    "description": "Pink bougainvillea blooms peek through a tan curtain",
+    "bytes": 55962
+  },
+  {
+    "key": "planningStudio",
+    "file": "editorial/planningStudio.webp",
+    "source": "https://unsplash.com/photos/gray-bedsprea-w72a24brINI",
+    "author": "Olexandr Ignatov",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1568495248636-6432b97bd949?fit=max&w=400&q=78&fm=webp",
+    "description": "gray bedsprea",
+    "bytes": 34138
+  },
+  {
+    "key": "guideLiving",
+    "file": "editorial/guideLiving.webp",
+    "source": "https://unsplash.com/photos/a-living-room-with-a-couch-a-table-and-chairs-vYlmRFIsCIk",
+    "author": "Prydumano Design",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1738168279272-c08d6dd22002?fit=max&w=760&q=78&fm=webp",
+    "description": "A living room with a couch a table and chairs",
+    "bytes": 87500
+  },
+  {
+    "key": "guideLivingDetail",
+    "file": "editorial/guideLivingDetail.webp",
+    "source": "https://unsplash.com/photos/a-living-room-with-a-large-green-couch-VZ2z8ozzy10",
+    "author": "Prydumano Design",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1738168246881-40f35f8aba0a?fit=max&w=400&q=78&fm=webp",
+    "description": "A living room with a large green couch",
+    "bytes": 18870
+  },
+  {
+    "key": "guideKitchen",
+    "file": "editorial/guideKitchen.webp",
+    "source": "https://unsplash.com/photos/a-kitchen-with-a-table-and-chairs-next-to-a-window-8PKGjZ2GzuQ",
+    "author": "Rafael Hoyos Weht",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1675279200694-8529c73b1fd0?fit=max&w=400&q=78&fm=webp",
+    "description": "a kitchen with a table and chairs next to a window",
+    "bytes": 28768
+  },
+  {
+    "key": "guideBalloon",
+    "file": "editorial/guideBalloon.webp",
+    "source": "https://unsplash.com/photos/a-hot-air-balloon-in-the-middle-of-a-desert-B6gHyYZ2k_A",
+    "author": "Danai Tsoutreli",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1675782222216-51aa28b5116f?fit=max&w=640&q=78&fm=webp",
+    "description": "a hot air balloon in the middle of a desert",
+    "bytes": 36358
+  },
+  {
+    "key": "guideBalloonCard",
+    "file": "editorial/guideBalloonCard.webp",
+    "source": "https://unsplash.com/photos/a-group-of-hot-air-balloons-flying-in-the-sky-6JZhmw5VhsA",
+    "author": "Matthieu Gouiffes",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1740080766832-ce1d79176842?fit=max&w=400&q=78&fm=webp",
+    "description": "A group of hot air balloons flying in the sky",
+    "bytes": 17188
+  },
+  {
+    "key": "guideDinner",
+    "file": "editorial/guideDinner.webp",
+    "source": "https://unsplash.com/photos/lined-up-outdoor-beds-under-starry-night-X12nmozEaFA",
+    "author": "Toa Heftiba",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1527419105721-af1f23c86dec?fit=max&w=640&q=78&fm=webp",
+    "description": "lined up outdoor beds under starry night",
+    "bytes": 55196
+  },
+  {
+    "key": "guideCooking",
+    "file": "editorial/guideCooking.webp",
+    "source": "https://unsplash.com/photos/a-person-cutting-up-vegetables-on-a-cutting-board-S2Eql9vHN3o",
+    "author": "Or Hakim",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1653233797467-1a528819fd4f?fit=max&w=640&q=78&fm=webp",
+    "description": "a person cutting up vegetables on a cutting board",
+    "bytes": 49524
+  },
+  {
+    "key": "guideCatalog",
+    "file": "editorial/guideCatalog.webp",
+    "source": "https://unsplash.com/photos/a-table-with-food-on-it-4Tgjeh1fWCc",
+    "author": "sour moha",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1661081988119-58e40ee39201?fit=max&w=1000&q=78&fm=webp",
+    "description": "a table with food on it",
+    "bytes": 109732
+  },
+  {
+    "key": "bookingPatioRoom",
+    "file": "editorial/bookingPatioRoom.webp",
+    "source": "https://unsplash.com/photos/red-throw-pillow-on-white-couch-aI6Su7Mu9Ro",
+    "author": "reisetopia",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1590490360182-c33d57733427?fit=max&w=760&q=78&fm=webp",
+    "description": "red throw pillow on white couch",
+    "bytes": 81184
+  },
+  {
+    "key": "bookingTerraceRoom",
+    "file": "editorial/bookingTerraceRoom.webp",
+    "source": "https://unsplash.com/photos/hotel-bedroom-with-wooden-bed-T5pL6ciEn-I",
+    "author": "visualsofdana",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?fit=max&w=760&q=78&fm=webp",
+    "description": "A hotel bedroom with a wooden bed, teal pillows, and a private garden view",
+    "bytes": 85654
+  },
+  {
+    "key": "bookingVillaDetail",
+    "file": "editorial/bookingVillaDetail.webp",
+    "source": "https://unsplash.com/photos/modern-house-with-pool-and-patio-b_79nOqf95I",
+    "author": "Florian Schmidinger",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?fit=max&w=760&q=78&fm=webp",
+    "description": "A modern house with glass walls beside a swimming pool on a sunny day",
+    "bytes": 116790
+  },
+  {
+    "key": "bookingDinner",
+    "file": "editorial/bookingDinner.webp",
+    "source": "https://unsplash.com/photos/a-bowl-of-food-sitting-on-top-of-a-table-q11NM0cFFzY",
+    "author": "HamZa NOUASRIA",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1643019237176-8ae0859f1123?fit=max&w=640&q=78&fm=webp",
+    "description": "a bowl of food sitting on top of a table",
+    "bytes": 84240
+  },
+  {
+    "key": "bookingBreakfast",
+    "file": "editorial/bookingBreakfast.webp",
+    "source": "https://unsplash.com/photos/breakfast-tray-with-pastries-and-juice-lw3Lqe2K7xc",
+    "author": "Alev Takil",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1596701062351-8c2c14d1fdd0?fit=max&w=640&q=78&fm=webp",
+    "description": "A breakfast tray with orange juice, pastries, and plates of food on a bed",
+    "bytes": 53514
+  },
+  {
+    "key": "bookingLate",
+    "file": "editorial/bookingLate.webp",
+    "source": "https://unsplash.com/photos/pillows-on-bed-lTrbjFd8Iwo",
+    "author": "Gabriel Alenius",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1576354302919-96748cb8299e?fit=max&w=640&q=78&fm=webp",
+    "description": "pillows on bed",
+    "bytes": 51296
+  },
+  {
+    "key": "bookingCleaning",
+    "file": "editorial/bookingCleaning.webp",
+    "source": "https://unsplash.com/photos/a-person-in-white-gloves-is-cleaning-a-chair-WnuDJlnuOhU",
+    "author": "Katie Pearse",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1713110824336-f78c320dcf8e?fit=max&w=640&q=78&fm=webp",
+    "description": "a person in white gloves is cleaning a chair",
+    "bytes": 70564
+  },
+  {
+    "key": "bookingChef",
+    "file": "editorial/bookingChef.webp",
+    "source": "https://unsplash.com/photos/man-standing-front-of-plate-with-vegetable--eKZLpj7U0E",
+    "author": "Jason Leung",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1572715376701-98568319fd0b?fit=max&w=640&q=78&fm=webp",
+    "description": "man standing front of plate with vegetable",
+    "bytes": 82070
+  },
+  {
+    "key": "serviceLaundry",
+    "file": "editorial/serviceLaundry.webp",
+    "source": "https://unsplash.com/photos/white-front-load-washing-machines-f4jsI88K7ds",
+    "author": "Oli Woodman",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1604335398980-ededcadcc37d?fit=max&w=800&q=78&fm=webp",
+    "description": "white front load washing machines",
+    "bytes": 51280
+  },
+  {
+    "key": "serviceMaintenance",
+    "file": "editorial/serviceMaintenance.webp",
+    "source": "https://unsplash.com/photos/a-plumber-repairs-plumbing-in-a-bathroom-jaP5ClBdIyU",
+    "author": "bhagya laxmi",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1749532125405-70950966b0e5?fit=max&w=800&q=78&fm=webp",
+    "description": "A plumber repairs plumbing in a bathroom",
+    "bytes": 54952
+  },
+  {
+    "key": "operationsProof",
+    "file": "editorial/operationsProof.webp",
+    "source": "https://unsplash.com/photos/white-bed-linen-on-bed-oxeCZrodz78",
+    "author": "Point3D Commercial Imaging Ltd.",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?fit=max&w=800&q=78&fm=webp",
+    "description": "white bed linen on bed",
+    "bytes": 57008
+  },
+  {
+    "key": "devicesDoor",
+    "file": "editorial/devicesDoor.webp",
+    "source": "https://unsplash.com/photos/brown-wooden-door-beside-green-plant-TdXOinHY6Ms",
+    "author": "Jessica Kantak Bailey",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1628642393776-70a715f2cc40?fit=max&w=760&q=78&fm=webp",
+    "description": "brown wooden door beside green plant",
+    "bytes": 147742
+  },
+  {
+    "key": "financeStay",
+    "file": "editorial/financeStay.webp",
+    "source": "https://unsplash.com/photos/white-bed-pillow-on-white-bed-6MYm-cUJRB0",
+    "author": "Dave Photoz",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1630660664869-c9d3cc676880?fit=max&w=320&q=78&fm=webp",
+    "description": "white bed pillow on white bed",
+    "bytes": 10652
+  },
+  {
+    "key": "ownersStay",
+    "file": "editorial/ownersStay.webp",
+    "source": "https://unsplash.com/photos/white-concrete-building-near-green-palm-trees-during-daytime-u-9HxwcxQYo",
+    "author": "rigel",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1624804821465-5c7c80f99bd1?fit=max&w=400&q=78&fm=webp",
+    "description": "white concrete building near green palm trees during daytime",
+    "bytes": 32652
+  },
+  {
+    "key": "agentStay",
+    "file": "editorial/agentStay.webp",
+    "source": "https://unsplash.com/photos/a-living-room-with-a-large-window-AgK_XAqSbfk",
+    "author": "Danilo Rios",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1665249934445-1de680641f50?fit=max&w=400&q=78&fm=webp",
+    "description": "a living room with a large window",
+    "bytes": 27758
+  },
+  {
+    "key": "homePlanningApartment",
+    "file": "editorial/homePlanningApartment.webp",
+    "source": "https://unsplash.com/photos/white-bed-linen-with-throw-pillows-Yrxr3bsPdS0",
+    "author": "Vojtech Bruzek",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1618773928121-c32242e63f39?fit=max&w=320&q=78&fm=webp",
+    "description": "white bed linen with throw pillows",
+    "bytes": 14636
+  },
+  {
+    "key": "homePlanningVilla",
+    "file": "editorial/homePlanningVilla.webp",
+    "source": "https://unsplash.com/photos/white-concrete-building-under-blue-sky-during-daytime-mR1CIDduGLc",
+    "author": "Frames For Your Heart",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?fit=max&w=320&q=78&fm=webp",
+    "description": "white concrete building under blue sky during daytime",
+    "bytes": 20040
+  },
+  {
+    "key": "homePlanningHouse",
+    "file": "editorial/homePlanningHouse.webp",
+    "source": "https://unsplash.com/photos/brown-concrete-building-near-green-trees-during-daytime-0lHeyFUTGWc",
+    "author": "Ethan Hu",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1602075030798-173d12cd400a?fit=max&w=320&q=78&fm=webp",
+    "description": "brown concrete building near green trees during daytime",
+    "bytes": 60272
+  },
+  {
+    "key": "agentsReception",
+    "file": "editorial/agentsReception.webp",
+    "source": "https://unsplash.com/photos/womens-white-long-sleeved-shirt-and-black-skirt-Osc-RQGb-Ws",
+    "author": "Nagesh Badu",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1571061656009-1ab0330b0eca?fit=max&w=1000&q=77&fm=webp",
+    "description": "women's white long-sleeved shirt and black skirt",
+    "bytes": 115406
+  },
+  {
+    "key": "agentsCollaboration",
+    "file": "editorial/agentsCollaboration.webp",
+    "source": "https://unsplash.com/photos/two-men-sitting-at-a-table-with-papers-and-a-pen-Mqc-m8kgxkg",
+    "author": "Amina Atar",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1681505504714-4ded1bc247e7?fit=max&w=1000&q=77&fm=webp",
+    "description": "two men sitting at a table with papers and a pen",
+    "bytes": 73982
+  },
+  {
+    "key": "revenueProperty",
+    "file": "editorial/revenueProperty.webp",
+    "source": "https://unsplash.com/photos/a-living-room-filled-with-furniture-and-a-large-window--_eNaluvWv0",
+    "author": "D5 Render",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1678762200388-51e11225d4de?fit=max&w=1000&q=77&fm=webp",
+    "description": "a living room filled with furniture and a large window",
+    "bytes": 95762
+  },
+  {
+    "key": "revenueReview",
+    "file": "editorial/revenueReview.webp",
+    "source": "https://unsplash.com/photos/person-using-macbook-pro-pypeCEaJeZY",
+    "author": "Campaign Creators",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?fit=max&w=1000&q=77&fm=webp",
+    "description": "person using MacBook Pro",
+    "bytes": 68156
+  },
+  {
+    "key": "financeReconciliation",
+    "file": "editorial/financeReconciliation.webp",
+    "source": "https://unsplash.com/photos/person-in-black-suit-jacket-holding-white-tablet-computer-nApaSgkzaxg",
+    "author": "Towfiqu barbhuiya",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?fit=max&w=1000&q=77&fm=webp",
+    "description": "person in black suit jacket holding white tablet computer",
+    "bytes": 64504
+  },
+  {
+    "key": "operationsPreparation",
+    "file": "editorial/operationsPreparation.webp",
+    "source": "https://unsplash.com/photos/person-holding-white-pillow-5-S_JpT7NGQ",
+    "author": "Trường Trung Cấp Kinh Tế Du Lịch Thành Phố Hồ Chí Minh CET",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1573014196346-87ac0314faf5?fit=max&w=1000&q=77&fm=webp",
+    "description": "person holding white pillow",
+    "bytes": 115180
+  },
+  {
+    "key": "operationsEquipment",
+    "file": "editorial/operationsEquipment.webp",
+    "source": "https://unsplash.com/photos/housekeeping-cart-in-hotel-corridor-Iu6parQAO-U",
+    "author": "Ashwini Chaudhary(Monty)",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1580256081112-e49377338b7f?fit=max&w=1000&q=77&fm=webp",
+    "description": "A housekeeping cart and vacuum cleaner in a long hotel corridor with patterned carpet",
+    "bytes": 217702
+  },
+  {
+    "key": "devicesEquipment",
+    "file": "editorial/devicesEquipment.webp",
+    "source": "https://unsplash.com/photos/white-and-gray-google-smart-speaker-and-two-black-speakers-Fh3Dtg6QX4Q",
+    "author": "Sebastian Scholz (Nuki)",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1558089687-f282ffcbc126?fit=max&w=1000&q=77&fm=webp",
+    "description": "white and gray Google smart speaker and two black speakers",
+    "bytes": 38804
+  },
+  {
+    "key": "ownersKeys",
+    "file": "editorial/ownersKeys.webp",
+    "source": "https://unsplash.com/photos/a-person-holding-a-house-key-in-their-hand-Vg96IZTFubo",
+    "author": "Jakub Żerdzicki",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1735547876935-7be80eae1c88?fit=max&w=1000&q=77&fm=webp",
+    "description": "A person holding a house key in their hand",
+    "bytes": 31948
+  },
+  {
+    "key": "ownersMeeting",
+    "file": "editorial/ownersMeeting.webp",
+    "source": "https://unsplash.com/photos/woman-signing-on-white-printer-paper-beside-woman-about-to-touch-the-documents-HJckKnwCXxQ",
+    "author": "Gabrielle Henderson",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1562564055-71e051d33c19?fit=max&w=1000&q=77&fm=webp",
+    "description": "woman signing on white printer paper beside woman about to touch the documents",
+    "bytes": 96116
+  },
+  {
+    "key": "financePayment",
+    "file": "editorial/financePayment.webp",
+    "source": "https://unsplash.com/photos/hand-holding-credit-card-near-payment-terminal-WQhAqDw5UWk",
+    "author": "Vagaro",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1775751678032-216d96fc26ed?fit=max&w=1000&q=77&fm=webp",
+    "description": "Hand holding credit card near payment terminal",
+    "bytes": 101144
+  },
+  {
+    "key": "devicesEntry",
+    "file": "editorial/devicesEntry.webp",
+    "source": "https://unsplash.com/photos/a-key-board-mounted-to-a-wall-in-a-room-qB8tpVXQh6Y",
+    "author": "vuk burgic",
+    "license": "https://unsplash.com/license",
+    "imageUrl": "https://images.unsplash.com/photo-1697382608786-bcf4c113b86e?fit=max&w=1000&q=77&fm=webp",
+    "description": "Illuminated access-control keypad mounted beside an entrance",
+    "bytes": 87758
+  }
+]

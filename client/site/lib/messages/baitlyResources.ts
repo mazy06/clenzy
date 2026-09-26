@@ -216,7 +216,7 @@ const fr: ResourceMessages = {
     ],
     note: 'Simulation à partir de vos hypothèses, sans données de marché ni garantie de revenus. Taxe de séjour, TVA, impôts, financement et investissement ne sont pas calculés. Les extras sont saisis en marge après leurs coûts.',
     example:
-      'Valeurs de départ illustratives, à remplacer par les vôtres. Changer de devise ne convertit pas les montants.',
+      'Valeurs de départ et conversions illustratives, à remplacer par vos propres hypothèses. La rotation des devises se met en pause pendant la saisie.',
     method: 'Comment est calculé le résultat ?',
     formulas: [
       'Nuits occupées = nuits disponibles × taux d’occupation.',
@@ -608,7 +608,7 @@ const en: ResourceMessages = {
     ],
     note: 'A simulation based on your assumptions, without market data or guaranteed returns. Tourist tax, VAT, income tax, financing and investment are not calculated. Enter extras as margin after their costs.',
     example:
-      'Illustrative starting values: replace with your own. Changing currency does not convert amounts.',
+      'Illustrative starting values and conversions: replace with your own assumptions. Currency rotation pauses while you enter values.',
     method: 'How is the result calculated?',
     formulas: [
       'Occupied nights = available nights × occupancy.',
@@ -986,7 +986,7 @@ const ar: ResourceMessages = {
     ],
     note: 'محاكاة مبنية على افتراضاتك، دون بيانات سوق أو ضمان للعائد. لا تُحتسب رسوم الإقامة أو ضريبة القيمة المضافة أو الضرائب أو التمويل أو الاستثمار. أدخل الإضافات كهامش بعد تكاليفها.',
     example:
-      'قيم أولية توضيحية، استبدلها بقيمك. تغيير العملة لا يحوّل المبالغ.',
+      'قيم أولية وتحويلات توضيحية، استبدلها بافتراضاتك. يتوقف تبديل العملات أثناء إدخال القيم.',
     method: 'كيف يُحتسب الناتج؟',
     formulas: [
       'الليالي المشغولة = الليالي المتاحة × الإشغال.',

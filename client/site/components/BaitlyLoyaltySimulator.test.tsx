@@ -52,7 +52,7 @@ const mount = () =>
     </MemoryRouter>,
   );
 const amount = () =>
-  screen.getByTestId('loyalty-monthly').textContent?.replace(/\s/g, '');
+  `${screen.getByTestId('loyalty-monthly').querySelector('.site-money')?.getAttribute('data-amount')?.replace('.', ',')}${screen.getByTestId('loyalty-monthly').querySelector('.site-money')?.getAttribute('data-currency')}`;
 const month = () => screen.getByRole('slider', { name: /Mois/ });
 const tick = () => act(() => vi.advanceTimersByTime(1600));
 
@@ -67,8 +67,11 @@ describe('Baitly loyalty simulator', () => {
     );
     expect(amount()).toBe('1176MAD');
     expect(
-      screen.getByTestId('loyalty-year').textContent?.replace(/\s/g, ''),
-    ).toBe('15435MAD');
+      screen
+        .getByTestId('loyalty-year')
+        .querySelector('.site-money')
+        ?.getAttribute('data-amount'),
+    ).toBe('15435');
     fireEvent.change(month(), { target: { value: '13' } });
     expect(amount()).toBe('1029MAD');
     fireEvent.click(
@@ -82,10 +85,13 @@ describe('Baitly loyalty simulator', () => {
     expect(
       screen
         .getAllByRole('link', { name: /Rejoindre le pré-lancement/ })
-        .every(
-          (link) => link.getAttribute('href') === '/bientot-disponible?lang=fr',
-        ),
-    ).toBe(true);
+        .map((link) => link.getAttribute('href')),
+    ).toEqual([
+      '/bientot-disponible?lang=fr&plan=essential&market=EU&properties=3',
+      '/bientot-disponible?lang=fr&plan=pro&market=EU&properties=3',
+      '/bientot-disponible?lang=fr&plan=custom&market=EU',
+      '/bientot-disponible?lang=fr&plan=essential&market=EU&properties=3',
+    ]);
   });
   it('plays all four tiers once, stops at the stable tier and can replay', () => {
     mount();
@@ -115,16 +121,16 @@ describe('Baitly loyalty simulator', () => {
     fireEvent.change(month(), { target: { value: '13' } });
     expect(amount()).toBe('3207,05MAD');
     const text = (id: string) =>
-      screen.getByTestId(id).textContent?.replace(/\s/g, '');
+      `${screen.getByTestId(id).querySelector('.site-money')?.getAttribute('data-amount')?.replace('.', ',')}${screen.getByTestId(id).querySelector('.site-money')?.getAttribute('data-currency')}`;
     expect(text('plan-pro-unit')).toBe('320,71MAD');
-    expect(text('plan-pro-total')).toBe('3207,05MADHT/mois');
+    expect(text('plan-pro-total')).toBe('3207,05MAD');
     expect(text('loyalty-year')).toBe('48105,75MAD');
     fireEvent.change(screen.getByRole('combobox', { name: 'Votre marché' }), {
       target: { value: 'EU' },
     });
     expect(amount()).toBe('320,71EUR');
     expect(text('plan-pro-unit')).toBe('32,07EUR');
-    expect(text('plan-pro-total')).toBe('320,71EURHT/mois');
+    expect(text('plan-pro-total')).toBe('320,71EUR');
     fireEvent.click(
       screen.getByRole('button', { name: '1–4 logements : 0 %' }),
     );

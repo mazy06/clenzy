@@ -83,8 +83,9 @@ interface MoneyProps {
  * montant</b> en anglais, et laissait le glyphe arabe à la place de l'icône.</p>
  */
 export function Money({ value, from, compact, decimals, symbolSize = 13, symbolSx }: MoneyProps) {
-  const { currency, convertAndFormat } = useCurrency();
+  const { currency, convertAndFormat, renderAmount } = useCurrency();
   if (value == null || Number.isNaN(value)) return <>—</>;
+  if (renderAmount) return <>{renderAmount(value, { from, decimals: compact ? 0 : decimals, symbolSize })}</>;
 
   let s = convertAndFormat(value, from ?? currency);
   if (compact) s = s.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');

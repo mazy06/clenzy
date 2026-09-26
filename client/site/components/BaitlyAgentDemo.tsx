@@ -1,3 +1,4 @@
+import { SiteMoneyText } from './SiteMoney';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -17,10 +18,17 @@ import Reveal from './Reveal';
 import { useReducedMotion } from './mockupKit';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { MOCKUP_MESSAGES, type MockupMessages } from '../lib/messages/mockups';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const { agentStay: riadPhoto } = SITE_PHOTOS;
 
 /** Icone par scenario, dans l'ordre du dictionnaire. */
-const SCENARIO_ICONS = [TrendingUpIcon, MessageCircleIcon, CheckCheckIcon, RefreshCwIcon];
-import riadPhoto from '../assets/photos/baitly-riad-small.webp';
+const SCENARIO_ICONS = [
+  TrendingUpIcon,
+  MessageCircleIcon,
+  CheckCheckIcon,
+  RefreshCwIcon,
+];
 
 /** Démonstration locale : aucune action ne modifie un logement ni une réservation. */
 function useAgentDemo() {
@@ -115,29 +123,26 @@ export default function BaitlyAgentDemo() {
           </p>
         </Reveal>
         <div className="baitly-agent-layout">
-          <div
-            className="baitly-agent-choices"
-            aria-label={m.chooseAria}
-          >
+          <div className="baitly-agent-choices" aria-label={m.chooseAria}>
             {m.scenarios.map((agent, index) => {
               const AgentIcon = SCENARIO_ICONS[index];
               return (
-              <button
-                type="button"
-                key={agent.name}
-                aria-pressed={selected === index}
-                aria-controls="baitly-agent-scene"
-                onClick={() => selectScenario(index)}
-              >
-                <AgentIcon />
-                <span>
-                  <strong>
-                    {m.agentPrefix} {agent.name}
-                  </strong>
-                  <small>{agent.description}</small>
-                </span>
-                <ArrowRightIcon />
-              </button>
+                <button
+                  type="button"
+                  key={agent.name}
+                  aria-pressed={selected === index}
+                  aria-controls="baitly-agent-scene"
+                  onClick={() => selectScenario(index)}
+                >
+                  <AgentIcon />
+                  <span>
+                    <strong>
+                      {m.agentPrefix} {agent.name}
+                    </strong>
+                    <small>{agent.description}</small>
+                  </span>
+                  <ArrowRightIcon />
+                </button>
               );
             })}
             <Link to="/produit/agents-ia" className="baitly-text-link">
@@ -146,9 +151,7 @@ export default function BaitlyAgentDemo() {
           </div>
           <AgentScene demo={demo} />
         </div>
-        <p className="baitly-demo-caption">
-          {m.caption}
-        </p>
+        <p className="baitly-demo-caption">{m.caption}</p>
       </div>
     </section>
   );
@@ -192,16 +195,22 @@ function AgentScene({ demo }: { demo: ReturnType<typeof useAgentDemo> }) {
         <h3>{scenario.title}</h3>
         <p>{scenario.copy}</p>
         <div className="baitly-demo-proposal">
-          <span>{scenario.detail}</span>
+          <span>
+            <SiteMoneyText>{scenario.detail}</SiteMoneyText>
+          </span>
           <div>
-            <span>{step.before}</span>
+            <span>
+              <SiteMoneyText>{step.before}</SiteMoneyText>
+            </span>
             <ArrowRightIcon />
-            <strong>{step.after}</strong>
+            <strong>
+              <SiteMoneyText>{step.after}</SiteMoneyText>
+            </strong>
           </div>
         </div>
         <p className="baitly-demo-note">
           <CircleCheckIcon aria-hidden="true" />
-          {scenario.note}
+          <SiteMoneyText>{scenario.note}</SiteMoneyText>
         </p>
         <div
           className="baitly-demo-action"
@@ -233,9 +242,7 @@ function AgentScene({ demo }: { demo: ReturnType<typeof useAgentDemo> }) {
       <div className="baitly-demo-controls">
         <span>
           <i />
-          {playing && inView
-            ? m.reading
-            : m.tryIt}
+          {playing && inView ? m.reading : m.tryIt}
         </span>
         {!reduced && (
           <button

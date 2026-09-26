@@ -28,6 +28,8 @@ const CURRENCY_FOR_LANGUAGE: Partial<Record<ReturnType<typeof normalizeLanguage>
 export type CurrencyCode = (typeof CURRENCY_OPTIONS)[number]['code'];
 
 interface CurrencyContextType {
+  /** Optional presentation renderer for isolated, read-only product demonstrations. */
+  renderAmount?: (value: number, options: { from?: string; decimals?: number; symbolSize?: number }) => React.ReactNode;
   currency: CurrencyCode;
   setCurrency: (code: CurrencyCode) => void;
   currencySymbol: string;
@@ -49,6 +51,8 @@ interface CurrencyContextType {
 // ─── Context ────────────────────────────────────────────────────────────────
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+
+export const CurrencyDisplayProvider = CurrencyContext.Provider;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

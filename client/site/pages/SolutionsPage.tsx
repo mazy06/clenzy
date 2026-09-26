@@ -1,94 +1,153 @@
-import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
-import { ArrowRightIcon, CheckIcon } from 'lucide-react';
-import { Badge, Button } from '../../src/components/ui';
-import Reveal from '../components/Reveal';
-import { SOLUTIONS } from '../data/catalog';
-import { SOLUTION_PHOTO } from '../data/navVisuals';
-import { cn } from '../../src/utils/cn';
+import { SiteCurrencySymbol } from '../components/SiteMoney';
+import type { SiteCurrency } from '../lib/siteCurrency';
+import { sitePhotoAlt } from '../data/baitlyPhotography';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowRightIcon } from 'lucide-react';
+import BaitlySolutionNavPreview from '../components/BaitlySolutionNavPreview';
+import {
+  BAITLY_ACTIVITY_JOURNEYS,
+  BAITLY_COUNTRY_JOURNEYS,
+} from '../data/baitlyJourneys';
+import { BAITLY_JOURNEY_MESSAGES } from '../lib/messages/baitlyJourneys';
+import { moduleText } from '../lib/messages/modules';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import { solutionText } from '../lib/messages/solutions';
-import { PAGE_MESSAGES } from '../lib/messages/pages';
+import '../baitly-journeys.css';
 
 export default function SolutionsPage() {
   const { language } = useSiteLanguage();
-  const m = PAGE_MESSAGES[language].solutions;
+  const { hash } = useLocation();
+  const m = BAITLY_JOURNEY_MESSAGES[language].solutions;
+  const index = Math.max(
+    0,
+    BAITLY_ACTIVITY_JOURNEYS.findIndex((item) => `#${item.id}` === hash),
+  );
+  const journey = BAITLY_ACTIVITY_JOURNEYS[index];
+  const story = m.stories[index];
   return (
-    <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="site-shell pt-16 pb-12">
-          <Reveal>
-            <Badge variant="outline">{m.eyebrow}</Badge>
-          </Reveal>
-          <Reveal delay={1}>
-            <h1 className="mt-4 max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-              {m.title}
-            </h1>
-          </Reveal>
-          <Reveal delay={2}>
-            <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              {m.intro}
-            </p>
-          </Reveal>
+    <div className="bjy-page">
+      <section className="site-shell bjy-solutions-hero">
+        <div>
+          <p className="bjy-eyebrow">{m.eyebrow}</p>
+          <h1>{m.title}</h1>
+        </div>
+        <p className="bjy-lead">{m.intro}</p>
+      </section>
+      <section
+        className="site-shell bjy-activity-section"
+        aria-label={m.choose}
+      >
+        <nav className="bjy-activity-nav" aria-label={m.choose}>
+          {BAITLY_ACTIVITY_JOURNEYS.map((item, i) => (
+            <Link
+              key={item.id}
+              id={item.id}
+              to={`?lang=${language}#${item.id}`}
+              aria-current={i === index ? 'true' : undefined}
+            >
+              <span>{m.stories[i].name}</span>
+              <ArrowRightIcon size={18} aria-hidden="true" />
+            </Link>
+          ))}
+        </nav>
+        <div className="bjy-activity" key={journey.id}>
+          <div className="bjy-activity-copy">
+            <span className="bjy-kicker">{m.scenario}</span>
+            <h2>{story.title}</h2>
+            <p className="bjy-lead">{story.copy}</p>
+            <ol>
+              {story.steps.map((step, i) => (
+                <li key={step.title}>
+                  <span aria-hidden="true">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <h3>{step.title}</h3>
+                    <p>{step.copy}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <figure className="bjy-activity-visual">
+            <img
+              src={journey.photo}
+              alt={sitePhotoAlt(journey.photoKey, language)}
+              width={720}
+              height={600}
+            />
+            <div className="bjy-activity-preview" aria-hidden="true">
+              <BaitlySolutionNavPreview
+                kind={journey.kind}
+                language={language}
+              />
+            </div>
+            <figcaption>{m.demo}</figcaption>
+          </figure>
+          <div className="bjy-module-strip">
+            <p>{m.modules}</p>
+            <div>
+              {journey.modules.map((slug) => (
+                <Link key={slug} to={`/produit/${slug}?lang=${language}`}>
+                  {moduleText(slug, language).name}
+                  <ArrowRightIcon size={16} aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </div>
+          <details className="bjy-question">
+            <summary>{story.question}</summary>
+            <p>{story.answer}</p>
+          </details>
         </div>
       </section>
-
-      <section className="site-shell py-16">
-        <div className="flex flex-col gap-6">
-          {SOLUTIONS.map((solution, index) => {
-            const text = solutionText(solution.slug, language);
-            /* Les rangees alternent le cote de la photo : six blocs identiques
-               empiles se liraient comme une seule masse. */
-            const flipped = index % 2 === 1;
-            return (
-            <Reveal key={solution.slug}>
-              <article
-                id={solution.slug}
-                className="grid scroll-mt-24 grid-cols-1 items-stretch overflow-hidden rounded-2xl border border-border bg-card lg:grid-cols-2"
-              >
-                {/* La photo va jusqu'au bord de la carte : un visuel flottant
-                    dans du remplissage n'aurait pas le meme poids. */}
-                <div
-                  className={cn(
-                    'relative min-h-[220px] overflow-hidden lg:min-h-[300px]',
-                    flipped && 'lg:order-2',
-                  )}
-                >
-                  <img
-                    src={SOLUTION_PHOTO[solution.slug]}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="size-full object-cover"
+      <section className="bjy-countries">
+        <div className="site-shell">
+          <div className="bjy-section-heading">
+            <h2>{m.countriesTitle}</h2>
+            <p>{m.countriesCopy}</p>
+          </div>
+          <div className="bjy-country-list">
+            {BAITLY_COUNTRY_JOURNEYS.map((country, i) => (
+              <article key={country.id} id={country.id}>
+                <span className="bjy-country-code" aria-hidden="true">
+                  {country.code}
+                </span>
+                <div>
+                  <h3>{m.countries[i].name}</h3>
+                  <p>{m.countries[i].copy}</p>
+                </div>
+                <span className="bjy-currency">
+                  <SiteCurrencySymbol
+                    currency={country.currency as SiteCurrency}
                   />
-                </div>
-                <div className="flex flex-col justify-center p-8 lg:p-10">
-                  <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-                    {text.name}
-                  </h2>
-                  <p className="mt-2 text-muted-foreground">{text.copy}</p>
-                  {/* Les points redeviennent une liste : ils etaient promus en
-                      boites grises pour remplir la moitie vide de la rangee. */}
-                  <ul className="mt-5 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-                    {text.points.map((point) => (
-                      <li key={point} className="flex items-start gap-2 text-sm">
-                        <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-success" />
-                        {point}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button className="mt-6 self-start" variant="outline" asChild>
-                    <SiteAcquisitionLink to="/demo">
-                      {m.cta} <ArrowRightIcon />
-                    </SiteAcquisitionLink>
-                  </Button>
-                </div>
+                </span>
+                <Link
+                  to={`/ressources/obligations?lang=${language}&country=${country.code}`}
+                >
+                  {m.guide}
+                  <ArrowRightIcon size={17} aria-hidden="true" />
+                </Link>
               </article>
-            </Reveal>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </section>
-    </>
+      <section className="site-shell bjy-closing">
+        <div>
+          <h2>{m.closingTitle}</h2>
+          <p>{m.closingCopy}</p>
+        </div>
+        <div className="bjy-actions">
+          <Link className="baitly-button" to={`/tarifs?lang=${language}`}>
+            {m.pricing}
+            <ArrowRightIcon size={18} aria-hidden="true" />
+          </Link>
+          <Link className="baitly-text-link" to={`/migration?lang=${language}`}>
+            {m.migration}
+            <ArrowRightIcon size={17} aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }

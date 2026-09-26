@@ -8,13 +8,15 @@ import {
   UserRoundCheckIcon,
 } from 'lucide-react';
 import airbnbLogo from '../../src/assets/logo/airbnb-logo-small.svg';
-import propertyTerrace from '../assets/photos/terrace.jpg';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
 import {
   placePlanningCallout,
   type CalloutRect,
 } from './baitlyPlanningCalloutLayout';
+import { SITE_PHOTOS } from '../data/baitlyPhotography';
+
+const { planningCity: propertyTerrace } = SITE_PHOTOS;
 
 export interface PlanningAnnotation {
   step: number;

@@ -1,3 +1,4 @@
+import { SiteMoneyText } from '../components/SiteMoney';
 import type { ReactNode } from 'react';
 
 /**
@@ -16,18 +17,25 @@ export function richText(source: string): ReactNode[] {
   while (rest.length > 0) {
     const open = rest.indexOf('<b>');
     if (open < 0) {
-      parts.push(rest);
+      parts.push(<SiteMoneyText key={key++}>{rest}</SiteMoneyText>);
       break;
     }
     const close = rest.indexOf('</b>', open);
     if (close < 0) {
       // Balise non fermee : on prefere afficher la phrase entiere plutot que
       // de la tronquer en silence.
-      parts.push(rest);
+      parts.push(<SiteMoneyText key={key++}>{rest}</SiteMoneyText>);
       break;
     }
-    if (open > 0) parts.push(rest.slice(0, open));
-    parts.push(<b key={key++}>{rest.slice(open + 3, close)}</b>);
+    if (open > 0)
+      parts.push(
+        <SiteMoneyText key={key++}>{rest.slice(0, open)}</SiteMoneyText>,
+      );
+    parts.push(
+      <b key={key++}>
+        <SiteMoneyText>{rest.slice(open + 3, close)}</SiteMoneyText>
+      </b>,
+    );
     rest = rest.slice(close + 4);
   }
   return parts;

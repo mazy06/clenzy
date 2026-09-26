@@ -1,3 +1,4 @@
+import SiteMoney from '../components/SiteMoney';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Search, BookOpen, Check, TrendingUp } from 'lucide-react';
@@ -10,10 +11,14 @@ import {
   type ResourceKind,
 } from '../data/baitlyResources';
 import { RESOURCES } from '../data/catalog';
-import terrace from '../assets/photos/terrace.jpg';
-import guesthouse from '../assets/photos/guesthouse.jpg';
-import food from '../assets/photos/food.jpg';
 import '../baitly-resources.css';
+import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+
+const {
+  resourcesReading: terrace,
+  resourcesObligations: guesthouse,
+  resourcesJournal: food,
+} = SITE_PHOTOS;
 
 const ORDER: ResourceKind[] = [
   'calculateur',
@@ -64,7 +69,11 @@ export default function ResourcesPage() {
           <small>{m.hero.note}</small>
         </div>
         <div className="brs-hero-visual">
-          <img src={terrace} alt="" loading="eager" />
+          <img
+            src={terrace}
+            alt={sitePhotoAlt('resourcesReading', language)}
+            loading="eager"
+          />
           <div className="brs-visual-label">
             <span className="brs-book-spine" aria-hidden="true">
               B
@@ -133,7 +142,7 @@ export default function ResourcesPage() {
                         <div>
                           <span>{m.calc.fields[3]}</span>
                           <strong>
-                            850 <small>MAD</small>
+                            <SiteMoney value={850} from="MAD" />
                           </strong>
                         </div>
                         <div className="brs-cover-slider">
@@ -181,7 +190,11 @@ export default function ResourcesPage() {
                     )}
                     {id === 'obligations' && (
                       <div className="brs-guide-cover">
-                        <img src={guesthouse} alt="" loading="lazy" />
+                        <img
+                          src={guesthouse}
+                          alt={sitePhotoAlt('resourcesObligations', language)}
+                          loading="lazy"
+                        />
                         <span>{m.guide.countries.join(' · ')}</span>
                       </div>
                     )}
@@ -202,7 +215,11 @@ export default function ResourcesPage() {
                     )}
                     {id === 'blog' && (
                       <div className="brs-blog-cover">
-                        <img src={food} alt="" loading="lazy" />
+                        <img
+                          src={food}
+                          alt={sitePhotoAlt('resourcesJournal', language)}
+                          loading="lazy"
+                        />
                       </div>
                     )}
                     {id === 'glossaire' && (

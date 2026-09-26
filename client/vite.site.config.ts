@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 import { baitlySiteDiscovery } from './tooling/baitlySiteDiscovery';
+import { baitlySiteSeo } from './tooling/baitlySiteSeo';
 
 /**
  * Site marketing Baitly (baitly.ma / baitly.fr) — app Vite séparée du PMS.
@@ -25,7 +26,7 @@ export default defineConfig({
       ),
     },
   },
-  plugins: [react(), tailwindcss(), baitlySiteDiscovery()],
+  plugins: [react(), tailwindcss(), baitlySiteDiscovery(), baitlySiteSeo()],
   server: {
     port: 3005,
     host: true,

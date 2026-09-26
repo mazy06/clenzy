@@ -47,14 +47,17 @@ const fr = {
   demo: {
     sectionLabel: 'L’intelligence qui passe à l’action',
     sectionTitle: ['Une équipe en coulisses.', 'Vous, aux commandes.'],
-    sectionCopy: ['Ils repèrent, préparent et vous proposent.', 'Vous gardez le dernier mot.'],
+    sectionCopy: [
+      'Ils repèrent, préparent et vous proposent.',
+      'Vous gardez le dernier mot.',
+    ],
     chooseAria: 'Choisir un agent à découvrir',
     linkAgents: 'Faire connaissance avec les agents',
     caption:
       'Données et actions d’illustration. Dans votre espace, vous définissez les règles et le niveau d’autonomie de chaque agent.',
     tryIt: 'Essayez : choisissez un agent et approuvez.',
     agentPrefix: 'Agent',
-    propertyName: 'Riad Azur',
+    propertyName: 'Appartement Azur',
     propertyCity: 'Riyad · Exemple de logement',
     brand: 'Votre espace de décision',
     badge: 'Démo interactive',
@@ -115,7 +118,8 @@ const fr = {
     ],
   },
   hitl: {
-    caption: 'Vous ajustez, vous approuvez — les agents exécutent et journalisent.',
+    caption:
+      'Vous ajustez, vous approuvez — les agents exécutent et journalisent.',
     waiting: 'En attente',
     approved: 'Validé',
     // Les montants sont illustratifs et exprimes dans la monnaie du marche :
@@ -130,7 +134,8 @@ const fr = {
       agent: 'Agent Revenue',
       tag: 'Expire dans 22 h',
       title: 'Baisse tarifaire proposée — Riad Yasmine',
-      copyBefore: '9 nuits invendues du 18 au 27 août (block-aware). Proposition : ',
+      copyBefore:
+        '9 nuits invendues du 18 au 27 août (block-aware). Proposition : ',
       copyDelta: '−12 %',
       copyAfter: ', plancher respecté',
       currentLabel: 'Prix actuel',
@@ -184,9 +189,24 @@ const fr = {
     direct: 'Direct',
     nights: (n: number) => `${n} nuit${n > 1 ? 's' : ''}`,
     rows: [
-      { name: 'Riad Bab Doukkala', detail: 'Marrakech · Médina', guest: 'Salma B.', price: '2 400 MAD' },
-      { name: 'Villa des Oliviers', detail: 'Essaouira · Centre', guest: 'Youssef A.', price: '3 150 MAD' },
-      { name: 'Appartement Anfa', detail: 'Casablanca · Anfa', guest: 'Nadia E.', price: '1 800 MAD' },
+      {
+        name: 'Riad Bab Doukkala',
+        detail: 'Marrakech · Médina',
+        guest: 'Salma B.',
+        price: '2 400 MAD',
+      },
+      {
+        name: 'Villa des Oliviers',
+        detail: 'Essaouira · Centre',
+        guest: 'Youssef A.',
+        price: '3 150 MAD',
+      },
+      {
+        name: 'Appartement Anfa',
+        detail: 'Casablanca · Anfa',
+        guest: 'Nadia E.',
+        price: '1 800 MAD',
+      },
     ],
   },
   windowTitles: {
@@ -235,14 +255,17 @@ const en: MockupMessages = {
   demo: {
     sectionLabel: 'The intelligence that acts',
     sectionTitle: ['A team behind the scenes.', 'You, at the controls.'],
-    sectionCopy: ['They spot it, prepare it, propose it.', 'You keep the last word.'],
+    sectionCopy: [
+      'They spot it, prepare it, propose it.',
+      'You keep the last word.',
+    ],
     chooseAria: 'Choose an agent to discover',
     linkAgents: 'Get to know the agents',
     caption:
       'Illustrative data and actions. In your own space, you set the rules and the level of autonomy of each agent.',
     tryIt: 'Try it: pick an agent and approve.',
     agentPrefix: 'Agent',
-    propertyName: 'Riad Azur',
+    propertyName: 'Azur Apartment',
     propertyCity: 'Riyadh · Sample property',
     brand: 'Your decision space',
     badge: 'Interactive demo',
@@ -315,7 +338,8 @@ const en: MockupMessages = {
       agent: 'Revenue agent',
       tag: 'Expires in 22 h',
       title: 'Rate cut proposed — Riad Yasmine',
-      copyBefore: 'Nine nights unsold from 18 to 27 August (block-aware). Proposal: ',
+      copyBefore:
+        'Nine nights unsold from 18 to 27 August (block-aware). Proposal: ',
       copyDelta: '−12%',
       copyAfter: ', floor respected',
       currentLabel: 'Current price',
@@ -369,9 +393,24 @@ const en: MockupMessages = {
     direct: 'Direct',
     nights: (n: number) => `${n} night${n > 1 ? 's' : ''}`,
     rows: [
-      { name: 'Al-Malqa istiraha', detail: 'Riyadh · Al-Malqa', guest: 'Noura A.', price: 'SAR 960' },
-      { name: 'Al-Shati apartment', detail: 'Jeddah · Al-Shati', guest: 'Fahd I.', price: 'SAR 1,260' },
-      { name: 'Al-Aqrabiyah villa', detail: 'Khobar · Al-Aqrabiyah', guest: 'Reem M.', price: 'SAR 720' },
+      {
+        name: 'Al-Malqa istiraha',
+        detail: 'Riyadh · Al-Malqa',
+        guest: 'Noura A.',
+        price: 'SAR 960',
+      },
+      {
+        name: 'Al-Shati apartment',
+        detail: 'Jeddah · Al-Shati',
+        guest: 'Fahd I.',
+        price: 'SAR 1,260',
+      },
+      {
+        name: 'Al-Aqrabiyah villa',
+        detail: 'Khobar · Al-Aqrabiyah',
+        guest: 'Reem M.',
+        price: 'SAR 720',
+      },
     ],
   },
   windowTitles: {
@@ -425,7 +464,7 @@ const ar: MockupMessages = {
       'بيانات وإجراءات توضيحية. في مساحتك أنت تحدّد القواعد ومستوى استقلالية كل وكيل.',
     tryIt: 'جرّب: اختر وكيلاً وصادِق.',
     agentPrefix: 'وكيل',
-    propertyName: 'رياض أزور',
+    propertyName: 'شقة أزور',
     propertyCity: 'الرياض · وحدة نموذجية',
     brand: 'مساحة قرارك',
     badge: 'عرض تفاعلي',
@@ -442,7 +481,7 @@ const ar: MockupMessages = {
         title: 'ثلاث ليالٍ تبحث عن نزلائها.',
         copy: 'يتباطأ الطلب من 21 إلى 24 سبتمبر. خفض موجَّه قد يجعل إعلانك أكثر جاذبية.',
         detail: 'السعر لكل ليلة',
-        note: 'حدّك الأدنى البالغ 450 ريالاً محفوظ.',
+        note: 'حدّك الأدنى البالغ 450 ر.س محفوظ.',
         action: 'صادِق على السعر',
         done: 'طُبِّق السعر الجديد على التواريخ المقترحة.',
       },
@@ -548,7 +587,13 @@ const ar: MockupMessages = {
     title: 'تقويمك',
     month: 'سبتمبر 2026',
     propertiesColumn: 'الوحدات',
-    days: ['الاثنين 14', 'الثلاثاء 15', 'الأربعاء 16', 'الخميس 17', 'الجمعة 18'],
+    days: [
+      'الاثنين 14',
+      'الثلاثاء 15',
+      'الأربعاء 16',
+      'الخميس 17',
+      'الجمعة 18',
+    ],
     sync: 'الإتاحة متزامنة',
     direct: 'مباشر',
     /* L'arabe compte au DUEL : deux nuits ne se disent pas comme trois. Les
@@ -560,9 +605,24 @@ const ar: MockupMessages = {
       return `${n} ليلة`;
     },
     rows: [
-      { name: 'استراحة الملقا', detail: 'الرياض · الملقا', guest: 'نورة ع.', price: '960 ر.س' },
-      { name: 'شقة الشاطئ', detail: 'جدة · الشاطئ', guest: 'فهد إ.', price: '1٬260 ر.س' },
-      { name: 'فيلا العقربية', detail: 'الخبر · العقربية', guest: 'ريم م.', price: '720 ر.س' },
+      {
+        name: 'استراحة الملقا',
+        detail: 'الرياض · الملقا',
+        guest: 'نورة ع.',
+        price: '960 ر.س',
+      },
+      {
+        name: 'شقة الشاطئ',
+        detail: 'جدة · الشاطئ',
+        guest: 'فهد إ.',
+        price: '1٬260 ر.س',
+      },
+      {
+        name: 'فيلا العقربية',
+        detail: 'الخبر · العقربية',
+        guest: 'ريم م.',
+        price: '720 ر.س',
+      },
     ],
   },
   windowTitles: {
@@ -573,4 +633,8 @@ const ar: MockupMessages = {
   },
 };
 
-export const MOCKUP_MESSAGES: Record<SiteLanguage, MockupMessages> = { fr, en, ar };
+export const MOCKUP_MESSAGES: Record<SiteLanguage, MockupMessages> = {
+  fr,
+  en,
+  ar,
+};

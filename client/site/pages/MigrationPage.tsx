@@ -3,6 +3,7 @@ import {
   ArrowRightIcon,
   CalendarCheckIcon,
   CheckIcon,
+  DownloadIcon,
   FileCheck2Icon,
   FolderOpenIcon,
   HeadphonesIcon,
@@ -21,11 +22,11 @@ import {
 } from '../components/BaitlyMigrationVisuals';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_MIGRATION_MESSAGES } from '../lib/messages/baitlyMigration';
-import riad from '../assets/photos/baitly-riad.webp';
-import guestOne from '../assets/guests/g1.jpg';
-import guestTwo from '../assets/guests/g2.jpg';
-import guestThree from '../assets/guests/g3.jpg';
+import { downloadText } from '../lib/downloadText';
 import '../baitly-migration.css';
+import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+
+const { migrationProperty: riad } = SITE_PHOTOS;
 
 const STEP_ICONS = [
   FolderOpenIcon,
@@ -120,7 +121,7 @@ export default function MigrationPage() {
           <Reveal className="bm-property-story">
             <img
               src={riad}
-              alt={m.visual.location}
+              alt={sitePhotoAlt('migrationProperty', language)}
               width="960"
               height="720"
               loading="lazy"
@@ -141,15 +142,8 @@ export default function MigrationPage() {
           <Reveal className="bm-history-story" delay={1}>
             <div className="bm-stay-illustration" aria-hidden="true">
               <div className="bm-guest-portraits">
-                {[guestOne, guestTwo, guestThree].map((src) => (
-                  <img
-                    src={src}
-                    key={src}
-                    width="48"
-                    height="48"
-                    alt=""
-                    loading="lazy"
-                  />
+                {['AL', 'NK', 'SM'].map((initials) => (
+                  <span key={initials}>{initials}</span>
                 ))}
               </div>
               <div className="bm-stay-path">
@@ -242,6 +236,30 @@ export default function MigrationPage() {
                 </li>
               ))}
             </ol>
+            <button
+              type="button"
+              className="bm-text-link mt-6"
+              onClick={() =>
+                downloadText(
+                  `baitly-migration-${language}.txt`,
+                  [
+                    `Baitly · ${m.checklistTitle}`,
+                    m.sourceNote,
+                    ...m.checklist.map((item) => `[ ] ${item}`),
+                    ...m.channels.map(
+                      (channel) =>
+                        `${channel.name}\n${channel.points.map((point) => `[ ] ${point}`).join('\n')}`,
+                    ),
+                    m.limitsTitle,
+                    m.limitsCopy,
+                    'https://baitly.fr/migration',
+                  ].join('\n\n'),
+                )
+              }
+            >
+              <DownloadIcon size={18} aria-hidden="true" />
+              {m.downloadChecklist}
+            </button>
             <span className="bm-checklist-fold" aria-hidden="true" />
           </aside>
         </div>
