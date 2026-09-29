@@ -217,7 +217,7 @@ const descriptions: Record<
   homeHero: {
     fr: 'Une hôte à la réception consulte le planning Baitly sur son écran, scène illustrative',
     en: 'A host at reception checks the Baitly calendar on her screen, an illustrative scene',
-    ar: 'مضيفة في الاستقبال تتابع جدول بايتلي على شاشتها، مشهد توضيحي',
+    ar: 'مضيفة في الاستقبال تتابع جدول بيتلي على شاشتها، مشهد توضيحي',
   },
   homeResources: {
     fr: 'Villa contemporaine ouverte sur sa piscine',

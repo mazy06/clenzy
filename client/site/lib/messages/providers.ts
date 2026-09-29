@@ -206,7 +206,7 @@ const en: ProvidersMessages = {
 const ar: ProvidersMessages = {
   eyebrow: "شبكة مقدّمي الخدمات · قيد الإعداد",
   titleBefore: "خبرتك. ",
-  titleAccent: "لها مكان في بايتلي.",
+  titleAccent: "لها مكان في بيتلي.",
   intro:
     "النظافة والصيانة واستقبال الضيوف: اكتشف كيف يمكن لخدماتك مساعدة المضيفين وضيوفهم. جهّز ملفك للإطلاق.",
   ctaJoin: "تحضير ملفي",
