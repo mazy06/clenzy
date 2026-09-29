@@ -16,6 +16,9 @@ import { BAITLY_CONTACT_MESSAGES } from '../site/lib/messages/baitlyContact';
 import { BAITLY_RESOURCE_MESSAGES } from '../site/lib/messages/baitlyResources';
 import { MARKET_CITIES, MARKET_SOURCE, GUIDE_SOURCES, type ResourceKind } from '../site/data/baitlyResources';
 import { RESOURCE_GLOSSARY } from '../site/data/baitlyResourceGlossary';
+import { ACADEMY_EPISODES } from '../site/data/baitlyAcademyVideos';
+import { ACADEMY_TRANSCRIPTS } from '../site/data/baitlyAcademyTranscripts';
+import { BAITLY_ACADEMY_MESSAGES } from '../site/lib/messages/baitlyAcademy';
 import { legalDocs } from '../src/modules/legal/corpus';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 
@@ -24,6 +27,7 @@ export const PRIVATE_SITE_PATHS = ['/prestataires/inscription', '/prestataires/a
 export interface DiscoveryCatalog { modules: string[]; solutions: string[]; resources: string[] }
 
 const section = (title: string, ...text: string[]) => `## ${title}\n\n${text.join('\n\n')}`;
+const clock = (seconds: number) => { const total = Math.round(seconds); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; };
 const list = (items: readonly string[]) => items.map((item) => `- ${item}`).join('\n');
 const faq = (items: ReadonlyArray<{ q: string; a: string }>) =>
   items.map(({ q, a }) => section(q, a)).join('\n\n');
@@ -59,6 +63,7 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
     section(journeys.solutions.countriesTitle, journeys.solutions.countriesCopy,
       ...journeys.solutions.countries.map(item => section(item.name, item.copy))));
   const resources = BAITLY_RESOURCE_MESSAGES[language];
+  const academy = BAITLY_ACADEMY_MESSAGES[language];
   add('/ressources', `${resources.hero.title} ${resources.hero.accent}`, resources.hero.intro,
     ...catalog.resources.map((id) => {
       const item = resourceText(id, language);
@@ -75,10 +80,23 @@ export function siteDocuments(language: SiteLanguage, catalog: DiscoveryCatalog)
     if (id === 'obligations') content.push(resources.guide.intro, resources.guide.verified,
       ...resources.guide.countries.map((country, countryIndex) => section(country, ...resources.guide.steps[countryIndex].map((step, index) => section(step.title, step.copy, step.action,
         `[${GUIDE_SOURCES[countryIndex][index].label}](${GUIDE_SOURCES[countryIndex][index].url})`)))));
-    if (id === 'academie') content.push(...resources.academy.lessons.map(lesson => section(lesson.title, lesson.intro, features(lesson.sections), lesson.takeaway)));
+    if (id === 'academie') content.push(section(academy.ui.series, list(ACADEMY_EPISODES.map((episode) =>
+      `[${academy.ui.episode} ${episode.number} · ${academy.episodes[episode.slug].title}](/ressources/academie/${episode.slug}?lang=${language}) · ${clock(episode.duration)}`))),
+      section(academy.ui.practiceTitle, academy.ui.practiceCopy, ...resources.academy.lessons.map(lesson => section(lesson.title, lesson.intro, features(lesson.sections), lesson.takeaway))));
     if (id === 'blog') content.push(...resources.blog.articles.map(article => section(article.title, article.intro, features(article.sections), article.takeaway)));
     if (id === 'glossaire') content.push(...RESOURCE_GLOSSARY.map(entry => section(entry[language].term, entry[language].definition)));
     add(`/ressources/${id}`, module.title, module.intro, ...content);
+  }
+  // Une page par épisode vidéo : ce qu'on apprend, les chapitres horodatés et la transcription complète.
+  for (const episode of ACADEMY_EPISODES) {
+    const text = academy.episodes[episode.slug];
+    add(`/ressources/academie/${episode.slug}`, text.title, text.description,
+      `${resources.modules.academie.name} · ${academy.ui.episode} ${episode.number} · ${academy.themes[episode.theme]} · ${clock(episode.duration)}`,
+      !episode.languages.includes(language) && academy.ui.languageNote ? academy.ui.languageNote : '',
+      section(academy.ui.learn, list(text.learn)),
+      section(academy.ui.chapters, list(episode.chapters.map((start, index) => `${clock(start)} ${text.chapters[index]}`))),
+      section(academy.ui.transcript, ACADEMY_TRANSCRIPTS[episode.slug]?.[language] ?? ACADEMY_TRANSCRIPTS[episode.slug]?.fr ?? ''),
+      `[${resources.modules.academie.name}](/ressources/academie?lang=${language})`);
   }
   add('/tarifs', pricing.title, pricing.intro, loyalty.proposal, loyalty.simulationNote,
     ...pricing.plans.map((plan) => section(plan.name, `${plan.price} ${plan.unit}`, plan.copy, list(plan.features))),

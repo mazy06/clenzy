@@ -477,31 +477,56 @@
 .brs-academy-cover {
   padding: 0 32px 26px;
 }
-.brs-academy-cover > div {
-  display: flex;
+/* Les deux formats de la même formation : 16:9 (ordinateur) et 9:16 (téléphone). */
+.brs-academy-posters {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+.brs-academy-posters > span {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #e3dbc9;
+}
+.brs-academy-posters img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+.brs-academy-wide img {
+  aspect-ratio: 16 / 9;
+}
+.brs-academy-tall img {
+  aspect-ratio: 9 / 16;
+  max-height: 210px;
+}
+.brs-academy-wide > small {
+  position: absolute;
+  inset-inline-start: 8px;
+  bottom: 8px;
+  display: inline-flex;
   align-items: center;
-  gap: 18px;
-  padding-block: 13px;
-  border-top: 1px solid #d6cebe;
+  gap: 5px;
+  padding: 4px 9px 4px 7px;
+  border-radius: 999px;
+  background: rgb(22 36 45 / 0.86);
+  color: #eef3f5;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.brs-academy-cover > div > span {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 20px;
-  color: #6f654f;
-}
-.brs-academy-cover p {
-  font-size: 13px;
-  font-weight: 600;
-}
-.brs-academy-cover svg {
-  margin-inline-start: auto;
-  color: var(--brs-green);
+.brs-academy-wide > small svg {
+  fill: currentColor;
 }
 .brs-academy-cover > small {
   display: block;
   color: var(--bl-muted);
   font-size: 12px;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 .brs-entry.brs-entry-blog {
   gap: 0;

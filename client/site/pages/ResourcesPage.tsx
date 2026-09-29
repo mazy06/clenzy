@@ -1,7 +1,7 @@
 import SiteMoney from '../components/SiteMoney';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Search, BookOpen, Check, TrendingUp } from 'lucide-react';
+import { ArrowRight, Search, BookOpen, Play, TrendingUp } from 'lucide-react';
 import Reveal from '../components/Reveal';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { useSiteLanguage } from '../lib/siteLanguage';
@@ -13,6 +13,9 @@ import {
 import { RESOURCES } from '../data/catalog';
 import '../baitly-resources.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import { ACADEMY_EPISODES, academyPosterUrl } from '../data/baitlyAcademyVideos';
+import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
+import { formatClock } from '../components/academy/BaitlyVideoPlayer';
 
 const {
   resourcesReading: terrace,
@@ -32,6 +35,9 @@ const ORDER: ResourceKind[] = [
 export default function ResourcesPage() {
   const { language } = useSiteLanguage();
   const m = BAITLY_RESOURCE_MESSAGES[language];
+  const academy = BAITLY_ACADEMY_MESSAGES[language];
+  const academySeconds = Math.round(ACADEMY_EPISODES.reduce((sum, episode) => sum + episode.duration, 0));
+  const academyTotal = `${Math.floor(academySeconds / 60)} ${academy.ui.minutes} ${String(academySeconds % 60).padStart(2, '0')}`;
   const [query, setQuery] = useState('');
   const search = normalizeResourceSearch(query);
   const visible = ORDER.filter((id) =>
@@ -200,16 +206,32 @@ export default function ResourcesPage() {
                     )}
                     {id === 'academie' && (
                       <div className="brs-academy-cover" aria-hidden="true">
-                        {m.academy.lessons.map((lesson, index) => (
-                          <div key={lesson.title}>
-                            <span>0{index + 1}</span>
-                            <p>{lesson.title}</p>
-                            <Check size={17} />
-                          </div>
-                        ))}
+                        <div className="brs-academy-posters">
+                          <span className="brs-academy-wide">
+                            <img
+                              src={academyPosterUrl(ACADEMY_EPISODES[0], '16x9')}
+                              alt=""
+                              loading="lazy"
+                            />
+                            <small>
+                              <Play size={13} />
+                              {formatClock(Math.round(ACADEMY_EPISODES[0].duration))}
+                            </small>
+                          </span>
+                          <span className="brs-academy-tall">
+                            <img
+                              src={academyPosterUrl(
+                                ACADEMY_EPISODES[1] ?? ACADEMY_EPISODES[0],
+                                '9x16',
+                              )}
+                              alt=""
+                              loading="lazy"
+                            />
+                          </span>
+                        </div>
                         <small>
-                          3 {m.academy.lesson.toLocaleLowerCase()} ·{' '}
-                          {m.academy.quiz}
+                          {ACADEMY_EPISODES.length} {academy.ui.episodes} ·{' '}
+                          {academyTotal} · {academy.ui.formats}
                         </small>
                       </div>
                     )}

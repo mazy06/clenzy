@@ -66,6 +66,18 @@ export default function SiteMetadata() {
       alternate.href = `${origin}${canonicalPath}${lang === 'fr' || lang === 'x-default' ? '' : `?lang=${lang}`}`;
       document.head.append(alternate);
     }
+    // Pages d'épisode de l'Académie : aperçu et données VideoObject suivent la navigation, sans
+    // rester sur la page suivante.
+    setMeta('property', 'og:type', meta.video ? 'video.other' : 'website');
+    setMeta('property', 'og:image', meta.video?.poster ?? `${origin}/baitly-share.jpg`);
+    document.getElementById('baitly-video-ld')?.remove();
+    if (meta.video) {
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'baitly-video-ld';
+      script.textContent = JSON.stringify(meta.video.jsonLd);
+      document.head.append(script);
+    }
   }, [pathname, language]);
   return null;
 }

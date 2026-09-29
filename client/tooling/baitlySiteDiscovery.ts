@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import type { Plugin } from 'vite';
 import { LEGAL_SLUGS } from '../src/modules/legal/corpus/types';
+import { ACADEMY_EPISODES } from '../site/data/baitlyAcademyVideos';
 import { DISCOVERY_LANGUAGES, PRIVATE_SITE_PATHS, siteDocuments } from './baitlySiteContent';
 import type { DiscoveryCatalog } from './baitlySiteContent';
 
@@ -26,6 +27,7 @@ export function publicPaths(source: string, modules: string[]): string[] {
         const value = path.initializer.text;
         if (value === '/produit/:slug') paths.push(...modules.map((slug) => `/produit/${slug}`));
         else if (value === '/legal/:slug') paths.push(...LEGAL_SLUGS.map((slug) => `/legal/${slug}`));
+        else if (value === '/ressources/academie/:episode') paths.push(...ACADEMY_EPISODES.map((episode) => `/ressources/academie/${episode.slug}`));
         else if (value !== '*' && !PRIVATE_SITE_PATHS.includes(value)) {
           if (!/^\/[a-z0-9/-]*$/.test(value)) throw new Error(`Classify public route before publishing: ${value}`);
           paths.push(value);

@@ -169,11 +169,11 @@ const fr: ResourceMessages = {
     },
     academie: {
       name: 'Académie Baitly',
-      copy: 'Trois leçons concrètes. Une mise en pratique à chaque étape.',
-      tag: 'Micro-formations',
-      title: 'Une compétence de plus. Dès aujourd’hui.',
+      copy: 'Des formations vidéo de 2 à 3 minutes, avec des exemples chiffrés.',
+      tag: 'Formations vidéo',
+      title: 'Le métier, expliqué simplement.',
       intro:
-        'Prix, vente de services et qualité opérationnelle : l’essentiel, avec un cas à résoudre.',
+        'Des formations vidéo de 2 à 3 minutes : des exemples chiffrés, les pièges à éviter et ce qu’il faut en faire. En accès libre, sans inscription.',
     },
     blog: {
       name: 'Le carnet Baitly',
@@ -562,11 +562,11 @@ const en: ResourceMessages = {
     },
     academie: {
       name: 'Baitly Academy',
-      copy: 'Three practical lessons. An exercise at every step.',
-      tag: 'Short courses',
-      title: 'Learn something you can use today.',
+      copy: 'Video training in 2 to 3 minutes, with worked examples.',
+      tag: 'Video training',
+      title: 'The trade, explained simply.',
       intro:
-        'Pricing, extra services and operational quality, with a case to solve.',
+        'Video training in 2 to 3 minutes: worked examples, the traps to avoid and what to do next. Free access, no sign-up.',
     },
     blog: {
       name: 'The Baitly journal',
@@ -942,10 +942,11 @@ const ar: ResourceMessages = {
     },
     academie: {
       name: 'أكاديمية بيتلي',
-      copy: 'ثلاثة دروس عملية مع تمرين في كل مرحلة.',
-      tag: 'دروس قصيرة',
-      title: 'مهارة جديدة تطبقها اليوم.',
-      intro: 'التسعير والخدمات الإضافية وجودة العمليات، مع حالة لحلها.',
+      copy: 'دورات بالفيديو من دقيقتين إلى ثلاث، مع أمثلة بالأرقام.',
+      tag: 'دورات بالفيديو',
+      title: 'المهنة، بشرح بسيط.',
+      intro:
+        'دورات بالفيديو من دقيقتين إلى ثلاث: أمثلة بالأرقام، والأخطاء التي يجب تجنّبها، وما عليك فعله بعدها. وصول مجاني دون تسجيل.',
     },
     blog: {
       name: 'دفتر بيتلي',

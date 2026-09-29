@@ -66,3 +66,52 @@ echo "[entrypoint] $CONFIG_FILE genere (API=${VITE_API_BASE_URL:-<build>}, KC=${
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
+
+# ─── Académie Baitly : vidéos servies sous /academie/media/ ────────────────────
+# Le site lit ses vidéos sur SON domaine (/academie/media/...), ce que la CSP
+# autorise (media-src 'self'). Quand BAITLY_ACADEMY_MEDIA_ORIGIN est defini, par
+# exemple https://<bucket>.s3.gra.io.cloud.ovh.net/academie, nginx relaie ce
+# chemin vers le stockage objet (lecture seule, sans cookies) et Cloudflare met
+# les fichiers en cache. Variable absente : aucun relais ; la page Academie
+# affiche alors un message a la place de la video.
+# Voir marketing/academie/PUBLICATION.md.
+ACADEMY_DIR="${BAITLY_ACADEMY_NGINX_DIR:-/etc/nginx/baitly-academy}"
+mkdir -p "$ACADEMY_DIR"
+rm -f "$ACADEMY_DIR/media.conf"
+if [ -n "${BAITLY_ACADEMY_MEDIA_ORIGIN:-}" ]; then
+  origin="${BAITLY_ACADEMY_MEDIA_ORIGIN%/}"
+  rest="${origin#https://}"
+  host="${rest%%/*}"
+  path="${rest#"$host"}"
+  # Valeurs injectees dans la configuration nginx : https, caracteres d'un nom DNS et d'un chemin
+  # simple. Une valeur invalide n'empeche pas le site de demarrer : le relais est seulement omis.
+  academy_error=""
+  case "$origin" in https://*) ;; *) academy_error="doit commencer par https://" ;; esac
+  case "$host" in ''|*[!A-Za-z0-9.-]*) academy_error="hote invalide" ;; esac
+  case "$path" in *[!A-Za-z0-9/_.-]*|*..*) academy_error="chemin invalide" ;; esac
+  academy_resolver="${BAITLY_ACADEMY_RESOLVER:-127.0.0.11}"
+  case "$academy_resolver" in ''|*[!A-Za-z0-9.:\ -]*) academy_error="resolveur invalide" ;; esac
+fi
+if [ -n "${BAITLY_ACADEMY_MEDIA_ORIGIN:-}" ] && [ -n "$academy_error" ]; then
+  echo "[entrypoint] BAITLY_ACADEMY_MEDIA_ORIGIN ignoree ($academy_error) : pas de relais des videos" >&2
+elif [ -n "${BAITLY_ACADEMY_MEDIA_ORIGIN:-}" ]; then
+  cat > "$ACADEMY_DIR/media.conf" <<NGINX
+location ^~ /academie/media/ {
+  limit_except GET HEAD { deny all; }
+  resolver $academy_resolver valid=300s ipv6=off;
+  set \$baitly_academy_host "$host";
+  rewrite ^/academie/media/(.*)\$ $path/\$1 break;
+  proxy_pass https://\$baitly_academy_host;
+  proxy_set_header Host \$baitly_academy_host;
+  proxy_ssl_server_name on;
+  proxy_ssl_name \$baitly_academy_host;
+  proxy_http_version 1.1;
+  proxy_set_header Connection "";
+  proxy_set_header Cookie "";
+  proxy_set_header Authorization "";
+  proxy_hide_header Set-Cookie;
+  add_header Cache-Control "public, max-age=2592000" always;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+NGINX
+fi

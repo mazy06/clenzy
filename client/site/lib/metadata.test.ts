@@ -6,6 +6,9 @@ import {
 } from '../../tooling/baitlySiteDiscovery';
 import { metadataCatalog, metadataHtml } from '../../tooling/baitlySiteSeo';
 import { BAITLY_JOURNEY_MESSAGES } from './messages/baitlyJourneys';
+import { ACADEMY_EPISODES } from '../data/baitlyAcademyVideos';
+import { ACADEMY_TRANSCRIPTS } from '../data/baitlyAcademyTranscripts';
+import { scriptSafeJson } from './academyStructuredData';
 
 const catalogSource = readFileSync('site/data/catalog.tsx', 'utf8');
 const pages = metadataCatalog(discoveryCatalog(catalogSource));
@@ -87,5 +90,33 @@ describe('Public metadata', () => {
     const nginx = readFileSync('nginx.conf', 'utf8');
     expect(nginx).toContain('location @site_fallback');
     expect(nginx).toContain('try_files /index.html =404;');
+  });
+  it('décrit chaque épisode de l’Académie comme une vidéo, sans doublon au second passage', () => {
+    const episode = ACADEMY_EPISODES[0];
+    const path = `/ressources/academie/${episode.slug}`;
+    const page = pages.fr[path];
+    expect(page.video).toBeDefined();
+    const html = metadataHtml(metadataHtml(template, page, path, 'fr'), page, path, 'fr');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+    expect(scripts).toHaveLength(1);
+    const data = JSON.parse(scripts[0].textContent!);
+    expect(data['@type']).toBe('VideoObject');
+    expect(data.duration).toMatch(/^PT\d+M\d+S$/);
+    expect(data.uploadDate).toBe(episode.uploadDate);
+    // Non affichée sur la page : la transcription n'existe que dans ces données et le Markdown.
+    expect(data.transcript).toBe(ACADEMY_TRANSCRIPTS[episode.slug].fr);
+    expect(data.hasPart).toHaveLength(episode.chapters.length);
+    expect(data.hasPart[1].url).toBe(`https://baitly.fr${path}?t=${Math.round(episode.chapters[1])}`);
+    expect(doc.querySelector('meta[property="og:type"]')?.getAttribute('content')).toBe('video.other');
+    expect(doc.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      `https://baitly.fr/academie/posters/${episode.slug}-16x9.jpg`,
+    );
+    expect(pages.en[path].video?.jsonLd.hasPart).toHaveLength(episode.chapters.length);
+  });
+  it('ne peut pas fermer la balise script depuis un texte d’épisode', () => {
+    const json = scriptSafeJson({ name: '</script><script>alert(1)</script>' });
+    expect(json).not.toMatch(/[<>&]/);
+    expect(JSON.parse(json).name).toBe('</script><script>alert(1)</script>');
   });
 });

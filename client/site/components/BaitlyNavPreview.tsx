@@ -2,13 +2,13 @@ import SiteMoney, { SiteMoneyText } from './SiteMoney';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   ArrowRightIcon,
-  BookOpenTextIcon,
   CheckIcon,
   CreditCardIcon,
   FileTextIcon,
   GlobeIcon,
   KeyRoundIcon,
   LockKeyholeIcon,
+  PlayIcon,
   ShieldCheckIcon,
   WifiIcon,
 } from 'lucide-react';
@@ -21,6 +21,9 @@ import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_PRODUCT_DEMO_MESSAGES } from '../lib/messages/baitlyProductDemos';
 import { BAITLY_PMS_MESSAGES } from '../lib/messages/baitlyPms';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
+import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
+import { ACADEMY_EPISODES, academyPosterUrl } from '../data/baitlyAcademyVideos';
+import { formatClock } from './academy/BaitlyVideoPlayer';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import { MARKET_CITIES } from '../data/baitlyResources';
 import {
@@ -419,23 +422,29 @@ export default function BaitlyNavPreview({
         </Window>
       );
       break;
-    case 'academy':
+    case 'academy': {
+      // La vitrine montre la formation la plus récente, avec sa vraie image et sa durée.
+      const academy = BAITLY_ACADEMY_MESSAGES[language];
+      const latest = ACADEMY_EPISODES[ACADEMY_EPISODES.length - 1];
       scene = (
         <div className="bnv-academy">
           <div className="bnv-lesson-art">
-            <img src={SITE_PHOTOS.resourcesReading} alt="" />
+            <img src={academyPosterUrl(latest, '16x9')} alt="" />
             <span>
-              <BookOpenTextIcon />
+              <PlayIcon />
             </span>
           </div>
-          <small>{resources.academy.lesson} 01</small>
-          <strong>{resources.academy.lessons[0].title}</strong>
+          <small>
+            {academy.ui.latest} · {formatClock(Math.round(latest.duration))}
+          </small>
+          <strong>{academy.episodes[latest.slug].title}</strong>
           <div className="bnv-lesson-progress">
             <i />
           </div>
         </div>
       );
       break;
+    }
     case 'editorial':
       scene = (
         <div className="bnv-editorial">

@@ -11,6 +11,9 @@ import { MARKET_SOURCE, type ResourceKind } from '../data/baitlyResources';
 import { BAITLY_READINESS_MESSAGES } from './messages/baitlyReadiness';
 import { PROVIDERS_MESSAGES } from './messages/providers';
 import { getLegalDoc } from '../../src/modules/legal/corpus';
+import { ACADEMY_EPISODES } from '../data/baitlyAcademyVideos';
+import { ACADEMY_TRANSCRIPTS } from '../data/baitlyAcademyTranscripts';
+import { BAITLY_ACADEMY_MESSAGES } from './messages/baitlyAcademy';
 
 const routes = readFileSync('site/main.tsx', 'utf8');
 const robots = readFileSync('site/public/robots.txt', 'utf8');
@@ -113,5 +116,22 @@ describe('Baitly public discovery build', () => {
     const addRoute = (path: string) => routes.replace('<Routes>', `<Routes><Route path="${path}" element={<NewPage />} />`);
     expect(() => discoveryArtifacts(addRoute('/nouveau'), robots, catalog)).toThrow('Missing Markdown representation');
     expect(() => discoveryArtifacts(addRoute('/secret/:token'), robots, catalog)).toThrow('Classify public route');
+  });
+  it('publie une page par épisode de l’Académie, avec chapitres et transcription, dans les trois langues', () => {
+    const { assets, paths } = discoveryArtifacts(routes, robots, catalog);
+    for (const episode of ACADEMY_EPISODES) {
+      expect(paths).toContain(`/ressources/academie/${episode.slug}`);
+      expect(assets.get('sitemap.xml')).toContain(`https://baitly.fr/ressources/academie/${episode.slug}</loc>`);
+      for (const language of ['fr', 'en', 'ar'] as const) {
+        const text = BAITLY_ACADEMY_MESSAGES[language].episodes[episode.slug];
+        const markdown = assets.get(`_baitly-markdown/${language}/ressources/academie/${episode.slug}.md`)!;
+        expect(markdown.startsWith(`# ${text.title}\n`)).toBe(true);
+        expect(markdown).toContain(text.chapters[1]);
+        expect(markdown).toContain(ACADEMY_TRANSCRIPTS[episode.slug].fr!.slice(0, 40));
+        expect(assets.get(`_baitly-markdown/${language}/ressources/academie.md`)).toContain(
+          `/ressources/academie/${episode.slug}?lang=${language}`,
+        );
+      }
+    }
   });
 });
