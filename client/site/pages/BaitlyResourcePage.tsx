@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
@@ -12,7 +12,13 @@ import {
   ResourceGlossary,
 } from '../components/BaitlyResourceTools';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
+import AcademyEpisodeView, { ACADEMY_PRACTICE_ID } from '../components/academy/AcademyEpisodeView';
+import AcademyProgram from '../components/academy/AcademyProgram';
+import { ACADEMY_EPISODES, academyEpisode } from '../data/baitlyAcademyVideos';
+import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
+import NotFoundPage from './NotFoundPage';
 import '../baitly-resources.css';
+import '../baitly-academy.css';
 
 const TOOLS = {
   calculateur: RevenueCalculator,
@@ -34,26 +40,53 @@ const RELATED: Record<ResourceKind, ResourceKind[]> = {
 export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
   const { language } = useSiteLanguage();
   const [params] = useSearchParams();
+  const { episode: episodeSlug } = useParams();
   const country = params.get('country') ?? 'MA';
   const m = BAITLY_RESOURCE_MESSAGES[language];
   const module = m.modules[kind];
   const Tool = TOOLS[kind];
   const Back = language === 'ar' ? ArrowRight : ArrowLeft;
+  // Académie : une page par épisode (/ressources/academie/<épisode>), l'épisode 01 sur la page d'accueil.
+  const academy = BAITLY_ACADEMY_MESSAGES[language];
+  const episode = kind === 'academie' ? (episodeSlug ? academyEpisode(episodeSlug) : ACADEMY_EPISODES[0]) : undefined;
+  if (kind === 'academie' && episodeSlug && !episode) return <NotFoundPage />;
+  const episodeText = episodeSlug && episode ? academy.episodes[episode.slug] : undefined;
+  const startAt = Number(params.get('t'));
   return (
     <div className={`brs-page brs-tool-page brs-tool-${kind}`}>
       <header className="brs-tool-header site-shell">
-        <Link className="brs-back" to={`/ressources?lang=${language}`}>
+        <Link
+          className="brs-back"
+          to={episodeText ? `/ressources/academie?lang=${language}` : `/ressources?lang=${language}`}
+        >
           <Back size={16} />
-          {m.back}
+          {episodeText ? module.name : m.back}
         </Link>
         <span className="brs-eyebrow">
-          {module.name} · {module.tag}
+          {module.name} · {episodeText ? `${academy.ui.episode} ${episode!.number}` : module.tag}
         </span>
-        <h1>{module.title}</h1>
-        <p>{module.intro}</p>
+        <h1>{episodeText ? episodeText.title : module.title}</h1>
+        <p>{episodeText ? episodeText.description : module.intro}</p>
       </header>
       <div className="site-shell brs-tool-content">
-        {kind === 'obligations' ? (
+        {episode ? (
+          <div className="bac-page">
+            <AcademyEpisodeView
+              key={episode.slug}
+              episode={episode}
+              language={language}
+              startAt={Number.isFinite(startAt) && startAt > 0 ? startAt : undefined}
+            />
+            <AcademyProgram language={language} current={episodeSlug ? episode.slug : undefined} />
+            <section className="bac-practice" id={ACADEMY_PRACTICE_ID} aria-labelledby="academie-pratique-titre">
+              <div className="bac-program-head">
+                <h2 id="academie-pratique-titre">{academy.ui.practiceTitle}</h2>
+                <p>{academy.ui.practiceCopy}</p>
+              </div>
+              <BaitlyAcademy language={language} />
+            </section>
+          </div>
+        ) : kind === 'obligations' ? (
           <ObligationsGuide
             key={country}
             language={language}

@@ -140,7 +140,7 @@ const en: AssistantMessages = {
 
 const ar: AssistantMessages = {
   windowTitle: 'app.baitly — المساعد',
-  name: 'مساعد بايتلي',
+  name: 'مساعد بيتلي',
   tagline: 'تحليل وإجراءات وإجابات على بياناتك أنت',
   chips: ['إشغال أغسطس: 72 %', 'اقتراحان بانتظار المصادقة', '3 وصولات غداً'],
   applied: 'مُصادق عليه',

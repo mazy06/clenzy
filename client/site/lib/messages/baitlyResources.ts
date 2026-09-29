@@ -169,11 +169,11 @@ const fr: ResourceMessages = {
     },
     academie: {
       name: 'Académie Baitly',
-      copy: 'Trois leçons concrètes. Une mise en pratique à chaque étape.',
-      tag: 'Micro-formations',
-      title: 'Une compétence de plus. Dès aujourd’hui.',
+      copy: 'Des formations vidéo de 2 à 3 minutes, avec des exemples chiffrés.',
+      tag: 'Formations vidéo',
+      title: 'Le métier, expliqué simplement.',
       intro:
-        'Prix, vente de services et qualité opérationnelle : l’essentiel, avec un cas à résoudre.',
+        'Des formations vidéo de 2 à 3 minutes : des exemples chiffrés, les pièges à éviter et ce qu’il faut en faire. En accès libre, sans inscription.',
     },
     blog: {
       name: 'Le carnet Baitly',
@@ -562,11 +562,11 @@ const en: ResourceMessages = {
     },
     academie: {
       name: 'Baitly Academy',
-      copy: 'Three practical lessons. An exercise at every step.',
-      tag: 'Short courses',
-      title: 'Learn something you can use today.',
+      copy: 'Video training in 2 to 3 minutes, with worked examples.',
+      tag: 'Video training',
+      title: 'The trade, explained simply.',
       intro:
-        'Pricing, extra services and operational quality, with a case to solve.',
+        'Video training in 2 to 3 minutes: worked examples, the traps to avoid and what to do next. Free access, no sign-up.',
     },
     blog: {
       name: 'The Baitly journal',
@@ -892,7 +892,7 @@ const en: ResourceMessages = {
 
 const ar: ResourceMessages = {
   hero: {
-    eyebrow: 'مكتبة بايتلي',
+    eyebrow: 'مكتبة بيتلي',
     title: 'تردد أقل.',
     accent: 'قرارات أوضح.',
     intro: 'أدوات للتجربة وأفكار للتطبيق. طوّر نشاط الضيافة، قراراً بعد قرار.',
@@ -915,8 +915,8 @@ const ar: ResourceMessages = {
   related: 'اكتشف المزيد',
   cta: {
     title: 'من المعرفة إلى التطبيق.',
-    copy: 'اجمع حجوزاتك وفرقك وإيراداتك في بايتلي.',
-    action: 'اكتشف بايتلي',
+    copy: 'اجمع حجوزاتك وفرقك وإيراداتك في بيتلي.',
+    action: 'اكتشف بيتلي',
   },
   modules: {
     calculateur: {
@@ -941,14 +941,15 @@ const ar: ResourceMessages = {
       intro: 'المغرب وفرنسا والسعودية: قائمة تساعدك على بدء إجراءاتك.',
     },
     academie: {
-      name: 'أكاديمية بايتلي',
-      copy: 'ثلاثة دروس عملية مع تمرين في كل مرحلة.',
-      tag: 'دروس قصيرة',
-      title: 'مهارة جديدة تطبقها اليوم.',
-      intro: 'التسعير والخدمات الإضافية وجودة العمليات، مع حالة لحلها.',
+      name: 'أكاديمية بيتلي',
+      copy: 'دورات بالفيديو من دقيقتين إلى ثلاث، مع أمثلة بالأرقام.',
+      tag: 'دورات بالفيديو',
+      title: 'المهنة، بشرح بسيط.',
+      intro:
+        'دورات بالفيديو من دقيقتين إلى ثلاث: أمثلة بالأرقام، والأخطاء التي يجب تجنّبها، وما عليك فعله بعدها. وصول مجاني دون تسجيل.',
     },
     blog: {
-      name: 'دفتر بايتلي',
+      name: 'دفتر بيتلي',
       copy: 'طرق عملية لتحسين الاستقبال وإدارة النشاط.',
       tag: 'مقالات',
       title: 'الأفكار المفيدة تستحق المشاركة.',
@@ -1179,7 +1180,7 @@ const ar: ResourceMessages = {
     read: 'اقرأ المقال',
     close: 'إغلاق المقال',
     takeaway: 'خطوة للتطبيق',
-    byline: 'فريق بايتلي · دليل عملي',
+    byline: 'فريق بيتلي · دليل عملي',
     articles: [
       {
         title: 'الحجز المباشر: قس ما تحتفظ به.',

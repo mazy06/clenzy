@@ -10,11 +10,19 @@ import {
 } from './baitlySiteContent';
 import { BAITLY_CONTACT_MESSAGES } from '../site/lib/messages/baitlyContact';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
+import { ACADEMY_EPISODES } from '../site/data/baitlyAcademyVideos';
+import {
+  academyVideoMetadata,
+  scriptSafeJson,
+  type AcademyVideoMetadata,
+} from '../site/lib/academyStructuredData';
 
 export type PageMetadata = {
   title: string;
   description: string;
   index: boolean;
+  /** Page d'épisode de l'Académie : vidéo, aperçu et données structurées VideoObject. */
+  video?: AcademyVideoMetadata;
 };
 export type MetadataCatalog = Record<
   SiteLanguage,
@@ -43,10 +51,16 @@ export function metadataCatalog(catalog: DiscoveryCatalog): MetadataCatalog {
             .slice(1)
             .find((part) => part.length > 50 && !/^[#\-[|]/.test(part)) ??
           title;
+        const episode = ACADEMY_EPISODES.find(
+          (item) => path === `/ressources/academie/${item.slug}`,
+        );
         result[path] = {
           title: `${title.replace(/^Baitly · /, '')} | Baitly`,
           description: description.replace(/\s+/g, ' ').slice(0, 190),
           index: !path.startsWith('/legal/'),
+          ...(episode
+            ? { video: academyVideoMetadata(episode, language, ORIGIN) }
+            : {}),
         };
       }
       for (const path of PRIVATE_SITE_PATHS)
@@ -85,7 +99,7 @@ export function metadataHtml(
         `<link rel="alternate" hreflang="${lang}" href="${ORIGIN}${canonicalPath}${lang === 'fr' ? '' : `?lang=${lang}`}">`,
     ),
     `<link rel="alternate" hreflang="x-default" href="${ORIGIN}${canonicalPath}">`,
-    `<meta property="og:type" content="website">`,
+    `<meta property="og:type" content="${page.video ? 'video.other' : 'website'}">`,
     `<meta property="og:site_name" content="Baitly">`,
     `<meta property="og:title" content="${escape(page.title)}">`,
     `<meta property="og:description" content="${escape(page.description)}">`,
@@ -95,7 +109,16 @@ export function metadataHtml(
       (lang) =>
         `<meta property="og:locale:alternate" content="${locale[lang]}">`,
     ),
-    `<meta property="og:image" content="${ORIGIN}/baitly-share.jpg">`,
+    `<meta property="og:image" content="${escape(page.video?.poster ?? `${ORIGIN}/baitly-share.jpg`)}">`,
+    ...(page.video
+      ? [
+          `<meta property="og:video" content="${escape(page.video.video)}">`,
+          `<meta property="og:video:type" content="video/mp4">`,
+          `<meta property="og:video:width" content="1920">`,
+          `<meta property="og:video:height" content="1080">`,
+          `<script type="application/ld+json" id="baitly-video-ld">${scriptSafeJson(page.video.jsonLd)}</script>`,
+        ]
+      : []),
     `<meta name="twitter:card" content="summary_large_image">`,
   ].join('\n    ');
   return html
@@ -105,6 +128,7 @@ export function metadataHtml(
       '',
     )
     .replace(/<link\b[^>]*rel="(?:canonical|alternate)"[^>]*>/gi, '')
+    .replace(/<script type="application\/ld\+json" id="baitly-video-ld">[\s\S]*?<\/script>/gi, '')
     .replace(
       /<html\b[^>]*>/i,
       `<html lang="${language}" dir="${language === 'ar' ? 'rtl' : 'ltr'}" data-theme="light">`,
@@ -128,8 +152,10 @@ export function baitlySiteSeo(): Plugin {
       if (source === id) return '\0' + id;
     },
     async load(source) {
+      // Le navigateur n'a pas besoin des transcriptions (plusieurs Ko par épisode et par langue) :
+      // elles restent dans les en-têtes HTML prégénérés, lus par les moteurs de recherche.
       if (source === '\0' + id)
-        return `export default ${JSON.stringify(await loadCatalog())}`;
+        return `export default ${JSON.stringify(await loadCatalog(), (key, value) => (key === 'transcript' ? undefined : value))}`;
     },
     transformIndexHtml: {
       order: 'post',

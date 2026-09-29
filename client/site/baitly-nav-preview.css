@@ -614,6 +614,7 @@
 .bnv-lesson-art > img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
 }
 .bnv-lesson-art > span {
   position: absolute;
@@ -625,10 +626,11 @@
 .bnv-lesson-art svg {
   width: 30px;
   height: 30px;
-  padding: 8px;
+  padding: 8px 7px 8px 9px;
   border-radius: 50%;
   background: #f3f7f3;
   color: #294b3e;
+  fill: currentColor;
 }
 .bnv-academy > small {
   display: block;

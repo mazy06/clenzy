@@ -58,6 +58,10 @@ createRoot(document.getElementById('root')!).render(
                 element={<BaitlyResourcePage kind="academie" />}
               />
               <Route
+                path="/ressources/academie/:episode"
+                element={<BaitlyResourcePage kind="academie" />}
+              />
+              <Route
                 path="/ressources/blog"
                 element={<BaitlyResourcePage kind="blog" />}
               />

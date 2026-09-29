@@ -161,15 +161,15 @@ const ar: LayoutMessages = {
     resourcesAll: 'كل الموارد',
   },
   header: {
-    homeAria: 'بايتلي، الصفحة الرئيسية',
+    homeAria: 'بيتلي، الصفحة الرئيسية',
     login: 'تسجيل الدخول',
     demo: 'احجز عرضاً توضيحياً',
     openMenu: 'فتح القائمة',
     closeMenu: 'إغلاق القائمة',
   },
   mobile: {
-    explore: 'اكتشف بايتلي',
-    account: 'مساحتك في بايتلي',
+    explore: 'اكتشف بيتلي',
+    account: 'مساحتك في بيتلي',
   },
   footer: {
     pitch:
@@ -200,7 +200,7 @@ const ar: LayoutMessages = {
       terms: 'الشروط العامة',
       status: 'حالة الخدمة',
     },
-    rights: '© 2026 بايتلي. جميع الحقوق محفوظة.',
+    rights: '© 2026 بيتلي. جميع الحقوق محفوظة.',
   },
   shell: {
     skip: 'تخطَّ إلى المحتوى',

@@ -28,6 +28,17 @@ Les familles de la place de marché et les rangées de `/solutions` suivent la m
 sur six s'étendent sur deux colonnes en composition horizontale, les rangées de solutions
 alternent le côté de leur image, à fond perdu jusqu'au bord de la carte.
 
+## Académie Baitly en vidéo
+
+`/ressources/academie` met un épisode à la une, puis le programme de la série et la mise en
+pratique (les trois leçons écrites et leur quiz). Chaque épisode a sa page
+`/ressources/academie/<épisode>`, avec ses données structurées `VideoObject` et un `Clip` par
+chapitre ; un lien `?t=<secondes>` ouvre la vidéo au chapitre voulu. Le lecteur
+(`components/academy/`) charge le 9:16 sur téléphone ou écran vertical et le 16:9 sinon, reprend à
+la même seconde quand l'écran tourne, ne lance jamais la lecture seul. La transcription n'est pas affichée : elle vit dans les données
+`VideoObject` et dans la version Markdown de la page, pour le référencement.
+Les vidéos restent hors du site : voir `marketing/academie/PUBLICATION.md`.
+
 ## Assets et chargement
 
 - Toutes les photos montrent un **logement** : `terrace.jpg` (terrasse de villa, hero),

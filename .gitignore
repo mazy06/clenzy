@@ -69,3 +69,13 @@ booking-templates/dist/
 !/README.md
 *.pdf
 __pycache__/
+
+# Brand book Baitly : le PDF est un livrable, pas un artefact de build.
+!marketing/brand-book/baitly-brand-book.pdf
+
+# Rendus vidéo Baitly (régénérables : node marketing/motion/render.mjs <reel>)
+marketing/motion/out/
+
+# Académie Baitly : copie locale des vidéos pour `npm run dev:site` (en production, stockage objet).
+# Régénérable : node marketing/motion/academie-web.mjs
+client/site/public/academie/media/
