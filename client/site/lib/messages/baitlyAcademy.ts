@@ -177,6 +177,28 @@ const fr: AcademyMessages = {
       ],
       chapters: ['Accroche', 'Les annulations', 'Les avis', 'La réactivité', 'Que faire ?', 'À retenir'],
     },
+    '13-menage-rotation': {
+      title: 'Le ménage de rotation en 5 étapes',
+      description:
+        'Le créneau entre deux voyageurs, sa marge et ce qui la fait fondre, les cinq étapes dans le bon ordre, la checklist écrite et les photos de fin qui prouvent l’état du logement.',
+      learn: [
+        'Calculer votre créneau de ménage et la marge qu’il vous laisse',
+        'Faire le ménage dans le bon ordre, avec une checklist écrite pièce par pièce',
+        'Prendre les photos de fin qui protègent votre dépôt de garantie',
+      ],
+      chapters: ['Accroche', 'Le créneau', 'Les 5 étapes', 'Les photos', 'Mettons des chiffres', 'À retenir'],
+    },
+    '14-questions-voyageurs': {
+      title: 'Les 7 questions que tous les voyageurs posent',
+      description:
+        'Accès, heure d’arrivée, parking, Wi-Fi, équipements, poubelles, départ : les sept questions qui reviennent à chaque séjour, et comment votre livret d’accueil y répond au bon moment.',
+      learn: [
+        'Mesurer le temps que vous coûtent les questions répétées',
+        'Écrire une réponse courte, avec une photo pour chaque lieu',
+        'Envoyer chaque information au bon moment, le code d’accès le jour même',
+      ],
+      chapters: ['Accroche', 'Ce qu’elles coûtent', 'Les 7 questions', 'Le bon moment', 'Mise en pratique', 'À retenir'],
+    },
     '17-prix-dynamique': {
       title: 'Le prix dynamique en 3 règles',
       description:
@@ -324,6 +346,28 @@ const en: AcademyMessages = {
       ],
       chapters: ['Introduction', 'Cancellations', 'Reviews', 'Responsiveness', 'What to do', 'Key takeaways'],
     },
+    '13-menage-rotation': {
+      title: 'Turnover cleaning in 5 steps',
+      description:
+        'The window between two guests, its margin and what eats it up, the five steps in the right order, a written checklist, and the final photos that prove the state of the property.',
+      learn: [
+        'Work out your cleaning window and the margin it leaves you',
+        'Clean in the right order, with a written room-by-room checklist',
+        'Take the final photos that protect your security deposit',
+      ],
+      chapters: ['Introduction', 'The window', 'The 5 steps', 'The photos', 'Running the numbers', 'Key takeaways'],
+    },
+    '14-questions-voyageurs': {
+      title: 'The 7 questions every guest asks',
+      description:
+        'Access, arrival time, parking, Wi-Fi, appliances, bins, check-out: the seven questions that come back with every stay, and how your welcome guide answers them at the right time.',
+      learn: [
+        'Measure the time repeated questions cost you',
+        'Write a short answer, with a photo for every place',
+        'Send each piece of information at the right time, and the door code on the day',
+      ],
+      chapters: ['Introduction', 'What they cost', 'The 7 questions', 'The right time', 'In practice', 'Key takeaways'],
+    },
     '17-prix-dynamique': {
       title: 'Dynamic pricing in 3 rules',
       description:
@@ -470,6 +514,28 @@ const ar: AcademyMessages = {
         'قياس نسبة الرد والرد بشكل أسرع',
       ],
       chapters: ['المقدمة', 'الإلغاءات', 'التقييمات', 'سرعة الرد', 'ماذا تفعل؟', 'الخلاصة'],
+    },
+    '13-menage-rotation': {
+      title: 'تنظيف ما بين الإقامات في 5 خطوات',
+      description:
+        'الفترة بين ضيفين وهامشها وما يستهلكه، والخطوات الخمس بالترتيب الصحيح، وقائمة التحقق المكتوبة، وصور نهاية التنظيف التي تثبت حالة المسكن.',
+      learn: [
+        'حساب فترة التنظيف والهامش الذي تتركه لك',
+        'التنظيف بالترتيب الصحيح، مع قائمة تحقق مكتوبة غرفةً غرفة',
+        'التقاط صور نهاية التنظيف التي تحمي مبلغ التأمين',
+      ],
+      chapters: ['المقدمة', 'الفترة الزمنية', 'الخطوات الخمس', 'الصور', 'بالأرقام', 'الخلاصة'],
+    },
+    '14-questions-voyageurs': {
+      title: 'الأسئلة السبعة التي يطرحها كل الضيوف',
+      description:
+        'الدخول، وموعد الوصول، والموقف، والواي فاي، والأجهزة، والنفايات، والمغادرة: الأسئلة السبعة التي تتكرر مع كل إقامة، وكيف يجيب عنها دليل الترحيب في الوقت المناسب.',
+      learn: [
+        'قياس الوقت الذي تكلّفك إياه الأسئلة المتكررة',
+        'كتابة إجابة قصيرة، مع صورة لكل مكان',
+        'إرسال كل معلومة في وقتها، ورمز الدخول في يوم الوصول',
+      ],
+      chapters: ['المقدمة', 'ما تكلّفه', 'الأسئلة السبعة', 'الوقت المناسب', 'في التطبيق', 'الخلاصة'],
     },
     '17-prix-dynamique': {
       title: 'التسعير الديناميكي في 3 قواعد',

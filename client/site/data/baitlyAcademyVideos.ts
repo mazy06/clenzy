@@ -158,6 +158,42 @@ export const ACADEMY_EPISODES: readonly AcademyEpisode[] = [
     "languages": [
       "fr"
     ]
+  },
+  {
+    "slug": "13-menage-rotation",
+    "number": "13",
+    "theme": "operations",
+    "uploadDate": "2026-09-30",
+    "duration": 153.4,
+    "chapters": [
+      0.2,
+      13.6,
+      51.9,
+      93.5,
+      116,
+      131
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "14-questions-voyageurs",
+    "number": "14",
+    "theme": "operations",
+    "uploadDate": "2026-09-30",
+    "duration": 121.7,
+    "chapters": [
+      0.2,
+      12.2,
+      31,
+      62.7,
+      86,
+      99.1
+    ],
+    "languages": [
+      "fr"
+    ]
   }
 ];
 
