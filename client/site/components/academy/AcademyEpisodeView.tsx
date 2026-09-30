@@ -8,6 +8,8 @@ import BaitlyVideoPlayer, {
   formatClock,
   type BaitlyVideoPlayerHandle,
 } from './BaitlyVideoPlayer';
+import AcademyUpNext, { ACADEMY_PLAYER_ID } from './AcademyUpNext';
+import { nextAcademyEpisode } from './academyOrder';
 
 export const ACADEMY_PRACTICE_ID = 'academie-pratique';
 
@@ -15,6 +17,8 @@ interface Props {
   episode: AcademyEpisode;
   language: SiteLanguage;
   startAt?: number;
+  /** Le visiteur arrive de l'épisode précédent : la vidéo démarre seule. */
+  autoPlay?: boolean;
 }
 
 /** « 2 min 43 » ; en arabe, l'horloge 2:43 se lit sans ambiguïté de sens. */
@@ -25,18 +29,20 @@ const minutes = (seconds: number, unit: string, language: SiteLanguage) => {
 };
 
 /**
- * Un épisode : le lecteur, ce qu'on va apprendre et les chapitres cliquables. La transcription n'est
- * pas affichée : elle sert au référencement (données VideoObject et version Markdown de la page).
+ * Un épisode : le lecteur, ce qu'on va apprendre et les chapitres cliquables ; en fin de vidéo,
+ * l'épisode suivant du programme est proposé. La transcription n'est pas affichée : elle sert au
+ * référencement (données VideoObject et version Markdown de la page).
  */
-export default function AcademyEpisodeView({ episode, language, startAt }: Props) {
+export default function AcademyEpisodeView({ episode, language, startAt, autoPlay }: Props) {
   const m = BAITLY_ACADEMY_MESSAGES[language];
   const text = m.episodes[episode.slug];
   const player = useRef<BaitlyVideoPlayerHandle>(null);
   const [time, setTime] = useState(startAt ?? 0);
   const current = chapterAt(episode.chapters, time);
+  const next = nextAcademyEpisode(episode.slug);
 
   return (
-    <div className="bac-episode">
+    <div className="bac-episode" id={ACADEMY_PLAYER_ID}>
       <div className="bac-feature">
         <BaitlyVideoPlayer
           key={episode.slug}
@@ -47,6 +53,8 @@ export default function AcademyEpisodeView({ episode, language, startAt }: Props
           title={text.title}
           chapterLabels={text.chapters}
           startAt={startAt}
+          autoPlay={autoPlay}
+          endScreen={(replay) => <AcademyUpNext next={next} language={language} onReplay={replay} />}
           onTime={setTime}
         />
         <aside className="bac-side">

@@ -1,15 +1,12 @@
 import { Link } from 'react-router-dom';
-import {
-  ACADEMY_EPISODES,
-  academyPosterUrl,
-  type AcademyTheme,
-} from '../../data/baitlyAcademyVideos';
+import { ACADEMY_EPISODES, academyPosterUrl } from '../../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES, fillAcademyText } from '../../lib/messages/baitlyAcademy';
 import type { SiteLanguage } from '../../lib/siteLanguage';
 import { formatClock } from './BaitlyVideoPlayer';
+import { ACADEMY_THEME_ORDER } from './academyOrder';
 
-/** Ordre de lecture conseillé : les chiffres d'abord, puis l'argent, puis le cadre légal. */
-const THEME_ORDER: readonly AcademyTheme[] = ['piloter', 'revenus', 'reglementation', 'operations', 'securite', 'conciergeries'];
+/** Ancre du programme (lien « Voir le programme » de la fin du dernier épisode). */
+export const ACADEMY_PROGRAM_ID = 'academie-programme';
 
 interface Props {
   language: SiteLanguage;
@@ -22,9 +19,9 @@ export default function AcademyProgram({ language, current }: Props) {
   const m = BAITLY_ACADEMY_MESSAGES[language];
   const published = new Map(ACADEMY_EPISODES.map((episode) => [episode.number, episode]));
   return (
-    <section className="bac-program" aria-labelledby="academie-programme">
+    <section className="bac-program" aria-labelledby={ACADEMY_PROGRAM_ID}>
       <div className="bac-program-head">
-        <h2 id="academie-programme">{m.ui.program}</h2>
+        <h2 id={ACADEMY_PROGRAM_ID}>{m.ui.program}</h2>
         <p>
           {fillAcademyText(m.ui.programCount, {
             available: published.size,
@@ -33,7 +30,7 @@ export default function AcademyProgram({ language, current }: Props) {
         </p>
       </div>
       <div className="bac-themes">
-        {THEME_ORDER.map((theme) => {
+        {ACADEMY_THEME_ORDER.map((theme) => {
           const items = m.program.filter((item) => item.theme === theme);
           return (
             <div className="bac-theme" key={theme}>

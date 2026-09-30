@@ -48,6 +48,16 @@ export interface AcademyMessages {
     watch: string;
     formats: string;
     minutes: string;
+    /** Fin d'épisode : proposition de l'épisode suivant. */
+    upNext: string;
+    playNext: string;
+    /** {seconds} est remplacé par le nombre de secondes restantes. */
+    autoplayIn: string;
+    cancelAutoplay: string;
+    replay: string;
+    /** Fin du dernier épisode publié. */
+    seriesDone: string;
+    seeProgram: string;
   };
   themes: Record<AcademyTheme, string>;
   episodes: Record<string, AcademyEpisodeText>;
@@ -95,6 +105,13 @@ const fr: AcademyMessages = {
     watch: 'Regarder',
     formats: 'Sur ordinateur et sur téléphone',
     minutes: 'min',
+    upNext: 'À suivre',
+    playNext: 'Lire l’épisode suivant',
+    autoplayIn: 'Lecture automatique dans {seconds} s',
+    cancelAutoplay: 'Annuler',
+    replay: 'Revoir',
+    seriesDone: 'Vous avez vu tous les épisodes disponibles.',
+    seeProgram: 'Voir le programme',
   },
   themes: {
     piloter: 'Piloter',
@@ -235,6 +252,13 @@ const en: AcademyMessages = {
     watch: 'Watch',
     formats: 'On desktop and on mobile',
     minutes: 'min',
+    upNext: 'Up next',
+    playNext: 'Play next episode',
+    autoplayIn: 'Playing automatically in {seconds} s',
+    cancelAutoplay: 'Cancel',
+    replay: 'Watch again',
+    seriesDone: 'You have watched every episode available.',
+    seeProgram: 'See the programme',
   },
   themes: {
     piloter: 'Performance',
@@ -375,6 +399,13 @@ const ar: AcademyMessages = {
     watch: 'شاهد',
     formats: 'على الحاسوب وعلى الهاتف',
     minutes: 'د',
+    upNext: 'التالي',
+    playNext: 'تشغيل الحلقة التالية',
+    autoplayIn: 'يبدأ التشغيل تلقائياً خلال {seconds} ث',
+    cancelAutoplay: 'إلغاء',
+    replay: 'إعادة المشاهدة',
+    seriesDone: 'شاهدت كل الحلقات المتاحة.',
+    seeProgram: 'عرض البرنامج',
   },
   themes: {
     piloter: 'القيادة',

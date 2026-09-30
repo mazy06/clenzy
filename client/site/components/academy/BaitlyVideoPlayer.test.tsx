@@ -95,6 +95,15 @@ describe('BaitlyVideoPlayer', () => {
     expect(screen.getByRole('button', { name: ui.play })).toBeDisabled();
   });
 
+  it('démarre seul quand le visiteur enchaîne depuis l’épisode précédent', () => {
+    render(
+      <BaitlyVideoPlayer episode={episode} language="fr" ui={ui} title="Épisode" chapterLabels={labels} autoPlay />,
+    );
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    fireEvent(video(), new Event('loadedmetadata'));
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+  });
+
   it('avance de 5 secondes au clavier sur la barre de lecture', () => {
     mount();
     const slider = screen.getByRole('slider', { name: ui.seek });
