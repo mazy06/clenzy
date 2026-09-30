@@ -48,80 +48,112 @@ class InterventionPhotoServiceTest {
         return intervention;
     }
 
-    // ===== SAVE PHOTOS =====
+    // ===== PREPARE + ATTACH PHOTOS =====
+
+    private MultipartFile photoFile(byte[] bytes, String contentType, String name) throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        lenient().when(file.getBytes()).thenReturn(bytes);
+        when(file.getContentType()).thenReturn(contentType);
+        lenient().when(file.getOriginalFilename()).thenReturn(name);
+        lenient().when(file.getSize()).thenReturn((long) bytes.length);
+        return file;
+    }
 
     @Nested
-    class SavePhotos {
+    class PrepareAndAttachPhotos {
 
+        /** Stockage objet : la photo part au stockage, seule sa cle est enregistree en base. */
         @Test
-        void whenBeforePhotos_thenSavesWithBeforeType() throws Exception {
+        void whenObjectStorage_thenAttachesKeyWithoutBytes() throws Exception {
             Intervention intervention = buildIntervention(1L);
-            MultipartFile file = mock(MultipartFile.class);
-            when(file.isEmpty()).thenReturn(false);
-            when(file.getBytes()).thenReturn(new byte[]{1, 2, 3});
-            when(file.getContentType()).thenReturn("image/png");
-            when(file.getOriginalFilename()).thenReturn("photo.png");
+            MultipartFile file = photoFile(new byte[]{1, 2, 3}, "image/png", "photo.png");
+            when(binaryStore.store(ORG_ID, new byte[]{1, 2, 3}, "image/png"))
+                    .thenReturn("org/1/intervention-photos/k1");
 
-            service.savePhotos(intervention, List.of(file), "before");
+            List<InterventionPhotoService.PreparedPhoto> prepared = service.preparePhotos(List.of(file));
+            service.attachPhotos(intervention, prepared, "before");
 
             ArgumentCaptor<InterventionPhoto> captor = ArgumentCaptor.forClass(InterventionPhoto.class);
             verify(interventionPhotoRepository).save(captor.capture());
             InterventionPhoto saved = captor.getValue();
-
             assertThat(saved.getPhase()).isEqualTo(InterventionPhoto.PhotoPhase.BEFORE);
             assertThat(saved.getContentType()).isEqualTo("image/png");
-            assertThat(saved.getData()).hasSize(3);
+            assertThat(saved.getStorageKey()).isEqualTo("org/1/intervention-photos/k1");
+            assertThat(saved.getData()).isNull();
         }
 
+        /** Mode bytea (developpement) : pas de cle, les octets restent dans la colonne data. */
         @Test
-        void whenAfterPhotos_thenSavesWithAfterType() throws Exception {
+        void whenByteaMode_thenKeepsBytesInline() throws Exception {
             Intervention intervention = buildIntervention(1L);
-            MultipartFile file = mock(MultipartFile.class);
-            when(file.isEmpty()).thenReturn(false);
-            when(file.getBytes()).thenReturn(new byte[]{4, 5});
-            when(file.getContentType()).thenReturn("image/jpeg");
-            when(file.getOriginalFilename()).thenReturn("after.jpg");
+            MultipartFile file = photoFile(new byte[]{4, 5}, "image/jpeg", "after.jpg");
+            when(binaryStore.store(ORG_ID, new byte[]{4, 5}, "image/jpeg")).thenReturn(null);
 
-            service.savePhotos(intervention, List.of(file), "after");
+            service.attachPhotos(intervention, service.preparePhotos(List.of(file)), "after");
 
             ArgumentCaptor<InterventionPhoto> captor = ArgumentCaptor.forClass(InterventionPhoto.class);
             verify(interventionPhotoRepository).save(captor.capture());
             assertThat(captor.getValue().getPhase()).isEqualTo(InterventionPhoto.PhotoPhase.AFTER);
+            assertThat(captor.getValue().getStorageKey()).isNull();
+            assertThat(captor.getValue().getData()).hasSize(2);
         }
 
         @Test
-        void whenEmptyFile_thenSkips() throws Exception {
-            Intervention intervention = buildIntervention(1L);
+        void whenEmptyFile_thenSkips() {
             MultipartFile file = mock(MultipartFile.class);
             when(file.isEmpty()).thenReturn(true);
 
-            service.savePhotos(intervention, List.of(file), "before");
-
-            verify(interventionPhotoRepository, never()).save(any());
+            assertThat(service.preparePhotos(List.of(file))).isEmpty();
+            verifyNoInteractions(binaryStore);
         }
 
         @Test
-        void whenNullContentType_thenSkipsPhoto() throws Exception {
-            Intervention intervention = buildIntervention(1L);
+        void whenNullContentType_thenSkipsPhoto() {
             MultipartFile file = mock(MultipartFile.class);
             when(file.isEmpty()).thenReturn(false);
             when(file.getContentType()).thenReturn(null);
 
-            service.savePhotos(intervention, List.of(file), "before");
-
-            verify(interventionPhotoRepository, never()).save(any());
+            assertThat(service.preparePhotos(List.of(file))).isEmpty();
+            verifyNoInteractions(binaryStore);
         }
 
         @Test
         void whenIOException_thenThrowsRuntime() throws Exception {
-            Intervention intervention = buildIntervention(1L);
             MultipartFile file = mock(MultipartFile.class);
             when(file.isEmpty()).thenReturn(false);
+            when(file.getContentType()).thenReturn("image/png");
             when(file.getBytes()).thenThrow(new IOException("Read error"));
 
-            assertThatThrownBy(() -> service.savePhotos(intervention, List.of(file), "before"))
+            assertThatThrownBy(() -> service.preparePhotos(List.of(file)))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("photo");
+        }
+
+        /** Un envoi interrompu ne laisse pas sur le stockage les photos deja ecrites. */
+        @Test
+        void whenSecondStoreFails_thenDeletesTheFirstObject() throws Exception {
+            MultipartFile first = photoFile(new byte[]{1}, "image/png", "a.png");
+            MultipartFile second = photoFile(new byte[]{2}, "image/png", "b.png");
+            when(binaryStore.store(ORG_ID, new byte[]{1}, "image/png")).thenReturn("org/1/intervention-photos/a");
+            when(binaryStore.store(ORG_ID, new byte[]{2}, "image/png")).thenThrow(new IllegalStateException("ovh down"));
+
+            assertThatThrownBy(() -> service.preparePhotos(List.of(first, second)))
+                    .isInstanceOf(IllegalStateException.class);
+
+            verify(binaryStore).delete("org/1/intervention-photos/a");
+        }
+
+        @Test
+        void whenDeletingStoredPhoto_thenDeletesTheObject() {
+            InterventionPhoto photo = new InterventionPhoto();
+            photo.setStorageKey("org/1/intervention-photos/z");
+            when(interventionPhotoRepository.findByIdAndInterventionId(9L, 1L, ORG_ID)).thenReturn(Optional.of(photo));
+
+            service.deletePhoto(9L, 1L);
+
+            verify(interventionPhotoRepository).delete(photo);
+            verify(binaryStore).delete("org/1/intervention-photos/z");
         }
     }
 

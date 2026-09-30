@@ -6,6 +6,7 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
 } from 'react';
 import { Maximize, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import {
@@ -30,6 +31,10 @@ interface Props {
   chapterLabels: readonly string[];
   /** Instant de départ (lien ?t= vers un chapitre). */
   startAt?: number;
+  /** Lance la lecture dès le chargement (le visiteur enchaîne depuis l'épisode précédent). */
+  autoPlay?: boolean;
+  /** Écran de fin, affiché sur l'image une fois la vidéo terminée ; `replay` la relance du début. */
+  endScreen?: (replay: () => void) => ReactNode;
   onTime?: (seconds: number) => void;
 }
 
@@ -44,23 +49,26 @@ export const chapterAt = (chapters: readonly number[], time: number) =>
 
 /**
  * Lecteur de l'Académie : 16:9 ou 9:16 selon l'écran, une seule vidéo téléchargée, et en cas de
- * rotation la lecture reprend à la même seconde, dans le même état. Pas de lecture automatique.
+ * rotation la lecture reprend à la même seconde, dans le même état. Lecture automatique seulement
+ * quand le visiteur enchaîne depuis l'épisode précédent ; si le navigateur la refuse, le bouton de
+ * lecture reste affiché.
  */
 const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function BaitlyVideoPlayer(
-  { episode, language, ui, title, chapterLabels, startAt = 0, onTime },
+  { episode, language, ui, title, chapterLabels, startAt = 0, autoPlay = false, endScreen, onTime },
   ref,
 ) {
   const format = useAcademyFormat();
   const src = academyVideoUrl(episode, language, format, academyQuality());
   const video = useRef<HTMLVideoElement>(null);
   const shell = useRef<HTMLDivElement>(null);
-  const resume = useRef({ time: startAt, playing: false });
+  const resume = useRef({ time: startAt, playing: autoPlay });
   const [time, setTime] = useState(startAt);
   const [duration, setDuration] = useState(episode.duration);
   const [playing, setPlaying] = useState(false);
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [ended, setEnded] = useState(false);
 
   // La source change avec le format : on mémorise la position et l'état avant de la remplacer.
   useEffect(() => {
@@ -98,6 +106,11 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
     if (!element) return;
     element.currentTime = Math.min(Math.max(0, seconds), duration);
     setTime(element.currentTime);
+    setEnded(false);
+  };
+  const replay = () => {
+    seekTo(0);
+    play();
   };
   useImperativeHandle(ref, () => ({
     seek: (seconds) => {
@@ -143,9 +156,9 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
           preload="metadata"
           poster={academyPosterUrl(episode, format)}
           onClick={toggle}
-          onPlay={() => { setPlaying(true); setStarted(true); }}
+          onPlay={() => { setPlaying(true); setStarted(true); setEnded(false); }}
           onPause={() => setPlaying(false)}
-          onEnded={() => setPlaying(false)}
+          onEnded={() => { setPlaying(false); setEnded(true); }}
           onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || episode.duration)}
           onTimeUpdate={(event) => { setTime(event.currentTarget.currentTime); onTime?.(event.currentTarget.currentTime); }}
           onVolumeChange={(event) => setMuted(event.currentTarget.muted)}
@@ -157,6 +170,7 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
           </button>
         )}
         {failed && <p className="bac-unavailable" role="status">{ui.unavailable}</p>}
+        {ended && !failed && endScreen?.(replay)}
       </div>
       <div className="bac-bar">
         <button type="button" onClick={toggle} aria-label={playing ? ui.pause : ui.play} disabled={failed}>

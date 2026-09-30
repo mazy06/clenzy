@@ -6,9 +6,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * Stockage binaire des pieces jointes de messages de contact.
- * Les fichiers sont stockes directement en base de donnees (BYTEA)
- * au lieu du systeme de fichiers.
+ * Piece jointe d'un message de contact. Le fichier vit sur le stockage objet (OVH en production)
+ * sous {@code storageKey} ; {@code data} (BYTEA) ne subsiste que pour les pieces jointes anterieures,
+ * reprises par la migration automatique vers le stockage objet.
  */
 @Entity
 @Table(name = "contact_attachment_files")
@@ -24,8 +24,11 @@ public class ContactAttachmentFile {
     @Column(name = "attachment_id", nullable = false, length = 36)
     private String attachmentId;
 
-    @Column(nullable = false, columnDefinition = "bytea")
+    @Column(columnDefinition = "bytea")
     private byte[] data;
+
+    @Column(name = "storage_key", length = 500)
+    private String storageKey;
 
     @Column(name = "content_type", length = 100)
     private String contentType;
@@ -53,6 +56,15 @@ public class ContactAttachmentFile {
         this.size = size;
     }
 
+    /** Piece jointe deja ecrite sur le stockage : seule sa cle est enregistree. */
+    public static ContactAttachmentFile stored(Long messageId, String attachmentId, String storageKey,
+                                               String contentType, String originalName, Long size) {
+        final ContactAttachmentFile file = new ContactAttachmentFile(
+                messageId, attachmentId, null, contentType, originalName, size);
+        file.storageKey = storageKey;
+        return file;
+    }
+
     // ─── Getters & Setters ───
 
     public Long getId() { return id; }
@@ -65,6 +77,9 @@ public class ContactAttachmentFile {
 
     public byte[] getData() { return data; }
     public void setData(byte[] data) { this.data = data; }
+
+    public String getStorageKey() { return storageKey; }
+    public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
 
     public String getContentType() { return contentType; }
     public void setContentType(String contentType) { this.contentType = contentType; }

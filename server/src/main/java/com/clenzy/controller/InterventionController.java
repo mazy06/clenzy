@@ -5,6 +5,7 @@ import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.UpdateInterventionRequest;
 import com.clenzy.service.InterventionLifecycleService;
 import com.clenzy.service.InterventionPlanningService;
+import com.clenzy.service.InterventionPhotoUploadService;
 import com.clenzy.service.InterventionProgressService;
 import com.clenzy.service.InterventionService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -42,15 +43,18 @@ public class InterventionController {
     private final InterventionPlanningService planningService;
     private final InterventionLifecycleService lifecycleService;
     private final InterventionProgressService progressService;
+    private final InterventionPhotoUploadService photoUploadService;
 
     public InterventionController(InterventionService interventionService,
                                   InterventionPlanningService planningService,
                                   InterventionLifecycleService lifecycleService,
-                                  InterventionProgressService progressService) {
+                                  InterventionProgressService progressService,
+                                  InterventionPhotoUploadService photoUploadService) {
         this.interventionService = interventionService;
         this.planningService = planningService;
         this.lifecycleService = lifecycleService;
         this.progressService = progressService;
+        this.photoUploadService = photoUploadService;
     }
 
     @GetMapping("/planning")
@@ -269,7 +273,7 @@ public class InterventionController {
                                    @RequestParam("photos") java.util.List<org.springframework.web.multipart.MultipartFile> photos,
                                    @RequestParam(value = "photoType", defaultValue = "before") String photoType,
                                    @AuthenticationPrincipal Jwt jwt) {
-        return interventionService.addPhotos(id, photos, photoType, jwt);
+        return photoUploadService.addPhotos(id, photos, photoType, jwt);
     }
 
     @DeleteMapping("/{id}/photos/{photoId}")

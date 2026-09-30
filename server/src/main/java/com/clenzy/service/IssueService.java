@@ -19,6 +19,7 @@ import com.clenzy.model.ServiceType;
 import com.clenzy.model.User;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.IssuePhotoRepository;
+import com.clenzy.service.storage.StoredObject;
 import com.clenzy.repository.IssueRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
@@ -147,67 +148,80 @@ public class IssueService {
             Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
 
     /**
-     * Joint des photos a un signalement. Le terrain photographie l'anomalie au
-     * moment ou il la constate — c'est la seule occasion.
+     * Refus anticipe d'un envoi de photos, AVANT d'ecrire le moindre fichier sur le stockage :
+     * signalement de l'organisation, nombre maximum, taille et format de chaque photo. Le terrain
+     * photographie l'anomalie au moment ou il la constate — c'est la seule occasion.
      */
-    public IssueDto addPhotos(Long issueId, List<MultipartFile> files, String uploaderKeycloakId) {
+    @Transactional(readOnly = true)
+    public void checkPhotoUpload(Long issueId, List<MultipartFile> files) {
+        requireIssue(issueId);
+        requirePhotoRoom(issueId, files.size());
+        for (MultipartFile file : files) {
+            if (!file.isEmpty()) {
+                validatePhoto(file.getSize(), file.getContentType());
+            }
+        }
+    }
+
+    /**
+     * Joint a un signalement des photos deja ecrites sur le stockage (hors transaction, par
+     * {@code IssuePhotoService}) : seule leur cle est enregistree, jamais leurs octets.
+     */
+    public IssueDto attachPhotos(Long issueId, List<StoredObject> photos, String uploaderKeycloakId) {
         Issue issue = requireIssue(issueId);
         User uploader = requireUser(uploaderKeycloakId);
+        requirePhotoRoom(issueId, photos.size());
 
-        long existing = issuePhotoRepository.countByIssueId(issueId);
-        if (existing + files.size() > MAX_PHOTOS_PER_ISSUE) {
-            throw new IllegalArgumentException(
-                    "Maximum " + MAX_PHOTOS_PER_ISSUE + " photos par signalement (deja " + existing + ").");
-        }
-
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                continue;
-            }
-            if (file.getSize() > MAX_PHOTO_BYTES) {
-                throw new IllegalArgumentException("Chaque photo doit peser moins de 5 Mo.");
-            }
-            String contentType = file.getContentType();
-            if (contentType == null || !ALLOWED_PHOTO_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-                throw new IllegalArgumentException("Formats acceptes : JPEG, PNG, WEBP, GIF.");
-            }
+        for (StoredObject stored : photos) {
             IssuePhoto photo = new IssuePhoto();
             photo.setIssueId(issue.getId());
             photo.setOrganizationId(issue.getOrganizationId());
-            photo.setOriginalFilename(file.getOriginalFilename());
-            photo.setContentType(contentType);
-            photo.setFileSize(file.getSize());
+            photo.setOriginalFilename(stored.originalFilename());
+            photo.setContentType(stored.contentType());
+            photo.setFileSize(stored.size());
             photo.setUploadedById(uploader.getId());
-            try {
-                photo.setData(file.getBytes());
-            } catch (java.io.IOException e) {
-                throw new IllegalArgumentException("Lecture du fichier impossible : " + e.getMessage(), e);
-            }
+            photo.setStorageKey(stored.key());
             issuePhotoRepository.save(photo);
         }
 
         return toDtoWithLookups(issue);
     }
 
+    /** Ou lire les octets d'une photo : sa cle de stockage, ou (photos anciennes) les octets en base. */
+    public record IssuePhotoContent(String storageKey, byte[] inlineData, String contentType) {
+    }
+
     /**
-     * Binaire d'une photo. Le signalement porte l'organisation : la photo est
-     * chargee par identifiant, donc l'appartenance est verifiee explicitement
-     * (regle audit n°3).
-     *
-     * @return [octets, contentType]
+     * Metadonnees d'une photo pour la lecture. Le signalement porte l'organisation : la photo est
+     * chargee par identifiant, donc l'appartenance est verifiee explicitement (regle audit n°3).
+     * Les octets sont lus ensuite, hors transaction.
      */
     @Transactional(readOnly = true)
-    public Object[] streamPhoto(Long issueId, Long photoId) {
+    public IssuePhotoContent findPhotoContent(Long issueId, Long photoId) {
         IssuePhoto photo = issuePhotoRepository.findById(photoId)
                 .orElseThrow(() -> new NotFoundException("Photo non trouvee"));
         if (!Objects.equals(photo.getIssueId(), issueId)) {
             throw new NotFoundException("Photo non trouvee");
         }
         accessGuard.requireSameOrganization(photo.getOrganizationId(), "Photo " + photoId);
-        if (photo.getData() == null) {
-            return null;
+        return new IssuePhotoContent(photo.getStorageKey(), photo.getData(), photo.getContentType());
+    }
+
+    private void requirePhotoRoom(Long issueId, int adding) {
+        long existing = issuePhotoRepository.countByIssueId(issueId);
+        if (existing + adding > MAX_PHOTOS_PER_ISSUE) {
+            throw new IllegalArgumentException(
+                    "Maximum " + MAX_PHOTOS_PER_ISSUE + " photos par signalement (deja " + existing + ").");
         }
-        return new Object[] { photo.getData(), photo.getContentType() };
+    }
+
+    private static void validatePhoto(long size, String contentType) {
+        if (size > MAX_PHOTO_BYTES) {
+            throw new IllegalArgumentException("Chaque photo doit peser moins de 5 Mo.");
+        }
+        if (contentType == null || !ALLOWED_PHOTO_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("Formats acceptes : JPEG, PNG, WEBP, GIF.");
+        }
     }
 
     // ── Lecture ──────────────────────────────────────────────────────────────

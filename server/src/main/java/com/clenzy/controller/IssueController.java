@@ -5,6 +5,7 @@ import com.clenzy.dto.IssueDtos.DismissIssueRequest;
 import com.clenzy.dto.IssueDtos.IssueDto;
 import com.clenzy.dto.IssueDtos.QualifyIssueRequest;
 import com.clenzy.model.Issue.IssueStatus;
+import com.clenzy.service.IssuePhotoService;
 import com.clenzy.service.IssueService;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,9 +34,11 @@ import java.util.List;
 public class IssueController {
 
     private final IssueService issueService;
+    private final IssuePhotoService issuePhotoService;
 
-    public IssueController(IssueService issueService) {
+    public IssueController(IssueService issueService, IssuePhotoService issuePhotoService) {
         this.issueService = issueService;
+        this.issuePhotoService = issuePhotoService;
     }
 
     /** Signalement — le signaleur est TOUJOURS le porteur du JWT. */
@@ -73,20 +76,20 @@ public class IssueController {
     public ResponseEntity<IssueDto> addPhotos(@PathVariable Long id,
                                               @RequestParam("photos") List<MultipartFile> photos,
                                               @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(issueService.addPhotos(id, photos, jwt.getSubject()));
+        return ResponseEntity.ok(issuePhotoService.addPhotos(id, photos, jwt.getSubject()));
     }
 
     @GetMapping("/{id}/photos/{photoId}/data")
     @Operation(summary = "Lire le binaire d'une photo de signalement")
     public ResponseEntity<byte[]> photoData(@PathVariable Long id, @PathVariable Long photoId) {
-        Object[] payload = issueService.streamPhoto(id, photoId);
-        if (payload == null) {
+        IssuePhotoService.PhotoBytes photo = issuePhotoService.readPhoto(id, photoId);
+        if (photo == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, (String) payload[1])
+                .header(HttpHeaders.CONTENT_TYPE, photo.contentType())
                 .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
-                .body((byte[]) payload[0]);
+                .body(photo.bytes());
     }
 
     @PutMapping("/{id}/qualify")

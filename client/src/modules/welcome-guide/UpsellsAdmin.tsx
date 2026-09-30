@@ -57,6 +57,7 @@ import { SectionHeading } from './formPrimitives';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
+import { mediaApi } from '../../services/api/mediaApi';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import { useUpsellTypes } from '../../hooks/useUpsellTypes';
 import UpsellTypesManager from './UpsellTypesManager';
@@ -132,11 +133,11 @@ const emptyEdit: EditState = {
 };
 
 /**
- * Compresse une image (fichier) en data URL JPEG base64, redimensionnée à `maxSize`px.
- * L'image des services est stockée en base (data URL) — pas d'URL externe. La vignette
- * est petite côté guest, donc on compresse fort pour garder un poids raisonnable.
+ * Compresse une image en fichier JPEG, redimensionnée à `maxSize`px. La vignette est petite côté
+ * voyageur : on compresse fort, puis le fichier part à la médiathèque (stockage objet), dont le lien
+ * public est enregistré sur l'offre. Plus d'image en base64 dans la base de données.
  */
-function compressImageToDataUrl(file: File, maxSize: number, quality: number): Promise<string> {
+function compressImage(file: File, maxSize: number, quality: number): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('read_failed'));
@@ -156,7 +157,14 @@ function compressImageToDataUrl(file: File, maxSize: number, quality: number): P
           return;
         }
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('encode_failed'));
+            return;
+          }
+          const baseName = file.name.replace(/\.[^.]+$/, '') || 'service';
+          resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
       };
       img.src = reader.result as string;
     };
@@ -371,7 +379,7 @@ const UpsellsAdmin: React.FC = () => {
     }
   };
 
-  // Upload d'une image → compressée en data URL base64, stockée en base (pas d'URL externe).
+  // Upload d'une image → compressée, envoyée à la médiathèque (stockage objet) ; l'offre garde son lien.
   const onImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -385,8 +393,8 @@ const UpsellsAdmin: React.FC = () => {
       return;
     }
     try {
-      const dataUrl = await compressImageToDataUrl(file, 800, 0.78);
-      setEdit((s) => ({ ...s, imageUrl: dataUrl }));
+      const asset = await mediaApi.upload(await compressImage(file, 800, 0.78));
+      setEdit((s) => ({ ...s, imageUrl: asset.url }));
     } catch {
       notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
     }

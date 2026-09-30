@@ -6,7 +6,8 @@ import com.clenzy.model.Property;
 import com.clenzy.model.PropertyPhoto;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
-import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.storage.ObjectStorageTransactions;
+import com.clenzy.service.storage.StoredObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -23,23 +24,22 @@ public class PropertyPhotoService {
     private static final Logger log = LoggerFactory.getLogger(PropertyPhotoService.class);
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-    private static final int MAX_PHOTOS_PER_PROPERTY = 50;
 
     private final PropertyPhotoRepository photoRepository;
     private final PropertyRepository propertyRepository;
     private final PhotoStorageService storageService;
-    private final TenantContext tenantContext;
+    private final PropertyPhotoWriter photoWriter;
     private final OrganizationAccessGuard organizationAccessGuard;
 
     public PropertyPhotoService(PropertyPhotoRepository photoRepository,
                                 PropertyRepository propertyRepository,
                                 PhotoStorageService storageService,
-                                TenantContext tenantContext,
+                                PropertyPhotoWriter photoWriter,
                                 OrganizationAccessGuard organizationAccessGuard) {
         this.photoRepository = photoRepository;
         this.propertyRepository = propertyRepository;
         this.storageService = storageService;
-        this.tenantContext = tenantContext;
+        this.photoWriter = photoWriter;
         this.organizationAccessGuard = organizationAccessGuard;
     }
 
@@ -71,7 +71,16 @@ public class PropertyPhotoService {
                 .toList();
     }
 
-    @Transactional
+    /**
+     * Envoie une photo de logement. Les octets partent directement au stockage
+     * ({@link PhotoStorageService#store} : stockage objet OVH en production), et seule la clé
+     * org-scopée {@code org/{orgId}/photos/{uuid}} est enregistrée en base : plus aucun octet de
+     * photo dans PostgreSQL.
+     *
+     * <p>Pas de {@code @Transactional} ici : le fichier est écrit AVANT la transaction courte qui
+     * enregistre sa clé ({@link PropertyPhotoWriter}, règle audit n°2) ; si elle échoue, l'objet
+     * est supprimé pour ne pas rester orphelin.</p>
+     */
     // Eviction GLOBALE du cache : la cle porte desormais l'organisation
     // (cf. PropertyService#currentTenantCacheKey), une eviction par id seul
     // ne correspondrait plus a rien et laisserait des fiches perimees.
@@ -79,43 +88,27 @@ public class PropertyPhotoService {
     public PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file, String caption) {
         validateFile(file);
         validatePhotoLimit(propertyId);
+        requirePropertyInOrganization(propertyId);
 
-        final Property property = requirePropertyInOrganization(propertyId);
+        final StoredObject stored = storeBytes(file);
+        final PropertyPhoto saved = ObjectStorageTransactions.persistOrDiscard(
+                List.of(stored.key()), storageService::delete,
+                () -> photoWriter.saveManualPhoto(propertyId, stored, caption));
 
-        final Long orgId = tenantContext.getRequiredOrganizationId();
-        final int nextOrder = photoRepository.countByPropertyId(propertyId);
+        log.info("Uploaded photo id={} for property={} (size={})", saved.getId(), propertyId, stored.size());
+        return toDto(saved);
+    }
 
-        byte[] fileData;
+    private StoredObject storeBytes(MultipartFile file) {
+        final byte[] fileData;
         try {
             fileData = file.getBytes();
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read uploaded file", e);
         }
-
-        final PropertyPhoto photo = new PropertyPhoto();
-        photo.setProperty(property);
-        photo.setOrganizationId(orgId);
-        photo.setOriginalFilename(file.getOriginalFilename());
-        photo.setContentType(file.getContentType() != null ? file.getContentType() : "image/jpeg");
-        photo.setFileSize(file.getSize());
-        photo.setData(fileData);
-        photo.setSortOrder(nextOrder);
-        photo.setCaption(caption);
-        photo.setSource(PropertyPhoto.PhotoSource.MANUAL);
-
-        // storageKey reste NULL a l'upload : les octets vivent dans le BYTEA (colonne data).
-        // C'est le job de migration (PhotoStorageMigrationService) qui ecrit la cle org-scopee
-        // "org/{orgId}/photos/{uuid}" une fois l'objet pousse sur le stockage objet.
-        //
-        // Contrat identique aux photos d'intervention (InterventionPhotoBinaryStore) : l'upload
-        // n'appelle JAMAIS le stockage objet, donc aucun IO reseau dans la transaction d'upload
-        // (regle audit #2). Ecrire ici une cle numerique (l'ancien String.valueOf(id)) rendait la
-        // bascule clenzy.storage.photos=object inutilisable : ObjectStoragePhotoService.retrieve
-        // aurait cherche un objet nomme "1234" -> NoSuchKey -> 500 sur toute photo post-bascule.
-        final PropertyPhoto saved = photoRepository.save(photo);
-
-        log.info("Uploaded photo id={} for property={} (size={})", saved.getId(), propertyId, file.getSize());
-        return toDto(saved);
+        final String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        final String key = storageService.store(fileData, contentType, file.getOriginalFilename());
+        return new StoredObject(key, contentType, file.getSize(), file.getOriginalFilename());
     }
 
     @Transactional(readOnly = true)
@@ -150,10 +143,13 @@ public class PropertyPhotoService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Photo not found: id=" + photoId + ", propertyId=" + propertyId));
 
-        if (photo.getStorageKey() != null) {
-            storageService.delete(photo.getStorageKey());
-        }
+        final String storageKey = photo.getStorageKey();
         photoRepository.deleteByIdAndPropertyId(photoId, propertyId);
+        if (storageKey != null) {
+            // Le binaire n'est detruit qu'une fois la suppression de la ligne validee (regle audit n°2).
+            ObjectStorageTransactions.afterCommit("suppression photo " + storageKey,
+                    () -> storageService.delete(storageKey));
+        }
         log.info("Deleted photo id={} for property={}", photoId, propertyId);
     }
 
@@ -194,11 +190,12 @@ public class PropertyPhotoService {
         }
     }
 
+    /** Refus anticipé, avant tout envoi de fichier ; revérifié dans la transaction d'écriture. */
     private void validatePhotoLimit(Long propertyId) {
         final int count = photoRepository.countByPropertyId(propertyId);
-        if (count >= MAX_PHOTOS_PER_PROPERTY) {
+        if (count >= PropertyPhotoWriter.MAX_PHOTOS_PER_PROPERTY) {
             throw new IllegalArgumentException(
-                    "Maximum of " + MAX_PHOTOS_PER_PROPERTY + " photos per property reached");
+                    "Maximum of " + PropertyPhotoWriter.MAX_PHOTOS_PER_PROPERTY + " photos per property reached");
         }
     }
 

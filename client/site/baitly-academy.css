@@ -109,6 +109,157 @@
   font-size: 14px;
   line-height: 1.5;
 }
+/* Fin d'épisode : l'épisode suivant, posé sur l'image (pas de fenêtre à part). */
+.bac-episode {
+  scroll-margin-top: 110px;
+}
+.bac-screen {
+  container-type: inline-size;
+}
+.bac-next {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 240px) minmax(0, 360px);
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  padding: 24px;
+  background: rgb(13 23 29 / 0.93);
+  color: var(--bac-on-night);
+  animation: bac-next-in 0.35s var(--bl-ease) both;
+}
+.bac-next.is-done {
+  grid-template-columns: minmax(0, 420px);
+  text-align: center;
+}
+.bac-next-poster {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--bl-radius-control);
+  box-shadow: 0 16px 40px -18px rgb(8 16 21 / 0.75);
+}
+.bac-next-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.bac-next-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bac-on-night-muted);
+}
+.bac-next h3 {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 26px);
+  line-height: 1.2;
+  font-weight: 700;
+  text-wrap: balance;
+}
+.bac-next-meta,
+.bac-next-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bac-on-night-muted);
+  font-variant-numeric: tabular-nums;
+}
+.bac-next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.bac-next.is-done .bac-next-actions {
+  justify-content: center;
+}
+.bac-next-primary,
+.bac-next-secondary {
+  position: relative;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px;
+  border-radius: var(--bl-radius-control);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s var(--bl-ease), border-color 0.2s var(--bl-ease);
+}
+.bac-next-primary {
+  overflow: hidden;
+  border: 0;
+  background: var(--bl-paper);
+  color: var(--bac-night);
+}
+.bac-next-primary > :not(.bac-next-fill) {
+  position: relative;
+}
+.bac-next-primary svg {
+  fill: currentColor;
+}
+/* Compte à rebours : la couleur remplit le bouton jusqu'à l'enchaînement. */
+.bac-next-fill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--bl-accent) 30%, var(--bl-paper));
+  transform-origin: left center;
+  animation: bac-next-fill linear both;
+}
+[dir='rtl'] .bac-next-fill {
+  transform-origin: right center;
+}
+.bac-next-secondary {
+  border: 1px solid rgb(238 243 245 / 0.32);
+  background: transparent;
+  color: var(--bac-on-night);
+}
+.bac-next-secondary:hover {
+  background: var(--bac-night-2);
+  border-color: rgb(238 243 245 / 0.5);
+}
+@keyframes bac-next-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes bac-next-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+/* Lecteur vertical ou étroit : tout en colonne, l'aperçu au-dessus. */
+.bac-player.is-tall .bac-next {
+  grid-template-columns: minmax(0, 300px);
+  gap: 20px;
+}
+.bac-player.is-tall .bac-next-actions > * {
+  flex: 1 1 100%;
+  justify-content: center;
+}
+@container (max-width: 560px) {
+  .bac-player:not(.is-tall) .bac-next {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .bac-player:not(.is-tall) .bac-next-poster {
+    display: none;
+  }
+}
 .bac-bar {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto auto;
@@ -455,5 +606,12 @@
   .bac-page *,
   .bac-page *::before {
     transition: none !important;
+  }
+  .bac-next {
+    animation: none;
+  }
+  /* Le texte du compte à rebours suffit ; pas de remplissage animé. */
+  .bac-next-fill {
+    display: none;
   }
 }

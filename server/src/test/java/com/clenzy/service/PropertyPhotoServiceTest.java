@@ -45,14 +45,17 @@ class PropertyPhotoServiceTest {
 
     private static final Long ORG_ID = 1L;
     private static final Long PROPERTY_ID = 100L;
+    private static final String STORED_KEY = "org/1/photos/9f1c";
 
     @BeforeEach
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        service = new PropertyPhotoService(photoRepository, propertyRepository,
-                storageService, tenantContext,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+        final com.clenzy.service.access.OrganizationAccessGuard guard =
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext);
+        service = new PropertyPhotoService(photoRepository, propertyRepository, storageService,
+                new PropertyPhotoWriter(photoRepository, propertyRepository, tenantContext, guard), guard);
+        lenient().when(storageService.store(any(), any(), any())).thenReturn(STORED_KEY);
         // Depuis P1-07, toute operation sur les photos resout d'abord le logement pour
         // verifier son organisation. Les tests qui n'exercent pas ce chemin le fournissent
         // ici une fois pour toutes.
@@ -220,14 +223,12 @@ class PropertyPhotoServiceTest {
     class UploadHappyPath {
 
         /**
-         * L'upload ecrit le BYTEA et laisse {@code storageKey} NULL — c'est le job de migration
-         * qui posera la cle org-scopee. Ce test verifiait auparavant le contraire (deux saves,
-         * {@code storageKey = String.valueOf(id)}) : cette cle numerique ne designait aucun objet
-         * et rendait la bascule {@code clenzy.storage.photos=object} inutilisable (NoSuchKey ->
-         * 500 sur toute photo post-bascule). Changeset 0369 pour l'historique.
+         * Les octets partent au stockage (objet OVH en production) et seule la cle org-scopee est
+         * enregistree : plus aucun octet de photo en base. Auparavant l'upload ecrivait le BYTEA
+         * et laissait la cle NULL, a charge d'un job de migration lance a la main.
          */
         @Test
-        void whenValid_thenSavesOnceAndLeavesStorageKeyNull() {
+        void whenValid_thenStoresBytesOutsideDatabaseAndSavesOnlyTheKey() {
             when(photoRepository.countByPropertyId(PROPERTY_ID)).thenReturn(2);
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
             ArgumentCaptor<PropertyPhoto> captor = ArgumentCaptor.forClass(PropertyPhoto.class);
@@ -241,27 +242,37 @@ class PropertyPhotoServiceTest {
 
             assertThat(result.id()).isEqualTo(77L);
             assertThat(result.caption()).isEqualTo("Beautiful view");
-            // Un seul save : aucun aller-retour pour reecrire une cle de stockage.
+            verify(storageService).store(new byte[]{1, 2, 3, 4}, "image/jpeg", "test.jpg");
             verify(photoRepository, times(1)).save(any(PropertyPhoto.class));
             PropertyPhoto saved = captor.getValue();
-            assertThat(saved.getStorageKey()).isNull();
-            assertThat(saved.getData()).isNotEmpty();
+            assertThat(saved.getStorageKey()).isEqualTo(STORED_KEY);
+            assertThat(saved.getData()).isNull();
+            assertThat(saved.getFileSize()).isEqualTo(4L);
         }
 
-        /** Aucun IO reseau vers le stockage objet dans la transaction d'upload (regle audit #2). */
+        /** Un enregistrement qui echoue ne laisse pas d'objet orphelin sur le stockage. */
         @Test
-        void whenValid_thenNeverCallsStorageService() {
+        void whenSaveFails_thenDeletesTheStoredObjectAndRethrows() {
             when(photoRepository.countByPropertyId(PROPERTY_ID)).thenReturn(0);
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
-            when(photoRepository.save(any(PropertyPhoto.class))).thenAnswer(inv -> {
-                PropertyPhoto p = inv.getArgument(0);
-                if (p.getId() == null) p.setId(78L);
-                return p;
-            });
+            when(photoRepository.save(any(PropertyPhoto.class))).thenThrow(new IllegalStateException("db down"));
 
-            service.uploadPhoto(PROPERTY_ID, validImageFile(), null);
+            assertThatThrownBy(() -> service.uploadPhoto(PROPERTY_ID, validImageFile(), null))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("db down");
 
-            verifyNoInteractions(storageService);
+            verify(storageService).delete(STORED_KEY);
+        }
+
+        /** Un fichier refuse (limite atteinte) n'est jamais envoye au stockage. */
+        @Test
+        void whenPhotoLimitReached_thenNeverCallsStorage() {
+            when(photoRepository.countByPropertyId(PROPERTY_ID)).thenReturn(50);
+
+            assertThatThrownBy(() -> service.uploadPhoto(PROPERTY_ID, validImageFile(), null))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            verify(storageService, never()).store(any(), any(), any());
         }
 
         @Test

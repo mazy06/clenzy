@@ -34,7 +34,6 @@ import com.clenzy.model.UserRole;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -490,10 +489,42 @@ public class InterventionService {
         }
     }
 
-    public InterventionResponse addPhotos(Long id, List<MultipartFile> photos, String photoType, Jwt jwt) {
-        Intervention intervention = interventionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+    /**
+     * Refus anticipe d'un envoi de photos, AVANT d'ecrire le moindre fichier sur le stockage :
+     * acces, statut en cours, type et nombre maximum. Revérifie par {@link #attachPhotos}.
+     */
+    @Transactional(readOnly = true)
+    public void checkPhotoUpload(Long id, int photoCount, String photoType, Jwt jwt) {
+        requirePhotoUploadAllowed(requireIntervention(id), photoCount, photoType, jwt);
+    }
 
+    /**
+     * Enregistre sur l'intervention des photos deja ecrites sur le stockage
+     * ({@link InterventionPhotoService#preparePhotos}, hors transaction).
+     */
+    public InterventionResponse attachPhotos(Long id, List<InterventionPhotoService.PreparedPhoto> photos,
+                                             String photoType, Jwt jwt) {
+        Intervention intervention = requireIntervention(id);
+        requirePhotoUploadAllowed(intervention, photos.size(), photoType, jwt);
+
+        try {
+            photoService.attachPhotos(intervention, photos, photoType);
+
+            intervention = interventionRepository.findById(id)
+                    .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+
+            return interventionMapper.convertToResponse(intervention);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de l'ajout des photos: " + e.getMessage(), e);
+        }
+    }
+
+    private Intervention requireIntervention(Long id) {
+        return interventionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+    }
+
+    private void requirePhotoUploadAllowed(Intervention intervention, int photoCount, String photoType, Jwt jwt) {
         accessPolicy.assertCanAccess(intervention, jwt);
 
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
@@ -505,21 +536,10 @@ public class InterventionService {
         }
 
         long currentCount = photoService.getPhotoCount(intervention);
-        if (currentCount + photos.size() > MAX_PHOTOS_PER_INTERVENTION) {
+        if (currentCount + photoCount > MAX_PHOTOS_PER_INTERVENTION) {
             throw new IllegalArgumentException(
                     "Nombre maximum de photos atteint (" + MAX_PHOTOS_PER_INTERVENTION
-                    + "). Actuellement " + currentCount + ", tentative d'ajout de " + photos.size() + ".");
-        }
-
-        try {
-            photoService.savePhotos(intervention, photos, photoType);
-
-            intervention = interventionRepository.findById(id)
-                    .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
-
-            return interventionMapper.convertToResponse(intervention);
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de l'ajout des photos: " + e.getMessage(), e);
+                    + "). Actuellement " + currentCount + ", tentative d'ajout de " + photoCount + ".");
         }
     }
 

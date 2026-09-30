@@ -4,6 +4,7 @@ import com.clenzy.dto.MediaAssetDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.MediaAsset;
 import com.clenzy.repository.MediaAssetRepository;
+import com.clenzy.service.storage.ObjectStorageTransactions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,11 @@ public class MediaLibraryService {
         this.storage = storage;
     }
 
-    @Transactional
+    /**
+     * Pas de {@code @Transactional} : le fichier part au stockage (OVH en production) AVANT
+     * l'enregistrement de sa ligne (regle audit n°2) ; si cet enregistrement echoue, l'objet est
+     * supprime pour ne pas rester orphelin.
+     */
     public MediaAssetDto upload(Long orgId, MultipartFile file) {
         validate(file);
         final byte[] bytes;
@@ -55,7 +60,8 @@ public class MediaLibraryService {
         m.setContentType(contentType);
         m.setFileName(file.getOriginalFilename());
         m.setFileSize(file.getSize());
-        return MediaAssetDto.from(repository.save(m));
+        return MediaAssetDto.from(ObjectStorageTransactions.persistOrDiscard(
+                List.of(key), storage::delete, () -> repository.save(m)));
     }
 
     @Transactional(readOnly = true)
@@ -71,11 +77,8 @@ public class MediaLibraryService {
             .orElseThrow(() -> new NotFoundException("Média introuvable: " + id));
         String key = m.getStorageKey();
         repository.delete(m);
-        try {
-            storage.delete(key);
-        } catch (Exception e) {
-            log.warn("Suppression du binaire {} KO (média {} déjà retiré en base) : {}", key, id, e.getMessage());
-        }
+        // Le binaire n'est detruit qu'une fois la suppression de la ligne validee (regle audit n°2).
+        ObjectStorageTransactions.afterCommit("suppression média " + id, () -> storage.delete(key));
     }
 
     /**

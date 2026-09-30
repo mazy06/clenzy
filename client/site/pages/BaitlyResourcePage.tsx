@@ -1,4 +1,4 @@
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
@@ -41,6 +41,8 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
   const { language } = useSiteLanguage();
   const [params] = useSearchParams();
   const { episode: episodeSlug } = useParams();
+  // Arrivée depuis la fin de l'épisode précédent (« À suivre ») : la vidéo démarre seule.
+  const autoPlay = (useLocation().state as { academyAutoplay?: boolean } | null)?.academyAutoplay === true;
   const country = params.get('country') ?? 'MA';
   const m = BAITLY_RESOURCE_MESSAGES[language];
   const module = m.modules[kind];
@@ -76,6 +78,7 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
               episode={episode}
               language={language}
               startAt={Number.isFinite(startAt) && startAt > 0 ? startAt : undefined}
+              autoPlay={autoPlay}
             />
             <AcademyProgram language={language} current={episodeSlug ? episode.slug : undefined} />
             <section className="bac-practice" id={ACADEMY_PRACTICE_ID} aria-labelledby="academie-pratique-titre">

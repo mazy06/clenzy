@@ -36,4 +36,15 @@ public class ByteaInterventionPhotoStore implements InterventionPhotoBinaryStore
                         + "clenzy.storage.intervention-photos vaut bytea (octets non resolvables). "
                         + "Repasser le flag a object pour relire l'objet.");
     }
+
+    /** Mode developpement : les octets restent dans la colonne {@code data}, aucune cle. */
+    @Override
+    public String store(long organizationId, byte[] data, String contentType) {
+        return null;
+    }
+
+    @Override
+    public void delete(String storageKey) {
+        // Rien a supprimer hors de la ligne elle-meme.
+    }
 }

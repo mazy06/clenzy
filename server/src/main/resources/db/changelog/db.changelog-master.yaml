@@ -4349,3 +4349,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0480__regulatory_connections.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0481-contact-attachments-object-storage"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0481__contact_attachments_object_storage.sql
+            relativeToChangelogFile: true

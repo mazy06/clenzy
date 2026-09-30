@@ -4,6 +4,7 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionPhoto;
 import com.clenzy.repository.InterventionPhotoRepository;
 import com.clenzy.service.storage.InterventionPhotoBinaryStore;
+import com.clenzy.service.storage.ObjectStorageTransactions;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,46 +42,87 @@ public class InterventionPhotoService {
     }
 
     /**
-     * Save uploaded photos to the intervention_photos table.
-     *
-     * @param intervention the parent intervention (must already be persisted)
-     * @param photos       multipart files uploaded by the user
-     * @param photoType    "before", "after" or "issue" (anomalie terrain, Moteur Menage 3C)
+     * Une photo recue, deja ecrite sur le stockage ({@code storageKey}) — ou, en mode {@code bytea}
+     * (developpement), gardee en memoire pour la colonne {@code data} ({@code inlineData}).
      */
-    public void savePhotos(Intervention intervention, List<MultipartFile> photos, String photoType) {
-        String photoTypeUpper = switch (photoType) {
-            case "before" -> "BEFORE";
-            case "issue" -> "ISSUE";
-            default -> "AFTER";
-        };
+    public record PreparedPhoto(String storageKey, byte[] inlineData, String contentType,
+                                long size, String originalFilename) {
+    }
 
-        for (MultipartFile photo : photos) {
-            if (!photo.isEmpty()) {
-                try {
-                    byte[] photoData = photo.getBytes();
-                    String contentType = photo.getContentType();
-                    if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
-                        log.warn("Rejected photo with unsupported MIME type: {}", contentType);
-                        continue;
-                    }
-
-                    InterventionPhoto interventionPhoto = new InterventionPhoto();
-                    interventionPhoto.setIntervention(intervention);
-                    interventionPhoto.setData(photoData);
-                    interventionPhoto.setOrganizationId(tenantContext.getRequiredOrganizationId());
-                    interventionPhoto.setFileSize(photo.getSize());
-                    interventionPhoto.setContentType(contentType);
-                    interventionPhoto.setOriginalFilename(photo.getOriginalFilename());
-                    interventionPhoto.setPhase(InterventionPhoto.PhotoPhase.valueOf(photoTypeUpper));
-
-                    interventionPhotoRepository.save(interventionPhoto);
-                } catch (IOException e) {
-                    throw new RuntimeException("Erreur lors de la lecture du fichier photo: " + e.getMessage(), e);
+    /**
+     * Ecrit les photos recues sur le stockage, HORS transaction (regle audit n°2) : en production
+     * elles partent directement au stockage objet OVH, et seule leur cle sera enregistree en base.
+     * Les fichiers vides et les formats refuses sont ignores. Si une ecriture echoue, les objets
+     * deja ecrits sont supprimes avant de relancer l'erreur.
+     */
+    public List<PreparedPhoto> preparePhotos(List<MultipartFile> photos) {
+        final long orgId = tenantContext.getRequiredOrganizationId();
+        final List<PreparedPhoto> prepared = new ArrayList<>();
+        try {
+            for (MultipartFile photo : photos) {
+                if (photo.isEmpty()) {
+                    continue;
                 }
+                final String contentType = photo.getContentType();
+                if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
+                    log.warn("Rejected photo with unsupported MIME type: {}", contentType);
+                    continue;
+                }
+                final byte[] bytes = readBytes(photo);
+                final String key = binaryStore.store(orgId, bytes, contentType);
+                prepared.add(new PreparedPhoto(key, key == null ? bytes : null, contentType,
+                        photo.getSize(), photo.getOriginalFilename()));
             }
+        } catch (RuntimeException e) {
+            discardPhotos(prepared);
+            throw e;
         }
+        return prepared;
+    }
 
+    /**
+     * Enregistre les photos preparees sur l'intervention, dans la transaction de l'appelant.
+     *
+     * @param photoType "before", "after" ou "issue" (anomalie terrain, Moteur Menage 3C)
+     */
+    public void attachPhotos(Intervention intervention, List<PreparedPhoto> photos, String photoType) {
+        final InterventionPhoto.PhotoPhase phase = switch (photoType) {
+            case "before" -> InterventionPhoto.PhotoPhase.BEFORE;
+            case "issue" -> InterventionPhoto.PhotoPhase.ISSUE;
+            default -> InterventionPhoto.PhotoPhase.AFTER;
+        };
+        for (PreparedPhoto prepared : photos) {
+            final InterventionPhoto photo = new InterventionPhoto();
+            photo.setIntervention(intervention);
+            photo.setStorageKey(prepared.storageKey());
+            photo.setData(prepared.inlineData());
+            photo.setOrganizationId(tenantContext.getRequiredOrganizationId());
+            photo.setFileSize(prepared.size());
+            photo.setContentType(prepared.contentType());
+            photo.setOriginalFilename(prepared.originalFilename());
+            photo.setPhase(phase);
+            interventionPhotoRepository.save(photo);
+        }
         log.debug("Photos {} saved for intervention: id={}, count={}", photoType, intervention.getId(), photos.size());
+    }
+
+    /** Supprime du stockage les objets de photos preparees mais non enregistrees. */
+    public void discardPhotos(List<PreparedPhoto> photos) {
+        ObjectStorageTransactions.discard(photos.stream().map(PreparedPhoto::storageKey).toList(),
+                this::deleteStoredObject);
+    }
+
+    /** Supprime un objet du stockage des photos d'intervention. */
+    public void deleteStoredObject(String storageKey) {
+        binaryStore.delete(storageKey);
+    }
+
+    private static byte[] readBytes(MultipartFile photo) {
+        try {
+            return photo.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la lecture du fichier photo: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -143,6 +185,12 @@ public class InterventionPhotoService {
                 .orElseThrow(() -> new RuntimeException("Photo introuvable ou accès refusé"));
 
         interventionPhotoRepository.delete(photo);
+        final String storageKey = photo.getStorageKey();
+        if (storageKey != null) {
+            // L'objet n'est detruit qu'une fois la suppression de la ligne validee (regle audit n°2).
+            ObjectStorageTransactions.afterCommit("suppression photo d'intervention " + storageKey,
+                    () -> binaryStore.delete(storageKey));
+        }
         log.debug("Photo deleted: id={}, interventionId={}, type={}", photoId, interventionId, photo.getPhase() != null ? photo.getPhase().name() : "BEFORE");
     }
 
