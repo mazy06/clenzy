@@ -40,6 +40,7 @@ class InterventionControllerTest {
     @Mock private InterventionPlanningService planningService;
     @Mock private InterventionLifecycleService lifecycleService;
     @Mock private InterventionProgressService progressService;
+    @Mock private com.clenzy.service.InterventionPhotoUploadService photoUploadService;
 
     private InterventionController controller;
 
@@ -58,7 +59,8 @@ class InterventionControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new InterventionController(interventionService, planningService, lifecycleService, progressService);
+        controller = new InterventionController(interventionService, planningService, lifecycleService, progressService,
+                photoUploadService);
     }
 
     @Nested

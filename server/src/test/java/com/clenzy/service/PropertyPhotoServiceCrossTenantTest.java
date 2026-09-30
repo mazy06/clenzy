@@ -55,8 +55,9 @@ class PropertyPhotoServiceCrossTenantTest {
     void setUp() {
         TenantContext tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_COURANTE);
+        OrganizationAccessGuard guard = new OrganizationAccessGuard(tenantContext);
         service = new PropertyPhotoService(photoRepository, propertyRepository, storageService,
-                tenantContext, new OrganizationAccessGuard(tenantContext));
+                new PropertyPhotoWriter(photoRepository, propertyRepository, tenantContext, guard), guard);
 
         Property logementVictime = new Property();
         logementVictime.setId(PROPERTY_ID);

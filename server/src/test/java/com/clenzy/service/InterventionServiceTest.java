@@ -466,17 +466,20 @@ class InterventionServiceTest {
     // ===== addPhotos =====
 
     @Nested
-    @DisplayName("addPhotos")
+    @DisplayName("checkPhotoUpload / attachPhotos")
     class AddPhotos {
 
+        private final InterventionPhotoService.PreparedPhoto prepared = new InterventionPhotoService.PreparedPhoto(
+                "org/1/intervention-photos/abc", null, "image/jpeg", 12L, "photo.jpg");
+
         @Test
-        @DisplayName("when not IN_PROGRESS, throws")
+        @DisplayName("when not IN_PROGRESS, throws before any file is stored")
         void whenNotInProgress_thenThrows() {
             Jwt jwt = mockJwtWithRole("HOST");
             Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
 
-            assertThatThrownBy(() -> service.addPhotos(1L, List.of(), "before", jwt))
+            assertThatThrownBy(() -> service.checkPhotoUpload(1L, 0, "before", jwt))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -487,7 +490,7 @@ class InterventionServiceTest {
             Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
 
-            assertThatThrownBy(() -> service.addPhotos(1L, List.of(), "wrong", jwt))
+            assertThatThrownBy(() -> service.checkPhotoUpload(1L, 0, "wrong", jwt))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -499,16 +502,13 @@ class InterventionServiceTest {
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
             when(photoService.getPhotoCount(intervention)).thenReturn(20L);
 
-            // Create 1 mock file -> currentCount 20 + 1 = 21 > 20
-            org.springframework.web.multipart.MultipartFile mockFile =
-                    mock(org.springframework.web.multipart.MultipartFile.class);
-
-            assertThatThrownBy(() -> service.addPhotos(1L, List.of(mockFile), "before", jwt))
+            // currentCount 20 + 1 = 21 > 20
+            assertThatThrownBy(() -> service.checkPhotoUpload(1L, 1, "before", jwt))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
-        @DisplayName("when valid 'before' photo, calls savePhotos and reloads")
+        @DisplayName("when valid 'before' photo, attaches the stored photos and reloads")
         void whenValidBeforePhoto_thenSaves() {
             Jwt jwt = mockJwtWithRole("HOST");
             Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
@@ -518,13 +518,10 @@ class InterventionServiceTest {
             InterventionResponse expectedResp = buildResultResponse(1L, "IN_PROGRESS", "Test");
             when(interventionMapper.convertToResponse(any())).thenReturn(expectedResp);
 
-            org.springframework.web.multipart.MultipartFile mockFile =
-                    mock(org.springframework.web.multipart.MultipartFile.class);
-
-            InterventionResponse result = service.addPhotos(1L, List.of(mockFile), "before", jwt);
+            InterventionResponse result = service.attachPhotos(1L, List.of(prepared), "before", jwt);
 
             assertThat(result).isNotNull();
-            verify(photoService).savePhotos(any(), eq(List.of(mockFile)), eq("before"));
+            verify(photoService).attachPhotos(any(), eq(List.of(prepared)), eq("before"));
         }
 
         @Test
@@ -538,13 +535,10 @@ class InterventionServiceTest {
             InterventionResponse expectedResp = buildResultResponse(1L, "IN_PROGRESS", "Test");
             when(interventionMapper.convertToResponse(any())).thenReturn(expectedResp);
 
-            org.springframework.web.multipart.MultipartFile mockFile =
-                    mock(org.springframework.web.multipart.MultipartFile.class);
-
-            InterventionResponse result = service.addPhotos(1L, List.of(mockFile), "after", jwt);
+            InterventionResponse result = service.attachPhotos(1L, List.of(prepared), "after", jwt);
 
             assertThat(result).isNotNull();
-            verify(photoService).savePhotos(any(), eq(List.of(mockFile)), eq("after"));
+            verify(photoService).attachPhotos(any(), eq(List.of(prepared)), eq("after"));
         }
 
         @Test
@@ -553,24 +547,22 @@ class InterventionServiceTest {
             Jwt jwt = mockJwtWithRole("HOST");
             when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.addPhotos(99L, List.of(), "before", jwt))
+            assertThatThrownBy(() -> service.checkPhotoUpload(99L, 0, "before", jwt))
                     .isInstanceOf(NotFoundException.class);
         }
 
         @Test
-        @DisplayName("when savePhotos throws, wraps in RuntimeException")
+        @DisplayName("when attaching fails, wraps in RuntimeException")
         void whenSavePhotosThrows_thenWrapsException() {
             Jwt jwt = mockJwtWithRole("HOST");
             Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
             when(photoService.getPhotoCount(intervention)).thenReturn(0L);
 
-            org.springframework.web.multipart.MultipartFile mockFile =
-                    mock(org.springframework.web.multipart.MultipartFile.class);
             org.mockito.Mockito.doThrow(new RuntimeException("storage error"))
-                    .when(photoService).savePhotos(any(), any(), any());
+                    .when(photoService).attachPhotos(any(), any(), any());
 
-            assertThatThrownBy(() -> service.addPhotos(1L, List.of(mockFile), "before", jwt))
+            assertThatThrownBy(() -> service.attachPhotos(1L, List.of(prepared), "before", jwt))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("storage error");
         }

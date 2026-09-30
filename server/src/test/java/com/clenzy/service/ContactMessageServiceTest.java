@@ -48,6 +48,7 @@ class ContactMessageServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private TenantContext tenantContext;
     @Mock private ContactMessageEventPublisher eventPublisher;
+    @Mock private ContactAttachmentStore attachmentStore;
 
     private ContactMessageService service;
 
@@ -74,8 +75,12 @@ class ContactMessageServiceTest {
                 notificationService,
                 tenantContext,
                 eventPublisher,
-                new MediaTicketService("test-secret")
+                new MediaTicketService("test-secret"),
+                attachmentStore
         );
+        // Pieces jointes anterieures : les octets sont encore en base, le store les relit tels quels.
+        org.mockito.Mockito.lenient().when(attachmentStore.read(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(inv -> ((com.clenzy.model.ContactAttachmentFile) inv.getArgument(0)).getData());
 
         // Build JWTs
         senderJwt = Jwt.withTokenValue("token-sender")

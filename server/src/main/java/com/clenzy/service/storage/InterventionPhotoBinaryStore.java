@@ -6,10 +6,9 @@ import com.clenzy.model.InterventionPhoto;
  * Strategie de <b>resolution des octets</b> d'une {@link InterventionPhoto} — derriere l'API
  * inchangee d'{@code InterventionPhotoService}.
  *
- * <p>Modele <b>identique a celui des photos de propriete</b> ({@code PhotoStorageService} /
- * {@code PropertyPhotoService}) : l'<b>upload ecrit toujours le BYTEA</b> (colonne {@code data}),
- * quel que soit le flag — aucun appel objet a l'upload (donc aucun IO reseau dans la transaction
- * d'upload, regle audit #2). Le flag ne change que la <b>lecture</b> :</p>
+ * <p>En mode {@code object}, l'upload ecrit directement l'objet ({@link #store}, hors transaction,
+ * regle audit n°2) et seule la cle est enregistree : aucun octet de photo en base. En mode
+ * {@code bytea} (developpement), les octets restent dans la colonne {@code data}.</p>
  *
  * <p><b>Selection par flag</b> {@code clenzy.storage.intervention-photos} :</p>
  * <ul>
@@ -39,4 +38,16 @@ public interface InterventionPhotoBinaryStore {
      * @return les octets de l'image
      */
     byte[] resolveBytes(InterventionPhoto photo);
+
+    /**
+     * Ecrit les octets d'une nouvelle photo et retourne sa cle, ou {@code null} quand ils doivent
+     * rester dans la colonne {@code data} (mode {@code bytea}, reserve au developpement). Appele
+     * HORS transaction (regle audit n°2) : la cle est ensuite enregistree par une transaction courte.
+     *
+     * @param organizationId organisation proprietaire (prefixe de la cle)
+     */
+    String store(long organizationId, byte[] data, String contentType);
+
+    /** Supprime l'objet d'une cle ecrite par {@link #store} (sans effet en mode {@code bytea}). */
+    void delete(String storageKey);
 }

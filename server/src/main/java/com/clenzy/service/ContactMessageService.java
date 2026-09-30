@@ -52,6 +52,7 @@ public class ContactMessageService {
     private final TenantContext tenantContext;
     private final ContactMessageEventPublisher eventPublisher;
     private final MediaTicketService mediaTicketService;
+    private final ContactAttachmentStore attachmentStore;
 
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
@@ -70,8 +71,10 @@ public class ContactMessageService {
             NotificationService notificationService,
             TenantContext tenantContext,
             ContactMessageEventPublisher eventPublisher,
-            MediaTicketService mediaTicketService
+            MediaTicketService mediaTicketService,
+            ContactAttachmentStore attachmentStore
     ) {
+        this.attachmentStore = attachmentStore;
         this.contactMessageRepository = contactMessageRepository;
         this.attachmentFileRepository = attachmentFileRepository;
         this.managerUserRepository = managerUserRepository;
@@ -194,7 +197,8 @@ public class ContactMessageService {
                 .findByMessageIdAndAttachmentId(messageId, attachmentId)
                 .orElseThrow(() -> new NoSuchElementException("Fichier non disponible en telechargement"));
 
-        return new ContactAttachmentContentDto(attachment.originalName(), attachment.contentType(), file.getData());
+        return new ContactAttachmentContentDto(attachment.originalName(), attachment.contentType(),
+                attachmentStore.read(file));
     }
 
     /**
@@ -212,7 +216,7 @@ public class ContactMessageService {
                 .orElseThrow(() -> new NoSuchElementException("Fichier non disponible"));
 
         String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
-        String dataUri = "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(file.getData());
+        String dataUri = "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(attachmentStore.read(file));
         return new ContactAttachmentBase64Dto(
                 dataUri,
                 contentType,
@@ -858,8 +862,9 @@ public class ContactMessageService {
     }
 
     /**
-     * Stocke les fichiers en base de donnees (table contact_attachment_files)
-     * et met a jour les metadonnees JSONB avec storagePath = "db".
+     * Confie les fichiers au stockage objet (OVH en production), ecrits APRES la validation du
+     * message (regle audit n°2) : plus aucun octet de piece jointe en base. Met a jour les
+     * metadonnees JSONB avec storagePath = "db" (la ligne contact_attachment_files porte la cle).
      * Appele APRES l'envoi email pour ne pas bloquer la livraison en cas d'echec de stockage.
      */
     private void storeAndUpdateAttachments(ContactMessage message, List<MultipartFile> files,
@@ -867,25 +872,20 @@ public class ContactMessageService {
         if (files.isEmpty()) return;
         try {
             List<ContactAttachmentDto> updated = new ArrayList<>();
+            List<ContactAttachmentStore.PendingAttachment> pending = new ArrayList<>();
             for (int i = 0; i < metadata.size(); i++) {
                 ContactAttachmentDto dto = metadata.get(i);
                 MultipartFile file = files.get(i);
 
-                // Stocker les bytes en base de donnees
-                ContactAttachmentFile attachmentFile = new ContactAttachmentFile(
-                        message.getId(),
-                        dto.id(),
-                        file.getBytes(),
-                        dto.contentType(),
-                        dto.originalName(),
-                        dto.size()
-                );
-                attachmentFileRepository.save(attachmentFile);
+                // Octets lus maintenant : l'ecriture sur le stockage suit la validation du message.
+                pending.add(new ContactAttachmentStore.PendingAttachment(
+                        dto.id(), file.getBytes(), dto.contentType(), dto.originalName(), dto.size()));
 
                 updated.add(new ContactAttachmentDto(
                         dto.id(), dto.filename(), dto.originalName(), dto.size(), dto.contentType(), "db"
                 ));
             }
+            attachmentStore.storeAfterCommit(message.getId(), pending);
             message.setAttachments(serializeAttachments(updated));
             // L'entite dirty sera flushee au commit de la @Transactional
         } catch (Exception e) {

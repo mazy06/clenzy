@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +47,22 @@ public class ObjectInterventionPhotoStore implements InterventionPhotoBinaryStor
                                         OrganizationAccessGuard organizationAccessGuard) {
         this.client = client;
         this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    @Override
+    public String store(long organizationId, byte[] data, String contentType) {
+        final String key = "org/" + organizationId + "/intervention-photos/" + UUID.randomUUID();
+        client.put(key, data, contentType);
+        return key;
+    }
+
+    @Override
+    public void delete(String storageKey) {
+        if (storageKey == null) {
+            return;
+        }
+        assertReadableInCurrentOrg(storageKey);
+        client.delete(storageKey);
     }
 
     @Override

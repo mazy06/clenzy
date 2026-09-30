@@ -33,12 +33,13 @@ import static org.mockito.Mockito.when;
 class IssueControllerTest {
 
     @Mock private IssueService issueService;
+    @Mock private com.clenzy.service.IssuePhotoService issuePhotoService;
 
     private IssueController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new IssueController(issueService);
+        controller = new IssueController(issueService, issuePhotoService);
     }
 
     private Jwt jwtFor(String subject) {
