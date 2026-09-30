@@ -138,6 +138,50 @@ const fr: AcademyMessages = {
       ],
       chapters: ['Accroche', 'Le calcul', 'Ce que chacun coûte', 'Le seuil', 'La stratégie', 'L’équilibre', 'À retenir'],
     },
+    '03-delai-duree': {
+      title: 'Délai de réservation et durée de séjour',
+      description:
+        'Quand vos voyageurs réservent et combien de temps ils restent : deux chiffres qui disent quand agir sur vos prix et ce que coûte chaque réservation.',
+      learn: [
+        'Calculer le délai de réservation et savoir si vous êtes en retard',
+        'Mesurer la durée moyenne de séjour et son coût en ménages',
+        'Repérer et combler les nuits orphelines',
+      ],
+      chapters: ['Accroche', 'Le délai de réservation', 'La durée de séjour', 'Les nuits orphelines', 'Que faire de ces chiffres ?', 'À retenir'],
+    },
+    '04-qualite': {
+      title: 'Annulations, avis, temps de réponse',
+      description:
+        'Trois indicateurs de qualité qui peuvent freiner vos réservations : les annulations de votre fait, le nombre et la note de vos avis, votre réactivité.',
+      learn: [
+        'Calculer votre taux d’annulation et éviter celles de votre fait',
+        'Comprendre pourquoi le nombre d’avis protège votre note',
+        'Mesurer votre taux de réponse et répondre plus vite',
+      ],
+      chapters: ['Accroche', 'Les annulations', 'Les avis', 'La réactivité', 'Que faire ?', 'À retenir'],
+    },
+    '17-prix-dynamique': {
+      title: 'Le prix dynamique en 3 règles',
+      description:
+        'Un plancher calculé sur le coût réel d’une nuit, des week-ends au prix de la demande, une dernière minute par paliers : trois règles pour ne plus vendre au même prix toute l’année.',
+      learn: [
+        'Calculer votre prix plancher, commission de la plateforme comprise',
+        'Augmenter vos week-ends et repérer un prix trop bas',
+        'Baisser à la dernière minute sans passer sous le plancher',
+      ],
+      chapters: ['Accroche', 'Le plancher', 'Les week-ends', 'La dernière minute', 'En pratique', 'À retenir'],
+    },
+    '19-extras': {
+      title: 'Les extras qui rapportent',
+      description:
+        'Arrivée anticipée, départ tardif, transfert, activités GetYourGuide, Viator et Klook, extras sur mesure et packs : ce que vous pouvez vendre en plus du séjour, et quand le proposer.',
+      learn: [
+        'Choisir et chiffrer les extras de votre logement',
+        'Toucher une commission sur les activités de GetYourGuide, Viator et Klook',
+        'Créer vos extras sur mesure et vos packs, et les proposer au bon moment',
+      ],
+      chapters: ['Accroche', 'Vos services', 'Les activités', 'Sur mesure', 'Le bon moment', 'À retenir'],
+    },
   },
   program: program([
     'Les 3 KPI de base',
@@ -234,6 +278,50 @@ const en: AcademyMessages = {
       ],
       chapters: ['Introduction', 'The calculation', 'What each channel costs', 'The break-even point', 'The strategy', 'Finding the balance', 'Key takeaways'],
     },
+    '03-delai-duree': {
+      title: 'Booking lead time and length of stay',
+      description:
+        'When your guests book and how long they stay: two figures that tell you when to act on your prices and what each booking really costs.',
+      learn: [
+        'Calculate booking lead time and see whether you are behind',
+        'Measure average length of stay and its cost in cleanings',
+        'Spot and fill orphan nights',
+      ],
+      chapters: ['Introduction', 'Booking lead time', 'Length of stay', 'Orphan nights', 'What to do with these figures', 'Key takeaways'],
+    },
+    '04-qualite': {
+      title: 'Cancellations, reviews, response time',
+      description:
+        'Three quality indicators that can slow your bookings down: cancellations on your side, the number and rating of your reviews, and how fast you reply.',
+      learn: [
+        'Calculate your cancellation rate and avoid cancelling yourself',
+        'Understand why the number of reviews protects your rating',
+        'Measure your response rate and reply faster',
+      ],
+      chapters: ['Introduction', 'Cancellations', 'Reviews', 'Responsiveness', 'What to do', 'Key takeaways'],
+    },
+    '17-prix-dynamique': {
+      title: 'Dynamic pricing in 3 rules',
+      description:
+        'A floor based on the real cost of a night, weekends priced to demand, last-minute discounts in steps: three rules to stop charging the same price all year round.',
+      learn: [
+        'Calculate your floor price, platform commission included',
+        'Raise your weekend prices and spot a price that is too low',
+        'Lower prices at the last minute without going below the floor',
+      ],
+      chapters: ['Introduction', 'The floor', 'Weekends', 'Last minute', 'In practice', 'Key takeaways'],
+    },
+    '19-extras': {
+      title: 'Extras that pay',
+      description:
+        'Early check-in, late check-out, transfers, GetYourGuide, Viator and Klook activities, custom extras and bundles: what you can sell on top of the stay, and when to offer it.',
+      learn: [
+        'Choose and price the extras for your property',
+        'Earn a commission on GetYourGuide, Viator and Klook activities',
+        'Create custom extras and bundles, and offer them at the right time',
+      ],
+      chapters: ['Introduction', 'Your services', 'Activities', 'Custom extras', 'The right time', 'Key takeaways'],
+    },
   },
   program: program([
     'The 3 core KPIs',
@@ -329,6 +417,50 @@ const ar: AcademyMessages = {
         'إعادة ضيوفك مع احترام قواعد المنصات',
       ],
       chapters: ['المقدمة', 'الحساب', 'تكلفة كل قناة', 'نقطة التعادل', 'الاستراتيجية', 'التوازن', 'الخلاصة'],
+    },
+    '03-delai-duree': {
+      title: 'مهلة الحجز ومدة الإقامة',
+      description:
+        'متى يحجز ضيوفك وكم يقيمون: رقمان يخبرانك متى تتدخّل في أسعارك وكم تكلّفك كل حجز فعلاً.',
+      learn: [
+        'حساب مهلة الحجز ومعرفة إن كنت متأخراً',
+        'قياس متوسط مدة الإقامة وتكلفتها في التنظيف',
+        'اكتشاف الليالي اليتيمة وملؤها',
+      ],
+      chapters: ['المقدمة', 'مهلة الحجز', 'مدة الإقامة', 'الليالي اليتيمة', 'ماذا تفعل بهذه الأرقام؟', 'الخلاصة'],
+    },
+    '04-qualite': {
+      title: 'الإلغاءات والتقييمات وسرعة الرد',
+      description:
+        'ثلاثة مؤشرات جودة قد تُبطئ حجوزاتك: الإلغاءات من جهتك، وعدد تقييماتك ومعدّلها، وسرعة ردّك.',
+      learn: [
+        'حساب نسبة الإلغاء وتجنّب الإلغاء من جهتك',
+        'فهم لماذا يحمي عدد التقييمات معدّلك',
+        'قياس نسبة الرد والرد بشكل أسرع',
+      ],
+      chapters: ['المقدمة', 'الإلغاءات', 'التقييمات', 'سرعة الرد', 'ماذا تفعل؟', 'الخلاصة'],
+    },
+    '17-prix-dynamique': {
+      title: 'التسعير الديناميكي في 3 قواعد',
+      description:
+        'حدّ أدنى محسوب على التكلفة الفعلية لليلة، وعطلات نهاية أسبوع بسعر الطلب، وتخفيض في اللحظة الأخيرة على مراحل: ثلاث قواعد حتى لا تبيع بالسعر نفسه طوال السنة.',
+      learn: [
+        'حساب سعرك الأدنى مع احتساب عمولة المنصة',
+        'رفع أسعار عطلة نهاية الأسبوع واكتشاف السعر المنخفض أكثر من اللازم',
+        'التخفيض في اللحظة الأخيرة دون النزول تحت الحد الأدنى',
+      ],
+      chapters: ['المقدمة', 'الحد الأدنى', 'عطلات نهاية الأسبوع', 'اللحظة الأخيرة', 'في التطبيق', 'الخلاصة'],
+    },
+    '19-extras': {
+      title: 'الخدمات الإضافية المربحة',
+      description:
+        'الوصول المبكر، والمغادرة المتأخرة، والنقل، وأنشطة GetYourGuide وViator وKlook، والخدمات المخصّصة والباقات: ما يمكنك بيعه إضافةً إلى الإقامة، ومتى تعرضه.',
+      learn: [
+        'اختيار الخدمات الإضافية لمسكنك وتسعيرها',
+        'الحصول على عمولة من أنشطة GetYourGuide وViator وKlook',
+        'إنشاء خدماتك المخصّصة وباقاتك وعرضها في الوقت المناسب',
+      ],
+      chapters: ['المقدمة', 'خدماتك', 'الأنشطة', 'خدمات مخصّصة', 'الوقت المناسب', 'الخلاصة'],
     },
   },
   program: program([

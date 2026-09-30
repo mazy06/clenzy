@@ -86,6 +86,78 @@ export const ACADEMY_EPISODES: readonly AcademyEpisode[] = [
     "languages": [
       "fr"
     ]
+  },
+  {
+    "slug": "03-delai-duree",
+    "number": "03",
+    "theme": "piloter",
+    "uploadDate": "2026-09-29",
+    "duration": 122.6,
+    "chapters": [
+      0.2,
+      11.9,
+      47.9,
+      75.7,
+      94.3,
+      103.9
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "04-qualite",
+    "number": "04",
+    "theme": "piloter",
+    "uploadDate": "2026-09-29",
+    "duration": 100.4,
+    "chapters": [
+      0.2,
+      11.5,
+      36.6,
+      60.1,
+      76.2,
+      84
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "17-prix-dynamique",
+    "number": "17",
+    "theme": "revenus",
+    "uploadDate": "2026-09-30",
+    "duration": 143.1,
+    "chapters": [
+      0.2,
+      14.3,
+      49.4,
+      84.3,
+      109.9,
+      122.8
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "19-extras",
+    "number": "19",
+    "theme": "revenus",
+    "uploadDate": "2026-09-30",
+    "duration": 145.1,
+    "chapters": [
+      0.2,
+      13.8,
+      49.2,
+      86.7,
+      110.2,
+      125.7
+    ],
+    "languages": [
+      "fr"
+    ]
   }
 ];
 
