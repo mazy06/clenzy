@@ -1,0 +1,98 @@
+// Textes à l'écran du Reel 10 « Après le départ », par langue. FR : Maroc (Marrakech, MAD) ;
+// EN : Arabie saoudite (Riyad, SAR). Libellés des cartes repris du produit (actionVerbs :
+// « Retenir », « Verser », « Commander » ; WORK_REVIEW : valider / refuser le travail rendu).
+// Sous-titres réécrits par align-vo.py.
+window.STRINGS = {
+  fr: {
+    dir: 'ltr', illustrative: 'Scène illustrative',
+    mission: { kicker: 'Départ · 11:00', title: 'Ménage après départ', place: 'Riad Nour · Mar. 14 oct.', window: '11 h → 14 h', who: 'Amina', role: 'Équipe ménage', status: 'En cours' },
+    review: {
+      agent: 'Agent Opérations', tag: 'Contrôle du travail', wait: 'En attente', done: 'Fait',
+      title: 'Ménage terminé · Riad Nour',
+      copy: '6 photos, 2 h 40 réelles pour 3 h prévues, checklist complète.',
+      approve: 'Valider le travail', refuse: 'Refuser', dismiss: null,
+      doneText: 'Travail validé · solde dû à Amina', flag: 'Lampe de chevet cassée',
+    },
+    deposit: {
+      agent: 'Agent Finance', tag: 'Caution', wait: 'En attente', done: 'Fait',
+      title: 'Dégât constaté au départ · Riad Nour',
+      copy: 'Réparation de la lampe : 450 MAD. La caution de Sara est encore bloquée.',
+      grid: [['Caution', '1 500 MAD'], ['Retenue', '450 MAD'], ['Libéré', '1 050 MAD']],
+      withhold: 'Retenir 450 MAD', adjust: 'Ajuster', dismiss: 'Ignorer',
+      doneText: '450 MAD retenus · 1 050 MAD libérés',
+    },
+    payout: {
+      agent: 'Agent Opérations', tag: 'Versement', wait: 'En attente', done: 'Fait',
+      title: 'Paiement d’Amina débloqué',
+      rows: [['Mission', '180 MAD'], ['Preuve photo', 'Reçue'], ['Compte de paiement', 'Vérifié']],
+      pay: 'Verser 180 MAD', photos: 'Voir les photos', doneText: '180 MAD versés à Amina',
+    },
+    linen: {
+      agent: 'Agent Opérations', tag: 'Linge', wait: 'En attente', done: 'Fait',
+      title: 'Draps : 3 jeux restants, seuil 4',
+      copy: 'Commande de 10 jeux chez Blanchisserie Atlas, livrés au Riad Nour.',
+      order: 'Commander', edit: 'Modifier', doneText: 'Bon de commande envoyé à Blanchisserie Atlas',
+    },
+    promise: ['Tout est vérifié.', 'Rien n’est oublié.'],
+    cta: 'Rejoignez le pré-lancement',
+    facts: [['Photos', 'contrôle avant paiement'], ['Caution', 'retenue plafonnée'], ['AR · FR · EN', '']],
+    subtitles: [
+      { from: 0.35, to: 2.09, text: "11 h, ", em: "votre voyageur est parti." },
+      { from: 2.11, to: 4.09, text: "L'équipe de ménage prend le relais,", em: "" },
+      { from: 4.11, to: 6.31, text: "et Baitly suit la mission en direct.", em: "" },
+      { from: 6.51, to: 7.8, text: "Elle envoie ses photos,", em: "" },
+      { from: 7.82, to: 10.6, text: "et vous contrôlez le travail avant de le valider.", em: "" },
+      { from: 10.62, to: 14.19, text: "Sur l'une d'elles, un dégât : ", em: "la lampe de chevet est cassée." },
+      { from: 14.21, to: 18.01, text: "Une carte vous propose de retenir la réparation sur la caution.", em: "" },
+      { from: 18.03, to: 22.23, text: "Jamais plus que son montant : le reste est libéré, ", em: "automatiquement." },
+      { from: 22.25, to: 25.21, text: "La preuve photo débloque le paiement de votre équipe.", em: "" },
+      { from: 25.23, to: 27.35, text: "Et quand les draps viennent à manquer,", em: "" },
+      { from: 27.37, to: 29.6, text: "la commande part chez le fournisseur.", em: "" },
+    ],
+  },
+  en: {
+    dir: 'ltr', illustrative: 'Illustrative scene',
+    mission: { kicker: 'Checkout · 11:00', title: 'Cleaning after checkout', place: 'Nakheel Chalet · Tue, Oct 14', window: '11 am → 2 pm', who: 'Amina', role: 'Cleaning team', status: 'In progress' },
+    review: {
+      agent: 'Operations agent', tag: 'Work review', wait: 'Pending', done: 'Done',
+      title: 'Cleaning completed · Nakheel Chalet',
+      copy: '6 photos, 2 h 40 actual for 3 h planned, checklist complete.',
+      approve: 'Approve the work', refuse: 'Decline', dismiss: null,
+      doneText: 'Work approved · balance due to Amina', flag: 'Bedside lamp broken',
+    },
+    deposit: {
+      agent: 'Finance agent', tag: 'Deposit', wait: 'Pending', done: 'Done',
+      title: 'Damage found at checkout · Nakheel Chalet',
+      copy: 'Lamp repair: SAR 300. Sara’s deposit is still on hold.',
+      grid: [['Deposit', 'SAR 1,000'], ['Withheld', 'SAR 300'], ['Released', 'SAR 700']],
+      withhold: 'Withhold SAR 300', adjust: 'Adjust', dismiss: 'Ignore',
+      doneText: 'SAR 300 withheld · SAR 700 released',
+    },
+    payout: {
+      agent: 'Operations agent', tag: 'Payout', wait: 'Pending', done: 'Done',
+      title: 'Amina’s payment unlocked',
+      rows: [['Job', 'SAR 120'], ['Photo proof', 'Received'], ['Payout account', 'Verified']],
+      pay: 'Pay SAR 120', photos: 'See photos', doneText: 'SAR 120 paid to Amina',
+    },
+    linen: {
+      agent: 'Operations agent', tag: 'Linen', wait: 'Pending', done: 'Done',
+      title: 'Sheets: 3 sets left, threshold 4',
+      copy: 'Order 10 sets from Riyadh Linen Co., delivered to Nakheel Chalet.',
+      order: 'Order', edit: 'Edit', doneText: 'Purchase order sent to Riyadh Linen Co.',
+    },
+    promise: ['Everything checked.', 'Nothing forgotten.'],
+    cta: 'Join the pre-launch',
+    facts: [['Photos', 'checked before payment'], ['Deposit', 'capped withholding'], ['AR · FR · EN', '']],
+    subtitles: [
+      { from: 0.35, to: 2.59, text: "11 a.m., ", em: "your guest has checked out." },
+      { from: 2.61, to: 6.69, text: "Your cleaning team takes over, ", em: "and Baitly follows the job live." },
+      { from: 6.71, to: 10.07, text: "She sends her photos, ", em: "and you check the work before approving it." },
+      { from: 10.09, to: 12.98, text: "One of them shows damage: the bedside lamp is broken.", em: "" },
+      { from: 13.18, to: 16.18, text: "A card suggests withholding the repair from the deposit.", em: "" },
+      { from: 16.2, to: 20.17, text: "Never more than the deposit itself: the rest is released automatically.", em: "" },
+      { from: 20.37, to: 22.44, text: "The photo proof releases your team's payment.", em: "" },
+      { from: 22.46, to: 23.75, text: "And when the sheets run low,", em: "" },
+      { from: 23.77, to: 25.83, text: "the order goes straight to your supplier.", em: "" },
+    ],
+  },
+};

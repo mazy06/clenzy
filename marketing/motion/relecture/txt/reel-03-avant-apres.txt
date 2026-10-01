@@ -1,0 +1,428 @@
+==============================================================================
+REEL 03 · AVANT-APRÈS — Une journée d’hôte, sans et avec Baitly (écran scindé)
+Format 9:16 (1080×1920) · 46 s · langues : FR · EN · AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 4,0 s · durée visée 3,3 s]
+      Même journée. Mêmes logements. … Deux façons de la vivre.
+  b2  [4,2 s → 12,0 s · durée visée 6,7 s]
+      Huit heures. … Un voyageur demande le code wifi. Puis un autre, sur Booking.com. Et un troisième, par e-mail.
+  b3  [12,2 s → 20,0 s · durée visée 6,7 s]
+      Onze heures. … Un départ tardif. Il faut prévenir le ménage, décaler la mission, modifier le tableau, rappeler l'équipe.
+  b4  [20,2 s → 28,0 s · durée visée 7,0 s]
+      Seize heures. … Trois nuits restent vides la semaine prochaine. On compare les annonces… Baisser le prix ? De combien ?
+  b5  [28,2 s → 36,0 s · durée visée 6,7 s]
+      Dix-neuf heures. … Un voyageur arrive. D'un côté, on court chercher les clés. … De l'autre, on accueille, tout simplement.
+  b6  [36,2 s → 40,6 s · durée visée 3,7 s]
+      Bètli prend les coulisses en main. Vous, vous gardez l'accueil.
+  b7  [40,8 s → 45,6 s · durée visée 4,1 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,3–4 s]  Même journée. Mêmes logements. [Deux façons de la vivre.]
+  ST2  [4,1–7,3 s]  8 h. Un voyageur demande le code wifi. Puis un autre, [sur Booking.com.]
+  ST3  [7,4–12 s]  Et un troisième, [par e-mail.]
+  ST4  [12,1–14,6 s]  11 h. Un départ tardif. [Il faut prévenir le ménage,]
+  ST5  [14,7–20 s]  décaler la mission, modifier le tableau, [rappeler l'équipe.]
+  ST6  [20,1–24,2 s]  16 h. [Trois nuits restent vides la semaine prochaine.]
+  ST7  [24,3–28 s]  On compare les annonces… Baisser le prix ? [De combien ?]
+  ST8  [28,1–31,4 s]  19 h. Un voyageur arrive. D'un côté, [on court chercher les clés.]
+  ST9  [31,5–36 s]  De l'autre, on accueille, [tout simplement.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Maquette d’interface (libellé)
+      E2  Sans
+      E3  Avec Baitly
+      E4  Même journée.
+      E5  Mêmes logements.
+      E6  Deux façons de la vivre.
+  · Notification sur écran verrouillé
+      E7  Sara · Airbnb
+      E8  Bonjour ! Quel est le code wifi ?
+      E9  Omar · Booking.com
+      E10  Hi! What’s the wifi password?
+      E12  Karim · E-mail
+      E13  Le wifi ne fonctionne pas…
+  · Maquette d’interface (libellé)
+      E14  Copier · coller
+      E15  Messagerie unifiée
+      E16  Réponse proposée
+      E17  Tirée du livret
+      E18  Bonjour ! Réseau
+      E19  RiadNour
+      E20  , mot de passe
+      E21  noursalam26
+      E22  . Bon séjour !
+  · Bouton (maquette) : rester court
+      E23  Envoyer aux 3 voyageurs
+  · Maquette d’interface (libellé)
+      E24  Envoyé aux 3 voyageurs
+      E25  Répondu
+      E26  Appel en cours
+      E27  Équipe ménage
+      E28  planning-menage.xlsx
+      E29  Logement
+      E30  Lun
+      E31  Mar
+      E32  Mer
+      E33  Riad Nour
+      E36  Ménage 11 h
+      E37  Villa Palmeraie
+      E38  Ménage 10 h
+      E41  14 h ?
+      E42  Message vocal
+      E43  Ménage après départ
+      E44  Mer. 14 oct. ·
+      E45  11 h
+      E46  14 h
+      E47  Équipe ménage prévenue
+      E48  Départ tardif accepté
+      E49  Le ménage s’est replanifié tout seul.
+      E50  Onglets de comparaison
+  · Onglet / étape (maquette) : rester court
+      E51  Annonce A
+      E52  Annonce B
+      E53  Annonce C
+  · Maquette d’interface (libellé)
+      E54  Riad avec patio · Médina
+      E55  Dar avec terrasse · Médina
+      E56  Riad avec piscine · Médina
+      E57  MAD / nuit
+      E58  Baisser ? De combien ?
+      E59  Votre semaine, vos règles
+  · Onglet / étape (maquette) : rester court
+      E60  Calme
+      E61  Habituelle
+      E62  Soutenue
+  · Maquette d’interface (libellé)
+      E63  Lun
+      E64  Mar
+      E65  Mer
+      E66  Jeu
+      E67  Ven
+      E68  Sam
+      E69  Dim
+      E70  Plancher 680
+      E71  MAD / nuit
+      E72  3 nuits creuses :
+      E73  760 → 700 MAD
+      E74  , plancher respecté.
+  · Bouton (maquette) : rester court
+      E75  Approuver
+  · Maquette d’interface (libellé)
+      E76  Approuvé
+      E77  Remise des clés
+      E78  Le voyageur attend devant la porte
+      E79  Vous
+      E80  Riad Nour
+      E81  Nouveau message · Airbnb
+      E82  Paiement à vérifier
+      E83  Avis à répondre
+      E84  Ménage : où est la clé ?
+      E85  Riad Nour
+  · Texte secondaire à l’écran
+      E86  Entrée principale
+  · Maquette d’interface (libellé)
+      E87  Code valable pendant le séjour
+      E88  Accès actif
+      E89  Instructions d’arrivée envoyées à Sara
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E90  Baitly prend les coulisses.
+      E91  Vous gardez [l’accueil.]
+  · Bouton de l’écran de fin
+      E92  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E93  Messagerie
+      E94  unifiée
+      E95  agents IA
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 4,0 s · durée visée 2,8 s]
+      Same day. Same homes. … Two ways to live it.
+  b2  [4,2 s → 12,0 s · durée visée 6,6 s]
+      Eight a.m. … A guest asks for the wifi code. Then another one, on Booking.com. And a third one, by email.
+  b3  [12,2 s → 20,0 s · durée visée 6,7 s]
+      Eleven a.m. … A late checkout. Warn housekeeping, move the job, update the spreadsheet, call the team back.
+  b4  [20,2 s → 28,0 s · durée visée 7,1 s]
+      Four p.m. … Three nights are still empty next week. You compare listings… Should you lower the price? By how much?
+  b5  [28,2 s → 36,0 s · durée visée 7,1 s]
+      Seven p.m. … A guest arrives. On one side, you run to hand over the keys. … On the other, you simply welcome them.
+  b6  [36,2 s → 40,6 s · durée visée 3,9 s]
+      Betly takes care of the backstage. You get to keep the welcome.
+  b7  [40,8 s → 45,6 s · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,3–4 s]  Same day. Same homes. [Two ways to live it.]
+  ST2  [4,1–7,3 s]  8 a.m. A guest asks for the wifi code. Then another one, [on Booking.com.]
+  ST3  [7,4–12 s]  And a third one, [by email.]
+  ST4  [12,1–14,6 s]  11 a.m. A late checkout. Warn housekeeping, [move the job,]
+  ST5  [14,7–20 s]  update the spreadsheet, [call the team back.]
+  ST6  [20,1–24,2 s]  4 p.m. [Three nights are still empty next week.]
+  ST7  [24,3–28 s]  You compare listings… Should you lower the price? [By how much?]
+  ST8  [28,1–31,4 s]  7 p.m. A guest arrives. [On one side,]
+  ST9  [31,5–36 s]  you run to hand over the keys. [On the other,]
+  ST10  [31,13–32,91 s]  you simply welcome them.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Maquette d’interface (libellé)
+      E2  Without
+      E3  With Baitly
+      E4  Same day.
+      E5  Same homes.
+      E6  Two ways to live it.
+  · Notification sur écran verrouillé
+      E7  Sara · Airbnb
+      E8  Hello! What’s the wifi code?
+      E9  Omar · Booking.com
+      E10  Hi, wifi password please?
+      E12  Karim · Email
+      E13  The wifi isn’t working…
+  · Maquette d’interface (libellé)
+      E14  Copy · paste
+      E15  Unified inbox
+      E16  Suggested reply
+      E17  From the guidebook
+      E18  Hello! Network
+      E19  Nakheel
+      E20  , password
+      E21  palmtree26
+      E22  . Enjoy your stay!
+  · Bouton (maquette) : rester court
+      E23  Send to 3 guests
+  · Maquette d’interface (libellé)
+      E24  Sent to 3 guests
+      E25  Answered
+      E26  Call in progress
+      E27  Cleaning team
+      E28  cleaning-schedule.xlsx
+      E29  Property
+      E30  Mon
+      E31  Tue
+      E32  Wed
+      E33  Nakheel Chalet
+      E36  Clean 11 am
+      E37  Diriyah Villa
+      E38  Clean 10 am
+      E41  2 pm?
+      E42  Voice message
+      E43  Cleaning after checkout
+      E44  Wed, Oct 14 ·
+      E45  11 am
+      E46  2 pm
+      E47  Cleaning team notified
+      E48  Late checkout accepted
+      E49  Cleaning rescheduled itself.
+      E50  Comparison tabs
+  · Onglet / étape (maquette) : rester court
+      E51  Listing A
+      E52  Listing B
+      E53  Listing C
+  · Maquette d’interface (libellé)
+      E54  Chalet with pool · Riyadh
+      E55  Istiraha with garden · Riyadh
+      E56  Villa with terrace · Riyadh
+      E57  SAR / night
+      E58  Lower it? By how much?
+      E59  Your week, your rules
+  · Onglet / étape (maquette) : rester court
+      E60  Quiet
+      E61  Usual
+      E62  Busy
+  · Maquette d’interface (libellé)
+      E63  Mon
+      E64  Tue
+      E65  Wed
+      E66  Thu
+      E67  Fri
+      E68  Sat
+      E69  Sun
+      E70  Floor 450
+      E71  SAR / night
+      E72  3 empty nights:
+      E73  520 → 480 SAR
+      E74  , floor respected.
+  · Bouton (maquette) : rester court
+      E75  Approve
+  · Maquette d’interface (libellé)
+      E76  Approved
+      E77  Key handover
+      E78  The guest is waiting at the door
+      E79  You
+      E80  Nakheel Chalet
+      E81  New message · Airbnb
+      E82  Payment to check
+      E83  Review to answer
+      E84  Cleaning: where’s the key?
+      E85  Nakheel Chalet
+  · Texte secondaire à l’écran
+      E86  Main entrance
+  · Maquette d’interface (libellé)
+      E87  Code valid for the stay
+      E88  Access active
+      E89  Arrival instructions sent to Sara
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E90  Baitly runs the backstage.
+      E91  You keep the [welcome.]
+  · Bouton de l’écran de fin
+      E92  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E93  Unified
+      E94  inbox
+      E95  AI agents
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 4,0 s · durée visée 3,6 s]
+      اليومُ نفسُه. العقاراتُ نفسُها. … وطريقتان لعيشِه.
+  b2  [4,2 s → 12,0 s · durée visée 5,2 s]
+      الثامنةُ صباحاً. … ضيفٌ يسألُ عن رمزِ الواي فاي. ثم آخر، على قناةٍ أخرى.
+  b3  [12,2 s → 20,0 s · durée visée 6,2 s]
+      الحاديةَ عشرة. … مغادرةٌ متأخرة. إبلاغُ التنظيف، وتأجيلُ المهمة، ومعاودةُ الاتصالِ بالفريق.
+  b4  [20,2 s → 28,0 s · durée visée 6,0 s]
+      الرابعةُ عصراً. … ثلاثُ ليالٍ شاغرة الأسبوعَ المقبل. هل نخفضُ السعر؟ … وبكم؟
+  b5  [28,2 s → 36,0 s · durée visée 5,4 s]
+      السابعةُ مساءً. … يصلُ ضيف. في جهةٍ نركض. … وفي الأخرى نستقبل.
+  b6  [36,2 s → 40,6 s · durée visée 3,6 s]
+      بيتلي يتولّى الكواليس. وأنت تستقبلُ ضيوفك.
+  b7  [40,8 s → 45,6 s · durée visée 3,4 s]
+      انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [0,3–4 s]  اليوم نفسه. العقارات نفسها. [وطريقتان لعيشه.]
+  ST2  [4,1–7,3 s]  الثامنة صباحاً. [ضيف يسأل عن رمز الواي فاي.]
+  ST3  [7,4–12 s]  ثم آخر، [على قناة أخرى.]
+  ST4  [12,1–14,6 s]  الحادية عشرة. [مغادرة متأخرة.]
+  ST5  [14,7–20 s]  إبلاغ التنظيف، وتأجيل المهمة، [ومعاودة الاتصال بالفريق.]
+  ST6  [20,1–24,2 s]  الرابعة عصراً. [ثلاث ليالٍ شاغرة الأسبوع المقبل.]
+  ST7  [24,3–28 s]  نخفض السعر؟ [بكم؟]
+  ST8  [28,1–31,4 s]  السابعة مساءً. [يصل ضيف.]
+  ST9  [31,5–36 s]  في جهة نركض، [وفي الأخرى نستقبل.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  مشهد توضيحي
+  · Maquette d’interface (libellé)
+      E2  بدون
+      E3  مع بيتلي
+      E4  اليوم نفسه.
+      E5  العقارات نفسها.
+      E6  وطريقتان لعيشه.
+  · Notification sur écran verrouillé
+      E7  سارة · Airbnb
+      E8  مرحباً! ما رمز الواي فاي؟
+      E9  عمر · Booking.com
+      E10  Hi, wifi password please?
+      E12  كريم · البريد
+      E13  الواي فاي لا يعمل…
+  · Maquette d’interface (libellé)
+      E14  نسخ · لصق
+      E15  صندوق رسائل موحّد
+      E16  رد مقترح
+      E17  من دليل الضيف
+      E18  مرحباً! الشبكة
+      E19  Nakheel
+      E20  ، وكلمة المرور
+      E21  palmtree26
+      E22  . إقامة سعيدة!
+  · Bouton (maquette) : rester court
+      E23  إرسال إلى 3 ضيوف
+  · Maquette d’interface (libellé)
+      E24  أُرسل إلى 3 ضيوف
+      E25  تم الرد
+      E26  مكالمة جارية
+      E27  فريق التنظيف
+      E28  جدول-التنظيف.xlsx
+      E29  العقار
+      E30  الاثنين
+      E31  الثلاثاء
+      E32  الأربعاء
+      E33  شاليه النخيل
+      E36  تنظيف 11 ص
+      E37  فيلا الدرعية
+      E38  تنظيف 10 ص
+      E41  2 م؟
+      E42  رسالة صوتية
+      E43  التنظيف بعد المغادرة
+      E44  الأربعاء 14 أكتوبر ·
+      E45  11 ص
+      E46  2 م
+      E47  أُبلغ فريق التنظيف
+      E48  قُبلت المغادرة المتأخرة
+      E49  أُعيدت جدولة التنظيف تلقائياً.
+      E50  تبويبات المقارنة
+  · Onglet / étape (maquette) : rester court
+      E51  إعلان أ
+      E52  إعلان ب
+      E53  إعلان ج
+  · Maquette d’interface (libellé)
+      E54  شاليه بمسبح · الرياض
+      E55  استراحة بحديقة · الرياض
+      E56  فيلا بشرفة · الرياض
+      E57  ر.س / ليلة
+      E58  نخفض السعر؟ بكم؟
+      E59  أسبوعك، قواعدك
+  · Onglet / étape (maquette) : rester court
+      E60  هادئ
+      E61  معتاد
+      E62  مرتفع
+  · Maquette d’interface (libellé)
+      E63  الاثنين
+      E64  الثلاثاء
+      E65  الأربعاء
+      E66  الخميس
+      E67  الجمعة
+      E68  السبت
+      E69  الأحد
+      E70  الحد الأدنى 450
+      E71  ر.س / ليلة
+      E72  3 ليالٍ شاغرة:
+      E73  520 ← 480 ر.س
+      E74  ، مع احترام الحد الأدنى.
+  · Bouton (maquette) : rester court
+      E75  اعتماد
+  · Maquette d’interface (libellé)
+      E76  معتمد
+      E77  تسليم المفاتيح
+      E78  الضيف ينتظر أمام الباب
+      E79  أنت
+      E80  شاليه النخيل
+      E81  رسالة جديدة · Airbnb
+      E82  دفعة للتحقق
+      E83  تقييم بانتظار الرد
+      E84  التنظيف: أين المفتاح؟
+      E85  شاليه النخيل
+  · Texte secondaire à l’écran
+      E86  المدخل الرئيسي
+  · Maquette d’interface (libellé)
+      E87  رمز صالح طوال الإقامة
+      E88  الدخول مفعّل
+      E89  أُرسلت تعليمات الوصول إلى سارة
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E90  بيتلي يتولّى الكواليس.
+      E91  وأنت [تستقبل] ضيوفك.
+  · Bouton de l’écran de fin
+      E92  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E93  صندوق
+      E94  رسائل موحّد
+      E95  وكلاء ذكاء اصطناعي

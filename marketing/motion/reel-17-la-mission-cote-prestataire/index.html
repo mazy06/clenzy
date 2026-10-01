@@ -1,0 +1,198 @@
+<!doctype html>
+<!--
+  Baitly · Reel 17 « La mission, côté prestataire » (Instagram, 1080 × 1920) · FR
+
+  À quoi sert ce fichier : montrer une mission du point de vue du prestataire, dans son téléphone,
+  pour l'inviter à préparer son profil. Pilotée par le temps via le kit partagé ; les plans suivent
+  la voix (slots recalés par align-vo.py).
+  Scène signature : le téléphone du prestataire (écran verrouillé → fiche de mission → checklist et
+  photos → validée), avec à droite ce que voit l'hôte.
+  Déroulé : 11 h, la mission arrive (arrivée suivante à 15 h) → adresse, accès, consignes, checklist
+  → cases cochées, photos de fin, l'hôte suit l'avancement → validée, règlement tracé → promesse →
+  fin (Préparer mon profil · baitly.fr/prestataires).
+  Vérité produit : parcours de la page Prestataires (« Examiner une mission », « Partager le travail
+  réalisé », « Suivre la validation »), réseau en préparation ; règlement « selon les modalités
+  convenues » ; mission fictive, « Scène illustrative ».
+  Rendu : node ../render.mjs reel-17-la-mission-cote-prestataire --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 17 La mission, côté prestataire</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* Colonne de droite (le téléphone occupe la gauche) */
+.side { left: 600px; width: 420px; }
+#clk { top: 470px; display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
+#clk .cc { display: flex; flex-direction: column; gap: 10px; opacity: 0; }
+#clk .cc small { font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); }
+#clk .cc.arr .clockchip { background: var(--terre); }
+/* Écran : fiche de mission (repère 390 px) */
+.ms { background: #F7FBFC; display: flex; flex-direction: column; }
+.ms > img { width: 100%; height: 190px; object-fit: cover; }
+.ms .in { padding: 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ms .mt { font-family: 'BSG', sans-serif; font-weight: 700; font-size: 25px; color: #1B2A35; }
+.ms .mp { font-size: 15px; color: #526674; margin-top: -6px; }
+.ms .mr { display: flex; align-items: center; gap: 10px; background: #FFFFFF; border-radius: 14px; padding: 13px 12px; box-shadow: 0 1px 2px rgba(27,42,53,.08); }
+.ms .mr .ic { width: 34px; height: 34px; border-radius: 10px; background: #E1E9F0; color: #25406E; display: flex; align-items: center; justify-content: center; flex: none; }
+.ms .mr small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #7A5230; }
+.ms .mr b { display: block; font-size: 17px; color: #1B2A35; }
+.ms .mr.hi { box-shadow: 0 0 0 2px #25406E; }
+.ms .home, .ck .home { position: absolute; bottom: 10px; left: 50%; width: 130px; height: 5px; margin-left: -65px; border-radius: 3px; background: rgba(27,42,53,.5); }
+/* Écran : checklist + photos */
+.ck { background: #F7FBFC; padding: 56px 16px 0; display: flex; flex-direction: column; gap: 8px; }
+.ck .hd { display: flex; justify-content: space-between; align-items: baseline; font-family: 'BSG', sans-serif; font-weight: 700; font-size: 25px; color: #1B2A35; }
+.ck .hd span { font-size: 15px; color: #526674; }
+.ck .ci { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border-radius: 14px; padding: 14px 12px; box-shadow: 0 1px 2px rgba(27,42,53,.08); font-size: 18px; color: #1B2A35; }
+.ck .box { width: 26px; height: 26px; border-radius: 8px; border: 2px solid #CBD5E1; display: flex; align-items: center; justify-content: center; color: #FDFDFE; flex: none; }
+.ck .ci.on .box { background: #0D9488; border-color: #0D9488; }
+.ck .ci.on span { color: #526674; text-decoration: line-through; }
+.ck .pl { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #7A5230; margin-top: 6px; }
+.ck .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ck .thumbs img { width: 100%; height: 104px; object-fit: cover; border-radius: 12px; opacity: 0; }
+.flash { position: absolute; inset: 0; background: #FDFDFE; opacity: 0; pointer-events: none; }
+#stampV { left: 150px; top: 760px; }
+/* Plan B : l'élément que la voix cite, repris en grand à droite du téléphone */
+#call { top: 560px; height: 380px; }
+#call .cv { position: absolute; inset: 0; padding: 30px 28px; display: flex; flex-direction: column; gap: 16px; opacity: 0; }
+#call .cv .ic { width: 76px; height: 76px; border-radius: 22px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; }
+#call .cv small { font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); }
+#call .cv b { font-family: var(--fd); font-size: 40px; font-weight: 700; line-height: 1.15; color: var(--n700); }
+/* Côté hôte */
+#hostc { top: 480px; padding: 26px 26px 24px; opacity: 0; }
+#hostc .hh { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+#hostc .hh img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+#hostc .hh b { font-family: var(--fd); font-size: 28px; font-weight: 600; }
+#hostc .pr { display: flex; justify-content: space-between; align-items: baseline; margin-top: 20px; font-size: 22px; color: var(--ardoise); font-weight: 600; }
+#hostc .pr b { font-family: var(--fd); font-size: 30px; color: var(--n700); }
+#hostc .dn { display: flex; align-items: center; gap: 10px; margin-top: 20px; font-size: 23px; font-weight: 700; color: #0C7166; opacity: 0; }
+#hostc .rows { opacity: 0; margin-top: 6px; }
+#hostc .kv { font-size: 22px; }
+#hostc .nt { font-size: 19px; color: var(--ardoise); margin-top: 8px; opacity: 0; }
+/* Promesse */
+#promise { left: 60px; width: 960px; top: 640px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .eyebrow { opacity: 0; }
+#promise .title { font-size: 84px; opacity: 0; text-wrap: balance; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const PH = '../../brand-book/assets/photos/';
+
+/* Le téléphone du prestataire (seul téléphone du Reel) */
+const ph = K.phone({ left: 60, top: 300 });
+const L = T.lock;
+const ls = K.lockScreen({ photo: 'bedroom.jpg', date: L.date, time: L.time,
+  notifs: [{ app: L.app, when: L.when, title: L.title, body: L.body, icon: 'broom', bg: '#25406E' }] });
+ph.scaler.append(ls.layer);
+
+/* A · 11 h, 15 h */
+const clk = K.abs('clk', 'side');
+const ccs = T.clock.map(([label, hour], i) => { const e = h('div', { class: 'cc' + (i ? ' arr' : '') }, h('small', {}, label), h('span', { class: 'clockchip' }, icon('clock', 34), h('b', {}, hour))); clk.append(e); return e; });
+
+/* B · la fiche de mission */
+const M = T.mission;
+const mrs = M.rows.map(([ic, k, v]) => h('div', { class: 'mr' }, h('span', { class: 'ic' }, icon(ic, 18)), h('div', {}, h('small', {}, k), h('b', {}, v))));
+const ms = h('div', { class: 'layer ms' }, h('img', { src: PH + 'operationsBed.webp', alt: '' }),
+  h('div', { class: 'in' }, h('div', { class: 'mt' }, M.title), h('div', { class: 'mp' }, M.prop), mrs), h('div', { class: 'home' }));
+ph.scaler.append(ms);
+const call = K.abs('call', 'card side');
+const cvs = M.rows.map(([ic, k, v]) => { const e = h('div', { class: 'cv' }, h('span', { class: 'ic' }, icon(ic, 40)), h('small', {}, k), h('b', {}, v)); call.append(e); return e; });
+
+/* C · checklist, photos */
+const C = T.check;
+const items = C.items.map((x) => { const box = h('span', { class: 'box' }, icon('check', 16)); return { el: h('div', { class: 'ci' }, box, h('span', {}, x)), box }; });
+const count = h('span', {}, '0/5');
+const thumbs = ['bedroom.jpg', 'operationsProof.webp', 'pricingRoom.webp'].map((f) => h('img', { src: PH + f, alt: '' }));
+const flash = h('div', { class: 'flash' });
+const ck = h('div', { class: 'layer ck' }, h('div', { class: 'hd' }, C.title, count), ...items.map((i) => i.el),
+  h('div', { class: 'pl' }, C.photos), h('div', { class: 'thumbs' }, thumbs), flash, h('div', { class: 'home' }));
+ph.scaler.append(ck);
+const stampV = K.stamp(C.valid);
+stampV.id = 'stampV';
+K.stage.append(stampV);
+
+/* Côté hôte */
+const Hs = T.host;
+const hostc = K.abs('hostc', 'card side');
+const hTrack = K.progressTrack(5);
+const hCount = h('b', {}, '0/5');
+const hDone = h('div', { class: 'dn' }, icon('ccheck', 28), Hs.done);
+const hRows = h('div', { class: 'rows' }, Hs.rows.map(([k, v]) => h('div', { class: 'kv' }, h('span', {}, k), h('b', {}, v))));
+const hNote = h('div', { class: 'nt' }, Hs.note);
+hostc.append(h('span', { class: 'eyebrow' }, Hs.head), h('div', { class: 'hh' }, h('img', { src: '../../brand-book/assets/guests/g9.jpg', alt: '' }), h('b', {}, Hs.name)),
+  h('div', { class: 'pr' }, h('span', {}, Hs.progress), hCount), hTrack.el, hDone, hRows, hNote);
+
+/* Promesse puis fin */
+const promise = K.abs('promise');
+const eb = h('span', { class: 'eyebrow' }, T.eyebrow);
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(eb, p1, p2);
+K.endMount();
+
+const rise = (el, o, p, dy = 40) => set(el, { opacity: o * p, transform: `translateY(${lerp(dy, 0, p)}px)` });
+// Cases cochées : les quatre premières à partir de « cochez », la cinquième après les photos.
+const tickAt = (i) => (i < 4 ? SYNC.tick + i * .45 : SYNC.photo + 1.0);
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) pts = items.map((i) => { const r = K.posIn(i.box, ck); return ph.toStage(r.x + 13, r.y + 13); });
+  const [a0] = slot(0), [a1] = slot(1), [a2] = slot(2), [a3] = slot(3), [a4, b4] = slot(4);
+
+  /* Téléphone : visible des plans A à D, écrans en fondu enchaîné */
+  const vPh = Math.min(easeOut(prog(t, a0, .6)), 1 - easeIn(prog(t, a4 - .4, .4)));
+  set(ph.el, { opacity: vPh, transform: `translateY(${lerp(80, 0, easeOut(prog(t, a0, .7)))}px)` });
+  ls.layer.style.opacity = 1 - easeOut(prog(t, a1 - .2, .4));
+  ms.style.opacity = easeOut(prog(t, a1 - .2, .4)) * (1 - easeOut(prog(t, a2 - .2, .4)));
+  ck.style.opacity = easeOut(prog(t, a2 - .2, .4));
+
+  /* A */
+  const n = easeOut(prog(t, SYNC.notif, .5));
+  set(ls.notifEls[0], { opacity: n, transform: `translateY(${lerp(-30, 0, n)}px)` });
+  const v0 = slotVis(t, 0, .45, .4);
+  rise(ccs[0], v0, easeOut(prog(t, a0 + .3, .5)), 24);
+  rise(ccs[1], v0, easeOut(prog(t, SYNC.arrive - .1, .5)), 24);
+
+  /* B · les éléments de la mission, au fil des mots */
+  const ds = [SYNC.d1, SYNC.d2, SYNC.d3, SYNC.d4];
+  mrs.forEach((r, i) => { const p = easeOut(prog(t, a1 + .2 + i * .12, .4)); set(r, { opacity: p, transform: `translateY(${lerp(10, 0, p)}px)` }); r.classList.toggle('hi', t >= ds[i] - .1 && (i === 3 ? t < a2 : t < ds[i + 1] - .1)); });
+  const v1 = slotVis(t, 1);
+  rise(call, v1, easeOut(prog(t, ds[0] - .2, .45)), 30);
+  cvs.forEach((c, i) => { const inP = easeOut(prog(t, ds[i] - .1, .3)), out = i === 3 ? 0 : easeIn(prog(t, ds[i + 1] - .15, .15)); set(c, { opacity: inP * (1 - out), transform: `translateY(${lerp(14, 0, inP)}px)` }); });
+
+  /* C · cocher, photographier ; l'hôte suit */
+  let done = 0;
+  items.forEach((it, i) => { const on = t >= tickAt(i); it.el.classList.toggle('on', on); if (on) done++; K.tapAt(t, tickAt(i) - .15, pts[i]); });
+  count.textContent = done + '/5';
+  thumbs.forEach((im, i) => { const p = easeOut(prog(t, SYNC.photo + i * .28, .35)); set(im, { opacity: p, transform: `scale(${lerp(1.08, 1, p)})` }); });
+  flash.style.opacity = [0, 1, 2].reduce((m, i) => Math.max(m, Math.sin(Math.PI * Math.min(1, Math.max(0, (t - SYNC.photo - i * .28) / .2))) * .8), 0);
+  const vh = Math.min(easeOut(prog(t, SYNC.host - .1, .5)), 1 - easeIn(prog(t, a4 - .4, .4)));
+  rise(hostc, vh, easeOut(prog(t, SYNC.host - .1, .5)), 30);
+  hTrack.set(done / 5);
+  hCount.textContent = done + '/5';
+
+  /* D · validée, règlement tracé */
+  K.stampIn(stampV, t, SYNC.valid, -6);
+  if (t >= a4 - .4) stampV.style.opacity = String(Math.min(+stampV.style.opacity || 0, 1 - easeIn(prog(t, a4 - .4, .4))));
+  hDone.style.opacity = easeOut(prog(t, SYNC.valid + .3, .4));
+  hRows.style.opacity = easeOut(prog(t, SYNC.pay - .1, .4));
+  hNote.style.opacity = easeOut(prog(t, SYNC.pay + .4, .4));
+
+  /* E */
+  const v4 = slotVis(t, 4, .5, .35);
+  rise(eb, v4, easeOut(prog(t, a4, .5)), 16);
+  rise(p1, v4, easeOut(prog(t, a4 + .1, .55)), 24);
+  rise(p2, v4, easeOut(prog(t, a4 + (b4 - a4) * .5, .55)), 24);
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

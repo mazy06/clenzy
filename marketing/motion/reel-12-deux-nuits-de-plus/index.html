@@ -1,0 +1,208 @@
+<!doctype html>
+<!--
+  Baitly · Reel 12 « Deux nuits de plus » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : l'animation de la prolongation de séjour (BESOINS-ET-SERVICES.md §10),
+  pilotée par le temps via le kit partagé ; les plans suivent la voix (slots recalés par align-vo.py).
+  Composants réels repris : messagerie unifiée (ligne de conversation + intention détectée), carte
+  HITL `STAY_MODIFICATION`, page publique de l'avenant, planning (brique qui s'allonge, ménage),
+  pass d'accès (L12).
+  Déroulé : dimanche matin, le message de la voyageuse arrive → carte « Envoyer l'avenant », clic →
+  la voyageuse accepte sur son téléphone → le planning suit : brique +2 nuits, ménage décalé, nouveau
+  code, total mis à jour → promesse → fin.
+  Rendu : node ../render.mjs reel-12-deux-nuits-de-plus --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 12 Deux nuits de plus</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · le message */
+#ph0 { left: 80px; top: 150px; width: 920px; height: 560px; opacity: 0; }
+#clock { left: 110px; top: 180px; opacity: 0; }
+#clock .clockchip { background: rgba(247,251,252,.95); color: var(--n700); font-size: 30px; padding: 12px 22px; }
+#clock .clockchip svg { color: #B45733; }
+#inbox { left: 80px; width: 920px; top: 650px; padding: 26px 30px 28px; opacity: 0; }
+#inbox .ih { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 28px; font-weight: 600; padding-bottom: 16px; border-bottom: 1.5px solid #EEF2F5; }
+#inbox .ih svg { color: var(--n600); }
+#inbox .row { display: flex; align-items: flex-start; gap: 16px; margin-top: 20px; }
+#inbox .row img.av { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex: none; }
+#inbox .nm { display: flex; align-items: center; gap: 10px; font-size: 25px; font-weight: 700; }
+#inbox .nm img { width: 26px; height: 26px; }
+#inbox .nm span { margin-inline-start: auto; font-size: 21px; font-weight: 600; color: var(--ardoise); }
+#inbox .bub { margin-top: 10px; font-size: 27px; opacity: 0; }
+#inbox .chat-b.dots { background: #F1F5F7; margin-top: 10px; width: 90px; }
+#intent { margin-top: 18px; opacity: 0; }
+/* B · la carte */
+#c1 { left: 80px; top: 330px; opacity: 0; }
+.strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 18px; }
+.strip .d { height: 96px; border-radius: 16px; background: #F4F7F9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: inset 0 0 0 1.5px #E1E9F0; }
+.strip .d span { font-size: 18px; font-weight: 700; color: #98A4AB; }
+.strip .d b { font-family: var(--fd); font-size: 28px; color: #1B2A35; }
+.strip .d.bk { background: #5C3A21; box-shadow: none; } .strip .d.bk span, .strip .d.bk b { color: #FFFFFF; }
+.strip .d.nw { box-shadow: inset 0 0 0 3px rgba(20,184,166,.8); background: rgba(20,184,166,.10); }
+.strip .d.nw span { color: #0C7166; }
+.strip .d.nw.on { background: #9A6C3A; box-shadow: none; } .strip .d.nw.on span, .strip .d.nw.on b { color: #FFFFFF; }
+/* C · l'offre chez la voyageuse (repère 390 px) */
+.of { background: #F7F3EC; display: flex; flex-direction: column; }
+.of .cv { height: 230px; overflow: hidden; }
+.of .cv img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.of .bd { padding: 18px 18px 0; display: flex; flex-direction: column; gap: 10px; }
+.of .hd { font-size: 13px; font-weight: 700; color: #7A5230; }
+.of .ti { font-family: 'BSG', sans-serif; font-size: 25px; font-weight: 700; color: #1B2A35; }
+.of .dt { font-size: 15px; color: #4D5A64; }
+.of .pr { font-family: 'BSG', sans-serif; font-size: 36px; font-weight: 700; color: #1B2A35; margin-top: 6px; }
+.of .nt { font-size: 12.5px; color: #6B7B83; }
+.of .ac { margin-top: 12px; text-align: center; background: #25406E; color: #F7FBFC; border-radius: 14px; padding: 14px; font-size: 17px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px; }
+.of .ac.ok { background: #0C7166; }
+.of .vl { text-align: center; font-size: 12px; color: #6B7B83; }
+/* D · tout suit */
+#plan { left: 64px; top: 300px; opacity: 0; }
+#pass { left: 80px; top: 800px; opacity: 0; }
+#tot { left: 540px; width: 460px; top: 800px; padding: 28px 30px; opacity: 0; }
+#tot small { display: block; font-size: 22px; color: var(--ardoise); font-weight: 600; }
+#tot .v { font-family: var(--fd); font-size: 60px; font-weight: 700; margin-top: 8px; direction: ltr; unicode-bidi: isolate; }
+#tot .v small { display: inline; font-size: 28px; margin-inline-start: 8px; }
+#tot .chip { margin-top: 14px; opacity: 0; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 660px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .mi { width: 120px; height: 120px; border-radius: 40px; background: rgba(154,108,58,.14); color: #9A6C3A; display: flex; align-items: center; justify-content: center; opacity: 0; }
+#promise .title { font-size: 96px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+const PH = '../../brand-book/assets/photos/', BR = '../../brand-book/assets/brands/';
+
+/* A · dimanche matin, le message arrive */
+const ph0 = K.photoFrame('terrace.jpg');
+ph0.el.id = 'ph0'; ph0.el.classList.add('abs'); K.stage.append(ph0.el);
+const clock = K.abs('clock');
+clock.append(h('span', { class: 'clockchip' }, icon('sun', 30), h('span', {}, T.clock.day), h('b', {}, T.clock.t)));
+const I = T.inbox;
+const inbox = K.abs('inbox', 'card');
+const bub = h('div', { class: 'bub', dir: 'auto' }, I.msg);
+const dots = h('div', { class: 'chat-b dots', style: 'opacity:0' }, h('i'), h('i'), h('i'));
+const intent = h('span', { id: 'intent', class: 'chip auto' }, icon('sparkles', 20), I.intent);
+inbox.append(h('div', { class: 'ih' }, icon('msg', 30), I.title),
+  h('div', { class: 'row' }, h('img', { class: 'av', src: K.guestPhoto('sara'), alt: '' }),
+    h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'nm' }, I.name.split(' · ')[0], h('img', { src: BR + 'airbnb.svg', alt: '' }), h('span', {}, I.when)), dots, bub, intent)));
+
+/* B · la carte de l'agent Voyageur */
+const C = T.card;
+const c1 = K.hitlCard({ agent: C.agent, tag: C.tag, title: C.title, copy: C.copy, wait: C.wait, done: C.done,
+  primary: ['send', C.send], secondary: ['sliders', C.adjust], dismiss: C.dismiss, doneText: C.doneText });
+c1.el.id = 'c1'; c1.el.classList.add('abs');
+const newDays = [];
+const strip = h('div', { class: 'strip' }, C.days.map(([d, n], i) => { const el = h('div', { class: 'd' + (i < 3 ? ' bk' : i < 5 ? ' nw' : '') }, h('span', {}, d), h('b', {}, String(n))); if (i >= 3 && i < 5) newDays.push(el); return el; }));
+c1.body.append(h('div', { class: 'hg' }, C.grid.map(([k, v], i) => h('div', {}, h('small', {}, k), h('b', { class: i === 2 ? 'ok' : i === 1 ? 'warn' : '' }, v)))), strip);
+K.stage.append(c1.el);
+
+/* C · l'offre sur le téléphone de la voyageuse */
+const O = T.offer;
+const ph = K.phone({ left: 290, top: 250 });
+const acc = h('div', { class: 'ac' }, O.accept);
+const of = h('div', { class: 'layer of' }, h('div', { class: 'cv' }, h('img', { src: PH + 'terrace.jpg', alt: '' })),
+  h('div', { class: 'bd' }, h('div', { class: 'hd' }, O.head), h('div', { class: 'ti' }, O.title), h('div', { class: 'dt' }, O.dates),
+    h('div', { class: 'pr' }, O.price), h('div', { class: 'nt' }, O.note), acc, h('div', { class: 'vl' }, O.valid)),
+  h('div', { class: 'home', style: 'background:rgba(27,42,53,.5)' }));
+ph.scaler.append(of);
+
+/* D · le planning, le code, le total */
+const plan = K.abs('plan');
+const pl = K.planning(plan, { P: T.plan, dw: 90, days: T.plan.days, today: 2, rows: [
+  [{ status: 'checked_in', from: [0, 15], to: [4, 11], guest: 'sara', av: true, nights: 4, key: 'sara' }, { orphan: 'broom', day: 4, key: 'cl' }],
+  [{ status: 'confirmed', from: [1, 15], to: [5, 11], guest: 'jad', av: true, nights: 4 }],
+  [{ status: 'pending', from: [3, 15], to: [7, 11], guest: 'nadia', av: true, nights: 4 }],
+] });
+const sBar = pl.byKey.sara, cl = pl.byKey.cl, sNights = sBar.querySelector('.tx small');
+const pass = K.accessPass(T.pass);
+pass.el.id = 'pass'; pass.el.classList.add('abs'); K.stage.append(pass.el);
+const TT = T.total;
+const tot = K.abs('tot', 'card');
+const totN = h('b', {}, '');
+const totOk = h('span', { class: 'chip ok' }, icon('check', 20), '+2');
+tot.append(h('small', {}, TT.label), h('div', { class: 'v' }, totN, h('small', {}, TT.unit)), totOk);
+const fmt = (v) => Math.round(v).toLocaleString(K.LANG === 'fr' ? 'fr-FR' : 'en-US').replace(/ /g, ' ');
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const mi = h('span', { class: 'mi' }, icon('calplus', 60));
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(mi, p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) {
+    const r = K.posIn(acc, of);
+    pts = { send: K.center(c1.pBtn), acc: ph.toStage(r.x + acc.offsetWidth / 2, r.y + acc.offsetHeight / 2), x4: pl.X(4, 1), x6: pl.X(6, 1), w0: sBar.offsetWidth, l0: parseFloat(sBar.style.insetInlineStart) };
+  }
+  const [a0, b0] = slot(0), [a1, b1] = slot(1), [a2, b2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A */
+  const v0 = slotVis(t, 0, .45, .4);
+  set(ph0.el, { opacity: v0, transform: `translateY(${lerp(40, 0, easeOut(prog(t, a0, .7)))}px)` });
+  ph0.img.style.transform = `scale(${lerp(1.08, 1, easeOut(prog(t, a0, b0 - a0)))})`;
+  const ck = easeOut(prog(t, a0 + .3, .5));
+  set(clock, { opacity: v0 * ck, transform: `translateY(${lerp(-14, 0, ck)}px)` });
+  const ii = easeOut(prog(t, a0 + .5, .6));
+  set(inbox, { opacity: v0 * ii, transform: `translateY(${lerp(50, 0, ii)}px)` });
+  K.dotsAt(dots, t, a0 + .9, SYNC.msg);
+  K.bubbleIn(bub, t, SYNC.msg);
+  const it = easeOut(prog(t, SYNC.msg + 1.1, .45));
+  set(intent, { opacity: it, transform: `translateY(${lerp(10, 0, it)}px)` });
+
+  /* B */
+  const v1 = slotVis(t, 1), e1 = easeOut(prog(t, a1, .6));
+  set(c1.el, { opacity: v1, transform: `translateY(${lerp(60, 0, e1)}px)` });
+  c1.render(t, SYNC.send);
+  newDays.forEach((d, i) => d.classList.toggle('on', t >= SYNC.send + .3 + i * .12));
+  K.cursorMove(t, SYNC.send - 1.2, .95, { x: pts.send.x + 320, y: pts.send.y + 360 }, pts.send, Math.min(SYNC.send + .9, b1));
+  K.tapAt(t, SYNC.send, pts.send);
+
+  /* C */
+  const v2 = slotVis(t, 2), e2 = easeOut(prog(t, a2, .7));
+  set(ph.el, { opacity: v2, transform: `translateY(${lerp(80, 0, e2)}px)` });
+  K.handTap(t, SYNC.accept, pts.acc);
+  const okd = t >= SYNC.accept + .1;
+  if (acc.dataset.s !== String(okd)) { acc.dataset.s = String(okd); acc.classList.toggle('ok', okd); acc.replaceChildren(...(okd ? [icon('check', 18), O.confirmed] : [O.accept])); }
+
+  /* D */
+  const v3 = slotVis(t, 3), e3 = easeOut(prog(t, a3, .6));
+  set(plan, { opacity: v3, transform: `translateY(${lerp(50, 0, e3)}px)` });
+  K.planningEnter(t, a3 + .1, pl);
+  const ex = easeInOut(prog(t, SYNC.extend, .8));
+  sBar.style.width = lerp(pts.w0, pts.w0 + (pts.x6 - pts.x4), ex) + 'px';
+  if (sNights.dataset.n !== String(ex > .5)) { sNights.dataset.n = String(ex > .5); sNights.textContent = T.plan.nights(ex > .5 ? 6 : 4); }
+  K.urgency(sBar, t < SYNC.extend + 1.4 ? t : -1, SYNC.extend, '0 0 0 0 rgba(0,0,0,0)', '20,184,166');
+  const cm = easeInOut(prog(t, SYNC.clean, .7));
+  set(cl, { transform: `translateX(${lerp(0, pts.x6 - pts.x4, cm)}px)`, opacity: easeOut(prog(t, a3 + .8, .4)) });
+  const pi = easeOut(prog(t, a3 + .9, .5));
+  set(pass.el, { opacity: v3 * pi, transform: `translateY(${lerp(40, 0, pi)}px)` });
+  pass.type(t, SYNC.code);
+  set(tot, { opacity: v3 * pi, transform: `translateY(${lerp(40, 0, pi)}px)` });
+  K.roll(totN, TT.from, TT.to, prog(t, SYNC.extend + .2, .9), fmt);
+  totOk.style.opacity = easeOut(prog(t, SYNC.extend + 1.1, .4));
+
+  /* E */
+  const v4 = slotVis(t, 4, .5, .35);
+  const m = easeOut(prog(t, a4, .6));
+  set(mi, { opacity: v4 * m, transform: `scale(${lerp(.8, 1, m)})` });
+  const q1 = easeOut(prog(t, a4 + .1, .55)), q2 = easeOut(prog(t, a4 + (b4 - a4) * .5, .55));
+  set(p1, { opacity: v4 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v4 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

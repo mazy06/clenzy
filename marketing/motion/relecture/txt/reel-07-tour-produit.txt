@@ -1,0 +1,780 @@
+==============================================================================
+REEL 07 · TOUR PRODUIT — Baitly en 75 secondes (vidéo d’explication 16:9)
+Format 16:9 (1920×1080) · 75 s · langues : FR · EN · AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,3 s → 4,8 s · durée visée 4,2 s]
+      Réservations, prix, ménage, voyageurs, propriétaires. … Et si tout tenait dans un seul espace ?
+  b2  [5,4 s → 14,8 s · durée visée 7,7 s]
+      Le planning d'abord. Tous vos logements, tous vos canaux, synchronisés en temps réel : une réservation arrive sur Airbnb, et Bètli ferme aussitôt les dates partout ailleurs.
+  b3  [15,4 s → 23,8 s · durée visée 7,1 s]
+      Votre site de réservation directe, ensuite : un template à votre image, construit bloc par bloc, le paiement intégré, … et zéro commission sur ces réservations.
+  b4  [24,4 s → 33,8 s · durée visée 7,7 s]
+      Dix agents I.A. surveillent vos prix, vos messages et vos opérations, jour et nuit. Ils proposent, vous validez. Vos prix suivent la demande, mais jamais sous votre plancher.
+  b5  [34,4 s → 42,8 s · durée visée 7,5 s]
+      Le livret d'accueil accompagne vos voyageurs par un simple lien, du premier message jusqu'au départ, … et il vend vos extras : départ tardif, chef à domicile, activités.
+  b6  [43,4 s → 51,8 s · durée visée 6,8 s]
+      Chaque départ crée automatiquement sa mission de ménage. Le prestataire suit sa checklist, prend ses photos, … et la preuve photo débloque son paiement.
+  b7  [52,4 s → 60,8 s · durée visée 7,2 s]
+      Les paiements passent par les solutions de votre pays, les factures se génèrent toutes seules, et vos propriétaires reçoivent leurs relevés, sans aucune ressaisie.
+  b8  [61,4 s → 67,8 s · durée visée 6,1 s]
+      Et tout cela en arabe, en français ou en anglais, pour vous comme pour vos voyageurs. Pensé pour l'Arabie saoudite, le Maroc et la France.
+  b9  [68,4 s → 74,6 s · durée visée 5,0 s]
+      Bètli. Faites grandir vos revenus, pas votre charge de travail. Rejoignez le pré-lancement, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,2–4,8 s]  Réservations, prix, ménage, voyageurs, propriétaires. [Et si tout tenait dans un seul espace ?]
+  ST2  [5,3–9,4 s]  Le planning d'abord. Tous vos logements, tous vos canaux, [synchronisés en temps réel :]
+  ST3  [9,5–14,8 s]  une réservation arrive sur Airbnb, [et Baitly ferme aussitôt les dates partout ailleurs.]
+  ST4  [15,3–19,6 s]  Votre site de réservation directe, ensuite : un template à votre image, [construit bloc par bloc,]
+  ST5  [19,7–23,8 s]  le paiement intégré, [et zéro commission sur ces réservations.]
+  ST6  [24,3–28,6 s]  10 agents IA surveillent vos prix, vos messages et vos opérations, jour et nuit. Ils proposent, [vous validez.]
+  ST7  [28,7–33,8 s]  Vos prix suivent la demande, [mais jamais sous votre plancher.]
+  ST8  [34,3–38,4 s]  Le livret d'accueil accompagne vos voyageurs par un simple lien, [du premier message jusqu'au départ,]
+  ST9  [38,5–42,8 s]  et il vend vos extras : départ tardif, chef à domicile, [activités.]
+  ST10  [43,3–47,4 s]  Chaque départ crée automatiquement sa mission de ménage. [Le prestataire suit sa checklist,]
+  ST11  [47,5–51,8 s]  prend ses photos, [et la preuve photo débloque son paiement.]
+  ST12  [52,3–56,2 s]  Les paiements passent par les solutions de votre pays, [les factures se génèrent toutes seules,]
+  ST13  [56,3–60,8 s]  et vos propriétaires reçoivent leurs relevés, [sans aucune ressaisie.]
+  ST14  [61,3–67,8 s]  Et tout cela en arabe, en français ou en anglais, [pour vous comme pour vos voyageurs.]
+  ST15  [66,22–67,38 s]  Pensé pour l'Arabie saoudite, [le Maroc et la France.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Ouverture : mots qui convergent vers le logo
+      E2  Réservations
+      E3  Prix
+      E4  Ménage
+      E5  Voyageurs
+      E6  Propriétaires
+      E7  Et si tout tenait dans un seul espace ?
+  · Numéro et nom du chapitre (petites capitales)
+      E8  01 / PILOTER
+  · Titre du chapitre
+      E9  Tous vos logements. Un planning qui fait le lien.
+  · Numéro et nom du chapitre (petites capitales)
+      E10  02 / DÉVELOPPER
+  · Titre du chapitre
+      E11  Un site qui donne envie.
+  · Numéro et nom du chapitre (petites capitales)
+      E12  03 / AUTOMATISER
+  · Titre du chapitre
+      E13  Ils proposent. Vous validez.
+  · Numéro et nom du chapitre (petites capitales)
+      E14  04 / ACCUEILLIR
+  · Titre du chapitre
+      E15  Votre accueil, dans leur poche.
+  · Numéro et nom du chapitre (petites capitales)
+      E16  05 / OPÉRER
+  · Titre du chapitre
+      E17  Entre deux séjours, tout se prépare.
+  · Numéro et nom du chapitre (petites capitales)
+      E18  06 / ENCAISSER
+  · Titre du chapitre
+      E19  Du séjour au versement.
+  · Numéro et nom du chapitre (petites capitales)
+      E20  07 / VOTRE LANGUE
+  · Planning (maquette d’interface)
+      E21  Logement
+      E22  Bloqué
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E23  1 nuit
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E24  2 nuits
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E25  3 nuits
+  · Planning (maquette d’interface)
+      E26  Riad Nour
+      E27  Marrakech
+      E28  Villa Palmeraie
+      E29  Marrakech
+      E30  Studio Gueliz
+      E31  Marrakech
+      E32  Appart. Hivernage
+      E33  Marrakech
+      E34  Dar Zitoun
+      E35  Fès
+      E36  Riad Yasmine
+      E37  Essaouira
+      E38  Sara
+      E39  Léa
+      E40  Jad
+      E41  Nadia
+      E42  Omar
+      E43  Ali
+      E44  Karim
+      E45  Salma
+      E46  Youssef
+      E47  Lina
+      E48  L
+      E49  M
+      E50  M
+      E51  J
+      E52  V
+      E53  S
+      E54  D
+      E55  L
+      E56  M
+  · Maquette d’interface (libellé)
+      E57  Riad Nour · 14 → 17 oct.
+      E58  Un point de gestion
+      E59  Site direct
+      E60  expedia
+      E61  Expedia
+      E62  Réservé
+      E63  Ouvert
+      E64  Fermé
+      E65  Disponibilités mises à jour
+      E66  RIAD & MAISON D’HÔTES
+      E67  Nos suites
+      E68  Votre séjour
+      E69  À vivre ici
+  · Bouton (maquette) : rester court
+      E70  Réserver
+  · Maquette d’interface (libellé)
+      E71  Un refuge secret, au cœur de la médina.
+      E72  La Suite Patio
+      E73  32 m² · lit king size · petit-déjeuner inclus
+      E74  Octobre
+      E75  L
+      E76  M
+      E77  M
+      E78  J
+      E79  V
+      E80  S
+      E81  D
+      E82  / nuit
+      E83  1 200 MAD
+  · Onglet / étape (maquette) : rester court
+      E84  La chambre
+      E85  Les dates
+      E86  Les extras
+      E87  Le paiement
+      E88  La confirmation
+  · Maquette d’interface (libellé)
+      E89  de commission sur vos réservations directes
+      E90  Template à votre image
+      E91  Paiement intégré
+      E92  Votre semaine, vos règles
+      E93  Prix proposés par nuit
+      E94  Plancher 680 MAD
+      E95  Agent Revenue
+      E96  Riad Nour
+      E97  À valider
+      E98  Approuvé
+      E99  Trois nuits cherchent leurs voyageurs.
+      E100  La demande ralentit du 21 au 23. Une baisse ciblée peut rendre votre annonce plus attractive.
+      E101  Prix par nuit
+      E102  MAD
+      E103  Votre plancher de 680 MAD est respecté
+  · Bouton (maquette) : rester court
+      E104  Approuver
+  · Maquette d’interface (libellé)
+      E105  Vous décidez
+      E106  agents IA, chacun son métier
+      E107  Bienvenue, Sara
+      E108  Riad Nour
+      E109  12 → 14 oct.
+      E110  Un simple lien, sans application
+      E111  Arrivée
+      E112  Départ
+      E113  Code d’accès
+      E114  Services à réserver
+      E115  Prendre son temps
+      E116  Départ tardif à 16 h · pour le séjour
+      E117  Un chef, chez vous
+      E118  Dîner préparé sur place · pour deux
+      E119  Le lever du soleil, vu d’en haut
+      E120  Vol en montgolfière · pour 1 personne
+      E121  MAD
+  · Bouton (maquette) : rester court
+      E122  Ajouter au séjour
+  · Maquette d’interface (libellé)
+      E123  Ajouté au séjour
+      E124  Votre sélection
+      E125  Total des extras
+  · Onglet / étape (maquette) : rester court
+      E126  Départ
+      E127  Mission
+      E128  Checklist
+      E129  Photo
+      E130  Paiement débloqué
+  · Maquette d’interface (libellé)
+      E131  Prêt pour la prochaine arrivée
+      E132  Riad Azur
+      E133  Départ 11:00 · Arrivée 15:00
+      E134  Équipe ménage
+      E135  Chambre préparée
+      E136  Salle de bain contrôlée
+      E137  Photo de contrôle vérifiée
+  · Bouton (maquette) : rester court
+      E138  Valider la mission
+  · Maquette d’interface (libellé)
+      E139  Mission validée
+      E140  Photo de contrôle
+      E141  Vérifiée
+      E142  Paiement du prestataire
+      E143  120 MAD
+      E144  Débloqué
+      E145  Les solutions de votre pays
+      E146  Facture · Riad Nour
+      E147  Hébergement · 3 nuits
+      E148  Ménage
+      E149  Total
+      E150  MAD
+      E151  Payé
+      E152  Facture émise
+      E153  Votre relevé, en un regard
+      E154  Riad Azur
+  · Onglet / étape (maquette) : rester court
+      E155  Juillet
+      E156  Août
+      E157  Septembre
+  · Maquette d’interface (libellé)
+      E158  Revenus des séjours
+      E159  Commission · exemple à 20 %
+      E160  Dépenses du logement
+      E161  Net propriétaire
+      E162  MAD
+      E163  Relevé mensuel envoyé
+      E164  En arabe, en français ou en anglais.
+  · Onglet / étape (maquette) : rester court
+      E165  Arabie saoudite
+      E166  Maroc
+      E167  France
+  · Maquette d’interface (libellé)
+      E168  fr
+      E169  ar
+      E170  en
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E171  Faites grandir vos revenus.
+      E172  Pas votre charge de travail.
+  · Bouton de l’écran de fin
+      E173  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E174  agents IA
+      E175  de commission en direct
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,3 s → 4,8 s · durée visée 5,1 s]
+      Bookings, rates, housekeeping, guests, owners. … What if it all fit in one place?
+  b2  [5,4 s → 14,8 s · durée visée 9,6 s]
+      First, the calendar. Every property, every channel, synced in real time: a booking lands on Airbnb, and Betly instantly closes the dates everywhere else.
+  b3  [15,4 s → 23,8 s · durée visée 8,9 s]
+      Then your direct booking site: a template that looks like you, built block by block, payment included, … and zero commission on those bookings.
+  b4  [24,4 s → 33,8 s · durée visée 9,6 s]
+      Ten A.I. agents watch your rates, messages and operations, day and night. They propose, you decide. Rates follow demand, but never drop below your floor.
+  b5  [34,4 s → 42,8 s · durée visée 8,5 s]
+      The welcome guide stays with your guests through a simple link, … and it sells your extras too: late checkout, private chef, activities.
+  b6  [43,4 s → 51,8 s · durée visée 8,7 s]
+      Every checkout creates its own cleaning job. The provider follows the checklist, takes the photos, … and photo proof releases their payout.
+  b7  [52,4 s → 60,8 s · durée visée 8,2 s]
+      Payments go through your country's solutions, invoices generate themselves, and your owners get their statements with no re-typing.
+  b8  [61,4 s → 67,8 s · durée visée 7,0 s]
+      All of it in Arabic, French or English, for you and for your guests. Built for Saudi Arabia, Morocco and France.
+  b9  [68,4 s → 74,6 s · durée visée 5,6 s]
+      Betly. Grow your revenue, not your workload. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,2–4,8 s]  Bookings, rates, housekeeping, guests, owners. [What if it all fit in one place?]
+  ST2  [5,3–9,4 s]  First, the calendar. Every property, every channel, [synced in real time: a booking lands on Airbnb,]
+  ST3  [9,5–14,8 s]  and Baitly instantly closes the dates everywhere else.
+  ST4  [15,3–19,6 s]  Then your direct booking site: a template that looks like you, [built block by block,]
+  ST5  [19,7–23,8 s]  payment included, [and zero commission on those bookings.]
+  ST6  [24,3–28,6 s]  10 AI agents watch your rates, messages and operations, day and night. They propose, [you decide.]
+  ST7  [28,7–33,8 s]  Rates follow demand, [but never drop below your floor.]
+  ST8  [34,3–38,4 s]  The welcome guide stays with your guests through a simple link,
+  ST9  [38,5–42,8 s]  and it sells your extras too: late checkout, private chef, [activities.]
+  ST10  [43,3–47,4 s]  Every checkout creates its own cleaning job. The provider follows the checklist, [takes the photos,]
+  ST11  [47,5–51,8 s]  and photo proof releases their payout.
+  ST12  [52,3–56,2 s]  Payments go through your country's solutions, [invoices generate themselves,]
+  ST13  [56,3–60,8 s]  and your owners get their statements with no re-typing.
+  ST14  [61,3–67,8 s]  All of it in Arabic, French or English, for you and for your guests. [Built for Saudi Arabia,]
+  ST15  [66,22–67,38 s]  Morocco and France.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Ouverture : mots qui convergent vers le logo
+      E2  Bookings
+      E3  Rates
+      E4  Housekeeping
+      E5  Guests
+      E6  Owners
+      E7  What if it all fit in one place?
+  · Numéro et nom du chapitre (petites capitales)
+      E8  01 / RUN
+  · Titre du chapitre
+      E9  Every property. One planning that connects it all.
+  · Numéro et nom du chapitre (petites capitales)
+      E10  02 / GROW
+  · Titre du chapitre
+      E11  A website that makes guests want to book.
+  · Numéro et nom du chapitre (petites capitales)
+      E12  03 / AUTOMATE
+  · Titre du chapitre
+      E13  They propose. You decide.
+  · Numéro et nom du chapitre (petites capitales)
+      E14  04 / WELCOME
+  · Titre du chapitre
+      E15  Your welcome, in their pocket.
+  · Numéro et nom du chapitre (petites capitales)
+      E16  05 / OPERATE
+  · Titre du chapitre
+      E17  Between two stays, everything gets ready.
+  · Numéro et nom du chapitre (petites capitales)
+      E18  06 / GET PAID
+  · Titre du chapitre
+      E19  From stay to payout.
+  · Numéro et nom du chapitre (petites capitales)
+      E20  07 / YOUR LANGUAGE
+  · Planning (maquette d’interface)
+      E21  Property
+      E22  Blocked
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E23  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E24  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E25  3 nights
+  · Planning (maquette d’interface)
+      E26  Nakheel Chalet
+      E27  Riyadh
+      E28  Diriyah Villa
+      E29  Riyadh
+      E30  Olaya Studio
+      E31  Riyadh
+      E32  Malqa Suite
+      E33  Riyadh
+      E34  Hittin Istiraha
+      E35  Riyadh
+      E36  Corniche Flat
+      E37  Jeddah
+      E38  Sara
+      E39  Mia
+      E40  Jad
+      E41  Nadia
+      E42  Omar
+      E43  Ali
+      E44  Karim
+      E45  Salma
+      E46  Youssef
+      E47  Lina
+      E48  M
+      E49  T
+      E50  W
+      E51  T
+      E52  F
+      E53  S
+      E54  S
+      E55  M
+      E56  T
+  · Maquette d’interface (libellé)
+      E57  Nakheel Chalet · Oct 14 → 17
+      E58  One place to manage
+      E59  Direct site
+      E60  gathern
+      E61  Gathern
+      E62  Booked
+      E63  Open
+      E64  Closed
+      E65  Availability updated
+      E66  RIAD & GUESTHOUSE
+      E67  Our suites
+      E68  Your stay
+      E69  Experiences
+  · Bouton (maquette) : rester court
+      E70  Book
+  · Maquette d’interface (libellé)
+      E71  A secret retreat, in the heart of the medina.
+      E72  The Patio Suite
+      E73  32 m² · king-size bed · breakfast included
+      E74  October
+      E75  M
+      E76  T
+      E77  W
+      E78  T
+      E79  F
+      E80  S
+      E81  S
+      E82  / night
+      E83  SAR 480
+  · Onglet / étape (maquette) : rester court
+      E84  Room
+      E85  Dates
+      E86  Extras
+      E87  Payment
+      E88  Confirmation
+  · Maquette d’interface (libellé)
+      E89  commission on your direct bookings
+      E90  A template that looks like you
+      E91  Built-in payment
+      E92  Your week, your rules
+      E93  Proposed nightly rates
+      E94  Floor SAR 450
+      E95  Revenue agent
+      E96  Nakheel Chalet
+      E97  To approve
+      E98  Approved
+      E99  Three nights are looking for guests.
+      E100  Demand slows from the 21st to the 23rd. A targeted drop can make your listing more attractive.
+      E101  Nightly rate
+      E102  SAR
+      E103  Your SAR 450 floor is respected
+  · Bouton (maquette) : rester court
+      E104  Approve
+  · Maquette d’interface (libellé)
+      E105  You decide
+      E106  AI agents, each with a job
+      E107  Welcome, Sara
+      E108  Nakheel Chalet
+      E109  Oct 12 → 14
+      E110  A simple link, no app
+      E111  Check-in
+      E112  Checkout
+      E113  Access code
+      E114  Services to book
+      E115  Take your time
+      E116  Late check-out at 4 pm · per stay
+      E117  Your own chef
+      E118  Dinner prepared at home · for two
+      E119  Sunrise from above
+      E120  Hot-air balloon flight · for 1 person
+      E121  SAR
+  · Bouton (maquette) : rester court
+      E122  Add to stay
+  · Maquette d’interface (libellé)
+      E123  Added to stay
+      E124  Your selection
+      E125  Extras total
+  · Onglet / étape (maquette) : rester court
+      E126  Checkout
+      E127  Job
+      E128  Checklist
+      E129  Photo
+      E130  Payout released
+  · Maquette d’interface (libellé)
+      E131  Ready for the next arrival
+      E132  Nakheel Chalet
+      E133  Checkout 11:00 · Check-in 15:00
+      E134  Housekeeping team
+      E135  Bedroom prepared
+      E136  Bathroom checked
+      E137  Inspection photo reviewed
+  · Bouton (maquette) : rester court
+      E138  Approve the job
+  · Maquette d’interface (libellé)
+      E139  Job approved
+      E140  Inspection photo
+      E141  Verified
+      E142  Provider payout
+      E143  SAR 80
+      E144  Released
+      E145  The payment solutions of your country
+      E146  Invoice · Nakheel Chalet
+      E147  Stay · 3 nights
+      E148  Cleaning
+      E149  Total
+      E150  SAR
+      E151  Paid
+      E152  Invoice issued
+      E153  Your statement at a glance
+      E154  Nakheel Chalet
+  · Onglet / étape (maquette) : rester court
+      E155  July
+      E156  August
+      E157  September
+  · Maquette d’interface (libellé)
+      E158  Stay revenue
+      E159  Commission · 20% example
+      E160  Property expenses
+      E161  Net owner income
+      E162  SAR
+      E163  Monthly statement sent
+      E164  In Arabic, French or English.
+  · Onglet / étape (maquette) : rester court
+      E165  Saudi Arabia
+      E166  Morocco
+      E167  France
+  · Maquette d’interface (libellé)
+      E168  en
+      E169  ar
+      E170  fr
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E171  Grow your revenue.
+      E172  Not your workload.
+  · Bouton de l’écran de fin
+      E173  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E174  AI agents
+      E175  commission on direct
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,3 s → 4,8 s · durée visée 4,4 s]
+      الحجوزات، الأسعار، التنظيف، الضيوف، الملّاك. … ماذا لو اجتمعَ كلُّ شيء في مكانٍ واحد؟
+  b2  [5,4 s → 14,8 s · durée visée 7,0 s]
+      التقويمُ أولاً. كلُّ عقاراتك، كلُّ قنواتك، متزامنة: حجزٌ هنا يُغلقُ التواريخَ في كلّ مكان.
+  b3  [15,4 s → 23,8 s · durée visée 7,2 s]
+      ثم موقعُ حجزك المباشر: قالبٌ يشبهك، ودفعٌ مدمج، … وبلا عمولةٍ على هذه الحجوزات.
+  b4  [24,4 s → 33,8 s · durée visée 8,6 s]
+      عشرةُ وكلاءِ ذكاءٍ اصطناعي يراقبون أسعارك ورسائلك وعملياتك. يقترحون، وأنت تعتمد. تتحركُ الأسعار، ولا تنزلُ عن حدّك الأدنى.
+  b5  [34,4 s → 42,8 s · durée visée 7,6 s]
+      دليلُ الضيف يرافقُ ضيوفك برابطٍ بسيط، … ويبيعُ إضافاتك: مغادرةٌ متأخرة، طاهٍ خاص، أنشطة.
+  b6  [43,4 s → 51,8 s · durée visée 6,2 s]
+      كلُّ مغادرة تُنشئ مهمّةَ التنظيف الخاصةَ بها. والإثباتُ المصوّر يُحرّر دفعةَ مقدّم الخدمة.
+  b7  [52,4 s → 60,8 s · durée visée 7,4 s]
+      تمرُّ المدفوعاتُ عبر حلول بلدك، والفواتيرُ تتبع، ويتلقّى ملّاكك كشوفهم دون إعادة إدخال.
+  b8  [61,4 s → 67,8 s · durée visée 5,0 s]
+      بالعربية أو الفرنسية أو الإنجليزية. للسعودية والمغرب وفرنسا.
+  b9  [68,4 s → 74,6 s · durée visée 6,0 s]
+      بيتلي. نمِّ إيراداتك، لا عبءَ عملك. انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [0,2–4,8 s]  الحجوزات، الأسعار، التنظيف، الضيوف، الملّاك. [ماذا لو اجتمع كل شيء في مكان واحد؟]
+  ST2  [5,3–9,4 s]  التقويم أولاً. [كل عقاراتك، كل قنواتك، متزامنة.]
+  ST3  [9,5–14,8 s]  حجز هنا [يُغلق التواريخ في كل مكان.]
+  ST4  [15,3–19,6 s]  موقع حجزك المباشر: [قالب يشبهك.]
+  ST5  [19,7–23,8 s]  دفع مدمج، [وبلا عمولة على هذه الحجوزات.]
+  ST6  [24,3–28,6 s]  عشرة وكلاء ذكاء اصطناعي يراقبون [أسعارك ورسائلك وعملياتك.]
+  ST7  [28,7–33,8 s]  يقترحون، وأنت تعتمد. [تتحرك الأسعار، ولا تنزل عن حدّك الأدنى.]
+  ST8  [34,3–38,4 s]  دليل الضيف يرافق ضيوفك [برابط بسيط.]
+  ST9  [38,5–42,8 s]  ويبيع إضافاتك: [مغادرة متأخرة، طاهٍ خاص، أنشطة.]
+  ST10  [43,3–47,4 s]  كل مغادرة تُنشئ [مهمة التنظيف الخاصة بها.]
+  ST11  [47,5–51,8 s]  والإثبات المصوّر [يُحرّر دفعة مقدّم الخدمة.]
+  ST12  [52,3–56,2 s]  تمرّ المدفوعات عبر [حلول بلدك]، والفواتير تتبع.
+  ST13  [56,3–60,8 s]  ويتلقّى ملّاكك كشوفهم [دون إعادة إدخال.]
+  ST14  [61,3–67,8 s]  بالعربية أو الفرنسية أو الإنجليزية. [للسعودية والمغرب وفرنسا.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  مشهد توضيحي
+  · Ouverture : mots qui convergent vers le logo
+      E2  الحجوزات
+      E3  الأسعار
+      E4  التنظيف
+      E5  الضيوف
+      E6  الملّاك
+      E7  ماذا لو اجتمع كل شيء في مكان واحد؟
+  · Numéro et nom du chapitre (petites capitales)
+      E8  01 / أدِر
+  · Titre du chapitre
+      E9  كل عقاراتك. تقويم واحد يربط كل شيء.
+  · Numéro et nom du chapitre (petites capitales)
+      E10  02 / انمُ
+  · Titre du chapitre
+      E11  موقع يغري بالحجز.
+  · Numéro et nom du chapitre (petites capitales)
+      E12  03 / أتمِت
+  · Titre du chapitre
+      E13  يقترحون. وأنت تقرّر.
+  · Numéro et nom du chapitre (petites capitales)
+      E14  04 / استقبل
+  · Titre du chapitre
+      E15  استقبالك، في جيب ضيوفك.
+  · Numéro et nom du chapitre (petites capitales)
+      E16  05 / شغّل
+  · Titre du chapitre
+      E17  بين إقامتين، كل شيء يستعدّ.
+  · Numéro et nom du chapitre (petites capitales)
+      E18  06 / حصّل
+  · Titre du chapitre
+      E19  من الإقامة إلى التحويل.
+  · Numéro et nom du chapitre (petites capitales)
+      E20  07 / لغتك
+  · Planning (maquette d’interface)
+      E21  العقار
+      E22  مغلق
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E23  ليلة
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E24  ليلتان
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E25  3 ليالٍ
+  · Planning (maquette d’interface)
+      E26  شاليه النخيل
+      E27  الرياض
+      E28  فيلا الدرعية
+      E29  الرياض
+      E30  استوديو العليا
+      E31  الرياض
+      E32  شقة الملقا
+      E33  الرياض
+      E34  استراحة حطين
+      E35  الرياض
+      E36  شقة الكورنيش
+      E37  جدة
+      E38  سارة
+      E39  لينا
+      E40  جاد
+      E41  نادية
+      E42  عمر
+      E43  علي
+      E44  كريم
+      E45  سلمى
+      E46  يوسف
+      E47  لمى
+      E48  اثن
+      E49  ثلا
+      E50  أرب
+      E51  خمي
+      E52  جمع
+      E53  سبت
+      E54  أحد
+      E55  اثن
+      E56  ثلا
+  · Maquette d’interface (libellé)
+      E57  شاليه النخيل · 14 ← 17 أكتوبر
+      E58  مكان واحد للإدارة
+      E59  الموقع المباشر
+      E60  gathern
+      E61  Gathern
+      E62  محجوز
+      E63  مفتوح
+      E64  مغلق
+      E65  تم تحديث التوافر
+      E66  رياض ودار ضيافة
+      E67  أجنحتنا
+      E68  إقامتك
+      E69  تجاربنا
+  · Bouton (maquette) : rester court
+      E70  احجز
+  · Maquette d’interface (libellé)
+      E71  ملاذ هادئ في قلب المدينة العتيقة.
+      E72  جناح الفناء
+      E73  32 م² · سرير كبير · الإفطار مشمول
+      E74  أكتوبر
+      E75  ن
+      E76  ث
+      E77  ر
+      E78  خ
+      E79  ج
+      E80  س
+      E81  ح
+      E82  / ليلة
+      E83  480 ر.س
+  · Onglet / étape (maquette) : rester court
+      E84  الغرفة
+      E85  التواريخ
+      E86  الإضافات
+      E87  الدفع
+      E88  التأكيد
+  · Maquette d’interface (libellé)
+      E89  عمولة على حجوزاتك المباشرة
+      E90  قالب يشبهك
+      E91  دفع مدمج
+      E92  أسبوعك، قواعدك
+      E93  الأسعار المقترحة لليلة
+      E94  الحد الأدنى 450 ر.س
+      E95  وكيل الإيرادات
+      E96  شاليه النخيل
+      E97  بانتظار الاعتماد
+      E98  معتمد
+      E99  ثلاث ليالٍ تبحث عن ضيوفها.
+      E100  يتباطأ الطلب من 21 إلى 23. قد يجعل خفضٌ مدروس إعلانك أكثر جاذبية.
+      E101  سعر الليلة
+      E102  ر.س
+      E103  حدّك الأدنى 450 ر.س محفوظ
+  · Bouton (maquette) : rester court
+      E104  اعتماد
+  · Maquette d’interface (libellé)
+      E105  أنت تقرّر
+      E106  وكلاء ذكاء اصطناعي، لكلٍّ مهنته
+      E107  أهلاً سارة
+      E108  شاليه النخيل
+      E109  12 ← 14 أكتوبر
+      E110  رابط بسيط، بلا تطبيق
+      E111  الوصول
+      E112  المغادرة
+      E113  رمز الدخول
+      E114  خدمات للحجز
+      E115  خذ وقتك
+      E116  مغادرة متأخرة حتى 16:00 · للإقامة
+      E117  طاهٍ خاص في منزلك
+      E118  عشاء يُحضّر في المنزل · لشخصين
+      E119  الشروق من الأعلى
+      E120  رحلة بالمنطاد · لشخص واحد
+      E121  ر.س
+  · Bouton (maquette) : rester court
+      E122  أضف إلى الإقامة
+  · Maquette d’interface (libellé)
+      E123  أُضيف إلى الإقامة
+      E124  اختيارك
+      E125  مجموع الإضافات
+  · Onglet / étape (maquette) : rester court
+      E126  المغادرة
+      E127  المهمة
+      E128  قائمة الفحص
+      E129  الصورة
+      E130  تحرير الدفعة
+  · Maquette d’interface (libellé)
+      E131  جاهز للوصول التالي
+      E132  شاليه النخيل
+      E133  مغادرة 11:00 · وصول 15:00
+      E134  فريق التنظيف
+      E135  تجهيز الغرفة
+      E136  فحص الحمّام
+      E137  مراجعة صورة الفحص
+  · Bouton (maquette) : rester court
+      E138  وافق على المهمة
+  · Maquette d’interface (libellé)
+      E139  تمت الموافقة
+      E140  صورة الفحص
+      E141  تم التحقق
+      E142  دفعة مقدّم الخدمة
+      E143  80 ر.س
+      E144  حُرّرت
+      E145  حلول الدفع في بلدك
+      E146  فاتورة · شاليه النخيل
+      E147  الإقامة · 3 ليالٍ
+      E148  التنظيف
+      E149  الإجمالي
+      E150  ر.س
+      E151  مدفوع
+      E152  صدرت الفاتورة
+      E153  كشفك في لمحة
+      E154  شاليه النخيل
+  · Onglet / étape (maquette) : rester court
+      E155  يوليو
+      E156  أغسطس
+      E157  سبتمبر
+  · Maquette d’interface (libellé)
+      E158  إيرادات الإقامات
+      E159  العمولة · مثال بنسبة 20٪
+      E160  مصروفات الوحدة
+      E161  صافي المالك
+      E162  ر.س
+      E163  أُرسل الكشف الشهري
+      E164  بالعربية أو الفرنسية أو الإنجليزية.
+  · Onglet / étape (maquette) : rester court
+      E165  السعودية
+      E166  المغرب
+      E167  فرنسا
+  · Maquette d’interface (libellé)
+      E168  ar
+      E169  fr
+      E170  en
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E171  نمِّ إيراداتك.
+      E172  لا عبء عملك.
+  · Bouton de l’écran de fin
+      E173  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E174  وكلاء ذكاء اصطناعي
+      E175  عمولة على المباشر

@@ -1,0 +1,631 @@
+<!doctype html>
+<!--
+  Baitly · Reel 01 « Manifeste » (Instagram, 1080 × 1920, 33 s) · FR / EN / AR
+
+  À quoi sert ce fichier : l'animation motion design du script
+  `marketing/scripts-video/script-01-manifeste.md`, écrite en HTML/CSS et pilotée
+  par le temps. `renderAt(t)` dessine l'image exacte de l'instant t (secondes) :
+  le rendu MP4 (`../render.mjs`) appelle cette fonction image par image.
+  Langue : `?lang=fr|en|ar` dans l'URL (aperçu) ou `--lang=` au rendu. L'arabe
+  passe toute la mise en page de droite à gauche, en Tajawal.
+  Comment l'utiliser : ouvrir le fichier dans Chrome (espace = pause, flèches =
+  ±1 s), ou `node ../render.mjs reel-01-manifeste --lang=ar`.
+  À qui il s'adresse : motion designer / marketing (itérations), développeur.
+
+  Palette : mode Jour du brand book (fond Papier, encre bleu nuit, touches Terre
+  cuite). Planning construit selon les règles du code (brand book, section 05 bis).
+  Textes : i18n.js · timings : timeline.js · voix off : VOIX-OFF.md.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 01 Manifeste</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<style>
+@font-face { font-family: 'BM'; src: url('../../brand-book/assets/fonts/manrope-regular.ttf'); font-weight: 400 500; }
+@font-face { font-family: 'BM'; src: url('../../brand-book/assets/fonts/manrope-bold.ttf'); font-weight: 600 800; }
+@font-face { font-family: 'BSG'; src: url('../../brand-book/assets/fonts/SpaceGrotesk_500Medium.ttf'); font-weight: 500; }
+@font-face { font-family: 'BSG'; src: url('../../brand-book/assets/fonts/SpaceGrotesk_600SemiBold.ttf'); font-weight: 600; }
+@font-face { font-family: 'BSG'; src: url('../../brand-book/assets/fonts/SpaceGrotesk_700Bold.ttf'); font-weight: 700; }
+:root {
+  --n900: #0A1120; --n800: #111B31; --n700: #1B2A35; --n600: #25406E; --n500: #2E4356; --n300: #9CB4E2; --n100: #D7E1EE;
+  --sable: #E0C89B; --taupe: #A89684; --terracotta: #B45733; --terre: #9A6C3A; --brun: #5C3A21; --encre: #2B211A;
+  --papier: #F7FBFC;
+  --fb: 'BM', 'Tajawal', sans-serif;      /* corps */
+  --fd: 'BSG', 'Tajawal', sans-serif;     /* titres, chiffres */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #05080F; }
+body { font-family: var(--fb); color: var(--n700); font-variant-numeric: tabular-nums; overflow: hidden; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: var(--papier); transform-origin: 0 0; font-family: var(--fb); }
+.abs { position: absolute; }
+.title { font-family: var(--fd); font-weight: 700; letter-spacing: -0.01em; line-height: 1.05; }
+.w { display: inline-block; white-space: pre; }
+.accent { color: var(--terre); }
+
+#glow { inset: 0; background: radial-gradient(110% 60% at 50% 100%, rgba(224,200,155,.38) 0%, rgba(224,200,155,0) 62%), var(--papier); opacity: 0; }
+
+/* A · photo en arche + titre */
+#arch { left: 150px; top: 330px; width: 780px; height: 860px; border-radius: 390px 390px 28px 28px; overflow: hidden; }
+#arch img { width: 100%; height: 100%; object-fit: cover; object-position: 58% 50%; transform-origin: 62% 52%; }
+#archLabel { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); white-space: nowrap; background: rgba(247,251,252,.9); color: #4D5A64; font-size: 20px; font-weight: 600; padding: 9px 18px; border-radius: 999px; }
+#t1 { inset-inline-start: 96px; top: 1250px; width: 900px; font-size: 82px; }
+
+/* B · onglets */
+#tabs { inset: 0; }
+.tab { position: absolute; inset-inline-start: 150px; top: 0; width: 780px; height: 118px; border-radius: 16px; background: #FDFDFE;
+  border: 1.5px solid #D7E1EE; display: flex; align-items: center; gap: 24px; padding: 0 30px; box-shadow: 0 18px 40px -22px rgba(27,42,53,.30); }
+.tab .fav { width: 54px; height: 54px; border-radius: 14px; background: rgba(37,64,110,.08); color: var(--n600);
+  display: flex; align-items: center; justify-content: center; font-family: var(--fd); font-weight: 700; font-size: 26px; flex: none; }
+.tab .lbl { font-size: 34px; font-weight: 600; color: var(--n700); flex: 1; white-space: nowrap; }
+.tab .x { color: rgba(27,42,53,.3); font-size: 34px; }
+.tab .notif { position: absolute; inset-inline-end: -14px; top: -14px; width: 46px; height: 46px; border-radius: 50%; background: var(--terracotta);
+  color: #FFF8F2; font-family: var(--fd); font-weight: 700; font-size: 22px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 5px var(--papier); opacity: 0; }
+#counter { inset-inline-end: 96px; top: 280px; text-align: end; }
+#counter small { display: block; font-size: 26px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7A5230; }
+#counter b { font-family: var(--fd); font-size: 120px; font-weight: 700; line-height: 1; color: var(--n700); }
+#kw { inset-inline-start: 96px; top: 1320px; width: 900px; font-size: 40px; font-weight: 600; color: var(--terre); white-space: nowrap; }
+#kw span { display: inline-block; margin-inline-end: 14px; }
+
+/* C · logo + planning (règles 05 bis à l'échelle ×2) */
+#house { left: 390px; top: 600px; width: 300px; height: 300px; overflow: visible; }
+#plan { left: 64px; top: 440px; width: 952px; border-radius: 26px; overflow: hidden; background: #FDFDFE; border: 2px solid #D5DEE7;
+  box-shadow: 0 40px 80px -40px rgba(27,42,53,.35); }
+.ph, .pr { display: flex; position: relative; }
+.pcol { width: 226px; flex: none; border-inline-end: 2px solid #D5DEE7; background: #FBFCFC; display: flex; flex-direction: column; justify-content: center; padding: 0 20px; }
+.pcol b { font-size: 24px; font-weight: 700; color: #15242D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcol small { font-size: 19px; color: #67757C; }
+.pdays { display: flex; }
+.pday { width: 145px; height: 88px; border-inline-end: 2px solid #D5DEE7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.pday:last-child { border-inline-end: 0; }
+.pday span { font-size: 18px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #98A4AB; }
+.pday b { font-family: var(--fd); font-size: 26px; color: #15242D; }
+.pday.we { background: #F2F6F7; }
+.pday.today b { display: inline-flex; width: 48px; height: 48px; border-radius: 16px; align-items: center; justify-content: center; background: #25406E; color: #FFFFFF; }
+.pday.today span { color: #25406E; }
+.ptrack { position: relative; width: 725px; height: 108px; border-top: 2px solid #D5DEE7; overflow: hidden; }
+.pcells { position: absolute; inset: 0; display: flex; }
+.pcells i { width: 145px; border-inline-end: 2px solid #EEF2F5; }
+.pcells i.we { background: #F8FAFB; }
+.bar { position: absolute; top: 18px; height: 72px; border-radius: 18px; display: flex; align-items: center; gap: 14px; padding-inline: 10px 14px; }
+.bar .av { width: 52px; height: 52px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 700; overflow: hidden; }
+.bar .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.bar .tx { min-width: 0; flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
+.bar .tx small { font-size: 19px; font-weight: 600; opacity: .85; white-space: nowrap; }
+.bar .tx b { font-size: 24px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { display: inline-flex; align-items: center; gap: 8px; height: 42px; border-radius: 14px; padding: 0 16px; font-family: var(--fd); font-size: 22px; font-weight: 700; flex: none; white-space: nowrap; direction: ltr; }
+.bdgs { display: flex; gap: 4px; flex: none; }
+.bdg { width: 42px; height: 42px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,.14); flex: none; }
+.bdg img { width: 26px; height: 26px; }
+.bdg.fee { width: auto; padding-inline: 10px 14px; gap: 8px; }
+.bdg.fee span { font-family: var(--fd); font-size: 21px; font-weight: 700; color: #15242D; }
+.bdg.combo { background: rgba(255,255,255,.9); font-family: var(--fd); font-size: 20px; font-weight: 700; color: #15242D; }
+.orphan { position: absolute; top: 33px; border: 2px solid #D5DEE7; }
+.blocked { position: absolute; top: 0; height: 108px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #67757C; font-size: 22px; font-weight: 600;
+  background-color: #F0F2F3; background-image: repeating-linear-gradient(45deg, rgba(103,117,124,.16) 0 2px, transparent 2px 14px);
+  box-shadow: inset 0 0 0 2px rgba(103,117,124,.14); }
+#now { position: absolute; top: 88px; bottom: 0; width: 4px; background: #E5484D; }
+#now::before { content: ''; position: absolute; top: -3px; left: -8px; width: 20px; height: 20px; border-radius: 50%; background: #E5484D; box-shadow: 0 0 0 6px rgba(229,72,77,.25); }
+#t4 { inset-inline-start: 96px; top: 1250px; font-size: 88px; }
+
+/* D · cartes de validation (HITL) des agents */
+#agents { inset: 0; }
+.agent { position: absolute; left: 80px; width: 920px; background: #FDFDFE; border: 1.5px solid #D5DEE7; border-radius: 28px;
+  box-shadow: 0 30px 60px -34px rgba(27,42,53,.35); }
+.agent.compact { padding: 24px 28px; display: flex; align-items: center; gap: 22px; }
+.agent.hero { padding: 32px 36px 28px; }
+.ag-av { width: 64px; height: 64px; border-radius: 20px; background: #F4EBDC; color: #9A6C3A; display: flex; align-items: center; justify-content: center; flex: none; }
+.ag-head { display: flex; align-items: center; gap: 20px; }
+.ag-id { flex: 1; min-width: 0; }
+.ag-id b { display: block; font-size: 27px; font-weight: 700; color: var(--n700); }
+.ag-id small { font-size: 21px; color: #4D5A64; }
+.ag-k { font-size: 19px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7A5230; }
+.ag-line { font-family: var(--fd); font-size: 30px; font-weight: 600; color: var(--n700); margin-top: 2px; }
+.ag-sub { font-size: 22px; color: #4D5A64; margin-top: 2px; }
+.chip { font-size: 21px; font-weight: 700; border-radius: 999px; padding: 9px 18px; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.chip.wait { background: rgba(180,87,51,.12); color: #96472A; }
+.chip.auto { background: rgba(37,64,110,.08); color: #25406E; }
+.chip.ok { background: rgba(154,108,58,.15); color: #7A5230; }
+.ag-title { font-family: var(--fd); font-weight: 600; font-size: 38px; color: var(--n700); margin-top: 24px; line-height: 1.15; }
+.ag-copy { font-size: 25px; color: #4D5A64; margin-top: 10px; line-height: 1.4; }
+.ag-copy b { color: #9A6C3A; unicode-bidi: isolate; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #F2F6F8; border-radius: 18px; padding: 20px 24px; margin-top: 22px; }
+.metrics small { display: block; font-size: 19px; color: #67757C; }
+.metrics b { font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); }
+.metrics b i { font-style: normal; font-size: 20px; font-weight: 600; margin-inline-start: 6px; }
+.metrics .prop b { color: #9A6C3A; }
+.gauge { margin-top: 20px; }
+.gauge .lbl { display: flex; justify-content: space-between; align-items: baseline; font-size: 21px; color: #4D5A64; }
+.gauge .lbl b { font-family: var(--fd); color: var(--n700); font-size: 24px; direction: ltr; unicode-bidi: isolate; }
+.gauge .track { position: relative; height: 10px; border-radius: 99px; background: #E6ECF0; margin-top: 12px; }
+.gauge .fill { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; background: #9A6C3A; border-radius: 99px; width: 0; }
+.gauge .seuil { position: absolute; inset-inline-start: 55%; top: -6px; bottom: -6px; width: 3px; border-radius: 2px; background: #25406E; }
+.gauge .seuil-l { position: absolute; inset-inline-start: 55%; top: 20px; transform: translateX(-50%); font-size: 18px; font-weight: 600; color: #25406E; white-space: nowrap; }
+.rtl .gauge .seuil-l { transform: translateX(50%); }
+.ag-foot { position: relative; border-top: 1.5px solid #E6ECF0; margin-top: 42px; padding-top: 22px; height: 98px; }
+.btns { display: flex; gap: 14px; align-items: center; }
+.btn { font-size: 25px; font-weight: 700; border-radius: 16px; padding: 17px 26px; display: inline-flex; align-items: center; gap: 10px; }
+.btn.ok { background: var(--n600); color: var(--papier); }
+.btn.adj { border: 1.5px solid #CAD6DD; color: var(--n700); }
+.btn.no { color: #4D5A64; margin-inline-start: auto; }
+.approved { position: absolute; left: 0; right: 0; top: 36px; display: flex; align-items: center; gap: 12px; font-size: 25px; font-weight: 700; color: #7A5230; opacity: 0; }
+#cursor { width: 58px; height: 58px; left: 0; top: 0; filter: drop-shadow(0 6px 10px rgba(27,42,53,.35)); }
+#t5 { inset-inline-start: 96px; top: 1275px; font-size: 72px; white-space: nowrap; }
+
+/* E · promesse */
+#t6 { inset-inline-start: 96px; top: 700px; width: 900px; font-size: 104px; }
+
+/* F · logo + CTA (le logo ne se retourne jamais : le mot-symbole reste latin) */
+#logo { left: 0; width: 1080px; top: 640px; display: flex; flex-direction: column; align-items: center; }
+#logo .row { display: flex; align-items: center; gap: 44px; direction: ltr; }
+#logo .wm { font-family: 'BSG'; font-weight: 600; font-size: 128px; letter-spacing: -0.015em; color: var(--n700); line-height: 1; }
+#cta { left: 0; width: 1080px; top: 1060px; display: flex; flex-direction: column; align-items: center; gap: 40px; }
+#cta .b { background: var(--n600); color: var(--papier); font-size: 42px; font-weight: 700; padding: 34px 56px; border-radius: 18px; }
+#cta .u { font-family: 'BSG'; font-weight: 600; font-size: 60px; color: var(--terre); direction: ltr; }
+
+/* Sous-titres (bas de l'écran, hors colonne de boutons Instagram) */
+#sub { inset-inline-start: 60px; width: 860px; bottom: 250px; display: flex; justify-content: center; opacity: 0; }
+#subBox { background: rgba(27,42,53,.92); border-radius: 16px; padding: 18px 28px; font-size: 44px; font-weight: 600; line-height: 1.3; text-align: center; color: var(--papier); }
+#subBox em { font-style: normal; color: var(--sable); }
+
+/* Bandeau des canaux connectés (haut de l'écran, par intermittence) */
+#otas { left: 0; width: 1080px; top: 150px; opacity: 0; }
+#otas .ey { text-align: center; font-size: 20px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #7A5230; margin-bottom: 16px; }
+#otas .band { position: relative; height: 80px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); }
+#otas .track { position: absolute; inset-inline-start: 0; top: 0; height: 80px; display: flex; align-items: center; gap: 84px; white-space: nowrap; }
+#otas img { width: auto; display: block; flex: none; }
+
+/* Faits produit sous le CTA final */
+#facts { left: 0; width: 1080px; top: 1370px; display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; padding: 0 70px; }
+.fact { background: #FDFDFE; border: 1.5px solid #D7E1EE; border-radius: 999px; padding: 14px 24px; font-size: 26px; font-weight: 600; color: var(--n700); display: inline-flex; gap: 10px; align-items: baseline; }
+.fact b { font-family: var(--fd); font-weight: 700; color: var(--terre); font-size: 30px; direction: ltr; unicode-bidi: isolate; }
+
+/* Arabe : Tajawal partout, pas d'interlettrage ni de capitales, interlignes aérés */
+.rtl { --fb: 'Tajawal', 'BM', sans-serif; --fd: 'Tajawal', 'BSG', sans-serif; }
+.rtl .title { font-weight: 800; letter-spacing: 0; line-height: 1.35; }
+.rtl #counter small, .rtl .ag-k, .rtl #otas .ey, .rtl .pday span { letter-spacing: 0; }
+.rtl #subBox { line-height: 1.5; font-weight: 700; }
+.rtl .tab .lbl, .rtl .ag-line, .rtl .ag-title { font-weight: 700; }
+.rtl .metrics b, .rtl .pill, .rtl .bdg.fee span, .rtl .pday b, .rtl #counter b { font-family: 'BSG', 'Tajawal', sans-serif; }
+.rtl .pday span { font-size: 16px; }
+
+#hud { position: fixed; left: 12px; bottom: 12px; font: 13px/1.4 ui-monospace, monospace; color: #9CB4E2; }
+</style>
+</head>
+<body>
+<!-- Icônes (clonées par le script) -->
+<template id="ic-broom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 22-1-4"/><path d="M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1"/><path d="M5 14h14l1.97 6.77A1 1 0 0 1 20 22H4a1 1 0 0 1-.97-1.23z" fill="currentColor"/><path d="m8 22 1-4"/></svg></template>
+<template id="ic-wrench"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></template>
+<template id="ic-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></template>
+<template id="ic-chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></template>
+<template id="ic-trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg></template>
+<template id="ic-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></template>
+
+<div id="stage">
+  <div id="glow" class="abs"></div>
+
+  <div id="arch" class="abs"><img src="../../brand-book/assets/photos/homeReceptionBaitly.webp" alt=""><span id="archLabel"></span></div>
+  <div id="t1" class="abs title"></div>
+
+  <div id="tabs" class="abs"></div>
+  <div id="counter" class="abs"><small id="counterLbl"></small><b id="count">0</b></div>
+  <div id="kw" class="abs"></div>
+
+  <svg id="house" class="abs" viewBox="251 251 522 522" fill="none"><path id="housePath" pathLength="100" stroke="#25406E" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/></svg>
+  <div id="plan" class="abs"></div>
+  <div id="t4" class="abs title"></div>
+
+  <div id="agents" class="abs"></div>
+  <div id="t5" class="abs title"></div>
+
+  <div id="t6" class="abs title"><div id="t6a"></div><div id="t6b" class="accent"></div></div>
+
+  <div id="logo" class="abs">
+    <div class="row">
+      <svg id="lmark" width="210" height="210" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <defs><path id="logoPath" pathLength="100" d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/></defs>
+        <use href="#logoPath" id="lTrait" stroke="#25406E" stroke-width="21"/>
+        <use href="#logoPath" id="lReq" stroke="#2563EB" stroke-width="27" stroke-dasharray="6 94"/>
+        <use href="#logoPath" id="lRes" stroke="#0D9488" stroke-width="27" stroke-dasharray="6 94"/>
+      </svg>
+      <span class="wm">baitly</span>
+    </div>
+  </div>
+  <div id="cta" class="abs"><div class="b" id="ctaBtn"></div><div class="u">baitly.fr</div></div>
+
+  <div id="otas" class="abs"><div class="ey" id="otaTitle"></div><div class="band"><div class="track" id="otaTrack"></div></div></div>
+  <div id="facts" class="abs"></div>
+  <div id="sub" class="abs"><div id="subBox"></div></div>
+  <svg id="cursor" class="abs" viewBox="0 0 24 24"><path d="M4 2.5 19.5 12l-7 1.6-3.4 6.6z" fill="#1B2A35" stroke="#F7FBFC" stroke-width="1.4" stroke-linejoin="round"/></svg>
+</div>
+<div id="hud"></div>
+
+<script>
+const TL = window.TIMELINE;
+const LANG = window.__LANG__ || new URLSearchParams(location.search).get('lang') || 'fr';
+const T = window.STRINGS[LANG] || window.STRINGS.fr;
+const RTL = T.dir === 'rtl';
+const $ = (id) => document.getElementById(id);
+document.documentElement.lang = LANG;
+$('stage').dir = T.dir;
+if (RTL) $('stage').classList.add('rtl');
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 5);          // ≈ cubic-bezier(0.22, 1, 0.36, 1)
+const easeIn = (x) => Math.pow(clamp(x), 3);
+const easeInOut = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const prog = (t, start, dur) => clamp((t - start) / dur);
+const lerp = (a, b, p) => a + (b - a) * p;
+const set = (el, css) => { for (const k in css) el.style[k] = css[k]; };
+/** Visibilité d'un plan : fondu d'entrée puis de sortie. */
+const vis = (t, a, b, fin = .35, fout = .35) => Math.min(easeOut(prog(t, a, fin)), 1 - easeIn(prog(t, b - fout, fout)));
+/** +1 en lecture gauche → droite, −1 en arabe : les glissements suivent le sens de lecture. */
+const DIR = RTL ? -1 : 1;
+/** Points de synchro voix/image, recalés par langue (timeline.js). */
+const SYNC = Object.assign({ click: 21.35, promise2: 24.5 }, (TL.lang || {})[LANG]);
+const CLICK = SYNC.click;
+const EXIT = Math.max(22.4, CLICK + .75);   // sortie des cartes, après la validation
+
+/* ---------- construction du DOM (contenu statique, sans innerHTML) ---------- */
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false && c !== '') e.append(c);
+  return e;
+}
+function icon(name, size) {
+  const svg = $('ic-' + name).content.firstElementChild.cloneNode(true);
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  return svg;
+}
+function words(el, text, em = []) {
+  return text.split(' ').map((w, i, arr) => {
+    const hit = em.includes(w.replace(/[.,،:]/g, ''));
+    const s = h('span', { class: 'w' + (hit ? ' accent' : '') }, w + (i < arr.length - 1 ? ' ' : ''));
+    el.append(s);
+    return s;
+  });
+}
+
+$('archLabel').textContent = T.archLabel;
+const t1Words = words($('t1'), T.t1, T.t1Em);
+
+const tabEls = T.tabs.map(([f, l], i) => {
+  const d = h('div', { class: 'tab' },
+    h('span', { class: 'fav' }, f), h('span', { class: 'lbl' }, l), h('span', { class: 'x' }, '×'),
+    h('span', { class: 'notif' }, String([3, 1, 2, 5, 1, 2][i % 6])));
+  $('tabs').append(d);
+  return d;
+});
+$('counterLbl').textContent = T.counter;
+const kwEls = [];
+T.kw.forEach((k, i) => {
+  if (i) kwEls.push($('kw').appendChild(h('span', {}, '·')));
+  kwEls.push($('kw').appendChild(h('span', {}, k)));
+});
+
+/* Planning */
+const LOGO = { airbnb: '../../brand-book/assets/brands/airbnb.svg', booking: '../../brand-book/assets/brands/bookingdotcom.svg' };
+const DW = 145, COL = 226;
+const X = (d, hr = 0) => (d + hr / 24) * DW;
+const ST = {
+  pending: { bg: '#E0C89B', ink: '#2B211A', dark: true },
+  confirmed: { bg: '#9A6C3A', ink: '#FFFFFF', dark: false },
+  checked_in: { bg: '#5C3A21', ink: '#FFFFFF', dark: false },
+  checked_out: { bg: '#A89684', ink: '#2B211A', dark: true },
+};
+const P = T.plan;
+// Photo du voyageur dans l'avatar (comme GuestAvatar dans le produit).
+const GUEST_PHOTOS = { sara: 'g2.jpg', lea: 'g9.jpg', jad: 'g3.jpg', nadia: 'g8.jpg', omar: 'g5.jpg', ali: 'g12.jpg', karim: 'g1.jpg' };
+const guestImg = (key) => GUEST_PHOTOS[key] ? h('img', { src: '../../brand-book/assets/guests/' + GUEST_PHOTOS[key], alt: '' }) : null;
+function bar(b) {
+  const st = ST[b.status];
+  const l = X(...b.from), r = X(...b.to);
+  const [av, name] = P.guests[b.guest];
+  const glass = st.dark
+    ? 'background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 2px rgba(43,33,26,.18)'
+    : 'background:rgba(0,0,0,.20);color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22)';
+  const avSt = st.dark
+    ? 'border:3px solid rgba(43,33,26,.30);background:rgba(43,33,26,.12)'
+    : 'border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.22)';
+  const badges = [];
+  if (b.fee) badges.push(h('span', { class: 'bdg fee', style: 'color:#2F9E8D' }, icon('broom', 28), h('span', {}, P.prices.fee)));
+  if (b.wrench) badges.push(h('span', { class: 'bdg', style: 'color:#4F86C6' }, icon('wrench', 26)));
+  if (b.combo) badges.push(h('span', { class: 'bdg combo' }, '+' + b.combo));
+  const logo = P.logos[b.guest];
+  if (logo) badges.push(h('span', { class: 'bdg' }, h('img', { src: LOGO[logo], alt: '' })));
+  const price = P.prices[b.guest];
+  return h('div', { class: 'bar', style: `inset-inline-start:${l}px;width:${r - l}px;background:${st.bg};color:${st.ink}` },
+    b.av && av ? h('span', { class: 'av', style: avSt }, guestImg(b.guest) || av) : null,
+    h('span', { class: 'tx' }, h('small', {}, P.nights(b.nights)), h('b', {}, name)),
+    b.price && price ? h('span', { class: 'pill', style: glass }, icon('check', 22), ' ' + price) : null,
+    badges.length ? h('span', { class: 'bdgs' }, badges) : null);
+}
+// Contenu choisi pour respecter le repli du code : le nom tient toujours.
+const ROWS = [
+  [{ status: 'checked_out', from: [0, 15], to: [1, 11], guest: 'lea', nights: 1, combo: 2 },
+   { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'sara', av: true, nights: 3, price: true, fee: true }],
+  [{ status: 'checked_in', from: [0, 15], to: [3, 11], guest: 'jad', av: true, nights: 3, price: true, wrench: true },
+   { status: 'pending', from: [3, 15], to: [5, 11], guest: 'nadia', av: true, nights: 2, combo: 1 }],
+  [{ blocked: true, from: 1, to: 3 },
+   { orphan: true, day: 3 },
+   { status: 'confirmed', from: [3, 15], to: [6, 11], guest: 'omar', av: true, nights: 3 }],
+  [{ status: 'checked_out', from: [0, 15], to: [1, 11], guest: 'ali', nights: 1, combo: 1 },
+   { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'karim', av: true, nights: 3, price: true }],
+];
+const WE = new Set(P.weekend);
+const plan = $('plan');
+plan.append(h('div', { class: 'ph' },
+  h('div', { class: 'pcol' }, h('small', {}, P.corner)),
+  h('div', { class: 'pdays' }, P.days.map((d, i) =>
+    h('div', { class: 'pday' + (WE.has(i) ? ' we' : '') + (i === 1 ? ' today' : '') }, h('span', {}, d), h('b', {}, String(12 + i)))))));
+const barEls = [];
+ROWS.forEach((items, ri) => {
+  const cells = h('div', { class: 'pcells' }, P.days.map((_, i) => h('i', { class: WE.has(i) ? 'we' : '' })));
+  const track = h('div', { class: 'ptrack' }, cells);
+  items.forEach((it) => {
+    let el;
+    if (it.blocked) {
+      el = h('div', { class: 'blocked', style: `inset-inline-start:${X(it.from)}px;width:${X(it.to - it.from)}px` }, icon('lock', 22), ' ' + P.blocked);
+    } else if (it.orphan) {
+      // Intervention non rattachée : carré blanc à filet, hors brique, à sa date.
+      el = h('div', { class: 'bdg orphan', style: `inset-inline-start:${X(it.day) + 4}px;color:#4F86C6` }, icon('wrench', 26));
+    } else {
+      el = bar(it);
+    }
+    el.dataset.row = ri;
+    track.append(el);
+    barEls.push(el);
+  });
+  const [rowName, city] = P.rows[ri];
+  plan.append(h('div', { class: 'pr' }, h('div', { class: 'pcol' }, h('b', {}, rowName), h('small', {}, city)), track));
+});
+const now = h('div', { id: 'now', style: `inset-inline-start:${COL + X(1, 10)}px` });
+plan.append(now);
+const t4Words = words($('t4'), T.t4, T.t4Em);
+
+/* Cartes de validation (HITL) : agent + statut, titre, contexte chiffré,
+   métriques, jauge, actions hiérarchisées. Revenue est « à valider ». */
+const A = T.agents, R = A.rev;
+const compact = ([k, line, sub, chip], ic, top, done) => h('div', { class: 'agent compact', style: `top:${top}px` },
+  h('span', { class: 'ag-av' }, icon(ic, 32)),
+  h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'ag-k' }, k), h('div', { class: 'ag-line' }, line), h('div', { class: 'ag-sub' }, sub)),
+  h('span', { class: 'chip ' + (done ? 'ok' : 'auto') }, done ? icon('check', 22) : null, chip));
+const commCard = compact(A.comm, 'chat', 330, false);
+const revChip = h('span', { class: 'chip wait' }, R.wait);
+const propVal = h('span', {}, String(R.from));
+const occVal = h('span', {}, '0');
+const fill = h('div', { class: 'fill' });
+const okBtn = h('span', { class: 'btn ok' }, icon('check', 26), R.approve);
+const btnRow = h('div', { class: 'btns' }, okBtn, h('span', { class: 'btn adj' }, R.adjust), h('span', { class: 'btn no' }, R.refuse));
+const approved = h('div', { class: 'approved' }, icon('check', 30), R.approved);
+const revCard = h('div', { class: 'agent hero', style: 'top:492px' },
+  h('div', { class: 'ag-head' },
+    h('span', { class: 'ag-av' }, icon('trend', 32)),
+    h('div', { class: 'ag-id' }, h('b', {}, R.name), h('small', {}, R.meta)),
+    revChip),
+  h('div', { class: 'ag-title' }, R.title),
+  h('div', { class: 'ag-copy' }, R.copy[0], h('b', {}, R.copy[1]), R.copy[2]),
+  h('div', { class: 'metrics' },
+    h('div', {}, h('small', {}, R.current), h('b', {}, String(R.from), h('i', {}, R.unit))),
+    h('div', { class: 'prop' }, h('small', {}, R.proposed), h('b', {}, propVal, h('i', {}, R.unit))),
+    h('div', {}, h('small', {}, R.floor), h('b', {}, R.floorVal, h('i', {}, R.unit)))),
+  h('div', { class: 'gauge' },
+    h('div', { class: 'lbl' }, h('span', {}, R.occ), h('b', {}, occVal, ' %')),
+    h('div', { class: 'track' }, fill, h('div', { class: 'seuil' }), h('div', { class: 'seuil-l' }, R.seuil))),
+  h('div', { class: 'ag-foot' }, btnRow, approved));
+const opsCard = compact(A.ops, 'broom', 1092, true);
+$('agents').append(commCard, revCard, opsCard);
+const agentEls = [commCard, revCard, opsCard];
+const t5Words = words($('t5'), T.t5, T.t5Em);
+/** Position d'un élément dans la scène, hors transformations (offsets cumulés). */
+function posIn(el, root) {
+  let x = 0, y = 0;
+  for (let n = el; n && n !== root; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; }
+  return { x, y };
+}
+let approveTarget = null;
+
+$('t6a').textContent = T.t6[0];
+$('t6b').textContent = T.t6[1];
+$('ctaBtn').textContent = T.cta;
+
+// Canaux réellement connectés au planning, dont les plateformes saoudiennes.
+const OTA_FILES = {
+  airbnb: ['airbnb-wordmark.png', 42], booking: ['booking-wordmark.png', 35], gathern: ['gathern-wordmark.webp', 31],
+  vrbo: ['vrbo-wordmark.svg', 42], mabeet: ['mabeet-wordmark.png', 48], expedia: ['expedia-wordmark.png', 38], agoda: ['agoda-wordmark.svg', 54],
+};
+$('otaTitle').textContent = T.otaTitle;
+const otaTrack = $('otaTrack');
+for (let k = 0; k < 2; k++) {
+  T.otas.forEach((o) => {
+    const [f, hgt] = OTA_FILES[o];
+    otaTrack.append(h('img', { src: '../../brand-book/assets/brands/' + f, alt: '', style: `height:${hgt}px` }));
+  });
+}
+const factEls = T.facts.map(([b, l]) => {
+  const el = h('span', { class: 'fact' }, h('b', {}, b), l || null);
+  $('facts').append(el);
+  return el;
+});
+
+/* ---------- rendu à l'instant t ---------- */
+function titleIn(ws, t, start, stagger = .06) {
+  ws.forEach((w, i) => {
+    const p = easeOut(prog(t, start + i * stagger, .45));
+    set(w, { opacity: p, transform: `translateY(${lerp(22, 0, p)}px)` });
+  });
+}
+let subKey = null;
+function renderSubtitle(t) {
+  const s = T.subtitles.find((x) => t >= x.from && t < x.to);
+  if (!s) { $('sub').style.opacity = 0; return; }
+  if (subKey !== s) {
+    subKey = s;
+    $('subBox').replaceChildren(...[s.text, s.em ? h('em', {}, s.em) : null, s.after || null].filter(Boolean));
+  }
+  $('sub').style.opacity = vis(t, s.from, s.to, .15, .15);
+}
+
+function renderAt(t) {
+  /* A · 0 → 3.4 */
+  const aOut = easeIn(prog(t, 3.0, .45));
+  set($('arch'), { opacity: easeOut(prog(t, 0, .6)) * (1 - aOut), transform: `translateY(${-60 * aOut}px)` });
+  $('arch').firstElementChild.style.transform = `scale(${lerp(1.08, 1.02, easeOut(prog(t, 0, 3.2)))})`;
+  titleIn(t1Words, t, .35);
+  set($('t1'), { opacity: 1 - aOut, transform: `translateY(${-60 * aOut}px)` });
+
+  /* B · onglets 3.2 → 12 */
+  const collapse = easeInOut(prog(t, 10.9, .9));
+  tabEls.forEach((el, i) => {
+    const start = 3.3 + i * .16;
+    const p = easeOut(prog(t, start, .5));
+    const baseY = 400 + i * 96;
+    const rot = (i % 2 ? 1 : -1) * (.8 + (i % 3) * .4);
+    const vib = t > 6.4 && t < 7.4 ? Math.sin((t - 6.4) * Math.PI * 6) * 3 : 0;   // 3 cycles ±3 px
+    const y = lerp(baseY - 260, baseY, p);
+    const fy = lerp(y, 780 - 59, collapse);
+    const sc = lerp(1, .04, collapse);
+    set(el, { opacity: (t < start ? 0 : p) * (1 - easeIn(prog(t, 11.4, .4))),
+      transform: `translate(${vib}px, ${fy}px) rotate(${rot * (1 - collapse)}deg) scale(${sc})` });
+    el.lastElementChild.style.opacity = i % 2 === 1 ? easeOut(prog(t, 6.6 + (i % 6) * .22, .3)) : 0;
+  });
+  $('count').textContent = String(Math.round(clamp((t - 3.3) / (tabEls.length * .16)) * tabEls.length));
+  $('counter').style.opacity = vis(t, 3.3, 11.0, .3, .5);
+  const kwT = [6.5, 6.5, 7.35, 7.35, 8.05, 8.05, 8.8];
+  kwEls.forEach((el, i) => {
+    const p = easeOut(prog(t, kwT[i], .35));
+    set(el, { opacity: p * (1 - easeIn(prog(t, 10.6, .4))), transform: `translateY(${lerp(16, 0, p)}px)` });
+  });
+
+  /* C · logo tracé → planning 11.9 → 16.4 */
+  const draw = easeInOut(prog(t, 11.9, 1.2));
+  set($('housePath'), { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * draw) });
+  const houseOut = easeIn(prog(t, 13.1, .5));
+  set($('house'), { opacity: (t < 11.9 ? 0 : 1) * (1 - houseOut), transform: `scale(${lerp(1, 1.6, houseOut)})` });
+  const planIn = easeOut(prog(t, 13.2, .8));
+  const planOut = easeIn(prog(t, EXIT, .5));
+  const planDim = easeOut(prog(t, 16.5, .6));
+  set($('plan'), { opacity: planIn * lerp(1, .14, planDim) * (1 - planOut), transform: `translateY(${lerp(40, 0, planIn) - 30 * planDim}px)` });
+  barEls.forEach((el) => {
+    // Les briques glissent depuis leur heure d'arrivée, une rangée après l'autre,
+    // dans le sens de lecture.
+    const p = easeOut(prog(t, 13.6 + (+el.dataset.row) * .18, .6));
+    const cut = lerp(100, 0, p);
+    set(el, { opacity: p,
+      clipPath: RTL ? `inset(-10px -10px -10px ${cut}%)` : `inset(-10px ${cut}% -10px -10px)`,
+      transform: `translateX(${lerp(-24 * DIR, 0, p)}px)` });
+  });
+  now.style.opacity = easeOut(prog(t, 14.6, .4));
+  titleIn(t4Words, t, 14.2);
+  $('t4').style.opacity = 1 - easeIn(prog(t, 16.2, .35));
+
+  /* D · cartes de validation 16.4 → 22.8 */
+  agentEls.forEach((el, i) => {
+    const p = easeOut(prog(t, 16.8 + i * .18, .7));
+    const out = easeIn(prog(t, EXIT, .45));
+    set(el, { opacity: p * (1 - out), transform: `translateY(${lerp(900, 0, p) - 40 * out}px)` });
+  });
+  // L'agent a simulé : occupation mesurée puis prix proposé (compteurs).
+  const occ = easeOut(prog(t, 17.9, .9));
+  occVal.textContent = String(Math.round(42 * occ));
+  fill.style.width = (42 * occ) + '%';
+  propVal.textContent = String(Math.round(lerp(R.from, R.to, easeInOut(prog(t, 18.6, .9)))));
+  // Curseur : vient sur « Approuver » et le presse à la fin de la réplique.
+  if (!approveTarget) {
+    const pb = posIn(okBtn, $('stage'));
+    approveTarget = { x: pb.x + okBtn.offsetWidth * .55, y: pb.y + okBtn.offsetHeight * .55 };
+  }
+  const cp = easeInOut(prog(t, CLICK - 1.05, .9));
+  const cx0 = RTL ? 180 : 860;
+  set($('cursor'), { opacity: vis(t, CLICK - 1.25, CLICK + .95, .25, .3), transform: `translate(${lerp(cx0, approveTarget.x, cp)}px, ${lerp(1560, approveTarget.y, cp)}px)` });
+  okBtn.style.background = t >= CLICK && t < CLICK + .15 ? '#1B3155' : '';
+  const done = easeOut(prog(t, CLICK + .2, .35));
+  set(btnRow, { opacity: 1 - done, transform: `translateY(${-10 * done}px)` });
+  set(approved, { opacity: done, transform: `translateY(${lerp(10, 0, done)}px)` });
+  const isDone = t >= CLICK + .2;
+  if (revChip.dataset.done !== String(isDone)) {
+    revChip.dataset.done = String(isDone);
+    revChip.className = 'chip ' + (isDone ? 'ok' : 'wait');
+    revChip.replaceChildren(...(isDone ? [icon('check', 22), R.ok] : [R.wait]));
+  }
+  revCard.style.borderColor = `color-mix(in srgb, #9A6C3A ${Math.round(45 * done)}%, #D5DEE7)`;
+  titleIn(t5Words, t, CLICK - .35);
+  $('t5').style.opacity = 1 - easeIn(prog(t, EXIT, .4));
+
+  /* E · promesse 22.8 → 26.6 */
+  $('glow').style.opacity = easeOut(prog(t, 22.6, .8));
+  const a = easeOut(prog(t, 23.0, .55)), b = easeOut(prog(t, SYNC.promise2, .55));
+  const eOut = easeIn(prog(t, 26.2, .45));
+  set($('t6a'), { opacity: a * (1 - eOut), transform: `translateY(${lerp(20, 0, a) - 30 * eOut}px)` });
+  set($('t6b'), { opacity: b * (1 - eOut), transform: `translateY(${lerp(20, 0, b) - 30 * eOut}px)` });
+
+  /* F · logo + CTA 26.6 → fin */
+  const lIn = easeOut(prog(t, 26.6, .6));
+  set($('logo'), { opacity: lIn, transform: `translateY(${lerp(24, 0, lIn)}px)` });
+  const trace = easeInOut(prog(t, 26.6, 1.0));
+  set($('lTrait'), { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * trace) });
+  // Packets : cycle 5 s linéaire, requête sur la 1re moitié, réponse sur la 2de.
+  const cyc = (((t - 27.6) % 5) + 5) % 5 / 5;
+  const pk = t >= 27.6;
+  set($('lReq'), { opacity: pk && cyc < .5 ? 1 : 0, strokeDashoffset: String(-lerp(0, 94, cyc / .5)) });
+  set($('lRes'), { opacity: pk && cyc >= .5 ? 1 : 0, strokeDashoffset: String(-lerp(94, 0, (cyc - .5) / .5)) });
+  const cIn = easeOut(prog(t, 27.5, .6));
+  set($('cta'), { opacity: cIn, transform: `translateY(${lerp(24, 0, cIn)}px)` });
+  const hover = easeOut(prog(t, 29.6, .2)) * (1 - easeOut(prog(t, 29.8, .3)));
+  $('ctaBtn').style.background = `color-mix(in srgb, #1B2A35 ${Math.round(hover * 100)}%, #25406E)`;
+
+  /* Bandeau des canaux : planning + agents, puis carte de fin */
+  const otaVis = Math.max(vis(t, 12.6, EXIT + .1, .5, .45), vis(t, 27.3, 34, .5, .1));
+  set($('otas'), { opacity: otaVis, transform: `translateY(${lerp(-16, 0, otaVis)}px)` });
+  const half = otaTrack.scrollWidth / 2 + 42;           // une série + un demi-écart
+  otaTrack.style.transform = `translateX(${-DIR * ((t * 42) % half)}px)`;
+
+  /* Faits produit sous le CTA */
+  factEls.forEach((el, i) => {
+    const p = easeOut(prog(t, 28.3 + i * .15, .5));
+    set(el, { opacity: p, transform: `translateY(${lerp(18, 0, p)}px)` });
+  });
+
+  renderSubtitle(t);
+}
+window.renderAt = renderAt;
+// La cible du curseur dépend des polices : recalcul une fois celles-ci chargées.
+document.fonts.ready.then(() => { approveTarget = null; });
+renderAt(0);
+
+/* ---------- aperçu temps réel dans le navigateur (désactivé au rendu) ---------- */
+if (!window.__RENDER__) {
+  const stage = $('stage');
+  const fit = () => { stage.style.transform = `scale(${Math.min(innerWidth / 1080, innerHeight / 1920)})`; };
+  addEventListener('resize', fit); fit();
+  let t0 = performance.now(), offset = 0, paused = false, cur = 0;
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space') paused = !paused;
+    if (e.code === 'ArrowRight') cur = Math.min(TL.duration, cur + 1);
+    if (e.code === 'ArrowLeft') cur = Math.max(0, cur - 1);
+    offset = cur; t0 = performance.now();
+  });
+  const loop = () => {
+    cur = paused ? offset : (offset + (performance.now() - t0) / 1000) % TL.duration;
+    renderAt(cur);
+    $('hud').textContent = `${LANG} · ${cur.toFixed(2)} s${paused ? ' (pause)' : ''}`;
+    requestAnimationFrame(loop);
+  };
+  loop();
+}
+</script>
+</body>
+</html>

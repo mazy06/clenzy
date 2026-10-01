@@ -1,0 +1,239 @@
+<!doctype html>
+<!--
+  Baitly · Reel 15 « Les cartes de la journée » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : la compilation de la série (BESOINS-ET-SERVICES.md §10) — une journée
+  d'hôte, carte après carte, pilotée par le temps via le kit partagé ; les plans suivent la voix.
+  Composants réels repris : pile de cartes HITL (L23, AnimatedHitlMockup), horloge de la journée,
+  thermostat réglé à distance (ThermostatService : lecture et consigne, pas d'automatisme).
+  Déroulé : la pile, l'horloge → 07:30 caution « Libérer » → 09:00 avis « Répondre » → 12:00 ménage
+  « Valider » → 14:00 départ tardif « Accepter » → 16:00 thermostat 17 → 21 °C → 19:00 relevé
+  « Envoyer » → 23:40 bruit « Envoyer l'avertissement » → pile vide → règle de confiance « Activer »,
+  réglages d'automatisation (ménage → Auto, caution → Notifie, remboursements verrouillés) → promesse → fin.
+  Rendu : node ../render.mjs reel-15-cartes-de-la-journee --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 15 Les cartes de la journée</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+#clock { left: 0; width: 1080px; top: 300px; display: flex; flex-direction: column; align-items: center; gap: 18px; opacity: 0; }
+#clock .clockchip { background: #1B2A35; color: #F7FBFC; font-size: 40px; padding: 16px 30px; }
+#clock .clockchip svg { color: #E0C89B; }
+.day { position: relative; width: 760px; height: 12px; border-radius: 6px; background: #E1E9F0; }
+.day i { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; border-radius: 6px; background: linear-gradient(90deg, #E0C89B, #9A6C3A 60%, #25406E); }
+.day b { position: absolute; top: 20px; transform: translateX(-50%); font-size: 18px; font-weight: 700; color: #98A4AB; }
+/* intro */
+#intro { left: 0; width: 1080px; top: 1060px; text-align: center; }
+#intro .eyebrow { opacity: 0; }
+#intro .title { font-size: 84px; margin-top: 16px; opacity: 0; }
+.fan { position: absolute; left: 140px; width: 800px; top: 470px; height: 420px; border-radius: 32px; background: #FDFDFE; border: 2.5px solid rgba(212,165,116,.6); box-shadow: 0 36px 72px -40px rgba(27,42,53,.45); opacity: 0; }
+.fan .ln { height: 18px; border-radius: 9px; background: #EEF3F6; margin: 30px 36px 0; }
+.fan .ln.s { width: 40%; height: 28px; background: #E1E9F0; }
+/* pile */
+.ghost { position: absolute; left: 80px; width: 920px; height: 380px; border-radius: 32px; background: #FDFDFE; border: 2px solid var(--ligne); box-shadow: 0 30px 60px -40px rgba(27,42,53,.4); opacity: 0; }
+.hc.abs { top: 560px; left: 80px; }
+.thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.thumbs img { width: 100%; height: 150px; object-fit: cover; border-radius: 16px; display: block; }
+/* thermostat */
+#th { left: 80px; width: 920px; top: 560px; padding: 30px 34px; opacity: 0; }
+#th .th-h { display: flex; align-items: center; gap: 16px; }
+#th .th-h .i { width: 64px; height: 64px; border-radius: 20px; background: rgba(180,87,51,.12); color: #B45733; display: flex; align-items: center; justify-content: center; }
+#th .th-h b { display: block; font-family: var(--fd); font-size: 32px; font-weight: 600; } #th .th-h small { display: block; font-size: 22px; color: var(--ardoise); }
+#th .th-b { display: flex; align-items: center; gap: 30px; margin-top: 18px; }
+#th svg.dial { width: 330px; height: 300px; flex: none; overflow: visible; }
+#th .th-r { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+#th .btns { display: flex; gap: 14px; }
+#th .btns span { width: 84px; height: 84px; border-radius: 22px; box-shadow: inset 0 0 0 2px #D5DEE7; display: flex; align-items: center; justify-content: center; color: #1B2A35; }
+#th .btns span.on { background: #1B2A35; color: #F7FBFC; box-shadow: none; }
+#th .chip.rem { opacity: 0; }
+#empty { left: 0; width: 1080px; top: 760px; display: flex; justify-content: center; opacity: 0; }
+#empty .chip { font-size: 30px; padding: 18px 30px; }
+/* automatisation */
+#tc { left: 80px; top: 170px; opacity: 0; }
+#tc .hc-t { font-size: 36px; }
+#au { left: 80px; width: 920px; top: 700px; opacity: 0; }
+.lgd { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.lgd div { background: #F1F5F7; border-radius: 14px; padding: 10px 12px; }
+.lgd b { display: block; font-size: 21px; color: #1B2A35; } .lgd small { display: block; font-size: 18px; color: #526674; margin-top: 2px; }
+.ar { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-top: 1.5px solid #EEF2F5; }
+.ar .ai { width: 52px; height: 52px; border-radius: 16px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; flex: none; }
+.ar .al { flex: 1; min-width: 0; } .ar .al b { display: block; font-size: 25px; } .ar .al small { display: block; font-size: 19px; color: #526674; }
+.seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); width: 330px; flex: none; padding: 5px; border-radius: 14px; background: #F1F5F7; box-shadow: inset 0 0 0 1.5px #E6ECF0; }
+.seg span { position: relative; z-index: 1; text-align: center; font-size: 20px; font-weight: 700; color: #526674; padding: 10px 0; }
+.seg span.on { color: #F7FBFC; }
+.seg i { position: absolute; top: 5px; bottom: 5px; left: 5px; width: calc((100% - 10px) / 3); border-radius: 10px; background: #1B2A35; }
+.ar.lk .lkc { flex: none; }
+/* promesse */
+#promise { left: 0; width: 1080px; top: 700px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .title { font-size: 92px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/* horloge + barre de la journée */
+const clock = K.abs('clock');
+const clockT = h('b', {}, '07:00');
+const dayFill = h('i');
+clock.append(h('span', { class: 'clockchip' }, icon('clock', 40), clockT),
+  h('div', { class: 'day' }, dayFill, ...['07', '12', '18', '24'].map((hh) => h('b', { style: `left:${(+hh - 7) / 17 * 100}%` }, hh + ':00'))));
+const hourOf = (s) => { const [a, b] = s.split(':').map(Number); return a + b / 60; };
+
+/* intro : la pile en éventail */
+const fans = [0, 1, 2].map(() => { const el = h('div', { class: 'fan abs' }, h('div', { class: 'ln s' }), h('div', { class: 'ln' }), h('div', { class: 'ln', style: 'width:80%' }), h('div', { class: 'ln', style: 'width:60%' })); K.stage.append(el); return el; });
+const intro = K.abs('intro');
+const iK = h('div', { class: 'eyebrow' }, T.intro.kicker), iT = h('div', { class: 'title' }, T.intro.title);
+intro.append(iK, iT);
+
+/* la pile de cartes (2 cartes fantômes derrière la carte active) */
+const ghosts = [0, 1].map(() => { const el = h('div', { class: 'ghost abs' }); K.stage.append(el); return el; });
+const cards = T.cards.map((c) => {
+  const card = K.hitlCard({ agent: c.agent, tag: c.tag, title: c.title, copy: c.copy, wait: T.wait, done: T.doneBadge, primary: c.verb, dismiss: T.dismiss, doneText: c.done });
+  card.el.classList.add('abs'); card.el.style.opacity = 0; K.stage.append(card.el);
+  // Corps réel de chaque carte (chiffres, avis, photos, message, jauge)
+  if (c.grid) card.body.append(h('div', { class: 'hg' }, c.grid.map(([k, v], i) => h('div', {}, h('small', {}, k), h('b', { class: i === 2 ? 'ok' : '' }, v)))));
+  if (c.review) { const st = K.stars(5, 30); card.body.append(h('div', { class: 'hq' }, h('div', { style: 'margin-bottom:8px' }, st.el), c.review)); }
+  if (c.photos) card.body.append(h('div', { class: 'thumbs' }, ['bedroom.jpg', 'operationsProof.webp', 'pricingRoom.webp', 'guideLiving.webp'].map((f) => h('img', { src: '../../brand-book/assets/photos/' + f, alt: '' }))));
+  if (c.msg) card.body.append(h('div', { class: 'bub' }, c.msg));
+  if (c.gauge) { const g = K.noiseGauge({ threshold: 70, label: null, limit: null }); g.set(c.gauge, 0); card.gauge = g; card.body.append(g.el); }
+  return card;
+});
+
+/* le thermostat, réglé à distance */
+const TH = T.thermo;
+const th = K.abs('th', 'card');
+const dial = document.createElementNS(SVGNS, 'svg');
+dial.setAttribute('class', 'dial'); dial.setAttribute('viewBox', '0 0 330 300');
+const arc = (cx, cy, r, a0, a1) => { const p = (a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0} ${y0} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1} ${y1}`; };
+const A0 = Math.PI * .75, A1 = Math.PI * 2.25;
+const mk = (tag, attrs) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); dial.append(e); return e; };
+mk('path', { d: arc(165, 160, 120, A0, A1), fill: 'none', stroke: '#E1E9F0', 'stroke-width': 24, 'stroke-linecap': 'round' });
+const valArc = mk('path', { d: arc(165, 160, 120, A0, A0 + .01), fill: 'none', stroke: '#B45733', 'stroke-width': 24, 'stroke-linecap': 'round' });
+const tTxt = mk('text', { x: 165, y: 170, 'text-anchor': 'middle', 'font-family': 'BSG', 'font-size': 78, 'font-weight': 700, fill: '#1B2A35' });
+const tLab = mk('text', { x: 165, y: 214, 'text-anchor': 'middle', 'font-family': 'BM', 'font-size': 22, 'font-weight': 600, fill: '#526674' });
+tLab.textContent = TH.target;
+const bMinus = h('span', {}, icon('minus', 34)), bPlus = h('span', {}, icon('plus', 34));
+const remote = h('span', { class: 'chip ok rem' }, icon('check', 20), TH.remote);
+th.append(h('div', { class: 'th-h' }, h('span', { class: 'i' }, icon('thermo', 34)), h('div', {}, h('b', {}, TH.name), h('small', {}, TH.note))),
+  h('div', { class: 'th-b' }, dial, h('div', { class: 'th-r' }, h('div', { class: 'btns' }, bMinus, bPlus), h('span', { class: 'chip neutral' }, icon('drops', 20), TH.hum), remote)));
+const empty = K.abs('empty');
+empty.append(h('span', { class: 'chip ok' }, icon('ccheck', 28), T.empty));
+
+/* automatisation : règle de confiance, puis réglages par type */
+const AU = T.auto;
+const tc = K.hitlCard({ agent: AU.trust.agent, tag: AU.trust.tag, title: AU.trust.title, copy: AU.trust.copy, wait: T.wait, done: T.doneBadge,
+  primary: ['zap', AU.trust.activate], dismiss: AU.trust.dismiss, doneText: AU.trust.done });
+tc.el.id = 'tc'; tc.el.classList.add('abs'); tc.el.style.top = '230px'; K.stage.append(tc.el);
+const au = K.productWindow({ title: AU.title, icon: 'sliders' });
+au.el.id = 'au'; au.el.classList.add('abs'); K.stage.append(au.el);
+au.body.append(h('div', { class: 'lgd' }, AU.legend.map(([b, sm]) => h('div', {}, h('b', {}, b), h('small', {}, sm)))));
+const segs = AU.rows.map(([ic, label, agent]) => {
+  const knob = h('i'); const opts = AU.levels.map((l) => h('span', {}, l));
+  const row = h('div', { class: 'ar' }, h('span', { class: 'ai' }, icon(ic, 28)), h('div', { class: 'al' }, h('b', {}, label), h('small', {}, agent)), h('div', { class: 'seg' }, knob, ...opts));
+  au.body.append(row); return { row, knob, opts };
+});
+const lockRow = h('div', { class: 'ar lk' }, h('span', { class: 'ai', style: 'background:rgba(180,87,51,.12);color:#B45733' }, icon('lock', 26)), h('div', { class: 'al' }, h('b', {}, AU.locked[0])), h('span', { class: 'chip wait lkc' }, icon('lock', 18), AU.locked[1]));
+au.body.append(lockRow);
+function segTo(sg, from, to, p) { const x = lerp(from, to, easeInOut(p)); sg.knob.style.transform = `translateX(${x * 100}%)`; sg.opts.forEach((o, i) => o.classList.toggle('on', Math.round(x) === i)); }
+
+/* promesse puis fin */
+const promise = K.abs('promise');
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) pts = { cards: cards.map((c) => K.center(c.pBtn)), plus: K.center(bPlus) };
+  const [a0, b0] = slot(0), [a1] = slot(1), [a4, b4] = slot(4), [a5, b5] = slot(5);
+  // séquence : 4 cartes, le thermostat, 2 cartes ; chacune entre après le clic de la précédente
+  const keys = [SYNC.k1, SYNC.k2, SYNC.k3, SYNC.k4, SYNC.thermo, SYNC.k5, SYNC.k6];
+  const enter = keys.map((k, i) => (i === 0 ? a1 + .1 : keys[i - 1] + .75));
+  const exit = enter.map((e, i) => (i < enter.length - 1 ? enter[i + 1] : Math.min(SYNC.rest - .55, keys[6] + 1.6)));
+  let cur = -1;
+  enter.forEach((e, i) => { if (t >= e) cur = i; });
+
+  /* horloge */
+  const cv = vis(t, a0 + .2, b4 - .1, .5, .4);
+  set(clock, { opacity: cv, transform: `translateY(${lerp(-20, 0, easeOut(prog(t, a0 + .2, .5)))}px)` });
+  const hNow = cur < 0 ? 7 : hourOf(T.times[cur]);
+  const tLabel = cur < 0 ? '07:00' : T.times[cur];
+  if (clockT.textContent !== tLabel) clockT.textContent = tLabel;
+  const hPrev = cur <= 0 ? 7 : hourOf(T.times[cur - 1]);
+  const hh = cur < 0 ? 7 : lerp(hPrev, hNow, easeInOut(prog(t, enter[cur], .6)));
+  dayFill.style.width = ((hh - 7) / 17 * 100) + '%';
+
+  /* intro : éventail qui se referme en pile */
+  const iv = vis(t, a0, a1 + .3, .45, .4);
+  fans.forEach((f, i) => { const p = easeOut(prog(t, a0 + .2 + i * .12, .6)); const close = easeInOut(prog(t, a1 - .4, .6)); set(f, { opacity: iv * p, transform: `rotate(${lerp((i - 1) * 7, 0, close)}deg) translateY(${lerp(40, 0, p) + i * 14 * close}px)` }); });
+  const ik = easeOut(prog(t, a0 + .4, .5)), it = easeOut(prog(t, a0 + .7, .55));
+  set(iK, { opacity: iv * ik }); set(iT, { opacity: iv * it, transform: `translateY(${lerp(24, 0, it)}px)` });
+
+  /* la pile : fantômes derrière, carte active, clic, sortie à gauche */
+  const remaining = 7 - Math.max(0, cur);
+  const actH = cur >= 0 ? (cur < 4 ? cards[cur].el : cur === 4 ? th : cards[cur - 1].el).offsetHeight : 380;
+  ghosts.forEach((g, i) => { const on = cur >= 0 && t < SYNC.rest - .55 && remaining > i + 1; set(g, { opacity: on ? (i ? .5 : .75) : 0, height: actH + 'px', transform: `translateY(${(i + 1) * 22 + 560}px) scale(${1 - (i + 1) * .04})`, top: '0px' }); });
+  if (cards[5].gauge) cards[5].gauge.set(84, t);
+  const itemEl = (i) => (i < 4 ? cards[i].el : i === 4 ? th : cards[i - 1].el);
+  for (let i = 0; i < 7; i++) {
+    const el = itemEl(i);
+    const pin = easeOut(prog(t, enter[i], .5)), pout = easeIn(prog(t, exit[i], .55));
+    set(el, { opacity: t < enter[i] ? 0 : (1 - pout), transform: `translate(${lerp(0, -1150, pout)}px, ${lerp(90, 0, pin)}px) rotate(${lerp(0, -9, pout)}deg)`, zIndex: 10 });
+    if (i !== 4) {
+      const c = cards[i < 4 ? i : i - 1], pt = pts.cards[i < 4 ? i : i - 1];
+      c.render(t, keys[i]);
+      if (t > enter[i] && t < keys[i] + .6) K.cursorMove(t, Math.max(enter[i] + .2, keys[i] - 1.0), .8, { x: pt.x + 300, y: pt.y + 320 }, pt, keys[i] + .6);
+      K.tapAt(t, keys[i], pt);
+    }
+  }
+  /* thermostat : 17 → 21 °C, quatre appuis sur « + » */
+  const tv = lerp(TH.from, TH.to, easeInOut(prog(t, SYNC.thermo, 1.2)));
+  const deg = Math.round(tv);
+  if (tTxt.textContent !== deg + '°') tTxt.textContent = deg + '°';
+  valArc.setAttribute('d', arc(165, 160, 120, A0, A0 + (A1 - A0) * Math.max(.01, (tv - 10) / 20)));
+  [0, 1, 2, 3].forEach((k) => K.tapAt(t, SYNC.thermo + k * .3, pts.plus));
+  bPlus.classList.toggle('on', t >= SYNC.thermo && t < SYNC.thermo + 1.3);
+  remote.style.opacity = easeOut(prog(t, SYNC.thermo + 1.3, .4));
+
+  /* pile vide */
+  const ev = vis(t, SYNC.rest, b4 + .2, .45, .4);
+  set(empty, { opacity: ev, transform: `scale(${lerp(.92, 1, easeOut(prog(t, SYNC.rest, .5)))})` });
+
+  /* automatisation */
+  const v5 = slotVis(t, 5), e5 = easeOut(prog(t, a5, .6));
+  set(tc.el, { opacity: v5, transform: `translateY(${lerp(60, 0, e5)}px)` });
+  tc.render(t, SYNC.trust);
+  const ptT = pts.trust || (pts.trust = K.center(tc.pBtn));
+  K.cursorMove(t, SYNC.trust - 1.1, .9, { x: ptT.x + 300, y: ptT.y + 380 }, ptT, SYNC.trust + .7);
+  K.tapAt(t, SYNC.trust, ptT);
+  const ai = easeOut(prog(t, SYNC.trust + .4, .6));
+  set(au.el, { opacity: v5 * ai, transform: `translateY(${lerp(60, 0, ai)}px)` });
+  segTo(segs[0], 0, 2, prog(t, SYNC.auto1, .6));
+  segTo(segs[1], 0, 1, prog(t, SYNC.auto2, .6));
+  segTo(segs[2], 0, 0, 0);
+  [segs[0].row, segs[1].row].forEach((r, i) => { const w = prog(t, [SYNC.auto1, SYNC.auto2][i], 1.2); r.style.background = w > 0 && w < 1 ? `rgba(224,200,155,${.35 * Math.sin(w * Math.PI)})` : 'transparent'; });
+  const lw = prog(t, SYNC.lock, 1.4);
+  lockRow.style.background = lw > 0 && lw < 1 ? `rgba(180,87,51,${.14 * Math.sin(lw * Math.PI)})` : 'transparent';
+
+  /* promesse */
+  const [a6, b6] = slot(6);
+  const v6 = slotVis(t, 6, .5, .35);
+  const q1 = easeOut(prog(t, a6 + .1, .55)), q2 = easeOut(prog(t, a6 + (b6 - a6) * .45, .55));
+  set(p1, { opacity: v6 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v6 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

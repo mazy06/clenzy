@@ -1,0 +1,188 @@
+<!doctype html>
+<!--
+  Baitly · Reel 11 « Les fiches de police » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : l'animation de la déclaration des voyageurs dans trois pays
+  (BESOINS-ET-SERVICES.md §10), pilotée par le temps via le kit partagé ; les plans suivent la voix.
+  Composants réels repris : fiche de police du livret (GuestDeclaration), fenêtre produit à onglets
+  pays (L10), carte HITL (« Télédéclarer », « Marquer déclarée »), tampon.
+  Déroulé : trois pays, trois autorités → le voyageur remplit sa fiche dans le livret (pré-remplie)
+  → onglets Maroc (clic « Télédéclarer », tampon « Déclaré »), France (« Transmise »), Arabie
+  saoudite (« Enregistré ») → carte taxe de séjour + tuiles ZATCA, NTMP, RGPD → promesse → fin.
+  Rendu : node ../render.mjs reel-11-fiches-de-police --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 11 Les fiches de police</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · trois pays */
+#ph0 { left: 80px; top: 150px; width: 920px; height: 600px; opacity: 0; }
+#intro { left: 80px; width: 920px; top: 700px; }
+#intro .k { display: inline-flex; align-items: center; gap: 10px; background: #FDFDFE; border-radius: 999px; padding: 12px 22px; font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); box-shadow: 0 16px 34px -20px rgba(27,42,53,.45); opacity: 0; }
+.cty { display: flex; align-items: center; gap: 20px; margin-top: 16px; padding: 22px 28px; border-radius: 24px; background: #FDFDFE; border: 1.5px solid var(--ligne); box-shadow: 0 24px 48px -30px rgba(27,42,53,.4); opacity: 0; }
+.cty .n { width: 64px; height: 64px; border-radius: 18px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; font-family: var(--fd); font-size: 28px; font-weight: 700; flex: none; }
+.cty b { display: block; font-family: var(--fd); font-size: 32px; font-weight: 600; }
+.cty small { display: block; font-size: 23px; color: var(--ardoise); }
+/* B · la fiche dans le livret (repère 390 px du téléphone) */
+.lv { background: #F4EDE3; padding: 56px 18px 0; display: flex; flex-direction: column; gap: 12px; }
+.lv .hd { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #7A5230; }
+.lv .ti { font-family: 'BSG', sans-serif; font-size: 26px; font-weight: 700; color: #1B2A35; }
+.lv .pr { height: 8px; border-radius: 4px; background: #E6DCCD; overflow: hidden; }
+.lv .pr i { display: block; height: 100%; width: 0; background: #2F9E8D; border-radius: 4px; }
+.lv .pd { font-size: 12.5px; font-weight: 700; color: #0C7166; }
+.lv .fd { background: #FFFFFF; border-radius: 14px; padding: 10px 12px; box-shadow: 0 1px 2px rgba(27,42,53,.08); opacity: 0; }
+.lv .fd small { display: flex; justify-content: space-between; font-size: 11.5px; color: #6B7B83; font-weight: 600; }
+.lv .fd small em { font-style: normal; color: #2F9E8D; }
+.lv .fd b { display: block; font-size: 16px; color: #1B2A35; margin-top: 3px; }
+.lv .fd b.typing::after { height: 1em; }
+.lv .go { margin-top: 6px; text-align: center; background: #25406E; color: #F7FBFC; border-radius: 14px; padding: 13px; font-size: 16px; font-weight: 700; }
+.lv .go.sent { background: #0C7166; }
+/* C · fenêtre Conformité à onglets pays */
+#win { left: 80px; width: 920px; top: 420px; opacity: 0; }
+#win .auth { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 18px; background: #EEF3F6; font-size: 26px; font-weight: 700; color: var(--n700); }
+#win .auth svg { color: var(--n600); }
+#win .kv { font-size: 25px; }
+#win .foot { position: relative; display: flex; align-items: center; justify-content: flex-end; height: 72px; margin-top: 18px; }
+#win .foot .st2 { position: absolute; inset-inline-start: 0; display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; color: #0C7166; opacity: 0; }
+.stampz { position: absolute; inset-inline-end: 44px; bottom: 26px; top: auto; }
+/* D · taxe de séjour + tuiles */
+#tax { left: 80px; top: 170px; opacity: 0; }
+#tiles { left: 80px; width: 920px; top: 640px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.tile { padding: 26px 26px 24px; border-radius: 26px; background: #FDFDFE; border: 1.5px solid var(--ligne); box-shadow: 0 24px 48px -32px rgba(27,42,53,.4); opacity: .0; }
+.tile .ti2 { width: 60px; height: 60px; border-radius: 18px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; }
+.tile b { display: block; font-family: var(--fd); font-size: 30px; font-weight: 600; margin-top: 16px; }
+.tile small { display: block; font-size: 22px; color: var(--ardoise); margin-top: 4px; }
+.tile .ok { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 21px; font-weight: 700; color: #0C7166; opacity: 0; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 660px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .mi { width: 120px; height: 120px; border-radius: 40px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; opacity: 0; }
+#promise .title { font-size: 90px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+
+/* A · trois pays, trois autorités */
+const ph0 = K.photoFrame('financeDocuments.webp');
+ph0.el.id = 'ph0'; ph0.el.classList.add('abs'); K.stage.append(ph0.el);
+const intro = K.abs('intro');
+const kick = h('span', { class: 'k' }, icon('idcard', 26), T.intro.kicker);
+const ctys = T.intro.rows.map(([c, a], i) => h('div', { class: 'cty' }, h('span', { class: 'n' }, ['MA', 'FR', 'SA'][i]), h('div', {}, h('b', {}, c), h('small', { dir: 'auto' }, a))));
+intro.append(kick, ...ctys);
+
+/* B · la fiche de police dans le livret du voyageur */
+const F = T.form;
+const ph = K.phone({ left: 290, top: 250 });
+const prBar = h('i');
+const fields = F.fields.map(([k, v, pre]) => { const val = h('b', {}, pre ? v : ''); return { el: h('div', { class: 'fd' }, h('small', {}, h('span', {}, k), pre ? h('em', {}, F.pre) : null), val), val, v, pre }; });
+const goBtn = h('div', { class: 'go' }, F.send);
+const lv = h('div', { class: 'layer lv' }, h('div', { class: 'hd' }, icon('filetext', 16), F.head), h('div', { class: 'ti' }, F.title),
+  h('div', { class: 'pr' }, prBar), h('div', { class: 'pd' }, F.done), ...fields.map((f) => f.el), goBtn, h('div', { class: 'home', style: 'background:rgba(27,42,53,.5)' }));
+ph.scaler.append(lv);
+
+/* C · fenêtre Conformité : onglets Maroc / France / Arabie saoudite */
+const W = T.win;
+const win = K.productWindow({ title: W.title, icon: 'shield', tabs: W.tabs, active: 0 });
+win.el.id = 'win'; win.el.classList.add('abs');
+const authTxt = h('span', { dir: 'auto' }, W.auth[0]);
+const declBtn = h('span', { class: 'hbtn p' }, icon('send', 24), h('span', {}, W.declare));
+const st2 = h('div', { class: 'st2' }, icon('ccheck', 28), h('span', {}, W.stamps[0]));
+win.body.append(h('div', { class: 'auth' }, icon('landmark', 30), authTxt),
+  h('div', { style: 'margin-top:10px' }, [W.guest, W.stay, W.doc].map(([k, v]) => h('div', { class: 'kv' }, h('span', {}, k), h('b', {}, v)))),
+  h('div', { class: 'foot' }, st2, declBtn));
+K.stage.append(win.el);
+const stamps = W.stamps.map((s) => { const el = K.stamp(s); el.classList.add('stampz'); win.el.append(el); return el; });
+
+/* D · la taxe de séjour (carte) et les tuiles de conformité */
+const X = T.tax;
+const tax = K.hitlCard({ agent: X.agent, tag: X.tag, title: X.title, copy: X.copy, wait: X.wait, done: X.done,
+  primary: ['check', X.filed], secondary: ['filetext', X.see], doneText: X.doneText });
+tax.el.id = 'tax'; tax.el.classList.add('abs'); K.stage.append(tax.el);
+const tilesBox = K.abs('tiles');
+const tiles = T.tiles.map(([ic, b, s]) => { const ok = h('span', { class: 'ok' }, icon('ccheck', 22), 'OK'); const el = h('div', { class: 'tile' }, h('span', { class: 'ti2' }, icon(ic, 32)), h('b', {}, b), h('small', {}, s), ok); tilesBox.append(el); return { el, ok }; });
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const mi = h('span', { class: 'mi' }, icon('landmark', 60));
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(mi, p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) pts = { go: ph.toStage(195, 0), declare: K.center(declBtn), filed: K.center(tax.pBtn) };
+  const [a0, b0] = slot(0), [a1, b1] = slot(1), [a2, b2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A */
+  const v0 = slotVis(t, 0, .45, .4);
+  set(ph0.el, { opacity: v0, transform: `translateY(${lerp(40, 0, easeOut(prog(t, a0, .7)))}px)` });
+  ph0.img.style.transform = `scale(${lerp(1.08, 1, easeOut(prog(t, a0, b0 - a0)))})`;
+  const kk = easeOut(prog(t, a0 + .3, .5));
+  set(kick, { opacity: v0 * kk, transform: `translateY(${lerp(16, 0, kk)}px)` });
+  const step = Math.max(.45, (b0 - a0 - 1.6) / 3);
+  ctys.forEach((c, i) => { const p = easeOut(prog(t, a0 + .7 + i * step, .5)); set(c, { opacity: v0 * p, transform: `translateX(${lerp(-40, 0, p)}px)` }); });
+
+  /* B · la fiche se remplit, puis « Envoyer ma fiche » */
+  const v1 = slotVis(t, 1), e1 = easeOut(prog(t, a1, .7));
+  set(ph.el, { opacity: v1, transform: `translateY(${lerp(80, 0, e1)}px)` });
+  fields.forEach((f, i) => { const p = easeOut(prog(t, a1 + .5 + i * .35, .35)); set(f.el, { opacity: p, transform: `translateY(${lerp(12, 0, p)}px)` }); if (!f.pre) K.typeText(f.val, f.v, t, a1 + 1.9, 16); });
+  prBar.style.width = lerp(0, 100, easeInOut(prog(t, a1 + .6, Math.max(1, SYNC.send - a1 - 1)))) + '%';
+  const goRect = K.posIn(goBtn, lv);
+  if (!pts.goReal) pts.goReal = ph.toStage(goRect.x + goBtn.offsetWidth / 2, goRect.y + goBtn.offsetHeight / 2);
+  K.handTap(t, SYNC.send, pts.goReal);
+  const sent = t >= SYNC.send + .1;
+  if (goBtn.dataset.s !== String(sent)) { goBtn.dataset.s = String(sent); goBtn.classList.toggle('sent', sent); goBtn.replaceChildren(...(sent ? [F.done] : [F.send])); }
+
+  /* C · trois pays, même geste */
+  const v2 = slotVis(t, 2), e2 = easeOut(prog(t, a2, .6));
+  set(win.el, { opacity: v2, transform: `translateY(${lerp(60, 0, e2)}px)` });
+  const tab = t < SYNC.fr ? 0 : t < SYNC.sa ? 1 : 2;
+  win.setTab(tab);
+  if (authTxt.dataset.i !== String(tab)) { authTxt.dataset.i = String(tab); authTxt.textContent = W.auth[tab]; }
+  const clickAt = [SYNC.ma, SYNC.fr + .5, SYNC.sa + .5];
+  set(declBtn, { opacity: t >= clickAt[tab] + .25 ? 0 : 1, transform: `scale(${t >= clickAt[tab] - .04 && t < clickAt[tab] + .12 ? .94 : 1})` });
+  const sd = t >= clickAt[tab] + .25;
+  set(st2, { opacity: sd ? 1 : 0 });
+  if (st2.dataset.i !== String(tab)) { st2.dataset.i = String(tab); st2.lastChild.textContent = W.stamps[tab]; }
+  stamps.forEach((s, i) => { if (i === tab) K.stampIn(s, t, clickAt[i] + .2, [-7, 6, -5][i]); else s.style.opacity = 0; });
+  if (t < SYNC.fr) K.cursorMove(t, SYNC.ma - 1.1, .9, { x: pts.declare.x + 260, y: pts.declare.y + 320 }, pts.declare, b2);
+  else K.cursorMove(t, SYNC.fr - .2, .3, pts.declare, pts.declare, b2);
+  clickAt.forEach((c) => K.tapAt(t, c, pts.declare));
+
+  /* D · la taxe de séjour, puis les tuiles */
+  const v3 = slotVis(t, 3), e3 = easeOut(prog(t, a3, .6));
+  set(tax.el, { opacity: v3, transform: `translateY(${lerp(60, 0, e3)}px)` });
+  tax.render(t, SYNC.filed);
+  K.cursorMove(t, SYNC.filed - 1.1, .9, { x: pts.filed.x + 300, y: pts.filed.y + 420 }, pts.filed, Math.min(SYNC.filed + .9, b3));
+  K.tapAt(t, SYNC.filed, pts.filed);
+  [SYNC.tax, SYNC.zatca, SYNC.ntmp, SYNC.gdpr].forEach((w, i) => {
+    const p = easeOut(prog(t, Math.min(w, a3 + .6 + i * .5) , .45)), ok = easeOut(prog(t, w, .4));
+    set(tiles[i].el, { opacity: v3 * p, transform: `translateY(${lerp(30, 0, p)}px)`, borderColor: ok > .5 ? 'rgba(20,184,166,.55)' : '' });
+    tiles[i].ok.style.opacity = ok;
+  });
+
+  /* E · promesse */
+  const v4 = slotVis(t, 4, .5, .35);
+  const m = easeOut(prog(t, a4, .6));
+  set(mi, { opacity: v4 * m, transform: `scale(${lerp(.8, 1, m)})` });
+  const q1 = easeOut(prog(t, a4 + .1, .55)), q2 = easeOut(prog(t, a4 + (b4 - a4) * .5, .55));
+  set(p1, { opacity: v4 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v4 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 # Dependencies
-node_modules/
+node_modules
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -56,6 +56,7 @@ firebase-service-account.json
 # Temporary files
 *.tmp
 *.temp
+/tmp/
 booking-templates/dist/
 
 # ─── Documentation interne : JAMAIS versionnee (audits, plans, strategie) ───

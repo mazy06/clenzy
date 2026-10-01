@@ -1,0 +1,441 @@
+<!doctype html>
+<!--
+  Baitly · Reel 06 « Arabie saoudite » (Instagram / Snapchat / X, 1080 × 1920, 47 s) · ARABE UNIQUEMENT
+
+  À quoi sert ce fichier : l'animation du script `marketing/scripts-video/script-06-istiraha-arabie-saoudite.md`
+  (conformité et localisation saoudiennes), pilotée par le temps via le kit partagé
+  (`../shared/kit.js`, `../shared/base.css`). Rendu : `node ../render.mjs reel-06-arabie-saoudite --lang=ar`.
+  Déroulé : « شموس ؟ » sur une istiraha en arche → Riyad n'est pas Paris → enregistrement des
+  voyageurs sur Shomoos → facture TVA 15 % + frais municipaux 5 % + QR ZATCA → paiement en riyals
+  (fenêtre « Un séjour, un paiement » de la landing, onglet Arabie saoudite, PayTabs) → le planning bascule de gauche à droite puis passe au calendrier hégirien → promesse
+  sur Riyad en arche → fin.
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 06 Arabie saoudite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<script>window.__LANG__ = 'ar';   // version arabe uniquement, quel que soit --lang</script>
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+.ttl6 { inset-inline-start: 90px; width: 900px; top: 290px; font-size: 76px; }
+#illus { left: 0; width: 1080px; top: 226px; display: flex; justify-content: center; opacity: 0; }
+#illus span { background: #EEF2F5; color: var(--ardoise); font-size: 20px; font-weight: 700; padding: 6px 16px; border-radius: 999px; }
+
+/* A · accroche */
+#eyA { left: 0; width: 1080px; top: 330px; text-align: center; font-size: 30px; font-weight: 700; color: var(--encre-terre); }
+#tA { left: 0; width: 1080px; top: 380px; display: flex; justify-content: center; align-items: center; gap: 18px; font-size: 190px; line-height: 1.2; }
+#tA svg { width: 118px; height: 170px; overflow: visible; }
+.arch { overflow: hidden; background: var(--n100); box-shadow: 0 50px 90px -50px rgba(27,42,53,.55); }
+.arch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#arch, #paris, #riyadh { opacity: 0; }
+#paris { border-radius: 28px; }
+.plabel { display: flex; justify-content: center; opacity: 0; }
+.plabel span { display: inline-flex; align-items: center; gap: 10px; background: #FDFDFE; border: 1.5px solid var(--ligne); border-radius: 999px; padding: 12px 24px; font-size: 30px; color: var(--ardoise); }
+.plabel b { color: var(--n700); font-weight: 800; }
+.plabel svg { color: var(--terre); }
+
+/* Bandeau des canaux (haut de l'écran, par intermittence) */
+#otas { left: 0; width: 1080px; top: 110px; opacity: 0; }
+#otas .ey { text-align: center; font-size: 22px; font-weight: 700; color: #7A5230; margin-bottom: 12px; }
+#otas .band { position: relative; height: 80px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); }
+#otas .track { position: absolute; inset-inline-start: 0; top: 0; height: 80px; display: flex; align-items: center; gap: 84px; white-space: nowrap; }
+#otas img { width: auto; display: block; flex: none; }
+
+/* C · Shomoos */
+#shom { left: 80px; top: 470px; width: 920px; padding: 32px 34px; opacity: 0; }
+.hd { display: flex; align-items: center; gap: 18px; }
+.hd .ic { width: 64px; height: 64px; border-radius: 20px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.hd b { flex: 1; font-size: 34px; font-weight: 800; }
+.res { display: flex; align-items: center; gap: 18px; margin-top: 24px; padding: 16px 18px; border-radius: 20px; background: #F6F8F9; }
+.res img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; flex: none; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ligne); }
+.res b { display: block; font-size: 30px; }
+.res span { font-size: 23px; color: var(--ardoise); }
+.trow { margin-top: 14px; padding: 16px 20px; border-radius: 18px; background: #FBFCFC; border: 1.5px solid #EEF2F5; }
+.trow .l { display: flex; align-items: center; gap: 14px; }
+.trow .l b { flex: 1; font-size: 27px; font-weight: 700; }
+.trow .d { font-size: 21px; color: var(--ardoise); margin-top: 4px; height: 0; opacity: 0; overflow: hidden; }
+#send { margin-top: 22px; height: 84px; border-radius: 18px; background: var(--n600); color: var(--papier); font-size: 30px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; }
+#send.done { background: rgba(154,108,58,.15); color: var(--encre-terre); }
+
+/* D · facture */
+#inv { left: 80px; top: 470px; width: 920px; padding: 34px 36px 30px; opacity: 0; }
+#inv .top { position: relative; min-height: 172px; padding-inline-end: 190px; }
+#inv .top b { display: block; font-size: 36px; font-weight: 800; }
+#inv .top .no { font-family: 'BSG'; font-size: 24px; font-weight: 600; color: var(--ardoise); direction: ltr; unicode-bidi: isolate; text-align: right; }
+#inv .top span { display: block; font-size: 23px; color: var(--ardoise); margin-top: 6px; }
+#qr { position: absolute; inset-inline-end: 0; top: 0; width: 168px; text-align: center; opacity: 0; }
+#qr svg { width: 150px; height: 150px; display: block; margin: 0 auto; border-radius: 10px; background: #fff; padding: 8px; box-shadow: 0 0 0 1.5px var(--ligne); }
+#qr small { display: block; font-family: 'BSG'; font-size: 20px; font-weight: 700; color: var(--encre-terre); margin-top: 6px; letter-spacing: .08em; }
+.iline { display: flex; align-items: center; gap: 18px; padding: 20px 0; border-top: 1.5px solid #EEF2F5; opacity: 0; }
+.iline .lb { flex: 1; }
+.iline .lb b { display: block; font-size: 29px; font-weight: 700; }
+.iline .lb span { font-size: 21px; color: var(--ardoise); }
+.amt { display: inline-flex; align-items: baseline; gap: 8px; flex: none; }
+.amt b { font-family: 'BSG'; font-size: 34px; font-weight: 700; direction: ltr; unicode-bidi: isolate; }
+.amt small { font-size: 22px; color: var(--ardoise); font-weight: 700; }
+.iline.total { border-top: 2.5px solid var(--n700); }
+.iline.total .lb b { font-size: 34px; font-weight: 800; }
+.iline.total .amt b { font-size: 46px; color: var(--terre); }
+#issued { margin-top: 12px; opacity: 0; }
+.chipsrow { left: 0; width: 1080px; display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; padding: 0 60px; }
+.chipsrow .chip { font-size: 27px; padding: 13px 24px; opacity: 0; background: #FDFDFE; border: 1.5px solid #D7E1EE; color: var(--n700); }
+.chipsrow .chip svg { color: var(--terre); }
+
+/* E · paiement : fenêtre « Un séjour, un paiement » de la landing (L10) */
+#fin { inset-inline-start: 80px; top: 450px; width: 920px; opacity: 0; }
+.bk { display: flex; align-items: center; gap: 18px; padding-bottom: 18px; border-bottom: 1.5px solid #EEF2F5; }
+.bk img { width: 76px; height: 76px; border-radius: 18px; object-fit: cover; flex: none; }
+.bk b { display: block; font-size: 29px; }
+.bk span { font-size: 21px; color: var(--ardoise); }
+.bk .ref { margin-inline-start: auto; font-family: 'BSG'; font-size: 21px; color: var(--ardoise); direction: ltr; unicode-bidi: isolate; }
+.fl { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1.5px solid #EEF2F5; font-size: 24px; color: var(--ardoise); }
+.fl .amt6 { display: inline-flex; align-items: baseline; gap: 8px; color: var(--n700); }
+.fl .amt6 b { font-family: 'BSG'; font-size: 30px; font-weight: 700; direction: ltr; unicode-bidi: isolate; }
+.fl.big .amt6 b { font-size: 50px; color: var(--terre); }
+.fl .amt6 small { font-size: 22px; font-weight: 700; }
+.prov { display: inline-flex; align-items: center; gap: 12px; }
+.prov img { height: 34px; }
+.prov .ptabs { font-family: 'BSG'; font-size: 30px; font-weight: 700; color: #1E3A8A; direction: ltr; }
+.prov .also { font-size: 19px; color: var(--ardoise); display: inline-flex; align-items: center; gap: 8px; }
+.prov .also img { height: 26px; }
+.go6 { position: relative; margin-top: 20px; height: 78px; border-radius: 16px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 27px; font-weight: 800; overflow: hidden; }
+.go6 .pg { position: absolute; inset-block: 0; inset-inline-start: 0; width: 0; background: rgba(247,251,252,.22); }
+.okp { display: flex; align-items: center; gap: 16px; margin-top: 20px; min-height: 78px; padding: 12px 20px; border-radius: 16px; background: #E6F2EC; color: #25614F; }
+.okp b { display: block; font-size: 25px; }
+.okp span { font-size: 20px; }
+.steps6 { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+.steps6 .st { display: inline-flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 700; color: #98A4AB; white-space: nowrap; }
+.steps6 .st i { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid #C9D2D8; display: flex; align-items: center; justify-content: center; color: #FDFDFE; }
+.steps6 .st.on { color: #25614F; }
+.steps6 .st.on i { background: #3F8F76; border-color: #3F8F76; }
+.steps6 .ln { flex: 1; height: 3px; border-radius: 2px; background: #DCE3E8; }
+.steps6 .ln i { display: block; height: 100%; width: 0; background: #3F8F76; border-radius: 2px; }
+
+/* F · planning : bascule LTR → RTL puis hégirien */
+.plan6 { left: 64px; top: 500px; opacity: 0; }
+.plan6 .pday { height: 118px; }
+.plan6 .now { top: 118px; }
+#planL { --fb: 'BM', sans-serif; --fd: 'BSG', sans-serif; font-family: 'BM', sans-serif; }
+#planL .pday span { font-size: 18px; letter-spacing: .04em; }
+.plan6 .pday b { position: relative; }
+.plan6 .pday b span { font: inherit; color: inherit; letter-spacing: 0; text-transform: none; }
+.plan6 .pday.today b span { color: #FFFFFF; }
+.plan6 .pday .hj { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
+.plan6 .pday .gs { font-size: 16px; color: #4D5A64; font-weight: 700; opacity: 0; height: 0; white-space: nowrap; }
+
+#promise { left: 0; width: 1080px; top: 320px; text-align: center; font-size: 92px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, words, titleIn } = K;
+const PH = '../../brand-book/assets/photos/';
+const BR = '../../brand-book/assets/brands/';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+const title = (id, text, em) => { const el = K.abs(id, 'title ttl6'); return { el, ws: words(el, text, em) }; };
+
+K.abs('illus').append(h('span', {}, T.illustrative));
+
+/* Bandeau des canaux : plateformes saoudiennes en tête */
+const OTA_FILES = {
+  airbnb: ['airbnb-wordmark.png', 42], booking: ['booking-wordmark.png', 35], gathern: ['gathern-wordmark.webp', 31],
+  mabeet: ['mabeet-wordmark.png', 48], expedia: ['expedia-wordmark.png', 38], agoda: ['agoda-wordmark.svg', 54],
+};
+const otas = K.abs('otas');
+const otaTrack = h('div', { class: 'track' });
+otas.append(h('div', { class: 'ey' }, T.otaTitle), h('div', { class: 'band' }, otaTrack));
+for (let k = 0; k < 2; k++) T.otas.forEach((o) => { const [f, hgt] = OTA_FILES[o]; otaTrack.append(h('img', { src: BR + f, alt: '', style: `height:${hgt}px` })); });
+
+/* A · « شموس ؟ » : le point d'interrogation arabe se dessine au trait */
+const eyA = K.abs('eyA'); eyA.textContent = T.eyebrowA;
+const tA = K.abs('tA', 'title');
+const tAWord = h('span', {}, T.tA);
+const qm = svgEl('svg', { viewBox: '0 0 100 140' });
+const qg = svgEl('g', { transform: 'translate(100 0) scale(-1 1)' });   // « ? » en miroir = « ؟ »
+const qPath = svgEl('path', { d: 'M20 40 C20 16 38 6 55 6 C76 6 88 20 88 38 C88 58 70 64 60 72 C52 79 52 86 52 98', fill: 'none', stroke: '#9A6C3A', 'stroke-width': 13, 'stroke-linecap': 'round', pathLength: 100 });
+const qDot = svgEl('circle', { cx: 52, cy: 126, r: 9, fill: '#9A6C3A' });
+qg.append(qPath, qDot); qm.append(qg);
+tA.append(tAWord, qm);
+
+/* A-B-G · photos : istiraha en arche, appartement parisien, Riyad en arche */
+const arch = K.abs('arch', 'arch'); arch.append(h('img', { src: PH + 'pool.jpg', alt: '' }));
+const paris = K.abs('paris', 'arch'); paris.append(h('img', { src: PH + 'guideLiving.webp', alt: '' }));
+const lblR = K.abs('lblR', 'plabel'); lblR.append(h('span', {}, icon('pin', 28), h('b', {}, T.riyadh[0]), ' · ' + T.riyadh[1]));
+const lblP = K.abs('lblP', 'plabel'); lblP.append(h('span', {}, icon('pin', 28), h('b', {}, T.paris[0]), ' · ' + T.paris[1]));
+const tB = K.abs('tB', 'title ttl6');
+tB.style.fontSize = '68px';
+const tB1 = h('div', {}), tB2 = h('div', {});
+tB.append(tB1, tB2);
+const tB1w = words(tB1, T.tB1, T.tB1Em), tB2w = words(tB2, T.tB2, T.tB2Em);
+
+/* C · enregistrement des voyageurs sur Shomoos */
+const tC = title('tC', T.tC, T.tCEm);
+const S = T.shomoos;
+const shom = K.abs('shom', 'card');
+const sendBtn = h('div', { id: 'send' }, icon('shield', 34), h('span', {}, S.btn));
+const trows = S.rows.map((label) => {
+  const chip = h('span', { class: 'chip wait' }, S.wait);
+  const d = h('div', { class: 'd' }, S.detail);
+  const el = h('div', { class: 'trow' }, h('div', { class: 'l' }, h('b', {}, label), chip), d);
+  return { el, chip, d, done: false };
+});
+shom.append(
+  h('div', { class: 'hd' }, h('span', { class: 'ic' }, icon('idcard', 34)), h('b', {}, S.title), h('span', { class: 'chip neutral' }, S.provider)),
+  h('div', { class: 'res' }, h('img', { src: K.guestPhoto('omar'), alt: '' }), h('div', {}, h('b', {}, S.guest), h('span', {}, S.stay))),
+  ...trows.map((r) => r.el), sendBtn);
+
+/* D · facture : TVA 15 %, frais municipaux 5 %, QR ZATCA */
+const tD = title('tD', T.tD, T.tDEm);
+tD.el.style.fontSize = '68px';
+const I = T.invoice;
+const inv = K.abs('inv', 'card');
+const amt = (v) => h('span', { class: 'amt' }, h('b', {}, v), h('small', {}, I.unit));
+// QR illustratif : trois repères de position + motif déterministe (pas un vrai QR ZATCA).
+const qrSvg = svgEl('svg', { viewBox: '0 0 25 25', 'shape-rendering': 'crispEdges' });
+const finder = (x, y) => { qrSvg.append(svgEl('rect', { x, y, width: 7, height: 7, fill: '#1B2A35' }), svgEl('rect', { x: x + 1, y: y + 1, width: 5, height: 5, fill: '#fff' }), svgEl('rect', { x: x + 2, y: y + 2, width: 3, height: 3, fill: '#1B2A35' })); };
+let seed = 7;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+for (let y = 0; y < 25; y++) for (let x = 0; x < 25; x++) {
+  const inFinder = (x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16);
+  if (!inFinder && rnd() < .48) qrSvg.append(svgEl('rect', { x, y, width: 1, height: 1, fill: '#1B2A35' }));
+}
+finder(0, 0); finder(18, 0); finder(0, 18);
+const qr = h('div', { id: 'qr' }, qrSvg, h('small', {}, I.qr));
+const invLines = I.lines.map(([lb, sub, v]) => h('div', { class: 'iline' }, h('div', { class: 'lb' }, h('b', {}, lb), h('span', {}, sub)), amt(v)));
+const invTotal = h('div', { class: 'iline total' }, h('div', { class: 'lb' }, h('b', {}, I.total[0])), amt(I.total[1]));
+const issued = h('span', { id: 'issued', class: 'chip ok' }, icon('check', 22), I.issued);
+inv.append(
+  h('div', { class: 'top' }, h('b', {}, I.title), h('span', { class: 'no' }, I.number), h('span', {}, I.date), h('span', {}, I.seller), qr),
+  ...invLines, invTotal, issued);
+const chipsD = K.abs('chipsD', 'chipsrow');
+chipsD.style.top = '1230px';
+const chipDEls = T.chipsD.map((c) => { const el = h('span', { class: 'chip' }, icon('check', 24), c); chipsD.append(el); return el; });
+
+/* E · paiement en riyals : la fenêtre « Un séjour, un paiement » passe du Maroc à l'Arabie saoudite */
+const tE = title('tE', T.tE, T.tEEm);
+const P = T.pay;
+const fin = K.productWindow({ title: P.title, icon: 'card', tabs: P.countries, active: 0 });
+fin.el.id = 'fin';
+K.stage.append(fin.el);
+const amt6 = (v) => { const b = h('b', {}, v); const u = h('small', {}, ''); return { el: h('span', { class: 'amt6' }, b, u), b, u }; };
+const nightA = amt6(''), totalA = amt6('');
+const prov = h('span', { class: 'prov' });
+const goLbl = h('span', {}, '');
+const goPg = h('i', { class: 'pg' });
+const go = h('div', { class: 'go6' }, goPg, icon('card', 28), goLbl);
+const okp = h('div', { class: 'okp' }, icon('check', 34), h('div', {}, h('b', {}, P.done), h('span', {}, P.receipt)));
+const stepEls = P.steps.map((x) => h('span', { class: 'st' }, h('i', {}, icon('check', 18)), x));
+const lnEls = [h('i'), h('i')];
+fin.body.append(
+  h('div', { class: 'bk' }, h('img', { src: PH + 'pool.jpg', alt: '' }), h('div', {}, h('b', {}, P.name), h('span', {}, P.stay)), h('span', { class: 'ref' }, P.ref)),
+  h('div', { class: 'fl' }, h('span', {}, P.nightly), nightA.el),
+  h('div', { class: 'fl big' }, h('span', {}, P.total), totalA.el),
+  h('div', { class: 'fl' }, h('span', {}, P.method), prov),
+  go, okp,
+  h('div', { class: 'steps6' }, stepEls[0], h('span', { class: 'ln' }, lnEls[0]), stepEls[1], h('span', { class: 'ln' }, lnEls[1]), stepEls[2]));
+const fmt = (v) => Math.round(v).toLocaleString('en-US');
+let finMarket = null;
+function setMarket(sa) {
+  if (finMarket === sa) return;
+  finMarket = sa;
+  const M = sa ? P.sa : P.ma;
+  nightA.u.textContent = M.unit; totalA.u.textContent = M.unit; goLbl.textContent = M.cta;
+  prov.replaceChildren(sa ? h('span', { class: 'ptabs' }, M.name) : h('img', { src: BR + M.logo, alt: '' }),
+    sa ? h('span', { class: 'also' }, P.also, h('img', { src: BR + 'stripe.svg', alt: '' })) : '');
+  fin.setTab(sa ? 1 : 0);
+}
+let finPts = null;
+
+/* F · planning : une interface pensée à gauche bascule à droite, puis passe à l'hégirien */
+const tF = title('tF', T.tF, T.tFEm);
+const ROWS = [
+  [{ status: 'confirmed', from: [0, 15], to: [3, 11], guest: 'omar', av: true, nights: 3, price: true },
+   { status: 'pending', from: [3, 15], to: [5, 11], guest: 'sara', av: true, nights: 2 }],
+  [{ status: 'checked_in', from: [0, 1], to: [2, 11], guest: 'jad', av: true, nights: 3, wrench: true }, { blocked: true, from: 3, to: 5 }],
+  [{ orphan: 'broom', day: 0 }, { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'nadia', av: true, nights: 3, combo: 1 }],
+  [{ status: 'confirmed', from: [0, 15], to: [2, 11], guest: 'karim', av: true, nights: 2, logo: 'airbnb' }, { orphan: 'wrench', day: 3 }],
+];
+const planL = K.abs('planL', 'plan6'); planL.dir = 'ltr';
+const planR = K.abs('planR', 'plan6');
+const plL = K.planning(planL, { P: T.planEn, dw: 145, days: T.planEn.days, today: 0, weekend: T.planEn.weekend, rows: ROWS });
+const plR = K.planning(planR, { P: T.plan, dw: 145, days: T.plan.days, today: 0, weekend: T.plan.weekend, rows: ROWS });
+// En-tête arabe : quantième grégorien puis hégirien (même journée civile), date grégorienne en petit.
+const hjDays = [...planR.querySelectorAll('.pday')].map((d, i) => {
+  const b = d.querySelector('b');
+  const g = h('span', { class: 'g' }, b.textContent);
+  const hj = h('span', { class: 'hj' }, String(T.hijri.days[i]));
+  b.replaceChildren(g, hj);
+  const gs = h('small', { class: 'gs' }, T.hijri.greg[i]);
+  d.append(gs);
+  return { g, hj, gs };
+});
+const cornerR = planR.querySelector('.ph .pcol small');
+// Les feuilles des deux plannings, dans le même ordre : décalage physique LTR → RTL.
+const LEAVES = '.pcol, .pday, .bar, .blocked, .orphan, .now';
+let flipDx = null;
+function measureFlip() {
+  const l = [...planL.querySelectorAll(LEAVES)], r = [...planR.querySelectorAll(LEAVES)];
+  flipDx = l.map((el, i) => ({ el, dx: K.posIn(r[i], K.stage).x - K.posIn(el, K.stage).x }));
+}
+const chipsF = K.abs('chipsF', 'chipsrow');
+chipsF.style.top = '1110px';
+const chipFEls = T.chipsF.map((c) => { const el = h('span', { class: 'chip' }, icon('check', 24), c); chipsF.append(el); return el; });
+
+/* G · promesse sur Riyad, puis fin */
+const riyadh = K.abs('riyadh', 'arch'); riyadh.append(h('img', { src: PH + 'homeLocal.webp', alt: '' }));
+const promise = K.abs('promise', 'title');
+const pA = h('div', {}, T.promise[0]), pB = h('div', { class: 'accent' }, T.promise[1]);
+promise.append(pA, pB);
+K.endMount();
+
+/** Place un bloc (left, top, largeur, hauteur) ; l'arche garde un demi-cercle en haut. */
+function box(el, r, archTop = true) {
+  set(el, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+  if (archTop) el.style.borderRadius = `${r.w / 2}px ${r.w / 2}px 36px 36px`;
+}
+const mix = (a, b, p) => ({ x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p), w: lerp(a.w, b.w, p), h: lerp(a.h, b.h, p) });
+const ARCH_A = { x: 190, y: 680, w: 700, h: 800 }, ARCH_B = { x: 560, y: 610, w: 440, h: 690 }, ARCH_C = { x: 80, y: 610, w: 920, h: 690 };
+const PARIS = { x: 80, y: 610, w: 440, h: 690 };
+let sendPt = null;
+
+function renderAt(t) {
+  const otaVis = Math.max(vis(t, 3.7, 9.0, .5, .4), vis(t, 39.6, SYNC.end - .1, .5, .3));
+  set(otas, { opacity: otaVis, transform: `translateY(${lerp(-16, 0, otaVis)}px)` });
+  otaTrack.style.transform = `translateX(${(t * 42) % (otaTrack.scrollWidth / 2 + 42)}px)`;
+  $illus(t);
+
+  /* A · شموس ؟ */
+  const aOut = easeIn(prog(t, 3.3, .35));
+  const eIn = easeOut(prog(t, .2, .5));
+  set(eyA, { opacity: eIn * (1 - aOut), transform: `translateY(${lerp(16, 0, eIn)}px)` });
+  const wIn = easeOut(prog(t, .35, .55));
+  set(tAWord, { display: 'inline-block', opacity: wIn, transform: `translateY(${lerp(26, 0, wIn)}px)` });
+  set(qPath, { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * easeInOut(prog(t, .8, .8))) });
+  qDot.style.opacity = easeOut(prog(t, 1.55, .2));
+  tA.style.opacity = 1 - aOut;
+
+  /* A → B → C · l'arche de l'istiraha ; Paris entre puis sort du cadre */
+  const toB = easeInOut(prog(t, 3.45, .7)), toC = easeInOut(prog(t, SYNC.parisOut, .7));
+  box(arch, toC > 0 ? mix(ARCH_B, ARCH_C, toC) : mix(ARCH_A, ARCH_B, toB));
+  const archIn = easeOut(prog(t, .1, .7));
+  const bOut = easeIn(prog(t, 9.0, .4));
+  set(arch, { opacity: archIn * (1 - bOut) });
+  arch.firstChild.style.transform = `scale(${lerp(1.12, 1, easeOut(prog(t, 0, 4)))})`;
+  const pIn = easeOut(prog(t, 3.6, .7));
+  box(paris, PARIS, false);
+  set(paris, { opacity: pIn * (1 - easeIn(prog(t, SYNC.parisOut, .5))), transform: `translateX(${lerp(-560, 0, pIn) - 620 * easeIn(prog(t, SYNC.parisOut, .6))}px)` });
+  const lIn = easeOut(prog(t, 4.2, .5));
+  const rL = toC > 0 ? mix(ARCH_B, ARCH_C, toC) : ARCH_B;
+  set(lblR, { left: rL.x + 'px', width: rL.w + 'px', top: rL.y + rL.h + 24 + 'px', opacity: lIn * (1 - bOut) });
+  set(lblP, { left: PARIS.x + 'px', width: PARIS.w + 'px', top: PARIS.y + PARIS.h + 24 + 'px', opacity: lIn * (1 - easeIn(prog(t, SYNC.parisOut, .35))) });
+  titleIn(tB1w, t, 3.7);
+  titleIn(tB2w, t, SYNC.parisOut + .1);
+  tB.style.opacity = 1 - bOut;
+
+  /* C · Shomoos : trois fiches passent « تم الإرسال » */
+  const cV = vis(t, 9.3, 16.9, .5, .4);
+  titleIn(tC.ws, t, 9.4); tC.el.style.opacity = 1 - easeIn(prog(t, 16.6, .35));
+  set(shom, { opacity: cV, transform: `translateY(${lerp(50, 0, easeOut(prog(t, 9.4, .6)))}px)` });
+  if (!sendPt) { const p = K.posIn(sendBtn, K.stage); sendPt = { x: p.x + sendBtn.offsetWidth / 2, y: p.y + sendBtn.offsetHeight / 2 }; }
+  K.tapAt(t, SYNC.submit, sendPt);
+  const sent = t >= SYNC.submit + .25;
+  sendBtn.className = sent ? 'done' : '';
+  sendBtn.replaceChildren(icon(sent ? 'check' : 'shield', 34), h('span', {}, sent ? S.btnDone : S.btn));
+  sendBtn.style.transform = `scale(${1 - .03 * Math.sin(Math.PI * prog(t, SYNC.submit, .25))})`;
+  trows.forEach((r, i) => {
+    const t0 = SYNC.submit + .5 + i * .35, done = t >= t0;
+    if (done !== r.done) { r.done = done; r.chip.className = 'chip ' + (done ? 'ok' : 'wait'); r.chip.replaceChildren(...(done ? [icon('check', 22), S.done] : [S.wait])); }
+    const dp = easeOut(prog(t, t0, .4));
+    set(r.d, { height: 30 * dp + 'px', opacity: dp });
+  });
+
+  /* D · la facture se compose ligne par ligne */
+  const dV = vis(t, 17.0, 25.1, .5, .4);
+  titleIn(tD.ws, t, 17.2); tD.el.style.opacity = 1 - easeIn(prog(t, 24.8, .35));
+  set(inv, { opacity: dV, transform: `translateY(${lerp(50, 0, easeOut(prog(t, 17.1, .6)))}px)` });
+  [...invLines, invTotal].forEach((el, i) => { const p = easeOut(prog(t, SYNC.lines[i], .5)); set(el, { opacity: p, transform: `translateY(${lerp(18, 0, p)}px)` }); });
+  const q = easeOut(prog(t, SYNC.qr, .5));
+  set(qr, { opacity: q, transform: `scale(${lerp(.85, 1, q)})` });
+  const is = easeOut(prog(t, SYNC.qr + .5, .45));
+  set(issued, { opacity: is, transform: `translateY(${lerp(12, 0, is)}px)` });
+  [SYNC.lines[1], SYNC.lines[2], SYNC.qr].forEach((t0, i) => { const p = easeOut(prog(t, t0 + .2, .45)) * (1 - easeIn(prog(t, 24.8, .35))); set(chipDEls[i], { opacity: p, transform: `translateY(${lerp(16, 0, p)}px)` }); });
+
+  /* E · paiement en riyals : onglet « السعودية », puis encaissement et rapprochement */
+  titleIn(tE.ws, t, 25.4); tE.el.style.opacity = 1 - easeIn(prog(t, 30.9, .35));
+  const eV = vis(t, 25.3, 31.2, .6, .4);
+  set(fin.el, { opacity: eV, transform: `translateY(${lerp(50, 0, easeOut(prog(t, 25.3, .6)))}px)` });
+  if (!finPts) { const c = (el) => { const p = K.posIn(el, K.stage); return { x: p.x + el.offsetWidth / 2, y: p.y + el.offsetHeight / 2 }; }; finPts = { tab: c(fin.tabEls[1]), go: c(go) }; }
+  const TAB = 26.1;
+  setMarket(t >= TAB);
+  const mp = easeInOut(prog(t, TAB, .6));
+  nightA.b.textContent = fmt(t < TAB ? P.ma.nightly : lerp(P.ma.nightly, P.sa.nightly, mp));
+  totalA.b.textContent = fmt(t < TAB ? P.ma.total : lerp(P.ma.total, P.sa.total, mp));
+  if (t < TAB - .1) K.cursorMove(t, 25.2, .8, { x: finPts.tab.x - 200, y: finPts.tab.y + 260 }, finPts.tab, SYNC.pay + .7);
+  else K.cursorMove(t, 27.0, .8, finPts.tab, finPts.go, SYNC.pay + .7);
+  K.tapAt(t, TAB - .1, finPts.tab);
+  K.tapAt(t, SYNC.pay, finPts.go);
+  const pgp = easeInOut(prog(t, SYNC.pay + .1, .8));
+  goPg.style.width = pgp * 100 + '%';
+  const paid = t >= SYNC.pay + .95;
+  go.style.display = paid ? 'none' : 'flex';
+  okp.style.display = paid ? 'flex' : 'none';
+  okp.style.opacity = easeOut(prog(t, SYNC.pay + .95, .35));
+  const ST = [25.3, SYNC.pay + .9, SYNC.pay + 1.5];
+  stepEls.forEach((el, i) => el.classList.toggle('on', t >= ST[i]));
+  lnEls.forEach((el, i) => { el.style.width = easeOut(prog(t, ST[i + 1] - .45, .45)) * 100 + '%'; });
+
+  /* F · bascule de mise en page (LTR → RTL), puis calendrier hégirien */
+  titleIn(tF.ws, t, 31.6); tF.el.style.opacity = 1 - easeIn(prog(t, 38.9, .35));
+  if (!flipDx) measureFlip();
+  const fIn = easeOut(prog(t, 31.4, .7)), fOut = easeIn(prog(t, 39.0, .4));
+  const fp = easeInOut(prog(t, SYNC.flip, .9));
+  const swap = easeOut(prog(t, SYNC.flip + .8, .35));
+  set(planL, { opacity: fIn * (1 - swap) * (1 - fOut), transform: `translateY(${lerp(40, 0, fIn)}px)` });
+  set(planR, { opacity: swap * (1 - fOut) });
+  flipDx.forEach(({ el, dx }) => { el.style.transform = `translateX(${dx * fp}px)`; });
+  plL.bars.forEach((el) => {
+    const p = easeOut(prog(t, 31.7 + (+el.dataset.row) * .15, .55));
+    set(el, { opacity: p, clipPath: `inset(-10px ${lerp(100, 0, p)}% -10px -10px)` });
+  });
+  if (plL.now) plL.now.style.opacity = easeOut(prog(t, 32.2, .4));
+  if (plR.now) plR.now.style.opacity = 1;
+  const hp = easeInOut(prog(t, SYNC.hijri, .6));
+  hjDays.forEach(({ g, hj, gs }, i) => {
+    const p = easeInOut(prog(t, SYNC.hijri + i * .08, .5));
+    set(g, { opacity: 1 - p, transform: `translateY(${-14 * p}px)` });
+    set(hj, { opacity: p, transform: `translateY(${14 * (1 - p)}px)` });
+    set(gs, { opacity: p, height: 20 * p + 'px' });
+  });
+  cornerR.textContent = hp > .5 ? T.hijri.month : T.plan.corner;
+  cornerR.style.opacity = String(Math.abs(hp - .5) * 2);
+  [SYNC.flip - .9, SYNC.flip + .3, SYNC.hijri].forEach((t0, i) => { const p = easeOut(prog(t, t0, .45)) * (1 - fOut); set(chipFEls[i], { opacity: p, transform: `translateY(${lerp(16, 0, p)}px)` }); });
+
+  /* G · « على دراية بمهنتك. وبواقعك. » sur Riyad, puis fin */
+  const gOut = easeIn(prog(t, SYNC.end - .3, .4));
+  const rIn = easeOut(prog(t, 39.4, .7));
+  box(riyadh, { x: 190, y: 640, w: 700, h: 780 });
+  set(riyadh, { opacity: rIn * (1 - gOut) });
+  riyadh.firstChild.style.transform = `scale(${lerp(1.1, 1, easeOut(prog(t, 39.4, 4)))})`;
+  const q1 = easeOut(prog(t, 39.6, .55)), q2 = easeOut(prog(t, 40.6, .55));
+  set(pA, { opacity: q1 * (1 - gOut), transform: `translateY(${lerp(20, 0, q1)}px)` });
+  set(pB, { opacity: q2 * (1 - gOut), transform: `translateY(${lerp(20, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+const illusEl = document.getElementById('illus');
+function $illus(t) { illusEl.style.opacity = vis(t, 9.4, 39.0, .4, .4) * .95; }
+K.finalize(renderAt, () => { flipDx = null; sendPt = null; finPts = null; });
+</script>
+</body>
+</html>

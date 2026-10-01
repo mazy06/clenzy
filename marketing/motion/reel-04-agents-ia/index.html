@@ -1,0 +1,338 @@
+<!doctype html>
+<!--
+  Baitly · Reel 04 « Agents IA » (Instagram, 1080 × 1920, 46 s) · FR / EN / AR
+
+  À quoi sert ce fichier : l'animation du script `marketing/scripts-video/script-04-agents-ia.md`,
+  pilotée par le temps via le kit partagé. Rendu : `node ../render.mjs reel-04-agents-ia --lang=fr`.
+  Déroulé : les 10 agents en constellation autour de la maison → la liste d'agents + la fiche de
+  l'agent cité par la voix (composant de la landing, INVENTAIRE L21) →
+  une carte de validation Revenue (surveille, propose, simule) → ajuster puis approuver →
+  automatisations et bornes → journal d'activité → promesse → fin.
+  Palette : mode Jour ; pastilles d'agents en Terre cuite (plan d'ensemble, brand book).
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 04 Agents IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+#house { left: 420px; top: 680px; width: 240px; height: 240px; overflow: visible; }
+.ag { position: absolute; left: 0; top: 0; height: 104px; border-radius: 26px; background: #FDFDFE; border: 1.5px solid #D5DEE7; display: flex; align-items: center; gap: 18px; padding: 0 20px; overflow: hidden;
+  box-shadow: 0 18px 40px -26px rgba(27,42,53,.35); }
+.ag .ic { width: 64px; height: 64px; border-radius: 20px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.ag .nm { font-size: 30px; font-weight: 700; white-space: nowrap; }
+/* Liste d'agents + fiche d'agent de la landing (INVENTAIRE L21) */
+.ag.sel { background: var(--terre) !important; border-color: var(--terre) !important; color: #FDFDFE; }
+.ag.sel .ic { background: rgba(253,253,254,.18); color: #FDFDFE; }
+#detail { top: 330px; width: 440px; padding: 34px 32px; border-radius: 30px; background: #F4EBDC; opacity: 0; overflow: hidden; }
+#detail .dt-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#detail .dic { width: 76px; height: 76px; border-radius: 24px; background: #FDFDFE; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+#detail .chip { background: rgba(253,253,254,.7); color: var(--encre-terre); }
+#detail .dt-body { margin-top: 26px; }
+#detail .dt-name { font-family: var(--fd); font-size: 54px; font-weight: 700; color: var(--n700); line-height: 1.1; }
+#detail .dt-sec { margin-top: 30px; }
+#detail .lb { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; color: var(--encre-terre); }
+#detail p { font-size: 27px; line-height: 1.45; color: var(--n700); margin-top: 10px; }
+#count { left: 0; width: 1080px; top: 1270px; text-align: center; opacity: 0; }
+#count b { font-family: var(--fd); font-size: 150px; font-weight: 700; color: var(--n700); line-height: 1; display: block; }
+#count span { font-size: 38px; font-weight: 700; color: var(--terre); }
+#steps { left: 0; width: 1080px; top: 330px; display: flex; justify-content: center; gap: 14px; opacity: 0; }
+#steps span { font-size: 26px; font-weight: 700; padding: 12px 22px; border-radius: 999px; background: #EEF2F5; color: var(--ardoise); display: inline-flex; align-items: center; gap: 10px; }
+#steps span.on { background: var(--n600); color: var(--papier); }
+/* Carte de validation (anatomie de la projection Constellation) */
+.hero { position: absolute; left: 80px; width: 920px; padding: 32px 36px 28px; }
+.ag-head { display: flex; align-items: center; gap: 20px; }
+.ag-id { flex: 1; min-width: 0; }
+.ag-id b { display: block; font-size: 27px; font-weight: 700; }
+.ag-id small { font-size: 21px; color: var(--ardoise); }
+.ag-title { font-family: var(--fd); font-weight: 600; font-size: 38px; margin-top: 24px; line-height: 1.15; }
+.ag-copy { font-size: 25px; color: var(--ardoise); margin-top: 10px; line-height: 1.4; }
+.ag-copy b { color: var(--terre); unicode-bidi: isolate; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #F2F6F8; border-radius: 18px; padding: 20px 24px; margin-top: 22px; }
+.metrics small { display: block; font-size: 19px; color: #67757C; }
+.metrics b { font-family: var(--fd); font-size: 32px; font-weight: 700; }
+.metrics b i { font-style: normal; font-size: 20px; font-weight: 600; margin-inline-start: 6px; }
+.metrics .prop b { color: var(--terre); }
+.adjust { overflow: hidden; height: 0; }
+.adjust .in { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding: 14px 18px; border: 1.5px solid #CAD6DD; border-radius: 16px; }
+.adjust .lbl { font-size: 22px; color: var(--ardoise); }
+.stepper { display: flex; align-items: center; gap: 14px; direction: ltr; }
+.stepper .bt { width: 46px; height: 46px; border-radius: 12px; border: 1.5px solid #CAD6DD; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: var(--n700); }
+.stepper b { font-family: var(--fd); font-size: 28px; min-width: 130px; text-align: center; }
+.gauge { margin-top: 20px; }
+.gauge .lbl { display: flex; justify-content: space-between; align-items: baseline; font-size: 21px; color: var(--ardoise); }
+.gauge .lbl b { font-family: var(--fd); color: var(--n700); font-size: 24px; direction: ltr; unicode-bidi: isolate; }
+.gauge .track { position: relative; height: 10px; border-radius: 99px; background: #E6ECF0; margin-top: 12px; }
+.gauge .fill { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; background: var(--terre); border-radius: 99px; width: 0; }
+.gauge .seuil { position: absolute; inset-inline-start: 55%; top: -6px; bottom: -6px; width: 3px; border-radius: 2px; background: var(--n600); }
+.gauge .seuil-l { position: absolute; inset-inline-start: 55%; top: 20px; transform: translateX(-50%); font-size: 18px; font-weight: 600; color: var(--n600); white-space: nowrap; }
+.rtl .gauge .seuil-l { transform: translateX(50%); }
+.ag-foot { position: relative; border-top: 1.5px solid #E6ECF0; margin-top: 42px; padding-top: 22px; height: 98px; }
+.btns { display: flex; gap: 14px; align-items: center; }
+.btn { font-size: 25px; font-weight: 700; border-radius: 16px; padding: 17px 26px; display: inline-flex; align-items: center; gap: 10px; }
+.btn.ok { background: var(--n600); color: var(--papier); }
+.btn.adj { border: 1.5px solid #CAD6DD; color: var(--n700); }
+.btn.no { color: var(--ardoise); margin-inline-start: auto; }
+.approved { position: absolute; left: 0; right: 0; top: 36px; display: flex; align-items: center; gap: 12px; font-size: 25px; font-weight: 700; color: var(--encre-terre); opacity: 0; }
+#tD, #tE { inset-inline-start: 96px; top: 1330px; font-size: 76px; white-space: nowrap; }
+/* Automatisation */
+.panel { position: absolute; left: 80px; width: 920px; padding: 26px 30px; opacity: 0; }
+.panel .ttl { font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); margin-bottom: 8px; }
+.rtl .panel .ttl { letter-spacing: 0; }
+.trow { display: flex; align-items: center; gap: 20px; height: 90px; }
+.trow + .trow { border-top: 1.5px solid #EEF2F5; }
+.trow .ic { width: 56px; height: 56px; border-radius: 16px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.trow .nm { flex: 1; font-size: 28px; font-weight: 700; }
+.trow .md { font-size: 22px; font-weight: 700; color: var(--ardoise); min-width: 120px; text-align: end; }
+.switch { width: 76px; height: 44px; border-radius: 22px; background: #CAD6DD; position: relative; flex: none; }
+.switch i { position: absolute; top: 5px; inset-inline-start: 5px; width: 34px; height: 34px; border-radius: 50%; background: #FDFDFE; box-shadow: 0 2px 4px rgba(27,42,53,.25); }
+.bzone { position: relative; height: 26px; border-radius: 13px; background: #E6ECF0; margin: 26px 0 10px; overflow: hidden; }
+.bzone .dn { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 55%; background: rgba(154,108,58,.25); }
+.bzone .up { position: absolute; top: 0; bottom: 0; inset-inline-start: 85%; inset-inline-end: 0; background: rgba(37,64,110,.22); }
+.blegend { display: flex; justify-content: space-between; font-size: 21px; font-weight: 600; color: var(--ardoise); }
+.bfacts { display: flex; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+.bfacts span { font-size: 23px; font-weight: 700; padding: 10px 18px; border-radius: 14px; background: #F2F6F8; display: inline-flex; align-items: center; gap: 10px; }
+/* Journal */
+.lrow { display: flex; gap: 18px; padding: 16px 0; align-items: flex-start; }
+.lrow + .lrow { border-top: 1.5px solid #EEF2F5; }
+.lrow .tm { font-family: 'BSG'; font-size: 22px; color: #67757C; width: 80px; flex: none; padding-top: 4px; direction: ltr; }
+.lrow .ic { width: 52px; height: 52px; border-radius: 16px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.lrow .bd { flex: 1; min-width: 0; }
+.lrow .who { font-size: 19px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); }
+.rtl .lrow .who { letter-spacing: 0; }
+.lrow .what { font-size: 25px; font-weight: 600; margin-top: 2px; }
+.lrow .why { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 20px; color: var(--ardoise); background: #F2F6F8; padding: 6px 12px; border-radius: 10px; }
+#stat { inset-inline-start: 96px; top: 1150px; width: 900px; opacity: 0; }
+#stat b { font-family: 'BSG'; font-size: 120px; color: var(--terre); line-height: 1; display: block; direction: ltr; unicode-bidi: isolate; }
+#stat span { font-size: 36px; font-weight: 700; }
+.rtl #stat b { text-align: right; }
+#tG { inset-inline-start: 96px; top: 700px; width: 900px; font-size: 92px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="house" class="abs" viewBox="251 251 522 522" fill="none"><path id="housePath" pathLength="100" stroke="#25406E" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/></svg>
+</div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, RTL, SYNC, $, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, words, titleIn, posIn } = K;
+const R = T.rev;
+
+/* A-B · constellation → équipe (tuiles d'agents) */
+const ICONS = ['trend', 'chat', 'broom', 'bank', 'star', 'sync', 'shield', 'concierge', 'owner', 'megaphone'];
+const tiles = T.agents.map((name, i) => {
+  const el = h('div', { class: 'ag' }, h('span', { class: 'ic' }, icon(ICONS[i], 34)), h('span', { class: 'nm' }, name));
+  K.stage.append(el);
+  return el;
+});
+const HL = [0, 1, 2, 3, 6];   // prix, messages, ménage, paiements, conformité
+const count = K.abs('count');
+count.append(h('b', {}, '10'), h('span', {}, T.count));
+
+/* B · fiche de l'agent cité (la voix nomme prix, messages, ménage, paiements, conformité) */
+const DT = T.detail;
+const dtIc = h('span', { class: 'dic' });
+const dtName = h('div', { class: 'dt-name' });
+const dtW = h('p'), dtP = h('p');
+const dtBody = h('div', { class: 'dt-body' }, dtName,
+  h('div', { class: 'dt-sec' }, h('span', { class: 'lb' }, icon('search', 24), DT.watches), dtW),
+  h('div', { class: 'dt-sec' }, h('span', { class: 'lb' }, icon('zap', 24), DT.proposes), dtP));
+const detail = K.abs('detail');
+detail.append(h('div', { class: 'dt-top' }, dtIc, h('span', { class: 'chip' }, DT.badge)), dtBody);
+set(detail, { left: (RTL ? 80 : 560) + 'px' });
+let dtCur = -1;
+function showAgent(k) {
+  if (dtCur === k) return;
+  dtCur = k;
+  const i = HL[k];
+  dtIc.replaceChildren(icon(ICONS[i], 40));
+  dtName.textContent = T.agents[i];
+  dtW.textContent = DT.items[k][0]; dtP.textContent = DT.items[k][1];
+}
+
+/* C-D · carte de validation Revenue */
+const steps = K.abs('steps');
+const stepEls = T.steps.map((s) => { const e = h('span', {}, s); steps.append(e); return e; });
+const revChip = h('span', { class: 'chip wait' }, R.wait);
+const propVal = h('span', {}, String(R.from));
+const occVal = h('span', {}, '0');
+const fill = h('div', { class: 'fill' });
+const okBtn = h('span', { class: 'btn ok' }, icon('check', 26), R.approve);
+const adjBtn = h('span', { class: 'btn adj' }, R.adjust);
+const btnRow = h('div', { class: 'btns' }, okBtn, adjBtn, h('span', { class: 'btn no' }, R.refuse));
+const approved = h('div', { class: 'approved' }, icon('check', 30), R.approved);
+const stepVal = h('b', {}, `${R.to} ${R.unit}`);
+const plusBtn = h('span', { class: 'bt' }, '+');
+const adjust = h('div', { class: 'adjust' }, h('div', { class: 'in' }, h('span', { class: 'lbl' }, R.adjustLbl), h('span', { class: 'stepper' }, h('span', { class: 'bt' }, '−'), stepVal, plusBtn)));
+const card = h('div', { class: 'hero card', style: 'top:420px;opacity:0' },
+  h('div', { class: 'ag-head' }, h('span', { class: 'ag-av' }, icon('trend', 32)), h('div', { class: 'ag-id' }, h('b', {}, R.name), h('small', {}, R.meta)), revChip),
+  h('div', { class: 'ag-title' }, R.title),
+  h('div', { class: 'ag-copy' }, R.copy[0], h('b', {}, R.copy[1]), R.copy[2]),
+  h('div', { class: 'metrics' },
+    h('div', {}, h('small', {}, R.current), h('b', {}, String(R.from), h('i', {}, R.unit))),
+    h('div', { class: 'prop' }, h('small', {}, R.proposed), h('b', {}, propVal, h('i', {}, R.unit))),
+    h('div', {}, h('small', {}, R.floor), h('b', {}, R.floorVal, h('i', {}, R.unit)))),
+  adjust,
+  h('div', { class: 'gauge' }, h('div', { class: 'lbl' }, h('span', {}, R.occ), h('b', {}, occVal, ' %')),
+    h('div', { class: 'track' }, fill, h('div', { class: 'seuil' }), h('div', { class: 'seuil-l' }, R.seuil))),
+  h('div', { class: 'ag-foot' }, btnRow, approved));
+K.stage.append(card);
+const tD = K.abs('tD', 'title'); const tDWords = words(tD, T.tD, T.tDEm);
+
+/* E · automatisations + bornes */
+const autoPanel = h('div', { class: 'panel card', style: 'top:360px' }, h('div', { class: 'ttl' }, T.auto.title));
+const toggles = T.auto.rows.map(([ic, nm]) => {
+  const knob = h('i'); const sw = h('span', { class: 'switch' }, knob); const md = h('span', { class: 'md' }, T.auto.manual);
+  autoPanel.append(h('div', { class: 'trow' }, h('span', { class: 'ic' }, icon(ic, 30)), h('span', { class: 'nm' }, nm), md, sw));
+  return { sw, knob, md };
+});
+const bounds = h('div', { class: 'panel card', style: 'top:790px' },
+  h('div', { class: 'ttl' }, T.bounds.title),
+  h('div', { class: 'bzone' }, h('div', { class: 'dn' }), h('div', { class: 'up' })),
+  h('div', { class: 'blegend' }, h('span', {}, T.bounds.down), h('span', {}, T.bounds.up)),
+  h('div', { class: 'bfacts' }, h('span', {}, icon('lock', 24), T.bounds.floor), h('span', {}, icon('clock', 24), T.bounds.rest)));
+K.stage.append(autoPanel, bounds);
+const tE = K.abs('tE', 'title'); const tEWords = words(tE, T.tE, T.tEEm);
+
+/* F · journal d'activité */
+const logPanel = h('div', { class: 'panel card', style: 'top:360px' }, h('div', { class: 'ttl' }, T.log.title));
+const logRows = T.log.rows.map(([tm, ic, who, what, kind, why]) => {
+  const row = h('div', { class: 'lrow' }, h('span', { class: 'tm' }, tm), h('span', { class: 'ic' }, icon(ic, 28)),
+    h('div', { class: 'bd' }, h('div', { class: 'who' }, who), h('div', { class: 'what' }, what),
+      why ? h('div', { class: 'why' }, icon('file', 20), `${T.log.why} : ${why}`) : null),
+    h('span', { class: 'chip ' + (kind === 'auto' ? 'auto' : 'ok') }, kind === 'auto' ? icon('zap', 20) : icon('check', 20), T.log[kind]));
+  logPanel.append(row);
+  return row;
+});
+K.stage.append(logPanel);
+const stat = K.abs('stat'); stat.append(h('b', {}, T.stat[0]), h('span', {}, T.stat[1]));
+
+/* G · promesse puis fin */
+const tG = K.abs('tG', 'title');
+const gA = h('div', {}, T.tG[0]), gB = h('div', { class: 'accent' }, T.tG[1]);
+tG.append(gA, gB);
+K.endMount();
+
+let adjTarget = null, plusTarget = null, okTarget = null;
+function targets() {
+  const c = (el) => { const p = posIn(el, K.stage); return { x: p.x + el.offsetWidth * .5, y: p.y + el.offsetHeight * .55 }; };
+  adjTarget = c(adjBtn); plusTarget = c(plusBtn); okTarget = c(okBtn);
+}
+
+function renderAt(t) {
+  /* A · la maison au centre, dix agents en cercle */
+  const draw = easeInOut(prog(t, 0.2, 1.0));
+  set($('housePath'), { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * draw) });
+  $('house').style.opacity = 1 - easeIn(prog(t, 4.2, .4));
+  const toGrid = easeInOut(prog(t, 4.4, 1.0));
+  const cardIn = easeOut(prog(t, 10.4, .7));
+  // Agent affiché : le dernier métier cité par la voix (Revenue avant le premier).
+  let cur = 0;
+  SYNC.hl.forEach((t1, k) => { if (t >= t1) cur = k; });
+  tiles.forEach((el, i) => {
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const cx = 540 + Math.cos(a) * 340 - 52, cy = 800 + Math.sin(a) * 340 - 52;
+    const gx = RTL ? 1080 - 80 - 440 : 80, gy = 330 + i * 82;
+    const pIn = easeOut(prog(t, .3 + i * .07, .5));
+    const hlIdx = HL.indexOf(i);
+    const named = hlIdx >= 0 && t >= SYNC.hl[hlIdx] ? 1 : 0;
+    el.classList.toggle('sel', toGrid > .99 && hlIdx === cur && t < 10.1);
+    set(el, {
+      left: lerp(cx, gx, toGrid) + 'px', top: lerp(cy, gy, toGrid) + 'px', width: lerp(104, 440, toGrid) + 'px', height: lerp(104, 74, toGrid) + 'px',
+      opacity: pIn * (1 - easeIn(prog(t, 10.1, .4))),
+      transform: `scale(${lerp(.6, 1, pIn)})`,
+      background: named ? '#F4EBDC' : '#FDFDFE',
+    });
+    el.lastElementChild.style.opacity = toGrid;
+  });
+  showAgent(cur);
+  const dIn = easeOut(prog(t, 5.2, .6));
+  set(detail, { opacity: dIn * (1 - easeIn(prog(t, 10.1, .4))), transform: `translateX(${lerp(40 * (RTL ? -1 : 1), 0, dIn)}px)` });
+  // La fiche change à chaque métier cité : fondu + légère montée.
+  const sw = t < SYNC.hl[0] ? 1 : easeOut(prog(t, SYNC.hl[cur], .45));
+  set(dtBody, { opacity: sw, transform: `translateY(${lerp(16, 0, sw)}px)` });
+  set(count, { opacity: vis(t, 1.4, 4.4, .4, .3), transform: `translateY(${lerp(20, 0, easeOut(prog(t, 1.4, .4)))}px)` });
+
+  /* C · surveille → propose : la carte, la mesure, la simulation */
+  const stepsVis = vis(t, 10.4, 24.2, .4, .4);
+  set(steps, { opacity: stepsVis });
+  const active = t < SYNC.propose ? 0 : t < 18.4 ? 1 : 2;
+  stepEls.forEach((e, i) => { e.className = i === active ? 'on' : ''; });
+  const cardOut = easeIn(prog(t, 24.0, .45));
+  set(card, { opacity: cardIn * (1 - cardOut), transform: `translateY(${lerp(120, 0, cardIn) - 40 * cardOut}px)` });
+  if (!adjTarget && cardIn >= 1) targets();
+  const occ = easeOut(prog(t, 11.2, 1.2));
+  occVal.textContent = String(Math.round(42 * occ));
+  fill.style.width = (42 * occ) + '%';
+  propVal.textContent = String(Math.round(lerp(R.from, R.to, easeInOut(prog(t, SYNC.propose + .3, 1.0)))));
+
+  /* D · ajuster (+5, +5) puis approuver */
+  const openAdj = easeOut(prog(t, SYNC.adjust + .15, .4));
+  adjust.style.height = (openAdj * 92) + 'px';
+  const plus1 = SYNC.adjust + 1.1, plus2 = SYNC.adjust + 1.6;
+  const nStep = (t >= plus1 ? 1 : 0) + (t >= plus2 ? 1 : 0);
+  const val = R.to + nStep * R.step;
+  stepVal.textContent = `${val} ${R.unit}`;
+  if (t >= plus1) propVal.textContent = String(val);
+  if (adjTarget) {
+    const start = { x: RTL ? 200 : 880, y: 1500 };
+    if (t < SYNC.adjust + .5) K.cursorMove(t, SYNC.adjust - .8, .75, start, adjTarget, SYNC.approve + .9);
+    else if (t < SYNC.approve - .9) K.cursorMove(t, SYNC.adjust + .5, .5, adjTarget, plusTarget, SYNC.approve + .9);
+    else K.cursorMove(t, SYNC.approve - .9, .8, plusTarget, { x: okTarget.x, y: okTarget.y + 92 * openAdj }, SYNC.approve + .9);
+    K.tapAt(t, SYNC.adjust, adjTarget);
+    K.tapAt(t, plus1, plusTarget); K.tapAt(t, plus2, plusTarget);
+    K.tapAt(t, SYNC.approve, { x: okTarget.x, y: okTarget.y + 92 * openAdj });
+  }
+  okBtn.style.background = t >= SYNC.approve && t < SYNC.approve + .15 ? '#1B3155' : '';
+  const done = easeOut(prog(t, SYNC.approve + .2, .35));
+  set(btnRow, { opacity: 1 - done });
+  set(approved, { opacity: done });
+  const isDone = t >= SYNC.approve + .2;
+  if (revChip.dataset.done !== String(isDone)) {
+    revChip.dataset.done = String(isDone);
+    revChip.className = 'chip ' + (isDone ? 'ok' : 'wait');
+    revChip.replaceChildren(...(isDone ? [icon('check', 22), R.ok] : [R.wait]));
+  }
+  titleIn(tDWords, t, SYNC.adjust + .4);
+  tD.style.opacity = 1 - easeIn(prog(t, 24.0, .4));
+
+  /* E · on confie des tâches : bascule en « Auto », dans des bornes */
+  const aIn = easeOut(prog(t, 24.5, .6)), eOut = easeIn(prog(t, 31.0, .45));
+  set(autoPanel, { opacity: aIn * (1 - eOut), transform: `translateY(${lerp(80, 0, aIn)}px)` });
+  toggles.forEach((tg, i) => {
+    const p = easeInOut(prog(t, SYNC.toggles + i * .6, .35));
+    tg.sw.style.background = `color-mix(in srgb, #9A6C3A ${Math.round(p * 100)}%, #CAD6DD)`;
+    tg.knob.style.transform = `translateX(${32 * p * (RTL ? -1 : 1)}px)`;
+    tg.md.textContent = p > .5 ? T.auto.on : T.auto.manual;
+    tg.md.style.color = p > .5 ? '#7A5230' : '';
+  });
+  const bIn = easeOut(prog(t, 27.6, .6));
+  set(bounds, { opacity: bIn * (1 - eOut), transform: `translateY(${lerp(80, 0, bIn)}px)` });
+  titleIn(tEWords, t, 28.6);
+  tE.style.opacity = 1 - eOut;
+
+  /* F · chaque décision est expliquée et journalisée */
+  const lIn = easeOut(prog(t, 31.4, .6)), lOut = easeIn(prog(t, 38.0, .45));
+  set(logPanel, { opacity: lIn * (1 - lOut), transform: `translateY(${lerp(80, 0, lIn)}px)` });
+  logRows.forEach((r, i) => {
+    const p = easeOut(prog(t, 32.0 + i * .7, .45));
+    set(r, { opacity: p, transform: `translateY(${lerp(16, 0, p)}px)`, background: i === 2 ? `rgba(224,200,155,${.2 * easeOut(prog(t, 34.6, .5))})` : '' });
+  });
+  set(stat, { opacity: easeOut(prog(t, 35.0, .5)) * (1 - lOut), transform: `translateY(${lerp(20, 0, easeOut(prog(t, 35.0, .5)))}px)` });
+
+  /* G · promesse puis fin */
+  const g1 = easeOut(prog(t, 38.5, .55)), g2 = easeOut(prog(t, 39.6, .55)), gOut = easeIn(prog(t, SYNC.end - .3, .4));
+  set(gA, { opacity: g1 * (1 - gOut), transform: `translateY(${lerp(20, 0, g1)}px)` });
+  set(gB, { opacity: g2 * (1 - gOut), transform: `translateY(${lerp(20, 0, g2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, () => { adjTarget = null; });
+</script>
+</body>
+</html>

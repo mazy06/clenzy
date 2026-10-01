@@ -1,0 +1,39 @@
+BAITLY · CASTING DE LA VOIX FRANÇAISE (ElevenLabs, Eleven v3)
+À quoi sert ce fichier : texte de test commun et profils de voix à auditionner avant de générer les
+voix off françaises des vidéos. Même texte, mêmes réglages pour toutes les voix : seule la voix change.
+Réglages : Eleven v3 · stabilité Natural · langue fr · vitesse 1,0.
+
+TEXTE DE TEST (3 phrases, environ 270 signes)
+
+  Version à coller (avec balises v3) :
+  [curious] Et si vos réservations, vos prix et votre ménage s'organisaient pendant que vous dormez ? [softly] Avec Bètli, vos calendriers, vos voyageurs et vos équipes tiennent dans un seul espace… et vous gardez toujours le dernier mot. [pause] [warmly] Bètli. Rejoignez le pré-lancement, sur bètli point F R.
+
+  Ce que le texte met à l'épreuve :
+  - phrase 1 : l'accroche, une vraie question (intonation montante, curiosité) ;
+  - phrase 2 : une énumération rythmée, le nom « Bètli », une pause « … » puis une chute douce ;
+  - phrase 3 : la signature et l'appel à l'action, l'adresse bien articulée.
+
+GRILLE D'ÉCOUTE (notée de 1 à 5)
+  Chaleur et sourire · crédibilité (métier, confiance) · débit (cible 2,2 à 2,6 mots/s) ·
+  respect des pauses « … » et [pause] · prononciation « Bètli » · netteté sur haut-parleur de
+  téléphone · naturel (aucune balise lue à voix haute) · régularité sur deux prises.
+
+PROFILS À AUDITIONNER (Voice Library : langue French, accent standard / France)
+  0. Référence : Léa (UGC creator), voice_id KSyQzmsYhFbuOhqj1Xxv — voix actuelle.
+  1. La narratrice chaleureuse — femme, 35-45 ans, médium-grave, posée ; usage Narrative / Informative.
+  2. La conseillère complice — femme, 28-38 ans, médium, conversationnelle ; usage Conversational.
+  3. L'hôte expert — homme, 35-50 ans, grave et chaleureux, rassurant ; usage Narrative / Advertisement.
+  4. Le jeune entrepreneur — homme, 25-35 ans, clair et dynamique, souriant ; usage Advertisement / Social.
+  5. L'hôtellerie premium — femme, 40-55 ans, feutrée, diction soignée ; usage Narrative / Advertisement.
+
+RÉSULTATS DE L'AUDITION (27 septembre 2026, Eleven v3, stabilité Natural, même texte)
+Débit cible 2,2 à 2,6 mots/s. Mesures automatiques (durée, silences > 0,2 s) ; l'écoute tranche.
+  Fichier          Voix (voice_id)                                   Durée  Débit    Pauses (s)
+  0-lea.mp3        Léa · UGC creator (KSyQzmsYhFbuOhqj1Xxv)          14,7 s  3,0      0,31 · 0,44
+  1-sarah.mp3      Sarah · Expressive and Modulated (t8BrjWUT5Z23DLLBzbuY)  15,6 s  2,8   0,91 · 0,82 · 0,32
+  2-anna.mp3       Anna · Natural and Conversational (nVPCtAFzgyMX3FZKNzH0) 16,3 s  2,7   0,45 · 0,65 · 0,53
+  2b-manon.mp3     Manon · Serious & spontaneous (m5U7XCsc8v988k2RJAqN)     20,7 s  2,1   12 pauses, dont 1,15
+  3-laurent.mp3    Mr. Laurent · Warm, friendly (necQJzI1X0vLpdnJteap)      18,9 s  2,3   9 pauses, dont 1,02
+  4-noe.mp3        Noé · Content Creator (7pDdnNI6PhXmAp0pXFZm)             12,6 s  3,5   0,41 · 0,66
+  5-lucie.mp3      Lucie · Narration (LFtQZWdaqmvamcTNGpwl)                 16,3 s  2,7   4 pauses courtes
+Présélection sur mesures : Sarah (profil 1), Anna (profil 2), Mr. Laurent (profil 3).

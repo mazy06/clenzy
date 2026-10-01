@@ -1,0 +1,241 @@
+==============================================================================
+REEL 12 · DEUX NUITS DE PLUS — Prolongation chiffrée, acceptée par le voyageur, tout suit
+Format 9:16 (1080×1920) · 34 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 6,1 s]
+      Dimanche matin. Votre voyageuse adore son séjour… et vous demande si elle peut rester deux nuits de plus.
+  b2  [suit la voix · durée visée 6,4 s]
+      Bètli a lu la demande, vérifié le calendrier et chiffré les deux nuits. Vous n'avez qu'à envoyer l'avenant.
+  b3  [suit la voix · durée visée 4,6 s]
+      Votre voyageuse reçoit l'offre, avec le prix exact. Elle accepte en un geste.
+  b4  [suit la voix · durée visée 5,5 s]
+      Et tout suit : le séjour s'allonge, le ménage se décale, un nouveau code d'accès est créé.
+  b5  [suit la voix · durée visée 2,4 s]
+      Deux nuits de plus. … Zéro recalcul.
+  b6  [suit la voix · durée visée 4,4 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–3,21 s]  Dimanche matin. [Votre voyageuse adore son séjour…]
+  ST2  [3,23–5,95 s]  et vous demande si elle peut rester deux nuits de plus.
+  ST3  [6,15–7,66 s]  Baitly a lu la demande,
+  ST4  [7,68–10,21 s]  vérifié le calendrier et chiffré les deux nuits.
+  ST5  [10,23–11,96 s]  Vous n'avez qu'à envoyer l'avenant.
+  ST6  [12,16–15,23 s]  Votre voyageuse reçoit l'offre, [avec le prix exact.]
+  ST7  [15,25–16,87 s]  Elle accepte en un geste.
+  ST8  [17,07–20,44 s]  Et tout suit : le séjour s'allonge, [le ménage se décale,]
+  ST9  [20,46–22,5 s]  un nouveau code d'accès est créé.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Notification sur écran verrouillé
+      E2  Dim.
+  · Maquette d’interface (libellé)
+      E3  Messagerie unifiée
+      E4  Sara · Airbnb
+      E5  On adore Marrakech ! Est-ce qu’on peut rester deux nuits de plus ?
+      E6  Demande de prolongation détectée
+      E7  Agent Voyageur
+      E8  Prolongation
+      E9  En attente
+      E10  Fait
+      E11  Sara demande 2 nuits de plus · Riad Nour
+      E12  Du 16 au 18 oct. : calendrier libre, tarif calculé par le moteur de prix.
+      E13  Nuits
+      E14  Supplément
+      E15  1 360 MAD
+      E16  Calendrier
+      E17  Libre
+  · Bouton (maquette) : rester court
+      E18  Envoyer l’avenant
+      E19  Ajuster le prix
+  · Maquette d’interface (libellé)
+      E20  Refuser
+      E21  Avenant envoyé · valable 72 h
+      E22  L
+      E23  M
+      E24  M
+      E25  J
+      E26  V
+      E27  S
+      E28  Riad Nour · Marrakech
+      E29  Prolonger votre séjour
+      E30  16 → 18 oct. · 2 nuits
+      E31  1 360 MAD
+      E32  Prix exact, taxes comprises
+      E33  Accepter
+      E34  Confirmé
+      E35  Offre valable 72 h
+  · Planning (maquette d’interface)
+      E36  Logement
+      E37  Bloqué
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E38  1 nuit
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E39  2 nuits
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E40  3 nuits
+  · Planning (maquette d’interface)
+      E41  Riad Nour
+      E42  Marrakech
+      E43  Villa Palmeraie
+      E44  Marrakech
+      E45  Studio Gueliz
+      E46  Marrakech
+      E47  Sara
+      E48  Jad
+      E49  Nadia
+      E50  D
+      E51  L
+      E52  M
+      E53  M
+      E54  J
+      E55  V
+      E56  S
+      E57  D
+  · Maquette d’interface (libellé)
+      E58  Total du séjour
+      E59  MAD
+      E60  Riad Nour
+  · Texte secondaire à l’écran
+      E61  Nouveau code · jusqu’au 18 oct.
+  · Maquette d’interface (libellé)
+      E62  Code d’accès
+      E63  Actif
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E64  Deux nuits de plus.
+      E65  Zéro recalcul.
+  · Bouton de l’écran de fin
+      E66  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E67  72 h
+      E68  offre valable
+      E69  Prix exact
+      E70  moteur de prix
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 5,6 s]
+      Sunday morning. Your guest is loving the stay… and asks if she can stay two more nights.
+  b2  [suit la voix · durée visée 6,6 s]
+      Betly has read the request, checked the calendar and priced the two nights. All you do is send the offer.
+  b3  [suit la voix · durée visée 4,6 s]
+      Your guest gets the offer, with the exact price. She accepts in one tap.
+  b4  [suit la voix · durée visée 5,9 s]
+      And everything follows: the stay stretches, cleaning moves, and a new access code is created.
+  b5  [suit la voix · durée visée 2,4 s]
+      Two more nights. … Zero recalculating.
+  b6  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–3,21 s]  Sunday morning. [Your guest is loving the stay…]
+  ST2  [3,23–5,95 s]  and asks if she can stay two more nights.
+  ST3  [6,15–7,66 s]  Baitly has read the request,
+  ST4  [7,68–10,21 s]  checked the calendar and priced the two nights.
+  ST5  [10,23–11,96 s]  All you do is send the offer.
+  ST6  [12,16–15,23 s]  Your guest gets the offer, [with the exact price.]
+  ST7  [15,25–16,87 s]  She accepts in one tap.
+  ST8  [17,07–20,44 s]  And everything follows: the stay stretches, [cleaning moves,]
+  ST9  [20,46–22,5 s]  and a new access code is created.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Notification sur écran verrouillé
+      E2  Sun
+  · Maquette d’interface (libellé)
+      E3  Unified inbox
+      E4  Sara · Airbnb
+      E5  We love Riyadh! Could we stay two more nights?
+      E6  Extension request detected
+      E7  Guest agent
+      E8  Extension
+      E9  Pending
+      E10  Done
+      E11  Sara asks for 2 more nights · Nakheel Chalet
+      E12  Oct 16 to 18: calendar free, rate calculated by the pricing engine.
+      E13  Nights
+      E14  Extra
+      E15  SAR 900
+      E16  Calendar
+      E17  Free
+  · Bouton (maquette) : rester court
+      E18  Send the offer
+      E19  Adjust the price
+  · Maquette d’interface (libellé)
+      E20  Decline
+      E21  Offer sent · valid for 72 h
+      E22  M
+      E23  T
+      E24  W
+      E25  T
+      E26  F
+      E27  S
+      E28  Nakheel Chalet · Riyadh
+      E29  Extend your stay
+      E30  Oct 16 → 18 · 2 nights
+      E31  SAR 900
+      E32  Exact price, taxes included
+      E33  Accept
+      E34  Confirmed
+      E35  Offer valid for 72 h
+  · Planning (maquette d’interface)
+      E36  Property
+      E37  Blocked
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E38  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E39  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E40  3 nights
+  · Planning (maquette d’interface)
+      E41  Nakheel Chalet
+      E42  Riyadh
+      E43  Diriyah Villa
+      E44  Riyadh
+      E45  Olaya Studio
+      E46  Riyadh
+      E47  Sara
+      E48  Jad
+      E49  Nadia
+      E50  S
+      E51  M
+      E52  T
+      E53  W
+      E54  T
+      E55  F
+      E56  S
+      E57  S
+  · Maquette d’interface (libellé)
+      E58  Stay total
+      E59  SAR
+      E60  Nakheel Chalet
+  · Texte secondaire à l’écran
+      E61  New code · until Oct 18
+  · Maquette d’interface (libellé)
+      E62  Access code
+      E63  Active
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E64  Two more nights.
+      E65  Zero recalculating.
+  · Bouton de l’écran de fin
+      E66  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E67  72 h
+      E68  offer validity
+      E69  Exact price
+      E70  pricing engine

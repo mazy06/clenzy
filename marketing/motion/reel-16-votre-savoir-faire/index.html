@@ -1,0 +1,187 @@
+<!doctype html>
+<!--
+  Baitly · Reel 16 « Votre savoir-faire » (Instagram, 1080 × 1920) · FR
+
+  À quoi sert ce fichier : l'invitation faite aux prestataires (ménage, maintenance, linge, jardin,
+  accueil…) à préparer leur profil dans le réseau Baitly, en préparation. Pilotée par le temps via le
+  kit partagé ; les plans suivent la voix (slots recalés par align-vo.py).
+  Scène signature : la fiche « Mon profil prestataire » qui se remplit (métier, zone, informations).
+  Déroulé : les métiers dits un à un sur une photo de ménage → le réseau, côté hôtes puis côté
+  voyageurs → la fiche profil → une mission fictive qu'on examine (lieu, consignes, tarif) →
+  promesse → fin (Préparer mon profil · baitly.fr/prestataires).
+  Vérité produit : réseau « en préparation » (page Prestataires de la landing) ; zones, frais et
+  conditions précisés avant tout engagement ; profils et mission fictifs, « Scène illustrative ».
+  Rendu : node ../render.mjs reel-16-votre-savoir-faire --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 16 Votre savoir-faire</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · les métiers */
+#ph0 { left: 80px; top: 290px; width: 920px; height: 540px; opacity: 0; }
+#trades { left: 60px; width: 960px; top: 880px; display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
+.tchip { display: inline-flex; align-items: center; gap: 14px; background: #FDFDFE; border: 1.5px solid var(--ligne); border-radius: 999px; padding: 18px 32px 18px 24px;
+  font-family: var(--fd); font-size: 42px; font-weight: 700; color: var(--n700); box-shadow: 0 24px 40px -30px rgba(27,42,53,.45); opacity: 0; }
+.tchip svg { color: var(--terre); }
+#stay { left: 0; width: 1080px; top: 1150px; text-align: center; font-size: 96px; opacity: 0; }
+.illus { position: absolute; font-size: 20px; font-weight: 600; color: var(--ardoise); background: rgba(253,253,254,.92); border-radius: 999px; padding: 8px 16px; }
+/* Titres des plans B à D (lecture sans le son) */
+.head { left: 80px; width: 920px; top: 290px; font-size: 66px; }
+.head div { opacity: 0; }
+/* B · le réseau */
+#net { left: 80px; top: 500px; width: 920px; opacity: 0; }
+.prow { display: flex; align-items: center; gap: 20px; padding: 18px 0; border-bottom: 1.5px solid #EEF2F5; }
+.prow:last-child { border-bottom: 0; }
+.prow img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex: none; }
+.prow b { display: block; font-family: var(--fd); font-size: 32px; font-weight: 600; }
+.prow small { display: block; font-size: 23px; color: var(--ardoise); margin-top: 2px; }
+.prow .z { margin-inline-start: auto; }
+.plist { position: relative; }
+.plist.g { position: absolute; inset: 0; }
+/* C · la fiche profil (scène signature) */
+#prof { left: 80px; top: 480px; width: 920px; opacity: 0; }
+.lbl { font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); margin: 26px 0 12px; }
+.lbl:first-of-type { margin-top: 6px; }
+.tgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tg { border-radius: 14px; padding: 16px 10px; text-align: center; font-size: 22px; font-weight: 700; color: var(--ardoise); background: #F1F5F7; border: 1.5px solid #E6ECF0; white-space: nowrap; }
+.tg.on { background: var(--n600); color: var(--papier); border-color: var(--n600); }
+.fld { display: flex; align-items: center; gap: 14px; background: #E1E9F0; border: 1.5px solid #CBD5E1; border-radius: 14px; padding: 18px 20px; font-size: 27px; color: var(--n700); min-height: 72px; }
+.fld svg { color: var(--n600); flex: none; }
+.fld small { color: var(--ardoise); font-size: 22px; font-weight: 600; min-width: 96px; }
+.fld.focus { border-color: var(--n700); box-shadow: 0 0 0 4px rgba(37,64,110,.18); }
+.fld + .fld { margin-top: 10px; }
+.fld .okd { margin-inline-start: auto; color: #0C7166; font-size: 22px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+/* D · une mission fictive */
+#mis { left: 80px; top: 480px; width: 920px; overflow: hidden; opacity: 0; }
+#mis > img { width: 100%; height: 250px; object-fit: cover; display: block; }
+#mis .in { padding: 26px 32px 30px; }
+#mis .mt { font-family: var(--fd); font-size: 46px; font-weight: 700; margin-top: 8px; }
+#mis .ms { display: flex; align-items: center; gap: 10px; font-size: 24px; color: var(--ardoise); margin-top: 6px; }
+#mis .kv { padding: 16px 14px; border-radius: 12px; }
+#mis .kv.hi { background: rgba(224,200,155,.38); }
+#mis .kv b { text-align: end; }
+#mis .acts { display: flex; gap: 12px; margin-top: 20px; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 640px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .eyebrow { opacity: 0; }
+#promise .title { font-size: 90px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, vis, slot, slotVis, typeText } = K;
+const PH = '../../brand-book/assets/photos/';
+
+/* A · les métiers, un par mot */
+const ph0 = K.photoFrame('menage.jpg');
+ph0.el.id = 'ph0'; ph0.el.append(h('span', { class: 'illus', style: 'left:24px;bottom:24px' }, T.illustrative));
+K.stage.append(ph0.el);
+const trades = K.abs('trades');
+const tchips = T.trades.map(([ic, name]) => { const e = h('span', { class: 'tchip' }, icon(ic, 42), name); trades.append(e); return e; });
+const stay = K.abs('stay', 'title accent');
+stay.textContent = T.stay;
+
+/* B · le réseau, côté hôtes puis côté voyageurs */
+const N = T.network;
+const net = K.productWindow({ title: N.title, icon: 'users', tabs: N.tabs, active: 0 });
+net.el.id = 'net';
+const row = ([img, name, trade, zone]) => h('div', { class: 'prow' }, h('img', { src: PH + img, alt: '' }),
+  h('div', {}, h('b', {}, name), h('small', {}, trade)), h('span', { class: 'chip neutral z' }, icon('pin', 20), zone));
+const hostRows = N.hosts.map(row), guestRows = N.guests.map(row);
+const listH = h('div', { class: 'plist' }, hostRows), listG = h('div', { class: 'plist g' }, guestRows);
+net.body.append(h('div', { style: 'position:relative' }, listH, listG),
+  h('div', { style: 'display:flex;gap:10px;margin-top:18px' }, h('span', { class: 'chip wait' }, icon('hourglass', 20), N.badge), h('span', { class: 'chip neutral' }, N.note)));
+K.stage.append(net.el);
+
+/* C · la fiche profil */
+const P = T.profile;
+const prof = K.productWindow({ title: P.title, icon: 'idcard' });
+prof.el.id = 'prof';
+const track = K.progressTrack(3);
+const tgs = P.trades.map((x) => h('span', { class: 'tg' }, x));
+const zoneTxt = h('span', {}), siretTxt = h('span', {});
+const fZone = h('div', { class: 'fld' }, icon('pin', 30), zoneTxt);
+const fSiret = h('div', { class: 'fld' }, h('small', {}, P.siret), siretTxt);
+const docOk = h('span', { class: 'okd' }, icon('ccheck', 26), P.docValue);
+const fDoc = h('div', { class: 'fld' }, icon('filecheck', 30), h('span', {}, P.doc), docOk);
+prof.body.append(track.el, h('div', { class: 'lbl' }, P.trade), h('div', { class: 'tgrid' }, tgs),
+  h('div', { class: 'lbl' }, P.zone), fZone, h('div', { class: 'lbl' }, P.info), fSiret, fDoc);
+K.stage.append(prof.el);
+
+/* D · une mission fictive */
+const M = T.mission;
+const mis = K.abs('mis', 'card');
+const mrows = M.rows.map(([k, v]) => h('div', { class: 'kv' }, h('span', {}, k), h('b', {}, v)));
+mis.append(h('img', { src: PH + 'operationsBed.webp', alt: '' }),
+  h('div', { class: 'in' }, h('span', { class: 'eyebrow' }, M.label), h('div', { class: 'mt' }, M.title),
+    h('div', { class: 'ms' }, icon('clock', 26), M.slot), h('div', { style: 'margin-top:14px' }, mrows),
+    h('div', { class: 'acts' }, h('span', { class: 'hbtn p' }, icon('check', 26), M.accept), h('span', { class: 'hbtn o' }, icon('filetext', 24), M.detail))));
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const eb = h('span', { class: 'eyebrow' }, T.eyebrow);
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(eb, p1, p2);
+K.endMount();
+
+/* Titres des plans B, C, D */
+const heads = T.heads.map(([l1, l2], i) => { const el = K.abs('hd' + (i + 1), 'head title'); const a = h('div', {}, l1), b = h('div', { class: 'accent' }, l2); el.append(a, b); return [a, b]; });
+
+const rise = (el, o, p, dy = 40) => set(el, { opacity: o * p, transform: `translateY(${lerp(dy, 0, p)}px)` });
+
+function renderAt(t) {
+  const [a0] = slot(0), [a1] = slot(1), [a2] = slot(2), [a3] = slot(3), [a4, b4] = slot(4);
+
+  /* A */
+  const v0 = slotVis(t, 0, .45, .4);
+  const e0 = easeOut(prog(t, a0, .7));
+  set(ph0.el, { opacity: v0 * e0, transform: `scale(${lerp(1.04, 1, e0)})` });
+  tchips.forEach((c, i) => { const p = easeOut(prog(t, SYNC.m[i] - .05, .4)); set(c, { opacity: v0 * p, transform: `translateY(${lerp(30, 0, p)}px) scale(${lerp(.92, 1, p)})` }); });
+  rise(stay, v0, easeOut(prog(t, SYNC.stay - .1, .5)), 24);
+
+  /* B */
+  const v1 = slotVis(t, 1);
+  rise(net.el, v1, easeOut(prog(t, a1, .6)), 60);
+  hostRows.forEach((r, i) => { const p = easeOut(prog(t, a1 + .35 + i * .18, .45)); set(r, { opacity: p, transform: `translateX(${lerp(-24, 0, p)}px)` }); });
+  const g = easeOut(prog(t, SYNC.guests - .1, .45));
+  net.setTab(t >= SYNC.guests - .1 ? 1 : 0);
+  listH.style.opacity = 1 - g;
+  guestRows.forEach((r, i) => { const p = easeOut(prog(t, SYNC.guests + i * .18, .45)); set(r, { opacity: p, transform: `translateX(${lerp(24, 0, p)}px)` }); });
+
+  /* C · la fiche se remplit au fil des mots */
+  const v2 = slotVis(t, 2);
+  rise(prof.el, v2, easeOut(prog(t, a2, .6)), 60);
+  tgs.forEach((x, i) => x.classList.toggle('on', i === 0 && t >= SYNC.f1));
+  fZone.classList.toggle('focus', t >= SYNC.f2 - .1 && t < SYNC.f3 - .1);
+  typeText(zoneTxt, P.zoneValue, t, SYNC.f2, 26);
+  fSiret.classList.toggle('focus', t >= SYNC.f3 - .1 && t < SYNC.f3 + 1.2);
+  typeText(siretTxt, P.siretValue, t, SYNC.f3, 22);
+  docOk.style.opacity = easeOut(prog(t, SYNC.f3 + 1, .4));
+  track.set((t >= SYNC.f1 ? 1 : 0) / 3 * easeOut(prog(t, SYNC.f1, .4)) + (t >= SYNC.f2 ? easeOut(prog(t, SYNC.f2 + .6, .4)) : 0) / 3 + (t >= SYNC.f3 ? easeOut(prog(t, SYNC.f3 + 1, .4)) : 0) / 3);
+
+  /* D · la mission se lit avant de s'engager */
+  const v3 = slotVis(t, 3);
+  rise(mis, v3, easeOut(prog(t, a3, .6)), 60);
+  [SYNC.r1, SYNC.r2, SYNC.r3].forEach((tr, i) => mrows[i].classList.toggle('hi', t >= tr - .1 && (i === 2 || t < [SYNC.r2, SYNC.r3][i] - .1)));
+
+  heads.forEach(([l1, l2], i) => { const v = slotVis(t, i + 1), a = slot(i + 1)[0]; rise(l1, v, easeOut(prog(t, a, .5)), 20); rise(l2, v, easeOut(prog(t, a + .2, .5)), 20); });
+
+  /* E */
+  const v4 = slotVis(t, 4, .5, .35);
+  rise(eb, v4, easeOut(prog(t, a4, .5)), 16);
+  rise(p1, v4, easeOut(prog(t, a4 + .1, .55)), 24);
+  rise(p2, v4, easeOut(prog(t, a4 + (b4 - a4) * .5, .55)), 24);
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 19 « Les extras qui rapportent » (≈ 2 min 20) · 9:16 et 16:9, depuis le même
+  fichier. Voix : Noé (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (le séjour est payé, place aux extras) → 1 vos services (5 extras, départ tardif
+  35 € × 4 ventes = 140 €, conditions) → 2 activités partenaires (logos GetYourGuide, Viator, Klook, livret
+  d'accueil, commission 8 % sur 130 € = 10,40 €) → 3 sur mesure (surf, massage, vélos, chef ; pack 55 € → 50 €)
+  → 4 le bon moment → 5 à retenir (paiement Stripe) → fin.
+  Photos et logos : ../academie-shared/photos/SOURCES.md (<img>, pour que le rendu attende leur chargement).
+  Rendu : node ../render.mjs academie-19-extras --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 19 Les extras qui rapportent</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe ex- : aucune collision avec base.css (.bar, .chip, .row, .card, .ph… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.exfill { flex: 1; position: relative; min-height: 0; }
+.exlayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px; opacity: 0; }
+.exnote { font-size: 22px; font-weight: 600; color: var(--gris); }
+.eximg { display: block; object-fit: cover; }
+
+/* 0 · accroche : quatre extras en photo */
+.exhook { padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; opacity: 0; }
+.exhk { position: relative; border-radius: 24px; overflow: hidden; height: 250px; opacity: 0; }
+.exhk .eximg { width: 100%; height: 100%; }
+.exhk span { position: absolute; left: 14px; bottom: 14px; background: rgba(253,253,254,.94); color: var(--n700); border-radius: 999px; padding: 9px 16px; font-size: 24px; font-weight: 700; }
+
+/* 1 · vos services */
+.exsvc { display: flex; flex-direction: column; gap: 12px; }
+.exs { display: flex; align-items: center; gap: 18px; background: var(--surface); border-radius: 22px; padding: 12px 22px 12px 12px; opacity: 0; }
+.exs .eximg { flex: none; width: 104px; height: 80px; border-radius: 14px; }
+.exs div { flex: 1; min-width: 0; }
+.exs b { display: block; font-size: 27px; font-weight: 700; color: var(--n700); }
+.exs span { font-size: 21px; font-weight: 600; color: var(--gris); }
+.exs em { font-style: normal; font-family: var(--fd); font-size: 38px; font-weight: 700; color: var(--terre); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.excalch { display: flex; align-items: center; gap: 20px; opacity: 0; }
+.excalch .eximg { width: 150px; height: 112px; border-radius: 20px; }
+.excalch b { display: block; font-family: var(--fd); font-size: 38px; font-weight: 700; color: var(--n700); }
+.excalch em { font-style: normal; font-family: var(--fd); font-size: 34px; font-weight: 700; color: var(--terre); }
+.exkv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1.5px solid var(--ligne2); padding-top: 16px; opacity: 0; }
+.exkv span { font-size: 27px; font-weight: 600; color: var(--ardoise); }
+.exkv b { font-family: var(--fd); font-size: 42px; font-weight: 700; color: var(--n700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.exres { display: flex; justify-content: space-between; align-items: center; background: var(--n600); border-radius: 26px; padding: 22px 28px; opacity: 0; }
+.exres span { font-size: 28px; font-weight: 700; color: var(--papier); }
+.exres b { font-family: var(--fd); font-size: 76px; font-weight: 700; color: var(--sable); letter-spacing: -.03em; line-height: 1; }
+.exok { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: rgba(13,148,136,.12); color: var(--ok); border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.exclash { display: flex; flex-direction: column; gap: 10px; }
+.exclash div { display: flex; justify-content: space-between; align-items: center; border-radius: 20px; padding: 18px 22px; font-size: 27px; font-weight: 700; opacity: 0; }
+.exclash div:first-child { background: var(--surface); color: var(--n700); }
+.exclash div:last-child { background: #F7E4DC; color: #8E3F20; }
+.exclash b { font-family: var(--fd); font-size: 36px; }
+.exwarn { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: #B45733; color: #FDFDFE; border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.exconds { display: flex; flex-direction: column; gap: 10px; }
+.exconds span { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 18px; padding: 16px 20px; font-size: 27px; font-weight: 700; color: var(--n700); opacity: 0; }
+.exconds span svg { color: var(--ok); flex: none; }
+
+/* 2 · activités partenaires */
+.exlogos { display: flex; flex-direction: column; gap: 16px; }
+.exlg { display: flex; align-items: center; justify-content: center; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 28px; height: 150px; box-shadow: var(--e1); opacity: 0; }
+.exlg img { display: block; max-width: 70%; object-fit: contain; }
+.exlg img.gyg { height: 124px; }
+.exlg img.via, .exlg img.klk { height: 66px; }
+.extag { align-self: center; font-size: 26px; font-weight: 700; color: var(--ardoise); text-align: center; opacity: 0; }
+.exconn { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; opacity: 0; }
+.exconn img { height: 36px; display: block; }
+.exconn img.gyg { height: 52px; }
+.exconn span { display: inline-flex; align-items: center; gap: 8px; background: rgba(13,148,136,.12); color: var(--ok); border-radius: 999px; padding: 8px 14px; font-size: 21px; font-weight: 700; margin-inline-start: auto; }
+.exguide { background: var(--surface); border-radius: 26px; padding: 18px; display: flex; flex-direction: column; gap: 12px; opacity: 0; }
+.exguide > small { font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); padding: 2px 6px; }
+.exact { display: flex; align-items: center; gap: 16px; background: #FDFDFE; border-radius: 20px; padding: 10px 16px 10px 10px; opacity: 0; }
+.exact .eximg { flex: none; width: 120px; height: 90px; border-radius: 14px; }
+.exact div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.exact b { font-size: 25px; font-weight: 700; color: var(--n700); line-height: 1.2; }
+.exact div img { height: 30px; align-self: flex-start; }
+.exact div img.gyg { height: 44px; }
+.exact i { flex: none; font-style: normal; background: var(--n600); color: var(--papier); border-radius: 12px; padding: 10px 14px; font-size: 20px; font-weight: 700; }
+.excom { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: #F4EBDC; color: var(--encre-terre); border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.exexh { position: relative; border-radius: 24px; overflow: hidden; height: 190px; opacity: 0; }
+.exexh .eximg { width: 100%; height: 100%; }
+.exexh span { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 12px; background: rgba(253,253,254,.95); border-radius: 16px; padding: 10px 16px; font-size: 26px; font-weight: 700; color: var(--n700); }
+.exexh span img { height: 26px; }
+.exyou { display: flex; justify-content: space-between; align-items: center; background: #F4EBDC; border-radius: 24px; padding: 18px 26px; opacity: 0; }
+.exyou span { font-size: 26px; font-weight: 700; color: var(--encre-terre); }
+.exyou b { font-family: var(--fd); font-size: 64px; font-weight: 700; color: var(--terre); letter-spacing: -.03em; line-height: 1; }
+
+/* 3 · sur mesure */
+.excards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.excd { position: relative; border-radius: 22px; overflow: hidden; height: 200px; opacity: 0; }
+.excd .eximg { width: 100%; height: 100%; }
+.excd span { position: absolute; left: 12px; bottom: 12px; background: rgba(253,253,254,.94); color: var(--n700); border-radius: 999px; padding: 8px 14px; font-size: 22px; font-weight: 700; }
+.exform { display: flex; flex-direction: column; gap: 10px; border: 2px dashed #B8C4CC; border-radius: 24px; padding: 16px 18px; opacity: 0; }
+.exform > b { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; color: var(--n700); }
+.exform > div { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; }
+.exff { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border-radius: 14px; padding: 10px 14px; opacity: 0; }
+.exff small { font-size: 18px; font-weight: 700; color: var(--gris); }
+.exff span { font-size: 22px; font-weight: 700; color: var(--n700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exff .eximg { width: 64px; height: 30px; border-radius: 6px; }
+.expk { display: flex; align-items: center; gap: 14px; }
+.expi { flex: 1; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border-radius: 22px; padding: 12px; opacity: 0; }
+.expi .eximg { width: 100%; height: 150px; border-radius: 14px; }
+.expi b { font-size: 23px; font-weight: 700; color: var(--n700); padding: 0 6px; line-height: 1.2; }
+.expi em { font-style: normal; font-family: var(--fd); font-size: 34px; font-weight: 700; color: var(--n700); padding: 0 6px; }
+.explus { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; opacity: 0; }
+.exsum { display: flex; justify-content: space-between; align-items: center; background: var(--n600); border-radius: 26px; padding: 18px 26px; opacity: 0; }
+.exsum span { font-size: 28px; font-weight: 700; color: var(--papier); }
+.exsum s { font-family: var(--fd); font-size: 40px; font-weight: 700; color: rgba(247,251,252,.55); margin-inline-end: 16px; text-decoration-thickness: 3px; }
+.exsum b { font-family: var(--fd); font-size: 66px; font-weight: 700; color: var(--sable); letter-spacing: -.03em; line-height: 1; opacity: 0; }
+.exwins { display: flex; flex-wrap: wrap; gap: 10px; }
+.exwins span { display: inline-flex; align-items: center; gap: 8px; background: rgba(13,148,136,.12); color: var(--ok); border-radius: 999px; padding: 10px 16px; font-size: 23px; font-weight: 700; opacity: 0; }
+
+/* 4 · le bon moment */
+.exsteps { display: flex; flex-direction: column; gap: 14px; }
+.exst { display: flex; flex-direction: column; gap: 12px; background: var(--surface); border-radius: 24px; padding: 16px 18px; opacity: 0; }
+.exst > b { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--n700); }
+.exst > b i { width: 46px; height: 46px; border-radius: 14px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.exst > div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exst > div span { display: flex; align-items: center; gap: 12px; background: #FDFDFE; border-radius: 16px; padding: 8px; font-size: 23px; font-weight: 700; color: var(--n700); }
+.exst > div .eximg { flex: none; width: 74px; height: 56px; border-radius: 10px; }
+.exsimple { display: flex; gap: 10px; flex-wrap: wrap; }
+.exsimple span { display: inline-flex; align-items: center; gap: 8px; background: #F4EBDC; color: var(--encre-terre); border-radius: 999px; padding: 11px 18px; font-size: 24px; font-weight: 700; opacity: 0; }
+
+/* 5 · à retenir */
+.exrc { display: flex; flex-direction: column; gap: 16px; }
+.expay { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 22px; padding: 18px 26px; font-size: 27px; font-weight: 700; color: var(--n700); box-shadow: var(--e1); }
+.expay img { height: 44px; display: block; }
+.expay span { color: var(--ardoise); font-weight: 600; }
+
+html.f169 .exhk { height: 230px; }
+html.f169 .exs { padding: 10px 20px 10px 10px; }
+html.f169 .exs .eximg { width: 92px; height: 70px; }
+html.f169 .exs b { font-size: 25px; }
+html.f169 .exs span { font-size: 20px; }
+html.f169 .exs em { font-size: 34px; }
+html.f169 .exlg { height: 140px; }
+html.f169 .exlg img.gyg { height: 108px; }
+html.f169 .exlg img.via, html.f169 .exlg img.klk { height: 60px; }
+html.f169 .exact .eximg { width: 104px; height: 78px; }
+html.f169 .exact b { font-size: 23px; }
+html.f169 .excd { height: 180px; }
+html.f169 .expi .eximg { height: 130px; }
+html.f169 .exst { padding: 14px 16px; }
+html.f169 .exst > b { font-size: 27px; }
+html.f169 .exst > div .eximg { width: 64px; height: 48px; }
+html.f169 .exst > div span { font-size: 21px; }
+html.f169 .exres b { font-size: 66px; }
+html.f169 .expay { font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const photo = (name) => h('img', { src: `../academie-shared/photos/${name}.jpg`, class: 'eximg', alt: '' });
+const LOGO_CLS = { 'getyourguide.svg': 'gyg', 'viator.png': 'via', 'klook.png': 'klk' };
+const logo = (file, alt) => h('img', { src: `../academie-shared/logos/${file}`, class: LOGO_CLS[file] || '', alt: alt || '' });
+/** Couches successives d'une carte : chacune entre en montant, puis s'efface vers le haut quand la suivante arrive. */
+const stack = (layers, times, t) => layers.forEach((el, i) => {
+  const kIn = i ? shown(t, times[i] - .3, .5) : 1, kOut = i < layers.length - 1 ? shown(t, times[i + 1] - .3, .5) : 0;
+  set(el, { opacity: kIn * (1 - kOut), transform: `translateY(${lerp(20, 0, kIn) - 20 * kOut}px)` });
+});
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const hookTiles = T.hook.map(([ph, l]) => h('div', { class: 'exhk' }, photo(ph), h('span', {}, l)));
+const hook = A.abs(L.card.x, 0, L.card.w, null, 'acard exhook');
+hook.append(...hookTiles);
+
+/* 1 · vos services */
+const SV = T.services, CA = T.calc, CO = T.conds, c1 = A.card();
+const svTitle = h('span', { class: 'alabel' }, SV.title);
+const svRows = SV.rows.map(([ph, b, s, p]) => h('div', { class: 'exs' }, photo(ph), h('div', {}, h('b', {}, b), h('span', {}, s)), h('em', {}, p)));
+const l1a = h('div', { class: 'exlayer' }, svTitle, h('div', { class: 'exsvc' }, svRows));
+const caHead = h('div', { class: 'excalch' }, photo(CA.photo), h('div', {}, h('b', {}, CA.item), h('em', {}, CA.price)));
+const caRows = CA.rows.map(([k, v]) => h('div', { class: 'exkv' }, h('span', {}, k), h('b', {}, v)));
+const caRes = h('div', { class: 'exres' }, h('span', {}, CA.result[0]), h('b', {}, CA.result[1]));
+const caOk = h('span', { class: 'exok' }, icon('moon', 24), CA.note);
+const l1b = h('div', { class: 'exlayer' }, h('span', { class: 'alabel' }, T.illustrative), caHead, ...caRows, caRes, caOk);
+const clash = CO.clash.map(([l, v]) => h('div', {}, h('span', {}, l), h('b', {}, v)));
+const clashWarn = h('span', { class: 'exwarn' }, icon('alert', 24), CO.clashNote);
+const condT = h('span', { class: 'alabel', style: 'opacity:0' }, CO.title);
+const conds = CO.items.map(([ic, l]) => h('span', {}, icon(ic, 28), l));
+const l1c = h('div', { class: 'exlayer' }, h('div', { class: 'exclash' }, clash), clashWarn, condT, h('div', { class: 'exconds' }, conds));
+c1.el.append(h('div', { class: 'exfill' }, l1a, l1b, l1c));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · activités partenaires */
+const PA = T.partners, c2 = A.card();
+const bigLogos = PA.logos.map(([f, alt]) => h('div', { class: 'exlg' }, logo(f, alt)));
+const tagline = h('div', { class: 'extag' }, PA.tagline);
+const l2a = h('div', { class: 'exlayer' }, h('div', { class: 'exlogos' }, bigLogos), tagline);
+const conn = h('div', { class: 'exconn' }, ...PA.logos.map(([f, alt]) => logo(f, alt)), h('span', {}, icon('ccheck', 22), PA.connected));
+const acts = PA.activities.map(([ph, title, lf]) => h('div', { class: 'exact' }, photo(ph), h('div', {}, h('b', {}, title), logo(lf)), h('i', {}, PA.book)));
+const guide = h('div', { class: 'exguide' }, h('small', {}, PA.guide), ...acts);
+const comChip = h('span', { class: 'excom' }, icon('coins', 24), PA.commission);
+const l2b = h('div', { class: 'exlayer' }, conn, guide, comChip);
+const EX = PA.ex;
+const exHead = h('div', { class: 'exexh' }, photo(EX.photo), h('span', {}, logo(EX.logo, 'Viator'), EX.title));
+const exRows = EX.rows.map(([k, v]) => h('div', { class: 'exkv' }, h('span', {}, k), h('b', {}, v)));
+const exYou = h('div', { class: 'exyou' }, h('span', {}, EX.you), h('b', {}, EX.rows[1][1]));
+const exNote = h('span', { class: 'exnote', style: 'opacity:0' }, EX.note);
+const l2c = h('div', { class: 'exlayer' }, h('span', { class: 'alabel' }, T.illustrative), exHead, ...exRows, exYou, exNote);
+c2.el.append(h('div', { class: 'exfill' }, l2a, l2b, l2c));
+
+/* 3 · sur mesure */
+const CU = T.custom, c3 = A.card();
+const cards = CU.cards.map(([ph, l]) => h('div', { class: 'excd' }, photo(ph), h('span', {}, l)));
+const ffs = CU.form.fields.map(([k, v]) => h('div', { class: 'exff' }, h('small', {}, k), k === 'Photo' ? photo(v) : h('span', {}, v)));
+const form = h('div', { class: 'exform' }, h('b', {}, icon('plus', 24), CU.form.title), h('div', {}, ffs));
+const l3a = h('div', { class: 'exlayer' }, h('div', { class: 'excards' }, cards), form);
+const PK = CU.pack;
+const pItems = PK.items.map(([ph, b, p]) => h('div', { class: 'expi' }, photo(ph), h('b', {}, b), h('em', {}, p)));
+const pPlus = h('span', { class: 'explus' }, icon('plus', 28));
+const pSumS = h('s', {}, PK.sum), pSumB = h('b', {}, PK.price);
+const pSum = h('div', { class: 'exsum' }, h('span', {}, PK.label), h('div', {}, pSumS, pSumB));
+const pWins = [PK.save, PK.two].map((x) => h('span', {}, icon('ccheck', 22), x));
+const l3b = h('div', { class: 'exlayer' }, h('div', { class: 'expk' }, pItems[0], pPlus, pItems[1]), pSum, h('div', { class: 'exwins' }, pWins));
+c3.el.append(h('div', { class: 'exfill' }, l3a, l3b));
+
+/* 4 · le bon moment */
+const c4 = A.card();
+const steps = T.moments.map(([ic, l, items]) => h('div', { class: 'exst' }, h('b', {}, h('i', {}, icon(ic, 24)), l), h('div', {}, items.map(([ph, n]) => h('span', {}, photo(ph), n)))));
+const simple = T.simple.map(([ic, l]) => h('span', {}, icon(ic, 22), l));
+c4.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px' }, h('div', { class: 'exsteps' }, steps), h('div', { class: 'exsimple' }, simple)));
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'exrc');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'appt', style: 'opacity:0' }, icon('ccheck', 32), R.app);
+const pay = h('div', { class: 'expay', style: 'opacity:0' }, R.pay, logo('stripe.svg', 'Stripe'), h('span', {}, '· ' + R.pay2));
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, pay);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .1);
+  A.rise(hook, v0, shown(t, SYNC.x1 - .6, .6), 60);
+  [SYNC.x1, SYNC.x2, SYNC.x3, SYNC.x4].forEach((t0, i) => A.rise(hookTiles[i], 1, shown(t, t0 - .15, .45), 24));
+
+  /* 1 · vos services */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  stack([l1a, l1b, l1c], [0, SYNC.calc, SYNC.trap1], t);
+  [SYNC.s1, SYNC.s2, SYNC.s3, SYNC.s4, SYNC.s5].forEach((t0, i) => A.rise(svRows[i], 1, shown(t, t0 - .2), 18));
+  A.rise(caHead, 1, shown(t, SYNC.p35 - .5), 14);
+  A.rise(caRows[0], 1, shown(t, SYNC.v20 - .2), 10); A.rise(caRows[1], 1, shown(t, SYNC.v4 - .2), 10);
+  A.rise(caRes, 1, shown(t, SYNC.v140 - .2), 14); A.rise(caOk, 1, shown(t, SYNC.nonight - .2), 10);
+  trap1.render(t, SYNC.trap1, v1);
+  A.rise(clash[0], 1, shown(t, SYNC.clash - .4), 12); A.rise(clash[1], 1, shown(t, SYNC.clash + .3), 12);
+  A.rise(clashWarn, 1, shown(t, SYNC.clash + 1.2), 10);
+  A.rise(condT, 1, shown(t, SYNC.cond - .2), 8);
+  [SYNC.c1, SYNC.c2, SYNC.c3].forEach((t0, i) => A.rise(conds[i], 1, shown(t, t0 - .15), 12));
+
+  /* 2 · activités partenaires */
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  stack([l2a, l2b, l2c], [0, SYNC.connect, SYNC.ex], t);
+  [SYNC.gyg, SYNC.via, SYNC.klk].forEach((t0, i) => A.rise(bigLogos[i], 1, shown(t, t0 - .25, .45), 24, `scale(${lerp(.94, 1, shown(t, t0 - .25, .45))})`));
+  A.rise(tagline, 1, shown(t, SYNC.k1000 - .2), 10);
+  A.rise(conn, 1, shown(t, SYNC.connect + .1), 12);
+  A.rise(guide, 1, shown(t, SYNC.livret - .3), 16);
+  [SYNC.a1, SYNC.a2, SYNC.a3].forEach((t0, i) => A.rise(acts[i], 1, shown(t, t0 - .2), 14));
+  A.rise(comChip, 1, shown(t, SYNC.comm - .3), 10);
+  A.rise(exHead, 1, shown(t, SYNC.ex + .1), 16);
+  A.rise(exRows[0], 1, shown(t, SYNC.e130 - .3), 10); A.rise(exRows[1], 1, shown(t, SYNC.e8 - .3), 10);
+  A.rise(exYou, 1, shown(t, SYNC.e1040 - .1), 14); A.rise(exNote, 1, shown(t, SYNC.pays - .2), 8);
+
+  /* 3 · sur mesure */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  stack([l3a, l3b], [0, SYNC.pack], t);
+  [SYNC.m1, SYNC.m2, SYNC.m3, SYNC.m4].forEach((t0, i) => A.rise(cards[i], 1, shown(t, t0 - .2, .45), 20));
+  A.rise(form, 1, shown(t, SYNC.create - .3), 14);
+  ffs.forEach((f, i) => A.rise(f, 1, shown(t, SYNC.create + .2 + i * .35), 8));
+  A.rise(pItems[0], 1, shown(t, SYNC.arr - .2), 16); A.rise(pPlus, 1, shown(t, SYNC.pdj - .3), 8); A.rise(pItems[1], 1, shown(t, SYNC.pdj - .15), 16);
+  A.rise(pSum, 1, shown(t, SYNC.p55 - .2), 12);
+  const strike = shown(t, SYNC.p50 - .2, .4); pSumS.style.textDecoration = strike > .5 ? 'line-through' : 'none'; pSumS.style.opacity = strike > .5 ? .6 : 1;
+  A.rise(pSumB, 1, strike, 10);
+  pWins.forEach((w, i) => A.rise(w, 1, shown(t, SYNC.win - .2 + i * 1.2), 10));
+
+  /* 4 · le bon moment */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  [SYNC.t1, SYNC.t2, SYNC.t3].forEach((t0, i) => A.rise(steps[i], 1, shown(t, t0 - .25), 18));
+  simple.forEach((s, i) => A.rise(s, 1, shown(t, SYNC.simple - .1 + i * .45), 10));
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(pay, v5, shown(t, SYNC.pay - .6, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

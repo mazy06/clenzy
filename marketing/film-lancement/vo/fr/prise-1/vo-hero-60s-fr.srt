@@ -1,0 +1,51 @@
+1
+00:00:00,400 --> 00:00:03,460
+Cinq plateformes. Trois équipes de ménage.
+
+2
+00:00:03,500 --> 00:00:06,800
+Des dizaines de messages… et un seul vous.
+
+3
+00:00:08,600 --> 00:00:11,110
+Et si tout s'orchestrait… tout seul ?
+
+4
+00:00:13,300 --> 00:00:14,460
+Voici Baitly.
+
+5
+00:00:16,000 --> 00:00:18,147
+Toutes vos réservations, tous vos logements,
+
+6
+00:00:18,187 --> 00:00:19,530
+réunis au même endroit.
+
+7
+00:00:24,000 --> 00:00:26,520
+Un voyageur part ? Le ménage est déjà planifié.
+
+8
+00:00:30,500 --> 00:00:33,239
+Besoin d'un photographe, d'une blanchisserie, d'un artisan ?
+
+9
+00:00:33,279 --> 00:00:35,470
+Notre marketplace les met à portée de clic.
+
+10
+00:00:39,000 --> 00:00:41,682
+Et vos agents IA veillent : ils répondent, anticipent…
+
+11
+00:00:41,722 --> 00:00:44,040
+et vous alertent quand ça compte vraiment.
+
+12
+00:00:47,000 --> 00:00:49,930
+Vous gardez le contrôle. Baitly s'occupe du reste.
+
+13
+00:00:54,600 --> 00:00:58,190
+Baitly. Votre location courte durée, en pilote automatique.

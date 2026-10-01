@@ -1,0 +1,320 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 15 « Répondre à un avis négatif » (≈ 2 min 20) · 9:16 et 16:9, depuis le même
+  fichier. Voix : Lucie (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (un avis à 2 étoiles) → 1 à qui vous répondez (la fiche du logement ; piège :
+  répondre à chaud) → 2 les quatre étapes (piège : la réponse toute faite ; le geste en privé) → 3 ce que
+  coûte un avis (4,80 → 4,67, 14 avis à 5 étoiles pour revenir) → 4 mise en pratique (la réponse complète)
+  → 5 à retenir → fin.
+  Rendu : node ../render.mjs academie-15-avis-negatif --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 15 Répondre à un avis négatif</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe av- : aucune collision avec base.css (.bar, .chip, .row, .card, .ph… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.avfill { flex: 1; position: relative; min-height: 0; }
+.avlayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px; opacity: 0; }
+.avimg { display: block; object-fit: cover; }
+.avpill { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.avpill.ok { background: rgba(13,148,136,.12); color: var(--ok); }
+.avpill.warn { background: #B45733; color: #FDFDFE; }
+.avpill.soft { background: #F4EBDC; color: var(--encre-terre); }
+.avstars { display: inline-flex; gap: 4px; color: #D9A441; }
+.avstars svg { fill: currentColor; }
+.avstars .off { color: #D5DEE7; }
+
+/* Carte d'avis (accroche, fiche, mise en pratique) */
+.avrev { display: flex; flex-direction: column; gap: 10px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 24px; padding: 20px 24px; }
+.avrev header { display: flex; align-items: center; gap: 14px; }
+.avrev header i { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--fd); font-size: 26px; font-weight: 700; }
+.avrev header b { display: block; font-size: 24px; font-weight: 700; color: var(--n700); }
+.avrev p { margin: 0; font-size: 29px; font-weight: 700; color: var(--n700); line-height: 1.3; }
+
+/* 0 · accroche */
+.avhook { padding: 30px; display: flex; flex-direction: column; gap: 18px; opacity: 0; }
+.avhook .avrev { opacity: 0; padding: 26px 28px; gap: 14px; }
+.avhook .avrev p { font-size: 38px; line-height: 1.25; }
+.avhook .avrev header i { width: 62px; height: 62px; font-size: 30px; }
+.avhook .avrev header b { font-size: 27px; }
+.avreflex { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--surface); border-radius: 20px; padding: 16px 20px; font-size: 26px; font-weight: 700; color: var(--n700); opacity: 0; }
+.avreflex s { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: #F7E4DC; color: #8E3F20; border-radius: 999px; padding: 8px 14px; font-size: 22px; opacity: 0; }
+
+/* 1 · à qui vous répondez */
+.avlist { display: flex; flex-direction: column; gap: 12px; background: var(--surface); border-radius: 26px; padding: 14px; opacity: 0; }
+.avlist .avimg { width: 100%; height: 190px; border-radius: 18px; }
+.avlist > div { display: flex; justify-content: space-between; align-items: center; padding: 0 6px; }
+.avlist > div b { font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--n700); }
+.avlist > div span { display: inline-flex; align-items: center; gap: 8px; font-size: 24px; font-weight: 700; color: var(--n700); }
+.avlist .avrev { padding: 14px 18px; gap: 6px; }
+.avlist .avrev p { font-size: 24px; }
+.avlist .avrev header i { width: 42px; height: 42px; font-size: 22px; }
+.avlist .avrev header b { font-size: 21px; }
+.avreply { background: var(--surface); border-radius: 14px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+.avreply small { font-size: 20px; font-weight: 700; color: var(--n600); }
+.avreply u { display: block; height: 14px; border-radius: 7px; background: #D5DEE7; text-decoration: none; transform-origin: left; }
+.aveye { display: flex; align-items: center; gap: 12px; font-size: 25px; font-weight: 700; color: var(--ardoise); opacity: 0; }
+.avbubble { align-self: flex-start; max-width: 94%; background: #F7E4DC; color: #8E3F20; border-radius: 24px 24px 24px 8px; padding: 18px 22px; font-size: 29px; font-weight: 700; line-height: 1.25; position: relative; opacity: 0; }
+.avbubble small { display: block; font-size: 19px; font-weight: 700; opacity: .75; margin-bottom: 4px; }
+.avgood { display: flex; flex-direction: column; gap: 10px; }
+.avgood span { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 18px; padding: 14px 20px; font-size: 26px; font-weight: 700; color: var(--n700); opacity: 0; }
+.avgood span svg { color: var(--ok); flex: none; }
+
+/* 2 · les quatre étapes */
+.avsteps { display: flex; flex-direction: column; gap: 12px; }
+.avst { display: flex; gap: 16px; background: var(--surface); border-radius: 22px; padding: 16px 20px 16px 16px; opacity: 0; }
+.avst u { flex: none; width: 50px; height: 50px; border-radius: 50%; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; text-decoration: none; font-family: var(--fd); font-size: 28px; font-weight: 700; }
+.avst div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.avst b { font-size: 27px; font-weight: 700; color: var(--n700); }
+.avst span { font-size: 23px; font-weight: 600; color: var(--ardoise); line-height: 1.3; }
+.avcopy { display: flex; flex-direction: column; gap: 10px; }
+.avcp { display: flex; align-items: center; gap: 16px; background: var(--surface); border-radius: 18px; padding: 12px 18px; opacity: 0; }
+.avcp span { font-size: 23px; font-weight: 700; color: var(--gris); }
+.avgift { display: flex; flex-direction: column; gap: 10px; }
+.avgift span { display: flex; align-items: center; gap: 12px; border-radius: 18px; padding: 14px 20px; font-size: 26px; font-weight: 700; opacity: 0; }
+.avgift span:first-child { background: rgba(13,148,136,.12); color: var(--ok); }
+.avgift span:last-child { background: #F7E4DC; color: #8E3F20; }
+
+/* 3 · ce que coûte un avis */
+.avkv { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 1.5px solid var(--ligne2); padding-top: 14px; opacity: 0; }
+.avkv span { font-size: 27px; font-weight: 700; color: var(--n700); }
+.avkv small { display: block; font-size: 21px; font-weight: 600; color: var(--gris); }
+.avkv b { font-family: var(--fd); font-size: 58px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; line-height: 1; }
+.avkv.down b { color: #B45733; }
+.avmath { font-size: 22px; font-weight: 700; color: var(--gris); font-variant-numeric: tabular-nums; opacity: 0; }
+.avback { display: flex; flex-direction: column; gap: 14px; background: var(--n600); border-radius: 26px; padding: 20px 26px; opacity: 0; }
+.avback > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.avback span { font-size: 26px; font-weight: 700; color: var(--papier); }
+.avback b { font-family: var(--fd); font-size: 44px; font-weight: 700; color: var(--sable); }
+.avback .avstars { flex-wrap: wrap; gap: 6px; color: var(--sable); }
+.avback .avstars svg { opacity: 0; }
+.avtiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.avtile { display: flex; flex-direction: column; gap: 16px; background: var(--surface); border-radius: 26px; padding: 30px 26px; min-height: 300px; opacity: 0; }
+.avtile i { width: 80px; height: 80px; border-radius: 22px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.avtile b { font-family: var(--fd); font-size: 38px; font-weight: 700; color: var(--n700); line-height: 1.1; }
+.avtile span { font-size: 27px; font-weight: 600; color: var(--ardoise); line-height: 1.3; }
+.avtile.good { background: rgba(13,148,136,.1); }
+.avtile.good i { background: var(--ok); }
+
+/* 4 · mise en pratique */
+.avfull { display: flex; flex-direction: column; gap: 10px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 24px; padding: 20px 24px; opacity: 0; }
+.avfull > small { display: flex; align-items: center; justify-content: space-between; font-size: 21px; font-weight: 700; color: var(--n600); }
+.avfull > small em { font-style: normal; background: var(--surface); color: var(--ardoise); border-radius: 999px; padding: 6px 12px; font-size: 19px; opacity: 0; }
+.avfull p { margin: 0; font-size: 27px; font-weight: 600; color: var(--n700); line-height: 1.42; }
+.avfull p span { border-radius: 8px; padding: 1px 4px; transition: none; }
+.avtags { display: flex; flex-wrap: wrap; gap: 8px; }
+.avtags span { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 21px; font-weight: 700; opacity: 0; }
+.avt0 { background: #E4ECF1; color: var(--n600); } .avt1 { background: #F4EBDC; color: var(--encre-terre); }
+.avt2 { background: rgba(13,148,136,.14); color: var(--ok); } .avt3 { background: #EFE3F3; color: #6B3F80; }
+
+/* 5 · à retenir */
+.avrc { display: flex; flex-direction: column; gap: 14px; }
+.avline { display: flex; align-items: center; gap: 14px; border-radius: 22px; padding: 16px 24px; font-size: 26px; font-weight: 700; }
+.avline.a { background: rgba(13,148,136,.1); color: var(--ok); }
+.avline.b { background: #F4EBDC; color: var(--encre-terre); }
+
+html.f169 .avlist .avimg { height: 170px; }
+html.f169 .avst { padding: 12px 18px 12px 12px; }
+html.f169 .avst span { font-size: 22px; }
+html.f169 .avkv b { font-size: 52px; }
+html.f169 .avfull p { font-size: 25px; }
+html.f169 .avrc .rchip { padding: 18px 24px; }
+html.f169 .avrc .rchip .ic { width: 64px; height: 64px; }
+html.f169 .avrc .rchip b { font-size: 36px; }
+html.f169 .avrc .rchip small { font-size: 21px; }
+html.f169 .avline { font-size: 23px; padding: 13px 22px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const photo = (name) => h('img', { src: `../academie-shared/photos/${name}.jpg`, class: 'avimg', alt: '' });
+const pill = (cls, ic, txt) => h('span', { class: `avpill ${cls}` }, icon(ic, 24), txt);
+const stars = (n, size = 26, total = 5) => h('span', { class: 'avstars' }, Array.from({ length: total }, (_, i) => h('span', { class: i < n ? '' : 'off' }, icon('star', size))));
+const review = (R, size) => h('div', { class: 'avrev' },
+  h('header', {}, h('i', {}, R.who[0]), h('div', {}, h('b', {}, R.who), stars(R.stars, size))), h('p', {}, R.text));
+/** Couches successives d'une carte : chacune entre en montant, puis s'efface vers le haut quand la suivante arrive. */
+const stack = (layers, times, t) => layers.forEach((el, i) => {
+  const kIn = i ? shown(t, times[i] - .3, .5) : 1, kOut = i < layers.length - 1 ? shown(t, times[i + 1] - .3, .5) : 0;
+  set(el, { opacity: kIn * (1 - kOut), transform: `translateY(${lerp(20, 0, kIn) - 20 * kOut}px)` });
+});
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const HK = T.hook;
+const hkRev = review(T.review, 36);
+const hkBad = h('s', {}, icon('x', 22), HK.bad);
+const hkReflex = h('div', { class: 'avreflex' }, h('span', {}, HK.reflex), hkBad);
+const hkReaders = pill('soft', 'users', HK.readers);
+const hook = A.abs(L.card.x, 0, L.card.w, null, 'acard avhook');
+hook.append(hkRev, hkReflex, hkReaders);
+
+/* 1 · à qui vous répondez */
+const LI = T.listing, HO = T.hot, c1 = A.card();
+const liRev = review(T.review, 20);
+const liBars = [h('u', { style: 'width:92%' }), h('u', { style: 'width:70%' })];
+const liReply = h('div', { class: 'avreply' }, h('small', {}, LI.reply), liBars);
+liRev.append(liReply);
+const list = h('div', { class: 'avlist' }, photo(LI.photo),
+  h('div', {}, h('b', {}, LI.title), h('span', {}, stars(1, 24, 1), `${LI.rating} · ${LI.count}`)), liRev);
+const eye = h('div', { class: 'aveye' }, icon('search', 28), LI.eye);
+const judge = pill('soft', 'scale', LI.judge);
+const l1a = h('div', { class: 'avlayer' }, list, eye, judge);
+const bubble = h('div', { class: 'avbubble' }, h('small', {}, LI.reply), HO.bubble);
+const hotWarn = pill('warn', 'alert', HO.warn);
+const goods = HO.good.map(([ic, l]) => h('span', {}, icon(ic, 28), l));
+const l1b = h('div', { class: 'avlayer' }, bubble, hotWarn, h('div', { class: 'avgood' }, goods));
+c1.el.append(h('div', { class: 'avfill' }, l1a, l1b));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · les quatre étapes */
+const CP = T.copy, c2 = A.card();
+const steps = T.steps.map(([b, s], i) => h('div', { class: 'avst' }, h('u', {}, String(i + 1)), h('div', {}, h('b', {}, b), h('span', {}, s))));
+const l2a = h('div', { class: 'avlayer' }, h('div', { class: 'avsteps' }, steps));
+const cps = CP.stars.map((n) => h('div', { class: 'avcp' }, stars(n, 22), h('span', {}, CP.reply)));
+const cpWarn = pill('warn', 'copy', CP.warn);
+const gifts = CP.gift.map(([ic, l]) => h('span', {}, icon(ic, 26), l));
+const l2b = h('div', { class: 'avlayer' }, h('div', { class: 'avcopy' }, cps), cpWarn, h('div', { class: 'avgift' }, gifts));
+c2.el.append(h('div', { class: 'avfill' }, l2a, l2b));
+const trap2 = A.trap(c2.el, T.trap);
+
+/* 3 · ce que coûte un avis */
+const RA = T.rating, EF = T.effect, c3 = A.card();
+const raRows = RA.rows.map(([l, s, v], i) => h('div', { class: `avkv${i ? ' down' : ''}` }, h('span', {}, l, h('small', {}, s)), h('b', {}, v)));
+const raMath = h('div', { class: 'avmath' }, RA.math);
+const backStars = stars(14, 30, 14);
+const back = h('div', { class: 'avback' }, h('div', {}, h('span', {}, RA.back), h('b', {}, RA.need)), backStars);
+const l3a = h('div', { class: 'avlayer' }, h('span', { class: 'alabel' }, T.illustrative), ...raRows, raMath, back);
+const tiles = EF.tiles.map(([ic, b, s], i) => h('div', { class: `avtile${i ? ' good' : ''}` }, h('i', {}, icon(ic, 40)), h('b', {}, b), h('span', {}, s)));
+const info = pill('soft', 'sparkles', EF.info);
+const l3b = h('div', { class: 'avlayer' }, h('div', { class: 'avtiles' }, tiles), info);
+c3.el.append(h('div', { class: 'avfill' }, l3a, l3b));
+
+/* 4 · mise en pratique */
+const PQ = T.practice, c4 = A.card();
+const sentences = T.steps.map(([, s], i) => h('span', {}, s.replace(/^«\s|\s»$/g, '') + (i < 3 ? ' ' : '')));
+const badge = h('em', {}, PQ.badge);
+const full = h('div', { class: 'avfull' }, h('small', {}, PQ.label, badge), h('p', {}, sentences));
+const tags = PQ.tags.map((l, i) => h('span', { class: `avt${i}` }, l));
+const ask = pill('soft', 'search', PQ.ask);
+c4.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px' },
+  review(T.review, 22), full, h('div', { class: 'avtags' }, tags), ask));
+const TAG_BG = ['#E4ECF1', '#F4EBDC', 'rgba(13,148,136,.14)', '#EFE3F3'];
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'avrc');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'avline b', style: 'opacity:0' }, icon('sparkles', 30), R.app);
+const valid = h('div', { class: 'avline a', style: 'opacity:0' }, icon('ccheck', 30), R.valid);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, valid);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.reflex - .1);
+  A.rise(hook, v0, shown(t, SYNC.stars - .4, .6), 60);
+  A.rise(hkRev, 1, shown(t, SYNC.stars - .1), 16);
+  A.rise(hkReflex, 1, shown(t, SYNC.reflex - .1), 12);
+  A.rise(hkBad, 1, shown(t, SYNC.bad - .1), 8);
+  A.rise(hkReaders, 1, shown(t, SYNC.readers - .1), 10);
+
+  /* 1 · à qui vous répondez */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  stack([l1a, l1b], [0, SYNC.trap1], t);
+  A.rise(list, 1, shown(t, SYNC.pub - .3), 16);
+  liBars.forEach((b, i) => set(b, { transform: `scaleX(${easeOut(prog(t, SYNC.pub + .4 + i * .3, .6))})` }));
+  A.rise(eye, 1, shown(t, SYNC.fut - .1), 10);
+  A.rise(judge, 1, shown(t, SYNC.judge - .1), 10);
+  trap1.render(t, SYNC.trap1, v1);
+  A.rise(bubble, 1, shown(t, SYNC.hot - .2), 14);
+  A.rise(hotWarn, 1, shown(t, SYNC.fight - .1), 10);
+  A.rise(goods[0], 1, shown(t, SYNC.wait - .1), 12); A.rise(goods[1], 1, shown(t, SYNC.calm - .1), 12);
+
+  /* 2 · les quatre étapes */
+  const v2 = slotVis(t, 2);
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  stack([l2a, l2b], [0, SYNC.trap2], t);
+  [SYNC.s1, SYNC.s2, SYNC.s3, SYNC.s4].forEach((t0, i) => A.rise(steps[i], 1, shown(t, t0 - .2), 16));
+  trap2.render(t, SYNC.trap2, v2);
+  cps.forEach((c, i) => A.rise(c, 1, shown(t, SYNC.copy - .6 + i * .35), 10));
+  A.rise(cpWarn, 1, shown(t, SYNC.copy + 1.4), 10);
+  A.rise(gifts[0], 1, shown(t, SYNC.priv - .3), 12); A.rise(gifts[1], 1, shown(t, SYNC.priv + 1.0), 12);
+
+  /* 3 · ce que coûte un avis */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  stack([l3a, l3b], [0, SYNC.note], t);
+  A.rise(raRows[0], 1, shown(t, SYNC.r20 - .15), 10);
+  A.rise(raRows[1], 1, shown(t, SYNC.r2 - .15), 10);
+  A.rise(raMath, 1, shown(t, SYNC.r467), 8);
+  A.rise(back, 1, shown(t, SYNC.back - .15), 14);
+  [...backStars.querySelectorAll('svg')].forEach((s, i) => { s.style.opacity = shown(t, SYNC.r14 - .1 + i * .07, .25); });
+  tiles.forEach((el, i) => A.rise(el, 1, shown(t, (i ? SYNC.hesit : SYNC.note) - .1, .45), 16));
+  A.rise(info, 1, shown(t, SYNC.fix - .1), 10);
+
+  /* 4 · mise en pratique */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  A.rise(full, 1, shown(t, SYNC.prat + .3), 14);
+  A.rise(badge, 1, shown(t, SYNC.w40 - .1), 6);
+  [SYNC.m1, SYNC.m2, SYNC.m3, SYNC.m4].forEach((t0, i) => {
+    const on = t >= t0 - .1;
+    sentences[i].style.background = on ? TAG_BG[i] : 'transparent';
+    A.rise(tags[i], 1, shown(t, t0 - .1), 8);
+  });
+  A.rise(ask, 1, shown(t, SYNC.reread - .1), 10);
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(valid, v5, shown(t, SYNC.valid - .2, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

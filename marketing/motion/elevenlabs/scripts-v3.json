@@ -1,0 +1,965 @@
+{
+  "model_id": "eleven_v3",
+  "stability": 0.5,
+  "voices": {
+    "fr": {
+      "reel-01-manifeste": "LFtQZWdaqmvamcTNGpwl",
+      "reel-02-une-seule-verite": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-03-avant-apres": "LFtQZWdaqmvamcTNGpwl",
+      "reel-04-agents-ia": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-05-depart-tardif": "LFtQZWdaqmvamcTNGpwl",
+      "reel-07-tour-produit": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-08-23h40": "LFtQZWdaqmvamcTNGpwl",
+      "reel-09-clim-en-panne": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-10-apres-le-depart": "LFtQZWdaqmvamcTNGpwl",
+      "reel-11-fiches-de-police": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-12-deux-nuits-de-plus": "LFtQZWdaqmvamcTNGpwl",
+      "reel-13-direct-sans-risque": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-14-proprietaire-inquiet": "LFtQZWdaqmvamcTNGpwl",
+      "reel-15-cartes-de-la-journee": "7pDdnNI6PhXmAp0pXFZm",
+      "reel-16-votre-savoir-faire": "ecxPjiGTvAfpGEams6ec",
+      "reel-17-la-mission-cote-prestataire": "ecxPjiGTvAfpGEams6ec",
+      "reel-18-six-familles-de-metiers": "ecxPjiGTvAfpGEams6ec"
+    },
+    "en": "WTUK291rZZ9CLPCiFTfh"
+  },
+  "reels": {
+    "reel-01-manifeste": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[softly] Vous avez ouvert un logement pour accueillir."
+        },
+        {
+          "id": "b2",
+          "text": "[mischievously] Pas pour vivre dans vos onglets ouverts."
+        },
+        {
+          "id": "b3",
+          "text": "Les réservations, les prix, le ménage, les messages… [sighs] tout arrive en même temps, et de partout."
+        },
+        {
+          "id": "b4",
+          "text": "[deliberate] Bètli réunit tout dans un seul espace, autour de votre planning."
+        },
+        {
+          "id": "b5",
+          "text": "Et une équipe d'agents I.A. s'occupe du reste : ils préparent, proposent… [warmly] et vous validez."
+        },
+        {
+          "id": "b6",
+          "text": "Faites grandir vos revenus. … [softly] Pas votre charge de travail."
+        },
+        {
+          "id": "b7",
+          "text": "Bètli. [pause] [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[softly] You opened your doors to welcome guests."
+        },
+        {
+          "id": "b2",
+          "text": "[mischievously] Not to live in your open tabs all day long."
+        },
+        {
+          "id": "b3",
+          "text": "Bookings, rates, housekeeping, messages… [sighs] it all lands at the same time, from everywhere."
+        },
+        {
+          "id": "b4",
+          "text": "[deliberate] Betly brings it all together in one place, around your calendar."
+        },
+        {
+          "id": "b5",
+          "text": "And a team of A.I. agents takes care of the rest: they prepare, they propose… [warmly] and you approve."
+        },
+        {
+          "id": "b6",
+          "text": "Grow your revenue. … [softly] Not your workload."
+        },
+        {
+          "id": "b7",
+          "text": "Betly. [pause] [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-02-une-seule-verite": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[softly] Vingt-trois heures quatorze. Une nouvelle réservation arrive sur Airbnb."
+        },
+        {
+          "id": "b2",
+          "text": "[worried] Vingt-trois heures seize. Les mêmes nuits, vendues sur Booking.com."
+        },
+        {
+          "id": "b3",
+          "text": "Deux voyageurs. Un seul logement. … [sighs] Et une belle nuit blanche pour vous."
+        },
+        {
+          "id": "b4",
+          "text": "[softly] Avec Bètli, tous vos calendriers disent la même chose."
+        },
+        {
+          "id": "b5",
+          "text": "Une réservation arrive sur Airbnb : Bètli met le calendrier à jour, et les mêmes dates se ferment [stress on next word] partout ailleurs, automatiquement."
+        },
+        {
+          "id": "b6",
+          "text": "[deliberate] Et si un canal ne répond plus, Bètli le signale et vous prévient, avant qu'un conflit n'arrive."
+        },
+        {
+          "id": "b7",
+          "text": "Tous vos calendriers. Une seule vérité. … Bètli. [warmly] Rejoignez le pré-lancement, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[softly] Eleven fourteen p.m. A booking on Airbnb."
+        },
+        {
+          "id": "b2",
+          "text": "[worried] Eleven sixteen. Same nights, on Booking.com."
+        },
+        {
+          "id": "b3",
+          "text": "Two guests. One home. … [sighs] And a sleepless night for you."
+        },
+        {
+          "id": "b4",
+          "text": "[softly] With Betly, all your calendars tell the same story."
+        },
+        {
+          "id": "b5",
+          "text": "A booking lands on Airbnb: Betly updates the calendar, and the same dates close [stress on next word] everywhere else, automatically."
+        },
+        {
+          "id": "b6",
+          "text": "[deliberate] If a channel stops responding, Betly flags it and warns you before any conflict."
+        },
+        {
+          "id": "b7",
+          "text": "All your calendars. One single truth. … Betly. [warmly] Join the pre-launch at betly dot F R."
+        }
+      ]
+    },
+    "reel-03-avant-apres": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[curious] Même journée. Mêmes logements. … Deux façons de la vivre."
+        },
+        {
+          "id": "b2",
+          "text": "[slowly] Huit heures. … Un voyageur demande le code wifi. [sighs] Puis un autre, sur Booking.com. Et un troisième, par e-mail."
+        },
+        {
+          "id": "b3",
+          "text": "[slowly] Onze heures. … Un départ tardif. [rushed] Il faut prévenir le ménage, décaler la mission, modifier le tableau, rappeler l'équipe."
+        },
+        {
+          "id": "b4",
+          "text": "[slowly] Seize heures. … Trois nuits restent vides la semaine prochaine. On compare les annonces… [curious] Baisser le prix ? De combien ?"
+        },
+        {
+          "id": "b5",
+          "text": "[slowly] Dix-neuf heures. … Un voyageur arrive. [rushed] D'un côté, on court chercher les clés. … [softly] De l'autre, on accueille, tout simplement."
+        },
+        {
+          "id": "b6",
+          "text": "[warmly] Bètli prend les coulisses en main. Vous, vous gardez l'accueil."
+        },
+        {
+          "id": "b7",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[curious] Same day. Same homes. … Two ways to live it."
+        },
+        {
+          "id": "b2",
+          "text": "[slowly] Eight a.m. … A guest asks for the wifi code. [sighs] Then another one, on Booking.com. And a third one, by email."
+        },
+        {
+          "id": "b3",
+          "text": "[slowly] Eleven a.m. … A late checkout. [rushed] Warn housekeeping, move the job, update the spreadsheet, call the team back."
+        },
+        {
+          "id": "b4",
+          "text": "[slowly] Four p.m. … Three nights are still empty next week. You compare listings… [curious] Should you lower the price? By how much?"
+        },
+        {
+          "id": "b5",
+          "text": "[slowly] Seven p.m. … A guest arrives. [rushed] On one side, you run to hand over the keys. … [softly] On the other, you simply welcome them."
+        },
+        {
+          "id": "b6",
+          "text": "[warmly] Betly takes care of the backstage. You get to keep the welcome."
+        },
+        {
+          "id": "b7",
+          "text": "[warmly] Betly. Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-04-agents-ia": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[curious] Et si dix collègues veillaient sur vos logements, de jour comme de nuit ?"
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Chez Bètli, chaque agent a son métier : les prix, les messages, le ménage, les paiements, la conformité… et bien d'autres encore."
+        },
+        {
+          "id": "b3",
+          "text": "Ils surveillent en continu : l'occupation, la demande, les prix du marché. … Et quand une action est utile, ils vous la proposent, simulée et expliquée, avec le contexte."
+        },
+        {
+          "id": "b4",
+          "text": "[deliberate] Vous gardez la main : vous ajustez le prix proposé, de cinq en cinq, … puis vous approuvez. Et si ça ne vous va pas, vous refusez."
+        },
+        {
+          "id": "b5",
+          "text": "Et pour les tâches que vous leur confiez, comme l'accueil ou le ménage, ils passent en automatique, dans les [stress on next word] limites que vous avez fixées."
+        },
+        {
+          "id": "b6",
+          "text": "Chaque décision est expliquée et journalisée, sans exception, dans votre journal d'activité. Vous savez toujours qui a fait quoi, quand, et pourquoi."
+        },
+        {
+          "id": "b7",
+          "text": "Une équipe qui travaille pour vos logements. Sous votre contrôle. … Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[curious] What if ten colleagues watched over your homes, day and night?"
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] At Betly, every agent has a job: rates, messages, housekeeping, payments, compliance…"
+        },
+        {
+          "id": "b3",
+          "text": "They watch around the clock: occupancy, pace, market prices. … When an action helps, they propose it, simulated and explained."
+        },
+        {
+          "id": "b4",
+          "text": "[deliberate] You stay in control: you adjust the price, … then you approve. Or you simply decline."
+        },
+        {
+          "id": "b5",
+          "text": "And for the tasks you hand over, they switch to auto and act on their own, within the [stress on next word] limits you set."
+        },
+        {
+          "id": "b6",
+          "text": "Every single decision is explained and logged, without exception. You always know who did what, when, and why."
+        },
+        {
+          "id": "b7",
+          "text": "A team that works for your homes. Under your control. … Betly. [warmly] Join the pre-launch at betly dot F R."
+        }
+      ]
+    },
+    "reel-05-depart-tardif": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[whispers] Sept heures deux. [softly] Votre voyageur voudrait partir plus tard."
+        },
+        {
+          "id": "b2",
+          "text": "[softly] Et vous, … vous dormez encore."
+        },
+        {
+          "id": "b3",
+          "text": "Lui ouvre son livret d'accueil Bètli, sur son téléphone. Un simple lien, valable tout le séjour, sans application."
+        },
+        {
+          "id": "b4",
+          "text": "Départ tardif à quatorze heures : cent cinquante dirhams. [excited] Il réserve, il paie. [mischievously] En trois secondes."
+        },
+        {
+          "id": "b5",
+          "text": "[mischievously] Côté coulisses, le séjour s'allonge, et le ménage s'est déjà replanifié, tout seul."
+        },
+        {
+          "id": "b6",
+          "text": "[slowly] À votre réveil, c'est fait. … [softly] Et c'est vendu."
+        },
+        {
+          "id": "b7",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[whispers] Seven-oh-two. [softly] Your guest wants to check out later."
+        },
+        {
+          "id": "b2",
+          "text": "[softly] And you? … Still fast asleep."
+        },
+        {
+          "id": "b3",
+          "text": "They open their Betly welcome guide, right on their phone. Just a link, valid for their whole stay, with no app to download."
+        },
+        {
+          "id": "b4",
+          "text": "Late checkout until two p.m., for sixty riyals. [excited] They book, they pay. [mischievously] All in three seconds."
+        },
+        {
+          "id": "b5",
+          "text": "[mischievously] Behind the scenes, the stay stretches to two p.m., and housekeeping reschedules itself."
+        },
+        {
+          "id": "b6",
+          "text": "[slowly] By the time you wake up, it's done. … [softly] And it's sold."
+        },
+        {
+          "id": "b7",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-07-tour-produit": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[rushed] Réservations, prix, ménage, voyageurs, propriétaires. … [curious] Et si tout tenait dans un seul espace ?"
+        },
+        {
+          "id": "b2",
+          "text": "Le planning d'abord. Tous vos logements, tous vos canaux, synchronisés en temps réel : une réservation arrive sur Airbnb, et Bètli ferme aussitôt les dates [stress on next word] partout ailleurs."
+        },
+        {
+          "id": "b3",
+          "text": "Votre site de réservation directe, ensuite : un template à votre image, construit bloc par bloc, le paiement intégré, … [excited] et zéro commission sur ces réservations."
+        },
+        {
+          "id": "b4",
+          "text": "Dix agents I.A. surveillent vos prix, vos messages et vos opérations, jour et nuit. Ils proposent, [deliberate] vous validez. Vos prix suivent la demande, mais jamais sous votre plancher."
+        },
+        {
+          "id": "b5",
+          "text": "[warmly] Le livret d'accueil accompagne vos voyageurs par un simple lien, du premier message jusqu'au départ, … et il vend vos extras : départ tardif, chef à domicile, activités."
+        },
+        {
+          "id": "b6",
+          "text": "Chaque départ crée automatiquement sa mission de ménage. Le prestataire suit sa checklist, prend ses photos, … et la preuve photo débloque son paiement."
+        },
+        {
+          "id": "b7",
+          "text": "Les paiements passent par les solutions de votre pays, les factures se génèrent toutes seules, et vos propriétaires reçoivent leurs relevés, sans aucune ressaisie."
+        },
+        {
+          "id": "b8",
+          "text": "[proudly] Et tout cela en arabe, en français ou en anglais, pour vous comme pour vos voyageurs. Pensé pour l'Arabie saoudite, le Maroc et la France."
+        },
+        {
+          "id": "b9",
+          "text": "Bètli. [pause] [warmly] Faites grandir vos revenus, pas votre charge de travail. Rejoignez le pré-lancement, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[rushed] Bookings, rates, housekeeping, guests, owners. … [curious] What if it all fit in one place?"
+        },
+        {
+          "id": "b2",
+          "text": "First, the calendar. Every property, every channel, synced in real time: a booking lands on Airbnb, and Betly instantly closes the dates [stress on next word] everywhere else."
+        },
+        {
+          "id": "b3",
+          "text": "Then your direct booking site: a template that looks like you, built block by block, payment included, … [excited] and zero commission on those bookings."
+        },
+        {
+          "id": "b4",
+          "text": "Ten A.I. agents watch your rates, messages and operations, day and night. They propose, [deliberate] you decide. Rates follow demand, but never drop below your floor."
+        },
+        {
+          "id": "b5",
+          "text": "[warmly] The welcome guide stays with your guests through a simple link, … and it sells your extras too: late checkout, private chef, activities."
+        },
+        {
+          "id": "b6",
+          "text": "Every checkout creates its own cleaning job. The provider follows the checklist, takes the photos, … and photo proof releases their payout."
+        },
+        {
+          "id": "b7",
+          "text": "Payments go through your country's solutions, invoices generate themselves, and your owners get their statements with no re-typing."
+        },
+        {
+          "id": "b8",
+          "text": "[proudly] All of it in Arabic, French or English, for you and for your guests. Built for Saudi Arabia, Morocco and France."
+        },
+        {
+          "id": "b9",
+          "text": "Betly. [pause] [warmly] Grow your revenue, not your workload. Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-08-23h40": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[softly] Samedi, vingt-trois heures quarante. Dans votre appartement, la musique monte… [mischievously] et les voisins aussi."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Le capteur de bruit de Bètli le repère aussitôt. Une carte vous propose d'avertir le voyageur, avec un message déjà prêt."
+        },
+        {
+          "id": "b3",
+          "text": "Le message part sur WhatsApp. … [softly] Deux minutes plus tard, le volume redescend, et la nuit reste calme."
+        },
+        {
+          "id": "b4",
+          "text": "[deliberate] Et si les soirées se répètent, Bètli vous propose de bloquer le calendrier quelques jours, le temps de reprendre la main."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Vos voisins dorment. … [warmly] Vous aussi."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[softly] Saturday, eleven forty p.m. In your apartment, the music is getting louder… [mischievously] and so are the neighbours."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Betly's noise sensor picks it up right away. A card suggests warning the guest, with a message ready to go."
+        },
+        {
+          "id": "b3",
+          "text": "The message goes out on WhatsApp. … [softly] Two minutes later, the volume drops, and the night stays calm."
+        },
+        {
+          "id": "b4",
+          "text": "[deliberate] And if the parties keep coming back, Betly suggests blocking the calendar for a few days, so you can take back control."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Your neighbours sleep. … [warmly] And so do you."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-09-clim-en-panne": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[sighs] Août, trente-quatre degrés à Marrakech. En plein séjour, la climatisation de votre riad vient de lâcher."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Bètli crée l'intervention, le technicien est prévenu, et deux heures plus tard, la clim souffle à nouveau."
+        },
+        {
+          "id": "b3",
+          "text": "[softly] Mais votre voyageuse a eu chaud. Avant qu'elle ne laisse son avis, une carte vous propose un geste : quinze pour cent, [warmly] remboursés en un clic."
+        },
+        {
+          "id": "b4",
+          "text": "L'avis arrive : quatre étoiles, et un merci. L'agent Réputation rédige la réponse ; vous la relisez, vous changez un mot, et vous publiez. [deliberate] Rien ne part sans vous."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Un incident… [warmly] pas un mauvais avis."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[sighs] August in Riyadh, forty-five degrees outside. Mid-stay, the air conditioning in your villa just gave out."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Betly creates the job, the technician is notified, and two hours later, the air is flowing again."
+        },
+        {
+          "id": "b3",
+          "text": "[softly] But your guest had a rough afternoon. Before the review comes in, a card suggests a gesture: fifteen percent back, [warmly] in one click."
+        },
+        {
+          "id": "b4",
+          "text": "The review comes in: four stars, and a thank-you. The Reputation agent drafts the reply; you read it, change a word, and publish. [deliberate] Nothing goes out without you."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] An incident… [warmly] not a bad review."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-10-apres-le-depart": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "Onze heures, votre voyageur est parti. L'équipe de ménage prend le relais, et Bètli suit la mission en direct."
+        },
+        {
+          "id": "b2",
+          "text": "Elle envoie ses photos, et vous contrôlez le travail avant de le valider. [worried] Sur l'une d'elles, un dégât : la lampe de chevet est cassée."
+        },
+        {
+          "id": "b3",
+          "text": "Une carte vous propose de retenir la réparation sur la caution. [deliberate] Jamais plus que son montant : le reste est libéré, automatiquement."
+        },
+        {
+          "id": "b4",
+          "text": "La preuve photo débloque le paiement de votre équipe. Et quand les draps viennent à manquer, la commande part chez le fournisseur."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Tout est vérifié. … [warmly] Rien n'est oublié."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "Eleven a.m., your guest has checked out. Your cleaning team takes over, and Betly follows the job live."
+        },
+        {
+          "id": "b2",
+          "text": "She sends her photos, and you check the work before approving it. [worried] One of them shows damage: the bedside lamp is broken."
+        },
+        {
+          "id": "b3",
+          "text": "A card suggests withholding the repair from the deposit. [deliberate] Never more than the deposit itself: the rest is released automatically."
+        },
+        {
+          "id": "b4",
+          "text": "The photo proof releases your team's payment. And when the sheets run low, the order goes straight to your supplier."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Everything checked. … [warmly] Nothing forgotten."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-11-fiches-de-police": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[deliberate] Chaque voyageur doit être déclaré aux autorités. Et d'un pays à l'autre, les règles changent."
+        },
+        {
+          "id": "b2",
+          "text": "Avec Bètli, le voyageur remplit sa fiche depuis son livret d'accueil, avant même d'arriver. Ce qu'on sait déjà est pré-rempli."
+        },
+        {
+          "id": "b3",
+          "text": "Au Maroc, la fiche part à la DGSN. En France, elle est transmise via Chekin. En Arabie saoudite, le voyageur est enregistré sur Shomoos. [deliberate] Le même geste, trois pays."
+        },
+        {
+          "id": "b4",
+          "text": "Autour, tout suit : la taxe de séjour calculée à chaque réservation, les factures conformes ZATCA, la licence NTMP, et l'effacement RGPD quand un voyageur le demande."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Une obligation par pays. … [warmly] Un seul outil."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[deliberate] Every guest has to be declared to the authorities. And from one country to the next, the rules change."
+        },
+        {
+          "id": "b2",
+          "text": "With Betly, guests fill in their form from the welcome guide, before they even arrive. Whatever we already know is pre-filled."
+        },
+        {
+          "id": "b3",
+          "text": "In Morocco, the form goes to the DGSN. In France, it's sent through Chekin. In Saudi Arabia, the guest is registered on Shomoos. [deliberate] One gesture, three countries."
+        },
+        {
+          "id": "b4",
+          "text": "And everything around it follows: tourist tax on every booking, ZATCA-compliant invoices, the NTMP licence, and GDPR erasure when a guest asks."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] One rule per country. … [warmly] One single tool."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-12-deux-nuits-de-plus": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[softly] Dimanche matin. Votre voyageuse adore son séjour… [mischievously] et vous demande si elle peut rester deux nuits de plus."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Bètli a lu la demande, vérifié le calendrier et chiffré les deux nuits. Vous n'avez qu'à envoyer l'avenant."
+        },
+        {
+          "id": "b3",
+          "text": "Votre voyageuse reçoit l'offre, avec le prix exact. Elle accepte en un geste."
+        },
+        {
+          "id": "b4",
+          "text": "Et tout suit : le séjour s'allonge, le ménage se décale, un nouveau code d'accès est créé."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Deux nuits de plus. … [warmly] Zéro recalcul."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[softly] Sunday morning. Your guest is loving the stay… [mischievously] and asks if she can stay two more nights."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Betly has read the request, checked the calendar and priced the two nights. All you do is send the offer."
+        },
+        {
+          "id": "b3",
+          "text": "Your guest gets the offer, with the exact price. She accepts in one tap."
+        },
+        {
+          "id": "b4",
+          "text": "And everything follows: the stay stretches, cleaning moves, and a new access code is created."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Two more nights. … [warmly] Zero recalculating."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-13-direct-sans-risque": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "Votre site de réservation directe : zéro commission. [sighs] Mais ce soir, un visiteur s'arrête juste avant de payer."
+        },
+        {
+          "id": "b2",
+          "text": "Une carte vous propose de le relancer : une heure après, puis le lendemain. [excited] Et la réservation revient, sans commission."
+        },
+        {
+          "id": "b3",
+          "text": "[curious] Une réservation paraît suspecte ? Le score de risque vous alerte, et vous la bloquez avant qu'elle ne vous coûte."
+        },
+        {
+          "id": "b4",
+          "text": "Et si un paiement est contesté des semaines plus tard, le dossier de preuves est déjà prêt : séjour, fiche voyageur, livret. [deliberate] Vous le déposez en un clic."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Le direct. … [warmly] Sans les risques."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "Your direct booking site: zero commission. [sighs] But tonight, a visitor stops right before paying."
+        },
+        {
+          "id": "b2",
+          "text": "A card suggests following up: an hour later, then the next day. [excited] And the booking comes back, commission-free."
+        },
+        {
+          "id": "b3",
+          "text": "[curious] A booking looks suspicious? The risk score flags it, and you block it before it costs you."
+        },
+        {
+          "id": "b4",
+          "text": "And if a payment is disputed weeks later, the evidence is already gathered: the stay, the guest record, the guide. [deliberate] You submit it in one click."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Direct bookings. … [warmly] Without the risks."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-14-proprietaire-inquiet": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "Pour une conciergerie, il y a [worried] un appel qu'on redoute : le propriétaire qui voit ses revenus baisser."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Bètli le repère avant lui, et prépare une note factuelle : les revenus du mois, comparés à l'an dernier. Vous la relisez, vous l'envoyez."
+        },
+        {
+          "id": "b3",
+          "text": "Le propriétaire reçoit l'explication avant même de poser la question, avec son relevé du mois."
+        },
+        {
+          "id": "b4",
+          "text": "Et son reversement, calculé à partir des séjours, s'approuve en un clic. [warmly] Sans rien ressaisir."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Des propriétaires informés. … [warmly] Pas inquiets."
+        },
+        {
+          "id": "b6",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "For a property manager, there's [worried] one call you dread: the owner who sees their income drop."
+        },
+        {
+          "id": "b2",
+          "text": "[deliberate] Betly spots it before he does, and prepares a factual note: this month's income, compared with last year. You read it, you send it."
+        },
+        {
+          "id": "b3",
+          "text": "The owner gets the explanation before he even asks, along with his monthly statement."
+        },
+        {
+          "id": "b4",
+          "text": "And his payout, calculated from the stays, is approved in one click. [warmly] Nothing to re-type."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Owners informed. … [warmly] Not worried."
+        },
+        {
+          "id": "b6",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-15-cartes-de-la-journee": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[curious] Une journée d'hôte avec Bètli ? Des cartes. Une à la fois, avec tout le contexte."
+        },
+        {
+          "id": "b2",
+          "text": "Sept heures et demie : la caution de Sara est libérée. Neuf heures : la réponse à un avis est prête."
+        },
+        {
+          "id": "b3",
+          "text": "Midi : le ménage est contrôlé, photos à l'appui. Quatorze heures : un départ tardif, accordé en un clic."
+        },
+        {
+          "id": "b4",
+          "text": "Seize heures : entre deux séjours, vous réglez le thermostat à distance. Dix-neuf heures : le relevé part chez le propriétaire."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] Et à vingt-trois heures quarante, s'il le faut, un avertissement de bruit. … [warmly] Et entre deux cartes, vous vivez."
+        },
+        {
+          "id": "b6",
+          "text": "Et ce que vous validez à chaque fois, Bètli vous propose de l'automatiser. Le ménage en automatique, la caution avec une simple notification… [deliberate] et les remboursements, toujours validés par vous. [warmly] À vous de régler le curseur."
+        },
+        {
+          "id": "b7",
+          "text": "[deliberate] Vous décidez. … [warmly] Bètli s'occupe du reste."
+        },
+        {
+          "id": "b8",
+          "text": "Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[curious] A host's day with Betly? Cards. One at a time, with all the context."
+        },
+        {
+          "id": "b2",
+          "text": "Seven thirty: Sara's deposit is released. Nine a.m.: a review reply is ready."
+        },
+        {
+          "id": "b3",
+          "text": "Noon: the cleaning is checked, photos included. Two p.m.: a late checkout, granted in one click."
+        },
+        {
+          "id": "b4",
+          "text": "Four p.m.: between two stays, you set the thermostat remotely. Seven p.m.: the statement goes to the owner."
+        },
+        {
+          "id": "b5",
+          "text": "[softly] And at eleven forty p.m., if needed, a noise warning. … [warmly] And between two cards, you live."
+        },
+        {
+          "id": "b6",
+          "text": "And whatever you always approve, Betly offers to automate. Cleaning on autopilot, deposits with a simple notification… [deliberate] and refunds, always approved by you. [warmly] You set the dial."
+        },
+        {
+          "id": "b7",
+          "text": "[deliberate] You decide. … [warmly] Betly handles the rest."
+        },
+        {
+          "id": "b8",
+          "text": "Betly. [warmly] Join the pre-launch today, at betly dot F R."
+        }
+      ]
+    },
+    "reel-16-votre-savoir-faire": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[confident, crisp, a touch of urgency] Ménage, dépannage, linge, jardin, accueil… [beat] les hôtes en location courte durée ont besoin de vous. À chaque séjour."
+        },
+        {
+          "id": "b2",
+          "text": "[pause] [bright, enthusiastic] Bètli prépare son réseau de prestataires : vos services, proposés aux hôtes… [beat] et à leurs voyageurs."
+        },
+        {
+          "id": "b3",
+          "text": "[pause] [quick, light, playful pace] Présentez votre activité : votre métier, votre zone, et les informations utiles à votre profil."
+        },
+        {
+          "id": "b4",
+          "text": "[pause] [confident, emphatic] Au lancement, chaque mission se lit avant de vous engager : le lieu, les consignes, le tarif."
+        },
+        {
+          "id": "b5",
+          "text": "[pause] [bold, proud] Votre savoir-faire. [beat] Sa place dans Bètli."
+        },
+        {
+          "id": "b6",
+          "text": "[pause] [warm but upbeat] Préparez votre profil dès aujourd'hui, sur bètli point F R."
+        }
+      ]
+    },
+    "reel-17-la-mission-cote-prestataire": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[confident, crisp, a touch of urgency] Onze heures. Le voyageur vient de partir… [beat] et l'arrivée suivante est à quinze heures."
+        },
+        {
+          "id": "b2",
+          "text": "[pause] [energetic] Sur votre téléphone, la mission est prête : l'adresse, l'accès, les consignes, la checklist."
+        },
+        {
+          "id": "b3",
+          "text": "[pause] [quick, light, playful pace] Vous cochez, vous prenez les photos… [with a smile] et l'hôte suit l'avancement, sans avoir à vous appeler."
+        },
+        {
+          "id": "b4",
+          "text": "[pause] [confident, emphatic] Il valide. La mission et son règlement restent tracés, selon les modalités convenues."
+        },
+        {
+          "id": "b5",
+          "text": "[pause] [bold, proud] Un logement prêt pour l'arrivée. [beat] Un travail reconnu."
+        },
+        {
+          "id": "b6",
+          "text": "[pause] [warm but upbeat] Préparez votre profil dès aujourd'hui, sur bètli point F R."
+        }
+      ]
+    },
+    "reel-18-six-familles-de-metiers": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[confident, crisp, a touch of urgency] Derrière chaque séjour réussi, il y a des savoir-faire."
+        },
+        {
+          "id": "b2",
+          "text": "[pause] [quick, light, playful pace] Ménage et entretien. Maintenance et petits travaux. Blanchisserie et linge."
+        },
+        {
+          "id": "b3",
+          "text": "[pause] [quick, light, playful pace] Jardin et piscine. Accueil et conciergerie. Chef et expériences."
+        },
+        {
+          "id": "b4",
+          "text": "[pause] [confident, emphatic] Six familles de services, que Bètli prépare pour les hôtes… [beat] et pour leurs voyageurs."
+        },
+        {
+          "id": "b5",
+          "text": "[pause] [bold, proud] Construisons la suite… [beat] avec votre métier."
+        },
+        {
+          "id": "b6",
+          "text": "[pause] [warm but upbeat] Préparez votre profil dès aujourd'hui, sur bètli point F R."
+        }
+      ]
+    }
+  },
+  "overrides": {
+    "reel-16-votre-savoir-faire": {
+      "model_id": "eleven_v4",
+      "stability": 0.3,
+      "note": "Paul K (Ad & Trailer), direction keynote, 29/09"
+    },
+    "reel-17-la-mission-cote-prestataire": {
+      "model_id": "eleven_v4",
+      "stability": 0.3,
+      "note": "Paul K (Ad & Trailer), direction keynote, 29/09"
+    },
+    "reel-18-six-familles-de-metiers": {
+      "model_id": "eleven_v4",
+      "stability": 0.3,
+      "note": "Paul K (Ad & Trailer), direction keynote, 29/09"
+    }
+  }
+}

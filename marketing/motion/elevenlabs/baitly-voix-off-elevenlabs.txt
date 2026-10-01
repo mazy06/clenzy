@@ -1,0 +1,819 @@
+BAITLY · VOIX OFF DES VIDÉOS · FICHIER À UTILISER AVEC ELEVENLABS
+Version du 27 septembre 2026
+
+##############################################################################
+LISEZ-MOI
+##############################################################################
+
+1. CE QUE CONTIENT CE FICHIER
+   Les scripts de voix off des vidéos en français et anglais, séparés par vidéo puis par langue.
+   L'ARABE N'EST PAS DANS CE FICHIER : sa traduction est en cours de relecture ; les voix arabes
+   (dont le Reel 06 « Arabie saoudite », en arabe uniquement) seront générées plus tard.
+
+   Pour chaque vidéo et chaque langue, le texte à dire est encadré par deux repères :
+       ▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+       …texte…
+       ▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+   Copier UNIQUEMENT ce qui se trouve entre les deux repères. Tout le reste (titres, consignes,
+   repères) ne doit pas être collé : ElevenLabs le lirait à voix haute.
+   Dans chaque bloc, un paragraphe = une réplique : paragraphe 1 = b1, paragraphe 2 = b2, etc.
+
+2. VOIX ET RÉGLAGES (documentation ElevenLabs « Prompting Eleven v3 »)
+   Modèle     : Eleven v3 (model_id eleven_v3), le seul qui interprète les balises [ … ]
+   Français   : Lucie ou Noé (voir la vidéo)
+   Anglais    : Mark · voice_id WTUK291rZZ9CLPCiFTfh
+   Stabilité  : Natural (0,5). Creative (0) est plus expressif mais invente parfois (mots
+                ajoutés, balises lues à voix haute) ; Robust (1) ignore en partie les balises.
+   Langue     : forcer la langue du bloc (fr, en) plutôt que la détection automatique.
+   Vitesse    : 1,0 (défaut). Le rythme se règle par le texte et les balises, pas par la vitesse.
+   Pauses     : v3 ne prend PAS les balises SSML <break>. Les pauses viennent des « … », de la
+                balise [pause] et des sauts de ligne entre répliques.
+   Sortie     : mp3 44,1 kHz 192 kb/s (ou WAV 44,1 kHz) ; le mixage final normalise le volume.
+
+3. ÉCRITURES VOULUES, À NE PAS CORRIGER
+   « Bètli » (FR), « Betly » (EN) : la marque est écrite comme elle se prononce.
+   « bètli point F R » / « betly dot F R » : l'adresse baitly.fr.
+   « I.A. » (FR), « A.I. » (EN) : épelé.
+   « … » : une pause voulue à l'intérieur de la réplique.
+
+   BALISES v3 (entre crochets, en anglais : ce sont des indications de jeu, jamais lues)
+     [softly]  plus doux, chaleureux        [slowly] / [deliberate]  posé, détaché
+     [curious] question sincère             [sighs]  soupir complice
+     [whispers] presque chuchoté            [rushed] qui s'accélère (énumérations)
+     [excited] un peu d'élan                [mischievously] sourire malicieux
+     [worried] petite inquiétude            [pause]  vraie pause
+     [stress on next word] appuie le mot suivant
+     [warmly], [proudly] : balises expérimentales, à valider au premier essai.
+   Si une balise est lue à voix haute, régénérer ; si elle l'est encore, la retirer de la réplique.
+
+4. COMMENT GÉNÉRER
+   A. Bloc entier d'un coup (recommandé pour la fluidité) : coller tout le bloc. Même voix, même
+      élan d'une réplique à l'autre ; v3 est plus régulier sur un texte long (plus de 250 signes)
+      que sur une phrase isolée. Nommer le fichier _prise-complete-<langue>.mp3
+      (exemple : _prise-complete-fr.mp3). Le découpage en b1, b2… est fait ensuite.
+   B. Réplique par réplique : seulement pour refaire une réplique ratée. La nommer selon sa place
+      dans le bloc : b1.mp3, b2.mp3…
+
+5. OÙ DÉPOSER LES FICHIERS
+   Le dossier de dépôt est indiqué au-dessus de chaque bloc.
+   Formats acceptés : mp3, wav, m4a.
+
+6. DURÉES
+   Chaque réplique a une durée maximale (fichier VOIX-OFF.md de chaque vidéo). Si une réplique sort
+   trop longue, la régénérer un peu plus vite plutôt que d'accélérer le fichier.
+
+7. SOMMAIRE
+   Reel 01 · Manifeste — Français · Anglais
+   Reel 02 · Une seule vérité — Français · Anglais
+   Reel 03 · Avant-après — Français · Anglais
+   Reel 04 · Agents IA — Français · Anglais
+   Reel 05 · Départ tardif — Français · Anglais
+   Reel 07 · Tour produit — Français · Anglais
+   Reel 08 · 23 h 40 — Français · Anglais
+   Reel 09 · La clim en panne — Français · Anglais
+   Reel 10 · Après le départ — Français · Anglais
+   Reel 11 · Les fiches de police — Français · Anglais
+   Reel 12 · Deux nuits de plus — Français · Anglais
+   Reel 13 · Le direct, sans les risques — Français · Anglais
+   Reel 14 · Le propriétaire inquiet — Français · Anglais
+   Reel 15 · Les cartes de la journée — Français · Anglais
+
+
+##############################################################################
+REEL 01 · MANIFESTE — Manifeste de la marque : de l’accueil aux coulisses
+Durée de la vidéo : 33 s
+##############################################################################
+
+==============================================================================
+REEL 01 · MANIFESTE · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-01-manifeste/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Vous avez ouvert un logement pour accueillir.
+
+[mischievously] Pas pour vivre dans vos onglets ouverts.
+
+Les réservations, les prix, le ménage, les messages… [sighs] tout arrive en même temps, et de partout.
+
+[deliberate] Bètli réunit tout dans un seul espace, autour de votre planning.
+
+Et une équipe d'agents I.A. s'occupe du reste : ils préparent, proposent… [warmly] et vous validez.
+
+Faites grandir vos revenus. … [softly] Pas votre charge de travail.
+
+Bètli. [pause] [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 01 · MANIFESTE · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-01-manifeste/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] You opened your doors to welcome guests.
+
+[mischievously] Not to live in your open tabs all day long.
+
+Bookings, rates, housekeeping, messages… [sighs] it all lands at the same time, from everywhere.
+
+[deliberate] Betly brings it all together in one place, around your calendar.
+
+And a team of A.I. agents takes care of the rest: they prepare, they propose… [warmly] and you approve.
+
+Grow your revenue. … [softly] Not your workload.
+
+Betly. [pause] [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 02 · UNE SEULE VÉRITÉ — Channel manager : une réservation ferme les dates partout
+Durée de la vidéo : 32 s
+##############################################################################
+
+==============================================================================
+REEL 02 · UNE SEULE VÉRITÉ · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-02-une-seule-verite/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Vingt-trois heures quatorze. Une nouvelle réservation arrive sur Airbnb.
+
+[worried] Vingt-trois heures seize. Les mêmes nuits, vendues sur Booking.com.
+
+Deux voyageurs. Un seul logement. … [sighs] Et une belle nuit blanche pour vous.
+
+[softly] Avec Bètli, tous vos calendriers disent la même chose.
+
+Une réservation arrive sur Airbnb : Bètli met le calendrier à jour, et les mêmes dates se ferment [stress on next word] partout ailleurs, automatiquement.
+
+[deliberate] Et si un canal ne répond plus, Bètli le signale et vous prévient, avant qu'un conflit n'arrive.
+
+Tous vos calendriers. Une seule vérité. … Bètli. [warmly] Rejoignez le pré-lancement, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 02 · UNE SEULE VÉRITÉ · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-02-une-seule-verite/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Eleven fourteen p.m. A booking on Airbnb.
+
+[worried] Eleven sixteen. Same nights, on Booking.com.
+
+Two guests. One home. … [sighs] And a sleepless night for you.
+
+[softly] With Betly, all your calendars tell the same story.
+
+A booking lands on Airbnb: Betly updates the calendar, and the same dates close [stress on next word] everywhere else, automatically.
+
+[deliberate] If a channel stops responding, Betly flags it and warns you before any conflict.
+
+All your calendars. One single truth. … Betly. [warmly] Join the pre-launch at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 03 · AVANT-APRÈS — Une journée d’hôte, sans et avec Baitly (écran scindé)
+Durée de la vidéo : 46 s
+##############################################################################
+
+==============================================================================
+REEL 03 · AVANT-APRÈS · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-03-avant-apres/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[curious] Même journée. Mêmes logements. … Deux façons de la vivre.
+
+[slowly] Huit heures. … Un voyageur demande le code wifi. [sighs] Puis un autre, sur Booking.com. Et un troisième, par e-mail.
+
+[slowly] Onze heures. … Un départ tardif. [rushed] Il faut prévenir le ménage, décaler la mission, modifier le tableau, rappeler l'équipe.
+
+[slowly] Seize heures. … Trois nuits restent vides la semaine prochaine. On compare les annonces… [curious] Baisser le prix ? De combien ?
+
+[slowly] Dix-neuf heures. … Un voyageur arrive. [rushed] D'un côté, on court chercher les clés. … [softly] De l'autre, on accueille, tout simplement.
+
+[warmly] Bètli prend les coulisses en main. Vous, vous gardez l'accueil.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 03 · AVANT-APRÈS · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-03-avant-apres/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[curious] Same day. Same homes. … Two ways to live it.
+
+[slowly] Eight a.m. … A guest asks for the wifi code. [sighs] Then another one, on Booking.com. And a third one, by email.
+
+[slowly] Eleven a.m. … A late checkout. [rushed] Warn housekeeping, move the job, update the spreadsheet, call the team back.
+
+[slowly] Four p.m. … Three nights are still empty next week. You compare listings… [curious] Should you lower the price? By how much?
+
+[slowly] Seven p.m. … A guest arrives. [rushed] On one side, you run to hand over the keys. … [softly] On the other, you simply welcome them.
+
+[warmly] Betly takes care of the backstage. You get to keep the welcome.
+
+[warmly] Betly. Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 04 · AGENTS IA — Les agents IA proposent, l’hôte décide
+Durée de la vidéo : 46 s
+##############################################################################
+
+==============================================================================
+REEL 04 · AGENTS IA · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-04-agents-ia/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[curious] Et si dix collègues veillaient sur vos logements, de jour comme de nuit ?
+
+[deliberate] Chez Bètli, chaque agent a son métier : les prix, les messages, le ménage, les paiements, la conformité… et bien d'autres encore.
+
+Ils surveillent en continu : l'occupation, la demande, les prix du marché. … Et quand une action est utile, ils vous la proposent, simulée et expliquée, avec le contexte.
+
+[deliberate] Vous gardez la main : vous ajustez le prix proposé, de cinq en cinq, … puis vous approuvez. Et si ça ne vous va pas, vous refusez.
+
+Et pour les tâches que vous leur confiez, comme l'accueil ou le ménage, ils passent en automatique, dans les [stress on next word] limites que vous avez fixées.
+
+Chaque décision est expliquée et journalisée, sans exception, dans votre journal d'activité. Vous savez toujours qui a fait quoi, quand, et pourquoi.
+
+Une équipe qui travaille pour vos logements. Sous votre contrôle. … Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 04 · AGENTS IA · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-04-agents-ia/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[curious] What if ten colleagues watched over your homes, day and night?
+
+[deliberate] At Betly, every agent has a job: rates, messages, housekeeping, payments, compliance…
+
+They watch around the clock: occupancy, pace, market prices. … When an action helps, they propose it, simulated and explained.
+
+[deliberate] You stay in control: you adjust the price, … then you approve. Or you simply decline.
+
+And for the tasks you hand over, they switch to auto and act on their own, within the [stress on next word] limits you set.
+
+Every single decision is explained and logged, without exception. You always know who did what, when, and why.
+
+A team that works for your homes. Under your control. … Betly. [warmly] Join the pre-launch at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 05 · DÉPART TARDIF — Le livret vend un départ tardif pendant que l’hôte dort
+Durée de la vidéo : 34 s
+##############################################################################
+
+==============================================================================
+REEL 05 · DÉPART TARDIF · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-05-depart-tardif/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[whispers] Sept heures deux. [softly] Votre voyageur voudrait partir plus tard.
+
+[softly] Et vous, … vous dormez encore.
+
+Lui ouvre son livret d'accueil Bètli, sur son téléphone. Un simple lien, valable tout le séjour, sans application.
+
+Départ tardif à quatorze heures : cent cinquante dirhams. [excited] Il réserve, il paie. [mischievously] En trois secondes.
+
+[mischievously] Côté coulisses, le séjour s'allonge, et le ménage s'est déjà replanifié, tout seul.
+
+[slowly] À votre réveil, c'est fait. … [softly] Et c'est vendu.
+
+Bètli. [warmly] Rejoignez le pré-lancement, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 05 · DÉPART TARDIF · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 7 répliques (b1 à b7)
+Déposer dans : marketing/motion/reel-05-depart-tardif/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[whispers] Seven-oh-two. [softly] Your guest wants to check out later.
+
+[softly] And you? … Still fast asleep.
+
+They open their Betly welcome guide, right on their phone. Just a link, valid for their whole stay, with no app to download.
+
+Late checkout until two p.m., for sixty riyals. [excited] They book, they pay. [mischievously] All in three seconds.
+
+[mischievously] Behind the scenes, the stay stretches to two p.m., and housekeeping reschedules itself.
+
+[slowly] By the time you wake up, it's done. … [softly] And it's sold.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 07 · TOUR PRODUIT — Baitly en 75 secondes (vidéo d’explication 16:9)
+Durée de la vidéo : 75 s
+##############################################################################
+
+==============================================================================
+REEL 07 · TOUR PRODUIT · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 9 répliques (b1 à b9)
+Déposer dans : marketing/motion/reel-07-tour-produit/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[rushed] Réservations, prix, ménage, voyageurs, propriétaires. … [curious] Et si tout tenait dans un seul espace ?
+
+Le planning d'abord. Tous vos logements, tous vos canaux, synchronisés en temps réel : une réservation arrive sur Airbnb, et Bètli ferme aussitôt les dates [stress on next word] partout ailleurs.
+
+Votre site de réservation directe, ensuite : un template à votre image, construit bloc par bloc, le paiement intégré, … [excited] et zéro commission sur ces réservations.
+
+Dix agents I.A. surveillent vos prix, vos messages et vos opérations, jour et nuit. Ils proposent, [deliberate] vous validez. Vos prix suivent la demande, mais jamais sous votre plancher.
+
+[warmly] Le livret d'accueil accompagne vos voyageurs par un simple lien, du premier message jusqu'au départ, … et il vend vos extras : départ tardif, chef à domicile, activités.
+
+Chaque départ crée automatiquement sa mission de ménage. Le prestataire suit sa checklist, prend ses photos, … et la preuve photo débloque son paiement.
+
+Les paiements passent par les solutions de votre pays, les factures se génèrent toutes seules, et vos propriétaires reçoivent leurs relevés, sans aucune ressaisie.
+
+[proudly] Et tout cela en arabe, en français ou en anglais, pour vous comme pour vos voyageurs. Pensé pour l'Arabie saoudite, le Maroc et la France.
+
+Bètli. [pause] [warmly] Faites grandir vos revenus, pas votre charge de travail. Rejoignez le pré-lancement, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 07 · TOUR PRODUIT · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 9 répliques (b1 à b9)
+Déposer dans : marketing/motion/reel-07-tour-produit/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[rushed] Bookings, rates, housekeeping, guests, owners. … [curious] What if it all fit in one place?
+
+First, the calendar. Every property, every channel, synced in real time: a booking lands on Airbnb, and Betly instantly closes the dates [stress on next word] everywhere else.
+
+Then your direct booking site: a template that looks like you, built block by block, payment included, … [excited] and zero commission on those bookings.
+
+Ten A.I. agents watch your rates, messages and operations, day and night. They propose, [deliberate] you decide. Rates follow demand, but never drop below your floor.
+
+[warmly] The welcome guide stays with your guests through a simple link, … and it sells your extras too: late checkout, private chef, activities.
+
+Every checkout creates its own cleaning job. The provider follows the checklist, takes the photos, … and photo proof releases their payout.
+
+Payments go through your country's solutions, invoices generate themselves, and your owners get their statements with no re-typing.
+
+[proudly] All of it in Arabic, French or English, for you and for your guests. Built for Saudi Arabia, Morocco and France.
+
+Betly. [pause] [warmly] Grow your revenue, not your workload. Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 08 · 23 H 40 — Tapage nocturne : capteur de bruit, avertissement WhatsApp, blocage en cas de récidive
+Durée de la vidéo : 36.5 s
+##############################################################################
+
+==============================================================================
+REEL 08 · 23 H 40 · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-08-23h40/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Samedi, vingt-trois heures quarante. Dans votre appartement, la musique monte… [mischievously] et les voisins aussi.
+
+[deliberate] Le capteur de bruit de Bètli le repère aussitôt. Une carte vous propose d'avertir le voyageur, avec un message déjà prêt.
+
+Le message part sur WhatsApp. … [softly] Deux minutes plus tard, le volume redescend, et la nuit reste calme.
+
+[deliberate] Et si les soirées se répètent, Bètli vous propose de bloquer le calendrier quelques jours, le temps de reprendre la main.
+
+[softly] Vos voisins dorment. … [warmly] Vous aussi.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 08 · 23 H 40 · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-08-23h40/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Saturday, eleven forty p.m. In your apartment, the music is getting louder… [mischievously] and so are the neighbours.
+
+[deliberate] Betly's noise sensor picks it up right away. A card suggests warning the guest, with a message ready to go.
+
+The message goes out on WhatsApp. … [softly] Two minutes later, the volume drops, and the night stays calm.
+
+[deliberate] And if the parties keep coming back, Betly suggests blocking the calendar for a few days, so you can take back control.
+
+[softly] Your neighbours sleep. … [warmly] And so do you.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 09 · LA CLIM EN PANNE — Incident pendant le séjour : geste avant l’avis, réponse d’avis rédigée par l’IA
+Durée de la vidéo : 33 s
+##############################################################################
+
+==============================================================================
+REEL 09 · LA CLIM EN PANNE · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-09-clim-en-panne/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[sighs] Août, trente-quatre degrés à Marrakech. En plein séjour, la climatisation de votre riad vient de lâcher.
+
+[deliberate] Bètli crée l'intervention, le technicien est prévenu, et deux heures plus tard, la clim souffle à nouveau.
+
+[softly] Mais votre voyageuse a eu chaud. Avant qu'elle ne laisse son avis, une carte vous propose un geste : quinze pour cent, [warmly] remboursés en un clic.
+
+L'avis arrive : quatre étoiles, et un merci. L'agent Réputation rédige la réponse ; vous la relisez, vous changez un mot, et vous publiez. [deliberate] Rien ne part sans vous.
+
+[softly] Un incident… [warmly] pas un mauvais avis.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 09 · LA CLIM EN PANNE · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-09-clim-en-panne/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[sighs] August in Riyadh, forty-five degrees outside. Mid-stay, the air conditioning in your villa just gave out.
+
+[deliberate] Betly creates the job, the technician is notified, and two hours later, the air is flowing again.
+
+[softly] But your guest had a rough afternoon. Before the review comes in, a card suggests a gesture: fifteen percent back, [warmly] in one click.
+
+The review comes in: four stars, and a thank-you. The Reputation agent drafts the reply; you read it, change a word, and publish. [deliberate] Nothing goes out without you.
+
+[softly] An incident… [warmly] not a bad review.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 10 · APRÈS LE DÉPART — Contrôle du ménage, caution retenue sur un dégât, prestataire payé, linge commandé
+Durée de la vidéo : 38 s
+##############################################################################
+
+==============================================================================
+REEL 10 · APRÈS LE DÉPART · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-10-apres-le-depart/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+Onze heures, votre voyageur est parti. L'équipe de ménage prend le relais, et Bètli suit la mission en direct.
+
+Elle envoie ses photos, et vous contrôlez le travail avant de le valider. [worried] Sur l'une d'elles, un dégât : la lampe de chevet est cassée.
+
+Une carte vous propose de retenir la réparation sur la caution. [deliberate] Jamais plus que son montant : le reste est libéré, automatiquement.
+
+La preuve photo débloque le paiement de votre équipe. Et quand les draps viennent à manquer, la commande part chez le fournisseur.
+
+[softly] Tout est vérifié. … [warmly] Rien n'est oublié.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 10 · APRÈS LE DÉPART · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-10-apres-le-depart/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+Eleven a.m., your guest has checked out. Your cleaning team takes over, and Betly follows the job live.
+
+She sends her photos, and you check the work before approving it. [worried] One of them shows damage: the bedside lamp is broken.
+
+A card suggests withholding the repair from the deposit. [deliberate] Never more than the deposit itself: the rest is released automatically.
+
+The photo proof releases your team's payment. And when the sheets run low, the order goes straight to your supplier.
+
+[softly] Everything checked. … [warmly] Nothing forgotten.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 11 · LES FICHES DE POLICE — Une obligation par pays : Maroc, France, Arabie saoudite, puis taxes et RGPD
+Durée de la vidéo : 38 s
+##############################################################################
+
+==============================================================================
+REEL 11 · LES FICHES DE POLICE · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-11-fiches-de-police/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[deliberate] Chaque voyageur doit être déclaré aux autorités. Et d'un pays à l'autre, les règles changent.
+
+Avec Bètli, le voyageur remplit sa fiche depuis son livret d'accueil, avant même d'arriver. Ce qu'on sait déjà est pré-rempli.
+
+Au Maroc, la fiche part à la DGSN. En France, elle est transmise via Chekin. En Arabie saoudite, le voyageur est enregistré sur Shomoos. [deliberate] Le même geste, trois pays.
+
+Autour, tout suit : la taxe de séjour calculée à chaque réservation, les factures conformes ZATCA, la licence NTMP, et l'effacement RGPD quand un voyageur le demande.
+
+[softly] Une obligation par pays. … [warmly] Un seul outil.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 11 · LES FICHES DE POLICE · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-11-fiches-de-police/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[deliberate] Every guest has to be declared to the authorities. And from one country to the next, the rules change.
+
+With Betly, guests fill in their form from the welcome guide, before they even arrive. Whatever we already know is pre-filled.
+
+In Morocco, the form goes to the DGSN. In France, it's sent through Chekin. In Saudi Arabia, the guest is registered on Shomoos. [deliberate] One gesture, three countries.
+
+And everything around it follows: tourist tax on every booking, ZATCA-compliant invoices, the NTMP licence, and GDPR erasure when a guest asks.
+
+[softly] One rule per country. … [warmly] One single tool.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 12 · DEUX NUITS DE PLUS — Prolongation chiffrée, acceptée par le voyageur, tout suit
+Durée de la vidéo : 34 s
+##############################################################################
+
+==============================================================================
+REEL 12 · DEUX NUITS DE PLUS · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-12-deux-nuits-de-plus/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Dimanche matin. Votre voyageuse adore son séjour… [mischievously] et vous demande si elle peut rester deux nuits de plus.
+
+[deliberate] Bètli a lu la demande, vérifié le calendrier et chiffré les deux nuits. Vous n'avez qu'à envoyer l'avenant.
+
+Votre voyageuse reçoit l'offre, avec le prix exact. Elle accepte en un geste.
+
+Et tout suit : le séjour s'allonge, le ménage se décale, un nouveau code d'accès est créé.
+
+[softly] Deux nuits de plus. … [warmly] Zéro recalcul.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 12 · DEUX NUITS DE PLUS · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-12-deux-nuits-de-plus/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[softly] Sunday morning. Your guest is loving the stay… [mischievously] and asks if she can stay two more nights.
+
+[deliberate] Betly has read the request, checked the calendar and priced the two nights. All you do is send the offer.
+
+Your guest gets the offer, with the exact price. She accepts in one tap.
+
+And everything follows: the stay stretches, cleaning moves, and a new access code is created.
+
+[softly] Two more nights. … [warmly] Zero recalculating.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 13 · LE DIRECT, SANS LES RISQUES — Panier abandonné relancé, réservation suspecte bloquée, litige bancaire documenté
+Durée de la vidéo : 34 s
+##############################################################################
+
+==============================================================================
+REEL 13 · LE DIRECT, SANS LES RISQUES · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-13-direct-sans-risque/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+Votre site de réservation directe : zéro commission. [sighs] Mais ce soir, un visiteur s'arrête juste avant de payer.
+
+Une carte vous propose de le relancer : une heure après, puis le lendemain. [excited] Et la réservation revient, sans commission.
+
+[curious] Une réservation paraît suspecte ? Le score de risque vous alerte, et vous la bloquez avant qu'elle ne vous coûte.
+
+Et si un paiement est contesté des semaines plus tard, le dossier de preuves est déjà prêt : séjour, fiche voyageur, livret. [deliberate] Vous le déposez en un clic.
+
+[softly] Le direct. … [warmly] Sans les risques.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 13 · LE DIRECT, SANS LES RISQUES · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-13-direct-sans-risque/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+Your direct booking site: zero commission. [sighs] But tonight, a visitor stops right before paying.
+
+A card suggests following up: an hour later, then the next day. [excited] And the booking comes back, commission-free.
+
+[curious] A booking looks suspicious? The risk score flags it, and you block it before it costs you.
+
+And if a payment is disputed weeks later, the evidence is already gathered: the stay, the guest record, the guide. [deliberate] You submit it in one click.
+
+[softly] Direct bookings. … [warmly] Without the risks.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 14 · LE PROPRIÉTAIRE INQUIET — Note de revenus envoyée avant la question, relevé et reversement
+Durée de la vidéo : 37 s
+##############################################################################
+
+==============================================================================
+REEL 14 · LE PROPRIÉTAIRE INQUIET · FRANÇAIS
+Voix : Lucie · Narration · voice_id LFtQZWdaqmvamcTNGpwl · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-14-proprietaire-inquiet/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+Pour une conciergerie, il y a [worried] un appel qu'on redoute : le propriétaire qui voit ses revenus baisser.
+
+[deliberate] Bètli le repère avant lui, et prépare une note factuelle : les revenus du mois, comparés à l'an dernier. Vous la relisez, vous l'envoyez.
+
+Le propriétaire reçoit l'explication avant même de poser la question, avec son relevé du mois.
+
+Et son reversement, calculé à partir des séjours, s'approuve en un clic. [warmly] Sans rien ressaisir.
+
+[softly] Des propriétaires informés. … [warmly] Pas inquiets.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 14 · LE PROPRIÉTAIRE INQUIET · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 6 répliques (b1 à b6)
+Déposer dans : marketing/motion/reel-14-proprietaire-inquiet/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+For a property manager, there's [worried] one call you dread: the owner who sees their income drop.
+
+[deliberate] Betly spots it before he does, and prepares a factual note: this month's income, compared with last year. You read it, you send it.
+
+The owner gets the explanation before he even asks, along with his monthly statement.
+
+And his payout, calculated from the stays, is approved in one click. [warmly] Nothing to re-type.
+
+[softly] Owners informed. … [warmly] Not worried.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+
+##############################################################################
+REEL 15 · LES CARTES DE LA JOURNÉE — Une journée d’hôte, carte après carte
+Durée de la vidéo : 42.5 s
+##############################################################################
+
+==============================================================================
+REEL 15 · LES CARTES DE LA JOURNÉE · FRANÇAIS
+Voix : Noé · Content Creator · voice_id 7pDdnNI6PhXmAp0pXFZm · 8 répliques (b1 à b8)
+Déposer dans : marketing/motion/reel-15-cartes-de-la-journee/vo/fr/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[curious] Une journée d'hôte avec Bètli ? Des cartes. Une à la fois, avec tout le contexte.
+
+Sept heures et demie : la caution de Sara est libérée. Neuf heures : la réponse à un avis est prête.
+
+Midi : le ménage est contrôlé, photos à l'appui. Quatorze heures : un départ tardif, accordé en un clic.
+
+Seize heures : entre deux séjours, vous réglez le thermostat à distance. Dix-neuf heures : le relevé part chez le propriétaire.
+
+[softly] Et à vingt-trois heures quarante, s'il le faut, un avertissement de bruit. … [warmly] Et entre deux cartes, vous vivez.
+
+Et ce que vous validez à chaque fois, Bètli vous propose de l'automatiser. Le ménage en automatique, la caution avec une simple notification… [deliberate] et les remboursements, toujours validés par vous. [warmly] À vous de régler le curseur.
+
+[deliberate] Vous décidez. … [warmly] Bètli s'occupe du reste.
+
+Bètli. [warmly] Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲
+
+==============================================================================
+REEL 15 · LES CARTES DE LA JOURNÉE · ANGLAIS
+Voix : Mark · voice_id WTUK291rZZ9CLPCiFTfh · 8 répliques (b1 à b8)
+Déposer dans : marketing/motion/reel-15-cartes-de-la-journee/vo/en/
+==============================================================================
+
+▼▼▼ DÉBUT DU TEXTE À COLLER DANS ELEVENLABS ▼▼▼
+
+[curious] A host's day with Betly? Cards. One at a time, with all the context.
+
+Seven thirty: Sara's deposit is released. Nine a.m.: a review reply is ready.
+
+Noon: the cleaning is checked, photos included. Two p.m.: a late checkout, granted in one click.
+
+Four p.m.: between two stays, you set the thermostat remotely. Seven p.m.: the statement goes to the owner.
+
+[softly] And at eleven forty p.m., if needed, a noise warning. … [warmly] And between two cards, you live.
+
+And whatever you always approve, Betly offers to automate. Cleaning on autopilot, deposits with a simple notification… [deliberate] and refunds, always approved by you. [warmly] You set the dial.
+
+[deliberate] You decide. … [warmly] Betly handles the rest.
+
+Betly. [warmly] Join the pre-launch today, at betly dot F R.
+
+▲▲▲ FIN DU TEXTE À COLLER ▲▲▲

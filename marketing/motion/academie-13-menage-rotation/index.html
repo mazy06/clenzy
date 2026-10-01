@@ -1,0 +1,342 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 13 « Le ménage de rotation en 5 étapes » (≈ 2 min 35) · 9:16 et 16:9, depuis le
+  même fichier. Voix : Lucie (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (11 h → 16 h, cinq heures) → 1 le créneau (30 min + 2 h + 30 min = 3 h, marge 2 h ;
+  départ à 12 h 30 → marge 30 min) → 2 les cinq étapes (du haut vers le bas, du fond vers la sortie ; checklist
+  pièce par pièce) → 3 les photos (une par pièce ; canapé contesté, verre cassé et dépôt de garantie) →
+  4 mettons des chiffres (50 € + 30 € = 80 € perdus) → 5 à retenir → fin.
+  Photos : ../academie-shared/photos/SOURCES.md (<img>, pour que le rendu attende leur chargement).
+  Rendu : node ../render.mjs academie-13-menage-rotation --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 13 Le ménage de rotation</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe mr- : aucune collision avec base.css (.bar, .chip, .row, .card, .ph… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.mrfillz { flex: 1; position: relative; min-height: 0; }
+.mrlayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px; opacity: 0; }
+.mrimg { display: block; object-fit: cover; }
+.mrpill { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.mrpill.ok { background: rgba(13,148,136,.12); color: var(--ok); }
+.mrpill.warn { background: #B45733; color: #FDFDFE; }
+.mrpill.soft { background: #F4EBDC; color: var(--encre-terre); }
+
+/* 0 · accroche : la journée du ménage */
+.mrhook { padding: 26px; display: flex; flex-direction: column; gap: 26px; opacity: 0; }
+.mrhook .mrimg { width: 100%; height: 360px; border-radius: 26px; }
+.mrday { display: flex; align-items: center; gap: 20px; padding: 0 6px 44px; }
+.mrend { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; opacity: 0; }
+.mrend b { font-family: var(--fd); font-size: 46px; font-weight: 700; color: var(--n700); line-height: 1; font-variant-numeric: tabular-nums; }
+.mrend span { font-size: 21px; font-weight: 700; color: var(--gris); }
+.mrmid { flex: 1; position: relative; height: 18px; border-radius: 9px; background: var(--surface); }
+.mrmid i { position: absolute; inset: 0; border-radius: 9px; background: var(--terre); transform-origin: left; transform: scaleX(0); }
+.mrmid em { position: absolute; left: -20px; right: -20px; top: 32px; text-align: center; font-style: normal; font-size: 25px; font-weight: 700; color: var(--terre); opacity: 0; white-space: nowrap; }
+
+/* 1 · le créneau : barre de 5 h découpée */
+.mrends { display: flex; justify-content: space-between; font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; }
+.mrbar { display: flex; height: 64px; border-radius: 18px; overflow: hidden; background: var(--surface); }
+.mrbar i { display: block; height: 100%; transform-origin: left; transform: scaleX(0); }
+.mrbar i + i { box-shadow: inset 3px 0 0 #FDFDFE; }
+.mrseg0 { background: #B8C4CC; } .mrseg1 { background: var(--n600); } .mrseg2 { background: #7BA3C2; }
+.mrseg3 { background: rgba(13,148,136,.22); } .mrseg3.bad { background: #E9B9A4; }
+.mrsegl { background: repeating-linear-gradient(135deg, #D9E0E5 0 12px, #EEF3F6 12px 24px); }
+.mrwin { align-self: center; display: inline-flex; align-items: center; gap: 10px; background: var(--n600); color: var(--papier); border-radius: 999px; padding: 10px 20px; font-size: 24px; font-weight: 700; opacity: 0; }
+.mrkvs { display: flex; flex-direction: column; gap: 8px; }
+.mrkv { display: flex; align-items: center; gap: 14px; border-top: 1.5px solid var(--ligne2); padding-top: 10px; opacity: 0; }
+.mrkv s { flex: none; width: 18px; height: 18px; border-radius: 6px; text-decoration: none; }
+.mrkv span { flex: 1; font-size: 26px; font-weight: 600; color: var(--ardoise); }
+.mrkv b { font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mrkv.tot span { color: var(--n700); font-weight: 700; }
+.mrres { display: flex; justify-content: space-between; align-items: center; background: var(--n600); border-radius: 26px; padding: 18px 28px; opacity: 0; }
+.mrres span { font-size: 28px; font-weight: 700; color: var(--papier); }
+.mrres b { font-family: var(--fd); font-size: 60px; font-weight: 700; color: var(--sable); letter-spacing: -.02em; line-height: 1; }
+.mrlatel { display: flex; align-items: center; gap: 10px; font-size: 23px; font-weight: 700; color: var(--ardoise); opacity: 0; }
+.mrconds { display: flex; flex-direction: column; gap: 10px; }
+.mrconds span { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 18px; padding: 14px 20px; font-size: 26px; font-weight: 700; color: var(--n700); opacity: 0; }
+.mrconds span svg { color: var(--ok); flex: none; }
+
+/* 2 · les cinq étapes */
+.mrrules { display: flex; flex-direction: column; gap: 16px; }
+.mrrule { display: flex; align-items: center; gap: 24px; background: var(--surface); border-radius: 28px; padding: 26px 28px; opacity: 0; }
+.mrrule i { flex: none; width: 88px; height: 88px; border-radius: 24px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.mrrule b { font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); line-height: 1.1; }
+.mrsteps { display: flex; flex-direction: column; gap: 12px; }
+.mrst { display: flex; align-items: center; gap: 16px; background: var(--surface); border-radius: 22px; padding: 10px 20px 10px 10px; opacity: 0; }
+.mrst .mrimg { flex: none; width: 116px; height: 86px; border-radius: 14px; }
+.mrst u { flex: none; width: 50px; height: 50px; border-radius: 50%; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; text-decoration: none; font-family: var(--fd); font-size: 28px; font-weight: 700; }
+.mrst div { flex: 1; min-width: 0; }
+.mrst b { display: block; font-size: 28px; font-weight: 700; color: var(--n700); line-height: 1.15; }
+.mrst span { font-size: 22px; font-weight: 600; color: var(--gris); }
+.mrmiss { display: flex; flex-direction: column; gap: 10px; }
+.mrmiss span { display: flex; align-items: center; gap: 12px; background: #F7E4DC; color: #8E3F20; border-radius: 18px; padding: 14px 20px; font-size: 26px; font-weight: 700; opacity: 0; }
+.mrcl { background: var(--surface); border-radius: 26px; padding: 18px 22px; display: flex; flex-direction: column; gap: 8px; opacity: 0; }
+.mrcl > small { font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
+.mrcl > b { font-size: 25px; font-weight: 700; color: var(--n700); margin-top: 6px; }
+.mrit { display: flex; align-items: center; gap: 14px; font-size: 25px; font-weight: 600; color: var(--ardoise); }
+.mrit i { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 2.5px solid #B8C4CC; background: #FDFDFE; color: #FDFDFE; display: flex; align-items: center; justify-content: center; }
+.mrit.on i { background: var(--ok); border-color: var(--ok); }
+.mrit.on { color: var(--n700); }
+
+/* 3 · les photos */
+.mrgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.mrph { position: relative; border-radius: 22px; overflow: hidden; height: 230px; opacity: 0; }
+.mrph.wide { grid-column: 1 / -1; height: 270px; }
+.mrph .mrimg { width: 100%; height: 100%; }
+.mrph span { position: absolute; left: 12px; bottom: 12px; background: rgba(253,253,254,.94); color: var(--n700); border-radius: 999px; padding: 8px 14px; font-size: 22px; font-weight: 700; }
+.mrstamp { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 8px; background: rgba(27,42,53,.78); color: #F7FBFC; border-radius: 12px; padding: 7px 12px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mrok { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; background: var(--ok); color: #FDFDFE; display: flex; align-items: center; justify-content: center; }
+.mrmsg { align-self: flex-start; max-width: 92%; background: var(--surface); border-radius: 26px 26px 26px 8px; padding: 18px 24px; opacity: 0; }
+.mrmsg small { display: block; font-size: 20px; font-weight: 700; color: var(--gris); margin-bottom: 4px; }
+.mrmsg b { font-size: 29px; font-weight: 700; color: var(--n700); line-height: 1.25; }
+.mrsofa { position: relative; border-radius: 24px; overflow: hidden; height: 250px; opacity: 0; }
+.mrsofa .mrimg { width: 100%; height: 100%; }
+.mrsofa .mrpill { position: absolute; right: 14px; bottom: 14px; background: #FDFDFE; }
+.mrflow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mrflow span { display: inline-flex; align-items: center; gap: 10px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 16px; padding: 12px 16px; font-size: 23px; font-weight: 700; color: var(--n700); opacity: 0; }
+.mrflow em { font-style: normal; font-size: 28px; font-weight: 700; color: var(--gris); opacity: 0; }
+
+/* 4 · mettons des chiffres */
+.mrch { display: flex; align-items: center; gap: 20px; opacity: 0; }
+.mrch .mrimg { width: 150px; height: 112px; border-radius: 20px; }
+.mrch b { display: block; font-family: var(--fd); font-size: 38px; font-weight: 700; color: var(--n700); }
+.mrch span { font-size: 24px; font-weight: 600; color: var(--gris); }
+.mrcost { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1.5px solid var(--ligne2); padding-top: 16px; opacity: 0; }
+.mrcost span { font-size: 27px; font-weight: 600; color: var(--ardoise); }
+.mrcost b { font-family: var(--fd); font-size: 42px; font-weight: 700; color: var(--n700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mrcost.add b { color: #B45733; }
+.mrloss { display: flex; justify-content: space-between; align-items: center; background: var(--n600); border-radius: 26px; padding: 20px 28px; opacity: 0; }
+.mrloss span { font-size: 28px; font-weight: 700; color: var(--papier); }
+.mrloss b { font-family: var(--fd); font-size: 76px; font-weight: 700; color: var(--sable); letter-spacing: -.03em; line-height: 1; }
+.mrpills { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* 5 · à retenir */
+.mrrc { display: flex; flex-direction: column; gap: 14px; }
+.mrpay { display: flex; align-items: center; gap: 14px; background: #F4EBDC; color: var(--encre-terre); border-radius: 22px; padding: 18px 26px; font-size: 27px; font-weight: 700; }
+
+html.f169 .mrhook .mrimg { height: 330px; }
+html.f169 .mrst .mrimg { width: 104px; height: 76px; }
+html.f169 .mrst b { font-size: 26px; }
+html.f169 .mrph { height: 210px; }
+html.f169 .mrph.wide { height: 250px; }
+html.f169 .mrsofa { height: 230px; }
+html.f169 .mrrc .rchip { padding: 16px 24px; }
+html.f169 .mrrc .rchip .ic { width: 62px; height: 62px; }
+html.f169 .mrrc .rchip b { font-size: 34px; }
+html.f169 .mrrc .rchip small { font-size: 21px; }
+html.f169 .mrpay, html.f169 .mrrc .appt { font-size: 23px; padding: 14px 22px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const photo = (name) => h('img', { src: `../academie-shared/photos/${name}.jpg`, class: 'mrimg', alt: '' });
+const pill = (cls, ic, txt) => h('span', { class: `mrpill ${cls}` }, icon(ic, 24), txt);
+/** Couches successives d'une carte : chacune entre en montant, puis s'efface vers le haut quand la suivante arrive. */
+const stack = (layers, times, t) => layers.forEach((el, i) => {
+  const kIn = i ? shown(t, times[i] - .3, .5) : 1, kOut = i < layers.length - 1 ? shown(t, times[i + 1] - .3, .5) : 0;
+  set(el, { opacity: kIn * (1 - kOut), transform: `translateY(${lerp(20, 0, kIn) - 20 * kOut}px)` });
+});
+/** Segment de barre qui se remplit de gauche à droite. */
+const grow = (el, p) => set(el, { transform: `scaleX(${p})` });
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const HK = T.hook;
+const hkDep = h('div', { class: 'mrend' }, h('b', {}, HK.dep[0]), h('span', {}, HK.dep[1]));
+const hkArr = h('div', { class: 'mrend' }, h('b', {}, HK.arr[0]), h('span', {}, HK.arr[1]));
+const hkFill = h('i'), hkGap = h('em', {}, HK.gap);
+const hkPhoto = photo(HK.photo);
+const hook = A.abs(L.card.x, 0, L.card.w, null, 'acard mrhook');
+hook.append(hkPhoto, h('div', { class: 'mrday' }, hkDep, h('div', { class: 'mrmid' }, hkFill, hkGap), hkArr));
+
+/* 1 · le créneau */
+const SL = T.slot, LT = T.late, c1 = A.card();
+const SEG_W = [10, 40, 10, 40];                       // 30 min, 2 h, 30 min, 2 h sur 5 h
+const segs = SEG_W.map((w, i) => h('i', { class: `mrseg${i}`, style: `width:${w}%` }));
+const win = h('span', { class: 'mrwin' }, icon('clock', 24), SL.window);
+const kvs = SL.segs.slice(0, 3).map(([l, v], i) => h('div', { class: 'mrkv' }, h('s', { class: `mrseg${i}` }), h('span', {}, l), h('b', {}, v)));
+const kvTot = h('div', { class: 'mrkv tot' }, h('s', { style: 'background:transparent' }), h('span', {}, SL.total[0]), h('b', {}, SL.total[1]));
+const res1 = h('div', { class: 'mrres' }, h('span', {}, SL.result[0]), h('b', {}, SL.result[1]));
+const note1 = pill('ok', 'shield', SL.note);
+const l1a = h('div', { class: 'mrlayer' }, h('span', { class: 'alabel' }, `${T.illustrative} · ${SL.title}`),
+  h('div', { class: 'mrends' }, h('span', {}, SL.ends[0]), h('span', {}, SL.ends[1])), h('div', { class: 'mrbar' }, segs), win,
+  h('div', { class: 'mrkvs' }, kvs, kvTot), res1, note1);
+const LATE_W = [30, 10, 40, 10, 10];                  // 1 h 30 perdues, puis 30 min, 2 h, 30 min, 30 min de marge
+const lsegs = LATE_W.map((w, i) => h('i', { class: i ? `mrseg${i - 1}${i === 4 ? ' bad' : ''}` : 'mrsegl', style: `width:${w}%` }));
+const lateLbl = h('div', { class: 'mrlatel' }, icon('logout', 24), LT.lateSeg);
+const lwin = h('span', { class: 'mrwin' }, icon('clock', 24), LT.window);
+const lrows = LT.rows.map(([l, v]) => h('div', { class: 'mrkv tot' }, h('s', { style: 'background:transparent' }), h('span', {}, l), h('b', {}, v)));
+const lwarn = pill('warn', 'alert', LT.warn);
+const condT = h('span', { class: 'alabel', style: 'opacity:0' }, LT.title);
+const conds = LT.items.map(([ic, l]) => h('span', {}, icon(ic, 28), l));
+const l1b = h('div', { class: 'mrlayer' }, h('div', { class: 'mrends' }, h('span', {}, SL.ends[0]), h('span', {}, SL.ends[1])),
+  h('div', { class: 'mrbar' }, lsegs), lateLbl, lwin, h('div', { class: 'mrkvs' }, lrows), lwarn, condT, h('div', { class: 'mrconds' }, conds));
+c1.el.append(h('div', { class: 'mrfillz' }, l1a, l1b));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · les cinq étapes */
+const OR = T.order, ME = T.memory, c2 = A.card();
+const rules = OR.rules.map(([ic, l]) => h('div', { class: 'mrrule' }, h('i', {}, icon(ic, 44)), h('b', {}, l)));
+const orderNote = pill('ok', 'sparkles', OR.note);
+const l2a = h('div', { class: 'mrlayer' }, h('div', { class: 'mrrules' }, rules), orderNote);
+const steps = T.steps.map(([ph, b, s], i) => h('div', { class: 'mrst' }, h('u', {}, String(i + 1)), photo(ph), h('div', {}, h('b', {}, b), h('span', {}, s))));
+const l2b = h('div', { class: 'mrlayer' }, h('div', { class: 'mrsteps' }, steps));
+const misses = ME.misses.map((m) => h('span', {}, icon('x', 26), m));
+const items = [];
+const cl = h('div', { class: 'mrcl' }, h('small', {}, ME.title));
+ME.rooms.forEach(([room, its]) => {
+  cl.append(h('b', {}, room));
+  its.forEach((it) => { const el = h('div', { class: 'mrit' }, h('i', {}, icon('check', 20)), it); items.push(el); cl.append(el); });
+});
+const same = pill('soft', 'users', ME.same);
+const l2c = h('div', { class: 'mrlayer' }, h('div', { class: 'mrmiss' }, misses), cl, same);
+c2.el.append(h('div', { class: 'mrfillz' }, l2a, l2b, l2c));
+const trap2 = A.trap(c2.el, T.trap);
+
+/* 3 · les photos */
+const PR = T.proof, DI = T.dispute, c3 = A.card();
+const tiles = PR.rooms.slice(0, 3).map(([ph, l], i) => h('div', { class: `mrph${i === 0 ? ' wide' : ''}` }, photo(ph),
+  h('div', { class: 'mrstamp' }, icon('camera', 20), PR.stamp), h('div', { class: 'mrok' }, icon('check', 24)), h('span', {}, l)));
+const prLbl = h('span', { class: 'alabel', style: 'opacity:0' }, PR.label);
+const prNote = pill('ok', 'shield', PR.note);
+const l3a = h('div', { class: 'mrlayer' }, prLbl, h('div', { class: 'mrgrid' }, tiles), prNote);
+const msg = h('div', { class: 'mrmsg' }, h('small', {}, DI.who), h('b', {}, DI.msg));
+const sofaOk = pill('ok', 'ccheck', DI.ok);
+const sofa = h('div', { class: 'mrsofa' }, photo(DI.photo), h('div', { class: 'mrstamp' }, icon('camera', 20), DI.stamp), sofaOk);
+const flow = [];
+DI.other.forEach(([ic, l], i) => { if (i) flow.push(h('em', {}, '→')); flow.push(h('span', {}, icon(ic, 24), l)); });
+const l3b = h('div', { class: 'mrlayer' }, h('span', { class: 'alabel' }, T.illustrative), msg, sofa, h('div', { class: 'mrflow' }, flow));
+c3.el.append(h('div', { class: 'mrfillz' }, l3a, l3b));
+
+/* 4 · mettons des chiffres */
+const CO = T.cost, c4 = A.card();
+const coHead = h('div', { class: 'mrch' }, photo('cuisine-balai'), h('div', {}, h('b', {}, T.heads[3][1]), h('span', {}, T.illustrative)));
+const costs = CO.rows.map(([l, v], i) => h('div', { class: `mrcost${i ? ' add' : ''}` }, h('span', {}, l), h('b', {}, v)));
+const loss = h('div', { class: 'mrloss' }, h('span', {}, CO.result[0]), h('b', {}, CO.result[1]));
+const avis = pill('warn', 'star', CO.avis), ctrl = pill('ok', 'clock', CO.ctrl);
+c4.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px' }, coHead, ...costs, loss, h('div', { class: 'mrpills' }, avis, ctrl)));
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'mrrc');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'appt', style: 'opacity:0' }, icon('ccheck', 32), R.app);
+const pay = h('div', { class: 'mrpay', style: 'opacity:0' }, icon('camera', 30), R.pay);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, pay);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.gap - .1);
+  A.rise(hook, v0, shown(t, SYNC.dep - .5, .6), 60);
+  A.rise(hkDep, 1, shown(t, SYNC.dep - .1), 16);
+  A.rise(hkArr, 1, shown(t, SYNC.arr - .1), 16);
+  grow(hkFill, easeOut(prog(t, SYNC.arr + .2, Math.max(.6, SYNC.gap - SYNC.arr))));
+  A.rise(hkGap, 1, shown(t, SYNC.gap - .1), 10);
+
+  /* 1 · le créneau */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  stack([l1a, l1b], [0, SYNC.trap1], t);
+  A.rise(win, 1, shown(t, SYNC.win5 - .2), 10);
+  [SYNC.tr, SYNC.men, SYNC.lin, SYNC.marge].forEach((t0, i) => grow(segs[i], easeOut(prog(t, t0 - .1, .6))));
+  [SYNC.tr, SYNC.men, SYNC.lin].forEach((t0, i) => A.rise(kvs[i], 1, shown(t, t0 - .15), 10));
+  A.rise(kvTot, 1, shown(t, SYNC.tot - .15), 10);
+  A.rise(res1, 1, shown(t, SYNC.marge - .1), 14);
+  A.rise(note1, 1, shown(t, SYNC.marge + 1.6), 10);
+  trap1.render(t, SYNC.trap1, v1);
+  const lateP = easeOut(prog(t, SYNC.late - .2, .7));
+  grow(lsegs[0], lateP); A.rise(lateLbl, 1, lateP, 8);
+  lsegs.slice(1).forEach((s, i) => grow(s, easeOut(prog(t, SYNC.left - .2 + i * .15, .5))));
+  A.rise(lwin, 1, shown(t, SYNC.left - .1), 10);
+  A.rise(lrows[0], 1, shown(t, SYNC.left + .6), 10);
+  A.rise(lwarn, 1, shown(t, SYNC.m30 - .1), 10);
+  A.rise(condT, 1, shown(t, SYNC.fix - .2), 8);
+  A.rise(conds[0], 1, shown(t, SYNC.fix), 12); A.rise(conds[1], 1, shown(t, SYNC.tard), 12);
+
+  /* 2 · les cinq étapes */
+  const v2 = slotVis(t, 2);
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  stack([l2a, l2b, l2c], [0, SYNC.st1, SYNC.trap2], t);
+  A.rise(rules[0], 1, shown(t, SYNC.hb - .2, .45), 18); A.rise(rules[1], 1, shown(t, SYNC.fs - .2, .45), 18);
+  A.rise(orderNote, 1, shown(t, SYNC.clean - .2), 10);
+  [SYNC.st1, SYNC.st2, SYNC.st3, SYNC.st4, SYNC.st5].forEach((t0, i) => A.rise(steps[i], 1, shown(t, t0 - .2), 16));
+  trap2.render(t, SYNC.trap2, v2);
+  A.rise(misses[0], 1, shown(t, SYNC.towel - .2), 10); A.rise(misses[1], 1, shown(t, SYNC.fridge - .2), 10);
+  A.rise(cl, 1, shown(t, SYNC.check - .3), 14);
+  items.forEach((it, i) => it.classList.toggle('on', t >= SYNC.check + .5 + i * .32));
+  A.rise(same, 1, shown(t, SYNC.same - .2), 10);
+
+  /* 3 · les photos */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  stack([l3a, l3b], [0, SYNC.ex], t);
+  A.rise(prLbl, 1, shown(t, SYNC.ph1 - .3), 8);
+  tiles.forEach((el, i) => A.rise(el, 1, shown(t, SYNC.ph1 + i * .45, .45), 18));
+  A.rise(prNote, 1, shown(t, SYNC.proof - .1), 10);
+  A.rise(msg, 1, shown(t, SYNC.ex + .3), 14);
+  A.rise(sofa, 1, shown(t, SYNC.sofa - .2), 16);
+  A.rise(sofaOk, 1, shown(t, SYNC.sofa + 1.2), 8);
+  flow.forEach((el, i) => A.rise(el, 1, shown(t, [SYNC.glass, SYNC.glass + .6, SYNC.glass + 1.2, SYNC.dep2 - .6, SYNC.dep2 - .2][i] - .1), 10));
+
+  /* 4 · mettons des chiffres */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  A.rise(coHead, 1, shown(t, SYNC.num), 14);
+  [SYNC.c50, SYNC.redo, SYNC.g30].forEach((t0, i) => A.rise(costs[i], 1, shown(t, t0 - .15), 10));
+  A.rise(loss, 1, shown(t, SYNC.l80 - .15), 14);
+  A.rise(avis, 1, shown(t, SYNC.avis - .1), 10); A.rise(ctrl, 1, shown(t, SYNC.ctrl - .1), 10);
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3, SYNC.k4].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(pay, v5, shown(t, SYNC.pay - .3, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+==============================================================================
+REEL 02 · UNE SEULE VÉRITÉ — Channel manager : une réservation ferme les dates partout
+Format 9:16 (1080×1920) · 32 s · langues : FR · EN · AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,1 s · durée visée 2,6 s]
+      Vingt-trois heures quatorze. Une nouvelle réservation arrive sur Airbnb.
+  b2  [3,3 s → 6,2 s · durée visée 2,6 s]
+      Vingt-trois heures seize. Les mêmes nuits, vendues sur Booking.com.
+  b3  [6,5 s → 10,3 s · durée visée 3,4 s]
+      Deux voyageurs. Un seul logement. … Et une belle nuit blanche pour vous.
+  b4  [10,5 s → 13,4 s · durée visée 2,6 s]
+      Avec Bètli, tous vos calendriers disent la même chose.
+  b5  [13,7 s → 20,3 s · durée visée 5,7 s]
+      Une réservation arrive sur Airbnb : Bètli met le calendrier à jour, et les mêmes dates se ferment partout ailleurs, automatiquement.
+  b6  [20,6 s → 25,4 s · durée visée 4,6 s]
+      Et si un canal ne répond plus, Bètli le signale et vous prévient, avant qu'un conflit n'arrive.
+  b7  [25,7 s → 31,5 s · durée visée 4,7 s]
+      Tous vos calendriers. Une seule vérité. … Bètli. Rejoignez le pré-lancement, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,3–3,1 s]  23 h 14. [Une nouvelle réservation arrive sur Airbnb.]
+  ST2  [3,2–6,3 s]  23 h 16. Les mêmes nuits, [vendues sur Booking.com.]
+  ST3  [6,4–10,3 s]  Deux voyageurs. [Un seul logement.]
+  ST4  [10,4–13,5 s]  Et une belle nuit blanche pour vous.
+  ST5  [13,6–16,4 s]  Avec Baitly, [tous vos calendriers disent la même chose.]
+  ST6  [16,5–20,3 s]  Une réservation arrive sur Airbnb :
+  ST7  [20,5–22,6 s]  Baitly met le calendrier à jour,
+  ST8  [22,7–25,4 s]  et les mêmes dates se ferment partout ailleurs, [automatiquement.]
+  ST9  [25,6–27,3 s]  Et si un canal ne répond plus, [Baitly le signale et vous prévient,]
+  ST10  [23,54–25 s]  avant qu'un conflit n'arrive.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Notification sur écran verrouillé
+      E2  vendredi 10 octobre
+      E3  maintenant
+      E4  Nouvelle réservation
+      E5  Riad Nour · 13 → 16 oct. · 3 nuits
+      E6  maintenant
+      E7  Nouvelle réservation
+      E8  Riad Nour · 13 → 16 oct. · 3 nuits
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E9  Deux voyageurs. Un [seul] [logement.]
+  · Planning (maquette d’interface)
+      E10  Logement
+      E11  Bloqué
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E12  1 nuit
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E13  2 nuits
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E14  3 nuits
+  · Planning (maquette d’interface)
+      E15  Riad Nour
+      E16  Marrakech
+      E17  Villa Palmeraie
+      E18  Marrakech
+      E19  Studio Gueliz
+      E20  Marrakech
+      E21  Appart. Hivernage
+      E22  Marrakech
+      E23  Sara
+      E24  Jad
+      E25  Nadia
+      E26  Omar
+      E27  Karim
+      E28  Léa
+      E29  L
+      E30  M
+      E31  M
+      E32  J
+      E33  V
+  · Maquette d’interface (libellé)
+      E34  Ouvert
+      E35  Fermé
+      E36  Hors ligne
+      E37  Site direct
+      E38  expedia
+      E39  Expedia
+      E40  Réservé
+      E41  Un point de gestion
+      E42  01 · Réception
+      E43  02 · Mise à jour
+      E44  03 · Diffusion
+      E45  13 → 16 oct.
+      E46  Disponibilités mises à jour
+      E47  Disponibilités
+      E48  Tarif par nuit
+      E49  Séjour minimum
+      E50  Ouvert à la vente
+      E51  Fermé à la vente
+      E52  680 MAD
+      E53  2 nuits
+      E54  Synchronisation interrompue avec Expedia
+      E55  Vérifiez avant de vendre ces dates.
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E56  Tous vos calendriers.
+      E57  Une seule vérité.
+  · Bouton de l’écran de fin
+      E58  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E59  Airbnb · Booking.com
+      E60  en connexion directe
+      E61  pour les autres canaux
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,1 s · durée visée 2,6 s]
+      Eleven fourteen p.m. A booking on Airbnb.
+  b2  [3,3 s → 6,2 s · durée visée 2,8 s]
+      Eleven sixteen. Same nights, on Booking.com.
+  b3  [6,5 s → 10,3 s · durée visée 3,4 s]
+      Two guests. One home. … And a sleepless night for you.
+  b4  [10,5 s → 13,4 s · durée visée 3,2 s]
+      With Betly, all your calendars tell the same story.
+  b5  [13,7 s → 20,3 s · durée visée 6,9 s]
+      A booking lands on Airbnb: Betly updates the calendar, and the same dates close everywhere else, automatically.
+  b6  [20,6 s → 25,4 s · durée visée 5,0 s]
+      If a channel stops responding, Betly flags it and warns you before any conflict.
+  b7  [25,7 s → 31,5 s · durée visée 5,2 s]
+      All your calendars. One single truth. … Betly. Join the pre-launch at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,3–3,1 s]  11:14 p.m. [A booking on Airbnb.]
+  ST2  [3,2–6,3 s]  11:16 p.m. Same nights, [on Booking.com.]
+  ST3  [6,4–10,3 s]  Two guests. One home. [And a sleepless night for you.]
+  ST4  [10,4–13,5 s]  With Baitly, [all your calendars tell the same story.]
+  ST5  [13,6–16,4 s]  A booking lands on Airbnb: Baitly updates the calendar,
+  ST6  [16,5–20,3 s]  and the same dates close everywhere else, [automatically.]
+  ST7  [20,5–22,6 s]  If a channel stops responding,
+  ST8  [22,7–25,4 s]  Baitly flags it and warns you before any conflict.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Notification sur écran verrouillé
+      E2  Friday, October 10
+      E3  now
+      E4  New booking
+      E5  Nakheel Chalet · Oct 13 → 16 · 3 nights
+      E6  now
+      E7  New booking
+      E8  Nakheel Chalet · Oct 13 → 16 · 3 nights
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E9  Two guests. [One] [home.]
+  · Planning (maquette d’interface)
+      E10  Property
+      E11  Blocked
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E12  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E13  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E14  3 nights
+  · Planning (maquette d’interface)
+      E15  Nakheel Chalet
+      E16  Riyadh
+      E17  Diriyah Villa
+      E18  Riyadh
+      E19  Olaya Studio
+      E20  Riyadh
+      E21  Malqa Suite
+      E22  Riyadh
+      E23  Sara
+      E24  Jad
+      E25  Nadia
+      E26  Omar
+      E27  Karim
+      E28  Mia
+      E29  M
+      E30  T
+      E31  W
+      E32  T
+      E33  F
+  · Maquette d’interface (libellé)
+      E34  Open
+      E35  Closed
+      E36  Offline
+      E37  Direct site
+      E38  gathern
+      E39  Gathern
+      E40  Booked
+      E41  One place to manage
+      E42  01 · Receive
+      E43  02 · Update
+      E44  03 · Distribute
+      E45  Oct 13 → 16
+      E46  Availability updated
+      E47  Availability
+      E48  Nightly rate
+      E49  Minimum stay
+      E50  Open for sale
+      E51  Closed for sale
+      E52  SAR 450
+      E53  2 nights
+      E54  Sync interrupted with Gathern
+      E55  Check before selling these dates.
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E56  All your calendars.
+      E57  One single truth.
+  · Bouton de l’écran de fin
+      E58  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E59  Airbnb · Booking.com
+      E60  direct connection
+      E61  for other channels
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,1 s · durée visée 2,6 s]
+      الحاديةَ عشرةَ ليلاً. حجزٌ جديد على Airbnb.
+  b2  [3,3 s → 6,2 s · durée visée 2,8 s]
+      بعدَ دقيقتين، الليالي نفسُها تُباع على Booking.com.
+  b3  [6,5 s → 10,3 s · durée visée 3,4 s]
+      ضيفان، ومسكنٌ واحد… وليلةٌ بلا نوم.
+  b4  [10,5 s → 13,4 s · durée visée 2,8 s]
+      مع بيتلي، كلُّ تقاويمك تقولُ الشيءَ نفسه.
+  b5  [13,7 s → 20,3 s · durée visée 5,4 s]
+      يصلُ حجزٌ من قناة، فتُغلَقُ التواريخُ نفسُها في كلّ مكان، تلقائياً.
+  b6  [20,6 s → 25,4 s · durée visée 4,6 s]
+      وإن توقّفت قناةٌ عن الاستجابة، ينبّهك بيتلي قبلَ أن يقعَ التعارض.
+  b7  [25,7 s → 31,5 s · durée visée 5,6 s]
+      لياليك تبقى لك. … بيتلي. انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [0,3–3,1 s]  الحادية عشرة ليلاً. حجز جديد على [Airbnb.]
+  ST2  [3,2–6,3 s]  بعد دقيقتين، الليالي نفسها تُباع على [Booking.com.]
+  ST3  [6,4–10,3 s]  ضيفان، ومسكن واحد… و[ليلة بلا نوم.]
+  ST4  [10,4–13,5 s]  مع بيتلي، كل تقاويمك [تقول الشيء نفسه.]
+  ST5  [13,6–16,4 s]  يصل حجز [من قناة،]
+  ST6  [16,5–20,3 s]  فتُغلق التواريخ نفسها [في كل مكان، تلقائياً.]
+  ST7  [20,5–22,6 s]  وإن توقّفت قناة [عن الاستجابة،]
+  ST8  [22,7–25,4 s]  [ينبّهك بيتلي] قبل أن يقع التعارض.
+  ST9  [25,6–27,3 s]  لياليك تبقى لك.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  مشهد توضيحي
+  · Notification sur écran verrouillé
+      E2  الجمعة 10 أكتوبر
+      E3  الآن
+      E4  حجز جديد
+      E5  شاليه النخيل · 13 ← 16 أكتوبر · 3 ليالٍ
+      E6  الآن
+      E7  حجز جديد
+      E8  شاليه النخيل · 13 ← 16 أكتوبر · 3 ليالٍ
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E9  ضيفان. ومسكن [واحد.]
+  · Planning (maquette d’interface)
+      E10  العقار
+      E11  مغلق
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E12  ليلة
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E13  ليلتان
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E14  3 ليالٍ
+  · Planning (maquette d’interface)
+      E15  شاليه النخيل
+      E16  الرياض
+      E17  فيلا الدرعية
+      E18  الرياض
+      E19  استوديو العليا
+      E20  الرياض
+      E21  شقة الملقا
+      E22  الرياض
+      E23  سارة
+      E24  جاد
+      E25  نادية
+      E26  عمر
+      E27  كريم
+      E28  لينا
+      E29  الاثنين
+      E30  الثلاثاء
+      E31  الأربعاء
+      E32  الخميس
+      E33  الجمعة
+  · Maquette d’interface (libellé)
+      E34  مفتوح
+      E35  مغلق
+      E36  غير متصل
+      E37  الموقع المباشر
+      E38  gathern
+      E39  Gathern
+      E40  محجوز
+      E41  مكان واحد للإدارة
+      E42  01 · استقبال
+      E43  02 · تحديث
+      E44  03 · توزيع
+      E45  13 ← 16 أكتوبر
+      E46  تم تحديث التوافر
+      E47  التوافر
+      E48  سعر الليلة
+      E49  الحد الأدنى للإقامة
+      E50  مفتوح للبيع
+      E51  مغلق للبيع
+      E52  450 ر.س
+      E53  ليلتان
+      E54  انقطعت المزامنة مع Gathern
+      E55  تحقّق قبل بيع هذه التواريخ.
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E56  كل تقاويمك.
+      E57  حقيقة واحدة.
+  · Bouton de l’écran de fin
+      E58  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E59  Airbnb · Booking.com
+      E60  اتصال مباشر
+      E61  لبقية القنوات

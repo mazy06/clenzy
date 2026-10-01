@@ -1,0 +1,280 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 20 « Gérer pour le compte d'un propriétaire » (≈ 2 min 25) · 9:16 et 16:9, depuis
+  le même fichier. Voix : Lucie (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (« combien je touche, et pourquoi ? ») → 1 le mandat (brut 400 € ou net 340 € ; piège :
+  le mandat flou) → 2 le reversement (2 000 − 300 − 340 − 160 = 1 200 € ; piège : mélanger l'argent) →
+  3 le relevé (séjour par séjour) → 4 mise en pratique (5 points avant de signer) → 5 à retenir → fin.
+  Rendu : node ../render.mjs academie-20-gestion-proprietaire --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 20 Gérer pour un propriétaire</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe go- : aucune collision avec base.css (.bar, .chip, .row, .card, .ph… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.gofill { flex: 1; position: relative; min-height: 0; }
+.golayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; opacity: 0; }
+.goimg { display: block; object-fit: cover; }
+.gopill { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.gopill.ok { background: rgba(13,148,136,.12); color: var(--ok); }
+.gopill.warn { background: #B45733; color: #FDFDFE; }
+.gopill.soft { background: #F4EBDC; color: var(--encre-terre); }
+.gokv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1.5px solid var(--ligne2); padding-top: 12px; opacity: 0; }
+.gokv span { font-size: 26px; font-weight: 600; color: var(--ardoise); }
+.gokv b { font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gokv.minus b { color: #B45733; }
+.gores { display: flex; justify-content: space-between; align-items: center; background: var(--n600); border-radius: 26px; padding: 20px 28px; opacity: 0; }
+.gores span { font-size: 28px; font-weight: 700; color: var(--papier); }
+.gores b { font-family: var(--fd); font-size: 70px; font-weight: 700; color: var(--sable); letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* 0 · accroche */
+.gohook { padding: 26px; display: flex; flex-direction: column; gap: 16px; opacity: 0; }
+.gohook .goimg { width: 100%; height: 280px; border-radius: 24px; }
+.gomsg { align-self: flex-start; background: var(--n600); color: var(--papier); border-radius: 26px 26px 26px 8px; padding: 16px 22px; opacity: 0; }
+.gomsg small { display: block; font-size: 19px; font-weight: 700; color: rgba(247,251,252,.7); margin-bottom: 4px; }
+.gomsg b { font-size: 31px; font-weight: 700; line-height: 1.2; }
+.gopieces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gopiece { display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--surface); border-radius: 20px; padding: 16px 10px; opacity: 0; }
+.gopiece i { width: 58px; height: 58px; border-radius: 16px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.gopiece b { font-size: 23px; font-weight: 700; color: var(--n700); text-align: center; }
+
+/* 1 · le mandat */
+.godoc { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border-radius: 26px; padding: 22px; opacity: 0; }
+.godoc > b { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); padding: 0 4px 6px; }
+.godoc > b i { width: 52px; height: 52px; border-radius: 16px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.gocl { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border-radius: 18px; padding: 14px 18px; opacity: 0; }
+.gocl i { flex: none; width: 46px; height: 46px; border-radius: 14px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.gocl div { flex: 1; min-width: 0; }
+.gocl b { display: block; font-size: 26px; font-weight: 700; color: var(--n700); }
+.gocl span { font-size: 22px; font-weight: 600; color: var(--gris); }
+.gocols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gocol { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border-radius: 22px; padding: 18px 20px; opacity: 0; }
+.gocol small { font-size: 22px; font-weight: 700; color: var(--n700); }
+.gocol span { font-size: 21px; font-weight: 600; color: var(--gris); font-variant-numeric: tabular-nums; }
+.gocol b { font-family: var(--fd); font-size: 56px; font-weight: 700; color: var(--terre); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.goquote { align-self: flex-start; background: var(--surface); border-radius: 24px; padding: 18px 26px; font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); opacity: 0; }
+.goasks { display: flex; flex-direction: column; gap: 10px; }
+.goasks span { display: flex; align-items: center; gap: 12px; background: #F7E4DC; color: #8E3F20; border-radius: 18px; padding: 14px 20px; font-size: 26px; font-weight: 700; opacity: 0; }
+
+/* 2 · le reversement */
+.goacc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.goacc > div { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; background: var(--surface); border-radius: 24px; padding: 24px 22px; min-height: 200px; opacity: 0; }
+.goacc i { width: 66px; height: 66px; border-radius: 20px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.goacc > div:last-child i { background: var(--ok); }
+.goacc b { font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--n700); line-height: 1.15; }
+
+/* 3 · le relevé */
+.gost { display: flex; flex-direction: column; gap: 4px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 24px; padding: 18px 22px; box-shadow: var(--e1); opacity: 0; }
+.gost > b { display: flex; align-items: center; gap: 10px; font-family: var(--fd); font-size: 28px; font-weight: 700; color: var(--n700); padding-bottom: 6px; }
+.gost > b svg { color: var(--terre); }
+.gosr { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--ligne2); font-size: 23px; font-weight: 600; color: var(--ardoise); opacity: 0; }
+.gosr b { font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; }
+.gosr.minus b { color: #B45733; }
+.gosr.tot { border-top: 2px solid var(--n700); font-size: 26px; font-weight: 700; color: var(--n700); padding-top: 10px; }
+.gosr.tot b { font-family: var(--fd); font-size: 40px; color: var(--ok); }
+.gowins { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* 4 · mise en pratique */
+.gochk { display: flex; flex-direction: column; gap: 10px; }
+.goit { display: flex; align-items: center; gap: 14px; background: var(--surface); border-radius: 18px; padding: 14px 18px; font-size: 26px; font-weight: 700; color: var(--n700); opacity: 0; }
+.goit u { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 2.5px solid #B8C4CC; background: #FDFDFE; color: #FDFDFE; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.goit.on u { background: var(--ok); border-color: var(--ok); }
+.goit > svg { flex: none; color: var(--terre); }
+.goinfo { font-size: 20px; font-weight: 700; color: var(--gris); opacity: 0; }
+
+/* 5 · à retenir */
+.gorc { display: flex; flex-direction: column; gap: 14px; }
+.goline { display: flex; align-items: center; gap: 14px; border-radius: 22px; padding: 16px 24px; font-size: 25px; font-weight: 700; }
+.goline.a { background: rgba(13,148,136,.1); color: var(--ok); }
+.goline.b { background: #F4EBDC; color: var(--encre-terre); }
+
+html.f169 .gohook .goimg { height: 250px; }
+html.f169 .gocl { padding: 12px 16px; }
+html.f169 .gocol b { font-size: 50px; }
+html.f169 .gosr { font-size: 22px; padding: 5px 0; }
+html.f169 .gorc .rchip { padding: 18px 24px; }
+html.f169 .gorc .rchip .ic { width: 64px; height: 64px; }
+html.f169 .gorc .rchip b { font-size: 36px; }
+html.f169 .gorc .rchip small { font-size: 21px; }
+html.f169 .goline { font-size: 22px; padding: 13px 22px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const photo = (name) => h('img', { src: `../academie-shared/photos/${name}.jpg`, class: 'goimg', alt: '' });
+const pill = (cls, ic, txt) => h('span', { class: `gopill ${cls}` }, icon(ic, 24), txt);
+const kv = (l, v, cls = '') => h('div', { class: `gokv ${cls}`.trim() }, h('span', {}, l), h('b', {}, v));
+/** Couches successives d'une carte : chacune entre en montant, puis s'efface vers le haut quand la suivante arrive. */
+const stack = (layers, times, t) => layers.forEach((el, i) => {
+  const kIn = i ? shown(t, times[i] - .3, .5) : 1, kOut = i < layers.length - 1 ? shown(t, times[i + 1] - .3, .5) : 0;
+  set(el, { opacity: kIn * (1 - kOut), transform: `translateY(${lerp(20, 0, kIn) - 20 * kOut}px)` });
+});
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const HK = T.hook;
+const hkMsg = h('div', { class: 'gomsg' }, h('small', {}, HK.who), h('b', {}, HK.msg));
+const pieces = HK.pieces.map(([ic, l]) => h('div', { class: 'gopiece' }, h('i', {}, icon(ic, 30)), h('b', {}, l)));
+const hook = A.abs(L.card.x, 0, L.card.w, null, 'acard gohook');
+hook.append(photo(HK.photo), hkMsg, h('div', { class: 'gopieces' }, pieces));
+
+/* 1 · le mandat */
+const MA = T.mandate, BA = T.base, VA = T.vague, c1 = A.card();
+const clauses = MA.clauses.map(([ic, b, s]) => h('div', { class: 'gocl' }, h('i', {}, icon(ic, 24)), h('div', {}, h('b', {}, b), h('span', {}, s))));
+const doc = h('div', { class: 'godoc' }, h('b', {}, h('i', {}, icon('filetext', 28)), MA.title), ...clauses);
+const l1a = h('div', { class: 'golayer' }, doc);
+const baRows = BA.rows.map(([l, v]) => kv(l, v));
+const cols = BA.cols.map(([t1, f, v]) => h('div', { class: 'gocol' }, h('small', {}, t1), h('span', {}, f), h('b', {}, v)));
+const gap = h('div', { class: 'gores' }, h('span', {}, BA.gap[0]), h('b', {}, BA.gap[1]));
+const l1b = h('div', { class: 'golayer' }, h('span', { class: 'alabel' }, T.illustrative), ...baRows, h('div', { class: 'gocols' }, cols), gap);
+const quote = h('div', { class: 'goquote' }, VA.quote);
+const asks = VA.asks.map(([ic, l]) => h('span', {}, icon(ic, 26), l));
+const vaOk = pill('ok', 'pencil', VA.ok);
+const l1c = h('div', { class: 'golayer' }, quote, h('div', { class: 'goasks' }, asks), vaOk);
+c1.el.append(h('div', { class: 'gofill' }, l1a, l1b, l1c));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · le reversement */
+const PO = T.payout, MO = T.money, c2 = A.card();
+const poRows = PO.rows.map(([l, v, cls]) => kv(l, v, cls));
+const poVals = poRows.map((r) => r.querySelector('b'));
+const poRes = h('div', { class: 'gores' }, h('span', {}, PO.result[0]), h('b', {}, PO.result[1]));
+const l2a = h('div', { class: 'golayer' }, h('span', { class: 'alabel' }, T.illustrative), ...poRows, poRes);
+const accs = MO.accounts.map(([ic, l]) => h('div', {}, h('i', {}, icon(ic, 32)), h('b', {}, l)));
+const apart = pill('soft', 'shield', MO.apart), fixed = pill('ok', 'cal', MO.fixed);
+const l2b = h('div', { class: 'golayer' }, h('div', { class: 'goacc' }, accs), apart, fixed);
+c2.el.append(h('div', { class: 'gofill' }, l2a, l2b));
+const trap2 = A.trap(c2.el, T.trap);
+
+/* 3 · le relevé */
+const ST = T.statement, c3 = A.card();
+const stRows = [
+  ...ST.stays.map(([l, v]) => h('div', { class: 'gosr' }, h('span', {}, l), h('b', {}, v))),
+  ...ST.deductions.map(([l, v]) => h('div', { class: 'gosr minus' }, h('span', {}, l), h('b', {}, v))),
+  h('div', { class: 'gosr tot' }, h('span', {}, ST.total[0]), h('b', {}, ST.total[1])),
+];
+const stmt = h('div', { class: 'gost' }, h('b', {}, icon('receipttext', 28), ST.title), ...stRows);
+const same = pill('ok', 'ccheck', ST.same);
+const wins = ST.wins.map(([ic, l]) => pill('soft', ic, l));
+c3.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px' }, stmt, same, h('div', { class: 'gowins' }, wins)));
+
+/* 4 · mise en pratique */
+const PQ = T.practice, c4 = A.card();
+const its = PQ.items.map(([ic, l]) => h('div', { class: 'goit' }, h('u', {}, icon('check', 20)), icon(ic, 26), l));
+const note = pill('warn', 'landmark', PQ.note);
+note.style.whiteSpace = 'normal';
+const info = h('div', { class: 'goinfo' }, PQ.info);
+c4.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px' }, h('div', { class: 'gochk' }, its), note, info));
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'gorc');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'goline a', style: 'opacity:0' }, icon('pencil', 30), R.app);
+const app2 = h('div', { class: 'goline b', style: 'opacity:0' }, icon('receipttext', 30), R.app2);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, app2);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.how - .1);
+  A.rise(hook, v0, shown(t, SYNC.owner - .4, .6), 60);
+  A.rise(hkMsg, 1, shown(t, SYNC.how - .2), 14);
+  [SYNC.p1, SYNC.p2, SYNC.p3].forEach((t0, i) => A.rise(pieces[i], 1, shown(t, t0 - .15, .45), 16));
+
+  /* 1 · le mandat */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  stack([l1a, l1b, l1c], [0, SYNC.base, SYNC.trap1], t);
+  A.rise(doc, 1, shown(t, SYNC.mand), 14);
+  [SYNC.m1, SYNC.m2, SYNC.m3, SYNC.m4].forEach((t0, i) => A.rise(clauses[i], 1, shown(t, t0 - .2), 12));
+  A.rise(baRows[0], 1, shown(t, SYNC.v2000 - .15), 10); A.rise(baRows[1], 1, shown(t, SYNC.v300 - .15), 10);
+  A.rise(cols[0], 1, shown(t, SYNC.gross - .2), 14); A.rise(cols[1], 1, shown(t, SYNC.net - .2), 14);
+  A.rise(gap, 1, shown(t, SYNC.gap - .15), 12);
+  trap1.render(t, SYNC.trap1, v1);
+  A.rise(quote, 1, shown(t, SYNC.vague - .2), 12);
+  A.rise(asks[0], 1, shown(t, SYNC.vague + 1.4), 10); A.rise(asks[1], 1, shown(t, SYNC.who - .1), 10);
+  A.rise(vaOk, 1, shown(t, SYNC.write - .1), 10);
+
+  /* 2 · le reversement */
+  const v2 = slotVis(t, 2);
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  stack([l2a, l2b], [0, SYNC.trap2], t);
+  [SYNC.rev + .6, SYNC.minus1, SYNC.minus2, SYNC.minus3].forEach((t0, i) => A.rise(poRows[i], 1, shown(t, t0 - .15), 10));
+  [SYNC.r2000, SYNC.r300, SYNC.r340, SYNC.r160].forEach((t0, i) => { poVals[i].style.opacity = shown(t, t0 - .1, .35); });
+  A.rise(poRes, 1, shown(t, SYNC.r1200 - .15), 14);
+  trap2.render(t, SYNC.trap2, v2);
+  accs.forEach((a, i) => A.rise(a, 1, shown(t, SYNC.trap2 + .8 + i * .6, .45), 16));
+  A.rise(apart, 1, shown(t, SYNC.apart - .1), 10); A.rise(fixed, 1, shown(t, SYNC.fixed - .1), 10);
+
+  /* 3 · le relevé */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  A.rise(stmt, 1, shown(t, SYNC.stmt + .3), 14);
+  stRows.forEach((r, i) => A.rise(r, 1, shown(t, SYNC.detail - .3 + i * .45, .35), 6));
+  A.rise(same, 1, shown(t, SYNC.same - .1), 10);
+  A.rise(wins[0], 1, shown(t, SYNC.calm + .4), 10); A.rise(wins[1], 1, shown(t, SYNC.trust - .1), 10);
+
+  /* 4 · mise en pratique */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  [SYNC.c1, SYNC.c2, SYNC.c3, SYNC.c4, SYNC.c5].forEach((t0, i) => {
+    A.rise(its[i], 1, shown(t, t0 - .25), 10);
+    its[i].classList.toggle('on', t >= t0 + .5);
+  });
+  A.rise(note, 1, shown(t, SYNC.card - .3), 10);
+  A.rise(info, 1, shown(t, SYNC.card + .6), 6);
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.sign - .3, .45), 20); A.rise(app2, v5, shown(t, SYNC.valid - .3, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

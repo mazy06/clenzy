@@ -1,0 +1,401 @@
+<!doctype html>
+<!--
+  Baitly · Reel 03 « Avant / après » (Instagram, 1080 × 1920, 46 s) · FR / EN / AR
+
+  À quoi sert ce fichier : l'animation du script `marketing/scripts-video/script-03-avant-apres-journee.md`
+  en écran scindé (haut = Sans, bas = Avec Baitly), pilotée par le temps via le kit partagé.
+  Rendu : `node ../render.mjs reel-03-avant-apres --lang=fr`.
+  Déroulé : les deux panneaux s'ouvrent depuis le filet central → 8 h (code wifi) → 11 h (départ
+  tardif) → 16 h (nuits creuses) → 19 h (arrivée) : les mêmes événements arrivent des deux côtés au
+  même moment, seules les horloges montrent l'écart → le panneau « Sans » se replie, l'accueil
+  occupe l'écran → fin.
+  Composants : volontairement AUCUN planning ni carte d'agent compacte (INVENTAIRE-COMPOSANTS.md,
+  § 5) ; côté « Avec » : messagerie unifiée, photo + piste de ménage (L07), semaine de prix (L09),
+  pass d'accès (L12) ; côté « Sans » : urgence (M10), appel, tableur, onglets, tracé de route (M03).
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 03 Avant / après</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+#top { left: 0; top: 0; width: 1080px; height: 952px; overflow: hidden; background: #E7EBEE; }
+#bot { left: 0; top: 968px; width: 1080px; height: 952px; overflow: hidden;
+  background: radial-gradient(90% 60% at 50% 0%, rgba(224,200,155,.24), rgba(224,200,155,0) 70%), var(--papier); }
+#rule { left: 0; top: 958px; width: 1080px; height: 3px; background: #A89684; }
+#sub { top: 960px; bottom: auto; transform: translateY(-50%); inset-inline-start: 60px; width: 960px; }
+#subBox { font-size: 40px; }
+#ill { inset-inline-start: 40px; bottom: 16px; font-size: 22px; font-weight: 500; color: #A89684; }
+
+.eb6 { display: inline-flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.eb6.off { color: #96472A; }
+.eb6.on { color: var(--encre-terre); }
+.rtl .eb6 { letter-spacing: 0; }
+/* Pas de `direction: ltr` sur l'élément positionné : ses inset-inline-* suivraient alors le LTR. */
+.clk { font-family: 'BSG'; font-weight: 600; font-size: 76px; letter-spacing: -.01em; unicode-bidi: isolate; line-height: 1; }
+.clk.off { color: #5B6770; }
+.clk.on { color: var(--n700); }
+.s0 { left: 0; width: 1080px; text-align: center; font-size: 78px; }
+.s0.off { color: #5B6770; }
+
+/* Côté « Sans » : interfaces génériques, désaturées */
+.nt6 { display: flex; gap: 18px; align-items: center; padding: 20px 24px; background: #F7F8F9; border: 1.5px solid #CFD6DB; border-radius: 22px; color: #3A4650; }
+.nt6 .lg, .card6 .ic6 { width: 60px; height: 60px; border-radius: 16px; background: #fff; border: 1.5px solid #DDE3E7; display: flex; align-items: center; justify-content: center; flex: none; color: #67757C; }
+.nt6 .lg img { width: 32px; height: 32px; }
+.nt6 .tx { flex: 1; min-width: 0; font-size: 25px; }
+.nt6 .hd { display: flex; justify-content: space-between; font-size: 20px; color: #67757C; margin-bottom: 4px; }
+.nt6 .hd b { color: #3A4650; font-size: 22px; }
+.nt6 .hd span { font-family: 'BSG'; direction: ltr; }
+.paste6 { display: flex; justify-content: center; }
+.paste6 > span { display: inline-flex; align-items: center; gap: 12px; padding: 14px 26px; border-radius: 999px; background: #fff; border: 1.5px dashed #B45733; color: #96472A; font-size: 26px; font-weight: 700; }
+.paste6 b { font-family: 'BSG'; }
+.card6 { display: flex; align-items: center; gap: 20px; padding: 22px 26px; background: #F7F8F9; border: 1.5px solid #CFD6DB; border-radius: 24px; color: #3A4650; }
+.card6 .ic6 { color: #B45733; }
+.card6 .tx { flex: 1; }
+.card6 small { display: block; font-size: 21px; color: #67757C; }
+.card6 .tx b { font-size: 30px; }
+.card6 .tm { font-family: 'BSG'; font-size: 34px; color: #96472A; }
+.sheet6 { background: #fff; border: 1.5px solid #CFD6DB; border-radius: 18px; overflow: hidden; color: #3A4650; }
+.sheet6 .fn { display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #EEF1F3; font-size: 20px; color: #5B6770; border-bottom: 1.5px solid #CFD6DB; }
+.sheet6 .row { display: grid; grid-template-columns: 250px repeat(3, 1fr); }
+.sheet6 .row > div { height: 78px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 14px; border-inline-end: 1.5px solid #E1E6EA; border-bottom: 1.5px solid #E1E6EA; font-size: 21px; position: relative; white-space: nowrap; overflow: hidden; }
+.sheet6 .row.hd > div { background: #F4F6F7; font-weight: 700; color: #5B6770; height: 52px; }
+.sheet6 .cell-old { text-decoration-color: #B45733; text-decoration-thickness: 3px; }
+.sheet6 .cell-new { color: #B45733; font-weight: 800; }
+.sheet6 .sel { position: absolute; inset: 2px; border: 3px solid #B45733; border-radius: 4px; opacity: 0; }
+.voice6 { display: flex; align-items: center; gap: 16px; padding: 18px 24px; background: #F7F8F9; border: 1.5px solid #CFD6DB; border-radius: 999px; color: #3A4650; }
+.voice6 .wave { flex: 1; display: flex; align-items: center; gap: 5px; height: 50px; }
+.voice6 .wave i { flex: 1; background: #8A969E; border-radius: 3px; height: 100%; }
+.voice6 b { font-family: 'BSG'; font-size: 24px; direction: ltr; }
+.voice6 small { font-size: 20px; color: #67757C; }
+.br6 { background: #F7F8F9; border: 1.5px solid #CFD6DB; border-radius: 22px; overflow: hidden; }
+.br6 .tbar { display: flex; align-items: flex-end; gap: 6px; padding: 14px 16px 0; background: #E3E8EB; }
+.br6 .dots { display: flex; gap: 8px; padding: 0 10px 18px 4px; }
+.br6 .dots i { width: 14px; height: 14px; border-radius: 50%; background: #C3CBD1; }
+.br6 .tab { padding: 14px 20px; border-radius: 14px 14px 0 0; font-size: 20px; color: #67757C; white-space: nowrap; }
+.br6 .tab.on { background: #F7F8F9; color: #3A4650; font-weight: 700; }
+.br6 .pg { padding: 22px; }
+.br6 .ph6 { height: 300px; border-radius: 16px; overflow: hidden; filter: saturate(.55); }
+.br6 .ph6 img { width: 100%; height: 100%; object-fit: cover; }
+.br6 .nm { font-size: 27px; font-weight: 700; margin-top: 16px; color: #3A4650; }
+.br6 .pr { font-family: 'BSG'; font-size: 44px; font-weight: 700; color: #3A4650; margin-top: 6px; }
+.br6 .pr small { font-family: var(--fb); font-size: 21px; color: #67757C; font-weight: 600; }
+#ask { width: 280px; height: 280px; overflow: visible; }
+.ask6 { display: flex; justify-content: center; }
+.ask6 span { background: #96472A; color: #FDFDFE; font-size: 30px; font-weight: 800; padding: 14px 28px; border-radius: 16px; }
+.route6 { overflow: visible; }
+.pin6 { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 21px; font-weight: 700; color: #5B6770; }
+.pin6 svg { color: #B45733; }
+.toast6 { display: flex; align-items: center; gap: 14px; padding: 16px 22px; background: #FDFDFE; border: 1.5px solid #CFD6DB; border-radius: 18px; font-size: 24px; font-weight: 700; color: #3A4650; box-shadow: 0 18px 30px -22px rgba(27,42,53,.45); }
+.toast6 svg { color: #B45733; flex: none; }
+
+/* Côté « Avec » */
+.rp { margin-top: 12px; padding: 18px 20px; border-radius: 20px; background: #FBF7F1; border: 1.5px solid #EFE3D2; }
+.rp-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: var(--encre-terre); }
+.rp-hd b { flex: 1; font-size: 23px; }
+.btn6 { margin-top: 14px; height: 70px; border-radius: 16px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 26px; font-weight: 800; }
+.btn6.done { background: rgba(154,108,58,.15); color: var(--encre-terre); }
+.fc6 { position: absolute; padding: 22px 26px; width: 540px; }
+.fc6 .k { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 700; color: #2F9E8D; }
+.fc6 .v { font-family: 'BSG'; font-size: 40px; font-weight: 700; color: var(--n700); margin-top: 8px; display: flex; align-items: baseline; }
+.rtl .fc6 .v { font-family: 'Tajawal', 'BSG', sans-serif; font-weight: 800; }
+.roll { position: relative; display: inline-block; margin-inline-start: .28em; overflow: hidden; height: 1.2em; vertical-align: bottom; min-width: 3.6em; }
+.roll span { position: absolute; inset-inline-start: 0; top: 0; white-space: nowrap; }
+.roll span + span { color: var(--terre); }
+.fc6 .tm6 { display: flex; align-items: center; gap: 8px; font-size: 20px; color: var(--ardoise); margin-top: 12px; }
+.auto6 { display: flex; align-items: center; gap: 16px; font-size: 24px; color: var(--ardoise); }
+.prop6 { display: flex; align-items: center; gap: 18px; margin-top: 18px; padding: 16px 18px; border-radius: 18px; background: #F6F8F9; }
+.prop6 .pt { flex: 1; font-size: 23px; line-height: 1.4; color: var(--n700); }
+.prop6 .pt b { color: var(--terre); white-space: nowrap; }
+.prop6 .go { flex: none; height: 62px; padding: 0 28px; border-radius: 14px; background: var(--n600); color: var(--papier); display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 800; }
+.prop6 .go.done { background: rgba(154,108,58,.15); color: var(--encre-terre); }
+.sent6 { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; background: rgba(253,253,254,.94); font-size: 23px; font-weight: 700; color: var(--encre-terre); box-shadow: 0 20px 40px -24px rgba(27,42,53,.5); }
+#veil { left: 0; top: 1020px; width: 1080px; height: 900px; background: linear-gradient(0deg, rgba(247,251,252,.96) 0%, rgba(247,251,252,.8) 50%, rgba(247,251,252,0) 100%); opacity: 0; }
+#tFinal { inset-inline-start: 90px; top: 1360px; width: 900px; font-size: 88px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, RTL, DIR, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, words, titleIn, clamp } = K;
+const BR = '../../brand-book/assets/brands/';
+const PH = '../../brand-book/assets/photos/';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+const at = (parent, cls, css) => { const e = h('div', { class: 'abs ' + cls, style: css }); parent.append(e); return e; };
+const [S1, S2, S3, S4] = [T.s1, T.s2, T.s3, T.s4];
+const SLOT = SYNC.slots;
+
+/* Panneaux, filet central, mentions */
+const topP = K.abs('top'), bot = K.abs('bot'), rule = K.abs('rule');
+const ill = K.abs('ill'); ill.textContent = T.illustrative;
+const ebTop = at(topP, 'eb6 off', 'inset-inline-start:70px;top:64px'); ebTop.append(icon('x', 24), T.without);
+const clkTop = at(topP, 'clk off', 'inset-inline-end:64px;top:44px');
+const ebBot = at(bot, 'eb6 on', 'inset-inline-start:70px;top:118px'); ebBot.append(icon('house', 28), T.with);
+const clkBot = at(bot, 'clk on', 'inset-inline-end:64px;top:98px');
+const s0Top = at(topP, 'title s0 off', 'top:360px'); s0Top.append(h('div', {}, T.s0[0]), h('div', {}, T.s0[1]));
+const s0Bot = at(bot, 'title s0', 'top:420px'); s0Bot.append(h('div', { class: 'accent' }, T.s0[2]));
+
+/* 8 h · Sans : trois canaux, trois notifications, copier-coller */
+const notifs = S1.notifs.map(([logo, who, when, text], i) => {
+  const el = at(topP, 'nt6', `inset-inline-start:90px;top:${196 + i * 150}px;width:900px`);
+  el.append(h('span', { class: 'lg' }, logo ? h('img', { src: BR + logo, alt: '' }) : icon('mail', 30)),
+    h('div', { class: 'tx' }, h('div', { class: 'hd' }, h('b', {}, who), h('span', {}, when)), h('div', { dir: 'auto' }, text)));
+  return el;
+});
+const paste = at(topP, 'paste6', 'left:0;width:1080px;top:680px');
+const pasteN = h('b', { class: 'ltr' }, '×1');
+paste.append(h('span', {}, icon('copy', 28), S1.paste, pasteN));
+
+/* 8 h · Avec : messagerie unifiée, réponse tirée du livret */
+const inbox = K.productWindow({ title: S1.inbox, icon: 'chat' });
+bot.append(inbox.el);
+set(inbox.el, { insetInlineStart: '80px', top: '186px', width: '920px' });
+const rows = S1.notifs.map(([logo, who, , text]) => K.inboxRow({ logo, ic: 'mail', name: who, text }));
+rows.forEach((r) => inbox.body.append(r.el));
+const sendBtn = h('div', { class: 'btn6' }, icon('send', 28), h('span', {}, S1.send));
+const reply = h('div', { class: 'rp' }, h('div', { class: 'rp-hd' }, icon('chat', 26), h('b', {}, S1.agent), h('span', { class: 'chip ok' }, icon('file', 20), S1.from)), K.bubble(S1.reply), sendBtn);
+inbox.body.append(reply);
+
+/* 11 h · Sans : appel, tableur modifié à la main, message vocal */
+const call = at(topP, 'card6', 'inset-inline-start:90px;top:190px;width:900px');
+const callTm = h('b', { class: 'tm' }, '00:00');
+const callIc = h('span', { class: 'ic6' }, icon('call', 34));
+call.append(callIc, h('div', { class: 'tx' }, h('small', {}, S2.call), h('b', {}, S2.callWho)), callTm);
+const sheet = at(topP, 'sheet6', 'inset-inline-start:90px;top:360px;width:900px');
+sheet.append(h('div', { class: 'fn' }, icon('sheet', 24), h('span', { class: 'ltr' }, S2.sheet)));
+sheet.append(h('div', { class: 'row hd' }, S2.sheetHead.map((c) => h('div', {}, c))));
+const sheetCells = S2.sheetRows.map((r) => { const cells = r.map((c) => h('div', {}, c)); sheet.append(h('div', { class: 'row' }, cells)); return cells; });
+const oldCell = sheetCells[0][3];
+const oldTxt = h('span', { class: 'cell-old' }, S2.sheetRows[0][3]);
+const newTxt = h('span', { class: 'cell-new' }, S2.cellNew);
+const selBox = h('i', { class: 'sel' });
+oldCell.replaceChildren(oldTxt, newTxt, selBox);
+const voice = at(topP, 'voice6', 'inset-inline-start:90px;top:690px;width:900px');
+const wave = h('div', { class: 'wave' }, Array.from({ length: 34 }, () => h('i')));
+voice.append(h('span', { class: 'ic6', style: 'color:#B45733' }, icon('mic', 30)), wave, h('b', {}, '0:48'), h('small', {}, S2.voice));
+const waveBars = [...wave.children];
+
+/* 11 h · Avec : photo + piste de ménage, départ tardif accepté */
+const clean = K.photoFrame('menage.jpg');
+bot.append(clean.el);
+set(clean.el, { insetInlineStart: '80px', top: '186px', width: '920px', height: '540px' });
+const track = K.progressTrack(5);
+const rollOld = h('span', {}, S2.from), rollNew = h('span', {}, S2.to);
+const cleanCard = at(bot, 'fc6 card', 'inset-inline-start:120px;top:560px');
+cleanCard.append(h('div', { class: 'k' }, icon('broom', 26), S2.clean),
+  h('div', { class: 'v' }, h('span', {}, S2.date), h('span', { class: 'roll' }, rollOld, rollNew)),
+  track.el, h('div', { class: 'tm6' }, icon('check', 20), S2.team));
+const auto = at(bot, 'auto6', 'inset-inline-start:80px;top:790px;width:920px');
+auto.append(h('span', { class: 'chip auto' }, icon('sync', 22), S2.auto), h('span', {}, S2.autoSub));
+
+/* 16 h · Sans : onglets d'annonces concurrentes, point d'interrogation */
+const br = at(topP, 'br6', 'inset-inline-start:90px;top:186px;width:900px');
+const tabs = S3.tabs.map((x, i) => h('span', { class: 'tab' + (i ? '' : ' on') }, x));
+const brImg = h('img', { src: PH + S3.listing[0][0], alt: '' });
+const brNm = h('div', { class: 'nm' }, S3.listing[0][1]);
+const brPrN = h('span', { class: 'ltr' }, S3.listing[0][2]);
+br.append(h('div', { class: 'tbar' }, h('div', { class: 'dots' }, h('i'), h('i'), h('i')), tabs),
+  h('div', { class: 'pg' }, h('div', { class: 'ph6' }, brImg), brNm, h('div', { class: 'pr' }, brPrN, ' ', h('small', {}, S3.unit))));
+const askSvg = svgEl('svg', { id: 'ask', viewBox: '0 0 100 140', class: 'abs' });
+const askG = svgEl('g', RTL ? { transform: 'translate(100 0) scale(-1 1)' } : {});
+const askPath = svgEl('path', { d: 'M20 40 C20 16 38 6 55 6 C76 6 88 20 88 38 C88 58 70 64 60 72 C52 79 52 86 52 98', fill: 'none', stroke: '#B45733', 'stroke-width': 12, 'stroke-linecap': 'round', pathLength: 100 });
+const askDot = svgEl('circle', { cx: 52, cy: 126, r: 8.5, fill: '#B45733' });
+askG.append(askPath, askDot); askSvg.append(askG); topP.append(askSvg);
+set(askSvg, { insetInlineEnd: '120px', top: '250px' });
+const ask = at(topP, 'ask6', 'left:0;width:1080px;top:790px'); ask.append(h('span', {}, S3.ask));
+
+/* 16 h · Avec : semaine de prix, plancher, approbation */
+const rev = K.productWindow({ title: S3.window, icon: 'shield', tabs: S3.demand, active: 0 });
+bot.append(rev.el);
+set(rev.el, { insetInlineStart: '80px', top: '176px', width: '920px' });
+const week = K.barWeek({ labels: S3.days, values: S3.prices, hi: S3.hi, unit: S3.weekUnit, floor: { value: S3.floor, label: S3.floorLabel } });
+const goBtn = h('div', { class: 'go' }, icon('check', 24), S3.approve);
+rev.body.append(week.el, h('div', { class: 'prop6' }, h('div', { class: 'pt' }, S3.proposal[0], h('b', {}, S3.proposal[1]), S3.proposal[2]), goBtn));
+
+/* 19 h · Sans : on court (tracé de route), les notifications s'empilent */
+const keys = at(topP, 'card6', 'inset-inline-start:90px;top:190px;width:900px');
+const keyIc = h('span', { class: 'ic6' }, icon('key', 34));
+keys.append(keyIc, h('div', { class: 'tx' }, h('b', {}, S4.keys), h('small', {}, S4.keysSub)));
+const route = at(topP, 'route6', 'inset-inline-start:90px;top:370px;width:900px;height:170px');
+const routeSvg = svgEl('svg', { width: 900, height: 170, viewBox: '0 0 900 170', style: 'position:absolute;inset:0;overflow:visible' });
+const RD = RTL ? 'M790 110 C 640 10, 560 160, 430 90 S 220 20, 110 110' : 'M110 110 C 260 10, 340 160, 470 90 S 680 20, 790 110';
+const routeBase = svgEl('path', { d: RD, fill: 'none', stroke: '#B8C1C7', 'stroke-width': 6, 'stroke-dasharray': '2 16', 'stroke-linecap': 'round' });
+const routeDone = svgEl('path', { d: RD, fill: 'none', stroke: '#B45733', 'stroke-width': 6, 'stroke-linecap': 'round', pathLength: 100 });
+const runner = svgEl('circle', { r: 14, fill: '#B45733', stroke: '#FDFDFE', 'stroke-width': 5 });
+routeSvg.append(routeBase, routeDone, runner); route.append(routeSvg);
+const pinA = h('div', { class: 'pin6 abs', style: 'inset-inline-start:40px;top:100px' }, icon('user', 34), S4.from);
+const pinB = h('div', { class: 'pin6 abs', style: 'inset-inline-end:40px;top:100px' }, icon('pin', 34), S4.to);
+route.append(pinA, pinB);
+const toasts = S4.pile.map((txt, i) => { const el = at(topP, 'toast6', `inset-inline-start:${150 + i * 26}px;top:${560 + i * 70}px;width:720px`); el.append(icon('bell', 28), txt); return el; });
+
+/* 19 h · Avec : la photo d'accueil passe au net, le pass d'accès s'écrit */
+const welcome = K.photoFrame('homeReceptionBaitly.webp');
+bot.append(welcome.el);
+const pass = K.accessPass(S4.pass);
+bot.append(pass.el);
+set(pass.el, { insetInlineEnd: '110px', top: '430px' });
+const sent = at(bot, '', 'inset-inline-start:110px;top:216px');
+sent.append(h('span', { class: 'sent6' }, icon('check', 22), S4.sent));
+const veil = at(bot, '', ''); veil.id = 'veil';
+const tFinal = K.abs('tFinal', 'title');
+const tf1 = h('div', {}), tf2 = h('div', {});
+tFinal.append(tf1, tf2);
+const tf1w = words(tf1, T.tFinal[0], []), tf2w = words(tf2, T.tFinal[1], T.tFinalEm);
+K.endMount();
+
+/* Horloges : l'écart se lit sans chiffre de durée (script 03, notes). */
+const CLOCK = [[8, 24, 2], [11, 35, 1], [16, 40, 1], [19, 20, 0]];
+const pad = (n) => String(n).padStart(2, '0');
+function clock(t, side) {
+  let i = SLOT.findIndex(([, b]) => t < b); if (i < 0) i = SLOT.length - 1;
+  const [a, b] = SLOT[i], [hh, spanTop, spanBot] = CLOCK[i];
+  const m = t < a ? 0 : Math.round((side ? spanBot : spanTop) * easeInOut(prog(t, a + .4, b - a - 1.4)));
+  return pad(hh) + ':' + pad(m);
+}
+const W = (i) => vis(t0g, SLOT[i][0], SLOT[i][1], .45, .4);
+let t0g = 0;
+let pts = null;
+function points() {
+  const c = (el) => { const p = K.posIn(el, K.stage); return { x: p.x + el.offsetWidth / 2, y: p.y + el.offsetHeight / 2 }; };
+  return { send: c(sendBtn), go: c(goBtn) };
+}
+const WAVE = Array.from({ length: 34 }, (_, i) => .35 + .65 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * .6)));
+
+function renderAt(t) {
+  t0g = t;
+  if (!pts) pts = points();
+  /* Ouverture depuis le filet, repli du panneau « Sans » (merge), fin */
+  const open = easeOut(prog(t, 0, .7));
+  const m = easeInOut(prog(t, SYNC.merge, 1.0));
+  const endOut = easeIn(prog(t, SYNC.end - .35, .45));
+  set(rule, { transform: `scaleX(${open})`, opacity: 1 - m });
+  set(topP, { clipPath: `inset(${lerp(100, 0, open)}% 0 0 0)`, transform: `translateY(${-952 * easeIn(prog(t, SYNC.merge, .9))}px)` });
+  set(bot, { clipPath: `inset(0 0 ${lerp(100, 0, open)}% 0)`, top: lerp(968, 0, m) + 'px', height: lerp(952, 1920, m) + 'px', opacity: 1 - endOut });
+  clkTop.textContent = clock(t, 0); clkBot.textContent = clock(t, 1);
+  const hdOut = 1 - easeIn(prog(t, SYNC.merge - .2, .4));
+  [ebBot, clkBot].forEach((e) => { e.style.opacity = hdOut; });
+  ill.style.opacity = 1 - endOut;
+  /* Ouverture : « Même journée. Mêmes logements. » / « Deux façons de la vivre. » */
+  const s0 = vis(t, .5, 4.0, .5, .35);
+  set(s0Top, { opacity: s0, transform: `translateY(${lerp(20, 0, easeOut(prog(t, .5, .6)))}px)` });
+  set(s0Bot, { opacity: vis(t, 1.6, 4.0, .5, .35), transform: `translateY(${lerp(20, 0, easeOut(prog(t, 1.6, .6)))}px)` });
+
+  /* 8 h */
+  const w1 = W(0);
+  const NT = SYNC.nt || [4.6, 6.6, 8.2];   // arrivée des trois demandes (recalée sur la voix)
+  notifs.forEach((el, i) => {
+    const p = easeOut(prog(t, NT[i], .5));
+    set(el, { opacity: p * w1, transform: `translateY(${lerp(-26, 0, p)}px)` });
+    K.urgency(el, t, NT[i] + .5, '0 10px 24px -18px rgba(27,42,53,.35)');
+  });
+  const pv = easeOut(prog(t, 8.9, .4));
+  set(paste, { opacity: pv * w1, transform: `scale(${lerp(.9, 1, pv)})` });
+  pasteN.textContent = t < 9.7 ? '×1' : t < 10.5 ? '×2' : '×3';
+  set(inbox.el, { opacity: w1, transform: `translateY(${lerp(30, 0, easeOut(prog(t, SLOT[0][0], .6)))}px)` });
+  rows.forEach((r, i) => {
+    const p = easeOut(prog(t, NT[i] + .1, .45));
+    set(r.el, { opacity: p, transform: `translateX(${lerp(-30 * DIR, 0, p)}px)` });
+    const done = t >= SYNC.send + .3 + i * .15;
+    if (r.done !== done) { r.done = done; r.state.replaceChildren(...(done ? [h('span', { class: 'chip ok' }, icon('check', 20), S1.answered)] : [])); }
+  });
+  const rp = easeOut(prog(t, 8.8, .5));
+  set(reply, { opacity: rp, transform: `translateY(${lerp(20, 0, rp)}px)` });
+  const isSent = t >= SYNC.send + .15;
+  if (sendBtn.dataset.s !== String(isSent)) { sendBtn.dataset.s = isSent; sendBtn.className = 'btn6' + (isSent ? ' done' : ''); sendBtn.replaceChildren(icon(isSent ? 'check' : 'send', 28), h('span', {}, isSent ? S1.sent : S1.send)); }
+  K.cursorMove(t, SYNC.send - 1.1, .9, { x: pts.send.x + 260 * DIR, y: pts.send.y + 180 }, pts.send, SYNC.send + .7);
+  K.tapAt(t, SYNC.send, pts.send);
+
+  /* 11 h */
+  const w2 = W(1);
+  set(call, { opacity: w2 * easeOut(prog(t, 12.4, .45)) });
+  K.urgency(callIc, t, 12.6, 'none');
+  const sec = Math.max(0, Math.floor((t - 12.6) * 23));
+  callTm.textContent = pad(Math.floor(sec / 60)) + ':' + pad(sec % 60);
+  set(sheet, { opacity: w2 * easeOut(prog(t, 13.4, .45)), transform: `translateY(${lerp(20, 0, easeOut(prog(t, 13.4, .5)))}px)` });
+  const ed = prog(t, SYNC.extend, .6);
+  selBox.style.opacity = t > SYNC.extend - .6 ? 1 : 0;
+  oldTxt.style.textDecorationLine = t >= SYNC.extend ? 'line-through' : 'none';
+  set(newTxt, { opacity: easeOut(ed), transform: `translateX(${lerp(20 * DIR, 0, easeOut(ed))}px)` });
+  set(voice, { opacity: w2 * easeOut(prog(t, 16.6, .45)) });
+  waveBars.forEach((b, i) => { b.style.transform = `scaleY(${t > 16.8 ? WAVE[i] * (.55 + .45 * Math.abs(Math.sin(t * 6 + i))) : .15})`; });
+  set(clean.el, { opacity: w2 });
+  clean.img.style.transform = `scale(${lerp(1.08, 1, easeOut(prog(t, SLOT[1][0], 4)))})`;
+  const cc = easeOut(prog(t, 12.8, .5));
+  set(cleanCard, { opacity: cc * w2, transform: `translateY(${lerp(24, 0, cc)}px)` });
+  const rl = easeInOut(prog(t, SYNC.extend + .2, .5));
+  set(rollOld, { transform: `translateY(${-110 * rl}%)`, opacity: 1 - rl });
+  set(rollNew, { transform: `translateY(${110 * (1 - rl)}%)`, opacity: rl });
+  track.set(t < SYNC.extend ? .2 : lerp(.2, .6, easeOut(prog(t, SYNC.extend + .4, 1.2))));
+  const au = easeOut(prog(t, SYNC.extend + .8, .5));
+  set(auto, { opacity: au * w2, transform: `translateY(${lerp(16, 0, au)}px)` });
+
+  /* 16 h */
+  const w3 = W(2);
+  set(br, { opacity: w3 * easeOut(prog(t, 20.4, .45)) });
+  const ti = t < 21.6 ? 0 : t < 22.8 ? 1 : t < 24.0 ? 2 : 0;
+  if (br.dataset.i !== String(ti)) {
+    br.dataset.i = ti;
+    tabs.forEach((x, j) => x.classList.toggle('on', j === ti));
+    brImg.src = PH + S3.listing[ti][0]; brNm.textContent = S3.listing[ti][1]; brPrN.textContent = S3.listing[ti][2];
+  }
+  set(askPath, { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * easeInOut(prog(t, 24.8, .8))) });
+  askDot.style.opacity = easeOut(prog(t, 25.55, .2));
+  askSvg.style.opacity = w3;
+  const ak = easeOut(prog(t, 25.6, .45));
+  set(ask, { opacity: ak * w3, transform: `translateY(${lerp(14, 0, ak)}px)` });
+  set(rev.el, { opacity: w3, transform: `translateY(${lerp(30, 0, easeOut(prog(t, SLOT[2][0], .6)))}px)` });
+  week.grow(t, 20.7);
+  const ap = easeInOut(prog(t, SYNC.approve + .3, .8));
+  S3.hi.forEach((i) => week.morph(i, S3.prices[i], S3.to, ap));
+  const okd = t >= SYNC.approve + .1;
+  if (goBtn.dataset.s !== String(okd)) { goBtn.dataset.s = okd; goBtn.className = 'go' + (okd ? ' done' : ''); goBtn.replaceChildren(icon('check', 24), okd ? S3.approved : S3.approve); }
+  K.cursorMove(t, SYNC.approve - 1.1, .9, { x: pts.go.x - 240 * DIR, y: pts.go.y - 200 }, pts.go, SYNC.approve + .7);
+  K.tapAt(t, SYNC.approve, pts.go);
+
+  /* 19 h */
+  const w4 = vis(t, SLOT[3][0], SYNC.merge + .2, .45, .4);
+  set(keys, { opacity: w4 * easeOut(prog(t, 28.4, .45)) });
+  K.urgency(keyIc, t, 28.7, 'none');
+  set(route, { opacity: w4 * easeOut(prog(t, 28.8, .45)) });
+  const run = easeInOut(prog(t, 29.2, 3.2));
+  set(routeDone, { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * run) });
+  const pt = routeDone.getPointAtLength(routeDone.getTotalLength() * run);
+  runner.setAttribute('cx', pt.x); runner.setAttribute('cy', pt.y);
+  toasts.forEach((el, i) => {
+    const t1 = 30.0 + i * .7, p = easeOut(prog(t, t1, .4));
+    set(el, { opacity: p * w4, transform: `translateY(${lerp(-20, 0, p)}px)` });
+    K.urgency(el, t, t1 + .4, '0 18px 30px -22px rgba(27,42,53,.45)');
+  });
+  const r0 = { x: 80, y: 186, w: 920, h: 680 }, r1 = { x: 0, y: 0, w: 1080, h: 1920 };
+  set(welcome.el, {
+    insetInlineStart: lerp(r0.x, r1.x, m) + 'px', top: lerp(r0.y, r1.y, m) + 'px', width: lerp(r0.w, r1.w, m) + 'px', height: lerp(r0.h, r1.h, m) + 'px',
+    borderRadius: `${30 * (1 - m)}px`, opacity: easeOut(prog(t, SLOT[3][0], .5)),
+  });
+  welcome.img.style.filter = `blur(${lerp(14, 0, easeInOut(prog(t, SYNC.welcome, 1.0)))}px) saturate(${lerp(.7, 1, easeOut(prog(t, SYNC.welcome, 1.0)))})`;
+  welcome.img.style.transform = `scale(${lerp(1.06, 1, easeOut(prog(t, SLOT[3][0], 6)))})`;
+  pass.type(t, SYNC.welcome + .7);
+  const pp = easeOut(prog(t, SYNC.welcome + .4, .5)) * (1 - easeIn(prog(t, SYNC.merge, .4)));
+  set(pass.el, { opacity: pp, transform: `translateY(${lerp(30, 0, pp)}px)` });
+  const sp = easeOut(prog(t, SYNC.welcome + 1.6, .45)) * (1 - easeIn(prog(t, SYNC.merge, .4)));
+  set(sent, { opacity: sp, transform: `translateY(${lerp(-14, 0, sp)}px)` });
+
+  /* Repli : « Baitly prend les coulisses. Vous gardez l'accueil. » */
+  veil.style.opacity = easeOut(prog(t, SYNC.merge + .4, .6));
+  titleIn(tf1w, t, SYNC.merge + .5);
+  titleIn(tf2w, t, SYNC.merge + 1.4);
+  tFinal.style.opacity = 1 - endOut;
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, () => { pts = null; });
+</script>
+</body>
+</html>

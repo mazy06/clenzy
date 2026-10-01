@@ -1,0 +1,242 @@
+==============================================================================
+REEL 13 · LE DIRECT, SANS LES RISQUES — Panier abandonné relancé, réservation suspecte bloquée, litige bancaire documenté
+Format 9:16 (1080×1920) · 34 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 5,0 s]
+      Votre site de réservation directe : zéro commission. Mais ce soir, un visiteur s'arrête juste avant de payer.
+  b2  [suit la voix · durée visée 5,3 s]
+      Une carte vous propose de le relancer : une heure après, puis le lendemain. Et la réservation revient, sans commission.
+  b3  [suit la voix · durée visée 5,2 s]
+      Une réservation paraît suspecte ? Le score de risque vous alerte, et vous la bloquez avant qu'elle ne vous coûte.
+  b4  [suit la voix · durée visée 6,9 s]
+      Et si un paiement est contesté des semaines plus tard, le dossier de preuves est déjà prêt : séjour, fiche voyageur, livret. Vous le déposez en un clic.
+  b5  [suit la voix · durée visée 2,2 s]
+      Le direct. … Sans les risques.
+  b6  [suit la voix · durée visée 3,3 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–3,46 s]  Votre site de réservation directe : [zéro commission.]
+  ST2  [3,48–7,27 s]  Mais ce soir, [un visiteur s'arrête juste avant de payer.]
+  ST3  [7,29–11,44 s]  Une carte vous propose de le relancer : [une heure après,]
+  ST4  [11,46–14,5 s]  puis le lendemain. Et la réservation revient, [sans commission.]
+  ST5  [14,52–16,02 s]  Une réservation paraît suspecte ?
+  ST6  [16,04–19,67 s]  Le score de risque vous alerte,
+  ST7  [19,69–22,25 s]  et vous la bloquez avant qu'elle ne vous coûte.
+  ST8  [22,27–26,79 s]  Et si un paiement est contesté des semaines plus tard,
+  ST9  [26,81–28,66 s]  le dossier de preuves est déjà prêt : séjour, fiche voyageur, [livret.]
+  ST10  [21,88–23,27 s]  Vous le déposez en un clic.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Maquette d’interface (libellé)
+      E2  riad-nour.fr/reserver
+      E3  Riad Nour
+  · Onglet / étape (maquette) : rester court
+      E4  La chambre
+      E5  Les dates
+      E6  Les extras
+      E7  Le paiement
+  · Maquette d’interface (libellé)
+      E8  Suite Patio · 3 nuits · 13 → 16 oct.
+      E9  Total
+      E10  2 400 MAD
+      E11  0 % de commission
+      E12  Carte bancaire
+      E13  4242 •••• •••• ••••
+  · Bouton (maquette) : rester court
+      E14  Payer 2 400 MAD
+  · Maquette d’interface (libellé)
+      E15  Panier abandonné · 23:12
+      E16  Agent Communication
+      E17  Panier abandonné
+      E18  En attente
+      E19  Fait
+      E20  Sara a quitté le paiement · 2 400 MAD
+      E21  Consentement email donné. Relance en trois temps.
+  · Onglet / étape (maquette) : rester court
+      E22  1 h
+      E23  Votre séjour vous attend
+      E24  24 h
+      E25  Les dates sont encore libres
+      E26  72 h
+      E27  Dernier rappel
+  · Maquette d’interface (libellé)
+      E28  Envoyée
+  · Bouton (maquette) : rester court
+      E29  Envoyer la relance
+  · Maquette d’interface (libellé)
+      E30  Modifier
+      E31  Ignorer
+      E32  Relance envoyée à Sara
+      E33  Réservation confirmée · 2 400 MAD · 0 % de commission
+      E34  Agent Finance
+      E35  Risque
+      E36  En attente
+      E37  Fait
+      E38  Réservation suspecte · Studio Gueliz
+      E39  Score de risque
+      E40  Élevé
+      E41  5 tentatives de paiement en 10 min
+      E42  Adresse email jetable
+      E43  Montant 3 fois la moyenne du logement
+  · Notification sur écran verrouillé
+      E44  Bloquer
+  · Maquette d’interface (libellé)
+      E45  Examiner
+      E46  Ignorer
+      E47  Réservation annulée · dates remises en vente
+      E48  Agent Finance
+      E49  Litige bancaire
+      E50  En attente
+      E51  Fait
+      E52  Déposer les preuves du litige · 1 980 MAD
+      E53  Montant contesté
+      E54  1 980 MAD
+      E55  Motif
+      E56  Non reconnu
+      E57  Réponse avant
+      E58  30 oct.
+      E59  Réservation et séjour
+      E60  Fiche voyageur
+      E61  Livret transmis
+      E62  Messages échangés
+      E63  Déposer le dossier
+      E64  Voir les pièces
+      E65  Dossier déposé à Stripe · en cours d’examen
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E66  Le direct.
+      E67  Sans les risques.
+  · Bouton de l’écran de fin
+      E68  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E69  de commission en direct
+      E70  3 relances
+      E71  1 h · 24 h · 72 h
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 5,8 s]
+      Your direct booking site: zero commission. But tonight, a visitor stops right before paying.
+  b2  [suit la voix · durée visée 6,8 s]
+      A card suggests following up: an hour later, then the next day. And the booking comes back, commission-free.
+  b3  [suit la voix · durée visée 5,7 s]
+      A booking looks suspicious? The risk score flags it, and you block it before it costs you.
+  b4  [suit la voix · durée visée 8,8 s]
+      And if a payment is disputed weeks later, the evidence is already gathered: the stay, the guest record, the guide. You submit it in one click.
+  b5  [suit la voix · durée visée 2,4 s]
+      Direct bookings. … Without the risks.
+  b6  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–3,46 s]  Your direct booking site: zero commission.
+  ST2  [3,48–7,27 s]  But tonight, [a visitor stops right before paying.]
+  ST3  [7,29–11,44 s]  A card suggests following up: an hour later, [then the next day.]
+  ST4  [11,46–14,5 s]  And the booking comes back, [commission-free.]
+  ST5  [14,52–16,02 s]  A booking looks suspicious?
+  ST6  [16,04–19,67 s]  The risk score flags it, [and you block it before it costs you.]
+  ST7  [19,69–22,25 s]  And if a payment is disputed weeks later,
+  ST8  [22,27–26,79 s]  the evidence is already gathered: the stay, the guest record, [the guide.]
+  ST9  [26,81–28,66 s]  You submit it in one click.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Maquette d’interface (libellé)
+      E2  nakheel-chalet.com/book
+      E3  Nakheel Chalet
+  · Onglet / étape (maquette) : rester court
+      E4  The room
+      E5  The dates
+      E6  Extras
+      E7  Payment
+  · Maquette d’interface (libellé)
+      E8  Garden Suite · 3 nights · Oct 13 → 16
+      E9  Total
+      E10  SAR 1,560
+      E11  0% commission
+      E12  Card
+      E13  4242 •••• •••• ••••
+  · Bouton (maquette) : rester court
+      E14  Pay SAR 1,560
+  · Maquette d’interface (libellé)
+      E15  Cart abandoned · 23:12
+      E16  Communication agent
+      E17  Abandoned cart
+      E18  Pending
+      E19  Done
+      E20  Sara left at payment · SAR 1,560
+      E21  Email consent given. Three-step follow-up.
+  · Onglet / étape (maquette) : rester court
+      E22  1 h
+      E23  Your stay is waiting
+      E24  24 h
+      E25  The dates are still free
+      E26  72 h
+      E27  Last reminder
+  · Maquette d’interface (libellé)
+      E28  Sent
+  · Bouton (maquette) : rester court
+      E29  Send the follow-up
+  · Maquette d’interface (libellé)
+      E30  Edit
+      E31  Ignore
+      E32  Follow-up sent to Sara
+      E33  Booking confirmed · SAR 1,560 · 0% commission
+      E34  Finance agent
+      E35  Risk
+      E36  Pending
+      E37  Done
+      E38  Suspicious booking · Olaya Studio
+      E39  Risk score
+      E40  High
+      E41  5 payment attempts in 10 min
+      E42  Disposable email address
+      E43  Amount 3× the property average
+  · Notification sur écran verrouillé
+      E44  Block
+  · Maquette d’interface (libellé)
+      E45  Review
+      E46  Ignore
+      E47  Booking cancelled · dates back on sale
+      E48  Finance agent
+      E49  Chargeback
+      E50  Pending
+      E51  Done
+      E52  Submit dispute evidence · SAR 1,290
+      E53  Disputed
+      E54  SAR 1,290
+      E55  Reason
+      E56  Unrecognised
+      E57  Respond by
+      E58  Oct 30
+      E59  Booking and stay
+      E60  Guest record
+      E61  Guide delivered
+      E62  Messages exchanged
+      E63  Submit the file
+      E64  See evidence
+      E65  File submitted to Stripe · under review
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E66  Direct bookings.
+      E67  Without the risks.
+  · Bouton de l’écran de fin
+      E68  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E69  commission on direct
+      E70  3 follow-ups
+      E71  1 h · 24 h · 72 h

@@ -1,0 +1,183 @@
+<!doctype html>
+<!--
+  Baitly · Reel 10 « Après le départ » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : l'animation du jour du départ (BESOINS-ET-SERVICES.md §10), pilotée par le
+  temps via le kit partagé ; les plans suivent la voix (slots recalés par align-vo.py).
+  Composants réels repris : piste de ménage (L07), carte HITL (AnimatedHitlMockup, dont la carte
+  « payout gaté preuve photo »), grille de photos de contrôle, récapitulatif de versement.
+  Déroulé : 11 h, la mission de ménage avance → contrôle du travail (6 photos), « Valider », une photo
+  signalée « Lampe cassée » → carte de retenue plafonnée sur la caution, « Retenir » → carte
+  « Verser » (preuve photo reçue) puis carte « Commander » le linge → promesse → fin.
+  Rendu : node ../render.mjs reel-10-apres-le-depart --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 10 Après le départ</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · la mission de ménage */
+#ph0 { left: 80px; top: 150px; width: 920px; height: 700px; opacity: 0; }
+#mis { left: 140px; width: 800px; top: 720px; padding: 30px 34px 28px; opacity: 0; }
+#mis .k { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); }
+#mis .t { font-family: var(--fd); font-size: 42px; font-weight: 600; margin-top: 10px; }
+#mis .m { display: flex; gap: 24px; font-size: 24px; color: var(--ardoise); margin-top: 6px; }
+#mis .m span { display: inline-flex; align-items: center; gap: 8px; }
+#mis .who { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+#mis .who img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+#mis .who b { display: block; font-size: 26px; } #mis .who small { display: block; font-size: 21px; color: var(--ardoise); }
+#mis .who .chip { margin-inline-start: auto; }
+#mis .ptk i { height: 12px; }
+/* B · contrôle du travail */
+#rvc { left: 80px; top: 280px; opacity: 0; }
+.pg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.pg .ph { position: relative; height: 188px; border-radius: 18px; overflow: hidden; background: #EEF3F6; transform-origin: 50% 50%; }
+.pg .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pg .ph .ring { position: absolute; inset: 0; border-radius: 18px; box-shadow: inset 0 0 0 5px #C97A7A; opacity: 0; }
+.pg .ph .spot { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; border: 4px solid #C97A7A; opacity: 0; }
+#flag { position: absolute; opacity: 0; z-index: 5; }
+#flag .chip { background: #FDFDFE; color: #93413F; box-shadow: 0 12px 26px -14px rgba(27,42,53,.5), inset 0 0 0 2px rgba(201,122,122,.5); font-size: 23px; padding: 12px 20px; }
+.meta { display: flex; gap: 12px; margin-top: 16px; }
+/* C · la caution */
+#dep { left: 80px; top: 470px; opacity: 0; }
+/* D · versement et linge */
+#pay { left: 80px; top: 200px; opacity: 0; }
+#pay .kv b { display: inline-flex; align-items: center; gap: 8px; }
+#pay .kv b svg { color: #0C7166; }
+#lin { left: 80px; top: 800px; opacity: 0; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 640px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .mi { width: 120px; height: 120px; border-radius: 40px; background: rgba(20,184,166,.13); color: #0C7166; display: flex; align-items: center; justify-content: center; opacity: 0; }
+#promise .title { font-size: 96px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+const PH = '../../brand-book/assets/photos/';
+
+/* A · la mission de ménage (photo + piste L07) */
+const M = T.mission;
+const ph0 = K.photoFrame('operationsBed.webp');
+ph0.el.id = 'ph0'; ph0.el.classList.add('abs'); K.stage.append(ph0.el);
+const mis = K.abs('mis', 'card');
+const track = K.progressTrack(5);
+mis.append(h('div', { class: 'k' }, icon('door', 24), M.kicker), h('div', { class: 't' }, M.title),
+  h('div', { class: 'm' }, h('span', {}, icon('pin', 24), M.place), h('span', {}, icon('clock', 24), M.window)),
+  h('div', { class: 'who' }, h('img', { src: PH + 'provider-1.jpg', alt: '' }), h('div', {}, h('b', {}, M.who), h('small', {}, M.role)), h('span', { class: 'chip auto' }, icon('broom', 22), M.status)),
+  track.el);
+
+/* B · contrôle du travail : 6 photos, « Valider », une photo signalée */
+const RV = T.review;
+const rvc = K.hitlCard({ agent: RV.agent, tag: RV.tag, title: RV.title, copy: RV.copy, wait: RV.wait, done: RV.done,
+  primary: ['check', RV.approve], secondary: ['x', RV.refuse], doneText: RV.doneText });
+rvc.el.id = 'rvc'; rvc.el.classList.add('abs');
+const SHOTS = ['bedroom.jpg', 'operationsProof.webp', 'pricingRoom.webp', 'guideLiving.webp', 'bookingTerraceRoom.webp', 'agentStay.webp'];
+const cells = SHOTS.map((f) => { const ring = h('i', { class: 'ring' }), spot = h('i', { class: 'spot', style: 'left:82%;top:46%' }); return { el: h('div', { class: 'ph', style: 'opacity:0' }, h('img', { src: PH + f, alt: '' }), ring, spot), ring, spot }; });
+rvc.body.append(h('div', { class: 'pg' }, cells.map((c) => c.el)),
+  h('div', { class: 'meta' }, h('span', { class: 'chip neutral' }, icon('camera', 20), '6'), h('span', { class: 'chip neutral' }, icon('clock', 20), '2 h 40'), h('span', { class: 'chip ok' }, icon('clipcheck', 20), '12/12')));
+K.stage.append(rvc.el);
+const flag = h('div', { id: 'flag' }, h('span', { class: 'chip' }, icon('talert', 22), RV.flag));
+K.stage.append(flag);
+
+/* C · la caution : retenue plafonnée */
+const D = T.deposit;
+const dep = K.hitlCard({ agent: D.agent, tag: D.tag, title: D.title, copy: D.copy, wait: D.wait, done: D.done,
+  primary: ['coins', D.withhold], secondary: ['sliders', D.adjust], dismiss: D.dismiss, doneText: D.doneText });
+dep.el.id = 'dep'; dep.el.classList.add('abs');
+const dGrid = D.grid.map(([k, v], i) => { const b = h('b', { class: i === 1 ? 'warn' : '' }, v); return { el: h('div', {}, h('small', {}, k), b), b }; });
+dep.body.append(h('div', { class: 'hg' }, dGrid.map((g) => g.el)));
+K.stage.append(dep.el);
+
+/* D · versement débloqué par la preuve photo, puis réassort du linge */
+const P = T.payout;
+const pay = K.hitlCard({ agent: P.agent, tag: P.tag, title: P.title, wait: P.wait, done: P.done,
+  primary: ['banknote', P.pay], secondary: ['image', P.photos], doneText: P.doneText });
+pay.el.id = 'pay'; pay.el.classList.add('abs');
+pay.body.append(h('div', {}, P.rows.map(([k, v], i) => h('div', { class: 'kv' }, h('span', {}, k), h('b', {}, i ? icon('check', 22) : null, v)))));
+K.stage.append(pay.el);
+const L = T.linen;
+const lin = K.hitlCard({ agent: L.agent, tag: L.tag, title: L.title, copy: L.copy, wait: L.wait, done: L.done,
+  primary: ['package', L.order], secondary: ['pencil', L.edit], doneText: L.doneText });
+lin.el.id = 'lin'; lin.el.classList.add('abs');
+K.stage.append(lin.el);
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const mi = h('span', { class: 'mi' }, icon('clipcheck', 60));
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(mi, p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) {
+    const c = cells[1].el, pc = K.posIn(c, K.stage);
+    pts = { approve: K.center(rvc.pBtn), withhold: K.center(dep.pBtn), pay: K.center(pay.pBtn), order: K.center(lin.pBtn), flag: { x: pc.x + 12, y: pc.y + c.offsetHeight - 70 } };
+    set(flag, { left: pts.flag.x + 'px', top: pts.flag.y + 'px' });
+  }
+  const [a0, b0] = slot(0), [a1, b1] = slot(1), [a2, b2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A · la mission avance */
+  const v0 = slotVis(t, 0, .45, .4);
+  set(ph0.el, { opacity: v0, transform: `translateY(${lerp(40, 0, easeOut(prog(t, a0, .7)))}px)` });
+  ph0.img.style.transform = `scale(${lerp(1.1, 1, easeOut(prog(t, a0, b0 - a0)))})`;
+  const mi0 = easeOut(prog(t, a0 + .5, .6));
+  set(mis, { opacity: v0 * mi0, transform: `translateY(${lerp(50, 0, mi0)}px)` });
+  track.set(lerp(.05, .8, easeInOut(prog(t, a0 + .9, b0 - a0 - 1.2))));
+
+  /* B · contrôle du travail */
+  const v1 = slotVis(t, 1), e1 = easeOut(prog(t, a1, .6));
+  set(rvc.el, { opacity: v1, transform: `translateY(${lerp(60, 0, e1)}px)` });
+  cells.forEach((c, i) => { const p = easeOut(prog(t, a1 + .35 + i * .12, .4)); set(c.el, { opacity: p, transform: `scale(${lerp(.92, 1, p)})` }); });
+  rvc.render(t, SYNC.approve);
+  K.cursorMove(t, SYNC.approve - 1.2, .95, { x: pts.approve.x + 360, y: pts.approve.y + 340 }, pts.approve, Math.min(SYNC.approve + .9, SYNC.flag));
+  K.tapAt(t, SYNC.approve, pts.approve);
+  const fl = easeOut(prog(t, SYNC.flag, .45));
+  cells[1].ring.style.opacity = fl;
+  set(cells[1].el, { transform: `scale(${lerp(1, 1.07, fl)})`, zIndex: 3, boxShadow: `0 ${24 * fl}px ${48 * fl}px -24px rgba(147,65,63,${.55 * fl})` });
+  const pulse = t > SYNC.flag ? (((t - SYNC.flag) % 1.4) / 1.4) : 0;
+  set(cells[1].spot, { opacity: t > SYNC.flag ? (1 - pulse) : 0, transform: `scale(${lerp(.6, 1.5, pulse)})` });
+  set(flag, { opacity: v1 * fl, transform: `translateY(${lerp(14, 0, fl)}px)` });
+
+  /* C · la caution */
+  const v2 = slotVis(t, 2), e2 = easeOut(prog(t, a2, .6));
+  set(dep.el, { opacity: v2, transform: `translateY(${lerp(60, 0, e2)}px)` });
+  dep.render(t, SYNC.withhold);
+  const rel = easeOut(prog(t, SYNC.withhold + .3, .5));
+  dGrid[2].b.className = rel > .5 ? 'ok' : '';
+  K.cursorMove(t, SYNC.withhold - 1.2, .95, { x: pts.withhold.x + 320, y: pts.withhold.y + 360 }, pts.withhold, Math.min(SYNC.withhold + .9, b2));
+  K.tapAt(t, SYNC.withhold, pts.withhold);
+
+  /* D · verser, puis commander */
+  const v3 = slotVis(t, 3), e3 = easeOut(prog(t, a3, .6));
+  set(pay.el, { opacity: v3, transform: `translateY(${lerp(60, 0, e3)}px)` });
+  pay.render(t, SYNC.pay);
+  const li = easeOut(prog(t, Math.min(SYNC.pay + .8, SYNC.order - 1.6), .6));
+  set(lin.el, { opacity: v3 * li, transform: `translateY(${lerp(60, 0, li)}px)` });
+  lin.render(t, SYNC.order);
+  if (t < SYNC.pay + .6) K.cursorMove(t, SYNC.pay - 1.2, .95, { x: pts.pay.x + 320, y: pts.pay.y + 360 }, pts.pay, b3);
+  else K.cursorMove(t, SYNC.pay + .6, Math.max(.4, SYNC.order - SYNC.pay - 1.0), pts.pay, pts.order, Math.min(SYNC.order + .9, b3));
+  K.tapAt(t, SYNC.pay, pts.pay);
+  K.tapAt(t, SYNC.order, pts.order);
+
+  /* E · promesse */
+  const v4 = slotVis(t, 4, .5, .35);
+  const m = easeOut(prog(t, a4, .6));
+  set(mi, { opacity: v4 * m, transform: `scale(${lerp(.8, 1, m)})` });
+  const q1 = easeOut(prog(t, a4 + .1, .55)), q2 = easeOut(prog(t, a4 + (b4 - a4) * .5, .55));
+  set(p1, { opacity: v4 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v4 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

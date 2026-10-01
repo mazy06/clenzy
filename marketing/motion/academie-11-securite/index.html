@@ -1,0 +1,276 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 11 « La checklist sécurité du logement » (≈ 2 min) · 9:16 et 16:9, depuis le même
+  fichier. Voix : Noé (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Obligations françaises vérifiées sur service-public.gouv.fr (sources affichées) ; ailleurs, renvoi aux autorités.
+  Chapitres : 0 accroche → 1 l'obligatoire (détecteur de fumée, piscine ; piège : les règles changent d'un pays à
+  l'autre) → 2 le recommandé → 3 les consignes → 4 mise en pratique (3 vérifications, registre) → 5 à retenir → fin.
+  Photos : ../academie-shared/photos/SOURCES.md (<img>, pour que le rendu attende leur chargement).
+  Rendu : node ../render.mjs academie-11-securite --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 11 La checklist sécurité</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe se- : aucune collision avec base.css (.bar, .chip, .row, .card, .ph… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.sefill { flex: 1; position: relative; min-height: 0; }
+.selayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; opacity: 0; }
+.seimg { display: block; object-fit: cover; }
+.sepill { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.sepill.ok { background: rgba(13,148,136,.12); color: var(--ok); }
+.sepill.warn { background: #B45733; color: #FDFDFE; }
+.sepill.soft { background: #F4EBDC; color: var(--encre-terre); }
+.sesrc { font-size: 19px; font-weight: 700; color: var(--gris); opacity: 0; }
+
+/* Détecteur de fumée dessiné */
+.sedet { flex: none; position: relative; width: 150px; height: 150px; border-radius: 50%; background: #FDFDFE; box-shadow: inset 0 -6px 0 #E6ECF0, 0 10px 24px -12px rgba(27,42,53,.35); border: 2px solid #E6ECF0; }
+.sedet::before { content: ''; position: absolute; inset: 26px; border-radius: 50%; background: repeating-radial-gradient(circle, #EEF3F6 0 6px, #D5DEE7 6px 9px); }
+.sedet i { position: absolute; top: 18px; right: 30px; width: 14px; height: 14px; border-radius: 50%; background: #C0392B; box-shadow: 0 0 0 4px rgba(192,57,43,.18); }
+
+/* 0 · accroche */
+.sehook { padding: 28px; display: flex; flex-direction: column; gap: 18px; opacity: 0; }
+.sehd { display: flex; align-items: center; gap: 24px; }
+.sehd > div { display: flex; flex-direction: column; gap: 10px; }
+.setag { display: inline-flex; align-items: center; gap: 10px; border-radius: 16px; padding: 12px 18px; font-size: 26px; font-weight: 700; opacity: 0; }
+.setag.a { background: var(--surface); color: var(--n700); }
+.setag.b { background: #F7E4DC; color: #8E3F20; }
+.secats { display: flex; flex-direction: column; gap: 10px; }
+.secat { display: flex; align-items: center; gap: 16px; background: var(--surface); border-radius: 20px; padding: 14px 18px; font-size: 27px; font-weight: 700; color: var(--n700); opacity: 0; }
+.secat i { flex: none; width: 52px; height: 52px; border-radius: 16px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+
+/* 1 · l'obligatoire */
+.sesm { display: flex; align-items: center; gap: 22px; opacity: 0; }
+.sesm b { font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); line-height: 1.1; }
+.serows { display: flex; flex-direction: column; gap: 10px; }
+.serow { display: flex; align-items: center; gap: 14px; background: var(--surface); border-radius: 18px; padding: 14px 18px; font-size: 25px; font-weight: 700; color: var(--n700); line-height: 1.25; opacity: 0; }
+.serow > i { flex: none; width: 46px; height: 46px; border-radius: 14px; background: #FDFDFE; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.sepool { position: relative; height: 230px; border-radius: 24px; overflow: hidden; opacity: 0; }
+.sepool .seimg { width: 100%; height: 100%; }
+.sepool span { position: absolute; left: 14px; bottom: 14px; background: rgba(253,253,254,.95); color: var(--n700); border-radius: 999px; padding: 9px 16px; font-size: 23px; font-weight: 700; }
+.sedevs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.sedev { display: flex; flex-direction: column; gap: 4px; background: var(--surface); border-radius: 18px; padding: 12px 14px; opacity: 0; }
+.sedev b { font-size: 24px; font-weight: 700; color: var(--n700); }
+.sedev span { font-size: 18px; font-weight: 700; color: var(--gris); }
+.seplaces { display: flex; flex-direction: column; gap: 10px; }
+.seplace { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-radius: 18px; padding: 16px 20px; opacity: 0; }
+.seplace b { font-size: 28px; font-weight: 700; }
+.seplace span { display: inline-flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 700; }
+.seplace.ok { background: rgba(13,148,136,.1); color: var(--ok); }
+.seplace.todo { background: #F7E4DC; color: #8E3F20; }
+
+/* 2 · le recommandé */
+.sereco { display: flex; flex-direction: column; gap: 12px; }
+.serc { display: flex; align-items: center; gap: 18px; background: var(--surface); border-radius: 22px; padding: 14px 20px 14px 14px; opacity: 0; }
+.serc > i { flex: none; width: 64px; height: 64px; border-radius: 18px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.serc b { display: block; font-size: 27px; font-weight: 700; color: var(--n700); }
+.serc span { font-size: 22px; font-weight: 600; color: var(--gris); }
+
+/* 3 · les consignes */
+.seguide { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border-radius: 26px; padding: 18px; opacity: 0; }
+.seguide > small { font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); padding: 2px 6px 6px; }
+.segr { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border-radius: 18px; padding: 12px 16px; opacity: 0; }
+.segr > i { flex: none; width: 46px; height: 46px; border-radius: 14px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.segr div { flex: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.segr b { font-size: 25px; font-weight: 700; color: var(--n700); }
+.segr span { font-size: 21px; font-weight: 600; color: var(--gris); text-align: end; }
+.segr.urg { background: #F7E4DC; }
+.segr.urg b, .segr.urg span { color: #8E3F20; }
+
+/* 4 · mise en pratique */
+.sechk { display: flex; flex-direction: column; gap: 12px; }
+.sechk .seimg { width: 100%; height: 190px; border-radius: 22px; }
+.seit { display: flex; align-items: center; gap: 14px; background: var(--surface); border-radius: 18px; padding: 14px 18px; font-size: 26px; font-weight: 700; color: var(--n700); opacity: 0; }
+.seit u { flex: none; width: 38px; height: 38px; border-radius: 10px; border: 2.5px solid #B8C4CC; background: #FDFDFE; color: #FDFDFE; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.seit.on u { background: var(--ok); border-color: var(--ok); }
+.selog { display: flex; flex-direction: column; gap: 10px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 24px; padding: 20px; box-shadow: var(--e1); opacity: 0; }
+.selog > b { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--n700); }
+.selog > b svg { color: var(--terre); }
+
+/* 5 · à retenir */
+.serc5 { display: flex; flex-direction: column; gap: 12px; }
+.seline { display: flex; align-items: center; gap: 14px; border-radius: 22px; padding: 16px 24px; font-size: 24px; font-weight: 700; }
+.seline.a { background: rgba(13,148,136,.1); color: var(--ok); }
+.seline.b { background: var(--surface); color: var(--ardoise); font-size: 19px; padding: 10px 20px; }
+
+html.f169 .sedet { width: 130px; height: 130px; }
+html.f169 .sepool { height: 210px; }
+html.f169 .serc { padding: 10px 18px 10px 10px; }
+html.f169 .serc > i { width: 56px; height: 56px; }
+html.f169 .segr { padding: 10px 14px; }
+html.f169 .sechk .seimg { height: 170px; }
+html.f169 .serc5 .rchip { padding: 14px 22px; }
+html.f169 .serc5 .rchip .ic { width: 58px; height: 58px; }
+html.f169 .serc5 .rchip b { font-size: 32px; }
+html.f169 .serc5 .rchip small { font-size: 20px; }
+html.f169 .seline { font-size: 21px; padding: 12px 20px; }
+html.f169 .seline.b { font-size: 17px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const photo = (name) => h('img', { src: `../academie-shared/photos/${name}.jpg`, class: 'seimg', alt: '' });
+const pill = (cls, ic, txt) => h('span', { class: `sepill ${cls}` }, icon(ic, 24), txt);
+const detector = () => h('div', { class: 'sedet' }, h('i'));
+/** Couches successives d'une carte : chacune entre en montant, puis s'efface vers le haut quand la suivante arrive. */
+const stack = (layers, times, t) => layers.forEach((el, i) => {
+  const kIn = i ? shown(t, times[i] - .3, .5) : 1, kOut = i < layers.length - 1 ? shown(t, times[i + 1] - .3, .5) : 0;
+  set(el, { opacity: kIn * (1 - kOut), transform: `translateY(${lerp(20, 0, kIn) - 20 * kOut}px)` });
+});
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const HK = T.hook;
+const hkDet = detector();
+const hkPrice = h('span', { class: 'setag a' }, icon('banknote', 26), HK.price);
+const hkFire = h('span', { class: 'setag b' }, icon('flame', 26), HK.fire);
+const cats = HK.cats.map(([ic, l]) => h('div', { class: 'secat' }, h('i', {}, icon(ic, 28)), l));
+const hook = A.abs(L.card.x, 0, L.card.w, null, 'acard sehook');
+hook.append(h('div', { class: 'sehd' }, hkDet, h('div', {}, hkPrice, hkFire)), h('div', { class: 'secats' }, cats));
+
+/* 1 · l'obligatoire */
+const SM = T.smoke, PO = T.pool, PL = T.places, c1 = A.card();
+const smHead = h('div', { class: 'sesm' }, detector(), h('b', {}, SM.title));
+const smRows = SM.rows.map(([ic, l]) => h('div', { class: 'serow' }, h('i', {}, icon(ic, 26)), l));
+const smSrc = h('div', { class: 'sesrc' }, SM.src);
+const l1a = h('div', { class: 'selayer' }, smHead, h('div', { class: 'serows' }, smRows), smSrc);
+const pool = h('div', { class: 'sepool' }, photo(PO.photo), h('span', {}, PO.label));
+const devs = PO.devices.map(([b, s]) => h('div', { class: 'sedev' }, h('b', {}, b), h('span', {}, s)));
+const poBefore = pill('ok', 'clock', PO.before), poFine = pill('warn', 'alert', PO.fine);
+const poSrc = h('div', { class: 'sesrc' }, PO.src);
+const l1b = h('div', { class: 'selayer' }, pool, h('div', { class: 'sedevs' }, devs), h('div', { style: 'display:flex;flex-wrap:wrap;gap:10px' }, poBefore, poFine), poSrc);
+const places = PL.rows.map(([b, s, ok]) => h('div', { class: `seplace ${ok ? 'ok' : 'todo'}` }, h('b', {}, b), h('span', {}, icon(ok ? 'ccheck' : 'search', 22), s)));
+const plCheck = pill('soft', 'landmark', PL.check);
+plCheck.style.whiteSpace = 'normal';
+const l1c = h('div', { class: 'selayer' }, h('div', { class: 'seplaces' }, places), plCheck);
+c1.el.append(h('div', { class: 'sefill' }, l1a, l1b, l1c));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · le recommandé */
+const c2 = A.card();
+const recos = T.reco.map(([ic, b, s]) => h('div', { class: 'serc' }, h('i', {}, icon(ic, 32)), h('div', {}, h('b', {}, b), h('span', {}, s))));
+c2.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' }, h('div', { class: 'sereco' }, recos)));
+
+/* 3 · les consignes */
+const GU = T.guide, c3 = A.card();
+const grows = GU.rows.map(([ic, b, s], i) => h('div', { class: `segr${i === 4 ? ' urg' : ''}` }, h('i', {}, icon(ic, 24)), h('div', {}, h('b', {}, b), h('span', {}, s))));
+const guide = h('div', { class: 'seguide' }, h('small', {}, GU.title), ...grows);
+c3.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' }, guide));
+
+/* 4 · mise en pratique */
+const CK = T.checks, LG = T.log, c4 = A.card();
+const ckItems = CK.items.map((l) => h('div', { class: 'seit' }, h('u', {}, icon('check', 22)), l));
+const ckTime = pill('ok', 'clock', CK.time);
+const l4a = h('div', { class: 'selayer' }, h('div', { class: 'sechk' }, photo(CK.photo), h('span', { class: 'alabel' }, CK.label), ...ckItems), ckTime);
+const lgRows = LG.rows.map(([ic, l]) => h('div', { class: 'serow' }, h('i', {}, icon(ic, 26)), l));
+const lgProof = pill('soft', 'shield', LG.proof);
+const log = h('div', { class: 'selog' }, h('b', {}, icon('filetext', 28), LG.title), ...lgRows);
+const l4b = h('div', { class: 'selayer' }, log, lgProof);
+c4.el.append(h('div', { class: 'sefill' }, l4a, l4b));
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'serc5');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'seline a', style: 'opacity:0' }, icon('bookopen', 28), R.app);
+const src = h('div', { class: 'seline b', style: 'opacity:0' }, icon('landmark', 22), R.src);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, src);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+  // Témoin du détecteur : clignote doucement.
+  document.querySelectorAll('.sedet i').forEach((d) => { d.style.opacity = .45 + .55 * (Math.sin(t * 3.2) > .2 ? 1 : 0); });
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .1);
+  A.rise(hook, v0, shown(t, SYNC.det - .4, .6), 60);
+  A.rise(hkPrice, 1, shown(t, SYNC.det + .6), 10);
+  A.rise(hkFire, 1, shown(t, SYNC.fire), 10);
+  [SYNC.o, SYNC.r, SYNC.v].forEach((t0, i) => A.rise(cats[i], 1, shown(t, t0 - .15), 12));
+
+  /* 1 · l'obligatoire */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  stack([l1a, l1b, l1c], [0, SYNC.pool, SYNC.trap1], t);
+  A.rise(smHead, 1, shown(t, SYNC.oblig + .3), 14);
+  [SYNC.smoke, SYNC.ce, SYNC.owner].forEach((t0, i) => A.rise(smRows[i], 1, shown(t, t0 - .15), 10));
+  A.rise(smSrc, 1, shown(t, SYNC.owner + .8), 6);
+  A.rise(pool, 1, shown(t, SYNC.pool + .1), 16);
+  [SYNC.d1, SYNC.d2, SYNC.d3, SYNC.d4].forEach((t0, i) => A.rise(devs[i], 1, shown(t, t0 - .15), 10));
+  A.rise(poBefore, 1, shown(t, SYNC.before - .1), 8); A.rise(poFine, 1, shown(t, SYNC.fine), 8);
+  A.rise(poSrc, 1, shown(t, SYNC.fine + .8), 6);
+  trap1.render(t, SYNC.trap1, v1);
+  [SYNC.trap1 + .8, SYNC.ma - .1, SYNC.ma + .7, SYNC.city - .1].forEach((t0, i) => A.rise(places[i], 1, shown(t, t0), 10));
+  A.rise(plCheck, 1, shown(t, SYNC.check - .1), 10);
+
+  /* 2 · le recommandé */
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  [SYNC.co, SYNC.ext, SYNC.ext + 1.1, SYNC.kit, SYNC.torch].forEach((t0, i) => A.rise(recos[i], 1, shown(t, t0 - .2), 14));
+
+  /* 3 · les consignes */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  A.rise(guide, 1, shown(t, SYNC.cons + .2), 14);
+  [SYNC.w1, SYNC.w2, SYNC.w2 + .6, SYNC.w2 + 1.2, SYNC.e112, SYNC.mine].forEach((t0, i) => A.rise(grows[i], 1, shown(t, t0 - .15), 10));
+
+  /* 4 · mise en pratique */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  stack([l4a, l4b], [0, SYNC.note], t);
+  [SYNC.t1, SYNC.t2, SYNC.t3].forEach((t0, i) => { A.rise(ckItems[i], 1, shown(t, t0 - .2), 10); ckItems[i].classList.toggle('on', t >= t0 + .6); });
+  A.rise(ckTime, 1, shown(t, SYNC.s30 - .1), 10);
+  A.rise(log, 1, shown(t, SYNC.note + .2), 14);
+  [SYNC.n1, SYNC.n2, SYNC.n3].forEach((t0, i) => A.rise(lgRows[i], 1, shown(t, t0 - .15), 10));
+  A.rise(lgProof, 1, shown(t, SYNC.proof - .1), 10);
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3, SYNC.k4].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(src, v5, shown(t, SYNC.notes + .8, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

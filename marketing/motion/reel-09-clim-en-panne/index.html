@@ -1,0 +1,242 @@
+<!doctype html>
+<!--
+  Baitly · Reel 09 « La clim en panne » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : l'animation de l'incident pendant le séjour (BESOINS-ET-SERVICES.md §10),
+  pilotée par le temps via le kit partagé ; les plans suivent la voix (slots recalés par align-vo.py).
+  Composants réels repris : carte HITL (AnimatedHitlMockup), modale de réponse d'avis
+  (ReviewReplyDialog : l'agent propose, « Insérer », l'hôte corrige, « Publier »), étoiles (RatingStars).
+  Déroulé : chaleur, la clim lâche, message de la voyageuse → la mission de réparation avance jusqu'à
+  « Terminée », la température redescend → carte du geste commercial, clic « Rembourser » → l'avis
+  4 étoiles arrive, brouillon de l'agent, insertion, un mot corrigé, publication → promesse → fin.
+  Rendu : node ../render.mjs reel-09-clim-en-panne --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 09 La clim en panne</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · la chaleur */
+#heat { inset: 0; overflow: hidden; }
+#heat img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#heat .warm { position: absolute; inset: 0; background: radial-gradient(90% 60% at 50% 30%, rgba(214,120,60,.42), rgba(214,120,60,0) 70%), linear-gradient(180deg, rgba(180,87,51,.18), rgba(27,42,53,.35)); }
+#notif { left: 90px; width: 900px; top: 230px; display: flex; gap: 20px; align-items: flex-start; padding: 22px 26px; border-radius: 30px; background: rgba(247,251,252,.96); box-shadow: 0 24px 50px -24px rgba(27,42,53,.5); opacity: 0; }
+#notif .ai { width: 62px; height: 62px; border-radius: 18px; background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #E6ECF0; display: flex; align-items: center; justify-content: center; flex: none; }
+#notif .ai img { width: 38px; height: 38px; }
+#notif .nh { display: flex; justify-content: space-between; font-size: 21px; font-weight: 600; color: #526674; }
+#notif .nt { font-size: 27px; line-height: 1.35; color: #1B2A35; margin-top: 4px; }
+#temp { left: 80px; width: 920px; top: 1000px; padding: 30px 34px; opacity: 0; }
+.tp-h { display: flex; align-items: center; gap: 18px; }
+.tp-ic { width: 70px; height: 70px; border-radius: 22px; background: rgba(180,87,51,.12); color: #B45733; display: flex; align-items: center; justify-content: center; flex: none; }
+.tp-h .rm { display: block; font-size: 23px; color: var(--ardoise); }
+.tp-v { font-family: var(--fd); font-size: 96px; font-weight: 700; line-height: 1; letter-spacing: -.02em; direction: ltr; unicode-bidi: isolate; }
+.tp-v small { font-size: 44px; font-weight: 600; margin-inline-start: 6px; }
+.tp-ac { display: flex; align-items: center; gap: 14px; margin-top: 22px; padding-top: 20px; border-top: 1.5px solid #EEF2F5; font-size: 26px; font-weight: 600; }
+.tp-ac svg { color: var(--n600); }
+.tp-ac .chip { margin-inline-start: auto; }
+.chip.bad { background: rgba(201,122,122,.14); color: #93413F; }
+/* B · la mission */
+#job { left: 80px; width: 920px; top: 250px; padding: 0; overflow: hidden; opacity: 0; }
+#job .cover { position: relative; height: 380px; }
+#job .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#job .cover .chip { position: absolute; inset-inline-start: 26px; top: 26px; background: rgba(247,251,252,.94); color: var(--n700); }
+#job .jb { padding: 28px 34px 30px; }
+#job .jt { font-family: var(--fd); font-size: 42px; font-weight: 600; }
+#job .jm { display: flex; gap: 26px; margin-top: 10px; font-size: 24px; color: var(--ardoise); }
+#job .jm span { display: inline-flex; align-items: center; gap: 8px; }
+#job .tech { display: flex; align-items: center; gap: 16px; margin-top: 22px; padding: 16px 18px; border-radius: 20px; background: #EEF3F6; }
+#job .tech img { width: 62px; height: 62px; border-radius: 50%; object-fit: cover; }
+#job .tech b { display: block; font-size: 26px; } #job .tech small { display: block; font-size: 21px; color: var(--ardoise); }
+#job .tech .chip { margin-inline-start: auto; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 24px; }
+.steps .sg i { display: block; height: 10px; border-radius: 5px; background: #E1E9F0; overflow: hidden; }
+.steps .sg i b { display: block; height: 100%; width: 0; background: #14B8A6; border-radius: 5px; }
+.steps .sg span { display: block; font-size: 21px; font-weight: 600; color: #98A4AB; margin-top: 10px; }
+.steps .sg.on span { color: #0C7166; }
+#jobDone { display: flex; gap: 12px; margin-top: 22px; opacity: 0; }
+/* C · le geste */
+#c1 { left: 80px; top: 500px; opacity: 0; }
+/* D · l'avis et la réponse */
+#rv { left: 80px; width: 920px; top: 150px; padding: 32px 34px 30px; opacity: 0; }
+.rv-h { display: flex; align-items: center; gap: 16px; }
+.rv-h img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+.rv-h b { font-family: var(--fd); font-size: 34px; font-weight: 600; }
+.rv-h .note { display: inline-flex; align-items: center; gap: 10px; font-family: var(--fd); font-size: 28px; font-weight: 700; }
+.rv-h small { display: block; font-size: 21px; color: var(--ardoise); }
+.rv-h .x { margin-inline-start: auto; color: #98A4AB; }
+.rv-q { margin-top: 20px; background: #EEF3F6; border-radius: 18px; padding: 20px 24px; font-size: 25px; line-height: 1.5; color: #1B2A35; }
+.rv-p { margin-top: 20px; border-radius: 22px; padding: 22px 24px; box-shadow: inset 0 0 0 1.5px #D5DEE7; background: rgba(225,233,240,.28); }
+.rv-p .hint { font-size: 21px; color: var(--ardoise); margin-top: 12px; }
+.rv-p .sk { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.rv-p .sk i { height: 16px; border-radius: 8px; background: linear-gradient(90deg, #E1E9F0, #EEF3F6, #E1E9F0); background-size: 200% 100%; }
+.rv-p .dr { margin-top: 12px; font-size: 24px; line-height: 1.5; color: #1B2A35; }
+.rv-p .row { display: flex; justify-content: flex-end; margin-top: 14px; }
+.rv-l { margin-top: 20px; font-size: 22px; font-weight: 700; color: var(--ardoise); }
+.rv-ta { margin-top: 10px; min-height: 176px; border-radius: 18px; padding: 18px 22px; box-shadow: inset 0 0 0 2px #D5DEE7; font-size: 24px; line-height: 1.5; color: #1B2A35; background: #FDFDFE; }
+.rv-ta.focus { box-shadow: inset 0 0 0 2.5px #25406E, 0 0 0 6px rgba(37,64,110,.10); }
+.rv-ta mark { background: rgba(224,200,155,.55); color: inherit; border-radius: 6px; padding: 0 2px; }
+.rv-f { position: relative; display: flex; justify-content: flex-end; align-items: center; height: 66px; margin-top: 20px; }
+.rv-f .done { position: absolute; inset-inline-start: 0; display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; color: #0C7166; opacity: 0; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 660px; display: flex; flex-direction: column; align-items: center; gap: 26px; text-align: center; }
+#promise .title { font-size: 96px; opacity: 0; }
+#promise .stars { opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+const PH = '../../brand-book/assets/photos/', BR = '../../brand-book/assets/brands/';
+
+/* A · la chaleur : chambre en plein été, température qui monte, clim hors service, message */
+const heat = K.abs('heat');
+const heatImg = h('img', { src: PH + 'bookingTerraceRoom.webp', alt: '' });
+const warm = h('div', { class: 'warm' });
+heat.append(heatImg, warm);
+const notif = K.abs('notif');
+notif.append(h('span', { class: 'ai' }, h('img', { src: BR + 'airbnb.svg', alt: '' })), h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'nh' }, h('span', {}, T.notif.app), h('span', {}, T.notif.when)), h('div', { class: 'nt' }, T.notif.text)));
+const H = T.heat;
+const temp = K.abs('temp', 'card');
+const tNum = h('b', {}, String(H.from));
+const tVal = h('span', { class: 'tp-v' }, tNum, h('small', {}, H.unit));
+const acChip = h('span', { class: 'chip neutral' }, H.on);
+temp.append(h('div', { class: 'tp-h' }, h('span', { class: 'tp-ic' }, icon('thermosun', 38)), h('div', { style: 'flex:1' }, h('span', { class: 'rm' }, H.room), tVal)),
+  h('div', { class: 'tp-ac' }, icon('snowflake', 30), h('span', {}, H.ac), acChip));
+
+/* B · la mission de réparation */
+const J = T.job;
+const job = K.abs('job', 'card');
+const stepEls = J.steps.map((s) => { const bar = h('b'); const el = h('div', { class: 'sg' }, h('i', {}, bar), h('span', {}, s)); return { el, bar }; });
+const jobDone = h('div', { id: 'jobDone' }, h('span', { class: 'chip ok' }, icon('check', 20), J.fixed), h('span', { class: 'chip auto' }, icon('snowflake', 20), `${H.after} ${H.unit}`));
+job.append(h('div', { class: 'cover' }, h('img', { src: PH + 'maintenance.jpg', alt: '' }), h('span', { class: 'chip' }, icon('wrench', 20), J.kicker)),
+  h('div', { class: 'jb' }, h('div', { class: 'jt' }, J.title),
+    h('div', { class: 'jm' }, h('span', {}, icon('pin', 24), J.place), h('span', {}, icon('clock', 24), J.when)),
+    h('div', { class: 'tech' }, h('img', { src: PH + 'provider-2.jpg', alt: '' }), h('div', {}, h('b', {}, J.tech), h('small', {}, J.role)), h('span', { class: 'chip ok' }, icon('check', 20), J.steps[1])),
+    h('div', { class: 'steps' }, stepEls.map((s) => s.el)), jobDone));
+
+/* C · le geste commercial (carte de l'agent Finance) */
+const C1 = T.card1;
+const c1 = K.hitlCard({ agent: C1.agent, tag: C1.tag, title: C1.title, copy: C1.copy, wait: C1.wait, done: C1.done,
+  primary: ['coins', C1.refund], secondary: ['sliders', C1.adjust], dismiss: C1.dismiss, doneText: C1.doneText });
+c1.el.id = 'c1'; c1.el.classList.add('abs');
+c1.body.append(h('div', { class: 'hg' }, C1.grid.map(([k, v], i) => h('div', {}, h('small', {}, k), h('b', { class: i === 1 ? 'warn' : '' }, v)))));
+K.stage.append(c1.el);
+
+/* D · l'avis, le brouillon de l'agent Réputation, l'insertion, la correction, la publication */
+const R = T.review;
+const rv = K.abs('rv', 'card');
+const stars = K.stars(R.rating, 30);
+const skel = h('div', { class: 'sk' }, h('i', { style: 'width:100%' }), h('i', { style: 'width:92%' }), h('i', { style: 'width:64%' }));
+const draft = h('div', { class: 'dr' }, R.draft);
+const insBtn = h('span', { class: 'hbtn o' }, icon('sparkles', 24), h('span', {}, R.insert));
+const ta = h('div', { class: 'rv-ta' });
+const pubBtn = h('span', { class: 'hbtn p' }, icon('send', 24), h('span', {}, R.publish));
+const pubDone = h('div', { class: 'done' }, icon('ccheck', 30), h('span', {}, R.published));
+rv.append(
+  h('div', { class: 'rv-h' }, h('img', { src: K.guestPhoto('sara'), alt: '' }), h('div', {}, h('b', {}, R.name), h('small', {}, R.place)),
+    h('span', { class: 'note' }, stars.el, String(R.rating)), h('span', { class: 'x' }, icon('x', 30))),
+  h('div', { class: 'rv-q' }, R.text),
+  h('div', { class: 'rv-p' }, h('div', { class: 'hc-top' }, h('span', { class: 'hb s' }, icon('bot', 20), R.agent), h('span', { class: 'hb o' }, R.tag)),
+    h('div', { class: 'hint' }, R.hint), skel, draft, h('div', { class: 'row' }, insBtn)),
+  h('div', { class: 'rv-l' }, R.label), ta,
+  h('div', { class: 'rv-f' }, pubDone, pubBtn));
+const cut = R.draft.indexOf(R.editAfter) + R.editAfter.length;
+const headTxt = R.draft.slice(0, cut), tailTxt = R.draft.slice(cut);
+function taRender(t) {
+  if (t < SYNC.insert + .15) { ta.replaceChildren(); ta.classList.remove('focus'); return; }
+  ta.classList.toggle('focus', t < SYNC.publish);
+  const n = Math.max(0, Math.min(R.editWord.length, Math.floor((t - SYNC.edit) * 14)));
+  const key = n + (t >= SYNC.edit ? 'e' : 'i');
+  if (ta.dataset.k === key) return;
+  ta.dataset.k = key;
+  if (t < SYNC.edit) { ta.replaceChildren(R.draft); return; }
+  const word = h('mark', {}, R.editWord.slice(0, n));
+  if (n < R.editWord.length) word.classList.add('typing');
+  ta.replaceChildren(headTxt, word, tailTxt);
+}
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const pStars = K.stars(0, 64);
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(pStars.el, p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) pts = { refund: K.center(c1.pBtn), insert: K.center(insBtn), publish: K.center(pubBtn), ta: K.center(ta) };
+  const [a0, b0] = slot(0), [a1, b1] = slot(1), [a2, b2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A · la chaleur */
+  const v0 = vis(t, 0, b0 + .3, .4, .6);
+  heat.style.opacity = v0;
+  heatImg.style.transform = `scale(${lerp(1.12, 1.02, easeOut(prog(t, 0, b0)))})`;
+  warm.style.opacity = .55 + .45 * easeInOut(prog(t, a0, SYNC.broken - a0));
+  const ni = easeOut(prog(t, a0 + 1.0, .5));
+  set(notif, { opacity: ni * v0, transform: `translateY(${lerp(-40, 0, ni)}px)` });
+  const ti = easeOut(prog(t, a0 + .3, .6));
+  set(temp, { opacity: ti * v0, transform: `translateY(${lerp(50, 0, ti)}px)` });
+  K.roll(tNum, H.from, H.to, prog(t, a0 + .4, SYNC.broken - a0));
+  tVal.style.color = `color-mix(in srgb, #B45733 ${Math.round(100 * prog(t, a0 + .4, SYNC.broken - a0))}%, #1B2A35)`;
+  const broken = t >= SYNC.broken;
+  if (acChip.dataset.s !== String(broken)) { acChip.dataset.s = String(broken); acChip.className = 'chip ' + (broken ? 'bad' : 'neutral'); acChip.replaceChildren(...(broken ? [icon('talert', 20), H.broken] : [H.on])); }
+  K.urgency(temp, t, SYNC.broken + .2, '0 30px 60px -34px rgba(27,42,53,.45)', '201,122,122');
+
+  /* B · la mission avance jusqu'à « Terminée » */
+  const v1 = slotVis(t, 1), e1 = easeOut(prog(t, a1, .6));
+  set(job, { opacity: v1, transform: `translateY(${lerp(60, 0, e1)}px)` });
+  const marks = [a1 + .3, a1 + 1.0, Math.min(a1 + 1.8, SYNC.fixed - .8), SYNC.fixed];
+  stepEls.forEach((s, i) => { const p = easeOut(prog(t, marks[i], .5)); s.bar.style.width = p * 100 + '%'; s.el.classList.toggle('on', p > .5); });
+  const jd = easeOut(prog(t, SYNC.fixed + .3, .45));
+  set(jobDone, { opacity: jd, transform: `translateY(${lerp(12, 0, jd)}px)` });
+
+  /* C · le geste, clic « Rembourser » */
+  const v2 = slotVis(t, 2), e2 = easeOut(prog(t, a2, .6));
+  set(c1.el, { opacity: v2, transform: `translateY(${lerp(60, 0, e2)}px)` });
+  c1.render(t, SYNC.refund);
+  K.cursorMove(t, SYNC.refund - 1.2, .95, { x: pts.refund.x + 300, y: pts.refund.y + 380 }, pts.refund, Math.min(SYNC.refund + .9, b2));
+  K.tapAt(t, SYNC.refund, pts.refund);
+
+  /* D · l'avis et la réponse */
+  const v3 = slotVis(t, 3), e3 = easeOut(prog(t, a3, .6));
+  set(rv, { opacity: v3, transform: `translateY(${lerp(60, 0, e3)}px)` });
+  stars.set(4 * easeOut(prog(t, a3 + .5, .8)));
+  const sk = t >= SYNC.draft - .9 && t < SYNC.draft + .2;
+  skel.style.display = t < SYNC.draft + .2 ? '' : 'none';
+  skel.style.opacity = sk ? 1 : .35;
+  [...skel.children].forEach((i) => { i.style.backgroundPosition = `${-((t * 120) % 200)}% 0`; });
+  draft.style.display = t >= SYNC.draft + .2 ? '' : 'none';
+  draft.style.opacity = easeOut(prog(t, SYNC.draft + .2, .5));
+  set(insBtn, { opacity: t >= SYNC.draft + .2 ? 1 : .35, transform: `scale(${t >= SYNC.insert - .04 && t < SYNC.insert + .12 ? .94 : 1})` });
+  taRender(t);
+  const pubD = easeOut(prog(t, SYNC.publish + .22, .45));
+  set(pubBtn, { opacity: 1 - pubD, transform: `scale(${t >= SYNC.publish - .04 && t < SYNC.publish + .12 ? .94 : 1})` });
+  set(pubDone, { opacity: pubD, transform: `translateY(${lerp(12, 0, pubD)}px)` });
+  rv.style.borderColor = `color-mix(in srgb, rgba(20,184,166,.6) ${Math.round(pubD * 100)}%, #D5DEE7)`;
+  // Curseur : Insérer → la zone de réponse (correction) → Publier.
+  if (t < SYNC.insert + .5) K.cursorMove(t, SYNC.insert - 1.1, .9, { x: pts.insert.x + 220, y: pts.insert.y + 340 }, pts.insert, b3);
+  else if (t < SYNC.edit + .4) K.cursorMove(t, SYNC.insert + .5, Math.max(.3, SYNC.edit - SYNC.insert - .6), pts.insert, { x: pts.ta.x - 180, y: pts.ta.y - 40 }, b3);
+  else K.cursorMove(t, SYNC.edit + .4, Math.max(.3, SYNC.publish - SYNC.edit - .5), { x: pts.ta.x - 180, y: pts.ta.y - 40 }, pts.publish, Math.min(SYNC.publish + .8, b3));
+  K.tapAt(t, SYNC.insert, pts.insert);
+  K.tapAt(t, SYNC.publish, pts.publish);
+
+  /* E · promesse */
+  const v4 = slotVis(t, 4, .5, .35);
+  pStars.el.style.opacity = v4;
+  pStars.set(lerp(0, 5, easeOut(prog(t, a4, .9))));
+  const q1 = easeOut(prog(t, a4 + .1, .55)), q2 = easeOut(prog(t, a4 + (b4 - a4) * .5, .55));
+  set(p1, { opacity: v4 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v4 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

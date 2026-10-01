@@ -1,0 +1,349 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 01 « Les 3 KPI de base » (version longue, ≈ 2 min 45) · 9:16 (réseaux)
+  et 16:9 (landing), depuis le même fichier.
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (calendrier plein) → 1 occupation (22/30 = 73 %, piège des nuits bloquées :
+  22/25 = 88 %) → 2 prix moyen (2 640 € / 22 = 120 €, piège des frais : 3 080 € / 22 = 140 €) →
+  3 RevPAR (2 640 € / 30 = 88 €, nuits vides comptées) → 4 trois stratégies (85,50 € / 64 € / 88 €) →
+  5 grille de lecture occupation × prix → 6 à retenir → fin.
+  Rendu : node ../render.mjs academie-01-kpi --format=9x16   (puis --format=16x9)
+  Aperçu : index.html?format=16x9
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 01 Les 3 KPI de base</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.three { display: flex; gap: 12px; flex-wrap: wrap; }
+.three span { display: inline-flex; align-items: center; gap: 10px; background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 999px; padding: 12px 22px; font-size: 26px; font-weight: 700; color: var(--n700); box-shadow: var(--e1); opacity: 0; }
+.three span i { width: 12px; height: 12px; border-radius: 50%; background: var(--terre); }
+.sect { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.div { height: 1.5px; background: var(--ligne2); margin: 26px 0; flex: none; }
+.fill { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; position: relative; }
+.note { font-size: 24px; font-weight: 700; color: #8E3F20; background: #F7E4DC; border-radius: 12px; padding: 6px 14px; margin-top: -6px; }
+.cnote { font-size: 20px; font-weight: 600; color: var(--gris); }
+.legend { display: flex; gap: 22px; font-size: 22px; font-weight: 600; color: var(--gris); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 22px; height: 22px; border-radius: 6px; }
+.hatch { background: repeating-linear-gradient(135deg, #C9D3D9 0 4px, #EEF3F6 4px 9px) !important; }
+
+/* Reçu voyageur (piège des frais) */
+.rcpt { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; opacity: 0; }
+.rrow { display: flex; align-items: center; gap: 16px; background: var(--surface); border-radius: 18px; padding: 14px 20px; font-size: 28px; font-weight: 600; color: var(--ardoise); }
+.rrow b { margin-inline-start: auto; font-family: var(--fd); font-size: 34px; color: var(--n700); font-variant-numeric: tabular-nums; position: relative; }
+.rrow b::after { content: ''; position: absolute; left: -4px; right: -4px; top: 52%; height: 3px; background: #B45733; transform: scaleX(var(--strike, 0)); transform-origin: left; }
+.rrow .ex { font-size: 20px; font-weight: 700; color: #8E3F20; background: #F7E4DC; border-radius: 10px; padding: 4px 10px; opacity: 0; }
+.rrow.tot { background: transparent; border-top: 1.5px solid var(--ligne2); border-radius: 0; padding-top: 16px; font-weight: 700; color: var(--n700); }
+.wrongl { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 6px; }
+.wrongl .big { font-size: 52px; }
+.wrongl .op { font-family: var(--fd); font-size: 44px; color: var(--gris); }
+.diffb { background: #B45733; color: #FDFDFE; font-family: var(--fd); font-weight: 700; font-size: 28px; border-radius: 14px; padding: 8px 16px; opacity: 0; }
+
+/* RevPAR : étiquette sur les nuits vides, identité */
+.btag { position: absolute; top: calc(100% + 10px); transform: translateX(-50%); background: #B45733; color: #FDFDFE; font-family: var(--fd); font-weight: 700; font-size: 22px; border-radius: 10px; padding: 5px 12px; white-space: nowrap; opacity: 0; }
+.idn { display: inline-flex; align-items: baseline; gap: 12px; background: #F4EBDC; color: var(--encre-terre); border-radius: 18px; padding: 12px 22px; font-size: 22px; font-weight: 700; opacity: 0; }
+.idn b { font-family: var(--fd); font-size: 30px; }
+
+/* Trois stratégies */
+.strats { display: flex; flex-direction: column; gap: 20px; }
+.srow { display: grid; grid-template-columns: 250px 1fr 240px; align-items: center; gap: 26px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 30px; padding: 26px 30px; box-shadow: var(--e3); opacity: 0; }
+.srow .nm { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; color: var(--ardoise); }
+.srow .nm i { flex: none; width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--fd); font-size: 22px; color: #FDFDFE; }
+.srow .pr { font-family: var(--fd); font-weight: 700; font-size: 54px; color: var(--n700); letter-spacing: -.03em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.srow .pr small { font-size: 22px; font-weight: 600; color: var(--gris); letter-spacing: 0; margin-left: 6px; }
+.srow .dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+.srow .dots i { aspect-ratio: 1; border-radius: 6px; background: var(--surface); }
+.srow .oc { font-size: 23px; font-weight: 700; color: var(--ardoise); margin-top: 10px; opacity: 0; font-variant-numeric: tabular-nums; }
+.srow .rv { text-align: right; opacity: 0; }
+.srow .rv small { display: block; font-size: 20px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); }
+.srow .rv b { display: block; font-family: var(--fd); font-size: 58px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.srow .rv span { font-size: 20px; font-weight: 600; color: var(--gris); font-variant-numeric: tabular-nums; }
+.best { position: absolute; top: -18px; right: 28px; display: inline-flex; align-items: center; gap: 8px; background: var(--teal); color: #FDFDFE; border-radius: 999px; padding: 6px 16px 6px 10px; font-size: 22px; font-weight: 700; opacity: 0; }
+
+/* Grille de lecture occupation × prix */
+.mx { display: grid; grid-template-columns: 56px 1fr 1fr; grid-template-rows: 44px 1fr 1fr; gap: 12px; }
+.mx .ch { display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--encre-terre); opacity: 0; }
+.mx .rh { writing-mode: vertical-rl; transform: rotate(180deg); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); opacity: 0; }
+.mc { background: #FDFDFE; border: 2px solid var(--ligne2); border-radius: 28px; padding: 26px 26px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--e1); opacity: 0; }
+.mc .ic { width: 58px; height: 58px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+.mc b { font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); letter-spacing: -.015em; line-height: 1.05; }
+.mc span { font-size: 25px; font-weight: 600; color: var(--ardoise); line-height: 1.3; }
+.tip { display: flex; align-items: center; gap: 14px; margin-top: 22px; background: var(--n600); color: var(--papier); border-radius: 22px; padding: 18px 26px; font-size: 28px; font-weight: 700; opacity: 0; }
+
+html.f169 .srow { grid-template-columns: 240px 1fr 200px; gap: 20px; padding: 22px 24px; }
+html.f169 .srow .nm { white-space: nowrap; }
+html.f169 .srow .pr { font-size: 46px; }
+html.f169 .srow .rv b { font-size: 46px; }
+html.f169 .srow .nm { font-size: 23px; }
+html.f169 .mc { padding: 22px; }
+html.f169 .mc b { font-size: 32px; }
+html.f169 .mc span { font-size: 23px; }
+html.f169 .tip { font-size: 26px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, slot, slotVis, roll } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const CW = L.card.w - (P ? 104 : 100);     // largeur utile de la carte
+const fmtEur = (v) => Math.round(v).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' €';
+const ink = { terracotta: '#B45733', terre: '#9A6C3A', teal: '#0D9488', tealInk: '#0C7166' };
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+
+/* Étiquette de la série et barre des chapitres (tout l'épisode) */
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+
+/* Exemple commun : juin, 22 nuits vendues sur 30, 2 640 € de chiffre d'affaires hébergement */
+const BOOKED = [0, 1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 18, 19, 20, 21, 22, 25, 26, 27, 28];
+const BLOCKED = [9, 10, 23, 24, 29];          // hypothèse du piège : 5 nuits bloquées → 25 disponibles
+const PRICES = [104, 118, 126, 112, 138, 122, 109, 115, 121, 131, 125, 99, 117, 124, 113, 128, 140, 107, 119, 122, 116, 134];   // somme 2 640 €
+
+/* 0 · accroche : calendrier plein, la question, les trois indicateurs */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 74 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' ').map((x) => x.replace(/[?…]/g, '')));
+const three = A.abs(L.head.x, 0, L.head.w, null, 'three');
+const threeEls = T.three.map((x) => { const e = h('span', {}, h('i'), x); three.append(e); return e; });
+const c0 = A.card();
+let cal0 = A.cal(30, 7, Math.floor((CW - 6 * 10) / 7));
+c0.el.append(h('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px' }, h('span', { class: 'alabel' }, 'Juin · Studio Canut'), h('span', { class: 'cnote' }, T.illustrative)), cal0.el);
+
+/* 1 · taux d'occupation (+ piège des nuits bloquées) */
+const K1 = T.k1, hd1 = A.head(K1.ix, K1.title, K1.sub), c1 = A.card();
+const f1 = A.frac(K1.num, K1.den, P ? 520 : 480);
+const note1 = h('span', { class: 'note', style: 'opacity:0' }, K1.note);
+const cal1 = A.cal(30, 7, P ? 52 : 46);
+const g1 = A.gauge(P ? 290 : 260, 26);
+const x1 = h('div', { class: 'big', style: `font-size:${P ? 44 : 40}px;color:#4D5A64` });
+const legend1 = h('div', { class: 'legend', style: 'opacity:0' },
+  h('span', {}, h('i', { style: `background:${ink.terre}` }), K1.sold), h('span', {}, h('i', { class: 'hatch' }), K1.blocked));
+c1.el.append(h('div', { class: 'sect' }, h('span', { class: 'alabel' }, T.formula), f1.el, note1), h('div', { class: 'div' }),
+  h('div', { class: 'fill' }, h('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:24px' },
+    h('div', { style: 'display:flex;flex-direction:column;gap:16px' }, h('span', { class: 'alabel' }, T.example), cal1.el, x1),
+    h('div', { style: 'display:flex;flex-direction:column;align-items:center;gap:22px' }, g1.el, legend1))));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · prix moyen (+ piège des frais hors hébergement) */
+const K2 = T.k2, hd2 = A.head(K2.ix, K2.title, K2.sub), c2 = A.card();
+const f2 = A.frac(K2.num, K2.den, P ? 640 : 600);
+const e2a = h('span', { class: 'big', style: `font-size:${P ? 64 : 58}px` }), e2b = h('span', { class: 'big', style: `font-size:${P ? 64 : 58}px` }), e2r = h('span', { class: 'big res', style: `font-size:${P ? 88 : 80}px` });
+const b2 = A.bars(PRICES, 120, P ? 200 : 190, K2.avg);
+const ex2 = h('div', {}, h('span', { class: 'alabel' }, T.example), h('div', { class: 'eq', style: 'margin:18px 0 44px' }, e2a, h('span', { class: 'op' }, '÷'), e2b, h('span', { class: 'op' }, '='), e2r), b2.el);
+const rRows = K2.rows.map(([k, v], i) => h('div', { class: 'rrow', style: 'opacity:0' }, icon(['bed', 'broom', 'landmark'][i], 30), k, i ? h('span', { class: 'ex' }, K2.exclude) : null, h('b', {}, v)));
+const rTot = h('div', { class: 'rrow tot', style: 'opacity:0' }, K2.total[0], h('b', {}, K2.total[1]));
+const wr = K2.wrong, wrRes = h('span', { class: 'big', style: `color:${ink.terracotta}` }, wr[2]);
+const wrongL = h('div', { class: 'wrongl', style: 'opacity:0' }, h('span', { class: 'big' }, wr[0]), h('span', { class: 'op' }, '÷'), h('span', { class: 'big' }, wr[1]), h('span', { class: 'op' }, '='), wrRes);
+const diff2 = h('span', { class: 'diffb' }, K2.diff);
+const rcpt = h('div', { class: 'rcpt' }, h('span', { class: 'alabel' }, K2.paid), ...rRows, rTot, h('div', { style: 'display:flex;align-items:center;justify-content:center;gap:18px' }, wrongL, diff2));
+c2.el.append(h('div', { class: 'sect' }, h('span', { class: 'alabel' }, T.formula), f2.el), h('div', { class: 'div' }), h('div', { class: 'fill' }, ex2, rcpt));
+const trap2 = A.trap(c2.el, T.trap);
+
+/* 3 · RevPAR : le même chiffre d'affaires étalé sur les 30 nuits, vides comprises */
+const K3 = T.k3, hd3 = A.head(K3.ix, K3.title, K3.sub), c3 = A.card();
+const f3 = A.frac(K3.num, K3.den, P ? 640 : 600);
+const e3a = h('span', { class: 'big', style: `font-size:${P ? 60 : 56}px` }), e3b = h('span', { class: 'big', style: `font-size:${P ? 60 : 56}px` }), e3r = h('span', { class: 'big res', style: `font-size:${P ? 88 : 80}px` });
+const MONTH = Array.from({ length: 30 }, (_, i) => { const k = BOOKED.indexOf(i); return k < 0 ? 0 : PRICES[k]; });
+const b3 = A.bars(MONTH.map((v) => v || 1), 88, 150, K3.avg);
+const b3Bars = [...b3.el.querySelectorAll('i')];
+const sold3 = b3Bars.filter((_, i) => MONTH[i] > 0), empty3 = b3Bars.filter((_, i) => MONTH[i] === 0);
+empty3.forEach((e) => e.classList.add('empty'));
+const firstEmpty = MONTH.indexOf(0);
+const btag = h('span', { class: 'btag', style: `left:${(firstEmpty + .5) / 30 * 100}%` }, K3.empty);
+b3.el.append(btag);
+const id3 = h('span', { class: 'idn' }, K3.idLabel, h('b', {}, K3.id));
+c3.el.append(h('div', { class: 'sect' }, h('span', { class: 'alabel' }, T.formula), f3.el), h('div', { class: 'div' }),
+  h('div', { class: 'fill' }, h('span', { class: 'alabel' }, T.example), h('div', { class: 'eq', style: 'margin:10px 0 64px' }, e3a, h('span', { class: 'op' }, '÷'), e3b, h('span', { class: 'op' }, '='), e3r), b3.el,
+    h('div', { style: 'display:flex;justify-content:center;margin-top:58px' }, id3)));
+
+/* 4 · trois stratégies : même studio, même mois */
+const ST = T.strat, hd4 = A.head(null, ST.title, ST.sub);
+const strats = A.abs(L.card.x, 0, L.card.w, null, 'strats');
+const SCOL = [ink.terracotta, ink.terre, ink.teal], SINK = [ink.terracotta, '#7A5530', ink.tealInk];
+const sRows = ST.rows.map((r, n) => {
+  const dots = Array.from({ length: 30 }, () => h('i'));
+  const oc = h('div', { class: 'oc' }, r.occ), rv = h('div', { class: 'rv' }, h('small', {}, ST.label), h('b', { style: `color:${SINK[n]}` }, r.rev), h('span', {}, r.calc));
+  const best = n === 2 ? h('span', { class: 'best' }, icon('ccheck', 24), ST.best) : null;
+  const el = h('div', { class: 'srow', style: 'position:relative' },
+    h('div', {}, h('div', { class: 'nm' }, h('i', { style: `background:${SCOL[n]}` }, String(n + 1)), r.name), h('div', { class: 'pr' }, r.price, h('small', {}, ST.perNight))),
+    h('div', {}, h('div', { class: 'dots' }, dots), oc), rv, best);
+  strats.append(el);
+  return { el, dots, oc, rv, best, sold: r.nights };
+});
+
+/* 5 · lire les trois ensemble : grille occupation × prix */
+const G = T.grid, hd5 = A.head(null, G.title, G.sub);
+const gw = A.abs(L.card.x, 0, L.card.w, null);
+const cell = ([title, advice], ic, bg, fg) => h('div', { class: 'mc' }, h('span', { class: 'ic', style: `background:${bg};color:${fg}` }, icon(ic, 32)), h('b', {}, title), h('span', {}, advice));
+const cHL = cell(G.hl, 'trend', '#F4EBDC', ink.terre), cHH = cell(G.hh, 'ccheck', 'rgba(13,148,136,.12)', ink.tealInk);
+const cLL = cell(G.ll, 'camera', '#F7E4DC', '#8E3F20'), cLH = cell(G.lh, 'trenddown', '#F7E4DC', '#8E3F20');
+const colLo = h('div', { class: 'ch' }, G.colLo), colHi = h('div', { class: 'ch' }, G.colHi);
+const rowHi = h('div', { class: 'rh' }, G.rowHi), rowLo = h('div', { class: 'rh' }, G.rowLo);
+const mx = h('div', { class: 'mx', style: `grid-template-rows:44px ${P ? 236 : 248}px ${P ? 236 : 248}px` }, h('div'), colLo, colHi, rowHi, cHL, cHH, rowLo, cLL, cLH);
+const tip = h('div', { class: 'tip' }, icon('calcheck', 34), G.tip);
+gw.append(mx, tip);
+const cells = [[cHL, 'm1'], [cLH, 'm2'], [cLL, 'm3'], [cHH, 'm4']];
+
+/* 6 · à retenir */
+const R = T.recap, hd6 = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'rcap');
+const rEls = R.rows.map(([ic, l, v, f]) => { const e = A.rchip(ic, l, v, f); e.style.opacity = 0; rc.append(e); return e; });
+const app = h('div', { class: 'appt', style: 'opacity:0;margin-top:8px' }, icon('ccheck', 32), R.app);
+rc.append(app);
+
+/* Mise en page mesurée (polices chargées) : la question fixe la place des pastilles et, en 9:16,
+   celle du calendrier ; les blocs sans carte sont centrés sous leur titre (9:16) ou dans la colonne
+   de droite (16:9). */
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  three.style.top = `${q.offsetTop + q.offsetHeight + 26}px`;
+  if (P) {
+    const top = Math.max(L.card.y, three.offsetTop + three.offsetHeight + 48), maxBottom = L.card.y + L.card.h;
+    const cellPx = Math.min(Math.floor((CW - 60) / 7), Math.floor((maxBottom - top - 104 - 54 - 40) / 5));
+    cal0.el.remove(); cal0 = A.cal(30, 7, cellPx); cal0.el.style.justifyContent = 'center'; c0.el.append(cal0.el);
+    c0.el.style.top = `${top}px`; c0.el.style.height = 'auto';
+  }
+  const centre = (el, hd) => {
+    const top = P ? hd.el.offsetTop + hd.el.offsetHeight + 40 : L.card.y, bottom = L.card.y + L.card.h;
+    el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`;
+  };
+  centre(strats, hd4); centre(gw, hd5); centre(rc, hd6);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .05);
+  threeEls.forEach((e, i) => A.rise(e, v0, shown(t, SYNC.three + i * .12), 20));
+  c0.render(t, S[0][0] + .2, S[0][1]);
+  cal0.fill(t, S[0][0] + .45, [...Array(30).keys()], .045);
+
+  /* 1 · occupation */
+  const v1 = slotVis(t, 1);
+  hd1.render(t, S[1][0], S[1][1]); c1.render(t, S[1][0] + .1, S[1][1]);
+  f1.set(t, SYNC.f1n, SYNC.f1d);
+  f1.bar.style.transform = `scaleX(${shown(t, S[1][0] + .3, .5)})`;
+  cal1.fill(t, SYNC.f1x - .1, BOOKED, .035);
+  BLOCKED.forEach((i, k) => {
+    const p = shown(t, SYNC.blk + k * .14, .3), c = cal1.cells[i];
+    c.classList.toggle('hatch', p > 0);
+    if (p > 0) c.style.transform = `scale(${1 + .14 * Math.sin(Math.PI * p)})`;
+  });
+  const den1 = t >= SYNC.blk + .9 ? 25 : 30;
+  x1.textContent = `${BOOKED.filter((_, k) => t >= SYNC.f1x - .1 + k * .035 + .1).length} / ${den1} ${K1.nights}`;
+  A.rise(legend1, v1, shown(t, SYNC.blk + .3), 10);
+  A.rise(note1, v1, shown(t, SYNC.blk + .6), 10);
+  trap1.render(t, SYNC.trap1, v1);
+  const gA = easeInOut(prog(t, SYNC.f1r - .1, .7)) * 22 / 30, gB = easeInOut(prog(t, SYNC.f1b - .2, .7));
+  const gv = gB > 0 ? lerp(22 / 30, 22 / 25, gB) : gA;
+  g1.set(gv, Math.round(gv * 100) + ' %');
+
+  /* 2 · prix moyen */
+  const v2 = slotVis(t, 2);
+  hd2.render(t, S[2][0], S[2][1]); c2.render(t, S[2][0] + .1, S[2][1]);
+  f2.set(t, SYNC.f2n, SYNC.f2d);
+  f2.bar.style.transform = `scaleX(${shown(t, S[2][0] + .3, .5)})`;
+  roll(e2a, 0, 2640, prog(t, SYNC.f2x, .7), fmtEur); roll(e2b, 0, 22, prog(t, SYNC.f2x - .5, .5));
+  roll(e2r, 0, 120, prog(t, SYNC.f2r - .1, .6), fmtEur);
+  e2r.style.opacity = t >= SYNC.f2r - .12 ? 1 : .15;
+  b2.grow(t, SYNC.f2x - .2, .025);
+  const al2 = shown(t, SYNC.f2r); set(b2.line, { opacity: al2, transform: `scaleX(${lerp(.3, 1, al2)})` });
+  const sw = shown(t, SYNC.trap2 + .1, .5);
+  set(ex2, { opacity: 1 - sw, transform: `translateY(${lerp(0, -24, sw)}px)` });
+  set(rcpt, { opacity: sw, transform: `translateY(${lerp(24, 0, sw)}px)` });
+  trap2.render(t, SYNC.trap2, v2);
+  [SYNC.trap2 + .4, SYNC.fee1, SYNC.fee2].forEach((t0, i) => A.rise(rRows[i], 1, shown(t, t0), 14));
+  A.rise(rTot, 1, shown(t, SYNC.fee2 + 1.1), 14);
+  A.rise(wrongL, 1, shown(t, SYNC.wrong - .1), 14);
+  const dp = shown(t, SYNC.diff, .35);
+  set(diff2, { opacity: dp, transform: `scale(${lerp(.6, 1, dp)})` });
+  rRows.slice(1).forEach((r) => { set(r.querySelector('.ex'), { opacity: dp }); r.querySelector('b').style.setProperty('--strike', dp); });
+
+  /* 3 · RevPAR */
+  const v3 = slotVis(t, 3);
+  hd3.render(t, S[3][0], S[3][1]); c3.render(t, S[3][0] + .1, S[3][1]);
+  f3.set(t, SYNC.f3n, SYNC.f3d);
+  f3.bar.style.transform = `scaleX(${shown(t, S[3][0] + .3, .5)})`;
+  sold3.forEach((e, i) => { const p = shown(t, SYNC.f3n + i * .025, .35); e.style.transform = `scaleY(${p})`; e.style.opacity = p; });
+  const pulse = shown(t, SYNC.why, .3) * (.5 + .5 * Math.cos((t - SYNC.why) * 5));
+  empty3.forEach((e, i) => {
+    const p = shown(t, SYNC.empty + i * .06, .3);
+    e.style.opacity = p; e.style.transform = `scaleY(${p})`;
+    e.style.borderColor = t >= SYNC.why ? `color-mix(in srgb, #B45733 ${Math.round(40 + 60 * pulse)}%, transparent)` : '';
+  });
+  roll(e3a, 0, 2640, prog(t, SYNC.f3x, .7), fmtEur);
+  roll(e3b, 0, 30, prog(t, SYNC.f3x + 1.4, .5));
+  roll(e3r, 0, 88, prog(t, SYNC.f3r - .1, .6), fmtEur);
+  e3r.style.opacity = t >= SYNC.f3r - .12 ? 1 : .15;
+  const al3 = shown(t, SYNC.f3r); set(b3.line, { opacity: al3, transform: `scaleX(${lerp(.3, 1, al3)})` });
+  const bt = shown(t, SYNC.why, .35); set(btag, { opacity: bt * v3, transform: `translateX(-50%) translateY(${lerp(10, 0, bt)}px)` });
+  const ip = shown(t, SYNC.id, .45);
+  const up = easeOut(prog(t, SYNC.unite, .25)) * (1 - easeIn(prog(t, SYNC.unite + .5, .4)));
+  set(id3, { opacity: ip * v3, transform: `translateY(${lerp(16, 0, ip)}px) scale(${1 + .06 * up})` });
+
+  /* 4 · trois stratégies */
+  const v4 = slotVis(t, 4);
+  hd4.render(t, S[4][0], S[4][1]);
+  const RT = [[SYNC.sA, SYNC.sAn, SYNC.sAr], [SYNC.sB, SYNC.sBn, SYNC.sBr], [SYNC.sC, SYNC.sCn, SYNC.sCr]];
+  const dim = shown(t, SYNC.sCr + .4, .5);
+  sRows.forEach((r, n) => {
+    const [tIn, tDots, tRev] = RT[n];
+    A.rise(r.el, v4 * (n < 2 ? lerp(1, .55, dim) : 1), shown(t, tIn - .35, .5), 40);
+    r.dots.forEach((d, i) => { const p = i < r.sold ? shown(t, tDots + i * .02, .2) : 0; d.style.background = `color-mix(in srgb, ${SCOL[n]} ${Math.round(p * 85)}%, #EEF3F6)`; });
+    A.rise(r.oc, 1, shown(t, tDots + .6), 10);
+    A.rise(r.rv, 1, shown(t, tRev - .05), 14);
+  });
+  const bp = shown(t, SYNC.sCr + .4, .4);
+  sRows[2].el.style.borderColor = `color-mix(in srgb, #0D9488 ${Math.round(bp * 100)}%, #E6ECF0)`;
+  set(sRows[2].best, { opacity: bp, transform: `scale(${lerp(.7, 1, bp)})` });
+
+  /* 5 · grille de lecture */
+  const v5 = slotVis(t, 5);
+  hd5.render(t, S[5][0], S[5][1]);
+  const ax = shown(t, S[5][0] + .5, .5);
+  [colLo, colHi, rowHi, rowLo].forEach((e) => { e.style.opacity = ax * v5; });
+  const order = cells.map(([, k]) => SYNC[k]);
+  cells.forEach(([c, k], i) => {
+    A.rise(c, v5, shown(t, SYNC[k] - .1, .45), 24);
+    const active = t >= SYNC[k] - .1 && t < (order[i + 1] ?? SYNC.season) - .1;
+    c.style.borderColor = active ? '#25406E' : '';
+  });
+  A.rise(tip, v5, shown(t, SYNC.season - .1, .45), 20);
+
+  /* 6 · à retenir */
+  const v6 = slotVis(t, 6);
+  hd6.render(t, S[6][0], S[6][1]);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((k, i) => A.rise(rEls[i], v6, shown(t, k - .1, .45), 40));
+  A.rise(app, v6, shown(t, SYNC.app, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>
