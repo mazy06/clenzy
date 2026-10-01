@@ -18,6 +18,44 @@ const pages = metadataCatalog(discoveryCatalog(catalogSource));
 const template = readFileSync('site/index.html', 'utf8');
 describe('Public metadata', () => {
   it.each(['fr', 'en', 'ar'] as const)(
+    'serves the styled journal layout before JavaScript in %s',
+    (language) => {
+      const path = '/ressources/blog';
+      const html = metadataHtml(
+        template,
+        pages[language][path],
+        path,
+        language,
+      );
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const stylesheet = doc.querySelector(
+        'head link[href="/initial.css"]',
+      );
+      expect(stylesheet?.getAttribute('rel')).toBe('stylesheet');
+      expect(stylesheet?.hasAttribute('disabled')).toBe(false);
+      expect(stylesheet?.getAttribute('media')).toBeNull();
+      // A readable page, not an unstyled SEO list or a loading placeholder.
+      expect(
+        doc.querySelector('.baitly-marketing .site-header'),
+      ).not.toBeNull();
+      expect(doc.querySelectorAll('#site-content h1')).toHaveLength(1);
+      expect(
+        doc.querySelector('.blg-journal .blg-hero-lead'),
+      ).not.toBeNull();
+      expect(
+        doc.querySelector('.blg-featured img')?.getAttribute('src'),
+      ).toMatch(/\.webp$/);
+      expect(
+        doc.querySelectorAll('.blg-article-list > article'),
+      ).toHaveLength(27);
+      expect(doc.querySelector('.site-route-loading')).toBeNull();
+      expect(
+        doc.querySelector('meta[name="robots"]')?.getAttribute('content'),
+      ).toMatch(/index,\s*follow/);
+    },
+  );
+
+  it.each(['fr', 'en', 'ar'] as const)(
     'publishes readable, linked HTML without JavaScript in %s and replaces the initial route body',
     (language) => {
       const docs = siteDocuments(language, discoveryCatalog(catalogSource));
@@ -50,13 +88,18 @@ describe('Public metadata', () => {
       const nextDoc = new DOMParser().parseFromString(next, 'text/html');
       expect(nextDoc.querySelectorAll('h1')).toHaveLength(1);
       expect(nextDoc.querySelector('h1')?.textContent).toBe(
-        BAITLY_JOURNEY_MESSAGES[language].solutions.title.replace(/\s+/g, ' '),
+        BAITLY_JOURNEY_MESSAGES[language].solutions.title.replace(
+          /\s+/g,
+          ' ',
+        ),
       );
       expect(nextDoc.querySelector('main')?.textContent).not.toContain(
         HOME_MESSAGES[language].hero.description,
       );
       expect(
-        nextDoc.querySelector('meta[name="robots"]')?.getAttribute('content'),
+        nextDoc
+          .querySelector('meta[name="robots"]')
+          ?.getAttribute('content'),
       ).toContain('max-image-preview:large');
     },
   );
@@ -76,14 +119,14 @@ describe('Public metadata', () => {
   });
 
   it('identifies Baitly and its website without invented ratings or endorsements', () => {
-    expect(pages.fr['/'].title).toContain('Logiciel de location saisonnière');
+    expect(pages.fr['/'].title).toContain(
+      'Logiciel de location saisonnière',
+    );
     for (const country of ['Maroc', 'France', 'Arabie saoudite'])
       expect(pages.fr['/'].description).toContain(country);
-    expect(pages.fr['/'].structuredData?.map((data) => data['@type'])).toEqual([
-      'Organization',
-      'WebSite',
-      'SoftwareApplication',
-    ]);
+    expect(
+      pages.fr['/'].structuredData?.map((data) => data['@type']),
+    ).toEqual(['Organization', 'WebSite', 'SoftwareApplication']);
     expect(JSON.stringify(pages.fr['/'].structuredData)).not.toMatch(
       /aggregateRating|reviewCount|sameAs/,
     );
@@ -93,7 +136,10 @@ describe('Public metadata', () => {
     (language) => {
       const page = pages[language]['/solutions'];
       expect(page.title).toContain(
-        BAITLY_JOURNEY_MESSAGES[language].solutions.title.replace(/\s+/g, ' '),
+        BAITLY_JOURNEY_MESSAGES[language].solutions.title.replace(
+          /\s+/g,
+          ' ',
+        ),
       );
       const rendered = metadataHtml(
         metadataHtml(template, pages.fr['/'], '/', 'fr'),
@@ -104,16 +150,22 @@ describe('Public metadata', () => {
       const doc = new DOMParser().parseFromString(rendered, 'text/html');
       expect(doc.querySelectorAll('title')).toHaveLength(1);
       expect(doc.title).toBe(page.title);
-      expect(doc.querySelectorAll('meta[name="description"]')).toHaveLength(1);
+      expect(doc.querySelectorAll('meta[name="description"]')).toHaveLength(
+        1,
+      );
       expect(
         doc.querySelector('link[rel="canonical"]')?.getAttribute('href'),
       ).toBe(
         `https://baitly.fr/solutions${language === 'fr' ? '' : `?lang=${language}`}`,
       );
       expect(doc.querySelectorAll('link[hreflang]')).toHaveLength(4);
-      expect(doc.documentElement.dir).toBe(language === 'ar' ? 'rtl' : 'ltr');
+      expect(doc.documentElement.dir).toBe(
+        language === 'ar' ? 'rtl' : 'ltr',
+      );
       expect(
-        doc.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+        doc
+          .querySelector('meta[property="og:image"]')
+          ?.getAttribute('content'),
       ).toContain('/baitly-share.jpg');
       expect(
         doc.querySelector('script[src="/baitly-config.js"]'),
@@ -177,7 +229,9 @@ describe('Public metadata', () => {
       'fr',
     );
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+    const scripts = doc.querySelectorAll(
+      'script[type="application/ld+json"]',
+    );
     expect(scripts).toHaveLength(1);
     const data = JSON.parse(scripts[0].textContent!);
     expect(data['@type']).toBe('VideoObject');
@@ -191,10 +245,14 @@ describe('Public metadata', () => {
       `https://baitly.fr${path}?t=${Math.round(episode.chapters[1])}`,
     );
     expect(
-      doc.querySelector('meta[property="og:type"]')?.getAttribute('content'),
+      doc
+        .querySelector('meta[property="og:type"]')
+        ?.getAttribute('content'),
     ).toBe('video.other');
     expect(
-      doc.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+      doc
+        .querySelector('meta[property="og:image"]')
+        ?.getAttribute('content'),
     ).toBe(`https://baitly.fr/academie/posters/${episode.slug}-16x9.jpg`);
     expect(pages.en[path].video?.jsonLd.hasPart).toHaveLength(
       episode.chapters.length,
@@ -218,7 +276,9 @@ describe('Public metadata', () => {
         const video = doc.querySelector('main video');
         expect(doc.querySelectorAll('h1')).toHaveLength(1);
         expect(video?.previousElementSibling?.tagName).toBe('H1');
-        expect(video?.getAttribute('src')).toBe(page.video?.jsonLd.contentUrl);
+        expect(video?.getAttribute('src')).toBe(
+          page.video?.jsonLd.contentUrl,
+        );
         expect(video?.getAttribute('poster')).toBe(page.video?.poster);
         expect(video?.hasAttribute('controls')).toBe(true);
         expect(video?.getAttribute('preload')).toBe('none');
@@ -235,8 +295,12 @@ describe('Public metadata', () => {
     },
   );
   it('ne peut pas fermer la balise script depuis un texte d’épisode', () => {
-    const json = scriptSafeJson({ name: '</script><script>alert(1)</script>' });
+    const json = scriptSafeJson({
+      name: '</script><script>alert(1)</script>',
+    });
     expect(json).not.toMatch(/[<>&]/);
-    expect(JSON.parse(json).name).toBe('</script><script>alert(1)</script>');
+    expect(JSON.parse(json).name).toBe(
+      '</script><script>alert(1)</script>',
+    );
   });
 });

@@ -4,6 +4,7 @@ import { canonicalUrl } from '../../lib/siteSeo';
 import { ARABIC_ARTICLES } from './localization';
 import { legalArticleImage } from './articleImages';
 import { journalArticles } from '../baitlyJournal';
+import { journalStaticHtml } from './journalStatic';
 import { BAITLY_RESOURCE_MESSAGES } from '../../lib/messages/baitlyResources';
 import {
   LEGAL_ARTICLES,
@@ -27,9 +28,13 @@ const e = (value: string) =>
   value.replace(
     /[&<>"']/g,
     (char) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        char
-      ]!,
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[char]!,
   );
 const sourceLink = (id: string, language: SiteLanguage) =>
   `[${legalSourceLabel(id, language)}](${LEGAL_SOURCES[id].url})`;
@@ -65,7 +70,9 @@ const articleMarkdown = (a: LegalArticle, language: SiteLanguage) => {
 };
 
 /** The same verified corpus feeds readers, Markdown negotiation and HTML crawlers. */
-export function legalDocuments(language: SiteLanguage): Map<string, string> {
+export function legalDocuments(
+  language: SiteLanguage,
+): Map<string, string> {
   const m = LEGAL_MESSAGES[language];
   const docs = new Map<string, string>();
   for (const country of LEGAL_COUNTRIES) {
@@ -112,7 +119,9 @@ export function legalDocuments(language: SiteLanguage): Map<string, string> {
           `## [${a.title}](${localizedPath(a.href, a.language)})\n\n${a.description}`,
           ...(a.reading
             ? [
-                ...a.reading.sections.map((s) => `### ${s.title}\n\n${s.copy}`),
+                ...a.reading.sections.map(
+                  (s) => `### ${s.title}\n\n${s.copy}`,
+                ),
                 `### ${BAITLY_RESOURCE_MESSAGES[language].blog.takeaway}\n\n${a.reading.takeaway}`,
               ]
             : []),
@@ -138,7 +147,9 @@ export function legalStructuredData(
   language: SiteLanguage,
 ): Record<string, unknown>[] | undefined {
   const article = legalArticle(
-    path.startsWith('/ressources/blog/') ? path.split('/').pop() : undefined,
+    path.startsWith('/ressources/blog/')
+      ? path.split('/').pop()
+      : undefined,
     language,
   );
   const isGuide =
@@ -184,12 +195,18 @@ export function legalStructuredData(
             name: m.byline,
             url: canonicalUrl('/ressources/blog', contentLanguage),
           },
-          publisher: { '@type': 'Organization', name: 'Baitly', url: ORIGIN },
+          publisher: {
+            '@type': 'Organization',
+            name: 'Baitly',
+            url: ORIGIN,
+          },
           about: {
             '@type': 'Country',
             name: legalCountry(article.country)!.name[contentLanguage],
           },
-          citation: articleSources(article).map((id) => LEGAL_SOURCES[id].url),
+          citation: articleSources(article).map(
+            (id) => LEGAL_SOURCES[id].url,
+          ),
           isAccessibleForFree: true,
         }
       : {
@@ -241,23 +258,15 @@ export function legalStaticHtml(
   path: string,
   language: SiteLanguage,
 ): string | undefined {
+  if (path === '/ressources/blog') return journalStaticHtml(language);
   const a = legalArticle(
-    path.startsWith('/ressources/blog/') ? path.split('/').pop() : undefined,
+    path.startsWith('/ressources/blog/')
+      ? path.split('/').pop()
+      : undefined,
     language,
   );
   const contentLanguage = a ? articleLanguage(language) : language;
   const m = LEGAL_MESSAGES[contentLanguage];
-  const articleLinks = () =>
-    journalArticles(language)
-      .map((a) => {
-        const preview = `<img src="${e(a.image)}" alt="" width="480" height="320" loading="lazy" decoding="async"><div><div class="blg-article-meta"><span>${e(a.countryLabel)}</span><span>${e(a.topicLabel)}</span><span>${a.readingMinutes} ${e(LEGAL_MESSAGES[a.language].minute)}</span></div><h3>${e(a.title)}</h3><p>${e(a.description)}</p></div>`;
-        return `<article lang="${a.language}" dir="${a.language === 'ar' ? 'rtl' : 'ltr'}">${
-          a.reading
-            ? `<details id="${a.id}" class="blg-practical-article"><summary class="blg-article-link">${preview}</summary><div class="blg-practical-body"><p class="blg-kicker">${e(BAITLY_RESOURCE_MESSAGES[language].blog.byline)}</p>${a.reading.sections.map((section) => `<section><h4>${e(section.title)}</h4><p>${e(section.copy)}</p></section>`).join('')}<section class="blg-practical-takeaway"><h4>${e(BAITLY_RESOURCE_MESSAGES[language].blog.takeaway)}</h4><p>${e(a.reading.takeaway)}</p></section></div></details>`
-            : `<a class="blg-article-link" href="${e(a.href)}?lang=${language}">${preview}</a>`
-        }</article>`;
-      })
-      .join('');
   const countryLinks = `<nav class="blg-countries" aria-label="${e(m.countries)}">${LEGAL_COUNTRIES.map((c) => link(`${guidePath(c.code)}?lang=${language}`, c.name[language])).join('')}</nav>`;
   let body: string;
   if (a) {
@@ -268,8 +277,6 @@ export function legalStaticHtml(
       .join(
         '',
       )}</ul></section>${link(localizedPath(guidePath(a.country), contentLanguage), m.countryGuide + ' · ' + legalCountry(a.country)!.name[contentLanguage])}</div></article>`;
-  } else if (path === '/ressources/blog') {
-    body = `<header class="blg-hero"><div><h1>${e(m.journalTitle)}</h1><p>${e(m.journalIntro)}</p></div></header>${m.french ? `<p>${e(m.french)}</p>` : ''}<h2>${e(m.articles)}</h2><div class="blg-article-list">${articleLinks()}</div>`;
   } else if (
     path === '/ressources/obligations' ||
     LEGAL_COUNTRIES.some((c) => guidePath(c.code) === path)
