@@ -4357,3 +4357,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0481__contact_attachments_object_storage.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0485-purge-review-negative-alert-key"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0485__purge_review_negative_alert_key.sql
+            relativeToChangelogFile: true
