@@ -31,9 +31,12 @@ import com.stripe.param.AccountSessionCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -88,6 +91,8 @@ public class HousekeeperPayoutService {
     private final NotificationService notificationService;
     private final HousekeeperPayoutRecorder recorder;
     private final com.clenzy.payment.payout.StripeConnectTransferClient transferClient;
+    /** Execution post-commit HORS transaction (voir {@link #scheduleTransferAfterCommit}). */
+    private final TransactionTemplate outsideTransaction;
 
     public HousekeeperPayoutService(HousekeeperPayoutConfigRepository configRepository,
                                     HousekeeperPayoutRecordRepository recordRepository,
@@ -98,7 +103,8 @@ public class HousekeeperPayoutService {
                                     PricingConfigService pricingConfigService,
                                     NotificationService notificationService,
                                     HousekeeperPayoutRecorder recorder,
-                                    com.clenzy.payment.payout.StripeConnectTransferClient transferClient) {
+                                    com.clenzy.payment.payout.StripeConnectTransferClient transferClient,
+                                    PlatformTransactionManager transactionManager) {
         this.configRepository = configRepository;
         this.recordRepository = recordRepository;
         this.interventionRepository = interventionRepository;
@@ -109,6 +115,8 @@ public class HousekeeperPayoutService {
         this.notificationService = notificationService;
         this.recorder = recorder;
         this.transferClient = transferClient;
+        this.outsideTransaction = new TransactionTemplate(transactionManager);
+        this.outsideTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
     }
 
     // ─── Onboarding (compte Express + Account Session embarquée) ───────────────
@@ -418,6 +426,10 @@ public class HousekeeperPayoutService {
     /**
      * Programme le transfert Stripe APRÈS COMMIT de la transaction courante
      * (ou immédiatement si aucune transaction active — ex. retry admin hors tx).
+     *
+     * <p>Après commit, la transaction terminée reste liée au thread : le transfert est donc
+     * exécuté en NOT_SUPPORTED. Sans cette suspension, les notifications du versement
+     * (REQUIRED) rejoindraient la transaction commitée et ne seraient jamais écrites.</p>
      */
     private void scheduleTransferAfterCommit(Long recordId, Long interventionId, String title,
                                              BigDecimal net, String stripeAccountId,
@@ -428,7 +440,7 @@ public class HousekeeperPayoutService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    transfer.run();
+                    outsideTransaction.executeWithoutResult(status -> transfer.run());
                 }
             });
         } else {

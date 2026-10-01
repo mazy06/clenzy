@@ -93,7 +93,8 @@ class DocumentGeneratorServiceExtraTest {
         DocumentGenerationPipeline generationPipeline = new DocumentGenerationPipeline(
                 generationRepository, documentStorageService, tagResolverService, conversionService,
                 numberingService, complianceService, invoiceGeneratorService, notificationService,
-                auditLogService, tenantContext, failureRecorder, emailDispatcher, renderer, meterRegistry);
+                auditLogService, tenantContext, failureRecorder, emailDispatcher, renderer, meterRegistry,
+                org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
         DocumentPreviewService previewService = new DocumentPreviewService(
                 tagResolverService, numberingService, complianceService, conversionService,
                 tenantContext, entityManager, renderer,

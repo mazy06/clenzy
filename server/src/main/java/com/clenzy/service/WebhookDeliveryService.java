@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -102,7 +104,13 @@ public class WebhookDeliveryService {
     /**
      * Tente la livraison d'une entree de file. L'appel HTTP est realise <b>hors transaction</b> ;
      * la mise a jour du statut se fait via des saves de repository (chacun transactionnel).
+     *
+     * <p>NOT_SUPPORTED rend ces deux garanties vraies aussi apres commit : appelee depuis
+     * l'afterCommit de {@link WebhookEventPublisher}, la methode rejoindrait sinon la transaction
+     * deja commitee, ses saves ne seraient jamais ecrits et le scheduler de retry relivrerait
+     * le meme evenement (doublon chez l'abonne).</p>
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void attempt(Long deliveryId) {
         WebhookDelivery d = deliveryRepository.findById(deliveryId).orElse(null);
         if (d == null || d.getStatus() == DeliveryStatus.DELIVERED || d.getStatus() == DeliveryStatus.FAILED) {

@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -414,8 +415,8 @@ public class ICalImportService {
 
     /**
      * Enregistre une synchronisation de transaction qui declenche l'auto-assignation
-     * de chaque SR APRES le commit de l'import. Chaque appel ouvre sa propre transaction
-     * (il n'y a plus de transaction active a ce stade), donc une exception interne
+     * de chaque SR APRES le commit de l'import. Chaque SR est traitee dans sa propre
+     * transaction ({@link #autoAssignImportedServiceRequest}), donc une exception interne
      * ne peut plus polluer l'import via le mecanisme rollback-only de Spring.
      */
     private void scheduleAutoAssignAfterCommit(List<Long> srIds, Long orgId) {
@@ -424,7 +425,7 @@ public class ICalImportService {
         }
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             // Pas de transaction active (cas de tests directs ou contexte exotique) :
-            // on lance immediatement, chaque attemptAutoAssignByOrgId ouvrant sa TX.
+            // on lance immediatement, chaque SR dans sa propre transaction.
             runDeferredAutoAssign(srIds, orgId);
             return;
         }
@@ -439,15 +440,7 @@ public class ICalImportService {
     private void runDeferredAutoAssign(List<Long> srIds, Long orgId) {
         for (Long srId : srIds) {
             try {
-                ServiceRequest sr = serviceRequestRepository.findById(srId).orElse(null);
-                if (sr != null) {
-                    boolean assigned = serviceRequestService.attemptAutoAssignByOrgId(sr, orgId);
-                    if (assigned) {
-                        log.info("iCal sync (post-commit): SR #{} auto-assignee a une equipe", sr.getId());
-                    } else {
-                        log.debug("iCal sync (post-commit): SR #{} reste en PENDING (pas d'equipe disponible)", sr.getId());
-                    }
-                }
+                self.getObject().autoAssignImportedServiceRequest(srId, orgId);
             } catch (Exception e) {
                 // Pas un swallow definitif : la SR reste PENDING/searching et le scheduler
                 // d'auto-assignation retente (jusqu'a epuisement de ses retries).
@@ -457,9 +450,29 @@ public class ICalImportService {
     }
 
     /**
+     * Auto-assignation d'une SR importee, dans sa PROPRE transaction. Appelee depuis l'afterCommit
+     * de l'import : la transaction de l'import est commitee mais reste liee au thread, et une
+     * propagation REQUIRED la rejoindrait — l'assignation ne serait jamais ecrite. La SR est relue
+     * ici pour etre geree par cette transaction. Publique pour passer par le proxy {@link #self}.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void autoAssignImportedServiceRequest(Long srId, Long orgId) {
+        ServiceRequest sr = serviceRequestRepository.findById(srId).orElse(null);
+        if (sr == null) {
+            return;
+        }
+        if (serviceRequestService.attemptAutoAssignByOrgId(sr, orgId)) {
+            log.info("iCal sync (post-commit): SR #{} auto-assignee a une equipe", srId);
+        } else {
+            log.debug("iCal sync (post-commit): SR #{} reste en PENDING (pas d'equipe disponible)", srId);
+        }
+    }
+
+    /**
      * Enregistre une synchronisation qui auto-facture les reservations OTA APRES le commit de
-     * l'import. Chaque facture est generee dans sa propre transaction (AutoInvoiceService est
-     * @Transactional), donc une defaillance n'affecte ni l'import ni les autres factures.
+     * l'import. Chaque reservation est facturee dans sa propre transaction
+     * ({@link #invoiceImportedReservation}), donc une defaillance n'affecte ni l'import ni les
+     * autres factures.
      * Reservations OTA = deja reglees sur le canal externe (pas de paiement Stripe -> pas de
      * facture via les webhooks). Date facture = maintenant (≈ date d'import). Pas de backfill.
      */
@@ -482,17 +495,25 @@ public class ICalImportService {
     private void runDeferredReservationInvoices(List<Long> reservationIds) {
         for (Long resId : reservationIds) {
             try {
-                Reservation reservation = reservationRepository.findById(resId).orElse(null);
-                if (reservation != null) {
-                    // Route séjour/commission selon le modèle de paiement du contrat (idempotent).
-                    otaInvoicingService.invoiceImportedReservation(reservation);
-                }
+                self.getObject().invoiceImportedReservation(resId);
             } catch (Exception e) {
                 // Aucun retry automatique (la reservation sera skippee aux syncs suivants,
                 // donc jamais re-facturee) : ERROR pour garantir la visibilite operateur.
                 log.error("Auto-facture OTA (post-commit) echouee pour reservation #{}: {}", resId, e.getMessage());
             }
         }
+    }
+
+    /**
+     * Auto-facture d'une reservation OTA importee, dans sa PROPRE transaction (meme raison que
+     * {@link #autoAssignImportedServiceRequest} : en afterCommit, REQUIRED rejoindrait la
+     * transaction deja commitee et la facture ne serait jamais ecrite). Route sejour/commission
+     * selon le modele de paiement du contrat (idempotent). Publique pour le proxy {@link #self}.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void invoiceImportedReservation(Long reservationId) {
+        reservationRepository.findById(reservationId)
+                .ifPresent(otaInvoicingService::invoiceImportedReservation);
     }
 
     /**
