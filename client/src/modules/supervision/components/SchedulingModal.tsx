@@ -13,8 +13,9 @@
    reste possible, et c'est un choix assumé, pas un accident.
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter } from './ActionModal';
 import { useEffect, useMemo, useState } from 'react';
-import { Avatar, AvatarFallback, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, Spinner } from '../../../components/ui';
+import { Avatar, AvatarFallback, Button, Dialog, Field, FieldLabel, Input, Spinner } from '../../../components/ui';
 import { Calendar } from '../../../components/ui/calendar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '../../../components/ui/command';
 import { Check, UserRound, UserRoundX } from 'lucide-react';
@@ -176,12 +177,13 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
   const renderAssignee = (user: User, overrideName?: string) => {
     const selected = assigneeId === user.id;
     const name = overrideName ?? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+    const roleLabel = t(`roles.platform.${user.role?.toUpperCase()}`, user.role ?? '');
     return (
       <CommandItem
         key={user.id}
         // Ce que la frappe filtre : le nom ET le métier, puisque « technicien »
         // est le mot qui vient d'abord quand on cherche qui envoyer.
-        value={`${name} ${t(`roles.${user.role?.toLowerCase()}`, user.role ?? '')}`}
+        value={`${name} ${roleLabel}`}
         onSelect={() => setAssigneeId(user.id)}
         className={cn('cursor-pointer', selected && 'bg-[var(--bui-accent)]')}
       >
@@ -190,31 +192,28 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
         </Avatar>
         <span dir="auto" className="min-w-0 flex-1 truncate">{name}</span>
         <span className="shrink-0 text-xs text-[var(--bui-muted-foreground)]">
-          {t(`roles.${user.role?.toLowerCase()}`, user.role)}
+          {roleLabel}
         </span>
-        {selected && <Check size={15} className="shrink-0 text-[var(--bui-primary)]" />}
+        {selected && <Check size={15} className="shrink-0 text-[var(--bui-supervision-ink)]" />}
       </CommandItem>
     );
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[720px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">
-            {t('supervision.schedule.title', 'Planifier l’intervention')}
-          </DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <ActionModalContent className="sm:max-w-[720px]">
+        <ActionModalHeader action={action} title={t('supervision.schedule.title', 'Planifier l’intervention')} description={action.title} />
+        <ActionModalBody>
 
-        <div className="grid gap-5 sm:grid-cols-[auto_1fr]">
+        <div className="baitly-schedule-layout">
           {/* ── Quand ─────────────────────────────────────────────── */}
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-4">
             <Calendar
               // Sans locale, react-day-picker retombe sur l'anglais : « August
               // 2026 » et « Su Mo Tu » au milieu d'une interface française.
               locale={calendarLocale(currentLanguage)}
               mode="single"
+              defaultMonth={day}
               selected={day}
               onSelect={setDay}
               disabled={{ before: new Date() }}
@@ -223,8 +222,8 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
               // elle doit se prendre du pouce. En style en ligne plutôt qu'en
               // classe utilitaire : la variable est lue au rendu, aucun risque
               // qu'une classe arbitraire ne soit pas émise dans la feuille.
-              style={{ '--cell-size': '2.4rem' } as React.CSSProperties}
-              className="rounded-[var(--radius-md)] border border-[var(--bui-border)] p-3"
+              style={{ '--cell-size': 'clamp(2rem, 8vw, 2.4rem)' } as React.CSSProperties}
+              className="mx-auto p-0"
             />
             <Field>
               <FieldLabel htmlFor="scheduling-time">
@@ -326,9 +325,9 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
 
             {/* La décision, relue d'un trait avant de l'engager : deux champs
                 séparés se confirment sans jamais avoir été lus ensemble. */}
-            <p className="pt-3 text-xs text-pretty text-[var(--bui-muted-foreground)]">
+            <p className="baitly-action-modal-readback">
               <span className="text-[var(--bui-foreground)]">{readback}</span>
-              {' — '}
+              {' · '}
               {assigneeId === null
                 ? t(
                     'supervision.schedule.unassignedHint',
@@ -345,7 +344,8 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
           </div>
         </div>
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             {t('common.cancel', 'Annuler')}
           </Button>
@@ -353,8 +353,8 @@ export function SchedulingModal({ action, onClose, onConfirm }: SchedulingModalP
             {submitting ? <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} /> : <UserRound size={15} />}
             {t('supervision.verbs.schedule', 'Planifier')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

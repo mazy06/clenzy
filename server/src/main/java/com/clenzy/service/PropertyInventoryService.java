@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -63,24 +65,57 @@ public class PropertyInventoryService {
     }
 
     public PropertyInventoryItemDto addInventoryItem(Long propertyId, PropertyInventoryItemDto dto) {
+        validateInventoryItem(dto, true);
+        return toDto(inventoryRepo.save(newInventoryItem(propertyId, dto)));
+    }
+
+    /** Une sélection est validée en entier avant écriture et enregistrée dans une seule transaction. */
+    public List<PropertyInventoryItemDto> addInventoryItems(Long propertyId, List<PropertyInventoryItemDto> items) {
+        if (items == null || items.isEmpty() || items.size() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sélectionnez entre 1 et 100 objets");
+        }
+        items.forEach(dto -> validateInventoryItem(dto, true));
+        return inventoryRepo.saveAll(items.stream().map(dto -> newInventoryItem(propertyId, dto)).toList())
+                .stream().map(this::toDto).toList();
+    }
+
+    private PropertyInventoryItem newInventoryItem(Long propertyId, PropertyInventoryItemDto dto) {
         final var item = new PropertyInventoryItem();
         item.setOrganizationId(tenantContext.getRequiredOrganizationId());
         item.setPropertyId(propertyId);
-        item.setName(dto.name());
+        item.setName(dto.name().trim());
         item.setCategory(dto.category());
         item.setQuantity(dto.quantity() != null ? dto.quantity() : 1);
         item.setNotes(dto.notes());
-        return toDto(inventoryRepo.save(item));
+        item.setCatalogKey(dto.catalogKey());
+        item.setPhotoUrl(Boolean.TRUE.equals(dto.clearPhoto()) ? null : dto.photoUrl());
+        return item;
     }
 
     public PropertyInventoryItemDto updateInventoryItem(Long propertyId, Long itemId, PropertyInventoryItemDto dto) {
         final var item = inventoryRepo.findByPropertyIdAndId(propertyId, itemId)
                 .orElseThrow(() -> new NotFoundException("Objet inventaire introuvable"));
-        if (dto.name() != null) item.setName(dto.name());
+        validateInventoryItem(dto, false);
+        if (dto.name() != null) item.setName(dto.name().trim());
         if (dto.category() != null) item.setCategory(dto.category());
         if (dto.quantity() != null) item.setQuantity(dto.quantity());
         if (dto.notes() != null) item.setNotes(dto.notes());
+        if (dto.catalogKey() != null) item.setCatalogKey(dto.catalogKey());
+        // Une ancienne requête partielle ne doit pas effacer la photo existante.
+        if (Boolean.TRUE.equals(dto.clearPhoto())) item.setPhotoUrl(null);
+        else if (dto.photoUrl() != null) item.setPhotoUrl(dto.photoUrl());
         return toDto(inventoryRepo.save(item));
+    }
+
+    private void validateInventoryItem(PropertyInventoryItemDto dto, boolean creating) {
+        if (dto == null || (creating && dto.name() == null)
+                || (dto.name() != null && (dto.name().isBlank() || dto.name().length() > 255))
+                || (dto.category() != null && dto.category().length() > 100)
+                || (dto.quantity() != null && (dto.quantity() < 1 || dto.quantity() > 10000))
+                || (dto.notes() != null && dto.notes().length() > 5000)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objet invalide : renseignez un nom et une quantité entre 1 et 10 000");
+        }
+        StockItemVisualValidator.validate(dto.catalogKey(), dto.photoUrl());
     }
 
     public void deleteInventoryItem(Long propertyId, Long itemId) {
@@ -218,7 +253,7 @@ public class PropertyInventoryService {
         return new PropertyInventoryItemDto(
                 item.getId(), item.getPropertyId(),
                 item.getName(), item.getCategory(),
-                item.getQuantity(), item.getNotes()
+                item.getQuantity(), item.getNotes(), item.getCatalogKey(), item.getPhotoUrl(), null
         );
     }
 

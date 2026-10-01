@@ -1,0 +1,152 @@
+/* Baitly supervision: local navy accents shared by the orbit and HITL queue. */
+/* Preserve the application's layer order even when a card is imported first. */
+@layer theme, base, components, utilities;
+@layer components {
+  .baitly-supervision-surface {
+    --bui-supervision-navy: #193b65;
+    --bui-supervision-navy-hover: #244e7d;
+    --bui-supervision-on-navy: #f1f6fc;
+    --bui-supervision-ink: #254d78;
+    --bui-supervision-soft: color-mix(in srgb, var(--bui-card) 94%, #547ba9);
+    --bui-supervision-line: color-mix(in srgb, var(--bui-border) 65%, #547ba9);
+    --bui-supervision-shadow: #193b6510;
+  }
+
+  [data-theme='dark'] .baitly-supervision-surface {
+    --bui-supervision-navy: #264e7e;
+    --bui-supervision-navy-hover: #315f96;
+    --bui-supervision-ink: #b8d2f3;
+    --bui-supervision-soft: color-mix(in srgb, var(--bui-card) 90%, #547ba9);
+    --bui-supervision-line: color-mix(in srgb, var(--bui-border) 65%, #547ba9);
+    --bui-supervision-shadow: #06152a40;
+  }
+
+  .baitly-hitl-queue {
+    /* Leave room for depth within the panel's scrolling column. */
+    padding: 2px 4px 12px;
+  }
+
+  .baitly-hitl-card {
+    min-width: 0;
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 14px;
+    background: var(--bui-card);
+    box-shadow: 0 2px 3px var(--bui-supervision-shadow), 0 6px 14px var(--bui-supervision-shadow);
+    transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .baitly-hitl-card:focus-within {
+    border-color: var(--bui-supervision-ink);
+  }
+
+  .baitly-hitl-content {
+    padding: 16px 18px;
+  }
+
+  .baitly-hitl-agent {
+    color: var(--bui-supervision-ink);
+  }
+
+  .baitly-hitl-deadline {
+    border-radius: 6px;
+    padding: 4px 7px;
+    background: var(--bui-supervision-soft);
+    color: var(--bui-muted-foreground);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .baitly-hitl-card[data-urgent] .baitly-hitl-deadline {
+    background: var(--bui-warning-soft);
+    color: var(--bui-warning-ink);
+  }
+
+  .baitly-hitl-card[data-expired] {
+    box-shadow: none;
+  }
+
+  .baitly-hitl-card[data-expired] .baitly-hitl-deadline {
+    background: var(--bui-destructive-soft);
+    color: var(--bui-destructive-ink);
+  }
+
+  .baitly-hitl-actions {
+    border-top: 1px solid var(--bui-border);
+    border-radius: 0 0 13px 13px;
+    padding: 10px 18px;
+    background: var(--bui-supervision-soft);
+  }
+
+  .baitly-supervision-surface .baitly-hitl-primary,
+  .baitly-supervision-surface .baitly-hitl-secondary {
+    min-height: 34px;
+    height: auto;
+    max-width: 100%;
+    border-radius: 8px;
+    white-space: normal;
+    cursor: pointer;
+    transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .baitly-supervision-surface .baitly-hitl-primary {
+    padding-inline: 12px;
+    background: var(--bui-supervision-navy);
+    color: var(--bui-supervision-on-navy);
+    box-shadow: 0 2px 3px var(--bui-supervision-shadow);
+  }
+
+  .baitly-supervision-surface .baitly-hitl-primary:hover:not(:disabled) {
+    background: var(--bui-supervision-navy-hover);
+  }
+
+  .baitly-supervision-surface .baitly-hitl-secondary {
+    color: var(--bui-muted-foreground);
+  }
+
+  .baitly-supervision-surface .baitly-hitl-secondary:hover:not(:disabled) {
+    background: var(--bui-card);
+    color: var(--bui-supervision-ink);
+  }
+
+  .baitly-supervision-surface .baitly-hitl-primary:focus-visible,
+  .baitly-supervision-surface .baitly-hitl-secondary:focus-visible {
+    outline: 2px solid var(--bui-supervision-ink);
+    outline-offset: 3px;
+  }
+
+  .baitly-hitl-chevron {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .baitly-hitl-reasoning {
+    border-top: 1px solid var(--bui-border);
+    padding: 14px 18px;
+  }
+
+  .baitly-data-packet {
+    stroke: var(--bui-supervision-ink);
+  }
+
+  @media (hover: hover) {
+    .baitly-hitl-card:not([data-expired]):hover {
+      border-color: color-mix(in srgb, var(--bui-supervision-ink) 55%, var(--bui-border));
+      box-shadow: 0 3px 6px var(--bui-supervision-shadow), 0 8px 18px var(--bui-supervision-shadow);
+    }
+  }
+
+  @media (pointer: coarse) {
+    .baitly-supervision-surface .baitly-hitl-primary,
+    .baitly-supervision-surface .baitly-hitl-secondary {
+      min-height: 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .baitly-hitl-card,
+    .baitly-supervision-surface .baitly-hitl-primary,
+    .baitly-supervision-surface .baitly-hitl-secondary,
+    .baitly-hitl-chevron {
+      transition: none;
+    }
+  }
+}

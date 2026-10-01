@@ -126,7 +126,7 @@ class SupervisionCardTrustServiceTest {
                         && clock.instant().equals(rule.getSuggestedAt())));
         verify(notificationService).notifyAdminsAndManagersByOrgId(eq(ORG),
                 eq(NotificationKey.SUPERVISION_AUTO_RULE_SUGGESTED),
-                anyString(), contains("5 fois de suite"), eq("/automation-rules"));
+                anyString(), contains("5 fois de suite"), eq("/automation-rules"), argThat(facts -> TYPE.equals(facts.get("actionType"))));
     }
 
     @Test
@@ -147,7 +147,7 @@ class SupervisionCardTrustServiceTest {
         assertThat(suggested).isZero();
         verify(autoRuleRepository, never()).save(any());
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -183,7 +183,7 @@ class SupervisionCardTrustServiceTest {
         assertThat(service.evaluateSuggestions()).isZero();
         verify(autoRuleRepository, never()).save(any());
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -222,7 +222,7 @@ class SupervisionCardTrustServiceTest {
 
         assertThat(service.evaluateSuggestions()).isZero();
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
     }
 
     @Test

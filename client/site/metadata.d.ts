@@ -7,6 +7,10 @@ declare module 'virtual:baitly-site-metadata' {
         title: string;
         description: string;
         index: boolean;
+        image?: string;
+        contentLanguage?: 'fr' | 'en' | 'ar';
+        availableLanguages?: readonly ('fr' | 'en' | 'ar')[];
+        structuredData?: Record<string, unknown>[];
         video?: import('./lib/academyStructuredData').AcademyVideoMetadata;
       }
     >

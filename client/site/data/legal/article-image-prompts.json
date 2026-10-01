@@ -1,0 +1,151 @@
+{
+  "generator": "OpenAI imagegen",
+  "created": "2026-10-01",
+  "style": "Create ONE original photorealistic editorial photograph for Baitly's hospitality regulation journal. Premium travel and documentary magazine photography, realistic materials, natural light, restrained warm neutral and navy colors. Landscape 3:2, central subject legible in a small 4:3 thumbnail. Each scene is a standalone real-world photographic composition, no collage, no graphic overlays, no logos, no watermarks, no readable document text or personal data, no counterfeit official seals or certifications. Any papers are illustrative anonymous props. ",
+  "images": [
+    {
+      "slug": "maroc-autorisation-hebergement-chez-habitant",
+      "prompt": "Moroccan woman host preparing a paper application folder with brass keys at the entrance of a Marrakech riad.",
+      "alt": "Une hôte prépare son dossier d’autorisation à l’entrée d’un riad marocain.",
+      "originalFile": "exec-3bdf296d-78d4-41f2-895f-c55346f7659b.png"
+    },
+    {
+      "slug": "maroc-renouvellement-autorisation-hebergement",
+      "prompt": "Morocco. Article: five-year renewal of a homestay authorization. Overhead still life on a round dark cedar table in a refined Rabat home: five aged cream folders stacked neatly, an open unlettered desk calendar with one brass clip marking a date, navy pen, old brass house keys, a small Moroccan ceramic bowl. Soft late-afternoon window shadows, a little ochre tile edge. No people. Clearly about keeping property paperwork current, composition completely different from an application being filed.",
+      "alt": "Calendrier et dossiers de renouvellement sur une table en cèdre au Maroc.",
+      "originalFile": "exec-c0de21f6-de44-461d-836f-73f2009b4c59.png"
+    },
+    {
+      "slug": "maroc-assurance-hebergement-chez-habitant",
+      "prompt": "Morocco. Article: fire, theft and liability insurance for a homestay. Intimate Essaouira guest-room entrance with pale limewashed walls and subtle blue Moroccan tiles. A clearly identifiable modern red fire extinguisher on a low built-in alcove beside a closed compact safe; linen bed and carved wood door softly in background. Calm reassuring midday light. Focus on tangible safety equipment, no papers, no people, no official certification logos.",
+      "alt": "Extincteur et coffre dans l’entrée d’une chambre d’hôtes marocaine.",
+      "originalFile": "exec-fa214a24-7295-44bb-8205-b3552de160ae.png"
+    },
+    {
+      "slug": "maroc-teledeclaration-voyageurs-8-heures",
+      "prompt": "Morocco. Article: daily guest arrival and departure reporting before 8am. Morning at a small Fez riad reception: a side view of an open laptop showing only an indistinct simple spreadsheet, round analog desk clock clearly near 7:45, mint tea glass, sunlight entering through an intricate Moroccan arched courtyard. Close focus clock and laptop, blue-green tile details. No people, no readable screen content. Sunrise morning work atmosphere.",
+      "alt": "Ordinateur et horloge au petit matin à la réception d’un riad.",
+      "originalFile": "exec-77201733-b364-4a8b-b61a-e5fe8d0d18d9.png"
+    },
+    {
+      "slug": "maroc-bulletin-individuel-hebergement",
+      "prompt": "Morocco. Article: guest registration form signed upon arrival. Close-up of a guest's hand using a pen to fill a simple anonymous paper form on a brass-edged counter in a Moroccan riad. A closed unbranded navy travel document lies beside it, leather suitcase blurred at the doorway, emerald zellige on the counter edge. Only hands, no face, no readable text or numbers or official stamps. Sharp form and pen, warm natural light.",
+      "alt": "Signature d’une fiche d’arrivée sur le comptoir d’un riad marocain.",
+      "originalFile": "exec-096ce52a-63c4-4fb1-8c79-91a6ebf477f5.png"
+    },
+    {
+      "slug": "maroc-taxe-sejour-declaration-reversement",
+      "prompt": "Morocco. Article: tourist tax collection and quarterly remittance. Top-down intimate photograph of a guesthouse host's accounting workspace: a small dish of Moroccan-style coins, compact calculator, four neatly arranged receipt bundles clipped with brass clips, white ceramic coffee cup and closed accounting notebook, on blue geometric zellige countertop. Window light, tactile paper. No readable amounts, no banknotes, no text overlays, no people.",
+      "alt": "Calculatrice, pièces et reçus pour le suivi de la taxe de séjour au Maroc.",
+      "originalFile": "exec-94d34244-a27a-4dc5-bd7c-828f6c610376.png"
+    },
+    {
+      "slug": "maroc-panne-teledeclaration-hebergement",
+      "prompt": "Morocco. Article: backup paper procedures when guest-reporting system is offline. Tight documentary still life in an earthy Marrakech home office: an unplugged white Wi-Fi router with cable visibly disconnected beside a thick paper registration ledger and navy ballpoint pen; laptop closed, small carved cedar shutter in background. Practical subdued daylight, focus on the disconnected cable and ready paper records, no text.",
+      "alt": "Routeur débranché et registre papier pour assurer le suivi des voyageurs au Maroc.",
+      "originalFile": "exec-aa6bddf1-ef86-447e-8421-816a35a6a018.png"
+    },
+    {
+      "slug": "france-enregistrement-meuble-tourisme",
+      "prompt": "France. Article: registering a furnished tourist rental. Eye-level photograph of a French apartment owner seen from behind in a navy jacket unlocking a classic Parisian limestone building's dark blue door. Cream application folder tucked under one arm, small unlettered brass doorplate, typical wrought-iron balconies softly above. Morning Paris light, authentic everyday residential street, no landmarks needed, no logos or readable signs.",
+      "alt": "Entrée d’un immeuble français avec clés et dossier de déclaration.",
+      "originalFile": "exec-30de5ff0-7403-42f2-be5f-91d09e2ab209.png"
+    },
+    {
+      "slug": "france-residence-principale-90-120-jours",
+      "prompt": "France. Article: tracking the annual rental-day limit of a primary residence. Bright inhabited Lyon apartment with personal books, a navy sofa and a window facing French red-tile roofs. Foreground at a dining table: open paper month-view calendar with several contiguous days marked by plain muted-blue blocks, a small travel suitcase and house keys. Emphasis calendar and lived-in home, natural summer light, no readable calendar text, no people.",
+      "alt": "Calendrier de location dans un appartement habité en France.",
+      "originalFile": "exec-605e795a-4b95-49aa-af30-baea7b59ad61.png"
+    },
+    {
+      "slug": "france-changement-usage-dpe-meuble-tourisme",
+      "prompt": "France. Article: change-of-use permission and energy performance assessment. A female building energy assessor in everyday work clothing inspecting an open double-glazed window of a sunny French Haussmann-style apartment, holding a compact handheld thermal camera; cast-iron radiator, parquet and neighboring slate roofs visible. Candid profile, main focus device and window, soft daylight. No simulated energy certificate, no readable displays.",
+      "alt": "Diagnostic énergétique d’un appartement français avec une caméra thermique.",
+      "originalFile": "exec-75963cbd-0edc-440e-8fcb-b8a875d55c2b.png"
+    },
+    {
+      "slug": "france-copropriete-location-touristique",
+      "prompt": "France. Article: condominium rules and informing the building manager. Three adult co-owners seated around a modest table in a French residential building's common room reviewing a spread-out building floor plan and a neutral binding of house rules. One gestures toward courtyard plan; typical French limestone courtyard visible behind. Documentary candid shot, diverse everyday adults, no legal text, no posed handshake, no branding.",
+      "alt": "Copropriétaires réunis autour du plan de leur immeuble en France.",
+      "originalFile": "exec-19e942da-1d4e-4dd2-af0b-1727ff99f02a.png"
+    },
+    {
+      "slug": "france-micro-bic-meuble-tourisme-2026",
+      "prompt": "France. Article: micro-BIC turnover thresholds and allowances for tourist rentals. Overhead close-up of a French host's oak desk: two clearly separate groups of neutral receipt slips, compact gray calculator, fountain pen and small ceramic model of a French gabled house. French apartment window casts a grid shadow. One navy binder and one sage binder, natural paper textures, no readable figures or tax documents. Clean composition about comparing two tax categories.",
+      "alt": "Deux dossiers de recettes et une calculatrice pour comparer les régimes micro-BIC.",
+      "originalFile": "exec-7df596a6-fe00-4deb-8cf6-bd8100f5dc2b.png"
+    },
+    {
+      "slug": "france-lmnp-lmp-criteres",
+      "prompt": "France. Article: distinguishing professional and nonprofessional furnished rental using two financial criteria. Side-lit French home office with a person in a cream shirt sorting two piles of anonymous income records into two plain document trays, one tray beside miniature house keys and another beside a work satchel. A simple laptop blurred in background. Tactile real objects and hands, different from overhead calculator image. No text, no charts, no official logos.",
+      "alt": "Classement des revenus locatifs et professionnels dans un bureau en France.",
+      "originalFile": "exec-5c617e62-9703-4222-8f7a-43fd4b2d8367.png"
+    },
+    {
+      "slug": "france-taxe-sejour-collecte-exonerations",
+      "prompt": "France. Article: local tourist tax collection and exemptions. Welcoming reception counter of a small Provençal holiday residence. Foreground a short guest receipt emerging from a compact receipt printer with a pen and a few euro-like coins, guest luggage and sunlit French village rooftops softly in background. Color palette pale olive, navy and limestone. No identifiable currency text or numbers, no real invoice personal data.",
+      "alt": "Reçu de séjour et pièces sur le comptoir d’un hébergement en Provence.",
+      "originalFile": "exec-4a25d846-307c-41fd-9a82-d038c7cc5121.png"
+    },
+    {
+      "slug": "france-fiche-police-voyageurs-etrangers",
+      "prompt": "France. Article: foreign guest registration sheet kept six months. Documentary close-up of a traveler seated at a small Paris guesthouse desk, hands signing an anonymous arrival sheet; two closed navy passports with no emblems and a travel bag by the chair. Cream wall and a street-facing French casement window. No uniforms or police imagery, no readable text, emphasize calm arrival formalities.",
+      "alt": "Voyageur complétant une fiche d’arrivée dans une maison d’hôtes française.",
+      "originalFile": "exec-a95bfc63-38b7-4f88-97b9-0009da94de95.png"
+    },
+    {
+      "slug": "france-classement-meuble-tourisme-etoiles",
+      "prompt": "France. Article: voluntary official star classification inspection of a holiday rental. A professional female accommodation assessor in smart casual clothes checking a beautifully prepared French coastal cottage bedroom with a clipboard; linen bed, bedside lamps, open painted shutters and an Atlantic glimpse. Slightly wide angle, clear thoughtful inspection gesture. No floating stars, no fictitious official plaques, no written ratings.",
+      "alt": "Visite d’évaluation d’un meublé de tourisme sur le littoral français.",
+      "originalFile": "exec-dda31237-5eb6-478b-923e-8cd0169cd3cf.png"
+    },
+    {
+      "slug": "arabie-saoudite-licence-unite-hospitalite-privee",
+      "prompt": "Saudi Arabia. Article: Ministry of Tourism licence for a private hospitality unit. Exterior architectural photograph of a tasteful contemporary Riyadh rental home, sand-colored stone, shaded entrance with geometric mashrabiya screen and young date palms. In foreground a property manager in a white thobe and neutral jacket holds a closed navy application folder while walking toward the doorway, viewed from behind. Warm but realistic morning light. No flags, official emblems or readable signs.",
+      "alt": "Gestionnaire devant une unité d’hébergement privée à Riyad.",
+      "originalFile": "exec-8f94a7be-888f-43c7-b6cc-a19e45df7d6d.png"
+    },
+    {
+      "slug": "arabie-saoudite-conditions-licence-proprietaire",
+      "prompt": "Saudi Arabia. Article: property ownership and documents required for a private-unit licence. Close-up on a Saudi property owner's hands examining an architectural floor plan on a contemporary stone desk, a keyring and a rolled site plan nearby, warm Saudi modern apartment interior and sand-colored urban buildings through window. Real material textures, candid, no official deeds, stamps or readable information.",
+      "alt": "Plan d’une unité privée et clés examinés dans un appartement saoudien.",
+      "originalFile": "exec-73777c54-628e-480c-9c1a-5776255e0f51.png"
+    },
+    {
+      "slug": "arabie-saoudite-shomoos-unite-privee",
+      "prompt": "Saudi Arabia. Article: registration in the Shomoos system as a condition for licensing. Modern small Saudi hospitality office with a woman in a modest sand-colored abaya seen in three-quarter rear view using a desktop computer, a closed guest register and key card beside monitor. Screen displays an indistinct neutral registration form with no words, no agency logo and no invented Shomoos branding. Jeddah coral-stone-inspired window screen casts a pattern, daylight, trustworthy documentary scene.",
+      "alt": "Préparation d’une inscription numérique dans un bureau d’hébergement en Arabie saoudite.",
+      "originalFile": "exec-2e3286dc-a285-4da3-8b90-8c5872189aa2.png"
+    },
+    {
+      "slug": "arabie-saoudite-reservation-paiement-unite-privee",
+      "prompt": "Saudi Arabia. Article: booking and payment through authorised travel service providers. Close photographic view of a traveler using a smartphone to confirm a stay while a hospitality agent across a contemporary Saudi office desk checks a laptop. Only hands and shoulders visible. Phone shows a neutral minimal booking confirmation layout without any words or logos; no point-of-sale terminal or cash, as payment is mediated online. Saudi Riyadh skyline softly visible through window, warm sandstone and navy accents.",
+      "alt": "Réservation en ligne vérifiée avec un prestataire de voyages en Arabie saoudite.",
+      "originalFile": "exec-f5860789-592a-4ac9-a81d-0d109770f264.png"
+    },
+    {
+      "slug": "arabie-saoudite-duree-sejour-29-90-jours",
+      "prompt": "Saudi Arabia. Article: maximum consecutive and cumulative stays in a private unit. Thoughtfully composed Saudi furnished apartment with a packed upright travel suitcase near the door and an open dated-but-unreadable desk calendar on the foreground console, guest key card placed beside a small date bowl. Sandstone geometric wall treatment and framed desert landscape. Early evening light, no people, focus on suitcase and calendar, no numbers or overlays.",
+      "alt": "Valise et calendrier pour suivre la durée des séjours dans une unité saoudienne.",
+      "originalFile": "exec-3422e9f0-6a7c-4d46-a2cf-b2b9b4806daf.png"
+    },
+    {
+      "slug": "arabie-saoudite-accueil-proprete-annonces",
+      "prompt": "Saudi Arabia. Article: cleanliness, accurate listing and pre-arrival instructions. Professional housekeeper in a muted navy work tunic carefully straightening crisp bed linen in a warm contemporary Saudi guest apartment. Distinct central bed composition, subtle Najdi geometric textile on a chair, folded towels, naturally lit sand-colored walls. Candid practical moment, no luxury clichés, no text or logos.",
+      "alt": "Préparation soignée d’une chambre avant l’arrivée des voyageurs en Arabie saoudite.",
+      "originalFile": "exec-9ad20a9b-fb8a-4206-a75f-7b77849ba639.png"
+    },
+    {
+      "slug": "arabie-saoudite-prix-services-supplementaires",
+      "prompt": "Saudi Arabia. Article: extra-service prices displayed in Arabic and English. Elegant but modest Saudi apartment entry console with a small room-service breakfast tray: dates, Arabic coffee pot and two cups, neatly folded towel. Beside it a two-column paper price menu with intentionally indistinct lines, no readable invented words or prices; smartphone on a wooden stand behind. Modern Saudi design, warm side lighting, focus extras and menu, no people.",
+      "alt": "Services d’accueil et présentation d’une carte de prestations dans un hébergement saoudien.",
+      "originalFile": "exec-7340b766-b6a1-4a9f-91ab-bae7b48249a3.png"
+    },
+    {
+      "slug": "arabie-saoudite-confidentialite-securite-voyageurs",
+      "prompt": "Saudi Arabia. Article: guest privacy and access to an occupied private unit. Intimate close photograph of a modern brushed-brass privacy door latch engaged from inside a Saudi rental apartment, with a neutral fabric do-not-disturb tag without writing hanging from door lever, softly blurred comfortable sandstone-color room beyond. No cameras, no surveillance, no people, calming afternoon shadows, strong tangible sense of private secure space.",
+      "alt": "Verrou intérieur fermé pour préserver l’intimité des voyageurs dans une unité saoudienne.",
+      "originalFile": "exec-3b1185c9-0029-4084-a4a3-d225009ae3e7.png"
+    }
+  ]
+}

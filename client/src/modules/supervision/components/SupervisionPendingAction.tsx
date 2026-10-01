@@ -1,129 +1,44 @@
-/* ============================================================
-   <SupervisionPendingAction> — carte d'approbation inline (HITL)
-
-   Quand le moteur multi-agent met un run en PAUSE sur une action sensible
-   (interrupt AG-UI), le panneau affiche cette carte : nom de l'outil +
-   message + Valider / Refuser. La décision reprend le run (resume) via
-   `onResolve(true|false)`.
-
-   Registre visuel : deep-space, cohérent avec SupervisionChatBar (surface
-   sombre translucide). Accent ambre #F0B24B = « attend ta validation »
-   (cf. STATUS.wait), pour signaler une action en suspens. lucide via
-   src/icons, pas d'emoji, prefers-reduced-motion respecté.
-   ============================================================ */
-
-import { useState } from 'react';
-import { cn } from '../../../utils/cn';
+import { useId, useState } from 'react';
 import { Gavel, Check, Close } from '../../../icons';
+import { Button } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { DescriptionNarrative } from './ActionDescription';
+import { ActionIllustratedHeading } from './ActionIllustration';
 import type { PendingAgentAction } from '../types';
+import '../supervision-surfaces.css';
 
 export interface SupervisionPendingActionProps {
   action: PendingAgentAction;
-  /** Décision opérateur : true = valider (l'outil s'exécute), false = refuser. */
+  /** Decision resumes the paused run. Description formatting never executes it. */
   onResolve: (confirmed: boolean) => void;
 }
 
-const ACCENT = '#F0B24B'; // ambre = action en attente de validation (STATUS.wait)
-const SURFACE = 'rgba(20,24,58,.94)';
-const BORDER = '1px solid rgba(240,178,75,.35)';
-
+/** Live approvals share the same readable surface as persistent HITL cards. */
 export function SupervisionPendingAction({ action, onResolve }: SupervisionPendingActionProps) {
   const { t } = useTranslation();
-  // Verrou local : évite un double-clic / double-resume pendant que le run reprend.
   const [submitting, setSubmitting] = useState(false);
-
+  const titleId = useId();
+  const descriptionId = useId();
   const resolve = (confirmed: boolean) => {
     if (submitting) return;
     setSubmitting(true);
     onResolve(confirmed);
   };
-
   return (
-    // Entree discrete (tw-animate-css), desactivee si l'utilisateur prefere
-    // moins d'animation. Surface et bordure restent en style inline : elles
-    // viennent de constantes runtime, dont aucune classe ne peut naitre.
-    <div
-      role="alertdialog"
-      aria-label={t('supervision.approval.title', 'Validation requise')}
-      className="w-[300px] rounded-[14px] overflow-hidden backdrop-blur-[10px] shadow-[0_16px_40px_-22px_rgba(0,0,0,.7)] text-[#E7E9FB] animate-in fade-in-0 slide-in-from-top-1 duration-200 ease-out motion-reduce:animate-none"
-      style={{ backgroundColor: SURFACE, border: BORDER }}
-    >
-      {/* En-tête : intention (validation requise) + outil concerné */}
-      <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
-        <div className="flex items-center justify-center w-[26px] h-[26px] rounded-[8px] bg-[rgba(240,178,75,.16)] shrink-0" style={{ color: ACCENT }}>
-          <Gavel size={15} strokeWidth={2} />
+    <div className="baitly-supervision-surface w-[340px] max-w-full">
+      <section role="alertdialog" aria-labelledby={titleId} aria-describedby={descriptionId} aria-busy={submitting} className="baitly-hitl-card">
+        <div className="baitly-hitl-content">
+          <p className="m-0 mb-2 flex items-center gap-2 text-xs font-medium text-warning-ink"><Gavel size={15} aria-hidden />{t('supervision.approval.title', 'Validation requise')}</p>
+          <ActionIllustratedHeading>
+            <h3 id={titleId} dir="auto" className="m-0 text-sm font-semibold text-foreground [overflow-wrap:anywhere]">{action.toolName}</h3>
+          </ActionIllustratedHeading>
+          <div id={descriptionId} className="baitly-action-description"><DescriptionNarrative text={action.message} /></div>
         </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold tracking-[0.3px] uppercase" style={{ color: ACCENT }}>
-            {t('supervision.approval.title', 'Validation requise')}
-          </div>
-          <div className="text-[13.5px] font-bold leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
-            {action.toolName}
-          </div>
+        <div className="baitly-hitl-actions flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="baitly-hitl-secondary" disabled={submitting} onClick={() => resolve(false)}><Close size={15} />{t('supervision.approval.reject', 'Refuser')}</Button>
+          <Button size="sm" className="baitly-hitl-primary" disabled={submitting} onClick={() => resolve(true)}><Check size={15} />{submitting ? t('supervision.approval.submitting', 'Transmission…') : t('supervision.approval.validate', 'Valider')}</Button>
         </div>
-      </div>
-
-      {/* Message d'explication remonté par l'agent */}
-      <div className="px-2 pb-2 text-[12.5px] leading-[1.5] text-[rgba(231,233,251,.82)] whitespace-pre-wrap break-words">
-        {action.message}
-      </div>
-
-      {/* Décision : Refuser (secondaire) / Valider (primaire ambre) */}
-      <div className="flex gap-1.5 px-2 py-2 border-t border-[rgba(255,255,255,.1)]">
-        <DecisionButton
-          variant="reject"
-          disabled={submitting}
-          onClick={() => resolve(false)}
-          icon={<Close size={15} strokeWidth={2.25} />}
-          label={t('supervision.approval.reject', 'Refuser')}
-        />
-        <DecisionButton
-          variant="validate"
-          disabled={submitting}
-          onClick={() => resolve(true)}
-          icon={<Check size={15} strokeWidth={2.25} />}
-          label={
-            submitting
-              ? t('supervision.approval.submitting', 'Transmission…')
-              : t('supervision.approval.validate', 'Valider')
-          }
-        />
-      </div>
+      </section>
     </div>
-  );
-}
-
-interface DecisionButtonProps {
-  variant: 'validate' | 'reject';
-  disabled: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}
-
-function DecisionButton({ variant, disabled, onClick, icon, label }: DecisionButtonProps) {
-  const isValidate = variant === 'validate';
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'flex-1 flex items-center justify-center gap-[3.75px] px-1.5 py-[4.5px] rounded-[10px]',
-        '[font-family:inherit] text-[12.5px] font-bold border border-solid',
-        'transition-[background-color,border-color,color,opacity] duration-[180ms] ease-[ease]',
-        'disabled:opacity-[.55]',
-        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-        // Hex ecrits en dur : une classe Tailwind ne peut pas naitre de la
-        // constante ACCENT (les classes sont emises a la compilation).
-        isValidate
-          ? 'border-transparent bg-[#F0B24B] text-[#0c0e2a] enabled:hover:bg-[#F6C36B]'
-          : 'border-[rgba(255,255,255,.18)] bg-transparent text-[#E7E9FB] enabled:hover:bg-[rgba(255,255,255,.08)] enabled:hover:border-[rgba(255,255,255,.3)]',
-      )}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
   );
 }

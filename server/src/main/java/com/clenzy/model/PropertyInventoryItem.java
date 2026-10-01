@@ -37,6 +37,12 @@ public class PropertyInventoryItem {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "catalog_key", length = 80)
+    private String catalogKey;
+
+    @Column(name = "photo_url", columnDefinition = "TEXT")
+    private String photoUrl;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -68,6 +74,12 @@ public class PropertyInventoryItem {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getCatalogKey() { return catalogKey; }
+    public void setCatalogKey(String catalogKey) { this.catalogKey = catalogKey; }
+
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -7,17 +7,13 @@
    cumulée, puis applique les RateOverride (visibles dans « Prix dynamique »).
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalFacts, ActionModalSection } from './ActionModal';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   AlertDescription,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Spinner,
   ToggleGroup,
@@ -30,7 +26,8 @@ import { cn } from '../../../utils/cn';
 import { Money } from '../../../components/Money';
 import { pricingApi, type PriceSegment, type PricingSimulation } from '../pricingApi';
 import { consequencesOf } from './actionRegistry';
-import { activeIntlLocale } from '../../../utils/activeLocale';
+import { intlLocale } from '../../../utils/localeDate';
+import { isoDay } from '../core/actionDescription';
 
 type Mode = 'percent' | 'targetPrice' | 'fixedAmount';
 
@@ -58,6 +55,7 @@ function parseSegments(actionParams?: string): PriceSegment[] {
     return arr.flatMap((s: unknown) => {
       if (!s || typeof s !== 'object') return [];
       const seg = s as { from: string; to: string; percent?: number };
+      if (isoDay(seg.from) == null || isoDay(seg.to) == null || seg.to <= seg.from) return [];
       return [{
         from: seg.from,
         to: seg.to,
@@ -69,26 +67,11 @@ function parseSegments(actionParams?: string): PriceSegment[] {
   }
 }
 
-/** dd/MM d'une date ISO (affichage compact). */
-function fmt(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
 /** Nombre de nuits [from, to). */
 function nights(from: string, to: string): number {
   return Math.max(1, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000));
 }
 
-/** Couleur par segment (accents validés Baitly), cyclée. */
-const SEGMENT_COLORS = ['#4A9B8E', '#D4A574', '#7BA3C2', '#C97A7A', '#8E7BB5'];
-/**
- * Encre posée SUR un aplat de segment. L'aplat est un hex figé, identique en
- * clair et en sombre : l'encre l'est donc aussi, sinon elle suivrait le thème
- * et disparaîtrait dans un des deux. C'est le bleu nuit de la marque, qui tient
- * ≥ 4,9:1 sur les cinq teintes — le blanc y plafonnait à 1,9:1.
- */
-const SEGMENT_INK = '#1B2A35';
-const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -117,7 +100,8 @@ function monthGrid(view: Date): Date[][] {
 export function PriceAdjustmentModal({
   suggestionId, propertyId, actionParams, onClose, onApplied,
 }: PriceAdjustmentModalProps) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
+  const locale = intlLocale(currentLanguage);
   const [segments, setSegments] = useState<PriceSegment[]>(() => parseSegments(actionParams));
   // Sens de l'ajustement porté par la carte : "up" = hausse (demande forte), sinon baisse.
   const raise = useMemo(() => {
@@ -125,12 +109,16 @@ export function PriceAdjustmentModal({
   }, [actionParams]);
   const [mode, setMode] = useState<Mode>('percent');
   const [sim, setSim] = useState<PricingSimulation | null>(null);
+  const [simKey, setSimKey] = useState('');
+  const currentKey = JSON.stringify(segments);
+  const freshSimulation = simKey === currentKey ? sim : null;
+  const validSegments = segments.length > 0 && segments.every((s) => isoDay(s.from) != null && isoDay(s.to) != null && s.to > s.from && Number.isFinite(s.percent));
   const [simulating, setSimulating] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMonth, setViewMonth] = useState<Date>(() => startOfMonth(segments[0]?.from ?? ymd(new Date())));
 
-  const baselineAdr = (i: number): number | undefined => sim?.segments[i]?.baseline.adr;
+  const baselineAdr = (i: number): number | undefined => sim?.segments.find((s) => s.from === segments[i].from && s.to === segments[i].to)?.baseline.adr;
 
   /** Index du segment couvrant un jour (ou -1). Plage [from, to) exclusive. */
   const segmentIndexOfDay = (d: Date): number => {
@@ -173,10 +161,13 @@ export function PriceAdjustmentModal({
   };
 
   const runSimulate = async () => {
+    if (!validSegments) return;
     setSimulating(true);
     setError(null);
     try {
-      setSim(await pricingApi.simulate(propertyId, segments, raise ? 'up' : 'down'));
+      const result = await pricingApi.simulate(propertyId, segments, raise ? 'up' : 'down');
+      setSim(result);
+      setSimKey(currentKey);
     } catch {
       setError(t('supervision.price.simError', 'Simulation impossible pour le moment.'));
     } finally {
@@ -185,6 +176,7 @@ export function PriceAdjustmentModal({
   };
 
   const runApply = async () => {
+    if (!validSegments) return;
     setApplying(true);
     setError(null);
     try {
@@ -204,8 +196,10 @@ export function PriceAdjustmentModal({
   }, []);
 
   const modeUnit = mode === 'percent' ? '%' : '€';
-  const canConvert = mode === 'percent' || sim != null;
-  const totalNights = useMemo(() => segments.reduce((n, s) => n + nights(s.from, s.to), 0), [segments]);
+  const canConvert = mode === 'percent' || segments.every((_, i) => baselineAdr(i) != null);
+  const totalNights = useMemo(() => segments.reduce((n, s) => n + (
+    isoDay(s.from) != null && isoDay(s.to) != null && s.to > s.from ? nights(s.from, s.to) : 0
+  ), 0), [segments]);
   // Deux mois consécutifs affichés côte à côte (navigation par pas de 1 mois).
   const months = useMemo(
     () => [viewMonth, new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1)],
@@ -213,26 +207,19 @@ export function PriceAdjustmentModal({
   );
 
   return (
-    // maxWidth="md" MUI = 900 px ; `fullWidth` est deja le defaut du gabarit du kit.
-    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-base font-semibold tracking-tight text-balance">
-            {raise
+    <Dialog open onOpenChange={(next) => { if (!next && !applying) onClose(); }}>
+      <ActionModalContent className="sm:max-w-[900px]">
+        <ActionModalHeader agentId="rev" title={raise
               ? t('supervision.price.titleRaise', 'Relever les tarifs (demande forte)')
-              : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
-          </DialogTitle>
-          <DialogDescription className="text-xs tabular-nums">
-            {t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
+              : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')} description={t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
               count: segments.length, nights: totalNights,
-            })}
-          </DialogDescription>
-        </DialogHeader>
+            })} />
+        <ActionModalBody>
 
-        {/* Calendrier DEUX MOIS côte à côte : les créneaux proposés, une couleur par segment. */}
+        {/* Two months on desktop, one on mobile; navy marks the affected nights. */}
         <div className="flex gap-[15px] mb-[9px] flex-col min-[600px]:flex-row">
           {months.map((month, mi) => (
-            <div className="flex-1 min-w-0" key={mi}>
+            <div className="flex-1 min-w-0" key={mi} data-price-month={mi}>
               <div className="flex items-center justify-between mb-0.5">
                 {mi === 0 ? (
                   // Navigation repetee dans un en-tete : tertiaire, gabarit carre.
@@ -248,14 +235,14 @@ export function PriceAdjustmentModal({
                   </Button>
                 ) : <div className="w-[30px]" />}
                 <p className="text-xs font-semibold capitalize text-foreground">
-                  {month.toLocaleDateString(activeIntlLocale(), { month: 'long', year: 'numeric' })}
+                  {month.toLocaleDateString(locale, { month: 'long', year: 'numeric', calendar: 'gregory' })}
                 </p>
-                {mi === months.length - 1 ? (
+                {mi === months.length - 1 || mi === 0 ? (
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-                    className="text-muted-foreground"
+                    className={cn('text-muted-foreground', mi === 0 && 'sm:invisible')}
                     aria-label={t('common.next', 'Suivant')}
                   >
                     <ChevronRight size={16} className="rtl:rotate-180" />
@@ -263,25 +250,24 @@ export function PriceAdjustmentModal({
                 ) : <div className="w-[30px]" />}
               </div>
               <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5">
-                {WEEKDAYS.map((d) => (
-                  <div className="text-center text-2xs font-medium text-muted-foreground pb-0.5" key={`wd-${mi}-${d}`}>{d}</div>
+                {Array.from({ length: 7 }, (_, d) => (
+                  <div className="text-center text-2xs font-medium text-muted-foreground pb-0.5" key={`wd-${mi}-${d}`}>{new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(2026, 8, 28 + d))}</div>
                 ))}
                 {monthGrid(month).flat().map((day) => {
                   const inMonth = day.getMonth() === month.getMonth();
                   const segIdx = segmentIndexOfDay(day);
-                  const color = segIdx >= 0 ? SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length] : undefined;
+                  const highlighted = segIdx >= 0 && inMonth;
                   return (
                     <div
                       key={`d-${mi}-${day.getTime()}`}
                       className={cn(
                         'rounded-md py-[3px] text-center text-xs tabular-nums',
                         inMonth ? 'opacity-100' : 'opacity-40',
-                        !color && (inMonth ? 'text-foreground' : 'text-faint'),
+                        !highlighted && 'text-muted-foreground',
                       )}
-                      // La teinte du segment n'est connue qu'a l'execution.
-                      style={color ? { backgroundColor: color, color: SEGMENT_INK } : undefined}
+                      style={highlighted ? { backgroundColor: 'var(--bui-supervision-navy)', color: 'var(--bui-supervision-on-navy)' } : undefined}
                     >
-                      {day.getDate()}
+                      {new Intl.NumberFormat(locale).format(day.getDate())}
                     </div>
                   );
                 })}
@@ -293,7 +279,7 @@ export function PriceAdjustmentModal({
         {/* Sélecteur de mode de saisie de la remise */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <p className="text-xs text-muted-foreground">
-            {t('supervision.price.discountMode', 'Remise en')}
+            {t('supervision.modal.adjustmentMode', 'Ajustement en')}
           </p>
           {/* `exclusive` MUI = type="single" ; Radix renvoie '' a la deselection,
               d'ou le garde qui conserve le mode courant. */}
@@ -318,103 +304,60 @@ export function PriceAdjustmentModal({
           )}
         </div>
 
-        {/* Segments éditables */}
-        <div className="flex flex-col gap-1.5">
+        <p className="baitly-action-modal-note">{t('supervision.modal.exclusiveEnd', 'La date de fin est exclue : seules les nuits précédentes seront ajustées.')}</p>
+        <div>
           {segments.map((seg, i) => {
-            const f = sim?.segments[i];
+            const f = freshSimulation?.segments[i];
+            const invalidDates = isoDay(seg.from) == null || isoDay(seg.to) == null || seg.to <= seg.from;
             return (
-              <div className="rounded-lg border border-solid border-border bg-card p-2" key={i}>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {/* Champs du kit : plus de bordure dessinee a la main, l'anneau
-                      de focus et l'etat desactive viennent du gabarit `Input`. */}
-                  <Input
-                    type="date"
-                    aria-label={t('supervision.price.segmentFrom', 'Date de début')}
-                    value={seg.from}
-                    onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, from: e.target.value } : s))}
-                    className="w-auto tabular-nums"
-                  />
-                  <div className="text-muted-foreground text-xs">→</div>
-                  <Input
-                    type="date"
-                    aria-label={t('supervision.price.segmentTo', 'Date de fin')}
-                    value={seg.to}
-                    onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, to: e.target.value } : s))}
-                    className="w-auto tabular-nums"
-                  />
-                  <div className="flex-1" />
-                  <Input
-                    type="number"
-                    aria-label={t('supervision.price.segmentValue', 'Valeur de la remise')}
-                    value={inputValue(i)}
-                    disabled={!canConvert}
-                    onChange={(e) => applyInput(i, Number(e.target.value))}
-                    className="w-[76px] text-end tabular-nums"
-                  />
-                  <div className="text-xs text-muted-foreground w-[16px]">{modeUnit}</div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => removeSegment(i)}
-                    aria-label={t('supervision.price.removeSegment', 'Retirer ce créneau')}
-                    className="text-faint hover:bg-transparent hover:text-destructive"
-                  >
+              <section className="baitly-price-segment" key={i}>
+                <div className="baitly-price-segment-heading">
+                  <span>{t('supervision.modal.period', 'Créneau {{n}}', { n: i + 1 })}</span>
+                  {!invalidDates && <span className="font-normal text-muted-foreground tabular-nums">· {t('supervision.price.preview.nights', { count: nights(seg.from, seg.to) })}</span>}
+                  <strong className="ms-auto text-[var(--bui-supervision-ink)] tabular-nums"><bdi dir="ltr">{raise ? '+' : '−'}{seg.percent}%</bdi></strong>
+                </div>
+                <div className="baitly-price-fields">
+                  <label>{t('supervision.price.segmentFrom', 'Date de début')}
+                    <Input type="date" value={seg.from} disabled={applying}
+                      aria-invalid={invalidDates}
+                      onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, from: e.target.value } : s))} />
+                  </label>
+                  <label>{t('supervision.modal.endExclusive', 'Fin (exclue)')}
+                    <Input type="date" value={seg.to} disabled={applying}
+                      aria-invalid={invalidDates}
+                      onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, to: e.target.value } : s))} />
+                  </label>
+                  <label>{t('supervision.modal.adjustment', 'Ajustement')} ({modeUnit})
+                    <Input type="number" value={inputValue(i)} disabled={!canConvert || applying}
+                      min={mode === 'percent' ? 1 : 0} max={mode === 'percent' ? 50 : undefined}
+                      onChange={(e) => applyInput(i, Number(e.target.value))} />
+                  </label>
+                  <Button variant="ghost" size="icon-sm" onClick={() => removeSegment(i)} disabled={applying}
+                    aria-label={t('supervision.price.removeSegment', 'Retirer ce créneau')}>
                     <Close size={15} />
                   </Button>
                 </div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  {/* Pastille de reperage : elle rappelle la couleur du segment
-                      dans le calendrier, connue seulement a l'execution. */}
-                  <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
-                  <p className="text-xs text-muted-foreground tabular-nums">
-                    {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · {raise ? '+' : '−'}{seg.percent}%
-                  </p>
-                </div>
-                {f && (
-                  <p className="text-xs text-foreground mt-0.5 tabular-nums">
-                    {t('supervision.price.occ', 'Occupation')} {Math.round(f.baseline.occupancyRate * 100)}%
-                    {' → '}<b className="font-semibold">{Math.round(f.scenario.occupancyRate * 100)}%</b>
-                    {'  ·  '}{t('supervision.price.revenue', 'Revenu')} <Money value={f.deltaRevenue} from="EUR" decimals={0} />
-                  </p>
-                )}
-              </div>
+                {f && <div className="baitly-price-forecast">
+                  <div><span>{t('supervision.price.occ', 'Occupation')} </span>{Math.round(f.baseline.occupancyRate * 100)}% → <strong>{Math.round(f.scenario.occupancyRate * 100)}%</strong></div>
+                  <div><span>{t('supervision.modal.revenueChange', 'Variation de revenu')} </span><Money value={f.deltaRevenue} from="EUR" decimals={0} /></div>
+                </div>}
+              </section>
             );
           })}
         </div>
-
-        {/* Cumul de la prévision */}
-        {sim && (
-          <div className="mt-2 p-2 bg-muted rounded-lg">
-            <p className="text-xs font-semibold text-foreground">
-              {t('supervision.price.forecastTotal', 'Prévision cumulée')}
-            </p>
-            <p className="text-xs text-foreground mt-0.5 tabular-nums">
-              {t('supervision.price.revenue', 'Revenu')} <Money value={sim.totalBaselineRevenue} from="EUR" decimals={0} />
-              {' → '}<b className="font-semibold"><Money value={sim.totalScenarioRevenue} from="EUR" decimals={0} /></b>
-              {'  ('}
-              {/* Encre semantique (§2.4) : le delta est du TEXTE, pas un aplat. */}
-              <span className={sim.totalDeltaRevenue >= 0 ? 'text-success-ink font-semibold' : 'text-destructive-ink font-semibold'}>
-                {sim.totalDeltaRevenue >= 0 ? '+' : ''}<Money value={sim.totalDeltaRevenue} from="EUR" decimals={0} />
-              </span>
-              {')'}
-            </p>
-          </div>
-        )}
-
-        {/* Ce que « Appliquer » va produire. L'écran montrait la prévision de
-            revenu, jamais la portée de l'acte : quelles nuits changent, ce qui
-            ne bouge pas, et par où revenir en arrière. */}
-        <ul className="mt-1.5 flex flex-col gap-2">
-          {consequencesOf('PRICE_DROP').map((line) => (
-            <li key={line.key} className="flex gap-2.5 text-sm text-[var(--bui-foreground)]">
-              <span
-                className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                aria-hidden
-              />
-              <span className="text-pretty">{t(line.key, line.fallback)}</span>
-            </li>
-          ))}
-        </ul>
+        {!validSegments && <p role="status" className="text-sm text-destructive-ink">{t('supervision.modal.invalidPeriods', 'Conservez au moins un créneau avec une date de fin postérieure à la date de début.')}</p>}
+        {sim && !freshSimulation && <p role="status" className="baitly-action-modal-note">{t('supervision.modal.staleForecast', 'Les créneaux ont changé. Relancez la simulation pour actualiser la prévision.')}</p>}
+        {freshSimulation && <section className="baitly-price-total" aria-live="polite">
+          <h3 className="text-sm font-medium">{t('supervision.price.forecastTotal', 'Prévision cumulée')}</h3>
+          <dl>
+            <div><dt>{t('supervision.modal.before', 'Avant ajustement')}</dt><dd><Money value={freshSimulation.totalBaselineRevenue} from="EUR" decimals={0} /></dd></div>
+            <div><dt>{t('supervision.modal.projected', 'Après ajustement · estimé')}</dt><dd className="font-semibold text-[var(--bui-supervision-ink)]"><Money value={freshSimulation.totalScenarioRevenue} from="EUR" decimals={0} /></dd></div>
+            <div><dt>{t('supervision.modal.revenueChange', 'Variation de revenu')}</dt><dd className={freshSimulation.totalDeltaRevenue >= 0 ? 'text-success-ink' : 'text-destructive-ink'}>{freshSimulation.totalDeltaRevenue >= 0 ? '+' : ''}<Money value={freshSimulation.totalDeltaRevenue} from="EUR" decimals={0} /></dd></div>
+          </dl>
+        </section>}
+        <ActionModalSection title={t('supervision.modal.consequences', 'Ce qui va se passer')}>
+          <ActionModalFacts facts={consequencesOf('PRICE_DROP').map((line) => t(line.key, line.fallback))} />
+        </ActionModalSection>
 
         {error && (
           <Alert variant="destructive" className="mt-1.5">
@@ -423,27 +366,28 @@ export function PriceAdjustmentModal({
           </Alert>
         )}
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={applying}>
             {t('common.cancel', 'Annuler')}
           </Button>
           <Button
             variant="outline"
             onClick={runSimulate}
-            disabled={simulating || applying || segments.length === 0}
+            disabled={simulating || applying || !validSegments}
           >
             {simulating && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {t('supervision.price.simulate', 'Simuler')}
           </Button>
           <Button
             onClick={runApply}
-            disabled={applying || segments.length === 0}
+            disabled={applying || !validSegments}
           >
             {applying && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {t('supervision.price.apply', 'Appliquer les tarifs')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

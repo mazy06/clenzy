@@ -13,6 +13,7 @@
    avec un motif.
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalLoading, ActionModalFacts, ActionModalSection } from './ActionModal';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -20,11 +21,6 @@ import {
   AspectRatio,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Field,
   FieldLabel,
   Spinner,
@@ -200,19 +196,13 @@ export function ActionInspectionModal({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[640px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">
-            {entry ? t(entry.titleKey, entry.titleFallback) : ''}
-          </DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <ActionModalContent className="sm:max-w-[640px]">
+        <ActionModalHeader action={action} title={entry ? t(entry.titleKey, entry.titleFallback) : ''} description={action.title} />
+        <ActionModalBody>
 
         {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner className="size-4" />
-          </div>
+          <ActionModalLoading />
         ) : failed ? (
           <p className="py-2 text-sm text-[var(--bui-muted-foreground)] text-pretty">
             {t(
@@ -221,23 +211,12 @@ export function ActionInspectionModal({
             )}
           </p>
         ) : (
-          /* Le primitive Dialog ne borne pas sa hauteur : une douzaine de
-             vignettes pousseraient les deux boutons de décision hors de
-             l'écran, sans rien pour y revenir. Seule la lecture défile ;
-             l'en-tête et le pied restent en place. */
-          <div className="flex max-h-[58vh] flex-col gap-4 overflow-y-auto">
+          /* The shared body scrolls; the decision buttons remain visible. */
+          <div className="flex flex-col gap-5">
             {/* Les pièces à examiner : photos, durée réelle, ponctualité. */}
-            <ul className="flex flex-col gap-2">
-              {preview!.facts.map((fact) => (
-                <li key={fact} className="flex gap-2.5 text-sm text-pretty">
-                  <span
-                    className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                    aria-hidden
-                  />
-                  <span>{fact}</span>
-                </li>
-              ))}
-            </ul>
+            <ActionModalSection title={t('supervision.modal.workSummary', 'Bilan de l’intervention')}>
+              <ActionModalFacts facts={preview!.facts} />
+            </ActionModalSection>
 
             {/* Les pièces elles-mêmes. Le résumé annonçait « 3 photos jointes »
                 et renvoyait vers un autre écran : personne n'y allait, et le
@@ -262,7 +241,7 @@ export function ActionInspectionModal({
                 href={`/interventions/${interventionId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm underline underline-offset-2 text-[var(--bui-primary)]"
+                className="text-sm underline underline-offset-2 text-[var(--bui-supervision-ink)]"
               >
                 {t('supervision.inspection.openFile', 'Ouvrir la fiche de l’intervention')}
               </a>
@@ -287,6 +266,7 @@ export function ActionInspectionModal({
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
+                  autoFocus
                   placeholder={t(
                     'supervision.inspection.reasonPlaceholder',
                     'Photos manquantes, pièce non traitée, finition à revoir…',
@@ -297,7 +277,8 @@ export function ActionInspectionModal({
           </div>
         )}
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             {t('common.cancel', 'Annuler')}
           </Button>
@@ -325,8 +306,8 @@ export function ActionInspectionModal({
               </Button>
             </>
           )}
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

@@ -22,7 +22,10 @@ import { BAITLY_PRODUCT_DEMO_MESSAGES } from '../lib/messages/baitlyProductDemos
 import { BAITLY_PMS_MESSAGES } from '../lib/messages/baitlyPms';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
 import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
-import { ACADEMY_EPISODES, academyPosterUrl } from '../data/baitlyAcademyVideos';
+import {
+  ACADEMY_EPISODES,
+  academyPosterUrl,
+} from '../data/baitlyAcademyVideos';
 import { formatClock } from './academy/BaitlyVideoPlayer';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import { MARKET_CITIES } from '../data/baitlyResources';
@@ -410,12 +413,12 @@ export default function BaitlyNavPreview({
         <Window title={resources.modules.obligations.name}>
           <div className="bnv-obligations">
             <span className="bnv-country">{resources.guide.countries[0]}</span>
-            {resources.guide.steps[0].slice(0, 3).map((step, i) => (
-              <span className="bnv-task" key={step.title}>
+            {resources.guide.previewSteps.map((step, i) => (
+              <span className="bnv-task" key={step}>
                 <CheckIcon
                   style={{ '--bnv-delay': `${i * 240}ms` } as CSSProperties}
                 />
-                {step.title}
+                {step}
               </span>
             ))}
           </div>

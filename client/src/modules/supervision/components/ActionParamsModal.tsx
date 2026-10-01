@@ -12,15 +12,11 @@
    Le schéma par type vit dans actionRegistry.ts ; ici, il n'y a que le rendu.
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalFacts, ActionModalSection } from './ActionModal';
+import { useMemo, useRef, useState } from 'react';
 import {
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
@@ -32,6 +28,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
 import { entryOf, initialValues, type ParamField } from './actionRegistry';
+import { ActionDescription } from './ActionDescription';
+import { descriptionTitle, parseStockDescription, readActionParams } from '../core/actionDescription';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 export interface ActionParamsModalProps {
@@ -53,12 +51,20 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
   const entry = entryOf(action.applyActionType);
   const spec = entry?.params ?? null;
 
-  const [values, setValues] = useState<Record<string, number | string | boolean>>(() =>
-    spec ? initialValues(spec, action.actionParams) : {},
-  );
+  const isStockOrder = action.applyActionType === 'LINEN_STOCK_ORDER';
+  const [values, setValues] = useState<Record<string, number | string | boolean>>(() => {
+    const initial = spec ? initialValues(spec, action.actionParams) : {};
+    const stock = isStockOrder ? parseStockDescription(action) : null;
+    if (stock?.quantity != null && readActionParams(action.actionParams).quantity == null) {
+      initial.quantity = stock.quantity;
+    }
+    return initial;
+  });
   const [submitting, setSubmitting] = useState(false);
   const [simulation, setSimulation] = useState<string[]>([]);
   const [simulating, setSimulating] = useState(false);
+  const simulationRequest = useRef(0);
+  const [simulationFailed, setSimulationFailed] = useState(false);
 
   /**
    * Demande au serveur l'effet des valeurs en cours de saisie.
@@ -68,7 +74,9 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
    * laisser affichée une projection qui ne correspond plus.</p>
    */
   const simulate = async () => {
+    const request = ++simulationRequest.current;
     setSimulating(true);
+    setSimulationFailed(false);
     try {
       const token = getAccessToken();
       const response = await fetch(
@@ -84,11 +92,17 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
         },
       );
       const preview = response.ok ? ((await response.json()) as { facts?: string[] }) : null;
-      setSimulation(preview?.facts ?? []);
+      if (request === simulationRequest.current) {
+        setSimulation(preview?.facts ?? []);
+        setSimulationFailed(!preview);
+      }
     } catch {
-      setSimulation([]);
+      if (request === simulationRequest.current) {
+        setSimulation([]);
+        setSimulationFailed(true);
+      }
     } finally {
-      setSimulating(false);
+      if (request === simulationRequest.current) setSimulating(false);
     }
   };
 
@@ -111,8 +125,14 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
   // Type hors registre : le parent ne devrait pas nous ouvrir.
   if (!entry || !spec) return null;
 
-  const set = (name: string, value: number | string | boolean) =>
+  const set = (name: string, value: number | string | boolean) => {
+    // A forecast only describes the values that were submitted to it.
+    simulationRequest.current++;
+    setSimulation([]);
+    setSimulating(false);
+    setSimulationFailed(false);
     setValues((prev) => ({ ...prev, [name]: value }));
+  };
 
   const confirm = () => {
     if (invalid) return;
@@ -128,10 +148,11 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
 
     if (field.kind === 'boolean') {
       return (
-        <Field key={field.name} orientation="horizontal">
+        <Field key={field.name} orientation="horizontal" data-wide="true">
           <Switch
             id={id}
             checked={Boolean(value)}
+            disabled={submitting}
             onCheckedChange={(checked) => set(field.name, checked)}
           />
           <div className="flex flex-col gap-0.5">
@@ -153,60 +174,57 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
         : null;
 
     return (
-      <Field key={field.name}>
+      <Field key={field.name} data-wide={field.kind === 'text'}>
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
         <Input
           id={id}
           type={field.kind === 'date' ? 'date' : field.kind === 'time' ? 'time' : numeric ? 'number' : 'text'}
-          value={value === undefined ? '' : String(value)}
+          value={value === undefined || (typeof value === 'number' && Number.isNaN(value)) ? '' : String(value)}
+          disabled={submitting}
           min={field.min}
           max={field.max}
           onChange={(e) =>
-            set(field.name, numeric ? Number(e.target.value) : e.target.value)
+            set(field.name, numeric ? (e.target.value === '' ? NaN : Number(e.target.value)) : e.target.value)
           }
           className={numeric ? 'tabular-nums' : undefined}
-          aria-invalid={numeric && typeof value === 'number' && outOfRange(field, value)}
+          aria-invalid={numeric && typeof value === 'number' && (Number.isNaN(value) || outOfRange(field, value))}
+          aria-describedby={hint || bounds ? `${id}-hint` : undefined}
         />
         {(hint || bounds) && (
-          <FieldDescription>{[hint, bounds].filter(Boolean).join(' · ')}</FieldDescription>
+          <FieldDescription id={`${id}-hint`}>{[hint, bounds].filter(Boolean).join(' · ')}</FieldDescription>
         )}
       </Field>
     );
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">{t(entry.titleKey, entry.titleFallback)}</DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <ActionModalContent className="sm:max-w-[520px]">
+        <ActionModalHeader action={action} title={t(entry.titleKey, entry.titleFallback)} description={descriptionTitle(action)} />
+        <ActionModalBody>
 
         <div className="flex flex-col gap-4">
+          {isStockOrder && <ActionDescription action={action} stockOrderEditable />}
           <p className="text-sm text-[var(--bui-muted-foreground)] text-pretty">
             {t(spec.leadKey, spec.leadFallback)}
           </p>
-          <div className="flex flex-col gap-4">{spec.fields.map(renderField)}</div>
+          <div className="baitly-action-params">{spec.fields.map(renderField)}</div>
 
           {/* Effet des valeurs saisies, demandé au serveur. « 7 nuits » ne dit
               rien ; « du 24 au 30 août » si. Repris de l'éditeur tarifaire, qui
               seul offrait de voir avant de s'engager. */}
           {simulation.length > 0 && (
-            <ul className="flex flex-col gap-2 rounded-md bg-[var(--bui-muted)] p-3">
-              {simulation.map((fact) => (
-                <li key={fact} className="flex gap-2.5 text-sm text-pretty">
-                  <span
-                    className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                    aria-hidden
-                  />
-                  <span>{fact}</span>
-                </li>
-              ))}
-            </ul>
+            <ActionModalSection title={t('supervision.modal.simulation', 'Effet des paramètres choisis')}>
+              <div aria-live="polite"><ActionModalFacts facts={simulation} /></div>
+            </ActionModalSection>
           )}
+          {simulationFailed && <p role="status" className="baitly-action-modal-note">
+            {t('supervision.price.simError', 'Simulation impossible pour le moment.')}
+          </p>}
         </div>
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             {t('common.cancel', 'Annuler')}
           </Button>
@@ -218,8 +236,8 @@ export function ActionParamsModal({ action, onClose, onConfirm }: ActionParamsMo
             {submitting && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {t(entry.ctaKey, entry.ctaFallback)}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

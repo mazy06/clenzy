@@ -4,9 +4,9 @@ import { ContentCopy, Check } from '../../../icons';
 import { cn } from '../../../utils/cn';
 
 interface DetailFieldProps {
-  /** Small uppercase label rendered above the value (Baitly product register). */
+  /** Sentence-case label rendered above the value. */
   label: string;
-  /** Primary value. Falls back to em-dash when empty. */
+  /** Primary value. Falls back to a dash when empty. */
   value?: React.ReactNode;
   /** Optional value used for copy-to-clipboard. Defaults to `value` when it's a string. */
   copyValue?: string;
@@ -59,7 +59,7 @@ const DetailField: React.FC<DetailFieldProps> = ({
   // Couleur portee par une CLASSE et non par `style` : le lien a un hover, et un
   // style inline battrait la regle de survol.
   const valueColorClass = isEmpty
-    ? 'text-faint'
+    ? 'text-muted-foreground'
     : tone === 'muted'
       ? 'text-muted-foreground'
       : 'text-foreground';
@@ -67,22 +67,22 @@ const DetailField: React.FC<DetailFieldProps> = ({
   const isLink = !!href && !isEmpty;
 
   const valueClass = cn(
-    'min-w-0 truncate text-sm font-medium',
-    '[transition:color_150ms_ease] motion-reduce:transition-none',
+    'min-w-0 break-words text-sm font-medium leading-6 [overflow-wrap:anywhere]',
+    'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
     valueColorClass,
     monospace && 'tabular-nums',
-    isLink && 'no-underline hover:text-primary hover:underline',
+    isLink && 'cursor-pointer rounded-sm no-underline hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
   );
 
   return (
     <div className="min-w-0">
-      <div className="flex items-center gap-0.5 mb-0.5">
+      <div className="flex items-center gap-1.5 mb-1.5">
         {icon && (
-          <span className="inline-flex text-muted-foreground opacity-60">
+          <span className="inline-flex text-muted-foreground" aria-hidden="true">
             {icon}
           </span>
         )}
-        <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           {label}
         </span>
       </div>
@@ -92,17 +92,18 @@ const DetailField: React.FC<DetailFieldProps> = ({
             {value}
           </a>
         ) : (
-          <span className={valueClass}>{isEmpty ? '—' : value}</span>
+          <span className={valueClass}>{isEmpty ? '-' : value}</span>
         )}
         {canCopy && (
           <Tooltip>
             {/* Le Button du kit ne transmet pas de ref : span intermediaire pour l'ancrage du tooltip. */}
             <TooltipTrigger asChild>
-              <span className="inline-flex">
+              <span className="inline-flex shrink-0">
                 <Button
                   variant="ghost"
+                  type="button"
                   size="icon-xs"
-                  className={cn('size-5', copied ? 'text-success' : 'text-faint')}
+                  className={cn('size-8 cursor-pointer', copied ? 'text-success-ink' : 'text-muted-foreground')}
                   onClick={handleCopy}
                   aria-label={copied ? 'Copié' : `Copier ${label}`}
                 >

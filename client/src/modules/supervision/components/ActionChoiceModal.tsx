@@ -14,28 +14,18 @@
    contrainte.
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalLoading, ActionModalFacts, ActionModalSection } from './ActionModal';
 import { useEffect, useState } from 'react';
 import {
   Alert,
   AlertDescription,
-  Badge,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
   Spinner,
 } from '../../../components/ui';
-import { Check, TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { cn } from '../../../utils/cn';
+import { DescriptionNarrative } from './ActionDescription';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
 import type { SuggestionPreview } from './ActionReviewModal';
@@ -98,19 +88,13 @@ export function ActionChoiceModal({ action, onClose, onConfirm }: ActionChoiceMo
   const options = preview?.options ?? [];
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[560px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">
-            {entry ? t(entry.titleKey, entry.titleFallback) : ''}
-          </DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <ActionModalContent className="sm:max-w-[560px]">
+        <ActionModalHeader action={action} title={entry ? t(entry.titleKey, entry.titleFallback) : ''} description={action.title} />
+        <ActionModalBody>
 
         {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner className="size-4" />
-          </div>
+          <ActionModalLoading />
         ) : failed || options.length === 0 ? (
           <Alert variant="destructive">
             <TriangleAlert />
@@ -123,54 +107,27 @@ export function ActionChoiceModal({ action, onClose, onConfirm }: ActionChoiceMo
           </Alert>
         ) : (
           <div className="flex flex-col gap-4">
-            <ItemGroup className="gap-1.5">
-              {options.map((option) => {
-                const selected = chosen === option.value;
-                return (
-                  <Item
-                    key={String(option.value)}
-                    asChild
-                    variant={selected ? 'outline' : 'default'}
-                    className={cn(
-                      'cursor-pointer transition-colors duration-200',
-                      selected && 'bg-[var(--bui-accent)]',
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setChosen(option.value)}
-                      aria-pressed={selected}
-                    >
-                      <ItemContent>
-                        <ItemTitle className="flex items-center gap-2">
-                          {option.label}
-                          {option.recommended && (
-                            <Badge variant="secondary">
-                              {t('supervision.choice.suggested', 'Proposé par l’agent')}
-                            </Badge>
-                          )}
-                        </ItemTitle>
-                        {option.detail && <ItemDescription>{option.detail}</ItemDescription>}
-                      </ItemContent>
-                      {selected && <Check size={15} className="text-[var(--bui-primary)]" />}
-                    </button>
-                  </Item>
-                );
-              })}
-            </ItemGroup>
+            <fieldset className="baitly-action-choice-list">
+              <legend className="sr-only">{t('supervision.modal.choose', 'Choisir une option')}</legend>
+              {options.map((option) => (
+                <label className="baitly-action-choice" key={String(option.value)}>
+                  <input type="radio" name="hitl-choice" checked={chosen === option.value}
+                    onChange={() => setChosen(option.value)} disabled={submitting} />
+                  <div>
+                    <span className="baitly-action-choice-heading">
+                      <span>{option.label}</span>
+                      {option.recommended && <small>{t('supervision.choice.suggested', 'Proposé par l’agent')}</small>}
+                    </span>
+                    {option.detail && <DescriptionNarrative text={option.detail} />}
+                  </div>
+                </label>
+              ))}
+            </fieldset>
 
             {preview!.facts.length > 0 && (
-              <ul className="flex flex-col gap-2">
-                {preview!.facts.map((fact) => (
-                  <li key={fact} className="flex gap-2.5 text-sm text-pretty">
-                    <span
-                      className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                      aria-hidden
-                    />
-                    <span>{fact}</span>
-                  </li>
-                ))}
-              </ul>
+              <ActionModalSection title={t('supervision.modal.consider', 'À prendre en compte')}>
+                <ActionModalFacts facts={preview!.facts} />
+              </ActionModalSection>
             )}
 
             {preview!.blocked && (
@@ -182,7 +139,8 @@ export function ActionChoiceModal({ action, onClose, onConfirm }: ActionChoiceMo
           </div>
         )}
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             {t('common.cancel', 'Annuler')}
           </Button>
@@ -193,8 +151,8 @@ export function ActionChoiceModal({ action, onClose, onConfirm }: ActionChoiceMo
             {submitting && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {entry ? t(entry.ctaKey, entry.ctaFallback) : ''}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -151,6 +152,19 @@ class SupervisionSuggestionServiceApplyTest {
     }
 
     @Test
+    void archiveFailureNeverReopensAnOrderAlreadySent() {
+        var s = suggestion(SupervisionActionType.LINEN_STOCK_ORDER);
+        s.setActionParams("{\"stockItemId\":6,\"stockOrder\":{\"quantity\":8}}");
+        when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID)).thenReturn(Optional.of(s));
+        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(), eq(APPLIED_BY))).thenReturn(1);
+        when(actionExecutor.hasExternalEffect(s.getActionType())).thenReturn(true);
+        when(repository.archiveStockOrder(SUGGESTION_ID, ORG_ID, s.getActionParams())).thenThrow(new IllegalStateException("db offline"));
+        service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY);
+        verify(actionExecutor).execute(s, null);
+        verify(repository, never()).revertApplied(any(), any());
+    }
+
+    @Test
     @DisplayName("apply auto (Vague 1) : l'acteur systeme est trace par le CAS et visible de l'executeur")
     void autoApply_tracesSystemActor() {
         SupervisionSuggestion s = suggestion(SupervisionActionType.CLEANING_REQUEST);
@@ -231,6 +245,30 @@ class SupervisionSuggestionServiceApplyTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
                 eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any(), any());
+    }
+
+    @Test
+    void pricingNotificationCarriesItsDirectionWithoutCopyingActionParameters() {
+        service.recordActionableStrict(ORG_ID, 10L, "rev", null, "Tarifs", "motif",
+                SupervisionActionType.PRICE_DROP, "{\"direction\":\"up\",\"segments\":[]}", null, "warning");
+        verify(notificationService).notifyAdminsAndManagersByOrgId(
+                eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any(),
+                argThat(facts -> "up".equals(facts.get("priceDirection"))
+                        && "PRICE_DROP".equals(facts.get("actionType")) && !facts.containsKey("segments")));
+    }
+
+    @Test
+    void restockNotificationCarriesTheItemForItsThumbnail() {
+        when(repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
+
+        service.recordActionableStrict(ORG_ID, 10L, "ops", null, "Stock bas : Sucre en dosettes (2 restant)", "motif",
+                SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":42}", null, "warning");
+
+        verify(notificationService).notifyAdminsAndManagersByOrgId(
+                eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any(),
+                argThat(facts -> Long.valueOf(42L).equals(facts.get("stockItemId"))
+                        && SupervisionActionType.LINEN_STOCK_ORDER.equals(facts.get("actionType"))));
     }
 
     @Test

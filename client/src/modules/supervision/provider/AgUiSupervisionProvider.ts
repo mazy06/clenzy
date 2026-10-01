@@ -2,7 +2,7 @@
    AgUiSupervisionProvider — implémentation RÉELLE de la seam
 
    Drop-in de {@link SupervisionProvider} branché sur l'ÉTAT RÉEL du moteur
-   multi-agent Clenzy, via le pont AG-UI déjà en place (POST /api/agui/run,
+   multi-agent Baitly, via le pont AG-UI déjà en place (POST /api/agui/run,
    SSE). Frère du MockSupervisionProvider (qu'on NE supprime PAS) : même
    interface, même cycle de vie, donc l'UI ne change pas.
 
@@ -383,6 +383,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         createdAt: new Date().toISOString(),
         expiresAt: `${payoutReminder.payoutDate}T23:59:59`,
         kind: 'reminder',
+        sourceTool: 'payout_reminder',
       });
     }
     this.applicableSuggestionIds.clear();
@@ -408,6 +409,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
           createdAt: s.createdAt,
           expiresAt: s.expiresAt ?? s.createdAt,
           applyActionType: opensGuestCard ? undefined : (s.actionType ?? undefined),
+          sourceTool: s.tool ?? undefined,
           amountEur: s.estimatedImpactCents != null ? s.estimatedImpactCents / 100 : undefined,
           actionParams: s.actionParams ?? undefined,
           ...(opensGuestCard ? { opensGuestCard: true } : {}),

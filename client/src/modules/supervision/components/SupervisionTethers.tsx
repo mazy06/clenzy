@@ -4,8 +4,8 @@
    Deuxième jambe du relais de données (portage de la projection) :
    le paquet arrivé de l'orchestrateur sur l'agent de tête repart le
    long d'attaches courbes vers SES cartes de la file flottante —
-   même grammaire que la jambe radiale du renderer (rail 1 px, paquet
-   1,5 px teinte primaire, fenêtre [38 ; 92 %] du cycle commun).
+   même taille, épaisseur, couleur et animation que la jambe radiale.
+   Le départ est décalé d'une transmission : [38 ; 76 %] du cycle.
 
    Tout est mesuré en DOM au niveau du PANNEAU (le renderer et la
    file vivent dans des sous-arbres distincts) : l'agent de tête est
@@ -14,9 +14,10 @@
    urgence, carte « derrière » d'un deck replié = pas d'attache).
    ============================================================ */
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { FLOW_CYCLE_MS, flowClockDelay } from '../renderers/OrbitDiagram';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { DATA_FLOW_STYLES, FLOW_CYCLE_MS, FLOW_TRAVEL_FRACTION, FLOW_DASH, FLOW_STROKE, flowClockDelay, flowPacketStyle } from '../core/dataFlow';
 import type { AgentId } from '../types';
+import '../supervision-surfaces.css';
 
 /** Re-mesure différée après une mutation du deck (dépliage animé ~250 ms). */
 const SETTLE_MS = 350;
@@ -24,47 +25,41 @@ const SETTLE_MS = 350;
 interface TetherLine {
   key: string;
   urgent: boolean;
+  /** Pixels par unité du viewBox orbital, pour garder exactement le même paquet. */
+  orbitScale: number;
   x1: number;
   y1: number;
   x2: number;
   y2: number;
 }
 
-/* Le flux de données est TOUJOURS encre (noir en thème clair, encre claire en
-   sombre) : l'ambre ne colore que les RAILS urgents (carte qui expire sous
-   l'heure), jamais la donnée. Le paquet arrivé du noyau se dispatche en
-   SIMULTANÉ vers toutes les cartes (fenêtre [38 ; 92 %] du cycle commun). */
-const TETHER_STYLES = `
-.sv-tether-packet {
-  fill: none;
-  stroke-linecap: round;
-  opacity: .9;
-  stroke-dasharray: 12 200;
-  animation: sv-relay-hop ${FLOW_CYCLE_MS}ms linear infinite;
-}
-@keyframes sv-relay-hop { 0%, 38% { stroke-dashoffset: 12; } 92%, 100% { stroke-dashoffset: -112; } }
-@media (prefers-reduced-motion: reduce) {
-  .sv-tether-packet { display: none; }
-}
-`;
-
 /**
  * Paquet d'une attache, calé sur l'horloge GLOBALE du relais à son montage
  * (retard négatif = phase courante) : quel que soit l'instant où l'attache
- * apparaît, son paquet part dans la fenêtre [38 ; 92 %] du MÊME cycle que la
+ * apparaît, son paquet part dans la fenêtre [38 ; 76 %] du MÊME cycle que la
  * jambe radiale. Le retard est figé (ref) : le recalculer à chaque rendu
  * ferait sauter la phase à chaque mesure.
  */
-function HopPacket({ d }: { d: string }) {
+function HopPacket({ d, orbitScale }: { d: string; orbitScale: number }) {
+  const pathRef = useRef<SVGPathElement>(null);
+  const [length, setLength] = useState(0);
   const delayRef = useRef<string | null>(null);
-  if (delayRef.current === null) delayRef.current = flowClockDelay();
+  if (delayRef.current === null) delayRef.current = flowClockDelay(FLOW_CYCLE_MS * FLOW_TRAVEL_FRACTION);
+
+  useLayoutEffect(() => {
+    setLength(pathRef.current?.getTotalLength() ?? 0);
+  }, [d]);
+
   return (
     <path
+      ref={pathRef}
       fill="none"
-      pathLength={100}
-      strokeWidth="1.5"
-      className="sv-tether-packet stroke-foreground"
-      style={{ animationDelay: delayRef.current }}
+      strokeWidth={FLOW_STROKE * orbitScale}
+      className="sv-tether-packet baitly-data-packet"
+      style={{
+        ...flowPacketStyle(length, FLOW_DASH * orbitScale, delayRef.current),
+        visibility: length > 0 ? 'visible' : 'hidden',
+      }}
       d={d}
     />
   );
@@ -99,6 +94,7 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
         return;
       }
       const n = node.getBoundingClientRect();
+      const orbit = node.closest('[data-supervision-constellation]')!.getBoundingClientRect();
       const cards = root.querySelectorAll(
         `[data-pending-action][data-agent-id="${headAgent}"]:not([data-behind])`,
       );
@@ -122,6 +118,7 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
         next.push({
           key: card.getAttribute('data-pending-action') ?? String(next.length),
           urgent: card.hasAttribute('data-urgent'),
+          orbitScale: orbit.width / 100,
           x1: Math.round((toRight ? n.right : n.left) - base.left),
           y1: Math.round(n.top + n.height / 2 - base.top),
           x2: Math.round((toRight ? c.left : c.right) - base.left),
@@ -186,18 +183,16 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
   return (
     // z-[6] : sous la file flottante (z-7) — les traits passent DERRIÈRE les
     // cartes — et au-dessus du canvas du renderer.
-    <svg className="pointer-events-none absolute inset-0 z-[6] size-full overflow-visible" aria-hidden>
-      <style>{TETHER_STYLES}</style>
+    <svg className="baitly-supervision-surface pointer-events-none absolute inset-0 z-[6] size-full overflow-visible" aria-hidden>
+      <style>{DATA_FLOW_STYLES}</style>
       {tethers.map((tether) => {
         const bend = (tether.x2 - tether.x1) * 0.45;
         const path = `M${tether.x1} ${tether.y1} C${tether.x1 + bend} ${tether.y1}, ${tether.x2 - bend} ${tether.y2}, ${tether.x2} ${tether.y2}`;
         return (
           <g key={tether.key} className={tether.urgent ? 'stroke-warning/70' : 'stroke-border'}>
             <path fill="none" strokeWidth="1" d={path} />
-            {/* Le paquet ne revient pas au noyau : la donnée finit là où la
-                décision se prend. `pathLength=100` cale son dash sur le même
-                cycle que la jambe radiale du renderer. */}
-            <HopPacket d={path} />
+            {/* Le paquet garde sa taille, quelle que soit la longueur du lien. */}
+            <HopPacket d={path} orbitScale={tether.orbitScale} />
             <circle
               cx={tether.x2}
               cy={tether.y2}

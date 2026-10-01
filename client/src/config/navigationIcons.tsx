@@ -27,6 +27,7 @@ import {
   AdminPanelSettings,
   CalendarViewWeek,
   Bolt,
+  Inventory2,
 } from '../icons';
 
 /**
@@ -50,6 +51,7 @@ export const HUB_ICON: Record<string, React.ReactNode> = {
 
 /** Icône par écran (onglet de hub ou écran autonome), clé = route canonique. */
 export const SCREEN_ICON: Record<string, React.ReactNode> = {
+  '/consumables': <Inventory2 />,
   '/properties': <Home />,
   '/reservations': <EventNote />,
   '/interventions': <Build />,

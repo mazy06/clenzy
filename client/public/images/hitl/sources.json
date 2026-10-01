@@ -1,0 +1,251 @@
+{
+  "generator": "image_gen built-in",
+  "date": "2026-10-01",
+  "width": 320,
+  "height": 320,
+  "quality": 82,
+  "images": [
+    {
+      "key": "no-show",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-f566257d-2d60-4747-b0f9-5af0bbfb87ac.png",
+      "bytes": 10096
+    },
+    {
+      "key": "tourist-tax",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-420f0979-2296-4e4d-89c7-47b368a2b61f.png",
+      "bytes": 8330
+    },
+    {
+      "key": "welcome-guide",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-20d10cc5-ba9e-4fd4-a037-67da836d9210.png",
+      "bytes": 10602
+    },
+    {
+      "key": "owner-transfer",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-9ee152ca-7597-4d91-b98b-ce77b38da359.png",
+      "bytes": 9434
+    },
+    {
+      "key": "service-transfer",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-df33915f-1d45-4785-917f-c80bd8754c0f.png",
+      "bytes": 9592
+    },
+    {
+      "key": "pricing",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-64f219a3-f07e-4761-935b-8c16e0dbef2d.png",
+      "bytes": 8666
+    },
+    {
+      "key": "deposit",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-f79dabbf-6bcf-406d-8667-f5befb797feb.png",
+      "bytes": 8546
+    },
+    {
+      "key": "calendar",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-fde3d247-f2ab-4e7d-8d00-2db3d7a54607.png",
+      "bytes": 9490
+    },
+    {
+      "key": "cleaning",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-92318cad-1b51-466b-98c4-e4654391be5d.png",
+      "bytes": 7806
+    },
+    {
+      "key": "payment",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-6892f428-71e6-4b7e-bacb-f3b9e5419228.png",
+      "bytes": 5874
+    },
+    {
+      "key": "assignment",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-3a6db928-f077-4993-b093-7d12b79d8054.png",
+      "bytes": 10862
+    },
+    {
+      "key": "channel-sync",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-e95ad199-587c-4b0f-925c-b69e18568b46.png",
+      "bytes": 6970
+    },
+    {
+      "key": "noise",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-ba1d3b78-0e57-4f0d-acb9-b7313fd0733d.png",
+      "bytes": 8644
+    },
+    {
+      "key": "booking-recovery",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-8124952b-3753-486f-b2cf-683399136b89.png",
+      "bytes": 8898
+    },
+    {
+      "key": "guest-experience",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-d41f078e-8697-48e5-ab5f-4178517f0f3f.png",
+      "bytes": 11010
+    },
+    {
+      "key": "security",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-93ac06d3-58f1-424b-9887-3fc7dc7e4af5.png",
+      "bytes": 5870
+    },
+    {
+      "key": "traveler-form",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-4fcfa5fa-0936-42ba-a8e3-be1b8047662c.png",
+      "bytes": 6014
+    },
+    {
+      "key": "management-contract",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-67c3d04e-b803-48fd-9d1e-a76c32b91f75.png",
+      "bytes": 7526
+    },
+    {
+      "key": "owner-report",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-45731c02-d6bd-4f58-94af-600b0839a230.png",
+      "bytes": 7060
+    },
+    {
+      "key": "distribution",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-06b2fdc7-e2e3-4365-9499-cb538888a08c.png",
+      "bytes": 9312
+    },
+    {
+      "key": "maintenance",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-60a54a27-ac48-41ca-af19-c148248f0910.png",
+      "bytes": 5532
+    },
+    {
+      "key": "quotes",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-39d7fc7e-0afe-472c-a4ff-58eb8596d0b3.png",
+      "bytes": 6680
+    },
+    {
+      "key": "translation",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-015f80a2-2d94-44a9-bc8c-616ff9f5b9ad.png",
+      "bytes": 8010
+    },
+    {
+      "key": "overbooking",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-9fa21b54-9486-49ef-ad36-5e7c257d74b1.png",
+      "bytes": 8026
+    },
+    {
+      "key": "conversation",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-a3353573-eed1-407e-9908-2342cfdf28f4.png",
+      "bytes": 7086
+    },
+    {
+      "key": "relocation",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-2e7610a4-067c-4dff-a657-7a5399689a80.png",
+      "bytes": 10632
+    },
+    {
+      "key": "dispute",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-0458e843-c0ef-4ecb-9863-4dabef25ce7c.png",
+      "bytes": 7250
+    },
+    {
+      "key": "privacy",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-c7e825f0-2e83-4444-8a3f-87b5fbafb7b4.png",
+      "bytes": 7880
+    },
+    {
+      "key": "work-review",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-9b1c9700-a8b0-44c5-8010-e3ea5777261f.png",
+      "bytes": 11182
+    },
+    {
+      "key": "stock-order",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-6fa4ea11-43f3-41dc-a034-49a4541ce736.png",
+      "bytes": 8140
+    },
+    {
+      "key": "approval",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-82370862-7447-4951-a40d-283740ef432a.png",
+      "bytes": 6472
+    },
+    {
+      "key": "late-checkout",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-cc2cfb19-aa8c-4874-8083-24fbd669b028.png",
+      "bytes": 8038
+    },
+    {
+      "key": "property-maintenance",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-f6d6d4e1-617c-4254-bec5-a988b914ed86.png",
+      "bytes": 10708
+    },
+    {
+      "key": "reviews",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-7432dc55-7f48-47de-8d37-65b28d9e6ce5.png",
+      "bytes": 5426
+    },
+    {
+      "key": "provider-search",
+      "label": "Recherche de prestataire",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-70950eb4-2e52-4027-8d2a-563a3bc25abd.png",
+      "output": "provider-search.webp",
+      "bytes": 8792,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "pricing-optimization",
+      "label": "Optimiser les tarifs des créneaux creux",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-75af7e68-ae5f-4d0d-9425-9e82f794e277.png",
+      "output": "pricing-optimization.webp",
+      "bytes": 10506,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "pricing-increase",
+      "label": "Relever les tarifs",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-5873ac56-eb7f-471c-80e1-2a6257855e7b.png",
+      "output": "pricing-increase.webp",
+      "bytes": 8134,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "promotion-end",
+      "label": "Désactiver une promotion",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-4e9566f9-0c20-4892-bb5d-72e7b528501f.png",
+      "output": "promotion-end.webp",
+      "bytes": 8864,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "payment-reminder",
+      "label": "Relance de paiement",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-1e1f1e59-fb0f-4e67-b3d7-fd94de396fb2.png",
+      "output": "payment-reminder.webp",
+      "bytes": 8494,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "refund",
+      "label": "Remboursement",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-46eee70c-a886-41a5-803c-44bf94650b5a.png",
+      "output": "refund.webp",
+      "bytes": 8026,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "sync-problem",
+      "label": "Synchronisation à réparer",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-059470fd-bb92-4d34-9feb-89a355c6bed0.png",
+      "output": "sync-problem.webp",
+      "bytes": 7712,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "key": "pricing-alert",
+      "label": "Écart ou erreur de tarif",
+      "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-5ae74434-2bce-4ef6-862f-05e8072f8d7a.png",
+      "output": "pricing-alert.webp",
+      "bytes": 10562,
+      "width": 320,
+      "height": 320
+    }
+  ]
+}

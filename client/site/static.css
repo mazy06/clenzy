@@ -1,0 +1,71 @@
+/* Readable before JavaScript loads and when it is unavailable. */
+.baitly-static-page {
+  min-height: 100dvh;
+  background: var(--bl-paper);
+  color: var(--bl-ink);
+}
+.baitly-static-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 28px;
+  border-bottom: 1px solid var(--bl-line);
+}
+.baitly-static-header nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.baitly-static-page a {
+  color: var(--bl-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.baitly-static-page a:hover {
+  color: var(--bl-muted);
+}
+.baitly-static-reading {
+  max-width: 78ch;
+  padding-block: clamp(32px, 5vw, 72px) 80px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.baitly-static-reading h1 {
+  font-size: clamp(32px, 4vw, 56px);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  margin-bottom: 28px;
+  text-wrap: balance;
+}
+.baitly-static-reading h2 {
+  margin-block: 40px 16px;
+  font-size: clamp(24px, 2vw, 32px);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.baitly-static-reading h3 {
+  margin-block: 28px 12px;
+  font-size: 20px;
+}
+.baitly-static-reading p,
+.baitly-static-reading ul,
+.baitly-static-reading ol {
+  margin-block: 16px;
+}
+.baitly-static-reading :is(ul, ol) {
+  padding-inline-start: 24px;
+  list-style: revert;
+}
+.baitly-static-footer {
+  padding-block: 28px;
+  border-top: 1px solid var(--bl-line);
+  font-size: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .baitly-static-page a {
+    transition: none;
+  }
+}

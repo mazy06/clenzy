@@ -51,7 +51,7 @@ describe('<ActionInspectionModal> — les pièces', () => {
     render(<ActionInspectionModal action={action()} onClose={noop} onApprove={noop} onReject={noop} />);
 
     await waitFor(() => expect(screen.getAllByRole('button', { name: /Agrandir la photo/ })).toHaveLength(3));
-    const imgs = document.querySelectorAll('img');
+    const imgs = screen.getAllByRole('button', { name: /Agrandir la photo/ }).map((button) => button.querySelector('img')!);
     expect(Array.from(imgs).map((i) => i.getAttribute('src'))).toEqual(PHOTOS);
   });
 

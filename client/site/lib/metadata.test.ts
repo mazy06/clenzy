@@ -9,11 +9,85 @@ import { BAITLY_JOURNEY_MESSAGES } from './messages/baitlyJourneys';
 import { ACADEMY_EPISODES } from '../data/baitlyAcademyVideos';
 import { ACADEMY_TRANSCRIPTS } from '../data/baitlyAcademyTranscripts';
 import { scriptSafeJson } from './academyStructuredData';
+import { siteStaticHtml } from '../../tooling/baitlySiteStatic';
+import { siteDocuments } from '../../tooling/baitlySiteContent';
+import { HOME_MESSAGES } from './messages/home';
 
 const catalogSource = readFileSync('site/data/catalog.tsx', 'utf8');
 const pages = metadataCatalog(discoveryCatalog(catalogSource));
 const template = readFileSync('site/index.html', 'utf8');
 describe('Public metadata', () => {
+  it.each(['fr', 'en', 'ar'] as const)(
+    'publishes readable, linked HTML without JavaScript in %s and replaces the initial route body',
+    (language) => {
+      const docs = siteDocuments(language, discoveryCatalog(catalogSource));
+      const home = metadataHtml(
+        template,
+        pages[language]['/'],
+        '/',
+        language,
+        siteStaticHtml(docs.get('/')!, '/', language),
+      );
+      const homeDoc = new DOMParser().parseFromString(home, 'text/html');
+      expect(homeDoc.querySelector('main')?.textContent).toContain(
+        HOME_MESSAGES[language].hero.description,
+      );
+      for (const country of ['maroc', 'france', 'arabie-saoudite']) {
+        expect(
+          homeDoc.querySelector(
+            `a[href="/ressources/obligations/${country}?lang=${language}"]`,
+          ),
+        ).not.toBeNull();
+      }
+      const path = '/solutions';
+      const next = metadataHtml(
+        home,
+        pages[language][path],
+        path,
+        language,
+        siteStaticHtml(docs.get(path)!, path, language),
+      );
+      const nextDoc = new DOMParser().parseFromString(next, 'text/html');
+      expect(nextDoc.querySelectorAll('h1')).toHaveLength(1);
+      expect(nextDoc.querySelector('h1')?.textContent).toBe(
+        BAITLY_JOURNEY_MESSAGES[language].solutions.title.replace(/\s+/g, ' '),
+      );
+      expect(nextDoc.querySelector('main')?.textContent).not.toContain(
+        HOME_MESSAGES[language].hero.description,
+      );
+      expect(
+        nextDoc.querySelector('meta[name="robots"]')?.getAttribute('content'),
+      ).toContain('max-image-preview:large');
+    },
+  );
+
+  it('escapes Markdown HTML and unsafe URLs in the public fallback', () => {
+    const html = siteStaticHtml(
+      '# Baitly\n\n<script>bad()</script>\n\n[Bad](javascript:alert%281%29)\n\nVisible & useful',
+      '/',
+      'fr',
+    );
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    expect(doc.querySelector('script')).toBeNull();
+    expect(doc.querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(doc.querySelector('main')?.textContent).toContain(
+      'Visible & useful',
+    );
+  });
+
+  it('identifies Baitly and its website without invented ratings or endorsements', () => {
+    expect(pages.fr['/'].title).toContain('Logiciel de location saisonnière');
+    for (const country of ['Maroc', 'France', 'Arabie saoudite'])
+      expect(pages.fr['/'].description).toContain(country);
+    expect(pages.fr['/'].structuredData?.map((data) => data['@type'])).toEqual([
+      'Organization',
+      'WebSite',
+      'SoftwareApplication',
+    ]);
+    expect(JSON.stringify(pages.fr['/'].structuredData)).not.toMatch(
+      /aggregateRating|reviewCount|sameAs/,
+    );
+  });
   it.each(['fr', 'en', 'ar'] as const)(
     'builds one translated head and canonical URL per page in %s',
     (language) => {
@@ -96,7 +170,12 @@ describe('Public metadata', () => {
     const path = `/ressources/academie/${episode.slug}`;
     const page = pages.fr[path];
     expect(page.video).toBeDefined();
-    const html = metadataHtml(metadataHtml(template, page, path, 'fr'), page, path, 'fr');
+    const html = metadataHtml(
+      metadataHtml(template, page, path, 'fr'),
+      page,
+      path,
+      'fr',
+    );
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
     expect(scripts).toHaveLength(1);
@@ -107,12 +186,18 @@ describe('Public metadata', () => {
     // Non affichée sur la page : la transcription n'existe que dans ces données et le Markdown.
     expect(data.transcript).toBe(ACADEMY_TRANSCRIPTS[episode.slug].fr);
     expect(data.hasPart).toHaveLength(episode.chapters.length);
-    expect(data.hasPart[1].url).toBe(`https://baitly.fr${path}?t=${Math.round(episode.chapters[1])}`);
-    expect(doc.querySelector('meta[property="og:type"]')?.getAttribute('content')).toBe('video.other');
-    expect(doc.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
-      `https://baitly.fr/academie/posters/${episode.slug}-16x9.jpg`,
+    expect(data.hasPart[1].url).toBe(
+      `https://baitly.fr${path}?t=${Math.round(episode.chapters[1])}`,
     );
-    expect(pages.en[path].video?.jsonLd.hasPart).toHaveLength(episode.chapters.length);
+    expect(
+      doc.querySelector('meta[property="og:type"]')?.getAttribute('content'),
+    ).toBe('video.other');
+    expect(
+      doc.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+    ).toBe(`https://baitly.fr/academie/posters/${episode.slug}-16x9.jpg`);
+    expect(pages.en[path].video?.jsonLd.hasPart).toHaveLength(
+      episode.chapters.length,
+    );
   });
   it('ne peut pas fermer la balise script depuis un texte d’épisode', () => {
     const json = scriptSafeJson({ name: '</script><script>alert(1)</script>' });

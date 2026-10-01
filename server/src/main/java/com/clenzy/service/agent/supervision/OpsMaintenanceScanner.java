@@ -281,11 +281,11 @@ public class OpsMaintenanceScanner {
                         SupervisionActionType.LINEN_STOCK_ORDER,
                         "{\"stockItemId\":" + item.getId() + "}", null, "warning");
             } else {
-                suggestionService.record(orgId, propertyId, MODULE_OPS, "stock_low",
+                suggestionService.recordStockAlert(orgId, propertyId,
                         "Stock bas : " + item.getName() + " (" + item.getQuantity() + " restant)",
                         "Seuil de " + item.getReorderThreshold() + " atteint et aucun fournisseur "
                                 + "configuré — renseigner le fournisseur dans la fiche du logement "
-                                + "pour que la commande devienne un clic.");
+                                + "pour que la commande devienne un clic.", item.getId());
             }
         }
     }
