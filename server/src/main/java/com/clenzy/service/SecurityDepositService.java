@@ -20,9 +20,9 @@ import java.math.BigDecimal;
  * jamais check-then-act (audit #8). Ownership validé après {@code findById}/réservation (audit #3) ;
  * la clause {@code orgId} du CAS est une défense en profondeur. Aucune entité JPA exposée (audit #5).</p>
  *
- * <p><b>Périmètre (HP)</b> : le hold / capture / release <b>réel côté Stripe</b> (pré-autorisation
- * manuelle, capture partielle) est l'effet externe différé — à appeler <b>hors transaction</b> +
- * {@code afterCommit} + idempotency (audit #2) ; ce service en est le journal d'états autoritatif.
+ * <p><b>Périmètre</b> : l'effet <b>réel côté Stripe</b> (pré-autorisation, capture, libération) est
+ * porté hors transaction par {@link SecurityDepositPaymentService} / {@link SecurityDepositHoldService}
+ * (audit #2) ; ce service en est le journal d'états autoritatif pour les transitions PMS.
  * Le montant provient du gestionnaire (manager authentifié, pas du voyageur) ; le sourcing depuis
  * une politique de caution par bien est un raffinement ultérieur.</p>
  */
@@ -70,18 +70,6 @@ public class SecurityDepositService {
                 return repository.save(d);
             });
         return SecurityDepositDto.from(deposit);
-    }
-
-    /** Enregistre un hold PSP placé : PENDING → HELD (CAS). */
-    @Transactional
-    public void markHeld(Long orgId, Long depositId, String externalRef) {
-        transition(orgId, depositId, SecurityDepositStatus.PENDING, SecurityDepositStatus.HELD, externalRef);
-    }
-
-    /** Marque la pré-autorisation échouée : PENDING → FAILED (CAS). */
-    @Transactional
-    public void markFailed(Long orgId, Long depositId) {
-        transition(orgId, depositId, SecurityDepositStatus.PENDING, SecurityDepositStatus.FAILED, null);
     }
 
     /** Relâche le hold (caution rendue) : HELD → RELEASED (CAS). */

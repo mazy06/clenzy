@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 /**
@@ -14,7 +15,8 @@ import java.time.LocalDateTime;
  *
  * <p>Une caution par réservation ({@code uq (organization_id, reservation_id)} — idempotence et
  * garde-fou anti check-then-act, audit #8). Le {@code externalRef} porte la référence PSP
- * (PaymentIntent Stripe en pré-autorisation manuelle) une fois le hold réel branché.</p>
+ * (PaymentIntent Stripe en pré-autorisation manuelle) du hold en cours ; il change à chaque
+ * renouvellement du hold ({@link #holdExpiresAt}).</p>
  */
 @Entity
 @Table(name = "security_deposits",
@@ -51,7 +53,7 @@ public class SecurityDeposit {
     @Column(name = "status", nullable = false, length = 16)
     private SecurityDepositStatus status = SecurityDepositStatus.PENDING;
 
-    /** Référence PSP (Stripe PaymentIntent du hold), null tant que le hold réel n'est pas branché. */
+    /** Référence PSP (Stripe PaymentIntent du hold en cours), null tant qu'aucun hold n'est posé. */
     @Size(max = 128)
     @Column(name = "external_ref", length = 128)
     private String externalRef;
@@ -59,6 +61,22 @@ public class SecurityDeposit {
     @Size(max = 512)
     @Column(name = "reason", length = 512)
     private String reason;
+
+    /**
+     * Fin de validité du hold en cours ({@code capture_before} Stripe) : au-delà, Stripe annule
+     * l'autorisation et libère les fonds. Null tant qu'aucun hold n'est posé.
+     */
+    @Column(name = "hold_expires_at")
+    private Instant holdExpiresAt;
+
+    /** Dernier refus de pré-autorisation (code Stripe / decline_code), null si aucun. */
+    @Size(max = 255)
+    @Column(name = "hold_error", length = 255)
+    private String holdError;
+
+    /** Pré-autorisations refusées : dérive la clé d'idempotence d'une nouvelle tentative. */
+    @Column(name = "hold_attempts", nullable = false)
+    private int holdAttempts;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
@@ -96,6 +114,15 @@ public class SecurityDeposit {
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+
+    public Instant getHoldExpiresAt() { return holdExpiresAt; }
+    public void setHoldExpiresAt(Instant holdExpiresAt) { this.holdExpiresAt = holdExpiresAt; }
+
+    public String getHoldError() { return holdError; }
+    public void setHoldError(String holdError) { this.holdError = holdError; }
+
+    public int getHoldAttempts() { return holdAttempts; }
+    public void setHoldAttempts(int holdAttempts) { this.holdAttempts = holdAttempts; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -67,6 +67,10 @@ public enum NotificationKey {
     PAYMENT_DEFERRED_OVERDUE(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
     PAYMENT_REFUND_INITIATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
     PAYMENT_REFUND_COMPLETED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
+    // Caution : pré-autorisation (pose ou renouvellement) refusée — carte refusée, 3-D Secure requis.
+    SECURITY_DEPOSIT_HOLD_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
+    // Caution : hold échu chez Stripe pendant la fenêtre de réclamation — plus aucune garantie.
+    SECURITY_DEPOSIT_HOLD_EXPIRED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
 
     // ─── ICAL (6 cles) ─────────────────────────────────────────────────────────
 

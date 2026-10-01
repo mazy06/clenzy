@@ -44,11 +44,14 @@ public class SecurityDepositController {
             service.getByReservation(tenantContext.getRequiredOrganizationId(), reservationId));
     }
 
-    /** Pré-autorise (hold Stripe) la caution. Le PaymentIntent est créé côté serveur. */
+    /**
+     * Pré-autorise (hold Stripe) la caution sur la carte enregistrée à la réservation. Avant le jour
+     * de l'arrivée, la caution reste PENDING (hold posé ce jour-là par le scheduler) ; un refus
+     * revient en FAILED avec son motif ({@code holdError}).
+     */
     @PostMapping("/{id}/hold")
-    public ResponseEntity<Void> hold(@PathVariable Long id) {
-        paymentService.placeHold(tenantContext.getRequiredOrganizationId(), id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<SecurityDepositDto> hold(@PathVariable Long id) {
+        return ResponseEntity.ok(paymentService.placeHold(tenantContext.getRequiredOrganizationId(), id));
     }
 
     @PostMapping("/{id}/release")

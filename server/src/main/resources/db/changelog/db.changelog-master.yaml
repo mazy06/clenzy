@@ -4357,3 +4357,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0481__contact_attachments_object_storage.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0484-security-deposit-hold-window"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0484__security_deposit_hold_window.sql
+            relativeToChangelogFile: true

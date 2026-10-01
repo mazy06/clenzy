@@ -1653,7 +1653,8 @@ public class PublicBookingService {
 
     /**
      * P0.3 — programme la mise en place de la caution APRÈS commit (appel Stripe hors transaction,
-     * audit #2). No-op si aucune caution configurée pour la session. Idempotent (dédup côté service).
+     * audit #2) : carte enregistrée + caution en attente, pré-autorisée le jour de l'arrivée.
+     * No-op si aucune caution configurée pour la session. Idempotent (dédup côté service).
      */
     private void scheduleCautionSetup(Session session, Reservation reservation) {
         Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
@@ -1673,7 +1674,7 @@ public class PublicBookingService {
     /**
      * P0.7 — aiguille la confirmation du paiement booking engine : acompte (solde > 0) →
      * {@code PARTIALLY_PAID} (effets ledger/facture différés à l'encaissement du solde) ; sinon
-     * paiement intégral classique. La caution (si configurée) est posée dans les deux cas.
+     * paiement intégral classique. La caution (si configurée) est mise en place dans les deux cas.
      */
     private void finalizeBookingPayment(Session session, Reservation reservation) {
         Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
