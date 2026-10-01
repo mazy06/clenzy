@@ -199,6 +199,50 @@ const fr: AcademyMessages = {
       ],
       chapters: ['Accroche', 'Ce qu’elles coûtent', 'Les 7 questions', 'Le bon moment', 'Mise en pratique', 'À retenir'],
     },
+    '12-assurance': {
+      title: 'Votre assurance couvre-t-elle la location courte durée ?',
+      description:
+        'Les six questions à poser par écrit à votre assureur, le piège des garanties de plateforme, ce que coûte une perte de revenus non couverte, et les preuves à garder. Information générale : vos garanties dépendent de votre contrat.',
+      learn: [
+        'Vérifier que votre contrat couvre bien la location courte durée, logement par logement',
+        'Poser les six questions qui comptent : dégâts, vol, responsabilité, perte de revenus, franchises',
+        'Garder les preuves que votre assureur vous demandera',
+      ],
+      chapters: ['Accroche', 'Votre contrat', 'Les 6 questions', 'Les chiffres', 'Les preuves', 'À retenir'],
+    },
+    '15-avis-negatif': {
+      title: 'Répondre à un avis négatif',
+      description:
+        'À qui s’adresse vraiment votre réponse, le piège de la réponse à chaud, les quatre étapes d’une bonne réponse, ce que coûte un avis à deux étoiles, et une réponse complète en exemple.',
+      learn: [
+        'Écrire pour les futurs voyageurs, à froid, sans vous justifier',
+        'Construire votre réponse en quatre étapes : merci, le point précis, l’action, la note positive',
+        'Mesurer ce qu’un avis coûte à votre note, et régler le geste commercial en privé',
+      ],
+      chapters: ['Accroche', 'À qui vous répondez', 'Les 4 étapes', 'Ce que coûte un avis', 'Mise en pratique', 'À retenir'],
+    },
+    '11-securite': {
+      title: 'La checklist sécurité du logement',
+      description:
+        'Ce que la loi impose en France, détecteur de fumée et sécurité des piscines, sources à l’appui ; ce qui est recommandé ; les consignes à donner au voyageur ; et les trois vérifications à faire à chaque ménage. Information générale : ailleurs, vérifiez les règles locales.',
+      learn: [
+        'Connaître les obligations françaises : détecteur de fumée, dispositif de sécurité de la piscine',
+        'Équiper le logement de ce qui est recommandé : monoxyde de carbone, extincteur, couverture anti-feu, trousse',
+        'Donner des consignes claires et vérifier la sécurité à chaque ménage',
+      ],
+      chapters: ['Accroche', 'L’obligatoire', 'Le recommandé', 'Les consignes', 'Mise en pratique', 'À retenir'],
+    },
+    '20-gestion-proprietaire': {
+      title: 'Gérer pour le compte d’un propriétaire',
+      description:
+        'Le mandat et la base de votre commission, brut ou net des frais de plateforme ; le reversement calculé poste par poste ; le relevé mensuel séjour par séjour ; et les points à vérifier avant de signer. Information générale : les obligations professionnelles dépendent du pays.',
+      learn: [
+        'Écrire un mandat précis : missions, commission, base de calcul, fin du contrat',
+        'Calculer le reversement poste par poste et le verser à date fixe',
+        'Envoyer un relevé mensuel clair, aux mêmes chiffres que le virement',
+      ],
+      chapters: ['Accroche', 'Le mandat', 'Le reversement', 'Le relevé', 'Mise en pratique', 'À retenir'],
+    },
     '17-prix-dynamique': {
       title: 'Le prix dynamique en 3 règles',
       description:
@@ -368,6 +412,50 @@ const en: AcademyMessages = {
       ],
       chapters: ['Introduction', 'What they cost', 'The 7 questions', 'The right time', 'In practice', 'Key takeaways'],
     },
+    '12-assurance': {
+      title: 'Does your insurance cover short-term rentals?',
+      description:
+        'The six questions to ask your insurer in writing, the trap of platform guarantees, what uncovered loss of income costs, and the proof to keep. General information: your cover depends on your policy.',
+      learn: [
+        'Check that your policy really covers short-term rentals, property by property',
+        'Ask the six questions that matter: damage, theft, liability, loss of income, excesses',
+        'Keep the proof your insurer will ask for',
+      ],
+      chapters: ['Introduction', 'Your policy', 'The 6 questions', 'The numbers', 'The proof', 'Key takeaways'],
+    },
+    '15-avis-negatif': {
+      title: 'Replying to a negative review',
+      description:
+        'Who your reply is really for, the trap of replying in the heat of the moment, the four steps of a good reply, what a two-star review costs, and a complete example reply.',
+      learn: [
+        'Write for future guests, calmly, without justifying yourself',
+        'Build your reply in four steps: thanks, the precise point, the action, the positive note',
+        'Measure what a review costs your rating, and settle any goodwill gesture in private',
+      ],
+      chapters: ['Introduction', 'Who you are replying to', 'The 4 steps', 'What a review costs', 'In practice', 'Key takeaways'],
+    },
+    '11-securite': {
+      title: 'The property safety checklist',
+      description:
+        'What French law requires, smoke detectors and pool safety, with sources; what is recommended; the instructions to give guests; and the three checks to run at every cleaning. General information: elsewhere, check the local rules.',
+      learn: [
+        'Know the French requirements: smoke detector, pool safety device',
+        'Equip the property with what is recommended: carbon monoxide detector, extinguisher, fire blanket, first-aid kit',
+        'Give clear instructions and check safety at every cleaning',
+      ],
+      chapters: ['Introduction', 'Mandatory', 'Recommended', 'Instructions', 'In practice', 'Key takeaways'],
+    },
+    '20-gestion-proprietaire': {
+      title: 'Managing on behalf of an owner',
+      description:
+        'The management agreement and the basis of your commission, gross or net of platform fees; the payout calculated line by line; the monthly stay-by-stay statement; and what to check before signing. General information: professional obligations depend on the country.',
+      learn: [
+        'Write a precise agreement: services, commission, calculation basis, termination',
+        'Calculate the payout line by line and pay it on a fixed date',
+        'Send a clear monthly statement, with the same figures as the transfer',
+      ],
+      chapters: ['Introduction', 'The agreement', 'The payout', 'The statement', 'In practice', 'Key takeaways'],
+    },
     '17-prix-dynamique': {
       title: 'Dynamic pricing in 3 rules',
       description:
@@ -536,6 +624,50 @@ const ar: AcademyMessages = {
         'إرسال كل معلومة في وقتها، ورمز الدخول في يوم الوصول',
       ],
       chapters: ['المقدمة', 'ما تكلّفه', 'الأسئلة السبعة', 'الوقت المناسب', 'في التطبيق', 'الخلاصة'],
+    },
+    '12-assurance': {
+      title: 'هل يغطي تأمينك الإيجار قصير المدى؟',
+      description:
+        'الأسئلة الستة التي تطرحها كتابيًا على شركة التأمين، وفخ ضمانات المنصات، وتكلفة خسارة الدخل غير المغطاة، والأدلة التي يجب الاحتفاظ بها. معلومات عامة: تغطيتك تتوقف على عقدك.',
+      learn: [
+        'التأكد من أن عقدك يغطي فعلًا الإيجار قصير المدى، لكل مسكن على حدة',
+        'طرح الأسئلة الستة المهمة: الأضرار، والسرقة، والمسؤولية، وخسارة الدخل، ومبالغ التحمل',
+        'الاحتفاظ بالأدلة التي ستطلبها منك شركة التأمين',
+      ],
+      chapters: ['المقدمة', 'عقدك', 'الأسئلة الستة', 'بالأرقام', 'الأدلة', 'الخلاصة'],
+    },
+    '15-avis-negatif': {
+      title: 'الرد على تقييم سلبي',
+      description:
+        'لمن يُوجَّه ردك فعلًا، وفخ الرد في لحظة الانفعال، والخطوات الأربع للرد الجيد، وما يكلّفه تقييم بنجمتين، ومثال على رد كامل.',
+      learn: [
+        'الكتابة للضيوف القادمين، بهدوء ومن دون تبرير',
+        'بناء ردك في أربع خطوات: الشكر، والنقطة المحددة، والإجراء، والخاتمة الإيجابية',
+        'قياس ما يكلّفه التقييم من متوسطك، وتسوية أي تعويض في رسالة خاصة',
+      ],
+      chapters: ['المقدمة', 'لمن ترد', 'الخطوات الأربع', 'ما يكلّفه التقييم', 'في التطبيق', 'الخلاصة'],
+    },
+    '11-securite': {
+      title: 'قائمة السلامة في المسكن',
+      description:
+        'ما يفرضه القانون في فرنسا من كاشف الدخان إلى سلامة المسابح، مع المصادر؛ وما يُنصح به؛ والتعليمات التي تقدمها للضيف؛ والتحققات الثلاثة عند كل تنظيف. معلومات عامة: في البلدان الأخرى، تحقق من القواعد المحلية.',
+      learn: [
+        'معرفة الالتزامات في فرنسا: كاشف الدخان، ووسيلة أمان المسبح',
+        'تجهيز المسكن بما يُنصح به: كاشف أول أكسيد الكربون، والطفاية، وبطانية الحريق، وحقيبة الإسعافات الأولية',
+        'تقديم تعليمات واضحة والتحقق من السلامة عند كل تنظيف',
+      ],
+      chapters: ['المقدمة', 'الإلزامي', 'الموصى به', 'التعليمات', 'في التطبيق', 'الخلاصة'],
+    },
+    '20-gestion-proprietaire': {
+      title: 'الإدارة لحساب مالك العقار',
+      description:
+        'عقد الإدارة وأساس عمولتك، إجمالي أو صافي رسوم المنصات؛ والتحويل المحسوب بندًا بندًا؛ والكشف الشهري لكل إقامة؛ وما يجب التحقق منه قبل التوقيع. معلومات عامة: الالتزامات المهنية تختلف من بلد إلى آخر.',
+      learn: [
+        'كتابة عقد دقيق: المهام، والعمولة، وأساس الحساب، وإنهاء العقد',
+        'حساب التحويل بندًا بندًا ودفعه في موعد ثابت',
+        'إرسال كشف شهري واضح بنفس أرقام التحويل',
+      ],
+      chapters: ['المقدمة', 'العقد', 'التحويل', 'الكشف', 'في التطبيق', 'الخلاصة'],
     },
     '17-prix-dynamique': {
       title: 'التسعير الديناميكي في 3 قواعد',
