@@ -4,6 +4,8 @@ import apiClient from '../apiClient';
 export interface PropertyStockItem {
   id: number;
   name: string;
+  catalogKey?: string | null;
+  photoUrl?: string | null;
   category: 'LINEN' | 'TOILETRIES' | 'CLEANING' | 'CONSUMABLES';
   unit: string | null;
   quantity: number;
@@ -17,6 +19,9 @@ export interface PropertyStockItem {
 export type PropertyStockItemRequest = Omit<PropertyStockItem, 'id'> & { id: number | null };
 
 export const propertyStockApi = {
+  visual(id: number): Promise<Pick<PropertyStockItem, 'name' | 'catalogKey' | 'photoUrl'>> {
+    return apiClient.get(`/stock-items/${id}/visual`);
+  },
   list(propertyId: number): Promise<PropertyStockItem[]> {
     return apiClient.get<PropertyStockItem[]>(`/properties/${propertyId}/stock`);
   },

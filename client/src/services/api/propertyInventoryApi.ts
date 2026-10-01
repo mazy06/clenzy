@@ -9,9 +9,12 @@ export interface PropertyInventoryItem {
   category: string | null;
   quantity: number;
   notes: string | null;
-  /** Photo facultative (data URL base64 ou URL distante) */
+  catalogKey?: string | null;
+  /** Photo raster personnelle, réencodée et enregistrée en base. */
   photoUrl: string | null;
 }
+
+export type InventoryItemInput = Partial<PropertyInventoryItem> & { clearPhoto?: boolean };
 
 export interface PropertyLaundryItem {
   id: number;
@@ -61,10 +64,13 @@ const propertyInventoryApi = {
   getItems(propertyId: number): Promise<PropertyInventoryItem[]> {
     return apiClient.get<PropertyInventoryItem[]>(`/properties/${propertyId}/inventory/items`);
   },
-  addItem(propertyId: number, data: Partial<PropertyInventoryItem>): Promise<PropertyInventoryItem> {
+  addItem(propertyId: number, data: InventoryItemInput): Promise<PropertyInventoryItem> {
     return apiClient.post<PropertyInventoryItem>(`/properties/${propertyId}/inventory/items`, data);
   },
-  updateItem(propertyId: number, itemId: number, data: Partial<PropertyInventoryItem>): Promise<PropertyInventoryItem> {
+  addItems(propertyId: number, data: InventoryItemInput[]): Promise<PropertyInventoryItem[]> {
+    return apiClient.post<PropertyInventoryItem[]>(`/properties/${propertyId}/inventory/items/batch`, data);
+  },
+  updateItem(propertyId: number, itemId: number, data: InventoryItemInput): Promise<PropertyInventoryItem> {
     return apiClient.put<PropertyInventoryItem>(`/properties/${propertyId}/inventory/items/${itemId}`, data);
   },
   deleteItem(propertyId: number, itemId: number): Promise<void> {

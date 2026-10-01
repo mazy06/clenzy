@@ -1,11 +1,9 @@
 /* ============================================================
    <ConstellationQueue> — file de l'agent sélectionné (projection)
 
-   Reproduction du dessin de la file de la projection (ProposalQueue /
-   ProposalBlock) sur les VRAIES actions HITL : blocs `bg-card` posés
-   sur le fond de page (la surface signale l'action), en-tête « point
-   d'état · agent · échéance », action principale toujours visible,
-   secondaires révélées au survol/focus (toujours visibles au tactile).
+   Cartes HITL Baitly : identité de l'agent et échéance en en-tête,
+   contenu hiérarchisé, pied d'actions toujours visible. Le bleu nuit
+   relie la décision au noyau de la constellation.
 
    Les GESTES restent ceux de la carte historique (PendingActionCard) :
    Régler (paiement Stripe), Appliquer (suggestion actionnable),
@@ -14,18 +12,25 @@
    « Pourquoi ? » (raisonnement métier) en repli.
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Button, Spinner } from '../../../components/ui';
-import { Check, CreditCard, Edit, Schedule, Star, VisibilityOff } from '../../../icons';
-import { Money } from '../../../components/Money';
+import { Check, ChevronDown, CreditCard, Edit, Schedule, VisibilityOff } from '../../../icons';
+import NavCountBadge from '../../../components/NavCountBadge';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import { verbFor } from './actionVerbs';
+import { ActionDescription } from './ActionDescription';
+import { ActionIllustratedHeading } from './ActionIllustration';
+import { descriptionTitle, parseReviewId, parseReviewMotif } from '../core/actionDescription';
+export { parseReviewId, parseReviewMotif } from '../core/actionDescription';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';
 import { useCountdown, type Countdown } from '../core/useCountdown';
+import { additionalActionReasoning } from '../core/actionReasoning';
 import { familyOf, opensModal } from './actionRegistry';
+import { AgentIcon } from '../renderers/agentIcon';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
+import '../supervision-surfaces.css';
 
 type AnyAction = PendingAction | PortfolioPendingAction;
 
@@ -34,53 +39,6 @@ function formatRemaining(cd: Countdown, t: (k: string, o?: Record<string, unknow
   if (cd.hours >= 1) return `${cd.hours} ${t('supervision.hitl.unitHour')} ${String(cd.minutes).padStart(2, '0')}`;
   if (cd.minutes >= 1) return `${cd.minutes} ${t('supervision.hitl.unitMin')}`;
   return t('supervision.hitl.lessThanMin');
-}
-
-// ─── Motif d'avis structuré ──────────────────────────────────────────────────
-
-interface ReviewMotif {
-  rating: number;
-  /** « Thomas R. · 18 mai 2026 · Booking Engine » */
-  meta: string;
-  quote: string;
-  /** Recommandation de l'agent, après la citation. */
-  rest: string;
-}
-
-/**
- * Le scanner d'avis compose son motif en UNE chaîne stable :
- * « Avis N/5 de X le DATE (SOURCE), sans réponse hôte. « citation » conseil ».
- * On la re-structure au rendu (étoiles + méta, citation en bloc, conseil) —
- * repli sur le texte brut si la forme ne correspond pas.
- */
-export function parseReviewMotif(motif: string | undefined): ReviewMotif | null {
-  if (!motif) return null;
-  const match = motif.match(
-    /^Avis\s+(\d)\/5\s+de\s+(.+?)\s+le\s+(.+?)\s*(?:\(([^)]+)\))?,\s*sans réponse hôte\.\s*«\s*([\s\S]+?)\s*»\s*([\s\S]*)$/,
-  );
-  if (!match) return null;
-  const [, rating, author, date, source, quote, rest] = match;
-  // BOOKING_ENGINE → « Booking Engine » : le jeton technique devient lisible.
-  const sourceLabel = source
-    ? source.replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())
-    : null;
-  return {
-    rating: Number(rating),
-    meta: [author, date, sourceLabel].filter(Boolean).join(' · '),
-    quote,
-    rest: rest.trim(),
-  };
-}
-
-/** `{"reviewId":42}` (ReviewModerationScanner) → 42. Null si illisible. */
-export function parseReviewId(actionParams: string | undefined): number | null {
-  if (!actionParams) return null;
-  try {
-    const parsed = JSON.parse(actionParams) as { reviewId?: unknown };
-    return typeof parsed.reviewId === 'number' ? parsed.reviewId : null;
-  } catch {
-    return null;
-  }
 }
 
 export interface OpenReviewPayload {
@@ -109,6 +67,8 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const titleId = useId();
+  const reasoningId = useId();
 
   const meta = AGENT_META[action.agentId];
   const isReminder = action.kind === 'reminder';
@@ -127,10 +87,9 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
   // Un rappel/paiement/action applicable ne « périme » pas (cf. carte historique).
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const urgent = !isPayment && !isReminder && !expired && cd.hours < 1;
-  // Pastille ambre = échéance sous l'heure OU carte paiement/rappel (« À
-  // régler », « Rappel »). L'ATTACHE porte la même règle (data-urgent) : la
-  // pastille et le trait disent toujours la même chose.
-  const warnDot = urgent || isPayment || isReminder;
+  // Échéance ambre sous l'heure ou paiement/rappel. Les attaches utilisent
+  // la même règle via data-urgent pour conserver la sémantique du diagramme.
+  const requiresAttention = urgent || isPayment || isReminder;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
   // Carte d'avis : motif re-structuré (étoiles, citation, conseil).
   const review = !isPayment && !isReminder ? parseReviewMotif(action.motif) : null;
@@ -146,13 +105,13 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
   const rawTitle = action.title?.trim() || t('supervision.payment.fallbackTitle', 'Demande de service');
   const displayTitle = isPayment && action.serviceCategory === 'maintenance'
     ? `${t('supervision.payment.maintenancePrefix', 'Maintenance')} - ${rawTitle}`
-    : (isPayment ? rawTitle : action.title);
+    : (isPayment ? rawTitle : descriptionTitle(action));
   const displayReasoning = isPayment
     ? t('supervision.payment.reason', {
         title: displayTitle,
-        defaultValue: 'Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe.',
+        defaultValue: 'Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé. Aucun débit sans ta validation sur la page Stripe.',
       })
-    : action.reasoning;
+    : additionalActionReasoning(action.motif, action.reasoning);
 
   const validate = () => {
     setResolving(true);
@@ -167,72 +126,48 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
     <article
       data-pending-action={action.id}
       data-agent-id={action.agentId}
-      data-urgent={warnDot || undefined}
-      className={cn('group/proposal rounded-md bg-card p-3.5', expired && 'opacity-70')}
+      data-urgent={requiresAttention || undefined}
+      data-expired={expired || undefined}
+      aria-labelledby={titleId}
+      aria-busy={resolving}
+      className="baitly-hitl-card"
     >
-      {/* En-tête : point d'état + agent + échéance (+ logement en portefeuille). */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span
-          className={cn('size-1.5 shrink-0 rounded-[2px]', warnDot ? 'bg-warning' : 'bg-muted-foreground/30')}
-          aria-hidden
-        />
-        <span className="font-medium text-foreground">{t(meta.nameKey)}</span>
-        {isPayment ? (
-          <span className="text-warning-ink">{t('supervision.payment.badge', 'À régler')}</span>
-        ) : isReminder ? (
-          <span className="text-warning-ink">{t('supervision.reminder.badge', 'Rappel')}</span>
-        ) : expired ? (
-          <span className="text-destructive">{t('supervision.hitl.expired')}</span>
-        ) : (
-          <span className={cn('tabular-nums', urgent && 'text-warning-ink')}>
-            {t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
+      <div className="baitly-hitl-content">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+          <span className="baitly-hitl-agent inline-flex items-center gap-2 font-medium">
+            <span aria-hidden className="inline-flex shrink-0"><AgentIcon token={meta.icon} size={16} strokeWidth={1.75} /></span>
+            {t(meta.nameKey)}
           </span>
-        )}
-        {propertyName && <span dir="auto" className="ms-auto min-w-0 truncate">{propertyName}</span>}
+          <span className="baitly-hitl-deadline ms-auto inline-flex items-center gap-1.5 tabular-nums">
+            <Schedule size={12} aria-hidden />
+            {isPayment
+              ? t('supervision.payment.badge', 'À régler')
+              : isReminder
+                ? t('supervision.reminder.badge', 'Rappel')
+                : expired
+                  ? t('supervision.hitl.expired')
+                  : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
+          </span>
+        </div>
+        {propertyName && <p dir="auto" className="m-0 mt-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{propertyName}</p>}
+
+        <ActionIllustratedHeading action={action}>
+          <h3 id={titleId} dir="auto" className="m-0 text-[15px] leading-snug font-semibold text-foreground [overflow-wrap:anywhere] [text-wrap:pretty]">
+            {displayTitle}
+          </h3>
+        </ActionIllustratedHeading>
+        <ActionDescription action={action} />
       </div>
 
-      <h3 className="m-0 mt-2 text-sm font-medium text-foreground [text-wrap:balance]">
-        {displayTitle}
-      </h3>
-      {!isPayment && (review ? (
-        /* Avis structuré (dessin projection) : étoiles + méta, citation en
-           bloc, recommandation de l'agent — au lieu du paragraphe compact. */
-        <div className="mt-1.5 flex flex-col gap-1.5">
-          <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-0.5 text-warning" aria-hidden>
-              {[0, 1, 2, 3, 4].map((index) => (
-                <Star
-                  key={index}
-                  size={12}
-                  strokeWidth={1.75}
-                  className={index < review.rating ? 'fill-current' : 'opacity-30'}
-                />
-              ))}
-            </span>
-            <span className="sr-only">{review.rating}/5</span>
-            {review.meta}
-          </p>
-          <blockquote className="m-0 rounded-sm bg-muted px-2.5 py-2 text-xs text-foreground">
-            {review.quote}
-          </blockquote>
-          {review.rest && (
-            <p className="m-0 max-w-[60ch] text-xs text-muted-foreground">{review.rest}</p>
-          )}
-        </div>
-      ) : (
-        <p className="m-0 mt-1 max-w-[60ch] text-xs text-muted-foreground">{action.motif}</p>
-      ))}
-
-      {/* Actions : la principale toujours visible, les secondaires au survol ou
-          au focus clavier — visibles en permanence au tactile, sinon elles
-          seraient inatteignables. Une carte expirée n'a plus d'actions. */}
+      {/* Les actions restent visibles au clavier, à la souris et au tactile. */}
       {!expired && (
         // `flex-wrap` : dans le tiroir d'agent (etroit, ~307 px utiles) la
         // rangee action principale + secondaires deborde ; en colonne large
         // elle tient sur une ligne et rien ne bouge.
-        <div className="mt-3 flex flex-wrap items-center gap-1">
+        <div className="baitly-hitl-actions flex flex-wrap items-center gap-2">
           <Button
             size="sm"
+            className="baitly-hitl-primary"
             disabled={resolving}
             onClick={
               reviewId != null
@@ -268,58 +203,48 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
             ) : isPriceAdjust ? (
               t('supervision.price.adjustCta', 'Ajuster les tarifs')
             ) : isPayment ? (
-              <>
-                {t('supervision.payment.settle', 'Régler')}
-                {action.amountEur != null && (
-                  <span className="ms-0.5"><Money value={action.amountEur} from="EUR" /></span>
-                )}
-              </>
+              t('supervision.payment.settle', 'Régler')
             ) : isApply ? (
-              <>
-                {t(verb.labelKey, verb.fallback)}
-                {action.amountEur != null && (
-                  <span className="ms-0.5">+<Money value={action.amountEur} from="EUR" decimals={0} /></span>
-                )}
-              </>
+              t(verb.labelKey, verb.fallback)
             ) : isReminder ? (
               t('supervision.reminder.ack', 'Info reçue')
             ) : (
               t('supervision.hitl.validate')
             )}
           </Button>
-          <div className="flex flex-wrap items-center gap-1 opacity-0 transition-opacity duration-150 group-focus-within/proposal:opacity-100 group-hover/proposal:opacity-100 [@media(hover:none)]:opacity-100">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="baitly-hitl-secondary"
+            disabled={resolving}
+            onClick={edit}
+          >
+            {isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
+            {isPayment
+              ? t('supervision.payment.later', 'Plus tard')
+              : isReminder
+                ? t('supervision.reminder.mute', 'Ne plus afficher')
+                : t('supervision.apply.dismiss', 'Ignorer')}
+          </Button>
+          {displayReasoning && (
             <Button
               size="sm"
               variant="ghost"
-              className="text-muted-foreground"
-              disabled={resolving}
-              onClick={edit}
+              className="baitly-hitl-secondary ms-auto"
+              aria-expanded={why}
+              aria-controls={reasoningId}
+              onClick={() => setWhy((w) => !w)}
             >
-              {isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
-              {isPayment
-                ? t('supervision.payment.later', 'Plus tard')
-                : isReminder
-                  ? t('supervision.reminder.mute', 'Ne plus afficher')
-                  : t('supervision.apply.dismiss', 'Ignorer')}
+              {t('supervision.hitl.why')}
+              <ChevronDown size={14} aria-hidden className={cn('baitly-hitl-chevron', why && 'rotate-180')} />
             </Button>
-            {displayReasoning && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-                aria-expanded={why}
-                onClick={() => setWhy((w) => !w)}
-              >
-                {t('supervision.hitl.why')}
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       )}
 
       {/* « Pourquoi ? » — raisonnement métier (déjà nettoyé côté serveur). */}
-      {why && displayReasoning && (
-        <p className="m-0 mt-2 border-t border-border pt-2 text-xs leading-relaxed text-muted-foreground">
+      {displayReasoning && (
+        <p id={reasoningId} dir="auto" hidden={!why} className="baitly-hitl-reasoning m-0 text-[13px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
           {displayReasoning}
         </p>
       )}
@@ -361,10 +286,14 @@ export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjus
   if (!agent) return null;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="m-0 text-xs font-medium tracking-[0.08em] text-muted-foreground uppercase">
-        {t('supervision.board.queueTitle', 'À valider')} · {t(AGENT_META[agent].nameKey)} · {list.length}
-      </h2>
+    <section className="baitly-supervision-surface baitly-hitl-queue flex min-w-0 flex-col gap-3">
+      <header className="flex items-center gap-3 px-0.5 pb-1">
+        <h2 className="m-0 text-sm font-semibold text-foreground">
+          {t('supervision.board.queueTitle', 'À valider')}
+          <span className="font-normal text-muted-foreground"> · {t(AGENT_META[agent].nameKey)}</span>
+        </h2>
+        <NavCountBadge count={list.length} tone="warning" className="ms-auto" />
+      </header>
 
       {list.map((action) => (
         <QueueBlock

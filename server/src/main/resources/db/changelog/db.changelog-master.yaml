@@ -4359,6 +4359,22 @@ databaseChangeLog:
             relativeToChangelogFile: true
 
   - changeSet:
+      id: "0482-stock-item-visuals"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0482__stock_item_visuals.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0483-inventory-item-visuals"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0483__inventory_item_visuals.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
       id: "0485-purge-review-negative-alert-key"
       author: clenzy-team
       changes:

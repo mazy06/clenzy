@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -55,7 +56,8 @@ class SupervisionAutoApplyServiceTest {
                 eq("auto_applied"), contains("Menage manquant"));
         verify(notificationService).notifyAdminsAndManagersByOrgId(eq(ORG),
                 eq(NotificationKey.SUPERVISION_AUTO_APPLIED), contains("Menage manquant"),
-                contains("45 €"), eq("/planning"));
+                contains("45 €"), eq("/planning"), argThat(facts -> SUGGESTION.equals(facts.get("suggestionId"))
+                        && PROP.equals(facts.get("propertyId")) && "ops".equals(facts.get("module"))));
     }
 
     @Test
@@ -68,7 +70,7 @@ class SupervisionAutoApplyServiceTest {
         verify(suggestionService).apply(ORG, SUGGESTION, SupervisionSuggestion.APPLIED_BY_AUTO);
         verify(activityService).recordModuleAct(eq(ORG), eq(PROP), eq("rep"), any(), any());
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -83,7 +85,7 @@ class SupervisionAutoApplyServiceTest {
         assertThat(applied).isFalse();
         verify(activityService, never()).recordModuleAct(any(), any(), any(), any(), any());
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
     }
 
     @Test

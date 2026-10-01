@@ -4,6 +4,8 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import '../src/theme/baitly-ui.css';
 import './site.css';
 import './home.css';
+import './static.css';
+import './baitly-legal.css';
 import SiteLayout from './components/SiteLayout';
 import { SiteLanguageProvider } from './lib/siteLanguage';
 import { SiteLaunchProvider } from './lib/siteLaunch';
@@ -26,6 +28,7 @@ import NotFoundPage from './pages/NotFoundPage';
 const ModulePage = lazy(() => import('./pages/ModulePage'));
 const ProvidersPage = lazy(() => import('./pages/ProvidersPage'));
 const BaitlyResourcePage = lazy(() => import('./pages/BaitlyResourcePage'));
+const BaitlyLegalPage = lazy(() => import('./pages/BaitlyLegalPage'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -51,7 +54,11 @@ createRoot(document.getElementById('root')!).render(
               />
               <Route
                 path="/ressources/obligations"
-                element={<BaitlyResourcePage kind="obligations" />}
+                element={<BaitlyLegalPage kind="guide" />}
+              />
+              <Route
+                path="/ressources/obligations/:country"
+                element={<BaitlyLegalPage kind="guide" />}
               />
               <Route
                 path="/ressources/academie"
@@ -63,7 +70,11 @@ createRoot(document.getElementById('root')!).render(
               />
               <Route
                 path="/ressources/blog"
-                element={<BaitlyResourcePage kind="blog" />}
+                element={<BaitlyLegalPage kind="journal" />}
+              />
+              <Route
+                path="/ressources/blog/:article"
+                element={<BaitlyLegalPage kind="article" />}
               />
               <Route
                 path="/ressources/glossaire"

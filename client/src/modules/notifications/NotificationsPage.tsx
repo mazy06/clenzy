@@ -21,7 +21,8 @@ import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PagePagination from '../../components/PagePagination';
 import NotificationDetailCard from './NotificationDetailCard';
-import { categoryStyle, startOfDay, timeAgo, localeOf } from './notificationMeta';
+import { startOfDay, timeAgo, localeOf } from './notificationMeta';
+import { NotificationThumbnail } from './NotificationThumbnail';
 
 type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document' | 'guest_messaging';
 
@@ -293,7 +294,6 @@ export default function NotificationsPage() {
                       {group.label}
                     </h3>
                     {group.items.map((notification) => {
-                      const style = categoryStyle(notification.category);
                       const active = notification.id === selectedId;
                       return (
                         <div
@@ -316,14 +316,7 @@ export default function NotificationsPage() {
                               : cn('hover:bg-accent', !notification.read ? 'border-primary/25 bg-card' : 'border-border bg-card/60'),
                           )}
                         >
-                          <span
-                            className={cn(
-                              'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
-                              style.accent,
-                            )}
-                          >
-                            {style.icon}
-                          </span>
+                          <NotificationThumbnail notification={notification} />
 
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-2">

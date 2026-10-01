@@ -5,8 +5,6 @@ import { Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import {
-  Card,
-  CardContent,
   Field,
   FieldContent,
   FieldDescription,
@@ -29,6 +27,7 @@ import type { UserDetailsData } from './userDetailsTypes';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 import { Money } from '../../../components/Money';
 import { useTranslation } from '../../../hooks/useTranslation';
+import DetailSection from './DetailSection';
 
 interface UserHostProfileCardProps {
   user: UserDetailsData;
@@ -136,16 +135,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   if (!hasHostData(user)) return null;
 
   return (
-    <Card className="rounded-lg bg-card ring-0 border border-solid border-border p-0">
-      <CardContent className="p-3">
+    <DetailSection title={t('users.host.title')} disableGrid>
         <div className="grid grid-cols-12 gap-3">
-      <div className="col-span-12">
-        {/* `m-0` sur les <h6>/<p> natifs : sans preflight Tailwind, ils reprennent
-            sinon les marges du navigateur que `cn-text-*` neutralisait. */}
-        <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
-          {t('users.host.title')}
-        </h6>
-      </div>
 
       {user.companyName && (
         <div className="col-span-12 min-[900px]:col-span-6">
@@ -254,7 +245,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {/* Toggle paiement differe (ADMIN/MANAGER uniquement) */}
       {isAdminOrManager && (
         <div className="col-span-12">
-          <div className="border border-solid border-border rounded-lg p-3 mb-1.5">
+          <div className="border-0 border-t border-solid border-border pt-5 mt-2">
             <Field orientation="horizontal">
               <Switch
                 id="deferred-payment"
@@ -278,8 +269,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {/* Carte cumul impayes */}
       {isAdminOrManager && (
         <div className="col-span-12">
-          <div className="border border-solid border-border rounded-lg p-3">
-            <div className="flex justify-between items-center mb-1.5">
+          <div className="min-w-0 border-0 border-t border-solid border-border pt-5 mt-2">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex text-muted-foreground"><Payment size={20} strokeWidth={1.75} /></span>
                 <p className="m-0 text-sm font-semibold text-foreground">Solde impaye</p>
@@ -389,8 +380,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
         </div>
       )}
         </div>
-      </CardContent>
-    </Card>
+    </DetailSection>
   );
 };
 

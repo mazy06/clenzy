@@ -63,6 +63,30 @@ class PropertyInventoryControllerTest {
         return new PropertyInventoryItemDto(1L, 10L, "Couteau", "Kitchen", 5, null);
     }
 
+    @Test void batchChecksOwnershipBeforeSaving() {
+        when(propertyService.getPropertyEntityById(10L)).thenReturn(propWithOwner(10L, 7L));
+        var user = new User(); user.setId(8L);
+        when(userService.findByKeycloakId("host-1")).thenReturn(user);
+        assertThatThrownBy(() -> controller.addItems(10L, List.of(itemDto()), hostJwt)).isInstanceOf(AccessDeniedException.class);
+        org.mockito.Mockito.verifyNoInteractions(inventoryService);
+    }
+
+    @Test void batchChecksOrganizationBeforeSaving() {
+        var property = propWithOwner(10L, 7L); property.setOrganizationId(2L);
+        when(propertyService.getPropertyEntityById(10L)).thenReturn(property);
+        assertThatThrownBy(() -> controller.addItems(10L, List.of(itemDto()), hostJwt)).isInstanceOf(AccessDeniedException.class);
+        org.mockito.Mockito.verifyNoInteractions(inventoryService);
+    }
+
+    @Test void batchSavesForOwner() {
+        when(propertyService.getPropertyEntityById(10L)).thenReturn(propWithOwner(10L, 7L));
+        var user = new User(); user.setId(7L);
+        when(userService.findByKeycloakId("host-1")).thenReturn(user);
+        var rows = List.of(itemDto());
+        when(inventoryService.addInventoryItems(10L, rows)).thenReturn(rows);
+        assertThat(controller.addItems(10L, rows, hostJwt).getBody()).isEqualTo(rows);
+    }
+
     private PropertyLaundryItemDto laundryDto() {
         return new PropertyLaundryItemDto(1L, 10L, "drap", "Drap", 2);
     }

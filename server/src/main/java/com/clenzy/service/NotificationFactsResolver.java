@@ -52,12 +52,15 @@ import java.util.stream.Collectors;
 @Service
 public class NotificationFactsResolver {
 
+    /** Identite manquante des anciennes notifications, jamais le texte ni les parametres complets. */
+    public record ActionFacts(String actionType, String module, String sourceTool, String priceDirection) {}
+
     /** Faits ajoutes a la lecture. {@code null} = rien a ajouter pour ce champ. */
     public record ReadFacts(Long reservationId, String guestAvatarUrl,
-                            Long deviceId, Long reviewId) {
+                            Long deviceId, Long reviewId, Long stockItemId, ActionFacts action) {
         boolean isEmpty() {
             return reservationId == null && guestAvatarUrl == null
-                    && deviceId == null && reviewId == null;
+                    && deviceId == null && reviewId == null && stockItemId == null && action == null;
         }
     }
 
@@ -98,13 +101,13 @@ public class NotificationFactsResolver {
             Long stayId = longFact(facts, NotificationMetadata.RESERVATION_ID);
             if (stayId != null) {
                 stayByNotification.put(notification.getId(), stayId);
-                continue;
             }
             Long cardId = longFact(facts, NotificationMetadata.SUGGESTION_ID);
             if (cardId != null) {
                 cardByNotification.put(notification.getId(), cardId);
                 continue;
             }
+            if (stayId != null) continue;
             String reference = textFact(facts, NotificationMetadata.RESERVATION_REFERENCE);
             if (reference != null) referenceByNotification.put(notification.getId(), reference);
         }
@@ -114,8 +117,9 @@ public class NotificationFactsResolver {
         // serrure — et sa fiche restait muette pour cette seule raison.
         Map<Long, Long> deviceByNotification = new HashMap<>();
         Map<Long, Long> reviewByNotification = new HashMap<>();
-        resolveFromCards(notifications, cardByNotification, stayByNotification,
-                deviceByNotification, reviewByNotification);
+        Map<Long, Long> stockByNotification = new HashMap<>();
+        Map<Long, ActionFacts> actionByNotification = resolveFromCards(notifications, cardByNotification, stayByNotification,
+                deviceByNotification, reviewByNotification, stockByNotification);
         resolveStaysFromReferences(notifications, referenceByNotification, stayByNotification);
 
         Map<Long, Reservation> stays = stayByNotification.isEmpty() ? Map.of()
@@ -134,14 +138,16 @@ public class NotificationFactsResolver {
             // Le sejour n'est REPUBLIE que s'il a ete DEDUIT — d'une carte ou
             // d'une reference. Quand l'identifiant etait deja dans les faits, le
             // regreffer serait du bruit.
-            Long published = stay != null
+            Long published = stay != null && longParam(notification.getMetadata(), NotificationMetadata.RESERVATION_ID) == null
                     && (cardByNotification.containsKey(notification.getId())
                         || referenceByNotification.containsKey(notification.getId()))
                     ? stayId : null;
 
             ReadFacts facts = new ReadFacts(published, photo,
                     deviceByNotification.get(notification.getId()),
-                    reviewByNotification.get(notification.getId()));
+                    reviewByNotification.get(notification.getId()),
+                    stockByNotification.get(notification.getId()),
+                    actionByNotification.get(notification.getId()));
             if (!facts.isEmpty()) resolved.put(notification.getId(), facts);
         }
         return resolved;
@@ -151,16 +157,18 @@ public class NotificationFactsResolver {
      * Ce que la CARTE designe, pour les notifications qui n'ont garde qu'elle.
      *
      * <p>Le sejour vient de la carte elle-meme ; la serrure et l'avis de ses
-     * parametres d'action. Tous trois etaient absents des faits avant que
+     * parametres d'action, tout comme l'article d'un reassort. Ces liens etaient absents des faits avant que
      * ceux-ci n'existent, et rien ne fera renotifier une carte en attente : sans
      * ce repli, une alerte de batterie d'hier resterait un paragraphe a vie.</p>
      */
-    private void resolveFromCards(Collection<Notification> notifications,
+    private Map<Long, ActionFacts> resolveFromCards(Collection<Notification> notifications,
                                   Map<Long, Long> cardByNotification,
                                   Map<Long, Long> stayByNotification,
                                   Map<Long, Long> deviceByNotification,
-                                  Map<Long, Long> reviewByNotification) {
-        if (cardByNotification.isEmpty()) return;
+                                  Map<Long, Long> reviewByNotification,
+                                  Map<Long, Long> stockByNotification) {
+        if (cardByNotification.isEmpty()) return Map.of();
+        Map<Long, ActionFacts> actions = new HashMap<>();
 
         Map<Long, SupervisionSuggestion> cards = suggestionRepository
                 .findAllById(new HashSet<>(cardByNotification.values())).stream()
@@ -173,13 +181,24 @@ public class NotificationFactsResolver {
             if (card == null || !belongsTo(card.getOrganizationId(), notification)) continue;
 
             if (card.getReservationId() != null) {
-                stayByNotification.put(notification.getId(), card.getReservationId());
+                stayByNotification.putIfAbsent(notification.getId(), card.getReservationId());
             }
             Long device = longParam(card.getActionParams(), NotificationMetadata.DEVICE_ID);
             if (device != null) deviceByNotification.put(notification.getId(), device);
             Long review = longParam(card.getActionParams(), NotificationMetadata.REVIEW_ID);
             if (review != null) reviewByNotification.put(notification.getId(), review);
+            Long stockItem = longParam(card.getActionParams(), NotificationMetadata.STOCK_ITEM_ID);
+            if (stockItem != null && stockItem > 0) stockByNotification.put(notification.getId(), stockItem);
+            // Les premieres notifications ne conservaient que suggestionId et module.
+            // Sans cette identite, toutes les cartes d'un agent partageaient son image.
+            JsonNode params = parse(card.getActionParams());
+            String direction = NotificationMetadata.priceDirection(card.getActionType(), params);
+            if (card.getActionType() != null || card.getModuleKey() != null || card.getToolName() != null) {
+                actions.put(notification.getId(), new ActionFacts(card.getActionType(),
+                        card.getModuleKey(), card.getToolName(), direction));
+            }
         }
+        return actions;
     }
 
     /** Entier porte par les parametres d'action d'une carte, ou {@code null}. */

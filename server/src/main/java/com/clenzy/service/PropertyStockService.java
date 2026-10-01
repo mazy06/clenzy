@@ -35,8 +35,16 @@ public class PropertyStockService {
         return repository.findByPropertyIdAndOrganizationIdOrderByNameAsc(propertyId, orgId);
     }
 
+    @Transactional(readOnly = true)
+    public PropertyStockItem findForOrganization(Long id, Long orgId) {
+        return repository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new NotFoundException("Article introuvable : " + id));
+    }
+
     @Transactional
     public PropertyStockItem save(Long orgId, Long propertyId, PropertyStockItem item) {
+        StockItemVisualValidator.validate(item.getCatalogKey(), item.getPhotoUrl());
+        PropertyStockItem target = item;
         if (item.getId() != null) {
             // Update : l'existant doit appartenir à l'org ET au logement annoncés.
             final PropertyStockItem existing = repository
@@ -45,10 +53,23 @@ public class PropertyStockService {
             if (!existing.getPropertyId().equals(propertyId)) {
                 throw new NotFoundException("Article introuvable pour ce logement");
             }
+            // Modifier le visuel ne doit pas effacer la date du dernier réassort.
+            target = existing;
+            target.setName(item.getName());
+            target.setCategory(item.getCategory());
+            target.setUnit(item.getUnit());
+            target.setQuantity(item.getQuantity());
+            target.setReorderThreshold(item.getReorderThreshold());
+            target.setReorderQuantity(item.getReorderQuantity());
+            target.setConsumptionPerStay(item.getConsumptionPerStay());
+            target.setSupplierName(item.getSupplierName());
+            target.setSupplierEmail(item.getSupplierEmail());
+            target.setCatalogKey(item.getCatalogKey());
+            target.setPhotoUrl(item.getPhotoUrl());
         }
-        item.setOrganizationId(orgId);
-        item.setPropertyId(propertyId);
-        return repository.save(item);
+        target.setOrganizationId(orgId);
+        target.setPropertyId(propertyId);
+        return repository.save(target);
     }
 
     @Transactional

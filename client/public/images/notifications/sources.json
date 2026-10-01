@@ -1,0 +1,281 @@
+[
+  {
+    "key": "message-sent",
+    "label": "Message envoyé",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-50f030fb-f453-49c3-9c94-bf666d094d35.png",
+    "output": "message-sent.webp",
+    "bytes": 5594,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "message-received",
+    "label": "Message reçu",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-36077e6c-e4b1-4b35-aee2-231f49a93182.png",
+    "output": "message-received.webp",
+    "bytes": 5360,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "message-delivery",
+    "label": "Échec d’envoi du message",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-d8f3411a-43ac-4784-8545-fdfbade4bc1f.png",
+    "output": "message-delivery.webp",
+    "bytes": 7554,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "access-code",
+    "label": "Digicode et code d’accès",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-ef79dec3-18e4-4c5b-9d91-256955b9e8d7.png",
+    "output": "access-code.webp",
+    "bytes": 6068,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "access-problem",
+    "label": "Problème de code d’accès",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-3d23a156-5a2a-463c-99d9-bec782d1b90c.png",
+    "output": "access-problem.webp",
+    "bytes": 7486,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "door-access",
+    "label": "Ouverture de porte",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-777f5e65-e17f-49e3-b684-35442fa7777a.png",
+    "output": "door-access.webp",
+    "bytes": 8384,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "team-assigned",
+    "label": "Équipe affectée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-46842f57-0df4-41e7-8c4a-3b8a4de02e7b.png",
+    "output": "team-assigned.webp",
+    "bytes": 7062,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "team-directory",
+    "label": "Gestion d’équipe",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-3c76f778-7b9a-4935-8bf5-bb337f3a707b.png",
+    "output": "team-directory.webp",
+    "bytes": 4616,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "user-profile",
+    "label": "Profil et compte utilisateur",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-3b26b770-07c6-4395-a454-2d402b140659.png",
+    "output": "user-profile.webp",
+    "bytes": 8196,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "service-request",
+    "label": "Demande de service",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-2001d306-23f3-4eff-94de-6fd8488fbefc.png",
+    "output": "service-request.webp",
+    "bytes": 7028,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "document",
+    "label": "Documents et formulaires",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-5b907aee-faa2-4b69-a45a-7deef214fdd9.png",
+    "output": "document.webp",
+    "bytes": 5742,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "property",
+    "label": "Logement et portefeuille",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-197ce52f-ebf4-48aa-b717-276858d0ec20.png",
+    "output": "property.webp",
+    "bytes": 12302,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "reservation",
+    "label": "Réservation",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-4be31a58-c9e2-4a5e-812e-010e74557799.png",
+    "output": "reservation.webp",
+    "bytes": 7888,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "system-health",
+    "label": "État des services techniques",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-8e51d78b-a5a3-47d7-a57d-b69229bf2b3f.png",
+    "output": "system-health.webp",
+    "bytes": 9634,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "automation",
+    "label": "Automatisation et assistant",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-f9e4913c-d0fa-4b50-9c86-3bae8f415de8.png",
+    "output": "automation.webp",
+    "bytes": 8890,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "smoke-alert",
+    "label": "Détection de fumée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-c18ed974-a69c-42df-bee5-ba56cfdb6310.png",
+    "output": "smoke-alert.webp",
+    "bytes": 5710,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "payment-confirmed",
+    "label": "Paiement confirmé",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-95e87f13-eec0-467b-96da-0db8fd03c964.png",
+    "output": "payment-confirmed.webp",
+    "bytes": 5496,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "payment-failed",
+    "label": "Paiement échoué",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-4c73ad13-1577-4e0d-bed2-bddf8df0f652.png",
+    "output": "payment-failed.webp",
+    "bytes": 6866,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "reservation-cancelled",
+    "label": "Réservation annulée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-d1b36214-222d-4d0a-bc60-6841346764c4.png",
+    "output": "reservation-cancelled.webp",
+    "bytes": 8708,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "request-urgent",
+    "label": "Demande urgente ou escaladée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-b158e14b-a339-4914-8df5-b4c1f6f7428a.png",
+    "output": "request-urgent.webp",
+    "bytes": 6806,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "request-rejected",
+    "label": "Demande refusée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-65bdfa8c-dfa3-4c97-a3e9-f1e3e2d84711.png",
+    "output": "request-rejected.webp",
+    "bytes": 6574,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "request-cancelled",
+    "label": "Prestation annulée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-b62ce4a0-efb6-4449-8bcb-f0cb057b7fd5.png",
+    "output": "request-cancelled.webp",
+    "bytes": 9368,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "document-error",
+    "label": "Échec de génération du document",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-c467a62f-6cfe-4b10-bd17-5dd582bad052.png",
+    "output": "document-error.webp",
+    "bytes": 5652,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "system-incident",
+    "label": "Incident technique",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-59a35172-d316-455a-aa40-30e53f1733de.png",
+    "output": "system-incident.webp",
+    "bytes": 8656,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "system-restored",
+    "label": "Service rétabli",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-e559d06c-89f3-4dfd-be6d-b52976d7f566.png",
+    "output": "system-restored.webp",
+    "bytes": 9294,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "noise-resolved",
+    "label": "Retour au calme",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-caf42b75-cb94-405f-bca6-eb4d5d045534.png",
+    "output": "noise-resolved.webp",
+    "bytes": 6692,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "review-negative",
+    "label": "Avis négatif à traiter",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-3e139a8e-11b6-4e10-aeeb-ebb514d1be3c.png",
+    "output": "review-negative.webp",
+    "bytes": 6562,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "booking-unmapped",
+    "label": "Réservation sans logement associé",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-8451d069-91d8-4f0c-ba53-642b0c7193a9.png",
+    "output": "booking-unmapped.webp",
+    "bytes": 11520,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "intervention-overdue",
+    "label": "Intervention en retard",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-35855538-da85-4589-9a9a-afc01a38e94a.png",
+    "output": "intervention-overdue.webp",
+    "bytes": 11040,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "payout-blocked",
+    "label": "Reversement bloqué",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-ae79020e-5cd3-427e-8804-1d67cda03d9f.png",
+    "output": "payout-blocked.webp",
+    "bytes": 7694,
+    "width": 320,
+    "height": 320
+  },
+  {
+    "key": "intervention-completed",
+    "label": "Intervention terminée",
+    "source": "/Users/toufik/.codex/generated_images/01a0f2f2-9724-72c0-8880-2a3a6f07fe7a/exec-dfe81cae-659b-4f14-ba60-76329d9c9bc7.png",
+    "output": "intervention-completed.webp",
+    "bytes": 9458,
+    "width": 320,
+    "height": 320
+  }
+]

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import pages from 'virtual:baitly-site-metadata';
 import { useSiteLanguage } from '../lib/siteLanguage';
+import { robotsDirective } from '../lib/siteSeo';
 
 export default function SiteMetadata() {
   const { pathname } = useLocation();
@@ -15,7 +16,8 @@ export default function SiteMetadata() {
         : path
       : '/404';
     const origin = 'https://baitly.fr';
-    const canonical = `${origin}${canonicalPath}${language === 'fr' ? '' : `?lang=${language}`}`;
+    const contentLanguage = meta.contentLanguage ?? language;
+    const canonical = `${origin}${canonicalPath}${contentLanguage === 'fr' ? '' : `?lang=${contentLanguage}`}`;
     document.title = meta.title;
     const setMeta = (
       attribute: 'name' | 'property',
@@ -33,20 +35,21 @@ export default function SiteMetadata() {
       node.content = value;
     };
     setMeta('name', 'description', meta.description);
-    setMeta('name', 'robots', meta.index ? 'index, follow' : 'noindex, follow');
+    setMeta('name', 'robots', robotsDirective(meta.index, Boolean(meta.video)));
     setMeta('property', 'og:title', meta.title);
     setMeta('property', 'og:description', meta.description);
     setMeta('property', 'og:url', canonical);
     setMeta(
       'property',
       'og:locale',
-      { fr: 'fr_FR', en: 'en_US', ar: 'ar_SA' }[language],
+      { fr: 'fr_FR', en: 'en_US', ar: 'ar_SA' }[contentLanguage],
     );
     document.head
       .querySelectorAll('meta[property="og:locale:alternate"]')
       .forEach((node) => node.remove());
-    for (const lang of ['fr', 'en', 'ar'] as const) {
-      if (lang === language) continue;
+    for (const lang of meta.availableLanguages ??
+      (['fr', 'en', 'ar'] as const)) {
+      if (lang === contentLanguage) continue;
       const node = document.createElement('meta');
       node.setAttribute('property', 'og:locale:alternate');
       node.content = { fr: 'fr_FR', en: 'en_US', ar: 'ar_SA' }[lang];
@@ -59,7 +62,10 @@ export default function SiteMetadata() {
     link.rel = 'canonical';
     link.href = canonical;
     document.head.append(link);
-    for (const lang of ['fr', 'en', 'ar', 'x-default']) {
+    for (const lang of [
+      ...(meta.availableLanguages ?? ['fr', 'en', 'ar']),
+      'x-default',
+    ]) {
       const alternate = document.createElement('link');
       alternate.rel = 'alternate';
       alternate.hreflang = lang;
@@ -68,9 +74,25 @@ export default function SiteMetadata() {
     }
     // Pages d'épisode de l'Académie : aperçu et données VideoObject suivent la navigation, sans
     // rester sur la page suivante.
-    setMeta('property', 'og:type', meta.video ? 'video.other' : 'website');
-    setMeta('property', 'og:image', meta.video?.poster ?? `${origin}/baitly-share.jpg`);
+    setMeta(
+      'property',
+      'og:type',
+      meta.video ? 'video.other' : meta.contentLanguage ? 'article' : 'website',
+    );
+    setMeta(
+      'property',
+      'og:image',
+      meta.image ?? meta.video?.poster ?? `${origin}/baitly-share.jpg`,
+    );
     document.getElementById('baitly-video-ld')?.remove();
+    document.getElementById('baitly-editorial-ld')?.remove();
+    if (meta.structuredData) {
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'baitly-editorial-ld';
+      script.textContent = JSON.stringify(meta.structuredData);
+      document.head.append(script);
+    }
     if (meta.video) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';

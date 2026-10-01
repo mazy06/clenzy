@@ -1,4 +1,52 @@
 {
+  "consumables": {
+    "intro": {
+      "pending": "Replenishment proposals to review before sending to the supplier.",
+      "ordered": "Orders sent from agent cards. Sending an order does not confirm delivery.",
+      "stock": "All items registered in your properties, with available quantities and confirmed restocks."
+    },
+    "quantity": {
+      "pending": "Suggested quantity",
+      "ordered": "Ordered quantity",
+      "stock": "In stock"
+    },
+    "date": {
+      "pending": "Proposed on",
+      "ordered": "Ordered on",
+      "stock": "Added to property"
+    },
+    "empty": {
+      "filteredTitle": "No matching items",
+      "filteredDescription": "Try another name or view all properties.",
+      "pendingTitle": "No orders awaiting approval",
+      "pendingDescription": "Agents propose replenishment when a property’s stock reaches its threshold.",
+      "orderedTitle": "No orders sent yet",
+      "orderedDescription": "Orders approved from agent cards will appear here.",
+      "stockTitle": "No consumables registered",
+      "stockDescription": "Open a property, then Inventory > Stock, to choose items from the library."
+    },
+    "search": "Search items, properties, suppliers…",
+    "propertyFilter": "Filter by property",
+    "allProperties": "All properties",
+    "itemProperty": "Item and property",
+    "notRecorded": "Date not recorded",
+    "notArchived": "Not archived",
+    "notProvided": "Not provided",
+    "toApprove": "To approve",
+    "toConfigure": "Setup needed",
+    "orderSent": "Order sent",
+    "threshold": "Threshold: {{count}}",
+    "restocked": "Last restock: {{date}}",
+    "openProposal": "View proposal",
+    "openStock": "View stock",
+    "orderContext": "Original proposal details",
+    "proposalContext": "Why this proposal?",
+    "reset": "Reset filters",
+    "openProperties": "View properties",
+    "refresh": "Refresh",
+    "error": "Consumables could not be loaded. Please try again.",
+    "stockHelp": "Register new items and confirm deliveries in each property’s stock."
+  },
   "baitlyCatalog": {
     "filters": "Filters",
     "display": "Catalog display",
@@ -858,6 +906,63 @@
     }
   },
   "supervision": {
+    "description": {
+      "amountDue": "Indicated amount",
+      "balancePending": "To be determined",
+      "paymentConfirm": "Confirm payment on the payment page.",
+      "currentRevenue": "Current period",
+      "previousRevenue": "Same month last year",
+      "requester": "Requester",
+      "legalDeadline": "Legal deadline",
+      "receivedOn": "Request received on",
+      "from": "From",
+      "to": "To",
+      "arrival": "New arrival",
+      "departure": "Departure",
+      "adjustment": "Proposed change",
+      "minimumStay": "Minimum stay",
+      "scope": "Affected nights",
+      "weekends": "Weekends only",
+      "allNights": "Entire period",
+      "blockDuration": "Block duration",
+      "syncWindow": "Sync window",
+      "refund": "Refund share",
+      "requestedTime": "Requested time",
+      "period": "Period",
+      "language": "Language to prepare",
+      "assignee": "Assigned to",
+      "filingDate": "Filing date",
+      "reference": "Reference",
+      "suggestedKeep": "Proposed stay to keep",
+      "suggestedCancel": "Proposed stay to cancel",
+      "depositPaid": "Deposit already paid",
+      "paymentSchedule": "Payment schedule",
+      "depositBeforeWork": "Deposit before work",
+      "balanceAfterWork": "Balance after work",
+      "remaining_one": "{{count}} remaining",
+      "remaining_other": "{{count}} remaining",
+      "stockThreshold": "Reorder threshold: {{count}}",
+      "lowStock": "Low stock",
+      "orderQuantity": "To order",
+      "supplier": "Supplier",
+      "purchaseOrder": "A purchase order will be emailed to the supplier.",
+      "supplierMissing": "Supplier needed",
+      "quotes_one": "{{count}} quote received",
+      "quotes_other": "{{count}} quotes received",
+      "amount": "Amount",
+      "availableFrom": "Available from",
+      "availabilityUnknown": "Availability not specified",
+      "expectedArrival": "Expected arrival",
+      "guestFormMissing": "Guest form missing",
+      "noMessage": "No message received",
+      "battery": "Lock battery",
+      "listingQuality": "Listing quality",
+      "estimatedAmount": "Estimated amount",
+      "nights_one": "{{count}} night",
+      "nights_other": "{{count}} nights",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days"
+    },
     "title": "Supervision center",
     "subtitle": "Your AI agents are working on this property",
     "agents": {
@@ -1350,46 +1455,54 @@
         "cta": "Block",
         "title": "Block the calendar",
         "days": "Number of nights",
-        "daysHint": "Refused if a night in the range is already booked."
+        "daysHint": "Refused if a night in the range is already booked.",
+        "lead": "Blocked nights will no longer be available to book, starting today."
       },
       "goodwillRefund": {
         "cta": "Refund",
         "title": "Grant a goodwill gesture",
-        "percent": "Share refunded"
+        "percent": "Share refunded",
+        "lead": "A partial refund is sent to the guest. The amount is calculated from the total stay price."
       },
       "lateCheckout": {
         "cta": "Grant",
         "title": "Grant a late check-out",
         "time": "Time granted",
-        "timeHint": "The calendar is re-checked: refused if an arrival is planned that day."
+        "timeHint": "The calendar is re-checked: refused if an arrival is planned that day.",
+        "lead": "The reply is sent in the guest conversation and the agreement is recorded on the reservation."
       },
       "minStay": {
         "cta": "Apply the restriction",
         "title": "Enforce a minimum stay",
         "nights": "Minimum nights",
         "weekendsOnly": "Weekends only",
-        "weekendsOnlyHint": "Otherwise the restriction covers the whole range."
+        "weekendsOnlyHint": "Otherwise the restriction covers the whole range.",
+        "lead": "Stays shorter than this minimum will no longer be bookable during the period."
       },
       "ownerStatement": {
         "cta": "Send",
-        "title": "Send the statement to the owner"
+        "title": "Send the statement to the owner",
+        "lead": "The statement is rebuilt from paid payouts for the period, then sent as a PDF."
       },
       "parityRepublish": {
         "cta": "Republish",
         "title": "Republish the rates",
-        "days": "Window, in days"
+        "days": "Window, in days",
+        "lead": "Rates for the period are recalculated and sent to the channels again."
       },
       "stayModification": {
         "cta": "Propose",
         "title": "Propose a change to the stay",
         "checkIn": "New arrival",
         "checkOut": "New departure",
-        "checkOutHint": "The new total is computed by the pricing engine, never typed here."
+        "checkOutHint": "The new total is computed by the pricing engine, never typed here.",
+        "lead": "The guest receives a priced proposal valid for 72 hours. The change only applies with their agreement; availability and pricing are checked again at that point."
       },
       "stockOrder": {
         "cta": "Order",
         "title": "Order the restock",
-        "quantity": "Quantity"
+        "quantity": "Quantity",
+        "lead": "A purchase order is emailed to the supplier with the property address."
       },
       "taxFiled": {
         "cta": "Record",
@@ -1397,13 +1510,15 @@
         "depositedOn": "Filing date",
         "depositedOnHint": "The date you actually filed, not today's.",
         "reference": "Filing reference",
-        "referenceHint": "The number issued by the authority — only you have it."
+        "referenceHint": "The number issued by the authority — only you have it.",
+        "lead": "No declaration is submitted electronically. The card records that you filed it yourself."
       },
       "yieldAdjust": {
         "cta": "Adjust",
         "title": "Adjust the rates",
         "percent": "Change",
-        "percentHint": "Negative to lower, positive to raise."
+        "percentHint": "Negative to lower, positive to raise.",
+        "lead": "Prices are recalculated for the period within the property’s minimum and maximum rates."
       }
     },
     "review": {
@@ -1520,6 +1635,19 @@
       "tooltipSeeMore": "Click to see {{count}} more"
     },
     "price": {
+      "preview": {
+        "periods_one": "{{count}} period to adjust",
+        "periods_other": "{{count}} periods to adjust",
+        "nights_one": "{{count}} night",
+        "nights_other": "{{count}} nights",
+        "threshold": "Threshold {{value}}",
+        "horizon": "Over the next {{count}} days",
+        "nightDates": "Affected nights",
+        "increase": "Proposed increase",
+        "decrease": "Proposed reduction",
+        "strongDemand": "Strong demand: rates may be undervalued.",
+        "to": "to"
+      },
       "adjustCta": "Adjust rates",
       "apply": "Apply rates",
       "applyError": "Applying the rates failed.",
@@ -1632,7 +1760,29 @@
       "awaiting_many": "Connected · {{count}} actions awaiting your approval"
     },
     "genericAction": "Action",
-    "needsApproval": "This action needs your approval."
+    "needsApproval": "This action needs your approval.",
+    "modal": {
+      "consequences": "What will happen",
+      "choose": "Choose an option",
+      "consider": "Things to consider",
+      "channel": "Channel",
+      "message": "Message to review",
+      "completed": "What was done",
+      "workSummary": "Work summary",
+      "simulation": "Effect of your chosen settings",
+      "adjustmentMode": "Adjust using",
+      "exclusiveEnd": "The end date is excluded: only the preceding nights will be adjusted.",
+      "period": "Period {{n}}",
+      "endExclusive": "End (excluded)",
+      "adjustment": "Adjustment",
+      "revenueChange": "Revenue change",
+      "invalidPeriods": "Keep at least one period with an end date after its start date.",
+      "staleForecast": "The periods have changed. Run the simulation again to update the forecast.",
+      "before": "Before adjustment",
+      "projected": "After adjustment · estimated",
+      "reviewUnavailable": "The review could not be loaded. Try again to read it before replying.",
+      "yourReply": "Your reply"
+    }
   },
   "channexGuided": {
     "title": "Distribute your properties",
@@ -2815,6 +2965,7 @@
     }
   },
   "navigation": {
+    "consumables": "Consumables",
     "dashboard": "Dashboard",
     "assistant": "Assistant",
     "properties": "Properties",
@@ -4353,8 +4504,8 @@
     "orgCanCreateVouchers": "Let my management company create promo codes",
     "orgCanCreateVouchersHelper": "Allows the organisation managing this property to create promo codes (vouchers) on nightly rates. A signed voucher agreement is also required on the platform side.",
     "compliance": {
-        "formatSuspect": "This number does not match the format expected for the property's country",
-        "expiringSoon": "Expiring soon",
+      "formatSuspect": "This number does not match the format expected for the property's country",
+      "expiringSoon": "Expiring soon",
       "add": "Add",
       "addTitle": "Add a licence",
       "editTitle": "Edit the licence",
@@ -4403,6 +4554,61 @@
         "toiletries": "Welcome and toiletries",
         "cleaning": "Cleaning products",
         "consumables": "Consumables"
+      },
+      "library": {
+        "title": "Item library",
+        "intro": "{{count}} items with an image included. Choose an item or create your own.",
+        "editorIntro": "Customize the item, then set the quantities to track.",
+        "search": "Find an item",
+        "searchHint": "Laundry, soda, water packs, breakfast…",
+        "allCategories": "All families",
+        "results_one": "{{count}} item",
+        "results_other": "{{count}} items",
+        "other": "Other item",
+        "noResults": "No matching item. Create another item with your own name and photo.",
+        "fromLibrary": "Library item",
+        "customItem": "Custom item",
+        "changeItem": "Change item",
+        "backToItem": "Back to item",
+        "addPhoto": "Add a photo",
+        "replacePhoto": "Change photo",
+        "defaultPhoto": "Restore default image",
+        "defaultIncluded": "Generic image included. A photo is optional.",
+        "personalPhoto": "Your photo will appear in stock and agent cards.",
+        "photoHint": "JPEG, PNG or WebP · Up to 8 MB. Images are optimized automatically.",
+        "photoError": {
+          "format": "Choose a JPEG, PNG or WebP image.",
+          "size": "This image is too large. Choose a photo smaller than 8 MB.",
+          "decode": "Unable to read this image. Try another photo."
+        },
+        "customNameHint": "E.g. House welcome coffee",
+        "levels": "Quantities and restocking",
+        "loadError": "Unable to load stock. Try again.",
+        "saveError": "Unable to save this change. Try again.",
+        "family": "Item family",
+        "useFilter": "Suggested uses",
+        "uses": {
+          "all": "All items",
+          "welcome": "Welcome",
+          "upsell": "Sell as an extra"
+        },
+        "resetFilters": "Clear filters",
+        "families": {
+          "linen": "Household linen",
+          "toiletries": "Toiletries and bathroom",
+          "dishwashing": "Dishes and dishwasher",
+          "laundry": "Laundry and fabric care",
+          "cleaning": "Property cleaning",
+          "household": "Everyday supplies",
+          "hot-drinks": "Coffee, tea and cocoa",
+          "drinks": "Water, juice and soft drinks",
+          "breakfast": "Breakfast",
+          "pantry": "Pantry and condiments",
+          "fresh": "Fruit and fresh food",
+          "snacks": "Snacks and treats",
+          "kits": "Baskets and gift sets",
+          "alcohol": "Wine, beer and champagne"
+        }
       }
     },
     "timezone": "Time zone",
@@ -11264,6 +11470,11 @@
     "previousGroup": "Previous group"
   },
   "tabHeaders": {
+    "consumables": {
+      "pending": "Awaiting order",
+      "ordered": "Ordered",
+      "stock": "In properties"
+    },
     "designSystem": {
       "foundations": "Foundations",
       "foundationsSub": "Monochrome tokens, charts and base primitives.",
@@ -18497,5 +18708,125 @@
   },
   "stats": {
     "noChartData": "No data to plot."
+  },
+  "inventoryLibrary": {
+    "inventory": "Property inventory",
+    "inventoryIntro": "{{count}} objects, organised by room.",
+    "title": "Equipment library",
+    "intro": "{{count}} illustrated references. Choose the objects in this property.",
+    "open": "Browse library",
+    "custom": "Custom item",
+    "back": "Back",
+    "search": "Find equipment",
+    "searchHint": "Coffee maker, bed, washing machine…",
+    "screenSearch": "Search inventory…",
+    "family": "Category",
+    "allFamilies": "All categories",
+    "allRooms": "All rooms",
+    "filterRoom": "Filter by room",
+    "unassigned": "Room not specified",
+    "results": "{{count}} references",
+    "selection": "View selection ({{count}})",
+    "selected": "{{count}} references selected",
+    "addSelection": "Add to property ({{count}})",
+    "selectionHint": "Check quantities and rooms before adding.",
+    "existing": "Already in inventory: {{count}}",
+    "quantity": "Quantity",
+    "quantityFor": "Quantity: {{name}}",
+    "room": "Room",
+    "roomFor": "Room: {{name}}",
+    "quantityError": "Enter a whole quantity between 1 and 10,000 for each item.",
+    "limit": "You can add up to 100 references at a time.",
+    "noSelection": "Your selection is empty.",
+    "noResults": "No items match your search.",
+    "reset": "Reset filters",
+    "saveError": "Could not save. Your changes are kept so you can try again.",
+    "saving": "Saving…",
+    "save": "Save",
+    "saved": "Item saved.",
+    "added": "{{count}} references added to the property.",
+    "edit": "Edit item",
+    "editNamed": "Edit {{name}}",
+    "editorIntro": "Set the name, room and quantity. A photo is optional.",
+    "name": "Item name",
+    "notes": "Details",
+    "notesHint": "Brand, model, dimensions, condition…",
+    "choosePhoto": "Choose a default image",
+    "defaultPhoto": "Library image",
+    "personalPhoto": "Your photo",
+    "genericPhoto": "Generic image",
+    "upload": "Upload a photo",
+    "uploading": "Preparing photo…",
+    "removePhoto": "Remove my photo",
+    "photoHint": "JPEG, PNG or WebP, up to 8 MB. Photos are automatically optimised.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteNamed": "Delete {{name}}",
+    "deleteConfirm": "Remove “{{name}}” from this property?",
+    "deleted": "Item deleted.",
+    "deleteError": "Could not delete. Try again.",
+    "emptyTitle": "What equipment is in this property?",
+    "emptyHint": "Browse the library to prepare this property’s inventory.",
+    "filterHint": "Try another word or show all rooms.",
+    "loadError": "Could not load the inventory.",
+    "retry": "Try again",
+    "loading": "Loading inventory",
+    "laundry": "Household linen",
+    "quotes": "Quotes / Invoices",
+    "stock": "Consumable stock",
+    "families": {
+      "seating": "Sofas & seating",
+      "furniture": "Tables & furniture",
+      "beds": "Beds & mattresses",
+      "textiles": "Textiles & curtains",
+      "large-appliances": "Large appliances",
+      "small-appliances": "Small appliances",
+      "coffee-drinks": "Coffee & drinks",
+      "cookware": "Pots & cookware",
+      "utensils": "Kitchen utensils",
+      "tableware": "Tableware & cutlery",
+      "bathroom": "Bathroom",
+      "laundry-cleaning": "Laundry & cleaning",
+      "lighting": "Lighting",
+      "climate": "Heating & cooling",
+      "electronics": "TV, audio & connectivity",
+      "safety-access": "Safety & access",
+      "baby": "Baby & children",
+      "outdoor-furniture": "Patio & barbecue",
+      "garden-pool": "Garden & pool",
+      "leisure": "Games & leisure",
+      "storage": "Storage",
+      "tools": "Tools & cables",
+      "accessibility-pets": "Accessibility & pets",
+      "kitchen-extras": "Kitchen preparation & storage",
+      "decor": "Decor",
+      "linen": "Household linen",
+      "fixtures": "Sanitary fittings & taps",
+      "tableware-details": "Glassware & cutlery details"
+    },
+    "rooms": {
+      "Cuisine": "Kitchen",
+      "Salon": "Living room",
+      "Chambre": "Bedroom",
+      "Salle de bain": "Bathroom",
+      "Exterieur": "Outdoor",
+      "Bureau": "Office",
+      "Buanderie": "Laundry room",
+      "Entree": "Entrance",
+      "Rangement": "Storage",
+      "Autre": "Other room"
+    },
+    "photoIntro": "Choose the image that best represents your item. Its name remains customisable.",
+    "results_one": "{{count}} reference",
+    "results_other": "{{count}} references",
+    "selected_one": "{{count}} reference selected",
+    "selected_other": "{{count}} references selected",
+    "inventoryIntro_one": "{{count}} object, organised by room.",
+    "inventoryIntro_other": "{{count}} objects, organised by room.",
+    "added_one": "{{count}} reference added to the property.",
+    "added_other": "{{count}} references added to the property.",
+    "reviewTitle": "Review selection",
+    "reviewIntro": "Adjust the quantity and room of each item before adding it.",
+    "browseMore": "Keep browsing"
   }
 }

@@ -23,7 +23,6 @@ import type { SiteLanguage } from '../lib/siteLanguage';
 import {
   calculateRevenue,
   DEFAULT_REVENUE_INPUTS,
-  GUIDE_SOURCES,
   MARKET_CITIES,
   MARKET_SOURCE,
   normalizeResourceSearch,
@@ -436,116 +435,7 @@ export function MarketBarometer({ language }: Props) {
   );
 }
 
-export function ObligationsGuide({
-  language,
-  initialCountry = 'MA',
-}: Props & { initialCountry?: string }) {
-  const m = BAITLY_RESOURCE_MESSAGES[language];
-  const g = m.guide;
-  const [country, setCountry] = useState(() =>
-    Math.max(0, ['MA', 'FR', 'SA'].indexOf(initialCountry)),
-  );
-  const [checked, setChecked] = useState<Set<string>>(() => new Set());
-  const done = g.steps[country].filter((_, index) =>
-    checked.has(`${country}-${index}`),
-  ).length;
-  const exportChecklist = () =>
-    downloadText(
-      'baitly-checklist.txt',
-      [
-        g.countries[country],
-        g.verified,
-        g.intro,
-        ...g.steps[country].map(
-          (step, index) =>
-            `${checked.has(`${country}-${index}`) ? '[x]' : '[ ]'} ${
-              step.title
-            }\n${step.copy}\n${step.action}\n${
-              GUIDE_SOURCES[country][index].url
-            }`,
-        ),
-      ].join('\n\n'),
-      'text/plain;charset=utf-8',
-    );
-  return (
-    <>
-      <div
-        className="brs-filter"
-        role="group"
-        aria-label={m.modules.obligations.name}
-      >
-        {g.countries.map((name, index) => (
-          <button
-            key={name}
-            aria-pressed={country === index}
-            onClick={() => setCountry(index)}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
-      <div className="brs-guide">
-        <section className="brs-checklist" aria-label={g.countries[country]}>
-          {g.steps[country].map((step, index) => {
-            const key = `${country}-${index}`;
-            return (
-              <article
-                key={key}
-                className={checked.has(key) ? 'is-checked' : ''}
-              >
-                <div className="brs-step-number" aria-hidden="true">
-                  0{index + 1}
-                </div>
-                <div>
-                  <h2>{step.title}</h2>
-                  <p>{step.copy}</p>
-                  <label className="brs-check">
-                    <input
-                      type="checkbox"
-                      checked={checked.has(key)}
-                      onChange={(event) =>
-                        setChecked((previous) => {
-                          const next = new Set(previous);
-                          if (event.target.checked) next.add(key);
-                          else next.delete(key);
-                          return next;
-                        })
-                      }
-                    />
-                    <span>{step.action}</span>
-                  </label>
-                  <a
-                    href={GUIDE_SOURCES[country][index].url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="brs-source"
-                  >
-                    {GUIDE_SOURCES[country][index].label}
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </article>
-            );
-          })}
-        </section>
-        <aside className="brs-guide-aside">
-          <CheckCircle2 size={30} />
-          <h2>{g.progress}</h2>
-          <strong aria-live="polite">{done} / 3</strong>
-          <span>{g.checked}</span>
-          <progress aria-label={g.progress} value={done} max={3} />
-          <p className="brs-small">{g.session}</p>
-          <button className="brs-button" onClick={exportChecklist}>
-            <Download size={16} />
-            {g.download}
-          </button>
-          <p className="brs-small">{g.intro}</p>
-          <small>{g.verified}</small>
-        </aside>
-      </div>
-    </>
-  );
-}
+export { default as ObligationsGuide } from './BaitlyLegalGuide';
 
 export function BaitlyAcademy({ language }: Props) {
   const m = BAITLY_RESOURCE_MESSAGES[language];

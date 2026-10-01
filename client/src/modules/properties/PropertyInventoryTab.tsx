@@ -1,6 +1,7 @@
 import React from 'react';
-import { Spinner } from '../../components/ui';
-import { cn } from '../../utils/cn';
+import { Button, Skeleton } from '../../components/ui';
+import PageTabs from '../../components/PageTabs';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
@@ -18,74 +19,48 @@ interface Props {
 // (param distinct du ?tab= top-level). Cles : items / laundry / quotes.
 const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }, { key: 'stock' }];
 
-// Sous-onglets niveau 2 — pattern pilules .s-subtab (fond --field, actif accent-soft/accent).
-const subtabs = [
-  { label: 'Inventaire du logement', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
-  { label: 'Linge de maison', icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
-  { label: 'Devis / Factures', icon: <Receipt size={15} strokeWidth={1.75} /> },
-  { label: 'Stock consommable', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
-];
-
 export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
+  const { t } = useTranslation();
   const [subTab, setSubTab] = useTabKeyParam(INVENTORY_SUBTABS, { param: 'subtab' });
+  const subtabs = [
+    { label: t('inventoryLibrary.inventory'), icon: <Inventory2 size={15} strokeWidth={1.75} /> },
+    { label: t('inventoryLibrary.laundry'), icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
+    { label: t('inventoryLibrary.quotes'), icon: <Receipt size={15} strokeWidth={1.75} /> },
+    { label: t('inventoryLibrary.stock'), icon: <Inventory2 size={15} strokeWidth={1.75} /> },
+  ];
 
   const {
     inventoryItems, laundryItems, catalog, quotes,
-    isLoading,
-    addItem, updateItem, deleteItem,
+    loadingItems, itemsError, refetchItems, loadingLaundry, loadingQuotes,
+    addItem, addItems, updateItem, deleteItem,
     addLaundryItem, updateLaundryItem, deleteLaundryItem,
     generateQuote, confirmQuote,
   } = usePropertyInventory(propertyId);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-9">
-        <Spinner className="size-8" />
-      </div>
-    );
-  }
-
+  const loading = subTab === 0 ? loadingItems : subTab === 1 ? loadingLaundry : subTab === 2 ? loadingQuotes : false;
   return (
     <div>
-      <div className="flex gap-1.5 mb-3 flex-wrap" role="tablist">
-        {subtabs.map((st, i) => {
-          const active = subTab === i;
-          return (
-            <button
-              key={st.label}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setSubTab(i)}
-              className={cn(
-                'inline-flex items-center gap-[7px] h-[30px] px-[13px] rounded-full',
-                'border border-solid border-transparent',
-                'text-xs font-semibold font-[family-name:var(--font-sans)] cursor-pointer',
-                'transition-colors duration-150 motion-reduce:transition-none',
-                'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
-                active
-                  ? 'bg-primary-soft text-primary'
-                  : 'bg-field text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {st.icon}
-              {st.label}
-            </button>
-          );
-        })}
-      </div>
+      <PageTabs options={subtabs} value={subTab} onChange={setSubTab} trail={false} size="compact" />
+      {loading && <div className="inventory-loading" role="status" aria-label={t('inventoryLibrary.loading')}>
+        {[0, 1, 2].map(key => <Skeleton key={key} className="h-20 w-full" />)}
+      </div>}
+      {!loading && subTab === 0 && itemsError && <div className="inventory-surface" role="alert">
+        <p>{t('inventoryLibrary.loadError')}</p><Button variant="outline" onClick={() => void refetchItems()}>{t('inventoryLibrary.retry')}</Button>
+      </div>}
 
-      {subTab === 0 && (
+      {!loading && !itemsError && subTab === 0 && (
         <InventoryItemsSection
+          key={propertyId}
           items={inventoryItems}
           canEdit={canEdit}
           onAdd={addItem}
+          onAddMany={addItems}
           onUpdate={updateItem}
           onDelete={deleteItem}
         />
       )}
 
-      {subTab === 1 && (
+      {!loading && subTab === 1 && (
         <LaundryItemsSection
           items={laundryItems}
           catalog={catalog}
@@ -96,7 +71,7 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
         />
       )}
 
-      {subTab === 2 && (
+      {!loading && subTab === 2 && (
         <LaundryQuotesSection
           quotes={quotes}
           hasLaundryItems={laundryItems.length > 0}

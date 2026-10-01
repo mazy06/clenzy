@@ -33,6 +33,14 @@ public class PropertyStockItem {
     @Column(nullable = false, length = 200)
     private String name;
 
+    /** Référence facultative au catalogue visuel Baitly ; "custom" pour un article libre. */
+    @Column(name = "catalog_key", length = 80)
+    private String catalogKey;
+
+    /** Photo personnelle compressée, data URL raster validée à l'enregistrement. */
+    @Column(name = "photo_url", columnDefinition = "text")
+    private String photoUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private Category category = Category.LINEN;
@@ -78,6 +86,10 @@ public class PropertyStockItem {
     public void setPropertyId(Long propertyId) { this.propertyId = propertyId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public String getCatalogKey() { return catalogKey; }
+    public void setCatalogKey(String catalogKey) { this.catalogKey = catalogKey; }
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
     public String getUnit() { return unit; }
@@ -95,5 +107,6 @@ public class PropertyStockItem {
     public String getSupplierEmail() { return supplierEmail; }
     public void setSupplierEmail(String supplierEmail) { this.supplierEmail = supplierEmail; }
     public Instant getLastRestockedAt() { return lastRestockedAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
     public void setLastRestockedAt(Instant lastRestockedAt) { this.lastRestockedAt = lastRestockedAt; }
 }

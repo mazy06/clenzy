@@ -358,6 +358,9 @@ public class SuggestionActionExecutor {
         final com.clenzy.model.PropertyStockItem item = propertyStockItemRepository
                 .findByIdAndOrganizationId(stockItemId, suggestion.getOrganizationId())
                 .orElseThrow(() -> new IllegalStateException("Article introuvable pour cette organisation"));
+        if (!java.util.Objects.equals(item.getPropertyId(), suggestion.getPropertyId())) {
+            throw new IllegalStateException("Article rattaché à un autre logement");
+        }
         if (item.getQuantity() > item.getReorderThreshold()) {
             throw new IllegalStateException("Stock repassé au-dessus du seuil ("
                     + item.getQuantity() + ") — commande sans objet, carte à rejeter");
@@ -369,10 +372,28 @@ public class SuggestionActionExecutor {
         }
         final Property property = propertyRepository.findById(item.getPropertyId())
                 .orElseThrow(() -> new IllegalStateException("Logement introuvable"));
+        if (!java.util.Objects.equals(property.getOrganizationId(), suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Logement inaccessible pour cette organisation");
+        }
+        final var params = (com.fasterxml.jackson.databind.node.ObjectNode) parseParams(suggestion.getActionParams());
+        final JsonNode requested = params.get("quantity");
+        if (requested != null && (!requested.isIntegralNumber() || !requested.canConvertToInt()
+                || requested.asInt() < 1 || requested.asInt() > 10000)) {
+            throw new IllegalArgumentException("La quantité doit être un entier entre 1 et 10000");
+        }
+        final int quantity = requested == null ? item.getReorderQuantity() : requested.asInt();
+        final var snapshot = params.putObject("stockOrder");
+        snapshot.put("name", item.getName());
+        snapshot.put("catalogKey", item.getCatalogKey());
+        snapshot.put("quantity", quantity);
+        snapshot.put("unit", item.getUnit());
+        snapshot.put("supplierName", item.getSupplierName());
+        // Construire l'archive AVANT l'envoi : une erreur de sérialisation ne doit jamais rejouer l'email.
+        final String archivedParams = params.toString();
         final String body = "<p>Bonjour" + (item.getSupplierName() != null
                     ? " " + StringUtils.escapeHtml(item.getSupplierName()) : "") + ",</p>"
                 + "<p>Merci de nous livrer :</p>"
-                + "<p><b>" + item.getReorderQuantity()
+                + "<p><b>" + quantity
                 + (item.getUnit() != null ? " " + StringUtils.escapeHtml(item.getUnit()) : "")
                 + " — " + StringUtils.escapeHtml(item.getName()) + "</b></p>"
                 + "<p>Adresse de livraison : " + StringUtils.escapeHtml(property.getName())
@@ -381,6 +402,7 @@ public class SuggestionActionExecutor {
                 + "<p>Merci de confirmer la disponibilité et le délai par retour d'email.</p>";
         emailService.sendSimpleHtmlEmail(item.getSupplierEmail().trim(),
                 "Bon de commande — " + item.getName() + " (" + property.getName() + ")", body);
+        suggestion.setActionParams(archivedParams);
         log.info("LINEN_STOCK_ORDER envoyé org={} item={} fournisseur={}",
                 suggestion.getOrganizationId(), stockItemId, item.getSupplierName());
     }

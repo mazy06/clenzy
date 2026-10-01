@@ -1047,18 +1047,23 @@ class SuggestionActionExecutorTest {
         Property property = new Property();
         property.setId(PROPERTY_ID);
         property.setName("Riad Yasmine");
+        property.setOrganizationId(ORG_ID);
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
-        apply(suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}"));
+        var order = suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6,\"quantity\":8}");
+        apply(order);
 
         verify(emailService).sendSimpleHtmlEmail(eq("supplier@example.com"), anyString(),
                 contains("Parure de lit"));
+        verify(emailService).sendSimpleHtmlEmail(anyString(), anyString(), contains("<b>8"));
+        assertThat(order.getActionParams()).contains("\"stockOrder\"", "\"quantity\":8", "Linge Pro");
     }
 
     @Test
     @DisplayName("commande stock : repasse au-dessus du seuil -> refus explicite, rien d'envoye")
     void stockOrder_refusesWhenBackAboveThreshold() {
         com.clenzy.model.PropertyStockItem item = new com.clenzy.model.PropertyStockItem();
+        item.setPropertyId(PROPERTY_ID);
         item.setQuantity(9);
         item.setReorderThreshold(4);
         when(propertyStockItemRepository.findByIdAndOrganizationId(6L, ORG_ID))

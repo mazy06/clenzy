@@ -12,6 +12,14 @@ import jakarta.persistence.QueryHint;
 import java.util.List;
 
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
+    interface StockPropertyChoice {
+        Long getId();
+        String getName();
+    }
+
+    @Query("SELECT p.id AS id, p.name AS name FROM Property p WHERE p.organizationId = :orgId ORDER BY p.name, p.id")
+    List<StockPropertyChoice> findStockPropertyChoices(@Param("orgId") Long orgId);
+
     List<Property> findByOwner(User owner);
     List<Property> findByOwnerId(Long ownerId);
 

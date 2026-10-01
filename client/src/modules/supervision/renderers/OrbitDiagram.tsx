@@ -15,15 +15,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useElementSize } from '../core/useElementSize';
+import { DATA_FLOW_STYLES, FLOW_DASH, FLOW_STROKE, flowClockDelay, flowPacketStyle } from '../core/dataFlow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../../../components/BaitlyMarkLogo';
-import { MousePointerClick } from '../../../icons';
+import { AccessTime, ErrorOutline, Home, MousePointerClick } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { AGENT_META, STATUS, STATUS_PRIORITY } from '../constants';
 import { AgentIcon } from './agentIcon';
 import type { ConstellationAgentView } from './ConstellationRenderer';
 import type { AgentId, PendingAction } from '../types';
+import '../supervision-surfaces.css';
+import './orbit-diagram.css';
 
 // ─── Géométrie (reprise de la projection) ────────────────────────────────────
 
@@ -41,13 +45,15 @@ const ORBIT_RADIUS_MAX = 38;
 const ORBIT_RADIUS_MIN = 28;
 /** Place réservée SOUS le dernier nœud pour son libellé (2 lignes + marge). */
 const LABEL_ROOM_PX = 38;
+/** Espace pour le contour extérieur et le focus clavier aux bords du dessin. */
+const ORBIT_EDGE_PX = 10;
 /**
  * Distance d'arc minimale entre deux nœuds voisins pour que TOUTES les légendes
  * tiennent. En dessous, seuls les agents qui demandent quelque chose gardent la
  * leur — un agent en veille n'a rien à dire, sa légende ne fait qu'entrer dans
  * celle du voisin.
  */
-const LABEL_MIN_ARC_PX = 110;
+const LABEL_MIN_ARC_PX = 140;
 /**
  * Écartement horizontal de la légende vers l'EXTÉRIEUR de l'anneau, quand il
  * est à l'étroit. Sur les flancs, une légende posée sous son nœud pointe vers
@@ -55,8 +61,6 @@ const LABEL_MIN_ARC_PX = 110;
  * radial complet — 98 px n'auraient pas la place de sortir du carré.
  */
 const LABEL_SHIFT_PX = 30;
-/** Demi-largeur typique d'une légende — sert à ne pas la pousser hors du cadre. */
-const LABEL_HALF_WIDTH_PX = 50;
 const CORE_SIZE = 15;
 /** Diamètre uniforme des nœuds (% du canvas) — le volume ne se lit pas ici. */
 const NODE_SIZE = 13;
@@ -101,21 +105,7 @@ function fitSide(width: number, height: number): number {
   return low;
 }
 /** Durée de la rotation de l'anneau — alignée sur `.oc-ring` ci-dessous. */
-const ROTATION_MS = 720;
-/**
- * Durée d'un cycle du relais de données — EXPORTÉE : les paquets des attaches
- * (SupervisionTethers) battent sur la même horloge. Les deux jambes se calent
- * sur une horloge GLOBALE (retard négatif = performance.now() % cycle posé au
- * démarrage) : quel que soit leur instant de montage, la sortie du noyau
- * occupe [0 ; 38 %] du cycle et le dispatch vers les cartes [38 ; 92 %].
- */
-export const FLOW_CYCLE_MS = 3200;
-
-/** Phase courante de l'horloge globale du relais, en retard négatif CSS. */
-export function flowClockDelay(): string {
-  return `-${Math.round(performance.now() % FLOW_CYCLE_MS)}ms`;
-}
-
+const ROTATION_MS = 560;
 /**
  * Jambe radiale du relais, en unités du viewBox — la MÊME pour tous les agents
  * (rayons constants) : le dash du paquet s'écrit en unités utilisateur exactes.
@@ -125,7 +115,6 @@ export function flowClockDelay(): string {
 const FLOW_LEG_START = CORE_SIZE / 2 + 1.3;
 const flowLegEnd = (radius: number) => radius - NODE_SIZE / 2 - 0.6;
 const flowLegLength = (radius: number) => flowLegEnd(radius) - FLOW_LEG_START;
-const FLOW_DASH = 4.5;
 
 /**
  * Rayon d'orbite pour un canvas de `side` pixels : le plus large possible dont
@@ -145,8 +134,8 @@ function baseAngle(index: number, total: number) {
 }
 
 /** Rotation à appliquer pour amener l'agent `index` sur l'emplacement de tête. */
-function rotationFor(index: number, total: number) {
-  return SLOT_ANGLE - baseAngle(index, total);
+function rotationFor(index: number, total: number, rtl: boolean) {
+  return (rtl ? -180 - SLOT_ANGLE : SLOT_ANGLE) - baseAngle(index, total);
 }
 
 /** Point de l'orbite pour un angle donné, en % du canvas. */
@@ -167,34 +156,16 @@ export function busiestAgent(agents: ConstellationAgentView[]): AgentId | null {
 
 // ─── Feuille scopée `oc-` (règles du diagramme, pas du kit) ──────────────────
 
-const orbitStyles = (radius: number) => `
+const ORBIT_STYLES = `
+${DATA_FLOW_STYLES}
 /* Rotation de l'anneau à la sélection : l'anneau porte la rotation, chaque
    nœud la rotation inverse — les agents glissent le long de l'orbite. */
 .oc-ring, .oc-node { transition: transform ${ROTATION_MS}ms cubic-bezier(.25,1,.5,1); }
 
-/* Relais de données : UN paquet, du noyau vers l'agent sélectionné. Le motif
-   suit le rayon courant (l'anneau s'écarte avec le canvas) — sans quoi le
-   paquet s'arrêterait avant le nœud ou le dépasserait. */
-.oc-packet {
-  display: none;
-  fill: none;
-  stroke-linecap: round;
-  opacity: .85;
-  stroke-dasharray: ${FLOW_DASH} ${(flowLegLength(radius) * 3).toFixed(1)};
-  animation: oc-relay-out ${FLOW_CYCLE_MS}ms linear infinite;
-}
+.oc-packet { display: none; }
 .oc-flow[data-selected="true"] .oc-packet { display: inline; }
-@keyframes oc-relay-out {
-  0% { stroke-dashoffset: ${FLOW_DASH}; }
-  38%, 100% { stroke-dashoffset: ${(-(flowLegLength(radius) + FLOW_DASH)).toFixed(1)}; }
-}
-
-/* Halo de l'agent qui attend une décision : la seule boucle au repos. */
-.oc-ripple { opacity: 0; transform-origin: center; animation: oc-ripple 3.6s cubic-bezier(.25,1,.5,1) infinite; }
-@keyframes oc-ripple { 0% { transform: scale(1); opacity: .45; } 100% { transform: scale(1.4); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .oc-ripple { display: none; }
   .oc-flow[data-selected="true"] .oc-packet { display: none; }
   .oc-ring, .oc-node { transition: none; }
 }
@@ -268,6 +239,16 @@ function AgentNodeTooltip({
           {t('supervision.feed.agentLine', { name: t(meta.nameKey), defaultValue: 'Agent {{name}}' })}
         </p>
         <p className="m-0 text-xs opacity-70">{t(meta.roleKey)}</p>
+        {agent.badge != null && agent.badge > 0 && (
+          <p className="m-0 text-xs tabular-nums">
+            {agent.badge} {t('supervision.portfolio.propertiesShort')}
+          </p>
+        )}
+        {(agent.pendingCount ?? 0) > 0 && (
+          <p className="m-0 text-xs tabular-nums">
+            {agent.pendingCount} {t('supervision.board.toValidate', 'à valider')}
+          </p>
+        )}
       </div>
 
       {rows.length > 0 && (
@@ -307,6 +288,37 @@ function AgentNodeTooltip({
   );
 }
 
+/** Mesure la traduction réelle pour garder la légende dans le cadre sans la
+ * pousser inutilement sur le nœud voisin (notamment en arabe sur mobile). */
+function OrbitAgentLabel({ name, status, attention, above, preferredShift, x, frameWidth }: {
+  name: string;
+  status: string | null;
+  attention: boolean;
+  above: boolean;
+  preferredShift: number;
+  x: number;
+  frameWidth: number;
+}) {
+  const [labelRef, label] = useElementSize<HTMLSpanElement>();
+  const halfWidth = label.width / 2;
+  const shift = frameWidth > 0
+    ? Math.max(ORBIT_EDGE_PX + halfWidth - x,
+        Math.min(preferredShift, frameWidth - ORBIT_EDGE_PX - halfWidth - x))
+    : 0;
+
+  return (
+    <span
+      ref={labelRef}
+      className={cn('absolute flex w-max flex-col items-center gap-0.5 leading-tight', above ? 'bottom-full mb-3' : 'top-full mt-2')}
+      // Coordonnées physiques du diagramme : le texte garde sa direction RTL.
+      style={{ left: '50%', transform: `translateX(calc(-50% + ${shift}px))` }}
+    >
+      <span className="baitly-orbit-name text-xs font-medium whitespace-nowrap">{name}</span>
+      {status && <span className={cn('text-xs whitespace-nowrap tabular-nums', attention ? 'font-medium text-destructive-ink' : 'text-muted-foreground')}>{status}</span>}
+    </span>
+  );
+}
+
 export function OrbitDiagram({
   agents,
   selected,
@@ -318,33 +330,42 @@ export function OrbitDiagram({
   pendingItems,
   className,
 }: OrbitDiagramProps) {
-  const { t } = useTranslation();
+  const { t, isArabic } = useTranslation();
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
-  const selectedIndex = Math.max(0, agents.findIndex((agent) => agent.id === selected));
-  const [rotation, setRotation] = useState(() => rotationFor(selectedIndex, agents.length || 1));
+  const selectedIndex = agents.findIndex((agent) => agent.id === selected);
+  const agentCount = agents.length;
+  const [rotation, setRotation] = useState(() => rotationFor(Math.max(0, selectedIndex), agentCount || 1, isArabic));
   const rotationRef = useRef(rotation);
   const [rotating, setRotating] = useState(false);
 
   // Sélection contrôlée : quand elle change, l'anneau pivote par le chemin le
   // plus court (angle cible « déroulé » autour de l'angle courant).
   useEffect(() => {
-    if (!selected || agents.length === 0) return;
-    const index = agents.findIndex((agent) => agent.id === selected);
-    if (index < 0) return;
-    let target = rotationFor(index, agents.length);
-    if (Math.abs(target - rotationRef.current) < 0.5) return;
+    if (selectedIndex < 0) {
+      setRotating(false);
+      return;
+    }
+    let target = rotationFor(selectedIndex, agentCount, isArabic);
     while (target - rotationRef.current > 180) target -= 360;
     while (target - rotationRef.current < -180) target += 360;
+    if (Math.abs(target - rotationRef.current) < 0.5 || reducedMotion) {
+      rotationRef.current = target;
+      setRotation(target);
+      setRotating(false);
+      return;
+    }
     rotationRef.current = target;
     setRotation(target);
     setRotating(true);
     const timer = window.setTimeout(() => setRotating(false), ROTATION_MS + 40);
     return () => window.clearTimeout(timer);
-  }, [selected, agents]);
+    // Les mises à jour de tâches ne doivent pas annuler le timer de rotation.
+  }, [selectedIndex, agentCount, reducedMotion, isArabic]);
 
   // Le relais ne joue que l'agent arrivé en tête ; même condition pour les
   // attaches, annoncée au parent (positions stables uniquement).
-  const flowActive = flowEnabled && !rotating;
+  const flowActive = flowEnabled && !rotating && selectedIndex >= 0;
   useEffect(() => {
     onHeadAgentSettled?.(flowActive && selected ? selected : null);
   }, [flowActive, selected, onHeadAgentSettled]);
@@ -366,19 +387,18 @@ export function OrbitDiagram({
   // large, moins ils se chevauchent. Repli tant que rien n'est mesuré (premier
   // rendu, jsdom).
   const [boxRef, box] = useElementSize<HTMLDivElement>();
-  const side = fitSide(box.width, box.height);
+  const side = fitSide(Math.max(0, box.width - ORBIT_EDGE_PX * 2), Math.max(0, box.height - ORBIT_EDGE_PX * 2));
   const radius = orbitRadiusFor(side);
 
   // Anneau à l'étroit : distance d'arc entre deux nœuds voisins. En dessous de
-  // LABEL_MIN_ARC_PX, les légendes (44 à 98 px de large) débordent sur le nœud
-  // d'à côté — mesuré, 5 recouvrements sur 10 agents à 79 px d'arc, aucun à
-  // 142. Les placer radialement ne sauverait rien : sur les flancs, une légende
-  // de 98 px n'a pas la place de sortir du carré.
+  // LABEL_MIN_ARC_PX, les longues traductions (jusqu'à 130 px) peuvent toucher
+  // le nœud voisin. Les noms restent accessibles dans les infobulles et les
+  // libellés des boutons, sans rogner les traductions.
   const arcPx = agents.length > 0 ? (2 * Math.PI * ((radius / 100) * side)) / agents.length : 0;
   const crowded = arcPx > 0 && arcPx < LABEL_MIN_ARC_PX;
 
   return (
-    <div ref={boxRef} className={cn('flex min-h-0 items-center justify-center', className)}>
+    <div ref={boxRef} className={cn('baitly-supervision-surface baitly-orbit flex min-h-0 items-center justify-center', className)}>
       {/* marginBottom : le dessin n'est PAS centré dans son carré — les
           libellés pendent sous le dernier rang de nœuds. Réserver cette bande
           sous le carré remonte l'ensemble d'une demi-bande, et c'est le DESSIN
@@ -393,7 +413,7 @@ export function OrbitDiagram({
             : { width: '100%' }
         }
       >
-        <style>{orbitStyles(radius)}</style>
+        <style>{ORBIT_STYLES}</style>
 
         {/* L'anneau d'orbite ne tourne pas : il est invariant par rotation. */}
         <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
@@ -402,9 +422,9 @@ export function OrbitDiagram({
             cy="50"
             r={radius}
             fill="none"
-            className="stroke-border"
-            strokeWidth="0.25"
-            opacity="0.65"
+            className="baitly-orbit-track"
+            vectorEffect="non-scaling-stroke"
+            strokeWidth="1"
           />
         </svg>
 
@@ -419,6 +439,7 @@ export function OrbitDiagram({
                 <g
                   key={agent.id}
                   className="oc-flow"
+                  data-focused={agent.id === selected || undefined}
                   data-selected={(agent.id === selected && flowActive) || undefined}
                 >
                   {/* Même dessin que les attaches (rail 1 px, paquet 1,5 px) :
@@ -427,20 +448,15 @@ export function OrbitDiagram({
                     {...segment}
                     vectorEffect="non-scaling-stroke"
                     strokeWidth="1"
-                    className="stroke-border"
+                    className="baitly-orbit-spoke"
                   />
-                  {/* Le flux de données est TOUJOURS encre (noir en thème clair) :
-                      l'ambre est réservé aux RAILS urgents des attaches. PAS de
-                      non-scaling-stroke ici : il ferait interpréter le dash en
-                      PIXELS ÉCRAN (spec SVG) — la période du motif devenait plus
-                      courte que le rail et DEUX tirets apparaissaient. En unités
-                      viewBox, un seul paquet est mathématiquement possible
-                      (0.32 unité ≈ 1,5 px au canvas maximal). */}
+                  {/* Même paquet et même animation que les attaches HITL,
+                      exprimés ici dans les unités du viewBox orbital. */}
                   <line
                     {...segment}
-                    strokeWidth="0.32"
-                    className="oc-packet stroke-foreground"
-                    style={{ animationDelay: flowDelay }}
+                    strokeWidth={FLOW_STROKE}
+                    className="oc-packet baitly-data-packet"
+                    style={flowPacketStyle(flowLegLength(radius), FLOW_DASH, flowDelay)}
                   />
                 </g>
               );
@@ -458,8 +474,13 @@ export function OrbitDiagram({
               .sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
             const isSelected = agent.id === selected;
             const isAttention = agent.status === 'esc' || agent.status === 'err';
-            // Le halo ne signale que ce qui n'est PAS déjà ouvert à droite.
-            const needsDecision = (pending > 0 || agent.status === 'wait') && !isSelected;
+            const needsDecision = pending > 0 || agent.status === 'wait';
+            const working = agent.status === 'think' || agent.status === 'act';
+            const progress = agent.status === 'think' && Number.isFinite(agent.thinkingProgress)
+              ? Math.max(0, Math.min(100, agent.thinkingProgress!))
+              : null;
+            const propertyCount = agent.badge != null && agent.badge > 0 ? agent.badge : null;
+            const badgeCount = propertyCount ?? (pending > 0 ? pending : null);
             const statusLabel = t(STATUS[agent.status].labelKey);
             // Ce que la PASTILLE dit deja ne se redit pas en texte. « 6 a
             // valider », puis « Attend ta validation » : deux facons d'ecrire le
@@ -467,13 +488,13 @@ export function OrbitDiagram({
             // agent qui attend n'a donc plus de seconde ligne — son compte se lit
             // sur le noeud. Les autres etats, eux, restent nommes : la pastille
             // ne sait pas dire « Agit » ni « Reflechit a 40 % ».
-            const countedByBadge = pending > 0 || agent.status === 'wait';
+            const countedByBadge = pending > 0 && agent.status === 'wait';
             const subLabel = isAttention
               ? statusLabel
               : countedByBadge
                 ? null
-                : agent.status === 'think' && agent.thinkingProgress != null
-                  ? `${statusLabel} · ${Math.round(agent.thinkingProgress)} %`
+                : progress != null
+                  ? `${statusLabel} · ${Math.round(progress)} %`
                   : statusLabel;
 
             // Position de la légende quand l'anneau est à l'étroit. Le nœud
@@ -484,19 +505,18 @@ export function OrbitDiagram({
             // Posée dessous, elle descendait sur le nœud suivant de l'anneau —
             // les deux recouvrements mesurés étaient exactement ceux-là.
             const labelAbove = crowded && Math.sin(visualRad) < -0.25;
-            // Poussée vers l'extérieur, BORNÉE par la place réelle : le carré du
-            // dessin est plus large que sa boîte, pousser sans regarder coupait
-            // la légende au bord. On ne pousse que ce qui rentre encore.
             const cos = Math.cos(visualRad);
-            const room = box.width / 2 - Math.abs(cos) * ((radius / 100) * side) - LABEL_HALF_WIDTH_PX;
-            const labelShift = crowded
-              ? Math.sign(cos) * Math.min(LABEL_SHIFT_PX, Math.max(0, room))
-              : 0;
+            const visualX = box.width / 2 + cos * ((radius / 100) * side);
 
             return (
               <div
                 key={agent.id}
                 className="oc-node absolute"
+                data-selected={isSelected || undefined}
+                data-attention={isAttention || undefined}
+                data-waiting={needsDecision || undefined}
+                data-working={working || undefined}
+                data-animating={(working && flowEnabled && !rotating) || undefined}
                 style={{
                   left: `${point.x}%`,
                   top: `${point.y}%`,
@@ -505,12 +525,17 @@ export function OrbitDiagram({
                   transform: `translate(-50%, -50%) rotate(${-rotation}deg)`,
                 }}
               >
-                {needsDecision && (
-                  <>
-                    <span aria-hidden className="pointer-events-none absolute -inset-[10%] rounded-full ring-1 ring-warning/30" />
-                    <span aria-hidden className="oc-ripple pointer-events-none absolute -inset-[10%] rounded-full ring-1 ring-warning/45" />
-                  </>
-                )}
+                <svg className="baitly-orbit-rim" viewBox="0 0 100 100" aria-hidden>
+                  <circle className="baitly-orbit-rim-track" cx="50" cy="50" r="47" />
+                  {working && (
+                    <circle
+                      className="baitly-orbit-progress"
+                      data-indeterminate={progress == null || undefined}
+                      cx="50" cy="50" r="47" pathLength="100"
+                      strokeDasharray={`${progress ?? 24} 100`}
+                    />
+                  )}
+                </svg>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -524,42 +549,25 @@ export function OrbitDiagram({
                         t(meta.nameKey),
                         subLabel ?? statusLabel,
                         pending > 0 ? `${pending} ${t('supervision.board.toValidate', 'à valider')}` : null,
+                        propertyCount != null ? `${propertyCount} ${t('supervision.portfolio.propertiesShort')}` : null,
                       ].filter(Boolean).join(' · ')}
                       onClick={() => onSelect(agent.id)}
-                      className={cn(
-                        'relative flex size-full cursor-pointer items-center justify-center rounded-full border bg-card transition-colors duration-100 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                        isSelected && 'border-primary/45 text-foreground ring-1 ring-primary/25',
-                        !isSelected && isAttention && 'border-destructive/60 text-destructive',
-                        !isSelected && !isAttention && needsDecision && 'border-warning/60 text-warning-ink',
-                        !isSelected && !isAttention && !needsDecision && 'border-border text-muted-foreground',
-                        agent.status === 'veille' && !isSelected && 'opacity-70',
-                      )}
+                      className="baitly-orbit-node"
                     >
-                      <span className="flex aspect-square items-center justify-center" style={{ width: 'clamp(14px, 32%, 22px)' }}>
-                        <AgentIcon token={meta.icon} size={18} strokeWidth={1.75} />
+                      <span className="baitly-orbit-icon" aria-hidden>
+                        <AgentIcon token={meta.icon} size={28} strokeWidth={1.6} />
                       </span>
-                      {/* Portefeuille : nb de logements concernés. */}
-                      {agent.badge != null && agent.badge > 0 && (
-                        <span className="absolute -end-1 -top-1 z-10 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground tabular-nums">
-                          {agent.badge}
+                      {badgeCount != null ? (
+                        <span className="baitly-orbit-count" data-kind={propertyCount != null ? 'properties' : 'pending'} aria-hidden>
+                          {propertyCount != null && <Home size={11} strokeWidth={1.8} />}
+                          <bdi dir="ltr">{badgeCount > 99 ? '99+' : badgeCount}</bdi>
+                        </span>
+                      ) : (isAttention || needsDecision) && (
+                        <span className="baitly-orbit-count" data-kind="status" aria-hidden>
+                          {isAttention ? <ErrorOutline size={14} /> : <AccessTime size={13} />}
                         </span>
                       )}
-                      {/* Le compte, a toutes les largeurs. Il n'apparaissait
-                          qu'a l'etroit, la legende s'en chargeant au-dela :
-                          deux rendus pour une meme information, dont un qui
-                          evincait l'etat de l'agent. */}
-                      {agent.badge == null && pending > 0 && (
-                        // Fond de CARTE, opaque. `warning-soft` vaut
-                        // `rgba(…, 0.16)` : l'anneau et les liens du diagramme
-                        // se voyaient au travers, et le nombre devenait illisible
-                        // selon ce qui passait dessous. L'aplat vif n'est pas une
-                        // option non plus — `warning-ink` dessus ne donne que
-                        // 3,06:1, sous le seuil. Le contour et l'encre portent
-                        // donc seuls l'identité d'alerte.
-                        <span className="absolute -end-1 -top-1 z-10 inline-flex min-w-4 items-center justify-center rounded-full border border-warning bg-card px-1 text-[9px] font-bold text-warning-ink tabular-nums">
-                          {pending}
-                        </span>
-                      )}
+                      {working && <span className="baitly-orbit-activity-dot" aria-hidden />}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[16rem] p-0">
@@ -572,27 +580,11 @@ export function OrbitDiagram({
                     dans `aria-label`. Le compte, lui, est toujours sur le nœud :
                     attaché à l'icône, il ne peut recouvrir personne. */}
                 {(!crowded || isSelected || isAttention) && (
-                  <span
-                    className={cn(
-                      'absolute inset-x-0 flex flex-col items-center gap-0.5 leading-tight',
-                      labelAbove ? 'bottom-full mb-2' : 'top-full mt-2',
-                    )}
-                    style={labelShift ? { transform: `translateX(${labelShift.toFixed(1)}px)` } : undefined}
-                  >
-                    <span className="text-xs font-medium whitespace-nowrap text-foreground">
-                      {t(meta.nameKey)}
-                    </span>
-                    {subLabel && (
-                      <span
-                        className={cn(
-                          'text-xs whitespace-nowrap tabular-nums',
-                          isAttention ? 'font-medium text-destructive' : 'text-muted-foreground',
-                        )}
-                      >
-                        {subLabel}
-                      </span>
-                    )}
-                  </span>
+                  <OrbitAgentLabel
+                    name={t(meta.nameKey)} status={subLabel} attention={isAttention}
+                    above={labelAbove} preferredShift={crowded ? Math.sign(cos) * LABEL_SHIFT_PX : 0}
+                    x={visualX} frameWidth={box.width}
+                  />
                 )}
               </div>
             );
@@ -607,9 +599,9 @@ export function OrbitDiagram({
           data-core
           aria-label={t('supervision.hud.orchestrator')}
           className={cn(
-            'absolute inset-0 m-auto flex items-center justify-center rounded-full bg-primary text-primary-foreground',
+            'baitly-orbit-core absolute inset-0 m-auto flex items-center justify-center rounded-full',
             onCoreClick
-              ? 'cursor-pointer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none'
+              ? 'cursor-pointer'
               : 'cursor-default',
           )}
           style={{ width: `${CORE_SIZE}%`, height: `${CORE_SIZE}%` }}

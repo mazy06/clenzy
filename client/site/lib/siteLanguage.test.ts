@@ -23,6 +23,12 @@ describe('Langue du site public', () => {
     expect(resolveSiteLanguage('', ['ar-SA', 'en-US'], null)).toBe('ar');
   });
 
+  it('conserve la langue du HTML prérendu pour une URL sans paramètre', () => {
+    expect(resolveSiteLanguage('', ['en-US'], null, 'fr')).toBe('fr');
+    expect(resolveSiteLanguage('?lang=ar', ['en-US'], null, 'fr')).toBe('ar');
+    expect(resolveSiteLanguage('', ['en-US'], 'ar', 'fr')).toBe('ar');
+  });
+
   it('retient la première langue RECONNUE du navigateur', () => {
     // Un navigateur regle sur ['es-ES', 'ar'] doit donner l'arabe, pas le
     // repli francais.

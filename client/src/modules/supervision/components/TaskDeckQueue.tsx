@@ -29,6 +29,10 @@ import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
 import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
 import { verbFor } from './actionVerbs';
+import { ActionDescription } from './ActionDescription';
+import { ActionIllustratedHeading } from './ActionIllustration';
+import { descriptionTitle } from '../core/actionDescription';
+import { additionalActionReasoning } from '../core/actionReasoning';
 import { familyOf, opensModal } from './actionRegistry';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
@@ -106,6 +110,7 @@ function TaskCard({
     : null;
   // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
   const verb = verbFor(action.applyActionType);
+  const extraReasoning = additionalActionReasoning(action.motif, action.reasoning);
   const tile = `${meta.color}26`; // teinte ~15 % pour la tuile d'icône
 
   return (
@@ -118,7 +123,7 @@ function TaskCard({
       data-urgent={(!payment && !reminder && !cd.expired && cd.hours < 1) || undefined}
       data-behind={behind || undefined}
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-border bg-card p-3.5 min-h-[128px]',
+        'baitly-supervision-surface flex flex-col overflow-hidden rounded-xl border border-border bg-card p-3.5 min-h-[128px]',
         behind ? 'shadow-sm' : 'shadow-md',
         // Contenu masqué pour les cartes derrière (seuls les bords apparaissent).
         '[&>*]:transition-opacity [&>*]:duration-[250ms]',
@@ -150,16 +155,20 @@ function TaskCard({
         )}
       </div>
 
-      {/* Titre (2 lignes max) */}
-      <div className="mt-1.5 mb-auto line-clamp-2 text-xs font-medium leading-snug text-foreground">
-        {action.title}
-      </div>
+      {/* Titre et contenu métier, identiques aux autres vues. */}
+      <ActionIllustratedHeading action={action}>
+        <div className="text-sm font-semibold leading-snug text-foreground">
+          {descriptionTitle(action)}
+        </div>
+      </ActionIllustratedHeading>
+
+      <ActionDescription action={action} />
 
       {/* Pied : action primaire / secondaire / chevron « Pourquoi ? » */}
-      <div className="flex gap-1.5 mt-2">
+      <div className="flex flex-wrap gap-1.5 mt-3">
         <Button
           size="sm"
-          className="flex-1"
+          className="baitly-hitl-primary flex-1"
           onClick={
             reviewId != null
               ? () => {
@@ -190,13 +199,9 @@ function TaskCard({
           ) : priceAdjust ? (
             t('supervision.price.adjustCta', 'Ajuster les tarifs')
           ) : payment ? (
-            <>{t('supervision.payment.settle', 'Régler')}{action.amountEur != null && (
-              <span className="ms-auto ps-1"><Money value={action.amountEur} from="EUR" /></span>
-            )}</>
+            t('supervision.payment.settle', 'Régler')
           ) : apply ? (
-            <>{t(verb.labelKey, verb.fallback)}{action.amountEur != null && (
-              <span className="ms-auto ps-1">+<Money value={action.amountEur} from="EUR" decimals={0} /></span>
-            )}</>
+            t(verb.labelKey, verb.fallback)
           ) : guestCard ? t('supervision.guestCard.cta', 'Compléter la fiche client')
             : reminder ? t('supervision.reminder.ack', 'Info reçue') : t('supervision.hitl.validate')}
         </Button>
@@ -208,7 +213,7 @@ function TaskCard({
           {payment ? <Schedule size={13} /> : <VisibilityOff size={13} />}
           {payment ? t('supervision.payment.later', 'Plus tard') : reminder ? t('supervision.reminder.mute', 'Ne plus afficher') : t('supervision.apply.dismiss', 'Ignorer')}
         </Button>
-        <Button
+        {extraReasoning && <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setWhy((w) => !w)}
@@ -217,18 +222,18 @@ function TaskCard({
           className="w-[34px] rounded-md border border-border text-muted-foreground"
         >
           <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
-        </Button>
+        </Button>}
       </div>
 
       {/* Collapsible pilote (pas de trigger interne) : le bouton « Pourquoi ? »
           ci-dessus porte deja l'etat `why`. */}
-      <Collapsible open={why}>
+      {extraReasoning && <Collapsible open={why}>
         <CollapsibleContent>
           <div className="mt-2 border-t border-border pt-2 text-2xs leading-relaxed text-muted-foreground">
-            {action.reasoning}
+            {extraReasoning}
           </div>
         </CollapsibleContent>
-      </Collapsible>
+      </Collapsible>}
     </div>
   );
 }

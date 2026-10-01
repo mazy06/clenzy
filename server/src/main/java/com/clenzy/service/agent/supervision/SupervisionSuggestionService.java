@@ -129,6 +129,27 @@ public class SupervisionSuggestionService {
         }
     }
 
+    /** Lie aussi les alertes informatives à leur article, sans leur ajouter d'action exécutable. */
+    @Transactional
+    public void recordStockAlert(Long organizationId, Long propertyId, String title, String motif, Long stockItemId) {
+        record(organizationId, propertyId, "ops", "stock_low", title, motif);
+        if (stockItemId == null || organizationId == null || propertyId == null || title == null) return;
+        try {
+            repository.findFirstByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                    organizationId, propertyId, "ops", truncate(title.strip(), TITLE_MAX),
+                    SupervisionSuggestion.STATUS_PENDING, clock.instant()).ifPresent(s -> {
+                if (s.getActionType() != null || !"stock_low".equals(s.getToolName())) return;
+                String params = "{\"stockItemId\":" + stockItemId + "}";
+                if (!params.equals(s.getActionParams())) {
+                    s.setActionParams(params);
+                    repository.save(s);
+                }
+            });
+        } catch (Exception e) {
+            log.debug("Stock visual link unavailable (property={}): {}", propertyId, e.getMessage());
+        }
+    }
+
     /**
      * Cartes PENDING d'un scanner (par {@code toolName}) pour un logement — support de
      * l'auto-résolution déterministe d'un scanner (fermer les cartes dont la situation
@@ -338,10 +359,13 @@ public class SupervisionSuggestionService {
             // requete supplementaire dans la boucle de scan.
             java.util.Map<String, Object> facts = NotificationMetadata.of()
                     .supervision(suggestion.getId(), suggestion.getModuleKey(), suggestion.getActionType())
+                    .sourceTool(suggestion.getToolName())
+                    .priceDirection(priceDirection(suggestion.getActionType(), suggestion.getActionParams()))
                     .propertyId(suggestion.getPropertyId())
                     .reservationId(suggestion.getReservationId())
                     .reviewId(longParam(suggestion.getActionParams(), NotificationMetadata.REVIEW_ID))
                     .deviceId(longParam(suggestion.getActionParams(), NotificationMetadata.DEVICE_ID))
+                    .stockItemId(longParam(suggestion.getActionParams(), NotificationMetadata.STOCK_ITEM_ID))
                     .build();
             notificationService.notifyAdminsAndManagersByOrgId(suggestion.getOrganizationId(),
                     NotificationKey.SUPERVISION_SUGGESTION, suggestion.getTitle(),
@@ -351,6 +375,15 @@ public class SupervisionSuggestionService {
         } catch (Exception e) {
             log.debug("supervision suggestion notification failed (org={}): {}",
                     suggestion.getOrganizationId(), e.getMessage());
+        }
+    }
+
+    private static String priceDirection(String actionType, String actionParams) {
+        if (actionParams == null || actionParams.isBlank()) return null;
+        try {
+            return NotificationMetadata.priceDirection(actionType, PARAMS_MAPPER.readTree(actionParams));
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -537,6 +570,16 @@ public class SupervisionSuggestionService {
                 transactionTemplate.executeWithoutResult(status ->
                         repository.revertApplied(suggestionId, organizationId));
                 throw e;
+            }
+        }
+        if (SupervisionActionType.LINEN_STOCK_ORDER.equals(suggestion.getActionType())) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> repository.archiveStockOrder(
+                        suggestionId, organizationId, suggestion.getActionParams()));
+            } catch (RuntimeException e) {
+                // L'email est déjà parti : garder APPLIED, même si l'archive est indisponible.
+                // La vue historique affichera explicitement les informations non archivées.
+                log.warn("Archive de commande indisponible pour la suggestion {}", suggestionId, e);
             }
         }
         // Feed « En direct » : l'apply HUMAIN laisse une trace, comme le chemin auto

@@ -7,16 +7,12 @@ import { Spinner } from '../../../components/ui';
 import {
   Button,
   Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   Input,
   Separator,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter } from '../../supervision/components/ActionModal';
 import {
-  Close,
-  Person,
   Email,
   Phone,
   CalendarMonth,
@@ -34,7 +30,7 @@ import type { ReservationStatus, ReservationSource } from '../../../services/api
 
 /** Couleur Signature du statut (mêmes constantes que les briques du planning). */
 const statusTokenColor = (status: string): string =>
-  RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--muted)';
+  RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--bui-muted-foreground)';
 
 interface GuestCardDialogProps {
   open: boolean;
@@ -51,7 +47,7 @@ interface GuestCardDialogProps {
  * l'edition, et la fiche ne se transforme pas en formulaire.
  */
 const CHAMP_EN_PLACE =
-  'h-auto w-full rounded-none border-0 border-b border-solid border-[var(--line-2)] bg-transparent px-0 py-0.5 focus-visible:border-[var(--accent)] focus-visible:ring-0';
+  'h-auto w-full rounded-none border-0 border-b border-solid border-[var(--bui-border)] bg-transparent px-0 py-0.5 focus-visible:border-[var(--bui-supervision-navy)] focus-visible:ring-0';
 
 const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reservation, allEvents, onUpdateGuestInfo }) => {
   const { t } = useTranslation();
@@ -160,30 +156,15 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent
-        className="sm:max-w-[600px]"
-        showCloseButton={false}
-        aria-describedby={undefined}
-      >
-        <DialogHeader className="flex-row items-center justify-between gap-0">
-          <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold">
-            <span className="inline-flex text-[var(--brand-ink)]"><Person size={20} strokeWidth={1.75} /></span>
-            {t('planning.panel.guest.title', 'Fiche client')}
-          </DialogTitle>
-          <Button variant="ghost" size="icon-sm" aria-label={t('planning.panel.guest.close', 'Fermer')} onClick={onClose}>
-            <Close size={'1rem'} strokeWidth={1.75} />
-          </Button>
-        </DialogHeader>
-
-        {/* max-h + scroll : le Dialog MUI faisait defiler son contenu, la coque du
-            kit ne borne pas la hauteur — sans cela la fiche deborde de l'ecran. */}
-        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <ActionModalContent className="sm:max-w-[640px] baitly-guest-modal">
+        <ActionModalHeader title={t('planning.panel.guest.title', 'Fiche client')} description={reservation.propertyName} />
+        <ActionModalBody>
           {/* Header — Avatar + Name + Contact */}
           <div className="flex items-start gap-3">
             {/* Avatar initiales : pattern messagerie (carré arrondi r13, accent,
                 initiales display) — pas de rond plein */}
-            <div className="w-[52px] h-[52px] rounded-[13px] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)] font-[family-name:var(--font-display)] text-[1.125rem] font-semibold shrink-0 mt-0.5">
+            <div className="w-[52px] h-[52px] rounded-[13px] bg-[var(--bui-supervision-navy)] flex items-center justify-center text-[var(--bui-supervision-on-navy)] font-[family-name:var(--font-display)] text-[1.125rem] font-semibold shrink-0 mt-0.5">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
@@ -195,7 +176,6 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={handleEditKeyDown}
-                    onBlur={commitEdit}
                     disabled={saving}
                     aria-label={t('planning.panel.guest.nameAria', 'Nom du voyageur')}
                     className={cn(CHAMP_EN_PLACE, 'text-[1rem] font-bold')}
@@ -205,12 +185,15 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               ) : (
                 <div
                   onClick={() => startEdit('name')}
+                    role={onUpdateGuestInfo ? 'button' : undefined}
+                    tabIndex={onUpdateGuestInfo ? 0 : undefined}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit('name'); } }}
                   className={cn(
                     'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px]',
                     // Variante unique '&:hover .edit-hint' : evite toute ambiguite
                     // d'ordre entre les variantes hover: et [&_...]:
                     onUpdateGuestInfo
-                      ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                      ? 'cursor-pointer hover:bg-[var(--bui-supervision-soft)] [&:hover_.edit-hint]:opacity-100'
                       : 'cursor-default',
                   )}
                 >
@@ -218,9 +201,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     {displayName}
                   </p>
                   {onUpdateGuestInfo && (
-                    <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></span>
+                    <span className="edit-hint inline-flex text-[var(--bui-muted-foreground)] ms-auto" style={{ transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></span>
                   )}
-                  {saved === 'name' && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
+                  {saved === 'name' && <span className="inline-flex text-[var(--bui-success-ink)]"><Check size={14} strokeWidth={1.75} /></span>}
                 </div>
               )}
 
@@ -242,28 +225,31 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     />
                     {saving ? <Spinner className="size-3" /> : (
                       <Button variant="ghost" size="icon-xs" aria-label={t('planning.panel.guest.emailConfirm', "Valider l'email")} onClick={commitEdit}>
-                        <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>
+                        <span className="inline-flex text-[var(--bui-success-ink)]"><Check size={14} strokeWidth={1.75} /></span>
                       </Button>
                     )}
                   </div>
                 ) : (
                   <div
                     onClick={() => startEdit('email')}
+                    role={onUpdateGuestInfo ? 'button' : undefined}
+                    tabIndex={onUpdateGuestInfo ? 0 : undefined}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit('email'); } }}
                     className={cn(
                       'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px] py-[1.5px]',
                       onUpdateGuestInfo
-                        ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                        ? 'cursor-pointer hover:bg-[var(--bui-supervision-soft)] [&:hover_.edit-hint]:opacity-100'
                         : 'cursor-default',
                     )}
                   >
                     <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
-                    <p className={cn('cn-text-body1 text-[0.75rem]', displayEmail ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayEmail ? 'not-italic' : 'italic')}>
+                    <p className={cn('cn-text-body1 text-[0.75rem]', displayEmail ? 'text-[var(--bui-muted-foreground)]' : 'text-[var(--bui-muted-foreground)]', displayEmail ? 'not-italic' : 'italic')}>
                       {displayEmail || t('planning.panel.guest.addEmail', 'Ajouter un email')}
                     </p>
                     {onUpdateGuestInfo && (
-                      <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
+                      <span className="edit-hint inline-flex text-[var(--bui-muted-foreground)] ms-auto" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
                     )}
-                    {saved === 'email' && <span className="inline-flex text-[var(--ok)]"><Check size={12} strokeWidth={1.75} /></span>}
+                    {saved === 'email' && <span className="inline-flex text-[var(--bui-success-ink)]"><Check size={12} strokeWidth={1.75} /></span>}
                   </div>
                 )}
 
@@ -276,7 +262,6 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
-                      onBlur={commitEdit}
                       disabled={saving}
                       placeholder="+33 6 12 34 56 78"
                       aria-label={t('planning.panel.guest.phoneAria', 'Téléphone du voyageur')}
@@ -287,21 +272,24 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 ) : (
                   <div
                     onClick={() => startEdit('phone')}
+                    role={onUpdateGuestInfo ? 'button' : undefined}
+                    tabIndex={onUpdateGuestInfo ? 0 : undefined}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit('phone'); } }}
                     className={cn(
                       'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px] py-[1.5px]',
                       onUpdateGuestInfo
-                        ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                        ? 'cursor-pointer hover:bg-[var(--bui-supervision-soft)] [&:hover_.edit-hint]:opacity-100'
                         : 'cursor-default',
                     )}
                   >
                     <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
-                    <p className={cn('cn-text-body1 text-[0.75rem]', displayPhone ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayPhone ? 'not-italic' : 'italic')}>
+                    <p className={cn('cn-text-body1 text-[0.75rem]', displayPhone ? 'text-[var(--bui-muted-foreground)]' : 'text-[var(--bui-muted-foreground)]', displayPhone ? 'not-italic' : 'italic')}>
                       {displayPhone || t('planning.panel.guest.addPhone', 'Ajouter un téléphone')}
                     </p>
                     {onUpdateGuestInfo && (
-                      <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
+                      <span className="edit-hint inline-flex text-[var(--bui-muted-foreground)] ms-auto" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
                     )}
-                    {saved === 'phone' && <span className="inline-flex text-[var(--ok)]"><Check size={12} strokeWidth={1.75} /></span>}
+                    {saved === 'phone' && <span className="inline-flex text-[var(--bui-success-ink)]"><Check size={12} strokeWidth={1.75} /></span>}
                   </div>
                 )}
               </div>
@@ -309,7 +297,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
           </div>
 
           {/* Stats */}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatBox label={t('planning.panel.guest.stays', 'Séjours')} value={String(guestReservations.length)} />
             <StatBox
               label={t('planning.panel.guest.totalSpent', 'Total dépensé')}
@@ -335,8 +323,8 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
             <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground mb-1">
               {t('planning.panel.guest.current', 'Réservation actuelle')}
             </p>
-            <div className="border border-[var(--accent)] rounded-[10px] p-2 bg-[var(--accent-soft)]">
-              <div className="flex justify-between items-start">
+            <div className="py-3">
+              <div className="flex flex-wrap justify-between items-start gap-3">
                 <div>
                   <div className="flex items-center gap-0.5 mb-0.5">
                     <span className="inline-flex text-muted-foreground"><Home size={14} strokeWidth={1.75} /></span>
@@ -397,7 +385,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 <div className="flex flex-col gap-0.5">
                   {guestReservations
                     .flatMap((r) => (r.id !== reservation.id ? [(
-                      <div className="flex justify-between items-center border border-[var(--bui-border)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
+                      <div className="flex flex-wrap justify-between items-center gap-3 border-b border-[var(--bui-border)] py-3" key={r.id}>
                         <div>
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             {r.propertyName}
@@ -430,8 +418,14 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               </div>
             </>
           )}
-        </div>
-      </DialogContent>
+        </ActionModalBody>
+        <ActionModalFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>{t('planning.panel.guest.close', 'Fermer')}</Button>
+          {editingField && <Button onClick={commitEdit} disabled={saving}>
+            {saving && <Spinner />}{t('common.save', 'Enregistrer')}
+          </Button>}
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 };
@@ -454,11 +448,11 @@ function formatDate(dateStr: string, fmt: DateFormatApi): string {
 
 function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex-1 border border-[var(--bui-border)] rounded-[10px] px-1.5 py-1 text-center">
-      <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] font-bold">
+    <div className="min-w-0">
+      <p className="cn-text-body1 text-xs text-[var(--bui-muted-foreground)]">
         {label}
       </p>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold mt-0.5 tabular-nums">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-base font-medium mt-1.5 tabular-nums">
         {value}
       </p>
     </div>

@@ -26,11 +26,13 @@ public class PropertyStockController {
     /** Shape stable (jamais l'entité — règle audit n°5). */
     public record StockItemDto(Long id, String name, String category, String unit,
                                int quantity, int reorderThreshold, int reorderQuantity,
-                               int consumptionPerStay, String supplierName, String supplierEmail) {
+                               int consumptionPerStay, String supplierName, String supplierEmail,
+                               String catalogKey, String photoUrl) {
         static StockItemDto from(PropertyStockItem i) {
             return new StockItemDto(i.getId(), i.getName(), i.getCategory().name(), i.getUnit(),
                     i.getQuantity(), i.getReorderThreshold(), i.getReorderQuantity(),
-                    i.getConsumptionPerStay(), i.getSupplierName(), i.getSupplierEmail());
+                    i.getConsumptionPerStay(), i.getSupplierName(), i.getSupplierEmail(),
+                    i.getCatalogKey(), i.getPhotoUrl());
         }
     }
 
@@ -65,6 +67,8 @@ public class PropertyStockController {
         final PropertyStockItem item = new PropertyStockItem();
         item.setId(request.id());
         item.setName(request.name());
+        item.setCatalogKey(request.catalogKey());
+        item.setPhotoUrl(request.photoUrl());
         item.setCategory(request.category() != null
                 ? PropertyStockItem.Category.valueOf(request.category())
                 : PropertyStockItem.Category.LINEN);

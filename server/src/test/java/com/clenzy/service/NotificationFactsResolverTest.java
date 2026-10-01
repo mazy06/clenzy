@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.model.Guest;
+import com.clenzy.dto.NotificationDto;
 import com.clenzy.model.Notification;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SupervisionSuggestion;
@@ -268,6 +269,97 @@ class NotificationFactsResolverTest {
                 List.of(notification(1L, 7L, "{\"suggestionId\":551}")));
 
         assertThat(facts).isEmpty();
+    }
+
+    @Test
+    void historicalRestocksRecoverTheirItemInOneBatchAndKeepEmittedFacts() {
+        SupervisionSuggestion stockCard = card(551L, 7L, null);
+        stockCard.setActionParams("{\"stockItemId\":42}");
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(stockCard));
+        Notification historical = notification(1L, 7L, "{\"suggestionId\":551}");
+        Notification current = notification(2L, 7L, "{\"suggestionId\":551,\"stockItemId\":43}");
+
+        Map<Long, NotificationFactsResolver.ReadFacts> facts = resolver.forNotifications(List.of(historical, current));
+
+        assertThat(facts.get(1L).stockItemId()).isEqualTo(42L);
+        assertThat(NotificationDto.fromEntity(historical, facts.get(1L)).metadata.get("stockItemId").asLong()).isEqualTo(42L);
+        assertThat(NotificationDto.fromEntity(current, facts.get(2L)).metadata.get("stockItemId").asLong()).isEqualTo(43L);
+        assertThat(historical.getMetadata()).isEqualTo("{\"suggestionId\":551}");
+        verify(suggestionRepository, times(1)).findAllById(anyIterable());
+        verify(reservationRepository, never()).findAllWithGuestByIdIn(anyCollection());
+    }
+
+    @Test
+    void historicalCardsRecoverTheirSemanticIdentityInOneBatchEvenWithAKnownStay() {
+        SupervisionSuggestion assignment = card(551L, 7L, null);
+        assignment.setActionType("REASSIGN_MANUAL");
+        assignment.setModuleKey("ops");
+        SupervisionSuggestion pricing = card(552L, 7L, 11L);
+        pricing.setActionType("PRICE_DROP");
+        pricing.setModuleKey("rev");
+        pricing.setActionParams("{\"direction\":\"up\",\"privateNote\":\"never expose\"}");
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(assignment, pricing));
+        when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
+                .thenReturn(List.of(reservation(11L, 7L, null)));
+        Notification request = notification(1L, 7L, "{\"suggestionId\":551}");
+        Notification price = notification(2L, 7L, "{\"suggestionId\":552,\"reservationId\":11}");
+
+        var facts = resolver.forNotifications(List.of(request, price));
+        var requestDto = NotificationDto.fromEntity(request, facts.get(1L));
+        var priceDto = NotificationDto.fromEntity(price, facts.get(2L));
+
+        assertThat(requestDto.metadata.path("actionType").asText()).isEqualTo("REASSIGN_MANUAL");
+        assertThat(requestDto.metadata.path("module").asText()).isEqualTo("ops");
+        assertThat(priceDto.metadata.path("actionType").asText()).isEqualTo("PRICE_DROP");
+        assertThat(priceDto.metadata.path("priceDirection").asText()).isEqualTo("up");
+        assertThat(priceDto.metadata.has("privateNote")).isFalse();
+        assertThat(priceDto.metadata.has("actionParams")).isFalse();
+        assertThat(facts.get(2L).reservationId()).isNull();
+        assertThat(request.getMetadata()).isEqualTo("{\"suggestionId\":551}");
+        verify(suggestionRepository, times(1)).findAllById(anyIterable());
+    }
+
+    @Test
+    void emittedActionFactsKeepTheirHistoricalMeaning() {
+        SupervisionSuggestion pricing = card(551L, 7L, 22L);
+        pricing.setActionType("PRICE_DROP");
+        pricing.setModuleKey("rev");
+        pricing.setToolName("new_scanner");
+        pricing.setActionParams("{\"direction\":\"up\"}");
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(pricing));
+        when(reservationRepository.findAllWithGuestByIdIn(anyCollection()))
+                .thenReturn(List.of(reservation(11L, 7L, null)));
+        Notification row = notification(1L, 7L, "{\"suggestionId\":551,\"reservationId\":11,"
+                + "\"actionType\":\"PRICE_DROP\",\"module\":\"rev\",\"sourceTool\":\"original_scanner\",\"priceDirection\":\"down\"}");
+        var facts = resolver.forNotifications(List.of(row));
+        var dto = NotificationDto.fromEntity(row, facts.get(1L));
+        assertThat(dto.metadata.path("priceDirection").asText()).isEqualTo("down");
+        assertThat(dto.metadata.path("sourceTool").asText()).isEqualTo("original_scanner");
+        assertThat(dto.metadata.path("reservationId").asLong()).isEqualTo(11L);
+        verify(reservationRepository).findAllWithGuestByIdIn(java.util.Set.of(11L));
+    }
+
+    @Test
+    void foreignOrDeletedCardsNeverProvideArtworkFacts() {
+        SupervisionSuggestion foreign = card(551L, 999L, null);
+        foreign.setActionType("PRICE_DROP");
+        foreign.setActionParams("{\"direction\":\"up\"}");
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(foreign));
+        assertThat(resolver.forNotifications(List.of(
+                notification(1L, 7L, "{\"suggestionId\":551}"),
+                notification(2L, null, "{\"suggestionId\":551}"),
+                notification(3L, 7L, "{\"suggestionId\":552}")))).isEmpty();
+    }
+
+    @Test
+    void restockCardFromAnotherOrganizationOrUnscopedNotificationExposesNoItem() {
+        SupervisionSuggestion stockCard = card(551L, 999L, null);
+        stockCard.setActionParams("{\"stockItemId\":42}");
+        when(suggestionRepository.findAllById(anyIterable())).thenReturn(List.of(stockCard));
+
+        assertThat(resolver.forNotifications(List.of(
+                notification(1L, 7L, "{\"suggestionId\":551}"),
+                notification(2L, null, "{\"suggestionId\":551}")))).isEmpty();
     }
 
     @Test
