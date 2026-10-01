@@ -35,7 +35,7 @@ describe('Vignettes des notifications', () => {
   it('couvre chaque notification déclarée par le serveur, même sans métadonnées', () => {
     const source = readFileSync(resolve(process.cwd(), '../server/src/main/java/com/clenzy/model/NotificationKey.java'), 'utf8');
     const keys = [...source.matchAll(/^\s+([A-Z_]+)\(NotificationType\./gm)].map(match => match[1]);
-    expect(keys.length).toBeGreaterThanOrEqual(152);
+    expect(keys.length).toBeGreaterThanOrEqual(151);
     const missing = keys.filter(notificationKey => !notificationVisual(notification({ notificationKey, metadata: null })));
     expect(missing).toEqual([]);
   });
@@ -98,7 +98,7 @@ describe('Vignettes des notifications', () => {
     ['INTERVENTION_CREATED', 'INTERVENTION_CANCELLED'], ['INTERVENTION_COMPLETED', 'INTERVENTION_OVERDUE'],
     ['DOCUMENT_GENERATED', 'DOCUMENT_GENERATION_FAILED'], ['ICAL_IMPORT_SUCCESS', 'ICAL_IMPORT_FAILED'],
     ['INCIDENT_OPENED', 'INCIDENT_RESOLVED'], ['NOISE_ALERT_CRITICAL', 'NOISE_ALERT_RESOLVED'],
-    ['REVIEW_RECEIVED', 'REVIEW_NEGATIVE_ALERT'], ['PAYOUT_SENT', 'PAYOUT_BLOCKED_ONBOARDING'],
+    ['PAYOUT_SENT', 'PAYOUT_BLOCKED_ONBOARDING'],
   ])('ne confond plus %s avec %s', (first, second) => {
     const visual = (notificationKey: string) => notificationVisual(notification({ notificationKey, metadata: null }));
     expect(visual(first)).not.toEqual(visual(second));

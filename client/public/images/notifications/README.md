@@ -187,7 +187,6 @@ Les réassorts gardent leur photo d’article, avec leur bibliothèque spécifiq
 | NOISE_ALERT_RESOLVED | [Retour au calme](noise-resolved.webp) |
 | NOISE_ALERT_CONFIG_CHANGED | [Nuisances sonores](../hitl/noise.webp) |
 | REVIEW_RECEIVED | [Avis voyageurs](../hitl/reviews.webp) |
-| REVIEW_NEGATIVE_ALERT | [Avis négatif à traiter](review-negative.webp) |
 | IOT_SMOKE_DETECTED | [Détection de fumée](smoke-alert.webp) |
 
 SUPERVISION_SUGGESTION sélectionne l’action liée, puis un repli lié à l’agent.

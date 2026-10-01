@@ -193,7 +193,6 @@ export const EVENT_ILLUSTRATIONS: Readonly<Record<string, NotificationIllustrati
   NOISE_ALERT_CONFIG_CHANGED: 'noise',
 
   REVIEW_RECEIVED: 'reviews',
-  REVIEW_NEGATIVE_ALERT: 'review-negative',
 
   IOT_SMOKE_DETECTED: 'smoke-alert',
 };
