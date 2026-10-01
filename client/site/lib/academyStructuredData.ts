@@ -3,15 +3,14 @@
   Utilisées par l'outillage de build (en-têtes HTML prégénérés, lus par les moteurs de recherche) et
   par SiteMetadata lors de la navigation dans le site. Chaque chapitre devient un Clip avec un lien
   horodaté (?t=) que la page sait ouvrir : les moteurs peuvent alors afficher les moments clés.
-  La transcription, qui n'est pas affichée sur la page, n'est portée que par ces données
-  (propriété `transcript`) et par la version Markdown de la page.
+  La transcription est aussi consultable sur la page et dans sa version Markdown.
 */
 import {
   academyPosterUrl,
   academyVideoUrl,
   type AcademyEpisode,
 } from '../data/baitlyAcademyVideos';
-import { ACADEMY_TRANSCRIPTS } from '../data/baitlyAcademyTranscripts';
+import { academyTranscript } from './academyTranscript';
 import { BAITLY_ACADEMY_MESSAGES } from './messages/baitlyAcademy';
 import type { SiteLanguage } from './siteLanguage';
 
@@ -35,6 +34,7 @@ export function academyVideoMetadata(
 ): AcademyVideoMetadata {
   const text = BAITLY_ACADEMY_MESSAGES[language].episodes[episode.slug];
   const page = `${origin}/ressources/academie/${episode.slug}`;
+  const canonical = `${page}${language === 'fr' ? '' : `?lang=${language}`}`;
   const at = (seconds: number) =>
     `${page}?${language === 'fr' ? '' : `lang=${language}&`}t=${Math.round(seconds)}`;
   const poster = origin + academyPosterUrl(episode, '16x9');
@@ -45,15 +45,20 @@ export function academyVideoMetadata(
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'VideoObject',
+      '@id': `${canonical}#video`,
+      url: canonical,
+      mainEntityOfPage: canonical,
       name: text.title,
       description: text.description,
       thumbnailUrl: [poster, origin + academyPosterUrl(episode, '9x16')],
       uploadDate: episode.uploadDate,
       duration: isoDuration(episode.duration),
       contentUrl: video,
-      inLanguage: episode.languages.includes(language) ? language : episode.languages[0],
+      inLanguage: episode.languages.includes(language)
+        ? language
+        : episode.languages[0],
       isAccessibleForFree: true,
-      transcript: ACADEMY_TRANSCRIPTS[episode.slug]?.[language] ?? ACADEMY_TRANSCRIPTS[episode.slug]?.fr,
+      transcript: academyTranscript(episode.slug, language)?.text,
       publisher: { '@type': 'Organization', name: 'Baitly', url: origin },
       hasPart: episode.chapters.map((start, index) => ({
         '@type': 'Clip',
@@ -68,4 +73,7 @@ export function academyVideoMetadata(
 
 /** JSON sûr dans une balise <script> : aucun « </script> » ni commentaire HTML possible. */
 export const scriptSafeJson = (value: unknown) =>
-  JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+  JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');

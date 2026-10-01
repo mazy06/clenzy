@@ -46,6 +46,16 @@
   line-height: 1.25;
   text-wrap: balance;
 }
+.baitly-static-video {
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--bl-radius-control);
+}
+.baitly-static-video:focus-visible {
+  outline: 3px solid var(--bl-accent);
+  outline-offset: 3px;
+}
 .baitly-static-reading h3 {
   margin-block: 28px 12px;
   font-size: 20px;

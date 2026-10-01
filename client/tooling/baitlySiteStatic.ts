@@ -1,10 +1,13 @@
-import { createElement } from 'react';
+import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Markdown from 'react-markdown';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 import { LAYOUT_MESSAGES } from '../site/lib/messages/layout';
 import { LEGAL_COUNTRIES, guidePath } from '../site/data/legal';
 import { canonicalUrl } from '../site/lib/siteSeo';
+import { academyEpisode } from '../site/data/baitlyAcademyVideos';
+import { academyVideoMetadata } from '../site/lib/academyStructuredData';
+import { SITE_ORIGIN } from '../site/lib/siteSeo';
 
 /** Public, visible HTML from the same editorial copy as the interactive site.
  * No user-agent detection, remote fetches, application data or hidden text.
@@ -15,6 +18,10 @@ export function siteStaticHtml(
   language: SiteLanguage,
 ): string {
   const m = LAYOUT_MESSAGES[language];
+  const episode = path.startsWith('/ressources/academie/')
+    ? academyEpisode(path.split('/').pop())
+    : undefined;
+  const video = episode && academyVideoMetadata(episode, language, SITE_ORIGIN);
   const nav = [
     { label: 'Baitly', href: `/?lang=${language}` },
     { label: m.footer.columns.resources, href: `/ressources?lang=${language}` },
@@ -66,7 +73,30 @@ export function siteStaticHtml(
       createElement(
         'main',
         { id: 'site-content', className: 'site-shell baitly-static-reading' },
-        createElement(Markdown, { children: markdown, skipHtml: true }),
+        createElement(Markdown, {
+          children: markdown,
+          skipHtml: true,
+          components: video
+            ? {
+                // The watch page is playable and its media URL discoverable before JavaScript runs.
+                h1: ({ children }) =>
+                  createElement(
+                    Fragment,
+                    null,
+                    createElement('h1', null, children),
+                    createElement('video', {
+                      controls: true,
+                      playsInline: true,
+                      preload: 'none',
+                      src: video.video,
+                      poster: video.poster,
+                      'aria-label': String(video.jsonLd.name),
+                      className: 'baitly-static-video',
+                    }),
+                  ),
+              }
+            : undefined,
+        }),
       ),
       createElement(
         'footer',

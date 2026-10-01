@@ -181,7 +181,7 @@ export function metadataHtml(
   const head = [
     `<title>${escape(page.title)}</title>`,
     `<meta name="description" content="${escape(page.description)}">`,
-    `<meta name="robots" content="${robotsDirective(page.index)}">`,
+    `<meta name="robots" content="${robotsDirective(page.index, Boolean(page.video))}">`,
     `<link rel="canonical" href="${escape(url)}">`,
     ...(page.availableLanguages ?? DISCOVERY_LANGUAGES).map(
       (lang) =>
@@ -283,8 +283,8 @@ export function baitlySiteSeo(): Plugin {
       if (source === id) return '\0' + id;
     },
     async load(source) {
-      // Le navigateur n'a pas besoin des transcriptions (plusieurs Ko par épisode et par langue) :
-      // elles restent dans les en-têtes HTML prégénérés, lus par les moteurs de recherche.
+      // Éviter de dupliquer les transcriptions dans le catalogue de métadonnées du navigateur :
+      // le lecteur les importe déjà pour leur consultation, et le HTML prégénéré les porte en JSON-LD.
       if (source === '\0' + id)
         return `export default ${JSON.stringify(await loadCatalog(), (key, value) => (key === 'transcript' ? undefined : value))}`;
     },

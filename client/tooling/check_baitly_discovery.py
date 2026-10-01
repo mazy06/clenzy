@@ -2,16 +2,41 @@
 """Exercise built Baitly HTTP discovery with native nginx, never Docker or a preview."""
 import argparse
 import http.client
+import json
 import os
 from pathlib import Path
 import shutil
 import socket
 import subprocess
 import tempfile
+from html.parser import HTMLParser
 import time
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from urllib.parse import urlsplit
+
+
+class WatchPage(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.video = None
+        self.json_ld = ''
+        self.in_json_ld = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'video':
+            self.video = attrs
+        if tag == 'script' and attrs.get('id') == 'baitly-video-ld':
+            self.in_json_ld = True
+
+    def handle_data(self, data):
+        if self.in_json_ld:
+            self.json_ld += data
+
+    def handle_endtag(self, tag):
+        if tag == 'script':
+            self.in_json_ld = False
 
 
 @contextmanager
@@ -82,6 +107,24 @@ def check(client, binary):
             status, headers, body = request(port, "/robots.txt", host=host)
             assert status == 200 and headers["content-type"] == "text/plain; charset=utf-8"
             assert "Sitemap: https://baitly.fr/sitemap.xml" in body
+            assert "Sitemap: https://baitly.fr/sitemap-videos.xml" in body
+        status, headers, body = request(port, '/sitemap-videos.xml')
+        assert status == 200 and headers['content-type'] == 'application/xml; charset=utf-8'
+        video_entries = ET.fromstring(body).findall('{*}url')
+        assert video_entries
+        for entry in video_entries:
+            loc = entry.findtext('{*}loc')
+            assert loc in urls, loc
+            parsed = urlsplit(loc)
+            status, _, html = request(port, parsed.path + (f'?{parsed.query}' if parsed.query else ''))
+            assert status == 200
+            watch = WatchPage()
+            watch.feed(html)
+            data = json.loads(watch.json_ld)
+            assert watch.video and 'controls' in watch.video, loc
+            assert watch.video['src'] == data['contentUrl'] == entry.findtext('{*}video/{*}content_loc'), loc
+            assert watch.video['poster'] == data['thumbnailUrl'][0] == entry.findtext('{*}video/{*}thumbnail_loc'), loc
+            assert data['mainEntityOfPage'] == loc, loc
         for url in urls:
             parsed = urlsplit(url)
             path = parsed.path + (f"?{parsed.query}" if parsed.query else "")
@@ -132,9 +175,10 @@ def check(client, binary):
     with nginx_server(binary, client, "dist", False) as port:
         assert request(port, "/robots.txt")[0] == 200
         assert request(port, "/sitemap.xml")[0] == 404
+        assert request(port, "/sitemap-videos.xml")[0] == 404
         assert request(port, "/", "text/markdown")[1]["content-type"].startswith("text/html")
         assert "link" not in request(port, "/")[1]
-    print(f"PASS: {len(urls)} canonical sitemap URLs, {count} Markdown representations, GET/HEAD, Accept/q=0, languages, cache, Link, multiple hosts, private paths and PMS isolation")
+    print(f"PASS: {len(urls)} canonical sitemap URLs, {len(video_entries)} videos, {count} Markdown representations, GET/HEAD, Accept/q=0, languages, cache, Link, multiple hosts, private paths and PMS isolation")
 
 
 if __name__ == "__main__":

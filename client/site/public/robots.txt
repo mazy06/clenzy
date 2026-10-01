@@ -1,5 +1,6 @@
 # Baitly marketing site: public pages may be crawled.
 User-agent: *
+# Includes public Academy watch pages, videos and thumbnails.
 Allow: /
 
 # Application and account workflows are not crawl targets.

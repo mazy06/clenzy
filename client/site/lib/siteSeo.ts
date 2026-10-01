@@ -8,8 +8,10 @@ export const canonicalPath = (path: string) =>
 export const canonicalUrl = (path: string, language: SiteLanguage = 'fr') =>
   `${SITE_ORIGIN}${canonicalPath(path)}${language === 'fr' ? '' : `?lang=${language}`}`;
 
-export const robotsDirective = (index: boolean) =>
-  index ? 'index, follow, max-image-preview:large' : 'noindex, follow';
+export const robotsDirective = (index: boolean, video = false) =>
+  index
+    ? `index, follow, max-image-preview:large${video ? ', max-video-preview:-1' : ''}`
+    : 'noindex, follow';
 
 /** Only canonical editorial pages belong in the search sitemap. */
 export const isIndexablePath = (path: string) =>
