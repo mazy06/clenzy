@@ -186,11 +186,11 @@ public class AiAnalyticsService {
         int totalNights = (int) ChronoUnit.DAYS.between(from, to);
         if (totalNights <= 0) totalNights = 1;
 
-        Set<LocalDate> bookedDates = bookedDates(from, to, reservations);
+        Set<LocalDate> bookedDates = AccommodationKpis.soldNights(reservations, from, to);
         // Une nuit vendue malgre un blocage (conflit d'import OTA) etait bien en vente :
         // seules les nuits fermees ET non vendues sortent du denominateur (occupation <= 100 %).
-        int closedNights = (int) closedDates.stream().filter(d -> !bookedDates.contains(d)).count();
-        int availableNights = totalNights - closedNights;
+        int availableNights = totalNights
+            - AccommodationKpis.closedUnsoldNights(closedDates, bookedDates, from, to);
         int bookedNights = bookedDates.size();
 
         double occupancyRate = availableNights > 0
@@ -214,7 +214,7 @@ public class AiAnalyticsService {
     private List<Reservation> findStays(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
         return reservationRepository.findByPropertyIdsAndDateRange(List.of(propertyId), from, to, orgId)
             .stream()
-            .filter(r -> !"cancelled".equalsIgnoreCase(r.getStatus()))
+            .filter(r -> !AccommodationKpis.isCancelled(r))
             .toList();
     }
 
@@ -291,57 +291,7 @@ public class AiAnalyticsService {
     // ---- Calculation helpers ----
 
     int calculateBookedNights(LocalDate from, LocalDate to, List<Reservation> reservations) {
-        return bookedDates(from, to, reservations).size();
-    }
-
-    /** Nuits vendues dans [from, to) — une nuit = [checkIn, checkOut). */
-    private Set<LocalDate> bookedDates(LocalDate from, LocalDate to, List<Reservation> reservations) {
-        Set<LocalDate> bookedDates = new HashSet<>();
-        for (Reservation r : reservations) {
-            if (r.getCheckIn() == null || r.getCheckOut() == null) continue;
-            LocalDate start = r.getCheckIn().isBefore(from) ? from : r.getCheckIn();
-            LocalDate end = r.getCheckOut().isAfter(to) ? to : r.getCheckOut();
-            LocalDate d = start;
-            while (d.isBefore(end)) {
-                bookedDates.add(d);
-                d = d.plusDays(1);
-            }
-        }
-        return bookedDates;
-    }
-
-    /**
-     * CA hebergement d'une reservation : total encaisse moins menage, taxe de sejour et options.
-     * Booking engine et saisie manuelle ventilent ces montants ; les canaux qui ne le font pas
-     * (imports OTA/iCal, widget direct) les laissent a null et leur total est retenu tel quel —
-     * un montant OTA peut donc encore inclure le menage, faute de ventilation.
-     */
-    private BigDecimal accommodationRevenue(Reservation r) {
-        BigDecimal accommodation = orZero(r.getTotalPrice())
-            .subtract(orZero(r.getCleaningFee()))
-            .subtract(orZero(r.getTouristTaxAmount()))
-            .subtract(orZero(r.getServiceOptionsTotal()));
-        return accommodation.max(BigDecimal.ZERO);
-    }
-
-    /**
-     * CA hebergement de la reservation au prorata de ses nuits comprises dans [from, to),
-     * converti dans la devise de reporting : un sejour a cheval ne porte que ses nuits de la periode.
-     */
-    private BigDecimal proratedRevenue(Reservation r, LocalDate from, LocalDate to, String reportingCurrency) {
-        if (r.getCheckIn() == null || r.getCheckOut() == null) return BigDecimal.ZERO;
-        long stayNights = ChronoUnit.DAYS.between(r.getCheckIn(), r.getCheckOut());
-        LocalDate start = r.getCheckIn().isBefore(from) ? from : r.getCheckIn();
-        LocalDate end = r.getCheckOut().isAfter(to) ? to : r.getCheckOut();
-        long nightsInPeriod = ChronoUnit.DAYS.between(start, end);
-        if (stayNights <= 0 || nightsInPeriod <= 0) return BigDecimal.ZERO;
-        return toReportingCurrency(accommodationRevenue(r), r, reportingCurrency)
-            .multiply(BigDecimal.valueOf(nightsInPeriod))
-            .divide(BigDecimal.valueOf(stayNights), 2, RoundingMode.HALF_UP);
-    }
-
-    private static BigDecimal orZero(BigDecimal amount) {
-        return amount != null ? amount : BigDecimal.ZERO;
+        return AccommodationKpis.soldNights(reservations, from, to).size();
     }
 
     private static String monthKey(LocalDate date) {
@@ -382,7 +332,8 @@ public class AiAnalyticsService {
                                      String reportingCurrency) {
         BigDecimal total = BigDecimal.ZERO;
         for (Reservation r : reservations) {
-            total = total.add(proratedRevenue(r, from, to, reportingCurrency));
+            total = total.add(AccommodationKpis.proratedAccommodationRevenue(r, from, to,
+                amount -> toReportingCurrency(amount, r, reportingCurrency)));
         }
         return total;
     }
@@ -412,7 +363,7 @@ public class AiAnalyticsService {
                                                      List<Reservation> reservations, Set<LocalDate> closedDates) {
         Map<String, Integer> availableDaysByMonth = new LinkedHashMap<>();
         Map<String, Integer> bookedDaysByMonth = new LinkedHashMap<>();
-        Set<LocalDate> bookedDates = bookedDates(from, to, reservations);
+        Set<LocalDate> bookedDates = AccommodationKpis.soldNights(reservations, from, to);
 
         LocalDate d = from;
         while (d.isBefore(to)) {
