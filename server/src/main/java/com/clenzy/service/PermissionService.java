@@ -199,15 +199,22 @@ public class PermissionService {
                 String roleKey = ROLE_PERMISSIONS_KEY + userRole.name();
                 List<String> rolePermissions = (List<String>) redisTemplate.opsForValue().get(roleKey);
                 
-                if (rolePermissions != null && !rolePermissions.isEmpty()) {
-                    log.debug("PermissionService.checkUserPermission() - Permissions trouvees dans Redis pour le role: {}", userRole.name());
-                    boolean hasPermission = rolePermissions.contains(permission);
-                    log.debug("PermissionService.checkUserPermission() - Utilisateur {} {} la permission: {}", userId, (hasPermission ? "A" : "N'A PAS"), permission);
-                    return hasPermission;
-                } else {
-                    log.warn("PermissionService.checkUserPermission() - Aucune permission trouvee en Redis pour le role: {}", userRole.name());
-                    return false;
+                if (rolePermissions == null || rolePermissions.isEmpty()) {
+                    // Cache froid (Redis redemarre, vide, ou role jamais consulte) :
+                    // la base est la source de verite, Redis n'est qu'un cache. Sans
+                    // ce repli, un cache absent se lisait « aucune permission » et
+                    // refusait TOUT LE MONDE, staff plateforme compris — un refus qui
+                    // n'exprimait rien d'autre que l'etat du cache. Le meme repli
+                    // existe deja sur le chemin de lecture
+                    // ({@code loadRolePermissionsFromDatabase}), qui repeuple Redis au
+                    // passage.
+                    log.info("PermissionService.checkUserPermission() - Cache froid pour le role {}, relecture en base", userRole.name());
+                    rolePermissions = loadRolePermissionsFromDatabase(userRole.name()).getPermissions();
                 }
+
+                boolean hasPermission = rolePermissions != null && rolePermissions.contains(permission);
+                log.debug("PermissionService.checkUserPermission() - Utilisateur {} {} la permission: {}", userId, (hasPermission ? "A" : "N'A PAS"), permission);
+                return hasPermission;
             } else {
                 log.warn("PermissionService.checkUserPermission() - Utilisateur non trouve avec keycloakId: {}", userId);
                 return false;

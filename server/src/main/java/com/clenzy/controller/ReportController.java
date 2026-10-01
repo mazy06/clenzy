@@ -16,6 +16,31 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.Map;
 
+/**
+ * Generation de rapports PDF.
+ *
+ * <h3>Securite</h3>
+ * <p>Les quatre routes sont gardees par {@code reports:generate}, accordee a
+ * SUPER_ADMIN et SUPER_MANAGER ({@code PermissionInitializer}).</p>
+ *
+ * <p><b>Pourquoi une permission et pas une liste de roles</b> : les permissions
+ * par role sont administrables ({@code PUT /api/permissions/roles/{role}}). Une
+ * liste ecrite en dur dans l'annotation ignorerait cette administration —
+ * retirer {@code reports:generate} a SUPER_MANAGER depuis l'ecran ne changerait
+ * rien a l'API. Ce sont les seules routes du projet dans ce cas ; partout
+ * ailleurs la regle se reduit a une liste de roles figee, et
+ * {@code hasAnyRole} y reste l'ecriture juste, moins couteuse.</p>
+ *
+ * <p><b>Historique</b> : cette expression etait auparavant inerte. Faute de
+ * {@code PermissionEvaluator} enregistre, Spring Security retombait sur
+ * {@code DenyAllPermissionEvaluator}, dont la reponse est toujours
+ * {@code false} : la regle ne refusait pas les profils sans la permission, elle
+ * refusait <b>tout le monde</b>, SUPER_ADMIN compris, et ces rapports etaient
+ * injoignables. C'est {@link com.clenzy.config.MethodSecurityConfig} qui lui
+ * donne son sens ; sans cette configuration dans le contexte, les quatre routes
+ * se referment d'un bloc — comportement fige par
+ * {@code MethodSecurityDefaultDenyTest}.</p>
+ */
 @RestController
 @RequestMapping("/api/reports")
 @Tag(name = "Reports", description = "Génération de rapports PDF")

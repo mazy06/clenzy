@@ -17,6 +17,18 @@ import java.util.Map;
 
 /**
  * Configuration de l'automatisation messagerie + envoi manuel + historique.
+ *
+ * <h3>Securite</h3>
+ * <p>Partage net entre lire et emettre : la <b>lecture</b> (config, apercu,
+ * historique) reste ouverte a tout role authentife — l'historique des envois
+ * fait partie du suivi d'un sejour. Les <b>trois ecritures</b> (envoi, renvoi,
+ * reglage de l'automatisation) portent le meme garde, celui des roles
+ * d'administration d'org ; {@link #resendMessage} en porte la justification
+ * detaillee.</p>
+ *
+ * <p>Le meme garde sur les trois n'est pas une commodite : {@code /send} et
+ * {@code /resend} aboutissent au meme envoi, et un garde pose sur l'un
+ * seulement se contourne par l'autre.</p>
  */
 @RestController
 @RequestMapping("/api/guest-messaging")
@@ -46,7 +58,19 @@ public class GuestMessagingController {
             queryService.getConfigOrDefault(orgId)));
     }
 
+    /**
+     * Regle l'automatisation des messages de l'organisation.
+     *
+     * <p>Meme garde que l'envoi et le renvoi (cf. {@link #resendMessage}) :
+     * decider qu'un message parte tout seul engage l'organisation plus encore
+     * qu'un envoi a la main. L'ecran qui appelle cette route, {@code /settings},
+     * n'est de toute facon ouvert qu'au staff plateforme
+     * ({@code settings:view}) ; HOST est retenu ici pour que l'hote
+     * independant regle ses propres relances le jour ou cet ecran lui
+     * ouvrira.</p>
+     */
     @PutMapping("/config")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<MessagingAutomationConfigDto> updateConfig(
             @RequestBody MessagingAutomationConfigDto dto
     ) {
@@ -57,7 +81,24 @@ public class GuestMessagingController {
 
     // ── Envoi manuel ──
 
+    /**
+     * Envoie a la main un message a un voyageur.
+     *
+     * <p>Meme garde que {@link #resendMessage}, et pour la meme raison : les
+     * deux routes appellent le meme
+     * {@link GuestMessagingService#sendMessage}. Un garde pose sur le seul
+     * renvoi n'aurait rien protege — il suffisait de rejouer la reservation et
+     * le modele par ici pour obtenir le meme envoi.</p>
+     *
+     * <p>SUPERVISOR en est exclu bien qu'il atteigne le planning
+     * ({@code reservations:view}) d'ou s'ouvre la fenetre d'envoi : il encadre
+     * l'execution sur le terrain, il ne porte pas la parole de l'organisation
+     * aupres du voyageur. PROPERTY_OWNER l'est aussi, mais cela ne se decide
+     * pas ici : les messages voyageurs sont un objet du mandat de gestion,
+     * comme le rappelle {@code PermissionInitializer}.</p>
+     */
     @PostMapping("/send")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<GuestMessageLogDto> sendMessage(@RequestBody SendManualMessageRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
@@ -85,8 +126,31 @@ public class GuestMessagingController {
 
     // ── Renvoi d'un message echoue ──
 
+    /**
+     * Renvoie un message deja emis (meme reservation, meme modele).
+     *
+     * <h3>Securite</h3>
+     * <p>Le renvoi remet un contenu dans la boite d'un voyageur : c'est une
+     * prise de parole au nom de l'organisation, pas une tache de terrain. Le
+     * garde reprend donc l'ensemble deja retenu pour l'ecriture des contenus
+     * emis vers des tiers — {@link SystemEmailTemplateController},
+     * {@link WhatsAppTemplateController}, {@link DocumentController} : les
+     * roles d'administration d'org, jamais les roles operationnels
+     * (TECHNICIAN, HOUSEKEEPER, SUPERVISOR, LAUNDRY, EXTERIOR_TECH).</p>
+     *
+     * <p>Ces controleurs listent en plus {@code 'ADMIN'} : le litteral y est
+     * inerte, les deux converters JWT normalisant tout role realm {@code admin}
+     * en {@code SUPER_ADMIN} avant d'emettre l'authority. Il n'est pas repris
+     * ici pour ne pas donner a lire une regle qui ne s'applique jamais.</p>
+     *
+     * <p>L'appartenance a l'organisation est portee par {@code roleInOrg}
+     * ({@link com.clenzy.model.OrgMemberRole}), qui est un rang d'appartenance
+     * et non une permission HTTP : aucun garde du backend ne s'en sert, et
+     * l'isolation entre organisations vient du {@link TenantContext} —
+     * {@code findLogForOrganization} ne rend que les logs de l'org courante.</p>
+     */
     @PostMapping("/resend/{logId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER') or @organizationSecurityService.isOrgAdmin()")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<GuestMessageLogDto> resendMessage(@PathVariable Long logId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         GuestMessageLog logEntry = queryService.findLogForOrganization(logId, orgId).orElse(null);

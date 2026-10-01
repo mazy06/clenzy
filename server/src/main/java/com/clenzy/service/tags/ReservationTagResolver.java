@@ -4,6 +4,7 @@ import com.clenzy.model.Guest;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.StayAmounts;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -44,7 +45,9 @@ public class ReservationTagResolver implements ReferenceTagResolver {
         if (reservationId == null) return;
 
         reservationRepository.findByIdFetchAll(reservationId).ifPresent(reservation -> {
-            context.put("reservation", reservationTags(reservation));
+            // Ventilation du montant encaisse, partagee avec la facture fiscale (Invoice)
+            StayAmounts amounts = StayAmounts.of(reservation);
+            context.put("reservation", reservationTags(reservation, amounts));
 
             // Guest (voyageur) — fallback on guestName if no Guest entity
             if (reservation.getGuest() != null) {
@@ -79,7 +82,7 @@ public class ReservationTagResolver implements ReferenceTagResolver {
             context.put("ligne", ligneTags(reservation));
 
             // Lignes de detail de la facture (toujours present) : boucle [#list lignes as ligne]
-            context.put("lignes", buildReservationLignes(reservation));
+            context.put("lignes", buildReservationLignes(reservation, amounts));
 
             // Intervention liee — uniquement si une intervention reelle existe.
             // Sans intervention : ni "intervention" ni "technicien" dans le contexte,
@@ -95,7 +98,7 @@ public class ReservationTagResolver implements ReferenceTagResolver {
         });
     }
 
-    private Map<String, Object> reservationTags(Reservation reservation) {
+    private Map<String, Object> reservationTags(Reservation reservation, StayAmounts amounts) {
         Map<String, Object> tags = new LinkedHashMap<>();
         tags.put("id", String.valueOf(reservation.getId()));
         tags.put("guest_name", safeStr(reservation.getGuestName()));
@@ -117,7 +120,9 @@ public class ReservationTagResolver implements ReferenceTagResolver {
         tags.put("nombre_voyageurs", reservation.getGuestCount() != null ? String.valueOf(reservation.getGuestCount()) : "1");
         tags.put("frais_menage", formatMoney(reservation.getCleaningFee()));
         tags.put("taxe_sejour", formatMoney(reservation.getTouristTaxAmount()));
-        tags.put("revenu_chambre", formatMoney(reservation.getRoomRevenue()));
+        // Part hebergement du montant encaisse (roomRevenue est null en saisie manuelle,
+        // pris avant voucher par le booking engine, fige a l'import Channex)
+        tags.put("revenu_chambre", formatMoney(amounts.accommodation()));
         tags.put("notes", safeStr(reservation.getNotes()));
         return tags;
     }
@@ -160,14 +165,12 @@ public class ReservationTagResolver implements ReferenceTagResolver {
         }
         tags.put("quantite", String.valueOf(nights));
 
-        // Prix unitaire = revenu chambre / nuits (ou totalPrice / nuits)
+        // Ligne unique = tout le sejour : prix unitaire = montant encaisse / nuits,
+        // coherent avec le total (roomRevenue excluait menage/taxe et ignorait le voucher)
         BigDecimal unitPrice = BigDecimal.ZERO;
-        if (nights > 0) {
-            BigDecimal revenue = reservation.getRoomRevenue() != null
-                    ? reservation.getRoomRevenue() : reservation.getTotalPrice();
-            if (revenue != null) {
-                unitPrice = revenue.divide(BigDecimal.valueOf(nights), 2, java.math.RoundingMode.HALF_UP);
-            }
+        if (nights > 0 && reservation.getTotalPrice() != null) {
+            unitPrice = reservation.getTotalPrice().divide(BigDecimal.valueOf(nights), 2,
+                    java.math.RoundingMode.HALF_UP);
         }
         tags.put("prix_unitaire", formatMoney(unitPrice));
 
@@ -179,10 +182,12 @@ public class ReservationTagResolver implements ReferenceTagResolver {
 
     /**
      * Construit la liste des lignes de facturation a partir d'une reservation.
-     * Produit 1 a 3 lignes : hebergement, frais de menage, taxe de sejour.
+     * Produit 1 a 4 lignes : hebergement, frais de menage, prestations complementaires,
+     * taxe de sejour — ventilees depuis le montant encaisse ({@link StayAmounts}), donc
+     * identiques a la facture fiscale et de somme egale a {@code paiement.montant}.
      * Utilisee pour alimenter la liste top-level "lignes" (detail facture) du contexte FACTURE/RESERVATION.
      */
-    private List<Map<String, Object>> buildReservationLignes(Reservation reservation) {
+    private List<Map<String, Object>> buildReservationLignes(Reservation reservation, StayAmounts amounts) {
         List<Map<String, Object>> lignes = new ArrayList<>();
 
         // Nombre de nuits
@@ -203,41 +208,48 @@ public class ReservationTagResolver implements ReferenceTagResolver {
         hebergement.put("description",
                 "Hebergement - " + propertyName + " - du " + checkIn + " au " + checkOut);
         hebergement.put("quantite", String.valueOf(nights));
-        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
-                ? reservation.getRoomRevenue() : reservation.getTotalPrice();
+        BigDecimal accommodation = amounts.accommodation();
         BigDecimal unitPrice = BigDecimal.ZERO;
-        if (nights > 0 && roomRevenue != null) {
-            unitPrice = roomRevenue.divide(BigDecimal.valueOf(nights), 2,
+        if (nights > 0) {
+            unitPrice = accommodation.divide(BigDecimal.valueOf(nights), 2,
                     java.math.RoundingMode.HALF_UP);
         }
         hebergement.put("prix_unitaire", formatMoney(unitPrice));
-        hebergement.put("total", formatMoney(roomRevenue));
+        hebergement.put("total", formatMoney(accommodation));
         lignes.add(hebergement);
 
         // Ligne 2 : Frais de menage (si applicable)
-        if (reservation.getCleaningFee() != null
-                && reservation.getCleaningFee().compareTo(BigDecimal.ZERO) > 0) {
+        if (amounts.cleaningFee().compareTo(BigDecimal.ZERO) > 0) {
             Map<String, Object> cleaning = new LinkedHashMap<>();
             cleaning.put("description", "Frais de menage");
             cleaning.put("quantite", "1");
-            cleaning.put("prix_unitaire", formatMoney(reservation.getCleaningFee()));
-            cleaning.put("total", formatMoney(reservation.getCleaningFee()));
+            cleaning.put("prix_unitaire", formatMoney(amounts.cleaningFee()));
+            cleaning.put("total", formatMoney(amounts.cleaningFee()));
             lignes.add(cleaning);
         }
 
-        // Ligne 3 : Taxe de sejour (si applicable)
-        if (reservation.getTouristTaxAmount() != null
-                && reservation.getTouristTaxAmount().compareTo(BigDecimal.ZERO) > 0) {
+        // Ligne 3 : Prestations complementaires du booking engine (si applicable)
+        if (amounts.serviceOptions().compareTo(BigDecimal.ZERO) > 0) {
+            Map<String, Object> services = new LinkedHashMap<>();
+            services.put("description", "Prestations complementaires");
+            services.put("quantite", "1");
+            services.put("prix_unitaire", formatMoney(amounts.serviceOptions()));
+            services.put("total", formatMoney(amounts.serviceOptions()));
+            lignes.add(services);
+        }
+
+        // Ligne 4 : Taxe de sejour (si applicable)
+        if (amounts.touristTax().compareTo(BigDecimal.ZERO) > 0) {
             Map<String, Object> tax = new LinkedHashMap<>();
             tax.put("description", "Taxe de sejour");
             tax.put("quantite", String.valueOf(nights));
             BigDecimal taxUnit = BigDecimal.ZERO;
             if (nights > 0) {
-                taxUnit = reservation.getTouristTaxAmount().divide(
+                taxUnit = amounts.touristTax().divide(
                         BigDecimal.valueOf(nights), 2, java.math.RoundingMode.HALF_UP);
             }
             tax.put("prix_unitaire", formatMoney(taxUnit));
-            tax.put("total", formatMoney(reservation.getTouristTaxAmount()));
+            tax.put("total", formatMoney(amounts.touristTax()));
             lignes.add(tax);
         }
 

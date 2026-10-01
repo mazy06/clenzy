@@ -2,8 +2,10 @@ package com.clenzy.service;
 
 import com.clenzy.dto.GenerateInvoiceRequest;
 import com.clenzy.dto.InvoiceDto;
+import com.clenzy.dto.TouristTaxReportLineDto;
 import com.clenzy.fiscal.FiscalEngine;
 import com.clenzy.fiscal.TaxResult;
+import com.clenzy.fiscal.TaxableItem;
 import com.clenzy.fiscal.TouristTaxResult;
 import com.clenzy.model.*;
 import com.clenzy.repository.FiscalProfileRepository;
@@ -577,12 +579,12 @@ class InvoiceGeneratorServiceTest {
     class GenerateFromReservationExtra {
 
         @Test
-        void shouldUseTotalPriceWhenRoomRevenueIsNull() {
+        void shouldDeriveAccommodationFromTotalPriceWhenRoomRevenueIsNull() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
             Reservation res = createTestReservation();
-            res.setRoomRevenue(null); // fallback to totalPrice
+            res.setRoomRevenue(null); // hebergement = totalPrice - menage
             res.setTotalPrice(new BigDecimal("400.00"));
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
@@ -1008,6 +1010,7 @@ class InvoiceGeneratorServiceTest {
 
             Reservation res = createTestReservation();
             res.setCleaningFee(null); // une seule ligne
+            res.setTotalPrice(new BigDecimal("250.00")); // total encaisse sans menage
 
             // Act
             Invoice result = service.generateFromReservation(res, 1L);
@@ -1577,6 +1580,170 @@ class InvoiceGeneratorServiceTest {
             assertThat(manual.sellerName()).isEqualTo(webhook.getSellerName());
             assertThat(manual.sellerTaxId()).isEqualTo(webhook.getSellerTaxId());
             assertThat(manual.buyerName()).isEqualTo(webhook.getBuyerName());
+        }
+    }
+
+    /**
+     * La facture de sejour doit totaliser le montant ENCAISSE ({@code totalPrice}),
+     * quel que soit le canal. {@code roomRevenue} n'est pas fiable : null en saisie
+     * manuelle (le total inclut alors menage + taxe de sejour), pris AVANT voucher
+     * par le booking engine, egal au total a l'import Channex et jamais rafraichi
+     * a la modification.
+     */
+    @Nested
+    class StayAmountsFromCollectedTotal {
+
+        private void stubFiscalProfile() {
+            when(fiscalProfileRepository.findByOrganizationId(1L))
+                .thenReturn(Optional.of(createTestFiscalProfile()));
+            when(invoiceRepository.save(any(Invoice.class)))
+                .thenAnswer(inv -> { Invoice i = inv.getArgument(0); i.setId(1L); return i; });
+        }
+
+        /** Taux resolu selon la categorie : 10 % hebergement, 20 % sinon. */
+        private void stubRatesByCategory() {
+            when(fiscalEngine.calculateTax(eq("FR"), any(), any())).thenAnswer(inv -> {
+                TaxableItem item = inv.getArgument(1);
+                BigDecimal rate = TaxCategory.ACCOMMODATION.name().equals(item.taxCategory())
+                    ? new BigDecimal("0.1000") : new BigDecimal("0.2000");
+                return new TaxResult(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    rate, "TVA", item.taxCategory());
+            });
+        }
+
+        private List<InvoiceLine> linesOf(Invoice invoice, TaxCategory category) {
+            return invoice.getLines().stream()
+                .filter(line -> category.name().equals(line.getTaxCategory()))
+                .toList();
+        }
+
+        /** Saisie manuelle : totalPrice = hebergement 300 + menage 50 + taxe de sejour 30. */
+        private Reservation manualReservation() {
+            Reservation res = createTestReservation();
+            res.setRoomRevenue(null);
+            res.setTotalPrice(new BigDecimal("380.00"));
+            res.setCleaningFee(new BigDecimal("50.00"));
+            res.setTouristTaxAmount(new BigDecimal("30.00"));
+            return res;
+        }
+
+        @Test
+        void whenManualReservationIsAutoInvoiced_thenCleaningAndTouristTaxAreNotBilledTwice() {
+            stubFiscalProfile();
+            stubRatesByCategory();
+
+            Invoice invoice = service.generateFromReservation(manualReservation(), 1L);
+
+            assertThat(invoice.getTotalTtc()).isEqualByComparingTo("380.00");
+            assertThat(linesOf(invoice, TaxCategory.ACCOMMODATION)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("300.00"));
+            assertThat(linesOf(invoice, TaxCategory.CLEANING)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("50.00"));
+            // La taxe de sejour n'est pas soumise a TVA : ligne dediee, jamais noyee dans l'hebergement
+            assertThat(linesOf(invoice, TaxCategory.TOURIST_TAX)).singleElement()
+                .satisfies(line -> {
+                    assertThat(line.getTotalTtc()).isEqualByComparingTo("30.00");
+                    assertThat(line.getTaxAmount()).isEqualByComparingTo("0.00");
+                });
+        }
+
+        @Test
+        void whenManualReservationIsInvoicedManuallyWithTouristTaxConfig_thenTouristTaxAppearsOnce() {
+            Reservation res = manualReservation();
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.getCountryCode()).thenReturn("FR");
+            when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
+            stubFiscalProfile();
+            stubRatesByCategory();
+            // Bareme par bien configure : recalcule 30.00, deja inclus dans totalPrice
+            lenient().when(touristTaxService.computeForReservation(any())).thenReturn(Optional.of(
+                new TouristTaxReportLineDto(100L, null, null, "John Doe",
+                    res.getCheckIn(), res.getCheckOut(), 3, 2, null, null,
+                    new BigDecimal("30.00"), BigDecimal.ZERO, new BigDecimal("30.00"), "EUR")));
+
+            InvoiceDto invoice = service.generateFromReservation(
+                new GenerateInvoiceRequest(100L, "Client", null, null, null));
+
+            assertThat(invoice.totalTtc()).isEqualByComparingTo("380.00");
+            assertThat(invoice.lines())
+                .filteredOn(line -> TaxCategory.TOURIST_TAX.name().equals(line.taxCategory()))
+                .hasSize(1);
+        }
+
+        @Test
+        void whenBookingEngineVoucherWasApplied_thenInvoiceTotalsTheDiscountedAmountCharged() {
+            // roomRevenue = sous-total AVANT voucher ; totalPrice = montant Stripe APRES voucher
+            Reservation res = createTestReservation();
+            res.setRoomRevenue(new BigDecimal("300.00"));
+            res.setCleaningFee(new BigDecimal("50.00"));
+            res.setTouristTaxAmount(new BigDecimal("30.00"));
+            res.setOriginalTotal(new BigDecimal("380.00"));
+            res.setDiscountAmount(new BigDecimal("38.00"));
+            res.setVoucherCode("ETE10");
+            res.setTotalPrice(new BigDecimal("342.00"));
+            stubFiscalProfile();
+            stubRatesByCategory();
+
+            Invoice invoice = service.generateFromReservation(res, 1L);
+
+            assertThat(invoice.getTotalTtc()).isEqualByComparingTo("342.00");
+            assertThat(linesOf(invoice, TaxCategory.ACCOMMODATION)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("262.00"));
+        }
+
+        @Test
+        void whenChannexBookingWasModified_thenInvoiceUsesTheRefreshedTotalNotTheStaleRoomRevenue() {
+            // Import Channex : roomRevenue = total (500), jamais rafraichi ; la revision porte totalPrice a 620
+            Reservation res = createTestReservation();
+            res.setSource("airbnb");
+            res.setRoomRevenue(new BigDecimal("500.00"));
+            res.setTotalPrice(new BigDecimal("620.00"));
+            res.setCleaningFee(null);
+            stubFiscalProfile();
+            stubRatesByCategory();
+
+            Invoice invoice = service.generateFromReservation(res, 1L);
+
+            assertThat(invoice.getTotalTtc()).isEqualByComparingTo("620.00");
+        }
+
+        @Test
+        void whenBookingEngineServiceOptionsWereSold_thenTheyAreInvoicedOnTheirOwnLine() {
+            // Checkout booking engine : totalPrice = total du sejour 380 + options 40
+            Reservation res = createTestReservation();
+            res.setRoomRevenue(new BigDecimal("300.00"));
+            res.setCleaningFee(new BigDecimal("50.00"));
+            res.setTouristTaxAmount(new BigDecimal("30.00"));
+            res.setServiceOptionsTotal(new BigDecimal("40.00"));
+            res.setTotalPrice(new BigDecimal("420.00"));
+            stubFiscalProfile();
+            stubRatesByCategory();
+
+            Invoice invoice = service.generateFromReservation(res, 1L);
+
+            assertThat(invoice.getTotalTtc()).isEqualByComparingTo("420.00");
+            assertThat(linesOf(invoice, TaxCategory.ACCOMMODATION)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("300.00"));
+            assertThat(linesOf(invoice, TaxCategory.STANDARD)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("40.00"));
+        }
+
+        @Test
+        void whenComponentsExceedTotalPrice_thenNoNegativeAccommodationLine() {
+            // Donnees incoherentes (menage > total) : plancher a 0, pas de ligne negative
+            Reservation res = createTestReservation();
+            res.setRoomRevenue(null);
+            res.setTotalPrice(new BigDecimal("40.00"));
+            res.setCleaningFee(new BigDecimal("50.00"));
+            stubFiscalProfile();
+            stubRatesByCategory();
+
+            Invoice invoice = service.generateFromReservation(res, 1L);
+
+            assertThat(linesOf(invoice, TaxCategory.ACCOMMODATION)).isEmpty();
+            assertThat(invoice.getLines())
+                .allSatisfy(line -> assertThat(line.getTotalTtc()).isGreaterThanOrEqualTo(BigDecimal.ZERO));
         }
     }
 

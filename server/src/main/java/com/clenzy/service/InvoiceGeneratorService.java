@@ -106,13 +106,13 @@ public class InvoiceGeneratorService {
             .orElseThrow(() -> new IllegalStateException(
                 "Profil fiscal non configure pour l'organisation " + orgId));
 
-        // Construction commune (en-tete + lignes hebergement/menage) : chemin fiscal unique
+        // Construction commune (en-tete + lignes du sejour) : chemin fiscal unique
         Invoice invoice = buildReservationDraft(reservation, orgId, fiscalProfile,
             countryCode, currency,
             request.buyerName() != null ? request.buyerName() : reservation.getGuestName(),
             request.buyerAddress(), request.buyerTaxId());
 
-        // Ligne additionnelle du flux manuel : taxe de sejour (pas de TVA)
+        // Repli du flux manuel : taxe de sejour recalculee si la reservation ne la porte pas
         addTouristTaxLine(invoice, reservation, countryCode, request.touristTaxRatePerPerson());
 
         // Calculer les totaux
@@ -668,7 +668,7 @@ public class InvoiceGeneratorService {
     // --- Construction commune des factures de sejour (T-SOLID-8) ---
 
     /**
-     * Construit la facture de sejour DRAFT (en-tete + lignes hebergement/menage).
+     * Construit la facture de sejour DRAFT (en-tete + lignes du sejour, cf. {@link #addStayLines}).
      *
      * <p>Chemin de construction UNIQUE pour le flux manuel
      * ({@link #generateFromReservation(GenerateInvoiceRequest)}) et le flux webhook
@@ -712,24 +712,28 @@ public class InvoiceGeneratorService {
     }
 
     /**
-     * Lignes hebergement + menage : decomposition du TTC encaisse en HT + TVA
-     * (les montants de la reservation sont ceux payes par le guest).
+     * Lignes du sejour, ventilees depuis le montant ENCAISSE ({@link StayAmounts}) :
+     * hebergement, menage, prestations complementaires (TTC decompose en HT + TVA)
+     * et taxe de sejour encaissee (hors TVA). La facture totalise ainsi ce que le
+     * guest a paye, quel que soit le canal.
      */
     private void addStayLines(Invoice invoice, Reservation reservation, String countryCode) {
         int lineNum = 1;
 
-        // Ligne 1: Hebergement (TVA reduite ACCOMMODATION)
-        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
-            ? reservation.getRoomRevenue()
-            : reservation.getTotalPrice();
+        StayAmounts amounts = StayAmounts.of(reservation);
+        BigDecimal accommodation = amounts.accommodation();
+        BigDecimal cleaningFee = amounts.cleaningFee();
+        BigDecimal serviceOptions = amounts.serviceOptions();
+        BigDecimal touristTax = amounts.touristTax();
 
-        if (roomRevenue != null && roomRevenue.compareTo(BigDecimal.ZERO) > 0) {
+        // Ligne 1: Hebergement (TVA reduite ACCOMMODATION)
+        if (accommodation.compareTo(BigDecimal.ZERO) > 0) {
             long nights = stayNights(reservation);
 
             // Le montant de la reservation est le montant ENCAISSE aupres du guest (TTC) :
             // on en deduit HT et TVA, et non l'inverse (la facture doit afficher ce qui a ete paye).
             TaxResult accommodationTax = decomposeTtcAmount(
-                countryCode, roomRevenue, TaxCategory.ACCOMMODATION,
+                countryCode, accommodation, TaxCategory.ACCOMMODATION,
                 "Hebergement " + reservation.getCheckIn() + " - " + reservation.getCheckOut(),
                 reservation.getCheckIn());
 
@@ -743,26 +747,58 @@ public class InvoiceGeneratorService {
         }
 
         // Ligne 2: Frais de menage (TVA standard CLEANING) — montant encaisse = TTC
-        BigDecimal cleaningFee = reservation.getCleaningFee();
-        if (cleaningFee != null && cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
+        if (cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
             TaxResult cleaningTax = decomposeTtcAmount(
                 countryCode, cleaningFee, TaxCategory.CLEANING,
                 "Frais de menage", reservation.getCheckIn());
 
-            invoice.addLine(createLine(lineNum,
+            invoice.addLine(createLine(lineNum++,
                 "Frais de menage",
                 BigDecimal.ONE, cleaningTax.amountHT(),
                 TaxCategory.CLEANING.name(),
                 cleaningTax.taxRate(), cleaningTax.taxAmount(),
                 cleaningTax.amountHT(), cleaningTax.amountTTC()));
         }
+
+        // Ligne 3: Prestations complementaires vendues au checkout du booking engine
+        // (TVA taux standard) — incluses dans totalPrice, donc sorties de l'hebergement
+        if (serviceOptions.compareTo(BigDecimal.ZERO) > 0) {
+            TaxResult serviceTax = decomposeTtcAmount(
+                countryCode, serviceOptions, TaxCategory.STANDARD,
+                "Prestations complementaires", reservation.getCheckIn());
+
+            invoice.addLine(createLine(lineNum++,
+                "Prestations complementaires",
+                BigDecimal.ONE, serviceTax.amountHT(),
+                TaxCategory.STANDARD.name(),
+                serviceTax.taxRate(), serviceTax.taxAmount(),
+                serviceTax.amountHT(), serviceTax.amountTTC()));
+        }
+
+        // Ligne 4: Taxe de sejour encaissee (pas de TVA) — incluse dans totalPrice
+        if (touristTax.compareTo(BigDecimal.ZERO) > 0) {
+            invoice.addLine(createLine(lineNum,
+                "Taxe de sejour",
+                BigDecimal.ONE, touristTax,
+                TaxCategory.TOURIST_TAX.name(),
+                BigDecimal.ZERO, BigDecimal.ZERO,
+                touristTax, touristTax));
+        }
     }
 
     /**
-     * Ligne taxe de sejour (pas de TVA) — flux manuel uniquement.
+     * Ligne taxe de sejour (pas de TVA) — flux manuel, quand la reservation ne porte
+     * pas la taxe encaissee (sinon {@link #addStayLines} l'a deja facturee).
      */
     private void addTouristTaxLine(Invoice invoice, Reservation reservation,
                                    String countryCode, BigDecimal touristTaxRatePerPerson) {
+        // Taxe deja encaissee (incluse dans totalPrice) et facturee par addStayLines :
+        // la recalculer depuis le bareme l'ajouterait une seconde fois.
+        BigDecimal collectedTouristTax = reservation.getTouristTaxAmount();
+        if (collectedTouristTax != null && collectedTouristTax.compareTo(BigDecimal.ZERO) > 0) {
+            return;
+        }
+
         // Source PRIMAIRE : le barème par bien/org (tourist_tax_configs), qui alimente
         // deja le booking engine — barème fixe/pourcentage plafonné, surtaxes,
         // exoneration des mineurs. Source unique de la taxe de sejour quand elle existe.
@@ -832,7 +868,7 @@ public class InvoiceGeneratorService {
     /**
      * Decompose un montant TTC encaisse en HT + TVA.
      *
-     * <p>Les montants des reservations (roomRevenue, cleaningFee, totalPrice) sont les
+     * <p>Les montants des reservations (totalPrice et sa ventilation) sont les
      * montants effectivement payes par le guest (Stripe encaisse totalPrice). La facture
      * doit donc afficher totalTtc == montant encaisse : HT = TTC / (1 + taux) puis
      * TVA = TTC - HT — et non une TVA ajoutee par-dessus le montant deja paye.
