@@ -140,7 +140,11 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
             onChange={handleSelect}
             style={{ display: 'none' }}
           />
+          {/* type="button" : ce composant vit DANS le <form> de la fiche
+              utilisateur. Sans type, le bouton soumettait la fiche, qui
+              redirigeait avant que le fichier choisi ne soit envoyé. */}
           <BuiButton
+            type="button"
             size="sm"
             variant="outline"
             disabled={uploading}
@@ -151,6 +155,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           </BuiButton>
           {photoUrl && (
             <BuiButton
+              type="button"
               size="sm"
               variant="destructive"
               disabled={uploading}
@@ -167,7 +172,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           <TriangleAlert />
           <AlertDescription>{error}</AlertDescription>
           <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+            <BuiButton type="button" variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
               <X />
             </BuiButton>
           </AlertAction>
