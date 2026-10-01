@@ -7,17 +7,23 @@ import java.util.Map;
 
 /**
  * Analytics de revenu et occupation pour une propriete sur une periode.
+ *
+ * <p>Definitions metier standard : le revenu est le CA <b>hebergement seul</b>
+ * (hors menage, taxe de sejour et options), proratise aux nuits comprises dans
+ * [from, to) ; les nuits disponibles sont les nuits <b>proposees a la vente</b>
+ * (hors blocages proprietaire / maintenance du calendrier).</p>
  */
 public record RevenueAnalyticsDto(
     Long propertyId,
     LocalDate from,
     LocalDate to,
-    int totalNights,
+    int totalNights,               // nuits calendaires de [from, to)
+    int availableNights,           // nuits proposees a la vente (totalNights - nuits fermees)
     int bookedNights,
-    double occupancyRate,          // 0.0 to 1.0
-    BigDecimal totalRevenue,
+    double occupancyRate,          // 0.0 to 1.0 = booked / available nights
+    BigDecimal totalRevenue,       // CA hebergement seul, proratise a la periode
     BigDecimal averageDailyRate,   // ADR = revenue / booked nights
-    BigDecimal revPar,             // RevPAR = revenue / total nights
+    BigDecimal revPar,             // RevPAR = revenue / available nights
     Map<String, Double> occupancyByMonth,
     Map<String, BigDecimal> revenueByMonth,
     Map<String, Integer> bookingsBySource,

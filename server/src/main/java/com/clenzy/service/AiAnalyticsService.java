@@ -10,10 +10,13 @@ import com.clenzy.dto.PeriodComparisonDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
+import com.clenzy.model.CalendarDay;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -69,6 +72,8 @@ public class AiAnalyticsService {
     private final AiTokenBudgetService tokenBudgetService;
     private final ObjectMapper objectMapper;
     private final CurrencyConverterService currencyConverter;
+    private final CalendarDayRepository calendarDayRepository;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public AiAnalyticsService(ReservationRepository reservationRepository,
                                PropertyRepository propertyRepository,
@@ -77,7 +82,9 @@ public class AiAnalyticsService {
                                AiAnonymizationService anonymizationService,
                                AiTokenBudgetService tokenBudgetService,
                                ObjectMapper objectMapper,
-                               CurrencyConverterService currencyConverter) {
+                               CurrencyConverterService currencyConverter,
+                               CalendarDayRepository calendarDayRepository,
+                               OrganizationAccessGuard organizationAccessGuard) {
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.aiProperties = aiProperties;
@@ -86,6 +93,8 @@ public class AiAnalyticsService {
         this.tokenBudgetService = tokenBudgetService;
         this.objectMapper = objectMapper;
         this.currencyConverter = currencyConverter;
+        this.calendarDayRepository = calendarDayRepository;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     /**
@@ -100,79 +109,121 @@ public class AiAnalyticsService {
      * Analytics complets avec devise de reporting (CLZ-P0-14) : chaque reservation est
      * convertie a sa date dans {@code reportingCurrency} (defaut = devise de la propriete),
      * pour une consolidation portefeuille multi-pays (EUR/MAD/SAR) coherente.
+     *
+     * <p>Definitions metier standard (Baitly Academie ep. 01), identiques pour N et N-1 :
+     * <ul>
+     *   <li>nuits disponibles = nuits proposees a la vente, hors blocages BLOCKED/MAINTENANCE
+     *       du calendrier ;</li>
+     *   <li>revenu = CA hebergement seul (hors menage, taxe de sejour, options), proratise
+     *       aux nuits du sejour comprises dans [from, to) ;</li>
+     *   <li>occupation = nuits vendues / nuits disponibles ; ADR = revenu / nuits vendues ;
+     *       RevPAR = revenu / nuits disponibles ; reservations annulees exclues.</li>
+     * </ul>
+     * Toutes les bornes sont des {@link LocalDate} de calendrier de la propriete (checkIn,
+     * checkOut, jours du calendrier) : aucune conversion de fuseau n'intervient ici.</p>
      */
     public RevenueAnalyticsDto getAnalytics(Long propertyId, Long orgId,
                                               LocalDate from, LocalDate to, String reportingCurrency) {
         Property property = propertyRepository.findById(propertyId)
             .orElseThrow(() -> new IllegalArgumentException("Property not found: " + propertyId));
+        // findById contourne le filtre Hibernate : le logement doit appartenir a l'org de l'appelant.
+        organizationAccessGuard.requireSameOrganization(
+            property.getOrganizationId(), orgId, "Logement " + propertyId);
 
         String currency = resolveReportingCurrency(reportingCurrency, property);
 
-        List<Reservation> reservations = reservationRepository.findByPropertyIdsAndDateRange(
-            List.of(propertyId), from, to, orgId);
+        List<Reservation> reservations = findStays(propertyId, orgId, from, to);
+        Set<LocalDate> closedDates = findClosedDates(propertyId, orgId, from, to);
+        PeriodKpis kpis = computeKpis(from, to, reservations, closedDates, currency);
 
-        int totalNights = (int) ChronoUnit.DAYS.between(from, to);
-        if (totalNights <= 0) totalNights = 1;
-
-        // Calculate booked nights
-        int bookedNights = calculateBookedNights(from, to, reservations);
-        double occupancyRate = Math.min(1.0, (double) bookedNights / totalNights);
-
-        // Revenue calculations (converties dans la devise de reporting, CLZ-P0-14)
-        BigDecimal totalRevenue = calculateTotalRevenue(reservations, currency);
-        BigDecimal adr = bookedNights > 0
-            ? totalRevenue.divide(BigDecimal.valueOf(bookedNights), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
-        BigDecimal revPar = totalRevenue.divide(BigDecimal.valueOf(totalNights), 2, RoundingMode.HALF_UP);
-
-        // Monthly breakdowns
-        Map<String, Double> occupancyByMonth = calculateOccupancyByMonth(from, to, reservations);
-        Map<String, BigDecimal> revenueByMonth = calculateRevenueByMonth(reservations, currency);
+        // Monthly breakdowns (memes definitions que les KPI de la periode)
+        Map<String, Double> occupancyByMonth = calculateOccupancyByMonth(from, to, reservations, closedDates);
+        Map<String, BigDecimal> revenueByMonth = calculateRevenueByMonth(from, to, reservations, currency);
         Map<String, Integer> bookingsBySource = calculateBookingsBySource(reservations);
 
         // Forecast for next 30 days after 'to'
         List<OccupancyForecastDto> forecast = getForecast(propertyId, to, to.plusDays(30), reservations);
 
         // Comparaison N vs N-1 calculee serveur (CLZ-P0-13) — source unique opposable du delta.
-        PeriodComparisonDto comparison = buildYoYComparison(
-            propertyId, orgId, from, to, totalRevenue, adr, revPar, occupancyRate, currency);
+        PeriodComparisonDto comparison = buildYoYComparison(propertyId, orgId, from, to, kpis, currency);
 
         return new RevenueAnalyticsDto(
-            propertyId, from, to, totalNights, bookedNights, occupancyRate,
-            totalRevenue, adr, revPar,
+            propertyId, from, to, kpis.totalNights(), kpis.availableNights(), kpis.bookedNights(),
+            kpis.occupancyRate(), kpis.revenue(), kpis.adr(), kpis.revPar(),
             occupancyByMonth, revenueByMonth, bookingsBySource, forecast, comparison, currency
         );
     }
 
     /**
      * Comparaison annuelle (N vs N-1) : recalcule les metriques sur la meme periode
-     * decalee d'un an et expose current/previous/growth%. BigDecimal.compareTo (jamais
-     * equals) + RoundingMode explicite (audit #10).
+     * decalee d'un an, via le MEME {@link #computeKpis} que la periode courante, et expose
+     * current/previous/growth%. BigDecimal.compareTo (jamais equals) + RoundingMode
+     * explicite (audit #10).
      */
     private PeriodComparisonDto buildYoYComparison(Long propertyId, Long orgId,
-            LocalDate from, LocalDate to,
-            BigDecimal currentRevenue, BigDecimal currentAdr, BigDecimal currentRevPar,
-            double currentOccupancy, String reportingCurrency) {
+            LocalDate from, LocalDate to, PeriodKpis current, String reportingCurrency) {
         LocalDate prevFrom = from.minusYears(1);
         LocalDate prevTo = to.minusYears(1);
-        List<Reservation> prev = reservationRepository.findByPropertyIdsAndDateRange(
-            List.of(propertyId), prevFrom, prevTo, orgId);
-
-        int prevTotalNights = (int) ChronoUnit.DAYS.between(prevFrom, prevTo);
-        if (prevTotalNights <= 0) prevTotalNights = 1;
-        int prevBooked = calculateBookedNights(prevFrom, prevTo, prev);
-        double prevOccupancy = Math.min(1.0, (double) prevBooked / prevTotalNights);
-        BigDecimal prevRevenue = calculateTotalRevenue(prev, reportingCurrency);
-        BigDecimal prevAdr = prevBooked > 0
-            ? prevRevenue.divide(BigDecimal.valueOf(prevBooked), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
-        BigDecimal prevRevPar = prevRevenue.divide(BigDecimal.valueOf(prevTotalNights), 2, RoundingMode.HALF_UP);
+        PeriodKpis previous = computeKpis(prevFrom, prevTo,
+            findStays(propertyId, orgId, prevFrom, prevTo),
+            findClosedDates(propertyId, orgId, prevFrom, prevTo),
+            reportingCurrency);
 
         return new PeriodComparisonDto(prevFrom, prevTo, "YEAR_OVER_YEAR",
-            metricComparison(currentRevenue, prevRevenue),
-            metricComparison(currentAdr, prevAdr),
-            metricComparison(currentRevPar, prevRevPar),
-            metricComparison(BigDecimal.valueOf(currentOccupancy), BigDecimal.valueOf(prevOccupancy)));
+            metricComparison(current.revenue(), previous.revenue()),
+            metricComparison(current.adr(), previous.adr()),
+            metricComparison(current.revPar(), previous.revPar()),
+            metricComparison(BigDecimal.valueOf(current.occupancyRate()),
+                BigDecimal.valueOf(previous.occupancyRate())));
+    }
+
+    /** KPI d'une periode [from, to). */
+    private record PeriodKpis(int totalNights, int availableNights, int bookedNights,
+                              double occupancyRate, BigDecimal revenue, BigDecimal adr, BigDecimal revPar) {}
+
+    private PeriodKpis computeKpis(LocalDate from, LocalDate to, List<Reservation> reservations,
+                                   Set<LocalDate> closedDates, String reportingCurrency) {
+        int totalNights = (int) ChronoUnit.DAYS.between(from, to);
+        if (totalNights <= 0) totalNights = 1;
+
+        Set<LocalDate> bookedDates = bookedDates(from, to, reservations);
+        // Une nuit vendue malgre un blocage (conflit d'import OTA) etait bien en vente :
+        // seules les nuits fermees ET non vendues sortent du denominateur (occupation <= 100 %).
+        int closedNights = (int) closedDates.stream().filter(d -> !bookedDates.contains(d)).count();
+        int availableNights = totalNights - closedNights;
+        int bookedNights = bookedDates.size();
+
+        double occupancyRate = availableNights > 0
+            ? Math.min(1.0, (double) bookedNights / availableNights)
+            : 0.0;
+        BigDecimal revenue = calculateTotalRevenue(reservations, from, to, reportingCurrency);
+        BigDecimal adr = bookedNights > 0
+            ? revenue.divide(BigDecimal.valueOf(bookedNights), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+        BigDecimal revPar = availableNights > 0
+            ? revenue.divide(BigDecimal.valueOf(availableNights), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+        return new PeriodKpis(totalNights, availableNights, bookedNights, occupancyRate, revenue, adr, revPar);
+    }
+
+    /**
+     * Sejours non annules chevauchant la periode. La requete inclut aussi les sejours
+     * qui ne font que toucher les bornes (depart le {@code from}, arrivee le {@code to}) :
+     * ils n'ont aucune nuit dans [from, to) et ne portent donc ni nuit ni revenu.
+     */
+    private List<Reservation> findStays(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
+        return reservationRepository.findByPropertyIdsAndDateRange(List.of(propertyId), from, to, orgId)
+            .stream()
+            .filter(r -> !"cancelled".equalsIgnoreCase(r.getStatus()))
+            .toList();
+    }
+
+    /** Nuits retirees de la vente sur [from, to) : blocage proprietaire (BLOCKED) ou travaux (MAINTENANCE). */
+    private Set<LocalDate> findClosedDates(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
+        return calendarDayRepository.findBlockedOrMaintenanceForProperties(List.of(propertyId), from, to, orgId)
+            .stream()
+            .map(CalendarDay::getDate)
+            .collect(Collectors.toSet());
     }
 
     private PeriodComparisonDto.MetricComparison metricComparison(BigDecimal current, BigDecimal previous) {
@@ -240,6 +291,11 @@ public class AiAnalyticsService {
     // ---- Calculation helpers ----
 
     int calculateBookedNights(LocalDate from, LocalDate to, List<Reservation> reservations) {
+        return bookedDates(from, to, reservations).size();
+    }
+
+    /** Nuits vendues dans [from, to) — une nuit = [checkIn, checkOut). */
+    private Set<LocalDate> bookedDates(LocalDate from, LocalDate to, List<Reservation> reservations) {
         Set<LocalDate> bookedDates = new HashSet<>();
         for (Reservation r : reservations) {
             if (r.getCheckIn() == null || r.getCheckOut() == null) continue;
@@ -251,13 +307,45 @@ public class AiAnalyticsService {
                 d = d.plusDays(1);
             }
         }
-        return bookedDates.size();
+        return bookedDates;
     }
 
-    BigDecimal calculateTotalRevenue(List<Reservation> reservations) {
-        return reservations.stream()
-            .map(r -> r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    /**
+     * CA hebergement d'une reservation : total encaisse moins menage, taxe de sejour et options.
+     * Booking engine et saisie manuelle ventilent ces montants ; les canaux qui ne le font pas
+     * (imports OTA/iCal, widget direct) les laissent a null et leur total est retenu tel quel —
+     * un montant OTA peut donc encore inclure le menage, faute de ventilation.
+     */
+    private BigDecimal accommodationRevenue(Reservation r) {
+        BigDecimal accommodation = orZero(r.getTotalPrice())
+            .subtract(orZero(r.getCleaningFee()))
+            .subtract(orZero(r.getTouristTaxAmount()))
+            .subtract(orZero(r.getServiceOptionsTotal()));
+        return accommodation.max(BigDecimal.ZERO);
+    }
+
+    /**
+     * CA hebergement de la reservation au prorata de ses nuits comprises dans [from, to),
+     * converti dans la devise de reporting : un sejour a cheval ne porte que ses nuits de la periode.
+     */
+    private BigDecimal proratedRevenue(Reservation r, LocalDate from, LocalDate to, String reportingCurrency) {
+        if (r.getCheckIn() == null || r.getCheckOut() == null) return BigDecimal.ZERO;
+        long stayNights = ChronoUnit.DAYS.between(r.getCheckIn(), r.getCheckOut());
+        LocalDate start = r.getCheckIn().isBefore(from) ? from : r.getCheckIn();
+        LocalDate end = r.getCheckOut().isAfter(to) ? to : r.getCheckOut();
+        long nightsInPeriod = ChronoUnit.DAYS.between(start, end);
+        if (stayNights <= 0 || nightsInPeriod <= 0) return BigDecimal.ZERO;
+        return toReportingCurrency(accommodationRevenue(r), r, reportingCurrency)
+            .multiply(BigDecimal.valueOf(nightsInPeriod))
+            .divide(BigDecimal.valueOf(stayNights), 2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal orZero(BigDecimal amount) {
+        return amount != null ? amount : BigDecimal.ZERO;
+    }
+
+    private static String monthKey(LocalDate date) {
+        return date.getMonth().getDisplayName(TextStyle.SHORT, Locale.FRENCH) + " " + date.getYear();
     }
 
     // ---- Consolidation multi-devise (CLZ-P0-14) ----
@@ -289,71 +377,60 @@ public class AiAnalyticsService {
         return currencyConverter.convert(amount, from, reportingCurrency, rateDate(r));
     }
 
-    /** Revenu total converti dans la devise de reporting (CLZ-P0-14). */
-    BigDecimal calculateTotalRevenue(List<Reservation> reservations, String reportingCurrency) {
+    /** CA hebergement proratise a [from, to), converti dans la devise de reporting (CLZ-P0-14). */
+    BigDecimal calculateTotalRevenue(List<Reservation> reservations, LocalDate from, LocalDate to,
+                                     String reportingCurrency) {
         BigDecimal total = BigDecimal.ZERO;
         for (Reservation r : reservations) {
-            total = total.add(toReportingCurrency(r.getTotalPrice(), r, reportingCurrency));
+            total = total.add(proratedRevenue(r, from, to, reportingCurrency));
         }
         return total;
     }
 
-    /** Revenu par mois converti dans la devise de reporting (CLZ-P0-14). */
-    Map<String, BigDecimal> calculateRevenueByMonth(List<Reservation> reservations, String reportingCurrency) {
+    /**
+     * CA hebergement par mois de la periode : chaque nuit est rattachee a son mois (un sejour
+     * du 29 mars au 3 avril se repartit entre mars et avril). Mois sans revenu omis.
+     */
+    Map<String, BigDecimal> calculateRevenueByMonth(LocalDate from, LocalDate to,
+                                                    List<Reservation> reservations, String reportingCurrency) {
         Map<String, BigDecimal> result = new LinkedHashMap<>();
-        for (Reservation r : reservations) {
-            if (r.getCheckIn() == null) continue;
-            String monthKey = r.getCheckIn().getMonth().getDisplayName(TextStyle.SHORT, Locale.FRENCH)
-                + " " + r.getCheckIn().getYear();
-            result.merge(monthKey, toReportingCurrency(r.getTotalPrice(), r, reportingCurrency), BigDecimal::add);
+        LocalDate monthStart = from;
+        while (monthStart.isBefore(to)) {
+            LocalDate nextMonth = monthStart.withDayOfMonth(1).plusMonths(1);
+            LocalDate monthEnd = nextMonth.isBefore(to) ? nextMonth : to;
+            BigDecimal revenue = calculateTotalRevenue(reservations, monthStart, monthEnd, reportingCurrency);
+            if (revenue.signum() > 0) {
+                result.put(monthKey(monthStart), revenue);
+            }
+            monthStart = nextMonth;
         }
         return result;
     }
 
+    /** Occupation par mois = nuits vendues / nuits proposees a la vente du mois (0 si mois entierement ferme). */
     Map<String, Double> calculateOccupancyByMonth(LocalDate from, LocalDate to,
-                                                     List<Reservation> reservations) {
-        Map<String, Integer> totalDaysByMonth = new LinkedHashMap<>();
+                                                     List<Reservation> reservations, Set<LocalDate> closedDates) {
+        Map<String, Integer> availableDaysByMonth = new LinkedHashMap<>();
         Map<String, Integer> bookedDaysByMonth = new LinkedHashMap<>();
-
-        Set<LocalDate> bookedDates = new HashSet<>();
-        for (Reservation r : reservations) {
-            if (r.getCheckIn() == null || r.getCheckOut() == null) continue;
-            LocalDate start = r.getCheckIn().isBefore(from) ? from : r.getCheckIn();
-            LocalDate end = r.getCheckOut().isAfter(to) ? to : r.getCheckOut();
-            LocalDate d = start;
-            while (d.isBefore(end)) {
-                bookedDates.add(d);
-                d = d.plusDays(1);
-            }
-        }
+        Set<LocalDate> bookedDates = bookedDates(from, to, reservations);
 
         LocalDate d = from;
         while (d.isBefore(to)) {
-            String monthKey = d.getMonth().getDisplayName(TextStyle.SHORT, Locale.FRENCH) + " " + d.getYear();
-            totalDaysByMonth.merge(monthKey, 1, Integer::sum);
-            if (bookedDates.contains(d)) {
+            String monthKey = monthKey(d);
+            boolean booked = bookedDates.contains(d);
+            // Meme regle que computeKpis : une nuit vendue compte comme disponible, meme bloquee.
+            availableDaysByMonth.merge(monthKey, booked || !closedDates.contains(d) ? 1 : 0, Integer::sum);
+            if (booked) {
                 bookedDaysByMonth.merge(monthKey, 1, Integer::sum);
             }
             d = d.plusDays(1);
         }
 
         Map<String, Double> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Integer> entry : totalDaysByMonth.entrySet()) {
+        for (Map.Entry<String, Integer> entry : availableDaysByMonth.entrySet()) {
             int booked = bookedDaysByMonth.getOrDefault(entry.getKey(), 0);
-            double rate = (double) booked / entry.getValue();
+            double rate = entry.getValue() > 0 ? (double) booked / entry.getValue() : 0.0;
             result.put(entry.getKey(), Math.round(rate * 100.0) / 100.0);
-        }
-        return result;
-    }
-
-    Map<String, BigDecimal> calculateRevenueByMonth(List<Reservation> reservations) {
-        Map<String, BigDecimal> result = new LinkedHashMap<>();
-        for (Reservation r : reservations) {
-            if (r.getCheckIn() == null) continue;
-            String monthKey = r.getCheckIn().getMonth().getDisplayName(TextStyle.SHORT, Locale.FRENCH)
-                + " " + r.getCheckIn().getYear();
-            BigDecimal price = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            result.merge(monthKey, price, BigDecimal::add);
         }
         return result;
     }
@@ -459,7 +536,7 @@ public class AiAnalyticsService {
 
         String userPrompt = AiAnalyticsPrompts.buildUserPrompt(
             propertyId, from, to,
-            analytics.totalNights(), analytics.bookedNights(),
+            analytics.availableNights(), analytics.bookedNights(),
             analytics.occupancyRate(),
             analytics.totalRevenue(), analytics.averageDailyRate(), analytics.revPar(),
             analytics.occupancyByMonth(), analytics.revenueByMonth(), analytics.bookingsBySource()
