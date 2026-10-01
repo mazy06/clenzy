@@ -13,6 +13,7 @@ import com.clenzy.model.PropertyStatus;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.GuestReviewRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
@@ -26,11 +27,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Agrégats de l'écran Dashboard « Vue d'ensemble » — remplace l'agrégation
@@ -43,8 +46,11 @@ import java.util.Set;
  * extérieur) → uniquement les interventions qui LEUR sont assignées, KPI
  * financiers non calculés (non affichés pour ces rôles).</p>
  *
- * <p>Formules « corrigées » : revenus proratisés aux nuits comprises dans la
- * fenêtre, occupation plafonnée à 100 % (patron {@code PropertyPerformanceService}).
+ * <p>Définitions standard de {@link AccommodationKpis} (comme
+ * {@code PropertyPerformanceService} et {@code AiAnalyticsService}) : revenu = CA
+ * hébergement seul proratisé aux nuits comprises dans la fenêtre ; nuits disponibles =
+ * logements actifs × jours − nuits fermées (BLOCKED / MAINTENANCE) non vendues ;
+ * occupation (plafonnée à 100 %) et RevPAN rapportés à ces nuits disponibles.
  * Read-only, aucun appel externe. Dates en zone du {@link Clock} applicatif.</p>
  */
 @Service
@@ -67,6 +73,7 @@ public class DashboardOverviewSummaryService {
     private final ServiceRequestRepository serviceRequestRepository;
     private final GuestReviewRepository guestReviewRepository;
     private final UserRepository userRepository;
+    private final CalendarDayRepository calendarDayRepository;
     private final Clock clock;
 
     public DashboardOverviewSummaryService(PropertyRepository propertyRepository,
@@ -75,6 +82,7 @@ public class DashboardOverviewSummaryService {
                                            ServiceRequestRepository serviceRequestRepository,
                                            GuestReviewRepository guestReviewRepository,
                                            UserRepository userRepository,
+                                           CalendarDayRepository calendarDayRepository,
                                            Clock clock) {
         this.propertyRepository = propertyRepository;
         this.reservationRepository = reservationRepository;
@@ -82,6 +90,7 @@ public class DashboardOverviewSummaryService {
         this.serviceRequestRepository = serviceRequestRepository;
         this.guestReviewRepository = guestReviewRepository;
         this.userRepository = userRepository;
+        this.calendarDayRepository = calendarDayRepository;
         this.clock = clock;
     }
 
@@ -115,10 +124,17 @@ public class DashboardOverviewSummaryService {
         final KpiTrendDto revPan;
         final KpiTrendDto bookings;
         if (financial && propertiesActive > 0) {
-            final List<Reservation> span = reservationRepository.findOverlappingWindowForDashboard(
-                    prevStart, curEndExclusive, orgId, ownerKc);
-            final FinancialWindow cur = aggregateWindow(span, curStart, curEndExclusive, propertiesActive, days);
-            final FinancialWindow prev = aggregateWindow(span, prevStart, curStart, propertiesActive, days);
+            final List<Reservation> stays = reservationRepository.findOverlappingWindowForDashboard(
+                    prevStart, curEndExclusive, orgId, ownerKc).stream()
+                    .filter(r -> !AccommodationKpis.isCancelled(r))
+                    .toList();
+            final ClosedNights closed = ClosedNights.of(calendarDayRepository.findClosedNightsForDashboard(
+                    prevStart, curEndExclusive, orgId, ownerKc, PropertyStatus.ACTIVE), stays);
+            final long nightsPerWindow = propertiesActive * days;
+            final FinancialWindow cur = aggregateWindow(stays, curStart, curEndExclusive,
+                    nightsPerWindow - closed.unsoldWithin(curStart, curEndExclusive));
+            final FinancialWindow prev = aggregateWindow(stays, prevStart, curStart,
+                    nightsPerWindow - closed.unsoldWithin(prevStart, curStart));
             occupancy = new KpiTrendDto(cur.occupancyRate, growthPct(cur.occupancyRate, prev.occupancyRate));
             revenue = new KpiTrendDto(cur.revenue, growthPct(cur.revenue, prev.revenue));
             adr = new KpiTrendDto(cur.adr, growthPct(cur.adr, prev.adr));
@@ -169,36 +185,25 @@ public class DashboardOverviewSummaryService {
                 pendingPayments);
     }
 
-    /** Agrégats financiers d'une fenêtre [start, endExclusive) — nuits/revenus proratisés, occupation cappée. */
-    private static FinancialWindow aggregateWindow(List<Reservation> reservations,
+    /**
+     * Agrégats financiers d'une fenêtre [start, endExclusive) sur des séjours non annulés —
+     * nuits et CA hébergement proratisés, occupation cappée.
+     */
+    private static FinancialWindow aggregateWindow(List<Reservation> stays,
                                                    LocalDate start, LocalDate endExclusive,
-                                                   long activeProperties, int days) {
+                                                   long availableNights) {
         long occupiedNights = 0L;
         long bookings = 0L;
         BigDecimal revenue = BigDecimal.ZERO;
-        for (Reservation r : reservations) {
-            if ("cancelled".equalsIgnoreCase(r.getStatus())) {
-                continue;
-            }
+        for (Reservation r : stays) {
             // « Réservations de la période » = celles qui COMMENCENT dans la
             // fenêtre — un séjour à cheval n'est pas compté deux fois.
             if (!r.getCheckIn().isBefore(start) && r.getCheckIn().isBefore(endExclusive)) {
                 bookings++;
             }
-            final LocalDate s = r.getCheckIn().isBefore(start) ? start : r.getCheckIn();
-            final LocalDate e = r.getCheckOut().isBefore(endExclusive) ? r.getCheckOut() : endExclusive;
-            final long nights = Math.max(0L, ChronoUnit.DAYS.between(s, e));
-            if (nights == 0L) {
-                continue;
-            }
-            final long totalNights = Math.max(1L, ChronoUnit.DAYS.between(r.getCheckIn(), r.getCheckOut()));
-            occupiedNights += nights;
-            final BigDecimal price = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            revenue = revenue.add(price
-                    .multiply(BigDecimal.valueOf(nights))
-                    .divide(BigDecimal.valueOf(totalNights), 2, RoundingMode.HALF_UP));
+            occupiedNights += AccommodationKpis.nightsWithin(r, start, endExclusive);
+            revenue = revenue.add(AccommodationKpis.proratedAccommodationRevenue(r, start, endExclusive));
         }
-        final long availableNights = activeProperties * days;
         final double occupancyRate = availableNights > 0
                 ? Math.min(100.0, occupiedNights * 100.0 / availableNights)
                 : 0.0;
@@ -270,4 +275,34 @@ public class DashboardOverviewSummaryService {
 
     private record FinancialWindow(double occupancyRate, double revenue, double adr, double revPan,
                                    long bookings) {}
+
+    /**
+     * Nuits fermées des logements actifs, logement par logement : une date bloquée sort des
+     * nuits disponibles sauf si CE logement l'a vendue (une vente sur un autre logement ne
+     * rouvre rien).
+     */
+    private record ClosedNights(Map<Long, Set<LocalDate>> datesByProperty,
+                                Map<Long, List<Reservation>> staysByProperty) {
+
+        /** @param rows lignes {@code [Long propertyId, LocalDate date]} de {@code findClosedNightsForDashboard} */
+        static ClosedNights of(List<Object[]> rows, List<Reservation> stays) {
+            final Map<Long, Set<LocalDate>> dates = new HashMap<>();
+            for (Object[] row : rows) {
+                dates.computeIfAbsent((Long) row[0], id -> new HashSet<>()).add((LocalDate) row[1]);
+            }
+            final Map<Long, List<Reservation>> staysByProperty = dates.isEmpty() ? Map.of()
+                    : stays.stream().collect(Collectors.groupingBy(r -> r.getProperty().getId()));
+            return new ClosedNights(dates, staysByProperty);
+        }
+
+        long unsoldWithin(LocalDate from, LocalDate to) {
+            long closed = 0L;
+            for (Map.Entry<Long, Set<LocalDate>> property : datesByProperty.entrySet()) {
+                final Set<LocalDate> sold = AccommodationKpis.soldNights(
+                        staysByProperty.getOrDefault(property.getKey(), List.of()), from, to);
+                closed += AccommodationKpis.closedUnsoldNights(property.getValue(), sold, from, to);
+            }
+            return closed;
+        }
+    }
 }

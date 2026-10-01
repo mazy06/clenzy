@@ -2,6 +2,7 @@ package com.clenzy.repository;
 
 import com.clenzy.model.CalendarDay;
 import com.clenzy.model.CalendarDayStatus;
+import com.clenzy.model.PropertyStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -176,6 +177,26 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
+
+    /**
+     * Nuits fermées à la vente (BLOCKED / MAINTENANCE) sur [from, toExclusive) des logements
+     * du dashboard overview — même périmètre que {@code PropertyRepository.countForDashboardByStatus}
+     * (org stricte, propriétaire optionnel pour un HOST, statut du logement), en UNE requête
+     * pour tout le portefeuille. Lignes {@code [Long propertyId, LocalDate date]}.
+     * Le CAST type {@code :ownerKc} pour PostgreSQL même quand le pilote envoie les chaînes
+     * non typées ({@code stringtype=unspecified}, socle des tests d'intégration).
+     */
+    @Query("SELECT cd.property.id, cd.date FROM CalendarDay cd WHERE cd.organizationId = :orgId "
+        + "AND (CAST(:ownerKc AS string) IS NULL OR cd.property.owner.keycloakId = :ownerKc) "
+        + "AND cd.property.status = :propertyStatus "
+        + "AND cd.date >= :from AND cd.date < :toExclusive "
+        + "AND cd.status IN (com.clenzy.model.CalendarDayStatus.BLOCKED, com.clenzy.model.CalendarDayStatus.MAINTENANCE)")
+    List<Object[]> findClosedNightsForDashboard(
+            @Param("from") LocalDate from,
+            @Param("toExclusive") LocalDate toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("propertyStatus") PropertyStatus propertyStatus);
 
     // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
 
