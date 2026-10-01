@@ -1,0 +1,100 @@
+@layer components {
+  .baitly-action-modal {
+    --bui-primary: var(--bui-supervision-navy);
+    --bui-primary-foreground: var(--bui-supervision-on-navy);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: calc(100% - 32px);
+    max-width: 600px;
+    max-height: min(880px, calc(100dvh - 40px));
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 18px;
+    background: var(--bui-card);
+    color: var(--bui-foreground);
+    box-shadow: 0 16px 56px #0e294533, 0 2px 8px var(--bui-supervision-shadow);
+    text-align: start;
+  }
+  .baitly-action-modal .baitly-action-modal-header {
+    flex-shrink: 0;
+    gap: 8px;
+    padding: 24px;
+    padding-inline-end: 52px;
+    border-bottom: 1px solid var(--bui-border);
+    background: var(--bui-supervision-soft);
+    text-align: start;
+  }
+  .baitly-action-modal-agent { display: flex; align-items: center; gap: 7px; color: var(--bui-supervision-ink); font-size: 12px; font-weight: 500; }
+  .baitly-action-modal [data-slot='dialog-title'] { font-size: 21px; font-weight: 600; line-height: 1.3; letter-spacing: -.025em; text-wrap: balance; }
+  .baitly-action-modal [data-slot='dialog-description'] { font-size: 13px; line-height: 1.6; color: var(--bui-muted-foreground); overflow-wrap: anywhere; }
+  .baitly-action-modal-body { display: flex; flex-direction: column; gap: 22px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 24px; overflow-wrap: anywhere; }
+  .baitly-action-modal-body > * { flex-shrink: 0; min-width: 0; }
+  .baitly-action-modal [data-slot='dialog-footer'] { flex-shrink: 0; flex-wrap: wrap; gap: 8px; margin: 0; padding: 16px 24px; border-top: 1px solid var(--bui-border); background: var(--bui-supervision-soft); }
+  .baitly-action-modal [data-slot='button'] { cursor: pointer; min-height: 36px; height: auto; max-width: 100%; white-space: normal; transition: background-color 200ms cubic-bezier(.22,1,.36,1); }
+  .baitly-action-modal [data-slot='button'][data-variant='default'] { background: var(--bui-supervision-navy); color: var(--bui-supervision-on-navy); box-shadow: 0 2px 3px var(--bui-supervision-shadow); }
+  .baitly-action-modal [data-slot='button'][data-variant='default']:hover:not(:disabled) { background: var(--bui-supervision-navy-hover); }
+  /* The kit's outline-none utility must not suppress keyboard focus. */
+  .baitly-action-modal [data-slot='button']:focus-visible, .baitly-action-modal a:focus-visible { outline: 2px solid var(--bui-supervision-ink) !important; outline-offset: 3px; }
+  .baitly-action-modal [data-slot='dialog-close'] { inset-inline-end: 16px; top: 16px; }
+  .baitly-action-modal input, .baitly-action-modal textarea { min-width: 0; font-variant-numeric: tabular-nums; }
+  .baitly-action-modal [data-slot='input'] { min-height: 40px; }
+  .baitly-action-modal-section { display: flex; flex-direction: column; gap: 12px; }
+  .baitly-action-modal-section + .baitly-action-modal-section { border-top: 1px solid var(--bui-border); padding-top: 20px; }
+  .baitly-action-modal-section > h3 { margin: 0; color: var(--bui-supervision-ink); font-size: 13px; font-weight: 600; }
+  .baitly-action-modal-facts { display: flex; flex-direction: column; gap: 10px; list-style: none; padding: 0; margin: 0; }
+  .baitly-action-modal-facts > li { padding-inline-start: 14px; position: relative; }
+  .baitly-action-modal-facts > li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 4px; height: 4px; border-radius: 50%; background: var(--bui-supervision-ink); }
+  .baitly-action-modal-facts p { margin: 0; font-size: 13px; line-height: 1.7; color: var(--bui-muted-foreground); }
+  .baitly-action-modal-facts strong { font-weight: 600; color: var(--bui-foreground); font-variant-numeric: tabular-nums; }
+  .baitly-action-modal-loading { display: flex; flex-direction: column; gap: 14px; padding-block: 8px 28px; }
+  .baitly-action-modal-note { font-size: 12px; line-height: 1.65; color: var(--bui-muted-foreground); margin: 0; }
+  .baitly-action-modal-readback { border-top: 1px solid var(--bui-border); padding-top: 16px; font-size: 13px; line-height: 1.7; color: var(--bui-muted-foreground); }
+  .baitly-action-choice-list { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; }
+  .baitly-action-choice { display: grid; grid-template-columns: 18px minmax(0,1fr); align-items: start; gap: 12px; padding: 16px 12px; border-block-end: 1px solid var(--bui-border); cursor: pointer; transition: background-color 200ms cubic-bezier(.22,1,.36,1); }
+  .baitly-action-choice:first-of-type { border-block-start: 1px solid var(--bui-border); }
+  .baitly-action-choice:hover, .baitly-action-choice:has(input:checked) { background: var(--bui-supervision-soft); }
+  .baitly-action-choice input { width: 17px; height: 17px; margin: 3px 0 0; accent-color: var(--bui-supervision-navy); cursor: pointer; }
+  .baitly-action-choice input:focus-visible { outline: 2px solid var(--bui-supervision-ink); outline-offset: 3px; }
+  .baitly-action-choice-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 14px; font-weight: 500; }
+  .baitly-action-choice-heading small { font-size: 11px; color: var(--bui-supervision-ink); background: var(--bui-supervision-soft); border-radius: 5px; padding: 3px 6px; }
+  .baitly-action-choice p { font-size: 13px; line-height: 1.65; margin: 8px 0 0; color: var(--bui-muted-foreground); }
+  .baitly-action-choice strong { color: var(--bui-foreground); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .baitly-action-message { margin: 0; border: 1px solid var(--bui-supervision-line); border-radius: 8px; padding: 18px; background: var(--bui-supervision-soft); font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .baitly-action-envelope { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: baseline; gap: 12px 20px; margin: 0; font-size: 13px; }
+  .baitly-action-envelope dt { color: var(--bui-muted-foreground); }
+  .baitly-action-envelope dd { margin: 0; color: var(--bui-foreground); }
+  .baitly-action-params { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px 16px; }
+  .baitly-action-params > :only-child, .baitly-action-params > [data-wide='true'] { grid-column: 1 / -1; }
+  .baitly-schedule-layout { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 24px; }
+  .baitly-price-segment { padding-block: 18px; border-top: 1px solid var(--bui-border); }
+  .baitly-price-segment-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 500; }
+  .baitly-price-fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(80px,.6fr) 36px; align-items: end; gap: 12px; }
+  .baitly-price-fields label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; color: var(--bui-muted-foreground); }
+  .baitly-price-forecast { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px 24px; margin-top: 12px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .baitly-price-forecast span { color: var(--bui-muted-foreground); }
+  .baitly-price-total { display: flex; flex-direction: column; gap: 12px; padding: 18px 0; border-block: 1px solid var(--bui-border); }
+  .baitly-price-total dl { display: flex; flex-wrap: wrap; gap: 16px 32px; margin: 0; }
+  .baitly-price-total dt { font-size: 12px; color: var(--bui-muted-foreground); }
+  .baitly-price-total dd { margin: 6px 0 0; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .baitly-review-proposal { padding-block: 18px; border-block: 1px solid var(--bui-border); }
+  @media (max-width: 639px) {
+    .baitly-action-modal { --bui-modal-gutter: 16px; max-height: calc(100dvh - 16px); border-radius: 14px; }
+    .baitly-action-modal .baitly-action-modal-header { padding: 20px 16px; padding-inline-end: 48px; }
+    .baitly-action-modal [data-slot='dialog-title'] { font-size: 19px; }
+    .baitly-action-modal-body { padding: 20px 16px; gap: 20px; }
+    .baitly-action-modal [data-slot='dialog-footer'] { flex-direction: row; padding: 12px 16px; }
+    .baitly-action-modal [data-slot='button'] { min-height: 40px; }
+    .baitly-action-modal [data-slot='dialog-footer'] > [data-slot='button'] { flex: 1; min-height: 44px; }
+    .baitly-action-modal [data-slot='dialog-footer'] > [data-variant='default'],
+    .baitly-action-modal [data-slot='dialog-footer'] > [data-variant='destructive'] { flex-basis: 100%; order: -1; }
+    .baitly-action-params, .baitly-schedule-layout { grid-template-columns: minmax(0,1fr); }
+    .baitly-price-fields { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+    .baitly-price-fields > button { justify-self: end; }
+    .baitly-action-modal [data-price-month='1'] { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .baitly-action-modal, .baitly-action-modal *, .baitly-action-modal *::before { animation: none !important; transition: none !important; }
+  }
+}

@@ -1,0 +1,110 @@
+[
+  {
+    "key": "seating",
+    "sourceFile": "exec-76733e00-0505-4c20-862e-70f61210f9d2.png"
+  },
+  {
+    "key": "furniture",
+    "sourceFile": "exec-6930d4f0-27c8-4434-b728-fa443a098b66.png"
+  },
+  {
+    "key": "beds",
+    "sourceFile": "exec-26dd119b-a352-4a8e-b9f6-39c738b40873.png"
+  },
+  {
+    "key": "textiles",
+    "sourceFile": "exec-c3d699fb-9b9c-4141-a2a6-991e85121f56.png"
+  },
+  {
+    "key": "large-appliances",
+    "sourceFile": "exec-f1eb4887-fa03-4ff4-ab34-721f015294ba.png"
+  },
+  {
+    "key": "small-appliances",
+    "sourceFile": "exec-c735f571-61cb-4e15-8c06-519f0ba52ada.png"
+  },
+  {
+    "key": "coffee-drinks",
+    "sourceFile": "exec-5c175491-3947-4452-8260-c97d58cb0ae4.png"
+  },
+  {
+    "key": "cookware",
+    "sourceFile": "exec-e0c279cd-7716-4f7e-8010-1fa9f66145d8.png"
+  },
+  {
+    "key": "utensils",
+    "sourceFile": "exec-1c4e8823-9439-4d7f-95ea-2da02e7c5747.png"
+  },
+  {
+    "key": "tableware",
+    "sourceFile": "exec-f6c85bb8-c804-4082-acc1-a8bfda7d4017.png"
+  },
+  {
+    "key": "bathroom",
+    "sourceFile": "exec-59af3faf-f3df-446a-9d4a-c169ad4c5b37.png"
+  },
+  {
+    "key": "laundry-cleaning",
+    "sourceFile": "exec-97e6efa8-986d-4d25-9787-26f40f8d86b2.png"
+  },
+  {
+    "key": "lighting",
+    "sourceFile": "exec-ede60fa1-0382-42b2-89e2-901051a58fc0.png"
+  },
+  {
+    "key": "climate",
+    "sourceFile": "exec-c7d94913-101e-439f-b468-0613adc79b65.png"
+  },
+  {
+    "key": "electronics",
+    "sourceFile": "exec-7fa49718-cb7b-435c-a552-b69a0912a671.png"
+  },
+  {
+    "key": "safety-access",
+    "sourceFile": "exec-4745d98d-b1b2-427a-b40b-cca7be487295.png"
+  },
+  {
+    "key": "baby",
+    "sourceFile": "exec-ca220095-293c-4ea6-963b-f3ada57131bf.png"
+  },
+  {
+    "key": "outdoor-furniture",
+    "sourceFile": "exec-13347095-217d-462b-80df-e620880fd0e7.png"
+  },
+  {
+    "key": "garden-pool",
+    "sourceFile": "exec-20205db9-e7ce-45fb-8783-6817d9562723.png"
+  },
+  {
+    "key": "leisure",
+    "sourceFile": "exec-7c9ea1d1-1774-4e19-9752-6e371de6c0a3.png"
+  },
+  {
+    "key": "storage",
+    "sourceFile": "exec-c037e3da-a989-4f0b-bb57-11b438e82179.png"
+  },
+  {
+    "key": "tools",
+    "sourceFile": "exec-76f6a136-f847-4238-af05-05d9b4e58fd1.png"
+  },
+  {
+    "key": "accessibility-pets",
+    "sourceFile": "exec-d88eeb3e-38e9-4a3a-bf77-b48a43248a23.png"
+  },
+  {
+    "key": "kitchen-extras",
+    "sourceFile": "exec-d29a8688-0e8a-40eb-acf8-e3be985dca7d.png"
+  },
+  {
+    "key": "decor",
+    "sourceFile": "exec-55c566cc-5109-4047-86d3-1fc179c0f5e3.png"
+  },
+  {
+    "key": "fixtures",
+    "sourceFile": "exec-a34f4ace-607b-4c21-bb11-d1883fd0c599.png"
+  },
+  {
+    "key": "tableware-details",
+    "sourceFile": "exec-58735ea1-a52d-492e-81f3-94145f0001a0.png"
+  }
+]

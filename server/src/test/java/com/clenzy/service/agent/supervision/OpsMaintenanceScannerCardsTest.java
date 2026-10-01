@@ -110,6 +110,39 @@ class OpsMaintenanceScannerCardsTest {
     // --- Mission a confirmer -------------------------------------------------
 
     @Test
+    void lowStockWithoutSupplierKeepsAnItemReferenceForItsPhoto() {
+        var item = new com.clenzy.model.PropertyStockItem();
+        item.setId(18L);
+        item.setName("Café local");
+        item.setQuantity(1);
+        item.setReorderThreshold(2);
+        when(propertyStockItemRepository.findByPropertyIdAndOrganizationIdOrderByNameAsc(PROP, ORG))
+                .thenReturn(List.of(item));
+        scanner().scanProperty(ORG, PROP);
+        verify(suggestionService).recordStockAlert(eq(ORG), eq(PROP), contains("Café local"), any(), eq(18L));
+        verify(suggestionService, never()).recordActionable(any(), any(), any(), any(), any(),
+                eq(SupervisionActionType.LINEN_STOCK_ORDER), any(), any(), any());
+    }
+
+    @Test
+    void orderableStockKeepsItsItemReferenceWithoutEmbeddingThePhoto() {
+        var item = new com.clenzy.model.PropertyStockItem();
+        item.setId(18L);
+        item.setName("Café local");
+        item.setQuantity(1);
+        item.setReorderThreshold(2);
+        item.setReorderQuantity(4);
+        item.setSupplierName("Café local");
+        item.setSupplierEmail("stock@example.test");
+        item.setPhotoUrl("data:image/png;base64,AA==");
+        when(propertyStockItemRepository.findByPropertyIdAndOrganizationIdOrderByNameAsc(PROP, ORG))
+                .thenReturn(List.of(item));
+        scanner().scanProperty(ORG, PROP);
+        verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("ops"), contains("Café local"), any(),
+                eq(SupervisionActionType.LINEN_STOCK_ORDER), eq("{\"stockItemId\":18}"), isNull(), eq("warning"));
+    }
+
+    @Test
     void whenMissionAssignedAndAwaitingResponse_thenCardRecorded() {
         givenIntervention(intervention(InterventionStatus.PENDING, technicien(),
                 InterventionAssignmentResponse.PENDING));

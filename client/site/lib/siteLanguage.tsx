@@ -39,18 +39,22 @@ function readSession(): SiteLanguage | null {
  * Langue a servir, du signal le plus fort au plus faible.
  *
  * <p>L'URL l'emporte : c'est une demande explicite, portee par le lien. Vient
- * ensuite le choix deja pose dans la session, puis la langue du navigateur —
- * le seul signal qui dise ce que le visiteur LIT, la ou le pays ne dit que
- * d'ou il se connecte.</p>
+ * ensuite le choix deja pose dans la session, puis la langue du HTML publie.
+ * Le navigateur sert de repli si le document ne porte aucune langue connue.
+ * Une URL publique conserve ainsi son contenu apres le chargement du script.</p>
  */
 export function resolveSiteLanguage(
   search: string,
   browserLanguages: readonly string[],
   stored: SiteLanguage | null = null,
+  documentLanguage: string | null = null,
 ): SiteLanguage {
   const requested = new URLSearchParams(search).get('lang');
   if (isSupported(requested)) return requested;
   if (stored) return stored;
+  // A pre-rendered URL must keep its published language after JavaScript loads.
+  // Browser detection is only a fallback when no document language is supplied.
+  if (isSupported(documentLanguage)) return documentLanguage;
   for (const tag of browserLanguages) {
     const base = (tag ?? '').toLowerCase().split('-')[0];
     if (isSupported(base)) return base;
@@ -72,7 +76,9 @@ export function SiteLanguageProvider({ children }: { children: ReactNode }) {
       window.location.search,
       [...(navigator.languages ?? []), navigator.language],
       readSession(),
-    ));
+      document.documentElement.lang,
+    ),
+  );
 
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
@@ -83,25 +89,33 @@ export function SiteLanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = direction;
   }, [language, direction]);
 
-  const value = useMemo<SiteLanguageValue>(() => ({
-    language,
-    direction,
-    changeLanguage: (next) => {
-      setLanguage(next);
-      try {
-        sessionStorage.setItem(SESSION_KEY, next);
-      } catch {
-        // Navigation privee : le choix vaut au moins pour cette page.
-      }
-      const params = new URLSearchParams(window.location.search);
-      params.set('lang', next);
-      window.history.replaceState(
-        window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
-    },
-  }), [language, direction]);
+  const value = useMemo<SiteLanguageValue>(
+    () => ({
+      language,
+      direction,
+      changeLanguage: (next) => {
+        setLanguage(next);
+        try {
+          sessionStorage.setItem(SESSION_KEY, next);
+        } catch {
+          // Navigation privee : le choix vaut au moins pour cette page.
+        }
+        const params = new URLSearchParams(window.location.search);
+        params.set('lang', next);
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+        );
+      },
+    }),
+    [language, direction],
+  );
 
   return (
-    <SiteLanguageContext.Provider value={value}>{children}</SiteLanguageContext.Provider>
+    <SiteLanguageContext.Provider value={value}>
+      {children}
+    </SiteLanguageContext.Provider>
   );
 }
 
@@ -120,6 +134,9 @@ export function useSiteLanguage(): SiteLanguageValue {
  * corpus juridique. Un texte de marketing se relit comme un texte, pas comme
  * trois cents cles plates.</p>
  */
-export function pick<T>(dict: Record<SiteLanguage, T>, language: SiteLanguage): T {
+export function pick<T>(
+  dict: Record<SiteLanguage, T>,
+  language: SiteLanguage,
+): T {
   return dict[language];
 }

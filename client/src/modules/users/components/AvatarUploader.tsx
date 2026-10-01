@@ -26,17 +26,6 @@ const validate = (file: File): string | null => {
   return null;
 };
 
-/**
- * Avatar uploader — drag-and-drop or click-to-upload, with delete.
- *
- * <h4>Design rules respected</h4>
- * <ul>
- *   <li>No emoji icons, no glassmorphism.</li>
- *   <li>Soft-tinted accent (`bg-primary-soft`) for the drop zone.</li>
- *   <li>`prefers-reduced-motion` respected.</li>
- *   <li>Inline error feedback, no modal-first reflex.</li>
- * </ul>
- */
 const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,38 +90,38 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          'flex items-center gap-3 p-3 rounded-xl border border-dashed',
-          'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
-          dragOver ? 'border-primary bg-primary-soft' : 'border-border bg-transparent',
+          'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-md',
+          'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+          dragOver ? 'bg-primary-soft outline-2 outline-dashed outline-primary outline-offset-8' : 'bg-transparent',
         )}
       >
-        <div className="relative shrink-0">
+        <div className="relative row-span-2 self-start shrink-0">
           {/* Le fond accent est porte par le seul repli : l'image, quand elle
               existe, couvre entierement l'avatar. */}
-          <Avatar className="size-[72px] rounded-full">
-            {photoUrl && <AvatarImage src={photoUrl} alt="" />}
-            <AvatarFallback className="text-[1.5rem] font-[family-name:var(--font-display)] font-semibold text-primary-foreground bg-primary rounded-full">
+          <Avatar className="size-14 rounded-full sm:size-16">
+            {photoUrl && <AvatarImage src={photoUrl} alt={`${user.firstName} ${user.lastName}`} />}
+            <AvatarFallback className="text-xl font-semibold text-primary-foreground bg-primary rounded-full">
               {initials}
             </AvatarFallback>
           </Avatar>
           {uploading && (
             // Voile teinte vers le bleu nuit de la marque, jamais du noir pur.
             <div className="absolute inset-0 rounded-full bg-[rgba(15,23,42,0.45)] flex items-center justify-center">
-              <Spinner className="size-[22px] text-white" />
+              <Spinner className="size-[22px] text-primary-foreground dark:text-primary" />
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
           {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les marges UA
               que neutralisait `cn-text-*`. */}
-          <p className="m-0 text-sm font-semibold text-foreground">
-            {t('users.form.photo')}
+          <p className="m-0 text-base font-semibold text-foreground [overflow-wrap:anywhere]">
+            {user.firstName} {user.lastName}
           </p>
-          <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+          <p className="m-0 mt-1 max-w-prose text-xs leading-relaxed text-muted-foreground">
             {t('users.form.photoHint')}
           </p>
         </div>
-        <div className="flex gap-1.5 shrink-0">
+        <div className="col-start-2 flex flex-wrap gap-2">
           <input
             ref={inputRef}
             type="file"
@@ -146,6 +135,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           <BuiButton
             type="button"
             size="sm"
+            className="min-h-9 cursor-pointer"
             variant="outline"
             disabled={uploading}
             onClick={() => inputRef.current?.click()}
@@ -157,7 +147,8 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
             <BuiButton
               type="button"
               size="sm"
-              variant="destructive"
+              className="min-h-9 cursor-pointer text-destructive-ink"
+              variant="ghost"
               disabled={uploading}
               onClick={handleDelete}
             >

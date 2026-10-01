@@ -194,6 +194,78 @@ export const ACADEMY_EPISODES: readonly AcademyEpisode[] = [
     "languages": [
       "fr"
     ]
+  },
+  {
+    "slug": "15-avis-negatif",
+    "number": "15",
+    "theme": "operations",
+    "uploadDate": "2026-09-30",
+    "duration": 139.8,
+    "chapters": [
+      0.2,
+      17.2,
+      41.1,
+      79,
+      103.3,
+      116.4
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "12-assurance",
+    "number": "12",
+    "theme": "securite",
+    "uploadDate": "2026-09-30",
+    "duration": 124.2,
+    "chapters": [
+      0.2,
+      14.9,
+      27.4,
+      66.7,
+      83.7,
+      105.6
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "20-gestion-proprietaire",
+    "number": "20",
+    "theme": "conciergeries",
+    "uploadDate": "2026-10-01",
+    "duration": 147,
+    "chapters": [
+      0.2,
+      16.4,
+      51.5,
+      84.6,
+      104.2,
+      122.9
+    ],
+    "languages": [
+      "fr"
+    ]
+  },
+  {
+    "slug": "11-securite",
+    "number": "11",
+    "theme": "securite",
+    "uploadDate": "2026-10-01",
+    "duration": 125.7,
+    "chapters": [
+      0.2,
+      15.9,
+      54.8,
+      67.1,
+      79.7,
+      101.1
+    ],
+    "languages": [
+      "fr"
+    ]
   }
 ];
 

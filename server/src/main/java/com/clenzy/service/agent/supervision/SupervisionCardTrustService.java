@@ -161,7 +161,8 @@ public class SupervisionCardTrustService {
                     "Vous avez approuvé " + streak + " fois de suite ce type d'action de la "
                             + "constellation. Vous pouvez l'automatiser (sous enveloppe) depuis le "
                             + "menu Automatisation — ou ignorer la suggestion.",
-                    "/automation-rules");
+                    "/automation-rules", com.clenzy.service.NotificationMetadata.of()
+                            .supervision(null, type.moduleKey(), type.actionType()).build());
             // Feed « règle apprise » (constellation Phase 5) : la répétition des
             // approbations devient une proposition d'automatisation — nommée, pas colorée.
             final Long anchor = propertyRepository.findFirstPropertyIdByOrg(orgId);

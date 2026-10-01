@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -86,10 +87,16 @@ public final class NotificationMetadata {
     public static final String MODULE = "module";
     /** Type d'action proposee par la carte — nomme le geste dans la fiche. */
     public static final String ACTION_TYPE = "actionType";
+    /** Identite stable du scanner, sans dependance au titre traduit. */
+    public static final String SOURCE_TOOL = "sourceTool";
+    /** Sens de l'ajustement tarifaire : up ou down, jamais les parametres complets. */
+    public static final String PRICE_DIRECTION = "priceDirection";
     /** Avis voyageur concerne — la fiche va y lire la note, le canal et le texte. */
     public static final String REVIEW_ID = "reviewId";
     /** Objet connecte concerne (serrure, capteur) — la fiche va y lire son etat. */
     public static final String DEVICE_ID = "deviceId";
+    /** Article de reassort concerne, pour retrouver sa photo et son nom actuels. */
+    public static final String STOCK_ITEM_ID = "stockItemId";
     /** Personne a l'origine de l'evenement, quand c'est un geste humain. */
     public static final String ACTOR = "actor";
 
@@ -97,6 +104,19 @@ public final class NotificationMetadata {
 
     public static Builder of() {
         return new Builder();
+    }
+
+    /** PRICE_DROP porte un sens explicite ; les regles yield portent un pourcentage signe. */
+    public static String priceDirection(String actionType, JsonNode params) {
+        if (params == null || !params.isObject()) return null;
+        if ("YIELD_PRICE_ADJUST".equals(actionType)) {
+            JsonNode percent = params.get("percent");
+            if (percent == null || !percent.isNumber() || percent.asDouble() == 0) return null;
+            return percent.asDouble() > 0 ? "up" : "down";
+        }
+        if (!"PRICE_DROP".equals(actionType)) return null;
+        String direction = params.path("direction").asText();
+        return "up".equals(direction) || "down".equals(direction) ? direction : null;
     }
 
     /**
@@ -151,6 +171,12 @@ public final class NotificationMetadata {
         public Builder issueId(Long id) { return put(ISSUE_ID, id); }
         public Builder reviewId(Long id) { return put(REVIEW_ID, id); }
         public Builder deviceId(Long id) { return put(DEVICE_ID, id); }
+        public Builder stockItemId(Long id) { return put(STOCK_ITEM_ID, id); }
+        public Builder sourceTool(String source) { return put(SOURCE_TOOL, source); }
+        public Builder priceDirection(String direction) {
+            return "up".equals(direction) || "down".equals(direction)
+                    ? put(PRICE_DIRECTION, direction) : this;
+        }
         public Builder actor(String name) { return put(ACTOR, name); }
 
         /** Repere d'une carte HITL : d'ou elle vient, et quel geste elle propose. */

@@ -70,6 +70,16 @@ public class PropertyInventoryController {
         return ResponseEntity.ok(inventoryService.addInventoryItem(propertyId, dto));
     }
 
+    @PostMapping("/items/batch")
+    @Operation(summary = "Ajouter une sélection d'objets à l'inventaire")
+    public ResponseEntity<List<PropertyInventoryItemDto>> addItems(
+            @PathVariable Long propertyId,
+            @RequestBody List<PropertyInventoryItemDto> items,
+            @AuthenticationPrincipal Jwt jwt) {
+        checkAccess(propertyId, jwt);
+        return ResponseEntity.ok(inventoryService.addInventoryItems(propertyId, items));
+    }
+
     @PutMapping("/items/{itemId}")
     @Operation(summary = "Modifier un objet de l'inventaire")
     public ResponseEntity<PropertyInventoryItemDto> updateItem(

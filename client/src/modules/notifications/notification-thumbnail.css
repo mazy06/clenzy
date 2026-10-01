@@ -1,0 +1,13 @@
+@layer components {
+  .baitly-notification-thumbnail {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--bui-muted);
+  }
+  .baitly-notification-thumbnail[data-size='detail'] { width: 64px; height: 64px; border-radius: 12px; }
+  .baitly-notification-thumbnail > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+}

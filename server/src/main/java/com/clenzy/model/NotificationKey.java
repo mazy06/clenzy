@@ -262,9 +262,11 @@ public enum NotificationKey {
     ONLINE_CHECKIN_STARTED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
     ONLINE_CHECKIN_COMPLETED(NotificationType.SUCCESS, NotificationCategory.GUEST_MESSAGING, true),
 
-    // ─── REVIEW (2 cles) ──────────────────────────────────────────────────
+    // ─── REVIEW (1 cle) ───────────────────────────────────────────────────
+    // Pas de cle « avis negatif » : un avis sans reponse devient une carte HITL
+    // de la constellation (ReviewModerationScanner), qui previent deja les
+    // admins/managers via SUPERVISION_SUGGESTION.
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
-    REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
 
     // ─── SUPERVISION / CONSTELLATION (3 cles) ─────────────────────────────
     // Carte HITL actionnable (warning/critical) creee par un agent : l'operateur

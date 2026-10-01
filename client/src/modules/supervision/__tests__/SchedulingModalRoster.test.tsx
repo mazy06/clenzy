@@ -119,6 +119,16 @@ describe('<SchedulingModal> — les intervenants', () => {
     expect(screen.getByText('Nadia Kessler')).toBeTruthy();
   });
 
+  it('permet aussi de rechercher le métier dans la langue de l’utilisateur', async () => {
+    open();
+    await screen.findByText('Nadia Kessler');
+    fireEvent.change(screen.getByPlaceholderText('Rechercher un intervenant…'), {
+      target: { value: 'Blanchisserie' },
+    });
+    await waitFor(() => expect(screen.queryByText('Karim Belhaj')).toBeNull());
+    expect(screen.getByText('Nadia Kessler')).toBeTruthy();
+  });
+
   it('se raviser est un geste explicite, pas un second clic à deviner', async () => {
     open();
 

@@ -1,0 +1,236 @@
+/* Baitly agent nodes: navy selection, semantic counters, real activity only. */
+@layer components {
+  .baitly-orbit {
+    --bui-orbit-state: var(--bui-supervision-ink);
+    /* Only the empty corners of the rotating square extend past this frame. */
+    overflow: clip;
+  }
+
+  .baitly-orbit-track,
+  .baitly-orbit-spoke {
+    stroke: var(--bui-supervision-line);
+    opacity: .55;
+  }
+
+  .oc-flow[data-focused] .baitly-orbit-spoke {
+    stroke: var(--bui-supervision-ink);
+    opacity: .4;
+  }
+
+  .baitly-orbit .oc-node {
+    isolation: isolate;
+  }
+
+  .baitly-orbit .oc-node[data-selected] {
+    z-index: 2;
+  }
+
+  .baitly-orbit .oc-node[data-waiting] {
+    --bui-orbit-state: var(--bui-warning-ink);
+  }
+
+  .baitly-orbit .oc-node[data-attention] {
+    --bui-orbit-state: var(--bui-destructive-ink);
+  }
+
+  .baitly-orbit-rim {
+    position: absolute;
+    inset: -8%;
+    width: 116%;
+    height: 116%;
+    overflow: visible;
+    fill: none;
+    pointer-events: none;
+  }
+
+  .baitly-orbit-rim-track {
+    stroke: var(--bui-orbit-state);
+    stroke-width: 1;
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+  }
+
+  .oc-node:is([data-selected], [data-working], [data-waiting], [data-attention]) .baitly-orbit-rim-track {
+    opacity: .25;
+  }
+
+  .baitly-orbit-progress {
+    stroke: var(--bui-supervision-ink);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+  }
+
+  .oc-node[data-animating] .baitly-orbit-progress[data-indeterminate] {
+    animation: baitly-orbit-working 3.2s linear infinite;
+  }
+
+  .baitly-orbit-node {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 50%;
+    background: var(--bui-card);
+    color: var(--bui-supervision-ink);
+    box-shadow: 0 3px 8px var(--bui-supervision-shadow), inset 0 -3px 6px var(--bui-supervision-shadow);
+    cursor: pointer;
+    transition: background-color 200ms cubic-bezier(.22,1,.36,1), border-color 200ms ease-out, box-shadow 200ms ease-out;
+  }
+
+  .baitly-orbit-node::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid var(--bui-supervision-soft);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .oc-node[data-waiting] .baitly-orbit-node,
+  .oc-node[data-attention] .baitly-orbit-node {
+    border-color: color-mix(in srgb, var(--bui-orbit-state) 40%, var(--bui-card));
+  }
+
+  .baitly-orbit-node[data-status='veille'] {
+    color: var(--bui-muted-foreground);
+    box-shadow: 0 2px 4px var(--bui-supervision-shadow);
+  }
+
+  .baitly-orbit .baitly-orbit-node[aria-pressed='true'] {
+    border-color: var(--bui-supervision-navy);
+    background: var(--bui-supervision-navy);
+    color: var(--bui-supervision-on-navy);
+    box-shadow: 0 5px 14px var(--bui-supervision-shadow), inset 0 1px 1px color-mix(in srgb, var(--bui-supervision-on-navy) 20%, transparent);
+  }
+
+  .baitly-orbit-node[aria-pressed='true']::after {
+    border-color: color-mix(in srgb, var(--bui-supervision-on-navy) 16%, transparent);
+  }
+
+  .baitly-orbit-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(18px, 34%, 32px);
+    aspect-ratio: 1;
+  }
+
+  .baitly-orbit-icon > svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .baitly-orbit-count {
+    position: absolute;
+    inset-inline-end: -3px;
+    top: -11px;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 24px;
+    height: 24px;
+    padding-inline: 5px;
+    border: 1px solid color-mix(in srgb, var(--bui-orbit-state) 40%, var(--bui-card));
+    border-radius: 999px;
+    /* Opaque: the orbit's rails must never show through a count. */
+    background: color-mix(in srgb, var(--bui-card) 95%, var(--bui-orbit-state));
+    color: var(--bui-orbit-state);
+    box-shadow: 0 0 0 2px var(--bui-card), 0 2px 4px var(--bui-supervision-shadow);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .baitly-orbit-count[data-kind='properties'] {
+    border-color: var(--bui-supervision-navy);
+    background: var(--bui-supervision-navy);
+    color: var(--bui-supervision-on-navy);
+  }
+
+  .baitly-orbit-activity-dot {
+    position: absolute;
+    bottom: 4%;
+    inset-inline-end: 7%;
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--bui-card);
+    border-radius: 50%;
+    background: var(--bui-supervision-ink);
+    box-shadow: 0 0 0 1px var(--bui-supervision-line);
+  }
+
+  .baitly-orbit-name {
+    color: var(--bui-foreground);
+  }
+
+  .oc-node[data-selected] .baitly-orbit-name {
+    color: var(--bui-supervision-ink);
+    font-weight: 600;
+  }
+
+  .baitly-orbit-core {
+    border: 1px solid color-mix(in srgb, var(--bui-supervision-on-navy) 25%, var(--bui-supervision-navy));
+    background: var(--bui-supervision-navy);
+    color: var(--bui-supervision-on-navy);
+    box-shadow: 0 8px 22px var(--bui-supervision-shadow), inset 0 1px 1px color-mix(in srgb, var(--bui-supervision-on-navy) 25%, transparent);
+    transition: background-color 200ms cubic-bezier(.22,1,.36,1);
+  }
+
+  .baitly-orbit-core::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid color-mix(in srgb, var(--bui-supervision-on-navy) 20%, transparent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .baitly-orbit .baitly-orbit-node:focus-visible,
+  .baitly-orbit .baitly-orbit-core:focus-visible {
+    outline: 2px solid var(--bui-supervision-ink);
+    outline-offset: 6px;
+  }
+
+  @media (hover: hover) {
+    button.baitly-orbit-core:hover {
+      background: var(--bui-supervision-navy-hover);
+    }
+
+    .baitly-orbit-node:hover {
+      border-color: var(--bui-supervision-ink);
+      background: var(--bui-supervision-soft);
+      box-shadow: 0 4px 12px var(--bui-supervision-shadow);
+    }
+
+    .baitly-orbit .baitly-orbit-node[aria-pressed='true']:hover {
+      background: var(--bui-supervision-navy-hover);
+    }
+  }
+
+  @keyframes baitly-orbit-working {
+    from { transform: rotate(-90deg); }
+    to { transform: rotate(270deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .baitly-orbit-core,
+    .baitly-orbit-node,
+    .baitly-orbit-rim-track {
+      transition: none;
+    }
+
+    .oc-node[data-animating] .baitly-orbit-progress[data-indeterminate] {
+      animation: none;
+    }
+  }
+}

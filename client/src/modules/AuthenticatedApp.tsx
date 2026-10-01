@@ -29,6 +29,7 @@ function AssistantConversationRedirect() {
 const Dashboard = lazy(() => import('./dashboard/Dashboard'));
 const NotFoundPage = lazy(() => import('./NotFoundPage'));
 const PropertiesPage = lazy(() => import('./properties/PropertiesPage'));
+const ConsumablesPage = lazy(() => import('./stock/ConsumablesPage'));
 const PropertyCreate = lazy(() => import('./properties/PropertyCreate'));
 const PropertyDetails = lazy(() => import('./properties/PropertyDetails'));
 const PropertyEdit = lazy(() => import('./properties/PropertyEdit'));
@@ -256,6 +257,11 @@ const AuthenticatedApp: React.FC = () => {
           <ErrorBoundary>
             <PropertiesPage />
           </ErrorBoundary>
+        } />
+        <Route path="/consumables" element={
+          <ProtectedRoute requiredPermission="properties:view" requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR']}>
+            <ErrorBoundary><ConsumablesPage /></ErrorBoundary>
+          </ProtectedRoute>
         } />
         <Route path="/properties/new" element={
           <ProtectedRoute requiredPermission="properties:create">

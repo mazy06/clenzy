@@ -11,6 +11,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class NotificationMetadataTest {
 
     @Test
+    void pricingDirectionFollowsTheScannerContract() throws Exception {
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        assertThat(NotificationMetadata.priceDirection("PRICE_DROP", mapper.readTree("{\"direction\":\"up\",\"percent\":15}"))).isEqualTo("up");
+        assertThat(NotificationMetadata.priceDirection("PRICE_DROP", mapper.readTree("{\"percent\":15}"))).isNull();
+        assertThat(NotificationMetadata.priceDirection("YIELD_PRICE_ADJUST", mapper.readTree("{\"percent\":15}"))).isEqualTo("up");
+        assertThat(NotificationMetadata.priceDirection("YIELD_PRICE_ADJUST", mapper.readTree("{\"percent\":-15}"))).isEqualTo("down");
+        assertThat(NotificationMetadata.priceDirection("YIELD_PRICE_ADJUST", mapper.readTree("{\"percent\":\"15\"}"))).isNull();
+        assertThat(NotificationMetadata.priceDirection("GUIDE_SEND", mapper.readTree("{\"direction\":\"up\"}"))).isNull();
+        assertThat(NotificationMetadata.of().priceDirection("unexpected").build()).isNull();
+    }
+
+    @Test
     void whenNothingIsKnown_thenNoMetadataIsWrittenAtAll() {
         Map<String, Object> facts = NotificationMetadata.of()
                 .property(null)

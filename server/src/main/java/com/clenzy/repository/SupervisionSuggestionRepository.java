@@ -11,6 +11,24 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SupervisionSuggestionRepository extends JpaRepository<SupervisionSuggestion, Long> {
+    String STOCK_OVERVIEW_FILTER = " FROM SupervisionSuggestion s JOIN Property p ON p.id = s.propertyId "
+            + "AND p.organizationId = s.organizationId WHERE s.organizationId = :orgId AND s.status = :status "
+            + "AND (s.actionType = 'LINEN_STOCK_ORDER' OR (:status = 'PENDING' AND s.toolName = 'stock_low')) "
+            + "AND (:status <> 'PENDING' OR s.expiresAt > :now) "
+            + "AND (:propertyId IS NULL OR s.propertyId = :propertyId) "
+            + "AND (LOWER(s.title) LIKE :search ESCAPE '!' OR LOWER(s.motif) LIKE :search ESCAPE '!' "
+            + "OR LOWER(p.name) LIKE :search ESCAPE '!')";
+
+    @Query(value = "SELECT s" + STOCK_OVERVIEW_FILTER + " ORDER BY COALESCE(s.appliedAt, s.createdAt) DESC, s.id DESC",
+            countQuery = "SELECT COUNT(s)" + STOCK_OVERVIEW_FILTER)
+    org.springframework.data.domain.Page<SupervisionSuggestion> findStockOverview(
+            @Param("orgId") Long orgId, @Param("propertyId") Long propertyId, @Param("status") String status,
+            @Param("now") Instant now, @Param("search") String search, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT COUNT(s)" + STOCK_OVERVIEW_FILTER)
+    long countStockOverview(@Param("orgId") Long orgId, @Param("propertyId") Long propertyId,
+            @Param("status") String status, @Param("now") Instant now, @Param("search") String search);
+
 
     /** Suggestions en attente non expirées d'un logement (chrono inversé). */
     List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
@@ -173,6 +191,12 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
             + "s.appliedBy = NULL "
             + "WHERE s.id = :id AND s.organizationId = :orgId AND s.status = 'APPLIED'")
     int revertApplied(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    /** Archive les valeurs réellement envoyées, après l'effet externe, sans rejouer la commande. */
+    @Modifying
+    @Query("UPDATE SupervisionSuggestion s SET s.actionParams = :params WHERE s.id = :id "
+            + "AND s.organizationId = :orgId AND s.status = 'APPLIED' AND s.actionType = 'LINEN_STOCK_ORDER'")
+    int archiveStockOrder(@Param("id") Long id, @Param("orgId") Long orgId, @Param("params") String params);
 
     /**
      * Agrégat d'acceptation PAR TYPE (Vague 1 autonomie) : nb de suggestions

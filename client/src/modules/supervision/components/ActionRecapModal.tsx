@@ -10,18 +10,13 @@
    effet métier, et son libellé le dit.
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalLoading, ActionModalFacts, ActionModalSection } from './ActionModal';
 import { useEffect, useState } from 'react';
 import {
   Alert,
   AlertDescription,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Spinner,
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -65,18 +60,12 @@ export function ActionRecapModal({ action, onClose, onAcknowledge }: ActionRecap
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">
-            {entry ? t(entry.titleKey, entry.titleFallback) : ''}
-          </DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+      <ActionModalContent className="sm:max-w-[520px]">
+        <ActionModalHeader action={action} title={entry ? t(entry.titleKey, entry.titleFallback) : ''} description={action.title} />
+        <ActionModalBody>
 
         {!preview && !failed ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner className="size-4" />
-          </div>
+          <ActionModalLoading />
         ) : failed ? (
           <p className="py-2 text-sm text-[var(--bui-muted-foreground)] text-pretty">
             {t(
@@ -86,17 +75,9 @@ export function ActionRecapModal({ action, onClose, onAcknowledge }: ActionRecap
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            <ul className="flex flex-col gap-2">
-              {preview!.facts.map((fact) => (
-                <li key={fact} className="flex gap-2.5 text-sm text-pretty">
-                  <span
-                    className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                    aria-hidden
-                  />
-                  <span>{fact}</span>
-                </li>
-              ))}
-            </ul>
+            <ActionModalSection title={t('supervision.modal.completed', 'Ce qui a été fait')}>
+              <ActionModalFacts facts={preview!.facts} />
+            </ActionModalSection>
 
             {/* La situation a pu changer depuis le récapitulatif. */}
             {preview!.blocked && (
@@ -108,12 +89,13 @@ export function ActionRecapModal({ action, onClose, onAcknowledge }: ActionRecap
           </div>
         )}
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button onClick={onAcknowledge}>
             {entry ? t(entry.ctaKey, entry.ctaFallback) : ''}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

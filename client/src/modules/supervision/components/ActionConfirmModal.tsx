@@ -14,17 +14,13 @@
    mise en scène.
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalFacts, ActionModalSection } from './ActionModal';
 import { useState } from 'react';
 import {
   Alert,
   AlertDescription,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Field,
   FieldLabel,
   Input,
@@ -32,7 +28,7 @@ import {
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { Money } from '../../../components/Money';
+import { ActionDescription } from './ActionDescription';
 import { entryOf } from './actionRegistry';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
@@ -72,54 +68,16 @@ export function ActionConfirmModal({ action, onClose, onConfirm }: ActionConfirm
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">{t(entry.titleKey, entry.titleFallback)}</DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <ActionModalContent className="sm:max-w-[520px]">
+        <ActionModalHeader action={action} title={t(entry.titleKey, entry.titleFallback)} description={action.title} />
+        <ActionModalBody>
 
         <div className="flex flex-col gap-4">
-          {/* Ce qui va se passer, une conséquence par ligne. */}
-          <ul className="flex flex-col gap-2">
-            {copy.consequences.map((line) => (
-              <li key={line.key} className="flex gap-2.5 text-sm text-[var(--bui-foreground)]">
-                <span
-                  className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                  aria-hidden
-                />
-                <span className="text-pretty">{t(line.key, line.fallback)}</span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Le montant de la carte est un instantané du scan : le serveur le
-              recalcule à l'exécution. Le taire laisserait croire qu'il est ferme. */}
-          {action.amountEur != null && (
-            <div className="flex items-baseline justify-between gap-3 rounded-md bg-[var(--bui-muted)] px-3.5 py-2.5">
-              <span className="text-xs text-[var(--bui-muted-foreground)]">
-                {copy.amountIsRecomputed
-                  ? t('supervision.confirm.amountEstimate', 'Montant estimé')
-                  : t('supervision.confirm.amount', 'Montant')}
-              </span>
-              <span className="text-base font-semibold tabular-nums">
-                <Money value={action.amountEur} from="EUR" />
-              </span>
-            </div>
-          )}
-          {/* L'acompte est une ÉTAPE de ce montant, pas une seconde demande. */}
-          {action.depositEur != null && action.amountEur != null && (
-            <div className="-mt-2 flex items-baseline justify-between gap-3 px-3.5 text-xs">
-              <span className="text-[var(--bui-muted-foreground)]">
-                {action.depositPaid
-                  ? t('supervision.payment.depositPaid', 'Acompte déjà versé')
-                  : t('supervision.payment.depositDue', 'Dont acompte à verser')}
-              </span>
-              <span className={action.depositPaid ? 'tabular-nums line-through opacity-60' : 'tabular-nums'}>
-                <Money value={action.depositEur} from="EUR" />
-              </span>
-            </div>
-          )}
+          <ActionDescription action={action} />
+          <ActionModalSection title={t('supervision.modal.consequences', 'Ce qui va se passer')}>
+            <ActionModalFacts facts={copy.consequences.map((line) => t(line.key, line.fallback))} />
+          </ActionModalSection>
 
           {action.amountEur != null && copy.amountIsRecomputed && (
             <p className="-mt-2 text-xs text-[var(--bui-muted-foreground)]">
@@ -159,7 +117,8 @@ export function ActionConfirmModal({ action, onClose, onConfirm }: ActionConfirm
           )}
         </div>
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             {t('common.cancel', 'Annuler')}
           </Button>
@@ -171,8 +130,8 @@ export function ActionConfirmModal({ action, onClose, onConfirm }: ActionConfirm
             {submitting && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {t(entry.ctaKey, entry.ctaFallback)}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

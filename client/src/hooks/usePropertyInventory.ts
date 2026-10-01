@@ -6,6 +6,7 @@ import type {
   LaundryQuote,
   BlanchisserieCatalogItem,
   GenerateLaundryQuoteRequest,
+  InventoryItemInput,
 } from '../services/api/propertyInventoryApi';
 
 export const inventoryKeys = {
@@ -20,7 +21,7 @@ export function usePropertyInventory(propertyId: number) {
 
   // ── Queries ────────────────────────────────────────────────────────
 
-  const { data: inventoryItems = [], isLoading: loadingItems } = useQuery<PropertyInventoryItem[]>({
+  const { data: inventoryItems = [], isLoading: loadingItems, error: itemsError, refetch: refetchItems } = useQuery<PropertyInventoryItem[]>({
     queryKey: inventoryKeys.items(propertyId),
     queryFn: () => propertyInventoryApi.getItems(propertyId),
     enabled: propertyId > 0,
@@ -48,12 +49,17 @@ export function usePropertyInventory(propertyId: number) {
   // ── Mutations ──────────────────────────────────────────────────────
 
   const addItemMutation = useMutation({
-    mutationFn: (data: Partial<PropertyInventoryItem>) => propertyInventoryApi.addItem(propertyId, data),
+    mutationFn: (data: InventoryItemInput) => propertyInventoryApi.addItem(propertyId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: inventoryKeys.items(propertyId) }),
+  });
+
+  const addItemsMutation = useMutation({
+    mutationFn: (data: InventoryItemInput[]) => propertyInventoryApi.addItems(propertyId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: inventoryKeys.items(propertyId) }),
   });
 
   const updateItemMutation = useMutation({
-    mutationFn: ({ id, ...data }: Partial<PropertyInventoryItem> & { id: number }) =>
+    mutationFn: ({ id, ...data }: InventoryItemInput & { id: number }) =>
       propertyInventoryApi.updateItem(propertyId, id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: inventoryKeys.items(propertyId) }),
   });
@@ -95,8 +101,12 @@ export function usePropertyInventory(propertyId: number) {
     catalog,
     quotes,
     isLoading: loadingItems || loadingLaundry || loadingCatalog || loadingQuotes,
+    loadingItems, itemsError, refetchItems,
+    loadingLaundry: loadingLaundry || loadingCatalog,
+    loadingQuotes,
 
     addItem: addItemMutation.mutateAsync,
+    addItems: addItemsMutation.mutateAsync,
     updateItem: updateItemMutation.mutateAsync,
     deleteItem: deleteItemMutation.mutateAsync,
     addLaundryItem: addLaundryMutation.mutateAsync,
