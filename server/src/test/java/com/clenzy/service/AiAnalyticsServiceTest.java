@@ -12,12 +12,17 @@ import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
+import com.clenzy.model.CalendarDay;
+import com.clenzy.model.CalendarDayStatus;
 import com.clenzy.service.KeySource;
 import com.clenzy.service.ResolvedTarget;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.access.OrganizationAccessGuard;
+import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -26,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -51,6 +57,10 @@ class AiAnalyticsServiceTest {
     @Mock private AiTokenBudgetService tokenBudgetService;
     @Spy  private ObjectMapper objectMapper = new ObjectMapper();
     @Mock private CurrencyConverterService currencyConverter;
+    @Mock private CalendarDayRepository calendarDayRepository;
+    // Garde réel (fail-closed) : un TenantContext mocké n'est ni super-admin ni org SYSTEM.
+    @Spy  private OrganizationAccessGuard organizationAccessGuard =
+        new OrganizationAccessGuard(mock(TenantContext.class));
     @InjectMocks private AiAnalyticsService service;
 
     private static final Long ORG_ID = 1L;
@@ -59,8 +69,13 @@ class AiAnalyticsServiceTest {
     private Property createProperty(BigDecimal nightlyPrice) {
         Property p = new Property();
         p.setId(PROPERTY_ID);
+        p.setOrganizationId(ORG_ID);
         p.setNightlyPrice(nightlyPrice);
         return p;
+    }
+
+    private CalendarDay blockedDay(LocalDate date) {
+        return new CalendarDay(null, date, CalendarDayStatus.BLOCKED, ORG_ID);
     }
 
     private Reservation createReservation(LocalDate checkIn, LocalDate checkOut,
@@ -199,6 +214,255 @@ class AiAnalyticsServiceTest {
         }
     }
 
+    // ─── Définitions métier standard (Baitly Académie ép. 01) ─────────
+
+    @Nested
+    class StandardKpiDefinitions {
+
+        private final LocalDate from = LocalDate.of(2026, 3, 1);
+        private final LocalDate to = LocalDate.of(2026, 3, 11); // 10 nuits calendaires
+
+        private void givenProperty() {
+            when(propertyRepository.findById(PROPERTY_ID))
+                .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
+        }
+
+        private void givenReservations(Reservation... reservations) {
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), any(), any(), eq(ORG_ID)))
+                .thenReturn(List.of(reservations));
+        }
+
+        private void givenClosedDays(LocalDate periodFrom, LocalDate periodTo, CalendarDay... days) {
+            when(calendarDayRepository.findBlockedOrMaintenanceForProperties(
+                    List.of(PROPERTY_ID), periodFrom, periodTo, ORG_ID))
+                .thenReturn(List.of(days));
+        }
+
+        // ── 1. Nuits disponibles = nuits proposées à la vente ──
+
+        @Test
+        void whenOwnerBlocksNights_thenOccupancyAndRevParUseNightsOpenForSale() {
+            // Arrange : 10 nuits, 4 bloquées (usage perso) → 6 nuits en vente, 3 vendues
+            givenProperty();
+            givenReservations(createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 4),
+                new BigDecimal("300"), "airbnb"));
+            givenClosedDays(from, to,
+                blockedDay(LocalDate.of(2026, 3, 7)), blockedDay(LocalDate.of(2026, 3, 8)),
+                blockedDay(LocalDate.of(2026, 3, 9)), blockedDay(LocalDate.of(2026, 3, 10)));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert : occupation 3/6, RevPAR 300/6
+            assertEquals(10, result.totalNights());
+            assertEquals(6, result.availableNights());
+            assertEquals(0.5, result.occupancyRate(), 0.0001);
+            assertEquals(0, new BigDecimal("50.00").compareTo(result.revPar()));
+            assertEquals(0, new BigDecimal("100.00").compareTo(result.averageDailyRate()));
+        }
+
+        @Test
+        void whenBlockedDayCarriesAStay_thenTheSoldNightStaysAvailable() {
+            // Arrange : blocage en conflit avec un séjour (import OTA) — la nuit vendue était en vente
+            givenProperty();
+            givenReservations(createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3),
+                new BigDecimal("200"), "airbnb"));
+            givenClosedDays(from, to, blockedDay(LocalDate.of(2026, 3, 2)));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert : aucune nuit retirée, occupation 2/10 (jamais > 100 %)
+            assertEquals(10, result.availableNights());
+            assertEquals(0.2, result.occupancyRate(), 0.0001);
+        }
+
+        @Test
+        void whenMonthHasBlockedNights_thenMonthlyOccupancyUsesNightsOpenForSale() {
+            // Arrange : 10 nuits de mars, 5 bloquées, 5 vendues
+            givenProperty();
+            givenReservations(createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 6),
+                new BigDecimal("500"), "airbnb"));
+            givenClosedDays(from, to,
+                blockedDay(LocalDate.of(2026, 3, 6)), blockedDay(LocalDate.of(2026, 3, 7)),
+                blockedDay(LocalDate.of(2026, 3, 8)), blockedDay(LocalDate.of(2026, 3, 9)),
+                blockedDay(LocalDate.of(2026, 3, 10)));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert
+            assertEquals(1.0, result.occupancyByMonth().get(monthKey(from)), 0.0001);
+        }
+
+        // ── 2. Chiffre d'affaires = hébergement seul ──
+
+        @Test
+        void whenTotalPriceIncludesCleaningAndTouristTax_thenRevenueKpisUseAccommodationOnly() {
+            // Arrange : 5 nuits, total 620 = 500 hébergement + 80 ménage + 40 taxe de séjour
+            givenProperty();
+            Reservation stay = createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 6),
+                new BigDecimal("620"), "direct");
+            stay.setCleaningFee(new BigDecimal("80"));
+            stay.setTouristTaxAmount(new BigDecimal("40"));
+            givenReservations(stay);
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert
+            assertEquals(0, new BigDecimal("500").compareTo(result.totalRevenue()));
+            assertEquals(0, new BigDecimal("100.00").compareTo(result.averageDailyRate()));
+            assertEquals(0, new BigDecimal("50.00").compareTo(result.revPar()));
+        }
+
+        @Test
+        void whenTotalPriceIncludesServiceOptions_thenOptionsAreExcludedFromRevenue() {
+            // Arrange : 5 nuits, total 560 = 500 hébergement + 60 d'options (checkout booking engine)
+            givenProperty();
+            Reservation stay = createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 6),
+                new BigDecimal("560"), "direct");
+            stay.setServiceOptionsTotal(new BigDecimal("60"));
+            givenReservations(stay);
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert
+            assertEquals(0, new BigDecimal("500").compareTo(result.totalRevenue()));
+        }
+
+        // ── 3. Séjours à cheval : revenu proratisé par nuit ──
+
+        @Test
+        void whenStaySpansPeriodEnd_thenRevenueIsProratedPerNight() {
+            // Arrange : 7 nuits à 1000 du 8 au 15 mars, 3 dans la période (8, 9, 10)
+            givenProperty();
+            givenReservations(createReservation(LocalDate.of(2026, 3, 8), LocalDate.of(2026, 3, 15),
+                new BigDecimal("1000"), "booking"));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert : 1000 × 3/7 = 428.571… → 428.57 (HALF_UP)
+            assertEquals(3, result.bookedNights());
+            assertEquals(0, new BigDecimal("428.57").compareTo(result.totalRevenue()));
+            assertEquals(0, new BigDecimal("142.86").compareTo(result.averageDailyRate()));
+        }
+
+        @Test
+        void whenStayStartsBeforePeriod_thenRevenueIsProratedPerNight() {
+            // Arrange : 6 nuits à 600 du 25 février au 3 mars, 2 dans la période
+            givenProperty();
+            givenReservations(createReservation(LocalDate.of(2026, 2, 25), LocalDate.of(2026, 3, 3),
+                new BigDecimal("600"), "airbnb"));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert
+            assertEquals(0, new BigDecimal("200").compareTo(result.totalRevenue()));
+        }
+
+        @Test
+        void whenStayChecksOutOnPeriodStart_thenItBringsNoRevenue() {
+            // Arrange : départ le 1er mars — aucune nuit dans la période
+            givenProperty();
+            givenReservations(createReservation(LocalDate.of(2026, 2, 25), LocalDate.of(2026, 3, 1),
+                new BigDecimal("400"), "airbnb"));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.totalRevenue()));
+        }
+
+        @Test
+        void whenStaySpansTwoMonths_thenMonthlyRevenueSplitsByNight() {
+            // Arrange : 5 nuits à 500 du 29 mars au 3 avril → 3 nuits en mars, 2 en avril
+            givenProperty();
+            LocalDate twoMonthsTo = LocalDate.of(2026, 5, 1);
+            givenReservations(createReservation(LocalDate.of(2026, 3, 29), LocalDate.of(2026, 4, 3),
+                new BigDecimal("500"), "airbnb"));
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, twoMonthsTo);
+
+            // Assert
+            assertEquals(0, new BigDecimal("300").compareTo(result.revenueByMonth().get(monthKey(from))));
+            assertEquals(0, new BigDecimal("200").compareTo(
+                result.revenueByMonth().get(monthKey(LocalDate.of(2026, 4, 1)))));
+        }
+
+        // ── Annulations ──
+
+        @Test
+        void whenReservationIsCancelled_thenItCountsNeitherNightsNorRevenue() {
+            // Arrange
+            givenProperty();
+            Reservation cancelled = createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 6),
+                new BigDecimal("500"), "booking");
+            cancelled.markCancelled();
+            givenReservations(cancelled);
+
+            // Act
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            // Assert
+            assertEquals(0, result.bookedNights());
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.totalRevenue()));
+        }
+
+        // ── N-1 : mêmes définitions ──
+
+        @Test
+        void whenPreviousYearHasBlocksFeesAndSpanningStay_thenComparisonUsesSameDefinitions() {
+            // Arrange : N-1 = 1er-11 mars 2025, 1 nuit bloquée → 9 en vente ;
+            // séjour 8-15 mars 2025 (7 nuits), total 800 dont 100 de ménage → 700 hébergement, 3 nuits dans la période
+            givenProperty();
+            LocalDate prevFrom = from.minusYears(1);
+            LocalDate prevTo = to.minusYears(1);
+            Reservation prevStay = createReservation(LocalDate.of(2025, 3, 8), LocalDate.of(2025, 3, 15),
+                new BigDecimal("800"), "airbnb");
+            prevStay.setCleaningFee(new BigDecimal("100"));
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), eq(from), eq(to), eq(ORG_ID)))
+                .thenReturn(List.of());
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), eq(prevFrom), eq(prevTo), eq(ORG_ID)))
+                .thenReturn(List.of(prevStay));
+            givenClosedDays(from, to);
+            givenClosedDays(prevFrom, prevTo, blockedDay(LocalDate.of(2025, 3, 1)));
+
+            // Act
+            PeriodComparisonDto cmp = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to).comparison();
+
+            // Assert : 700 × 3/7 = 300 ; ADR 300/3 ; RevPAR 300/9 ; occupation 3/9
+            assertEquals(0, new BigDecimal("300.00").compareTo(cmp.revenue().previous()));
+            assertEquals(0, new BigDecimal("100.00").compareTo(cmp.averageDailyRate().previous()));
+            assertEquals(0, new BigDecimal("33.33").compareTo(cmp.revPar().previous()));
+            assertEquals(1.0 / 3, cmp.occupancy().previous().doubleValue(), 0.0001);
+        }
+
+        // ── Isolation d'organisation ──
+
+        @Test
+        void whenPropertyBelongsToAnotherOrganization_thenAccessIsDenied() {
+            // Arrange
+            Property foreign = createProperty(new BigDecimal("100"));
+            foreign.setOrganizationId(99L);
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(foreign));
+
+            // Act + Assert
+            assertThrows(AccessDeniedException.class,
+                () -> service.getAnalytics(PROPERTY_ID, ORG_ID, from, to));
+        }
+    }
+
+    private static String monthKey(LocalDate date) {
+        return date.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.FRENCH)
+            + " " + date.getYear();
+    }
+
     // ─── Rule-based: calculateBookedNights ────────────────────────────
 
     @Test
@@ -242,14 +506,16 @@ class AiAnalyticsServiceTest {
     // ─── Rule-based: calculateTotalRevenue ────────────────────────────
 
     @Test
-    void calculateTotalRevenue_sumsCorrectly() {
+    void calculateTotalRevenue_sumsStaysAndTreatsMissingPriceAsZero() {
+        LocalDate from = LocalDate.of(2026, 3, 1);
+        LocalDate to = LocalDate.of(2026, 3, 11);
         List<Reservation> reservations = List.of(
-            createReservation(null, null, new BigDecimal("200"), null),
-            createReservation(null, null, new BigDecimal("350"), null),
-            createReservation(null, null, null, null)
+            createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3), new BigDecimal("200"), null),
+            createReservation(LocalDate.of(2026, 3, 3), LocalDate.of(2026, 3, 5), new BigDecimal("350"), null),
+            createReservation(LocalDate.of(2026, 3, 5), LocalDate.of(2026, 3, 6), null, null)
         );
 
-        BigDecimal total = service.calculateTotalRevenue(reservations);
+        BigDecimal total = service.calculateTotalRevenue(reservations, from, to, "EUR");
         assertEquals(0, new BigDecimal("550").compareTo(total));
     }
 

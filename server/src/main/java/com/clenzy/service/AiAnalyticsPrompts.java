@@ -36,7 +36,7 @@ public final class AiAnalyticsPrompts {
 
     public static String buildUserPrompt(Long propertyId,
                                           LocalDate from, LocalDate to,
-                                          int totalNights, int bookedNights,
+                                          int availableNights, int bookedNights,
                                           double occupancyRate,
                                           BigDecimal totalRevenue,
                                           BigDecimal adr, BigDecimal revPar,
@@ -47,10 +47,10 @@ public final class AiAnalyticsPrompts {
             Analyze analytics for property %d:
 
             Period: %s to %s
-            Total nights: %d
+            Nights available for sale (owner blocks excluded): %d
             Booked nights: %d
             Occupancy rate: %.0f%%
-            Total revenue: %s
+            Accommodation revenue (excl. cleaning fees, tourist tax, extras): %s
             ADR (Average Daily Rate): %s
             RevPAR (Revenue Per Available Room): %s
 
@@ -61,7 +61,7 @@ public final class AiAnalyticsPrompts {
             Provide actionable insights based on this data.
             """.formatted(
                 propertyId, from, to,
-                totalNights, bookedNights,
+                availableNights, bookedNights,
                 occupancyRate * 100,
                 totalRevenue.toPlainString(),
                 adr.toPlainString(),
