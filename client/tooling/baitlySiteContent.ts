@@ -29,8 +29,11 @@ import {
   type ResourceKind,
 } from '../site/data/baitlyResources';
 import { RESOURCE_GLOSSARY } from '../site/data/baitlyResourceGlossary';
-import { ACADEMY_EPISODES } from '../site/data/baitlyAcademyVideos';
-import { ACADEMY_TRANSCRIPTS } from '../site/data/baitlyAcademyTranscripts';
+import {
+  ACADEMY_EPISODES,
+  academyVideoUrl,
+} from '../site/data/baitlyAcademyVideos';
+import { academyTranscript } from '../site/lib/academyTranscript';
 import { BAITLY_ACADEMY_MESSAGES } from '../site/lib/messages/baitlyAcademy';
 import { legalDocs } from '../src/modules/legal/corpus';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
@@ -222,20 +225,20 @@ export function siteDocuments(
       !episode.languages.includes(language) && academy.ui.languageNote
         ? academy.ui.languageNote
         : '',
+      `[${academy.ui.watch}](${academyVideoUrl(episode, language, '16x9', '1080')})`,
       section(academy.ui.learn, list(text.learn)),
       section(
         academy.ui.chapters,
         list(
           episode.chapters.map(
-            (start, index) => `${clock(start)} ${text.chapters[index]}`,
+            (start, index) =>
+              `[${clock(start)} ${text.chapters[index]}](/ressources/academie/${episode.slug}?${language === 'fr' ? '' : `lang=${language}&`}t=${Math.round(start)})`,
           ),
         ),
       ),
       section(
         academy.ui.transcript,
-        ACADEMY_TRANSCRIPTS[episode.slug]?.[language] ??
-          ACADEMY_TRANSCRIPTS[episode.slug]?.fr ??
-          '',
+        academyTranscript(episode.slug, language)?.text ?? '',
       ),
       `[${resources.modules.academie.name}](/ressources/academie?lang=${language})`,
     );

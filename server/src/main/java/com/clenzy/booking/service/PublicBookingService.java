@@ -98,6 +98,8 @@ public class PublicBookingService {
     private final com.clenzy.service.PaymentOrchestrationService orchestrationService;
     /** Transactions courtes pour dé-transactionaliser le checkout (appel orchestrateur HORS tx, règle money-safety #2). */
     private final org.springframework.transaction.support.TransactionTemplate writeTx;
+    /** Transaction NEUVE pour les écritures post-commit (voir {@link #notifyAdminsAfterCommit}). */
+    private final org.springframework.transaction.support.TransactionTemplate afterCommitWriteTx;
     private final GuestReviewRepository guestReviewRepository;
     private final VoucherEngine voucherEngine;
     private final NotificationService notificationService;
@@ -170,6 +172,9 @@ public class PublicBookingService {
         this.mockDataProvider = mockDataProvider;
         this.orchestrationService = orchestrationService;
         this.writeTx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        this.afterCommitWriteTx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        this.afterCommitWriteTx.setPropagationBehavior(
+            org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     /** {@code true} si le booking engine du ctx est en mode démo (données mock). */
@@ -1281,12 +1286,12 @@ public class PublicBookingService {
             reservation.getConfirmationCode(), assessment.level(), assessment.score(), assessment.reasons());
         final Long orgId = reservation.getOrganizationId();
         final String code = reservation.getConfirmationCode();
-        runAfterCommit(() -> notificationService.notifyAdminsAndManagersByOrgId(orgId,
+        notifyAdminsAfterCommit(orgId,
             NotificationKey.BOOKING_FRAUD_REVIEW,
             "Réservation à vérifier",
             "La réservation " + code + " a été marquée pour revue par le scoring de risque ("
                 + assessment.level() + ", score " + assessment.score() + ").",
-            "/reservations"));
+            "/reservations");
         suggestFraudBlockCard(reservation, assessment);
     }
 
@@ -1648,7 +1653,8 @@ public class PublicBookingService {
 
     /**
      * P0.3 — programme la mise en place de la caution APRÈS commit (appel Stripe hors transaction,
-     * audit #2). No-op si aucune caution configurée pour la session. Idempotent (dédup côté service).
+     * audit #2) : carte enregistrée + caution en attente, pré-autorisée le jour de l'arrivée.
+     * No-op si aucune caution configurée pour la session. Idempotent (dédup côté service).
      */
     private void scheduleCautionSetup(Session session, Reservation reservation) {
         Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
@@ -1668,7 +1674,7 @@ public class PublicBookingService {
     /**
      * P0.7 — aiguille la confirmation du paiement booking engine : acompte (solde > 0) →
      * {@code PARTIALLY_PAID} (effets ledger/facture différés à l'encaissement du solde) ; sinon
-     * paiement intégral classique. La caution (si configurée) est posée dans les deux cas.
+     * paiement intégral classique. La caution (si configurée) est mise en place dans les deux cas.
      */
     private void finalizeBookingPayment(Session session, Reservation reservation) {
         Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
@@ -1924,23 +1930,23 @@ public class PublicBookingService {
                 log.error("Booking Engine: remboursement automatique impossible pour session {} — "
                     + "intervention manuelle requise : {}", sessionId, e.getMessage(), e);
             }
-            try {
-                notificationService.notifyAdminsAndManagersByOrgId(orgId,
-                    NotificationKey.PAYMENT_REFUND_INITIATED,
-                    "Paiement booking engine rembourse",
-                    "Un paiement recu via le booking engine n'a pas pu etre honore (" + reason + "). "
-                        + "Remboursement automatique declenche pour la session " + sessionId + ".",
-                    "/reservations");
-            } catch (Exception e) {
-                log.warn("Booking Engine: notification remboursement impossible : {}", e.getMessage());
-            }
         });
+        // Enregistrée après le remboursement : les synchronisations s'exécutent dans l'ordre.
+        notifyAdminsAfterCommit(orgId,
+            NotificationKey.PAYMENT_REFUND_INITIATED,
+            "Paiement booking engine rembourse",
+            "Un paiement recu via le booking engine n'a pas pu etre honore (" + reason + "). "
+                + "Remboursement automatique declenche pour la session " + sessionId + ".",
+            "/reservations");
     }
 
     /**
      * Execute {@code action} apres le commit de la transaction courante, ou
      * immediatement s'il n'y a pas de transaction active (tests unitaires,
      * appels hors contexte transactionnel).
+     *
+     * <p>Reserve aux effets EXTERNES (Stripe, email). Une ecriture en base passee ici serait
+     * perdue : voir {@link #notifyAdminsAfterCommit}.</p>
      */
     private void runAfterCommit(Runnable action) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -1953,6 +1959,27 @@ public class PublicBookingService {
             return;
         }
         action.run();
+    }
+
+    /**
+     * Notifie les admins/managers de l'org apres le commit, dans une transaction NEUVE.
+     *
+     * <p>En {@code afterCommit}, Spring garde la transaction terminee liee au thread : le service
+     * de notification (REQUIRED) la rejoindrait sans qu'aucun commit ne suive, et la notification
+     * serait perdue sans erreur (prouve par {@code AfterCommitWritesIT}). Un echec ne remonte pas
+     * jusqu'a l'appelant : sa propre transaction est deja validee.</p>
+     */
+    private void notifyAdminsAfterCommit(Long orgId, NotificationKey key, String title, String message,
+                                         String actionUrl) {
+        runAfterCommit(() -> {
+            try {
+                afterCommitWriteTx.executeWithoutResult(status ->
+                    notificationService.notifyAdminsAndManagersByOrgId(orgId, key, title, message, actionUrl));
+            } catch (RuntimeException e) {
+                log.error("Booking Engine: notification {} non enregistree (org {}) : {}",
+                    key, orgId, e.getMessage(), e);
+            }
+        });
     }
 
     /**

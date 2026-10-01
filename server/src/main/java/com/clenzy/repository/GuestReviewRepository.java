@@ -41,19 +41,13 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
         @Param("orgId") Long orgId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     /**
-     * Avis publics sans réponse de l'hôte, toutes notes confondues.
-     *
-     * <p>Complète {@code findNegativeWithoutResponse}, qui ne remonte que les
-     * notes sous un seuil : le bloc « à traiter » du dashboard veut TOUS les
-     * avis en attente de réponse, pas seulement les mauvais.</p>
+     * Avis publics sans réponse de l'hôte, toutes notes confondues : le bloc
+     * « à traiter » du dashboard veut TOUS les avis en attente de réponse, pas
+     * seulement les mauvais.
      */
     @Query("SELECT r FROM GuestReview r WHERE r.hostResponse IS NULL AND r.isPublic = true "
         + "AND r.organizationId = :orgId ORDER BY r.reviewDate DESC")
     List<GuestReview> findPublicWithoutHostResponse(@Param("orgId") Long orgId);
-
-    @Query("SELECT r FROM GuestReview r WHERE r.rating < :threshold AND r.hostResponse IS NULL " +
-           "AND r.organizationId = :orgId ORDER BY r.reviewDate DESC")
-    List<GuestReview> findNegativeWithoutResponse(@Param("threshold") int threshold, @Param("orgId") Long orgId);
 
     /**
      * Avis non traités d'un logement (règle de scan « rep » de la constellation) :

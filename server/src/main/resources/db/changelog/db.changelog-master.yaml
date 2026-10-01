@@ -4373,3 +4373,19 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0483__inventory_item_visuals.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0484-security-deposit-hold-window"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0484__security_deposit_hold_window.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0485-purge-review-negative-alert-key"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0485__purge_review_negative_alert_key.sql
+            relativeToChangelogFile: true

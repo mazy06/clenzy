@@ -15,10 +15,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -49,6 +54,7 @@ class HousekeeperPayoutServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private HousekeeperPayoutRecorder recorder;
     @Mock private com.clenzy.payment.payout.StripeConnectTransferClient transferClient;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private HousekeeperPayoutService service;
 
@@ -56,7 +62,8 @@ class HousekeeperPayoutServiceTest {
     void setUp() {
         service = new HousekeeperPayoutService(configRepository, recordRepository,
                 interventionRepository, interventionPhotoRepository, userRepository,
-                stripeGateway, pricingConfigService, notificationService, recorder, transferClient);
+                stripeGateway, pricingConfigService, notificationService, recorder, transferClient,
+                transactionManager);
         // Commission désactivée par défaut (aucune config).
         PricingConfigDto dto = new PricingConfigDto();
         dto.setCommissionConfigs(List.of());
@@ -253,6 +260,36 @@ class HousekeeperPayoutServiceTest {
             assertThat(idem.getValue()).isEqualTo("payout-intervention-11");
             verify(notificationService).send(eq("kc-pro"), eq(NotificationKey.PAYOUT_SENT),
                     any(), contains("95"), any(), eq(7L), any());
+        }
+
+        @Test
+        void whenTransactionActive_thenTransferRunsAfterCommit_outsideTheFinishedTransaction() throws Exception {
+            // Apres commit, la transaction terminee reste liee au thread : sans suspension
+            // (NOT_SUPPORTED), la notification PAYOUT_SENT la rejoindrait et serait perdue.
+            Intervention intervention = okIntervention();
+            when(recorder.insertRecord(any(), any(), any(), any(), eq(Status.PENDING), isNull())).thenReturn(true);
+            stubPendingRecord(77L);
+            when(transferClient.createTransfer(any(), any(), any(), any(), any())).thenReturn("tr_123");
+            when(recorder.markSent(77L, "tr_123")).thenReturn(1);
+
+            TransactionSynchronizationManager.initSynchronization();
+            try {
+                service.processPayoutForIntervention(intervention);
+                verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
+
+                TransactionSynchronizationManager.getSynchronizations()
+                        .forEach(TransactionSynchronization::afterCommit);
+            } finally {
+                TransactionSynchronizationManager.clearSynchronization();
+            }
+
+            InOrder order = inOrder(transactionManager, transferClient, notificationService);
+            order.verify(transactionManager).getTransaction(argThat(definition ->
+                    definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_NOT_SUPPORTED));
+            order.verify(transferClient).createTransfer(any(), any(), any(), any(), any());
+            order.verify(notificationService).send(eq("kc-pro"), eq(NotificationKey.PAYOUT_SENT),
+                    any(), any(), any(), eq(7L), any());
+            order.verify(transactionManager).commit(any());
         }
 
         @Test

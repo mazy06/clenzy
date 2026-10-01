@@ -36,6 +36,7 @@ import com.clenzy.service.NotificationService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -335,8 +336,14 @@ public class SiteAdminService {
         }
     }
 
-    /** Persiste l'id Cloudflare + le statut d'un domaine provisionné (afterCommit de {@link #addDomain}). */
-    @Transactional
+    /**
+     * Persiste l'id Cloudflare + le statut d'un domaine provisionné (afterCommit de {@link #addDomain}).
+     *
+     * <p>REQUIRES_NEW : en afterCommit, la transaction d'{@code addDomain} est commitée mais reste
+     * liée au thread — une propagation REQUIRED la rejoindrait et la mise à jour ne serait jamais
+     * écrite (domaine bloqué en PENDING sans id Cloudflare, donc ignoré par la réconciliation).</p>
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markDomainProvisioned(Long orgId, Long domainId, String cloudflareHostnameId, SiteDomainStatus status) {
         domainRepository.findByIdAndOrganizationId(domainId, orgId).ifPresent(d -> {
             d.setCloudflareHostnameId(cloudflareHostnameId);

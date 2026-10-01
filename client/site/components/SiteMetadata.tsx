@@ -35,7 +35,7 @@ export default function SiteMetadata() {
       node.content = value;
     };
     setMeta('name', 'description', meta.description);
-    setMeta('name', 'robots', robotsDirective(meta.index));
+    setMeta('name', 'robots', robotsDirective(meta.index, Boolean(meta.video)));
     setMeta('property', 'og:title', meta.title);
     setMeta('property', 'og:description', meta.description);
     setMeta('property', 'og:url', canonical);

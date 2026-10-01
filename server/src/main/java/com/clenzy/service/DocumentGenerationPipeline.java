@@ -21,8 +21,11 @@ import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -60,6 +63,8 @@ public class DocumentGenerationPipeline {
     private final DocumentGenerationFailureRecorder failureRecorder;
     private final DocumentEmailDispatcher emailDispatcher;
     private final DocumentTemplateRenderer renderer;
+    /** Transaction NEUVE de l'issue email, ecrite apres commit (voir {@link #recordEmailOutcome}). */
+    private final TransactionTemplate emailOutcomeTx;
 
     private final Counter generationSuccessCounter;
     private final Counter generationFailureCounter;
@@ -100,7 +105,8 @@ public class DocumentGenerationPipeline {
             DocumentGenerationFailureRecorder failureRecorder,
             DocumentEmailDispatcher emailDispatcher,
             DocumentTemplateRenderer renderer,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            PlatformTransactionManager transactionManager
     ) {
         this.generationRepository = generationRepository;
         this.documentStorageService = documentStorageService;
@@ -115,6 +121,8 @@ public class DocumentGenerationPipeline {
         this.failureRecorder = failureRecorder;
         this.emailDispatcher = emailDispatcher;
         this.renderer = renderer;
+        this.emailOutcomeTx = new TransactionTemplate(transactionManager);
+        this.emailOutcomeTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         this.generationSuccessCounter = Counter.builder("clenzy.documents.generation.success")
                 .description("Nombre de documents generes avec succes")
@@ -276,8 +284,8 @@ public class DocumentGenerationPipeline {
                     // de la transaction du caller (TransactionSynchronization.afterCommit).
                     // L'email ne part que si la generation est commitee, et la connexion DB
                     // n'est plus tenue pendant l'appel SMTP. Le statut retourne est PENDING ;
-                    // l'issue reelle (SENT/FAILED) est persistee dans la transaction courte
-                    // du repository par recordEmailOutcome.
+                    // l'issue reelle (SENT/FAILED) est persistee dans sa propre transaction
+                    // par recordEmailOutcome.
                     generation.setEmailStatus("PENDING");
                     deferEmailAfterCommit = true;
                 }
@@ -398,8 +406,10 @@ public class DocumentGenerationPipeline {
             log.error("Failed to send document email: {}", emailEx.getMessage());
             sent = false;
         }
+        final boolean emailSent = sent;
         try {
-            recordEmailOutcome(generationId, sent, template, emailTo, orgId);
+            emailOutcomeTx.executeWithoutResult(status ->
+                    recordEmailOutcome(generationId, emailSent, template, emailTo, orgId));
         } catch (Exception e) {
             // Jamais d'exception remontee depuis afterCommit : la generation est commitee
             // et l'email est deja parti (ou son echec est deja logge ci-dessus).
@@ -409,8 +419,10 @@ public class DocumentGenerationPipeline {
     }
 
     /**
-     * Persiste l'issue de l'envoi email sur la ligne DocumentGeneration. Appele hors
-     * transaction : chaque appel repository ouvre sa propre transaction courte.
+     * Persiste l'issue de l'envoi email sur la ligne DocumentGeneration, dans la transaction
+     * NEUVE ouverte par {@link #emailOutcomeTx}. Depuis l'afterCommit, la transaction de la
+     * generation est commitee mais reste liee au thread : sans transaction neuve, le statut SENT
+     * et la notification la rejoindraient et ne seraient jamais ecrits.
      */
     private void recordEmailOutcome(Long generationId, boolean sent, DocumentTemplate template,
                                     String emailTo, Long orgId) {

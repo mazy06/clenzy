@@ -183,8 +183,9 @@ describe('Public metadata', () => {
     expect(data['@type']).toBe('VideoObject');
     expect(data.duration).toMatch(/^PT\d+M\d+S$/);
     expect(data.uploadDate).toBe(episode.uploadDate);
-    // Non affichée sur la page : la transcription n'existe que dans ces données et le Markdown.
+    // The structured transcript matches the copy available to readers.
     expect(data.transcript).toBe(ACADEMY_TRANSCRIPTS[episode.slug].fr);
+    expect(data.mainEntityOfPage).toBe(`https://baitly.fr${path}`);
     expect(data.hasPart).toHaveLength(episode.chapters.length);
     expect(data.hasPart[1].url).toBe(
       `https://baitly.fr${path}?t=${Math.round(episode.chapters[1])}`,
@@ -199,6 +200,40 @@ describe('Public metadata', () => {
       episode.chapters.length,
     );
   });
+  it.each(['fr', 'en', 'ar'] as const)(
+    'makes every published watch page playable without JavaScript in %s',
+    (language) => {
+      const docs = siteDocuments(language, discoveryCatalog(catalogSource));
+      for (const episode of ACADEMY_EPISODES) {
+        const path = `/ressources/academie/${episode.slug}`;
+        const page = pages[language][path];
+        const html = metadataHtml(
+          template,
+          page,
+          path,
+          language,
+          siteStaticHtml(docs.get(path)!, path, language),
+        );
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const video = doc.querySelector('main video');
+        expect(doc.querySelectorAll('h1')).toHaveLength(1);
+        expect(video?.previousElementSibling?.tagName).toBe('H1');
+        expect(video?.getAttribute('src')).toBe(page.video?.jsonLd.contentUrl);
+        expect(video?.getAttribute('poster')).toBe(page.video?.poster);
+        expect(video?.hasAttribute('controls')).toBe(true);
+        expect(video?.getAttribute('preload')).toBe('none');
+        expect(doc.querySelector('main')?.textContent).toContain(
+          ACADEMY_TRANSCRIPTS[episode.slug].fr,
+        );
+        expect(
+          doc.querySelector('meta[name="robots"]')?.getAttribute('content'),
+        ).toContain('max-video-preview:-1');
+        expect(page.video?.jsonLd.url).toBe(
+          doc.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+        );
+      }
+    },
+  );
   it('ne peut pas fermer la balise script depuis un texte d’épisode', () => {
     const json = scriptSafeJson({ name: '</script><script>alert(1)</script>' });
     expect(json).not.toMatch(/[<>&]/);

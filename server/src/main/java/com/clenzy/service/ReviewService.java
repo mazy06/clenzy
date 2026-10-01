@@ -150,10 +150,6 @@ public class ReviewService {
         return new ReviewStatsDto(propertyId, avgRating, totalReviews, ratingDistribution, sentimentBreakdown);
     }
 
-    public List<GuestReview> findNegativeWithoutResponse(Long orgId, int threshold) {
-        return reviewRepository.findNegativeWithoutResponse(threshold, orgId);
-    }
-
     public List<GuestReview> getByPropertyAndDateRange(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
         return reviewRepository.findByPropertyIdAndDateRange(propertyId, orgId, from, to);
     }

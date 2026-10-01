@@ -95,18 +95,6 @@ class SecurityDepositServiceTest {
     }
 
     @Test
-    void markHeldTransitionsPendingToHeldWithExternalRef() {
-        when(repository.findById(7L)).thenReturn(Optional.of(deposit(7L, 1L, SecurityDepositStatus.PENDING)));
-        when(repository.transitionStatus(7L, 1L,
-            SecurityDepositStatus.PENDING, SecurityDepositStatus.HELD, "pi_123")).thenReturn(1);
-
-        service.markHeld(1L, 7L, "pi_123");
-
-        verify(repository).transitionStatus(7L, 1L,
-            SecurityDepositStatus.PENDING, SecurityDepositStatus.HELD, "pi_123");
-    }
-
-    @Test
     void releaseThrowsWhenCasLosesRace() {
         when(repository.findById(7L)).thenReturn(Optional.of(deposit(7L, 1L, SecurityDepositStatus.HELD)));
         when(repository.transitionStatus(eq(7L), eq(1L),

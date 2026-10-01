@@ -10,6 +10,7 @@ import BaitlyVideoPlayer, {
 } from './BaitlyVideoPlayer';
 import AcademyUpNext, { ACADEMY_PLAYER_ID } from './AcademyUpNext';
 import { nextAcademyEpisode } from './academyOrder';
+import AcademyTranscript from './AcademyTranscript';
 
 export const ACADEMY_PRACTICE_ID = 'academie-pratique';
 
@@ -30,8 +31,7 @@ const minutes = (seconds: number, unit: string, language: SiteLanguage) => {
 
 /**
  * Un épisode : le lecteur, ce qu'on va apprendre et les chapitres cliquables ; en fin de vidéo,
- * l'épisode suivant du programme est proposé. La transcription n'est pas affichée : elle sert au
- * référencement (données VideoObject et version Markdown de la page).
+ * l'épisode suivant du programme est proposé. La transcription se consulte sous le lecteur.
  */
 export default function AcademyEpisodeView({ episode, language, startAt, autoPlay }: Props) {
   const m = BAITLY_ACADEMY_MESSAGES[language];
@@ -102,6 +102,7 @@ export default function AcademyEpisodeView({ episode, language, startAt, autoPla
           </div>
         </aside>
       </div>
+      <AcademyTranscript slug={episode.slug} language={language} />
     </div>
   );
 }

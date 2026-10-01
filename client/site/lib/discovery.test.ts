@@ -21,12 +21,53 @@ import { canonicalPath, canonicalUrl, isIndexablePath } from './siteSeo';
 import { LEGAL_ARTICLES, LEGAL_REVIEWED_AT, articlePath } from '../data/legal';
 import { metadataCatalog } from '../../tooling/baitlySiteSeo';
 import { discoveryCatalog } from '../../tooling/baitlySiteDiscovery';
+import { academyVideoMetadata } from './academyStructuredData';
 
 const routes = readFileSync('site/main.tsx', 'utf8');
 const robots = readFileSync('site/public/robots.txt', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 
 describe('Baitly public discovery build', () => {
+  it('describes the published recordings with consistent watch, thumbnail and media URLs', () => {
+    const { assets } = discoveryArtifacts(routes, robots, catalog);
+    const doc = new DOMParser().parseFromString(
+      assets.get('sitemap-videos.xml')!,
+      'application/xml',
+    );
+    expect(doc.querySelector('parsererror')).toBeNull();
+    const entries = [...doc.getElementsByTagName('url')];
+    const published = ACADEMY_EPISODES.flatMap((episode) =>
+      episode.languages.map((language) => ({ episode, language })),
+    );
+    expect(entries).toHaveLength(published.length);
+    for (const [index, { episode, language }] of published.entries()) {
+      const value = (tag: string) =>
+        entries[index].getElementsByTagName(tag)[0]?.textContent;
+      const meta = academyVideoMetadata(episode, language, 'https://baitly.fr');
+      expect(value('loc')).toBe(meta.jsonLd.url);
+      expect(value('video:content_loc')).toBe(meta.video);
+      expect(value('video:content_loc')).not.toBe(value('loc'));
+      expect(value('video:thumbnail_loc')).toBe(meta.poster);
+      expect(value('video:title')).toBe(meta.jsonLd.name);
+      expect(value('video:description')).toBe(meta.jsonLd.description);
+      expect(value('video:description')!.length).toBeLessThanOrEqual(2048);
+      expect(Number(value('video:duration'))).toBe(
+        Math.round(episode.duration),
+      );
+      expect(value('video:publication_date')).toBe(episode.uploadDate);
+      expect(value('video:requires_subscription')).toBe('no');
+      expect(assets.get('llms.txt')).toContain(
+        `${Math.round(episode.duration)} s; audio: ${episode.languages.join(', ')}`,
+      );
+    }
+    expect(assets.get('robots.txt')).toContain(
+      'Sitemap: https://baitly.fr/sitemap-videos.xml',
+    );
+    expect(assets.get('robots.txt')).toContain('User-agent: *');
+    for (const path of ['/api/', '/admin/', '/inscription', '/register'])
+      expect(assets.get('robots.txt')).toContain(`Disallow: ${path}`);
+    expect(readFileSync('public/robots.txt', 'utf8')).toContain('Disallow: /');
+  });
   it('publishes the pre-launch context without build-time availability claims', () => {
     const { assets } = discoveryArtifacts(routes, robots, catalog);
     for (const language of ['fr', 'en', 'ar'] as const) {

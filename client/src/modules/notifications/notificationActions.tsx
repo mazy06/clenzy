@@ -187,7 +187,6 @@ const ACTIONS: Record<string, NotificationBusinessAction[]> = {
 
   // ─── Avis ─────────────────────────────────────────────────────────────────
   REVIEW_RECEIVED: [act('replyReview', 'Répondre à l’avis', Star, at('/channels/reviews'))],
-  REVIEW_NEGATIVE_ALERT: [act('replyReview', 'Répondre à l’avis', Star, at('/channels/reviews'))],
 
   // ─── Documents & contrats ─────────────────────────────────────────────────
   DOCUMENT_GENERATION_FAILED: [

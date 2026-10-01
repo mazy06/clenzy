@@ -18,7 +18,8 @@ import java.util.List;
  * Libération automatique des cautions (booking engine, P0.3) : un hold non capturé est relâché
  * {@link BookingEngineDepositService#RELEASE_DAYS_AFTER_CHECKOUT} jours après le check-out
  * (séjour terminé sans dégâts signalés). La capture pour dégâts reste manuelle côté PMS et,
- * une fois CAPTURED, le dépôt n'est plus candidat à la libération (CAS sur HELD).
+ * une fois CAPTURED, le dépôt n'est plus candidat à la libération (CAS sur HELD). La pose, le
+ * renouvellement et l'échéance du hold relèvent de {@link SecurityDepositHoldScheduler}.
  */
 @Component
 public class BookingCautionScheduler {
