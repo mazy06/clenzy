@@ -59,9 +59,14 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
 ) {
   const format = useAcademyFormat();
   const src = academyVideoUrl(episode, language, format, academyQuality());
+  // A real media URL and native controls are available even before JavaScript.
+  const initialSrc = useRef(academyVideoUrl(episode, language, '16x9', '1080'));
+  const [enhanced, setEnhanced] = useState(false);
+  const initialized = useRef(false);
   const video = useRef<HTMLVideoElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   const resume = useRef({ time: startAt, playing: autoPlay });
+  const requestedStart = useRef(startAt);
   const [time, setTime] = useState(startAt);
   const [duration, setDuration] = useState(episode.duration);
   const [playing, setPlaying] = useState(false);
@@ -73,10 +78,18 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
   // La source change avec le format : on mémorise la position et l'état avant de la remplacer.
   useEffect(() => {
     const element = video.current;
-    if (!element || element.getAttribute('src') === src) return;
-    if (element.getAttribute('src')) {
+    if (!element) return;
+    const sourceChanged = element.getAttribute('src') !== src;
+    if (initialized.current && sourceChanged) {
       resume.current = { time: element.currentTime, playing: !element.paused && !element.ended };
     }
+    if (requestedStart.current !== startAt) {
+      requestedStart.current = startAt;
+      resume.current.time = startAt;
+      setTime(startAt);
+    }
+    initialized.current = true;
+    setEnhanced(true);
     const { time: at, playing: wasPlaying } = resume.current;
     const restore = () => {
       // Jamais au-delà de la fin (une demi-seconde de marge) quand la durée est connue.
@@ -85,11 +98,14 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
       if (wasPlaying) void element.play()?.catch(() => undefined);
     };
     setFailed(false);
-    element.setAttribute('src', src);
-    element.load();
+    if (sourceChanged) {
+      element.setAttribute('src', src);
+      element.load();
+    }
+    if (element.readyState >= 1) restore();
     element.addEventListener('loadedmetadata', restore, { once: true });
     return () => element.removeEventListener('loadedmetadata', restore);
-  }, [src]);
+  }, [src, startAt]);
 
   const play = () => {
     setStarted(true);
@@ -146,14 +162,17 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
     <div
       ref={shell}
       className={`bac-player${format === '9x16' ? ' is-tall' : ''}`}
+      data-enhanced={enhanced || undefined}
       role="region"
       aria-label={title}
     >
       <div className="bac-screen">
         <video
           ref={video}
+          src={initialSrc.current}
+          controls={!enhanced}
           playsInline
-          preload="metadata"
+          preload={enhanced ? 'metadata' : 'none'}
           poster={academyPosterUrl(episode, format)}
           onClick={toggle}
           onPlay={() => { setPlaying(true); setStarted(true); setEnded(false); }}

@@ -5,7 +5,6 @@ import { useSiteLanguage } from "../lib/siteLanguage";
 import { useSiteLaunch } from "../lib/siteLaunch";
 import { PRELAUNCH_MESSAGES } from "../lib/messages/prelaunch";
 import { BAITLY_READINESS_MESSAGES } from "../lib/messages/baitlyReadiness";
-import "../baitly-readiness.css";
 
 export default function StatusPage() {
   const { language } = useSiteLanguage();

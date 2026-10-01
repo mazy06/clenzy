@@ -9,7 +9,6 @@ import {
 import { BAITLY_BOOKING_MESSAGES } from '../lib/messages/baitlyBooking';
 import { BOOKING_STOREFRONT_COPY } from '../lib/messages/baitlyBookingStorefront';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import '../baitly-booking.css';
 
 function BookingPreviewRate({
   amount,

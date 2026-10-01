@@ -11,7 +11,6 @@ import {
 import { BAITLY_JOURNEY_MESSAGES } from '../lib/messages/baitlyJourneys';
 import { moduleText } from '../lib/messages/modules';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import '../baitly-journeys.css';
 
 export default function SolutionsPage() {
   const { language } = useSiteLanguage();

@@ -1,3 +1,4 @@
+import { useDemoLanguage } from './demoLanguage';
 import { useState } from 'react';
 import {
   BatteryFullIcon,
@@ -163,7 +164,7 @@ function devicesByProperty(m: IotDemoMessages): Array<{ property: string; device
 }
 
 function DeviceCardView({ device, onOpen }: { device: DeviceCard; onOpen?: () => void }) {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   return (
     <div
       onClick={onOpen}
@@ -233,7 +234,7 @@ const CAMERAS = [
 
 /** Viewer principal — grande dalle plein cadre de la caméra sélectionnée. */
 function CameraMainViewer({ camera }: { camera: (typeof CAMERAS)[number] }) {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   return (
     <div className="group/camera overflow-hidden rounded-xl border border-border bg-card">
       <div
@@ -290,7 +291,7 @@ function CameraThumbnail({
   camera: (typeof CAMERAS)[number];
   onOpen: () => void;
 }) {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   return (
     <button
       type="button"
@@ -352,7 +353,7 @@ function CameraThumbnail({
  * l'application. Ouvert ici depuis une carte, comme le hub ouvre sa page.
  */
 function CameraWall() {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   const [selected, setSelected] = useState<number | null>(null);
   return (
     <div className="flex flex-col gap-3">
@@ -400,7 +401,7 @@ const NOISE_DATA = [
 ];
 
 function NoiseSensorDetail() {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   const [warningLevel, setWarningLevel] = useState([70]);
   const [criticalLevel, setCriticalLevel] = useState([85]);
   return (
@@ -531,7 +532,7 @@ function NoiseSensorDetail() {
 // ─── Détail serrure connectée ────────────────────────────────────────────────
 
 function SmartLockDetail() {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   const [locked, setLocked] = useState(true);
   return (
     <div className="flex flex-col gap-4">
@@ -635,7 +636,7 @@ function SmartLockDetail() {
 // ─── Section complète ────────────────────────────────────────────────────────
 
 export function BIotSectionDemo() {
-  const m = iotDemoText();
+  const m = iotDemoText(useDemoLanguage());
   /* L'ecran reel filtre par TYPE d'objet et ouvre le detail depuis une carte.
      `detail` rejoue cette seconde partie sans quitter la projection. */
   const [kindFilter, setKindFilter] = useState<DemoKind | ''>('');

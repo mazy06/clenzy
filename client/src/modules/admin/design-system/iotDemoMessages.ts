@@ -283,9 +283,9 @@ const BY_LANGUAGE: Record<string, IotDemoMessages> = { fr, en, ar };
  * dans l'application. Lire ailleurs demanderait un contexte que la projection
  * n'a pas le droit d'exiger.</p>
  */
-export function iotDemoText(): IotDemoMessages {
-  const lang = typeof document !== 'undefined'
+export function iotDemoText(language?: string): IotDemoMessages {
+  const lang = language ?? (typeof document !== 'undefined'
     ? (document.documentElement.lang || 'fr').split('-')[0]
-    : 'fr';
+    : 'fr');
   return BY_LANGUAGE[lang] ?? fr;
 }

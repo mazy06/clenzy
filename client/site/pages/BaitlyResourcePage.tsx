@@ -17,8 +17,6 @@ import AcademyProgram from '../components/academy/AcademyProgram';
 import { ACADEMY_EPISODES, academyEpisode } from '../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
 import NotFoundPage from './NotFoundPage';
-import '../baitly-resources.css';
-import '../baitly-academy.css';
 
 const TOOLS = {
   calculateur: RevenueCalculator,

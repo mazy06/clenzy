@@ -15,7 +15,6 @@ import {
   type BaitlyMarket,
   type BaitlyPlan,
 } from '../data/baitlyLoyaltyPricing';
-import '../baitly-pricing.css';
 import { acquisitionSearch } from '../../src/services/publicAcquisitionContext';
 
 export default function PricingPage() {

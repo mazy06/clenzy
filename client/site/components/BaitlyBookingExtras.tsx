@@ -13,7 +13,6 @@ import { BOOKING_EXTRAS_COPY } from '../lib/messages/baitlyBookingExtras';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import type { StepProps } from './BaitlyBookingSteps';
 import BaitlyDemoPointer from './BaitlyDemoPointer';
-import '../baitly-booking-extras.css';
 
 export default function BaitlyBookingExtras({ demo, m, money }: StepProps) {
   const { language } = useSiteLanguage();

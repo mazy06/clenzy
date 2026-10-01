@@ -23,7 +23,7 @@ import { metadataCatalog } from '../../tooling/baitlySiteSeo';
 import { discoveryCatalog } from '../../tooling/baitlySiteDiscovery';
 import { academyVideoMetadata } from './academyStructuredData';
 
-const routes = readFileSync('site/main.tsx', 'utf8');
+const routes = readFileSync('site/SiteApp.tsx', 'utf8');
 const robots = readFileSync('site/public/robots.txt', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 
@@ -284,8 +284,8 @@ describe('Baitly public discovery build', () => {
   it('fails publication for new routes without a Markdown representation or dynamic-route policy', () => {
     const addRoute = (path: string) =>
       routes.replace(
-        '<Routes>',
-        `<Routes><Route path="${path}" element={<NewPage />} />`,
+        '<Routes location={publishedUrl ?? location}>',
+        `<Routes location={publishedUrl ?? location}><Route path="${path}" element={<NewPage />} />`,
       );
     expect(() =>
       discoveryArtifacts(addRoute('/nouveau'), robots, catalog),

@@ -14,7 +14,6 @@ import type { SiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_SOLUTION_PREVIEW_MESSAGES } from '../lib/messages/baitlySolutionPreviews';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
 import payzone from '../assets/brands/payzone.svg';
-import '../baitly-solution-preview.css';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const {

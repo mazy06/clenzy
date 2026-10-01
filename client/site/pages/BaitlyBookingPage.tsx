@@ -13,7 +13,6 @@ import { BAITLY_BOOKING_UPSELL_MESSAGES } from '../lib/messages/baitlyBookingUps
 import { BAITLY_BOOKING_MESSAGES } from '../lib/messages/baitlyBooking';
 import { moduleText } from '../lib/messages/modules';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import '../baitly-booking.css';
 
 export default function BaitlyBookingPage() {
   const { language } = useSiteLanguage();

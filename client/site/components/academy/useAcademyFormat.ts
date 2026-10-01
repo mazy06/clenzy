@@ -7,11 +7,6 @@ import type { AcademyFormat, AcademyQuality } from '../../data/baitlyAcademyVide
  */
 export const ACADEMY_TALL_QUERY = '(max-width: 767px), (orientation: portrait) and (max-width: 1100px)';
 
-function matchesTall(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-  return window.matchMedia(ACADEMY_TALL_QUERY).matches;
-}
-
 interface NetworkInformationLike {
   saveData?: boolean;
   effectiveType?: string;
@@ -26,7 +21,7 @@ export function academyQuality(): AcademyQuality {
 }
 
 export function useAcademyFormat(): AcademyFormat {
-  const [tall, setTall] = useState(matchesTall);
+  const [tall, setTall] = useState(false);
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia(ACADEMY_TALL_QUERY);

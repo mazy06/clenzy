@@ -4,10 +4,10 @@ import { SiteCurrencyProvider } from '../lib/siteCurrency';
 import SiteCurrencyControl from './SiteCurrencyControl';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { runtimeEnvOr } from '../../src/config/runtimeConfig';
+import { useSiteAppUrl } from '../lib/useSiteAppUrl';
 import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react';
+import { Button } from '../../src/components/ui/button';
 import {
-  Button,
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
@@ -15,7 +15,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from '../../src/components/ui';
+} from '../../src/components/ui/navigation-menu';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import NavMegaPanel from './NavMegaPanel';
 import SiteMobileNav from './SiteMobileNav';
@@ -72,6 +72,7 @@ export function SiteHeader() {
   const h = LAYOUT_MESSAGES[language].header;
   const entries = buildBaitlySiteNavigation(language);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const appUrl = useSiteAppUrl();
   const headerRef = useRef<HTMLElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
@@ -173,10 +174,7 @@ export function SiteHeader() {
             className="site-login hidden sm:inline-flex"
             asChild
           >
-            <a
-              href={runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000')}
-              rel="noreferrer"
-            >
+            <a href={appUrl} rel="noreferrer">
               {h.login}
             </a>
           </Button>
@@ -352,7 +350,15 @@ function SiteFooter() {
 /** Remonte en haut à chaque navigation (sauf ancres). */
 function ScrollRestore() {
   const { pathname, hash } = useLocation();
+  const previous = useRef({ pathname, hash });
   useEffect(() => {
+    // Hydration must not pull a visitor back to the top of an already readable page.
+    if (
+      previous.current.pathname === pathname &&
+      previous.current.hash === hash
+    )
+      return;
+    previous.current = { pathname, hash };
     if (hash) {
       document.getElementById(hash.slice(1))?.scrollIntoView({
         behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches

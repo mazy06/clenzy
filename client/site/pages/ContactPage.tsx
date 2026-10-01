@@ -10,14 +10,15 @@ import {
   submitContact,
   type ContactSubject,
 } from '../lib/publicContactApi';
-import '../baitly-contact.css';
 
 const SUBJECTS: ContactSubject[] = ['contact', 'demo', 'migration', 'privacy'];
 
 export default function ContactPage({
   intent = 'contact',
+  disabled = false,
 }: {
   intent?: ContactSubject;
+  disabled?: boolean;
 }) {
   const { language } = useSiteLanguage();
   const { search } = useLocation();
@@ -33,7 +34,7 @@ export default function ContactPage({
   const statusRef = useRef<HTMLDivElement>(null);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (pending.current) return;
+    if (disabled || pending.current) return;
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
     const data = new FormData(form);
@@ -123,12 +124,12 @@ export default function ContactPage({
             </button>
           </div>
         ) : (
-          <form onSubmit={submit} aria-busy={state === 'sending'}>
+          <form onSubmit={submit} aria-busy={disabled || state === 'sending'}>
             <h2>{m.formTitle}</h2>
             <AcquisitionSummary
               context={{ ...context, properties: undefined }}
             />
-            <fieldset disabled={state === 'sending'}>
+            <fieldset disabled={disabled || state === 'sending'}>
               <div className="bct-fields">
                 <label htmlFor="contact-name">
                   {m.name}

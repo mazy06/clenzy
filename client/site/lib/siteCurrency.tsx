@@ -1,5 +1,6 @@
 import {
   createContext,
+  startTransition,
   useContext,
   useEffect,
   useMemo,
@@ -56,14 +57,14 @@ export function SiteCurrencyProvider({ children }: { children: ReactNode }) {
     language === 'ar' ? 'SAR' : language === 'en' ? 'EUR' : 'MAD',
   );
   const [paused, setPaused] = useState(false);
-  const [hidden, setHidden] = useState(() => document.hidden);
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+  const [hidden, setHidden] = useState(false);
+  const [reduced, setReduced] = useState(false);
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const motion = () => setReduced(media.matches);
-    const visibility = () => setHidden(document.hidden);
+    const motion = () => startTransition(() => setReduced(media.matches));
+    const visibility = () => startTransition(() => setHidden(document.hidden));
+    motion();
+    visibility();
     media.addEventListener('change', motion);
     document.addEventListener('visibilitychange', visibility);
     return () => {

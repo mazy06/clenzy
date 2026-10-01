@@ -6,7 +6,6 @@ import {
   BAITLY_COMPARISON_ROUTES,
   BAITLY_READINESS_MESSAGES,
 } from "../lib/messages/baitlyReadiness";
-import "../baitly-readiness.css";
 
 export default function ComparePage() {
   const { language } = useSiteLanguage();

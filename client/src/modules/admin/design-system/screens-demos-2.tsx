@@ -1,3 +1,4 @@
+import { useDemoLanguage } from './demoLanguage';
 import { useState, type ReactNode } from 'react';
 import {
   BadgePercentIcon,
@@ -1250,7 +1251,7 @@ const OWNER_REVENUE_CONFIG = {
 const OWNER_REVENUE_VALUES = [31200, 39800, 43900, 45840, 49440, 67360];
 
 export function BOwnerPortalSectionDemo() {
-  const m = ownerDemoText();
+  const m = ownerDemoText(useDemoLanguage());
   const revenueData = OWNER_REVENUE_VALUES.map((net, index) => ({ month: m.months[index], net }));
 
   return (

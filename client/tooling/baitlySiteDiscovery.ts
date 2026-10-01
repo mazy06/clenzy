@@ -49,7 +49,7 @@ const nginxString = (text: string) =>
 export function publicPaths(source: string, modules: string[]): string[] {
   const paths: string[] = [];
   const file = ts.createSourceFile(
-    'main.tsx',
+    'SiteApp.tsx',
     source,
     ts.ScriptTarget.Latest,
     true,
@@ -351,7 +351,7 @@ export function baitlySiteDiscovery(): Plugin {
     apply: 'build',
     async generateBundle() {
       artifacts = discoveryArtifacts(
-        await readFile(`${root}/site/main.tsx`, 'utf8'),
+        await readFile(`${root}/site/SiteApp.tsx`, 'utf8'),
         await readFile(`${root}/site/public/robots.txt`, 'utf8'),
         await readFile(`${root}/site/data/catalog.tsx`, 'utf8'),
       );

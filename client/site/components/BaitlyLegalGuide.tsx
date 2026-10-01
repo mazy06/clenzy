@@ -15,7 +15,6 @@ import {
 } from '../data/legal';
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
 import type { SiteLanguage } from '../lib/siteLanguage';
-import '../baitly-legal.css';
 
 const STAGES: LegalStage[] = ['ouvrir', 'accueillir', 'suivre'];
 

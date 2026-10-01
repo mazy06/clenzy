@@ -128,7 +128,7 @@
 
 /* ─── Motion — révélation au scroll (ease-out-quint, GPU-only) ─────────────── */
 @media (prefers-reduced-motion: no-preference) {
-  .reveal {
+  .reveal.is-pending {
     opacity: 0;
     transform: translateY(18px);
     transition:

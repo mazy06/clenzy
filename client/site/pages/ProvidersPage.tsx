@@ -12,7 +12,6 @@ import { PROVIDER_CATEGORIES } from "../data/catalog";
 import { cn } from "../../src/utils/cn";
 import { useSiteLanguage } from "../lib/siteLanguage";
 import { PROVIDERS_MESSAGES } from "../lib/messages/providers";
-import "../baitly-readiness.css";
 
 const MISSION_ICONS = [ClipboardListIcon, CameraIcon, CircleCheckIcon];
 

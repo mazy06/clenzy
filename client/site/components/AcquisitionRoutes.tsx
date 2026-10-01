@@ -19,11 +19,12 @@ function LaunchLoading() {
 export function DemoRoute() {
   const { paused, loading } = useSiteLaunch();
   const { search } = useLocation();
-  if (loading) return <LaunchLoading />;
-  return paused ? (
+  // Publish the actual demo page while checking availability. Submission stays
+  // disabled until the server has confirmed that this journey is open.
+  return !loading && paused ? (
     <Navigate to={`/bientot-disponible${search}`} replace />
   ) : (
-    <DemoPage />
+    <DemoPage disabled={loading} />
   );
 }
 

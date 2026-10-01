@@ -285,7 +285,7 @@ export default function BaitlyLegalPage({
                     alt=""
                     width="720"
                     height="560"
-                    fetchPriority="high"
+                    {...{ fetchpriority: 'high' }}
                   />
                   <figcaption>
                     <span>{country.name[language]}</span>

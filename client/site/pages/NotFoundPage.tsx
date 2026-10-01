@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../lib/messages/baitlyContact';
-import '../baitly-contact.css';
 
 export default function NotFoundPage() {
   const { language } = useSiteLanguage();

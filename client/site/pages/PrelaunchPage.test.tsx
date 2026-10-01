@@ -197,15 +197,14 @@ describe('Pré-lancement public', () => {
       }),
     );
     mount('fr', '/demo');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      PRELAUNCH_MESSAGES.fr.loading,
-    );
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeVisible();
+    expect(document.querySelector('fieldset')).toBeDisabled();
     resolve(json({ ...config, registrationsPaused: false }));
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1 })).not.toHaveTextContent(
-        PRELAUNCH_MESSAGES.fr.heading,
-      ),
+      expect(document.querySelector('fieldset')).not.toBeDisabled(),
     );
+    expect(screen.getByRole('heading', { level: 1 })).toBe(heading);
     expect(
       screen.queryByText(PRELAUNCH_MESSAGES.fr.formTitle),
     ).not.toBeInTheDocument();

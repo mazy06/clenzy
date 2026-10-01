@@ -9,7 +9,6 @@ import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import ScrollGuideSection from '../components/ScrollGuideSection';
 import { BAITLY_JOURNEY_MESSAGES } from '../lib/messages/baitlyJourneys';
 import { useSiteLanguage } from '../lib/siteLanguage';
-import '../baitly-journeys.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
 const { guideCatalog: food } = SITE_PHOTOS;

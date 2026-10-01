@@ -11,7 +11,6 @@ import {
   type ResourceKind,
 } from '../data/baitlyResources';
 import { RESOURCES } from '../data/catalog';
-import '../baitly-resources.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import { ACADEMY_EPISODES, academyPosterUrl } from '../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';

@@ -21,6 +21,11 @@ export default function Reveal({
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
+    // Published content is visible without JS. Only animate elements that the
+    // visitor has not reached yet; never hide the initial viewport on hydration.
+    if (node.getBoundingClientRect().top >= window.innerHeight) {
+      node.classList.add('is-pending');
+    }
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -33,7 +38,10 @@ export default function Reveal({
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
     );
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      node.classList.remove('is-pending');
+    };
   }, []);
 
   return (

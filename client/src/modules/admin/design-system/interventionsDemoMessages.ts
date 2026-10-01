@@ -307,9 +307,9 @@ const ar: InterventionsDemoMessages = {
 const BY_LANGUAGE: Record<string, InterventionsDemoMessages> = { fr, en, ar };
 
 /** Texte de la projection, dans la langue du document. */
-export function interventionsDemoText(): InterventionsDemoMessages {
-  const lang = typeof document !== 'undefined'
+export function interventionsDemoText(language?: string): InterventionsDemoMessages {
+  const lang = language ?? (typeof document !== 'undefined'
     ? (document.documentElement.lang || 'fr').split('-')[0]
-    : 'fr';
+    : 'fr');
   return BY_LANGUAGE[lang] ?? fr;
 }

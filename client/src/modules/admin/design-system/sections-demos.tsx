@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useDemoLanguage } from './demoLanguage';
+import { lazy, Suspense, useState } from 'react';
 import {
   BanknoteIcon,
   BrushIcon,
@@ -26,7 +27,6 @@ import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } f
 import PageHeader from '../../../components/baitly/PageHeader';
 import TeamCard from '../../../components/baitly/TeamCard';
 import AppUpdateBanner from '../../../components/baitly/AppUpdateBanner';
-import PWAInstallBanner from '../../../components/baitly/PWAInstallBanner';
 import AiCreditsPaywall from '../../../components/baitly/AiCreditsPaywall';
 import HubScreenSwitcher from '../../../components/baitly/HubScreenSwitcher';
 import StatusChip from '../../../components/baitly/StatusChip';
@@ -63,6 +63,10 @@ import mapMorocco from '../../../assets/map/osm-morocco.jpg';
 import thumbApartment from '../../../assets/demo/stay-apartment.jpg';
 import thumbVilla from '../../../assets/demo/stay-villa.jpg';
 import thumbLoft from '../../../assets/demo/stay-terrace.jpg';
+
+// This gallery-only demo uses authenticated preferences. Public projections must
+// not initialize that runtime merely by importing the interventions example.
+const PWAInstallBanner = lazy(() => import('../../../components/baitly/PWAInstallBanner'));
 
 /** Une vignette et un ton par type de mission — trois logements distincts. */
 const MISSION_KINDS = {
@@ -488,10 +492,7 @@ const MAPS = {
  * marche d'ouverture, francais pour le Maroc — les memes couples que le jeu
  * de donnees de demonstration.
  */
-function currentMap() {
-  const lang = typeof document !== 'undefined'
-    ? (document.documentElement.lang || 'fr').split('-')[0]
-    : 'fr';
+function currentMap(lang: string) {
   return lang === 'fr' ? MAPS.ma : MAPS.sa;
 }
 
@@ -501,8 +502,8 @@ function currentMap() {
  * evite une cle d'API et un aller-retour reseau depuis une page marketing.
  */
 function DemoMapCanvas() {
-  const m = interventionsDemoText();
-  const map = currentMap();
+  const m = interventionsDemoText(useDemoLanguage());
+  const map = currentMap(useDemoLanguage());
   return (
     <div className="relative h-full min-h-[380px] overflow-hidden rounded-xl border border-border">
       <img
@@ -546,7 +547,7 @@ function DemoMapCanvas() {
 }
 
 export function BInterventionsSectionDemo() {
-  const m = interventionsDemoText();
+  const m = interventionsDemoText(useDemoLanguage());
   const [search, setSearch] = useState('');
 
   return (
@@ -709,7 +710,7 @@ export function BAppUpdateBannerDemo() {
 }
 
 export function BPWAInstallBannerDemo() {
-  return <PWAInstallBanner forceVisible />;
+  return <Suspense fallback={null}><PWAInstallBanner forceVisible /></Suspense>;
 }
 
 export function BAiCreditsPaywallDemo() {

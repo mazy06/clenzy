@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { CurrencyDisplayProvider } from '../../src/hooks/useCurrency';
+import { CurrencyDisplayProvider } from '../../src/hooks/currencyDisplayContext';
 import { formatCurrency } from '../../src/utils/currencyUtils';
 import {
   CURRENCY_NAMES,

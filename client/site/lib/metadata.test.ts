@@ -200,7 +200,7 @@ describe('Public metadata', () => {
   });
   it('serves per-route HTML and a genuine 404 without changing the PMS fallback', () => {
     const artifacts = discoveryArtifacts(
-      readFileSync('site/main.tsx', 'utf8'),
+      readFileSync('site/SiteApp.tsx', 'utf8'),
       readFileSync('site/public/robots.txt', 'utf8'),
       catalogSource,
     );

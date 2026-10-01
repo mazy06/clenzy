@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { DemoLanguageProvider } from '../../src/modules/admin/design-system/demoLanguage';
 
 /**
  * Langue du site public.
@@ -70,14 +71,22 @@ interface SiteLanguageValue {
 
 const SiteLanguageContext = createContext<SiteLanguageValue | null>(null);
 
-export function SiteLanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<SiteLanguage>(() =>
-    resolveSiteLanguage(
-      window.location.search,
-      [...(navigator.languages ?? []), navigator.language],
-      readSession(),
-      document.documentElement.lang,
-    ),
+export function SiteLanguageProvider({
+  children,
+  initialLanguage,
+}: {
+  children: ReactNode;
+  initialLanguage?: SiteLanguage;
+}) {
+  const [language, setLanguage] = useState<SiteLanguage>(
+    () =>
+      initialLanguage ??
+      resolveSiteLanguage(
+        window.location.search,
+        [...(navigator.languages ?? []), navigator.language],
+        readSession(),
+        document.documentElement.lang,
+      ),
   );
 
   const direction = language === 'ar' ? 'rtl' : 'ltr';
@@ -114,7 +123,7 @@ export function SiteLanguageProvider({ children }: { children: ReactNode }) {
 
   return (
     <SiteLanguageContext.Provider value={value}>
-      {children}
+      <DemoLanguageProvider value={language}>{children}</DemoLanguageProvider>
     </SiteLanguageContext.Provider>
   );
 }

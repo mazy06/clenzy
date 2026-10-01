@@ -19,7 +19,6 @@ import balloon from '../assets/photos/balloon.jpg';
 import desert from '../assets/photos/excursion.jpg';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import BaitlyDemoPointer from './BaitlyDemoPointer';
-import '../baitly-booking-upsells.css';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const {
