@@ -119,6 +119,8 @@ export interface PendingAction {
    * Absent = suggestion informationnelle (Valider = rejet, comportement historique).
    */
   applyActionType?: string;
+  /** Stable scanner identity for informational-card visuals; never displayed. */
+  sourceTool?: string;
   /**
    * Paramètres bruts de l'action (JSON, ex. {@code {"segments":[{from,to,percent}, …]}}),
    * pour préremplir la modale d'ajustement de prix. Absent si non actionnable.

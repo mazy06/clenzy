@@ -3,6 +3,7 @@ package com.clenzy.service.agent.supervision;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.NotificationMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -69,13 +70,14 @@ public class SupervisionAutoApplyService {
                 "Action automatique : " + title);
 
         if (decision == AutoApplyGate.AutoDecision.AUTO_NOTIFY) {
-            notifyAutoApplied(orgId, title, motif, estimatedImpactCents);
+            notifyAutoApplied(orgId, propertyId, moduleKey, suggestionId, title, motif, estimatedImpactCents);
         }
         return true;
     }
 
     /** Notification in-app N1 (best-effort) : l'org sait ce qui vient d'être fait. */
-    private void notifyAutoApplied(Long orgId, String title, String motif, Long estimatedImpactCents) {
+    private void notifyAutoApplied(Long orgId, Long propertyId, String moduleKey, Long suggestionId,
+                                   String title, String motif, Long estimatedImpactCents) {
         try {
             final StringBuilder message = new StringBuilder(
                     motif != null && !motif.isBlank() ? motif : "Action appliquée automatiquement.");
@@ -86,7 +88,8 @@ public class SupervisionAutoApplyService {
                     NotificationKey.SUPERVISION_AUTO_APPLIED,
                     "Action automatique : " + title,
                     message.toString(),
-                    "/planning");
+                    "/planning", NotificationMetadata.of().supervision(suggestionId, moduleKey, null)
+                            .propertyId(propertyId).build());
         } catch (Exception e) {
             log.debug("[AUTO-APPLY] notification non émise (org={}) : {}", orgId, e.getMessage());
         }

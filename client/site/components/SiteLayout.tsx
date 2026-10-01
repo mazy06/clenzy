@@ -31,6 +31,7 @@ import { LAYOUT_MESSAGES } from '../lib/messages/layout';
 import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
 import { MODULES, RESOURCES, SOLUTIONS } from '../data/catalog';
+import { LEGAL_COUNTRIES, guidePath } from '../data/legal';
 import '../site-navigation.css';
 
 function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
@@ -239,10 +240,16 @@ function footerColumns(language: SiteLanguage) {
     },
     {
       title: m.columns.resources,
-      links: RESOURCES.map(({ id }) => ({
-        label: resourceText(id, language).name,
-        to: `/ressources/${id}?lang=${language}`,
-      })),
+      links: [
+        ...RESOURCES.map(({ id }) => ({
+          label: resourceText(id, language).name,
+          to: `/ressources/${id}?lang=${language}`,
+        })),
+        ...LEGAL_COUNTRIES.map((country) => ({
+          label: `${resourceText('obligations', language).name} · ${country.name[language]}`,
+          to: `${guidePath(country.code)}?lang=${language}`,
+        })),
+      ],
     },
     {
       title: m.columns.company,

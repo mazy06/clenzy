@@ -8,10 +8,8 @@ import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, 
 import {
   Save,
   Cancel,
-  Person,
   Email,
   Phone,
-  AdminPanelSettings,
   Lock,
   Visibility,
   VisibilityOff,
@@ -323,14 +321,11 @@ const UserEdit: React.FC = () => {
         </BuiAlert>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-2">
-          {/* Photo de profil — first section, OTA-aware */}
+      <form onSubmit={handleSubmit} className="mx-auto max-w-7xl rounded-lg border border-solid border-border bg-card text-foreground">
+        <div>
           {user && (
             <DetailSection
               title={t('users.form.photo')}
-              accentColor="var(--bui-info)"
-              icon={<Person size={14} strokeWidth={1.75} />}
               disableGrid
             >
               <AvatarUploader
@@ -340,16 +335,15 @@ const UserEdit: React.FC = () => {
             </DetailSection>
           )}
 
-          {/* Personnel — accent primaire */}
           <DetailSection
             title={t('users.form.personalInfo')}
-            accentColor="var(--bui-primary)"
-            icon={<Person size={14} strokeWidth={1.75} />}
           >
             <Field>
               <FieldLabel htmlFor="user-first-name">{t('users.firstName')}</FieldLabel>
               <Input
                 id="user-first-name"
+                autoComplete="given-name"
+                className="h-11 motion-reduce:transition-none"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 required
@@ -360,6 +354,8 @@ const UserEdit: React.FC = () => {
               <FieldLabel htmlFor="user-last-name">{t('users.lastName')}</FieldLabel>
               <Input
                 id="user-last-name"
+                autoComplete="family-name"
+                className="h-11 motion-reduce:transition-none"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
                 required
@@ -368,22 +364,21 @@ const UserEdit: React.FC = () => {
             </Field>
           </DetailSection>
 
-          {/* Contact — accent succès */}
           <DetailSection
             title={t('users.form.contactInfo')}
-            accentColor="var(--bui-success)"
-            icon={<Email size={14} strokeWidth={1.75} />}
           >
             <Field>
               <FieldLabel htmlFor="user-email">{t('users.email')}</FieldLabel>
-              <InputGroup>
+              <InputGroup className="h-11 motion-reduce:transition-none">
                 <InputGroupAddon>
-                  <span className="inline-flex text-muted-foreground opacity-60">
+                  <span className="inline-flex text-muted-foreground">
                     <Email size={16} strokeWidth={1.75} />
                   </span>
                 </InputGroupAddon>
                 <InputGroupInput
                   id="user-email"
+                  autoComplete="email"
+                  className="h-full"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
@@ -394,14 +389,17 @@ const UserEdit: React.FC = () => {
             </Field>
             <Field>
               <FieldLabel htmlFor="user-phone">{t('common.phone')}</FieldLabel>
-              <InputGroup>
+              <InputGroup className="h-11 motion-reduce:transition-none">
                 <InputGroupAddon>
-                  <span className="inline-flex text-muted-foreground opacity-60">
+                  <span className="inline-flex text-muted-foreground">
                     <Phone size={16} strokeWidth={1.75} />
                   </span>
                 </InputGroupAddon>
                 <InputGroupInput
                   id="user-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  className="h-full tabular-nums"
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   placeholder="Ex: +33 6 12 34 56 78"
@@ -410,25 +408,19 @@ const UserEdit: React.FC = () => {
             </Field>
           </DetailSection>
 
-          {/* Rôle et statut — accent froid */}
           <DetailSection
             title={t('users.form.roleAndStatus')}
-            accentColor="var(--bui-info)"
-            icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
             disableGrid
           >
-            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
+            <div className="grid grid-cols-1 items-start gap-x-6 gap-y-5 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="user-role">{t('users.role')}</FieldLabel>
-                {/* SelectValue avec enfants = report du `renderValue` MUI : la
-                    pastille reste compacte dans le declencheur alors que l'option
-                    deroulee porte en plus sa description. `h-auto` car la pastille
-                    (22px) depasse la hauteur fixe du declencheur. */}
+                {/* The selected role stays compact; the menu includes its description. */}
                 <Select
                   value={formData.role}
                   onValueChange={(value) => handleInputChange('role', value)}
                 >
-                  <SelectTrigger id="user-role" className="w-full h-auto min-h-9">
+                  <SelectTrigger id="user-role" className="w-full min-h-11 cursor-pointer motion-reduce:transition-none">
                     <SelectValue placeholder={t('users.form.selectRole')}>
                       {selectedRoleInfo && (
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -447,7 +439,7 @@ const UserEdit: React.FC = () => {
                             <p className="m-0 text-xs font-medium leading-[1.2]">
                               {role.label}
                             </p>
-                            <p className="m-0 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
+                            <p className="m-0 text-xs text-muted-foreground leading-relaxed whitespace-normal max-w-[320px]">
                               {role.description}
                             </p>
                           </div>
@@ -456,8 +448,8 @@ const UserEdit: React.FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldDescription className="text-[0.7rem]">
-                  {t('users.form.roleHint')}
+                <FieldDescription className="text-xs">
+                  {selectedRoleInfo?.description || t('users.form.roleHint')}
                 </FieldDescription>
               </Field>
 
@@ -467,7 +459,7 @@ const UserEdit: React.FC = () => {
                   value={formData.status}
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
-                  <SelectTrigger id="user-status" className="w-full h-auto min-h-9">
+                  <SelectTrigger id="user-status" className="w-full min-h-11 cursor-pointer motion-reduce:transition-none">
                     <SelectValue placeholder={t('users.form.selectStatus')}>
                       {selectedStatusInfo && (
                         <StatusChip tone={semTone(selectedStatusInfo.color)} label={selectedStatusInfo.label} />
@@ -482,38 +474,20 @@ const UserEdit: React.FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldDescription className="text-[0.7rem]">
+                <FieldDescription className="text-xs">
                   {t('users.form.statusHint')}
                 </FieldDescription>
               </Field>
             </div>
-
-            {/* Aperçu inline du rôle sélectionné — utilise le même badge que la liste */}
-            {selectedRoleInfo && (
-              <div className="mt-3 p-[9px] rounded-lg bg-primary-soft border border-solid border-primary/30 flex items-center gap-[7.5px]">
-                <RoleIconBadge role={selectedRoleInfo.value} size={32} />
-                <div className="min-w-0">
-                  <p className="m-0 text-xs font-bold text-foreground">
-                    Rôle sélectionné : {selectedRoleInfo.label}
-                  </p>
-                  <p className="m-0 text-xs text-muted-foreground leading-[1.4]">
-                    {selectedRoleInfo.description}
-                  </p>
-                </div>
-              </div>
-            )}
           </DetailSection>
 
-          {/* Organisation — accent chaud */}
           <DetailSection
-            title="Organisation"
-            accentColor="var(--bui-warning)"
-            icon={<Business size={14} strokeWidth={1.75} />}
+            title={t('users.form.organization')}
             disableGrid
           >
-            <div className="max-w-full min-[900px]:max-w-[50%]">
+            <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="user-organization">Organisation</FieldLabel>
+                <FieldLabel htmlFor="user-organization">{t('users.form.linkedOrganization')}</FieldLabel>
                 <Combobox
                   items={organizations}
                   itemToStringLabel={(o: OrganizationDto) => o.name}
@@ -524,6 +498,7 @@ const UserEdit: React.FC = () => {
                 >
                   <ComboboxInput
                     id="user-organization"
+                    className="h-11 motion-reduce:transition-none"
                     placeholder={t('users.form.selectOrganization')}
                   >
                     {/* Report de l'`endAdornment` : la roue tourne tant que la
@@ -540,11 +515,11 @@ const UserEdit: React.FC = () => {
                       {(option: OrganizationDto) => (
                         <ComboboxItem key={option.id} value={option}>
                           <span className="flex items-center gap-1.5 w-full">
-                            <span className="inline-flex text-muted-foreground opacity-60">
+                            <span className="inline-flex text-muted-foreground">
                               <Business size={16} strokeWidth={1.75} />
                             </span>
                             <span className="flex-1 text-xs">{option.name}</span>
-                            <span className="text-2xs text-muted-foreground tabular-nums">
+                            <span className="text-xs text-muted-foreground tabular-nums">
                               {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
                             </span>
                           </span>
@@ -553,18 +528,16 @@ const UserEdit: React.FC = () => {
                     </ComboboxList>
                   </ComboboxContent>
                 </Combobox>
-                <FieldDescription className="text-[0.7rem] mt-[3px]">
+                <FieldDescription className="text-xs mt-[3px]">
                   {t('users.form.orgHint')}
                 </FieldDescription>
               </Field>
             </div>
           </DetailSection>
 
-          {/* Changement de mot de passe — accent rouge désaturé (repère sécurité) */}
           <DetailSection
             title={t('users.form.passwordChange')}
-            accentColor="var(--bui-destructive)"
-            icon={<Lock size={14} strokeWidth={1.75} />}
+            description={t('users.form.passwordOptional')}
             disableGrid
             action={
               passwordsMatch ? (
@@ -574,20 +547,19 @@ const UserEdit: React.FC = () => {
               ) : undefined
             }
           >
-            <p className="m-0 mb-3 text-xs text-muted-foreground">
-              {t('users.form.passwordOptional')}
-            </p>
-            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
+            <div className="grid grid-cols-1 items-start gap-x-6 gap-y-5 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="user-new-password">{t('users.form.newPassword')}</FieldLabel>
-                <InputGroup>
+                <InputGroup className="h-11 motion-reduce:transition-none">
                   <InputGroupAddon>
-                    <span className="inline-flex text-muted-foreground opacity-60">
+                    <span className="inline-flex text-muted-foreground">
                       <Lock size={16} strokeWidth={1.75} />
                     </span>
                   </InputGroupAddon>
                   <InputGroupInput
                     id="user-new-password"
+                    autoComplete="new-password"
+                    className="h-full"
                     type={showNewPassword ? 'text' : 'password'}
                     value={formData.newPassword}
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
@@ -595,7 +567,7 @@ const UserEdit: React.FC = () => {
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupButton
-                      size="icon-xs"
+                      size="icon-sm"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       aria-label={showNewPassword ? t('users.form.hidePassword') : t('users.form.showPassword')}
                     >
@@ -610,14 +582,16 @@ const UserEdit: React.FC = () => {
               </Field>
               <Field>
                 <FieldLabel htmlFor="user-confirm-password">{t('users.form.passwordConfirm')}</FieldLabel>
-                <InputGroup>
+                <InputGroup className="h-11 motion-reduce:transition-none">
                   <InputGroupAddon>
-                    <span className="inline-flex text-muted-foreground opacity-60">
+                    <span className="inline-flex text-muted-foreground">
                       <Lock size={16} strokeWidth={1.75} />
                     </span>
                   </InputGroupAddon>
                   <InputGroupInput
                     id="user-confirm-password"
+                    autoComplete="new-password"
+                    className="h-full"
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
@@ -625,7 +599,7 @@ const UserEdit: React.FC = () => {
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupButton
-                      size="icon-xs"
+                      size="icon-sm"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       aria-label={showConfirmPassword ? t('users.form.hidePassword') : t('users.form.showPassword')}
                     >

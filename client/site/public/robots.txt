@@ -5,5 +5,7 @@ Allow: /
 # Application and account workflows are not crawl targets.
 Disallow: /api/
 Disallow: /admin/
+Disallow: /inscription
+Disallow: /register
 Disallow: /prestataires/inscription
 Disallow: /prestataires/activation

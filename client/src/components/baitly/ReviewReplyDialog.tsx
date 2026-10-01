@@ -6,18 +6,12 @@ import {
   Badge,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Separator,
   Skeleton,
   Spinner,
   Textarea,
 } from '../ui';
 import GuestAvatar from './GuestAvatar';
-import { cn } from '../../utils/cn';
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalFacts, ActionModalLoading, ActionModalSection } from '../../modules/supervision/components/ActionModal';
 import { reviewsApi } from '../../services/api/reviewsApi';
 import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -79,7 +73,7 @@ export default function ReviewReplyDialog({
   const [proposal, setProposal] = React.useState<string | null>(null);
   const [dismissed, setDismissed] = React.useState(false);
 
-  const { data: review, isLoading } = useQuery({
+  const { data: review, isLoading, isError: loadFailed, refetch } = useQuery({
     queryKey: ['review', reviewId],
     queryFn: () => reviewsApi.getById(reviewId!),
     enabled: reviewId != null,
@@ -142,34 +136,29 @@ export default function ReviewReplyDialog({
 
   return (
     <Dialog open={reviewId != null} onOpenChange={(next) => !next && !busy && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          {/* `pe-8` réserve la place du bouton de fermeture, positionné en
-              absolu dans le coin : sans lui, la note vient buter dessus. */}
-          <DialogTitle className="flex items-center gap-2.5 pe-8">
-            {guestName && <GuestAvatar name={guestName} size={32} />}
-            <span className="truncate">
-              {guestName ?? t('dashboard.actionItems.reviewFallback', 'Avis voyageur')}
-            </span>
-            {rating != null && (
-              <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold tabular-nums">
-                {rating}
-                <StarIcon className="size-3.5 fill-warning text-warning" />
-              </span>
-            )}
-          </DialogTitle>
-          {preview?.propertyName && <DialogDescription>{preview.propertyName}</DialogDescription>}
-        </DialogHeader>
-
+      <ActionModalContent className="sm:max-w-[640px]">
+        <ActionModalHeader agentId="rep"
+          title={t('supervision.reviewReply.title', 'Répondre à cet avis')}
+          description={preview?.propertyName ?? t('dashboard.actionItems.reviewFallback', 'Avis voyageur')} />
+        <ActionModalBody>
+        <div className="flex items-center gap-3">
+          {guestName && <GuestAvatar name={guestName} size={36} />}
+          <span className="min-w-0 flex-1 font-medium">{guestName ?? t('dashboard.actionItems.reviewFallback', 'Avis voyageur')}</span>
+          {rating != null && <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold tabular-nums">
+            <StarIcon className="size-4 text-[var(--bui-warning-ink)]" />{rating}
+          </span>}
+        </div>
         {isLoading ? (
-          <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Spinner /> {t('common.loading', 'Chargement…')}
-          </p>
+          <ActionModalLoading />
+        ) : loadFailed ? (
+          <div role="alert" className="flex flex-col items-start gap-3">
+            <p className="text-sm text-destructive-ink">{t('supervision.modal.reviewUnavailable', 'L’avis n’a pas pu être chargé. Réessayez pour le relire avant de répondre.')}</p>
+            <Button variant="outline" onClick={() => refetch()}>{t('dashboard.actionItems.retryProposal', 'Réessayer')}</Button>
+          </div>
         ) : (
           <>
-            {/* L'avis, en entier. Un texte long défile ici plutôt que d'étirer
-                la modale au-delà de l'écran. */}
-            <blockquote className="max-h-40 overflow-y-auto rounded-lg bg-muted p-3 text-sm leading-relaxed text-foreground">
+            {/* The full review shares the body's scroll area with the reply. */}
+            <blockquote className="baitly-action-message">
               {review?.reviewText || t('dashboard.actionItems.noReviewText', 'Avis sans texte.')}
             </blockquote>
 
@@ -183,19 +172,9 @@ export default function ReviewReplyDialog({
                 qu'il s'agit du même objet à deux moments de sa vie. */}
             {!showProposal && !aiUnconfigured && (
               <div
-                className={cn(
-                  'rounded-xl border p-4 transition-colors duration-200 motion-reduce:transition-none',
-                  askAgent.isError ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-muted/40',
-                )}
+                className="baitly-review-proposal"
               >
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="secondary">
-                    {t('supervision.agents.rep.name', 'Agent Réputation')}
-                  </Badge>
-                  <Badge variant="outline">
-                    {t('dashboard.actionItems.proposalTag', 'Réponse d’avis')}
-                  </Badge>
-                </div>
+                <h3 className="text-sm font-semibold">{t('dashboard.actionItems.proposalTitle', 'Réponse proposée')}</h3>
 
                 {askAgent.isPending ? (
                   /* La forme de ce qui arrive, pas un sablier : on montre trois
@@ -257,47 +236,32 @@ export default function ReviewReplyDialog({
             )}
 
             {showProposal && (
-              /* Carte de proposition — grammaire reprise de `CardChrome` du site
-                 vitrine (client/site/components/AnimatedHitlMockup) : bandeau de
-                 badges agent + objet + statut, titre, message proposé en bloc
-                 cité, filet, puis accepter / écarter.
-                 Le liseré latéral de 2 px du site n'est pas repris : c'est un
-                 ban design (CLAUDE.md, side-stripe > 1 px). */
-              <div className="shadow-brand rounded-xl border border-warning/50 bg-card p-4">
+              /* One flat section; inserting a proposal never publishes it. */
+              <div className="baitly-review-proposal">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="secondary">
-                    {t('supervision.agents.rep.name', 'Agent Réputation')}
-                  </Badge>
-                  <Badge variant="outline">
-                    {t('dashboard.actionItems.proposalTag', 'Réponse d’avis')}
-                  </Badge>
+                  <h3 className="text-sm font-semibold">{t('dashboard.actionItems.proposalTitle', 'Réponse proposée')}</h3>
                   <Badge variant="warning" className="ms-auto">
                     {t('dashboard.actionItems.awaitingYou', 'En attente')}
                   </Badge>
                 </div>
 
-                <h3 className="mt-2.5 text-sm font-semibold">
-                  {t('dashboard.actionItems.proposalTitle', 'Réponse proposée')}
-                  {guestName && ` — ${guestName}`}
-                </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t(
                     'dashboard.actionItems.proposalLead',
                     'Rédigée par l’agent, jamais publiée sans vous. Message proposé :',
                   )}
                 </p>
-                <p className="mt-2.5 rounded-lg bg-muted p-2.5 text-xs italic">« {proposal} »</p>
+                <p className="my-3 text-sm leading-relaxed whitespace-pre-wrap">« {proposal} »</p>
 
-                <Separator className="my-3" />
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Button size="xs" onClick={() => setText(proposal!)}>
+                  <Button size="xs" disabled={busy} onClick={() => setText(proposal!)}>
                     <CheckIcon className="size-3" />
                     {text.trim()
                       ? t('dashboard.actionItems.replaceWithProposal', 'Remplacer ma réponse')
                       : t('dashboard.actionItems.insertProposal', 'Insérer dans ma réponse')}
                   </Button>
-                  <Button size="xs" variant="outline" onClick={() => setDismissed(true)}>
+                  <Button size="xs" variant="outline" disabled={busy} onClick={() => setDismissed(true)}>
                     {t('supervision.apply.dismiss', 'Ignorer')}
                   </Button>
                   <span className="ms-auto text-[11px] text-muted-foreground">
@@ -307,31 +271,15 @@ export default function ReviewReplyDialog({
               </div>
             )}
 
-            <Textarea
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              rows={5}
-              autoFocus
-              placeholder={t(
-                'channels.reviews.replyPlaceholder',
-                'Votre réponse, visible publiquement sur le canal…',
-              )}
-            />
-
-            {/* Ce que « Publier » va produire. L'écran montrait le brouillon et
-                le champ, jamais la portée : une réponse d'avis est publique et
-                ne se retire pas. */}
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">
-              {consequencesOf('REVIEW_DRAFT_REPLY').map((line) => (
-                <li key={line.key} className="flex gap-2.5 text-sm text-[var(--bui-foreground)]">
-                  <span
-                    className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                    aria-hidden
-                  />
-                  <span className="text-pretty">{t(line.key, line.fallback)}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="review-response" className="text-sm font-medium">{t('supervision.modal.yourReply', 'Votre réponse')}</label>
+              <Textarea id="review-response" value={text} onChange={(event) => setText(event.target.value)}
+                rows={5} disabled={busy}
+                placeholder={t('channels.reviews.replyPlaceholder', 'Votre réponse, visible publiquement sur le canal…')} />
+            </div>
+            <ActionModalSection title={t('supervision.modal.consequences', 'Ce qui va se passer')}>
+              <ActionModalFacts facts={consequencesOf('REVIEW_DRAFT_REPLY').map((line) => t(line.key, line.fallback))} />
+            </ActionModalSection>
 
             {publish.isError && (
               <p className="m-0 text-xs text-destructive">
@@ -341,16 +289,17 @@ export default function ReviewReplyDialog({
           </>
         )}
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" disabled={busy} onClick={onClose}>
             {t('common.cancel', 'Annuler')}
           </Button>
-          <Button disabled={!text.trim() || busy} onClick={() => publish.mutate(text.trim())}>
+          <Button disabled={!text.trim() || busy || isLoading || loadFailed} onClick={() => publish.mutate(text.trim())}>
             {busy && <Spinner />}
-            {t('channels.reviews.sendReply', 'Publier la réponse')}
+            {t('supervision.reviewReply.cta', 'Publier la réponse')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

@@ -87,7 +87,7 @@ public class NotificationDto {
         if (readFacts.guestAvatarUrl() != null && !readFacts.guestAvatarUrl().isBlank()) {
             facts.put(GUEST_AVATAR_URL, readFacts.guestAvatarUrl());
         }
-        // La serrure et l'avis ne sont greffes que s'ils MANQUENT : quand
+        // Les identifiants ne sont greffes que s'ils MANQUENT : quand
         // l'emetteur les a ecrits, ce sont les siens qui font foi.
         if (readFacts.deviceId() != null && !facts.has(NotificationMetadata.DEVICE_ID)) {
             facts.put(NotificationMetadata.DEVICE_ID, readFacts.deviceId());
@@ -95,7 +95,28 @@ public class NotificationDto {
         if (readFacts.reviewId() != null && !facts.has(NotificationMetadata.REVIEW_ID)) {
             facts.put(NotificationMetadata.REVIEW_ID, readFacts.reviewId());
         }
+        if (readFacts.stockItemId() != null && !facts.has(NotificationMetadata.STOCK_ITEM_ID)) {
+            facts.put(NotificationMetadata.STOCK_ITEM_ID, readFacts.stockItemId());
+        }
+        var action = readFacts.action();
+        if (action != null) {
+            putMissingText(facts, NotificationMetadata.ACTION_TYPE, action.actionType());
+            putMissingText(facts, NotificationMetadata.MODULE, action.module());
+            putMissingText(facts, NotificationMetadata.SOURCE_TOOL, action.sourceTool());
+            // Une ancienne notification garde ses faits d'emission si la carte a evolue.
+            if (action.actionType() != null
+                    && action.actionType().equals(facts.path(NotificationMetadata.ACTION_TYPE).asText())) {
+                putMissingText(facts, NotificationMetadata.PRICE_DIRECTION, action.priceDirection());
+            }
+        }
         return facts;
+    }
+
+    private static void putMissingText(ObjectNode facts, String key, String value) {
+        if (value != null && !value.isBlank()
+                && (!facts.hasNonNull(key) || facts.path(key).asText().isBlank())) {
+            facts.put(key, value);
+        }
     }
 
     /** Des faits illisibles n'empechent pas de lire la notification. */

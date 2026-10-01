@@ -20,12 +20,15 @@ import { Spinner } from '../../../components/ui';
 import { Badge, Button, Collapsible, CollapsibleContent } from '../../../components/ui';
 import { Check, ChevronDown, Edit, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { Money } from '../../../components/Money';
 import { useCountdown, type Countdown } from '../core/useCountdown';
+import { additionalActionReasoning } from '../core/actionReasoning';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
 import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
 import { verbFor } from './actionVerbs';
+import { ActionDescription } from './ActionDescription';
+import { ActionIllustratedHeading } from './ActionIllustration';
+import { descriptionTitle } from '../core/actionDescription';
 import { familyOf, opensModal } from './actionRegistry';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
@@ -101,13 +104,13 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
   const rawTitle = action.title?.trim() || t('supervision.payment.fallbackTitle', 'Demande de service');
   const displayTitle = isPayment && action.serviceCategory === 'maintenance'
     ? `${t('supervision.payment.maintenancePrefix', 'Maintenance')} - ${rawTitle}`
-    : (isPayment ? rawTitle : action.title);
+    : (isPayment ? rawTitle : descriptionTitle(action));
   const displayReasoning = isPayment
     ? t('supervision.payment.reason', {
         title: displayTitle,
-        defaultValue: 'Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe.',
+        defaultValue: 'Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé. Aucun débit sans ta validation sur la page Stripe.',
       })
-    : action.reasoning;
+    : additionalActionReasoning(action.motif, action.reasoning);
 
   const validate = () => {
     setResolving(true);
@@ -120,7 +123,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
 
   return (
     <div
-      className={cn('w-full rounded-lg border border-border bg-card p-3.5', expired ? 'opacity-70' : 'opacity-100')}
+      className={cn('baitly-supervision-surface w-full rounded-lg border border-border bg-card p-3.5', expired ? 'opacity-70' : 'opacity-100')}
       data-pending-action={action.id}
       data-expired={expired ? '1' : undefined}
       // Ancrages de l'overlay d'attaches (SupervisionTethers) : agent porteur
@@ -161,20 +164,21 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
         </div>
       )}
 
-      {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
-      <div className={cn('text-xs font-medium leading-snug text-foreground', isPayment ? 'mb-2' : 'mb-0.5')}>
-        {displayTitle}
-      </div>
-      {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
-          affiché DIRECTEMENT dans le bouton « Régler ». */}
-      {!isPayment && <div className="mb-2 text-2xs text-muted-foreground">{action.motif}</div>}
+      {/* Titre et description structurée, partagés avec la constellation. */}
+      <ActionIllustratedHeading action={action}>
+        <div className="text-sm font-semibold leading-snug text-foreground">
+          {displayTitle}
+        </div>
+      </ActionIllustratedHeading>
+      <div className="mb-3"><ActionDescription action={action} /></div>
 
       {/* actions */}
       {expired ? (
         <div className="text-xs font-medium text-destructive-ink">{t('supervision.hitl.expired')}</div>
       ) : (
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Button
+            className="baitly-hitl-primary"
             variant="default"
             size="sm"
             disabled={resolving}
@@ -214,23 +218,9 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
             ) : isPriceAdjust ? (
               t('supervision.price.adjustCta', 'Ajuster les tarifs')
             ) : isPayment ? (
-              <>
-                {t('supervision.payment.settle', 'Régler')}
-                {action.amountEur != null && (
-                  <span className="ms-0.5">
-                    <Money value={action.amountEur} from="EUR" />
-                  </span>
-                )}
-              </>
+              t('supervision.payment.settle', 'Régler')
             ) : isApply ? (
-              <>
-                {t(verb.labelKey, verb.fallback)}
-                {action.amountEur != null && (
-                  <span className="ms-0.5">
-                    +<Money value={action.amountEur} from="EUR" decimals={0} />
-                  </span>
-                )}
-              </>
+              t(verb.labelKey, verb.fallback)
             ) : isReminder ? (
               t('supervision.reminder.ack', 'Info reçue')
             ) : (
@@ -256,47 +246,33 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
           </Button>
           {/* « Pourquoi ? » réduit à la flèche seule, sur la MÊME ligne que les
               deux boutons (poussée à droite). Le libellé passe en aria-label. */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setWhy((w) => !w)}
-            aria-expanded={why}
-            aria-label={t('supervision.hitl.why')}
-            className="ms-auto text-muted-foreground"
-          >
-            <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
-          </Button>
-        </div>
-      )}
-
-      {/* Échéancier : l'acompte est une ÉTAPE de ce montant, pas une seconde
-          demande. Il avait sa propre carte sur un autre agent, et rien ne disait
-          que les deux sommes portaient sur le même chantier. */}
-      {isPayment && action.depositEur != null && action.amountEur != null && (
-        <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted px-2.5 py-1.5 text-2xs">
-          <span className="text-muted-foreground">
-            {action.paymentStage === 'deposit'
-              ? t('supervision.payment.depositStage', 'Acompte, avant le début des travaux')
-              : action.depositPaid
-                ? t('supervision.payment.depositPaid', 'Acompte déjà versé')
-                : t('supervision.payment.depositDue', 'Dont acompte à verser')}
-          </span>
-          <span className={cn('tabular-nums font-medium', action.depositPaid && 'line-through opacity-60')}>
-            <Money value={action.depositEur} from="EUR" />
-          </span>
+          {displayReasoning && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setWhy((w) => !w)}
+              aria-expanded={why}
+              aria-label={t('supervision.hitl.why')}
+              className="ms-auto text-muted-foreground"
+            >
+              <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+            </Button>
+          )}
         </div>
       )}
 
       {/* « Pourquoi ? » — raisonnement métier (texte brut, déjà nettoyé serveur) */}
       {/* Collapsible sans declencheur interne : la fleche « Pourquoi ? » vit dans
           la rangee d'actions au-dessus et pilote l'etat `why`. */}
-      <Collapsible open={why} onOpenChange={setWhy}>
-        <CollapsibleContent>
-          <div className="mt-2 border-t border-border pt-2 text-2xs leading-relaxed text-muted-foreground">
-            {displayReasoning}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+      {displayReasoning && (
+        <Collapsible open={why} onOpenChange={setWhy}>
+          <CollapsibleContent>
+            <div className="mt-2 border-t border-border pt-2 text-2xs leading-relaxed text-muted-foreground">
+              {displayReasoning}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
     </div>
   );
 }

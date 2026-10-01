@@ -10,6 +10,24 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PropertyStockItemRepository extends JpaRepository<PropertyStockItem, Long> {
+    String OVERVIEW_FILTER = " FROM PropertyStockItem s JOIN Property p ON p.id = s.propertyId "
+            + "AND p.organizationId = s.organizationId WHERE s.organizationId = :orgId "
+            + "AND (:propertyId IS NULL OR s.propertyId = :propertyId) "
+            + "AND (LOWER(s.name) LIKE :search ESCAPE '!' OR LOWER(p.name) LIKE :search ESCAPE '!' "
+            + "OR LOWER(s.supplierName) LIKE :search ESCAPE '!')";
+
+    @Query(value = "SELECT s" + OVERVIEW_FILTER + " ORDER BY p.name, s.name, s.id",
+            countQuery = "SELECT COUNT(s)" + OVERVIEW_FILTER)
+    org.springframework.data.domain.Page<PropertyStockItem> findStockOverview(
+            @Param("orgId") Long orgId, @Param("propertyId") Long propertyId,
+            @Param("search") String search, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT COUNT(s)" + OVERVIEW_FILTER)
+    long countStockOverview(@Param("orgId") Long orgId, @Param("propertyId") Long propertyId,
+                           @Param("search") String search);
+
+    List<PropertyStockItem> findByIdInAndOrganizationId(java.util.Collection<Long> ids, Long orgId);
+
 
     List<PropertyStockItem> findByPropertyIdAndOrganizationIdOrderByNameAsc(
             Long propertyId, Long organizationId);

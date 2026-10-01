@@ -9,7 +9,7 @@ import PageHeader from '../../components/PageHeader';
 import type { RoleInfo, StatusInfo } from './components/userDetailsTypes';
 import { useUserDetails } from './components/useUserDetails';
 import UserProfileCard from './components/UserProfileCard';
-import UserSystemInfoCard from './components/UserSystemInfoCard';
+import UserSystemInfoCard, { UserSystemDates } from './components/UserSystemInfoCard';
 import UserHostProfileCard from './components/UserHostProfileCard';
 import UserRoleStatusCard from './components/UserRoleStatusCard';
 import UserActionsCard from './components/UserActionsCard';
@@ -134,43 +134,29 @@ const UserDetails: React.FC = () => {
         }
       />
 
-      {/* Hero card */}
-      <UserProfileCard user={user} roles={userRoles} statuses={userStatuses} />
-
-      {/* Body — two-column on >=md to avoid a single tall column of identical cards */}
-      {/* md MUI = 900px (breakpoints non configures) et gap: 1.5 = 9px (spacing 6). */}
-      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-[9px] items-start">
-        <div className="flex flex-col gap-2 min-w-0">
-          {/* Personal + Contact + System dates */}
-          <UserSystemInfoCard user={user} />
-
-          {/* Host profile — self-contained, returns null when user is not a HOST. */}
-          <UserHostProfileCard
-            user={user}
-            isAdminOrManager={canManageUsers}
-            deferredToggling={deferredToggling}
-            onToggleDeferredPayment={handleToggleDeferredPayment}
-            balance={balance}
-            balanceLoading={balanceLoading}
-            expandedProperty={expandedProperty}
-            onExpandProperty={setExpandedProperty}
-            paymentLinkLoading={paymentLinkLoading}
-            onSendPaymentLink={handleSendPaymentLink}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2 min-w-0">
-          {/* Organisation + Role & Status */}
-          <UserRoleStatusCard user={user} roles={userRoles} statuses={userStatuses} />
-
-          {/* Lockout — self-contained, returns null when no lockout info. */}
-          <UserActionsCard
-            lockoutStatus={lockoutStatus}
-            isAdminOrManager={canManageUsers}
-            unlocking={unlocking}
-            onUnlockUser={handleUnlockUser}
-          />
-        </div>
+      <div className="mx-auto max-w-7xl rounded-lg border border-solid border-border bg-card text-foreground">
+        <UserProfileCard user={user} roles={userRoles} statuses={userStatuses} />
+        <UserSystemInfoCard user={user} />
+        <UserRoleStatusCard user={user} roles={userRoles} statuses={userStatuses} />
+        <UserHostProfileCard
+          user={user}
+          isAdminOrManager={canManageUsers}
+          deferredToggling={deferredToggling}
+          onToggleDeferredPayment={handleToggleDeferredPayment}
+          balance={balance}
+          balanceLoading={balanceLoading}
+          expandedProperty={expandedProperty}
+          onExpandProperty={setExpandedProperty}
+          paymentLinkLoading={paymentLinkLoading}
+          onSendPaymentLink={handleSendPaymentLink}
+        />
+        <UserActionsCard
+          lockoutStatus={lockoutStatus}
+          isAdminOrManager={canManageUsers}
+          unlocking={unlocking}
+          onUnlockUser={handleUnlockUser}
+        />
+        <UserSystemDates user={user} />
       </div>
     </div>
   );

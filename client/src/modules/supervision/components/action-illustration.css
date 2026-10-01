@@ -1,0 +1,13 @@
+@layer components {
+  .baitly-action-illustrated-heading { display: flex; align-items: center; gap: 14px; min-width: 0; margin-block: 14px 6px; }
+  .baitly-action-heading-copy { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .baitly-action-heading-copy > :is(h3, [data-slot='dialog-title'], [data-slot='dialog-description']) { margin: 0; }
+  .baitly-action-illustration { display: block; position: relative; flex: 0 0 auto; width: 72px; height: 72px; overflow: hidden; border-radius: 12px; background: var(--bui-muted); }
+  .baitly-action-illustration img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .baitly-action-modal-header .baitly-action-illustrated-heading { margin-block: 4px 0; gap: 16px; }
+  .baitly-action-modal-header .baitly-action-illustration { width: 80px; height: 80px; }
+  @media (max-width: 639px) {
+    .baitly-action-illustrated-heading { gap: 12px; }
+    .baitly-action-illustration, .baitly-action-modal-header .baitly-action-illustration { width: 60px; height: 60px; border-radius: 10px; }
+  }
+}

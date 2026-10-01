@@ -1,6 +1,5 @@
 import React from 'react';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
-import { Business, AdminPanelSettings } from '../../../icons';
 import type { ChipColor } from '../../../types';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -44,11 +43,6 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
   BLOCKED: "L'utilisateur est bloque pour violation des conditions",
 };
 
-/**
- * Renders two sections: Organisation, and Role+Status with descriptions.
- * Uses warm + secondary accent colors to keep the page rhythm varied
- * (no two consecutive sections share an accent).
- */
 const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, statuses }) => {
   const { t } = useTranslation();
   const roleInfo = getRoleInfo(user.role, roles);
@@ -57,12 +51,10 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
   const statusTone = SEM_TONE[statusInfo.color] ?? 'neutral';
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Organisation — warm accent */}
+    <>
+
       <DetailSection
         title={t('users.form.organization')}
-        accentColor="var(--bui-warning)"
-        icon={<Business size={14} strokeWidth={1.75} />}
       >
         <DetailField
           label={t('users.form.linkedOrganization')}
@@ -70,15 +62,12 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
         />
       </DetailSection>
 
-      {/* Rôle et statut — accent froid, pour ne pas répéter celui de la section au-dessus */}
       <DetailSection
         title={t('users.form.roleAndStatus')}
-        accentColor="var(--bui-info)"
-        icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
       >
-        {/* Role chip + description */}
+
         <div className="min-w-0">
-          <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
+          <span className="text-xs font-medium text-muted-foreground block mb-2">
             {t('users.role')}
           </span>
           <StatusChip tone={roleTone} label={roleInfo.label} icon={<span className="inline-flex">
@@ -86,24 +75,23 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
                   size: 14,
                   strokeWidth: 1.75,
                 })}
-              </span>} className="mb-1" />
+              </span>} className="mb-2" />
           <p className="m-0 text-xs text-muted-foreground leading-[1.5]">
             {ROLE_DESCRIPTIONS[user.role] || ''}
           </p>
         </div>
 
-        {/* Status chip + description */}
         <div className="min-w-0">
-          <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
+          <span className="text-xs font-medium text-muted-foreground block mb-2">
             Statut
           </span>
-          <StatusChip tone={statusTone} label={statusInfo.label} className="mb-1" />
+          <StatusChip tone={statusTone} label={statusInfo.label} className="mb-2" />
           <p className="m-0 text-xs text-muted-foreground leading-[1.5]">
             {STATUS_DESCRIPTIONS[user.status] || ''}
           </p>
         </div>
       </DetailSection>
-    </div>
+    </>
   );
 };
 

@@ -4357,3 +4357,19 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0481__contact_attachments_object_storage.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0482-stock-item-visuals"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0482__stock_item_visuals.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0483-inventory-item-visuals"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0483__inventory_item_visuals.sql
+            relativeToChangelogFile: true

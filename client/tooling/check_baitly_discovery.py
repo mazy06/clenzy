@@ -11,6 +11,7 @@ import tempfile
 import time
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
+from urllib.parse import urlsplit
 
 
 @contextmanager
@@ -75,18 +76,30 @@ def check(client, binary):
             root = ET.fromstring(body)
             urls = [element.text for element in root.findall("{*}url/{*}loc")]
             assert len(urls) == len(set(urls)) and len(urls) > 10
-            assert all(url.startswith(f"https://{host}/") for url in urls)
+            # Alternate serving domains retain the same canonical search identity.
+            assert all(url.startswith("https://baitly.fr/") for url in urls)
             assert not any("inscription" in url or "activation" in url or ":slug" in url for url in urls)
             status, headers, body = request(port, "/robots.txt", host=host)
             assert status == 200 and headers["content-type"] == "text/plain; charset=utf-8"
-            assert f"Sitemap: https://{host}/sitemap.xml" in body
-        paths = [url.removeprefix("https://baitly.ma") for url in urls]
+            assert "Sitemap: https://baitly.fr/sitemap.xml" in body
+        for url in urls:
+            parsed = urlsplit(url)
+            path = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+            status, headers, body = request(port, path)
+            assert status == 200, (url, status)
+            assert f'<link rel="canonical" href="{url}">' in body, url
+            assert '<h1' in body and '<main' in body, url
+        paths = sorted({urlsplit(url).path for url in urls})
         for path in paths:
             for language in ["fr", "en", "ar"]:
                 status, headers, body = request(port, f"{path}?lang={language}", "text/markdown")
                 assert status == 200, (path, status)
                 assert headers["content-type"] == "text/markdown; charset=utf-8", (path, headers)
-                assert headers["content-language"] == language
+                article = path.startswith("/ressources/blog/")
+                content_language = "fr" if article and language == "en" else language
+                assert headers["content-language"] == content_language, (path, headers)
+                if article and language == "ar":
+                    assert any("\u0600" <= char <= "\u06ff" for char in body.splitlines()[0]), path
                 assert body.startswith("# ") and len(body) > 100
                 assert "Accept" in headers["vary"] and "no-store" in headers["cache-control"]
                 assert 'rel="describedby"' in headers["link"]
@@ -121,7 +134,7 @@ def check(client, binary):
         assert request(port, "/sitemap.xml")[0] == 404
         assert request(port, "/", "text/markdown")[1]["content-type"].startswith("text/html")
         assert "link" not in request(port, "/")[1]
-    print(f"PASS: {len(paths)} sitemap URLs, {count} Markdown representations, GET/HEAD, Accept/q=0, languages, cache, Link, multiple hosts, private paths and PMS isolation")
+    print(f"PASS: {len(urls)} canonical sitemap URLs, {count} Markdown representations, GET/HEAD, Accept/q=0, languages, cache, Link, multiple hosts, private paths and PMS isolation")
 
 
 if __name__ == "__main__":

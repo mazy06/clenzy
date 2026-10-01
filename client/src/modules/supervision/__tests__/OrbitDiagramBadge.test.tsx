@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll } from 'vitest';
-import { renderWithProviders as render, screen } from '../../../test/renderWithProviders';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { renderWithProviders as render, screen, act, fireEvent } from '../../../test/renderWithProviders';
 import { OrbitDiagram } from '../renderers/OrbitDiagram';
 import type { ConstellationAgentView } from '../renderers/ConstellationRenderer';
 
@@ -15,6 +15,12 @@ import type { ConstellationAgentView } from '../renderers/ConstellationRenderer'
 beforeAll(() => {
   const proto = SVGElement.prototype as unknown as { getTotalLength?: () => number };
   if (!proto.getTotalLength) proto.getTotalLength = () => 100;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const agents: ConstellationAgentView[] = [
@@ -67,5 +73,54 @@ describe('<OrbitDiagram> — le compte des actions', () => {
     const { container } = open();
     const node = container.querySelector('[data-agent="rev"]')!;
     expect(node.textContent).not.toContain('0');
+  });
+
+  it('distingue les logements du portefeuille et conserve le compte exact accessible', () => {
+    const { container } = render(
+      <OrbitDiagram agents={[{ ...agents[0], badge: 125 }]} selected="ops" onSelect={() => {}} flowEnabled />,
+    );
+    const node = container.querySelector('[data-agent="ops"]')!;
+    expect(node.querySelector('[data-kind="properties"]')?.textContent).toBe('99+');
+    expect(node.getAttribute('aria-label')).toContain('125 logements');
+    expect(node.getAttribute('aria-label')).toContain('6 à valider');
+  });
+
+  it('garde les agents sélectionnables quand les transmissions sont en pause', () => {
+    const onSelect = vi.fn();
+    const { container } = render(
+      <OrbitDiagram agents={agents} selected="ops" onSelect={onSelect} flowEnabled={false} />,
+    );
+    fireEvent.click(container.querySelector('[data-agent="rev"]')!);
+    expect(onSelect).toHaveBeenCalledWith('rev');
+    expect(container.querySelector('[data-animating]')).toBeNull();
+    expect(container.querySelector('.oc-flow[data-selected]')).toBeNull();
+  });
+
+  it('termine la rotation même si les tâches changent pendant le mouvement', () => {
+    vi.useFakeTimers();
+    const onSettled = vi.fn();
+    const props = { onSelect: () => {}, flowEnabled: true, onHeadAgentSettled: onSettled };
+    const { rerender, container } = render(<OrbitDiagram {...props} agents={agents} selected="ops" />);
+    rerender(<OrbitDiagram {...props} agents={agents} selected="rev" />);
+    expect(onSettled).toHaveBeenLastCalledWith(null);
+    act(() => vi.advanceTimersByTime(200));
+    rerender(<OrbitDiagram {...props} agents={agents.map((agent) => ({ ...agent, task: 'Mise à jour' }))} selected="rev" />);
+    act(() => vi.advanceTimersByTime(450));
+    expect(onSettled).toHaveBeenLastCalledWith('rev');
+    expect(container.querySelector('.oc-flow[data-selected]')).not.toBeNull();
+  });
+
+  it('stabilise immédiatement la sélection lorsque les animations sont réduites', () => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+      ...media, media: query, matches: query === '(prefers-reduced-motion: reduce)',
+    })));
+    const onSettled = vi.fn();
+    const props = { agents, onSelect: () => {}, flowEnabled: true, onHeadAgentSettled: onSettled };
+    const { rerender } = render(<OrbitDiagram {...props} selected="ops" />);
+    onSettled.mockClear();
+    rerender(<OrbitDiagram {...props} selected="rev" />);
+    expect(onSettled).toHaveBeenLastCalledWith('rev');
+    expect(onSettled).not.toHaveBeenCalledWith(null);
   });
 });

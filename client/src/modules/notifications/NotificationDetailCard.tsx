@@ -84,11 +84,11 @@ import NotificationMessagePanel, {
   useNotificationMessage,
 } from './NotificationMessagePanel';
 import { resolveSubject } from './NotificationSubjectPanel';
+import { NotificationThumbnail } from './NotificationThumbnail';
 import type { Notification } from '../../services/api';
 import {
   FACT_ICON,
   TYPE_BADGE_VARIANT,
-  categoryStyle,
   formatFactDate,
   fullTimestamp,
   notificationActorOf,
@@ -194,7 +194,6 @@ export default function NotificationDetailCard({
   const showTechnical = isPlatformStaff();
   const [technicalOpen, setTechnicalOpen] = React.useState(false);
 
-  const style = categoryStyle(notification.category);
   const businessActions = businessActionsFor(notification);
 
   // Une notification de reputation designe un avis : la fiche va le chercher et
@@ -376,14 +375,7 @@ export default function NotificationDetailCard({
           </Button>
         )}
 
-        <span
-          className={cn(
-            'mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg',
-            style.accent,
-          )}
-        >
-          {style.icon}
-        </span>
+        <NotificationThumbnail notification={notification} size="detail" />
 
         <div className="min-w-0 flex-1">
           <h2 className="m-0 text-lg leading-snug font-semibold text-balance text-foreground">

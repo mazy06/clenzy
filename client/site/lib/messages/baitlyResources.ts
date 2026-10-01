@@ -78,13 +78,7 @@ export interface ResourceMessages {
   };
   guide: {
     countries: string[];
-    intro: string;
-    progress: string;
-    checked: string;
-    session: string;
-    download: string;
-    verified: string;
-    steps: { title: string; copy: string; action: string }[][];
+    previewSteps: string[];
   };
   academy: {
     select: string;
@@ -161,11 +155,11 @@ const fr: ResourceMessages = {
     },
     obligations: {
       name: 'Guide des obligations',
-      copy: 'Les premières vérifications, pays par pays, et les bons interlocuteurs.',
+      copy: 'Autorisations, voyageurs et taxes : les règles expliquées par pays, avec leurs sources.',
       tag: 'Guide pratique',
-      title: 'Préparez votre activité, étape par étape.',
+      title: 'Les règles locales. Les bons réflexes.',
       intro:
-        'Maroc, France, Arabie saoudite : une liste de vérifications pour démarrer vos démarches.',
+        'Maroc, France, Arabie saoudite : préparez vos démarches à partir des textes officiels.',
     },
     academie: {
       name: 'Académie Baitly',
@@ -176,12 +170,12 @@ const fr: ResourceMessages = {
         'Des formations vidéo de 2 à 3 minutes : des exemples chiffrés, les pièges à éviter et ce qu’il faut en faire. En accès libre, sans inscription.',
     },
     blog: {
-      name: 'Le carnet Baitly',
-      copy: 'Des méthodes de terrain pour mieux accueillir et mieux piloter.',
+      name: 'Le journal Baitly',
+      copy: 'Des dossiers de réglementation et des méthodes de terrain pour les hôtes.',
       tag: 'Articles',
-      title: 'Les bonnes idées méritent de circuler.',
+      title: 'Mieux comprendre. Mieux accueillir.',
       intro:
-        'Des lectures courtes et des actions concrètes à tester dans votre activité.',
+        'Des dossiers sourcés sur la location touristique au Maroc, en France et en Arabie saoudite.',
     },
     glossaire: {
       name: 'Glossaire FR / EN / AR',
@@ -254,73 +248,10 @@ const fr: ResourceMessages = {
   },
   guide: {
     countries: ['Maroc', 'France', 'Arabie saoudite'],
-    intro:
-      'Repères généraux à vérifier selon votre commune, votre statut et votre type d’hébergement. Cette liste n’est ni exhaustive ni un avis juridique personnalisé.',
-    progress: 'Votre préparation',
-    checked: 'vérifications effectuées',
-    session:
-      'Vos coches restent dans cette page. Exportez votre liste avant de la quitter.',
-    download: 'Exporter ma liste (.txt)',
-    verified: 'Sources consultées le 24 septembre 2026',
-    steps: [
-      [
-        {
-          title: 'Qualifier votre hébergement',
-          copy: 'Identifiez la catégorie de votre établissement et les autorisations à demander auprès des services locaux du tourisme.',
-          action: 'Noter la catégorie et le contact territorial compétent.',
-        },
-        {
-          title: 'Préparer le dossier d’exploitation',
-          copy: 'La loi 80-14 encadre les établissements et autres formes d’hébergement touristique. Vérifiez les textes d’application correspondant à votre activité.',
-          action:
-            'Faire confirmer les pièces et conditions applicables à votre dossier.',
-        },
-        {
-          title: 'Organiser l’accueil et le suivi',
-          copy: 'Vérifiez auprès de l’autorité compétente les formalités voyageurs et les règles propres à votre établissement.',
-          action:
-            'Documenter les formalités, les responsables et leur fréquence ; valider la fiscalité avec votre conseil.',
-        },
-      ],
-      [
-        {
-          title: 'Vérifier les règles locales',
-          copy: 'Les démarches varient selon la résidence et la commune. Vérifiez déclaration, enregistrement et éventuel changement d’usage auprès de la mairie.',
-          action: 'Demander la procédure correspondant à votre adresse.',
-        },
-        {
-          title: 'Formaliser chaque réservation',
-          copy: 'Préparez un contrat écrit précisant le logement, les dates, le prix et les conditions de paiement et d’annulation.',
-          action:
-            'Relire votre modèle de contrat et vos informations d’annonce.',
-        },
-        {
-          title: 'Préparer le suivi fiscal',
-          copy: 'Les revenus de location meublée doivent être déclarés. Le régime dépend de votre situation.',
-          action:
-            'Faire valider votre régime et la collecte éventuelle de taxe de séjour.',
-        },
-      ],
-      [
-        {
-          title: 'Vérifier votre licence',
-          copy: 'Le ministère du Tourisme exige une licence valide pour les hébergements proposés sur les plateformes de réservation.',
-          action:
-            'Vérifier la catégorie de licence et sa validité auprès du ministère.',
-        },
-        {
-          title: 'Qualifier vos obligations de facturation',
-          copy: 'Consultez ZATCA pour déterminer si votre activité relève de la facturation électronique et de quelle phase.',
-          action:
-            'Confirmer votre situation fiscale et les échéances qui vous concernent.',
-        },
-        {
-          title: 'Préparer votre système de facturation',
-          copy: 'Les guides ZATCA détaillent les exigences de génération et d’intégration des factures électroniques.',
-          action:
-            'Tester votre solution avec votre conseil ; confirmer aussi les obligations locales de déclaration des voyageurs.',
-        },
-      ],
+    previewSteps: [
+      'Obtenir l’autorisation d’exploitation',
+      'Déclarer les arrivées et les départs',
+      'Suivre la taxe de séjour',
     ],
   },
   academy: {
@@ -554,11 +485,11 @@ const en: ResourceMessages = {
     },
     obligations: {
       name: 'Obligations guide',
-      copy: 'Initial checks by country, with links to the relevant authorities.',
+      copy: 'Permits, guests and taxes explained by country, with official sources.',
       tag: 'Practical guide',
-      title: 'Prepare your business, step by step.',
+      title: 'Local rules. Clear next steps.',
       intro:
-        'Morocco, France and Saudi Arabia: a checklist to start your enquiries.',
+        'Morocco, France and Saudi Arabia: prepare your next steps using official sources.',
     },
     academie: {
       name: 'Baitly Academy',
@@ -570,10 +501,11 @@ const en: ResourceMessages = {
     },
     blog: {
       name: 'The Baitly journal',
-      copy: 'Practical methods for better hosting and business management.',
+      copy: 'Regulatory guides and practical methods for hosts and property managers.',
       tag: 'Articles',
-      title: 'Good ideas are worth sharing.',
-      intro: 'Short reads and practical actions to try in your business.',
+      title: 'Understand the rules. Welcome with clarity.',
+      intro:
+        'Sourced guides to holiday accommodation in Morocco, France and Saudi Arabia.',
     },
     glossaire: {
       name: 'FR / EN / AR glossary',
@@ -645,69 +577,10 @@ const en: ResourceMessages = {
   },
   guide: {
     countries: ['Morocco', 'France', 'Saudi Arabia'],
-    intro:
-      'General pointers to check against your municipality, status and accommodation type. This is neither an exhaustive list nor individual legal advice.',
-    progress: 'Your preparation',
-    checked: 'checks completed',
-    session: 'Checks remain on this page. Export your list before leaving.',
-    download: 'Export my checklist (.txt)',
-    verified: 'Sources checked on 24 September 2026',
-    steps: [
-      [
-        {
-          title: 'Identify your accommodation category',
-          copy: 'Establish your category and ask local tourism services which authorisations you need.',
-          action: 'Record your category and the relevant local contact.',
-        },
-        {
-          title: 'Prepare your operating application',
-          copy: 'Law 80-14 governs tourist establishments and other accommodation types. Check the implementing rules applicable to your activity.',
-          action: 'Confirm the documents and conditions for your application.',
-        },
-        {
-          title: 'Organise guest procedures',
-          copy: 'Confirm guest formalities and establishment-specific rules with the competent authority.',
-          action:
-            'Document responsibilities and frequency; confirm taxation with your adviser.',
-        },
-      ],
-      [
-        {
-          title: 'Check local rules',
-          copy: 'Procedures depend on the residence and municipality. Ask the town hall about declaration, registration and any change-of-use requirement.',
-          action: 'Request the procedure applicable to your address.',
-        },
-        {
-          title: 'Document each booking',
-          copy: 'Prepare a written contract covering the property, dates, price, payment and cancellation terms.',
-          action: 'Review your contract template and listing information.',
-        },
-        {
-          title: 'Prepare your tax records',
-          copy: 'Furnished rental income must be declared. The applicable regime depends on your circumstances.',
-          action:
-            'Confirm your tax regime and any tourist tax collection obligation.',
-        },
-      ],
-      [
-        {
-          title: 'Check your licence',
-          copy: 'The Ministry of Tourism requires a valid licence for accommodation offered on booking platforms.',
-          action:
-            'Confirm the licence category and validity with the ministry.',
-        },
-        {
-          title: 'Identify invoicing requirements',
-          copy: 'Consult ZATCA to establish whether your activity is subject to e-invoicing and which phase applies.',
-          action: 'Confirm your tax status and applicable deadlines.',
-        },
-        {
-          title: 'Prepare your invoicing system',
-          copy: 'ZATCA guides describe the requirements for generating and integrating electronic invoices.',
-          action:
-            'Test your solution with your adviser; also confirm local guest reporting requirements.',
-        },
-      ],
+    previewSteps: [
+      'Obtain the operating permit',
+      'Report arrivals and departures',
+      'Track tourist tax',
     ],
   },
   academy: {
@@ -935,10 +808,11 @@ const ar: ResourceMessages = {
     },
     obligations: {
       name: 'دليل الالتزامات',
-      copy: 'خطوات التحقق الأولى حسب البلد وروابط الجهات المختصة.',
+      copy: 'التراخيص والضيوف والضرائب حسب البلد، مع المصادر الرسمية.',
       tag: 'دليل عملي',
-      title: 'حضّر نشاطك خطوة بخطوة.',
-      intro: 'المغرب وفرنسا والسعودية: قائمة تساعدك على بدء إجراءاتك.',
+      title: 'قواعد محلية. خطوات واضحة.',
+      intro:
+        'حضّر إجراءاتك في المغرب وفرنسا والسعودية بالرجوع إلى النصوص الرسمية.',
     },
     academie: {
       name: 'أكاديمية بيتلي',
@@ -949,11 +823,11 @@ const ar: ResourceMessages = {
         'دورات بالفيديو من دقيقتين إلى ثلاث: أمثلة بالأرقام، والأخطاء التي يجب تجنّبها، وما عليك فعله بعدها. وصول مجاني دون تسجيل.',
     },
     blog: {
-      name: 'دفتر بيتلي',
-      copy: 'طرق عملية لتحسين الاستقبال وإدارة النشاط.',
+      name: 'مجلة Baitly',
+      copy: 'أدلة تنظيمية وطرق عملية للمضيفين ومديري العقارات.',
       tag: 'مقالات',
-      title: 'الأفكار المفيدة تستحق المشاركة.',
-      intro: 'قراءات قصيرة وخطوات عملية لتجربتها في نشاطك.',
+      title: 'فهم أوضح. استقبال أفضل.',
+      intro: 'ملفات موثقة عن الإيواء السياحي في المغرب وفرنسا والسعودية.',
     },
     glossaire: {
       name: 'مسرد فرنسي / إنجليزي / عربي',
@@ -1024,66 +898,10 @@ const ar: ResourceMessages = {
   },
   guide: {
     countries: ['المغرب', 'فرنسا', 'السعودية'],
-    intro:
-      'نقاط عامة تُراجع وفق البلدية والوضع القانوني ونوع الإيواء. القائمة ليست شاملة ولا تمثل استشارة قانونية شخصية.',
-    progress: 'تحضيرك',
-    checked: 'عمليات تحقق مكتملة',
-    session: 'تبقى العلامات في هذه الصفحة. صدّر قائمتك قبل مغادرتها.',
-    download: 'تصدير القائمة (.txt)',
-    verified: 'المصادر مراجعة في 24 سبتمبر 2026',
-    steps: [
-      [
-        {
-          title: 'حدّد فئة الإيواء',
-          copy: 'حدّد فئة مؤسستك والتراخيص اللازمة لدى مصالح السياحة المحلية.',
-          action: 'دوّن الفئة وبيانات الجهة المحلية المختصة.',
-        },
-        {
-          title: 'جهّز ملف التشغيل',
-          copy: 'ينظم القانون 80-14 المؤسسات وأشكال الإيواء السياحي الأخرى. راجع النصوص التطبيقية الخاصة بنشاطك.',
-          action: 'تأكد من الوثائق والشروط المطلوبة لملفك.',
-        },
-        {
-          title: 'نظّم إجراءات الضيوف',
-          copy: 'تحقق لدى الجهة المختصة من إجراءات المسافرين والقواعد الخاصة بمؤسستك.',
-          action: 'وثّق المسؤوليات والمواعيد وراجع الضرائب مع مستشارك.',
-        },
-      ],
-      [
-        {
-          title: 'تحقق من القواعد المحلية',
-          copy: 'تختلف الإجراءات حسب المسكن والبلدية. اسأل البلدية عن التصريح والتسجيل وتغيير الاستخدام المحتمل.',
-          action: 'اطلب الإجراء الذي ينطبق على عنوانك.',
-        },
-        {
-          title: 'وثّق كل حجز',
-          copy: 'جهّز عقداً مكتوباً يحدد المسكن والتواريخ والسعر وشروط الدفع والإلغاء.',
-          action: 'راجع نموذج العقد ومعلومات الإعلان.',
-        },
-        {
-          title: 'جهّز السجلات الضريبية',
-          copy: 'يجب التصريح بإيرادات التأجير المفروش. ويتوقف النظام المطبق على وضعك.',
-          action: 'أكد النظام الضريبي وأي التزام بتحصيل رسم الإقامة.',
-        },
-      ],
-      [
-        {
-          title: 'تحقق من الترخيص',
-          copy: 'تشترط وزارة السياحة ترخيصاً سارياً لمرافق الإيواء المعروضة على منصات الحجز.',
-          action: 'أكد فئة الترخيص وصلاحيته مع الوزارة.',
-        },
-        {
-          title: 'حدّد التزامات الفوترة',
-          copy: 'راجع هيئة الزكاة والضريبة والجمارك لتحديد خضوع نشاطك للفوترة الإلكترونية والمرحلة المطبقة.',
-          action: 'أكد وضعك الضريبي والمواعيد التي تخصك.',
-        },
-        {
-          title: 'جهّز نظام الفوترة',
-          copy: 'تشرح أدلة الهيئة متطلبات إصدار الفواتير الإلكترونية وربطها.',
-          action:
-            'اختبر الحل مع مستشارك وتحقق أيضاً من متطلبات تسجيل النزلاء المحلية.',
-        },
-      ],
+    previewSteps: [
+      'الحصول على ترخيص الاستغلال',
+      'التصريح بالوصول والمغادرة',
+      'متابعة رسم الإقامة',
     ],
   },
   academy: {

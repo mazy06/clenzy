@@ -15,19 +15,13 @@
    assurance que personne n'a.
    ============================================================ */
 
+import { ActionModalContent, ActionModalHeader, ActionModalBody, ActionModalFooter, ActionModalLoading, ActionModalFacts, ActionModalSection } from './ActionModal';
 import { useEffect, useState } from 'react';
 import {
   Alert,
   AlertDescription,
-  Badge,
   Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Separator,
   Spinner,
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -105,19 +99,13 @@ export function ActionReviewModal({ action, onClose, onConfirm }: ActionReviewMo
   const noRecipient = preview != null && preview.recipients.length === 0;
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[560px]">
-        <DialogHeader>
-          <DialogTitle className="text-balance">
-            {entry ? t(entry.titleKey, entry.titleFallback) : ''}
-          </DialogTitle>
-          <DialogDescription className="text-balance">{action.title}</DialogDescription>
-        </DialogHeader>
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <ActionModalContent className="sm:max-w-[560px]">
+        <ActionModalHeader action={action} title={entry ? t(entry.titleKey, entry.titleFallback) : ''} description={action.title} />
+        <ActionModalBody>
 
         {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner className="size-4" />
-          </div>
+          <ActionModalLoading />
         ) : failed ? (
           <p className="py-2 text-sm text-[var(--bui-muted-foreground)] text-pretty">
             {t(
@@ -127,75 +115,29 @@ export function ActionReviewModal({ action, onClose, onConfirm }: ActionReviewMo
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {/* Destinataire et canal — le cœur de la relecture. */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-xs uppercase tracking-wide text-[var(--bui-muted-foreground)]">
-                  {t('supervision.review.recipients', 'Destinataire')}
-                </span>
-                {preview!.channel && <Badge variant="secondary">{preview!.channel}</Badge>}
-              </div>
-              {noRecipient ? (
-                <span className="text-sm text-[var(--bui-muted-foreground)]">
-                  {t('supervision.review.noRecipient', 'Aucun destinataire résolu.')}
-                </span>
-              ) : (
-                <ul className="flex flex-col gap-1">
-                  {preview!.recipients.map((r) => (
-                    <li key={r} className="text-sm font-medium">
-                      {r}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <dl className="baitly-action-envelope">
+              <dt>{t('supervision.review.recipients', 'Destinataire')}</dt>
+              <dd>{noRecipient
+                ? t('supervision.review.noRecipient', 'Aucun destinataire résolu.')
+                : <ul>{preview!.recipients.map((r) => <li key={r}>{r}</li>)}</ul>}</dd>
+              {preview!.channel && <>
+                <dt>{t('supervision.modal.channel', 'Canal')}</dt><dd>{preview!.channel}</dd>
+              </>}
+              {preview!.subject && <>
+                <dt>{t('supervision.review.subject', 'Objet')}</dt><dd className="font-medium">{preview!.subject}</dd>
+              </>}
+            </dl>
 
-            {preview!.subject && (
-              <>
-                <Separator />
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs uppercase tracking-wide text-[var(--bui-muted-foreground)]">
-                    {t('supervision.review.subject', 'Objet')}
-                  </span>
-                  <span className="text-sm">{preview!.subject}</span>
-                </div>
-              </>
-            )}
-
-            {preview!.facts.length > 0 && (
-              <>
-                <Separator />
-                <ul className="flex flex-col gap-2">
-                  {preview!.facts.map((fact) => (
-                    <li key={fact} className="flex gap-2.5 text-sm text-pretty">
-                      <span
-                        className="mt-[7px] size-1 shrink-0 rounded-full bg-[var(--bui-muted-foreground)]"
-                        aria-hidden
-                      />
-                      <span>{fact}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            {/* Le texte exact, quand il existe déjà. */}
-            {preview!.body && (
-              <>
-                <Separator />
-                <div className="max-h-[220px] overflow-y-auto rounded-md bg-[var(--bui-muted)] p-3 text-sm whitespace-pre-wrap">
-                  {preview!.body}
-                </div>
-              </>
-            )}
+            {preview!.body && <ActionModalSection title={t('supervision.modal.message', 'Message à relire')}>
+              <div className="baitly-action-message">{preview!.body}</div>
+            </ActionModalSection>}
             {!preview!.bodyRendered && !preview!.body && (
-              <p className="text-xs text-[var(--bui-muted-foreground)] text-pretty">
-                {t(
-                  'supervision.review.bodyNotRendered',
-                  'Le message est composé au moment de l’envoi : son texte exact n’est pas affichable ici.',
-                )}
-              </p>
+              <p className="baitly-action-modal-note">{t('supervision.review.bodyNotRendered',
+                'Le message est composé au moment de l’envoi : son texte exact n’est pas affichable ici.')}</p>
             )}
+            {preview!.facts.length > 0 && <ActionModalSection title={t('supervision.modal.consider', 'À prendre en compte')}>
+              <ActionModalFacts facts={preview!.facts} />
+            </ActionModalSection>}
 
             {/* La carte peut dater : le refus se voit ici, pas à la validation. */}
             {preview!.blocked && (
@@ -207,7 +149,8 @@ export function ActionReviewModal({ action, onClose, onConfirm }: ActionReviewMo
           </div>
         )}
 
-        <DialogFooter>
+        </ActionModalBody>
+        <ActionModalFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             {t('common.cancel', 'Annuler')}
           </Button>
@@ -218,8 +161,8 @@ export function ActionReviewModal({ action, onClose, onConfirm }: ActionReviewMo
             {submitting && <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} />}
             {entry ? t(entry.ctaKey, entry.ctaFallback) : ''}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ActionModalFooter>
+      </ActionModalContent>
     </Dialog>
   );
 }

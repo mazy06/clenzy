@@ -11,7 +11,6 @@ import {
   BaitlyAcademy,
   BaitlyJournal,
   MarketBarometer,
-  ObligationsGuide,
   ResourceGlossary,
   RevenueCalculator,
 } from './BaitlyResourceTools';
@@ -29,22 +28,6 @@ afterEach(() => {
 });
 
 describe('Outils publics Baitly', () => {
-  it.each([
-    ['SA', 2],
-    ['FR', 1],
-    ['unknown', 0],
-  ] as const)(
-    'opens the country selected in Solutions: %s',
-    (country, index) => {
-      render(<ObligationsGuide language="fr" initialCountry={country} />);
-      expect(
-        screen.getByRole('button', {
-          name: BAITLY_RESOURCE_MESSAGES.fr.guide.countries[index],
-          exact: true,
-        }),
-      ).toHaveAttribute('aria-pressed', 'true');
-    },
-  );
   it('calcule revenus, commissions et charges au même périmètre, y compris plusieurs logements', () => {
     const result = calculateRevenue({
       properties: 2,
@@ -145,38 +128,6 @@ describe('Outils publics Baitly', () => {
     expect(
       screen.getByText(BAITLY_RESOURCE_MESSAGES.fr.market.unavailable),
     ).toBeVisible();
-  });
-
-  it('garde les coches séparées par pays et exporte les sources de la liste sélectionnée', async () => {
-    let blob: Blob | undefined;
-    vi.stubGlobal('URL', {
-      createObjectURL: (value: Blob) => {
-        blob = value;
-        return 'blob:checklist';
-      },
-      revokeObjectURL: vi.fn(),
-    });
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    const m = BAITLY_RESOURCE_MESSAGES.fr;
-    render(<ObligationsGuide language="fr" />);
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'France', exact: true }),
-    );
-    expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(
-      0,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Maroc', exact: true }));
-    expect(screen.getAllByRole('checkbox', { checked: true })).toHaveLength(1);
-    fireEvent.click(screen.getByRole('button', { name: m.guide.download }));
-    const txt = await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.readAsText(blob!);
-    });
-    expect(txt).toContain('[x] Qualifier votre hébergement');
-    expect(txt).toContain('https://mtaess.gov.ma/');
-    vi.unstubAllGlobals();
   });
 
   it.each(['fr', 'en', 'ar'] as const)(

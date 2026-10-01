@@ -1,0 +1,58 @@
+.baitly-consumables-surface {
+  background: var(--bui-card);
+  color: var(--bui-foreground);
+  border: 1px solid var(--bui-border);
+  border-radius: 14px;
+  min-width: 0;
+  overflow: clip;
+}
+.baitly-consumables-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; border-bottom: 1px solid var(--bui-border); }
+.baitly-consumables-toolbar h2 { margin: 0; font-size: 17px; font-weight: 600; text-wrap: balance; }
+.baitly-consumables-toolbar p { margin: 6px 0 0; font-size: 12px; line-height: 1.6; color: var(--bui-muted-foreground); max-width: 650px; }
+.baitly-consumables-property { width: 220px; flex-shrink: 0; }
+.baitly-consumables-list ul { margin: 0; padding: 0; list-style: none; }
+.baitly-consumables-columns, .baitly-consumables-row { display: grid; grid-template-columns: minmax(200px, 2fr) minmax(130px, 1fr) minmax(120px, 1fr) minmax(145px, 1fr) 155px; gap: 14px 22px; align-items: center; padding: 18px 24px; }
+.baitly-consumables-columns { padding-block: 11px; font-size: 11px; color: var(--bui-muted-foreground); background: var(--bui-primary-soft); }
+.baitly-consumables-row { border-bottom: 1px solid var(--bui-border); font-size: 13px; transition: background-color 180ms cubic-bezier(.22, 1, .36, 1); }
+.baitly-consumables-row:last-child { border-bottom: 0; }
+.baitly-consumables-row:hover { background: var(--bui-primary-soft); }
+.baitly-consumables-product { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.baitly-consumables-product > div { min-width: 0; }
+.baitly-consumables-product h3 { margin: 0 0 5px; font-size: 14px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.baitly-consumables-product a { color: var(--bui-muted-foreground); font-size: 12px; text-underline-offset: 3px; }
+.baitly-consumables-surface a, .baitly-consumables-surface summary, .baitly-consumables-surface button { cursor: pointer; }
+.baitly-consumables-product a:hover { text-decoration: underline; color: var(--bui-foreground); }
+.baitly-consumables-surface a:focus-visible, .baitly-consumables-surface summary:focus-visible { outline: 2px solid var(--bui-primary); outline-offset: 4px; border-radius: 3px; }
+.baitly-consumables-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.baitly-consumables-quantity { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.baitly-consumables-quantity small { font-size: 12px; font-weight: 400; }
+.baitly-consumables-muted { color: var(--bui-muted-foreground); }
+small.baitly-consumables-muted { font-size: 11px; line-height: 1.5; }
+.baitly-consumables-date { font-variant-numeric: tabular-nums; font-size: 12px; }
+.baitly-consumables-mobile-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.baitly-consumables-link { justify-self: end; }
+.baitly-consumables-details { grid-column: 1 / -1; margin-inline-start: 72px; font-size: 12px; color: var(--bui-muted-foreground); }
+.baitly-consumables-details summary { width: fit-content; }
+.baitly-consumables-details p { margin: 10px 0 0; max-width: 820px; line-height: 1.7; white-space: pre-line; overflow-wrap: anywhere; }
+.baitly-consumables-loading { display: grid; gap: 24px; padding: 24px; }
+.baitly-consumables-loading > div { display: flex; align-items: center; gap: 20px; }
+.baitly-consumables-footer { display: flex; justify-content: space-between; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--bui-border); font-size: 12px; color: var(--bui-muted-foreground); }
+.baitly-consumables-footer a { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--bui-foreground); }
+@media (max-width: 1199px) {
+  .baitly-consumables-columns { display: none; }
+  .baitly-consumables-row { grid-template-columns: minmax(200px, 1.6fr) 1fr 1fr; align-items: start; }
+  .baitly-consumables-mobile-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; font-size: 11px; color: var(--bui-muted-foreground); }
+  .baitly-consumables-date { grid-column: 2; }
+  .baitly-consumables-link { grid-column: 3; }
+  .baitly-consumables-details { margin-inline-start: 0; }
+}
+@media (max-width: 599px) {
+  .baitly-consumables-toolbar { align-items: stretch; flex-direction: column; gap: 14px; padding: 18px 16px; }
+  .baitly-consumables-property { width: 100%; }
+  .baitly-consumables-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 18px 16px; gap: 18px 14px; }
+  .baitly-consumables-product { grid-column: 1 / -1; }
+  .baitly-consumables-date { grid-column: 1; }
+  .baitly-consumables-link { grid-column: 2; align-self: end; }
+  .baitly-consumables-footer { flex-direction: column; padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .baitly-consumables-row { transition: none; } }

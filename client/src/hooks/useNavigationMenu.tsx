@@ -33,6 +33,7 @@ import {
   Palette,
   RequestQuote,
   PersonSearch,
+  Inventory2,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -162,6 +163,11 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   // (/service-requests, /calendar, /connected-objects), qu'une entree simple
   // aurait fallu recopier a la main.
   { kind: 'hub-tabs', hubId: 'exploitation' },
+  { kind: 'item', item: {
+    icon: <Inventory2 />, path: '/consumables', group: 'main',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'properties:view', translationKey: 'navigation.consumables',
+  } },
   /*
    * Devis et Prestataires quittent le regroupement « Contacts » pour le premier
    * niveau : ce ne sont pas des carnets d'adresses, ce sont deux gestes de
