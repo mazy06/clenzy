@@ -24,6 +24,7 @@ import {
 import { WifiOff, Replay, Radar, GridView, Orbit, ViewList, Info } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { cn } from '../../../utils/cn';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useSupervision } from '../core/useSupervision';
 import { useSupervisionReport } from '../core/useSupervisionReport';
@@ -582,7 +583,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   }
 
   return (
-    <div className="relative h-full min-h-[380px] flex flex-col" ref={attachRoot}>
+    <div className={cn('relative h-full flex flex-col', flush ? 'min-h-0' : 'min-h-[380px]')} ref={attachRoot}>
       {compact ? (
         /* Étroit : constellation en canvas + rail de pastilles + tiroirs —
            le renderer porte toute la présentation. */
@@ -731,20 +732,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 <SupervisionTethers rootRef={rootRef} headAgent={headAgent} revision={snapshot.pending} />
             </div>
           ) : boardView === 'cards' ? (
-            /* ── Vue cartes : une carte par agent (autonomie) FIXE, puis la
-                  file en pleine largeur, défilant dans son cadre. Le feed vit
-                  dans sa propre vue (toggle Activité). ─────────────────── */
-            /* Deux colonnes, même grammaire que la vue constellation : les
-               agents à gauche, ce qui attend une décision à droite — la file
-               est visible d'emblée, sans défiler. Chaque colonne défile pour
-               elle-même (avant, la liste était `shrink-0` dans un parent
-               `overflow-hidden` : passé cinq agents elle débordait sans
-               ascenseur et poussait la file hors du cadre). */
-            <div className="mt-4 grid flex-1 min-h-0 grid-cols-[minmax(0,1fr)_minmax(300px,1fr)] items-stretch gap-x-8 gap-y-6">
-              <div
-                data-vertical-scroll
-                className="min-h-0 overflow-y-auto overscroll-contain pe-1"
-              >
+            /* Les dix agents se partagent la hauteur restante. Seule la file
+               de décisions défile ; aucune ligne d'agent n'est hors champ. */
+            <div className="mt-2 grid flex-1 min-h-0 grid-cols-[minmax(0,1fr)_minmax(300px,1fr)] items-stretch gap-x-6">
+              <div className="min-h-0 min-w-0">
                 <ConstellationAgentCards
                   agents={normalized?.agents ?? []}
                   feed={snapshot.feed}
@@ -762,6 +753,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
                 )}
                 <ConstellationQueue
+                  compact
                   agent={boardAgent}
                   actions={snapshot.pending}
                   onValidate={handleValidate}

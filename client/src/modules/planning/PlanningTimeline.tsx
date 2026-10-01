@@ -173,7 +173,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   // débordement → pas de scroll vertical (seul le scroll horizontal subsiste).
   const accordionHeight =
     viewport.height > 0
-      ? Math.max(420, viewport.height - DATE_HEADER_HEIGHT - effectiveRowHeight - 2)
+      ? Math.max(0, viewport.height - DATE_HEADER_HEIGHT - effectiveRowHeight - 2)
       : SUPERVISION_ACCORDION_HEIGHT;
   const totalDisplayRows = properties.length + emptyRowCount;
   const totalRowsHeight = totalDisplayRows * effectiveRowHeight;

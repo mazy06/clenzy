@@ -31,18 +31,13 @@ import {
 } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
-import { AccessTime, ChevronRight, ErrorOutline, Lock } from '../../../icons';
+import { ErrorOutline, Lock } from '../../../icons';
 import { AGENT_META, STATUS, STATUS_PRIORITY, autonomyChoicesFor } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
 import type { ConstellationAgentView } from '../renderers/ConstellationRenderer';
 import type { AgentId, AutonomyLevel, FeedEntry, PortfolioFeedEntry } from '../types';
 import '../supervision-surfaces.css';
 import './constellation-agent-list.css';
-
-function hhmm(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
 
 /** Libellé court de chaque cran — il dit ce que l'agent FAIT, pas un niveau. */
 const AUTONOMY_LABEL: Record<AutonomyLevel, { key: string; fallback: string }> = {
@@ -105,10 +100,7 @@ export function ConstellationAgentCards({
 
   return (
     <section className="baitly-supervision-surface baitly-agent-list" aria-labelledby={headingId}>
-      <div className="baitly-agent-list-heading">
-        <h2 id={headingId}>{t('supervision.board.agents', 'Agents')}</h2>
-        <span>{t('supervision.board.autonomy', 'Autonomie')}</span>
-      </div>
+      <h2 id={headingId} className="sr-only">{t('supervision.board.agents', 'Agents')}</h2>
 
       <ul className="baitly-agent-list-rows">
         {ordered.map((agent) => {
@@ -123,6 +115,9 @@ export function ConstellationAgentCards({
           const statusLabel = attention ? t(STATUS[agent.status].labelKey) : waiting ? t(STATUS.wait.labelKey) : t(STATUS[agent.status].labelKey);
           const choices = autonomyChoicesFor(agent.id);
           const lastAt = feed.find((entry) => entry.agentId === agent.id)?.at;
+          const lastActivity = lastAt && Number.isFinite(Date.parse(lastAt))
+            ? `${t('supervision.board.lastActivity', 'Dernière activité')} : ${new Date(lastAt).toLocaleString()}`
+            : null;
 
           return (
             <li
@@ -138,7 +133,12 @@ export function ConstellationAgentCards({
                 className="baitly-agent-list-select"
                 aria-pressed={isSelected}
                 onClick={() => onSelect(agent.id)}
-                title={t('supervision.board.tooltipOpenQueue', 'Cliquer pour ouvrir la file')}
+                title={[
+                  `${t(meta.nameKey)} · ${t(meta.roleKey)}`,
+                  pending > 0 ? `${pending} ${t('supervision.board.toValidate', 'à valider')}` : statusLabel,
+                  lastActivity,
+                  t('supervision.board.tooltipOpenQueue', 'Cliquer pour ouvrir la file'),
+                ].filter(Boolean).join('\n')}
               >
                 <span className="baitly-agent-list-emblem" aria-hidden="true">
                   <AgentIcon token={meta.icon} size={iconSize} strokeWidth={1.75} />
@@ -154,7 +154,7 @@ export function ConstellationAgentCards({
                   {pending > 0 && (
                     <Badge variant="warning" className="baitly-agent-list-count whitespace-normal">
                       <strong>{pending}</strong>{' '}
-                      {t('supervision.board.toValidate', 'à valider')}
+                      <span className="baitly-agent-list-count-label">{t('supervision.board.toValidate', 'à valider')}</span>
                     </Badge>
                   )}
                   {(pending === 0 || attention) && (
@@ -163,15 +163,7 @@ export function ConstellationAgentCards({
                       <span>{attention ? statusLabel : agent.task ?? statusLabel}</span>
                     </span>
                   )}
-                  {lastAt && Number.isFinite(Date.parse(lastAt)) && (
-                    <time dateTime={lastAt} title={new Date(lastAt).toLocaleString()}>
-                      <AccessTime size={12} aria-hidden="true" />
-                      <span className="sr-only">{t('supervision.board.lastActivity', 'Dernière activité')} : </span>
-                      {hhmm(lastAt)}
-                    </time>
-                  )}
                 </span>
-                <ChevronRight className="baitly-agent-list-chevron" size={15} aria-hidden="true" />
               </button>
 
               {/* Contrôle frère du bouton : modifier l'autonomie ne doit pas
