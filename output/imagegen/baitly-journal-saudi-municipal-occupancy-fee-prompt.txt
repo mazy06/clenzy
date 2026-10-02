@@ -1,0 +1,14 @@
+Generator: built-in image_gen tool.
+Output: 1536 x 1024 px; landscape 3:2.
+
+Create ONE original photorealistic editorial photograph for a hospitality regulation journal.
+
+Use case: photorealistic-natural.
+Asset: standalone journal article photograph, landscape 3:2. Central subject must remain legible in a small center-cropped 4:3 thumbnail.
+Location and article context: Saudi Arabia; monthly municipal occupancy fee for tourist accommodation. Convey calm, orderly monthly bookkeeping through real-world objects only.
+
+Scene: a pale limestone reception counter in a contemporary Saudi guest apartment building. A carefully composed, naturally arranged still life sits in the central area: one matte navy calculator with a completely blank unlit display and plain unmarked keys, a short neat stack of completely blank monthly receipt slips held together with a small brass clip, and a small ceramic cup of Arabic coffee. A brass dallah coffee pot stands softly out of focus behind the cup. Warm late-afternoon natural light comes through a mashrabiya-patterned window and casts believable geometric shadows across the limestone counter. Quiet contemporary Saudi architectural context, understated hospitality, no people.
+
+Photography: premium travel and documentary magazine photography; realistic limestone grain, uncoated paper edges, softly brushed brass, matte calculator casing and glazed ceramic. Natural perspective, restrained warm neutral and navy colors, realistic material texture and light falloff, understated editorial styling. Main calculator, clipped receipts and coffee cup clearly visible and in focus; dallah and reception background softly blurred. Balanced negative space, central cluster of objects readable at thumbnail size. One coherent real-world photographic composition, no collage or graphic overlays.
+
+Critical constraints: NO readable text or numbers anywhere, including calculator keys, calculator display, paper, ceramics, walls, window, background or any object. Calculator display completely blank; keys completely unmarked. Receipt slips completely blank on all visible sides. No writing, no logos, no watermarks, no personal data, no official seals, no people. Do not add labels, article title, symbols, infographics or extra documentary props. Deliver one finished landscape 3:2 photograph.
