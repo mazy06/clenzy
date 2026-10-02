@@ -717,7 +717,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   {propertySnapshot?.pendingAction && (
                     <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
                   )}
+                  {/* Compacte comme la vue agents : le nœud de tête porte déjà
+                      l'identité de l'agent et son nombre de décisions. */}
                   <ConstellationQueue
+                    compact
                     agent={boardAgent}
                     actions={snapshot.pending}
                     onValidate={handleValidate}

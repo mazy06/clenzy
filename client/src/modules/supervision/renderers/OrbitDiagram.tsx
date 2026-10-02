@@ -17,6 +17,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useElementSize } from '../core/useElementSize';
+import {
+  fitOrbitSide,
+  orbitRadiusFor,
+  ORBIT_NODE_SIZE as NODE_SIZE,
+  ORBIT_LABEL_ROOM_PX as LABEL_ROOM_PX,
+  ORBIT_EDGE_PX,
+} from '../core/orbitGeometry';
 import { DATA_FLOW_STYLES, FLOW_DASH, FLOW_STROKE, flowClockDelay, flowPacketStyle } from '../core/dataFlow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../../../components/BaitlyMarkLogo';
@@ -34,20 +41,6 @@ import './orbit-diagram.css';
 /** Emplacement de tête : haut-droite, face à la file HITL. */
 const SLOT_ANGLE = -45;
 /**
- * Rayon d'orbite (% du canvas) — CALCULÉ, pas figé : l'anneau s'écarte jusqu'à
- * ce que les libellés du bas touchent le bord, puis se resserre quand le canvas
- * rétrécit. Les libellés font une hauteur en PIXELS (deux lignes + marge), donc
- * la place qu'ils réclament est d'autant plus grande que le canvas est petit —
- * d'où un rayon qui dépend de la taille mesurée. Bornes : au-delà de 38 % on ne
- * gagne plus en lisibilité, en dessous de 28 % l'anneau colle au noyau.
- */
-const ORBIT_RADIUS_MAX = 38;
-const ORBIT_RADIUS_MIN = 28;
-/** Place réservée SOUS le dernier nœud pour son libellé (2 lignes + marge). */
-const LABEL_ROOM_PX = 38;
-/** Espace pour le contour extérieur et le focus clavier aux bords du dessin. */
-const ORBIT_EDGE_PX = 10;
-/**
  * Distance d'arc minimale entre deux nœuds voisins pour que TOUTES les légendes
  * tiennent. En dessous, seuls les agents qui demandent quelque chose gardent la
  * leur — un agent en veille n'a rien à dire, sa légende ne fait qu'entrer dans
@@ -62,48 +55,6 @@ const LABEL_MIN_ARC_PX = 140;
  */
 const LABEL_SHIFT_PX = 30;
 const CORE_SIZE = 15;
-/** Diamètre uniforme des nœuds (% du canvas) — le volume ne se lit pas ici. */
-const NODE_SIZE = 13;
-/**
- * Empreinte RÉELLE du dessin (anneau + nœuds) pour un carré de `side` px.
- *
- * <p>Le carré est toujours plus grand que son dessin : le dimensionner sur la
- * boîte laisserait une couronne de vide. On le dimensionne donc sur cette
- * empreinte — le carré peut alors déborder la boîte, seul son vide déborde.</p>
- */
-function contentSpan(side: number): number {
-  return ((2 * orbitRadiusFor(side) + NODE_SIZE) / 100) * side;
-}
-
-/**
- * Plus grand carré dont le DESSIN tient dans la boîte, en largeur comme en
- * hauteur (la bande de libellés qui pend sous le dernier rang comprise).
- *
- * <p>Le carré était dimensionné sur l'empreinte au rayon MAXIMAL. Or
- * `orbitRadiusFor` resserre le rayon dès que le canvas est petit : la place des
- * libellés se compte en pixels, donc en pourcentage elle grandit quand le
- * canvas rétrécit. Sur téléphone le rayon tombait à ~30 % au lieu de 38 — le
- * dessin n'occupait plus que les trois quarts d'un carré lui-même bridé par la
- * hauteur, d'où une constellation riquiqui au milieu du vide.</p>
- *
- * <p>L'empreinte est croissante avec le côté, mais par morceaux (trois régimes
- * selon les bornes du rayon) : on cherche le côté par DICHOTOMIE plutôt que
- * d'inverser la formule à la main, ce qu'un changement de borne casserait en
- * silence.</p>
- */
-function fitSide(width: number, height: number): number {
-  const room = height - LABEL_ROOM_PX;
-  if (width <= 0 || room <= 0) return 0;
-  let low = 0;
-  let high = Math.max(width, height) * 3;
-  for (let i = 0; i < 24; i += 1) {
-    const mid = (low + high) / 2;
-    const drawn = contentSpan(mid);
-    if (drawn <= width && drawn <= room) low = mid;
-    else high = mid;
-  }
-  return low;
-}
 /** Durée de la rotation de l'anneau — alignée sur `.oc-ring` ci-dessous. */
 const ROTATION_MS = 560;
 /**
@@ -115,18 +66,6 @@ const ROTATION_MS = 560;
 const FLOW_LEG_START = CORE_SIZE / 2 + 1.3;
 const flowLegEnd = (radius: number) => radius - NODE_SIZE / 2 - 0.6;
 const flowLegLength = (radius: number) => flowLegEnd(radius) - FLOW_LEG_START;
-
-/**
- * Rayon d'orbite pour un canvas de `side` pixels : le plus large possible dont
- * les libellés du bas tiennent encore dans le carré. `side` non mesuré → rayon
- * maximal (le premier rendu ne doit pas partir riquiqui).
- */
-function orbitRadiusFor(side: number): number {
-  if (side <= 0) return ORBIT_RADIUS_MAX;
-  const labelRoom = (LABEL_ROOM_PX / side) * 100;
-  const fits = 50 - NODE_SIZE / 2 - labelRoom;
-  return Math.max(ORBIT_RADIUS_MIN, Math.min(ORBIT_RADIUS_MAX, fits));
-}
 
 /** Angle canonique d'un agent, avant rotation de l'anneau. */
 function baseAngle(index: number, total: number) {
@@ -387,7 +326,7 @@ export function OrbitDiagram({
   // large, moins ils se chevauchent. Repli tant que rien n'est mesuré (premier
   // rendu, jsdom).
   const [boxRef, box] = useElementSize<HTMLDivElement>();
-  const side = fitSide(Math.max(0, box.width - ORBIT_EDGE_PX * 2), Math.max(0, box.height - ORBIT_EDGE_PX * 2));
+  const side = fitOrbitSide(box.width, box.height);
   const radius = orbitRadiusFor(side);
 
   // Anneau à l'étroit : distance d'arc entre deux nœuds voisins. En dessous de
