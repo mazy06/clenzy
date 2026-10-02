@@ -26,7 +26,7 @@ class ComplianceSubmissionControllerTest {
         when(service.retrySubmission(42L))
                 .thenReturn(Optional.of(SubmissionResult.accepted("ext-1", "ok")));
 
-        ResponseEntity<?> response = new ComplianceSubmissionController(service).submit(42L);
+        ResponseEntity<?> response = new ComplianceSubmissionController(service, org.mockito.Mockito.mock(com.clenzy.service.compliance.PoliceFormPdfService.class)).submit(42L);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isInstanceOf(Map.class);
@@ -37,7 +37,7 @@ class ComplianceSubmissionControllerTest {
     void submit_skipped_returnsOkWithSkipped() {
         when(service.retrySubmission(42L)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> response = new ComplianceSubmissionController(service).submit(42L);
+        ResponseEntity<?> response = new ComplianceSubmissionController(service, org.mockito.Mockito.mock(com.clenzy.service.compliance.PoliceFormPdfService.class)).submit(42L);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat((Map<String, Object>) response.getBody()).containsEntry("skipped", true);
@@ -48,7 +48,7 @@ class ComplianceSubmissionControllerTest {
         when(service.retrySubmission(42L)).thenThrow(
                 new ComplianceProviderPendingException(ComplianceProviderType.POLICE_MA, "pending"));
 
-        ResponseEntity<?> response = new ComplianceSubmissionController(service).submit(42L);
+        ResponseEntity<?> response = new ComplianceSubmissionController(service, org.mockito.Mockito.mock(com.clenzy.service.compliance.PoliceFormPdfService.class)).submit(42L);
 
         assertThat(response.getStatusCode().value()).isEqualTo(501);
         assertThat((Map<String, Object>) response.getBody()).containsEntry("pending", true);

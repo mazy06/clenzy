@@ -3,12 +3,11 @@ import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { VerifiedUser, Replay, HourglassEmpty, Check } from '../../../icons';
+import { VerifiedUser, Replay, HourglassEmpty, Check, Download } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   complianceConnectionApi,
   type DeclarationSummary,
-  type DeclarationStatus,
 } from '../../../services/api/complianceConnectionApi';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 
@@ -47,12 +46,17 @@ interface PanelReservationComplianceProps {
   reservationId: number;
 }
 
-const statusTokens = (status: DeclarationStatus) =>
-  status === 'SUBMITTED' ? STATUS_TONES.ok : STATUS_TONES.warn;
+/** Une fiche conservée localement et complète est conforme : rien d'autre à faire. */
+const isSettled = (d: DeclarationSummary) =>
+  d.status === 'SUBMITTED' || !!d.exempt || (!!d.retainedLocally && d.status === 'COMPLETED');
+
+const statusTokens = (d: DeclarationSummary) => (isSettled(d) ? STATUS_TONES.ok : STATUS_TONES.warn);
 
 const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({ reservationId }) => {
   const { t } = useTranslation();
   const [rowState, setRowState] = useState<Record<number, RowState>>({});
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
 
   const declarationsQuery = useQuery({
     queryKey: ['compliance-declarations', reservationId],
@@ -65,10 +69,30 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
   // N'affiche rien tant qu'il n'y a aucune déclaration (gère aussi le loading silencieux).
   if (declarations.length === 0) return null;
 
-  const statusLabel = (status: DeclarationStatus) =>
-    status === 'SUBMITTED'
+  const statusLabel = (d: DeclarationSummary) => {
+    if (d.exempt) return t('reservations.compliance.exempt', 'Dispensé');
+    if (d.retainedLocally) {
+      return d.status === 'PENDING'
+        ? t('reservations.compliance.toComplete', 'À compléter')
+        : t('reservations.compliance.retained', 'Conservée');
+    }
+    return d.status === 'SUBMITTED'
       ? t('reservations.compliance.transmitted', 'Transmise')
       : t('reservations.compliance.toTransmit', 'À transmettre');
+  };
+  const hasPrintable = declarations.some((d) => d.retainedLocally && !d.exempt && d.status !== 'PENDING');
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setDownloadError(false);
+    try {
+      await complianceConnectionApi.downloadReservationPoliceForms(reservationId);
+    } catch {
+      setDownloadError(true);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const travelerLabel = (d: DeclarationSummary, index: number) =>
     d.primary
@@ -114,14 +138,27 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
         <span className={cn(OVERLINE_CLASS, 'flex-1')}>
           {t('reservations.compliance.title', 'Fiche de police')}
         </span>
+        {hasPrintable && (
+          <Button variant="ghost" size="xs" onClick={handleDownload} disabled={downloading}
+            aria-label={t('reservations.compliance.downloadPdf', 'Télécharger les fiches (PDF)')}>
+            {downloading ? <Spinner className="size-3" /> : <Download size={13} strokeWidth={1.75} />}
+            PDF
+          </Button>
+        )}
       </div>
+      {downloadError && (
+        <div className="mb-1 text-[0.6875rem] text-[var(--err)]">
+          {t('reservations.compliance.downloadError', 'Téléchargement impossible')}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         {declarations.map((d, idx) => {
           // Numérotation des accompagnants (1, 2, …), indépendante de l'index brut.
           const companionIndex = declarations.slice(0, idx + 1).filter((x) => !x.primary).length;
-          const tokens = statusTokens(d.status);
+          const tokens = statusTokens(d);
           const submitted = d.status === 'SUBMITTED';
+          const settled = isSettled(d);
           const row = rowState[d.id];
           const providerLabel = d.providerType ? PROVIDER_LABELS[d.providerType] ?? d.providerType : null;
 
@@ -135,15 +172,24 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
                   pill
                   size="sm"
                   tokens={tokens}
-                  icon={submitted ? <Check size={11} strokeWidth={2} /> : undefined}
-                  label={statusLabel(d.status)}
+                  icon={settled ? <Check size={11} strokeWidth={2} /> : undefined}
+                  label={statusLabel(d)}
                   className="shrink-0"
                 />
               </div>
 
               {/* Ligne détail : provider + date (transmise) OU bouton resoumettre */}
               <div className="flex items-center gap-1.5 mt-1">
-                {submitted ? (
+                {d.retainedLocally ? (
+                  // France : rien n'est transmis — la fiche est gardée puis purgée à 6 mois.
+                  <span className="text-[0.6875rem] text-[var(--muted)]">
+                    {d.exempt
+                      ? t('reservations.compliance.exemptHint', 'Ressortissant français : pas de fiche')
+                      : d.purgeAfter
+                        ? t('reservations.compliance.purgeAfter', { defaultValue: 'Purge le {{date}}', date: fmtDate(d.purgeAfter) })
+                        : t('reservations.compliance.retainedHint', 'Remise à la police sur demande')}
+                  </span>
+                ) : submitted ? (
                   <span className="text-[0.6875rem] text-[var(--muted)]">
                     {providerLabel && (
                       <span className="font-semibold">{providerLabel}</span>

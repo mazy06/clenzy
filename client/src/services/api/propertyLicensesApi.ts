@@ -20,7 +20,7 @@ export interface PropertyLicense {
    * que de se prononcer. `expiringSoon` se juge au fuseau du logement, pas à
    * celui du navigateur.
    */
-  formatVerdict: 'ABSENT' | 'VALID' | 'MALFORMED' | 'UNCHECKED';
+  formatVerdict: 'ABSENT' | 'VALID' | 'MALFORMED' | 'UNCHECKED' | 'COMMUNE_MISMATCH';
   expiringSoon: boolean;
 }
 

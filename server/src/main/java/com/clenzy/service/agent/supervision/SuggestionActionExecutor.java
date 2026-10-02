@@ -130,6 +130,7 @@ public class SuggestionActionExecutor {
     private final com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final ObjectProvider<com.clenzy.service.regulatory.NightsCapService> nightsCapService;
 
     /** Fenêtre de republication de parité par défaut / max (jours). */
     static final int PARITY_DEFAULT_DAYS = 30;
@@ -186,8 +187,10 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
                                     com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository,
+                                    ObjectProvider<com.clenzy.service.regulatory.NightsCapService> nightsCapService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
+        this.nightsCapService = nightsCapService;
         this.priceEngine = priceEngine;
         this.rateOverrideRepository = rateOverrideRepository;
         this.propertyRepository = propertyRepository;
@@ -312,6 +315,7 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.CLEANING_PAYOUT -> applyCleaningPayout(suggestion);
             case SupervisionActionType.FRAUD_BLOCK -> applyFraudBlock(suggestion);
             case SupervisionActionType.POLICE_DECLARE -> applyPoliceDeclare(suggestion);
+            case SupervisionActionType.NIGHTS_CAP_CLOSE -> applyNightsCapClose(suggestion);
             case SupervisionActionType.MANDATE_SIGN_SEND -> applyMandateSignSend(suggestion);
             case SupervisionActionType.OWNER_STATEMENT_SEND -> applyOwnerStatementSend(suggestion);
             case SupervisionActionType.MIN_STAY_RESTRICTION -> applyMinStayRestriction(suggestion);
@@ -1512,6 +1516,26 @@ public class SuggestionActionExecutor {
                 suggestion.getTitle(), "system:supervisor");
         log.info("CALENDAR_BLOCK appliqué org={} property={} [{}, {}+{}j)",
                 suggestion.getOrganizationId(), suggestion.getPropertyId(), from, from, days);
+    }
+
+    /**
+     * Ferme a la vente le reste de l'annee d'une residence principale qui a atteint son
+     * plafond de nuitees (agent Conformite). Ecritures DB (jours bloques + outbox calendrier
+     * vers les canaux) : executee dans la transaction d'application. Seuls les jours LIBRES
+     * sont fermes — reservations et blocages existants restent intacts.
+     */
+    private void applyNightsCapClose(SupervisionSuggestion suggestion) {
+        final com.clenzy.service.regulatory.NightsCapService service = nightsCapService.getIfAvailable();
+        if (service == null) {
+            throw new IllegalStateException("Service du plafond de nuitées indisponible");
+        }
+        if (service.activeCap(suggestion.getPropertyId(), suggestion.getOrganizationId()).isEmpty()) {
+            throw new IllegalStateException("Ce logement n'est plus soumis au plafond annuel de nuitées");
+        }
+        final int closed = service.closeRestOfYear(suggestion.getPropertyId(), suggestion.getOrganizationId(),
+                LocalDate.now(clock), "system:supervisor");
+        log.info("NIGHTS_CAP_CLOSE appliqué org={} property={} : {} jour(s) fermé(s)",
+                suggestion.getOrganizationId(), suggestion.getPropertyId(), closed);
     }
 
     /**

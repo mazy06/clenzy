@@ -17,8 +17,14 @@ import java.util.List;
  * suivants comme accompagnants.</p>
  */
 public record GuestDeclarationRequest(
-    @NotEmpty @Valid List<Declarant> declarants
+    @NotEmpty @Valid List<Declarant> declarants,
+    /** Le voyageur certifie l'exactitude des informations : vaut signature de la fiche (France). */
+    Boolean certified
 ) {
+    public GuestDeclarationRequest(List<Declarant> declarants) {
+        this(declarants, null);
+    }
+
     /** Identite d'un voyageur a declarer (principal ou accompagnant). Tous champs PII. */
     public record Declarant(
         String firstName,
@@ -31,6 +37,16 @@ public record GuestDeclarationRequest(
         String residenceAddress,
         String residenceCountry,
         String idDocumentType,
-        String idDocumentNumber
-    ) {}
+        String idDocumentNumber,
+        /** Telephone mobile et adresse electronique (France, CESEDA R814-2). */
+        String phone,
+        String email
+    ) {
+        public Declarant(String firstName, String lastName, String maidenName, String birthDate,
+                         String birthPlace, String nationality, String residenceAddress,
+                         String residenceCountry, String idDocumentType, String idDocumentNumber) {
+            this(firstName, lastName, maidenName, birthDate, birthPlace, nationality, residenceAddress,
+                residenceCountry, idDocumentType, idDocumentNumber, null, null);
+        }
+    }
 }

@@ -38,8 +38,25 @@ public record PublicPropertyDto(
     /** Nombre d'avis publics. */
     long reviewCount,
     /** Description publique du logement (texte libre, peut être null/vide). */
-    String description
+    String description,
+    /**
+     * Numéro d'enregistrement du meublé de tourisme (France, Code du tourisme L324-1-1) :
+     * obligatoire sur toute annonce. NULL si absent ou logement hors France.
+     */
+    String registrationNumber
 ) {
+    /** Arité historique : sans numéro d'enregistrement (logement hors France, démo, tests). */
+    public PublicPropertyDto(Long id, String name, String type, String city, String country,
+                             Integer bedroomCount, Integer bathroomCount, Integer maxGuests, Integer squareMeters,
+                             BigDecimal priceFrom, BigDecimal cleaningFee, Integer minimumNights, String currency,
+                             String mainPhotoUrl, List<String> photoUrls, List<String> amenities,
+                             String checkInTime, String checkOutTime, Integer totalBookings, Integer availableDays30,
+                             Double rating, long reviewCount, String description) {
+        this(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests, squareMeters, priceFrom,
+            cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls, amenities, checkInTime, checkOutTime,
+            totalBookings, availableDays30, rating, reviewCount, description, null);
+    }
+
     /**
      * URL photo PUBLIQUE (img-friendly) : externalUrl (Channex/Airbnb, déjà absolue + publique)
      * sinon endpoint public keyless /api/public/property-photos/{propertyId}/{photoId}.
@@ -109,7 +126,8 @@ public record PublicPropertyDto(
             null,
             null,
             0L,
-            p.getDescription()
+            p.getDescription(),
+            null
         );
     }
 
@@ -117,20 +135,27 @@ public record PublicPropertyDto(
     public PublicPropertyDto withDisplayCurrency(BigDecimal newPriceFrom, BigDecimal newCleaningFee, String newCurrency) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, newPriceFrom, newCleaningFee, minimumNights, newCurrency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, registrationNumber);
     }
 
     /** Copie enrichie des signaux honnêtes de preuve sociale / urgence (2.9). */
     public PublicPropertyDto withSignals(Integer totalBookings, Integer availableDays30) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, registrationNumber);
     }
 
     /** Copie enrichie de la note moyenne + nombre d'avis publics (Domaine 2 — preuve sociale réelle). */
     public PublicPropertyDto withReviewStats(Double avgRating, long publicReviewCount) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount, description);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount, description, registrationNumber);
+    }
+
+    /** Copie portant le numéro d'enregistrement à afficher sur l'annonce. */
+    public PublicPropertyDto withRegistrationNumber(String number) {
+        return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
+            squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, number);
     }
 }

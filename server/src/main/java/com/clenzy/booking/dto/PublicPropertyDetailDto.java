@@ -36,8 +36,22 @@ public record PublicPropertyDetailDto(
     List<String> amenities,
     String checkInTime,
     String checkOutTime,
-    HostPublicDto host
+    HostPublicDto host,
+    /** Numéro d'enregistrement du meublé de tourisme (France) — obligatoire sur l'annonce. */
+    String registrationNumber
 ) {
+    /** Arité historique : sans numéro d'enregistrement (logement hors France, démo, tests). */
+    public PublicPropertyDetailDto(Long id, String name, String description, String type, String city,
+                                   String country, BigDecimal latitude, BigDecimal longitude, Integer bedroomCount,
+                                   Integer bathroomCount, Integer maxGuests, Integer squareMeters,
+                                   BigDecimal nightlyPrice, Integer minimumNights, String currency,
+                                   List<PhotoDto> photos, List<String> amenities, String checkInTime,
+                                   String checkOutTime, HostPublicDto host) {
+        this(id, name, description, type, city, country, latitude, longitude, bedroomCount, bathroomCount,
+            maxGuests, squareMeters, nightlyPrice, minimumNights, currency, photos, amenities, checkInTime,
+            checkOutTime, host, null);
+    }
+
     public record PhotoDto(Long id, String url, String caption) {}
 
     /**
@@ -74,6 +88,10 @@ public record PublicPropertyDetailDto(
     }
 
     public static PublicPropertyDetailDto from(Property p) {
+        return from(p, null);
+    }
+
+    public static PublicPropertyDetailDto from(Property p, String registrationNumber) {
         List<PhotoDto> photoList = p.getPhotos() != null
             ? p.getPhotos().stream()
                 .map(ph -> new PhotoDto(ph.getId(), ph.getUrl(), ph.getCaption()))
@@ -113,7 +131,8 @@ public record PublicPropertyDetailDto(
             amenityList,
             p.getDefaultCheckInTime(),
             p.getDefaultCheckOutTime(),
-            HostPublicDto.from(p.getOwner())
+            HostPublicDto.from(p.getOwner()),
+            registrationNumber
         );
     }
 
@@ -121,6 +140,6 @@ public record PublicPropertyDetailDto(
     public PublicPropertyDetailDto withDisplayCurrency(BigDecimal newNightlyPrice, String newCurrency) {
         return new PublicPropertyDetailDto(id, name, description, type, city, country, latitude, longitude,
             bedroomCount, bathroomCount, maxGuests, squareMeters, newNightlyPrice, minimumNights, newCurrency,
-            photos, amenities, checkInTime, checkOutTime, host);
+            photos, amenities, checkInTime, checkOutTime, host, registrationNumber);
     }
 }

@@ -17,7 +17,15 @@ public record TouristTaxReportDto(
     LocalDate from,
     LocalDate to,
     List<TouristTaxReportLineDto> lines,
+    /** Total À REVERSER par l'hôte (hors séjours dont la plateforme a collecté la taxe). */
     BigDecimal totalTax,
     int reservationCount,
-    int missingConfigCount
-) {}
+    int missingConfigCount,
+    /** Taxe collectée et reversée directement par les plateformes (information, pas à déclarer). */
+    BigDecimal platformCollectedTax
+) {
+    public TouristTaxReportDto(LocalDate from, LocalDate to, List<TouristTaxReportLineDto> lines,
+                               BigDecimal totalTax, int reservationCount, int missingConfigCount) {
+        this(from, to, lines, totalTax, reservationCount, missingConfigCount, BigDecimal.ZERO);
+    }
+}

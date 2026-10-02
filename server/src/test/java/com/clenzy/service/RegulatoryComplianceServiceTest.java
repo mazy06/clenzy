@@ -68,12 +68,12 @@ class RegulatoryComplianceServiceTest {
         RegulatoryConfig config = createAlurConfig(120);
         when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
             .thenReturn(Optional.of(config));
-        when(reservationRepository.findByPropertyIdsAndDateRange(eq(List.of(PROPERTY_ID)), any(), any(), eq(ORG_ID)))
+        when(reservationRepository.findRentedStaysOverlapping(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
             .thenReturn(List.of(
                 createReservation(LocalDate.of(2025, 3, 1), LocalDate.of(2025, 3, 10)),
                 createReservation(LocalDate.of(2025, 7, 1), LocalDate.of(2025, 7, 15))
             ));
-        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(createProperty()));
+        when(propertyRepository.findNameByIdAndOrgId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(createProperty().getName()));
 
         RegulatoryComplianceDto result = service.checkAlurCompliance(PROPERTY_ID, ORG_ID, 2025);
 
@@ -89,11 +89,11 @@ class RegulatoryComplianceServiceTest {
         when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
             .thenReturn(Optional.of(config));
         // Simule 130 jours loues (une seule grosse reservation)
-        when(reservationRepository.findByPropertyIdsAndDateRange(eq(List.of(PROPERTY_ID)), any(), any(), eq(ORG_ID)))
+        when(reservationRepository.findRentedStaysOverlapping(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
             .thenReturn(List.of(
                 createReservation(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 5, 11)) // 130 jours
             ));
-        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(createProperty()));
+        when(propertyRepository.findNameByIdAndOrgId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(createProperty().getName()));
 
         RegulatoryComplianceDto result = service.checkAlurCompliance(PROPERTY_ID, ORG_ID, 2025);
 
@@ -110,11 +110,11 @@ class RegulatoryComplianceServiceTest {
         when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
             .thenReturn(Optional.of(config));
         // 105 jours
-        when(reservationRepository.findByPropertyIdsAndDateRange(eq(List.of(PROPERTY_ID)), any(), any(), eq(ORG_ID)))
+        when(reservationRepository.findRentedStaysOverlapping(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
             .thenReturn(List.of(
                 createReservation(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 4, 16)) // 105 jours
             ));
-        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(createProperty()));
+        when(propertyRepository.findNameByIdAndOrgId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(createProperty().getName()));
 
         RegulatoryComplianceDto result = service.checkAlurCompliance(PROPERTY_ID, ORG_ID, 2025);
 
@@ -128,9 +128,9 @@ class RegulatoryComplianceServiceTest {
     void checkAlurCompliance_noConfig_usesDefault() {
         when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
             .thenReturn(Optional.empty());
-        when(reservationRepository.findByPropertyIdsAndDateRange(eq(List.of(PROPERTY_ID)), any(), any(), eq(ORG_ID)))
+        when(reservationRepository.findRentedStaysOverlapping(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
             .thenReturn(List.of());
-        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(createProperty()));
+        when(propertyRepository.findNameByIdAndOrgId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(createProperty().getName()));
 
         RegulatoryComplianceDto result = service.checkAlurCompliance(PROPERTY_ID, ORG_ID, 2025);
 
@@ -145,11 +145,10 @@ class RegulatoryComplianceServiceTest {
         when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
             .thenReturn(Optional.of(config));
         // Already 110 days
-        when(reservationRepository.findByPropertyIdsAndDateRange(eq(List.of(PROPERTY_ID)), any(), any(), eq(ORG_ID)))
+        when(reservationRepository.findRentedStaysOverlapping(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
             .thenReturn(List.of(
                 createReservation(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 4, 21)) // 110 days
             ));
-        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(createProperty()));
 
         boolean exceeds = service.wouldExceedAlurLimit(PROPERTY_ID, ORG_ID,
             LocalDate.of(2025, 6, 1), LocalDate.of(2025, 6, 15)); // +14 = 124
@@ -162,16 +161,64 @@ class RegulatoryComplianceServiceTest {
         RegulatoryConfig config = createAlurConfig(120);
         when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
             .thenReturn(Optional.of(config));
-        when(reservationRepository.findByPropertyIdsAndDateRange(eq(List.of(PROPERTY_ID)), any(), any(), eq(ORG_ID)))
+        when(reservationRepository.findRentedStaysOverlapping(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
             .thenReturn(List.of(
                 createReservation(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 3, 12)) // 70 days
             ));
-        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(createProperty()));
 
         boolean exceeds = service.wouldExceedAlurLimit(PROPERTY_ID, ORG_ID,
             LocalDate.of(2025, 6, 1), LocalDate.of(2025, 6, 15)); // +14 = 84
 
         assertFalse(exceeds);
+    }
+
+    @Test
+    void checkAlurCompliance_yearBoundaries_countOnlyNightsOfTheYear() {
+        when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
+            .thenReturn(Optional.of(createAlurConfig(120)));
+        when(reservationRepository.findRentedStaysOverlapping(
+                PROPERTY_ID, ORG_ID, LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1)))
+            .thenReturn(List.of(
+                createReservation(LocalDate.of(2024, 12, 29), LocalDate.of(2025, 1, 3)), // 2 nuits en 2025
+                createReservation(LocalDate.of(2025, 12, 30), LocalDate.of(2026, 1, 2))  // 30 et 31/12
+            ));
+        when(propertyRepository.findNameByIdAndOrgId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.empty());
+
+        RegulatoryComplianceDto result = service.checkAlurCompliance(PROPERTY_ID, ORG_ID, 2025);
+
+        assertEquals(4, result.daysRented());
+        assertEquals("Unknown", result.propertyName()); // logement hors org : aucun nom divulgue
+    }
+
+    @Test
+    void wouldExceedAlurLimit_staySpanningNewYear_checksEachYearSeparately() {
+        when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
+            .thenReturn(Optional.of(createAlurConfig(120)));
+        // 2025 : 117 nuits deja louees ; 2026 : aucune.
+        when(reservationRepository.findRentedStaysOverlapping(
+                PROPERTY_ID, ORG_ID, LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1)))
+            .thenReturn(List.of(createReservation(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 4, 28))));
+        when(reservationRepository.findRentedStaysOverlapping(
+                PROPERTY_ID, ORG_ID, LocalDate.of(2026, 1, 1), LocalDate.of(2027, 1, 1)))
+            .thenReturn(List.of());
+
+        // 28/12 → 01/01 : 4 nuits en 2025 → 121 > 120
+        assertTrue(service.wouldExceedAlurLimit(PROPERTY_ID, ORG_ID,
+            LocalDate.of(2025, 12, 28), LocalDate.of(2026, 1, 1)));
+        // 29/12 → 05/01 : 3 nuits en 2025 (120) + 4 en 2026 → conforme
+        assertFalse(service.wouldExceedAlurLimit(PROPERTY_ID, ORG_ID,
+            LocalDate.of(2025, 12, 29), LocalDate.of(2026, 1, 5)));
+    }
+
+    @Test
+    void overlapNights_handlesNullAndDisjointRanges() {
+        LocalDate from = LocalDate.of(2025, 1, 1);
+        LocalDate to = LocalDate.of(2026, 1, 1);
+        assertEquals(0, RegulatoryComplianceService.overlapNights(null, to, from, to));
+        assertEquals(0, RegulatoryComplianceService.overlapNights(
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 5), from, to));
+        assertEquals(1, RegulatoryComplianceService.overlapNights(
+            LocalDate.of(2025, 12, 31), LocalDate.of(2026, 1, 1), from, to));
     }
 
     @Test

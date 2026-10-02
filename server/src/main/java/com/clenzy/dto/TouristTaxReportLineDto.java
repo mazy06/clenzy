@@ -28,5 +28,18 @@ public record TouristTaxReportLineDto(
     BigDecimal baseAmount,
     BigDecimal surchargeAmount,
     BigDecimal taxAmount,
-    String currency
-) {}
+    String currency,
+    /**
+     * Taxe collectée et reversée par la PLATEFORME (elle a encaissé le séjour — CGCT
+     * L2333-34) : due, mais pas à reverser par l'hôte. Hors de son total déclaratif.
+     */
+    boolean collectedByPlatform
+) {
+    public TouristTaxReportLineDto(Long reservationId, Long propertyId, String propertyName, String guestName,
+                                   LocalDate checkIn, LocalDate checkOut, int nights, int taxablePersons,
+                                   String communeName, TaxCalculationMode calculationMode, BigDecimal baseAmount,
+                                   BigDecimal surchargeAmount, BigDecimal taxAmount, String currency) {
+        this(reservationId, propertyId, propertyName, guestName, checkIn, checkOut, nights, taxablePersons,
+            communeName, calculationMode, baseAmount, surchargeAmount, taxAmount, currency, false);
+    }
+}

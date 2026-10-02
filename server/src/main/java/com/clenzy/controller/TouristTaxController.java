@@ -33,7 +33,27 @@ public class TouristTaxController {
     private final TouristTaxService taxService;
     private final TenantContext tenantContext;
 
-    public TouristTaxController(TouristTaxService taxService, TenantContext tenantContext) {
+    /**
+     * Bareme officiel propose pour la commune (code INSEE) et la categorie du logement —
+     * source DGFiP (deliberations publiees), a valider par l'operateur. 404 si la commune
+     * n'a pas de tarif pour cette categorie.
+     */
+    @GetMapping("/reference")
+    public ResponseEntity<com.clenzy.service.regulatory.FrTouristTaxReferenceService.Suggestion> reference(
+            @RequestParam String insee,
+            @RequestParam com.clenzy.model.FrTouristTaxRate.Category category,
+            @RequestParam(required = false) Integer year) {
+        int target = year != null ? year : java.time.Year.now().getValue();
+        return referenceService.suggest(insee, category, target)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private final com.clenzy.service.regulatory.FrTouristTaxReferenceService referenceService;
+
+    public TouristTaxController(TouristTaxService taxService, TenantContext tenantContext,
+                                com.clenzy.service.regulatory.FrTouristTaxReferenceService referenceService) {
+        this.referenceService = referenceService;
         this.taxService = taxService;
         this.tenantContext = tenantContext;
     }

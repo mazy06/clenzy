@@ -87,6 +87,8 @@ public class PublicBookingService {
     private final BookingEngineConfigRepository configRepository;
     private final OrganizationRepository organizationRepository;
     private final PropertyRepository propertyRepository;
+    private final com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository;
+    private final com.clenzy.service.regulatory.NightsCapService nightsCapService;
     private final ReservationRepository reservationRepository;
     private final CalendarDayRepository calendarDayRepository;
     private final PriceEngine priceEngine;
@@ -144,7 +146,11 @@ public class PublicBookingService {
             com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
             BookingMockDataProvider mockDataProvider,
             com.clenzy.service.PaymentOrchestrationService orchestrationService,
-            org.springframework.transaction.PlatformTransactionManager transactionManager) {
+            org.springframework.transaction.PlatformTransactionManager transactionManager,
+            com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository,
+            com.clenzy.service.regulatory.NightsCapService nightsCapService) {
+        this.propertyLicenseRepository = propertyLicenseRepository;
+        this.nightsCapService = nightsCapService;
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -366,7 +372,10 @@ public class PublicBookingService {
             long cnt = ((Number) row[2]).longValue();
             reviewStats.put(pid, new double[] { avg, cnt });
         }
+        // Numéro d'enregistrement (1 query batch) : obligatoire sur toute annonce en France.
+        java.util.Map<Long, String> registrations = registrationNumbersOf(ids, ctx.orgId());
         return base.stream()
+            .map(dto -> registrations.containsKey(dto.id()) ? dto.withRegistrationNumber(registrations.get(dto.id())) : dto)
             .map(dto -> dto.withSignals(
                 bookings.getOrDefault(dto.id(), 0),
                 Math.max(0, windowDays - unavailable.getOrDefault(dto.id(), 0))))
@@ -477,7 +486,30 @@ public class PublicBookingService {
         }
         Property property = propertyRepository.findBookingEngineProperty(propertyId, ctx.orgId())
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable ou non visible"));
-        return PublicPropertyDetailDto.from(property);
+        return PublicPropertyDetailDto.from(property,
+            registrationNumbersOf(List.of(property.getId()), ctx.orgId()).get(property.getId()));
+    }
+
+    /**
+     * Numéros d'enregistrement publiables (licence TOURISM_REGISTRATION) par logement.
+     * Un numéro français non conforme n'est jamais publié : la saisie le refuse déjà, et
+     * un ancien numéro faux afficherait une fausse conformité.
+     */
+    private java.util.Map<Long, String> registrationNumbersOf(List<Long> propertyIds, Long orgId) {
+        java.util.Map<Long, String> out = new java.util.HashMap<>();
+        if (propertyIds.isEmpty()) {
+            return out;
+        }
+        for (com.clenzy.model.PropertyLicense license : propertyLicenseRepository
+                .findByOrganizationIdAndLicenseTypeAndPropertyIdIn(
+                    orgId, com.clenzy.model.PropertyLicense.LicenseType.TOURISM_REGISTRATION, propertyIds)) {
+            String number = license.getLicenseNumber();
+            if (number == null || number.isBlank()) {
+                continue;
+            }
+            out.putIfAbsent(license.getPropertyId(), number.trim());
+        }
+        return out;
     }
 
     // ─── Availability + Pricing ──────────────────────────────────────────────────
@@ -563,6 +595,14 @@ public class PublicBookingService {
         if (conflicts > 0) {
             return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
                 List.of("Dates non disponibles"));
+        }
+
+        // Plafond annuel de nuitées (résidence principale, France) : aucun humain n'est là
+        // pour déroger pendant une réservation en ligne — les dates ne sont donc pas vendables.
+        // Ré-évalué à chaque étape (réservation, paiement) puisque toutes repassent ici.
+        if (!nightsCapService.overruns(propertyId, orgId, checkIn, checkOut).isEmpty()) {
+            return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
+                List.of("Dates non disponibles (plafond annuel de location atteint)"));
         }
 
         // Calculer le prix nuit par nuit

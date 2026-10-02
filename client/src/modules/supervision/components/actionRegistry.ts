@@ -542,6 +542,21 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
       ],
     },
   },
+  NIGHTS_CAP_CLOSE: {
+    family: 'confirm',
+    titleKey: 'supervision.confirm.nightsCapClose.title',
+    titleFallback: 'Fermer le calendrier jusqu’au 31 décembre',
+    ctaKey: 'supervision.confirm.nightsCapClose.cta',
+    ctaFallback: 'Fermer le calendrier',
+    confirm: {
+      severity: 'engaging',
+      consequences: [
+        c('supervision.confirm.nightsCapClose.c1', 'Les nuits libres deviennent invendables sur tous les canaux jusqu’à la fin de l’année.'),
+        c('supervision.confirm.nightsCapClose.c2', 'Les réservations déjà prises sont conservées.'),
+        c('supervision.confirm.nightsCapClose.c3', 'Refuser la carte revient à déroger au plafond légal : les gestionnaires en sont prévenus.'),
+      ],
+    },
+  },
   CHANNEL_PUBLISH: {
     family: 'confirm',
     titleKey: 'supervision.confirm.channelPublish.title',

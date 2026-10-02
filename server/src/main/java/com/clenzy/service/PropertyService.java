@@ -63,6 +63,8 @@ public class PropertyService {
     private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final com.clenzy.service.regulatory.FrCommuneResolver communeResolver;
+
     public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository,
                           ManagerPropertyRepository managerPropertyRepository,
                           PortfolioClientRepository portfolioClientRepository,
@@ -72,7 +74,9 @@ public class PropertyService {
                           AirbnbListingMappingRepository listingMappingRepository,
                           NotificationService notificationService,
                           TenantContext tenantContext,
-                          com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
+                          com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
+                          com.clenzy.service.regulatory.FrCommuneResolver communeResolver) {
+        this.communeResolver = communeResolver;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.managerPropertyRepository = managerPropertyRepository;
@@ -91,6 +95,7 @@ public class PropertyService {
         Property property = new Property();
         apply(dto, property);
         property.setOrganizationId(tenantContext.getRequiredOrganizationId());
+        refreshCommune(property, true);
         property = propertyRepository.save(property);
         PropertyDto result = toDto(property);
 
@@ -111,7 +116,9 @@ public class PropertyService {
     @CacheEvict(value = "properties", allEntries = true)
     public PropertyDto update(Long id, PropertyDto dto) {
         Property property = propertyRepository.findById(id).orElseThrow(() -> new NotFoundException("Property not found"));
+        String locationBefore = locationKey(property);
         apply(dto, property);
+        refreshCommune(property, !locationBefore.equals(locationKey(property)));
         property = propertyRepository.save(property);
         PropertyDto result = toDto(property);
 
@@ -377,12 +384,36 @@ public class PropertyService {
         }
     }
 
+    /**
+     * Commune INSEE deduite de l'adresse (France) : a la creation, quand l'adresse change,
+     * ou tant qu'elle n'est pas connue. Une adresse modifiee sans commune trouvee efface
+     * l'ancienne — mieux vaut « a resoudre » qu'une commune fausse.
+     */
+    private void refreshCommune(Property property, boolean locationChanged) {
+        if (!com.clenzy.service.regulatory.FrCommuneResolver.isFrench(property)) {
+            return;
+        }
+        if (!locationChanged && property.getCommuneInseeCode() != null) {
+            return;
+        }
+        java.util.Optional<String> insee = communeResolver.resolve(property);
+        if (insee.isPresent() || locationChanged) {
+            property.setCommuneInseeCode(insee.orElse(null));
+        }
+    }
+
+    private static String locationKey(Property p) {
+        return String.join("|", String.valueOf(p.getAddress()), String.valueOf(p.getPostalCode()),
+                String.valueOf(p.getCity()), String.valueOf(p.getCountryCode()));
+    }
+
     private void apply(PropertyDto dto, Property property) {
         if (dto.name != null) property.setName(dto.name);
         property.setDescription(dto.description);
         if (dto.address != null) property.setAddress(dto.address);
         property.setPostalCode(dto.postalCode);
-        property.setCity(dto.city);
+        // Ville obligatoire : une mise a jour partielle ne doit jamais l'effacer.
+        if (dto.city != null && !dto.city.isBlank()) property.setCity(dto.city.trim());
         property.setCountry(dto.country);
         property.setCountryCode(dto.countryCode);
         if (dto.timezone != null && !dto.timezone.isBlank()) {
@@ -495,6 +526,7 @@ public class PropertyService {
             dto.address = p.getAddress();
             dto.postalCode = p.getPostalCode();
             dto.city = p.getCity();
+            dto.communeInseeCode = p.getCommuneInseeCode();
             dto.country = p.getCountry();
             dto.countryCode = p.getCountryCode();
             dto.timezone = p.getTimezone();

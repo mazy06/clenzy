@@ -191,7 +191,9 @@ public class TouristTaxService {
             base.setScale(2, RoundingMode.HALF_UP),
             surcharge,
             total,
-            currency
+            currency,
+            // La plateforme qui a encaissé le séjour collecte et reverse la taxe elle-même.
+            reservation.isCollectedByChannel()
         ));
     }
 
@@ -217,12 +219,20 @@ public class TouristTaxService {
                 missing++;
             }
         }
-        BigDecimal total = lines.stream()
+        // Deux totaux : ce que l'hôte reverse, et ce que les plateformes ont déjà collecté.
+        // Les additionner ferait déclarer deux fois la même taxe à la commune.
+        BigDecimal total = sum(lines, false);
+        BigDecimal platformCollected = sum(lines, true);
+
+        return new TouristTaxReportDto(from, to, lines, total, lines.size(), missing, platformCollected);
+    }
+
+    private static BigDecimal sum(List<TouristTaxReportLineDto> lines, boolean collectedByPlatform) {
+        return lines.stream()
+            .filter(l -> l.collectedByPlatform() == collectedByPlatform)
             .map(TouristTaxReportLineDto::taxAmount)
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
-
-        return new TouristTaxReportDto(from, to, lines, total, lines.size(), missing);
     }
 
     /**
@@ -243,7 +253,7 @@ public class TouristTaxService {
      */
     public String toCsv(TouristTaxReportDto report) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Reservation;Logement;Voyageur;Arrivee;Depart;Nuits;Personnes;Commune;Base;Surtaxes;Taxe totale;Devise\n");
+        sb.append("Reservation;Logement;Voyageur;Arrivee;Depart;Nuits;Personnes;Commune;Base;Surtaxes;Taxe totale;Devise;Collectee par\n");
         for (TouristTaxReportLineDto line : report.lines()) {
             sb.append(line.reservationId()).append(';')
               .append(csvText(line.propertyName())).append(';')
@@ -256,9 +266,14 @@ public class TouristTaxService {
               .append(line.baseAmount().toPlainString()).append(';')
               .append(line.surchargeAmount().toPlainString()).append(';')
               .append(line.taxAmount().toPlainString()).append(';')
-              .append(csvText(line.currency())).append('\n');
+              .append(csvText(line.currency())).append(';')
+              .append(line.collectedByPlatform() ? "Plateforme" : "Hote").append('\n');
         }
-        sb.append("TOTAL;;;;;;;;;;").append(report.totalTax().toPlainString()).append(";\n");
+        sb.append("TOTAL A REVERSER;;;;;;;;;;").append(report.totalTax().toPlainString()).append(";;\n");
+        if (report.platformCollectedTax() != null && report.platformCollectedTax().signum() > 0) {
+            sb.append("COLLECTE PAR LES PLATEFORMES;;;;;;;;;;")
+              .append(report.platformCollectedTax().toPlainString()).append(";;\n");
+        }
         return sb.toString();
     }
 

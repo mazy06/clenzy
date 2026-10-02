@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ShieldCheck, UserPlus, Trash2, ArrowRight, Lock, AlertCircle } from 'lucide-react';
 import type { GuideLabels, Lang } from './WelcomeBookView';
 import { normalizeTheme } from './welcomeBookThemes';
-import type { GuestDeclarant } from '../../services/api/welcomeGuideApi';
+import type { DeclarationRules, GuestDeclarant } from '../../services/api/welcomeGuideApi';
 
 /**
  * Écran de complétion réglementaire (fiche de police + check-in) qui « gate » le livret guest.
@@ -32,6 +32,8 @@ interface DeclarantDraft {
   residenceCountry: string;
   idDocumentType: string;
   idDocumentNumber: string;
+  phone: string;
+  email: string;
 }
 
 const EMPTY_DRAFT: DeclarantDraft = {
@@ -45,6 +47,8 @@ const EMPTY_DRAFT: DeclarantDraft = {
   residenceCountry: '',
   idDocumentType: '',
   idDocumentNumber: '',
+  phone: '',
+  email: '',
 };
 
 /** Champs « identité » toujours demandés au principal ET aux accompagnants (en plus de missingFields). */
@@ -68,9 +72,30 @@ const FIELD_ORDER: (keyof DeclarantDraft)[] = [
   'nationality',
   'residenceAddress',
   'residenceCountry',
+  'phone',
+  'email',
   'idDocumentType',
   'idDocumentNumber',
 ];
+
+const DRAFT_KEYS = new Set<string>(FIELD_ORDER);
+
+/** Clés serveur → champs du brouillon (une clé inconnue est ignorée plutôt que de casser le formulaire). */
+function toFieldSet(keys: string[]): Set<keyof DeclarantDraft> {
+  return new Set(keys.filter((k) => DRAFT_KEYS.has(k)) as (keyof DeclarantDraft)[]);
+}
+
+/** Âge révolu à une date de référence (ISO) ; null si la date de naissance est absente ou illisible. */
+function ageAt(birthDate: string, referenceDate: string | null): number | null {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  const ref = referenceDate ? new Date(referenceDate) : new Date();
+  if (Number.isNaN(birth.getTime()) || Number.isNaN(ref.getTime())) return null;
+  let age = ref.getFullYear() - birth.getFullYear();
+  const m = ref.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < birth.getDate())) age -= 1;
+  return age;
+}
 
 /** Codes ISO 3166-1 alpha-2 — localisés à l'affichage via Intl.DisplayNames (langue du livret). */
 const ISO_COUNTRY_CODES: string[] = [
@@ -200,11 +225,13 @@ export interface GuideDeclarationFormProps {
   theme: string;
   /** Clés de champ manquantes (cf. `DataCollectionInfo.missingFields`). */
   missingFields: string[];
+  /** Règles du pays du logement ; absentes = comportement historique (missingFields). */
+  rules?: DeclarationRules | null;
   /** Soumet la déclaration ; renvoie true si la collecte est désormais complète. */
-  onSubmit: (declarants: GuestDeclarant[]) => Promise<boolean>;
+  onSubmit: (declarants: GuestDeclarant[], certified: boolean) => Promise<boolean>;
 }
 
-const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, labels, theme, missingFields, onSubmit }) => {
+const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, labels, theme, missingFields, rules, onSubmit }) => {
   const L = labels;
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const countries = useCountryOptions(lang);
@@ -213,6 +240,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
   const [submitting, setSubmitting] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [certified, setCertified] = useState(false);
 
   // Champs demandés au PRINCIPAL = union(missingFields, identité minimale). Un accompagnant ne fournit
   // pas son adresse de résidence (rattachée au foyer du principal — cf. service backend).
@@ -238,6 +266,8 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
     residenceCountry: L.fResidenceCountry,
     idDocumentType: L.fIdDocumentType,
     idDocumentNumber: L.fIdDocumentNumber,
+    phone: L.fPhone,
+    email: L.fEmail,
   };
 
   const docTypeLabel: Record<IdDocumentType, string> = {
@@ -246,8 +276,31 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
     RESIDENCE_PERMIT: L.docResidencePermit,
   };
 
-  const fieldsFor = (index: number): Set<keyof DeclarantDraft> =>
-    index === 0 ? primaryFields : new Set<keyof DeclarantDraft>(COMPANION_FIELDS);
+  // Règles du pays : la loi décide, pas le formulaire. France : un ressortissant français
+  // n'a pas de fiche (seule son identité est notée), un enfant de moins de 15 ans figure
+  // sur la fiche de l'adulte qu'il accompagne (identité et naissance seulement).
+  const isExempt = (draft: DeclarantDraft): boolean =>
+    !!rules?.exemptNationality && draft.nationality === rules.exemptNationality;
+
+  const fieldsFor = (index: number): Set<keyof DeclarantDraft> => {
+    if (!rules) {
+      return index === 0 ? primaryFields : new Set<keyof DeclarantDraft>(COMPANION_FIELDS);
+    }
+    const draft = drafts[index];
+    if (isExempt(draft)) {
+      return new Set<keyof DeclarantDraft>(['nationality', 'firstName', 'lastName']);
+    }
+    if (index > 0 && rules.minorAgeUnder != null) {
+      const age = ageAt(draft.birthDate, rules.referenceDate);
+      if (age != null && age < rules.minorAgeUnder) return toFieldSet(rules.minorFields);
+    }
+    return toFieldSet(index === 0 ? rules.primaryFields : rules.companionFields);
+  };
+
+  // Avec une nationalité dispensée, la nationalité vient EN PREMIER : elle décide du reste.
+  const fieldOrder: (keyof DeclarantDraft)[] = rules?.exemptNationality
+    ? ['nationality', ...FIELD_ORDER.filter((k) => k !== 'nationality')]
+    : FIELD_ORDER;
 
   const update = (index: number, key: keyof DeclarantDraft, value: string) => {
     setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, [key]: value } : d)));
@@ -262,6 +315,9 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
   const allValid = (): boolean =>
     drafts.every((d, i) => Array.from(fieldsFor(i)).every((k) => d[k].trim().length > 0));
 
+  const certificationMissing = !!rules?.certificationRequired && !certified
+    && drafts.some((d) => !isExempt(d));
+
   const submit = async () => {
     setSubmitError(null);
     if (!allValid()) {
@@ -269,21 +325,33 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
       setSubmitError(L.declErrorRequired);
       return;
     }
+    if (certificationMissing) {
+      setShowErrors(true);
+      setSubmitError(L.declCertifyRequired);
+      return;
+    }
     setSubmitting(true);
     try {
-      const declarants: GuestDeclarant[] = drafts.map((d) => ({
-        firstName: d.firstName.trim(),
-        lastName: d.lastName.trim(),
-        maidenName: d.maidenName.trim() || null,
-        birthDate: d.birthDate,
-        birthPlace: d.birthPlace.trim(),
-        nationality: d.nationality || '',
-        residenceAddress: d.residenceAddress.trim() || null,
-        residenceCountry: d.residenceCountry || null,
-        idDocumentType: d.idDocumentType || '',
-        idDocumentNumber: d.idDocumentNumber.trim(),
-      }));
-      const complete = await onSubmit(declarants);
+      // Minimisation : seuls les champs demandés pour CE voyageur partent au serveur.
+      const declarants: GuestDeclarant[] = drafts.map((d, i) => {
+        const asked = fieldsFor(i);
+        const pick = (k: keyof DeclarantDraft): string | null => (asked.has(k) && d[k].trim() ? d[k].trim() : null);
+        return {
+          firstName: d.firstName.trim(),
+          lastName: d.lastName.trim(),
+          maidenName: pick('maidenName'),
+          birthDate: pick('birthDate') ?? '',
+          birthPlace: pick('birthPlace') ?? '',
+          nationality: d.nationality || '',
+          residenceAddress: pick('residenceAddress'),
+          residenceCountry: pick('residenceCountry'),
+          idDocumentType: pick('idDocumentType'),
+          idDocumentNumber: pick('idDocumentNumber'),
+          phone: pick('phone'),
+          email: pick('email'),
+        };
+      });
+      const complete = await onSubmit(declarants, certified);
       if (!complete) {
         setSubmitError(L.declStillMissing);
       }
@@ -335,10 +403,12 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
         </select>
       );
     } else {
+      const inputType = key === 'phone' ? 'tel' : key === 'email' ? 'email' : 'text';
       control = (
         <input
           id={fieldId}
-          type="text"
+          type={inputType}
+          dir={key === 'phone' || key === 'email' ? 'ltr' : undefined}
           value={value}
           autoComplete="off"
           aria-label={fieldLabel[key]}
@@ -371,7 +441,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
 
           {drafts.map((draft, index) => {
             const fields = fieldsFor(index);
-            const visible = FIELD_ORDER.filter((k) => fields.has(k));
+            const visible = fieldOrder.filter((k) => fields.has(k));
             return (
               <div key={index} className="wb-card" style={{ padding: 20, marginBottom: 16, background: 'var(--raised)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 16 }}>
@@ -392,7 +462,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   {visible.map((key) => {
                     // L'adresse de résidence prend toute la largeur pour respirer.
-                    const fullWidth = key === 'residenceAddress';
+                    const fullWidth = key === 'residenceAddress' || key === 'email';
                     return (
                       <div key={key} style={fullWidth ? { gridColumn: '1 / -1' } : undefined}>
                         {renderField(index, key)}
@@ -412,6 +482,23 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
           >
             <UserPlus size={17} strokeWidth={1.8} /> {L.declAddCompanion}
           </button>
+
+          {rules?.certificationRequired && drafts.some((d) => !isExempt(d)) ? (
+            <label
+              htmlFor="decl-certify"
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, fontSize: 13, lineHeight: 1.5,
+                color: showErrors && !certified ? 'var(--terra-deep)' : 'var(--ink-soft)', cursor: 'pointer' }}
+            >
+              <input
+                id="decl-certify"
+                type="checkbox"
+                checked={certified}
+                onChange={(e) => setCertified(e.target.checked)}
+                style={{ marginTop: 3, flexShrink: 0 }}
+              />
+              <span>{L.declCertify}</span>
+            </label>
+          ) : null}
 
           {submitError ? (
             <div role="alert" style={submitErrorStyle}>

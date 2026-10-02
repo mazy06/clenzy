@@ -56,6 +56,20 @@ public class Property {
     @Column(name = "country_code", length = 2)
     private String countryCode;
 
+    /**
+     * Code INSEE de la commune (France) — 5 caracteres, Corse 2A/2B comprise. Prefixe
+     * du numero d'enregistrement et cle du referentiel de taxe de sejour. Distinct du
+     * code postal : une commune a un seul code INSEE mais parfois plusieurs codes postaux.
+     */
+    @Size(max = 5)
+    @Column(name = "commune_insee_code", length = 5)
+    private String communeInseeCode;
+
+    /** Usage du logement en France ; {@code null} = non renseigne (ou hors France). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fr_rental_use", length = 30)
+    private FrRentalUse frRentalUse;
+
     /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). Pilote la
      *  fenetre de validite des codes d'acces serrure (sinon heure serveur). */
     @Column(name = "timezone", length = 64)
@@ -345,6 +359,11 @@ public class Property {
         return country;
     }
     
+    public String getCommuneInseeCode() { return communeInseeCode; }
+    public void setCommuneInseeCode(String communeInseeCode) { this.communeInseeCode = communeInseeCode; }
+    public FrRentalUse getFrRentalUse() { return frRentalUse; }
+    public void setFrRentalUse(FrRentalUse frRentalUse) { this.frRentalUse = frRentalUse; }
+
     public String getCountryCode() {
         return countryCode;
     }

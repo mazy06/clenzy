@@ -48,10 +48,15 @@ class GuestDeclarationServiceTest {
             onlineCheckInService, complianceSubmissionService);
     }
 
+    /** Logement marocain : règle historique (pièce d'identité, télétransmission DGSN). */
     private Reservation reservation() {
+        return reservation("MA");
+    }
+
+    private Reservation reservation(String country) {
         Property p = new Property();
         p.setId(PROPERTY_ID);
-        p.setCountryCode("FR");
+        p.setCountryCode(country);
         Reservation r = new Reservation();
         r.setId(RESERVATION_ID);
         r.setOrganizationId(ORG_ID);
@@ -180,7 +185,7 @@ class GuestDeclarationServiceTest {
         GuestDeclaration primary = saved.get(0);
         assertTrue(primary.isPrimary());
         assertEquals(ORG_ID, primary.getOrganizationId());
-        assertEquals("FR", primary.getCountryCode());
+        assertEquals("MA", primary.getCountryCode());
         assertEquals("Jean", primary.getFirstName());
         assertEquals(DeclarationStatus.COMPLETED, primary.getStatus()); // tous champs requis présents
 
@@ -242,5 +247,105 @@ class GuestDeclarationServiceTest {
         assertThrows(IllegalArgumentException.class,
             () -> service().submitDeclaration(RESERVATION_ID, request));
         verify(declarationRepository, never()).saveAll(any());
+    }
+
+    // ── France : fiche individuelle de police (CESEDA R814-1 à R814-3) ──
+
+    private Reservation frenchStay() {
+        Reservation r = reservation("FR");
+        r.setCheckIn(java.time.LocalDate.of(2026, 7, 10));
+        r.setCheckOut(java.time.LocalDate.of(2026, 7, 17));
+        return r;
+    }
+
+    private GuestDeclarationRequest.Declarant foreignAdult() {
+        return new GuestDeclarationRequest.Declarant(
+            "John", "Smith", null, "1985-03-02", "Leeds", "GB", "1 High St, Leeds", "GB",
+            "PASSPORT", "999", "+447700900000", "john@example.com");
+    }
+
+    private void frenchEnabled() {
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(frenchStay()));
+        when(declarationRepository.findByReservationIdOrderByIdAsc(RESERVATION_ID)).thenReturn(List.of());
+        when(regulatoryConfigRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.POLICE_FORM, ORG_ID))
+            .thenReturn(Optional.of(policeForm(true)));
+        lenient().when(onlineCheckInService.getByReservation(RESERVATION_ID, ORG_ID)).thenReturn(Optional.empty());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<GuestDeclaration> saved() {
+        ArgumentCaptor<List<GuestDeclaration>> captor = ArgumentCaptor.forClass(List.class);
+        verify(declarationRepository).saveAll(captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void france_frenchNational_isExemptAndOnlyIdentityIsKept() {
+        frenchEnabled();
+        GuestDeclarationRequest.Declarant french = new GuestDeclarationRequest.Declarant(
+            "Jean", "Dupont", null, "1990-05-12", "Lyon", "FR", "10 rue de la Paix", "FR",
+            "ID_CARD", "X1", "0600000000", "jean@example.com");
+
+        service().submitDeclaration(RESERVATION_ID, new GuestDeclarationRequest(List.of(french)));
+
+        GuestDeclaration d = saved().get(0);
+        assertTrue(d.isExempt());
+        assertEquals(DeclarationStatus.COMPLETED, d.getStatus());
+        assertEquals("Jean", d.getFirstName());
+        // Minimisation : rien d'autre que l'identité n'est conservé pour un dispensé.
+        assertNull(d.getBirthDate());
+        assertNull(d.getIdDocumentNumber());
+        assertNull(d.getPhone());
+        verify(complianceSubmissionService, never()).submitForReservation(anyLong(), anyLong());
+    }
+
+    @Test
+    void france_foreignerWithoutCertification_staysPending() {
+        frenchEnabled();
+
+        service().submitDeclaration(RESERVATION_ID, new GuestDeclarationRequest(List.of(foreignAdult()), false));
+
+        assertEquals(DeclarationStatus.PENDING, saved().get(0).getStatus());
+    }
+
+    @Test
+    void france_certifiedForeigner_isCompletedSignedRetainedAndHasNoIdDocument() {
+        frenchEnabled();
+
+        service().submitDeclaration(RESERVATION_ID, new GuestDeclarationRequest(List.of(foreignAdult()), true));
+
+        GuestDeclaration d = saved().get(0);
+        assertEquals(DeclarationStatus.COMPLETED, d.getStatus());
+        assertNotNull(d.getSignedAt());
+        assertEquals("+447700900000", d.getPhone());
+        assertEquals("john@example.com", d.getEmail());
+        // La fiche française ne comporte pas de pièce d'identité : elle n'est pas collectée.
+        assertNull(d.getIdDocumentNumber());
+        // Conservée par l'exploitant, jamais télétransmise.
+        verify(complianceSubmissionService, never()).submitForReservation(anyLong(), anyLong());
+    }
+
+    @Test
+    void france_childUnderFifteen_needsOnlyIdentityAndBirth() {
+        frenchEnabled();
+        GuestDeclarationRequest.Declarant child = new GuestDeclarationRequest.Declarant(
+            "Lily", "Smith", null, "2016-01-01", null, "GB", null, null, null, null, null, null);
+
+        service().submitDeclaration(RESERVATION_ID, new GuestDeclarationRequest(List.of(foreignAdult(), child), true));
+
+        assertEquals(DeclarationStatus.COMPLETED, saved().get(1).getStatus());
+    }
+
+    @Test
+    void france_requirementsCarryTheFrenchRules() {
+        frenchEnabled();
+
+        DataCollectionInfo info = service().computeRequirements(RESERVATION_ID);
+
+        assertTrue(info.required());
+        assertEquals("FR", info.rules().exemptNationality());
+        assertTrue(info.rules().certificationRequired());
+        assertTrue(info.rules().retainedLocally());
+        assertFalse(info.rules().primaryFields().contains("idDocumentNumber"));
     }
 }

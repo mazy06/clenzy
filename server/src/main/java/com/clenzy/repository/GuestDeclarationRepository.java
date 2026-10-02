@@ -44,4 +44,19 @@ public interface GuestDeclarationRepository extends JpaRepository<GuestDeclarati
      */
     @Query("SELECT d.id FROM GuestDeclaration d WHERE d.createdAt <= :cutoff ORDER BY d.id ASC")
     List<Long> findIdsCreatedBefore(@Param("cutoff") LocalDateTime cutoff, Pageable pageable);
+
+    /** Purge : fiches dont le séjour s'est terminé au plus tard à {@code cutoff} (6 mois légaux depuis le départ). */
+    @Query("SELECT COUNT(d) FROM GuestDeclaration d WHERE d.reservation.checkOut <= :cutoff")
+    long countEndedOnOrBefore(@Param("cutoff") java.time.LocalDate cutoff);
+
+    @Query("SELECT d.id FROM GuestDeclaration d WHERE d.reservation.checkOut <= :cutoff ORDER BY d.id ASC")
+    List<Long> findIdsEndedOnOrBefore(@Param("cutoff") java.time.LocalDate cutoff, Pageable pageable);
+
+    /** Registre de police : fiches d'un logement dont le séjour chevauche {@code [from, to]}. */
+    @Query("SELECT d FROM GuestDeclaration d JOIN FETCH d.reservation r "
+        + "WHERE d.organizationId = :orgId AND r.property.id = :propertyId "
+        + "AND r.checkIn <= :to AND r.checkOut >= :from ORDER BY r.checkIn ASC, d.id ASC")
+    List<GuestDeclaration> findForRegister(@Param("orgId") Long orgId, @Param("propertyId") Long propertyId,
+                                           @Param("from") java.time.LocalDate from,
+                                           @Param("to") java.time.LocalDate to);
 }

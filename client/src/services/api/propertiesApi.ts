@@ -32,6 +32,8 @@ export interface Property {
   postalCode: string;
   country: string;
   countryCode?: string;
+  /** Commune INSEE déduite de l'adresse (France), lecture seule. */
+  communeInseeCode?: string | null;
   /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). */
   timezone?: string;
   defaultCleaningType?: 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';

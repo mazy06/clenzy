@@ -399,6 +399,15 @@ public class ChannexBookingService {
         r.setRoomRevenue(booking.amount());
         r.setOtaFeeAmount(resolveOtaFee(booking));
         r.setExternalUid(externalUid);
+        // Régime d'encaissement LU dans le payload quand Channex le donne : un séjour Booking.com
+        // sans « Payments by Booking » est encaissé par l'hôte — et c'est alors lui, pas la
+        // plateforme, qui collecte la taxe de séjour. Sans l'information, la déduction par
+        // canal (OtaPaidSources) s'applique à la persistance.
+        if (booking.paymentCollect() != null) {
+            r.setPaymentCollection(booking.collectedByProperty()
+                ? com.clenzy.model.PaymentCollection.PMS
+                : com.clenzy.model.PaymentCollection.CHANNEL);
+        }
         // OTA reservation code (visible au guest) — utile pour le support
         r.setConfirmationCode(booking.otaReservationCode() != null
             ? booking.otaReservationCode() : ("CHX-" + booking.id().substring(0, Math.min(8, booking.id().length()))));

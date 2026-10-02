@@ -361,8 +361,13 @@ export const reservationsApi = {
     return apiClient.get<Reservation[]>('/reservations/search', { params: { q } });
   },
 
-  async create(data: CreateReservationData): Promise<Reservation> {
-    return apiClient.post<Reservation>('/reservations', data);
+  /**
+   * `overrideNightsCap` : dérogation EXPLICITE au plafond annuel de nuitées (résidence
+   * principale, France). Le serveur l'accepte mais prévient les gestionnaires.
+   */
+  async create(data: CreateReservationData, options?: { overrideNightsCap?: boolean }): Promise<Reservation> {
+    return apiClient.post<Reservation>('/reservations', data,
+      options?.overrideNightsCap ? { params: { overrideNightsCap: true } } : undefined);
   },
 
   async update(id: number, data: UpdateReservationData): Promise<Reservation> {

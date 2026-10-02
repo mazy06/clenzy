@@ -128,7 +128,16 @@ public record WelcomeGuidePublicDto(
      * @param complete      true si rien n'est requis OU si la declaration est complete
      * @param missingFields champs encore manquants a renseigner (vide si {@code complete})
      */
-    public record DataCollectionInfo(boolean required, boolean complete, List<String> missingFields) {}
+    /**
+     * @param rules regles du pays du logement (champs par voyageur, dispense, signature) ;
+     *              {@code null} quand aucune collecte n'est due
+     */
+    public record DataCollectionInfo(boolean required, boolean complete, List<String> missingFields,
+                                     com.clenzy.service.compliance.DeclarationRules rules) {
+        public DataCollectionInfo(boolean required, boolean complete, List<String> missingFields) {
+            this(required, complete, missingFields, null);
+        }
+    }
 
     /** Contexte du sejour courant (nullable si token sans reservation). */
     public record StayInfo(

@@ -34,6 +34,7 @@ const DEFAULT_VERB: ActionVerb = {
  */
 const VERBS: Record<string, ActionVerb> = {
   CALENDAR_BLOCK: { labelKey: 'supervision.verbs.block', fallback: 'Bloquer', Icon: CalendarToday },
+  NIGHTS_CAP_CLOSE: { labelKey: 'supervision.verbs.closeCalendar', fallback: 'Fermer le calendrier', Icon: CalendarToday },
   CLEANING_REQUEST: { labelKey: 'supervision.verbs.schedule', fallback: 'Planifier', Icon: Schedule },
   REASSIGN_CLEANING: { labelKey: 'supervision.verbs.reassign', fallback: 'Réaffecter', Icon: Refresh },
   DEPOSIT_REFUND: { labelKey: 'supervision.verbs.refund', fallback: 'Rembourser', Icon: Payments },

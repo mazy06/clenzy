@@ -186,6 +186,7 @@ public class SupervisionCardTrustService {
             case SupervisionActionType.REVIEW_DRAFT_REPLY -> "Préparer le brouillon de réponse d'avis";
             case SupervisionActionType.PRICE_DROP -> "Ajuster les tarifs des créneaux creux";
             case SupervisionActionType.CALENDAR_BLOCK -> "Bloquer le calendrier (incidents bruit)";
+            case SupervisionActionType.NIGHTS_CAP_CLOSE -> "Fermer le calendrier (plafond de nuitées atteint)";
             case SupervisionActionType.DEPOSIT_RELEASE -> "Libérer la caution après le départ";
             case SupervisionActionType.DEPOSIT_REFUND -> "Rembourser la caution après annulation";
             case SupervisionActionType.PAYMENT_REMINDER -> "Relancer le paiement échoué";

@@ -1325,7 +1325,8 @@
       "order": "Order",
       "accept": "Accept",
       "erase": "Erase",
-      "publish": "Publish"
+      "publish": "Publish",
+      "closeCalendar": "Close calendar"
     },
     "schedule": {
       "title": "Schedule the job",
@@ -1444,6 +1445,13 @@
         "c2": "With nobody available, the request stays open: it will need a manual assignment.",
         "cta": "Restart the search",
         "title": "Restart the search for a provider"
+      },
+      "nightsCapClose": {
+        "title": "Close the calendar until 31 December",
+        "cta": "Close the calendar",
+        "c1": "Free nights become unsellable on every channel until the end of the year.",
+        "c2": "Existing bookings are kept.",
+        "c3": "Rejecting the card means overriding the legal cap: managers are notified."
       }
     },
     "params": {
@@ -4693,7 +4701,36 @@
     "reactivateBody": "will reappear in the planning, the searches and the booking engine.",
     "icalTip": "Tip: once a property is created, plug in its iCal link to sync the bookings automatically.",
     "noPhone": "No phone provided",
-    "noEmail": "No email provided"
+    "noEmail": "No email provided",
+    "frProfile": {
+      "title": "France regulatory profile",
+      "use": "Property use",
+      "useUnset": "Not set",
+      "uses": {
+        "principal": "Main residence",
+        "secondary": "Second home",
+        "dedicated": "Dedicated holiday rental",
+        "guestHouse": "Bed & breakfast"
+      },
+      "insee": "Municipality (INSEE code)",
+      "maxNights": "Yearly cap (nights)",
+      "maxNightsHint": "120 nights at most; your municipality may lower it to 90.",
+      "policeForm": "Police record for foreign guests",
+      "nightsUsed": "Nights rented in {{year}}",
+      "nightsLeft": "{{count}} left",
+      "registration": {
+        "label": "Registration number",
+        "valid": "Compliant",
+        "absent": "Missing",
+        "malformed": "To fix",
+        "mismatch": "Other municipality",
+        "unchecked": "Not checked",
+        "hint": "Mandatory on every listing: add it below as “Tourism registration”."
+      },
+      "policeRegister": "Police register (6 months)",
+      "inseeDeduced": "Deduced from the property address (French national address base).",
+      "inseeUnresolved": "Municipality not found: check the property address, postcode and city."
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -5441,7 +5478,12 @@
       "blockNight": "night blocked",
       "blockNights": "nights blocked",
       "blockErrorRequired": "Please select a property and dates.",
-      "blockErrorFailed": "Failed to block the period"
+      "blockErrorFailed": "Failed to block the period",
+      "nightsCap": {
+        "title": "Yearly night cap exceeded",
+        "hint": "Main residence: 120 nights a year at most. You may override; the organisation’s managers will be notified.",
+        "override": "Override and create"
+      }
     },
     "compliance": {
       "title": "Police record",
@@ -5453,7 +5495,15 @@
       "success": "Submitted to the service",
       "notSubmitted": "Not submitted",
       "providerPending": "Provider integration pending",
-      "error": "Submission failed"
+      "error": "Submission failed",
+      "exempt": "Exempt",
+      "toComplete": "To complete",
+      "retained": "Kept on file",
+      "downloadPdf": "Download the forms (PDF)",
+      "downloadError": "Download failed",
+      "exemptHint": "French national: no form",
+      "purgeAfter": "Deleted on {{date}}",
+      "retainedHint": "Handed to the police on request"
     },
     "title": "Reservations",
     "subtitle": "View and manage your property reservations",
@@ -12207,7 +12257,10 @@
       "persons": "Pers.",
       "commune": "Municipality",
       "tax": "Tax",
-      "total": "Total collected"
+      "total": "Total collected",
+      "platformCollected": "Collected by the platform",
+      "totalToRemit": "Total to remit to the municipality",
+      "platformTotal": "Already collected and remitted by platforms (do not declare)"
     },
     "errors": {
       "save": "Could not save the rate.",
@@ -12228,6 +12281,24 @@
       "status": "Status",
       "subtitle": "One closed quarter = one entry. Once you have filed with the authority, mark the return (reference optional) — the Compliance agent card resolves.",
       "title": "Filing register"
+    },
+    "reference": {
+      "category": "Property classification",
+      "prefill": "Prefill (official reference)",
+      "help": "Rates voted by the municipality, published by the DGFiP. Île-de-France: 15% and 200% regional surcharges included.",
+      "inseeRequired": "Enter the municipality INSEE code first (5 characters).",
+      "applied": "{{year}} municipal rates taken from the DGFiP reference — check them before saving.",
+      "notFound": "No published rate for this municipality and category (the tax may not be in force).",
+      "error": "Official reference unavailable, please retry later.",
+      "cat": {
+        "unclassified": "Unclassified",
+        "stars1": "1-star rental",
+        "stars2": "2-star rental",
+        "stars3": "3-star rental",
+        "stars4": "4-star rental",
+        "stars5": "5-star rental",
+        "guestHouse": "Bed & breakfast"
+      }
     }
   },
   "marketPositioning": {
@@ -18829,5 +18900,23 @@
     "reviewTitle": "Review selection",
     "reviewIntro": "Adjust the quantity and room of each item before adding it.",
     "browseMore": "Keep browsing"
+  },
+  "frCompliance": {
+    "title": "France compliance",
+    "property": "Property",
+    "registration": "Registration number",
+    "nightsCap": "Night cap",
+    "policeForm": "Police record",
+    "touristTax": "Tourist tax",
+    "notRequired": "Not required",
+    "ok": "Compliant",
+    "missing": "Missing",
+    "toFix": "To fix",
+    "noCap": "No cap",
+    "active": "Active",
+    "inactive": "Inactive",
+    "configured": "Rates set",
+    "noBareme": "No rates",
+    "communeUnresolved": "Municipality not found — check the address"
   }
 }

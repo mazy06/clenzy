@@ -95,6 +95,24 @@ public class GuestDeclaration {
     @Column(name = "id_document_number", length = 500)
     private String idDocumentNumber;
 
+    /** Telephone mobile (France, CESEDA R814-2). */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "phone", length = 500)
+    private String phone;
+
+    /** Adresse electronique (France, CESEDA R814-2). */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "email", length = 500)
+    private String email;
+
+    /** Certification cochee par le voyageur — vaut signature de la fiche (France). */
+    @Column(name = "signed_at")
+    private LocalDateTime signedAt;
+
+    /** Voyageur dispense de fiche (ressortissant francais en France) : identite seule. */
+    @Column(name = "exempt", nullable = false)
+    private boolean exempt = false;
+
     /** Juridiction de la fiche (FR / MA / SA…). Non chiffre : sert au routage / aux regles, pas une PII. */
     @Column(name = "country_code", length = 2)
     private String countryCode;
@@ -134,6 +152,14 @@ public class GuestDeclaration {
     private LocalDateTime updatedAt;
 
     // Getters / setters
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public LocalDateTime getSignedAt() { return signedAt; }
+    public void setSignedAt(LocalDateTime signedAt) { this.signedAt = signedAt; }
+    public boolean isExempt() { return exempt; }
+    public void setExempt(boolean exempt) { this.exempt = exempt; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getOrganizationId() { return organizationId; }

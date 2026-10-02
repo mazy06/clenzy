@@ -499,9 +499,9 @@ const PublicGuide: React.FC = () => {
   // sans friction. Si rien n'est requis (dataCollection null ou complete), accès direct.
   const dc = guide.dataCollection;
   if (dc && dc.required && !dc.complete) {
-    const handleDeclarationSubmit = async (declarants: GuestDeclarant[]): Promise<boolean> => {
+    const handleDeclarationSubmit = async (declarants: GuestDeclarant[], certified: boolean): Promise<boolean> => {
       if (!token) return false;
-      const result = await submitGuideDeclaration(API_BASE, token, { declarants });
+      const result = await submitGuideDeclaration(API_BASE, token, { declarants, certified });
       setGuide((prev) => (prev ? { ...prev, dataCollection: result } : prev));
       return result.complete;
     };
@@ -514,6 +514,7 @@ const PublicGuide: React.FC = () => {
             labels={L}
             theme={theme}
             missingFields={dc.missingFields}
+            rules={dc.rules}
             onSubmit={handleDeclarationSubmit}
           />
         </div>

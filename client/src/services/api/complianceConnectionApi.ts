@@ -45,6 +45,15 @@ export interface DeclarationSummary {
   providerType?: string | null;
   submittedAt?: string | null;
   submittedToProvider: boolean;
+  /**
+   * Fiche CONSERVÉE par l'exploitant et remise sur réquisition, sans télétransmission
+   * (France, CESEDA R814-1 à R814-3). Pas de « Resoumettre » : il n'y a rien à transmettre.
+   */
+  retainedLocally?: boolean;
+  /** Voyageur dispensé de fiche (ressortissant français en France). */
+  exempt?: boolean;
+  /** Date de purge obligatoire (6 mois après le départ). */
+  purgeAfter?: string | null;
 }
 
 /** Résultat d'une (re)soumission. {@code pending} = provider non intégrable (501). */
@@ -82,7 +91,40 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T>
   return response.json();
 }
 
+/** Télécharge un PDF authentifié (fiche individuelle, registre de police). */
+async function downloadPdf(endpoint: string, filename: string): Promise<void> {
+  const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}${endpoint}`;
+  const token = getAccessToken();
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error(`Erreur ${response.status} lors du téléchargement`);
+  }
+  const blobUrl = window.URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 200);
+}
+
 export const complianceConnectionApi = {
+  /** Fiches individuelles de police d'une réservation (PDF, accès tracé au journal d'audit). */
+  async downloadReservationPoliceForms(reservationId: number): Promise<void> {
+    return downloadPdf(`/compliance/declarations/by-reservation/${reservationId}/pdf`,
+      `fiches-police-reservation-${reservationId}.pdf`);
+  },
+
+  /** Registre des fiches d'un logement sur une période (réponse à une réquisition). */
+  async downloadPoliceRegister(propertyId: number, from: string, to: string): Promise<void> {
+    return downloadPdf(`/compliance/declarations/register?propertyId=${propertyId}&from=${from}&to=${to}`,
+      `registre-police-${propertyId}-${from}-${to}.pdf`);
+  },
+
   async connect(provider: ComplianceProvider, req: ComplianceConnectionRequest): Promise<ComplianceConnectionStatus> {
     return fetchJson(`/integrations/compliance/${provider}/connect`, {
       method: 'POST',

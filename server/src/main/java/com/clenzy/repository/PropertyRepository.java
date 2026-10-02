@@ -198,6 +198,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
         + "WHERE id=:id AND organization_id=:orgId FOR SHARE", nativeQuery = true)
     java.util.Optional<MarketplaceLocation> lockMarketplaceLocation(Long id, Long orgId);
 
+    @Query("SELECT p.name FROM Property p WHERE p.id = :id AND p.organizationId = :orgId")
+    java.util.Optional<String> findNameByIdAndOrgId(@Param("id") Long id, @Param("orgId") Long orgId);
+
     @Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE p.id = :id AND p.organizationId = :orgId")
     java.util.Optional<Property> findByIdWithOwner(@Param("id") Long id, @Param("orgId") Long orgId);
 

@@ -187,7 +187,7 @@ resilience4j:
 clenzy:
   retention:
     purge:
-      # Politique métier validée : seule cette cible est configurée ici.
+      # Politique métier validée : candidatures marketplace et fiches de police.
       enabled: true
       scheduler-enabled: true
       dry-run-default: true
@@ -197,6 +197,12 @@ clenzy:
           description: Candidatures refusées et justificatifs
           retention-days: 90
           legal-basis: Politique Baitly de minimisation après notification du refus
+        - name: police-records
+          description: Fiches de police / déclarations voyageurs (FR, MA, SA)
+          # Six mois comptés depuis le DÉPART du séjour (GuestDeclarationPurgeSource) —
+          # aligné sur GuestDeclarationPurgeSource.RETENTION_DAYS, affiché aux opérateurs.
+          retention-days: 180
+          legal-basis: CESEDA R814-3 (France) — conservation six mois, puis suppression
   # Constellation d'agents — balayage autonome des logements.
   # Le déclenchement nominal est événementiel (arrivée d'un avis, d'une
   # réservation… → marquage « dirty » → scan du seul logement concerné) ; le

@@ -65,6 +65,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(NightsCapExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleNightsCapExceeded(NightsCapExceededException ex) {
+        logger.info("Plafond de nuitées : {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Plafond annuel de nuitées");
+        body.put("code", NightsCapExceededException.CODE);
+        body.put("message", ex.getMessage());
+        body.put("propertyId", ex.getPropertyId());
+        // Derogation possible, mais explicite et notifiee (decision produit 2026-10-01).
+        body.put("overridable", true);
+        body.put("status", HttpStatus.UNPROCESSABLE_ENTITY.value());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+    }
+
     @ExceptionHandler(RestrictionViolationException.class)
     public ResponseEntity<Map<String, Object>> handleRestrictionViolation(RestrictionViolationException ex) {
         logger.warn("Violation restriction de reservation: {}", ex.getMessage());

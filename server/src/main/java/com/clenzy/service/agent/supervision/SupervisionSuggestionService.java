@@ -476,6 +476,21 @@ public class SupervisionSuggestionService {
         }
     }
 
+    /**
+     * Rejet PAR UN OPÉRATEUR : identique à {@link #dismiss}, mais renvoie la carte EN
+     * ATTENTE effectivement rejetée — certains refus ont une portée propre (refuser de
+     * fermer un calendrier au plafond de nuitées est une dérogation qu'on notifie).
+     * Vide si la carte est absente, d'une autre org, ou déjà traitée.
+     */
+    @Transactional
+    public java.util.Optional<SupervisionSuggestion> dismissByOperator(Long organizationId, Long suggestionId) {
+        java.util.Optional<SupervisionSuggestion> pending = repository
+                .findByIdAndOrganizationId(suggestionId, organizationId)
+                .filter(s -> SupervisionSuggestion.STATUS_PENDING.equals(s.getStatus()));
+        dismiss(organizationId, suggestionId);
+        return pending;
+    }
+
     /** Rejette une suggestion (ownership org-scopé). No-op si absente/autre org. */
     @Transactional
     public void dismiss(Long organizationId, Long suggestionId) {

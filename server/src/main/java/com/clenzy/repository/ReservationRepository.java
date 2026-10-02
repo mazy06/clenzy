@@ -35,6 +35,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         + "ORDER BY r.checkIn DESC")
     List<Reservation> findGuestDirectBookings(@Param("orgId") Long orgId, @Param("email") String email, Pageable pageable);
 
+    /**
+     * Séjours qui consomment des nuits louées d'un logement sur {@code [from, toExclusive)} —
+     * base du plafond annuel de nuitées (résidence principale, Code du tourisme L324-1-1).
+     *
+     * <p>Exclut les annulations (une nuit annulée n'est pas louée) mais PAS les séjours masqués
+     * du planning : masquer est un choix d'affichage, la nuit reste louée. Bornes en intervalle
+     * semi-ouvert, comme les nuits : un départ le 1er janvier compte la nuit du 31 décembre.</p>
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.property.id = :propertyId AND r.organizationId = :orgId "
+        + "AND r.status <> 'cancelled' AND r.checkIn < :toExclusive AND r.checkOut > :from "
+        + "ORDER BY r.checkIn ASC")
+    List<Reservation> findRentedStaysOverlapping(@Param("propertyId") Long propertyId,
+                                                 @Param("orgId") Long orgId,
+                                                 @Param("from") LocalDate from,
+                                                 @Param("toExclusive") LocalDate toExclusive);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id IN :propertyIds " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyIdsAndDateRange(

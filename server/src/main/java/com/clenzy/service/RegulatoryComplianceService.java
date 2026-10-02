@@ -88,29 +88,19 @@ public class RegulatoryComplianceService {
 
     /**
      * Calcule la conformite ALUR (120 jours) pour une propriete sur une annee.
+     *
+     * <p>Les nuits sont comptees sur {@code [1er janvier, 1er janvier suivant)} : un sejour a
+     * cheval sur deux annees n'impute a chacune que ses propres nuits, et un depart le 1er
+     * janvier compte bien la nuit du 31 decembre. Les annulations ne consomment rien.</p>
      */
     public RegulatoryComplianceDto checkAlurCompliance(Long propertyId, Long orgId, int year) {
-        LocalDate yearStart = LocalDate.of(year, 1, 1);
-        LocalDate yearEnd = LocalDate.of(year, 12, 31);
-
         Optional<RegulatoryConfig> configOpt = configRepository.findByPropertyAndType(
             propertyId, RegulatoryType.ALUR_120_DAYS, orgId);
 
         int maxDays = configOpt.map(RegulatoryConfig::getMaxDaysPerYear).orElse(DEFAULT_MAX_DAYS);
         String regNumber = configOpt.map(RegulatoryConfig::getRegistrationNumber).orElse(null);
 
-        List<Reservation> reservations = reservationRepository.findByPropertyIdsAndDateRange(
-            List.of(propertyId), yearStart, yearEnd, orgId);
-
-        int totalDays = 0;
-        for (Reservation r : reservations) {
-            if (r.getCheckIn() != null && r.getCheckOut() != null) {
-                LocalDate start = r.getCheckIn().isBefore(yearStart) ? yearStart : r.getCheckIn();
-                LocalDate end = r.getCheckOut().isAfter(yearEnd) ? yearEnd : r.getCheckOut();
-                totalDays += (int) ChronoUnit.DAYS.between(start, end);
-            }
-        }
-
+        int totalDays = rentedNightsInYear(propertyId, orgId, year);
         int remaining = maxDays - totalDays;
         boolean compliant = totalDays <= maxDays;
 
@@ -121,13 +111,35 @@ public class RegulatoryComplianceService {
             alert = "ATTENTION: " + totalDays + "/" + maxDays + " jours loues, proche du seuil";
         }
 
-        String propertyName = propertyRepository.findById(propertyId)
-            .map(Property::getName).orElse("Unknown");
+        // Nom resolu DANS l'organisation : un propertyId d'une autre org ne fuit rien.
+        String propertyName = propertyRepository.findNameByIdAndOrgId(propertyId, orgId).orElse("Unknown");
 
         return new RegulatoryComplianceDto(
             propertyId, propertyName, year, totalDays, maxDays,
             Math.max(0, remaining), compliant, regNumber, alert
         );
+    }
+
+    /** Nuits louees (hors annulations) d'une propriete sur une annee civile. */
+    public int rentedNightsInYear(Long propertyId, Long orgId, int year) {
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate toExclusive = from.plusYears(1);
+        int total = 0;
+        for (Reservation r : reservationRepository.findRentedStaysOverlapping(
+                propertyId, orgId, from, toExclusive)) {
+            total += overlapNights(r.getCheckIn(), r.getCheckOut(), from, toExclusive);
+        }
+        return total;
+    }
+
+    /** Nuits de {@code [checkIn, checkOut)} comprises dans {@code [from, toExclusive)}. */
+    public static int overlapNights(LocalDate checkIn, LocalDate checkOut, LocalDate from, LocalDate toExclusive) {
+        if (checkIn == null || checkOut == null) {
+            return 0;
+        }
+        LocalDate start = checkIn.isBefore(from) ? from : checkIn;
+        LocalDate end = checkOut.isAfter(toExclusive) ? toExclusive : checkOut;
+        return end.isAfter(start) ? (int) ChronoUnit.DAYS.between(start, end) : 0;
     }
 
     /**
@@ -146,13 +158,24 @@ public class RegulatoryComplianceService {
 
     /**
      * Verifie si une nouvelle reservation violerait la limite ALUR.
+     *
+     * <p>Chaque annee civile touchee par le sejour est verifiee avec ses seules nuits : un
+     * sejour du 28 decembre au 4 janvier pese 4 nuits sur l'annee N et 3 sur N+1.</p>
      */
     public boolean wouldExceedAlurLimit(Long propertyId, Long orgId,
                                          LocalDate checkIn, LocalDate checkOut) {
-        int year = checkIn.getYear();
-        RegulatoryComplianceDto compliance = checkAlurCompliance(propertyId, orgId, year);
-
-        int newDays = (int) ChronoUnit.DAYS.between(checkIn, checkOut);
-        return (compliance.daysRented() + newDays) > compliance.maxDays();
+        if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+            return false;
+        }
+        int maxDays = configRepository.findByPropertyAndType(propertyId, RegulatoryType.ALUR_120_DAYS, orgId)
+            .map(RegulatoryConfig::getMaxDaysPerYear).orElse(DEFAULT_MAX_DAYS);
+        for (int year = checkIn.getYear(); year <= checkOut.minusDays(1).getYear(); year++) {
+            LocalDate from = LocalDate.of(year, 1, 1);
+            int newNights = overlapNights(checkIn, checkOut, from, from.plusYears(1));
+            if (rentedNightsInYear(propertyId, orgId, year) + newNights > maxDays) {
+                return true;
+            }
+        }
+        return false;
     }
 }

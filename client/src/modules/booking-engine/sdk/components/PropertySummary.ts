@@ -86,6 +86,14 @@ export function createPropertySummary(state: StateManager, baseUrl: string, i18n
       info.appendChild(desc);
     }
 
+    // Code du tourisme L324-1-1 : le numéro d'enregistrement figure sur toute annonce.
+    if (prop.registrationNumber) {
+      const reg = document.createElement('p');
+      reg.className = 'cb-text-xs cb-text-secondary cb-property-summary__registration';
+      reg.textContent = `${i18n.t('detail.registration')} : ${prop.registrationNumber}`;
+      info.appendChild(reg);
+    }
+
     if (prop.priceFrom != null) {
       info.appendChild(buildPrice(prop.priceFrom, prop.currency, i18n));
     }

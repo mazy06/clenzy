@@ -47,6 +47,11 @@ public class ComplianceScanner {
     private final com.clenzy.service.compliance.ObligationOwnership obligationOwnership;
     private final SupervisionSuggestionService suggestionService;
     private final java.time.Clock clock;
+    private final com.clenzy.service.regulatory.NightsCapService nightsCapService;
+    private final com.clenzy.service.RegulatoryComplianceService regulatoryComplianceService;
+
+    /** Carte « bientôt atteint » quand il reste au plus ce nombre de nuits. */
+    static final int NIGHTS_CAP_NEAR_THRESHOLD = 15;
 
     public ComplianceScanner(GuestDeclarationRepository declarationRepository,
                              ManagementContractRepository contractRepository,
@@ -58,7 +63,11 @@ public class ComplianceScanner {
                              com.clenzy.repository.PrivacyRequestRepository privacyRequestRepository,
                              com.clenzy.service.compliance.ObligationOwnership obligationOwnership,
                              SupervisionSuggestionService suggestionService,
-                             java.time.Clock clock) {
+                             java.time.Clock clock,
+                             com.clenzy.service.regulatory.NightsCapService nightsCapService,
+                             com.clenzy.service.RegulatoryComplianceService regulatoryComplianceService) {
+        this.nightsCapService = nightsCapService;
+        this.regulatoryComplianceService = regulatoryComplianceService;
         this.declarationRepository = declarationRepository;
         this.contractRepository = contractRepository;
         this.contractSignatureService = contractSignatureService;
@@ -99,6 +108,18 @@ public class ComplianceScanner {
             scanExpiringLicenses(orgId, propertyId);
         } catch (Exception e) {
             log.debug("license scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanNightsCap(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("nights cap scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanFrRegistrationNumber(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("registration scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
         try {
@@ -147,6 +168,105 @@ public class ComplianceScanner {
                     "{\"requestId\":" + request.getId() + "}",
                     null, daysLeft <= 7 ? "critical" : "warning");
         }
+    }
+
+    /**
+     * Plafond annuel de nuitées d'une résidence principale (France, L324-1-1 IV).
+     *
+     * <ul>
+     *   <li>Reste ≤ {@value #NIGHTS_CAP_NEAR_THRESHOLD} nuits → carte INFO « bientôt atteint ».</li>
+     *   <li>Plafond atteint, jours encore vendables → carte {@code NIGHTS_CAP_CLOSE}
+     *       (« Fermer le calendrier »). La refuser est une DÉROGATION, notifiée.</li>
+     *   <li>Plafond DÉPASSÉ (réservation d'un canal, impossible à refuser) → même carte en
+     *       critique, et notification explicite des gestionnaires à sa création.</li>
+     * </ul>
+     *
+     * <p>Les nuits comptées incluent les séjours à venir déjà réservés : c'est ce qui
+     * sera loué, et c'est ce que la commune peut réclamer.</p>
+     */
+    private void scanNightsCap(Long orgId, Long propertyId) {
+        final var cap = nightsCapService.activeCap(propertyId, orgId);
+        if (cap.isEmpty()) {
+            return;
+        }
+        final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        final int year = today.getYear();
+        final int max = cap.get();
+        final int rented = regulatoryComplianceService.rentedNightsInYear(propertyId, orgId, year);
+        final int remaining = max - rented;
+        final String reachedTitle = "Plafond annuel de nuitées atteint (" + year + ")";
+        final String exceededTitle = "Plafond annuel de nuitées dépassé (" + year + ")";
+        final String nearTitle = "Plafond annuel de nuitées bientôt atteint (" + year + ")";
+
+        if (remaining > 0) {
+            // Condition levée (annulation, plafond relevé) : les cartes de fermeture n'ont plus d'objet.
+            suggestionService.dismissObsolete(orgId, propertyId, MODULE_CMP, reachedTitle);
+            suggestionService.dismissObsolete(orgId, propertyId, MODULE_CMP, exceededTitle);
+            if (remaining <= NIGHTS_CAP_NEAR_THRESHOLD) {
+                suggestionService.record(orgId, propertyId, MODULE_CMP, "nights_cap_near", nearTitle,
+                        rented + " nuit(s) louée(s) sur " + max + " autorisées cette année : il en reste "
+                                + remaining + ". Résidence principale louée en meublé de tourisme — "
+                                + "Code du tourisme L324-1-1. Au-delà, l'agent Conformité proposera de "
+                                + "fermer le calendrier jusqu'au 31 décembre.",
+                        null, "info");
+            }
+            return;
+        }
+        if (nightsCapService.freeDaysRestOfYear(propertyId, orgId, today) == 0) {
+            return; // déjà fermé : rien de vendable d'ici la fin de l'année
+        }
+        final boolean exceeded = rented > max;
+        final boolean created = suggestionService.recordActionableStrict(orgId, propertyId, MODULE_CMP, null,
+                exceeded ? exceededTitle : reachedTitle,
+                (exceeded
+                        ? rented + " nuits louées pour un plafond de " + max + " : une réservation importée d'un "
+                                + "canal a dépassé le plafond (un canal ne peut pas être refusé). "
+                        : rented + " nuits louées sur " + max + " autorisées : le plafond est atteint. ")
+                        + "« Fermer le calendrier » rend les nuits libres invendables jusqu'au 31 décembre sur "
+                        + "tous les canaux. Refuser cette carte revient à déroger au plafond légal : les "
+                        + "gestionnaires en seront prévenus.",
+                SupervisionActionType.NIGHTS_CAP_CLOSE, "{}", null, exceeded ? "critical" : "warning");
+        if (created && exceeded) {
+            final String name = propertyRepository.findNameByIdAndOrgId(propertyId, orgId).orElse(null);
+            nightsCapService.notifyChannelOverrun(orgId, propertyId, name, null,
+                    rented + " nuits louées en " + year + " pour un plafond de " + max);
+        }
+    }
+
+    /**
+     * Numéro d'enregistrement d'un meublé de tourisme en France (Code du tourisme
+     * L324-1-1) : obligatoire sur toute annonce, généralisé à toutes les communes par la
+     * loi du 19 novembre 2024. Absent ou faux → carte INFO : l'enregistrement est un acte
+     * en mairie (téléservice), aucun bouton ne peut le faire à la place de l'exploitant.
+     * Chambre d'hôtes exclue (déclaration distincte).
+     */
+    private void scanFrRegistrationNumber(Long orgId, Long propertyId) {
+        final var property = propertyRepository.findByIdWithOwner(propertyId, orgId).orElse(null);
+        if (property == null
+                || !com.clenzy.service.regulatory.FrRegulatoryProfileService.isRegistrationRequired(property)) {
+            return;
+        }
+        final String number = propertyLicenseRepository
+                .findFirstByPropertyIdAndOrganizationIdAndLicenseType(propertyId, orgId,
+                        com.clenzy.model.PropertyLicense.LicenseType.TOURISM_REGISTRATION)
+                .map(com.clenzy.model.PropertyLicense::getLicenseNumber)
+                .orElse(null);
+        final var verdict = com.clenzy.service.property.TourismLicense.check(
+                property.getCountryCode(), number, property.getCommuneInseeCode());
+        if (verdict == com.clenzy.service.property.TourismLicense.Verdict.VALID) {
+            return;
+        }
+        final boolean absent = verdict == com.clenzy.service.property.TourismLicense.Verdict.ABSENT;
+        suggestionService.record(orgId, propertyId, MODULE_CMP, "registration_missing",
+                absent ? "Numéro d'enregistrement en mairie manquant"
+                        : "Numéro d'enregistrement en mairie à corriger",
+                (absent
+                        ? "Ce meublé de tourisme n'a pas de numéro d'enregistrement. "
+                        : "Le numéro saisi ne correspond pas au format national ou à la commune du logement. ")
+                        + "Il est obligatoire sur toute annonce (Code du tourisme L324-1-1) et s'obtient "
+                        + "auprès de la mairie ou du téléservice national. Saisissez-le dans la fiche du "
+                        + "logement › Conformité : il sera repris sur les annonces.",
+                null, "warning");
     }
 
     /**
@@ -223,7 +343,8 @@ public class ComplianceScanner {
         final java.util.Map<Long, java.math.BigDecimal> byProperty = new java.util.LinkedHashMap<>();
         final java.util.Map<Long, String> communeOf = new java.util.HashMap<>();
         for (var line : report.lines()) {
-            if (line.propertyId() == null || line.taxAmount() == null) {
+            // Taxe collectée par la plateforme : elle la reverse elle-même, l'hôte ne la déclare pas.
+            if (line.propertyId() == null || line.taxAmount() == null || line.collectedByPlatform()) {
                 continue;
             }
             byProperty.merge(line.propertyId(), line.taxAmount(), java.math.BigDecimal::add);
@@ -282,8 +403,13 @@ public class ComplianceScanner {
     }
 
     private void scanPoliceDeclarations(Long orgId, Long propertyId) {
+        // France exclue : la fiche y est conservée, jamais télédéclarée (CESEDA R814-3) —
+        // proposer « Télédéclarer » inviterait à un geste qui n'existe pas.
         final List<GuestDeclaration> submittable = declarationRepository
-                .findSubmittableByProperty(orgId, propertyId, DeclarationStatus.COMPLETED);
+                .findSubmittableByProperty(orgId, propertyId, DeclarationStatus.COMPLETED)
+                .stream()
+                .filter(d -> !"FR".equalsIgnoreCase(d.getCountryCode()) && !d.isExempt())
+                .toList();
         // Qui déclare ? Le mandat le dit (défaut : l'exploitant). Quand le
         // propriétaire déclare, la conciergerie ne peut PAS le faire à sa place —
         // ses identifiants de téléservice ne l'engagent pas. Le geste qui lui

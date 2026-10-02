@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Add, DeleteOutline, Edit, GppGood } from '../../icons';
@@ -9,6 +9,7 @@ import {
   type PropertyLicense,
   type PropertyLicenseRequest,
 } from '../../services/api/propertyLicensesApi';
+import FrRegulatoryProfileCard from './FrRegulatoryProfileCard';
 
 interface Props {
   propertyId: number;
@@ -43,9 +44,13 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
   const [licenses, setLicenses] = useState<PropertyLicense[] | null>(null);
   const [editing, setEditing] = useState<{ id: number | null; form: PropertyLicenseRequest } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Une licence modifiée change le statut du numéro d'enregistrement du profil France.
+  const [profileRefresh, setProfileRefresh] = useState(0);
 
   const reload = React.useCallback(() => {
     propertyLicensesApi.list(propertyId).then(setLicenses).catch(() => setLicenses([]));
+    setProfileRefresh((n) => n + 1);
   }, [propertyId]);
 
   useEffect(() => { reload(); }, [reload]);
@@ -53,6 +58,7 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
   const save = async () => {
     if (!editing) return;
     setSaving(true);
+    setSaveError(null);
     try {
       if (editing.id == null) {
         await propertyLicensesApi.create(propertyId, editing.form);
@@ -61,6 +67,9 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
       }
       setEditing(null);
       reload();
+    } catch (e) {
+      // Numéro français refusé par le serveur (validation stricte) : le message dit quoi corriger.
+      setSaveError((e as { message?: string })?.message ?? t('common.error', 'Erreur'));
     } finally {
       setSaving(false);
     }
@@ -83,6 +92,8 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
   }
 
   return (
+    <div className="flex flex-col gap-4">
+    <FrRegulatoryProfileCard propertyId={propertyId} canEdit={canEdit} refreshKey={profileRefresh} />
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -123,11 +134,12 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
                 <TableCell className="tabular-nums">
                   <span className="inline-flex items-center gap-1.5">
                     {license.licenseNumber ?? '—'}
-                    {/* Le serveur ne se prononce que sur les formats qu'il connaît :
-                        un avertissement, jamais un blocage. Notre règle saoudienne
-                        vient d'une source secondaire, refuser l'enregistrement sur
-                        cette base coûterait plus qu'un numéro mal saisi. */}
-                    {license.formatVerdict === 'MALFORMED' && (
+                    {/* Le serveur ne se prononce que sur les formats qu'il connaît.
+                        Arabie saoudite : simple avertissement (règle de source
+                        secondaire). France : la saisie est refusée en amont, l'icône
+                        ne signale plus qu'un numéro ancien devenu incohérent (commune
+                        du logement modifiée depuis). */}
+                    {(license.formatVerdict === 'MALFORMED' || license.formatVerdict === 'COMMUNE_MISMATCH') && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="inline-flex text-warning-ink">
@@ -229,6 +241,7 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
                   id="license-number"
                   value={editing.form.licenseNumber ?? ''}
                   onChange={(e) => setField('licenseNumber', e.target.value || null)}
+                  placeholder={editing.form.licenseType === 'TOURISM_REGISTRATION' ? '75056000123AB' : undefined}
                 />
               </Field>
               <Field>
@@ -280,8 +293,9 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
                 />
               </Field>
             </div>
+            {saveError && <FieldError>{saveError}</FieldError>}
             <DialogFooter>
-              <Button variant="outline" disabled={saving} onClick={() => setEditing(null)}>
+              <Button variant="outline" disabled={saving} onClick={() => { setEditing(null); setSaveError(null); }}>
                 {t('common.cancel', 'Annuler')}
               </Button>
               <Button disabled={saving} onClick={save}>
@@ -293,5 +307,6 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
         </Dialog>
       )}
     </Card>
+    </div>
   );
 }

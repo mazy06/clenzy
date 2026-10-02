@@ -150,6 +150,7 @@ public class SuggestionPreviewService {
                 case SupervisionActionType.OWNER_WORKS_APPROVAL -> ownerWorks(suggestion, orgId);
                 case SupervisionActionType.MANDATE_SIGN_SEND -> mandateSign(suggestion, orgId);
                 case SupervisionActionType.CALENDAR_BLOCK -> calendarBlock(suggestion);
+                case SupervisionActionType.NIGHTS_CAP_CLOSE -> nightsCapClose();
                 case SupervisionActionType.GOODWILL_REFUND -> goodwillRefund(suggestion, orgId);
                 case SupervisionActionType.OWNER_REVENUE_NOTE -> ownerRevenueNote(suggestion, orgId);
                 case SupervisionActionType.CART_RECOVERY_SEND -> cartRecovery(suggestion, orgId);
@@ -387,6 +388,18 @@ public class SuggestionPreviewService {
                 List.of(days + " nuit(s) bloquée(s), du " + today + " au " + last + " inclus.",
                         "Ces nuits cessent d'être vendables sur tous les canaux.",
                         "Refusé si l'une d'elles est déjà réservée — vérifié au moment d'appliquer."),
+                null);
+    }
+
+    /** Plafond de nuitées : ce que la fermeture fait, et ce que coûte de la refuser. */
+    private SuggestionPreviewDto nightsCapClose() {
+        final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        return new SuggestionPreviewDto(
+                null, List.of(), null, null, false,
+                List.of("Les nuits encore libres du " + today + " au 31/12/" + today.getYear()
+                                + " cessent d'être vendables sur tous les canaux.",
+                        "Les réservations et blocages existants sont conservés.",
+                        "Refuser revient à déroger au plafond légal : les gestionnaires en sont prévenus."),
                 null);
     }
 

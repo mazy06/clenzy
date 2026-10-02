@@ -23,6 +23,12 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class PropertyLicenseController {
 
+    /**
+     * Ecriture reservee a l'exploitation : le numero d'enregistrement s'affiche sur les
+     * annonces et engage l'exploitant — ni un prestataire ni un proprietaire tiers ne le modifie.
+     */
+    private static final String WRITE_ROLES = "hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')";
+
     private final PropertyLicenseService licenseService;
     private final PropertyService propertyService;
     private final OrganizationAccessGuard organizationAccessGuard;
@@ -46,6 +52,7 @@ public class PropertyLicenseController {
     }
 
     @PostMapping
+    @PreAuthorize(WRITE_ROLES)
     @Operation(summary = "Ajouter une licence/autorisation")
     public ResponseEntity<PropertyLicenseDto> create(@PathVariable Long propertyId,
                                                      @RequestBody PropertyLicenseDto request) {
@@ -55,6 +62,7 @@ public class PropertyLicenseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize(WRITE_ROLES)
     @Operation(summary = "Modifier une licence/autorisation")
     public ResponseEntity<PropertyLicenseDto> update(@PathVariable Long propertyId,
                                                      @PathVariable Long id,
@@ -65,6 +73,7 @@ public class PropertyLicenseController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize(WRITE_ROLES)
     @Operation(summary = "Supprimer une licence/autorisation")
     public ResponseEntity<Void> delete(@PathVariable Long propertyId, @PathVariable Long id) {
         checkAccess(propertyId);

@@ -2,6 +2,7 @@ package com.clenzy.service.property;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -26,6 +27,14 @@ public final class TourismLicense {
      */
     private static final Pattern SA_PRIVATE_HOSPITALITY = Pattern.compile("^50\\d{6}$");
 
+    /**
+     * France — numero d'enregistrement d'un meuble de tourisme (Code du tourisme
+     * L324-1-1 et D324-1-1) : 13 caracteres = code INSEE de la commune (5, Corse
+     * 2A/2B comprise) + 6 chiffres attribues par la commune + 2 caracteres de cle.
+     * Les espaces de presentation (« 75056 000123 AB ») sont retires avant controle.
+     */
+    private static final Pattern FR_REGISTRATION = Pattern.compile("^(\\d{5}|2[AB]\\d{3})\\d{6}[A-Z0-9]{2}$");
+
     public enum Verdict {
         /** Aucun numero saisi. */
         ABSENT,
@@ -34,7 +43,12 @@ public final class TourismLicense {
         /** Non conforme au format du pays. */
         MALFORMED,
         /** Pays sans regle de format connue : enregistre tel quel. */
-        UNCHECKED
+        UNCHECKED,
+        /**
+         * Bien forme, mais emis par une autre commune que celle du logement (France :
+         * le prefixe INSEE du numero differe du code INSEE du logement).
+         */
+        COMMUNE_MISMATCH
     }
 
     private TourismLicense() {
@@ -47,15 +61,59 @@ public final class TourismLicense {
      * @param number      numero saisi ; {@code null} ou blanc accepte
      */
     public static Verdict check(String countryCode, String number) {
+        return check(countryCode, number, null);
+    }
+
+    /**
+     * Controle de forme, et pour la France de coherence avec la commune du logement.
+     *
+     * @param communeInseeCode code INSEE du logement ; {@code null} = coherence non verifiable
+     */
+    public static Verdict check(String countryCode, String number, String communeInseeCode) {
         if (number == null || number.isBlank()) {
             return Verdict.ABSENT;
         }
-        if (countryCode == null || !"SA".equalsIgnoreCase(countryCode.trim())) {
-            return Verdict.UNCHECKED;
+        String country = countryCode == null ? "" : countryCode.trim().toUpperCase(Locale.ROOT);
+        String normalized = normalize(country, number);
+        return switch (country) {
+            case "SA" -> SA_PRIVATE_HOSPITALITY.matcher(normalized).matches()
+                    ? Verdict.VALID
+                    : Verdict.MALFORMED;
+            case "FR" -> {
+                if (!FR_REGISTRATION.matcher(normalized).matches()) {
+                    yield Verdict.MALFORMED;
+                }
+                // Paris, Lyon et Marseille numerotent par ARRONDISSEMENT (75105…) : le prefixe
+                // est ramene a la commune avant comparaison avec celle du logement.
+                if (communeInseeCode != null && !communeInseeCode.isBlank()
+                        && !com.clenzy.service.regulatory.FrCommuneResolver.toCommune(normalized.substring(0, 5))
+                                .equals(com.clenzy.service.regulatory.FrCommuneResolver.toCommune(communeInseeCode))) {
+                    yield Verdict.COMMUNE_MISMATCH;
+                }
+                yield Verdict.VALID;
+            }
+            default -> Verdict.UNCHECKED;
+        };
+    }
+
+    /**
+     * Forme canonique a stocker : la France retire les espaces de presentation et
+     * passe la cle en majuscules ; ailleurs on se contente de rogner.
+     */
+    public static String normalize(String countryCode, String number) {
+        if (number == null) {
+            return null;
         }
-        return SA_PRIVATE_HOSPITALITY.matcher(number.trim()).matches()
-                ? Verdict.VALID
-                : Verdict.MALFORMED;
+        if (countryCode != null && "FR".equalsIgnoreCase(countryCode.trim())) {
+            return number.replaceAll("[\\s.\\-]", "").toUpperCase(Locale.ROOT);
+        }
+        return number.trim();
+    }
+
+    /** Le verdict interdit-il l'enregistrement ? Strict en France (decision produit). */
+    public static boolean rejects(String countryCode, Verdict verdict) {
+        return countryCode != null && "FR".equalsIgnoreCase(countryCode.trim())
+                && (verdict == Verdict.MALFORMED || verdict == Verdict.COMMUNE_MISMATCH);
     }
 
     /**

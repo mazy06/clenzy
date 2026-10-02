@@ -58,6 +58,7 @@ const fr: Dict = {
   'results.selectDates': 'Sélectionnez des dates',
   // Detail panel
   'detail.description': 'Description',
+  'detail.registration': 'N° d’enregistrement',
   'detail.amenities': 'Équipements',
   'detail.checkIn': 'Arrivée',
   'detail.checkOut': 'Départ',
@@ -246,6 +247,7 @@ const en: Dict = {
   'results.selected': 'Selected', 'results.moreInfo': '+ Info', 'results.noResults': 'No accommodation available for this selection.',
   'results.noPhoto': 'No photo', 'results.selectDates': 'Select dates',
   'detail.description': 'Description', 'detail.amenities': 'Amenities',
+  'detail.registration': 'Registration number',
   'detail.checkIn': 'Check-in', 'detail.checkOut': 'Check-out',
   'detail.guests': 'pers.', 'detail.bedrooms': 'bedroom(s)', 'detail.bathrooms': 'bathroom(s)',
   'detail.surface': 'm²', 'detail.photoGallery': 'Photo gallery',
@@ -359,6 +361,7 @@ const ar: Dict = {
   'results.selected': 'محدد', 'results.moreInfo': '+ معلومات', 'results.noResults': 'لا يوجد إقامة متاحة لهذا الاختيار.',
   'results.noPhoto': 'لا توجد صورة', 'results.selectDates': 'اختر التواريخ',
   'detail.description': 'الوصف', 'detail.amenities': 'المرافق',
+  'detail.registration': 'رقم التسجيل',
   'detail.checkIn': 'الوصول', 'detail.checkOut': 'المغادرة',
   'detail.guests': 'شخص', 'detail.bedrooms': 'غرفة (غرف)', 'detail.bathrooms': 'حمام (حمامات)',
   'detail.surface': 'م²', 'detail.photoGallery': 'معرض الصور',
