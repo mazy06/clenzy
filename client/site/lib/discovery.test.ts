@@ -5,6 +5,7 @@ import { PRICING_MESSAGES } from './messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from './messages/baitlyLoyalty';
 import { PRELAUNCH_MESSAGES } from './messages/prelaunch';
 import { BAITLY_PRODUCT_MESSAGES } from './messages/baitlyProducts';
+import { AGENTS_PAGE_MESSAGES } from './messages/baitlyAgentsPage';
 import {
   PRODUCT_STORY_SLUGS,
   type ProductStoryKind,
@@ -208,8 +209,18 @@ describe('Baitly public discovery build', () => {
         const markdown = assets.get(
           `_baitly-markdown/${language}/produit/${slug}.md`,
         );
-        expect(markdown).toContain(story.title.join(' '));
-        expect(markdown).toContain(story.workflowTitle);
+        if (kind === 'agents') {
+          const page = AGENTS_PAGE_MESSAGES[language];
+          expect(markdown).toContain(page.title.join(' '));
+          expect(markdown).toContain(page.workflow.title);
+          expect(markdown).toContain(page.constellation.bounded);
+          for (const agent of page.agents)
+            expect(markdown).toContain(agent.name);
+          expect(markdown).not.toContain(page.property);
+        } else {
+          expect(markdown).toContain(story.title.join(' '));
+          expect(markdown).toContain(story.workflowTitle);
+        }
         expect(markdown).not.toContain('Riad Azur');
       }
       expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(

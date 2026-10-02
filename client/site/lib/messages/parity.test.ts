@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SITE_LANGUAGES, type SiteLanguage } from '../siteLanguage';
 import { AGENTS_MESSAGES } from './agents';
+import { AGENTS_PAGE_MESSAGES } from './baitlyAgentsPage';
 import { ASSISTANT_MESSAGES } from './assistant';
 import { GUIDE_MESSAGES } from './guide';
 import { HOME_MESSAGES } from './home';
@@ -46,6 +47,7 @@ const DICTIONARIES: Record<string, Record<SiteLanguage, unknown>> = {
   baitlyProducts: BAITLY_PRODUCT_MESSAGES,
   baitlyProductDemos: BAITLY_PRODUCT_DEMO_MESSAGES,
   agents: AGENTS_MESSAGES,
+  agentsPage: AGENTS_PAGE_MESSAGES,
   assistant: ASSISTANT_MESSAGES,
   guide: GUIDE_MESSAGES,
   home: HOME_MESSAGES,

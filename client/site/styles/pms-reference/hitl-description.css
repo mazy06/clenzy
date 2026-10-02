@@ -1,0 +1,85 @@
+/* Site-owned presentation snapshot from client/src/modules/supervision/components/action-description.css. No PMS runtime. */
+/* Flat information layouts inside the single HITL surface. */
+@layer components {
+  .baitly-action-description {
+    margin-block-start: 12px;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--bui-muted-foreground);
+    overflow-wrap: anywhere;
+    container: hitl-description / inline-size;
+  }
+  .baitly-action-description p { margin: 0; }
+  .baitly-description-narrative { max-width: 72ch; }
+  .baitly-description-narrative p { margin: 0; white-space: pre-wrap; }
+  .baitly-description-narrative p + p { margin-block-start: 8px; }
+  .baitly-description-narrative > div + p,
+  .baitly-description-narrative > p + div { margin-block-start: 8px; }
+  .baitly-description-narrative p:first-child { color: var(--bui-foreground); }
+  .baitly-description-narrative strong { font-weight: 600; color: var(--bui-supervision-ink, var(--bui-foreground)); font-variant-numeric: tabular-nums; }
+  .baitly-description-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+    padding-block: 2px 12px;
+    margin: 0 0 12px;
+    border-bottom: 1px solid var(--bui-border);
+    font-variant-numeric: tabular-nums;
+  }
+  .baitly-description-facts > div { min-width: 0; max-width: 100%; }
+  .baitly-description-facts dt { font-size: 12px; margin-block-end: 2px; }
+  .baitly-description-facts dd { margin: 0; color: var(--bui-supervision-ink); font-size: 15px; font-weight: 600; line-height: 1.5; }
+  .baitly-description-stock { display: flex; align-items: center; gap: 12px; margin-block-end: 14px; color: var(--bui-warning-ink); }
+  .baitly-description-stock > svg { flex-shrink: 0; }
+  .baitly-description-stock > div { display: flex; flex-direction: column; gap: 1px; }
+  .baitly-description-stock strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .baitly-description-stock > div > span { color: var(--bui-muted-foreground); font-size: 12px; }
+  .baitly-description-status { margin-inline-start: auto; padding: 3px 8px; border-radius: 5px; background: var(--bui-warning-soft); font-size: 12px; }
+  .baitly-description-attention { display: flex; gap: 8px; align-items: flex-start; color: var(--bui-warning-ink); padding-block-end: 8px; }
+  .baitly-description-attention svg { margin-block-start: 3px; flex-shrink: 0; }
+  .baitly-action-description .baitly-description-note { margin-block: 8px; font-size: 12px; }
+  .baitly-description-subject { color: var(--bui-foreground); }
+  .baitly-description-quote-head { display: flex; justify-content: space-between; gap: 16px; margin-block: 12px 2px; font-size: 12px; }
+  .baitly-description-quotes { list-style: none; padding: 0; margin: 0 0 12px; }
+  .baitly-description-quotes li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; border-bottom: 1px solid var(--bui-border); padding-block: 9px; }
+  .baitly-description-quotes li > div { display: flex; flex-direction: column; gap: 1px; }
+  .baitly-description-quotes li > div > span { font-size: 12px; }
+  .baitly-description-quotes strong { font-weight: 500; color: var(--bui-foreground); }
+  .baitly-description-quotes li > strong { font-weight: 600; color: var(--bui-supervision-ink); font-variant-numeric: tabular-nums; }
+  .baitly-description-date { display: flex; gap: 12px; align-items: center; color: var(--bui-supervision-ink); }
+  .baitly-description-date > svg { flex-shrink: 0; }
+  .baitly-description-date > div { display: flex; flex-direction: column; }
+  .baitly-description-date span { font-size: 12px; color: var(--bui-muted-foreground); }
+  .baitly-description-date strong { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .baitly-description-signals { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 12px 0; margin: 0 0 10px; border-bottom: 1px solid var(--bui-border); }
+  .baitly-description-signals li { display: flex; gap: 6px; align-items: center; color: var(--bui-warning-ink); font-size: 12px; }
+  .baitly-description-signals svg { flex-shrink: 0; }
+  .baitly-description-review-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-block-end: 10px; font-size: 12px; }
+  .baitly-description-rating { display: inline-flex; align-items: center; gap: 5px; color: var(--bui-warning-ink); font-variant-numeric: tabular-nums; }
+  .baitly-description-rating svg { fill: var(--bui-warning-soft); }
+  .baitly-description-quote { margin: 0 0 12px; padding-block: 10px; border-block: 1px solid var(--bui-border); color: var(--bui-foreground); white-space: pre-wrap; }
+  .baitly-description-meter-group { max-width: 380px; margin-block-end: 14px; }
+  .baitly-description-meter-label { display: flex; justify-content: space-between; gap: 16px; margin-block-end: 7px; font-size: 12px; }
+  .baitly-description-meter-label strong { color: var(--bui-supervision-ink); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .baitly-description-meter { height: 7px; border-radius: 2px; overflow: hidden; background: var(--bui-muted); }
+  .baitly-description-meter > span { display: block; height: 100%; background: var(--bui-supervision-ink); }
+  .baitly-description-payment-steps { margin: 0; padding: 0; list-style: none; counter-reset: payment; }
+  .baitly-description-payment-steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: baseline; gap: 8px; padding-block: 7px; font-size: 12px; counter-increment: payment; }
+  .baitly-description-payment-steps li::before { content: counter(payment); text-align: center; border: 1px solid var(--bui-border); border-radius: 50%; }
+  .baitly-description-payment-steps li[data-current] { color: var(--bui-supervision-ink); }
+  .baitly-description-payment-steps li[data-current]::before { background: var(--bui-supervision-navy); color: var(--bui-supervision-on-navy); border-color: var(--bui-supervision-navy); }
+  .baitly-description-payment-steps strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .baitly-description-comparison { display: grid; gap: 12px; margin-block: 10px 16px; }
+  .baitly-description-comparison > div > div { display: flex; justify-content: space-between; gap: 16px; margin-block-end: 4px; font-size: 12px; }
+  .baitly-description-comparison strong { color: var(--bui-supervision-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .baitly-description-comparison-track { display: block; height: 6px; background: var(--bui-muted); overflow: hidden; border-radius: 2px; }
+  .baitly-description-comparison-track > span { display: block; height: 100%; background: var(--bui-supervision-ink); }
+  .baitly-description-comparison > div + div .baitly-description-comparison-track > span { opacity: .45; }
+  @container hitl-description (max-width: 320px) {
+    .baitly-description-stock { flex-wrap: wrap; gap: 8px; }
+    .baitly-description-facts { column-gap: 20px; }
+    .baitly-description-payment-steps li { grid-template-columns: 22px minmax(0, 1fr); }
+    .baitly-description-payment-steps strong { grid-column: 2; }
+  }
+}
