@@ -17,6 +17,7 @@ import {
 import type { AcademyMessages } from '../../lib/messages/baitlyAcademy';
 import type { SiteLanguage } from '../../lib/siteLanguage';
 import { academyQuality, useAcademyFormat } from './useAcademyFormat';
+import { SITE_ORIGIN } from '../../lib/siteSeo';
 
 export interface BaitlyVideoPlayerHandle {
   /** Place la lecture au début d'un chapitre et la lance. */
@@ -60,7 +61,9 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
   const format = useAcademyFormat();
   const src = academyVideoUrl(episode, language, format, academyQuality());
   // A real media URL and native controls are available even before JavaScript.
-  const initialSrc = useRef(academyVideoUrl(episode, language, '16x9', '1080'));
+  // URL ABSOLUE canonique : le HTML pré-rendu doit annoncer exactement la vidéo que
+  // déclarent les données structurées et le sitemap vidéo (contrôle de découvrabilité).
+  const initialSrc = useRef(SITE_ORIGIN + academyVideoUrl(episode, language, '16x9', '1080'));
   const [enhanced, setEnhanced] = useState(false);
   const initialized = useRef(false);
   const video = useRef<HTMLVideoElement>(null);
@@ -79,7 +82,9 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
   useEffect(() => {
     const element = video.current;
     if (!element) return;
-    const sourceChanged = element.getAttribute('src') !== src;
+    // Comparaison d'URL résolues : la source absolue pré-rendue et le chemin du même
+    // fichier ne doivent pas provoquer de rechargement sur baitly.fr.
+    const sourceChanged = element.src !== new URL(src, window.location.href).href;
     if (initialized.current && sourceChanged) {
       resume.current = { time: element.currentTime, playing: !element.paused && !element.ended };
     }
@@ -173,7 +178,7 @@ const BaitlyVideoPlayer = forwardRef<BaitlyVideoPlayerHandle, Props>(function Ba
           controls={!enhanced}
           playsInline
           preload={enhanced ? 'metadata' : 'none'}
-          poster={academyPosterUrl(episode, format)}
+          poster={SITE_ORIGIN + academyPosterUrl(episode, format)}
           onClick={toggle}
           onPlay={() => { setPlaying(true); setStarted(true); setEnded(false); }}
           onPause={() => setPlaying(false)}

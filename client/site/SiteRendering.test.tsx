@@ -175,9 +175,11 @@ describe('Published site hydration', () => {
     container.innerHTML = html;
     const video = container.querySelector('video');
     expect(video).toHaveAttribute('controls');
+    // URL absolue canonique : identique au contentUrl des données structurées et au
+    // sitemap vidéo (contrôle tooling/check_baitly_discovery.py).
     expect(video).toHaveAttribute(
       'src',
-      `/academie/media/fr/${episode.slug}-16x9-1080.mp4`,
+      `https://baitly.fr/academie/media/fr/${episode.slug}-16x9-1080.mp4`,
     );
     expect(video).toHaveAttribute('preload', 'none');
     expect(

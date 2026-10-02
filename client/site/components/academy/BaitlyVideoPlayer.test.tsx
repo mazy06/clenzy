@@ -49,7 +49,7 @@ describe('BaitlyVideoPlayer', () => {
   it('charge la version 16:9 en 1080p sur un écran large, avec son aperçu', () => {
     mount();
     expect(video().getAttribute('src')).toBe(`/academie/media/fr/${episode.slug}-16x9-1080.mp4`);
-    expect(video().getAttribute('poster')).toBe(`/academie/posters/${episode.slug}-16x9.jpg`);
+    expect(video().getAttribute('poster')).toBe(`https://baitly.fr/academie/posters/${episode.slug}-16x9.jpg`);
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
   });
 
@@ -59,7 +59,7 @@ describe('BaitlyVideoPlayer', () => {
     Object.defineProperty(video(), 'paused', { configurable: true, get: () => false });
     rotate(true);
     expect(video().getAttribute('src')).toBe(`/academie/media/fr/${episode.slug}-9x16-1080.mp4`);
-    expect(video().getAttribute('poster')).toBe(`/academie/posters/${episode.slug}-9x16.jpg`);
+    expect(video().getAttribute('poster')).toBe(`https://baitly.fr/academie/posters/${episode.slug}-9x16.jpg`);
     video().currentTime = 0;
     fireEvent(video(), new Event('loadedmetadata'));
     expect(video().currentTime).toBe(42);
