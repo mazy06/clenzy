@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import {
@@ -45,6 +45,12 @@ const MA_CATEGORIES: [string, string, string][] = [
   ['AUTRES', 'touristTax.reference.ma.other', 'Autre forme d’hébergement'],
 ];
 
+const SA_CATEGORIES: [string, string, string][] = [
+  ['PRIVATE', 'touristTax.reference.sa.private', 'Logement touristique privé (licence du ministère du Tourisme)'],
+  ['STANDARD', 'touristTax.reference.sa.standard', 'Établissement classé 3 étoiles ou moins, économique, camp'],
+  ['FOUR_STARS_PLUS', 'touristTax.reference.sa.fourPlus', 'Établissement classé 4 étoiles ou plus'],
+];
+
 export interface PropertyFormTouristTaxProps {
   control: Control<PropertyFormValues>;
   errors: FieldErrors<PropertyFormValues>;
@@ -65,15 +71,22 @@ export default function PropertyFormTouristTax({ control, errors, setValue }: Pr
     name: ['countryCode', 'city', 'postalCode', 'address', 'touristTaxNoTax', 'touristTaxMode'],
   });
   const country = (countryCode || '').toUpperCase();
-  const categories = country === 'MA' ? MA_CATEGORIES : FR_CATEGORIES;
+  const categories = country === 'MA' ? MA_CATEGORIES : country === 'SA' ? SA_CATEGORIES : FR_CATEGORIES;
   const [category, setCategory] = useState<string>(categories[0][0]);
   const [loading, setLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<TouristTaxSuggestion | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  if (country !== 'FR' && country !== 'MA') return null;
+  // Arabie saoudite : la redevance est toujours un pourcentage du prix de la nuit.
+  useEffect(() => {
+    if (country === 'SA') {
+      (setValue as (name: string, value: unknown) => void)('touristTaxMode', 'PERCENTAGE_OF_RATE');
+    }
+  }, [country, setValue]);
 
-  const currency = country === 'MA' ? 'MAD' : '€';
+  if (country !== 'FR' && country !== 'MA' && country !== 'SA') return null;
+
+  const currency = country === 'MA' ? 'MAD' : country === 'SA' ? 'SAR' : '€';
   const effectiveCategory = categories.some(([v]) => v === category) ? category : categories[0][0];
 
   const suggest = async () => {
@@ -136,7 +149,9 @@ export default function PropertyFormTouristTax({ control, errors, setValue }: Pr
     <div>
       <p className={SECTION_TITLE_CLASS}>{t('properties.touristTax.title', 'Taxe de séjour')}</p>
       <p className="m-0 mb-3 text-xs text-muted-foreground">
-        {country === 'MA'
+        {country === 'SA'
+          ? t('properties.touristTax.introSa', 'Redevance municipale d’occupation (MOMAH) : 2,5 % du prix de la nuit, 5 % pour les établissements classés 4 étoiles et plus. Même taux dans toutes les villes, déclaré chaque mois sur Balady (avant le 5, payé avant le 15). La TVA de 15 % s’ajoute si vous êtes immatriculé à la TVA.')
+          : country === 'MA'
           ? t('properties.touristTax.introMa', 'Fixée par chaque commune (loi 47-06, art. 70). Au Maroc, les plateformes ne la collectent pas : vous la collectez et la reversez chaque trimestre. Enfants de moins de 12 ans exonérés.')
           : t('properties.touristTax.introFr', 'Fixée par chaque commune. Airbnb et Booking la collectent sur les séjours qu’ils encaissent ; vous la collectez sur les autres.')}
       </p>
@@ -151,13 +166,18 @@ export default function PropertyFormTouristTax({ control, errors, setValue }: Pr
           </NativeSelect>
         </Field>
         <Button type="button" variant="outline" size="sm" onClick={suggest} disabled={loading}>
-          {t('properties.touristTax.suggest', 'Proposer le tarif de la commune')}
+          {country === 'SA'
+            ? t('properties.touristTax.suggestSa', 'Proposer le taux officiel')
+            : t('properties.touristTax.suggest', 'Proposer le tarif de la commune')}
         </Button>
       </div>
 
       {suggestion && (
         <p className="m-0 mb-3 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
-          {suggestion.exact
+          {suggestion.countryCode === 'SA'
+            ? t('properties.touristTax.suggestedSa', 'Taux national : {{rate}} % du prix de la nuit.', {
+                rate: suggestion.percentageRate != null ? Math.round(suggestion.percentageRate * 1000) / 10 : '—' })
+            : suggestion.exact
             ? t('properties.touristTax.suggestedExact', 'Tarif de {{commune}} : {{rate}} {{currency}} par personne et par nuit.', {
                 commune: suggestion.communeName ?? city, rate: suggestion.ratePerPerson ?? '—', currency: suggestion.currency })
             : t('properties.touristTax.suggestedRange', 'Tarif de la commune inconnu : fourchette légale {{min}} – {{max}} {{currency}}, le haut de la fourchette est proposé par prudence.', {
@@ -198,7 +218,9 @@ export default function PropertyFormTouristTax({ control, errors, setValue }: Pr
               )}
             />
           )}
-          {mode === 'PERCENTAGE_OF_RATE' && country === 'FR' ? (
+          {country === 'SA' ? (
+            numberInput('touristTaxPercent', t('properties.touristTax.percentSa', 'Redevance en % du prix de la nuit'), '%', 'property-tax-percent')
+          ) : mode === 'PERCENTAGE_OF_RATE' && country === 'FR' ? (
             <>
               {numberInput('touristTaxPercent', t('properties.touristTax.percent', 'Pourcentage du prix par personne'), '%', 'property-tax-percent')}
               {numberInput('touristTaxCap', t('properties.touristTax.cap', 'Plafond par personne et par nuit'), currency, 'property-tax-cap')}
@@ -225,6 +247,8 @@ export default function PropertyFormTouristTax({ control, errors, setValue }: Pr
               <FieldLabel htmlFor="property-tax-confirm" className="font-normal">
                 {noTax
                   ? t('properties.touristTax.confirmNone', 'Je confirme que la commune n’applique pas de taxe de séjour à ce logement.')
+                  : country === 'SA'
+                  ? t('properties.touristTax.confirmSa', 'Je confirme ce taux de redevance municipale pour ce logement.')
                   : t('properties.touristTax.confirm', 'Je confirme que ce montant est celui fixé par la commune pour ce logement.')}
               </FieldLabel>
               <FieldDescription>

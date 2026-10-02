@@ -390,7 +390,7 @@ public class PropertyService {
     }
 
     /** Pays ou la taxe de sejour est declaree a la creation du logement. */
-    private static final java.util.Set<String> TOURIST_TAX_COUNTRIES = java.util.Set.of("FR", "MA");
+    private static final java.util.Set<String> TOURIST_TAX_COUNTRIES = java.util.Set.of("FR", "MA", "SA");
 
     private static boolean touristTaxCountry(Property property) {
         return property.getCountryCode() != null
@@ -398,7 +398,8 @@ public class PropertyService {
     }
 
     /**
-     * Taxe de sejour OBLIGATOIRE a la creation d'un logement en France ou au Maroc : le
+     * Taxe de sejour (France, Maroc) ou redevance municipale d'occupation (Arabie saoudite)
+     * OBLIGATOIRE a la creation du logement : le
      * montant est declare et confirme par l'operateur (decision produit 2026-10-02) — un
      * tarif suggere peut etre faux, et une taxe mal collectee engage l'exploitant.
      */
@@ -418,8 +419,11 @@ public class PropertyService {
         boolean valid = switch (mode) {
             case PER_PERSON_PER_NIGHT, FLAT_PER_NIGHT ->
                     tax.ratePerPerson() != null && tax.ratePerPerson().signum() > 0;
+            // Plafond exigé en France seulement : la redevance saoudienne est un pourcentage
+            // du prix de la nuit, sans plafond.
             case PERCENTAGE_OF_RATE -> tax.percentageRate() != null && tax.percentageRate().signum() > 0
-                    && tax.capPerPersonNight() != null && tax.capPerPersonNight().signum() > 0;
+                    && ("SA".equalsIgnoreCase(property.getCountryCode().trim())
+                        || (tax.capPerPersonNight() != null && tax.capPerPersonNight().signum() > 0));
         };
         if (!valid) {
             throw new IllegalArgumentException(mode == com.clenzy.model.TouristTaxConfig.TaxCalculationMode.PERCENTAGE_OF_RATE
@@ -433,7 +437,10 @@ public class PropertyService {
         if (!touristTaxCountry(property) || tax == null) {
             return;
         }
-        boolean morocco = "MA".equalsIgnoreCase(property.getCountryCode().trim());
+        String country = property.getCountryCode().trim().toUpperCase(java.util.Locale.ROOT);
+        boolean morocco = "MA".equals(country);
+        // Arabie saoudite : redevance sur le prix de la nuit, sans exonération par âge.
+        boolean saudi = "SA".equals(country);
         touristTaxService.upsertConfig(new com.clenzy.dto.TouristTaxConfigRequest(
                 property.getId(),
                 property.getCity() != null ? property.getCity() : property.getName(),
@@ -444,9 +451,9 @@ public class PropertyService {
                 tax.capPerPersonNight(),
                 tax.departmentalSurchargePct(),
                 tax.regionalSurchargePct(),
-                true,
+                !saudi,
                 null,
-                tax.childrenExemptUnder() != null ? tax.childrenExemptUnder() : (morocco ? 12 : 18),
+                saudi ? 0 : tax.childrenExemptUnder() != null ? tax.childrenExemptUnder() : (morocco ? 12 : 18),
                 !tax.noTax()), property.getOrganizationId());
     }
 

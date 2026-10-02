@@ -104,26 +104,26 @@ class SaudiTaxCalculatorTest {
         }
 
         @Test
-        void shouldUseDefault5PercentWhenRateIsNull() {
-            // percentageRate=null → default 5%
+        void shouldUseGeneral2Point5PercentWhenRateIsNull() {
+            // percentageRate=null → taux général 2,5 % (5 % réservé aux 4 étoiles et plus, déclaré)
             TouristTaxInput input = new TouristTaxInput(
                 new BigDecimal("200.00"), 1, 2, 0, BigDecimal.ZERO, null);
 
             TouristTaxResult result = calculator.calculateTouristTax(input);
 
-            // 5% of 200 = 10.00 per night, x 2 nights = 20.00
-            assertThat(result.amount()).isEqualByComparingTo("20.00");
+            // 2,5 % de 200 = 5.00 par nuit, x 2 nuits = 10.00
+            assertThat(result.amount()).isEqualByComparingTo("10.00");
         }
 
         @Test
-        void shouldUseDefault5PercentWhenRateIsZero() {
+        void shouldUseGeneral2Point5PercentWhenRateIsZero() {
             TouristTaxInput input = TouristTaxInput.percentage(
                 new BigDecimal("200.00"), 1, 2, BigDecimal.ZERO);
 
             TouristTaxResult result = calculator.calculateTouristTax(input);
 
-            // 5% of 200 = 10.00 per night, x 2 nights = 20.00
-            assertThat(result.amount()).isEqualByComparingTo("20.00");
+            // 2,5 % de 200 = 5.00 par nuit, x 2 nuits = 10.00
+            assertThat(result.amount()).isEqualByComparingTo("10.00");
         }
 
         @Test

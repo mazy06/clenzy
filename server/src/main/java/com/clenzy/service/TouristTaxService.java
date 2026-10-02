@@ -166,6 +166,9 @@ public class TouristTaxService {
         // l'exoneration des mineurs active (0314), sinon repli sur le total.
         boolean exemptMinors = Boolean.TRUE.equals(config.getExemptMinors());
         int taxablePersons = reservation.taxablePersons(exemptMinors);
+        if (taxablePersons <= 0) {
+            return Optional.empty(); // séjour de mineurs exonérés : aucune taxe (et pas de division par zéro)
+        }
         long taxedNights = config.getMaxNights() != null
             ? Math.min(nights, config.getMaxNights()) : nights;
 

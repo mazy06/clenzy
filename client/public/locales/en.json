@@ -4750,7 +4750,12 @@
       "rate": "Amount per person per night",
       "confirmNone": "I confirm the municipality applies no tourist tax to this property.",
       "confirm": "I confirm this is the rate set by the municipality for this property.",
-      "confirmHint": "A suggested rate may be outdated: check it with the municipality before confirming."
+      "confirmHint": "A suggested rate may be outdated: check it with the municipality before confirming.",
+      "introSa": "Municipal occupancy fee (MOMAH): 2.5% of the nightly price, 5% for establishments rated 4 stars and above. Same rate in every city, declared monthly on Balady (before the 5th, paid before the 15th). 15% VAT applies on top if you are VAT-registered.",
+      "percentSa": "Fee as % of the nightly price",
+      "suggestedSa": "National rate: {{rate}}% of the nightly price.",
+      "suggestSa": "Suggest the official rate",
+      "confirmSa": "I confirm this municipal fee rate for this property."
     }
   },
   "serviceRequests": {
@@ -12333,7 +12338,14 @@
         "village": "Holiday village",
         "residence": "Tourist residence",
         "other": "Other form of accommodation"
-      }
+      },
+      "sa": {
+        "private": "Private tourist home (Ministry of Tourism licence)",
+        "standard": "Establishment rated 3 stars or less, economy, camp",
+        "fourPlus": "Establishment rated 4 stars or more"
+      },
+      "saApplied": "National municipal fee: {{rate}}% of the nightly price, declared monthly on Balady.",
+      "helpSa": "Saudi Arabia: national municipal occupancy fee (MOMAH) — 2.5%, or 5% for 4 stars and above. No age exemption."
     }
   },
   "marketPositioning": {

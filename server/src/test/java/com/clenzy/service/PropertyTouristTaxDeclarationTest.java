@@ -58,6 +58,15 @@ class PropertyTouristTaxDeclarationTest {
     void confirmedAmount_isAccepted_andOtherCountriesAreNotConcerned() {
         assertThatCode(() -> PropertyService.requireTouristTaxDeclaration(in("MA"), perNight("25", true)))
                 .doesNotThrowAnyException();
-        assertThatCode(() -> PropertyService.requireTouristTaxDeclaration(in("SA"), null)).doesNotThrowAnyException();
+        assertThatCode(() -> PropertyService.requireTouristTaxDeclaration(in("AE"), null)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void saudiProperty_requiresItsOccupancyFee_withoutCap() {
+        assertThatThrownBy(() -> PropertyService.requireTouristTaxDeclaration(in("SA"), null))
+                .isInstanceOf(IllegalArgumentException.class);
+        TouristTaxDeclarationDto fee = new TouristTaxDeclarationDto(false, TaxCalculationMode.PERCENTAGE_OF_RATE,
+                null, new BigDecimal("0.025"), null, null, null, null, true);
+        assertThatCode(() -> PropertyService.requireTouristTaxDeclaration(in("SA"), fee)).doesNotThrowAnyException();
     }
 }

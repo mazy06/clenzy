@@ -18,9 +18,15 @@ import java.util.List;
  * - Taux uniforme de 15% sur toutes les categories depuis janvier 2020
  * - Pas de taux reduit
  *
- * Municipality Fee :
- * - 5% du tarif de la nuitee (en plus de la TVA)
- * - Appliquee sur tous les hebergements touristiques
+ * Municipality Fee (redevance d'occupation, MOMAH — lâ'iha des redevances de services
+ * municipaux, arrete 23542 du 8/5/1440 H modifie par 1/762126 du 24/10/1444 H, poste 16) :
+ * - 5 % du prix de la nuit pour les etablissements classes 4 etoiles et plus (hors camps)
+ * - 2,5 % pour tous les autres : 3 etoiles et moins, economique, camps et « toute
+ *   classification non listee » (logement touristique prive compris)
+ * - Taux NATIONAL, identique dans toutes les municipalites ; declaration mensuelle Balady
+ *   (5 premiers jours du mois), paiement au plus tard le 15.
+ * Le taux applique est celui DECLARE pour le logement ; a defaut, le taux general (2,5 %) :
+ * 5 % suppose un classement 4 etoiles que rien ne permet ici de presumer.
  *
  * ZATCA (Zakat, Tax and Customs Authority) :
  * - E-invoicing obligatoire (Phase 1 : generation, Phase 2 : integration)
@@ -33,7 +39,8 @@ public class SaudiTaxCalculator implements TaxCalculator {
 
     private static final Logger log = LoggerFactory.getLogger(SaudiTaxCalculator.class);
     private static final String COUNTRY_CODE = "SA";
-    private static final BigDecimal MUNICIPALITY_FEE_RATE = new BigDecimal("0.05"); // 5%
+    /** Taux general (toute categorie hors 4 etoiles et plus). */
+    static final BigDecimal MUNICIPALITY_FEE_RATE = new BigDecimal("0.025"); // 2,5 %
 
     private final TaxRuleRepository taxRuleRepository;
 
@@ -72,7 +79,7 @@ public class SaudiTaxCalculator implements TaxCalculator {
 
     @Override
     public TouristTaxResult calculateTouristTax(TouristTaxInput input) {
-        // Arabie Saoudite : municipality fee = 5% du tarif nuitee
+        // Arabie Saoudite : redevance municipale = taux declare, sinon 2,5 % (taux general)
         BigDecimal percentageRate = input.percentageRate();
         if (percentageRate == null || percentageRate.compareTo(BigDecimal.ZERO) <= 0) {
             percentageRate = MUNICIPALITY_FEE_RATE;

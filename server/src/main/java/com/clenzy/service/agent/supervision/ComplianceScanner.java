@@ -251,7 +251,7 @@ public class ComplianceScanner {
             return;
         }
         final String country = property.getCountryCode().trim().toUpperCase(java.util.Locale.ROOT);
-        if (!"FR".equals(country) && !"MA".equals(country)) {
+        if (!"FR".equals(country) && !"MA".equals(country) && !"SA".equals(country)) {
             return;
         }
         if (touristTaxService.getConfigForProperty(propertyId, orgId).isPresent()
@@ -266,6 +266,9 @@ public class ComplianceScanner {
                         + "un tarif, à confirmer."
                         + ("MA".equals(country)
                                 ? " Au Maroc, les plateformes ne la collectent pas : l'hôte la reverse chaque trimestre."
+                                : "SA".equals(country)
+                                ? " En Arabie saoudite, c'est la redevance municipale d'occupation (2,5 %, ou 5 % en "
+                                        + "4 étoiles et plus), déclarée chaque mois sur Balady."
                                 : ""),
                 null, "warning");
     }

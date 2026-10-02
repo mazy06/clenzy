@@ -82,6 +82,21 @@ class TouristTaxReferenceServiceTest {
 
     @Test
     void otherCountries_haveNoSuggestion() {
-        assertThat(service.suggest("SA", null, null, "Riyadh", "HOTEL_5")).isEmpty();
+        assertThat(service.suggest("AE", null, null, "Dubai", "HOTEL_5")).isEmpty();
+    }
+
+    @Test
+    void saudiArabia_nationalOccupancyFee_byClassification() {
+        var luxury = service.suggest("SA", null, null, "Riyadh", "FOUR_STARS_PLUS").orElseThrow();
+        var standard = service.suggest("SA", null, null, "Jeddah", "STANDARD").orElseThrow();
+        var privateHome = service.suggest("SA", null, null, "Abha", "PRIVATE").orElseThrow();
+
+        assertThat(luxury.percentageRate()).isEqualByComparingTo("0.05");
+        assertThat(standard.percentageRate()).isEqualByComparingTo("0.025");
+        assertThat(privateHome.percentageRate()).isEqualByComparingTo("0.025");
+        assertThat(privateHome.verified()).isFalse(); // lecture du texte, à confirmer
+        assertThat(standard.capPerPersonNight()).isNull();
+        assertThat(standard.childrenExemptUnder()).isZero();
+        assertThat(standard.currency()).isEqualTo("SAR");
     }
 }

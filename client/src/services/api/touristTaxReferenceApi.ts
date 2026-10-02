@@ -6,13 +6,16 @@ export type MaTaxCategory =
   | 'RIAD_MAISON' | 'MAISON_HOTES' | 'HOTEL_1_2' | 'HOTEL_3' | 'HOTEL_4' | 'HOTEL_5' | 'CLUB' | 'VILLAGE_VACANCES'
   | 'RESIDENCE_TOURISTIQUE' | 'AUTRES';
 
+/** Classement saoudien (ministère du Tourisme) pour la redevance municipale d'occupation. */
+export type SaTaxCategory = 'STANDARD' | 'FOUR_STARS_PLUS' | 'PRIVATE';
+
 /**
  * Barème proposé pour un logement (France ou Maroc) — une suggestion à confirmer.
  * `exact = false` : fourchette légale (tarif communal inconnu) ; `verified = false` :
  * source à confirmer auprès de la commune.
  */
 export interface TouristTaxSuggestion {
-  countryCode: 'FR' | 'MA';
+  countryCode: 'FR' | 'MA' | 'SA';
   communeCode: string | null;
   communeName: string | null;
   category: string;

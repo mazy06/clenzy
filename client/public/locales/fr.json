@@ -4736,7 +4736,12 @@
       "rate": "Montant par personne et par nuit",
       "confirmNone": "Je confirme que la commune n’applique pas de taxe de séjour à ce logement.",
       "confirm": "Je confirme que ce montant est celui fixé par la commune pour ce logement.",
-      "confirmHint": "Un tarif proposé peut être périmé : vérifiez-le auprès de la commune avant de confirmer."
+      "confirmHint": "Un tarif proposé peut être périmé : vérifiez-le auprès de la commune avant de confirmer.",
+      "introSa": "Redevance municipale d’occupation (MOMAH) : 2,5 % du prix de la nuit, 5 % pour les établissements classés 4 étoiles et plus. Même taux dans toutes les villes, déclaré chaque mois sur Balady (avant le 5, payé avant le 15). La TVA de 15 % s’ajoute si vous êtes immatriculé à la TVA.",
+      "percentSa": "Redevance en % du prix de la nuit",
+      "suggestedSa": "Taux national : {{rate}} % du prix de la nuit.",
+      "suggestSa": "Proposer le taux officiel",
+      "confirmSa": "Je confirme ce taux de redevance municipale pour ce logement."
     }
   },
   "serviceRequests": {
@@ -12319,7 +12324,14 @@
         "village": "Village de vacances",
         "residence": "Résidence touristique",
         "other": "Autre forme d’hébergement"
-      }
+      },
+      "sa": {
+        "private": "Logement touristique privé (licence du ministère du Tourisme)",
+        "standard": "Établissement classé 3 étoiles ou moins, économique, camp",
+        "fourPlus": "Établissement classé 4 étoiles ou plus"
+      },
+      "saApplied": "Redevance municipale nationale : {{rate}} % du prix de la nuit, déclarée chaque mois sur Balady.",
+      "helpSa": "Arabie saoudite : redevance municipale d’occupation nationale (MOMAH) — 2,5 %, ou 5 % en 4 étoiles et plus. Sans exonération par âge."
     }
   },
   "marketPositioning": {

@@ -26,6 +26,11 @@ import java.util.Optional;
  *       fourchette legale (art. 70 loi 47-06 modifiee) avec le HAUT de la fourchette par
  *       defaut — l'option prudente ; exoneration des moins de 12 ans ; les plateformes ne
  *       collectent pas, l'hote collecte et reverse chaque trimestre.</li>
+ *   <li><b>Arabie saoudite</b> : pas de taxe communale mais une redevance municipale
+ *       d'occupation NATIONALE (MOMAH, poste 16) — 5 % du prix de la nuit en 4 etoiles et
+ *       plus, 2,5 % pour tout le reste ; declaration mensuelle Balady. Le logement prive
+ *       (licence du ministere du Tourisme) releve tres probablement du taux general :
+ *       signale « a confirmer ».</li>
  * </ul>
  */
 @Service
@@ -57,6 +62,7 @@ public class TouristTaxReferenceService {
         return switch (country) {
             case "FR" -> suggestFrance(address, postalCode, city, category);
             case "MA" -> suggestMorocco(city, category);
+            case "SA" -> suggestSaudi(category);
             default -> Optional.empty();
         };
     }
@@ -109,6 +115,33 @@ public class TouristTaxReferenceService {
                 "MAD",
                 source.getSourceLabel(),
                 source.getSourceUrl()));
+    }
+
+    /** Categories saoudiennes (classement du ministere du Tourisme). */
+    public enum SaudiCategory { FOUR_STARS_PLUS, STANDARD, PRIVATE }
+
+    static final String MOMAH_SOURCE = "MOMAH — lâ'iha des redevances de services municipaux, poste 16 "
+            + "(arrêté 23542 modifié par 1/762126 du 24/10/1444 H)";
+    static final String MOMAH_URL =
+            "https://momah.gov.sa/sites/default/files/2023-06/layht-rswm-alkhdmat-albldyt-alnmwdhj.pdf";
+
+    Optional<TouristTaxSuggestionDto> suggestSaudi(String category) {
+        SaudiCategory cat = SaudiCategory.valueOf(category);
+        java.math.BigDecimal rate = cat == SaudiCategory.FOUR_STARS_PLUS
+                ? new java.math.BigDecimal("0.05") : new java.math.BigDecimal("0.025");
+        return Optional.of(new TouristTaxSuggestionDto(
+                "SA", null, null, cat.name(),
+                TaxCalculationMode.PERCENTAGE_OF_RATE,
+                null, rate, null, null, null,
+                0, null, null,
+                true,
+                // Taux national certain pour les établissements classés ; pour un logement
+                // privé, son application relève d'une lecture du texte, à confirmer.
+                cat != SaudiCategory.PRIVATE,
+                false,
+                "SAR",
+                MOMAH_SOURCE,
+                MOMAH_URL));
     }
 
     /** {@code "Casablanca "} → {@code "casablanca"} ; accents et espaces normalises. */

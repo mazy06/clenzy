@@ -69,14 +69,15 @@ export const propertySchema = z.object({
   touristTaxConfirmed: z.boolean().default(false),
 }).superRefine((v, ctx) => {
   const country = (v.countryCode || '').toUpperCase();
-  if (!v.touristTaxRequired || (country !== 'FR' && country !== 'MA')) return;
+  if (!v.touristTaxRequired || (country !== 'FR' && country !== 'MA' && country !== 'SA')) return;
   if (!v.touristTaxNoTax) {
     if (v.touristTaxMode === 'PERCENTAGE_OF_RATE') {
       if (!(v.touristTaxPercent && v.touristTaxPercent > 0)) {
         ctx.addIssue({ code: 'custom', path: ['touristTaxPercent'],
           message: msg('validation.touristTaxPercentRequired', 'Pourcentage requis') });
       }
-      if (!(v.touristTaxCap && v.touristTaxCap > 0)) {
+      // Plafond : France seulement (la redevance saoudienne n'en a pas).
+      if (country === 'FR' && !(v.touristTaxCap && v.touristTaxCap > 0)) {
         ctx.addIssue({ code: 'custom', path: ['touristTaxCap'],
           message: msg('validation.touristTaxCapRequired', 'Plafond par personne et par nuit requis') });
       }
