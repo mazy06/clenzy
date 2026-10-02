@@ -38,7 +38,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
           'Immatriculation et identifiants fiscaux : 〔à confirmer〕',
           'Adresse légale complète : 〔à compléter〕',
           'Responsable de la publication : 〔à confirmer〕',
-          'Contact : formulaire sur https://baitly.fr/contact',
+          'Contact : contact@baitly.fr ou formulaire sur https://baitly.fr/contact',
         ],
       },
       {
@@ -162,7 +162,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
         heading: '9. Vos droits',
         paragraphs: [
           'Conformément à la loi 09-08 et, le cas échéant, au RGPD, vous disposez des droits d’accès, de rectification, d’effacement, d’opposition, de limitation et de portabilité de vos données, ainsi que du droit de définir des directives post-mortem et de retirer votre consentement à tout moment.',
-          'Exercice des droits : https://baitly.fr/contact (réponse sous 30 jours ; justificatif d’identité requis en cas de doute raisonnable). Les voyageurs dont les données sont traitées pour le compte d’un client sont invités à s’adresser d’abord à leur hébergeur/gestionnaire, responsable de traitement ; Baitly relaie sans délai toute demande reçue directement.',
+          'Exercice des droits : contact@baitly.fr ou https://baitly.fr/contact (réponse sous 30 jours ; justificatif d’identité requis en cas de doute raisonnable). Les voyageurs dont les données sont traitées pour le compte d’un client sont invités à s’adresser d’abord à leur hébergeur/gestionnaire, responsable de traitement ; Baitly relaie sans délai toute demande reçue directement.',
           'Vous pouvez introduire une réclamation auprès de la CNDP (www.cndp.ma) ou, pour les personnes relevant du RGPD, auprès de l’autorité de contrôle de votre État membre (en France, la CNIL).',
         ],
       },
@@ -256,7 +256,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
         heading: 'Article 9 — Niveaux de service et support',
         paragraphs: [
           'Baitly vise une disponibilité mensuelle du Service de 99,5 %, mesurée hors fenêtres de maintenance planifiée notifiées au moins 48 heures à l’avance et hors causes exogènes (pannes des plateformes tierces, force majeure). L’état du Service et l’historique des incidents sont publiés sur la page Statut du service.',
-          'Le support est accessible par email et WhatsApp aux heures ouvrées (lun.–ven., 9h–18h, heure de Rabat), avec un objectif de première réponse sous 4 heures ouvrées (1 heure ouvrée pour les incidents bloquants). Les plans Sur mesure peuvent prévoir des engagements renforcés par conditions particulières.',
+          'Le support est accessible par email (support@baitly.fr) et WhatsApp aux heures ouvrées (lun.–ven., 9h–18h, heure de Rabat), avec un objectif de première réponse sous 4 heures ouvrées (1 heure ouvrée pour les incidents bloquants). Les plans Sur mesure peuvent prévoir des engagements renforcés par conditions particulières.',
         ],
       },
       {

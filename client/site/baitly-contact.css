@@ -67,6 +67,15 @@
   font-size: 13px;
   color: var(--bl-muted);
 }
+.bct-publisher p + p {
+  margin-block-start: 8px;
+}
+.bct-publisher a {
+  color: var(--bl-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
 .bct-explore {
   display: inline-flex;
   gap: 10px;

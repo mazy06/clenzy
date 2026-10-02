@@ -2,7 +2,13 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { readAcquisitionContext } from '../../src/services/publicAcquisitionContext';
 import AcquisitionSummary from '../components/AcquisitionSummary';
-import { ArrowRightIcon, CheckIcon, MapPinIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  LifeBuoyIcon,
+  MailIcon,
+  MapPinIcon,
+} from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../lib/messages/baitlyContact';
 import {
@@ -93,6 +99,24 @@ export default function ContactPage({
           <p>
             <MapPinIcon size={16} aria-hidden="true" />
             {m.location}
+          </p>
+          <p>
+            <MailIcon size={16} aria-hidden="true" />
+            <span>
+              {m.writeUs}{' '}
+              <a href="mailto:contact@baitly.fr" dir="ltr">
+                contact@baitly.fr
+              </a>
+            </span>
+          </p>
+          <p>
+            <LifeBuoyIcon size={16} aria-hidden="true" />
+            <span>
+              {m.supportMail}{' '}
+              <a href="mailto:support@baitly.fr" dir="ltr">
+                support@baitly.fr
+              </a>
+            </span>
           </p>
         </div>
         <Link
