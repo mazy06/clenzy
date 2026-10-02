@@ -3,6 +3,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -18,6 +19,7 @@ import {
   localizeArticle,
 } from '../data/legal';
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
+import { CHECKED } from '../lib/docx/docx';
 import BaitlyLegalPage from './BaitlyLegalPage';
 import { legalArticleImage } from '../data/legal/articleImages';
 import { journalArticles, JOURNAL_ARTICLE_COUNT } from '../data/baitlyJournal';
@@ -147,7 +149,7 @@ describe('Guide et journal réglementaire', () => {
     },
   );
 
-  it('sépare les coches par pays et exporte le dossier choisi avec ses sources', async () => {
+  it('sépare les coches par pays et exporte le dossier choisi en Word avec ses sources', async () => {
     let blob: Blob | undefined;
     vi.spyOn(URL, 'createObjectURL').mockImplementation((value) => {
       blob = value as Blob;
@@ -172,16 +174,25 @@ describe('Guide et journal réglementaire', () => {
     fireEvent.click(
       screen.getByRole('button', { name: LEGAL_MESSAGES.fr.download }),
     );
-    expect(click).toHaveBeenCalledOnce();
+    // Le générateur Word est chargé au clic : l'export est asynchrone.
+    await waitFor(() => expect(click).toHaveBeenCalledOnce());
+    const link = click.mock.contexts[0] as HTMLAnchorElement;
+    expect(link.download).toBe('baitly-obligations-maroc.docx');
+    expect(blob!.type).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    // Archive ZIP non compressée : le XML du document se lit tel quel.
     const text = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
       reader.readAsText(blob!);
     });
-    expect(text).toContain(`[x] ${LEGAL_ARTICLES[0].title}`);
-    expect(text).toContain('2026-10-01');
+    expect(text.startsWith('PK')).toBe(true);
+    expect(text).toContain(`${CHECKED}  `);
+    expect(text).toContain(LEGAL_ARTICLES[0].title);
+    expect(text).toContain(LEGAL_MESSAGES.fr.date);
     expect(text).toContain(
-      LEGAL_SOURCES[LEGAL_ARTICLES[0].sections[0].sources[0]].url,
+      LEGAL_SOURCES[LEGAL_ARTICLES[0].sections[0].sources[0]].url.replace(/&/g, '&amp;'),
     );
     expect(text).not.toContain(articlesForCountry('FR')[0].title);
   });
