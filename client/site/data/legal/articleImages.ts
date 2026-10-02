@@ -129,6 +129,12 @@ export const LEGAL_ARTICLE_IMAGES = {
       '/articles/arabie-saoudite-confidentialite-securite-voyageurs-480.webp',
     alt: 'Verrou intérieur fermé pour préserver l’intimité des voyageurs dans une unité saoudienne.',
   },
+  'arabie-saoudite-redevance-municipale-occupation': {
+    src: '/articles/arabie-saoudite-redevance-municipale-occupation.webp',
+    thumbnail:
+      '/articles/arabie-saoudite-redevance-municipale-occupation-480.webp',
+    alt: 'Calculatrice et relevés mensuels sur le comptoir d’accueil d’un hébergement saoudien.',
+  },
 } as const;
 
 export type LegalArticleSlug = keyof typeof LEGAL_ARTICLE_IMAGES;

@@ -84,4 +84,13 @@ export const LEGAL_SOURCES: Record<string, { label: string; url: string }> = {
       'Umm Al-Qura · Règlement des unités de séjour privées, 11 septembre 2026',
     url: 'https://www.uqn.gov.sa/decisions-and-regulations/4001819',
   },
+  saMunicipalFees: {
+    label:
+      'MOMAH · Règlement des redevances de services municipaux, articles 28, 29 et poste 16 (arrêté 1/762126)',
+    url: 'https://momah.gov.sa/sites/default/files/2023-06/layht-rswm-alkhdmat-albldyt-alnmwdhj.pdf',
+  },
+  saBalady: {
+    label: 'Balady · Plateforme des redevances d’occupation des établissements d’hébergement',
+    url: 'https://balady.gov.sa/en/services/accommodation-facilities-occupancy-fees-platform',
+  },
 };

@@ -47,7 +47,7 @@ describe('Public metadata', () => {
       ).toMatch(/\.webp$/);
       expect(
         doc.querySelectorAll('.blg-article-list > article'),
-      ).toHaveLength(27);
+      ).toHaveLength(28);
       expect(doc.querySelector('.site-route-loading')).toBeNull();
       expect(
         doc.querySelector('meta[name="robots"]')?.getAttribute('content'),

@@ -60,7 +60,7 @@ describe('Publication réglementaire accessible aux lecteurs et aux moteurs', ()
     }
   });
   it('publie chaque dossier complet en HTML visible et en Markdown, avec toutes les citations', () => {
-    expect(new Set(LEGAL_ARTICLES.map((a) => a.slug)).size).toBe(24);
+    expect(new Set(LEGAL_ARTICLES.map((a) => a.slug)).size).toBe(25);
     for (const article of LEGAL_ARTICLES) {
       const path = articlePath(article);
       const markdown = legalDocuments('fr').get(path)!;
