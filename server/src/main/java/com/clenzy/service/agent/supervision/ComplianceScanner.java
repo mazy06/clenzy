@@ -117,6 +117,12 @@ public class ComplianceScanner {
                     orgId, propertyId, e.getMessage());
         }
         try {
+            scanTouristTaxUndeclared(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("tourist tax declaration scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
             scanFrRegistrationNumber(orgId, propertyId);
         } catch (Exception e) {
             log.debug("registration scan failed org={} property={}: {}",
@@ -231,6 +237,37 @@ public class ComplianceScanner {
             nightsCapService.notifyChannelOverrun(orgId, propertyId, name, null,
                     rented + " nuits louées en " + year + " pour un plafond de " + max);
         }
+    }
+
+    /**
+     * Taxe de séjour jamais déclarée (France, Maroc) : ni barème propre au logement, ni
+     * barème par défaut de l'organisation. Les logements créés depuis le 2026-10-02 la
+     * déclarent à la création ; ceux d'avant reçoivent cette carte. Sans barème, rien n'est
+     * collecté — et c'est l'exploitant qui doit la taxe à la commune.
+     */
+    private void scanTouristTaxUndeclared(Long orgId, Long propertyId) {
+        final var property = propertyRepository.findByIdWithOwner(propertyId, orgId).orElse(null);
+        if (property == null || property.getCountryCode() == null) {
+            return;
+        }
+        final String country = property.getCountryCode().trim().toUpperCase(java.util.Locale.ROOT);
+        if (!"FR".equals(country) && !"MA".equals(country)) {
+            return;
+        }
+        if (touristTaxService.getConfigForProperty(propertyId, orgId).isPresent()
+                || touristTaxService.resolveConfig(propertyId, orgId).isPresent()) {
+            return;
+        }
+        suggestionService.record(orgId, propertyId, MODULE_CMP, "tourist_tax_undeclared",
+                "Taxe de séjour à déclarer pour ce logement",
+                "Aucun barème de taxe de séjour ne s'applique à ce logement : elle n'est ni calculée ni "
+                        + "collectée. Déclarez le montant (ou l'absence de taxe dans la commune) dans "
+                        + "Réglages › Fiscal › Barèmes de taxe de séjour — le référentiel officiel propose "
+                        + "un tarif, à confirmer."
+                        + ("MA".equals(country)
+                                ? " Au Maroc, les plateformes ne la collectent pas : l'hôte la reverse chaque trimestre."
+                                : ""),
+                null, "warning");
     }
 
     /**

@@ -4716,6 +4716,27 @@
       "policeRegister": "Registre des fiches (6 mois)",
       "inseeDeduced": "Déduite de l’adresse du logement (Base Adresse Nationale).",
       "inseeUnresolved": "Commune introuvable : vérifiez l’adresse, le code postal et la ville du logement."
+    },
+    "touristTax": {
+      "title": "Taxe de séjour",
+      "introMa": "Fixée par chaque commune (loi 47-06, art. 70). Au Maroc, les plateformes ne la collectent pas : vous la collectez et la reversez chaque trimestre. Enfants de moins de 12 ans exonérés.",
+      "introFr": "Fixée par chaque commune. Airbnb et Booking la collectent sur les séjours qu’ils encaissent ; vous la collectez sur les autres.",
+      "cityFirst": "Renseignez d’abord la ville du logement.",
+      "notFound": "Aucun tarif connu pour cette commune et cette catégorie : saisissez le montant fixé par la commune.",
+      "error": "Référentiel indisponible : saisissez le montant fixé par la commune.",
+      "suggest": "Proposer le tarif de la commune",
+      "suggestedExact": "Tarif de {{commune}} : {{rate}} {{currency}} par personne et par nuit.",
+      "suggestedRange": "Tarif de la commune inconnu : fourchette légale {{min}} – {{max}} {{currency}}, le haut de la fourchette est proposé par prudence.",
+      "unverified": "Source à confirmer auprès de la commune.",
+      "noTax": "La commune n’applique pas de taxe de séjour",
+      "modePerPerson": "Montant fixe par personne et par nuit",
+      "modePercentage": "Non classé : % du prix de la nuitée, plafonné",
+      "percent": "Pourcentage du prix par personne",
+      "cap": "Plafond par personne et par nuit",
+      "rate": "Montant par personne et par nuit",
+      "confirmNone": "Je confirme que la commune n’applique pas de taxe de séjour à ce logement.",
+      "confirm": "Je confirme que ce montant est celui fixé par la commune pour ce logement.",
+      "confirmHint": "Un tarif proposé peut être périmé : vérifiez-le auprès de la commune avant de confirmer."
     }
   },
   "serviceRequests": {
@@ -12284,6 +12305,20 @@
         "stars4": "Meublé 4 étoiles",
         "stars5": "Meublé 5 étoiles",
         "guestHouse": "Chambre d’hôtes"
+      },
+      "maExact": "Tarif publié par {{city}} — à confirmer auprès de la commune.",
+      "maRange": "Tarif de la commune inconnu : fourchette légale {{min}} – {{max}} MAD, haut de fourchette proposé.",
+      "helpMa": "Maroc : tarif fixé par chaque commune dans la fourchette légale (loi 47-06, art. 70). Enfants de moins de 12 ans exonérés.",
+      "ma": {
+        "riad": "Logement loué aux touristes (appartement, maison, riad)",
+        "guestHouse": "Maison d’hôtes ou hôtel de luxe",
+        "hotel12": "Hôtel 1 ou 2 étoiles",
+        "hotel3": "Hôtel 3 étoiles",
+        "hotel4": "Hôtel 4 étoiles",
+        "hotel5": "Hôtel 5 étoiles",
+        "village": "Village de vacances",
+        "residence": "Résidence touristique",
+        "other": "Autre forme d’hébergement"
       }
     }
   },
@@ -16463,7 +16498,11 @@
     "userRequired": "L'utilisateur est requis",
     "teamNameRequired": "Le nom de l'équipe est requis",
     "emailRequired": "L'email est requis",
-    "orgRoleRequiredWithOrg": "Le rôle dans l'organisation est requis quand une organisation est sélectionnée"
+    "orgRoleRequiredWithOrg": "Le rôle dans l'organisation est requis quand une organisation est sélectionnée",
+    "touristTaxPercentRequired": "Pourcentage requis",
+    "touristTaxCapRequired": "Plafond par personne et par nuit requis",
+    "touristTaxRateRequired": "Montant de la taxe de séjour requis",
+    "touristTaxConfirmRequired": "Confirmez le montant de la taxe de séjour"
   },
   "loadingStates": {
     "app": "Chargement de l'application…",

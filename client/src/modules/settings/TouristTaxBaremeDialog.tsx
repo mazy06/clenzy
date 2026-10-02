@@ -27,6 +27,19 @@ import {
   type TouristTaxConfig,
   type TouristTaxConfigRequest,
 } from '../../services/api/touristTaxApi';
+import { touristTaxReferenceApi, type MaTaxCategory } from '../../services/api/touristTaxReferenceApi';
+
+const MA_REFERENCE_CATEGORIES: { value: MaTaxCategory; key: string; fallback: string }[] = [
+  { value: 'RIAD_MAISON', key: 'touristTax.reference.ma.riad', fallback: 'Logement loué aux touristes (appartement, maison, riad)' },
+  { value: 'MAISON_HOTES', key: 'touristTax.reference.ma.guestHouse', fallback: 'Maison d’hôtes ou hôtel de luxe' },
+  { value: 'RESIDENCE_TOURISTIQUE', key: 'touristTax.reference.ma.residence', fallback: 'Résidence touristique' },
+  { value: 'HOTEL_1_2', key: 'touristTax.reference.ma.hotel12', fallback: 'Hôtel 1 ou 2 étoiles' },
+  { value: 'HOTEL_3', key: 'touristTax.reference.ma.hotel3', fallback: 'Hôtel 3 étoiles' },
+  { value: 'HOTEL_4', key: 'touristTax.reference.ma.hotel4', fallback: 'Hôtel 4 étoiles' },
+  { value: 'HOTEL_5', key: 'touristTax.reference.ma.hotel5', fallback: 'Hôtel 5 étoiles' },
+  { value: 'VILLAGE_VACANCES', key: 'touristTax.reference.ma.village', fallback: 'Village de vacances' },
+  { value: 'AUTRES', key: 'touristTax.reference.ma.other', fallback: 'Autre forme d’hébergement' },
+];
 
 const REFERENCE_CATEGORIES: { value: FrTaxCategory; key: string; fallback: string }[] = [
   { value: 'UNCLASSIFIED', key: 'touristTax.reference.cat.unclassified', fallback: 'Non classé' },
@@ -120,10 +133,40 @@ export default function TouristTaxBaremeDialog({
 
   // Référentiel officiel (DGFiP) : pré-remplit le barème depuis la commune, à valider.
   const [refCategory, setRefCategory] = useState<FrTaxCategory>('UNCLASSIFIED');
+  const [maCategory, setMaCategory] = useState<MaTaxCategory>('RIAD_MAISON');
+  // Pays du logement choisi : le référentiel et ses règles en dépendent (barème org = France).
+  const selectedProperty = properties.find((p) => String(p.id) === form.propertyId);
+  const refCountry = (selectedProperty?.countryCode || 'FR').toUpperCase();
   const [refLoading, setRefLoading] = useState(false);
   const [refMessage, setRefMessage] = useState<string | null>(null);
 
   const prefillFromReference = async () => {
+    if (refCountry === 'MA') {
+      const city = form.communeName.trim() || selectedProperty?.city || '';
+      setRefLoading(true);
+      setRefMessage(null);
+      try {
+        const s = await touristTaxReferenceApi.suggest({ countryCode: 'MA', city, category: maCategory });
+        setForm((prev) => ({
+          ...prev,
+          communeName: prev.communeName.trim() || (s.communeName ?? city),
+          calculationMode: 'PER_PERSON_PER_NIGHT',
+          ratePerPerson: s.ratePerPerson != null ? String(s.ratePerPerson) : '',
+          percentageRatePct: '',
+          capPerPersonNight: '',
+          departmentalSurchargePct: '',
+          regionalSurchargePct: '',
+        }));
+        setRefMessage(s.exact
+          ? t('touristTax.reference.maExact', 'Tarif publié par {{city}} — à confirmer auprès de la commune.', { city: s.communeName ?? city })
+          : t('touristTax.reference.maRange', 'Tarif de la commune inconnu : fourchette légale {{min}} – {{max}} MAD, haut de fourchette proposé.', { min: s.minRate ?? '—', max: s.maxRate ?? '—' }));
+      } catch {
+        setRefMessage(t('touristTax.reference.error', 'Référentiel officiel indisponible, réessayez plus tard.'));
+      } finally {
+        setRefLoading(false);
+      }
+      return;
+    }
     const insee = form.communeCode.trim().toUpperCase();
     if (!/^(\d{5}|2[AB]\d{3})$/.test(insee)) {
       setRefMessage(t('touristTax.reference.inseeRequired', 'Saisissez d’abord le code INSEE de la commune (5 caractères).'));
@@ -174,6 +217,8 @@ export default function TouristTaxBaremeDialog({
       regionalSurchargePct: numOrNull(form.regionalSurchargePct),
       maxNights: numOrNull(form.maxNights),
       exemptMinors: form.exemptMinors,
+      // Exonération des mineurs : moins de 12 ans au Maroc, moins de 18 ans en France.
+      childrenExemptUnder: refCountry === 'MA' ? 12 : 18,
       enabled: form.enabled,
     });
   };
@@ -262,24 +307,39 @@ export default function TouristTaxBaremeDialog({
                 <FieldLabel htmlFor="tourist-tax-ref-category">
                   {t('touristTax.reference.category', 'Classement du logement')}
                 </FieldLabel>
-                <NativeSelect
-                  id="tourist-tax-ref-category"
-                  className="w-full"
-                  value={refCategory}
-                  onChange={(e) => setRefCategory(e.target.value as FrTaxCategory)}
-                >
-                  {REFERENCE_CATEGORIES.map((c) => (
-                    <NativeSelectOption key={c.value} value={c.value}>{t(c.key, c.fallback)}</NativeSelectOption>
-                  ))}
-                </NativeSelect>
+                {refCountry === 'MA' ? (
+                  <NativeSelect
+                    id="tourist-tax-ref-category"
+                    className="w-full"
+                    value={maCategory}
+                    onChange={(e) => setMaCategory(e.target.value as MaTaxCategory)}
+                  >
+                    {MA_REFERENCE_CATEGORIES.map((c) => (
+                      <NativeSelectOption key={c.value} value={c.value}>{t(c.key, c.fallback)}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                ) : (
+                  <NativeSelect
+                    id="tourist-tax-ref-category"
+                    className="w-full"
+                    value={refCategory}
+                    onChange={(e) => setRefCategory(e.target.value as FrTaxCategory)}
+                  >
+                    {REFERENCE_CATEGORIES.map((c) => (
+                      <NativeSelectOption key={c.value} value={c.value}>{t(c.key, c.fallback)}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                )}
               </Field>
               <Button type="button" variant="outline" size="sm" onClick={prefillFromReference} disabled={refLoading}>
                 {t('touristTax.reference.prefill', 'Pré-remplir (référentiel officiel)')}
               </Button>
             </div>
             <FieldDescription className="mt-2">
-              {refMessage ?? t('touristTax.reference.help',
-                'Tarifs délibérés par la commune, publiés par la DGFiP. Île-de-France : surtaxes régionales de 15 % et 200 % incluses.')}
+              {refMessage ?? (refCountry === 'MA'
+                ? t('touristTax.reference.helpMa', 'Maroc : tarif fixé par chaque commune dans la fourchette légale (loi 47-06, art. 70). Enfants de moins de 12 ans exonérés.')
+                : t('touristTax.reference.help',
+                  'Tarifs délibérés par la commune, publiés par la DGFiP. Île-de-France : surtaxes régionales de 15 % et 200 % incluses.'))}
             </FieldDescription>
           </div>
 

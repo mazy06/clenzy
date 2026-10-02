@@ -15,6 +15,7 @@ import PropertyFormBasicInfo from './PropertyFormBasicInfo';
 import PropertyFormAddress from './PropertyFormAddress';
 import PropertyFormDetails from './PropertyFormDetails';
 import PropertyFormSettings from './PropertyFormSettings';
+import PropertyFormTouristTax from './PropertyFormTouristTax';
 import CleaningPriceEstimator from './CleaningPriceEstimator';
 
 // ─── Stable classes ─────────────────────────────────────────────────────────
@@ -154,6 +155,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
               <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
               <PropertyFormDetails control={control} errors={errors} />
+              {/* Création seulement : la taxe de séjour est déclarée et confirmée (France, Maroc). */}
+              {!isEditMode && <PropertyFormTouristTax control={control} errors={errors} setValue={setValue} />}
             </div>
           </Card>
 
