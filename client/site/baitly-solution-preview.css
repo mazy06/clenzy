@@ -315,6 +315,17 @@
 .bnv-preview.bnv-scene-morocco {
   background: #f0e8db;
 }
+.bnv-preview.bnv-scene-france {
+  background: #e8eef5;
+}
+.bnv-scene-france .bns-compliance-steps {
+  flex-direction: row;
+  gap: 18px;
+  margin-top: 6px;
+}
+.bnv-scene-france .bns-compliance-steps > span {
+  flex: 1;
+}
 .bns-guest-file {
   display: flex;
   align-items: center;

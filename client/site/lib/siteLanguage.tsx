@@ -6,7 +6,7 @@ import { DemoLanguageProvider } from '../../src/modules/admin/design-system/demo
  * Langue du site public.
  *
  * <p>La landing etait en francais EN DUR — `<html lang="fr">` — alors que le
- * lancement se fait en Arabie saoudite. Le mecanisme existait pourtant deja,
+ * lancement couvre l'Arabie saoudite, le Maroc et la France en meme temps. Le mecanisme existait pourtant deja,
  * mais sur deux pages seulement : l'inscription et l'activation prestataire
  * (cf. `providerLanguage`, dont ce module generalise la logique au site
  * entier).</p>

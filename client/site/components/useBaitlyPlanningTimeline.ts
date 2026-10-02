@@ -13,6 +13,8 @@ export function useBaitlyPlanningTimeline(
     elapsed: 0,
     index: 0,
     steps: null as { at: number; run: () => void }[] | null,
+    /** performance.now() of the current playing run, null while paused. */
+    runningSince: null as number | null,
   });
 
   useEffect(() => {
@@ -24,6 +26,7 @@ export function useBaitlyPlanningTimeline(
       timeline.steps = steps.sort((a, b) => a.at - b.at);
     }
     const started = performance.now();
+    timeline.runningSince = started;
     let timer: ReturnType<typeof setTimeout>;
     let disposed = false;
     const advance = () => {
@@ -48,6 +51,13 @@ export function useBaitlyPlanningTimeline(
       disposed = true;
       clearTimeout(timer);
       timeline.elapsed += performance.now() - started;
+      timeline.runningSince = null;
     };
   }, [active]);
+
+  /** Playhead in timeline milliseconds — lets narration rejoin a step mid-way. */
+  return () => {
+    const { elapsed, runningSince } = state.current;
+    return elapsed + (runningSince == null ? 0 : performance.now() - runningSince);
+  };
 }

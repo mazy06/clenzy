@@ -1,0 +1,491 @@
+/* Démo guidée « planning → constellation d'agents » de la page d'accueil.
+   Les surfaces (cartes HITL, constellation, liste, modales) portent les
+   feuilles RÉELLES du PMS ; ce fichier ne règle que la mise en scène : le
+   cadre fixe, les dispositions propres à la maquette et les retours de clic. */
+
+.bad-demo {
+  background: transparent;
+}
+
+.bad-controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bad-controls button[aria-pressed='true'] {
+  border-color: #264672;
+  color: #264672;
+}
+
+/* ─── Planning : logement dépliable ───────────────────────────────────────── */
+
+.bad-props-head {
+  display: flex;
+  align-items: center;
+  padding-inline: 16px;
+  background: var(--pl-surface2);
+  border-bottom: 1px solid var(--pl-line);
+  border-right: 1px solid var(--pl-line);
+  color: var(--pl-faint);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.bad-property {
+  border-bottom: 1px solid var(--pl-line);
+  border-right: 1px solid var(--pl-line);
+  background: var(--pl-card);
+}
+
+.bad-property[data-open] {
+  animation: bad-row-lift 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bad-expand {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--pl-muted);
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.bad-property[data-open] .bad-expand {
+  background: color-mix(in srgb, #264672 10%, transparent);
+  color: #264672;
+}
+
+.bad-grid-body[data-open] {
+  animation: bad-row-lift 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bad-row-lift {
+  from {
+    transform: translateY(var(--bad-lift, 0));
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.bpm-planning-search[data-agent-ask] {
+  width: 300px;
+}
+
+.bpm-planning-search kbd {
+  margin-inline-start: auto;
+  padding: 1px 5px;
+  border: 1px solid #d0dbe6;
+  border-radius: 5px;
+  background: #f6f9fb;
+  font: 600 9.5px/1.4 inherit;
+}
+
+/* ─── Plateau des agents (SupervisionPanel, affichage large) ──────────────── */
+
+.bad-board {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border-top: 1px solid var(--pl-line);
+  background: var(--bui-background, #f5f7f9);
+  animation: bad-board-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bad-board-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.bad-board-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+
+.bad-demo .bad-board-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--bui-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.bad-board-pending {
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--bui-warning-soft);
+  color: var(--bui-warning-ink);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bad-board-head p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 0 0;
+  color: var(--bui-muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bad-toggle {
+  display: flex;
+  gap: 0;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bui-muted);
+}
+
+.bad-toggle > span,
+.bad-radar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--bui-muted-foreground);
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.bad-toggle > span[data-on='true'] {
+  background: var(--bui-card);
+  color: var(--bui-foreground);
+  box-shadow: 0 1px 2px #193b6514;
+}
+
+.bad-board-content {
+  position: relative;
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 1fr);
+  gap: 0 32px;
+  margin-top: 14px;
+  min-height: 0;
+}
+
+.bad-orbit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Rotation de l'anneau (ORBIT_STYLES du diagramme réel). */
+.bad-orbit .oc-ring,
+.bad-orbit .oc-node {
+  transition: transform 560ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.bad-orbit .oc-packet {
+  display: none;
+}
+
+.bad-orbit .oc-flow[data-selected='true'] .oc-packet {
+  display: inline;
+}
+
+.bad-orbit-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 8px;
+  transform: translateX(-50%);
+}
+
+/* L'agent ouvert est toujours amené à -45° : légende au-dessus, décalée de
+   30 px vers l'extérieur (LABEL_SHIFT_PX du diagramme réel). */
+.bad-orbit-label[data-above] {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 12px;
+  transform: translateX(calc(-50% + 30px));
+}
+
+.bad-queue {
+  min-height: 0;
+  overflow: hidden;
+  padding-inline-end: 4px;
+}
+
+.bad-tethers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.bad-tether {
+  fill: none;
+  stroke: var(--bui-supervision-line);
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+.bad-board .baitly-agent-list {
+  height: 100%;
+}
+
+.bad-card {
+  transition:
+    opacity 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms ease-out;
+}
+
+.bad-card[data-leaving] {
+  opacity: 0;
+  transform: translateX(28px);
+}
+
+/* Clic scripté : l'état enfoncé que produirait le vrai bouton. */
+.bad-press {
+  filter: brightness(0.9);
+  transition: filter 80ms ease-out;
+}
+
+/* ─── Modales (ActionModal dans le cadre de la maquette) ──────────────────── */
+
+.bad-modal-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, #0e1727 34%, transparent);
+  animation: bad-fade 200ms ease-out both;
+}
+
+.bad-modal {
+  animation: bad-modal-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bad-modal .baitly-action-modal-body {
+  scrollbar-width: none;
+}
+
+@keyframes bad-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes bad-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.bad-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bui-supervision-soft);
+  color: var(--bui-supervision-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bad-avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.bad-calendar {
+  width: 268px;
+  margin-inline: auto;
+}
+
+.bad-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--bui-muted-foreground);
+}
+
+.bad-calendar-head strong {
+  color: var(--bui-foreground);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bad-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.bad-calendar-weekday {
+  padding-block: 4px;
+  color: var(--bui-muted-foreground);
+  font-size: 12px;
+}
+
+.bad-calendar-day {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.bad-calendar-day[data-disabled] {
+  opacity: 0.4;
+}
+
+.bad-calendar-day[data-today] {
+  background: var(--bui-muted);
+}
+
+.bad-calendar-day[data-selected] {
+  background: var(--bui-supervision-navy);
+  color: var(--bui-supervision-on-navy);
+}
+
+.bad-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding-inline: 12px;
+  border: 1px solid var(--bui-border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.bad-command {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border: 1px solid var(--bui-border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.bad-command-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding-inline: 12px;
+  border-bottom: 1px solid var(--bui-border);
+  color: var(--bui-muted-foreground);
+}
+
+.bad-command-heading {
+  margin: 0;
+  padding: 8px 12px 4px;
+  color: var(--bui-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bad-command-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-inline: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background-color 180ms ease-out;
+}
+
+.bad-command-item[data-selected] {
+  background: var(--bui-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bad-demo *,
+  .bad-demo *::before,
+  .bad-demo *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Typographie du PMS dans le canevas (la landing compose ses titres autrement). */
+.bad-demo .bpm-planning-canvas {
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+}
+.bad-demo .bpm-planning-canvas :is(h2, h3) {
+  letter-spacing: normal;
+}
+.bad-demo .baitly-action-modal [data-slot='dialog-title'] {
+  letter-spacing: -0.025em;
+}
+
+/* Mêmes réglages de trait que le canevas de la page produit (.bpm-page). */
+.bad-demo .bpm-planning-canvas svg {
+  flex-shrink: 0;
+}
+.bad-demo .bpm-planning-canvas :is(.bpm-planning-sidebar, .bpm-planning-header) svg {
+  stroke-width: 1.7;
+}
+
+/* La base du site borne les SVG (`img, svg { max-width: 100% }`). L'anneau
+   d'un nœud d'agent déborde volontairement de 8 % de chaque côté (116 %) :
+   borné, il rétrécit tout en restant décalé de -8 % et glisse en bas à gauche.
+   Le canevas reproduit le PMS, où cette borne n'existe pas. */
+.bad-demo .bpm-planning-canvas svg {
+  max-width: none;
+}
+
+/* Voix coupée après la première boucle, ou refusée par le navigateur : le
+   bouton se balance de temps en temps pour rappeler qu'on peut la remettre. */
+.bad-controls button[data-attention] {
+  border-color: #264672;
+  color: #264672;
+  animation: bad-wobble 3.6s ease-in-out infinite;
+}
+
+@keyframes bad-wobble {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0);
+  }
+  2% {
+    transform: rotate(-3deg);
+  }
+  5% {
+    transform: rotate(3deg);
+  }
+  8% {
+    transform: rotate(-2deg);
+  }
+  11% {
+    transform: rotate(1.5deg);
+  }
+  14% {
+    transform: rotate(0);
+  }
+}

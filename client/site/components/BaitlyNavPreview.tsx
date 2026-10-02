@@ -132,6 +132,7 @@ export default function BaitlyNavPreview({
     case 'riad':
     case 'saudi':
     case 'morocco':
+    case 'france':
     case 'multi-owner':
       scene = <BaitlySolutionNavPreview kind={kind} language={language} />;
       break;

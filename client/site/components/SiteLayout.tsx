@@ -67,11 +67,42 @@ function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
   );
 }
 
+/** Seuils distincts pour compacter et déployer : sans cet écart, un
+    défilement arrêté pile sur la limite ferait battre l'en-tête. */
+const HEADER_COMPACT_AT = 24;
+const HEADER_EXPAND_AT = 8;
+
+/** En-tête compact dès que la page a défilé. */
+function useCompactHeader() {
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY;
+      setCompact((current) =>
+        current ? y > HEADER_EXPAND_AT : y > HEADER_COMPACT_AT,
+      );
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+  return compact;
+}
+
 export function SiteHeader() {
   const { language } = useSiteLanguage();
   const h = LAYOUT_MESSAGES[language].header;
   const entries = buildBaitlySiteNavigation(language);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const compact = useCompactHeader();
   const appUrl = useSiteAppUrl();
   const headerRef = useRef<HTMLElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -151,6 +182,7 @@ export function SiteHeader() {
     <header
       ref={headerRef}
       data-menu-open={mobileOpen || undefined}
+      data-compact={compact || undefined}
       className="site-header sticky top-0 z-40 border-b border-border bg-background"
     >
       <div className="site-shell site-header-inner flex h-16 items-center gap-5">

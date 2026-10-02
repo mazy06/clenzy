@@ -23,5 +23,6 @@ export const BAITLY_NAV_PREVIEWS: Readonly<
   'riads-maisons-dhotes': 'riad',
   'arabie-saoudite': 'saudi',
   maroc: 'morocco',
+  france: 'france',
   'multi-proprietaires': 'multi-owner',
 };
