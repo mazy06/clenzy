@@ -8,18 +8,14 @@
    attend une décision remonte en tête et porte seul de la couleur,
    le reste s'efface.
 
-   Chaque ligne : identité (icône, nom, rôle), état, charge
-   (« N à valider » ou tâche), dernier passage, et l'interrupteur
-   d'autonomie. Cliquer la ligne ouvre la file de l'agent.
-
-   L'interrupteur pilote la VRAIE autonomie par agent
-   (setAgentAutonomy) : activé = niveau « notify » (l'agent agit
-   puis notifie), désactivé = « suggest » (il propose et attend).
-   Le niveau « full » compte comme activé.
+   Chaque ligne : médaillon, identité, décisions et autonomie.
+   Le bouton ouvre la file ; le sélecteur voisin règle l'autonomie
+   sans sélectionner l'agent. Les deux sont accessibles au clavier.
    ============================================================ */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
+  Badge,
   Button,
   Checkbox,
   Dialog,
@@ -34,16 +30,14 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { cn } from '../../../utils/cn';
+import { useIconSize } from '../../../hooks/useResponsiveSize';
+import { ErrorOutline, Lock } from '../../../icons';
 import { AGENT_META, STATUS, STATUS_PRIORITY, autonomyChoicesFor } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
 import type { ConstellationAgentView } from '../renderers/ConstellationRenderer';
 import type { AgentId, AutonomyLevel, FeedEntry, PortfolioFeedEntry } from '../types';
-
-function hhmm(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
+import '../supervision-surfaces.css';
+import './constellation-agent-list.css';
 
 /** Libellé court de chaque cran — il dit ce que l'agent FAIT, pas un niveau. */
 const AUTONOMY_LABEL: Record<AutonomyLevel, { key: string; fallback: string }> = {
@@ -70,6 +64,8 @@ export function ConstellationAgentCards({
   onAutonomyChange,
 }: ConstellationAgentCardsProps) {
   const { t } = useTranslation();
+  const headingId = useId();
+  const iconSize = useIconSize('badge');
 
   // Passage en PLEINE autonomie : l'agent agira seul et en silence. On ne le
   // fait pas glisser d'un sélecteur — l'exploitant doit voir ce qu'il engage et
@@ -103,13 +99,11 @@ export function ConstellationAgentCards({
   });
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="m-0 text-xs font-medium tracking-[0.08em] text-muted-foreground uppercase">
-        {t('supervision.board.agents', 'Agents')}
-      </h2>
+    <section className="baitly-supervision-surface baitly-agent-list" aria-labelledby={headingId}>
+      <h2 id={headingId} className="sr-only">{t('supervision.board.agents', 'Agents')}</h2>
 
-      <div className="overflow-hidden rounded-md bg-card">
-        {ordered.map((agent, index) => {
+      <ul className="baitly-agent-list-rows">
+        {ordered.map((agent) => {
           const meta = AGENT_META[agent.id];
           const pending = agent.pendingCount ?? 0;
           const isSelected = agent.id === selected;
@@ -117,92 +111,70 @@ export function ConstellationAgentCards({
           // qui porte une proposition attend, quel que soit son statut brut.
           const waiting = pending > 0 || agent.status === 'wait';
           const attention = agent.status === 'esc' || agent.status === 'err';
-          const statusLabel = waiting ? t(STATUS.wait.labelKey) : t(STATUS[agent.status].labelKey);
+          const working = agent.status === 'act' || agent.status === 'think';
+          const statusLabel = attention ? t(STATUS[agent.status].labelKey) : waiting ? t(STATUS.wait.labelKey) : t(STATUS[agent.status].labelKey);
           const choices = autonomyChoicesFor(agent.id);
           const lastAt = feed.find((entry) => entry.agentId === agent.id)?.at;
+          const lastActivity = lastAt && Number.isFinite(Date.parse(lastAt))
+            ? `${t('supervision.board.lastActivity', 'Dernière activité')} : ${new Date(lastAt).toLocaleString()}`
+            : null;
 
           return (
-            <div
+            <li
               key={agent.id}
               data-agent-card={agent.id}
-              onClick={() => onSelect(agent.id)}
-              className={cn(
-                'flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors duration-100',
-                index > 0 && 'border-t border-border',
-                isSelected ? 'bg-primary-soft' : 'hover:bg-muted',
-                !waiting && !attention && 'text-muted-foreground',
-              )}
+              data-selected={isSelected || undefined}
+              data-attention={attention || undefined}
+              data-working={working || undefined}
+              className="baitly-agent-list-row"
             >
-              {/* Identité — l'icône reste au même diamètre pour tous : le
-                  volume ne se lit pas ici (grammaire de la constellation). */}
-              <span
-                className={cn(
-                  'inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
-                  waiting ? 'bg-warning-soft text-warning-ink' : attention ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground',
-                )}
+              <button
+                type="button"
+                className="baitly-agent-list-select"
+                aria-pressed={isSelected}
+                onClick={() => onSelect(agent.id)}
+                title={[
+                  `${t(meta.nameKey)} · ${t(meta.roleKey)}`,
+                  pending > 0 ? `${pending} ${t('supervision.board.toValidate', 'à valider')}` : statusLabel,
+                  lastActivity,
+                  t('supervision.board.tooltipOpenQueue', 'Cliquer pour ouvrir la file'),
+                ].filter(Boolean).join('\n')}
               >
-                <AgentIcon token={meta.icon} size={16} strokeWidth={1.75} />
-              </span>
-
-              <span className="flex min-w-0 flex-[2] flex-col">
-                <span className="truncate text-[13px] font-medium text-foreground">
-                  {t(meta.nameKey)}
+                <span className="baitly-agent-list-emblem" aria-hidden="true">
+                  <AgentIcon token={meta.icon} size={iconSize} strokeWidth={1.75} />
+                  {working && <span className="baitly-agent-list-activity" />}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">{t(meta.roleKey)}</span>
-              </span>
 
-              {/* UNE cellule d'état : le chiffre qui appelle une décision s'il
-                  y en a un, sinon la tâche, sinon la veille. Afficher « Attend
-                  ta validation » ET « 5 à valider » côte à côte disait deux
-                  fois la même chose et mangeait la largeur pour rien. La
-                  pastille porte l'état, le texte porte le fond. */}
-              <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-                <span
-                  aria-hidden
-                  className={cn(
-                    'size-1.5 shrink-0 rounded-full',
-                    waiting ? 'bg-warning' : attention ? 'bg-destructive' : 'bg-muted-foreground/30',
+                <span className="baitly-agent-list-identity">
+                  <span className="baitly-agent-list-name">{t(meta.nameKey)}</span>{' '}
+                  <span className="baitly-agent-list-role">{t(meta.roleKey)}</span>
+                </span>
+
+                <span className="baitly-agent-list-state">
+                  {pending > 0 && (
+                    <Badge variant="warning" className="baitly-agent-list-count whitespace-normal">
+                      <strong>{pending}</strong>{' '}
+                      <span className="baitly-agent-list-count-label">{t('supervision.board.toValidate', 'à valider')}</span>
+                    </Badge>
                   )}
-                />
-                {pending > 0 ? (
-                  <b className="truncate font-semibold text-warning-ink tabular-nums">
-                    {pending} {t('supervision.board.toValidate', 'à valider')}
-                  </b>
-                ) : (
-                  <span
-                    className={cn(
-                      'truncate',
-                      waiting
-                        ? 'font-medium text-warning-ink'
-                        : attention
-                          ? 'font-medium text-destructive'
-                          : 'text-muted-foreground',
-                    )}
-                  >
-                    {agent.task ?? statusLabel}
-                  </span>
-                )}
-              </span>
+                  {(pending === 0 || attention) && (
+                    <span className="baitly-agent-list-status" title={agent.task ?? statusLabel}>
+                      {attention ? <ErrorOutline size={14} aria-hidden="true" /> : <span className="baitly-agent-list-dot" aria-hidden="true" />}
+                      <span>{attention ? statusLabel : agent.task ?? statusLabel}</span>
+                    </span>
+                  )}
+                </span>
+              </button>
 
-              <span className="hidden w-10 shrink-0 text-end text-xs text-muted-foreground tabular-nums md:inline">
-                {lastAt ? hhmm(lastAt) : ''}
-              </span>
-
-              {/* Autonomie — le VRAI réglage par agent, borné au plafond que
-                  le serveur applique de toute façon. Un agent sans action
-                  automatisable n'affiche pas de sélecteur : on ne propose pas
-                  un réglage sans effet. stopPropagation : régler n'ouvre pas
-                  la file. */}
-              <span
-                className="flex shrink-0 items-center"
-                onClick={(event) => event.stopPropagation()}
-              >
+              {/* Contrôle frère du bouton : modifier l'autonomie ne doit pas
+                  ouvrir la file, ni imbriquer deux contrôles interactifs. */}
+              <div className="baitly-agent-list-autonomy">
                 {choices.length > 1 ? (
                   <NativeSelect
                     value={agent.autonomy}
                     onChange={(event) => requestLevel(agent.id, event.target.value as AutonomyLevel)}
-                    aria-label={`${t('supervision.board.autonomy', 'Autonomie')} — ${t(meta.nameKey)}`}
-                    className="h-8 w-[152px] text-xs"
+                    aria-label={`${t('supervision.board.autonomy', 'Autonomie')} : ${t(meta.nameKey)}`}
+                    className="baitly-agent-list-mode"
                   >
                     {choices.map((level) => (
                       <NativeSelectOption key={level} value={level}>
@@ -213,11 +185,12 @@ export function ConstellationAgentCards({
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="w-[152px] text-end text-xs text-muted-foreground">
+                      <button type="button" className="baitly-agent-list-locked">
+                        <Lock size={14} aria-hidden="true" />
                         {t('supervision.board.alwaysValidated', 'Validation requise')}
-                      </span>
+                      </button>
                     </TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-[16rem]">
+                    <TooltipContent side="top" className="max-w-[16rem]">
                       {t(
                         'supervision.board.alwaysValidatedHint',
                         "Les actions de cet agent engagent trop (légal, contractuel, public) pour partir sans vous : elles arrivent toujours en carte à valider.",
@@ -225,11 +198,11 @@ export function ConstellationAgentCards({
                     </TooltipContent>
                   </Tooltip>
                 )}
-              </span>
-            </div>
+              </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       {/* Consentement à la pleine autonomie : dire ce qui change, qui en
           répond, et exiger une case cochée — pas un simple « OK ». */}

@@ -1,0 +1,261 @@
+/* A single Baitly surface, with the same navy medallions as the constellation. */
+@layer components {
+  .baitly-agent-list {
+    container: baitly-agent-list / size;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 14px;
+    background: var(--bui-card);
+    overflow: clip;
+    --bui-agent-mode-width: 150px;
+  }
+
+  .baitly-agent-list-rows {
+    display: grid;
+    grid-auto-rows: minmax(0, 1fr);
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .baitly-agent-list-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--bui-agent-mode-width);
+    align-items: center;
+    min-height: 0;
+    gap: 12px;
+    padding-inline-end: 12px;
+    transition: background-color 180ms cubic-bezier(.25, 1, .5, 1);
+  }
+
+  .baitly-agent-list-row + .baitly-agent-list-row {
+    border-top: 1px solid var(--bui-border);
+  }
+
+  .baitly-agent-list-row[data-selected] {
+    background: var(--bui-supervision-soft);
+  }
+
+  .baitly-agent-list-select {
+    display: grid;
+    grid-template-columns: clamp(24px, 6cqh, 36px) minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    padding-block: 2px;
+    padding-inline: 12px 0;
+    border: 0;
+    background: transparent;
+    color: var(--bui-foreground);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+
+  .baitly-agent-list-emblem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    box-sizing: border-box;
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 50%;
+    background: var(--bui-card);
+    color: var(--bui-supervision-ink);
+    transition: background-color 180ms cubic-bezier(.25, 1, .5, 1), color 180ms cubic-bezier(.25, 1, .5, 1);
+  }
+
+  .baitly-agent-list-emblem::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--bui-supervision-soft);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .baitly-agent-list-row[data-selected] .baitly-agent-list-emblem {
+    border-color: var(--bui-supervision-navy);
+    background: var(--bui-supervision-navy);
+    color: var(--bui-supervision-on-navy);
+  }
+
+  .baitly-agent-list-row[data-selected] .baitly-agent-list-emblem::after {
+    border-color: color-mix(in srgb, var(--bui-supervision-on-navy) 20%, transparent);
+  }
+
+  .baitly-agent-list-activity {
+    position: absolute;
+    bottom: 0;
+    inset-inline-end: 0;
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--bui-card);
+    border-radius: 50%;
+    background: var(--bui-supervision-ink);
+  }
+
+  .baitly-agent-list-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .baitly-agent-list-name {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .baitly-agent-list-row[data-selected] .baitly-agent-list-name {
+    color: var(--bui-supervision-ink);
+    font-weight: 600;
+  }
+
+  .baitly-agent-list-role {
+    color: var(--bui-muted-foreground);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .baitly-agent-list-state {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 140px;
+    font-size: 12px;
+  }
+
+  .baitly-agent-list-count[data-slot='badge'] {
+    gap: 5px;
+    min-height: 22px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: normal;
+    text-align: start;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .baitly-agent-list-count strong { font-weight: 700; }
+
+  .baitly-agent-list-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--bui-muted-foreground);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .baitly-agent-list-status { min-width: 0; }
+  .baitly-agent-list-status > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .baitly-agent-list-status svg { flex-shrink: 0; }
+  .baitly-agent-list-row[data-attention] .baitly-agent-list-status { color: var(--bui-destructive-ink); }
+  .baitly-agent-list-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
+
+  .baitly-agent-list-autonomy { min-width: 0; }
+
+  .baitly-agent-list-mode[data-slot='native-select-wrapper'] { width: 100%; }
+
+  .baitly-agent-list-mode [data-slot='native-select'] {
+    min-height: 0;
+    height: clamp(26px, 6cqh, 34px);
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 8px;
+    background: var(--bui-card);
+    color: var(--bui-supervision-ink);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .baitly-agent-list-mode [data-slot='native-select-icon'] {
+    right: auto;
+    inset-inline-end: 10px;
+    width: 14px;
+    color: var(--bui-supervision-ink);
+  }
+
+  .baitly-agent-list-locked {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    min-height: 0;
+    height: clamp(26px, 6cqh, 34px);
+    width: 100%;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--bui-muted-foreground);
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: start;
+    cursor: help;
+  }
+
+  .baitly-agent-list-locked svg { flex-shrink: 0; }
+
+  .baitly-agent-list-select:focus-visible,
+  .baitly-agent-list-locked:focus-visible,
+  .baitly-agent-list-mode [data-slot='native-select']:focus-visible {
+    outline: 2px solid var(--bui-supervision-ink);
+    outline-offset: -3px;
+    box-shadow: none;
+  }
+
+  @media (hover: hover) {
+    .baitly-agent-list-row:has(.baitly-agent-list-select:hover) { background: var(--bui-supervision-soft); }
+    .baitly-agent-list-mode [data-slot='native-select']:hover { border-color: var(--bui-supervision-ink); }
+    .baitly-agent-list-locked:hover { color: var(--bui-supervision-ink); }
+  }
+
+  /* Fit the actual remaining height, without reducing text below 12px or
+     scrolling the agent column. Secondary context stays in the row tooltip. */
+  @container baitly-agent-list (max-height: 560px) {
+    .baitly-agent-list-role { display: none; }
+  }
+
+  @container baitly-agent-list (max-width: 540px) {
+    .baitly-agent-list-row { --bui-agent-mode-width: 132px; gap: 8px; padding-inline-end: 8px; }
+    .baitly-agent-list-select { gap: 7px; padding-inline-start: 8px; }
+    .baitly-agent-list-state { max-width: 92px; }
+    /* The count remains visible; its meaning remains available to assistive
+       technology and in the row tooltip, rather than wrapping the row. */
+    .baitly-agent-list-count-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .baitly-agent-list-count[data-slot='badge'] { min-width: 26px; justify-content: center; gap: 0; }
+  }
+
+  @container baitly-agent-list (max-width: 400px) {
+    .baitly-agent-list-row { --bui-agent-mode-width: 114px; }
+    .baitly-agent-list-state { max-width: 60px; }
+    .baitly-agent-list-locked { gap: 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .baitly-agent-list-row, .baitly-agent-list-emblem,
+    .baitly-agent-list-mode [data-slot='native-select'] { transition: none; }
+  }
+}

@@ -34,7 +34,6 @@ import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
 import stripe from '../assets/brands/stripe.svg';
 import payzone from '../assets/brands/payzone.svg';
-import '../baitly-products.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
 const PHOTO_KEYS = {

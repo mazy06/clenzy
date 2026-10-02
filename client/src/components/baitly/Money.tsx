@@ -1,5 +1,5 @@
 import { SaudiRiyal, MoroccanDirham } from '../../icons';
-import { useCurrency } from '../../hooks/useCurrency';
+import { useCurrency } from '../../hooks/currencyDisplayContext';
 import { CURRENCY_OPTIONS, currencyDisplayPart } from '../../utils/currencyUtils';
 
 /**

@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 04 « Annulations, avis, temps de réponse » (≈ 1 min 40) · 9:16 et 16:9,
+  depuis le même fichier. Voix : Noé (les épisodes alternent voix masculine et féminine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (trois indicateurs de qualité) → 1 annulations (2 sur 25 = 8 %, voyageur ou
+  hôte, calendrier à jour) → 2 avis (4,6 sur 12 avis → 4,32 ; 4,8 sur 80 avis → 4,75) → 3 réactivité
+  (38 sur 40 = 95 %, réponse rapide) → 4 trois réflexes → 5 à retenir → fin.
+  Rendu : node ../render.mjs academie-04-qualite --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 04 Annulations, avis, réponses</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.cnote { font-size: 20px; font-weight: 600; color: var(--gris); }
+.sect { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.div { height: 1.5px; background: var(--ligne2); margin: 26px 0; flex: none; }
+.fill { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+.layer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px; opacity: 0; }
+
+/* Accroche : tableau de bord qualité */
+.dash { padding: 36px; display: flex; flex-direction: column; gap: 20px; opacity: 0; }
+.dash .ttl { font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tile { background: var(--surface); border-radius: 22px; padding: 22px 18px; display: flex; flex-direction: column; gap: 10px; opacity: 0; }
+.tile .ic { width: 52px; height: 52px; border-radius: 16px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.tile b { font-size: 24px; font-weight: 700; color: var(--n700); line-height: 1.2; }
+.tile span { font-family: var(--fd); font-size: 56px; font-weight: 700; color: var(--gris); line-height: 1; }
+
+/* 1 · annulations */
+.dots25 { display: grid; grid-template-columns: repeat(5, 46px); gap: 12px; justify-content: center; }
+.dots25 i { width: 46px; height: 46px; border-radius: 12px; background: var(--sable); display: flex; align-items: center; justify-content: center; color: #FDFDFE; opacity: 0; }
+.dots25 i.x { background: #B45733; }
+.res { display: flex; align-items: baseline; justify-content: center; gap: 16px; opacity: 0; }
+.res small { font-size: 24px; font-weight: 700; color: var(--gris); }
+.res b { font-family: var(--fd); font-size: 88px; font-weight: 700; color: var(--terre); letter-spacing: -.04em; line-height: 1; }
+.kind { display: flex; align-items: center; gap: 18px; border-radius: 22px; padding: 22px 24px; opacity: 0; }
+.kind .ic { flex: none; width: 58px; height: 58px; border-radius: 18px; display: flex; align-items: center; justify-content: center; }
+.kind b { display: block; font-family: var(--fd); font-size: 32px; font-weight: 700; }
+.kind span { font-size: 24px; font-weight: 600; }
+.kind.guest { background: var(--surface); color: var(--n700); }
+.kind.guest .ic { background: #FDFDFE; color: var(--ardoise); }
+.kind.host { background: #F7E4DC; color: #8E3F20; }
+.kind.host .ic { background: #B45733; color: #FDFDFE; }
+.chipc { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: var(--n600); color: var(--papier); border-radius: 999px; padding: 12px 20px; font-size: 24px; font-weight: 700; opacity: 0; }
+
+/* 2 · avis */
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.panel { background: var(--surface); border-radius: 26px; padding: 26px 24px; display: flex; flex-direction: column; gap: 12px; opacity: 0; }
+.panel small { font-size: 22px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
+.panel .rate { font-family: var(--fd); font-size: 84px; font-weight: 700; letter-spacing: -.04em; color: var(--n700); line-height: 1; font-variant-numeric: tabular-nums; }
+.stars4 { position: relative; display: inline-flex; gap: 4px; color: #E4D5BD; }
+.stars4 .on { position: absolute; inset: 0; display: inline-flex; gap: 4px; color: #D4A574; overflow: hidden; white-space: nowrap; }
+.stars4 svg { fill: currentColor; flex: none; }
+.newr { align-self: flex-start; background: #F7E4DC; color: #8E3F20; border-radius: 10px; padding: 6px 12px; font-size: 21px; font-weight: 700; opacity: 0; }
+.delta { font-family: var(--fd); font-size: 30px; font-weight: 700; opacity: 0; }
+.tips { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.tips span { display: flex; align-items: center; gap: 12px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 18px; padding: 14px 18px; font-size: 25px; font-weight: 700; color: var(--n700); opacity: 0; }
+
+/* 3 · réactivité */
+.rrow { display: flex; align-items: center; justify-content: center; gap: 28px; }
+.rrow .ex { font-family: var(--fd); font-size: 44px; font-weight: 700; color: #4D5A64; }
+.chat4 { display: flex; flex-direction: column; gap: 12px; }
+.bub4 { max-width: 82%; border-radius: 22px; padding: 16px 20px; font-size: 25px; font-weight: 600; line-height: 1.35; opacity: 0; }
+.bub4.g { align-self: flex-start; background: var(--surface); color: var(--n700); border-bottom-left-radius: 6px; }
+.bub4.h { align-self: flex-end; background: var(--n600); color: var(--papier); border-bottom-right-radius: 6px; }
+.timer { align-self: flex-end; display: inline-flex; align-items: center; gap: 8px; background: rgba(13,148,136,.12); color: var(--ok); border-radius: 999px; padding: 8px 14px; font-size: 22px; font-weight: 700; opacity: 0; }
+
+/* 4 · trois réflexes */
+.acts { display: flex; flex-direction: column; gap: 18px; }
+.act { display: flex; align-items: center; gap: 26px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 30px; padding: 28px 32px; box-shadow: var(--e3); opacity: 0; }
+.act .n { flex: none; width: 76px; height: 76px; border-radius: 22px; background: var(--n600); color: var(--papier); font-family: var(--fd); font-size: 38px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.act b { display: block; font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); letter-spacing: -.015em; }
+.act span { font-size: 26px; font-weight: 600; color: var(--ardoise); }
+.rc3 { display: flex; flex-direction: column; gap: 16px; }
+
+html.f169 .tile span { font-size: 48px; }
+html.f169 .dots25 { grid-template-columns: repeat(5, 40px); }
+html.f169 .dots25 i { width: 40px; height: 40px; }
+html.f169 .panel .rate { font-size: 72px; }
+html.f169 .act b { font-size: 36px; }
+html.f169 .act span { font-size: 24px; }
+html.f169 .kind b { font-size: 28px; }
+html.f169 .kind span { font-size: 22px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const fmtRate = (v) => v.toFixed(2).replace(/0$/, '').replace('.', ',');
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 74 : 70}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' ').map((x) => x.replace(/[?… ]/g, '')));
+const H = T.hook;
+const tiles = H.tiles.map(([ic, l]) => h('div', { class: 'tile' }, h('span', { class: 'ic' }, icon(ic, 28)), h('b', {}, l), h('span', {}, '?')));
+const dash = A.abs(L.card.x, 0, L.card.w, null, 'acard dash');
+dash.append(h('div', { class: 'ttl' }, H.title), h('div', { class: 'tiles' }, tiles));
+
+/* 1 · annulations */
+const C = T.cancel, c1 = A.card();
+const f1 = A.frac(C.num, C.den, P ? 520 : 480);
+const CANCELLED = [7, 18];
+const dots = Array.from({ length: 25 }, (_, i) => h('i', { class: CANCELLED.includes(i) ? '' : '' }, CANCELLED.includes(i) ? icon('x', 26) : null));
+const res = h('div', { class: 'res' }, h('small', {}, C.example), h('b', {}, C.result));
+const layerA = h('div', { class: 'layer' }, h('div', { class: 'dots25' }, dots), res);
+const kGuest = h('div', { class: 'kind guest' }, h('span', { class: 'ic' }, icon('user', 30)), h('div', {}, h('b', {}, C.guest[0]), h('span', {}, C.guest[1])));
+const kHost = h('div', { class: 'kind host' }, h('span', { class: 'ic' }, icon('alert', 30)), h('div', {}, h('b', {}, C.host[0]), h('span', {}, C.host[1])));
+const calChip = h('span', { class: 'chipc' }, icon('sync', 26), C.calendar);
+const layerB = h('div', { class: 'layer' }, kGuest, kHost, calChip);
+c1.el.append(h('div', { class: 'sect' }, h('span', { class: 'alabel' }, 'Formule'), f1.el), h('div', { class: 'div' }), h('div', { class: 'fill' }, layerA, layerB));
+
+/* 2 · avis */
+const RV = T.reviews, c2 = A.card();
+const STAR = P ? 34 : 30;
+const starRow = () => { const off = h('span', { class: 'stars4' }); const on = h('span', { class: 'on' }); for (let i = 0; i < 5; i++) { off.append(icon('star', STAR)); on.append(icon('star', STAR)); } off.append(on); return { el: off, on }; };
+const panels = RV.panels.map((p) => {
+  const rate = h('div', { class: 'rate' }, fmtRate(p.from)), stars = starRow();
+  const newr = h('span', { class: 'newr' }, RV.newReview), delta = h('span', { class: 'delta' }, `→ ${fmtRate(p.to)}`);
+  const el = h('div', { class: 'panel' }, h('small', {}, p.count), rate, stars.el, newr, delta);
+  return { el, rate, stars, newr, delta, ...p };
+});
+const tips = RV.tips.map((t0, i) => h('span', {}, icon(i ? 'reply' : 'star', 26), t0));
+c2.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' }, h('div', { class: 'panels' }, panels.map((p) => p.el)), h('div', { class: 'tips' }, tips)));
+
+/* 3 · réactivité */
+const RP = T.reply, c3 = A.card();
+const f3 = A.frac(RP.num, RP.den, P ? 560 : 520);
+const g3 = A.gauge(P ? 210 : 190, 22, '#0D9488');
+const ex3 = h('span', { class: 'ex', style: 'opacity:0' }, RP.example);
+const bG = h('div', { class: 'bub4 g' }, RP.guest), bH = h('div', { class: 'bub4 h' }, RP.host), timer = h('span', { class: 'timer' }, icon('clock', 22), RP.timer);
+c3.el.append(h('div', { class: 'sect' }, h('span', { class: 'alabel' }, 'Formule'), f3.el), h('div', { class: 'div' }),
+  h('div', { class: 'fill', style: 'gap:22px' }, h('div', { class: 'rrow' }, ex3, g3.el),
+    h('div', { class: 'chat4' }, h('span', { class: 'cnote' }, T.illustration), bG, bH, timer)));
+
+/* 4 · trois réflexes */
+const acts = A.abs(L.card.x, 0, L.card.w, null, 'acts');
+const actEls = T.acts.map(([b, s], i) => { const e = h('div', { class: 'act' }, h('span', { class: 'n' }, String(i + 1)), h('div', {}, h('b', {}, b), h('span', {}, s))); acts.append(e); return e; });
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'rc3');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'appt', style: 'opacity:0' }, icon('ccheck', 32), R.app), app2 = h('div', { class: 'appt', style: 'opacity:0' }, icon('bot', 32), R.app2);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, app2);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(dash, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(acts, P ? heads[3].el.offsetTop + heads[3].el.offsetHeight + 40 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 + 3.4);
+  A.rise(dash, v0, shown(t, S[0][0] + .4, .6), 60);
+  [SYNC.i1, SYNC.i2, SYNC.i3].forEach((t0, i) => A.rise(tiles[i], 1, shown(t, t0 - .15), 18));
+
+  /* 1 · annulations */
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  f1.set(t, SYNC.f, SYNC.f + 1.6);
+  f1.bar.style.transform = `scaleX(${shown(t, S[1][0] + .3, .5)})`;
+  const swap = shown(t, SYNC.guest - .3, .5);
+  set(layerA, { opacity: shown(t, SYNC.ex - .3) * (1 - swap), transform: `translateY(${lerp(0, -20, swap)}px)` });
+  set(layerB, { opacity: swap, transform: `translateY(${lerp(20, 0, swap)}px)` });
+  dots.forEach((d, i) => {
+    const p = shown(t, SYNC.ex - .2 + i * .04, .25); d.style.opacity = p; d.style.transform = `scale(${lerp(.6, 1, p)})`;
+    if (CANCELLED.includes(i)) d.classList.toggle('x', t >= SYNC.ex + 1.4);
+  });
+  A.rise(res, 1, shown(t, SYNC.r8 - .1), 12);
+  A.rise(kGuest, 1, shown(t, SYNC.guest), 16);
+  A.rise(kHost, 1, shown(t, SYNC.host - .1), 16);
+  const hp = easeOut(prog(t, SYNC.pen, .25)) * (1 - easeIn(prog(t, SYNC.pen + .6, .4))); kHost.style.transform += ` scale(${1 + .03 * hp})`;
+  A.rise(calChip, 1, shown(t, SYNC.cal - .1), 12);
+
+  /* 2 · avis */
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  panels.forEach((p, n) => {
+    const tIn = n ? SYNC.a80 : SYNC.a12, tDrop = n ? SYNC.stable : SYNC.drop;
+    A.rise(p.el, 1, shown(t, tIn - .4, .5), 30);
+    A.rise(p.newr, 1, shown(t, tIn + .9), 10);
+    const k = easeInOut(prog(t, tDrop - .2, .7)), v = lerp(p.from, p.to, k);
+    p.rate.textContent = fmtRate(Math.round(v * 100) / 100);
+    p.rate.style.color = k > .05 ? (n ? '#4D5A64' : '#B45733') : '';
+    p.stars.on.style.width = `${v / 5 * 100}%`;
+    A.rise(p.delta, 1, shown(t, tDrop), 8);
+    p.delta.style.color = n ? '#4D5A64' : '#B45733';
+  });
+  [SYNC.ask, SYNC.reply].forEach((t0, i) => A.rise(tips[i], 1, shown(t, t0 - .2), 12));
+
+  /* 3 · réactivité */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  f3.set(t, SYNC.f24 - 1.2, SYNC.f24 + 1.4);
+  f3.bar.style.transform = `scaleX(${shown(t, S[3][0] + .3, .5)})`;
+  A.rise(ex3, 1, shown(t, SYNC.r95 - .2), 10);
+  const gp = easeInOut(prog(t, SYNC.r95 + .8, .8)); g3.set(gp * .95, Math.round(gp * 95) + ' %');
+  A.rise(bG, 1, shown(t, SYNC.speed - .4), 14); A.rise(bH, 1, shown(t, SYNC.speed + 1.2), 14); A.rise(timer, 1, shown(t, SYNC.wait - .4), 10);
+
+  /* 4 · réflexes */
+  const v4 = slotVis(t, 4);
+  [SYNC.a1, SYNC.a2, SYNC.a3].forEach((t0, i) => A.rise(actEls[i], v4, shown(t, t0 - .3, .5), 40));
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(app2, v5, shown(t, SYNC.app2 - .6, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

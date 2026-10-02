@@ -879,6 +879,7 @@ function mapProperty(p: ApiProperty): WidgetProperty {
     checkInTime: p.checkInTime,
     checkOutTime: p.checkOutTime,
     description: p.description ?? null,
+    registrationNumber: p.registrationNumber ?? null,
     rating: p.rating ?? null,
     reviewCount: p.reviewCount ?? 0,
     totalBookings: p.totalBookings,

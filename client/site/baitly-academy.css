@@ -82,6 +82,13 @@
   aspect-ratio: 9 / 16;
   max-height: min(78svh, 860px);
 }
+/* Reserve the mobile player height before the format hook runs. */
+@media (max-width: 767px), (orientation: portrait) and (max-width: 1100px) {
+  .bac-player .bac-screen video {
+    aspect-ratio: 9 / 16;
+    max-height: min(78svh, 860px);
+  }
+}
 .bac-player:fullscreen {
   display: flex;
   flex-direction: column;
@@ -642,3 +649,5 @@
     display: none;
   }
 }
+.bac-player:not([data-enhanced]) .bac-big { display: none; }
+.bac-player:not([data-enhanced]) .bac-bar { visibility: hidden; }

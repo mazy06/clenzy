@@ -78,6 +78,18 @@ const solutionsFr: Record<string, SolutionText> = {
       'CMI / PayZone / YouCan Pay',
     ],
   },
+  france: {
+    name: 'France — conformité',
+    menuCopy:
+      'Numéro d’enregistrement, 120 nuits, fiche de police, taxe de séjour, Factur-X.',
+    copy: 'La conformité française traitée comme un produit : enregistrement du meublé, déclaration des voyageurs, taxes et facture électronique.',
+    points: [
+      'Numéro d’enregistrement et plafond de 120 nuits',
+      'Fiche de police des voyageurs étrangers',
+      'Taxe de séjour selon la commune',
+      'Facture électronique Factur-X, encaissement en euros',
+    ],
+  },
   'multi-proprietaires': {
     name: 'Multi-propriétaires',
     menuCopy: 'Gestion pour compte de tiers, relevés et versements.',
@@ -148,6 +160,18 @@ const solutionsEn: Record<string, SolutionText> = {
       'CMI / PayZone / YouCan Pay',
     ],
   },
+  france: {
+    name: 'France — compliance',
+    menuCopy:
+      'Registration number, 120 nights, police record, tourist tax, Factur-X.',
+    copy: 'French compliance treated as a product: property registration, guest declaration, taxes and electronic invoicing.',
+    points: [
+      'Registration number and 120-night cap',
+      'Police record for foreign guests',
+      'Tourist tax by municipality',
+      'Factur-X e-invoicing, collection in euros',
+    ],
+  },
   'multi-proprietaires': {
     name: 'Multi-owner',
     menuCopy: 'Third-party management, statements and payouts.',
@@ -216,6 +240,18 @@ const solutionsAr: Record<string, SolutionText> = {
       'جداول الرسم حسب البلدية',
       'دعم التحوّل الرقمي',
       'CMI / PayZone / YouCan Pay',
+    ],
+  },
+  france: {
+    name: 'فرنسا — الامتثال',
+    menuCopy:
+      'رقم التسجيل، وسقف 120 ليلة، وبطاقة الشرطة، ورسم الإقامة، وFactur-X.',
+    copy: 'الامتثال الفرنسي معالَجاً كمنتج: تسجيل الوحدة المفروشة، والتصريح بالنزلاء، والرسوم، والفاتورة الإلكترونية.',
+    points: [
+      'رقم التسجيل وسقف 120 ليلة',
+      'بطاقة الشرطة للنزلاء الأجانب',
+      'رسم الإقامة حسب البلدية',
+      'فاتورة إلكترونية Factur-X وتحصيل باليورو',
     ],
   },
   'multi-proprietaires': {

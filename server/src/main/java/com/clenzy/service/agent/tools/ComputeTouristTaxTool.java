@@ -106,6 +106,7 @@ public class ComputeTouristTaxTool implements ToolHandler {
         payload.put("from", from.toString());
         payload.put("to", to.toString());
         payload.put("totalTax", report.totalTax());
+        payload.put("platformCollectedTax", report.platformCollectedTax());
         payload.put("reservationCount", report.reservationCount());
         payload.put("missingConfigCount", report.missingConfigCount());
         payload.put("lines", lines);

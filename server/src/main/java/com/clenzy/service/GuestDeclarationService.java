@@ -12,6 +12,7 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestDeclarationRepository;
 import com.clenzy.repository.RegulatoryConfigRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.compliance.DeclarationRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +53,8 @@ public class GuestDeclarationService {
     static final String F_RESIDENCE_ADDRESS = "residenceAddress";
     static final String F_ID_DOCUMENT_TYPE = "idDocumentType";
     static final String F_ID_DOCUMENT_NUMBER = "idDocumentNumber";
+    static final String F_PHONE = "phone";
+    static final String F_EMAIL = "email";
 
     private final GuestDeclarationRepository declarationRepository;
     private final ReservationRepository reservationRepository;
@@ -92,14 +96,18 @@ public class GuestDeclarationService {
             return new DataCollectionInfo(false, true, List.of());
         }
 
-        List<String> missing = computeMissingFields(reservation);
-        boolean hasCompletedPrimary = declarationRepository
-            .findByReservationIdOrderByIdAsc(reservationId).stream()
-            .anyMatch(d -> d.isPrimary() && d.getStatus() == DeclarationStatus.COMPLETED);
+        DeclarationRules rules = rulesFor(reservation);
+        List<String> missing = computeMissingFields(reservation, rules);
+        // Toutes les fiches du séjour doivent être complètes (un accompagnant étranger
+        // incomplet laisse la collecte ouverte) ; la principale doit exister.
+        List<GuestDeclaration> declarations = declarationRepository.findByReservationIdOrderByIdAsc(reservationId);
+        boolean hasCompletedPrimary = declarations.stream()
+            .anyMatch(d -> d.isPrimary() && d.getStatus() != DeclarationStatus.PENDING);
+        boolean allComplete = declarations.stream().allMatch(d -> d.getStatus() != DeclarationStatus.PENDING);
 
-        boolean complete = missing.isEmpty() && hasCompletedPrimary;
+        boolean complete = missing.isEmpty() && hasCompletedPrimary && allComplete;
         // Requis seulement si le service est activé ET la collecte n'est pas encore complète.
-        return new DataCollectionInfo(!complete, complete, missing);
+        return new DataCollectionInfo(!complete, complete, missing, rules);
     }
 
     /**
@@ -132,6 +140,8 @@ public class GuestDeclarationService {
             declarationRepository.deleteAllInBatch(existing);
         }
 
+        DeclarationRules rules = rulesFor(reservation);
+        boolean certified = Boolean.TRUE.equals(request.certified());
         Guest primaryGuest = reservation.getGuest();
         List<GuestDeclaration> toSave = new ArrayList<>();
         List<GuestDeclarationRequest.Declarant> declarants = request.declarants();
@@ -139,7 +149,7 @@ public class GuestDeclarationService {
             boolean isPrimary = (i == 0);
             GuestDeclaration declaration = toEntity(
                 declarants.get(i), reservation, orgId, countryCode, isPrimary,
-                isPrimary ? primaryGuest : null);
+                isPrimary ? primaryGuest : null, rules, certified);
             toSave.add(declaration);
         }
         declarationRepository.saveAll(toSave);
@@ -149,8 +159,11 @@ public class GuestDeclarationService {
 
         // Transmission au provider de conformité : effet externe POST-COMMIT (jamais dans la tx,
         // audit règle #2). Déclenché seulement si au moins une déclaration est COMPLETED.
-        boolean anyCompleted = toSave.stream().anyMatch(d -> d.getStatus() == DeclarationStatus.COMPLETED);
-        if (anyCompleted) {
+        // France : la fiche est CONSERVÉE par l'exploitant et remise sur réquisition — il n'existe
+        // aucun téléservice de dépôt, rien ne part (CESEDA R814-3).
+        boolean anyCompleted = toSave.stream()
+            .anyMatch(d -> d.getStatus() == DeclarationStatus.COMPLETED && !d.isExempt());
+        if (anyCompleted && !rules.retainedLocally()) {
             triggerComplianceSubmissionAfterCommit(reservationId, orgId);
         }
 
@@ -194,7 +207,7 @@ public class GuestDeclarationService {
      * existante (si déjà saisie), puis repli sur le {@link Guest} de la réservation (prénom/nom) et
      * sur le check-in en ligne (type + numéro de document d'identité).
      */
-    private List<String> computeMissingFields(Reservation reservation) {
+    private List<String> computeMissingFields(Reservation reservation, DeclarationRules rules) {
         GuestDeclaration primary = declarationRepository
             .findByReservationIdOrderByIdAsc(reservation.getId()).stream()
             .filter(GuestDeclaration::isPrimary)
@@ -204,6 +217,10 @@ public class GuestDeclarationService {
         Guest guest = reservation.getGuest();
         var checkIn = onlineCheckInService.getByReservation(reservation.getId(), reservation.getOrganizationId());
 
+        // Les champs dus dépendent du voyageur : un ressortissant dispensé n'a que son identité.
+        java.util.Set<String> due = new java.util.HashSet<>(rules.requiredFields(true,
+            primary != null ? primary.getNationality() : null,
+            primary != null ? primary.getBirthDate() : null));
         List<String> missing = new ArrayList<>();
         addIfMissing(missing, F_FIRST_NAME, firstNonBlank(
             primary != null ? primary.getFirstName() : null,
@@ -213,51 +230,110 @@ public class GuestDeclarationService {
             primary != null ? primary.getLastName() : null,
             guest != null ? guest.getLastName() : null,
             checkIn.map(c -> c.getLastName()).orElse(null)));
-        addIfMissing(missing, F_BIRTH_DATE, primary != null ? primary.getBirthDate() : null);
-        addIfMissing(missing, F_BIRTH_PLACE, primary != null ? primary.getBirthPlace() : null);
         addIfMissing(missing, F_NATIONALITY, primary != null ? primary.getNationality() : null);
-        addIfMissing(missing, F_RESIDENCE_ADDRESS, primary != null ? primary.getResidenceAddress() : null);
-        addIfMissing(missing, F_ID_DOCUMENT_TYPE, firstNonBlank(
-            primary != null ? primary.getIdDocumentType() : null,
-            checkIn.map(c -> c.getIdDocumentType()).orElse(null)));
-        addIfMissing(missing, F_ID_DOCUMENT_NUMBER, firstNonBlank(
-            primary != null ? primary.getIdDocumentNumber() : null,
-            checkIn.map(c -> c.getIdDocumentNumber()).orElse(null)));
+        if (due.contains(F_BIRTH_DATE)) {
+            addIfMissing(missing, F_BIRTH_DATE, primary != null ? primary.getBirthDate() : null);
+        }
+        if (due.contains(F_BIRTH_PLACE)) {
+            addIfMissing(missing, F_BIRTH_PLACE, primary != null ? primary.getBirthPlace() : null);
+        }
+        if (due.contains(F_RESIDENCE_ADDRESS)) {
+            addIfMissing(missing, F_RESIDENCE_ADDRESS, primary != null ? primary.getResidenceAddress() : null);
+        }
+        if (due.contains(F_PHONE)) {
+            addIfMissing(missing, F_PHONE, primary != null ? primary.getPhone() : null);
+        }
+        if (due.contains(F_EMAIL)) {
+            addIfMissing(missing, F_EMAIL, primary != null ? primary.getEmail() : null);
+        }
+        if (due.contains(F_ID_DOCUMENT_TYPE)) {
+            addIfMissing(missing, F_ID_DOCUMENT_TYPE, firstNonBlank(
+                primary != null ? primary.getIdDocumentType() : null,
+                checkIn.map(c -> c.getIdDocumentType()).orElse(null)));
+        }
+        if (due.contains(F_ID_DOCUMENT_NUMBER)) {
+            addIfMissing(missing, F_ID_DOCUMENT_NUMBER, firstNonBlank(
+                primary != null ? primary.getIdDocumentNumber() : null,
+                checkIn.map(c -> c.getIdDocumentNumber()).orElse(null)));
+        }
         return missing;
     }
 
+    /**
+     * Entité d'une déclaration. MINIMISATION : seuls les champs que la loi du pays exige pour
+     * CE voyageur sont conservés — un ressortissant dispensé ne laisse que son identité, une
+     * fiche française ne garde aucune pièce d'identité.
+     */
     private GuestDeclaration toEntity(GuestDeclarationRequest.Declarant src, Reservation reservation,
-                                      Long orgId, String countryCode, boolean isPrimary, Guest guest) {
+                                      Long orgId, String countryCode, boolean isPrimary, Guest guest,
+                                      DeclarationRules rules, boolean certified) {
+        java.util.Set<String> due = new java.util.HashSet<>(
+            rules.requiredFields(isPrimary, src.nationality(), src.birthDate()));
+        boolean exempt = rules.isExempt(src.nationality());
         GuestDeclaration d = new GuestDeclaration();
         d.setOrganizationId(orgId);
         d.setReservation(reservation);
         d.setGuest(guest);
         d.setPrimary(isPrimary);
         d.setCountryCode(countryCode);
+        d.setExempt(exempt);
         d.setFirstName(src.firstName());
         d.setLastName(src.lastName());
-        d.setMaidenName(src.maidenName());
-        d.setBirthDate(src.birthDate());
-        d.setBirthPlace(src.birthPlace());
         d.setNationality(src.nationality());
-        d.setResidenceAddress(src.residenceAddress());
-        d.setResidenceCountry(src.residenceCountry());
-        d.setIdDocumentType(src.idDocumentType());
-        d.setIdDocumentNumber(src.idDocumentNumber());
-        d.setStatus(isComplete(src, isPrimary) ? DeclarationStatus.COMPLETED : DeclarationStatus.PENDING);
+        if (!exempt) {
+            d.setMaidenName(src.maidenName());
+            d.setBirthDate(keepIf(due, F_BIRTH_DATE, src.birthDate()));
+            d.setBirthPlace(keepIf(due, F_BIRTH_PLACE, src.birthPlace()));
+            d.setResidenceAddress(keepIf(due, F_RESIDENCE_ADDRESS, src.residenceAddress()));
+            d.setResidenceCountry(due.contains(F_RESIDENCE_ADDRESS) ? src.residenceCountry() : null);
+            d.setIdDocumentType(keepIf(due, F_ID_DOCUMENT_TYPE, src.idDocumentType()));
+            d.setIdDocumentNumber(keepIf(due, F_ID_DOCUMENT_NUMBER, src.idDocumentNumber()));
+            d.setPhone(keepIf(due, F_PHONE, src.phone()));
+            d.setEmail(keepIf(due, F_EMAIL, src.email()));
+            if (certified) {
+                d.setSignedAt(LocalDateTime.now());
+            }
+        }
+        boolean complete = isComplete(src, due)
+            && (exempt || !rules.certificationRequired() || certified);
+        d.setStatus(complete ? DeclarationStatus.COMPLETED : DeclarationStatus.PENDING);
         return d;
     }
 
-    /**
-     * Une déclaration est complète quand tous les champs requis sont renseignés. Pour un accompagnant,
-     * l'adresse de résidence n'est pas exigée (rattachée au foyer du voyageur principal).
-     */
-    private boolean isComplete(GuestDeclarationRequest.Declarant src, boolean isPrimary) {
-        boolean core = isNotBlank(src.firstName()) && isNotBlank(src.lastName())
-            && isNotBlank(src.birthDate()) && isNotBlank(src.birthPlace())
-            && isNotBlank(src.nationality())
-            && isNotBlank(src.idDocumentType()) && isNotBlank(src.idDocumentNumber());
-        return core && (!isPrimary || isNotBlank(src.residenceAddress()));
+    /** Une déclaration est complète quand tous les champs dus pour ce voyageur sont renseignés. */
+    private static boolean isComplete(GuestDeclarationRequest.Declarant src, java.util.Set<String> due) {
+        for (String field : due) {
+            if (!isNotBlank(valueOf(src, field))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String valueOf(GuestDeclarationRequest.Declarant src, String field) {
+        return switch (field) {
+            case F_FIRST_NAME -> src.firstName();
+            case F_LAST_NAME -> src.lastName();
+            case F_BIRTH_DATE -> src.birthDate();
+            case F_BIRTH_PLACE -> src.birthPlace();
+            case F_NATIONALITY -> src.nationality();
+            case F_RESIDENCE_ADDRESS -> src.residenceAddress();
+            case F_ID_DOCUMENT_TYPE -> src.idDocumentType();
+            case F_ID_DOCUMENT_NUMBER -> src.idDocumentNumber();
+            case F_PHONE -> src.phone();
+            case F_EMAIL -> src.email();
+            default -> null;
+        };
+    }
+
+    private static String keepIf(java.util.Set<String> due, String field, String value) {
+        return due.contains(field) ? value : null;
+    }
+
+    /** Règles du pays du logement, l'arrivée du séjour servant de référence d'âge. */
+    private static DeclarationRules rulesFor(Reservation reservation) {
+        String country = reservation.getProperty() != null ? reservation.getProperty().getCountryCode() : null;
+        return DeclarationRules.forCountry(country, reservation.getCheckIn());
     }
 
     private static void addIfMissing(List<String> missing, String field, String value) {

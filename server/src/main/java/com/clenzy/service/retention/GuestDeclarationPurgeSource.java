@@ -36,6 +36,13 @@ public class GuestDeclarationPurgeSource implements PurgeSource {
     /** Doit matcher {@code clenzy.retention.purge.targets[].name}. */
     static final String TARGET_NAME = "police-records";
 
+    /**
+     * Durée légale de conservation (CESEDA R814-3 : six mois), comptée depuis le DÉPART du
+     * séjour. Affichée aux opérateurs ; la valeur appliquée par le moteur vient de la config
+     * ({@code retention-days}), qui doit rester alignée.
+     */
+    public static final int RETENTION_DAYS = 180;
+
     private final GuestDeclarationRepository repository;
     private final ZoneId zoneId;
 
@@ -58,7 +65,7 @@ public class GuestDeclarationPurgeSource implements PurgeSource {
     @Override
     @Transactional(readOnly = true)
     public long countExpired(Instant cutoff) {
-        return repository.countByCreatedAtLessThanEqual(toLocalDateTime(cutoff));
+        return repository.countEndedOnOrBefore(toLocalDate(cutoff));
     }
 
     @Override
@@ -68,7 +75,9 @@ public class GuestDeclarationPurgeSource implements PurgeSource {
             return 0;
         }
         // Tri stable par id, borné par le batch : on sélectionne au plus `limit` ids puis on supprime.
-        List<Long> ids = repository.findIdsCreatedBefore(toLocalDateTime(cutoff), PageRequest.of(0, limit));
+        // Référence = fin du séjour : une fiche créée avant l'arrivée ne doit pas disparaître
+        // avant ses six mois de conservation, qui courent depuis le départ.
+        List<Long> ids = repository.findIdsEndedOnOrBefore(toLocalDate(cutoff), PageRequest.of(0, limit));
         if (ids.isEmpty()) {
             return 0;
         }
@@ -76,7 +85,7 @@ public class GuestDeclarationPurgeSource implements PurgeSource {
         return ids.size();
     }
 
-    private LocalDateTime toLocalDateTime(Instant cutoff) {
-        return LocalDateTime.ofInstant(cutoff, zoneId);
+    private java.time.LocalDate toLocalDate(Instant cutoff) {
+        return LocalDateTime.ofInstant(cutoff, zoneId).toLocalDate();
     }
 }

@@ -3,7 +3,6 @@ import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../lib/messages/baitlyContact';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
 import { PRICING_MESSAGES } from '../lib/messages/pricing';
-import '../baitly-acquisition.css';
 
 export default function AcquisitionSummary({
   context,

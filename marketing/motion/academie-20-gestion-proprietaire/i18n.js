@@ -1,0 +1,128 @@
+// Baitly Académie · Épisode 20 « Gérer pour le compte d'un propriétaire » · textes à l'écran.
+// Exemple fictif, calculs exacts : 2 000 € de réservations dont 300 € de frais de plateforme ;
+// 20 % du brut = 400 € ; 20 % du net (1 700 €) = 340 € ; écart 60 € ; reversement 2 000 − 300 − 340 − 160 = 1 200 € ;
+// relevé : 3 séjours (3, 4 et 3 nuits à 200 €) = 600 + 800 + 600 = 2 000 €.
+// Phrase produit vérifiée : mandat signé en ligne (lien envoyé au propriétaire, ContractSignatureService), base de la
+// commission brut/net et payeur des frais OTA par contrat (ManagementContract.CommissionBase, OtaFeeBearer), virement
+// seulement APPROVED (PayoutExecutionService), relevé mensuel automatique (OwnerStatementScheduler, le 1er du mois)
+// au même calcul que le virement (OwnerPortalService). Information générale pour les obligations professionnelles.
+window.STRINGS = {
+  fr: {
+    dir: 'ltr', illustrative: 'Exemple fictif',
+    ep: '20', theme: 'Conciergeries', trap: 'Piège',
+    q: ['Fin de mois.', 'Combien je touche ?'],
+    hook: {
+      photo: 'canape', who: 'Le propriétaire', msg: '« Combien je touche, et pourquoi ? »',
+      pieces: [['filetext', 'Le mandat'], ['banknote', 'Le reversement'], ['receipttext', 'Le relevé']],
+    },
+    heads: [
+      ['Le mandat', 'Le contrat qui vous autorise à gérer'],
+      ['Le reversement', 'Ce qui revient au propriétaire'],
+      ['Le relevé', 'Séjour par séjour, chaque mois'],
+      ['Mise en pratique', 'Avant de signer : 5 points'],
+    ],
+    mandate: {
+      title: 'Mandat de gestion',
+      clauses: [
+        ['list', 'Vos missions', 'Ménage, accueil, annonces, prix'],
+        ['percent', 'Votre commission', '20 %'],
+        ['scale', 'La base de calcul', 'Brut ou net ?'],
+        ['logout', 'La fin du contrat', 'Préavis, résiliation'],
+      ],
+    },
+    base: {
+      rows: [['Réservations du mois', '2 000 €'], ['dont frais de plateforme', '300 €']],
+      cols: [['Sur le brut', '20 % × 2 000 €', '400 €'], ['Sur le net', '20 % × 1 700 €', '340 €']],
+      gap: ['Écart', '60 € par mois'],
+    },
+    vague: {
+      quote: '« 20 % des revenus »', asks: [['scale', 'Du brut, ou du net ?'], ['receipt', 'Les frais de plateforme : qui paie ?']],
+      ok: 'Écrit noir sur blanc, avant le premier séjour',
+    },
+    payout: {
+      rows: [['Revenus des séjours', '2 000 €', ''], ['Frais de plateforme', '− 300 €', 'minus'], ['Votre commission', '− 340 €', 'minus'], ['Ménage et petites réparations', '− 160 €', 'minus']],
+      result: ['Pour le propriétaire', '1 200 €'],
+    },
+    money: {
+      accounts: [['bank', 'Votre trésorerie'], ['owner', 'L’argent des propriétaires']],
+      apart: 'Deux comptes, jamais mélangés', fixed: 'Reversement à date fixe : le 5 du mois',
+    },
+    statement: {
+      title: 'Relevé · septembre', stays: [['Séjour 1 · 3 nuits', '600 €'], ['Séjour 2 · 4 nuits', '800 €'], ['Séjour 3 · 3 nuits', '600 €']],
+      deductions: [['Frais de plateforme', '− 300 €'], ['Commission', '− 340 €'], ['Dépenses', '− 160 €']],
+      total: ['Versé', '1 200 €'], same: 'Les mêmes chiffres que le virement',
+      wins: [['phone', 'Moins d’appels inquiets'], ['users', 'Un propriétaire qui reste']],
+    },
+    practice: {
+      items: [['percent', 'La base de la commission'], ['receipt', 'Qui paie les frais de plateforme'], ['cal', 'La date du reversement'], ['receipttext', 'Le relevé mensuel'], ['landmark', 'Les règles de votre pays']],
+      note: 'Selon le pays : carte professionnelle, assurance… à vérifier avant le premier mandat',
+      info: 'Information générale, pas un conseil juridique',
+    },
+    recap: {
+      title: 'À retenir',
+      rows: [
+        ['filecheck', 'Un mandat précis', 'Base de la commission, frais, fin du contrat'],
+        ['banknote', 'Un reversement poste par poste', 'À date fixe'],
+        ['receipttext', 'Un relevé chaque mois', 'Séjour par séjour'],
+      ],
+      app: 'Dans Baitly : le mandat signé en ligne, la base de commission et les frais fixés par contrat',
+      app2: 'Le reversement après votre validation, le relevé mensuel automatique, aux mêmes chiffres',
+    },
+    cta: 'Découvrir Baitly',
+    facts: [['Baitly Académie', 'le métier expliqué simplement'], ['Épisode 20', 'gérer pour un propriétaire']],
+    subtitles: [
+      { from: 0.35, to: 2.78, text: "Un propriétaire vous confie son appartement.", em: "" },
+      { from: 2.8, to: 5.62, text: "En fin de mois, ", em: "il ne vous demandera qu'une chose :" },
+      { from: 5.64, to: 7.4, text: "combien je touche… ", em: "et pourquoi ?" },
+      { from: 7.42, to: 9.18, text: "Gérer pour le compte d'un autre,", em: "" },
+      { from: 9.2, to: 11.18, text: "c'est d'abord une affaire de clarté.", em: "" },
+      { from: 11.2, to: 14.07, text: "Voyons les 3 pièces qui la garantissent : ", em: "le mandat," },
+      { from: 14.09, to: 15.86, text: "le reversement, ", em: "et le relevé." },
+      { from: 16.56, to: 18.01, text: "Première pièce : ", em: "le mandat." },
+      { from: 18.03, to: 21.02, text: "C'est le contrat qui vous autorise à gérer le logement.", em: "" },
+      { from: 21.04, to: 24.52, text: "Il dit ce que vous faites, combien vous prenez, ", em: "sur quelle base," },
+      { from: 24.54, to: 26.0, text: "et comment on se sépare.", em: "" },
+      { from: 26.35, to: 28.13, text: "La base change tout.", em: "" },
+      { from: 28.15, to: 31.19, text: "Un mois à 2 000 € de réservations,", em: "" },
+      { from: 31.21, to: 34.25, text: "dont 300 € de frais de plateforme.", em: "" },
+      { from: 34.27, to: 36.5, text: "20 % sur le brut : ", em: "400 €." },
+      { from: 36.52, to: 42.43, text: "20 % sur le net de ces frais : 340 €. 60 € d'écart… ", em: "chaque mois." },
+      { from: 42.78, to: 44.06, text: "Le piège : ", em: "le mandat flou." },
+      { from: 44.08, to: 46.19, text: "« 20 % des revenus » : du brut, ", em: "ou du net ?" },
+      { from: 46.21, to: 48.28, text: "Et les frais de plateforme, ", em: "qui les paie ?" },
+      { from: 48.3, to: 50.99, text: "Écrivez-le noir sur blanc, ", em: "avant le premier séjour." },
+      { from: 51.69, to: 53.4, text: "Deuxième pièce : ", em: "le reversement." },
+      { from: 53.42, to: 56.65, text: "C'est ce qui revient au propriétaire, ", em: "une fois tout déduit :" },
+      { from: 56.67, to: 58.98, text: "les revenus, ", em: "moins les frais de plateforme," },
+      { from: 59.0, to: 61.92, text: "moins votre commission, ", em: "moins les dépenses du mois." },
+      { from: 62.27, to: 66.09, text: "Reprenons : 2 000 € de revenus, ", em: "− 300 € de frais," },
+      { from: 66.11, to: 67.81, text: "− 340 € de commission,", em: "" },
+      { from: 67.83, to: 71.26, text: "− 160 € de ménage et de petites réparations.", em: "" },
+      { from: 71.28, to: 74.41, text: "Il reste 1 200 € pour le propriétaire.", em: "" },
+      { from: 74.76, to: 76.28, text: "Le piège : ", em: "mélanger l'argent." },
+      { from: 76.3, to: 78.82, text: "Si les paiements des séjours arrivent chez vous,", em: "" },
+      { from: 78.84, to: 82.16, text: "gardez-les à part de votre trésorerie, ", em: "et reversez à date fixe," },
+      { from: 82.18, to: 84.03, text: "par exemple le 5 de chaque mois.", em: "" },
+      { from: 84.73, to: 86.37, text: "Troisième pièce : ", em: "le relevé." },
+      { from: 86.39, to: 90.28, text: "Chaque mois, le propriétaire reçoit le détail, ", em: "séjour par séjour :" },
+      { from: 90.3, to: 93.54, text: "les nuits, les revenus, chaque frais, ", em: "votre commission," },
+      { from: 93.56, to: 97.33, text: "et ce qui lui est versé. ", em: "Les mêmes chiffres que son virement." },
+      { from: 97.68, to: 100.29, text: "Un relevé clair, ", em: "c'est moins d'appels inquiets…" },
+      { from: 100.31, to: 103.65, text: "et un propriétaire qui vous fait confiance pour la suite.", em: "" },
+      { from: 104.35, to: 107.32, text: "Mise en pratique : avant de signer, ", em: "vérifiez 5 points." },
+      { from: 107.34, to: 110.58, text: "La base de la commission. ", em: "Qui paie les frais de plateforme." },
+      { from: 110.6, to: 112.91, text: "La date du reversement. ", em: "Le relevé mensuel." },
+      { from: 112.93, to: 115.34, text: "Et les règles de votre pays : ", em: "selon le pays," },
+      { from: 115.36, to: 119.77, text: "gérer le bien d'un autre peut exiger une carte professionnelle ou une assurance.", em: "" },
+      { from: 119.79, to: 122.32, text: "Renseignez-vous avant votre premier mandat.", em: "" },
+      { from: 123.02, to: 124.49, text: "À retenir : ", em: "un mandat précis," },
+      { from: 124.51, to: 127.16, text: "un reversement calculé poste par poste, ", em: "à date fixe," },
+      { from: 127.18, to: 128.45, text: "et un relevé chaque mois.", em: "" },
+      { from: 128.47, to: 130.61, text: "Dans Baitly, ", em: "le mandat se signe en ligne ;" },
+      { from: 130.63, to: 134.92, text: "chaque contrat fixe la base de la commission et qui paie les frais des plateformes ;", em: "" },
+      { from: 134.94, to: 137.18, text: "le reversement part après votre validation ;", em: "" },
+      { from: 137.2, to: 139.39, text: "et le relevé mensuel peut partir tout seul,", em: "" },
+      { from: 139.41, to: 141.61, text: "avec les mêmes chiffres que le virement.", em: "" },
+    ],
+  },
+};

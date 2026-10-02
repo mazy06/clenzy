@@ -77,6 +77,7 @@ import SepaDebtorSettings, { type SepaDebtorHandle } from './SepaDebtorSettings'
 import PayoutScheduleSettings, { type PayoutScheduleHandle } from './PayoutScheduleSettings';
 import TaxRulesSection from './TaxRulesSection';
 import TouristTaxSection from './TouristTaxSection';
+import FrComplianceOverviewSection from './FrComplianceOverviewSection';
 import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
@@ -1065,6 +1066,8 @@ export default function Settings() {
           <TaxRulesSection />
           <div className="mt-4" />
           <TouristTaxSection canEdit={hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])} />
+          <div className="mt-4" />
+          <FrComplianceOverviewSection />
         </TabPanel>
       )}
 

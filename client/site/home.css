@@ -22,7 +22,7 @@
   border-color: var(--bl-line);
 }
 .baitly-marketing .site-header-inner {
-  height: 88px;
+  height: var(--site-header-height, 88px);
   gap: 30px;
 }
 .baitly-marketing .site-nav {
@@ -665,7 +665,8 @@
 /* Tous les titres de la landing, pas seulement ceux de l'accueil : les pages
    secondaires composent leurs titres en classes utilitaires, qui n'ont pas de
    famille propre et heritaient donc du corps. */
-.baitly-marketing :is(h1, h2, h3) {
+/* Les maquettes du produit (canevas de planning) gardent la typographie du PMS. */
+.baitly-marketing :is(h1, h2, h3):not(:where(.bpm-planning-canvas *)) {
   font-family: var(
     --bl-font-title,
     'Space Grotesk',
@@ -676,23 +677,23 @@
   );
 }
 
-.baitly-home :is(h1, h2, h3) {
+.baitly-home :is(h1, h2, h3):not(:where(.bpm-planning-canvas *)) {
   font-weight: 700;
   letter-spacing: calc(-0.05em * var(--bl-tracking, 1));
   text-wrap: balance;
 }
-.baitly-home h2 {
+.baitly-home h2:not(:where(.bpm-planning-canvas *)) {
   font-size: var(--bl-type-title);
   line-height: 1.15;
 }
-.baitly-home h3 {
+.baitly-home h3:not(:where(.bpm-planning-canvas *)) {
   font-size: var(--bl-type-subtitle);
   line-height: 1.2;
 }
 .baitly-home p {
   text-wrap: pretty;
 }
-.baitly-home svg {
+.baitly-home svg:not(:where(.bpm-planning-canvas *)) {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
@@ -794,22 +795,6 @@
 }
 .baitly-hero-copy {
   padding-block-end: 12px;
-}
-.baitly-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--bl-fs-xs, 12px);
-  font-weight: 700;
-  letter-spacing: calc(0.1em * var(--bl-tracking, 1));
-  text-transform: uppercase;
-  margin-block-end: 26px;
-}
-.baitly-eyebrow > span {
-  width: 7px;
-  height: 7px;
-  background: var(--bl-accent);
-  border-radius: 50%;
 }
 .baitly-home h1 {
   font-size: clamp(40px, 4.2vw, 60px);
@@ -940,15 +925,17 @@
     transition: none !important;
   }
 }
-.baitly-note-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 45px;
+.baitly-note-image {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
   border-radius: 10px;
-  background: var(--bl-blue);
-  color: var(--bl-accent);
+  background: var(--bl-surface);
   flex-shrink: 0;
+}
+.baitly-agent-deck-card > div {
+  min-width: 0;
 }
 .baitly-note-label {
   display: block;
@@ -1960,8 +1947,9 @@
   .baitly-agent-deck-card {
     padding: 15px;
   }
-  .baitly-note-icon {
-    display: none;
+  .baitly-note-image {
+    width: 48px;
+    height: 48px;
   }
   .baitly-agent-deck-card strong {
     font-size: 12px;
@@ -1988,7 +1976,6 @@
 }
 @media (max-width: 767px) {
   .baitly-marketing .site-header-inner {
-    height: 72px;
     gap: 16px;
   }
   .baitly-marketing .site-wordmark {
@@ -2006,10 +1993,6 @@
   }
   .baitly-home h1 {
     font-size: clamp(36px, 8.8vw, 48px);
-  }
-  .baitly-eyebrow {
-    margin-block-end: 22px;
-    font-size: var(--bl-fs-xs, 12px);
   }
   .baitly-lead {
     margin-block-start: 22px;
@@ -2052,8 +2035,9 @@
   .baitly-agent-deck-card {
     padding: 18px 15px;
   }
-  .baitly-note-icon {
-    display: grid;
+  .baitly-note-image {
+    width: 56px;
+    height: 56px;
   }
   .baitly-agent-deck-card strong {
     font-size: 13px;
@@ -2322,8 +2306,9 @@
   .baitly-hero-photo {
     height: auto;
   }
-  .baitly-note-icon {
-    display: none;
+  .baitly-note-image {
+    width: 48px;
+    height: 48px;
   }
   .baitly-agent-deck-card {
     gap: 8px;

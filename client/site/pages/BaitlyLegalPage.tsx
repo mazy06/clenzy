@@ -1,4 +1,9 @@
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import {
   articlesForCountry,
@@ -21,12 +26,11 @@ import { SITE_PHOTOS } from '../data/baitlyPhotography';
 import { ARABIC_ARTICLES } from '../data/legal/localization';
 import { legalArticleImage } from '../data/legal/articleImages';
 import BaitlyLegalGuide from '../components/BaitlyLegalGuide';
-import BaitlyLegalJournal from '../components/BaitlyLegalJournal';
-import { JOURNAL_ARTICLE_COUNT } from '../data/baitlyJournal';
+import BaitlyLegalJournal, {
+  BaitlyJournalHeader,
+} from '../components/BaitlyLegalJournal';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import NotFoundPage from './NotFoundPage';
-import '../baitly-resources.css';
-import '../baitly-legal.css';
 
 function Article({ article }: { article: LegalArticle }) {
   const { language: navigationLanguage } = useSiteLanguage();
@@ -38,7 +42,8 @@ function Article({ article }: { article: LegalArticle }) {
     .filter((a) => a.country === article.country && a.slug !== article.slug)
     .sort(
       (a, b) =>
-        Number(b.topic === article.topic) - Number(a.topic === article.topic),
+        Number(b.topic === article.topic) -
+        Number(a.topic === article.topic),
     )
     .slice(0, 3);
   return (
@@ -131,7 +136,10 @@ function Article({ article }: { article: LegalArticle }) {
               {section.paragraphs.map((p) => (
                 <p key={p}>{p}</p>
               ))}
-              <ul className="blg-inline-sources" aria-label={m.sectionSources}>
+              <ul
+                className="blg-inline-sources"
+                aria-label={m.sectionSources}
+              >
                 {section.sources.map((id) => (
                   <li key={id}>
                     <a
@@ -235,11 +243,19 @@ export default function BaitlyLegalPage({
             {m.french && <p className="blg-language-note">{m.french}</p>}
             <Article article={article} />
           </>
+        ) : kind === 'journal' ? (
+          <>
+            <BaitlyJournalHeader language={language} />
+            <BaitlyLegalJournal language={language} />
+          </>
         ) : (
           <>
             <header className="blg-hero">
               <div>
-                <Link to={`/ressources?lang=${language}`} className="blg-back">
+                <Link
+                  to={`/ressources?lang=${language}`}
+                  className="blg-back"
+                >
                   <ArrowLeft size={16} aria-hidden="true" />
                   {language === 'ar'
                     ? 'الموارد'
@@ -247,29 +263,17 @@ export default function BaitlyLegalPage({
                       ? 'Resources'
                       : 'Ressources'}
                 </Link>
-                <p className="blg-kicker">
-                  {kind === 'guide' ? m.eyebrow : m.journal}
-                </p>
+                <p className="blg-kicker">{m.eyebrow}</p>
                 <h1>
-                  {kind === 'guide'
-                    ? countrySlug
-                      ? `${m.eyebrow} · ${country.name[language]}`
-                      : m.title
-                    : m.journalTitle}
+                  {countrySlug
+                    ? `${m.eyebrow} · ${country.name[language]}`
+                    : m.title}
                 </h1>
-                <p className="blg-hero-lead">
-                  {kind === 'guide' ? m.intro : m.journalIntro}
-                </p>
+                <p className="blg-hero-lead">{m.intro}</p>
                 <div className="blg-hero-foot">
-                  <span>
-                    {kind === 'guide'
-                      ? m.sources
-                      : `${JOURNAL_ARTICLE_COUNT} ${m.count}`}
-                  </span>
-                  <Link
-                    to={`/ressources/${kind === 'guide' ? 'blog' : 'obligations'}?lang=${language}`}
-                  >
-                    {kind === 'guide' ? m.open : m.eyebrow}
+                  <span>{m.sources}</span>
+                  <Link to={`/ressources/blog?lang=${language}`}>
+                    {m.open}
                     <ArrowRight size={16} aria-hidden="true" />
                   </Link>
                 </div>
@@ -281,7 +285,7 @@ export default function BaitlyLegalPage({
                     alt=""
                     width="720"
                     height="560"
-                    fetchPriority="high"
+                    {...{ fetchpriority: 'high' }}
                   />
                   <figcaption>
                     <span>{country.name[language]}</span>
@@ -293,14 +297,10 @@ export default function BaitlyLegalPage({
                 </figure>
               )}
             </header>
-            {kind === 'guide' ? (
-              <BaitlyLegalGuide
-                language={language}
-                initialCountry={country.code}
-              />
-            ) : (
-              <BaitlyLegalJournal language={language} />
-            )}
+            <BaitlyLegalGuide
+              language={language}
+              initialCountry={country.code}
+            />
           </>
         )}
         <section className="blg-product">

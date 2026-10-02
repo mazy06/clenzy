@@ -1,0 +1,383 @@
+==============================================================================
+REEL 04 · AGENTS IA — Les agents IA proposent, l’hôte décide
+Format 9:16 (1080×1920) · 46 s · langues : FR · EN · AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 4,2 s · durée visée 3,2 s]
+      Et si dix collègues veillaient sur vos logements, de jour comme de nuit ?
+  b2  [4,4 s → 10,2 s · durée visée 5,7 s]
+      Chez Bètli, chaque agent a son métier : les prix, les messages, le ménage, les paiements, la conformité… et bien d'autres encore.
+  b3  [10,4 s → 18,2 s · durée visée 7,6 s]
+      Ils surveillent en continu : l'occupation, la demande, les prix du marché. … Et quand une action est utile, ils vous la proposent, simulée et expliquée, avec le contexte.
+  b4  [18,4 s → 24,2 s · durée visée 5,8 s]
+      Vous gardez la main : vous ajustez le prix proposé, de cinq en cinq, … puis vous approuvez. Et si ça ne vous va pas, vous refusez.
+  b5  [24,4 s → 31,2 s · durée visée 6,1 s]
+      Et pour les tâches que vous leur confiez, comme l'accueil ou le ménage, ils passent en automatique, dans les limites que vous avez fixées.
+  b6  [31,4 s → 38,2 s · durée visée 6,6 s]
+      Chaque décision est expliquée et journalisée, sans exception, dans votre journal d'activité. Vous savez toujours qui a fait quoi, quand, et pourquoi.
+  b7  [38,4 s → 45,6 s · durée visée 6,2 s]
+      Une équipe qui travaille pour vos logements. Sous votre contrôle. … Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,3–4,2 s]  Et si dix collègues veillaient sur vos logements,
+  ST2  [4,3–10,2 s]  de jour comme de nuit ?
+  ST3  [10,3–13,6 s]  Chez Baitly, chaque agent a son métier : les prix, [les messages,]
+  ST4  [13,6–18,2 s]  le ménage, les paiements, la conformité… [et bien d'autres encore.]
+  ST5  [18,3–24,2 s]  Ils surveillent en continu : l'occupation, [la demande,]
+  ST6  [24,3–31,2 s]  les prix du marché. [Et quand une action est utile,]
+  ST7  [31,3–38,2 s]  ils vous la proposent, simulée et expliquée, [avec le contexte.]
+  ST8  [24,35–26,16 s]  Vous gardez la main : [vous ajustez le prix proposé,]
+  ST9  [26,18–28,51 s]  de cinq en cinq, puis vous approuvez. Et si ça ne vous va pas, [vous refusez.]
+  ST10  [28,53–30,17 s]  Et pour les tâches que vous leur confiez,
+  ST11  [31,35–35,42 s]  comme l'accueil ou le ménage, [ils passent en automatique,]
+  ST12  [35,44–38,36 s]  dans les limites que vous avez fixées.
+  ST13  [31,35–34,17 s]  Chaque décision est expliquée et journalisée, [sans exception,]
+  ST14  [34,19–35,57 s]  dans votre journal d'activité.
+  ST15  [35,59–38,35 s]  Vous savez toujours qui a fait quoi, quand, [et pourquoi.]
+
+TEXTES À L’ÉCRAN
+  · Maquette d’interface (libellé)
+      E1  agents IA
+      E2  Revenue
+      E3  Communication
+      E4  Opérations
+      E5  Finance
+      E6  Avis & Réputation
+      E7  Synchronisation
+      E8  Conformité
+      E9  Voyageur
+      E10  Propriétaire
+      E11  Croissance
+      E12  Auto ou validation
+      E13  Surveille
+      E14  Propose
+      E15  Occupation par bloc de dates, pace de réservation, saisonnalité, prix du marché.
+      E16  Ajustements tarifaires bornés (plancher garanti), simulés avant application.
+      E17  Messages voyageurs entrants, sur tous les canaux, dans toutes les langues.
+      E18  Réponses prêtes à envoyer, traduites, appuyées sur le livret d’accueil.
+      E19  Planning ménage, preuves photo, incidents et maintenances.
+      E20  Missions assignées aux bonnes équipes, payouts gatés sur preuve.
+      E21  Encaissements, cautions, commissions, relevés propriétaires.
+      E22  Rapprochements, relances de paiement et relevés prêts à envoyer.
+      E23  Déclarations de voyageurs, taxes locales, pièces et échéances réglementaires.
+      E24  Déclarations à valider et alertes avant échéance.
+  · Onglet / étape (maquette) : rester court
+      E25  Surveille
+      E26  Propose
+      E27  Vous décidez
+  · Maquette d’interface (libellé)
+      E28  Agent Revenue
+      E29  Riad Nour · il y a 2 min
+      E30  À valider
+      E31  Approuvé
+      E32  Baisse tarifaire proposée
+      E33  3 nuits invendues, du 14 au 16. Proposition :
+      E34  −9 %
+      E35  , plancher respecté.
+      E36  Prix actuel
+      E37  Prix proposé
+      E38  Plancher
+      E39  MAD
+      E40  Occupation de la semaine
+      E41  seuil de baisse 55 %
+      E42  Ajuster le prix proposé
+  · Bouton (maquette) : rester court
+      E43  Approuver
+      E44  Ajuster
+      E45  Refuser
+  · Maquette d’interface (libellé)
+      E46  Approuvé à 700 MAD · envoyé vers Airbnb et Booking.com
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E47  Vous gardez la [main.]
+  · Maquette d’interface (libellé)
+      E48  Automatisation
+      E49  Validation
+      E50  Auto
+      E51  Messages d’accueil
+      E52  Replanification du ménage
+      E53  Réponses aux avis
+      E54  Tarification automatique · vos bornes
+      E55  Baisse sous 55 % d’occupation
+      E56  Hausse au-delà de 85 %
+      E57  Plancher 680 MAD
+      E58  Repos de 14 jours entre deux ajustements
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E59  Dans vos [limites.]
+  · Maquette d’interface (libellé)
+      E60  Journal d’activité
+      E61  Communication
+      E62  Message d’accueil envoyé à Sara.
+      E64  Opérations
+      E65  Ménage replanifié à 14 h (départ tardif).
+      E67  Revenue
+      E68  Prix du 14 au 16 : 760 → 700 MAD.
+      E69  Occupation 42 % sous le seuil de 55 %
+      E70  Avis & Réputation
+      E71  Réponse à l’avis de Jad publiée.
+      E73  Automatique
+      E74  Approuvé par vous
+      E75  Pourquoi
+      E76  des décisions expliquées et journalisées
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E77  Une équipe qui travaille pour vos logements.
+      E78  Sous votre contrôle.
+  · Bouton de l’écran de fin
+      E79  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E80  agents IA
+      E81  des décisions journalisées
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 4,2 s · durée visée 3,9 s]
+      What if ten colleagues watched over your homes, day and night?
+  b2  [4,4 s → 10,2 s · durée visée 5,3 s]
+      At Betly, every agent has a job: rates, messages, housekeeping, payments, compliance…
+  b3  [10,4 s → 18,2 s · durée visée 7,9 s]
+      They watch around the clock: occupancy, pace, market prices. … When an action helps, they propose it, simulated and explained.
+  b4  [18,4 s → 24,2 s · durée visée 5,3 s]
+      You stay in control: you adjust the price, … then you approve. Or you simply decline.
+  b5  [24,4 s → 31,2 s · durée visée 6,3 s]
+      And for the tasks you hand over, they switch to auto and act on their own, within the limits you set.
+  b6  [31,4 s → 38,2 s · durée visée 6,9 s]
+      Every single decision is explained and logged, without exception. You always know who did what, when, and why.
+  b7  [38,4 s → 45,6 s · durée visée 6,2 s]
+      A team that works for your homes. Under your control. … Betly. Join the pre-launch at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,3–4,2 s]  What if ten colleagues watched over your homes, [day and night?]
+  ST2  [4,3–10,2 s]  At Baitly, every agent has a job: rates, messages, [housekeeping,]
+  ST3  [10,3–13,6 s]  payments, [compliance…]
+  ST4  [13,6–18,2 s]  They watch around the clock: occupancy, pace, [market prices.]
+  ST5  [18,3–24,2 s]  When an action helps, they propose it, [simulated and explained.]
+  ST6  [24,3–31,2 s]  You stay in control: you adjust the price, [then you approve.]
+  ST7  [31,3–38,2 s]  Or you simply decline.
+  ST8  [24,35–26,16 s]  And for the tasks you hand over,
+  ST9  [26,18–28,51 s]  they switch to auto and act on their own,
+  ST10  [28,53–30,17 s]  within the limits you set.
+  ST11  [31,35–35,42 s]  Every single decision is explained and logged, [without exception.]
+  ST12  [35,44–38,36 s]  You always know who did what, when, [and why.]
+
+TEXTES À L’ÉCRAN
+  · Maquette d’interface (libellé)
+      E1  AI agents
+      E2  Revenue
+      E3  Communication
+      E4  Operations
+      E5  Finance
+      E6  Reviews
+      E7  Sync
+      E8  Compliance
+      E9  Guest
+      E10  Owner
+      E11  Growth
+      E12  Auto or approval
+      E13  Watches
+      E14  Proposes
+      E15  Occupancy per date block, booking pace, seasonality, market prices.
+      E16  Bounded price adjustments (guaranteed floor), simulated before they apply.
+      E17  Incoming guest messages, on every channel, in every language.
+      E18  Replies ready to send, translated, grounded in your guest guide.
+      E19  Housekeeping schedule, photo proof, incidents and maintenance.
+      E20  Missions assigned to the right teams, payouts gated on proof.
+      E21  Collections, deposits, commissions, owner statements.
+      E22  Reconciliations, payment reminders and statements ready to send.
+      E23  Guest registrations, local taxes, documents and regulatory deadlines.
+      E24  Filings to approve and alerts ahead of each deadline.
+  · Onglet / étape (maquette) : rester court
+      E25  Watches
+      E26  Proposes
+      E27  You decide
+  · Maquette d’interface (libellé)
+      E28  Revenue agent
+      E29  Nakheel Chalet · 2 min ago
+      E30  To approve
+      E31  Approved
+      E32  Price drop proposed
+      E33  3 unsold nights, 14 to 16. Proposal:
+      E34  −9%
+      E35  , floor respected.
+      E36  Current price
+      E37  Proposed price
+      E38  Floor
+      E39  SAR
+      E40  Occupancy this week
+      E41  drop threshold 55%
+      E42  Adjust the proposed price
+  · Bouton (maquette) : rester court
+      E43  Approve
+      E44  Adjust
+      E45  Decline
+  · Maquette d’interface (libellé)
+      E46  Approved at 480 SAR · sent to Airbnb and Gathern
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E47  You stay in [control.]
+  · Maquette d’interface (libellé)
+      E48  Automation
+      E49  Approval
+      E50  Auto
+      E51  Welcome messages
+      E52  Housekeeping rescheduling
+      E53  Review replies
+      E54  Automatic pricing · your limits
+      E55  Drop below 55% occupancy
+      E56  Raise above 85%
+      E57  Floor 450 SAR
+      E58  14-day rest between adjustments
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E59  Within your [limits.]
+  · Maquette d’interface (libellé)
+      E60  Activity log
+      E61  Communication
+      E62  Welcome message sent to Sara.
+      E64  Operations
+      E65  Cleaning moved to 2 pm (late checkout).
+      E67  Revenue
+      E68  Rate 14–16: 520 → 480 SAR.
+      E69  Occupancy 42% below the 55% threshold
+      E70  Reviews
+      E71  Reply to Jad’s review published.
+      E73  Automatic
+      E74  Approved by you
+      E75  Why
+      E76  of decisions explained and logged
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E77  A team that works for your homes.
+      E78  Under your control.
+  · Bouton de l’écran de fin
+      E79  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E80  AI agents
+      E81  of decisions logged
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 4,2 s · durée visée 3,4 s]
+      ماذا لو سهرَ عشرةُ زملاءَ على عقاراتك، ليلاً ونهاراً؟
+  b2  [4,4 s → 10,2 s · durée visée 5,6 s]
+      في بيتلي، لكلّ وكيلٍ مهنتُه: الأسعار، الرسائل، التنظيف، المدفوعات، الامتثال…
+  b3  [10,4 s → 18,2 s · durée visée 6,8 s]
+      يراقبون باستمرار. … وحين يفيدُ إجراءٌ ما، يقترحونه عليك، مع السياقِ والمحاكاة.
+  b4  [18,4 s → 24,2 s · durée visée 4,2 s]
+      تعتمد، … أو تعدّل، … أو ترفض.
+  b5  [24,4 s → 31,2 s · durée visée 5,8 s]
+      وفي المهامّ التي تكلّفهم بها، يعملون وحدَهم، ضمنَ الحدود التي تضعُها.
+  b6  [31,4 s → 38,2 s · durée visée 5,6 s]
+      كلُّ قرارٍ مشروحٌ ومسجّل. تعرفُ دائماً من فعلَ ماذا، ولماذا.
+  b7  [38,4 s → 45,6 s · durée visée 7,0 s]
+      فريقٌ يعملُ من أجل عقاراتك. تحتَ سيطرتك. … بيتلي. انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [0,3–4,2 s]  ماذا لو سهر عشرة زملاء على عقاراتك، [ليلاً ونهاراً؟]
+  ST2  [4,3–10,2 s]  في بيتلي، لكل وكيل مهنته: [الأسعار، الرسائل، التنظيف، المدفوعات، الامتثال…]
+  ST3  [10,3–13,6 s]  يراقبون [باستمرار.]
+  ST4  [13,6–18,2 s]  وحين يفيد إجراء ما، يقترحونه عليك [مع السياق والمحاكاة.]
+  ST5  [18,3–24,2 s]  تعتمد، أو تعدّل، [أو ترفض.]
+  ST6  [24,3–31,2 s]  وفي المهام التي تكلّفهم بها، يعملون وحدهم [ضمن الحدود التي تضعها.]
+  ST7  [31,3–38,2 s]  كل قرار مشروح ومسجّل. [من فعل ماذا، ولماذا.]
+
+TEXTES À L’ÉCRAN
+  · Maquette d’interface (libellé)
+      E1  وكلاء ذكاء اصطناعي
+      E2  الإيرادات
+      E3  التواصل
+      E4  العمليات
+      E5  المالية
+      E6  التقييمات
+      E7  المزامنة
+      E8  الامتثال
+      E9  الضيف
+      E10  المالك
+      E11  النمو
+      E12  آلي أو بمصادقة
+      E13  يراقب
+      E14  يقترح
+      E15  الإشغال لكل فترة، ووتيرة الحجز، والموسمية، وأسعار السوق.
+      E16  تعديلات سعرية محدودة (بحدٍّ أدنى مضمون)، تُحاكى قبل التطبيق.
+      E17  رسائل النزلاء الواردة، على كل القنوات وبكل اللغات.
+      E18  ردوداً جاهزة للإرسال، مترجمة، مستندة إلى دليل الاستقبال.
+      E19  جدول التنظيف، والإثباتات المصوّرة، والأعطال والصيانة.
+      E20  مهامّ مُسندة إلى الفرق المناسبة، ودفعاً مشروطاً بالإثبات.
+      E21  التحصيلات، والتأمينات، والعمولات، وكشوف الملّاك.
+      E22  تسويات، وتذكيرات بالدفع، وكشوفاً جاهزة للإرسال.
+      E23  تسجيل النزلاء، والضرائب المحلية، والوثائق والمواعيد النظامية.
+      E24  إقرارات للمصادقة وتنبيهات قبل كل موعد.
+  · Onglet / étape (maquette) : rester court
+      E25  يراقب
+      E26  يقترح
+      E27  أنت تقرّر
+  · Maquette d’interface (libellé)
+      E28  وكيل الإيرادات
+      E29  شاليه النخيل · قبل دقيقتين
+      E30  بانتظار الاعتماد
+      E31  معتمد
+      E32  اقتراح خفض السعر
+      E33  3 ليالٍ غير محجوزة، من 14 إلى 16. الاقتراح:
+      E34  خفض 9%
+      E35  ، مع احترام الحد الأدنى.
+      E36  السعر الحالي
+      E37  السعر المقترح
+      E38  الحد الأدنى
+      E39  ر.س
+      E40  إشغال الأسبوع
+      E41  حدّ الخفض 55%
+      E42  تعديل السعر المقترح
+  · Bouton (maquette) : rester court
+      E43  اعتماد
+      E44  تعديل
+      E45  رفض
+  · Maquette d’interface (libellé)
+      E46  اعتُمد بسعر 480 ر.س · أُرسل إلى Airbnb و Gathern
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E47  القرار [بيدك.]
+  · Maquette d’interface (libellé)
+      E48  الأتمتة
+      E49  موافقة
+      E50  تلقائي
+      E51  رسائل الترحيب
+      E52  إعادة جدولة التنظيف
+      E53  الردود على التقييمات
+      E54  التسعير التلقائي · حدودك
+      E55  خفض عند إشغال أقل من 55%
+      E56  رفع عند تجاوز 85%
+      E57  حد أدنى 450 ر.س
+      E58  فترة راحة 14 يوماً بين تعديلين
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E59  ضمن [حدودك.]
+  · Maquette d’interface (libellé)
+      E60  سجل النشاط
+      E61  التواصل
+      E62  أُرسلت رسالة الترحيب إلى سارة.
+      E64  العمليات
+      E65  نُقل التنظيف إلى 2 ظهراً (مغادرة متأخرة).
+      E67  الإيرادات
+      E68  سعر 14–16: 520 ← 480 ر.س.
+      E69  إشغال 42% أقل من حد 55%
+      E70  التقييمات
+      E71  نُشر الرد على تقييم جاد.
+      E73  تلقائي
+      E74  اعتمدته أنت
+      E75  لماذا
+      E76  من القرارات مشروحة ومسجّلة
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E77  فريق يعمل من أجل عقاراتك.
+      E78  تحت سيطرتك.
+  · Bouton de l’écran de fin
+      E79  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E80  وكلاء ذكاء اصطناعي
+      E81  من القرارات مسجّلة

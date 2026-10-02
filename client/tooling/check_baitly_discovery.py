@@ -149,7 +149,8 @@ def check(client, binary):
                 count += 1
             status, headers, body = request(port, path)
             assert status == 200 and headers["content-type"].startswith("text/html")
-            assert '<div id="root">' in body
+            # Le conteneur porte l'URL publiée (data-baitly-url) pour l'hydratation.
+            assert '<div id="root"' in body and '<!--baitly-content:start-->' in body, path
             assert 'rel="describedby"' in headers["link"] and "Accept" in headers["vary"]
         for accept in [None, "*/*", "text/html", "text/markdown;q=0", "text/markdown; q=0.000, text/html", "application/text/markdown"]:
             assert request(port, "/", accept)[1]["content-type"].startswith("text/html"), accept

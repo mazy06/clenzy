@@ -91,7 +91,8 @@ class ReservationControllerTest {
     @BeforeEach
     void setUp() {
         controller = new ReservationController(reservationService, reservationMapper,
-                reservationPaymentService, interventionMapper, cancellationRefundService);
+                reservationPaymentService, interventionMapper, cancellationRefundService,
+                org.mockito.Mockito.mock(com.clenzy.service.regulatory.NightsCapService.class));
     }
 
     @Nested
@@ -277,7 +278,7 @@ class ReservationControllerTest {
             ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
-            ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
+            ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt, false);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
@@ -292,7 +293,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
 
-            assertThatThrownBy(() -> controller.create(dto, jwt))
+            assertThatThrownBy(() -> controller.create(dto, jwt, false))
                     .isInstanceOf(AccessDeniedException.class);
         }
 
@@ -306,7 +307,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
 
-            assertThatThrownBy(() -> controller.create(dto, jwt))
+            assertThatThrownBy(() -> controller.create(dto, jwt, false))
                     .isInstanceOf(AccessDeniedException.class);
         }
 
@@ -320,7 +321,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
 
-            assertThatThrownBy(() -> controller.create(dto, jwt))
+            assertThatThrownBy(() -> controller.create(dto, jwt, false))
                     .isInstanceOf(NotFoundException.class);
         }
 
@@ -337,7 +338,7 @@ class ReservationControllerTest {
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
-            ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
+            ResponseEntity<ReservationDto> response = controller.create(dto, jwt, false);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
     }
@@ -493,7 +494,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
 
-            assertThatThrownBy(() -> controller.create(dto, jwt))
+            assertThatThrownBy(() -> controller.create(dto, jwt, false))
                     .isInstanceOf(NotFoundException.class);
         }
     }
@@ -706,7 +707,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, true, null, null, null, null, null, null, null, null);
 
-            ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
+            ResponseEntity<ReservationDto> response = controller.create(dto, jwt, false);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(reservationService).createCleaningForReservation(saved, "user-123");
         }
@@ -725,7 +726,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
 
-            controller.create(dto, jwt);
+            controller.create(dto, jwt, false);
             verify(reservationService, never()).createCleaningForReservation(any(), any());
         }
 
@@ -745,7 +746,7 @@ class ReservationControllerTest {
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null, null, null);
 
-            ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
+            ResponseEntity<ReservationDto> response = controller.create(dto, jwt, false);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
     }

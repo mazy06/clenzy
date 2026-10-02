@@ -89,7 +89,9 @@ class PublicBookingServiceTest {
                 org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),
                 new BookingMockDataProvider(),
                 orchestrationService,
-                transactionManager);
+                transactionManager,
+                org.mockito.Mockito.mock(com.clenzy.repository.PropertyLicenseRepository.class),
+                org.mockito.Mockito.mock(com.clenzy.service.regulatory.NightsCapService.class));
         // writeTx.execute(...) exécute le callback via ce mock (checkout dé-transactionalisé).
         lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
     }

@@ -4,10 +4,10 @@ import { SiteCurrencyProvider } from '../lib/siteCurrency';
 import SiteCurrencyControl from './SiteCurrencyControl';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { runtimeEnvOr } from '../../src/config/runtimeConfig';
+import { useSiteAppUrl } from '../lib/useSiteAppUrl';
 import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react';
+import { Button } from '../../src/components/ui/button';
 import {
-  Button,
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
@@ -15,7 +15,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from '../../src/components/ui';
+} from '../../src/components/ui/navigation-menu';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import NavMegaPanel from './NavMegaPanel';
 import SiteMobileNav from './SiteMobileNav';
@@ -32,7 +32,6 @@ import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
 import { MODULES, RESOURCES, SOLUTIONS } from '../data/catalog';
 import { LEGAL_COUNTRIES, guidePath } from '../data/legal';
-import '../site-navigation.css';
 
 function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
   const { language } = useSiteLanguage();
@@ -68,11 +67,43 @@ function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
   );
 }
 
+/** Seuils distincts pour compacter et déployer : sans cet écart, un
+    défilement arrêté pile sur la limite ferait battre l'en-tête. */
+const HEADER_COMPACT_AT = 24;
+const HEADER_EXPAND_AT = 8;
+
+/** En-tête compact dès que la page a défilé. */
+function useCompactHeader() {
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY;
+      setCompact((current) =>
+        current ? y > HEADER_EXPAND_AT : y > HEADER_COMPACT_AT,
+      );
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+  return compact;
+}
+
 export function SiteHeader() {
   const { language } = useSiteLanguage();
   const h = LAYOUT_MESSAGES[language].header;
   const entries = buildBaitlySiteNavigation(language);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const compact = useCompactHeader();
+  const appUrl = useSiteAppUrl();
   const headerRef = useRef<HTMLElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
@@ -151,6 +182,7 @@ export function SiteHeader() {
     <header
       ref={headerRef}
       data-menu-open={mobileOpen || undefined}
+      data-compact={compact || undefined}
       className="site-header sticky top-0 z-40 border-b border-border bg-background"
     >
       <div className="site-shell site-header-inner flex h-16 items-center gap-5">
@@ -174,10 +206,7 @@ export function SiteHeader() {
             className="site-login hidden sm:inline-flex"
             asChild
           >
-            <a
-              href={runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000')}
-              rel="noreferrer"
-            >
+            <a href={appUrl} rel="noreferrer">
               {h.login}
             </a>
           </Button>
@@ -353,7 +382,15 @@ function SiteFooter() {
 /** Remonte en haut à chaque navigation (sauf ancres). */
 function ScrollRestore() {
   const { pathname, hash } = useLocation();
+  const previous = useRef({ pathname, hash });
   useEffect(() => {
+    // Hydration must not pull a visitor back to the top of an already readable page.
+    if (
+      previous.current.pathname === pathname &&
+      previous.current.hash === hash
+    )
+      return;
+    previous.current = { pathname, hash };
     if (hash) {
       document.getElementById(hash.slice(1))?.scrollIntoView({
         behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches

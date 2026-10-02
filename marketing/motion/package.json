@@ -1,0 +1,12 @@
+{
+  "name": "baitly-motion",
+  "private": true,
+  "type": "module",
+  "description": "Rendu des vidéos motion design Baitly (HTML animé -> MP4) via Chrome + ffmpeg.",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}

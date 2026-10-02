@@ -1,0 +1,219 @@
+<!doctype html>
+<!--
+  Baitly · Reel 08 « 23 h 40 » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : l'animation du tapage nocturne (BESOINS-ET-SERVICES.md §10), pilotée par le
+  temps via le kit partagé. Les plans suivent la voix : chaque plan i = créneau `slots[i]` recalé par
+  align-vo.py. Composants réels repris du produit : jauge de bruit (NoiseGauge), carte HITL
+  (AnimatedHitlMockup), fil de messages, planning « Bloqué ».
+  Déroulé : la nuit, la jauge dépasse le seuil, un voisin appelle → la carte de l'agent Opérations
+  propose l'avertissement, clic → la voyageuse reçoit le message et répond, la jauge redescend →
+  récidive : trois alertes, carte « Bloquer 7 jours », le planning se hachure → promesse → fin.
+  Rendu : node ../render.mjs reel-08-23h40 --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 08 23 h 40</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · la nuit */
+#night { inset: 0; overflow: hidden; }
+#night img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(.42) saturate(.7) contrast(1.05); }
+#night .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,17,32,.62) 0%, rgba(10,17,32,.18) 42%, rgba(10,17,32,.55) 100%); }
+#night .party { position: absolute; left: 180px; top: 520px; width: 720px; height: 520px; border-radius: 50%; background: radial-gradient(closest-side, rgba(224,200,155,.55), rgba(224,200,155,0)); mix-blend-mode: screen; }
+#waves { left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; pointer-events: none; }
+#clock { left: 0; width: 1080px; top: 150px; display: flex; justify-content: center; }
+#clock .clockchip { background: rgba(247,251,252,.94); color: var(--n700); box-shadow: 0 20px 40px -24px rgba(10,17,32,.6); }
+#clock .clockchip svg { color: var(--n600); }
+#call { left: 110px; width: 860px; top: 270px; display: flex; gap: 20px; align-items: center; padding: 22px 26px; border-radius: 30px; background: rgba(247,251,252,.96); box-shadow: 0 24px 50px -24px rgba(10,17,32,.6); opacity: 0; }
+#call .ci { width: 64px; height: 64px; border-radius: 18px; background: #C97A7A; color: #FDFDFE; display: flex; align-items: center; justify-content: center; flex: none; }
+#call .cx { flex: 1; min-width: 0; }
+#call .cx div { display: flex; justify-content: space-between; font-size: 21px; font-weight: 600; color: #526674; }
+#call .cx b { display: block; font-size: 29px; color: #1B2A35; margin-top: 2px; }
+#call .cx span { display: block; font-size: 25px; color: #2E4356; }
+#sensor { left: 80px; width: 920px; top: 1010px; padding: 30px 34px 26px; opacity: 0; }
+.sn-h { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
+.sn-ic { width: 66px; height: 66px; border-radius: 20px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; flex: none; }
+.sn-h b { display: block; font-family: var(--fd); font-size: 32px; font-weight: 600; }
+.sn-h small { display: block; font-size: 22px; color: var(--ardoise); }
+.sn-h .chip { margin-inline-start: auto; }
+/* B · la carte */
+#c1 { left: 80px; top: 450px; opacity: 0; }
+#c1clock { left: 0; width: 1080px; top: 330px; display: flex; justify-content: center; opacity: 0; }
+#c1clock .clockchip { background: #E1E9F0; color: var(--n700); font-size: 30px; padding: 12px 24px; }
+#c1clock .clockchip svg { color: var(--n600); }
+#c1 .ng { margin-bottom: 20px; }
+/* C · le calme */
+#calm { left: 596px; width: 424px; top: 640px; padding: 28px 28px 24px; opacity: 0; }
+#calm .ch-t { font-size: 22px; font-weight: 700; color: var(--ardoise); margin-bottom: 8px; }
+#calm .ng-v b { font-size: 70px; }
+#calm .chip { margin-top: 6px; opacity: 0; }
+/* D · la récidive */
+#hist { left: 80px; width: 920px; top: 380px; padding: 28px 34px 16px; opacity: 0; }
+#hist .hh { display: flex; align-items: center; gap: 14px; font-family: var(--fd); font-size: 30px; font-weight: 600; margin-bottom: 8px; }
+#hist .hh svg { color: #B45733; }
+#hist .hr { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-top: 1.5px solid #EEF2F5; font-size: 27px; opacity: 0; }
+#hist .hr i { width: 14px; height: 14px; border-radius: 50%; background: #C97A7A; }
+#hist .hr b { margin-inline-start: auto; font-family: var(--fd); font-size: 28px; color: #93413F; background: rgba(201,122,122,.13); border-radius: 10px; padding: 4px 14px; direction: ltr; }
+#c2 { left: 80px; top: 360px; opacity: 0; }
+#plan { left: 64px; top: 1030px; opacity: 0; }
+#plan .blocked { font-size: 24px; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 640px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .mi { width: 120px; height: 120px; border-radius: 40px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; opacity: 0; }
+#promise .title { font-size: 96px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, $, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+
+/* A · la nuit : salon dans la pénombre, ondes, heure, jauge du capteur, appel manqué */
+const night = K.abs('night');
+const nightImg = h('img', { src: '../../brand-book/assets/photos/guideLiving.webp', alt: '' });
+const party = h('div', { class: 'party' });
+night.append(nightImg, party, h('div', { class: 'veil' }));
+const SVGNS = 'http://www.w3.org/2000/svg';
+const waves = document.createElementNS(SVGNS, 'svg');
+waves.setAttribute('id', 'waves'); waves.setAttribute('class', 'abs'); waves.setAttribute('viewBox', '0 0 1080 1920');
+const rings = [0, 1, 2].map(() => { const c = document.createElementNS(SVGNS, 'circle'); c.setAttribute('cx', 540); c.setAttribute('cy', 760); c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#E0C89B'); waves.append(c); return c; });
+K.stage.append(waves);
+const clockT = h('b', {}, T.clock.t0);
+const clock = K.abs('clock');
+clock.append(h('span', { class: 'clockchip' }, icon('moonstar', 34), h('span', {}, T.clock.day), clockT));
+const call = K.abs('call');
+call.append(h('span', { class: 'ci' }, icon('call', 32)), h('div', { class: 'cx' }, h('div', {}, h('span', {}, T.call.app), h('span', {}, T.call.when)), h('b', {}, T.call.title), h('span', {}, T.call.body)));
+const sensor = K.abs('sensor', 'card');
+const g0 = K.noiseGauge({ threshold: 70, label: null, limit: T.sensor.limit });
+sensor.append(h('div', { class: 'sn-h' }, h('span', { class: 'sn-ic' }, icon('volume', 36)), h('div', {}, h('b', {}, T.sensor.name), h('small', {}, T.sensor.room)), h('span', { class: 'chip neutral' }, T.sensor.brand)), g0.el);
+
+/* B · la carte de l'agent Opérations : avertir la voyageuse */
+const C1 = T.card1;
+const c1 = K.hitlCard({ agent: C1.agent, tag: C1.tag, title: C1.title, copy: C1.copy, wait: C1.wait, done: C1.done,
+  primary: ['send', C1.send], secondary: ['pencil', C1.edit], dismiss: C1.dismiss, doneText: C1.doneText });
+c1.el.id = 'c1'; c1.el.classList.add('abs');
+const g1 = K.noiseGauge({ threshold: 70, label: T.sensor.room.split(' · ')[0], limit: null });
+c1.body.append(g1.el, h('div', { class: 'hq' }, h('div', { class: 'hq-tag' }, icon('msg', 22), C1.channel), h('div', {}, C1.msg)));
+K.stage.append(c1.el);
+const c1clock = K.abs('c1clock');
+c1clock.append(h('span', { class: 'clockchip' }, icon('moonstar', 30), h('span', {}, T.clock.day), h('b', {}, '23:41')));
+
+/* C · le téléphone de la voyageuse, la jauge qui redescend */
+const ph = K.phone({ left: 60, top: 300 });
+const chat = K.chatScreen({ name: T.chat.name, sub: T.chat.sub, placeholder: T.chat.placeholder, avatar: '../../brand-book/assets/photos/pmsRiad.webp' });
+ph.scaler.append(chat.layer);
+const bPrior = T.chat.prior.map(([m, me, tm]) => { const e = chat.add(m, me, tm); e.style.opacity = 1; return e; });
+const bHost = chat.add(C1.msg, false, T.chat.t1);
+const bDots = chat.typing();
+const bGuest = chat.add(T.chat.reply, true, T.chat.t2);
+const calm = K.abs('calm', 'card');
+const g2 = K.noiseGauge({ threshold: 70, label: null, limit: null });
+const calmChip = h('span', { class: 'chip ok' }, icon('check', 20), T.calm.chip + ' · ' + T.calm.time);
+calm.append(h('div', { class: 'ch-t' }, T.calm.title), g2.el, calmChip);
+
+/* D · la récidive : trois alertes, carte « Bloquer 7 jours », planning hachuré */
+const hist = K.abs('hist', 'card');
+const histRows = T.hist.rows.map(([d, v]) => h('div', { class: 'hr' }, h('i'), h('span', {}, d), h('b', {}, v)));
+hist.append(h('div', { class: 'hh' }, icon('bellring', 32), T.hist.title), ...histRows);
+const C2 = T.card2;
+const c2 = K.hitlCard({ agent: C2.agent, tag: C2.tag, title: C2.title, copy: C2.copy, wait: C2.wait, done: C2.done,
+  primary: ['calx', C2.block], secondary: ['sliders', C2.adjust], dismiss: C2.dismiss, doneText: C2.doneText });
+c2.el.id = 'c2'; c2.el.classList.add('abs');
+K.stage.append(c2.el);
+const plan = K.abs('plan');
+const pl = K.planning(plan, { P: T.plan, dw: 90, days: T.plan.days, today: 0, rows: [[{ blocked: true, from: 1, to: 8, key: 'blk' }]] });
+const blk = pl.byKey.blk;
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const moon = h('span', { class: 'mi' }, icon('moonstar', 60));
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(moon, p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) pts = { send: K.center(c1.pBtn), block: K.center(c2.pBtn) };
+  const [a0, b0] = slot(0), [a1, b1] = slot(1), [a2, b2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A · la nuit */
+  const nv = vis(t, 0, b0 + .3, .5, .6);
+  night.style.opacity = nv;
+  nightImg.style.transform = `scale(${lerp(1.1, 1.0, easeOut(prog(t, 0, b0)))})`;
+  const beat = t > SYNC.loud - 1 ? .45 + .35 * Math.abs(Math.sin(t * Math.PI * 1.9)) : .15;
+  set(party, { opacity: beat * nv, background: `radial-gradient(closest-side, ${Math.sin(t * 2.3) > 0 ? 'rgba(224,200,155,.55)' : 'rgba(180,87,51,.45)'}, rgba(224,200,155,0))` });
+  rings.forEach((c, i) => {
+    const w = (((t - SYNC.loud + 1.2 + i * .6) % 1.8) + 1.8) % 1.8 / 1.8;
+    const on = t > SYNC.loud - 1.2 && t < b0;
+    c.setAttribute('r', lerp(80, 520, w)); c.setAttribute('stroke-width', lerp(10, 2, w));
+    c.setAttribute('opacity', on ? .55 * (1 - w) * nv : 0);
+  });
+  const ck = easeOut(prog(t, a0 + .1, .5));
+  set(clock, { opacity: ck * nv, transform: `translateY(${lerp(-24, 0, ck)}px)` });
+  clockT.textContent = t < a0 + 1.6 ? T.clock.t0 : T.clock.t1;
+  const si = easeOut(prog(t, a0 + .5, .6));
+  set(sensor, { opacity: si * nv, transform: `translateY(${lerp(50, 0, si)}px)` });
+  const db0 = t < SYNC.loud ? lerp(44, 66, easeInOut(prog(t, a0 + .6, SYNC.loud - a0 - .6))) : lerp(66, 82, easeOut(prog(t, SYNC.loud, 1.2)));
+  g0.set(db0, t);
+  K.urgency(sensor, t, SYNC.loud + .4, '0 30px 60px -34px rgba(10,17,32,.55)', '212,165,116');
+  const cl = easeOut(prog(t, SYNC.neigh, .5));
+  set(call, { opacity: cl * nv, transform: `translateY(${lerp(-40, 0, cl)}px)` });
+
+  /* B · la carte, le clic « Envoyer l'avertissement » */
+  const v1 = slotVis(t, 1), e1 = easeOut(prog(t, a1, .6));
+  set(c1.el, { opacity: v1, transform: `translateY(${lerp(60, 0, e1)}px)` });
+  set(c1clock, { opacity: v1 * easeOut(prog(t, a1 + .15, .5)), transform: `translateY(${lerp(-16, 0, easeOut(prog(t, a1 + .15, .5)))}px)` });
+  g1.set(82, t);
+  c1.render(t, SYNC.send);
+  K.cursorMove(t, SYNC.send - 1.2, .95, { x: pts.send.x + 320, y: pts.send.y + 360 }, pts.send, Math.min(SYNC.send + .9, b1));
+  K.tapAt(t, SYNC.send, pts.send);
+
+  /* C · le message arrive, la voyageuse répond, le calme revient */
+  const v2 = slotVis(t, 2), e2 = easeOut(prog(t, a2, .7));
+  set(ph.el, { opacity: v2, transform: `translateY(${lerp(80, 0, e2)}px)` });
+  K.bubbleIn(bHost, t, a2 + .35);
+  K.dotsAt(bDots, t, a2 + 1.3, SYNC.reply);
+  K.bubbleIn(bGuest, t, SYNC.reply);
+  bGuest.style.display = t >= SYNC.reply ? '' : 'none';
+  const ec = easeOut(prog(t, a2 + .6, .6));
+  set(calm, { opacity: v2 * ec, transform: `translateY(${lerp(40, 0, ec)}px)` });
+  g2.set(lerp(82, 46, easeInOut(prog(t, SYNC.calm, 1.4))), t);
+  const cc = easeOut(prog(t, SYNC.calm + 1.2, .4));
+  set(calmChip, { opacity: cc, transform: `translateY(${lerp(10, 0, cc)}px)` });
+
+  /* D · trois alertes, puis la carte « Bloquer », puis le planning */
+  const v3 = slotVis(t, 3);
+  const hIn = easeOut(prog(t, a3, .5)), hOut = easeIn(prog(t, a3 + 1.7, .4));
+  set(hist, { opacity: v3 * hIn * (1 - hOut), transform: `translateY(${lerp(40, 0, hIn) - 60 * hOut}px)` });
+  histRows.forEach((r, i) => { const p = easeOut(prog(t, a3 + .25 + i * .3, .35)); set(r, { opacity: p, transform: `translateX(${lerp(-30, 0, p)}px)` }); });
+  const cIn = easeOut(prog(t, a3 + 1.8, .6));
+  set(c2.el, { opacity: v3 * cIn, transform: `translateY(${lerp(60, 0, cIn)}px)` });
+  c2.render(t, SYNC.block);
+  K.cursorMove(t, SYNC.block - 1.2, .95, { x: pts.block.x + 300, y: pts.block.y + 380 }, pts.block, Math.min(SYNC.block + .9, b3));
+  K.tapAt(t, SYNC.block, pts.block);
+  const pIn = easeOut(prog(t, SYNC.block + .25, .6));
+  set(plan, { opacity: v3 * pIn, transform: `translateY(${lerp(50, 0, pIn)}px)` });
+  K.planningEnter(t, SYNC.block + .3, pl);
+  const wipe = easeInOut(prog(t, SYNC.block + .7, .9));
+  set(blk, { opacity: wipe > 0 ? 1 : 0, clipPath: `inset(0 ${lerp(100, 0, wipe)}% 0 0)`, transform: 'none' });
+
+  /* E · promesse */
+  const v4 = slotVis(t, 4, .5, .35);
+  const m = easeOut(prog(t, a4, .6));
+  set(moon, { opacity: v4 * m, transform: `scale(${lerp(.8, 1, m)})` });
+  const q1 = easeOut(prog(t, a4 + .15, .55)), q2 = easeOut(prog(t, a4 + (b4 - a4) * .55, .55));
+  set(p1, { opacity: v4 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v4 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

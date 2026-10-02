@@ -238,6 +238,11 @@ export interface UseReservationFormResult {
   submitDisabled: boolean;
   saving: boolean;
   handleSubmit: () => void;
+  /** Message du serveur quand la création dépasse le plafond annuel de nuitées. */
+  nightsCapOverrun: string | null;
+  /** Dérogation explicite : renvoie la création avec `overrideNightsCap=true`. */
+  confirmNightsCapDerogation: () => void;
+  dismissNightsCapOverrun: () => void;
 
   // Entête
   headerTitle: string;
@@ -293,6 +298,10 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   // Id de la résa déjà créée si l'envoi du lien de paiement a échoué après création —
   // évite de re-créer un doublon quand l'utilisateur réessaie (on ne renvoie que le lien).
   const createdIdRef = useRef<number | null>(null);
+  // Plafond annuel de nuitées (France) : le serveur refuse avec NIGHTS_CAP_EXCEEDED ;
+  // l'opérateur peut déroger explicitement (les gestionnaires en sont prévenus).
+  const [nightsCapOverrun, setNightsCapOverrun] = useState<string | null>(null);
+  const overrideNightsCapRef = useRef(false);
   // Voyageur déjà upserté (création/màj de la fiche au submit) — garde anti-doublon :
   // si la création de la résa échoue après l'upsert, un retry ne ré-upserte pas.
   const upsertedGuestRef = useRef<GuestDto | null>(null);
@@ -762,8 +771,9 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
           createCleaning,
           notes: notes || undefined,
         };
-        const created = await reservationsApi.create(createData);
+        const created = await reservationsApi.create(createData, { overrideNightsCap: overrideNightsCapRef.current });
         createdIdRef.current = created.id;
+        overrideNightsCapRef.current = false;
         if (!requestPayment) return created;
       }
       // request_payment : envoie (ou renvoie, après un échec) le lien de paiement à l'email
@@ -781,6 +791,12 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
       onClose();
     },
     onError: (err: Error) => {
+      overrideNightsCapRef.current = false;
+      const details = (err as { details?: { code?: string } }).details;
+      if (details?.code === 'NIGHTS_CAP_EXCEEDED') {
+        setNightsCapOverrun(err.message);
+        return;
+      }
       // Résa créée mais lien de paiement en échec (Stripe non configuré, etc.) : la résa
       // existe (en attente) — on rafraîchit et on invite à renvoyer le lien plus tard.
       if (createdIdRef.current != null) {
@@ -824,8 +840,17 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
       }
     }
     setError(null);
+    setNightsCapOverrun(null);
     saveMutation.mutate();
   }, [isEdit, effectivePropertyId, newGuestFirstName, newGuestLastName, isExternalSource, startDate, endDate, hasConflict, paymentIntent, paymentEmail, newGuestEmail, totalPrice, saveMutation, t]);
+
+  /** Dérogation explicite au plafond de nuitées : même envoi, drapeau posé une seule fois. */
+  const confirmNightsCapDerogation = useCallback(() => {
+    overrideNightsCapRef.current = true;
+    setNightsCapOverrun(null);
+    setError(null);
+    saveMutation.mutate();
+  }, [saveMutation]);
 
   const clearGuest = useCallback(() => {
     setSelectedGuest(null);
@@ -983,6 +1008,9 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
     submitDisabled,
     saving: saveMutation.isPending,
     handleSubmit,
+    nightsCapOverrun,
+    confirmNightsCapDerogation,
+    dismissNightsCapOverrun: () => setNightsCapOverrun(null),
 
     headerTitle,
     sourceKey,

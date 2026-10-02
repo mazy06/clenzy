@@ -2,7 +2,13 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { readAcquisitionContext } from '../../src/services/publicAcquisitionContext';
 import AcquisitionSummary from '../components/AcquisitionSummary';
-import { ArrowRightIcon, CheckIcon, MapPinIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  LifeBuoyIcon,
+  MailIcon,
+  MapPinIcon,
+} from 'lucide-react';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../lib/messages/baitlyContact';
 import {
@@ -10,14 +16,15 @@ import {
   submitContact,
   type ContactSubject,
 } from '../lib/publicContactApi';
-import '../baitly-contact.css';
 
 const SUBJECTS: ContactSubject[] = ['contact', 'demo', 'migration', 'privacy'];
 
 export default function ContactPage({
   intent = 'contact',
+  disabled = false,
 }: {
   intent?: ContactSubject;
+  disabled?: boolean;
 }) {
   const { language } = useSiteLanguage();
   const { search } = useLocation();
@@ -33,7 +40,7 @@ export default function ContactPage({
   const statusRef = useRef<HTMLDivElement>(null);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (pending.current) return;
+    if (disabled || pending.current) return;
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
     const data = new FormData(form);
@@ -93,6 +100,24 @@ export default function ContactPage({
             <MapPinIcon size={16} aria-hidden="true" />
             {m.location}
           </p>
+          <p>
+            <MailIcon size={16} aria-hidden="true" />
+            <span>
+              {m.writeUs}{' '}
+              <a href="mailto:contact@baitly.fr" dir="ltr">
+                contact@baitly.fr
+              </a>
+            </span>
+          </p>
+          <p>
+            <LifeBuoyIcon size={16} aria-hidden="true" />
+            <span>
+              {m.supportMail}{' '}
+              <a href="mailto:support@baitly.fr" dir="ltr">
+                support@baitly.fr
+              </a>
+            </span>
+          </p>
         </div>
         <Link
           className="bct-explore"
@@ -123,12 +148,12 @@ export default function ContactPage({
             </button>
           </div>
         ) : (
-          <form onSubmit={submit} aria-busy={state === 'sending'}>
+          <form onSubmit={submit} aria-busy={disabled || state === 'sending'}>
             <h2>{m.formTitle}</h2>
             <AcquisitionSummary
               context={{ ...context, properties: undefined }}
             />
-            <fieldset disabled={state === 'sending'}>
+            <fieldset disabled={disabled || state === 'sending'}>
               <div className="bct-fields">
                 <label htmlFor="contact-name">
                   {m.name}

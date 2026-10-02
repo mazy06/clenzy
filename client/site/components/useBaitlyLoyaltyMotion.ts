@@ -11,9 +11,7 @@ export function useBaitlyLoyaltyMotion(
 ) {
   const ref = useRef<HTMLElement>(null);
   const [playing, setPlaying] = useState(false);
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+  const [reduced, setReduced] = useState(false);
   const stage = loyaltyStage(month);
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -21,6 +19,7 @@ export function useBaitlyLoyaltyMotion(
       setReduced(media.matches);
       if (media.matches) setPlaying(false);
     };
+    change();
     media.addEventListener('change', change);
     const visibility = () => {
       if (document.hidden) setPlaying(false);

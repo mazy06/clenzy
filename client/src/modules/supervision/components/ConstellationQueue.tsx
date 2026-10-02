@@ -50,6 +50,7 @@ export interface OpenReviewPayload {
 
 interface QueueBlockProps {
   action: AnyAction;
+  compact?: boolean;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
@@ -62,7 +63,7 @@ interface QueueBlockProps {
   onOpenReview?: (payload: OpenReviewPayload) => void;
 }
 
-function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview }: QueueBlockProps) {
+function QueueBlock({ action, compact, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview }: QueueBlockProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -122,6 +123,19 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
     onEdit(action.id);
   };
 
+  const deadline = (
+    <span className="baitly-hitl-deadline inline-flex w-fit items-center gap-1.5 tabular-nums">
+      <Schedule size={12} aria-hidden />
+      {isPayment
+        ? t('supervision.payment.badge', 'À régler')
+        : isReminder
+          ? t('supervision.reminder.badge', 'Rappel')
+          : expired
+            ? t('supervision.hitl.expired')
+            : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
+    </span>
+  );
+
   return (
     <article
       data-pending-action={action.id}
@@ -133,28 +147,20 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
       className="baitly-hitl-card"
     >
       <div className="baitly-hitl-content">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+        {!compact && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
           <span className="baitly-hitl-agent inline-flex items-center gap-2 font-medium">
             <span aria-hidden className="inline-flex shrink-0"><AgentIcon token={meta.icon} size={16} strokeWidth={1.75} /></span>
             {t(meta.nameKey)}
           </span>
-          <span className="baitly-hitl-deadline ms-auto inline-flex items-center gap-1.5 tabular-nums">
-            <Schedule size={12} aria-hidden />
-            {isPayment
-              ? t('supervision.payment.badge', 'À régler')
-              : isReminder
-                ? t('supervision.reminder.badge', 'Rappel')
-                : expired
-                  ? t('supervision.hitl.expired')
-                  : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
-          </span>
-        </div>
+          <span className="ms-auto inline-flex">{deadline}</span>
+        </div>}
         {propertyName && <p dir="auto" className="m-0 mt-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{propertyName}</p>}
 
         <ActionIllustratedHeading action={action}>
           <h3 id={titleId} dir="auto" className="m-0 text-[15px] leading-snug font-semibold text-foreground [overflow-wrap:anywhere] [text-wrap:pretty]">
             {displayTitle}
           </h3>
+          {compact && deadline}
         </ActionIllustratedHeading>
         <ActionDescription action={action} />
       </div>
@@ -253,6 +259,8 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onSchedule, onO
 }
 
 export interface ConstellationQueueProps {
+  /** La liste voisine porte déjà l'identité et le nombre de décisions. */
+  compact?: boolean;
   /** Agent dont la file est ouverte (l'agent de tête du diagramme). */
   agent: AgentId | null;
   /** TOUTES les actions en attente — filtrées ici par agent, triées par échéance. */
@@ -266,8 +274,9 @@ export interface ConstellationQueueProps {
   onOpenActionModal?: (action: AnyAction) => void;
 }
 
-export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal }: ConstellationQueueProps) {
+export function ConstellationQueue({ agent, actions, compact = false, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal }: ConstellationQueueProps) {
   const { t } = useTranslation();
+  const headingId = useId();
 
   // Modale de réponse à un avis (composant du dashboard, réutilisé tel quel).
   // Montée SEULEMENT ouverte : elle porte des hooks liés au Router.
@@ -286,9 +295,9 @@ export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjus
   if (!agent) return null;
 
   return (
-    <section className="baitly-supervision-surface baitly-hitl-queue flex min-w-0 flex-col gap-3">
-      <header className="flex items-center gap-3 px-0.5 pb-1">
-        <h2 className="m-0 text-sm font-semibold text-foreground">
+    <section aria-labelledby={headingId} className={cn('baitly-supervision-surface baitly-hitl-queue flex min-w-0 flex-col gap-3', compact && 'baitly-hitl-queue-compact')}>
+      <header className={compact ? 'sr-only' : 'flex items-center gap-3 px-0.5 pb-1'}>
+        <h2 id={headingId} className="m-0 text-sm font-semibold text-foreground">
           {t('supervision.board.queueTitle', 'À valider')}
           <span className="font-normal text-muted-foreground"> · {t(AGENT_META[agent].nameKey)}</span>
         </h2>
@@ -299,6 +308,7 @@ export function ConstellationQueue({ agent, actions, onValidate, onEdit, onAdjus
         <QueueBlock
           key={action.id}
           action={action}
+          compact={compact}
           onValidate={onValidate}
           onEdit={onEdit}
           onAdjustPrice={onAdjustPrice}

@@ -11,7 +11,9 @@ import java.math.BigDecimal;
  *
  * <p>Formules « corrigées » (décision produit 2026-07-11) : revenus proratisés
  * aux nuits comprises dans la fenêtre, occupation plafonnée à 100 % — comme
- * {@code PropertyPerformanceService}, contrairement à l'ancien calcul frontend.</p>
+ * {@code PropertyPerformanceService}, contrairement à l'ancien calcul frontend.
+ * Définitions standard ({@code AccommodationKpis}) : revenu = CA hébergement seul,
+ * occupation et RevPAN rapportés aux nuits disponibles (hors blocages non vendus).</p>
  */
 public record DashboardOverviewSummaryDto(
         KpiTrendDto occupancyRate,

@@ -27,7 +27,7 @@ const CARD_ICONS: LucideIcon[] = [
  *
  * Chaque carte porte une capacité RÉELLE du produit (rien de prospectif) :
  * les points « mieux que le marché » sont ceux où les PMS internationaux sont
- * effectivement absents sur nos marchés — l'Arabie saoudite d'abord.
+ * effectivement absents sur nos marchés : Arabie saoudite, Maroc et France.
  */
 
 /** Temps d'affichage d'une carte : assez long pour lire les trois lignes de

@@ -10,6 +10,8 @@ import com.clenzy.service.InterventionMapper;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationPaymentService;
 import com.clenzy.service.ReservationService;
+import com.clenzy.service.regulatory.NightsCapService;
+import com.clenzy.exception.NightsCapExceededException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -43,12 +45,15 @@ public class ReservationController {
     private final ReservationPaymentService reservationPaymentService;
     private final InterventionMapper interventionMapper;
     private final CancellationRefundService cancellationRefundService;
+    private final NightsCapService nightsCapService;
 
     public ReservationController(ReservationService reservationService,
                                  ReservationMapper reservationMapper,
                                  ReservationPaymentService reservationPaymentService,
                                  InterventionMapper interventionMapper,
-                                 CancellationRefundService cancellationRefundService) {
+                                 CancellationRefundService cancellationRefundService,
+                                 NightsCapService nightsCapService) {
+        this.nightsCapService = nightsCapService;
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.reservationPaymentService = reservationPaymentService;
@@ -188,7 +193,8 @@ public class ReservationController {
                     + "Valide l'ownership de la propriete et reserve les jours via CalendarEngine.")
     public ResponseEntity<ReservationDto> create(
             @RequestBody ReservationDto dto,
-            @AuthenticationPrincipal Jwt jwt) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "overrideNightsCap", defaultValue = "false") boolean overrideNightsCap) {
 
         reservationService.validatePropertyAccess(dto.propertyId(), jwt.getSubject());
 
@@ -200,7 +206,22 @@ public class ReservationController {
         reservation.setSource("direct");
         reservation.setStatus(dto.status() != null ? dto.status() : "confirmed");
 
+        // Plafond annuel de nuitées (résidence principale) : refus, sauf dérogation
+        // EXPLICITE — qui est alors notifiée aux gestionnaires de l'organisation.
+        List<NightsCapService.YearOverrun> overruns = capOverruns(reservation);
+        if (!overruns.isEmpty() && !overrideNightsCap) {
+            throw new NightsCapExceededException(reservation.getProperty().getId(),
+                    NightsCapService.describe(overruns));
+        }
+
         Reservation saved = reservationService.save(reservation);
+        if (!overruns.isEmpty()) {
+            nightsCapService.notifyDerogation(saved.getOrganizationId(), saved.getProperty().getId(),
+                    saved.getProperty().getName(),
+                    "Réservation " + (saved.getConfirmationCode() != null ? saved.getConfirmationCode() : "#" + saved.getId())
+                            + " — " + NightsCapService.describe(overruns),
+                    jwt.getSubject());
+        }
 
         // Auto-create cleaning intervention if requested
         if (Boolean.TRUE.equals(dto.createCleaning())) {
@@ -210,6 +231,16 @@ public class ReservationController {
         // Re-load with all relations to avoid LazyInitializationException (open-in-view=false)
         Reservation result = reservationService.reloadWithRelations(saved);
         return ResponseEntity.ok(reservationMapper.toDto(result));
+    }
+
+    /** Dépassements du plafond qu'entraînerait ce séjour (vide si non soumis à plafond). */
+    private List<NightsCapService.YearOverrun> capOverruns(Reservation reservation) {
+        if ("cancelled".equals(reservation.getStatus()) || reservation.getProperty() == null) {
+            return List.of();
+        }
+        return nightsCapService.overruns(reservation.getProperty().getId(),
+                reservation.getProperty().getOrganizationId(),
+                reservation.getCheckIn(), reservation.getCheckOut());
     }
 
     // ── PUT : mise a jour ───────────────────────────────────────────────────

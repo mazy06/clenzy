@@ -87,4 +87,52 @@ class TourismLicenseTest {
         assertThat(TourismLicense.expiresWithin(riyadhToday, "Asia/Riyadh", 0)).isTrue();
         assertThat(TourismLicense.expiresWithin(riyadhToday.plusDays(1), "Asia/Riyadh", 0)).isFalse();
     }
+
+    // ── France : numero d'enregistrement d'un meuble de tourisme (validation stricte) ──
+
+    @Test
+    void whenFrenchNumberIsInseePlusSixDigitsPlusKey_thenValid() {
+        assertThat(TourismLicense.check("FR", "75056000123AB")).isEqualTo(TourismLicense.Verdict.VALID);
+    }
+
+    @Test
+    void whenFrenchNumberIsPresentedWithSpaces_thenNormalizedAndValid() {
+        assertThat(TourismLicense.normalize("FR", "75056 000123 ab")).isEqualTo("75056000123AB");
+        assertThat(TourismLicense.check("FR", "75056 000123 ab")).isEqualTo(TourismLicense.Verdict.VALID);
+    }
+
+    @Test
+    void whenFrenchNumberIsCorsican_thenValid() {
+        assertThat(TourismLicense.check("FR", "2A004000123K9")).isEqualTo(TourismLicense.Verdict.VALID);
+    }
+
+    @Test
+    void whenFrenchNumberHasWrongLength_thenMalformed() {
+        assertThat(TourismLicense.check("FR", "75056000123A")).isEqualTo(TourismLicense.Verdict.MALFORMED);
+        assertThat(TourismLicense.check("FR", "REG-2025-001")).isEqualTo(TourismLicense.Verdict.MALFORMED);
+    }
+
+    @Test
+    void whenFrenchNumberBelongsToAnotherMunicipality_thenCommuneMismatch() {
+        assertThat(TourismLicense.check("FR", "69123000123AB", "75056"))
+                .isEqualTo(TourismLicense.Verdict.COMMUNE_MISMATCH);
+        assertThat(TourismLicense.check("FR", "75056000123AB", "75056"))
+                .isEqualTo(TourismLicense.Verdict.VALID);
+    }
+
+    @Test
+    void rejectsOnlyFrenchFaults_neverSaudiOnes() {
+        assertThat(TourismLicense.rejects("FR", TourismLicense.Verdict.MALFORMED)).isTrue();
+        assertThat(TourismLicense.rejects("FR", TourismLicense.Verdict.COMMUNE_MISMATCH)).isTrue();
+        assertThat(TourismLicense.rejects("FR", TourismLicense.Verdict.ABSENT)).isFalse();
+        assertThat(TourismLicense.rejects("SA", TourismLicense.Verdict.MALFORMED)).isFalse();
+    }
+
+    @Test
+    void parisNumberByArrondissement_matchesTheCommuneOfParis() {
+        // Paris numérote par arrondissement (75105…) ; le logement est rattaché à la commune 75056.
+        assertThat(TourismLicense.check("FR", "75105000123AB", "75056")).isEqualTo(TourismLicense.Verdict.VALID);
+        assertThat(TourismLicense.check("FR", "69381000123AB", "75056"))
+                .isEqualTo(TourismLicense.Verdict.COMMUNE_MISMATCH);
+    }
 }

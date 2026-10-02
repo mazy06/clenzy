@@ -1,0 +1,31 @@
+/* Render-blocking entry shared by the initial HTML and the interactive site.
+   Keep this in index.html: importing it from JavaScript causes an unstyled
+   first paint in development and delays styles on slow connections. */
+@import "../src/theme/baitly-ui.css";
+@import "./site.css";
+@import "./home.css";
+@import "./site-navigation.css";
+@import "./baitly-resources.css";
+@import "./baitly-legal.css";
+@import "./baitly-academy.css";
+@import "./baitly-agents-demo.css";
+@import "./baitly-acquisition.css";
+@import "./baitly-booking-extras.css";
+@import "./baitly-booking-stay.css";
+@import "./baitly-booking-upsells.css";
+@import "./baitly-booking.css";
+@import "./baitly-contact.css";
+@import "./baitly-demo-pointer.css";
+@import "./baitly-home-resources.css";
+@import "./baitly-journeys.css";
+@import "./baitly-migration.css";
+@import "./baitly-nav-preview.css";
+@import "./baitly-pms.css";
+@import "./baitly-pricing.css";
+@import "./baitly-products.css";
+@import './baitly-agents-page.css';
+@import "./baitly-readiness.css";
+@import "./baitly-scroll-guide.css";
+@import "./baitly-solution-preview.css";
+@import "./prelaunch.css";
+@import "./site-money.css";

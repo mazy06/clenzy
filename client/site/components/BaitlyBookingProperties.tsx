@@ -9,7 +9,6 @@ import { BOOKING_STOREFRONT_COPY } from '../lib/messages/baitlyBookingStorefront
 import { useSiteLanguage } from '../lib/siteLanguage';
 import BaitlyDemoPointer from './BaitlyDemoPointer';
 import type { StepProps } from './BaitlyBookingSteps';
-import '../baitly-booking-stay.css';
 
 export default function BaitlyBookingProperties({ demo, m, money }: StepProps) {
   const { language } = useSiteLanguage();

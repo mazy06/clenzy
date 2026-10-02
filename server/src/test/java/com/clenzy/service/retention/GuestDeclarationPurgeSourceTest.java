@@ -40,18 +40,19 @@ class GuestDeclarationPurgeSourceTest {
     }
 
     @Test
-    void countExpired_delegatesWithCutoffAsLocalDateTime() {
-        when(repository.countByCreatedAtLessThanEqual(any())).thenReturn(42L);
+    void countExpired_countsStaysEndedBeforeCutoff() {
+        // Six mois légaux comptés depuis le DÉPART du séjour, pas depuis la saisie de la fiche.
+        when(repository.countEndedOnOrBefore(any())).thenReturn(42L);
 
         long count = source().countExpired(CUTOFF);
 
         assertEquals(42L, count);
-        verify(repository).countByCreatedAtLessThanEqual(LocalDateTime.ofInstant(CUTOFF, UTC));
+        verify(repository).countEndedOnOrBefore(LocalDateTime.ofInstant(CUTOFF, UTC).toLocalDate());
     }
 
     @Test
     void deleteExpiredBatch_boundedByLimitAndStableOrder_returnsDeletedCount() {
-        when(repository.findIdsCreatedBefore(any(), any(Pageable.class)))
+        when(repository.findIdsEndedOnOrBefore(any(), any(Pageable.class)))
             .thenReturn(List.of(1L, 2L, 3L));
 
         int deleted = source().deleteExpiredBatch(CUTOFF, 500);
@@ -59,14 +60,14 @@ class GuestDeclarationPurgeSourceTest {
         assertEquals(3, deleted);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(repository).findIdsCreatedBefore(eq(LocalDateTime.ofInstant(CUTOFF, UTC)), pageable.capture());
+        verify(repository).findIdsEndedOnOrBefore(eq(LocalDateTime.ofInstant(CUTOFF, UTC).toLocalDate()), pageable.capture());
         assertEquals(PageRequest.of(0, 500), pageable.getValue()); // borné par limit
         verify(repository).deleteAllByIdInBatch(List.of(1L, 2L, 3L));
     }
 
     @Test
     void deleteExpiredBatch_noCandidates_returnsZeroAndDeletesNothing() {
-        when(repository.findIdsCreatedBefore(any(), any(Pageable.class))).thenReturn(List.of());
+        when(repository.findIdsEndedOnOrBefore(any(), any(Pageable.class))).thenReturn(List.of());
 
         int deleted = source().deleteExpiredBatch(CUTOFF, 500);
 
@@ -79,7 +80,7 @@ class GuestDeclarationPurgeSourceTest {
         int deleted = source().deleteExpiredBatch(CUTOFF, 0);
 
         assertEquals(0, deleted);
-        verify(repository, never()).findIdsCreatedBefore(any(), any());
+        verify(repository, never()).findIdsEndedOnOrBefore(any(), any());
         verify(repository, never()).deleteAllByIdInBatch(any());
     }
 }

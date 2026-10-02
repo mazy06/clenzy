@@ -4389,3 +4389,27 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0485__purge_review_negative_alert_key.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0486-fr-property-regulatory-profile"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0486__fr_property_regulatory_profile.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0487-guest-declaration-fr-fields"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0487__guest_declaration_fr_fields.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0488-fr-tourist-tax-rates"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0488__fr_tourist_tax_rates.sql
+            relativeToChangelogFile: true

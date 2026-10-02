@@ -10,7 +10,9 @@ import {
   loyaltyUnitPrice,
 } from '../site/data/baitlyLoyaltyPricing';
 import { PROVIDERS_MESSAGES } from '../site/lib/messages/providers';
-import { AGENTS_MESSAGES } from '../site/lib/messages/agents';
+import { AGENTS_PAGE_MESSAGES } from '../site/lib/messages/baitlyAgentsPage';
+import { autonomyChoicesFor } from '../src/modules/supervision/constants';
+import type { AgentId } from '../src/modules/supervision/types';
 import { BAITLY_PRODUCT_MESSAGES } from '../site/lib/messages/baitlyProducts';
 import { productStoryKind } from '../site/data/baitlyProductStories';
 import { PRELAUNCH_MESSAGES } from '../site/lib/messages/prelaunch';
@@ -83,7 +85,6 @@ export function siteDocuments(
   const loyalty = BAITLY_LOYALTY_MESSAGES[language];
   const pricingMarket = DEFAULT_PRICING_MARKET[language];
   const providers = PROVIDERS_MESSAGES[language];
-  const agents = AGENTS_MESSAGES[language];
   add(
     '/',
     `Baitly · ${home.hero.title1} ${home.hero.title2}`,
@@ -397,7 +398,38 @@ export function siteDocuments(
   for (const slug of catalog.modules) {
     const text = moduleText(slug, language);
     const kind = productStoryKind(slug);
-    if (kind) {
+    if (kind === 'agents') {
+      const page = AGENTS_PAGE_MESSAGES[language];
+      add(
+        `/produit/${slug}`,
+        page.title.join(' '),
+        page.intro,
+        page.reassurance,
+        section(
+          page.constellation.title,
+          page.constellation.intro,
+          ...page.agents.map((agent) =>
+            section(
+              agent.name,
+              `${page.constellation.watches} : ${agent.watches}`,
+              `${page.constellation.proposes} : ${agent.proposes}`,
+              `${page.constellation.available} : ${autonomyChoicesFor(
+                agent.id as AgentId,
+              )
+                .map((mode) => page.constellation.modes[mode])
+                .join(', ')}`,
+            ),
+          ),
+          page.constellation.bounded,
+        ),
+        section(
+          page.workflow.title,
+          page.workflow.intro,
+          features(page.workflow.steps),
+        ),
+        faq(page.faq),
+      );
+    } else if (kind) {
       const story = BAITLY_PRODUCT_MESSAGES[language].pages[kind];
       add(
         `/produit/${slug}`,
@@ -407,25 +439,10 @@ export function siteDocuments(
         section(
           story.featuresTitle,
           story.featuresIntro,
-          features(kind === 'agents' ? agents.tabs : text.features),
+          features(text.features),
         ),
         section(story.workflowTitle, features(story.steps)),
-        ...(kind === 'agents'
-          ? [
-              section(
-                agents.agentsTitle,
-                ...agents.agents.map((agent) =>
-                  section(
-                    agent.name,
-                    `${agents.watchesLabel} : ${agent.watches}`,
-                    `${agents.proposesLabel} : ${agent.proposes}`,
-                  ),
-                ),
-              ),
-              section(agents.pricingTitle, agents.pricingCopy),
-            ]
-          : []),
-        faq(kind === 'agents' ? agents.faq : text.faq),
+        faq(text.faq),
       );
     } else if (slug === 'livret-accueil') {
       const welcome = journeys.welcome;

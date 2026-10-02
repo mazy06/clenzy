@@ -23,7 +23,6 @@ import {
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_MIGRATION_MESSAGES } from '../lib/messages/baitlyMigration';
 import { downloadText } from '../lib/downloadText';
-import '../baitly-migration.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
 const { migrationProperty: riad } = SITE_PHOTOS;

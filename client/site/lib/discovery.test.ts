@@ -5,6 +5,7 @@ import { PRICING_MESSAGES } from './messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from './messages/baitlyLoyalty';
 import { PRELAUNCH_MESSAGES } from './messages/prelaunch';
 import { BAITLY_PRODUCT_MESSAGES } from './messages/baitlyProducts';
+import { AGENTS_PAGE_MESSAGES } from './messages/baitlyAgentsPage';
 import {
   PRODUCT_STORY_SLUGS,
   type ProductStoryKind,
@@ -23,7 +24,7 @@ import { metadataCatalog } from '../../tooling/baitlySiteSeo';
 import { discoveryCatalog } from '../../tooling/baitlySiteDiscovery';
 import { academyVideoMetadata } from './academyStructuredData';
 
-const routes = readFileSync('site/main.tsx', 'utf8');
+const routes = readFileSync('site/SiteApp.tsx', 'utf8');
 const robots = readFileSync('site/public/robots.txt', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 
@@ -208,8 +209,18 @@ describe('Baitly public discovery build', () => {
         const markdown = assets.get(
           `_baitly-markdown/${language}/produit/${slug}.md`,
         );
-        expect(markdown).toContain(story.title.join(' '));
-        expect(markdown).toContain(story.workflowTitle);
+        if (kind === 'agents') {
+          const page = AGENTS_PAGE_MESSAGES[language];
+          expect(markdown).toContain(page.title.join(' '));
+          expect(markdown).toContain(page.workflow.title);
+          expect(markdown).toContain(page.constellation.bounded);
+          for (const agent of page.agents)
+            expect(markdown).toContain(agent.name);
+          expect(markdown).not.toContain(page.property);
+        } else {
+          expect(markdown).toContain(story.title.join(' '));
+          expect(markdown).toContain(story.workflowTitle);
+        }
         expect(markdown).not.toContain('Riad Azur');
       }
       expect(assets.get(`_baitly-markdown/${language}/tarifs.md`)).toContain(
@@ -284,8 +295,8 @@ describe('Baitly public discovery build', () => {
   it('fails publication for new routes without a Markdown representation or dynamic-route policy', () => {
     const addRoute = (path: string) =>
       routes.replace(
-        '<Routes>',
-        `<Routes><Route path="${path}" element={<NewPage />} />`,
+        '<Routes location={publishedUrl ?? location}>',
+        `<Routes location={publishedUrl ?? location}><Route path="${path}" element={<NewPage />} />`,
       );
     expect(() =>
       discoveryArtifacts(addRoute('/nouveau'), robots, catalog),

@@ -1,0 +1,636 @@
+<!doctype html>
+<!--
+  Baitly · Reel 05 « Départ tardif vendu » (Instagram, 1080 × 1920, 34 s) · FR / EN / AR
+
+  À quoi sert ce fichier : l'animation du script `marketing/scripts-video/script-05-livret-upsells.md`,
+  pilotée par le temps (`renderAt(t)`), rendue en MP4 par `../render.mjs`.
+  Fil conducteur : UN téléphone (le voyageur, puis l'hôte). Le livret d'accueil reprend le design
+  RÉEL du produit (thème « Atelier » de client/src/modules/welcome-guide : crème & terracotta,
+  Cormorant Garamond + Hanken Grotesk). Le planning suit les règles « 05 bis » du brand book.
+  Langue : `?lang=fr|en|ar` (aperçu) ou `--lang=` (rendu). Textes : i18n.js · timings : timeline.js.
+  Palette de la vidéo : mode Jour (Papier, bleu nuit, touches Terre cuite) ; un seul plan de nuit.
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 05 Départ tardif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Hanken+Grotesk:wght@400;600;700;800&family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<style>
+@font-face { font-family: 'BM'; src: url('../../brand-book/assets/fonts/manrope-regular.ttf'); font-weight: 400 500; }
+@font-face { font-family: 'BM'; src: url('../../brand-book/assets/fonts/manrope-bold.ttf'); font-weight: 600 800; }
+@font-face { font-family: 'BSG'; src: url('../../brand-book/assets/fonts/SpaceGrotesk_500Medium.ttf'); font-weight: 500; }
+@font-face { font-family: 'BSG'; src: url('../../brand-book/assets/fonts/SpaceGrotesk_600SemiBold.ttf'); font-weight: 600; }
+@font-face { font-family: 'BSG'; src: url('../../brand-book/assets/fonts/SpaceGrotesk_700Bold.ttf'); font-weight: 700; }
+:root {
+  --n900: #0A1120; --n700: #1B2A35; --n600: #25406E; --n500: #2E4356; --n300: #9CB4E2; --n100: #D7E1EE;
+  --sable: #E0C89B; --taupe: #A89684; --terracotta: #B45733; --terre: #9A6C3A; --brun: #5C3A21; --encre: #2B211A;
+  --papier: #F7FBFC;
+  --fb: 'BM', 'Tajawal', sans-serif; --fd: 'BSG', 'Tajawal', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #05080F; }
+body { font-family: var(--fb); color: var(--n700); font-variant-numeric: tabular-nums; overflow: hidden; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: var(--papier); transform-origin: 0 0; font-family: var(--fb); }
+.abs { position: absolute; }
+.title { font-family: var(--fd); font-weight: 700; letter-spacing: -0.01em; line-height: 1.05; }
+.w { display: inline-block; white-space: pre; }
+.accent { color: var(--terre); }
+#glow { inset: 0; background: radial-gradient(110% 60% at 50% 100%, rgba(224,200,155,.38) 0%, rgba(224,200,155,0) 62%), var(--papier); opacity: 0; }
+
+/* ---------- Téléphone (élément central) ---------- */
+#phone { left: 290px; top: 300px; width: 500px; height: 1040px; border-radius: 74px; background: #1B2A35; padding: 14px; transform-origin: 50% 45%;
+  box-shadow: 0 60px 120px -50px rgba(27,42,53,.5), inset 0 0 0 2px #2E4356; }
+#phone .screen { position: relative; width: 472px; height: 1012px; border-radius: 60px; overflow: hidden; background: #F2E9D9; }
+#phone .island { position: absolute; left: 50%; top: 26px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #0A1120; z-index: 20; }
+#scaler { position: absolute; left: 0; top: 0; width: 390px; height: 836.2px; transform: scale(1.2103); transform-origin: 0 0; }
+.layer { position: absolute; inset: 0; }
+
+/* Écran verrouillé (voyageur au début, hôte à la fin) */
+.ls { overflow: hidden; color: #F7FBFC; }
+.ls > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ls .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,17,32,.45) 0%, rgba(10,17,32,.05) 45%, rgba(10,17,32,.35) 100%); }
+.ls .date { position: absolute; top: 74px; width: 100%; text-align: center; font-size: 17px; font-weight: 600; }
+.ls .clock { position: absolute; top: 94px; width: 100%; text-align: center; font-family: 'BSG'; font-weight: 500; font-size: 86px; letter-spacing: -.02em; direction: ltr; }
+.ls .notif { position: absolute; left: 12px; right: 12px; top: 240px; background: rgba(247,251,252,.93); color: #1B2A35; border-radius: 22px; padding: 12px 14px;
+  display: flex; gap: 11px; align-items: flex-start; box-shadow: 0 10px 30px -12px rgba(10,17,32,.45); }
+.ls .appic { width: 38px; height: 38px; border-radius: 10px; flex: none; display: flex; align-items: center; justify-content: center; color: #FDFDFE; }
+.ls .nhead { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: #4D5A64; font-weight: 600; }
+.ls .ntitle { font-size: 15px; font-weight: 700; margin-top: 1px; }
+.ls .nbody { font-size: 14px; line-height: 1.3; color: #2E4356; margin-top: 1px; }
+.ls .illus { position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(247,251,252,.9); color: #4D5A64; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+.ls .home { position: absolute; bottom: 10px; left: 50%; width: 130px; height: 5px; margin-left: -65px; border-radius: 3px; background: rgba(247,251,252,.85); }
+
+/* ---------- Livret d'accueil : tokens et classes du produit (thème Atelier) ---------- */
+.wb { --bg:#F2E9D9; --surface:#FBF6EC; --raised:#FFFDF9; --ink:#2A241E; --ink-soft:#6A5F52; --ink-faint:#A99B86;
+  --terra:#BC5B36; --terra-deep:#9E4527; --terra-soft:#E7C7B4; --terra-bg:#F5E3D7; --line:#E8DCC8;
+  --serif:"Cormorant Garamond", Georgia, serif; --sans:"Hanken Grotesk", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); font-family: var(--sans); overflow: hidden; }
+.wb[dir="rtl"] { --serif:'Tajawal', sans-serif; --sans:'Tajawal', sans-serif; }
+.wb-serif { font-family: var(--serif); font-weight: 600; }
+.wb-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--terra-deep); }
+.wb-h1 { font-family: var(--serif); font-weight: 600; font-size: 36px; line-height: 1.05; }
+.wb-h2 { font-family: var(--serif); font-weight: 600; font-size: 21px; line-height: 1.1; }
+.wb-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint); }
+.wb[dir="rtl"] .wb-eyebrow, .wb[dir="rtl"] .wb-label { letter-spacing: 0; }
+.wb-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; }
+.wb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 15px; border-radius: 16px; padding: 14px 20px; background: var(--terra); color: #FFF6EF; }
+.wb-btn--soft { background: var(--terra-bg); color: var(--terra-deep); }
+.wb-status { position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 5; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; font-size: 15px; font-weight: 700; color: #FFF8F0; direction: ltr; }
+#wbContent { position: absolute; left: 0; right: 0; top: 0; }
+.wb-hero { position: relative; height: 312px; overflow: hidden; background: #3a2a1e; }
+.wb-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.wb-hero .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,12,6,.15) 0%, rgba(20,12,6,0) 35%, rgba(20,12,6,.62) 100%); }
+.wb-hero .txt { position: absolute; left: 22px; right: 22px; bottom: 22px; }
+.wb-hero .meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; color: #F3E7D8; font-size: 13.5px; font-weight: 600; }
+.wb-hero .meta span { display: inline-flex; align-items: center; gap: 5px; }
+.wb-body { padding: 20px 18px 40px; display: flex; flex-direction: column; gap: 16px; background: var(--bg); }
+.wb-row { display: flex; align-items: center; gap: 12px; }
+.icbox { flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--terra-bg); color: var(--terra-deep); display: flex; align-items: center; justify-content: center; }
+.tiles { display: flex; gap: 10px; }
+.tile { flex: 1; text-align: center; padding: 10px 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.tile b { display: block; font-weight: 800; font-size: 15px; margin-top: 2px; direction: ltr; }
+.navrow { display: flex; align-items: center; gap: 13px; padding: 13px 16px; }
+.navrow + .navrow { border-top: 1px solid var(--line); }
+.navrow .t { font-weight: 700; font-size: 15.5px; }
+.navrow .s { font-size: 12.5px; color: var(--ink-faint); margin-top: 1px; }
+.upsells { display: flex; gap: 13px; }
+.up { flex: none; width: 210px; background: var(--raised); overflow: hidden; }
+.up .ph { height: 116px; position: relative; }
+.up .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.up .bd { padding: 11px 13px 13px; }
+.up .desc { font-size: 12.5px; color: var(--ink-faint); margin: 8px 0 9px; line-height: 1.4; height: 35px; overflow: hidden; }
+.up .ft { display: flex; align-items: center; justify-content: space-between; }
+.up .ft b { font-weight: 800; font-size: 15px; direction: ltr; unicode-bidi: isolate; }
+.up .ft .wb-btn { padding: 6px 12px; font-size: 12.5px; border-radius: 12px; }
+#sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--raised); border-radius: 26px 26px 0 0; padding: 12px 20px 30px; box-shadow: 0 -18px 40px -18px rgba(74,52,32,.35); }
+#sheet .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 16px; }
+#sheet .price { font-weight: 800; font-size: 22px; margin: 6px 0 16px; direction: ltr; unicode-bidi: isolate; }
+.cardfield { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); margin: 8px 0 16px; font-weight: 700; }
+.cardfield span { direction: ltr; unicode-bidi: isolate; }
+#sheetDone { display: none; text-align: center; padding: 10px 6px 4px; }
+#sheetDone .ok { width: 64px; height: 64px; border-radius: 50%; background: var(--terra-bg); color: var(--terra); display: flex; align-items: center; justify-content: center; margin: 4px auto 14px; }
+#sheetDone p { color: #BC5B36; font-weight: 700; font-size: 16px; line-height: 1.4; }
+#dim { position: absolute; inset: 0; background: rgba(42,36,30,.35); opacity: 0; }
+
+/* ---------- Plans de scène ---------- */
+#night { inset: 0; opacity: 0; overflow: hidden; }
+#night img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 55%; }
+#night .v { position: absolute; inset: 0; background: rgba(10,17,32,.66); }
+#night .moon { position: absolute; left: 50%; top: 420px; margin-left: -40px; color: #E0C89B; opacity: .9; }
+#linkChip { left: 0; width: 1080px; top: 238px; display: flex; justify-content: center; opacity: 0; }
+#linkChip span { display: inline-flex; align-items: center; gap: 12px; background: #FDFDFE; border: 1.5px solid #D7E1EE; color: var(--n700); font-size: 27px; font-weight: 700; padding: 14px 26px; border-radius: 999px; box-shadow: 0 16px 36px -22px rgba(27,42,53,.35); }
+#linkChip svg { color: var(--terre); }
+#tC, #tF { inset-inline-start: 96px; top: 1380px; font-size: 72px; white-space: nowrap; }
+#money { inset-inline-start: 96px; top: 1372px; opacity: 0; }
+#money .lb { font-size: 26px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7A5230; display: flex; align-items: center; gap: 14px; }
+#money .paid { display: inline-flex; align-items: center; gap: 8px; font-size: 22px; letter-spacing: 0; text-transform: none; background: rgba(154,108,58,.15); color: #7A5230; padding: 6px 14px; border-radius: 999px; opacity: 0; }
+#money .v { font-family: 'BSG'; font-weight: 700; color: var(--terre); line-height: 1; margin-top: 8px; direction: ltr; unicode-bidi: isolate; }
+#money .v b { font-size: 120px; }
+#money .v i { font-style: normal; font-size: 48px; margin-inline-start: 12px; }
+.rtl #money .lb { letter-spacing: 0; }
+#tap { width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; border: 4px solid rgba(27,42,53,.45); background: rgba(27,42,53,.12); opacity: 0; left: 0; top: 0; }
+
+/* Planning (règles 05 bis ×2, vue 3 jours) */
+#plan { left: 64px; top: 500px; width: 952px; border-radius: 26px; overflow: hidden; background: #FDFDFE; border: 2px solid #D5DEE7; box-shadow: 0 40px 80px -40px rgba(27,42,53,.35); opacity: 0; }
+.ph2, .pr { display: flex; position: relative; }
+.pcol { width: 226px; flex: none; border-inline-end: 2px solid #D5DEE7; background: #FBFCFC; display: flex; flex-direction: column; justify-content: center; padding: 0 20px; }
+.pcol b { font-size: 24px; font-weight: 700; color: #15242D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcol small { font-size: 19px; color: #67757C; }
+.pday { width: 240px; height: 88px; border-inline-end: 2px solid #D5DEE7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.pday:last-child { border-inline-end: 0; }
+.pday span { font-size: 18px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #98A4AB; }
+.pday b { font-family: var(--fd); font-size: 26px; color: #15242D; }
+.pday.today b { display: inline-flex; width: 48px; height: 48px; border-radius: 16px; align-items: center; justify-content: center; background: #25406E; color: #FFFFFF; }
+.pday.today span { color: #25406E; }
+.ptrack { position: relative; width: 720px; height: 108px; border-top: 2px solid #D5DEE7; overflow: hidden; }
+.pcells { position: absolute; inset: 0; display: flex; }
+.pcells i { width: 240px; border-inline-end: 2px solid #EEF2F5; }
+.bar { position: absolute; top: 18px; height: 72px; border-radius: 18px; display: flex; align-items: center; gap: 14px; padding-inline: 10px 14px; }
+.bar .av { width: 52px; height: 52px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 700; overflow: hidden; }
+.bar .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.bar .tx { min-width: 0; flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
+.bar .tx small { font-size: 19px; font-weight: 600; opacity: .85; white-space: nowrap; }
+.bar .tx b { font-size: 24px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { display: inline-flex; align-items: center; gap: 8px; height: 42px; border-radius: 14px; padding: 0 16px; font-family: var(--fd); font-size: 22px; font-weight: 700; flex: none; white-space: nowrap; direction: ltr; }
+.bdgs { display: flex; gap: 4px; flex: none; }
+.bdg { width: 42px; height: 42px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,.14); flex: none; }
+.bdg img { width: 26px; height: 26px; }
+.bdg.fee { width: auto; padding-inline: 10px 14px; gap: 8px; }
+.bdg.fee span { font-family: var(--fd); font-size: 21px; font-weight: 700; color: #15242D; }
+#now { position: absolute; top: 88px; bottom: 0; width: 4px; background: #E5484D; }
+#now::before { content: ''; position: absolute; top: -3px; left: -8px; width: 20px; height: 20px; border-radius: 50%; background: #E5484D; box-shadow: 0 0 0 6px rgba(229,72,77,.25); }
+#callout { top: 420px; opacity: 0; }
+#callout span { display: inline-flex; align-items: center; gap: 10px; background: rgba(154,108,58,.15); color: #7A5230; font-family: 'BSG'; font-weight: 700; font-size: 30px; padding: 12px 22px; border-radius: 999px; direction: ltr; white-space: nowrap; }
+/* Photo du ménage + piste de progression (landing, INVENTAIRE L07) */
+#clean { left: 80px; top: 960px; width: 920px; height: 390px; border-radius: 30px; border-end-end-radius: 120px; overflow: hidden; opacity: 0; box-shadow: 0 40px 80px -46px rgba(27,42,53,.5); }
+#clean > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#cleanCard { inset-inline-start: 120px; top: 1150px; width: 560px; padding: 22px 26px; background: #FDFDFE; border: 1.5px solid #D5DEE7; border-radius: 26px; box-shadow: 0 30px 60px -34px rgba(27,42,53,.4); opacity: 0; }
+#cleanCard .k { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 700; color: #2F9E8D; }
+#cleanCard .k .chip { margin-inline-start: auto; font-size: 18px; padding: 6px 14px; }
+#cleanCard .v { font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); margin-top: 8px; display: flex; align-items: baseline; }
+.rtl #cleanCard .v { font-family: 'Tajawal', sans-serif; font-weight: 800; }
+.roll { position: relative; display: inline-block; overflow: hidden; height: 1.2em; vertical-align: bottom; min-width: 3.6em; margin-inline-start: .28em; }
+.roll span { position: absolute; inset-inline-start: 0; top: 0; white-space: nowrap; }
+.roll span + span { color: #9A6C3A; }
+.ptk { display: flex; gap: 8px; margin-top: 14px; }
+.ptk i { height: 10px; flex: 1; border-radius: 5px; background: linear-gradient(90deg, #7FA394 calc(var(--f, 0) * 100%), #DBE5DD 0); }
+.rtl .ptk i { background: linear-gradient(270deg, #7FA394 calc(var(--f, 0) * 100%), #DBE5DD 0); }
+#cleanCard .tm6 { display: flex; align-items: center; gap: 8px; font-size: 20px; color: #4D5A64; margin-top: 12px; }
+.chip { font-size: 21px; font-weight: 700; border-radius: 999px; padding: 9px 18px; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; flex: none; background: rgba(154,108,58,.15); color: #7A5230; }
+
+/* Fin : logo + CTA + faits */
+#logo { left: 0; width: 1080px; top: 640px; display: flex; flex-direction: column; align-items: center; opacity: 0; }
+#logo .row { display: flex; align-items: center; gap: 44px; direction: ltr; }
+#logo .wm { font-family: 'BSG'; font-weight: 600; font-size: 128px; letter-spacing: -0.015em; color: var(--n700); line-height: 1; }
+#cta { left: 0; width: 1080px; top: 1060px; display: flex; flex-direction: column; align-items: center; gap: 40px; opacity: 0; }
+#cta .b { background: var(--n600); color: var(--papier); font-size: 42px; font-weight: 700; padding: 34px 56px; border-radius: 18px; }
+#cta .u { font-family: 'BSG'; font-weight: 600; font-size: 60px; color: var(--terre); direction: ltr; }
+#facts { left: 0; width: 1080px; top: 1370px; display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; padding: 0 70px; }
+.fact { background: #FDFDFE; border: 1.5px solid #D7E1EE; border-radius: 999px; padding: 14px 24px; font-size: 26px; font-weight: 600; color: var(--n700); display: inline-flex; gap: 10px; align-items: baseline; opacity: 0; }
+.fact b { font-family: var(--fd); font-weight: 700; color: var(--terre); font-size: 30px; direction: ltr; unicode-bidi: isolate; }
+
+/* Sous-titres */
+#sub { inset-inline-start: 60px; width: 860px; bottom: 250px; display: flex; justify-content: center; opacity: 0; }
+#subBox { background: rgba(27,42,53,.92); border-radius: 16px; padding: 18px 28px; font-size: 44px; font-weight: 600; line-height: 1.3; text-align: center; color: var(--papier); }
+#subBox em { font-style: normal; color: var(--sable); }
+
+/* Arabe */
+.rtl { --fb: 'Tajawal', 'BM', sans-serif; --fd: 'Tajawal', 'BSG', sans-serif; }
+.rtl .title { font-weight: 800; letter-spacing: 0; line-height: 1.35; }
+.rtl #subBox { line-height: 1.5; font-weight: 700; }
+.rtl .pday span { letter-spacing: 0; }
+.rtl .pill, .rtl .bdg.fee span, .rtl .pday b { font-family: 'BSG', 'Tajawal', sans-serif; }
+.rtl .pday span { font-size: 16px; }
+.flip { transform: scaleX(-1); }
+#hud { position: fixed; left: 12px; bottom: 12px; font: 13px/1.4 ui-monospace, monospace; color: #9CB4E2; }
+</style>
+</head>
+<body>
+<!-- Icônes Lucide (clonées par le script) -->
+<template id="ic-chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></template>
+<template id="ic-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></template>
+<template id="ic-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></template>
+<template id="ic-broom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 22-1-4"/><path d="M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1"/><path d="M5 14h14l1.97 6.77A1 1 0 0 1 20 22H4a1 1 0 0 1-.97-1.23z" fill="currentColor"/><path d="m8 22 1-4"/></svg></template>
+<template id="ic-wifi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg></template>
+<template id="ic-sparkles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></template>
+<template id="ic-key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg></template>
+<template id="ic-map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></template>
+<template id="ic-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></template>
+<template id="ic-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></template>
+<template id="ic-cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></template>
+<template id="ic-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></template>
+<template id="ic-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></template>
+<template id="ic-clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></template>
+<template id="ic-moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></template>
+<template id="ic-house"><svg viewBox="251 251 522 522" fill="none" stroke="currentColor" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"><path d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/></svg></template>
+
+<div id="stage">
+  <div id="glow" class="abs"></div>
+  <div id="night" class="abs"><img src="../../brand-book/assets/photos/pricingRoom.webp" alt=""><div class="v"></div></div>
+
+  <div id="phone" class="abs"><div class="screen"><div id="scaler"></div><div id="dim"></div></div><div class="island"></div></div>
+  <div id="linkChip" class="abs"></div>
+  <div id="tC" class="abs title"></div>
+  <div id="money" class="abs"></div>
+
+  <div id="callout" class="abs"></div>
+  <div id="plan" class="abs"></div>
+  <div id="ops"></div>
+
+  <div id="tF" class="abs title"></div>
+
+  <div id="logo" class="abs">
+    <div class="row">
+      <svg width="210" height="210" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <defs><path id="logoPath" pathLength="100" d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/></defs>
+        <use href="#logoPath" id="lTrait" stroke="#25406E" stroke-width="21"/>
+        <use href="#logoPath" id="lReq" stroke="#2563EB" stroke-width="27" stroke-dasharray="6 94"/>
+        <use href="#logoPath" id="lRes" stroke="#0D9488" stroke-width="27" stroke-dasharray="6 94"/>
+      </svg>
+      <span class="wm">baitly</span>
+    </div>
+  </div>
+  <div id="cta" class="abs"><div class="b" id="ctaBtn"></div><div class="u">baitly.fr</div></div>
+  <div id="facts" class="abs"></div>
+
+  <div id="sub" class="abs"><div id="subBox"></div></div>
+  <div id="tap" class="abs"></div>
+</div>
+<div id="hud"></div>
+
+<script>
+const TL = window.TIMELINE;
+const LANG = window.__LANG__ || new URLSearchParams(location.search).get('lang') || 'fr';
+const T = window.STRINGS[LANG] || window.STRINGS.fr;
+const RTL = T.dir === 'rtl';
+const DIR = RTL ? -1 : 1;
+const SYNC = Object.assign({}, TL.sync, (TL.lang || {})[LANG]);
+const $ = (id) => document.getElementById(id);
+document.documentElement.lang = LANG;
+$('stage').dir = T.dir;
+if (RTL) $('stage').classList.add('rtl');
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 5);
+const easeIn = (x) => Math.pow(clamp(x), 3);
+const easeInOut = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const prog = (t, start, dur) => clamp((t - start) / dur);
+const lerp = (a, b, p) => a + (b - a) * p;
+const set = (el, css) => { for (const k in css) el.style[k] = css[k]; };
+const vis = (t, a, b, fin = .35, fout = .35) => Math.min(easeOut(prog(t, a, fin)), 1 - easeIn(prog(t, b - fout, fout)));
+
+/* ---------- construction du DOM (contenu statique, sans innerHTML) ---------- */
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false && c !== '') e.append(c);
+  return e;
+}
+function icon(name, size, cls) {
+  const svg = $('ic-' + name).content.firstElementChild.cloneNode(true);
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  if (cls) svg.setAttribute('class', cls);
+  return svg;
+}
+function words(el, text, em = []) {
+  return text.split(' ').map((w, i, arr) => {
+    const hit = em.some((e) => w.replace(/[.,،:…]/g, '').includes(e));
+    const s = h('span', { class: 'w' + (hit ? ' accent' : '') }, w + (i < arr.length - 1 ? ' ' : ''));
+    el.append(s);
+    return s;
+  });
+}
+function posIn(el, root) {
+  let x = 0, y = 0;
+  for (let n = el; n && n !== root; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; }
+  return { x, y };
+}
+const PHOTOS = '../../brand-book/assets/photos/';
+const G = T.guide;
+
+/* Écrans verrouillés */
+function lockScreen(photo, d, appIcon, appBg) {
+  return h('div', { class: 'layer ls', dir: T.dir },
+    h('img', { src: PHOTOS + photo, alt: '' }), h('div', { class: 'veil' }),
+    h('div', { class: 'date' }, d.date), h('div', { class: 'clock' }, d.time),
+    h('div', { class: 'notif' },
+      h('span', { class: 'appic', style: `background:${appBg}` }, appIcon),
+      h('div', { style: 'flex:1;min-width:0' },
+        h('div', { class: 'nhead' }, h('span', {}, d.app), h('span', {}, d.when)),
+        h('div', { class: 'ntitle' }, d.title), h('div', { class: 'nbody' }, d.body))),
+    h('div', { class: 'illus' }, T.illustrative), h('div', { class: 'home' }));
+}
+const lock = lockScreen('bookingLate.webp', T.lock, icon('chat', 22), '#9A6C3A');
+const hostLock = lockScreen('pricingRoom.webp', Object.assign({ app: 'Baitly' }, T.hostLock), icon('house', 24), '#25406E');
+
+/* Livret d'accueil */
+const heroPhoto = LANG === 'fr' ? 'pmsRiad.webp' : 'guideLiving.webp';
+const lateBtn = h('span', { class: 'wb-btn wb-btn--soft' }, G.payCta);
+const lateCard = h('div', { class: 'wb-card up' },
+  h('div', { class: 'ph' }, h('img', { src: PHOTOS + 'bookingLate.webp', alt: '' })),
+  h('div', { class: 'bd' }, h('div', { class: 'wb-serif', style: 'font-size:18px;line-height:1.14' }, G.late[0]),
+    h('div', { class: 'desc' }, G.late[1]), h('div', { class: 'ft' }, h('b', {}, G.late[2]), lateBtn)));
+const bfCard = h('div', { class: 'wb-card up' },
+  h('div', { class: 'ph' }, h('img', { src: PHOTOS + 'bookingBreakfast.webp', alt: '' })),
+  h('div', { class: 'bd' }, h('div', { class: 'wb-serif', style: 'font-size:18px;line-height:1.14' }, G.breakfast[0]),
+    h('div', { class: 'desc' }, G.breakfast[1]), h('div', { class: 'ft' }, h('b', {}, G.breakfast[2]), h('span', { class: 'wb-btn wb-btn--soft' }, G.payCta))));
+const services = h('div', {},
+  h('div', { style: 'padding:6px 4px 12px' }, h('div', { class: 'wb-eyebrow' }, G.marketplace), h('div', { class: 'wb-h2', style: 'margin-top:4px' }, G.upsellsTitle)),
+  h('div', { class: 'upsells' }, lateCard, bfCard));
+const wbContent = h('div', { id: 'wbContent' },
+  h('div', { class: 'wb-hero' }, h('img', { src: PHOTOS + heroPhoto, alt: '' }), h('div', { class: 'shade' }),
+    h('div', { class: 'txt' },
+      h('div', { class: 'wb-eyebrow', style: 'color:#F4D8C4;margin-bottom:8px' }, G.greeting),
+      h('div', { class: 'wb-h1', style: 'color:#FFF8F0' }, G.title),
+      h('div', { class: 'meta' }, h('span', {}, icon('pin', 15), G.city), h('span', { style: 'opacity:.5' }, '·'), h('span', {}, icon('cal', 15), G.dates)))),
+  h('div', { class: 'wb-body' },
+    h('div', { class: 'wb-card', style: 'padding:16px;display:flex;gap:13px;align-items:flex-start;background:var(--raised)' },
+      h('div', { style: 'flex:none;width:44px;height:44px;border-radius:999px;background:var(--terra-bg);color:var(--terra-deep);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:20px;border:1px solid var(--terra-soft)' }, G.host.charAt(0)),
+      h('div', {}, h('div', { style: 'font-weight:700;font-size:14px;margin-bottom:3px' }, G.host),
+        h('div', { class: 'wb-serif', style: 'font-style:italic;font-size:16.5px;line-height:1.42;color:var(--ink-soft)' }, G.note))),
+    h('div', { class: 'wb-card', style: 'overflow:hidden' },
+      h('div', { style: 'padding:13px 16px 4px;display:flex;align-items:center;gap:8px;color:var(--terra)' }, icon('sparkles', 16), h('span', { class: 'wb-label', style: 'color:var(--terra-deep)' }, G.essentials)),
+      h('div', { style: 'padding:8px 16px 14px;display:flex;flex-direction:column;gap:14px' },
+        h('div', { class: 'wb-row', style: 'justify-content:space-between' },
+          h('div', { class: 'wb-row' }, h('span', { class: 'icbox' }, icon('wifi', 19)),
+            h('div', {}, h('div', { class: 'wb-label' }, `${G.network} · WiFi`), h('div', { style: 'font-weight:700;font-size:16px' }, G.wifi),
+              h('div', { style: 'font-size:13.5px;color:var(--ink-soft)' }, `${G.password} · `, h('b', { style: 'color:var(--ink)' }, G.wifiPass)))),
+          h('span', { style: 'font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:999px;background:var(--raised);border:1px solid var(--line)' }, G.copy)),
+        h('div', { style: 'height:1px;background:var(--line)' }),
+        h('div', { class: 'tiles' }, G.tiles.map(([v, l]) => h('div', { class: 'tile' },
+          v ? h('b', {}, v) : h('div', { style: 'display:flex;justify-content:center;color:var(--ink-soft);margin-top:3px' }, icon('lock', 16)),
+          h('div', { class: 'wb-label', style: 'font-size:9.5px;margin-top:2px' }, l)))))),
+    h('div', {},
+      h('div', { class: 'wb-label', style: 'padding:4px 4px 10px' }, G.explore),
+      h('div', { class: 'wb-card', style: 'overflow:hidden' }, G.nav.map(([tt, ss], i) => h('div', { class: 'navrow' },
+        h('span', { class: 'icbox', style: 'width:40px;height:40px;border-radius:13px' }, icon(i ? 'map' : 'key', 20)),
+        h('div', { style: 'flex:1' }, h('div', { class: 't' }, tt), h('div', { class: 's' }, ss)),
+        h('span', { style: 'color:var(--ink-faint);display:flex' }, icon('chev', 18, RTL ? 'flip' : ''))))) ),
+    services));
+const payBtn = h('span', { class: 'wb-btn', style: 'width:100%' }, G.pay);
+const sheetForm = h('div', {},
+  h('div', { class: 'wb-serif', style: 'font-size:22px' }, G.late[0]),
+  h('div', { class: 'price' }, G.late[2]),
+  h('div', { class: 'wb-label' }, G.secure),
+  h('div', { class: 'cardfield' }, icon('card', 20), h('span', {}, `${G.card} •••• 4242`)),
+  payBtn);
+const sheetDone = h('div', { id: 'sheetDone' }, h('div', { class: 'ok' }, icon('check', 30)), h('p', {}, G.paySuccess));
+const sheet = h('div', { id: 'sheet' }, h('div', { class: 'grab' }), sheetForm, sheetDone);
+const status = h('div', { class: 'wb-status' }, h('span', {}, '07:04'), h('span', {}, '●●●'));
+const wb = h('div', { class: 'layer wb', dir: T.dir },
+  wbContent, status, sheet);
+$('scaler').append(lock, wb, hostLock);
+
+/* Titres, pastille de lien, montant */
+$('linkChip').append(h('span', {}, icon('link', 30), T.linkChip));
+const tCWords = words($('tC'), T.tC, T.tCEm);
+const tFWords = words($('tF'), T.tF, T.tFEm);
+const moneyVal = h('b', {}, '0');
+const paidChip = h('span', { class: 'paid' }, icon('check', 20), T.money.paid);
+$('money').append(h('div', { class: 'lb' }, T.money.label, paidChip), h('div', { class: 'v' }, moneyVal, h('i', {}, T.money.unit)));
+
+/* Planning : 3 jours, la brique du départ s'allonge de 11 h à 14 h */
+const P = T.plan;
+const DW = 240, COL = 226, PLAN_LEFT = 64;
+const X = (d, hr = 0) => (d + hr / 24) * DW;
+const ST = {
+  confirmed: { bg: '#9A6C3A', ink: '#FFFFFF', dark: false },
+  checked_in: { bg: '#5C3A21', ink: '#FFFFFF', dark: false },
+  pending: { bg: '#E0C89B', ink: '#2B211A', dark: true },
+};
+// Photo du voyageur dans l'avatar (comme GuestAvatar dans le produit).
+const GUEST_PHOTOS = { sara: 'g2.jpg', lea: 'g9.jpg', jad: 'g3.jpg', nadia: 'g8.jpg', omar: 'g5.jpg', ali: 'g12.jpg', karim: 'g1.jpg' };
+const guestImg = (key) => GUEST_PHOTOS[key] ? h('img', { src: '../../brand-book/assets/guests/' + GUEST_PHOTOS[key], alt: '' }) : null;
+function bar(b) {
+  const st = ST[b.status];
+  const [av, name] = P.guests[b.guest];
+  const glass = st.dark ? 'background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 2px rgba(43,33,26,.18)' : 'background:rgba(0,0,0,.20);color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22)';
+  const avSt = st.dark ? 'border:3px solid rgba(43,33,26,.30);background:rgba(43,33,26,.12)' : 'border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.22)';
+  const badges = [];
+  if (b.fee) badges.push(h('span', { class: 'bdg fee', style: 'color:#2F9E8D' }, icon('broom', 28), h('span', {}, P.prices.fee)));
+  if (b.logo) badges.push(h('span', { class: 'bdg' }, h('img', { src: '../../brand-book/assets/brands/' + b.logo, alt: '' })));
+  const l = X(...b.from), r = X(...b.to);
+  return h('div', { class: 'bar', style: `inset-inline-start:${l}px;width:${r - l}px;background:${st.bg};color:${st.ink}` },
+    b.av ? h('span', { class: 'av', style: avSt }, guestImg(b.guest) || av) : null,
+    h('span', { class: 'tx' }, h('small', {}, P.nights(b.nights)), h('b', {}, name)),
+    b.price ? h('span', { class: 'pill', style: glass }, icon('check', 22), ' ' + P.prices[b.guest]) : null,
+    badges.length ? h('span', { class: 'bdgs' }, badges) : null);
+}
+const ROWS = [
+  [{ status: 'checked_in', from: [0, 15], to: [2, 11], guest: 'sara', av: true, nights: 2, price: true, fee: true, key: 'late' },
+   { status: 'confirmed', from: [2, 15], to: [4, 11], guest: 'omar', av: true, nights: 2 }],
+  [{ status: 'confirmed', from: [0, 15], to: [3, 11], guest: 'jad', av: true, nights: 3, price: true, logo: 'airbnb.svg' }],
+  [{ status: 'pending', from: [1, 15], to: [3, 11], guest: 'nadia', av: true, nights: 2 }],
+];
+const plan = $('plan');
+plan.append(h('div', { class: 'ph2' }, h('div', { class: 'pcol' }, h('small', {}, P.corner)),
+  h('div', { style: 'display:flex' }, P.days.map(([d, n], i) => h('div', { class: 'pday' + (i === P.today ? ' today' : '') }, h('span', {}, d), h('b', {}, String(n)))))));
+const barEls = [];
+let lateBar = null;
+ROWS.forEach((items, ri) => {
+  const track = h('div', { class: 'ptrack' }, h('div', { class: 'pcells' }, P.days.map(() => h('i', {}))));
+  items.forEach((it) => { const el = bar(it); el.dataset.row = ri; if (it.key === 'late') lateBar = el; track.append(el); barEls.push(el); });
+  plan.append(h('div', { class: 'pr' }, h('div', { class: 'pcol' }, h('b', {}, P.rows[ri][0]), h('small', {}, P.rows[ri][1])), track));
+});
+const now = h('div', { id: 'now', style: `inset-inline-start:${COL + X(P.today, 7)}px` });
+plan.append(now);
+const W11 = X(2, 11) - X(0, 15), W14 = X(2, 14) - X(0, 15);
+$('callout').append(h('span', {}, icon('clock', 30), P.callout));
+$('callout').style.insetInlineStart = (PLAN_LEFT + COL + X(2, 14) - 150) + 'px';
+const C = T.clean;
+const clean = h('div', { id: 'clean', class: 'abs' }, h('img', { src: PHOTOS + 'menage.jpg', alt: '' }));
+const rollOld = h('span', {}, C.from), rollNew = h('span', {}, C.to);
+const autoChip = h('span', { class: 'chip' }, icon('check', 18), C.auto);
+const segs = Array.from({ length: 5 }, () => h('i'));
+const cleanCard = h('div', { id: 'cleanCard', class: 'abs' },
+  h('div', { class: 'k' }, icon('broom', 26), C.label, autoChip),
+  h('div', { class: 'v' }, h('span', {}, C.date), h('span', { class: 'roll' }, rollOld, rollNew)),
+  h('div', { class: 'ptk' }, segs), h('div', { class: 'tm6' }, icon('check', 20), C.team));
+$('stage').insertBefore(clean, $('tF'));
+$('stage').insertBefore(cleanCard, $('tF'));
+
+/* Fin */
+$('ctaBtn').textContent = T.cta;
+const factEls = T.facts.map(([b, l]) => { const el = h('span', { class: 'fact' }, h('b', {}, b), l || null); $('facts').append(el); return el; });
+
+/* ---------- géométrie des taps (repère de la scène) ---------- */
+const SCALE = 1.2103, SCR_X = 290 + 14, SCR_Y = 300 + 14;
+let geo = null;
+function geometry() {
+  const root = $('scaler');
+  const n = posIn(lock.querySelector('.notif'), root);
+  const notif = lock.querySelector('.notif');
+  const svc = posIn(services, wbContent);
+  const scrollEnd = Math.max(0, svc.y - 330);
+  const lb = posIn(lateBtn, wbContent);
+  return {
+    scrollEnd,
+    notif: { x: SCR_X + (n.x + notif.offsetWidth / 2) * SCALE, y: SCR_Y + (n.y + notif.offsetHeight / 2) * SCALE },
+    book: { x: SCR_X + (lb.x + lateBtn.offsetWidth / 2) * SCALE, y: SCR_Y + (lb.y - scrollEnd + lateBtn.offsetHeight / 2) * SCALE },
+  };
+}
+function payPoint() {
+  const p = posIn(payBtn, wb);
+  return { x: SCR_X + (p.x + payBtn.offsetWidth / 2) * SCALE, y: SCR_Y + (p.y + payBtn.offsetHeight / 2) * SCALE };
+}
+let payGeo = null;
+
+/* ---------- rendu à l'instant t ---------- */
+function titleIn(ws, t, start, stagger = .06) {
+  ws.forEach((w, i) => { const p = easeOut(prog(t, start + i * stagger, .45)); set(w, { opacity: p, transform: `translateY(${lerp(22, 0, p)}px)` }); });
+}
+let PUSH = 0;
+/** Reporte un point de l'écran du téléphone dans la scène, zoom compris. */
+function onPhone(pt) {
+  const ox = 540, oy = 300 + 1040 * .45, k = 1 + .12 * PUSH;
+  return { x: ox + (pt.x - ox) * k, y: oy + (pt.y - oy) * k - 50 * PUSH };
+}
+function tapAt(t, t0, pt0) {
+  const p = prog(t, t0, .5);
+  const pt = onPhone(pt0);
+  if (p <= 0 || p >= 1) return false;
+  set($('tap'), { opacity: String(Math.sin(p * Math.PI) * .9), transform: `translate(${pt.x}px, ${pt.y}px) scale(${lerp(.45, 1.15, easeOut(p))})` });
+  return true;
+}
+let subKey = null;
+function renderSubtitle(t) {
+  const s = T.subtitles.find((x) => t >= x.from && t < x.to);
+  if (!s) { $('sub').style.opacity = 0; return; }
+  if (subKey !== s) { subKey = s; $('subBox').replaceChildren(...[s.text, s.em ? h('em', {}, s.em) : null, s.after || null].filter(Boolean)); }
+  $('sub').style.opacity = vis(t, s.from, s.to, .15, .15);
+}
+
+function renderAt(t) {
+  if (!geo) geo = geometry();
+
+  /* Téléphone : présent en A (0–4), C–D (6.6–19.9), F (25.6–29.5) */
+  const phoneVis = Math.max(vis(t, 0, 4.0, .6, .35), vis(t, 6.6, 19.9, .55, .4), vis(t, 25.6, 29.5, .55, .35));
+  const phoneY = t < 5 ? lerp(70, 0, easeOut(prog(t, 0, .7))) : t < 22 ? lerp(70, 0, easeOut(prog(t, 6.6, .7))) : lerp(70, 0, easeOut(prog(t, 25.6, .7)));
+  // Pendant l'achat, léger travelling avant sur le téléphone (le livret devient lisible).
+  PUSH = easeInOut(prog(t, 12.9, .8)) * (1 - easeIn(prog(t, 19.4, .5)));
+  set($('phone'), { opacity: phoneVis, transform: `translateY(${phoneY - 50 * PUSH}px) scale(${1 + .12 * PUSH})` });
+  lock.style.opacity = t < 5 ? 1 : 0;
+  wb.style.opacity = t >= 5 && t < 22 ? 1 : 0;
+  hostLock.style.opacity = t >= 22 ? 1 : 0;
+
+  /* A · écran verrouillé du voyageur, notification, tap */
+  const nA = easeOut(prog(t, 1.2, .5));
+  set(lock.querySelector('.notif'), { opacity: nA, transform: `translateY(${lerp(-30, 0, nA)}px)` });
+  let tapping = tapAt(t, 3.2, geo.notif);
+
+  /* B · la nuit chez l'hôte */
+  const nv = vis(t, 3.9, 6.8, .45, .4);
+  $('night').style.opacity = nv;
+  $('night').firstElementChild.style.transform = `scale(${lerp(1.1, 1.03, prog(t, 3.9, 3))})`;
+
+  /* C · livret : défilement jusqu'aux services */
+  const sc = easeInOut(prog(t, 8.2, 3.0));
+  wbContent.style.transform = `translateY(${-geo.scrollEnd * sc}px)`;
+  status.style.color = geo.scrollEnd * sc > 260 ? '#2A241E' : '#FFF8F0';   // encre foncée hors de l'image d'en-tête
+  $('linkChip').style.opacity = vis(t, 8.6, 13.3, .4, .3);
+  $('linkChip').style.transform = `translateY(${lerp(-14, 0, easeOut(prog(t, 8.6, .4)))}px)`;
+  titleIn(tCWords, t, 10.0);
+  $('tC').style.opacity = 1 - easeIn(prog(t, 13.1, .35));
+
+  /* D · extra « départ tardif » : réserver, payer, payé */
+  const hl = easeOut(prog(t, 13.4, .4)) * (1 - easeIn(prog(t, SYNC.tapBook + .1, .3)));
+  set(lateCard, { borderColor: `color-mix(in srgb, #BC5B36 ${Math.round(hl * 100)}%, #E8DCC8)`, transform: `translateY(${-5 * hl}px)`, boxShadow: `0 ${14 * hl}px ${30 * hl}px -14px rgba(74,52,32,.4)` });
+  const mv = vis(t, 13.9, 19.8, .4, .4);
+  set($('money'), { opacity: mv, transform: `translateY(${lerp(20, 0, easeOut(prog(t, 13.9, .4)))}px)` });
+  moneyVal.textContent = String(Math.round(T.money.value * easeOut(prog(t, 14.2, 1.0))));
+  tapping = tapAt(t, SYNC.tapBook, geo.book) || tapping;
+  const sh = easeOut(prog(t, SYNC.tapBook + .15, .45)) * (1 - easeIn(prog(t, 19.3, .4)));
+  sheet.style.transform = `translateY(${lerp(105, 0, sh)}%)`;
+  $('dim').style.opacity = String(sh * (t < 22 ? 1 : 0));
+  if (!payGeo && sh >= 1) payGeo = payPoint();
+  if (payGeo) tapping = tapAt(t, SYNC.tapPay, payGeo) || tapping;
+  payBtn.style.background = t >= SYNC.tapPay && t < SYNC.tapPay + .2 ? '#9E4527' : '';
+  const done = t >= SYNC.tapPay + .45;
+  sheetForm.style.display = done ? 'none' : 'block';
+  sheetDone.style.display = done ? 'block' : 'none';
+  const dp = easeOut(prog(t, SYNC.tapPay + .45, .4));
+  set(sheetDone, { opacity: dp, transform: `translateY(${lerp(12, 0, dp)}px)` });
+  set(paidChip, { opacity: easeOut(prog(t, SYNC.tapPay + .5, .35)) });
+  if (!tapping) $('tap').style.opacity = 0;
+
+  /* E · planning : la brique s'allonge ; photo du ménage : l'heure suit (11 h → 14 h) */
+  const pv = vis(t, 19.9, 25.6, .6, .4);
+  set($('plan'), { opacity: pv, transform: `translateY(${lerp(40, 0, easeOut(prog(t, 19.9, .7)))}px)` });
+  barEls.forEach((el) => {
+    const p = easeOut(prog(t, 20.2 + (+el.dataset.row) * .18, .6));
+    const cut = lerp(100, 0, p);
+    set(el, { opacity: p, clipPath: RTL ? `inset(-10px -10px -10px ${cut}%)` : `inset(-10px ${cut}% -10px -10px)`, transform: `translateX(${lerp(-24 * DIR, 0, p)}px)` });
+  });
+  now.style.opacity = easeOut(prog(t, 20.8, .4));
+  lateBar.style.width = lerp(W11, W14, easeInOut(prog(t, SYNC.extend, .7))) + 'px';
+  set($('callout'), { opacity: vis(t, SYNC.extend, 25.5, .35, .35), transform: `translateY(${lerp(12, 0, easeOut(prog(t, SYNC.extend, .4)))}px)` });
+  // Le ménage suit la nouvelle heure de départ : photo + carte, l'heure passe de 11 h à 14 h.
+  const cv = easeOut(prog(t, 20.6, .6)) * (1 - easeIn(prog(t, 25.3, .4)));
+  set(clean, { opacity: cv, transform: `translateY(${lerp(40, 0, cv)}px)` });
+  clean.firstElementChild.style.transform = `scale(${lerp(1.08, 1, easeOut(prog(t, 20.6, 5)))})`;
+  const cc = easeOut(prog(t, 21.0, .5)) * (1 - easeIn(prog(t, 25.3, .4)));
+  set(cleanCard, { opacity: cc, transform: `translateY(${lerp(24, 0, cc)}px)` });
+  const rl = easeInOut(prog(t, SYNC.extend + .2, .5));
+  set(rollOld, { transform: `translateY(${-110 * rl}%)`, opacity: 1 - rl });
+  set(rollNew, { transform: `translateY(${110 * (1 - rl)}%)`, opacity: rl });
+  autoChip.style.opacity = easeOut(prog(t, SYNC.extend + .7, .4));
+  const tp = t < SYNC.extend ? .2 : lerp(.2, .6, easeOut(prog(t, SYNC.extend + .4, 1.2)));
+  segs.forEach((sg, i) => sg.style.setProperty('--f', clamp(tp * 5 - i)));
+
+  /* F · réveil de l'hôte : notification Baitly */
+  const nF = easeOut(prog(t, 26.2, .5));
+  set(hostLock.querySelector('.notif'), { opacity: nF, transform: `translateY(${lerp(-30, 0, nF)}px)` });
+  titleIn(tFWords, t, 26.6);
+  $('tF').style.opacity = 1 - easeIn(prog(t, 29.2, .35));
+
+  /* G · logo + CTA */
+  $('glow').style.opacity = easeOut(prog(t, 29.3, .8));
+  const lIn = easeOut(prog(t, 29.5, .6));
+  set($('logo'), { opacity: lIn, transform: `translateY(${lerp(24, 0, lIn)}px)` });
+  set($('lTrait'), { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * easeInOut(prog(t, 29.5, 1.0))) });
+  const cyc = (((t - 30.5) % 5) + 5) % 5 / 5, pk = t >= 30.5;
+  set($('lReq'), { opacity: pk && cyc < .5 ? 1 : 0, strokeDashoffset: String(-lerp(0, 94, cyc / .5)) });
+  set($('lRes'), { opacity: pk && cyc >= .5 ? 1 : 0, strokeDashoffset: String(-lerp(94, 0, (cyc - .5) / .5)) });
+  const cIn = easeOut(prog(t, 30.3, .6));
+  set($('cta'), { opacity: cIn, transform: `translateY(${lerp(24, 0, cIn)}px)` });
+  factEls.forEach((el, i) => { const p = easeOut(prog(t, 31.1 + i * .15, .5)); set(el, { opacity: p, transform: `translateY(${lerp(18, 0, p)}px)` }); });
+
+  renderSubtitle(t);
+}
+window.renderAt = renderAt;
+// Les positions dépendent des polices : on les recalcule une fois celles-ci chargées.
+document.fonts.ready.then(() => { geo = null; payGeo = null; });
+renderAt(0);
+
+if (!window.__RENDER__) {
+  const stage = $('stage');
+  const fit = () => { stage.style.transform = `scale(${Math.min(innerWidth / 1080, innerHeight / 1920)})`; };
+  addEventListener('resize', fit); fit();
+  let t0 = performance.now(), offset = 0, paused = false, cur = 0;
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space') paused = !paused;
+    if (e.code === 'ArrowRight') cur = Math.min(TL.duration, cur + 1);
+    if (e.code === 'ArrowLeft') cur = Math.max(0, cur - 1);
+    offset = cur; t0 = performance.now();
+  });
+  const loop = () => {
+    cur = paused ? offset : (offset + (performance.now() - t0) / 1000) % TL.duration;
+    renderAt(cur);
+    $('hud').textContent = `${LANG} · ${cur.toFixed(2)} s${paused ? ' (pause)' : ''}`;
+    requestAnimationFrame(loop);
+  };
+  loop();
+}
+</script>
+</body>
+</html>

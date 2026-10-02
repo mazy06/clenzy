@@ -713,8 +713,9 @@ class TagResolverServiceTest {
             @SuppressWarnings("unchecked")
             Map<String, Object> ligne = (Map<String, Object>) context.get("ligne");
             assertThat(ligne.get("quantite")).isEqualTo("4"); // 4 nuits
-            // 360 / 4 = 90,00 €
-            assertThat(ligne.get("prix_unitaire").toString()).contains("90").endsWith(" €");
+            // Ligne unique = tout le sejour : totalPrice 400 / 4 = 100,00 €, coherent avec
+            // ligne.total (roomRevenue 360 / 4 = 90 donnait 4 x 90 pour un total de 400)
+            assertThat(ligne.get("prix_unitaire").toString()).contains("100").endsWith(" €");
             assertThat(ligne.get("description").toString()).contains("Loft");
             assertThat(ligne.get("description").toString()).contains("01/07/2026");
         }

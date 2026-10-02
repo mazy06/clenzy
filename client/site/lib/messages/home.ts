@@ -13,7 +13,6 @@ import type { SiteLanguage } from '../siteLanguage';
  */
 const fr = {
   hero: {
-    eyebrow: 'L’hospitalité, augmentée.',
     title1: 'Faites grandir vos revenus.',
     title2: 'Pas votre charge de travail.',
     lead1: 'Avec les agents IA de Baitly, automatisez les tâches répétitives, ajustez vos tarifs',
@@ -123,29 +122,33 @@ const fr = {
     photoAlt: 'Kingdom Centre dans le paysage urbain de Riyad',
     rootsLine1: 'Des racines locales.',
     rootsLine2: 'Une vision sans frontières.',
-    label: 'Arabie saoudite d’abord. Maroc et France ensuite.',
+    label: 'Arabie saoudite, Maroc, France : dès le lancement.',
     title1: 'À l’aise avec votre métier.',
     title2: 'Et votre réalité.',
     copy: 'Une istiraha à Riyad ne se gère pas comme un appartement à Paris. Votre outil doit connaître la différence.',
     points: [
       [
         'Des arrivées déclarées',
-        'Enregistrement des voyageurs sur Shomoos (شموس), obligatoire pour l’hébergement.',
+        'Shomoos (شموس) en Arabie saoudite, fiche de police DGSN au Maroc, fiche de police des voyageurs étrangers en France.',
       ],
       [
         'Une fiscalité juste du premier coup',
-        'TVA à 15 %, frais municipaux à 5 %, facture électronique ZATCA.',
+        'TVA à 15 %, frais municipaux et facture ZATCA en Arabie saoudite, taxe de séjour par commune au Maroc et en France, facture électronique Factur-X en France.',
       ],
       [
         'Des paiements que vos voyageurs utilisent',
-        'PayTabs et encaissement en riyals, en plus de Stripe.',
+        'PayTabs en riyals, CMI, PayZone et YouCan Pay en dirhams, Stripe en euros.',
       ],
       [
-        'Une interface arabe, vraiment',
-        'Lecture de droite à gauche, calendrier hégirien, montants en riyals.',
+        'Des règles de location tenues',
+        'Numéro d’enregistrement en mairie et plafond de 120 nuits par an pour une résidence principale en France.',
+      ],
+      [
+        'Votre langue, vraiment',
+        'Français, anglais et arabe, lecture de droite à gauche, calendrier hégirien.',
       ],
     ] as ReadonlyArray<readonly [string, string]>,
-    link: 'Découvrir Baitly en Arabie saoudite',
+    link: 'Voir Baitly dans votre pays',
     supportTitle: 'Vous lancez votre digitalisation ?',
     supportBody:
       'Parlons migration, accompagnement et aides à la digitalisation lors de votre démo.',
@@ -189,7 +192,6 @@ export type HomeMessages = typeof fr;
 
 const en: HomeMessages = {
   hero: {
-    eyebrow: 'Hospitality, amplified.',
     title1: 'Grow your revenue.',
     title2: 'Not your workload.',
     lead1: 'With Baitly’s AI agents, automate repetitive tasks, adjust your rates',
@@ -298,29 +300,33 @@ const en: HomeMessages = {
     photoAlt: 'Kingdom Centre in the Riyadh skyline',
     rootsLine1: 'Local roots.',
     rootsLine2: 'A view without borders.',
-    label: 'Saudi Arabia first. Morocco and France next.',
+    label: 'Saudi Arabia, Morocco, France: from day one.',
     title1: 'At ease with your trade.',
     title2: 'And your reality.',
     copy: 'An istiraha in Riyadh is not run like a flat in Paris. Your tool should know the difference.',
     points: [
       [
         'Arrivals properly declared',
-        'Guest registration on Shomoos (شموس), mandatory for accommodation.',
+        'Shomoos (شموس) in Saudi Arabia, DGSN police records in Morocco, police records for foreign guests in France.',
       ],
       [
         'Tax right the first time',
-        '15% VAT, 5% municipality fee, ZATCA electronic invoicing.',
+        '15% VAT, municipality fees and ZATCA invoicing in Saudi Arabia, tourist tax by municipality in Morocco and France, Factur-X e-invoicing in France.',
       ],
       [
         'Payments your guests actually use',
-        'PayTabs and collection in riyals, alongside Stripe.',
+        'PayTabs in riyals, CMI, PayZone and YouCan Pay in dirhams, Stripe in euros.',
       ],
       [
-        'Arabic, properly',
-        'Right-to-left reading, Hijri calendar, amounts in riyals.',
+        'Rental rules kept',
+        'Town hall registration number and a 120-night yearly cap for a main residence in France.',
+      ],
+      [
+        'Your language, properly',
+        'French, English and Arabic, right-to-left reading, Hijri calendar.',
       ],
     ],
-    link: 'Discover Baitly in Saudi Arabia',
+    link: 'See Baitly in your country',
     supportTitle: 'Starting your digital shift?',
     supportBody:
       'Let’s talk migration, onboarding and digitalisation support at your demo.',
@@ -362,7 +368,6 @@ const en: HomeMessages = {
 
 const ar: HomeMessages = {
   hero: {
-    eyebrow: 'ضيافة، بقدرات أوسع.',
     title1: 'نمِّ إيراداتك.',
     title2: 'لا أعباء عملك.',
     lead1: 'مع وكلاء الذكاء الاصطناعي في بيتلي، أتمت المهام المتكررة واضبط أسعارك',
@@ -470,29 +475,33 @@ const ar: HomeMessages = {
     photoAlt: 'برج المملكة في أفق الرياض',
     rootsLine1: 'جذور محلية.',
     rootsLine2: 'ورؤية بلا حدود.',
-    label: 'السعودية أولاً. ثم المغرب وفرنسا.',
+    label: 'السعودية والمغرب وفرنسا: منذ الإطلاق.',
     title1: 'على دراية بمهنتك.',
     title2: 'وبواقعك.',
     copy: 'الاستراحة في الرياض لا تُدار كشقة في باريس. وأداتك ينبغي أن تعرف الفرق.',
     points: [
       [
         'وصول مُبلَّغ عنه حسب الأصول',
-        'تسجيل النزلاء على منصة شموس، وهو إلزامي لقطاع الإيواء.',
+        'منصة شموس في السعودية، وبطاقة الشرطة وفق صيغة المديرية العامة للأمن الوطني في المغرب، وبطاقة الشرطة للنزلاء الأجانب في فرنسا.',
       ],
       [
         'ضريبة صحيحة من أول مرة',
-        'ضريبة قيمة مضافة 15 %، ورسوم بلدية 5 %، وفاتورة إلكترونية عبر هيئة الزكاة والضريبة والجمارك.',
+        'ضريبة قيمة مضافة 15 % ورسوم بلدية وفاتورة هيئة الزكاة والضريبة والجمارك في السعودية، ورسم الإقامة حسب البلدية في المغرب وفرنسا، وفاتورة Factur-X الإلكترونية في فرنسا.',
       ],
       [
         'وسائل دفع يستخدمها نزلاؤك فعلاً',
-        'PayTabs والتحصيل بالريال، إلى جانب Stripe.',
+        'PayTabs بالريال، وCMI وPayZone وYouCan Pay بالدرهم، وStripe باليورو.',
       ],
       [
-        'واجهة عربية، بحق',
-        'قراءة من اليمين إلى اليسار، وتقويم هجري، ومبالغ بالريال.',
+        'قواعد إيجار محترمة',
+        'رقم التسجيل لدى البلدية وسقف 120 ليلة سنوياً للسكن الرئيسي في فرنسا.',
+      ],
+      [
+        'لغتك، بحق',
+        'الفرنسية والإنجليزية والعربية، وقراءة من اليمين إلى اليسار، وتقويم هجري.',
       ],
     ],
-    link: 'اكتشف بيتلي في السعودية',
+    link: 'اكتشف بيتلي في بلدك',
     supportTitle: 'هل تبدأ تحوّلك الرقمي؟',
     supportBody:
       'لنتحدث في العرض التوضيحي عن الترحيل والمواكبة ودعم التحوّل الرقمي.',

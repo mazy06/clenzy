@@ -150,6 +150,26 @@ const CreateWizard: React.FC<{
           {form.error}
         </p>
       )}
+      {form.nightsCapOverrun && (
+        <div role="alert" className="mx-[22px] mb-2 flex shrink-0 flex-col gap-2 rounded-md border border-destructive/40 px-3 py-2.5">
+          <p className="m-0 text-[12.5px] font-semibold text-destructive-ink">
+            {t('reservations.dialog.nightsCap.title', 'Plafond annuel de nuitées dépassé')}
+          </p>
+          <p className="m-0 text-[12.5px] text-muted-foreground">{form.nightsCapOverrun}</p>
+          <p className="m-0 text-[12px] text-muted-foreground">
+            {t('reservations.dialog.nightsCap.hint',
+              'Résidence principale : 120 nuits par an au plus. Vous pouvez déroger ; les gestionnaires de l’organisation en seront prévenus.')}
+          </p>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={form.dismissNightsCapOverrun} className={BTN_GHOST_CLS}>
+              {t('common.cancel')}
+            </button>
+            <button type="button" onClick={form.confirmNightsCapDerogation} disabled={form.saving} className={BTN_PRIMARY_CLS}>
+              {t('reservations.dialog.nightsCap.override', 'Déroger et créer')}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className={FOOT_CLS}>
         <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>

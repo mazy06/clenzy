@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -24,6 +25,8 @@ import java.util.Map;
  * <ul>
  *   <li>{@code GET  /api/compliance/declarations/by-reservation/{reservationId}} — statut (sans PII).</li>
  *   <li>{@code POST /api/compliance/declarations/{id}/submit} — (re)soumission.</li>
+ *   <li>{@code GET  /api/compliance/declarations/by-reservation/{reservationId}/pdf} — fiches PDF.</li>
+ *   <li>{@code GET  /api/compliance/declarations/register} — registre d'un logement (PDF).</li>
  * </ul>
  *
  * <p>Controller <b>mince</b> — délègue à {@link ComplianceSubmissionService} (ownership org validé
@@ -37,9 +40,41 @@ public class ComplianceSubmissionController {
     private static final Logger log = LoggerFactory.getLogger(ComplianceSubmissionController.class);
 
     private final ComplianceSubmissionService submissionService;
+    private final com.clenzy.service.compliance.PoliceFormPdfService policeFormPdfService;
 
-    public ComplianceSubmissionController(ComplianceSubmissionService submissionService) {
+    public ComplianceSubmissionController(ComplianceSubmissionService submissionService,
+                                          com.clenzy.service.compliance.PoliceFormPdfService policeFormPdfService) {
         this.submissionService = submissionService;
+        this.policeFormPdfService = policeFormPdfService;
+    }
+
+    /** Fiches individuelles de police d'une réservation (PDF). Accès tracé au journal d'audit. */
+    @GetMapping("/by-reservation/{reservationId}/pdf")
+    public ResponseEntity<byte[]> reservationPdf(@PathVariable Long reservationId) {
+        return pdf(policeFormPdfService.forReservation(reservationId),
+                "fiches-police-reservation-" + reservationId + ".pdf");
+    }
+
+    /**
+     * Registre des fiches d'un logement sur une période — la pièce remise aux services de
+     * police ou de gendarmerie qui la demandent (France, CESEDA R814-3).
+     */
+    @GetMapping("/register")
+    public ResponseEntity<byte[]> register(@RequestParam Long propertyId,
+                                           @RequestParam java.time.LocalDate from,
+                                           @RequestParam java.time.LocalDate to) {
+        return pdf(policeFormPdfService.register(propertyId, from, to),
+                "registre-police-" + propertyId + "-" + from + "-" + to + ".pdf");
+    }
+
+    private static ResponseEntity<byte[]> pdf(byte[] body, String filename) {
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                // Données personnelles : jamais en cache intermédiaire.
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(body);
     }
 
     @GetMapping("/by-reservation/{reservationId}")

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import storageService, { STORAGE_KEYS } from '../services/storageService';
 import { CURRENCY_OPTIONS, formatCurrency } from '../utils/currencyUtils';
 import { exchangeRateApi, type RateMatrix } from '../services/api/exchangeRateApi';
@@ -25,34 +25,9 @@ const CURRENCY_FOR_LANGUAGE: Partial<Record<ReturnType<typeof normalizeLanguage>
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type CurrencyCode = (typeof CURRENCY_OPTIONS)[number]['code'];
-
-interface CurrencyContextType {
-  /** Optional presentation renderer for isolated, read-only product demonstrations. */
-  renderAmount?: (value: number, options: { from?: string; decimals?: number; symbolSize?: number }) => React.ReactNode;
-  currency: CurrencyCode;
-  setCurrency: (code: CurrencyCode) => void;
-  currencySymbol: string;
-  currencyLabel: string;
-  /** Convertit et formate un montant. Prefixe "≈ " si conversion appliquee. */
-  convertAndFormat: (amount: number | null | undefined, fromCurrency?: string) => string;
-  /** Convertit un montant brut (sans formatage). */
-  convert: (amount: number, fromCurrency: string) => number;
-  /** true si la devise d'affichage differe de EUR (conversion potentielle). */
-  isConverting: boolean;
-  /** Date des taux utilises (ex: "2026-03-25"). null si pas charge. */
-  rateDate: string | null;
-  /** Matrice de taux chargee. null si pas encore disponible. */
-  rates: Record<string, number> | null;
-  /** true pendant le chargement initial de la matrice. */
-  ratesLoading: boolean;
-}
-
-// ─── Context ────────────────────────────────────────────────────────────────
-
-const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
-
-export const CurrencyDisplayProvider = CurrencyContext.Provider;
+export { useCurrency, CurrencyDisplayProvider } from './currencyDisplayContext';
+export type { CurrencyCode } from './currencyDisplayContext';
+import { CurrencyContext, type CurrencyCode, type CurrencyContextType } from './currencyDisplayContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -252,14 +227,4 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       {children}
     </CurrencyContext.Provider>
   );
-}
-
-// ─── Hook ───────────────────────────────────────────────────────────────────
-
-export function useCurrency(): CurrencyContextType {
-  const context = useContext(CurrencyContext);
-  if (!context) {
-    throw new Error('useCurrency must be used within a CurrencyProvider');
-  }
-  return context;
 }

@@ -25,7 +25,7 @@ import {
   legalStructuredData,
 } from './publication';
 
-const routes = readFileSync('site/main.tsx', 'utf8');
+const routes = readFileSync('site/SiteApp.tsx', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 const template = readFileSync('site/index.html', 'utf8');
 

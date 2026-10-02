@@ -17,7 +17,7 @@ Un hôte consulte le site en journée, souvent entre deux arrivées, pour compre
 
 Hero photographique et promesse → intégrations sélectionnées → planning et réservation directe → démonstration de quatre agents → ancrage local → FAQ → prise de démo.
 
-Les composants de section de `HomePage.tsx` conservent les routes du catalogue. La démonstration `BaitlyAgentDemo.tsx` est locale : ses données sont illustratives et ses boutons ne déclenchent aucune requête métier. La lecture est volontaire, se suspend hors écran et se désactive avec `prefers-reduced-motion`. Chaque scénario peut être choisi manuellement. La FAQ utilise les éléments natifs `details` / `summary`.
+Les composants de section de `HomePage.tsx` conservent les routes du catalogue. La démonstration `BaitlyAgentsPlanningDemo.tsx` rejoue le planning puis la constellation d'agents d'un logement déplié (cartes HITL, vue Agents) avec les feuilles CSS réelles de `src/modules/supervision` ; ses données sont locales (reprises de l'environnement de dev) et aucun geste ne déclenche de requête métier. Elle se suspend hors écran, se fige avec `prefers-reduced-motion` et propose une voix off coupée par défaut (`assets/voice/agents-demo/<langue>/NN.mp3`, FR et EN ; une phrase modifiée dans `lib/messages/baitlyAgentsDemo.ts` impose de régénérer son clip). La FAQ utilise les éléments natifs `details` / `summary`.
 
 Le header et le footer partagent la même identité ; le choix de langue vit dans la colonne
 d'identité du footer, où il est visible à toute largeur — dans le header il était masqué

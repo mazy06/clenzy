@@ -84,7 +84,7 @@ class ComplianceSubmissionServiceTest {
 
     @Test
     void retrySubmission_noActiveConnection_skipsNoOp() {
-        GuestDeclaration d = declaration("FR", DeclarationStatus.COMPLETED);
+        GuestDeclaration d = declaration("ES", DeclarationStatus.COMPLETED);
         when(declarationRepository.findById(DECLARATION_ID)).thenReturn(Optional.of(d));
         when(connectionService.getConnection(ORG_ID, ComplianceProviderType.CHEKIN))
                 .thenReturn(Optional.empty());
@@ -99,7 +99,7 @@ class ComplianceSubmissionServiceTest {
 
     @Test
     void retrySubmission_completedWithActiveChekin_strategyCalled_statusSubmitted() {
-        GuestDeclaration d = declaration("FR", DeclarationStatus.COMPLETED);
+        GuestDeclaration d = declaration("ES", DeclarationStatus.COMPLETED);
         ComplianceConnection conn = activeChekin();
         when(declarationRepository.findById(DECLARATION_ID)).thenReturn(Optional.of(d));
         when(connectionService.getConnection(ORG_ID, ComplianceProviderType.CHEKIN))
@@ -124,7 +124,7 @@ class ComplianceSubmissionServiceTest {
 
     @Test
     void retrySubmission_strategyRejects_statusUnchanged_errorTraced() {
-        GuestDeclaration d = declaration("FR", DeclarationStatus.COMPLETED);
+        GuestDeclaration d = declaration("ES", DeclarationStatus.COMPLETED);
         ComplianceConnection conn = activeChekin();
         when(declarationRepository.findById(DECLARATION_ID)).thenReturn(Optional.of(d));
         when(connectionService.getConnection(ORG_ID, ComplianceProviderType.CHEKIN))
@@ -146,7 +146,7 @@ class ComplianceSubmissionServiceTest {
 
     @Test
     void retrySubmission_alreadySubmitted_idempotentNoOp() {
-        GuestDeclaration d = declaration("FR", DeclarationStatus.SUBMITTED);
+        GuestDeclaration d = declaration("ES", DeclarationStatus.SUBMITTED);
         when(declarationRepository.findById(DECLARATION_ID)).thenReturn(Optional.of(d));
 
         Optional<SubmissionResult> result = service.retrySubmission(DECLARATION_ID);
@@ -212,7 +212,7 @@ class ComplianceSubmissionServiceTest {
 
     @Test
     void submitForReservation_completedDeclaration_submitted() {
-        GuestDeclaration d = declaration("FR", DeclarationStatus.COMPLETED);
+        GuestDeclaration d = declaration("ES", DeclarationStatus.COMPLETED);
         ComplianceConnection conn = activeChekin();
         when(declarationRepository.findByReservationIdOrderByIdAsc(RESERVATION_ID)).thenReturn(List.of(d));
         // applySubmissionResult (REQUIRES_NEW) recharge la declaration par id dans sa nouvelle tx.
@@ -256,5 +256,13 @@ class ComplianceSubmissionServiceTest {
         when(s.submit(any(), any(), anyString()))
                 .thenThrow(new ComplianceProviderPendingException(type, "pending"));
         return s;
+    }
+
+    @Test
+    void resolveProvider_france_isRetainedLocallyWithoutProvider() {
+        // CESEDA R814-3 : la fiche française est conservée par l'exploitant, jamais déposée.
+        assertThat(service.resolveProvider(declaration("FR", DeclarationStatus.COMPLETED))).isNull();
+        assertThat(service.resolveProvider(declaration("ES", DeclarationStatus.COMPLETED)))
+                .isEqualTo(ComplianceProviderType.CHEKIN);
     }
 }

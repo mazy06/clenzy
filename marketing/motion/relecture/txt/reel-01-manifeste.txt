@@ -1,0 +1,426 @@
+==============================================================================
+REEL 01 · MANIFESTE — Manifeste de la marque : de l’accueil aux coulisses
+Format 9:16 (1080×1920) · 33 s · langues : FR · EN · AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,1 s · durée visée 2,8 s]
+      Vous avez ouvert un logement pour accueillir.
+  b2  [3,3 s → 6,0 s · durée visée 2,5 s]
+      Pas pour vivre dans vos onglets ouverts.
+  b3  [6,2 s → 11,9 s · durée visée 5,8 s]
+      Les réservations, les prix, le ménage, les messages… tout arrive en même temps, et de partout.
+  b4  [12,2 s → 16,2 s · durée visée 4,0 s]
+      Bètli réunit tout dans un seul espace, autour de votre planning.
+  b5  [16,6 s → 22,4 s · durée visée 5,6 s]
+      Et une équipe d'agents I.A. s'occupe du reste : ils préparent, proposent… et vous validez.
+  b6  [23,0 s → 26,4 s · durée visée 3,6 s]
+      Faites grandir vos revenus. … Pas votre charge de travail.
+  b7  [26,8 s → 32,5 s · durée visée 4,4 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [3,2–5,75 s]  Vous avez ouvert un logement pour accueillir.
+  ST2  [5,8–9,85 s]  Pas pour vivre dans vos onglets ouverts.
+  ST3  [9,85–11,85 s]  Les réservations, les prix, le ménage, [les messages…]
+  ST4  [11,85–16,35 s]  tout arrive en même temps, [et de partout.]
+  ST5  [16,4–19,25 s]  Baitly réunit tout dans un seul espace, [autour de votre planning.]
+  ST6  [19,25–22,55 s]  Et une équipe d'agents IA s'occupe du reste : ils préparent, [proposent…]
+  ST7  [21,35–22,53 s]  et vous validez.
+
+TEXTES À L’ÉCRAN
+  · Maquette d’interface (libellé)
+      E1  Scène illustrative · planning Baitly
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E2  Vous avez ouvert un logement pour [accueillir.]
+  · Maquette d’interface (libellé)
+      E3  onglets ouverts
+  · Onglet / étape (maquette) : rester court
+      E4  A
+      E5  Airbnb · Messages
+      E6  B
+      E7  Booking.com · Extranet
+      E8  X
+      E9  Planning ménage.xlsx
+      E10  W
+      E11  WhatsApp · 14 non lus
+      E12  €
+      E13  Banque · Virements
+      E14  T
+      E15  Tarifs des voisins
+      E16  @
+      E17  Boîte mail · Réservations
+      E18  P
+      E19  Relevé propriétaire.pdf
+      E20  N
+      E21  Notes · Codes wifi
+  · Maquette d’interface (libellé)
+      E22  réservations
+      E23  prix
+      E24  ménage
+      E25  messages
+  · Planning (maquette d’interface)
+      E26  Logement
+      E27  Bloqué
+      E28  L
+      E29  M
+      E30  M
+      E31  J
+      E32  V
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E33  1 nuit
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E34  2 nuits
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E35  3 nuits
+  · Planning (maquette d’interface)
+      E36  Riad Nour
+      E37  Marrakech
+      E38  Villa Palmeraie
+      E39  Marrakech
+      E40  Studio Gueliz
+      E41  Marrakech
+      E42  Appart. Hivernage
+      E43  Marrakech
+      E44  Léa
+      E45  Sara
+      E46  Jad
+      E47  Nadia
+      E48  Omar
+      E49  Ali
+      E50  Karim
+      E51  booking
+      E52  airbnb
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E53  Un seul [espace.]
+  · Maquette d’interface (libellé)
+      E54  Communication
+      E55  Le prochain séjour se prépare.
+      E56  Message d’accueil prêt. Équipe informée.
+      E57  Automatique
+      E58  Opérations
+      E59  Départ tardif accepté.
+      E60  Le ménage s’est replanifié tout seul.
+      E61  Fait
+      E62  Agent Revenue
+      E63  Riad Nour · il y a 2 min
+      E64  À valider
+      E65  Approuvé
+      E66  Baisse tarifaire proposée
+      E67  3 nuits invendues, du 14 au 16. Proposition :
+      E68  −9 %
+      E69  , plancher respecté.
+      E70  Prix actuel
+      E71  Prix proposé
+      E72  Plancher
+      E73  MAD
+      E74  Occupation de la semaine
+      E75  seuil de baisse 55 %
+  · Bouton (maquette) : rester court
+      E76  Approuver
+      E77  Ajuster
+      E78  Refuser
+  · Maquette d’interface (libellé)
+      E79  Approuvé à 690 MAD · envoyé vers Airbnb et Booking.com
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E80  Vous validez. Ils [exécutent.]
+      E81  Faites grandir vos revenus.
+      E82  Pas votre charge de travail.
+  · Bouton de l’écran de fin
+      E83  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E84  agents IA
+      E85  de commission en direct
+  · Maquette d’interface (libellé)
+      E87  Connecté à vos canaux
+      E88  airbnb
+      E89  booking
+      E90  gathern
+      E91  vrbo
+      E92  mabeet
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,1 s · durée visée 2,5 s]
+      You opened your doors to welcome guests.
+  b2  [3,3 s → 6,0 s · durée visée 2,7 s]
+      Not to live in your open tabs all day long.
+  b3  [6,2 s → 11,9 s · durée visée 5,5 s]
+      Bookings, rates, housekeeping, messages… it all lands at the same time, from everywhere.
+  b4  [12,2 s → 16,2 s · durée visée 4,0 s]
+      Betly brings it all together in one place, around your calendar.
+  b5  [16,6 s → 22,4 s · durée visée 5,9 s]
+      And a team of A.I. agents takes care of the rest: they prepare, they propose… and you approve.
+  b6  [23,0 s → 26,4 s · durée visée 2,4 s]
+      Grow your revenue. … Not your workload.
+  b7  [26,8 s → 32,5 s · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [3,2–5,75 s]  You opened your doors to welcome guests.
+  ST2  [5,8–9,85 s]  Not to live in your open tabs all day long.
+  ST3  [9,85–11,85 s]  Bookings, rates, housekeeping, [messages…]
+  ST4  [11,85–16,35 s]  it all lands at the same time, [from everywhere.]
+  ST5  [16,4–19,25 s]  Baitly brings it all together in one place, [around your calendar.]
+  ST6  [19,25–22,55 s]  And a team of AI agents takes care of the rest: they prepare, [they propose…]
+  ST7  [21,35–22,53 s]  and you approve.
+
+TEXTES À L’ÉCRAN
+  · Maquette d’interface (libellé)
+      E1  Illustrative scene · Baitly calendar
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E2  You opened your doors to [welcome] guests.
+  · Maquette d’interface (libellé)
+      E3  open tabs
+  · Onglet / étape (maquette) : rester court
+      E4  A
+      E5  Airbnb · Messages
+      E6  B
+      E7  Booking.com · Extranet
+      E8  X
+      E9  Cleaning schedule.xlsx
+      E10  W
+      E11  WhatsApp · 14 unread
+      E12  $
+      E13  Bank · Transfers
+      E14  R
+      E15  Competitor rates
+      E16  @
+      E17  Inbox · Bookings
+      E18  P
+      E19  Owner statement.pdf
+      E20  N
+      E21  Notes · Wi-Fi codes
+  · Maquette d’interface (libellé)
+      E22  bookings
+      E23  rates
+      E24  housekeeping
+      E25  messages
+  · Planning (maquette d’interface)
+      E26  Property
+      E27  Blocked
+      E28  M
+      E29  T
+      E30  W
+      E31  T
+      E32  F
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E33  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E34  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E35  3 nights
+  · Planning (maquette d’interface)
+      E36  Nakheel Chalet
+      E37  Riyadh
+      E38  Diriyah Villa
+      E39  Riyadh
+      E40  Olaya Studio
+      E41  Riyadh
+      E42  Malqa Suite
+      E43  Riyadh
+      E44  Mia
+      E45  Sara
+      E46  Jad
+      E47  Nadia
+      E48  Omar
+      E49  Ali
+      E50  Karim
+      E51  gathern
+      E52  booking
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E53  All in one [place.]
+  · Maquette d’interface (libellé)
+      E54  Communication
+      E55  The next stay is getting ready.
+      E56  Welcome message drafted. Team notified.
+      E57  Automatic
+      E58  Operations
+      E59  Late checkout accepted.
+      E60  Housekeeping rescheduled itself.
+      E61  Done
+      E62  Revenue agent
+      E63  Nakheel Chalet · 2 min ago
+      E64  To approve
+      E65  Approved
+      E66  Price drop proposed
+      E67  3 unsold nights, 14 to 16. Proposal:
+      E68  −9%
+      E69  , floor respected.
+      E70  Current price
+      E71  Proposed price
+      E72  Floor
+      E73  SAR
+      E74  Occupancy this week
+      E75  drop threshold 55%
+  · Bouton (maquette) : rester court
+      E76  Approve
+      E77  Adjust
+      E78  Decline
+  · Maquette d’interface (libellé)
+      E79  Approved at 475 SAR · sent to Airbnb and Gathern
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E80  You approve. They [execute.]
+      E81  Grow your revenue.
+      E82  Not your workload.
+  · Bouton de l’écran de fin
+      E83  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E84  AI agents
+      E85  commission on direct bookings
+  · Maquette d’interface (libellé)
+      E87  Connected to your channels
+      E88  airbnb
+      E89  booking
+      E90  gathern
+      E91  vrbo
+      E92  mabeet
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,1 s · durée visée 2,4 s]
+      فتحتَ أبوابَكَ لتستقبلَ ضيوفَك.
+  b2  [3,3 s → 6,0 s · durée visée 2,2 s]
+      لا لتعيشَ بينَ تبويباتِ المتصفّح.
+  b3  [6,2 s → 11,9 s · durée visée 5,4 s]
+      الحجوزات، والأسعار، والتنظيف، والرسائل… كلُّها تصلُ في الوقتِ نفسِه.
+  b4  [12,2 s → 16,2 s · durée visée 3,2 s]
+      بيتلي يجمعُ كلَّ شيءٍ في مساحةٍ واحدة.
+  b5  [16,6 s → 22,4 s · durée visée 5,4 s]
+      ووكلاءُ الذكاءِ الاصطناعي يتولّون الباقي: يُحضّرون، ويقترحون… وأنتَ تعتمد.
+  b6  [23,0 s → 26,4 s · durée visée 3,0 s]
+      نمِّ إيراداتِك. … لا أعباءَ عملِك.
+  b7  [26,8 s → 32,5 s · durée visée 4,6 s]
+      بيتلي. انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [3,2–5,75 s]  لا لتعيش بين تبويبات المتصفح.
+  ST2  [5,8–9,85 s]  الحجوزات، والأسعار، والتنظيف، والرسائل…
+  ST3  [9,85–11,85 s]  كلها تصل في الوقت نفسه.
+  ST4  [11,85–16,35 s]  بيتلي يجمع كل شيء في [مساحة واحدة.]
+  ST5  [16,4–19,25 s]  و[وكلاء الذكاء الاصطناعي] يتولّون الباقي:
+  ST6  [19,25–22,55 s]  يحضّرون، ويقترحون، [وأنت تعتمد.]
+
+TEXTES À L’ÉCRAN
+  · Maquette d’interface (libellé)
+      E1  مشهد توضيحي · جدول بيتلي
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E2  فتحتَ أبوابك [لتستقبل] ضيوفك.
+  · Maquette d’interface (libellé)
+      E3  تبويبات مفتوحة
+  · Onglet / étape (maquette) : rester court
+      E4  A
+      E5  Airbnb · الرسائل
+      E6  G
+      E7  Gathern · الحجوزات
+      E8  ج
+      E9  جدول التنظيف.xlsx
+      E10  و
+      E11  واتساب · 14 غير مقروءة
+      E12  ب
+      E13  البنك · التحويلات
+      E14  أ
+      E15  أسعار المنافسين
+      E16  ش
+      E17  شموس · تسجيل النزلاء
+      E18  ك
+      E19  كشف المالك.pdf
+      E20  م
+      E21  ملاحظات · رموز الواي فاي
+  · Maquette d’interface (libellé)
+      E22  الحجوزات
+      E23  الأسعار
+      E24  التنظيف
+      E25  الرسائل
+  · Planning (maquette d’interface)
+      E26  العقار
+      E27  مغلق
+      E28  الاثنين
+      E29  الثلاثاء
+      E30  الأربعاء
+      E31  الخميس
+      E32  الجمعة
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E33  ليلة
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E34  ليلتان
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E35  3 ليالٍ
+  · Planning (maquette d’interface)
+      E36  شاليه النخيل
+      E37  الرياض
+      E38  فيلا الدرعية
+      E39  الرياض
+      E40  استوديو العليا
+      E41  الرياض
+      E42  شقة الملقا
+      E43  الرياض
+      E44  لينا
+      E45  سارة
+      E46  جاد
+      E47  نادية
+      E48  عمر
+      E49  علي
+      E50  كريم
+      E51  gathern
+      E52  booking
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E53  مساحة [واحدة.]
+  · Maquette d’interface (libellé)
+      E54  التواصل
+      E55  الإقامة القادمة قيد التحضير.
+      E56  رسالة الترحيب جاهزة. والفريق على علم.
+      E57  تلقائي
+      E58  العمليات
+      E59  قُبلت مغادرة متأخرة.
+      E60  وأُعيدت جدولة التنظيف وحدها.
+      E61  تم
+      E62  وكيل الإيرادات
+      E63  شاليه النخيل · قبل دقيقتين
+      E64  بانتظار الاعتماد
+      E65  معتمد
+      E66  اقتراح خفض السعر
+      E67  3 ليالٍ غير محجوزة، من 14 إلى 16. الاقتراح:
+      E68  خفض 9%
+      E69  ، مع احترام الحد الأدنى.
+      E70  السعر الحالي
+      E71  السعر المقترح
+      E72  الحد الأدنى
+      E73  ر.س
+      E74  إشغال الأسبوع
+      E75  حدّ الخفض 55%
+  · Bouton (maquette) : rester court
+      E76  اعتماد
+      E77  تعديل
+      E78  رفض
+  · Maquette d’interface (libellé)
+      E79  اعتُمد بسعر 475 ر.س · أُرسل إلى Airbnb و Gathern
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E80  أنت تعتمد، وهم [ينفّذون.]
+      E81  نمِّ إيراداتك.
+      E82  لا أعباء عملك.
+  · Bouton de l’écran de fin
+      E83  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E84  وكلاء ذكاء اصطناعي
+      E85  عمولة على الحجوزات المباشرة
+  · Maquette d’interface (libellé)
+      E87  متصل بقنواتك
+      E88  gathern
+      E89  mabeet
+      E90  airbnb
+      E91  booking
+      E92  vrbo

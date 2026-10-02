@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import type { Plugin } from 'vite';
+import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite';
+import { buildSiteRenderer, type SiteRenderer } from './baitlySiteRendering';
 import { discoveryCatalog } from './baitlySiteDiscovery';
 import {
   DISCOVERY_LANGUAGES,
@@ -24,7 +25,6 @@ import {
   isIndexablePath,
   robotsDirective,
 } from '../site/lib/siteSeo';
-import { siteStaticHtml } from './baitlySiteStatic';
 import { legalArticleImage } from '../site/data/legal/articleImages';
 import {
   legalStaticHtml,
@@ -174,6 +174,7 @@ export function metadataHtml(
   pathname: string,
   language: SiteLanguage,
   staticHtml = legalStaticHtml(pathname, language) ?? '',
+  publishedUrl?: string,
 ): string {
   const contentLanguage = page.contentLanguage ?? language;
   const url = canonicalUrl(pathname, contentLanguage);
@@ -242,16 +243,17 @@ export function metadataHtml(
       '',
     )
     .replace(
-      '<div id="root"></div>',
+      /<div id="root"[^>]*><\/div>/,
       () =>
-        `<div id="root"><!--baitly-content:start-->${staticHtml}<!--baitly-content:end--></div>`,
+        `<div id="root"${publishedUrl ? ` data-baitly-url="${escape(publishedUrl)}"` : ''}><!--baitly-content:start-->${staticHtml}<!--baitly-content:end--></div>`,
     );
 }
 
 /** Small virtual data module for SPA navigation + prebuilt heads for non-JS crawlers. */
 export function baitlySiteSeo(): Plugin {
   let catalog: MetadataCatalog;
-  let documents: Record<SiteLanguage, Map<string, string>>;
+  let server: ViteDevServer | undefined;
+  let config: ResolvedConfig;
   const root = fileURLToPath(new URL('../', import.meta.url));
   const id = 'virtual:baitly-site-metadata';
   const loadCatalog = async () => {
@@ -260,25 +262,23 @@ export function baitlySiteSeo(): Plugin {
         await readFile(`${root}/site/data/catalog.tsx`, 'utf8'),
       );
       catalog = metadataCatalog(discovery);
-      documents = Object.fromEntries(
-        DISCOVERY_LANGUAGES.map((language) => [
-          language,
-          siteDocuments(language, discovery),
-        ]),
-      ) as typeof documents;
     }
     return catalog;
   };
-  const body = (path: string, language: SiteLanguage) => {
-    const markdown = documents[language].get(path);
-    return (
-      legalStaticHtml(path, language) ??
-      (markdown ? siteStaticHtml(markdown, path, language) : '')
-    );
-  };
+  const renderPage = async (
+    render: SiteRenderer,
+    path: string,
+    language: SiteLanguage,
+  ) => (PRIVATE_SITE_PATHS.includes(path) ? undefined : render(path, language));
   return {
     name: 'baitly-site-seo',
     enforce: 'post',
+    configResolved(resolved) {
+      config = resolved;
+    },
+    configureServer(devServer) {
+      server = devServer;
+    },
     resolveId(source) {
       if (source === id) return '\0' + id;
     },
@@ -298,12 +298,20 @@ export function baitlySiteSeo(): Plugin {
           ) ?? 'fr';
         const pages = (await loadCatalog())[language];
         const path = url.pathname.replace(/\/$/, '') || '/';
+        const rendered = server
+          ? await renderPage(
+              (await server.ssrLoadModule('/entry-server.tsx')).renderSite,
+              path,
+              language,
+            )
+          : undefined;
         return metadataHtml(
           html,
           pages[path] ?? pages['/404'],
           pages[path] ? path : '/404',
           language,
-          body(path, language),
+          rendered?.html ?? '',
+          rendered?.url,
         );
       },
     },
@@ -312,22 +320,31 @@ export function baitlySiteSeo(): Plugin {
       if (!index || index.type !== 'asset')
         throw new Error('Baitly SEO needs the built HTML entry');
       const source = String(index.source);
-      for (const language of DISCOVERY_LANGUAGES) {
-        for (const [path, page] of Object.entries(
-          (await loadCatalog())[language],
-        )) {
-          this.emitFile({
-            type: 'asset',
-            fileName: `_baitly-html/${language}${path === '/' ? '/index' : path}.html`,
-            source: metadataHtml(
+      const renderer = await buildSiteRenderer(config);
+      try {
+        for (const language of DISCOVERY_LANGUAGES) {
+          for (const [path, page] of Object.entries(
+            (await loadCatalog())[language],
+          )) {
+            const rendered = await renderPage(renderer.render, path, language);
+            const html = metadataHtml(
               source,
               page,
               path,
               language,
-              body(path, language),
-            ),
-          });
+              rendered?.html ?? '',
+              rendered?.url,
+            );
+            if (path === '/' && language === 'fr') index.source = html;
+            this.emitFile({
+              type: 'asset',
+              fileName: `_baitly-html/${language}${path === '/' ? '/index' : path}.html`,
+              source: html,
+            });
+          }
         }
+      } finally {
+        await renderer.dispose();
       }
     },
   };

@@ -148,6 +148,7 @@ class SuggestionActionExecutorTest {
                 provider(taxFilingService),
                 provider(disputeEvidenceService), provider(serviceQuoteService),
                 propertyStockItemRepository,
+                org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
                 new ObjectMapper(), clock);
     }
 

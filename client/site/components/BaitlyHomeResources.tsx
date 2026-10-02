@@ -6,7 +6,6 @@ import { useSiteLanguage } from '../lib/siteLanguage';
 import Reveal from './Reveal';
 import SiteMoney from './SiteMoney';
 import BaitlyLegalHighlights from './BaitlyLegalHighlights';
-import '../baitly-home-resources.css';
 
 export default function BaitlyHomeResources() {
   const { language } = useSiteLanguage();

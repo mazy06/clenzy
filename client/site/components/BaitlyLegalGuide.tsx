@@ -14,8 +14,8 @@ import {
   type LegalStage,
 } from '../data/legal';
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
+import { downloadBlob } from '../lib/downloadText';
 import type { SiteLanguage } from '../lib/siteLanguage';
-import '../baitly-legal.css';
 
 const STAGES: LegalStage[] = ['ouvrir', 'accueillir', 'suivre'];
 
@@ -33,35 +33,14 @@ export default function BaitlyLegalGuide({
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const done = articles.filter((a) => checked.has(a.slug)).length;
   const sources = [...new Set(articles.flatMap(articleSources))];
-  const download = () => {
-    const content = [
-      m.eyebrow,
-      country.name[language],
-      country.scope[language],
-      `${m.reviewed} ${LEGAL_REVIEWED_AT}`,
-      m.session,
-      ...articles.map((a) =>
-        [
-          `[${checked.has(a.slug) ? 'x' : ' '}] ${language === 'en' ? a.guide.en.title : a.title}`,
-          language === 'en' ? a.guide.en.copy : a.description,
-          ...(language !== 'en' ? a.checklist.map((item) => `- ${item}`) : []),
-          `https://baitly.fr${articlePath(a)}?lang=${language}`,
-          ...articleSources(a).map(
-            (id) =>
-              `${legalSourceLabel(id, language)}: ${LEGAL_SOURCES[id].url}`,
-          ),
-        ].join('\n'),
-      ),
-      m.methodCopy,
-    ].join('\n\n');
-    const url = URL.createObjectURL(
-      new Blob([content], { type: 'text/plain;charset=utf-8' }),
+  /* Document Word construit dans le navigateur (aucune requête) ; le module
+     n'est chargé qu'au clic pour ne pas alourdir la page. */
+  const download = async () => {
+    const { buildObligationsGuide } = await import('../lib/obligationsGuideDocx');
+    downloadBlob(
+      `baitly-obligations-${country.slug}.docx`,
+      buildObligationsGuide({ language, country, articles, checked, m }),
     );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `baitly-obligations-${country.slug}.txt`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
     <div className="blg-guide">

@@ -1,0 +1,198 @@
+<!doctype html>
+<!--
+  Baitly · Reel 13 « Le direct, sans les risques » (Instagram, 1080 × 1920) · FR / EN
+
+  À quoi sert ce fichier : l'animation des risques de paiement du site direct (BESOINS-ET-SERVICES.md
+  §10), pilotée par le temps via le kit partagé ; les plans suivent la voix (slots d'align-vo.py).
+  Composants réels repris : vitrine de réservation directe (L13, étapes La chambre → Le paiement),
+  cartes HITL `CART_RECOVERY_SEND`, `FRAUD_BLOCK`, `CHARGEBACK_SUBMIT`, pièces qui s'empilent (M04).
+  Déroulé : le visiteur quitte le paiement → carte de relance, clic, la réservation revient → score
+  de risque élevé, clic « Bloquer » → litige : pièces assemblées, clic « Déposer le dossier » →
+  promesse → fin.
+  Rendu : node ../render.mjs reel-13-direct-sans-risque --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 13 Le direct, sans les risques</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · la vitrine directe */
+#site { left: 80px; width: 920px; top: 340px; padding: 0; overflow: hidden; opacity: 0; }
+.sb { display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: #F1F5F7; border-bottom: 1.5px solid #E6ECF0; }
+.sb i { width: 14px; height: 14px; border-radius: 50%; background: #D5DEE7; }
+.sb .url { flex: 1; display: flex; align-items: center; gap: 10px; background: #FDFDFE; border-radius: 12px; padding: 10px 16px; font-size: 21px; color: var(--ardoise); }
+.sh { display: flex; align-items: center; justify-content: space-between; padding: 24px 30px 10px; }
+.sh b { font-family: Georgia, 'Times New Roman', serif; font-size: 40px; font-weight: 400; color: #2B211A; letter-spacing: .01em; }
+.stp { display: flex; gap: 8px; padding: 12px 30px 0; }
+.stp span { flex: 1; text-align: center; font-size: 19px; font-weight: 700; color: #98A4AB; padding-bottom: 12px; border-bottom: 4px solid #E1E9F0; }
+.stp span.on { color: #9A6C3A; border-color: #9A6C3A; }
+.stp span.dn { color: #526674; border-color: #C9D5DE; }
+.sbd { padding: 24px 30px 30px; }
+.rm { display: flex; align-items: center; gap: 18px; }
+.rm img { width: 120px; height: 90px; border-radius: 14px; object-fit: cover; }
+.rm span { font-size: 25px; font-weight: 600; }
+.tt { display: flex; justify-content: space-between; align-items: baseline; margin-top: 20px; padding-top: 18px; border-top: 1.5px solid #EEF2F5; font-size: 24px; color: var(--ardoise); }
+.tt b { font-family: var(--fd); font-size: 40px; color: #1B2A35; direction: ltr; unicode-bidi: isolate; }
+.cf { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 18px 20px; border-radius: 16px; box-shadow: inset 0 0 0 2px #D5DEE7; font-size: 24px; color: #1B2A35; }
+.cf svg { color: var(--n600); } .cf small { margin-inline-start: auto; font-size: 20px; color: var(--ardoise); }
+.pay { margin-top: 18px; text-align: center; background: #9A6C3A; color: #FFFFFF; border-radius: 16px; padding: 22px; font-size: 27px; font-weight: 700; }
+#left { left: 0; width: 1080px; top: 1200px; display: flex; justify-content: center; opacity: 0; }
+#left .chip { font-size: 26px; padding: 14px 26px; }
+/* B · la relance */
+#c1 { left: 80px; top: 380px; opacity: 0; }
+.rs .r { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1.5px solid #EEF2F5; font-size: 24px; }
+.rs .r:last-child { border-bottom: 0; }
+.rs .r .tm { width: 84px; text-align: center; font-family: var(--fd); font-weight: 700; font-size: 22px; background: #E1E9F0; border-radius: 10px; padding: 6px 0; flex: none; }
+.rs .r .ms { flex: 1; color: #1B2A35; }
+.rs .r .ss { font-size: 21px; font-weight: 700; color: #98A4AB; display: inline-flex; align-items: center; gap: 6px; }
+.rs .r .ss.ok { color: #0C7166; }
+#back { left: 80px; width: 920px; top: 1140px; display: flex; justify-content: center; opacity: 0; }
+#back .chip { font-size: 30px; padding: 18px 30px; }
+/* C · la fraude */
+#c2 { left: 80px; top: 420px; opacity: 0; }
+.rk { display: flex; align-items: center; gap: 18px; }
+.rk .v { font-family: var(--fd); font-size: 64px; font-weight: 700; color: #93413F; direction: ltr; }
+.rk .v small { font-size: 26px; color: #526674; }
+.rk .l { font-size: 22px; color: #526674; font-weight: 600; }
+.rk .chip { margin-inline-start: auto; }
+.rbar { position: relative; height: 16px; border-radius: 8px; background: linear-gradient(90deg, #14B8A6 0 40%, #D4A574 40% 70%, #C97A7A 70% 100%); opacity: .25; margin-top: 12px; }
+.rfill { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; border-radius: 8px; background: linear-gradient(90deg, #14B8A6 0 49%, #D4A574 49% 85%, #C97A7A 85% 100%); background-size: 820px 100%; }
+.rwrap { position: relative; }
+.sg { display: flex; align-items: center; gap: 12px; font-size: 24px; margin-top: 14px; opacity: 0; }
+.sg svg { color: #C97A7A; flex: none; }
+/* D · le litige */
+#c3 { left: 80px; top: 330px; opacity: 0; }
+.docs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.doc { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 16px; background: #FDFDFE; box-shadow: inset 0 0 0 1.5px #D5DEE7; font-size: 23px; font-weight: 600; opacity: 0; }
+.doc .di { width: 46px; height: 46px; border-radius: 12px; background: #E1E9F0; color: var(--n600); display: flex; align-items: center; justify-content: center; flex: none; }
+.doc .ck { margin-inline-start: auto; color: #0C7166; }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 660px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .mi { width: 120px; height: 120px; border-radius: 40px; background: rgba(20,184,166,.13); color: #0C7166; display: flex; align-items: center; justify-content: center; opacity: 0; }
+#promise .title { font-size: 104px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, slot, slotVis } = K;
+const PH = '../../brand-book/assets/photos/';
+
+/* A · la vitrine directe, étape Paiement */
+const S = T.site;
+const site = K.abs('site', 'card');
+const payBtn = h('div', { class: 'pay' }, S.pay);
+site.append(h('div', { class: 'sb' }, h('i'), h('i'), h('i'), h('span', { class: 'url' }, icon('lock', 20), S.url)),
+  h('div', { class: 'sh' }, h('b', {}, S.brand), h('span', { class: 'chip ok' }, icon('percent', 20), S.zero)),
+  h('div', { class: 'stp' }, S.steps.map((s, i) => h('span', { class: i === 3 ? 'on' : 'dn' }, s))),
+  h('div', { class: 'sbd' }, h('div', { class: 'rm' }, h('img', { src: PH + 'pricingRoom.webp', alt: '' }), h('span', {}, S.room)),
+    h('div', { class: 'tt' }, h('span', {}, S.total), h('b', {}, S.amount)),
+    h('div', { class: 'cf' }, icon('ccard', 30), h('span', {}, S.card), h('small', {}, S.number)), payBtn));
+const left = K.abs('left');
+left.append(h('span', { class: 'chip wait' }, icon('cart', 24), S.left));
+
+/* B · la relance du panier */
+const C = T.cart;
+const c1 = K.hitlCard({ agent: C.agent, tag: C.tag, title: C.title, copy: C.copy, wait: C.wait, done: C.done,
+  primary: ['send', C.send], secondary: ['pencil', C.edit], dismiss: C.dismiss, doneText: C.doneText });
+c1.el.id = 'c1'; c1.el.classList.add('abs');
+const rows = C.steps.map(([tm, ms]) => { const ss = h('span', { class: 'ss' }, '—'); return { el: h('div', { class: 'r' }, h('span', { class: 'tm' }, tm), h('span', { class: 'ms' }, ms), ss), ss }; });
+c1.body.append(h('div', { class: 'rs' }, rows.map((r) => r.el)));
+K.stage.append(c1.el);
+const back = K.abs('back');
+back.append(h('span', { class: 'chip ok' }, icon('calcheck', 26), C.back));
+
+/* C · la réservation suspecte */
+const F = T.fraud;
+const c2 = K.hitlCard({ agent: F.agent, tag: F.tag, title: F.title, wait: F.wait, done: F.done,
+  primary: ['ban', F.block], secondary: ['search', F.review], dismiss: F.dismiss, doneText: F.doneText });
+c2.el.id = 'c2'; c2.el.classList.add('abs');
+const rkV = h('b', {}, '0');
+const rfill = h('i', { class: 'rfill' });
+const sigs = F.signals.map((s) => h('div', { class: 'sg' }, icon('talert', 26), h('span', {}, s)));
+c2.body.append(h('div', { class: 'rk' }, h('span', { class: 'v' }, rkV, h('small', {}, ' / 100')), h('span', { class: 'l' }, F.score), h('span', { class: 'chip bad', style: 'background:rgba(201,122,122,.14);color:#93413F' }, icon('shieldalert', 20), F.level)),
+  h('div', { class: 'rwrap' }, h('div', { class: 'rbar' }), rfill), ...sigs);
+K.stage.append(c2.el);
+
+/* D · le litige : les pièces s'assemblent */
+const D = T.dispute;
+const c3 = K.hitlCard({ agent: D.agent, tag: D.tag, title: D.title, wait: D.wait, done: D.done,
+  primary: ['send', D.submit], secondary: ['layers', D.see], doneText: D.doneText });
+c3.el.id = 'c3'; c3.el.classList.add('abs');
+const DOC_IC = ['calcheck', 'idcard2', 'filetext', 'msg'];
+const docs = D.docs.map((d, i) => h('div', { class: 'doc' }, h('span', { class: 'di' }, icon(DOC_IC[i], 26)), h('span', {}, d), h('span', { class: 'ck' }, icon('ccheck', 24))));
+c3.body.append(h('div', { class: 'hg' }, D.grid.map(([k, v], i) => h('div', {}, h('small', {}, k), h('b', { class: i === 0 ? 'bad' : '' }, v)))), h('div', { class: 'docs' }, docs));
+K.stage.append(c3.el);
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const mi = h('span', { class: 'mi' }, icon('shield', 60));
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(mi, p1, p2);
+K.endMount();
+
+let pts = null;
+function renderAt(t) {
+  if (!pts) pts = { pay: K.center(payBtn), send: K.center(c1.pBtn), block: K.center(c2.pBtn), submit: K.center(c3.pBtn) };
+  const [a0, b0] = slot(0), [a1, b1] = slot(1), [a2, b2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A · le visiteur hésite, puis s'en va */
+  const v0 = slotVis(t, 0, .45, .4), e0 = easeOut(prog(t, a0, .7));
+  const gone = easeInOut(prog(t, SYNC.leave, .6));
+  set(site, { opacity: v0 * lerp(1, .55, gone), transform: `translateY(${lerp(50, 0, e0)}px)`, filter: `saturate(${lerp(1, .35, gone)})` });
+  if (t < SYNC.leave) K.cursorMove(t, a0 + .8, Math.max(.6, SYNC.leave - a0 - 1.6), { x: pts.pay.x + 280, y: pts.pay.y - 360 }, { x: pts.pay.x + 60, y: pts.pay.y + 6 }, b0);
+  else K.cursorMove(t, SYNC.leave, .7, { x: pts.pay.x + 60, y: pts.pay.y + 6 }, { x: 1160, y: pts.pay.y + 220 }, SYNC.leave + .7);
+  const lf = easeOut(prog(t, SYNC.leave + .4, .45));
+  set(left, { opacity: v0 * lf, transform: `translateY(${lerp(20, 0, lf)}px)` });
+
+  /* B · la relance, puis la réservation revient */
+  const v1 = slotVis(t, 1), e1 = easeOut(prog(t, a1, .6));
+  set(c1.el, { opacity: v1, transform: `translateY(${lerp(60, 0, e1)}px)` });
+  c1.render(t, SYNC.send);
+  [SYNC.send + .3, SYNC.back - .2].forEach((ts, i) => {
+    const on = t >= ts;
+    if (rows[i].ss.dataset.on !== String(on)) { rows[i].ss.dataset.on = String(on); rows[i].ss.className = 'ss' + (on ? ' ok' : ''); rows[i].ss.replaceChildren(...(on ? [icon('check', 18), C.sent] : ['—'])); }
+  });
+  K.cursorMove(t, SYNC.send - 1.2, .95, { x: pts.send.x + 320, y: pts.send.y + 360 }, pts.send, Math.min(SYNC.send + .9, SYNC.back));
+  K.tapAt(t, SYNC.send, pts.send);
+  const bk = easeOut(prog(t, SYNC.back, .5));
+  set(back, { opacity: v1 * bk, transform: `translateY(${lerp(24, 0, bk)}px) scale(${lerp(.94, 1, bk)})` });
+
+  /* C · score de risque, puis « Bloquer » */
+  const v2 = slotVis(t, 2), e2 = easeOut(prog(t, a2, .6));
+  set(c2.el, { opacity: v2, transform: `translateY(${lerp(60, 0, e2)}px)` });
+  const sc = easeOut(prog(t, a2 + .4, 1.1));
+  rkV.textContent = String(Math.round(82 * sc));
+  rfill.style.width = 82 * sc + '%';
+  sigs.forEach((s, i) => { const p = easeOut(prog(t, a2 + 1.0 + i * .35, .4)); set(s, { opacity: p, transform: `translateX(${lerp(-24, 0, p)}px)` }); });
+  c2.render(t, SYNC.block);
+  K.cursorMove(t, SYNC.block - 1.2, .95, { x: pts.block.x + 320, y: pts.block.y + 360 }, pts.block, Math.min(SYNC.block + .9, b2));
+  K.tapAt(t, SYNC.block, pts.block);
+
+  /* D · les pièces s'assemblent, puis « Déposer le dossier » */
+  const v3 = slotVis(t, 3), e3 = easeOut(prog(t, a3, .6));
+  set(c3.el, { opacity: v3, transform: `translateY(${lerp(60, 0, e3)}px)` });
+  docs.forEach((d, i) => { const p = easeOut(prog(t, a3 + .8 + i * .35, .45)); set(d, { opacity: p, transform: `translate(${lerp(i % 2 ? 60 : -60, 0, p)}px, ${lerp(-40, 0, p)}px) rotate(${lerp(i % 2 ? 4 : -4, 0, p)}deg)` }); });
+  c3.render(t, SYNC.submit);
+  K.cursorMove(t, SYNC.submit - 1.2, .95, { x: pts.submit.x + 320, y: pts.submit.y + 360 }, pts.submit, Math.min(SYNC.submit + .9, b3));
+  K.tapAt(t, SYNC.submit, pts.submit);
+
+  /* E · promesse */
+  const v4 = slotVis(t, 4, .5, .35);
+  const m = easeOut(prog(t, a4, .6));
+  set(mi, { opacity: v4 * m, transform: `scale(${lerp(.8, 1, m)})` });
+  const q1 = easeOut(prog(t, a4 + .1, .55)), q2 = easeOut(prog(t, a4 + (b4 - a4) * .5, .55));
+  set(p1, { opacity: v4 * q1, transform: `translateY(${lerp(24, 0, q1)}px)` });
+  set(p2, { opacity: v4 * q2, transform: `translateY(${lerp(24, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

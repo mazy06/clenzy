@@ -1,4 +1,11 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import {
   CalendarDaysIcon,
   CalendarPlusIcon,
@@ -21,6 +28,17 @@ const { planningCity: propertyTerrace } = SITE_PHOTOS;
 export interface PlanningAnnotation {
   step: number;
   target: string;
+  /** false : la bulle pointe sa cible sans l'encadrer (vue d'ensemble). */
+  frame?: boolean;
+}
+
+/** Another guided tour reusing the same callout (its own steps and visuals). */
+export interface CalloutGuide {
+  stepLabel: string;
+  steps: readonly { title: string; body: string }[];
+  icons: readonly ComponentType[];
+  /** Optional picture replacing the icon of a step (photo, logo). */
+  media?: (step: number) => ReactNode;
 }
 
 const ICONS = [
@@ -39,18 +57,30 @@ export default function BaitlyPlanningCallout({
   annotation,
   stageRef,
   active,
+  guide,
 }: {
   annotation: PlanningAnnotation;
   stageRef: RefObject<HTMLDivElement>;
   active: boolean;
+  guide?: CalloutGuide;
 }) {
   const { language } = useSiteLanguage();
-  const m = PLANNING_MOCKUP_MESSAGES[language].guide;
+  const planning = PLANNING_MOCKUP_MESSAGES[language].guide;
+  const m = guide
+    ? { step: guide.stepLabel, steps: guide.steps }
+    : planning;
   const text = m.steps[annotation.step];
-  const Icon = ICONS[annotation.step];
+  const Icon = (guide ? guide.icons : ICONS)[annotation.step];
+  const media = guide
+    ? guide.media?.(annotation.step)
+    : annotation.step === 0
+      ? <img src={propertyTerrace} alt="" />
+      : annotation.step === 1
+        ? <img src={airbnbLogo} alt="" className="bpm-guide-channel" />
+        : null;
   const cardRef = useRef<HTMLDivElement>(null);
   const [geometry, setGeometry] = useState<{
-    target: CalloutRect;
+    target: CalloutRect & { round?: boolean };
     placement: ReturnType<typeof placePlanningCallout>;
   } | null>(null);
 
@@ -64,7 +94,18 @@ export default function BaitlyPlanningCallout({
     const measure = () => {
       const element = stage.querySelector<HTMLElement>(annotation.target);
       const card = cardRef.current;
-      if (!element || !card) return;
+      if (!card) return;
+      if (!element) {
+        // Cible disparue (fenêtre fermée, carte traitée) : le cadre et le
+        // trait s'effacent aussitôt, la bulle reste en place.
+        setGeometry((current) =>
+          current && current.target.width > 0
+            ? { ...current, target: { ...current.target, width: 0 } }
+            : current,
+        );
+        previous = '';
+        return;
+      }
       const bounds = stage.getBoundingClientRect();
       const viewport = scroll.getBoundingClientRect();
       const rect = element.getBoundingClientRect();
@@ -93,7 +134,14 @@ export default function BaitlyPlanningCallout({
         width: r.width,
         height: r.height,
       });
-      const target = local(rect);
+      const target: CalloutRect & { round?: boolean } = local(rect);
+      // Élément rond (nœud d'agent, pastille) : cercle ou pilule, pas un carré.
+      const radius = getComputedStyle(element).borderTopLeftRadius;
+      target.round =
+        radius.endsWith('%')
+          ? parseFloat(radius) >= 50
+          : parseFloat(radius) * (rect.width / (element.offsetWidth || rect.width)) >=
+            Math.min(rect.width, rect.height) / 2 - 1;
       // Focus follows only the part of a wide reservation visible in the calendar.
       const left = Math.max(4, target.x);
       const right = Math.min(bounds.width - 4, target.x + target.width);
@@ -140,14 +188,14 @@ export default function BaitlyPlanningCallout({
     >
       {geometry && geometry.target.width > 0 && (
         <svg className="bpm-guide-link" aria-hidden="true">
-          <rect
+          {annotation.frame !== false && <rect
             x={geometry.target.x - 3}
             y={geometry.target.y - 3}
             width={geometry.target.width + 6}
             height={geometry.target.height + 6}
-            rx="10"
+            rx={geometry.target.round ? (Math.min(geometry.target.width, geometry.target.height) + 6) / 2 : 10}
             className="bpm-guide-focus"
-          />
+          />}
           <path d={geometry.placement.path} />
           <circle
             cx={geometry.placement.from.x}
@@ -171,13 +219,7 @@ export default function BaitlyPlanningCallout({
           dir={language === 'ar' ? 'rtl' : 'ltr'}
         >
           <div className="bpm-guide-meta">
-            {annotation.step === 0 ? (
-              <img src={propertyTerrace} alt="" />
-            ) : annotation.step === 1 ? (
-              <img src={airbnbLogo} alt="" className="bpm-guide-channel" />
-            ) : (
-              <Icon />
-            )}
+            {media ?? <Icon />}
             <span>
               {m.step} <b>{String(annotation.step + 1).padStart(2, '0')}</b> /{' '}
               {m.steps.length}

@@ -263,6 +263,28 @@ export interface DataCollectionInfo {
   required: boolean;
   complete: boolean;
   missingFields: string[];
+  /** Règles du pays du logement (absentes = comportement historique piloté par `missingFields`). */
+  rules?: DeclarationRules | null;
+}
+
+/**
+ * Ce que la loi du pays exige, voyageur par voyageur (miroir de `DeclarationRules` serveur).
+ * France (CESEDA R814-2) : étrangers seulement, mobile + e-mail, pas de pièce d'identité,
+ * enfants de moins de 15 ans sur la fiche de l'adulte, fiche signée.
+ */
+export interface DeclarationRules {
+  countryCode: string | null;
+  primaryFields: string[];
+  companionFields: string[];
+  minorFields: string[];
+  /** Âge (au jour d'arrivée) en dessous duquel un accompagnant n'a que `minorFields`. */
+  minorAgeUnder: number | null;
+  /** Nationalité dispensée de fiche (FR en France). */
+  exemptNationality: string | null;
+  /** La fiche doit être certifiée (signée) par le voyageur. */
+  certificationRequired: boolean;
+  /** Date d'arrivée ISO, référence du calcul d'âge. */
+  referenceDate: string | null;
 }
 
 /** Identité d'un voyageur à déclarer (principal ou accompagnant). Miroir de `GuestDeclarationRequest.Declarant`. */
@@ -276,13 +298,18 @@ export interface GuestDeclarant {
   nationality: string;
   residenceAddress?: string | null;
   residenceCountry?: string | null;
-  idDocumentType: string;
-  idDocumentNumber: string;
+  idDocumentType?: string | null;
+  idDocumentNumber?: string | null;
+  /** Téléphone mobile et e-mail (France, CESEDA R814-2). */
+  phone?: string | null;
+  email?: string | null;
 }
 
 /** Corps de soumission de la fiche de police (principal en premier, puis accompagnants). */
 export interface GuestDeclarationRequest {
   declarants: GuestDeclarant[];
+  /** Le voyageur certifie l'exactitude des informations (vaut signature de la fiche). */
+  certified?: boolean;
 }
 
 /** Données auto-remplies d'un logement pour l'aperçu live de la config (sans token). */

@@ -77,6 +77,8 @@ export interface PropertyDetail {
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** Numéro d'enregistrement du meublé de tourisme (France) — obligatoire sur l'annonce. */
+  registrationNumber?: string | null;
 }
 
 export interface PropertyPhoto {

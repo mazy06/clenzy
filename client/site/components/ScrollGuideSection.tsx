@@ -15,7 +15,6 @@ import {
 import { cn } from '../../src/utils/cn';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { GUIDE_MESSAGES } from '../lib/messages/guide';
-import '../baitly-scroll-guide.css';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const {
@@ -326,11 +325,7 @@ export default function ScrollGuideSection() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
-  const [manual, setManual] = useState(
-    () =>
-      window.matchMedia('(prefers-reduced-motion: reduce), (max-height: 620px)')
-        .matches,
-  );
+  const [manual, setManual] = useState(false);
   const [manualOffset, setManualOffset] = useState(0);
   const [geometry, setGeometry] = useState({
     maxScroll: 0,

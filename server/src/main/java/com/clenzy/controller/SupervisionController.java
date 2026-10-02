@@ -61,6 +61,7 @@ public class SupervisionController {
     private final UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final PriceSuggestionService priceSuggestionService;
     private final TenantContext tenantContext;
+    private final com.clenzy.service.regulatory.NightsCapService nightsCapService;
 
     public SupervisionController(SupervisionActivityService activityService,
                                  SupervisionScanService scanService,
@@ -73,7 +74,9 @@ public class SupervisionController {
                                  UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                  PriceSuggestionService priceSuggestionService,
                                  com.clenzy.service.agent.supervision.SuggestionPreviewService previewService,
-                                 TenantContext tenantContext) {
+                                 TenantContext tenantContext,
+                                 com.clenzy.service.regulatory.NightsCapService nightsCapService) {
+        this.nightsCapService = nightsCapService;
         this.activityService = activityService;
         this.scanService = scanService;
         this.suggestionService = suggestionService;
@@ -191,9 +194,16 @@ public class SupervisionController {
 
     /** POST /api/ai/supervision/suggestions/{id}/dismiss — rejette une suggestion. */
     @PostMapping("/suggestions/{id}/dismiss")
-    public ResponseEntity<Void> dismissSuggestion(@PathVariable Long id) {
+    public ResponseEntity<Void> dismissSuggestion(@PathVariable Long id,
+                                                  @org.springframework.security.core.annotation.AuthenticationPrincipal
+                                                  org.springframework.security.oauth2.jwt.Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        suggestionService.dismiss(orgId, id);
+        suggestionService.dismissByOperator(orgId, id)
+                .filter(s -> com.clenzy.service.agent.supervision.SupervisionActionType.NIGHTS_CAP_CLOSE.equals(s.getActionType()))
+                // Refuser de fermer le calendrier au plafond = déroger : l'org est prévenue.
+                .ifPresent(s -> nightsCapService.notifyDerogation(orgId, s.getPropertyId(), null,
+                        "Fermeture du calendrier refusée depuis la carte « " + s.getTitle() + " »",
+                        jwt != null ? jwt.getSubject() : null));
         return ResponseEntity.noContent().build();
     }
 

@@ -1,0 +1,245 @@
+==============================================================================
+REEL 08 · 23 H 40 — Tapage nocturne : capteur de bruit, avertissement WhatsApp, blocage en cas de récidive
+Format 9:16 (1080×1920) · 36.5 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 5,9 s]
+      Samedi, vingt-trois heures quarante. Dans votre appartement, la musique monte… et les voisins aussi.
+  b2  [suit la voix · durée visée 7,0 s]
+      Le capteur de bruit de Bètli le repère aussitôt. Une carte vous propose d'avertir le voyageur, avec un message déjà prêt.
+  b3  [suit la voix · durée visée 6,0 s]
+      Le message part sur WhatsApp. … Deux minutes plus tard, le volume redescend, et la nuit reste calme.
+  b4  [suit la voix · durée visée 7,0 s]
+      Et si les soirées se répètent, Bètli vous propose de bloquer le calendrier quelques jours, le temps de reprendre la main.
+  b5  [suit la voix · durée visée 2,8 s]
+      Vos voisins dorment. … Vous aussi.
+  b6  [suit la voix · durée visée 4,4 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–1,74 s]  Samedi, 23 h 40. Dans votre appartement, la musique monte… [et les voisins aussi.]
+  ST2  [1,76–5,07 s]  Le capteur de bruit de Baitly le repère aussitôt.
+  ST3  [5,09–7,06 s]  Une carte vous propose d'avertir le voyageur,
+  ST4  [7,08–9,48 s]  avec un message déjà prêt.
+  ST5  [9,5–12,99 s]  Le message part sur WhatsApp.
+  ST6  [13,19–15,07 s]  Deux minutes plus tard, [le volume redescend,]
+  ST7  [15,09–18,82 s]  et la nuit reste calme.
+  ST8  [19,02–20,94 s]  Et si les soirées se répètent,
+  ST9  [20,96–23,79 s]  Baitly vous propose de bloquer le calendrier quelques jours,
+  ST10  [23,81–25,52 s]  le temps de reprendre la main.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Notification sur écran verrouillé
+      E2  Sam.
+  · Maquette d’interface (libellé)
+      E3  Capteur de bruit
+      E4  Salon · Riad Nour
+      E5  Minut
+      E6  Seuil de nuit · 70 dB
+      E7  Téléphone
+      E8  Appel manqué
+      E9  Voisin du 2ᵉ étage
+      E10  Agent Opérations
+      E11  Bruit
+      E12  En attente
+      E13  Fait
+      E14  Niveau sonore élevé · Riad Nour
+      E15  Au-dessus du seuil de nuit depuis 12 min. Séjour de Sara, 4 voyageurs.
+      E16  WhatsApp · message prêt
+      E17  Bonsoir Sara, nos capteurs détectent un niveau sonore élevé. Merci de baisser le volume : les voisins dorment. Bonne soirée !
+  · Bouton (maquette) : rester court
+      E18  Envoyer l’avertissement
+  · Maquette d’interface (libellé)
+      E19  Modifier
+      E20  Ignorer
+      E21  Avertissement envoyé par WhatsApp · 23:41
+      E22  Riad Nour · Conciergerie
+  · Texte secondaire à l’écran
+      E23  en ligne
+  · Maquette d’interface (libellé)
+      E24  Bienvenue Sara ! Votre code d’accès : 4821. Bon séjour à Marrakech.
+      E25  Merci, tout est parfait !
+      E26  Désolés ! On baisse tout de suite.
+      E27  Message
+      E28  Salon · Riad Nour
+      E29  Retour au calme
+      E30  Alertes bruit · Riad Nour
+      E31  Sam. 4 oct.
+      E32  84 dB
+      E33  Ven. 10 oct.
+      E34  79 dB
+      E35  Sam. 18 oct.
+      E36  86 dB
+      E37  Agent Opérations
+      E38  Bruit · récidive
+      E39  En attente
+      E40  Fait
+      E41  3 alertes en 15 jours · Riad Nour
+      E42  Bloquer les nouvelles réservations pendant 7 jours. Les séjours déjà réservés ne bougent pas.
+  · Notification sur écran verrouillé
+      E43  Bloquer 7 jours
+  · Bouton (maquette) : rester court
+      E44  Ajuster
+  · Maquette d’interface (libellé)
+      E45  Ignorer
+      E46  Calendrier bloqué du 20 au 27 oct.
+  · Planning (maquette d’interface)
+      E47  Logement
+      E48  Bloqué
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E49  1 nuit
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E50  2 nuits
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E51  3 nuits
+  · Planning (maquette d’interface)
+      E52  Riad Nour
+      E53  Marrakech
+      E54  Sara
+      E55  D
+      E56  L
+      E57  M
+      E58  M
+      E59  J
+      E60  V
+      E61  S
+      E62  D
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E63  Vos voisins dorment.
+      E64  Vous aussi.
+  · Bouton de l’écran de fin
+      E65  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E66  Minut · Tuya
+      E67  capteurs de bruit
+      E68  WhatsApp
+      E69  avertissement prêt
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 6,2 s]
+      Saturday, eleven forty p.m. In your apartment, the music is getting louder… and so are the neighbours.
+  b2  [suit la voix · durée visée 6,8 s]
+      Betly's noise sensor picks it up right away. A card suggests warning the guest, with a message ready to go.
+  b3  [suit la voix · durée visée 6,2 s]
+      The message goes out on WhatsApp. … Two minutes later, the volume drops, and the night stays calm.
+  b4  [suit la voix · durée visée 7,3 s]
+      And if the parties keep coming back, Betly suggests blocking the calendar for a few days, so you can take back control.
+  b5  [suit la voix · durée visée 2,6 s]
+      Your neighbours sleep. … And so do you.
+  b6  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–1,74 s]  Saturday, [11:40 p.m.]
+  ST2  [1,76–5,07 s]  In your apartment, [the music is getting louder…]
+  ST3  [5,09–7,06 s]  and so are the neighbours.
+  ST4  [7,08–9,48 s]  Baitly's noise sensor picks it up right away.
+  ST5  [9,5–12,99 s]  A card suggests warning the guest, [with a message ready to go.]
+  ST6  [13,19–15,07 s]  The message goes out on WhatsApp.
+  ST7  [15,09–18,82 s]  Two minutes later, the volume drops, [and the night stays calm.]
+  ST8  [19,02–20,94 s]  And if the parties keep coming back,
+  ST9  [20,96–23,79 s]  Baitly suggests blocking the calendar for a few days,
+  ST10  [23,81–25,52 s]  so you can take back control.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Notification sur écran verrouillé
+      E2  Sat
+  · Maquette d’interface (libellé)
+      E3  Noise sensor
+      E4  Living room · Olaya Studio
+      E5  Minut
+      E6  Night threshold · 70 dB
+      E7  Phone
+      E8  Missed call
+      E9  Neighbour, 2nd floor
+      E10  Operations agent
+      E11  Noise
+      E12  Pending
+      E13  Done
+      E14  High noise level · Olaya Studio
+      E15  Above the night threshold for 12 min. Sara’s stay, 4 guests.
+      E16  WhatsApp · message ready
+      E17  Good evening Sara, our sensors detect a high noise level. Please turn the volume down: the neighbours are asleep. Enjoy your evening!
+  · Bouton (maquette) : rester court
+      E18  Send the warning
+  · Maquette d’interface (libellé)
+      E19  Edit
+      E20  Ignore
+      E21  Warning sent on WhatsApp · 23:41
+      E22  Olaya Studio · Host
+  · Texte secondaire à l’écran
+      E23  online
+  · Maquette d’interface (libellé)
+      E24  Welcome Sara! Your access code: 4821. Enjoy your stay in Riyadh.
+      E25  Thanks, everything is perfect!
+      E26  So sorry! Turning it down right now.
+      E27  Message
+      E28  Living room · Olaya Studio
+      E29  Back to calm
+      E30  Noise alerts · Olaya Studio
+      E31  Sat, Oct 4
+      E32  84 dB
+      E33  Fri, Oct 10
+      E34  79 dB
+      E35  Sat, Oct 18
+      E36  86 dB
+      E37  Operations agent
+      E38  Noise · repeat
+      E39  Pending
+      E40  Done
+      E41  3 alerts in 15 days · Olaya Studio
+      E42  Block new bookings for 7 days. Stays already booked stay untouched.
+  · Notification sur écran verrouillé
+      E43  Block 7 days
+  · Bouton (maquette) : rester court
+      E44  Adjust
+  · Maquette d’interface (libellé)
+      E45  Ignore
+      E46  Calendar blocked Oct 20 to 27
+  · Planning (maquette d’interface)
+      E47  Property
+      E48  Blocked
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E49  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E50  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E51  3 nights
+  · Planning (maquette d’interface)
+      E52  Olaya Studio
+      E53  Riyadh
+      E54  Sara
+      E55  S
+      E56  M
+      E57  T
+      E58  W
+      E59  T
+      E60  F
+      E61  S
+      E62  S
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E63  Your neighbours sleep.
+      E64  And so do you.
+  · Bouton de l’écran de fin
+      E65  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E66  Minut · Tuya
+      E67  noise sensors
+      E68  WhatsApp
+      E69  warning ready

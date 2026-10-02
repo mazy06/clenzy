@@ -1,0 +1,386 @@
+==============================================================================
+REEL 05 · DÉPART TARDIF — Le livret vend un départ tardif pendant que l’hôte dort
+Format 9:16 (1080×1920) · 34 s · langues : FR · EN · AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,8 s · durée visée 3,7 s]
+      Sept heures deux. Votre voyageur voudrait partir plus tard.
+  b2  [4,2 s → 6,5 s · durée visée 1,9 s]
+      Et vous, … vous dormez encore.
+  b3  [6,8 s → 13,2 s · durée visée 7,1 s]
+      Lui ouvre son livret d'accueil Bètli, sur son téléphone. Un simple lien, valable tout le séjour, sans application.
+  b4  [13,6 s → 19,6 s · durée visée 6,0 s]
+      Départ tardif à quatorze heures : cent cinquante dirhams. Il réserve, il paie. En trois secondes.
+  b5  [20,0 s → 25,4 s · durée visée 5,2 s]
+      Côté coulisses, le séjour s'allonge, et le ménage s'est déjà replanifié, tout seul.
+  b6  [25,8 s → 29,2 s · durée visée 2,8 s]
+      À votre réveil, c'est fait. … Et c'est vendu.
+  b7  [29,6 s → 33,6 s · durée visée 3,4 s]
+      Bètli. Rejoignez le pré-lancement, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,3–3,9 s]  7 h 02. [Votre voyageur voudrait partir plus tard.]
+  ST2  [4,1–6,5 s]  Et vous, [vous dormez encore.]
+  ST3  [6,7–9,9 s]  Lui ouvre son livret d'accueil Baitly,
+  ST4  [9,9–13,3 s]  sur son téléphone. [Un simple lien,]
+  ST5  [13,5–16,3 s]  valable tout le séjour, [sans application.]
+  ST6  [16,3–19,7 s]  Départ tardif à 14 h : [150 dirhams.]
+  ST7  [19,9–25,5 s]  Il réserve, il paie. [En trois secondes.]
+  ST8  [16,6–18,03 s]  Côté coulisses, [le séjour s'allonge,]
+  ST9  [18,05–19,72 s]  et le ménage s'est déjà replanifié, [tout seul.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Notification sur écran verrouillé
+      E2  mardi 14 octobre
+      E3  Riad Nour
+      E4  maintenant
+      E5  Bonjour Sara
+      E6  Départ aujourd’hui à 11 h · Ouvrir votre livret d’accueil
+  · Maquette d’interface (libellé)
+      E7  Bienvenue, Sara
+      E8  Riad Nour
+      E9  Marrakech
+      E10  12 oct. — 14 oct.
+      E11  Salma
+      E12  Ravie de vous accueillir. Tout est prêt pour votre séjour.
+      E13  Les essentiels
+      E14  Réseau
+      E15  Mot de passe
+      E16  Copier
+      E17  RiadNour-Invités
+      E18  bienvenue2026
+      E19  15:00
+      E20  Arrivée
+      E21  11:00
+      E22  Départ
+      E24  Code d’accès
+      E25  Explorer le livret
+      E26  Arrivée & Départ
+      E27  Comment entrer
+      E28  Le quartier
+      E29  Autour de vous
+      E30  Marketplace
+      E31  Services à réserver
+      E32  Réserver
+      E33  Départ tardif (jusqu’à 14h)
+      E34  Profitez du logement plus longtemps, sous réserve de disponibilité.
+      E35  150.00 MAD
+      E36  Petit-déjeuner au riad
+      E37  Servi sur la terrasse, de 8 h à 10 h.
+      E38  90.00 MAD
+      E39  Paiement sécurisé
+      E40  Carte
+  · Bouton (maquette) : rester court
+      E41  Payer 150.00 MAD
+  · Maquette d’interface (libellé)
+      E42  Paiement réussi ! Votre demande a été transmise à votre hôte.
+      E43  Lien valable pendant votre séjour
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E44  Un lien. Pas [d’app.]
+  · Maquette d’interface (libellé)
+      E45  Départ tardif
+      E46  MAD
+      E47  Payé
+  · Planning (maquette d’interface)
+      E48  Logement
+      E49  L
+      E50  M
+      E51  M
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E52  1 nuit
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E53  2 nuits
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E54  3 nuits
+  · Planning (maquette d’interface)
+      E55  Riad Nour
+      E56  Marrakech
+      E57  Villa Palmeraie
+      E58  Marrakech
+      E59  Studio Gueliz
+      E60  Marrakech
+      E61  Sara
+      E62  Omar
+      E63  Jad
+      E64  Nadia
+  · Maquette d’interface (libellé)
+      E65  Ménage après départ
+      E66  Mar. 14 oct. ·
+      E67  11 h
+      E68  14 h
+      E69  Équipe ménage prévenue
+      E70  Replanifié tout seul
+      E71  mardi 14 octobre
+      E72  Départ tardif vendu · 150 MAD
+      E73  Riad Nour · Le ménage passe à 14 h.
+      E74  il y a 1 h
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E75  À votre réveil, c’est [vendu.]
+  · Bouton de l’écran de fin
+      E76  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E77  lien, sans application
+      E78  de commission en direct
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,8 s · durée visée 3,1 s]
+      Seven-oh-two. Your guest wants to check out later.
+  b2  [4,2 s → 6,5 s · durée visée 1,8 s]
+      And you? … Still fast asleep.
+  b3  [6,8 s → 13,2 s · durée visée 7,8 s]
+      They open their Betly welcome guide, right on their phone. Just a link, valid for their whole stay, with no app to download.
+  b4  [13,6 s → 19,6 s · durée visée 5,6 s]
+      Late checkout until two p.m., for sixty riyals. They book, they pay. All in three seconds.
+  b5  [20,0 s → 25,4 s · durée visée 5,4 s]
+      Behind the scenes, the stay stretches to two p.m., and housekeeping reschedules itself.
+  b6  [25,8 s → 29,2 s · durée visée 3,2 s]
+      By the time you wake up, it's done. … And it's sold.
+  b7  [29,6 s → 33,6 s · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,3–3,9 s]  7:02 a.m. [Your guest wants to check out later.]
+  ST2  [4,1–6,5 s]  And you? [Still fast asleep.]
+  ST3  [6,7–9,9 s]  They open their Baitly welcome guide,
+  ST4  [9,9–13,3 s]  right on their phone. [Just a link,]
+  ST5  [13,5–16,3 s]  valid for their whole stay,
+  ST6  [16,3–19,7 s]  with no app to download.
+  ST7  [19,9–25,5 s]  Late checkout until 2 p.m., [for 60 riyals.]
+  ST8  [16,6–18,03 s]  They book, [they pay.]
+  ST9  [18,05–19,72 s]  All in three seconds.
+  ST10  [19,95–20,87 s]  Behind the scenes,
+  ST11  [20,89–22,39 s]  the stay stretches to 2 p.m.,
+  ST12  [22,41–24,45 s]  and housekeeping reschedules itself.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Notification sur écran verrouillé
+      E2  Tuesday, October 14
+      E3  Nakheel Chalet
+      E4  now
+      E5  Good morning Sara
+      E6  Check-out today at 11 am · Open your welcome guide
+  · Maquette d’interface (libellé)
+      E7  Welcome, Sara
+      E8  Nakheel Chalet
+      E9  Riyadh
+      E10  Oct 12 — Oct 14
+      E11  Salma
+      E12  So glad to host you. Everything is ready for your stay.
+      E13  The essentials
+      E14  Network
+      E15  Password
+      E16  Copy
+      E17  Nakheel-Guests
+      E18  welcome2026
+      E19  3:00 pm
+      E20  Check-in
+      E21  11:00 am
+      E22  Check-out
+      E24  Access code
+      E25  Explore the guide
+      E26  Check-in & Check-out
+      E27  How to get in
+      E28  The neighbourhood
+      E29  Around you
+      E30  Marketplace
+      E31  Services to book
+      E32  Book
+      E33  Late check-out (until 2pm)
+      E34  Enjoy the place longer, subject to availability.
+      E35  60.00 SAR
+      E36  Breakfast at the chalet
+      E37  Served on the terrace, 8 to 10 am.
+      E38  45.00 SAR
+      E39  Secure payment
+      E40  Card
+  · Bouton (maquette) : rester court
+      E41  Pay 60.00 SAR
+  · Maquette d’interface (libellé)
+      E42  Payment successful! Your request has been sent to your host.
+      E43  Link valid for your stay
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E44  One link. No [app.]
+  · Maquette d’interface (libellé)
+      E45  Late checkout
+      E46  SAR
+      E47  Paid
+  · Planning (maquette d’interface)
+      E48  Property
+      E49  M
+      E50  T
+      E51  W
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E52  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E53  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E54  3 nights
+  · Planning (maquette d’interface)
+      E55  Nakheel Chalet
+      E56  Riyadh
+      E57  Diriyah Villa
+      E58  Riyadh
+      E59  Olaya Studio
+      E60  Riyadh
+      E61  Sara
+      E62  Omar
+      E63  Jad
+      E64  Nadia
+  · Maquette d’interface (libellé)
+      E65  Cleaning after checkout
+      E66  Tue, Oct 14 ·
+      E67  11 am
+      E68  2 pm
+      E69  Cleaning team notified
+      E70  Rescheduled itself
+      E71  Tuesday, October 14
+      E72  Late checkout sold · 60 SAR
+      E73  Nakheel Chalet · Cleaning moved to 2 pm.
+      E74  1h ago
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E75  You wake up. It’s [sold.]
+  · Bouton de l’écran de fin
+      E76  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E77  link, no app
+      E78  commission on direct bookings
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,8 s · durée visée 3,2 s]
+      السابعةُ ودقيقتان. … ضيفُكَ يودُّ المغادرةَ متأخّراً.
+  b2  [4,2 s → 6,5 s · durée visée 1,9 s]
+      وأنتَ … ما زلتَ نائماً.
+  b3  [6,8 s → 13,2 s · durée visée 5,0 s]
+      يفتحُ دليلَ الاستقبال من بيتلي. رابطٌ بسيط، بلا تطبيق.
+  b4  [13,6 s → 19,6 s · durée visée 5,2 s]
+      مغادرةٌ متأخّرة: ستّون ريالاً. يحجز، ويدفع. في ثلاثِ ثوانٍ.
+  b5  [20,0 s → 25,4 s · durée visée 4,4 s]
+      وخلفَ الكواليس، أُعيدت جدولةُ التنظيف تلقائياً.
+  b6  [25,8 s → 29,2 s · durée visée 3,2 s]
+      حين تستيقظ، يكونُ الأمرُ قد تمّ. … وقد بِيعت.
+  b7  [29,6 s → 33,6 s · durée visée 3,8 s]
+      بيتلي. انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [0,3–3,9 s]  السابعة ودقيقتان. ضيفك يودّ [المغادرة متأخراً.]
+  ST2  [4,1–6,5 s]  وأنت ما زلت نائماً.
+  ST3  [6,7–9,9 s]  يفتح [دليل الاستقبال] من بيتلي.
+  ST4  [9,9–13,3 s]  رابط بسيط، بلا تطبيق.
+  ST5  [13,5–16,3 s]  مغادرة متأخرة: [ستون ريالاً.]
+  ST6  [16,3–19,7 s]  يحجز، ويدفع. في ثلاث ثوانٍ.
+  ST7  [19,9–25,5 s]  وخلف الكواليس، [أُعيدت جدولة التنظيف تلقائياً.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  مشهد توضيحي
+  · Notification sur écran verrouillé
+      E2  الثلاثاء 14 أكتوبر
+      E3  شاليه النخيل
+      E4  الآن
+      E5  صباح الخير سارة
+      E6  المغادرة اليوم الساعة 11 صباحاً · افتحي دليل الاستقبال
+  · Maquette d’interface (libellé)
+      E7  أهلاً وسهلاً، سارة
+      E8  شاليه النخيل
+      E9  الرياض
+      E10  12 أكتوبر — 14 أكتوبر
+      E11  سلمى
+      E12  سعداء باستقبالك. كل شيء جاهز لإقامتك.
+      E13  الأساسيات
+      E14  الشبكة
+      E15  كلمة المرور
+      E16  نسخ
+      E17  Nakheel-Guests
+      E18  welcome2026
+      E19  15:00
+      E20  الوصول
+      E21  11:00
+      E22  المغادرة
+      E24  رمز الدخول
+      E25  استكشف الدليل
+      E26  الوصول والمغادرة
+      E27  كيفية الدخول
+      E28  الحي
+      E29  حولك
+      E30  السوق
+      E31  خدمات للحجز
+      E32  احجز
+      E33  مغادرة متأخّرة (حتى 2 ظهراً)
+      E34  استمتع بالمسكن وقتاً أطول، حسب التوفّر.
+      E35  60.00 SAR
+      E36  فطور في الشاليه
+      E37  يُقدَّم على الشرفة من 8 إلى 10 صباحاً.
+      E38  45.00 SAR
+      E39  دفع آمن
+      E40  البطاقة
+  · Bouton (maquette) : rester court
+      E41  ادفع 60.00 SAR
+  · Maquette d’interface (libellé)
+      E42  تم الدفع بنجاح! تم إرسال طلبك إلى مضيفك.
+      E43  رابط صالح طوال إقامتك
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E44  رابط واحد. بلا [تطبيق.]
+  · Maquette d’interface (libellé)
+      E45  مغادرة متأخرة
+      E46  ر.س
+      E47  مدفوع
+  · Planning (maquette d’interface)
+      E48  العقار
+      E49  الاثنين
+      E50  الثلاثاء
+      E51  الأربعاء
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E52  ليلة
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E53  ليلتان
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E54  3 ليالٍ
+  · Planning (maquette d’interface)
+      E55  شاليه النخيل
+      E56  الرياض
+      E57  فيلا الدرعية
+      E58  الرياض
+      E59  استوديو العليا
+      E60  الرياض
+      E61  سارة
+      E62  عمر
+      E63  جاد
+      E64  نادية
+  · Maquette d’interface (libellé)
+      E65  التنظيف بعد المغادرة
+      E66  الثلاثاء 14 أكتوبر ·
+      E67  11 ص
+      E68  2 م
+      E69  أُبلغ فريق التنظيف
+      E70  أُعيدت الجدولة تلقائياً
+      E71  الثلاثاء 14 أكتوبر
+      E72  بيعت مغادرة متأخرة · 60 ر.س
+      E73  شاليه النخيل · نُقل التنظيف إلى 2 ظهراً.
+      E74  قبل ساعة
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E75  تستيقظ… وقد [بِعت.]
+  · Bouton de l’écran de fin
+      E76  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E77  رابط، بلا تطبيق
+      E78  عمولة على الحجوزات المباشرة

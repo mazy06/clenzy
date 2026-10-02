@@ -5,7 +5,7 @@ import { useReducedMotion } from './mockupKit';
 export function useBaitlyDemoVisibility() {
   const visibilityRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const [tabVisible, setTabVisible] = useState(!document.hidden);
+  const [tabVisible, setTabVisible] = useState(true);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -15,6 +15,7 @@ export function useBaitlyDemoVisibility() {
     );
     if (visibilityRef.current) observer.observe(visibilityRef.current);
     const updateVisibility = () => setTabVisible(!document.hidden);
+    updateVisibility();
     document.addEventListener('visibilitychange', updateVisibility);
     return () => {
       observer.disconnect();

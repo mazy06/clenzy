@@ -28,10 +28,15 @@ public class PropertyDto {
     public String address;
 
     public String postalCode;
+    /** Obligatoire : la ville situe le logement (commune INSEE deduite, regles locales). */
+    @NotBlank(groups = Create.class)
+    @Size(max = 50)
     public String city;
     public String country;
     @Size(max = 2)
     public String countryCode;
+    /** Lecture seule : commune INSEE deduite de l'adresse (France). Ignoree en ecriture. */
+    public String communeInseeCode;
     /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). */
     public String timezone;
     public BigDecimal latitude;

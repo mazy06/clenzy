@@ -1,0 +1,337 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 17 « Le prix dynamique en 3 règles » (≈ 2 min) · 9:16 et 16:9, depuis le même
+  fichier. Voix : Lucie (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (même prix toute la semaine) → 1 plancher (750 € ÷ 30 + 60 € ÷ 3 = 45 € la nuit ;
+  commission 15 % → 53 €) → 2 week-ends (100 € → 120 €, 8 nuits = +160 €, signes d'un prix trop bas) →
+  3 dernière minute (J-7 90 €, J-3 80 €, plancher 53 €) → 4 trois questions → 5 à retenir → fin.
+  Rendu : node ../render.mjs academie-17-prix-dynamique --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 17 Le prix dynamique en 3 règles</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe px- : aucune collision avec base.css (.bar, .chip, .row, .card… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.pxfill { flex: 1; position: relative; min-height: 0; }
+.pxlayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 20px; opacity: 0; }
+.pxnote { font-size: 22px; font-weight: 600; color: var(--gris); }
+
+/* 0 · accroche : la semaine à prix fixe */
+.pxweek { padding: 40px 38px; display: flex; flex-direction: column; gap: 26px; opacity: 0; }
+.pxweek .ttl { font-family: var(--fd); font-size: 38px; font-weight: 700; color: var(--n700); }
+.pxdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+.pxday { border-radius: 20px; background: var(--surface); padding: 22px 6px; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; border: 2px solid transparent; }
+.pxday small { font-size: 24px; font-weight: 700; color: var(--gris); }
+.pxday b { font-family: var(--fd); font-size: 29px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pxday.hot { background: #F7E4DC; border-color: #B45733; }
+.pxday.hot b { color: #8E3F20; }
+.pxday.cold { background: #FDFDFE; border: 2px dashed #B8C4CC; }
+.pxday.cold b { color: #98A4AB; }
+.pxlegend { display: flex; gap: 12px; flex-wrap: wrap; }
+.pxlegend span { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 11px 18px; font-size: 25px; font-weight: 700; opacity: 0; }
+.pxlegend .hot { background: #F7E4DC; color: #8E3F20; }
+.pxlegend .cold { background: var(--surface); color: #4D5A64; }
+.pxrules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.pxrule { display: flex; flex-direction: column; gap: 12px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 22px; padding: 22px 18px; opacity: 0; }
+.pxrule .ic { width: 50px; height: 50px; border-radius: 15px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.pxrule b { font-size: 27px; font-weight: 700; color: var(--n700); line-height: 1.2; }
+
+/* 1 · plancher */
+.pxrows { display: flex; flex-direction: column; gap: 12px; }
+.pxrow { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: var(--surface); border-radius: 22px; padding: 20px 24px; opacity: 0; }
+.pxrow b { display: block; font-size: 28px; font-weight: 700; color: var(--n700); }
+.pxrow span { font-size: 24px; font-weight: 600; color: var(--ardoise); font-variant-numeric: tabular-nums; }
+.pxrow em { font-style: normal; font-family: var(--fd); font-size: 46px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; }
+.pxrow.total { background: var(--n600); }
+.pxrow.total b { color: var(--papier); }
+.pxrow.total em { color: var(--sable); font-size: 58px; }
+.pxshown { display: flex; align-items: baseline; justify-content: space-between; opacity: 0; }
+.pxshown b { font-size: 26px; font-weight: 700; color: var(--n700); }
+.pxshown em { font-style: normal; font-family: var(--fd); font-size: 44px; font-weight: 700; color: var(--n700); }
+.pxsplit { display: flex; height: 64px; border-radius: 18px; overflow: hidden; background: var(--surface); }
+.pxsplit i { display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 22px; font-weight: 700; color: var(--papier); transform-origin: left; white-space: nowrap; }
+.pxsplit .keep { flex: 45.05; background: var(--n600); }
+.pxsplit .com { flex: 7.95; background: #B45733; }
+.pxsplitl { display: flex; justify-content: space-between; font-size: 22px; font-weight: 700; opacity: 0; }
+.pxsplitl span:first-child { color: var(--n700); }
+.pxsplitl span:last-child { color: #8E3F20; }
+.pxres { display: flex; align-items: baseline; justify-content: space-between; background: #F4EBDC; border-radius: 24px; padding: 20px 26px; opacity: 0; }
+.pxres b { font-size: 30px; font-weight: 700; color: var(--encre-terre); }
+.pxres em { font-style: normal; font-family: var(--fd); font-size: 84px; font-weight: 700; letter-spacing: -.04em; color: var(--terre); line-height: 1; }
+.pxwarn { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: #F7E4DC; color: #8E3F20; border-radius: 999px; padding: 12px 20px; font-size: 24px; font-weight: 700; opacity: 0; }
+
+/* 2 · week-ends */
+.pxchart { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; align-items: end; }
+.pxcol { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; height: 100%; }
+.pxcol .band { position: absolute; inset: -12px -5px 34px; border-radius: 16px; background: rgba(224,200,155,.32); opacity: 0; }
+.pxcol .v { position: relative; font-family: var(--fd); font-size: 24px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pxcol .bb { position: relative; width: 70%; border-radius: 10px 10px 4px 4px; background: #9FB3C0; transform-origin: bottom; }
+.pxcol .bb.up { background: var(--terre); }
+.pxcol small { position: relative; font-size: 21px; font-weight: 700; color: var(--gris); }
+.pxcol .pct { position: relative; background: var(--terre); color: var(--papier); border-radius: 10px; padding: 4px 10px; font-size: 20px; font-weight: 700; white-space: nowrap; opacity: 0; }
+.pxcalc { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--n600); border-radius: 24px; padding: 20px 26px; opacity: 0; }
+.pxcalc span { font-size: 25px; font-weight: 700; color: var(--papier); }
+.pxcalc em { font-style: normal; font-family: var(--fd); font-size: 58px; font-weight: 700; color: var(--sable); white-space: nowrap; }
+.pxq { display: flex; align-items: center; gap: 18px; background: var(--surface); border-radius: 24px; padding: 24px 26px; opacity: 0; }
+.pxq .ic { flex: none; width: 60px; height: 60px; border-radius: 18px; background: #FDFDFE; color: var(--ardoise); display: flex; align-items: center; justify-content: center; }
+.pxq b { font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); line-height: 1.2; }
+.pxverdict { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: var(--terre); color: var(--papier); border-radius: 999px; padding: 14px 22px; font-size: 27px; font-weight: 700; opacity: 0; }
+.pxev { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pxev span { display: flex; align-items: center; gap: 12px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 18px; padding: 16px 18px; font-size: 25px; font-weight: 700; color: var(--n700); opacity: 0; }
+.pxev span svg { color: var(--terre); flex: none; }
+
+/* 3 · dernière minute */
+.pxtop { display: flex; flex-wrap: wrap; gap: 12px; }
+.pxtag { display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 11px 18px; font-size: 23px; font-weight: 700; opacity: 0; }
+.pxtag.n { background: var(--surface); color: var(--n700); }
+.pxtag.z { background: #F7E4DC; color: #8E3F20; }
+.pxlm { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: end; padding: 0 200px 0 10px; }
+.pxlm .col { display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; justify-content: flex-end; }
+.pxlm .price { font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; }
+.pxlm .off { background: var(--ok); color: #FDFDFE; border-radius: 10px; padding: 4px 12px; font-size: 21px; font-weight: 700; opacity: 0; }
+.pxlm .bb { width: 100%; border-radius: 14px 14px 5px 5px; background: #9FB3C0; transform-origin: bottom; }
+.pxlm .col:not(:first-child) .bb { background: var(--n600); }
+.pxlm small { font-size: 24px; font-weight: 700; color: var(--gris); }
+.pxfloor { position: absolute; left: 0; right: 0; border-top: 4px dashed var(--terre); opacity: 0; }
+.pxfloor span { position: absolute; right: 0; top: -24px; background: var(--terre); color: var(--papier); font-family: var(--fd); font-weight: 700; font-size: 24px; border-radius: 12px; padding: 6px 14px; white-space: nowrap; }
+.pxtrapt { display: flex; flex-direction: column; gap: 6px; background: #F7E4DC; border-radius: 22px; padding: 18px 22px; opacity: 0; }
+.pxtrapt b { font-family: var(--fd); font-size: 30px; font-weight: 700; color: #8E3F20; }
+.pxtrapt span { font-size: 24px; font-weight: 600; color: #8E3F20; opacity: 0; }
+
+/* 4 · en pratique */
+.pxgrid { display: flex; flex-direction: column; gap: 18px; }
+.pxg { display: flex; flex-direction: column; gap: 14px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 30px; padding: 26px 30px; box-shadow: var(--e3); opacity: 0; }
+.pxg .qq { display: flex; align-items: center; gap: 20px; }
+.pxg .n { flex: none; width: 64px; height: 64px; border-radius: 20px; background: var(--n600); color: var(--papier); font-family: var(--fd); font-size: 32px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.pxg b { font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); letter-spacing: -.01em; line-height: 1.15; }
+.pxg .ans { align-self: flex-start; margin-inline-start: 84px; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 10px 18px; font-size: 26px; font-weight: 700; opacity: 0; }
+.pxg .ans.u { background: #F4EBDC; color: var(--encre-terre); }
+.pxg .ans.d { background: rgba(13,148,136,.12); color: var(--ok); }
+.pxrc { display: flex; flex-direction: column; gap: 16px; }
+
+html.f169 .pxday b { font-size: 24px; }
+html.f169 .pxday small { font-size: 20px; }
+html.f169 .pxday { padding: 18px 4px; }
+html.f169 .pxrule b { font-size: 23px; }
+html.f169 .pxlegend span { font-size: 22px; }
+html.f169 .pxrow { padding: 16px 22px; }
+html.f169 .pxrow em { font-size: 42px; }
+html.f169 .pxrow.total em { font-size: 52px; }
+html.f169 .pxres em { font-size: 72px; }
+html.f169 .pxcol .v { font-size: 21px; }
+html.f169 .pxcalc em { font-size: 50px; }
+html.f169 .pxq b { font-size: 29px; }
+html.f169 .pxg b { font-size: 32px; }
+html.f169 .pxg .ans { font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+/** Bascule entre deux couches d'une carte : la première s'efface vers le haut, la seconde monte. */
+const swapLayers = (a, b, t, t0) => {
+  const k = shown(t, t0 - .3, .5);
+  set(a, { opacity: 1 - k, transform: `translateY(${lerp(0, -20, k)}px)` });
+  set(b, { opacity: k, transform: `translateY(${lerp(20, 0, k)}px)` });
+  return k;
+};
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 84 : 76}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const H = T.hook;
+const days = H.days.map((d) => h('div', { class: 'pxday' }, h('small', {}, d), h('b', {}, H.price)));
+const legSat = h('span', { class: 'hot' }, icon('trenddown', 22), `${H.days[5]} · ${H.sat}`);
+const legTue = h('span', { class: 'cold' }, icon('moon', 22), `${H.days[1]} · ${H.tue}`);
+const rules = H.rules.map(([ic, l]) => h('div', { class: 'pxrule' }, h('span', { class: 'ic' }, icon(ic, 26)), h('b', {}, l)));
+const week = A.abs(L.card.x, 0, L.card.w, null, 'acard pxweek');
+week.append(h('div', { class: 'ttl' }, H.title), h('div', { class: 'pxdays' }, days), h('div', { class: 'pxlegend' }, legSat, legTue), h('div', { class: 'pxrules' }, rules));
+
+/* 1 · plancher */
+const F = T.floor, c1 = A.card();
+const fTitle = h('span', { class: 'alabel', style: 'opacity:0' }, F.title);
+const fRows = F.rows.map(([l, s, v]) => { const em = h('em', {}, v); return { el: h('div', { class: 'pxrow' }, h('div', {}, h('b', {}, l), h('span', {}, s)), em), em }; });
+const fTotEm = h('em', {}, F.total[1]);
+const fTot = h('div', { class: 'pxrow total' }, h('div', {}, h('b', {}, F.total[0])), fTotEm);
+const fLayerA = h('div', { class: 'pxlayer' }, fTitle, h('div', { class: 'pxrows' }, fRows.map((r) => r.el), fTot));
+const comTitle = h('span', { class: 'alabel', style: 'opacity:0' }, F.comTitle);
+const fShown = h('div', { class: 'pxshown' }, h('b', {}, F.shown[0]), h('em', {}, F.shown[1]));
+const segKeep = h('i', { class: 'keep' }, F.split[0][1]), segCom = h('i', { class: 'com' }, '');
+const fSplitL = h('div', { class: 'pxsplitl' }, h('span', {}, `${F.split[0][0]} · ${F.split[0][1]}`), h('span', {}, `${F.split[1][0]} · ${F.split[1][1]}`));
+const fRes = h('div', { class: 'pxres' }, h('b', {}, F.result[0]), h('em', {}, F.result[1]));
+const fWarn = h('span', { class: 'pxwarn' }, icon('alert', 24), F.below);
+const fLayerB = h('div', { class: 'pxlayer' }, comTitle, fShown, h('div', { class: 'pxsplit' }, segKeep, segCom), fSplitL, fRes, fWarn);
+c1.el.append(h('div', { class: 'pxfill' }, fLayerA, fLayerB));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · week-ends */
+const W = T.weekend, c2 = A.card();
+const CH = P ? 300 : 270, VMAX = 130;
+const wCols = W.values.map((v, i) => {
+  const bb = h('i', { class: 'bb' + (v > 100 ? ' up' : '') }), val = h('span', { class: 'v' }, `${v} €`);
+  const band = v > 100 ? h('span', { class: 'band' }) : null, pct = v > 100 ? h('span', { class: 'pct' }, W.up) : null;
+  const col = h('div', { class: 'pxcol' }, band, pct, val, bb, h('small', {}, T.hook.days[i]));
+  return { col, bb, val, band, pct, v };
+});
+const wChart = h('div', { class: 'pxchart', style: `height:${CH + 90}px` }, wCols.map((c) => c.col));
+const wCalc = h('div', { class: 'pxcalc' }, h('span', {}, W.calc[0]), h('em', {}, W.calc[1]));
+const wCond = h('span', { class: 'pxnote', style: 'opacity:0' }, W.cond);
+const wLayerA = h('div', { class: 'pxlayer' }, h('span', { class: 'alabel' }, 'Prix par nuit'), wChart, wCalc, wCond);
+const wQ = h('div', { class: 'pxq' }, h('span', { class: 'ic' }, icon('calcheck', 30)), h('b', {}, W.check));
+const wVerdict = h('span', { class: 'pxverdict' }, icon('trend', 24), W.verdict);
+const wEvT = h('span', { class: 'alabel', style: 'opacity:0' }, W.evTitle);
+const wEv = W.events.map(([ic, l]) => h('span', {}, icon(ic, 26), l));
+const wLayerB = h('div', { class: 'pxlayer' }, wQ, wVerdict, wEvT, h('div', { class: 'pxev' }, wEv));
+c2.el.append(h('div', { class: 'pxfill' }, wLayerA, wLayerB));
+
+/* 3 · dernière minute */
+const M = T.last, c3 = A.card();
+const LH = P ? 330 : 300, LMAX = 110;
+const mNight = h('span', { class: 'pxtag n' }, icon('bed', 22), M.night), mZero = h('span', { class: 'pxtag z' }, icon('x', 22), M.zero);
+const mCols = M.cols.map(([j, v, off]) => {
+  const price = h('span', { class: 'price' }, `${v} €`), o = off ? h('span', { class: 'off' }, off) : null, bb = h('i', { class: 'bb', style: `height:${v / LMAX * LH}px` });
+  return { el: h('div', { class: 'col' }, o, price, bb, h('small', {}, j)), price, o, bb };
+});
+const mFloor = h('div', { class: 'pxfloor', style: `bottom:${34 + 53 / LMAX * LH}px` }, h('span', {}, M.floor));
+const mChart = h('div', { class: 'pxlm', style: `height:${LH + 130}px` }, mCols.map((c) => c.el), mFloor);
+const mTrapB = h('b', {}, M.trapText[0]), mTrapS = h('span', {}, M.trapText[1]);
+const mTrap = h('div', { class: 'pxtrapt' }, mTrapB, mTrapS);
+c3.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px' }, h('div', { class: 'pxtop' }, mNight, mZero), mChart, mTrap));
+const trap2 = A.trap(c3.el, T.trap);
+
+/* 4 · en pratique */
+const grid = A.abs(L.card.x, 0, L.card.w, null, 'pxgrid');
+const gEls = T.grid.map(([qq, a, ic], i) => {
+  const ans = h('span', { class: 'ans ' + (ic === 'trenddown' ? 'd' : 'u') }, icon(ic, 24), a);
+  const el = h('div', { class: 'pxg' }, h('div', { class: 'qq' }, h('span', { class: 'n' }, String(i + 1)), h('b', {}, qq)), ans);
+  grid.append(el); return { el, ans };
+});
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'pxrc');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'appt', style: 'opacity:0' }, icon('sliders', 32), R.app), app2 = h('div', { class: 'appt', style: 'opacity:0' }, icon('shield', 32), R.app2);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, app2);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(week, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(grid, P ? heads[3].el.offsetTop + heads[3].el.offsetHeight + 40 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .1);
+  A.rise(week, v0, shown(t, S[0][0] + .4, .6), 60);
+  days.forEach((d, i) => A.rise(d, 1, shown(t, S[0][0] + .7 + i * .08, .35), 14));
+  days[5].classList.toggle('hot', t >= SYNC.sat); days[1].classList.toggle('cold', t >= SYNC.tue);
+  A.rise(legSat, 1, shown(t, SYNC.sat), 10); A.rise(legTue, 1, shown(t, SYNC.tue), 10);
+  rules.forEach((r, i) => A.rise(r, 1, shown(t, SYNC.rules + i * .35), 16));
+
+  /* 1 · plancher */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  swapLayers(fLayerA, fLayerB, t, SYNC.trap1);
+  A.rise(fTitle, 1, shown(t, SYNC.calc - .2), 10);
+  fRows.forEach((r, i) => { const t0 = i ? SYNC.men : SYNC.ch; A.rise(r.el, 1, shown(t, t0 - .2), 16); A.rise(r.em, 1, shown(t, i ? SYNC.c20 : SYNC.c25), 8); });
+  A.rise(fTot, 1, shown(t, SYNC.c45 - .6), 16); A.rise(fTotEm, 1, shown(t, SYNC.c45), 8);
+  trap1.render(t, SYNC.trap1, v1);
+  A.rise(comTitle, 1, shown(t, SYNC.trap1 + .3), 10);
+  const sp = easeInOut(prog(t, SYNC.com - .2, .8));
+  segKeep.style.transform = `scaleX(${sp})`; segCom.style.transform = `scaleX(${easeInOut(prog(t, SYNC.com + .4, .5))})`;
+  A.rise(fSplitL, 1, shown(t, SYNC.com + .6), 8);
+  A.rise(fShown, 1, shown(t, SYNC.show53), 10);
+  A.rise(fRes, 1, shown(t, SYNC.floor), 16);
+  A.rise(fWarn, 1, shown(t, SYNC.loss - .7), 10);
+
+  /* 2 · week-ends */
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  swapLayers(wLayerA, wLayerB, t, SYNC.how);
+  const grow = easeInOut(prog(t, SYNC.w120 - .1, .7));
+  wCols.forEach((c, i) => {
+    const pIn = shown(t, SYNC.wk - .9 + i * .06, .45);
+    const v = c.v > 100 ? lerp(100, c.v, grow) : 100;
+    c.bb.style.height = `${v / VMAX * CH}px`; c.bb.style.transform = `scaleY(${pIn})`;
+    c.val.textContent = `${Math.round(v)} €`; c.val.style.opacity = pIn;
+    if (c.band) c.band.style.opacity = .9 * shown(t, SYNC.up - .1, .5);
+    if (c.pct) A.rise(c.pct, 1, shown(t, SYNC.p20 - .1), 8);
+  });
+  A.rise(wCalc, 1, shown(t, SYNC.cond + .2), 14);
+  A.rise(wCond, 1, shown(t, SYNC.cond - .2), 8);
+  A.rise(wQ, 1, shown(t, SYNC.how + .1), 14);
+  A.rise(wVerdict, 1, shown(t, SYNC.cheap - .2), 10);
+  A.rise(wEvT, 1, shown(t, SYNC.ev - .2), 8);
+  [SYNC.e1, SYNC.e2, SYNC.e3, SYNC.e4].forEach((t0, i) => A.rise(wEv[i], 1, shown(t, t0 - .15), 12));
+
+  /* 3 · dernière minute */
+  const v3 = slotVis(t, 3);
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  A.rise(mNight, 1, shown(t, S[3][0] + .6), 10);
+  A.rise(mZero, 1, shown(t, SYNC.zero - .1), 10);
+  const colT = [SYNC.j7 - 1.2, SYNC.j7 + .1, SYNC.j3];
+  const priceT = [SYNC.j7 - 1.0, SYNC.p90, SYNC.p80];
+  mCols.forEach((c, i) => {
+    const p = easeOut(prog(t, colT[i], .5)); c.bb.style.transform = `scaleY(${p})`; c.bb.style.opacity = p;
+    A.rise(c.price, 1, shown(t, priceT[i] - .1), 8);
+    if (c.o) A.rise(c.o, 1, shown(t, priceT[i] - .6), 8);
+  });
+  mFloor.style.opacity = shown(t, SYNC.fl - .1, .5);
+  trap2.render(t, SYNC.trap2, v3);
+  A.rise(mTrap, 1, shown(t, SYNC.trap2 + .2), 12);
+  A.rise(mTrapS, 1, shown(t, SYNC.wait - .9), 6);
+
+  /* 4 · en pratique */
+  const v4 = slotVis(t, 4);
+  [SYNC.g1, SYNC.g2, SYNC.g3].forEach((t0, i) => A.rise(gEls[i].el, v4, shown(t, t0 - .3, .5), 40));
+  [SYNC.a1, SYNC.a2, SYNC.a3].forEach((t0, i) => A.rise(gEls[i].ans, 1, shown(t, t0 - .15), 10));
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(app2, v5, shown(t, SYNC.app2 - .6, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

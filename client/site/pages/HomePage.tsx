@@ -10,6 +10,7 @@ import {
   PlayIcon,
   PlusIcon,
   ShieldCheckIcon,
+  SparklesIcon,
 } from 'lucide-react';
 import Reveal from '../components/Reveal';
 import AgentActionDeck from '../components/AgentActionDeck';
@@ -18,7 +19,8 @@ import { HOME_MESSAGES } from '../lib/messages/home';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { moduleText } from '../lib/messages/modules';
-import BaitlyAgentDemo from '../components/BaitlyAgentDemo';
+import BaitlyAgentsPlanningDemo from '../components/BaitlyAgentsPlanningDemo';
+import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import BaitlyHomeResources from '../components/BaitlyHomeResources';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
 import { BRANDS } from '../components/BrandLogos';
@@ -43,17 +45,12 @@ function Hero() {
       <div className="site-shell baitly-hero-grid">
         <div className="baitly-hero-copy">
           <Reveal>
-            <p className="baitly-eyebrow">
-              <span /> {m.eyebrow}
-            </p>
-          </Reveal>
-          <Reveal delay={1}>
             <h1 id="home-title">
               <span className="baitly-hero-title-primary">{m.title1}</span>{' '}
               <span>{m.title2}</span>
             </h1>
           </Reveal>
-          <Reveal delay={2}>
+          <Reveal delay={1}>
             <p className="baitly-lead">
               {m.lead1} {m.lead2}
             </p>
@@ -238,6 +235,47 @@ function PlatformSection() {
   );
 }
 
+/** Les agents en action : le planning réel, un logement déplié, ses cartes à
+    valider — rejoué pas à pas, avec voix off optionnelle. */
+function AgentsSection() {
+  const { language } = useSiteLanguage();
+  const m = MOCKUP_MESSAGES[language].demo;
+  return (
+    <section
+      id="en-action"
+      className="baitly-agent-section"
+      aria-labelledby="agents-title"
+    >
+      <div className="site-shell">
+        <Reveal className="baitly-section-heading">
+          <div>
+            <p className="baitly-section-label">
+              <SparklesIcon /> {m.sectionLabel}
+            </p>
+            <h2 id="agents-title">
+              {m.sectionTitle[0]}
+              <br />
+              {m.sectionTitle[1]}
+            </h2>
+          </div>
+          <p>
+            {m.sectionCopy[0]}
+            <br />
+            {m.sectionCopy[1]}
+          </p>
+        </Reveal>
+        <BaitlyAgentsPlanningDemo />
+        <p className="baitly-demo-caption">
+          {m.caption}{' '}
+          <Link to="/produit/agents-ia" className="baitly-text-link">
+            {m.linkAgents} <ArrowRightIcon />
+          </Link>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function LocalSection() {
   const { language } = useSiteLanguage();
   const m = HOME_MESSAGES[language].local;
@@ -280,7 +318,7 @@ function LocalSection() {
               </li>
             ))}
           </ul>
-          <Link className="baitly-text-link" to="/solutions#arabie-saoudite">
+          <Link className="baitly-text-link" to="/solutions">
             {m.link} <ArrowRightIcon />
           </Link>
           <div className="baitly-local-support">
@@ -375,7 +413,7 @@ export default function HomePage() {
       <Hero />
       <ChannelsBar />
       <PlatformSection />
-      <BaitlyAgentDemo />
+      <AgentsSection />
       <LocalSection />
       <BaitlyHomeResources />
       <FaqSection />

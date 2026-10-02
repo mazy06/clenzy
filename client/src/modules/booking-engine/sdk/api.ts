@@ -31,6 +31,8 @@ export interface ApiProperty {
   reviewCount?: number | null;
   totalBookings: number | null;
   availableDays30: number | null;
+  /** Numéro d'enregistrement du meublé de tourisme (France) — obligatoire sur l'annonce. */
+  registrationNumber?: string | null;
 }
 
 export interface ApiFilterFacet {

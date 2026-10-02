@@ -1,5 +1,5 @@
 import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowRight, ChevronDown, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Search } from 'lucide-react';
 import {
   legalArticle,
   articleLanguage,
@@ -11,8 +11,43 @@ import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
 import { normalizeResourceSearch } from '../data/baitlyResources';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import { legalArticleImage } from '../data/legal/articleImages';
-import { journalArticles, type JournalArticle } from '../data/baitlyJournal';
+import {
+  JOURNAL_ARTICLE_COUNT,
+  journalArticles,
+  type JournalArticle,
+} from '../data/baitlyJournal';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
+
+/** The initial HTML and the interactive journal share the same editorial layout. */
+export function BaitlyJournalHeader({
+  language,
+}: {
+  language: SiteLanguage;
+}) {
+  const m = LEGAL_MESSAGES[language];
+  return (
+    <header className="blg-hero">
+      <div>
+        <Link to={`/ressources?lang=${language}`} className="blg-back">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {{ fr: 'Ressources', en: 'Resources', ar: 'الموارد' }[language]}
+        </Link>
+        <p className="blg-kicker">{m.journal}</p>
+        <h1>{m.journalTitle}</h1>
+        <p className="blg-hero-lead">{m.journalIntro}</p>
+        <div className="blg-hero-foot">
+          <span>
+            {JOURNAL_ARTICLE_COUNT} {m.count}
+          </span>
+          <Link to={`/ressources/obligations?lang=${language}`}>
+            {m.eyebrow}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 export default function BaitlyLegalJournal({
   language,
@@ -36,7 +71,10 @@ export default function BaitlyLegalJournal({
       { replace: true, preventScrollReset: true },
     );
   const reset = () =>
-    setParams({ lang: language }, { replace: true, preventScrollReset: true });
+    setParams(
+      { lang: language },
+      { replace: true, preventScrollReset: true },
+    );
   const articles = journalArticles(language).filter(
     (a) =>
       (!country || !a.country || a.country === country) &&
@@ -87,7 +125,10 @@ export default function BaitlyLegalJournal({
           role="group"
           aria-label={m.countries}
         >
-          <button aria-pressed={!country} onClick={() => update('country', '')}>
+          <button
+            aria-pressed={!country}
+            onClick={() => update('country', '')}
+          >
             {m.all}
           </button>
           {LEGAL_COUNTRIES.map((c) => (
@@ -207,14 +248,19 @@ function ArticlePreview({
           <span>{article.countryLabel}</span>
           <span>{article.topicLabel}</span>
           <span>
-            {article.readingMinutes} {LEGAL_MESSAGES[article.language].minute}
+            {article.readingMinutes}{' '}
+            {LEGAL_MESSAGES[article.language].minute}
           </span>
         </div>
         <h3>{article.title}</h3>
         <p>{article.description}</p>
       </div>
       {expandable ? (
-        <ChevronDown className="blg-expand-icon" size={22} aria-hidden="true" />
+        <ChevronDown
+          className="blg-expand-icon"
+          size={22}
+          aria-hidden="true"
+        />
       ) : (
         <ArrowRight size={22} aria-hidden="true" />
       )}

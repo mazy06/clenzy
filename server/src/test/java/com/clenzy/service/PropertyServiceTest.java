@@ -61,7 +61,8 @@ class PropertyServiceTest {
                 checkInInstructionsRepository, propertyPhotoRepository,
                 listingMappingRepository,
                 notificationService, tenantContext,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
+                org.mockito.Mockito.mock(com.clenzy.service.regulatory.FrCommuneResolver.class));
     }
 
     private User buildOwner(Long id) {

@@ -64,6 +64,31 @@ export interface TouristTaxReportLine {
   surchargeAmount: number;
   taxAmount: number;
   currency: string;
+  /** La plateforme a encaissé le séjour : elle collecte et reverse la taxe (pas à déclarer). */
+  collectedByPlatform?: boolean;
+}
+
+/** Catégorie du logement pour le référentiel officiel (DGFiP). */
+export type FrTaxCategory =
+  | 'MEUBLE_1' | 'MEUBLE_2' | 'MEUBLE_3' | 'MEUBLE_4' | 'MEUBLE_5'
+  | 'UNCLASSIFIED' | 'CHAMBRE_HOTES';
+
+/** Barème proposé par le référentiel officiel — à valider, jamais imposé. */
+export interface FrTaxReferenceSuggestion {
+  inseeCode: string;
+  communeName: string | null;
+  category: string;
+  sourceYear: number;
+  accommodationLabel: string;
+  calculationMode: TaxCalculationMode;
+  ratePerPerson: number | null;
+  /** Fraction (0.05 = 5 %). */
+  percentageRate: number | null;
+  capPerPersonNight: number | null;
+  departmentalSurchargePct: number | null;
+  regionalSurchargePct: number | null;
+  source: string;
+  fetchedAt: string | null;
 }
 
 export interface TouristTaxReport {
@@ -73,6 +98,8 @@ export interface TouristTaxReport {
   totalTax: number;
   reservationCount: number;
   missingConfigCount: number;
+  /** Taxe déjà collectée par les plateformes (hors total à reverser). */
+  platformCollectedTax?: number;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -86,6 +113,13 @@ export const touristTaxApi = {
   /** Upsert d'un barème (clé naturelle : propertyId, null = défaut org). */
   saveConfig(request: TouristTaxConfigRequest): Promise<TouristTaxConfig> {
     return apiClient.put<TouristTaxConfig>('/tourist-tax', request);
+  },
+
+  /** Barème officiel de la commune (code INSEE) pour une catégorie ; 404 si aucun tarif. */
+  getReference(insee: string, category: FrTaxCategory, year?: number): Promise<FrTaxReferenceSuggestion> {
+    return apiClient.get<FrTaxReferenceSuggestion>('/tourist-tax/reference', {
+      params: { insee, category, year: year ?? undefined },
+    });
   },
 
   deleteConfig(id: number): Promise<void> {

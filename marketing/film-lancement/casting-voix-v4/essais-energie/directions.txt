@@ -1,0 +1,68 @@
+BAITLY · FILM DE LANCEMENT · ESSAIS DE DIRECTION DE JEU (Eleven v4, 29 septembre 2026)
+
+Réglages communs : modèle eleven_v4, langue fr, Stabilité 0,3, Similarité 0,75.
+Mêmes mots que le script du hero ; seules les balises (et, pour la pub, trois « ! ») changent.
+Copier uniquement le texte entre les repères.
+
+=== KEYNOTE (V1 Vincent · K1 Paul K pub · K2 Mr. Laurent · K3 Sarah) ===
+▼▼▼
+[confident, crisp, a touch of urgency] Cinq plateformes. Trois équipes de ménage. Des dizaines de messages... [beat] et un seul vous.
+
+[intrigued, leaning in] Et si tout s'orchestrait... tout seul ?
+
+[bright, proud reveal] Voici Bètli.
+
+[energetic, gradually building energy] Toutes vos réservations, tous vos logements, réunis au même endroit.
+
+[quick, light, playful pace] Un voyageur part ? [satisfied] Le ménage est déjà planifié.
+
+[lively, enthusiastic] Besoin d'un photographe, d'une blanchisserie, d'un artisan ? [with a smile] Notre marketplace les met à portée de clic.
+
+[confident, emphatic] Et vos agents I.A. veillent : ils répondent, anticipent... [stress on next word] et vous alertent quand ça compte vraiment.
+
+[warm but upbeat] Vous gardez le contrôle. [smiling] Bètli s'occupe du reste.
+
+[bold, triumphant] Bètli. Votre location courte durée, en pilote automatique.
+▲▲▲
+
+=== PUB (V2 Vincent) ===
+▼▼▼
+[fast, punchy, slightly stressed] Cinq plateformes. Trois équipes de ménage. Des dizaines de messages... [sighs] et un seul vous.
+
+[sudden calm, curious] Et si tout s'orchestrait... tout seul ?
+
+[energetic, big smile] Voici Bètli !
+
+[upbeat, fast-paced commercial read] Toutes vos réservations, tous vos logements, réunis au même endroit !
+
+[snappy] Un voyageur part ? [triumphant] Le ménage est déjà planifié.
+
+[excited, quick] Besoin d'un photographe, d'une blanchisserie, d'un artisan ? [punchy] Notre marketplace les met à portée de clic.
+
+[confident, energetic] Et vos agents I.A. veillent : ils répondent, anticipent... et vous alertent quand ça compte vraiment.
+
+[warm, grounded] Vous gardez le contrôle. [upbeat] Bètli s'occupe du reste.
+
+[bold, excited tagline] Bètli. Votre location courte durée, en pilote automatique !
+▲▲▲
+
+=== COMPLICE (V3 Vincent) ===
+▼▼▼
+[casual, lively, like talking to a friend, amused] Cinq plateformes. Trois équipes de ménage. Des dizaines de messages... [chuckles] et un seul vous.
+
+[playful, curious] Et si tout s'orchestrait... tout seul ?
+
+[grinning] Voici Bètli.
+
+[animated, conversational] Toutes vos réservations, tous vos logements, réunis au même endroit.
+
+[matter-of-fact, amused] Un voyageur part ? Le ménage est déjà planifié.
+
+[enthusiastic, chatty] Besoin d'un photographe, d'une blanchisserie, d'un artisan ? Notre marketplace les met à portée de clic.
+
+[confident, knowing] Et vos agents I.A. veillent : ils répondent, anticipent... et vous alertent quand ça compte vraiment.
+
+[warm, sincere] Vous gardez le contrôle. [light] Bètli s'occupe du reste.
+
+[upbeat, with a smile] Bètli. Votre location courte durée, en pilote automatique.
+▲▲▲

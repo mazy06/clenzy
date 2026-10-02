@@ -62,7 +62,8 @@ class ReservationControllerUpdateTest {
     void setUp() {
         controller = new ReservationController(
                 reservationService, reservationMapper,
-                reservationPaymentService, interventionMapper, cancellationRefundService);
+                reservationPaymentService, interventionMapper, cancellationRefundService,
+                org.mockito.Mockito.mock(com.clenzy.service.regulatory.NightsCapService.class));
     }
 
     private Jwt createJwt(String sub) {

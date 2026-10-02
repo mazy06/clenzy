@@ -1,0 +1,162 @@
+{
+  "prise": "_prise-complete-k1-paulk.mp3",
+  "repliques": [
+    {
+      "b": "b1",
+      "plan": "P01",
+      "cible": 0.4,
+      "depart": 0.4,
+      "fin": 6.13,
+      "duree": 5.73,
+      "texte": "Cinq plateformes. Trois équipes de ménage. Des dizaines de messages… et un seul vous.",
+      "debit_car_s": 14.8
+    },
+    {
+      "b": "b2",
+      "plan": "P06",
+      "cible": 8.6,
+      "depart": 8.6,
+      "fin": 11.23,
+      "duree": 2.63,
+      "texte": "Et si tout s'orchestrait… tout seul ?",
+      "debit_car_s": 14.1
+    },
+    {
+      "b": "b3",
+      "plan": "P08",
+      "cible": 13.3,
+      "depart": 13.3,
+      "fin": 14.48,
+      "duree": 1.18,
+      "texte": "Voici Bètli.",
+      "debit_car_s": 10.2
+    },
+    {
+      "b": "b4",
+      "plan": "P09",
+      "cible": 16.0,
+      "depart": 16.0,
+      "fin": 19.69,
+      "duree": 3.69,
+      "texte": "Toutes vos réservations, tous vos logements, réunis au même endroit.",
+      "debit_car_s": 18.4
+    },
+    {
+      "b": "b5",
+      "plan": "P12",
+      "cible": 24.0,
+      "depart": 24.0,
+      "fin": 26.52,
+      "duree": 2.52,
+      "texte": "Un voyageur part ? Le ménage est déjà planifié.",
+      "debit_car_s": 18.7
+    },
+    {
+      "b": "b6",
+      "plan": "P15",
+      "cible": 30.5,
+      "depart": 30.5,
+      "fin": 35.6,
+      "duree": 5.1,
+      "texte": "Besoin d'un photographe, d'une blanchisserie, d'un artisan ? Notre marketplace les met à portée de clic.",
+      "debit_car_s": 20.4
+    },
+    {
+      "b": "b7",
+      "plan": "P18",
+      "cible": 39.0,
+      "depart": 39.0,
+      "fin": 44.04,
+      "duree": 5.04,
+      "texte": "Et vos agents I.A. veillent : ils répondent, anticipent… et vous alertent quand ça compte vraiment.",
+      "debit_car_s": 19.6
+    },
+    {
+      "b": "b8",
+      "plan": "P21",
+      "cible": 47.0,
+      "depart": 47.0,
+      "fin": 49.72,
+      "duree": 2.72,
+      "texte": "Vous gardez le contrôle. Bètli s'occupe du reste.",
+      "debit_car_s": 18.0
+    },
+    {
+      "b": "b9",
+      "plan": "P24",
+      "cible": 54.6,
+      "depart": 54.6,
+      "fin": 58.35,
+      "duree": 3.75,
+      "texte": "Bètli. Votre location courte durée, en pilote automatique.",
+      "debit_car_s": 15.5
+    }
+  ],
+  "reperes": [
+    {
+      "repere": "« 5 plateformes. »",
+      "mot": "plateformes",
+      "t": 0.74
+    },
+    {
+      "repere": "« 3 équipes. »",
+      "mot": "Trois",
+      "t": 1.61
+    },
+    {
+      "repere": "« 1 seul vous. »",
+      "mot": "un seul vous",
+      "t": 5.25
+    },
+    {
+      "repere": "Wordmark",
+      "mot": "Bètli",
+      "t": 13.89
+    },
+    {
+      "repere": "« Au même endroit. »",
+      "mot": "même endroit",
+      "t": 18.98
+    },
+    {
+      "repere": "Brique « Parti »",
+      "mot": "part",
+      "t": 24.64
+    },
+    {
+      "repere": "« Déjà planifié. »",
+      "mot": "déjà planifié",
+      "t": 25.77
+    },
+    {
+      "repere": "Carte photographe",
+      "mot": "photographe",
+      "t": 31.09
+    },
+    {
+      "repere": "« En un clic. »",
+      "mot": "clic",
+      "t": 35.35
+    },
+    {
+      "repere": "« Vos agents IA veillent. »",
+      "mot": "veillent",
+      "t": 39.97
+    },
+    {
+      "repere": "Carte d'alerte",
+      "mot": "alertent",
+      "t": 42.31
+    },
+    {
+      "repere": "« Vous gardez le contrôle. »",
+      "mot": "contrôle",
+      "t": 47.83
+    },
+    {
+      "repere": "Promesse ligne 2",
+      "mot": "pilote automatique",
+      "t": 57.12
+    }
+  ]
+}

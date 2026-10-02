@@ -54,13 +54,14 @@ export interface SolutionDef {
   icon: ComponentType<{ className?: string }>;
 }
 
-/** Ordre du menu Solutions : l'Arabie saoudite precede le Maroc — marche d'ouverture. */
+/** Ordre du menu Solutions : les trois marches ouvrent en meme temps (Arabie saoudite, Maroc, France). */
 export const SOLUTIONS: SolutionDef[] = [
   { slug: 'conciergeries', icon: BuildingIcon },
   { slug: 'hotes-independants', icon: HomeIcon },
   { slug: 'riads-maisons-dhotes', icon: KeyRoundIcon },
   { slug: 'arabie-saoudite', icon: MapPinIcon },
   { slug: 'maroc', icon: MapPinIcon },
+  { slug: 'france', icon: MapPinIcon },
   { slug: 'multi-proprietaires', icon: UsersIcon },
 ];
 

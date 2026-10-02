@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+  Baitly · Reel 02 « Une seule vérité » (Instagram, 1080 × 1920, 32 s) · FR / EN / AR
+
+  À quoi sert ce fichier : l'animation du script `marketing/scripts-video/script-02-une-seule-verite.md`
+  (channel manager, angle problème → solution), pilotée par le temps via le kit partagé
+  (`../shared/kit.js`, `../shared/base.css`). Rendu : `node ../render.mjs reel-02-une-seule-verite --lang=fr`.
+  Déroulé : deux notifications de réservation la nuit sur les mêmes dates → le conflit dans le
+  planning → le logo → le planning Baitly : une réservation se pose ; le flux de canaux de la landing
+  (tuiles → hub → registre) la reçoit, met à jour la disponibilité et la diffuse aux autres canaux ;
+  un canal tombe et le registre le signale → promesse → fin.
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 02 Une seule vérité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+#mini { left: 64px; top: 600px; }
+#tC { inset-inline-start: 96px; top: 960px; width: 900px; font-size: 80px; }
+#house { left: 390px; top: 600px; width: 300px; height: 300px; overflow: visible; }
+#plan { left: 64px; top: 250px; opacity: 0; }
+/* Flux de canaux de la landing (L05) : tuiles → hub → registre, sur un panneau bleu nuit */
+#flow { left: 80px; top: 800px; width: 920px; padding: 28px 30px 30px; opacity: 0; background: var(--n700); border: 0; color: var(--papier); box-shadow: 0 40px 80px -40px rgba(10,17,32,.55); }
+.fts { display: flex; }
+.ft { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.ft .lg { width: 84px; height: 84px; border-radius: 22px; background: #FDFDFE; display: flex; align-items: center; justify-content: center; color: var(--n600); }
+.ft .lg img { width: 46px; height: 46px; }
+.ft .lg img.wm { width: 76px; height: auto; }
+.ft b { font-size: 21px; font-weight: 600; color: #D7E1EE; white-space: nowrap; }
+.ft .chip { font-size: 18px; padding: 6px 14px; }
+.ft .chip.neutral { background: rgba(215,225,238,.14); color: #D7E1EE; }
+.ft .chip.ok { background: rgba(224,200,155,.2); color: var(--sable); }
+.ft .chip.wait { background: rgba(201,122,122,.22); color: #F0B7A7; }
+.ft .chip.src { background: var(--sable); color: var(--encre); }
+#conn { display: block; width: 860px; height: 96px; overflow: visible; }
+.hub6 { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 18px; background: #25406E; border: 2px solid #4F6B80; }
+.hub6 .hs { width: 48px; height: 48px; border-radius: 14px; background: #DCEBF1; color: #294A61; display: flex; align-items: center; justify-content: center; }
+.hub6 b { font-family: 'BSG'; font-size: 34px; letter-spacing: -.03em; }
+.hub6 span:last-child { margin-inline-start: auto; font-size: 20px; color: #C5D9E5; font-weight: 700; }
+.ldg { margin-top: 18px; border-radius: 18px; padding: 6px 22px; background: #F9FBFC; color: var(--n700); }
+.ldg > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; font-size: 22px; border-bottom: 1.5px solid #DBE4E8; }
+.ldg > div:last-child { border: 0; }
+.ldg .lh { justify-content: flex-start; font-size: 20px; }
+.ldg .lh .st { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 19px; font-weight: 700; color: #37685D; }
+.ldg .lh .st.alert { color: #96472A; }
+.ldg b { font-weight: 800; }
+.ldg .rollv { position: relative; display: inline-block; height: 1.3em; min-width: 9em; text-align: end; overflow: hidden; }
+.ldg .rollv span { position: absolute; inset-inline-end: 0; top: 0; white-space: nowrap; }
+.ldg .rollv span + span { color: var(--terre); }
+#promise { inset-inline-start: 96px; top: 720px; width: 900px; font-size: 96px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="house" class="abs" viewBox="251 251 522 522" fill="none"><path id="housePath" pathLength="100" stroke="#25406E" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/></svg>
+</div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, RTL, SYNC, $, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, words, titleIn } = K;
+const BR = '../../brand-book/assets/brands/';
+
+/* A · la nuit : deux notifications sur les mêmes dates */
+const ph = K.phone({ left: 290, top: 300 });
+const lock = K.lockScreen({
+  photo: 'pricingRoom.webp', date: T.lock.date, time: T.lock.t1, dim: .55,
+  notifs: [
+    Object.assign({ bg: '#FFFFFF', img: BR + 'airbnb.svg' }, T.n1),
+    Object.assign({ bg: '#003580', img: BR + 'bookingdotcom.svg' }, T.n2),
+  ],
+});
+ph.scaler.append(lock.layer);
+const clock = lock.layer.querySelector('.clock');
+
+/* C · le conflit, dans la langue du planning */
+const mini = K.abs('mini');
+const miniPl = K.planning(mini, {
+  P: T.plan, dw: 145, days: T.plan.days, weekend: T.plan.weekend || [],
+  rows: [[
+    { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'sara', av: true, nights: 3, logo: 'airbnb', key: 'a' },
+    { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'omar', av: true, nights: 3, logo: 'booking', key: 'b' },
+  ]],
+});
+// Deux lignes pour le même logement : les deux réservations des mêmes dates se lisent l'une sous l'autre.
+mini.querySelector('.ptrack').style.height = '196px';
+const tC = K.abs('tC', 'title');
+const tCWords = words(tC, T.tC, T.tCEm);
+
+/* D-E-F · le planning Baitly */
+const plan = K.abs('plan');
+const pl = K.planning(plan, {
+  P: T.plan, dw: 145, days: T.plan.days, today: 0, weekend: T.plan.weekend || [],
+  rows: [
+    [{ status: 'checked_out', from: [0, 1], to: [1, 11], guest: 'lea', nights: 1, combo: 1 },
+     { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'sara', av: true, nights: 3, logo: 'airbnb', key: 'new', hidden: true }],
+    [{ status: 'checked_in', from: [0, 1], to: [3, 11], guest: 'jad', av: true, nights: 3, price: true, wrench: true },
+     { status: 'pending', from: [3, 15], to: [5, 11], guest: 'nadia', av: true, nights: 2, combo: 1 }],
+    [{ blocked: true, from: 1, to: 3 }, { orphan: 'wrench', day: 3 },
+     { status: 'confirmed', from: [3, 15], to: [6, 11], guest: 'omar', av: true, nights: 3, logo: 'booking' }],
+    [{ status: 'confirmed', from: [0, 15], to: [3, 11], guest: 'karim', av: true, nights: 3, price: true, logo: 'airbnb' }],
+  ],
+});
+const newBar = pl.byKey.new;
+newBar.style.opacity = 0;
+
+/* Flux de canaux de la landing : réception → mise à jour → diffusion (INVENTAIRE L05, M02) */
+const F = T.flow, C = T.channels;
+const flow = K.abs('flow', 'card');
+const LOGO = {
+  airbnb: () => h('img', { src: BR + 'airbnb.svg', alt: '' }),
+  booking: () => h('img', { src: BR + 'bookingdotcom.svg', alt: '' }),
+  expedia: () => h('img', { class: 'wm', src: BR + 'expedia-wordmark.png', alt: '' }),
+  gathern: () => h('img', { class: 'wm', src: BR + 'gathern-wordmark.webp', alt: '' }),
+  direct: () => icon('globe', 40),
+};
+const tiles = F.channels.map(([key, name]) => {
+  const chip = h('span', { class: 'chip neutral' }, C.open);
+  return { el: h('div', { class: 'ft' }, h('span', { class: 'lg' }, LOGO[key]()), h('b', {}, name), chip), chip, state: 'open' };
+});
+// Branches : du centre de chaque tuile au hub (repère 860 × 96 ; ordre physique inversé en arabe).
+const NT = tiles.length, CW = 860, HX = CW / 2;
+const tileX = (i) => { const x = CW * (2 * i + 1) / (2 * NT); return RTL ? CW - x : x; };
+const svgEl = (tag, attrs) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+const conn = svgEl('svg', { id: 'conn', viewBox: `0 0 ${CW} 96` });
+const branchD = (x) => { const d = x < HX ? 1 : -1; return `M${x} 0 V36 Q${x} 50 ${x + 14 * d} 50 H${HX - 14 * d} Q${HX} 50 ${HX} 64 V96`; };
+const branches = tiles.map((_, i) => {
+  const d = branchD(tileX(i));
+  const rail = svgEl('path', { d, fill: 'none', stroke: '#4F6B80', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  const dot = svgEl('circle', { r: 8, fill: '#C5E0ED', opacity: 0 });
+  conn.append(rail, dot);
+  return { rail, dot };
+});
+const hubCap = h('span', {}, F.labels[0]);
+const hub = h('div', { class: 'hub6' }, h('span', { class: 'hs' }, icon('cal', 28)), h('b', {}, 'baitly'), hubCap);
+const stEl = h('span', { class: 'st' });
+const rollA = h('span', {}, F.open), rollB = h('span', {}, F.values[0]);
+const ledger = h('div', { class: 'ldg' },
+  h('div', { class: 'lh' }, icon('cal', 24), h('b', {}, F.date), stEl),
+  h('div', {}, h('span', {}, F.fields[0]), h('b', { class: 'rollv' }, rollA, rollB)),
+  ...F.fields.slice(1).map((f, i) => h('div', {}, h('span', {}, f), h('b', {}, F.values[i + 1]))));
+flow.append(h('div', { class: 'fts' }, tiles.map((x) => x.el)), conn, hub, ledger);
+function setChip(c, state) {
+  if (c.state === state) return;
+  c.state = state;
+  const M = { open: ['chip neutral', [C.open]], closed: ['chip ok', [icon('check', 18), C.closed]], offline: ['chip wait', [icon('wifioff', 18), C.offline]], booked: ['chip src', [F.booked]] };
+  c.chip.className = M[state][0]; c.chip.replaceChildren(...M[state][1]);
+}
+let stKey = null;
+function setStatus(key) {
+  if (stKey === key) return;
+  stKey = key;
+  stEl.className = 'st' + (key === 'alert' ? ' alert' : '');
+  stEl.replaceChildren(...(key === 'ok' ? [icon('check', 20), F.status] : key === 'alert' ? [icon('alert', 20), T.alert[0]] : []));
+}
+/** Paquet sur une branche : vers le hub (up = false) ou vers la tuile (up = true), entre t0 et t0 + dur. */
+function packet(b, t, t0, dur, up, color) {
+  const p = prog(t, t0, dur);
+  if (p <= 0 || p >= 1) { b.dot.setAttribute('opacity', 0); return; }
+  const L = b.rail.getTotalLength(), q = easeInOut(p);
+  const pt = b.rail.getPointAtLength(L * (up ? 1 - q : q));
+  b.dot.setAttribute('cx', pt.x); b.dot.setAttribute('cy', pt.y); b.dot.setAttribute('fill', color); b.dot.setAttribute('opacity', 1);
+}
+
+/* G · promesse puis fin */
+const promise = K.abs('promise', 'title');
+const pA = h('div', {}, T.promise[0]), pB = h('div', { class: 'accent' }, T.promise[1]);
+promise.append(pA, pB);
+K.endMount();
+
+function renderAt(t) {
+  /* A · 23:14 Airbnb, 23:16 Booking.com, collision */
+  const phoneVis = vis(t, 0, 6.6, .6, .4);
+  set(ph.el, { opacity: phoneVis, transform: `translateY(${lerp(70, 0, easeOut(prog(t, 0, .7)))}px)` });
+  clock.textContent = t < 3.3 ? T.lock.t1 : T.lock.t2;
+  const [n1, n2] = lock.notifEls;
+  const shake = t > 4.2 && t < 4.8 ? Math.sin((t - 4.2) * Math.PI * 10) * 4 : 0;
+  const halo = easeOut(prog(t, 4.2, .3));
+  [[n1, 1.0], [n2, 3.6]].forEach(([el, t0]) => {
+    const p = easeOut(prog(t, t0, .5));
+    set(el, { opacity: p, transform: `translate(${shake}px, ${lerp(-30, 0, p)}px)`, boxShadow: `0 0 0 ${4 * halo}px rgba(180,87,51,.45), 0 10px 30px -12px rgba(10,17,32,.45)` });
+  });
+
+  /* C · deux briques sur les mêmes dates, anneau de conflit */
+  const cv = vis(t, 6.5, 10.5, .5, .4);
+  set(mini, { opacity: cv, transform: `translateY(${lerp(30, 0, easeOut(prog(t, 6.5, .6)))}px)` });
+  const a = miniPl.byKey.a, b = miniPl.byKey.b;
+  const pa = easeOut(prog(t, 6.7, .5)), pb = easeOut(prog(t, 7.2, .5));
+  const ring = t > 7.6 ? (0.55 + 0.45 * Math.sin((t - 7.6) * Math.PI)) : 0;   // conflit : anneau 2 px ×2 qui pulse (2 s)
+  set(a, { opacity: pa, transform: `translateY(${lerp(-40, 0, pa)}px)`, boxShadow: `0 0 0 4px rgba(201,122,122,${ring})` });
+  set(b, { opacity: pb, transform: `translateY(${lerp(48, 88, pb)}px)`, boxShadow: `0 0 0 4px rgba(201,122,122,${ring})` });
+  titleIn(tCWords, t, 7.6);
+  tC.style.opacity = 1 - easeIn(prog(t, 10.2, .35));
+
+  /* D · le logo se dessine, s'ouvre sur le planning */
+  const draw = easeInOut(prog(t, 10.5, 1.1));
+  set($('housePath'), { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * draw) });
+  const houseOut = easeIn(prog(t, 11.6, .5));
+  set($('house'), { opacity: (t < 10.5 ? 0 : 1) * (1 - houseOut), transform: `scale(${lerp(1, 1.6, houseOut)})` });
+  const planIn = easeOut(prog(t, 11.8, .8));
+  const planOut = easeIn(prog(t, 25.4, .5));
+  set(plan, { opacity: planIn * (1 - planOut), transform: `translateY(${lerp(40, 0, planIn)}px)` });
+  K.planningEnter(t, 12.1, pl);
+
+  /* E · la réservation se pose, les autres canaux se ferment */
+  const d = prog(t, SYNC.drop, .55);
+  const bounce = d < .7 ? lerp(-60, 8, easeOut(d / .7)) : lerp(8, 0, easeOut((d - .7) / .3));   // rebond ≤ 8 px
+  set(newBar, { opacity: easeOut(prog(t, SYNC.drop, .2)), transform: `translateY(${bounce}px)`, clipPath: 'none' });
+  const fIn = easeOut(prog(t, 13.2, .6));
+  set(flow, { opacity: fIn * (1 - planOut), transform: `translateY(${lerp(50, 0, fIn)}px)` });
+  const OFF = NT - 1;
+  // Réception : le paquet Airbnb descend au hub ; mise à jour ; diffusion vers les autres canaux.
+  packet(branches[0], t, SYNC.drop, .8, false, '#C5E0ED');
+  const RECV = SYNC.drop + .8;
+  const flash = t > RECV && t < RECV + .6 ? 1 - Math.abs((t - RECV - .3) / .3) : 0;
+  hub.style.borderColor = `color-mix(in srgb, #E0C89B ${Math.round(flash * 100)}%, #4F6B80)`;
+  branches.slice(1).forEach((b, k) => { if (k + 1 !== OFF || t < SYNC.offline) packet(b, t, SYNC.close + k * .15, .8, true, '#E0C89B'); });
+  hubCap.textContent = t < RECV ? F.labels[0] : t < SYNC.close ? F.labels[1] : F.labels[2];
+  tiles.forEach((c, i) => {
+    if (i === 0) setChip(c, t >= SYNC.drop ? 'booked' : 'open');
+    else if (i === OFF && t >= SYNC.offline) setChip(c, 'offline');
+    else setChip(c, t >= SYNC.close + (i - 1) * .15 + .8 ? 'closed' : 'open');
+  });
+  const up = easeInOut(prog(t, RECV + .2, .5));
+  set(rollA, { transform: `translateY(${-110 * up}%)`, opacity: 1 - up });
+  set(rollB, { transform: `translateY(${110 * (1 - up)}%)`, opacity: up });
+  setStatus(t >= SYNC.offline ? 'alert' : t >= RECV + .3 ? 'ok' : null);
+  // Hors ligne : la branche du canal passe en pointillés Terracotta.
+  const off = t >= SYNC.offline;
+  branches[OFF].rail.setAttribute('stroke', off ? '#C97A7A' : '#4F6B80');
+  branches[OFF].rail.setAttribute('stroke-dasharray', off ? '4 10' : 'none');
+  tiles[OFF].el.style.opacity = off ? .7 : 1;
+
+  /* G · promesse puis fin */
+  const q1 = easeOut(prog(t, 25.8, .55)), q2 = easeOut(prog(t, 26.2, .55));
+  const qOut = easeIn(prog(t, SYNC.end - .3, .4));
+  set(pA, { opacity: q1 * (1 - qOut), transform: `translateY(${lerp(20, 0, q1)}px)` });
+  set(pB, { opacity: q2 * (1 - qOut), transform: `translateY(${lerp(20, 0, q2)}px)` });
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

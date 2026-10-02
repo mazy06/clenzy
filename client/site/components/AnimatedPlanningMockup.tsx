@@ -79,20 +79,20 @@ const {
  */
 
 /* ─── Géométrie (miroir de planning/constants.ts) ───────────────────────────── */
-const PROP_W = 188;
-const DAY_W = 74;
-const ROW_H = 54;
-const HEADER_H = 44;
+export const PROP_W = 188;
+export const DAY_W = 74;
+export const ROW_H = 54;
+export const HEADER_H = 44;
 const BAR_H = 36;
 const BAR_TOP = 9;
 /* Lignes vides de remplissage, comme le planning quand la page contient moins
    de logements que la hauteur disponible — elles donnent aussi la place
    qu'exige la fiche logement ouverte. */
 const FILLER_ROWS = 2;
-const DAYS = 14;
-const DESIGN_WIDTH = PROP_W + DAYS * DAY_W;
-const FRAME_WIDTH = DESIGN_WIDTH + 60; // Sidebar + grid gutters.
-const PROPERTY_PHOTOS = [
+export const DAYS = 14;
+export const DESIGN_WIDTH = PROP_W + DAYS * DAY_W;
+export const FRAME_WIDTH = DESIGN_WIDTH + 60; // Sidebar + grid gutters.
+export const PROPERTY_PHOTOS = [
   propertyRiad,
   propertyApartment,
   propertyVilla,
@@ -115,7 +115,7 @@ const BAR_CHANNEL_MIN = 60;
 
 /** Palette « Signature » du planning, portée localement : le site marketing
     n'expose que les tokens --bui-*, pas ceux de l'application. */
-const TOKENS = {
+export const TOKENS = {
   '--pl-card': '#FCFDFD',
   '--pl-surface2': '#FBFCFC',
   '--pl-line': '#D5DFE8',
@@ -149,7 +149,7 @@ const CHANNELS = {
 /* Nombre d'unites par logement. Les noms et les villes vivent dans
    `lib/messages/planningMockup.ts`, dans le meme ordre : le portefeuille de
    demonstration suit le marche de la langue. */
-const UNIT_COUNTS = [4, 3, 5, 3, 4, 2];
+export const UNIT_COUNTS = [4, 3, 5, 3, 4, 2];
 
 type Status = keyof typeof STATUS;
 type Channel = keyof typeof CHANNELS;
@@ -172,7 +172,7 @@ interface Resa {
   /** Photo du voyageur affichée dans la brique. */
 }
 
-const RESAS: Resa[] = [
+export const RESAS: Resa[] = [
   /* Statuts conformes à `computeEffectiveStatus` du planning : le mauve
      (check-out) n'existe QUE dans le passé, le bleu (check-in) uniquement à
      cheval sur aujourd'hui, et le futur est vert (réglé) ou orange (à régler). */
@@ -356,9 +356,9 @@ const CANCELLED: Resa = {
 const NIGHTLY = [1250, 980, 2100, 850, 1400, 720];
 
 const FIRST_DOW = 4; // Mercredi 23 septembre 2026, samedi = index 0.
-const TODAY_INDEX = 3;
+export const TODAY_INDEX = 3;
 
-const isWeekend = (day: number) => {
+export const isWeekend = (day: number) => {
   const dow = (FIRST_DOW + day) % 7;
   return dow === 0 || dow === 1; // SAM / DIM
 };
@@ -395,7 +395,7 @@ function BarBadge({ children }: { children: React.ReactNode }) {
 }
 
 /** Raccourci : le texte de la maquette dans la langue du site. */
-function usePlanningText() {
+export function usePlanningText() {
   const { language } = useSiteLanguage();
   return PLANNING_MOCKUP_MESSAGES[language];
 }
@@ -982,7 +982,15 @@ function PlanningScene({
 
 /* ─── Barre d'outils ────────────────────────────────────────────────────────── */
 
-function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
+export function Toolbar({
+  mutedChannel,
+  agentAsk,
+}: {
+  mutedChannel: Channel | null;
+  /** Constellation ouverte : le champ du header s'adresse aux agents et la
+      légende migre dans la modale de filtres (comme PlanningPage). */
+  agentAsk?: string;
+}) {
   const m = usePlanningText();
   const chip = (active: boolean): CSSProperties => ({
     display: 'inline-flex',
@@ -1044,14 +1052,15 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
             </span>
           ))}
         </span>
-        <span className="bpm-planning-search">
+        <span className="bpm-planning-search" data-agent-ask={agentAsk ? true : undefined}>
           <SearchIcon size={14} />
-          {m.search}
+          {agentAsk ?? m.search}
+          {agentAsk && <kbd>⌘K</kbd>}
         </span>
         <BuildingIcon size={15} />
         <MoreVerticalIcon size={15} />
       </div>
-      <div className="bpm-planning-filters">
+      {!agentAsk && <div className="bpm-planning-filters">
         {(Object.keys(CHANNELS) as Channel[]).map((channel) => (
           <span
             key={channel}
@@ -1101,14 +1110,14 @@ function Toolbar({ mutedChannel }: { mutedChannel: Channel | null }) {
           <WrenchFill size={15} style={{ color: '#4F86C6' }} />
           {m.interventions}
         </span>
-      </div>
+      </div>}
     </div>
   );
 }
 
 /* ─── En-tête de dates ──────────────────────────────────────────────────────── */
 
-function DateHeaders() {
+export function DateHeaders() {
   const dayLabels = usePlanningText().dayLabels;
   return (
     <div
@@ -1162,7 +1171,7 @@ function DateHeaders() {
 
 /* ─── Ligne de grille ───────────────────────────────────────────────────────── */
 
-function Row({
+export function Row({
   row,
   selection,
 }: {
@@ -1345,7 +1354,7 @@ function Overlay({
 
 /** Bande hachurée pleine hauteur de ligne (PlanningBlockedBand) : pas de brique
     colorée, un cadenas et le libellé « Bloqué » quand la place le permet. */
-function BlockedBand() {
+export function BlockedBand() {
   const reason = usePlanningText().blockedReason;
   const width = BLOCKED.nights * DAY_W;
   return (
@@ -1378,7 +1387,7 @@ function BlockedBand() {
 
 /** Brique annulée : fond hachuré, bordure tiretée, nom barré, avatar désaturé,
     et le petit bouton rond de masquage en haut à droite. */
-function CancelledBar() {
+export function CancelledBar() {
   const label = usePlanningText().cancelled;
   const left = CANCELLED.start * DAY_W + DAY_W * 0.42;
   const width = CANCELLED.nights * DAY_W - DAY_W * 0.17;
@@ -1801,7 +1810,7 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
 
 /* ─── Brique de réservation ─────────────────────────────────────────────────── */
 
-function Bar({
+export function Bar({
   resa,
   muted,
   shift,

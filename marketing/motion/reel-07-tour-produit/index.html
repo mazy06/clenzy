@@ -1,0 +1,656 @@
+<!doctype html>
+<!--
+  Baitly · Reel 07 « Baitly en 75 secondes » (tour du produit, 16:9, 1920 × 1080, 75 s) · FR / EN / AR
+
+  À quoi sert ce fichier : l'animation du script `marketing/scripts-video/script-07-tour-produit-75s.md`,
+  vidéo d'explication de référence (YouTube, LinkedIn, landing), pilotée par le temps via le kit
+  partagé. Rendu : `node ../render.mjs reel-07-tour-produit --lang=fr` (le format 16:9 est déclaré
+  dans timeline.js).
+  Déroulé : cinq mots qui convergent vers le logo → 01 planning + flux de canaux → 02 site de
+  réservation directe qui se construit en blocs → 03 courbe de prix + carte de validation → 04 livret
+  + offres d'extras → 05 chaîne départ → paiement débloqué (checklist, preuve photo) → 06 moyens de
+  paiement, facture, relevé propriétaire → 07 le planning passe d'une langue à l'autre → fin.
+  Chaque chapitre est autonome (découpe en Shorts). Transition : le tracé de la maison balaie l'écran.
+  Composants : INVENTAIRE-COMPOSANTS.md (L04, L05, L09, L10, L11, L13, L14, L15, L25).
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 07 Tour produit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Tajawal:wght@500;700;800&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* Format 16:9 : scène, sous-titres et écran de fin repositionnés */
+#stage { width: 1920px; height: 1080px; }
+#sub { inset-inline-start: 260px; width: 1400px; bottom: 36px; }
+#subBox { font-size: 36px; padding: 14px 26px; }
+#logo { width: 1920px; top: 390px; }
+#logo .wm { font-size: 118px; }
+#cta { width: 1920px; top: 640px; flex-direction: row; justify-content: center; gap: 52px; }
+#facts { width: 1920px; top: 820px; }
+.ch { position: absolute; inset: 0; opacity: 0; }
+.chh { position: absolute; inset-inline-start: 96px; top: 58px; }
+.chh .ey { font-size: 22px; font-weight: 800; letter-spacing: .14em; color: var(--encre-terre); }
+.chh .tt { font-family: var(--fd); font-size: 52px; font-weight: 700; color: var(--n700); margin-top: 6px; white-space: nowrap; }
+.rtl .chh .ey { letter-spacing: 0; }
+#ill7 { inset-inline-end: 96px; top: 70px; font-size: 19px; font-weight: 700; color: var(--ardoise); background: #EEF2F5; padding: 6px 16px; border-radius: 999px; z-index: 5; }
+
+/* Balayage entre chapitres : le tracé de la maison traverse l'écran */
+#wipe { left: 0; top: 0; width: 1920px; height: 1080px; background: var(--papier); z-index: 40; display: flex; align-items: center; justify-content: center; }
+#wipe::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: 6px; background: var(--terre); }
+#wipe svg { width: 360px; height: 360px; }
+
+/* Intro */
+#words { left: 0; width: 1920px; top: 240px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.wd { display: flex; align-items: center; gap: 22px; width: 520px; }
+.wd .i { width: 72px; height: 72px; border-radius: 22px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.wd b { font-family: var(--fd); font-size: 56px; font-weight: 700; color: var(--n700); }
+#introMark { left: 810px; top: 380px; width: 300px; height: 300px; overflow: visible; }
+
+/* 01 · planning + flux */
+#plan1 { inset-inline-start: 96px; top: 200px; width: 1184px; }
+#flow1 { inset-inline-end: 96px; top: 200px; width: 540px; height: 690px; padding: 26px 28px; background: var(--n700); border: 0; color: var(--papier); box-shadow: 0 40px 80px -40px rgba(10,17,32,.55); }
+#flow1 .ft1 { font-size: 20px; font-weight: 700; color: #C5D9E5; }
+#flow1 .hub { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 14px 16px; border-radius: 18px; background: #25406E; border: 2px solid #4F6B80; }
+#flow1 .hub .hs { width: 46px; height: 46px; border-radius: 14px; background: #DCEBF1; color: #294A61; display: flex; align-items: center; justify-content: center; }
+#flow1 .hub b { font-family: 'BSG'; font-size: 32px; letter-spacing: -.03em; }
+#flow1 .hub span:last-child { margin-inline-start: auto; font-size: 18px; color: #C5D9E5; font-weight: 700; }
+#flow1 .rows { position: relative; margin-top: 22px; padding-inline-start: 58px; }
+#flow1 .rail { position: absolute; inset-inline-start: 22px; top: -22px; bottom: 36px; width: 3px; background: #4F6B80; border-radius: 2px; }
+#flow1 .pk { position: absolute; inset-inline-start: 14px; width: 19px; height: 19px; border-radius: 50%; opacity: 0; box-shadow: 0 0 0 5px rgba(224,200,155,.18); }
+#flow1 .cr { position: relative; display: flex; align-items: center; gap: 16px; height: 84px; }
+#flow1 .cr::before { content: ''; position: absolute; inset-inline-start: -36px; top: 41px; width: 30px; height: 3px; background: #4F6B80; }
+#flow1 .lg { width: 58px; height: 58px; border-radius: 16px; background: #FDFDFE; display: flex; align-items: center; justify-content: center; flex: none; color: var(--n600); }
+#flow1 .lg img { width: 32px; height: 32px; }
+#flow1 .lg img.wm { width: 50px; height: auto; }
+#flow1 .cr b { flex: 1; font-size: 23px; font-weight: 600; color: #D7E1EE; }
+#flow1 .chip { font-size: 18px; padding: 6px 14px; }
+#flow1 .chip.neutral { background: rgba(215,225,238,.14); color: #D7E1EE; }
+#flow1 .chip.ok { background: rgba(224,200,155,.2); color: var(--sable); }
+#flow1 .chip.src { background: var(--sable); color: var(--encre); }
+#flow1 .st { margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; color: #9FD3B8; opacity: 0; }
+
+/* 02 · site de réservation directe */
+#site { inset-inline-start: 96px; top: 190px; width: 1060px; height: 710px; overflow: hidden; border-radius: 26px; }
+#site .sbar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #EEF2F5; border-bottom: 1.5px solid #D5DEE7; }
+#site .sbar i { width: 13px; height: 13px; border-radius: 50%; background: #C3CBD1; }
+#site .sbar span { margin-inline-start: 10px; padding: 6px 18px; border-radius: 12px 12px 0 0; background: #FDFDFE; font-size: 17px; font-weight: 700; color: var(--ardoise); }
+#site .pg { padding: 20px 28px; background: #FAF6EF; height: 100%; }
+.blk { opacity: 0; }
+.sh { display: flex; align-items: center; gap: 16px; }
+.sh .mono { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #1F3B30; color: #1F3B30; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond'; font-weight: 700; font-size: 22px; }
+.sh b { font-family: 'Cormorant Garamond'; font-size: 32px; font-weight: 700; color: #1F3B30; }
+.sh nav { margin-inline-start: auto; display: flex; gap: 26px; font-size: 17px; color: #4D5A64; }
+.sh .bk { padding: 10px 22px; border-radius: 10px; background: #1F3B30; color: #FAF6EF; font-size: 17px; font-weight: 700; }
+.hero7 { display: flex; gap: 26px; margin-top: 22px; align-items: center; }
+.hero7 .tx { flex: 1; }
+.hero7 small { font-size: 15px; font-weight: 700; letter-spacing: .14em; color: #8A6B45; }
+.hero7 h3 { font-family: 'Cormorant Garamond'; font-size: 48px; line-height: 1.05; color: #1F3B30; margin-top: 10px; }
+.hero7 img { width: 470px; height: 270px; object-fit: cover; border-radius: 18px; }
+.row7 { display: flex; gap: 22px; margin-top: 22px; }
+.room7 { flex: 1; display: flex; gap: 16px; padding: 14px; border-radius: 18px; background: #FDFDFE; border: 1.5px solid #E8DFD1; }
+.room7 img { width: 170px; height: 150px; object-fit: cover; border-radius: 12px; }
+.room7 b { display: block; font-family: 'Cormorant Garamond'; font-size: 30px; color: #1F3B30; }
+.room7 small { display: block; font-size: 16px; color: #67757C; margin-top: 4px; }
+.room7 .pr { font-family: 'BSG'; font-size: 26px; font-weight: 700; color: #1F3B30; margin-top: 16px; }
+.room7 .pr span { font-family: var(--fb); font-size: 16px; color: #67757C; font-weight: 600; }
+.cal7 { width: 330px; padding: 14px 16px; border-radius: 18px; background: #FDFDFE; border: 1.5px solid #E8DFD1; }
+.cal7 b { font-size: 18px; color: #1F3B30; }
+.cal7 .g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 8px; text-align: center; font-size: 14px; color: #4D5A64; }
+.cal7 .g span { height: 28px; line-height: 28px; border-radius: 7px; }
+.cal7 .g .hd { font-weight: 700; color: #98A4AB; }
+.cal7 .g .sel { background: #1F3B30; color: #FAF6EF; font-weight: 700; }
+.cal7 .g .rng { background: #E4EDE7; color: #1F3B30; }
+#zero { inset-inline-end: 96px; top: 210px; width: 560px; }
+#zero .z { font-family: 'BSG'; font-size: 200px; font-weight: 700; color: var(--terre); line-height: .95; direction: ltr; unicode-bidi: isolate; }
+#zero .zl { font-size: 30px; font-weight: 700; color: var(--n700); margin-top: 6px; }
+#zero .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+#zero .chips .chip { font-size: 20px; background: #FDFDFE; border: 1.5px solid #D7E1EE; color: var(--n700); }
+#steps7 { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+#steps7 .s { display: flex; align-items: center; gap: 14px; font-size: 23px; font-weight: 700; color: #98A4AB; }
+#steps7 .s i { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid #C9D2D8; display: flex; align-items: center; justify-content: center; font-style: normal; font-family: 'BSG'; font-size: 18px; color: #98A4AB; }
+#steps7 .s.on { color: var(--n700); }
+#steps7 .s.on i { background: var(--terre); border-color: var(--terre); color: #FDFDFE; }
+
+/* 03 · courbe de prix + validation */
+#rev7 { inset-inline-start: 96px; top: 190px; width: 1000px; }
+#rev7 .cl { font-size: 20px; color: var(--ardoise); font-weight: 700; margin-bottom: 8px; }
+#curve { display: block; width: 944px; height: 420px; overflow: visible; }
+#hitl7 { inset-inline-end: 96px; top: 190px; width: 660px; padding: 28px 30px; }
+#hitl7 .hd { display: flex; align-items: center; gap: 14px; }
+#hitl7 .hd .ic { width: 58px; height: 58px; border-radius: 18px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+#hitl7 .hd div { flex: 1; }
+#hitl7 .hd b { display: block; font-size: 23px; }
+#hitl7 .hd small { font-size: 19px; color: var(--ardoise); }
+#hitl7 h4 { font-family: var(--fd); font-size: 32px; color: var(--n700); margin-top: 20px; }
+#hitl7 p { font-size: 21px; line-height: 1.45; color: var(--ardoise); margin-top: 8px; }
+#hitl7 .pr { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding: 14px 18px; border-radius: 16px; background: #F6F8F9; font-size: 21px; color: var(--ardoise); }
+#hitl7 .pr b { font-family: 'BSG'; font-size: 30px; color: var(--n700); direction: ltr; unicode-bidi: isolate; }
+#hitl7 .pr b em { font-style: normal; color: var(--terre); }
+#hitl7 .fo { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 19px; color: #2F6E5E; font-weight: 700; }
+#hitl7 .go { margin-top: 18px; height: 68px; border-radius: 16px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 25px; font-weight: 800; }
+#hitl7 .go.done { background: rgba(154,108,58,.15); color: var(--encre-terre); }
+#team7 { inset-inline-end: 96px; top: 800px; width: 660px; display: flex; align-items: center; gap: 16px; }
+#team7 .ics { display: flex; }
+#team7 .ics span { width: 44px; height: 44px; border-radius: 50%; background: #F4EBDC; color: var(--terre); border: 3px solid var(--papier); display: flex; align-items: center; justify-content: center; margin-inline-start: -10px; }
+#team7 b { font-family: 'BSG'; font-size: 34px; color: var(--terre); }
+#team7 small { font-size: 21px; color: var(--ardoise); font-weight: 700; }
+
+/* 04 · livret + extras */
+.gv { position: absolute; inset: 0; background: #F2E9D9; color: #3A2E24; font-family: 'Cormorant Garamond', serif; }
+.gv .cv { height: 300px; position: relative; }
+.gv .cv img { width: 100%; height: 100%; object-fit: cover; }
+.gv .cv b { position: absolute; inset-inline-start: 22px; bottom: 16px; font-size: 38px; color: #FFF8EE; text-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.gv .in { padding: 16px 20px; font-family: var(--fb); }
+.gv .pn { font-family: 'Cormorant Garamond'; font-size: 30px; font-weight: 700; }
+.gv .dt { font-size: 14px; color: #7A6552; }
+.gv .tiles { display: flex; gap: 8px; margin-top: 14px; }
+.gv .tiles div { flex: 1; padding: 10px 6px; border-radius: 12px; background: #FBF5EC; text-align: center; }
+.gv .tiles b { display: block; font-family: 'BSG'; font-size: 20px; color: #BC5B36; }
+.gv .tiles span { font-size: 12px; color: #7A6552; }
+.gv .sec { margin-top: 16px; font-size: 13px; font-weight: 700; letter-spacing: .08em; color: #BC5B36; }
+.gv .mini { display: flex; gap: 10px; margin-top: 8px; padding: 10px; border-radius: 12px; background: #FBF5EC; }
+.gv .mini img { width: 64px; height: 50px; object-fit: cover; border-radius: 8px; }
+.gv .mini b { font-family: 'Cormorant Garamond'; font-size: 18px; }
+.gv .link { margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #7A6552; }
+#offers { inset-inline-start: 560px; top: 200px; width: 1264px; display: flex; gap: 32px; }
+.of { flex: 1; overflow: hidden; border-radius: 24px; background: #FDFDFE; border: 1.5px solid #D5DEE7; box-shadow: 0 30px 60px -38px rgba(27,42,53,.4); opacity: 0; }
+.of img { width: 100%; height: 230px; object-fit: cover; display: block; }
+.of .bd { padding: 18px 20px 20px; }
+.of b { display: block; font-size: 25px; color: var(--n700); }
+.of small { display: block; font-size: 18px; color: var(--ardoise); margin-top: 4px; min-height: 46px; }
+.of .ft { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+.of .pr { font-family: 'BSG'; font-size: 28px; font-weight: 700; color: var(--n700); }
+.of .pr span { font-family: var(--fb); font-size: 17px; color: var(--ardoise); }
+.of .ad { padding: 10px 16px; border-radius: 12px; border: 1.5px solid var(--n600); color: var(--n600); font-size: 18px; font-weight: 700; white-space: nowrap; }
+.of .ad.on { background: rgba(154,108,58,.15); border-color: transparent; color: var(--encre-terre); }
+#sel7 { inset-inline-start: 560px; top: 770px; width: 1264px; display: flex; align-items: center; gap: 18px; padding: 18px 24px; border-radius: 20px; background: #FDFDFE; border: 1.5px solid #D5DEE7; opacity: 0; }
+#sel7 .lb { font-size: 22px; font-weight: 800; color: var(--n700); }
+#sel7 .chip { background: #F4EBDC; color: var(--encre-terre); font-size: 19px; opacity: 0; }
+#sel7 .tt { margin-inline-start: auto; font-size: 21px; color: var(--ardoise); }
+#sel7 .tt b { font-family: 'BSG'; font-size: 32px; color: var(--terre); margin-inline-start: 10px; direction: ltr; unicode-bidi: isolate; }
+
+/* 05 · chaîne départ → paiement */
+#chain { left: 96px; top: 190px; width: 1728px; display: flex; align-items: center; }
+#chain .nd { display: flex; align-items: center; gap: 12px; font-size: 23px; font-weight: 700; color: #98A4AB; white-space: nowrap; }
+#chain .nd i { width: 48px; height: 48px; border-radius: 50%; border: 3px solid #C9D2D8; display: flex; align-items: center; justify-content: center; color: #FDFDFE; }
+#chain .nd.on { color: var(--n700); }
+#chain .nd.on i { background: var(--terre); border-color: var(--terre); }
+#chain .ln { flex: 1; height: 4px; margin: 0 16px; border-radius: 2px; background: #DCE3E8; }
+#chain .ln b { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--terre); }
+#chk { inset-inline-start: 96px; top: 290px; width: 800px; overflow: hidden; padding: 0; }
+#chk .ph { position: relative; height: 180px; }
+#chk .ph img { width: 100%; height: 100%; object-fit: cover; }
+#chk .ph .pc { position: absolute; inset-inline-start: 20px; bottom: 16px; padding: 10px 16px; border-radius: 14px; background: rgba(253,253,254,.94); font-size: 18px; color: var(--ardoise); }
+#chk .ph .pc b { display: block; font-size: 22px; color: var(--n700); }
+#chk .bd { padding: 20px 26px 24px; }
+#chk .tm { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 700; }
+#chk .tm img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
+#chk .tm span:last-child { margin-inline-start: auto; font-family: 'BSG'; color: var(--ardoise); }
+#chk .tk { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: #F6F8F9; font-size: 22px; }
+#chk .tk i { width: 32px; height: 32px; border-radius: 9px; border: 2.5px solid #AAB6BE; display: flex; align-items: center; justify-content: center; color: #FDFDFE; flex: none; }
+#chk .tk.on i { background: #3F8F76; border-color: #3F8F76; }
+#chk .tk img { margin-inline-start: auto; width: 56px; height: 40px; object-fit: cover; border-radius: 8px; }
+#chk .go { margin-top: 16px; height: 62px; border-radius: 14px; background: #EEF2F5; color: var(--ardoise); display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 23px; font-weight: 800; }
+#chk .go.on { background: var(--n600); color: var(--papier); }
+#chk .go.done { background: #E6F2EC; color: #25614F; }
+#proof { inset-inline-end: 96px; top: 290px; width: 840px; height: 560px; }
+#proof .bdg7 { position: absolute; inset-inline-start: 22px; top: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; background: rgba(253,253,254,.94); font-size: 20px; font-weight: 700; color: var(--n700); }
+#proof .ver { position: absolute; inset-inline-end: 22px; top: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; background: #3F8F76; font-size: 20px; font-weight: 800; color: #FDFDFE; opacity: 0; }
+#payout { inset-inline-end: 140px; top: 690px; width: 520px; padding: 20px 24px; opacity: 0; }
+#payout .k { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--ardoise); }
+#payout .k .chip { margin-inline-start: auto; background: #E6F2EC; color: #25614F; font-size: 18px; }
+#payout .v { font-family: 'BSG'; font-size: 44px; font-weight: 700; color: var(--n700); margin-top: 6px; direction: ltr; unicode-bidi: isolate; text-align: start; }
+
+/* 06 · encaisser */
+#pay6 { inset-inline-start: 96px; top: 190px; width: 820px; }
+#pay6 .lb { font-size: 21px; font-weight: 800; color: var(--encre-terre); }
+#pay6 .lgs { display: flex; gap: 14px; margin-top: 12px; }
+#pay6 .lgs span { flex: 1; height: 86px; border-radius: 18px; background: #FDFDFE; border: 1.5px solid #D5DEE7; display: flex; align-items: center; justify-content: center; opacity: 0; }
+#pay6 .lgs img { max-height: 40px; max-width: 150px; }
+#pay6 .lgs .ptabs { font-family: 'BSG'; font-size: 30px; font-weight: 700; color: #1E3A8A; }
+#inv7 { margin-top: 26px; padding: 24px 28px; }
+#inv7 .t { display: flex; align-items: center; justify-content: space-between; font-size: 24px; font-weight: 800; }
+#inv7 .l { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1.5px solid #EEF2F5; font-size: 22px; color: var(--ardoise); opacity: 0; }
+#inv7 .l b, #inv7 .tl b { font-family: 'BSG'; color: var(--n700); direction: ltr; unicode-bidi: isolate; }
+#inv7 .tl { display: flex; justify-content: space-between; padding-top: 14px; font-size: 25px; font-weight: 800; opacity: 0; }
+#inv7 .tl b { font-size: 34px; color: var(--terre); }
+#inv7 .cs { display: flex; gap: 10px; margin-top: 16px; }
+#inv7 .cs .chip { opacity: 0; }
+#st7 { inset-inline-end: 96px; top: 190px; width: 820px; padding: 26px 30px; }
+#st7 .t { font-family: var(--fd); font-size: 30px; font-weight: 700; }
+#st7 .p { font-size: 20px; color: var(--ardoise); margin-top: 2px; }
+#st7 .ms { display: flex; gap: 6px; padding: 6px; border-radius: 14px; background: #F1F5F7; margin-top: 18px; }
+#st7 .ms span { flex: 1; text-align: center; padding: 10px; border-radius: 10px; font-size: 20px; color: var(--ardoise); }
+#st7 .ms span.on { background: var(--n600); color: var(--papier); font-weight: 700; }
+#st7 .l { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1.5px solid #EEF2F5; font-size: 22px; color: var(--ardoise); opacity: 0; }
+#st7 .l b { font-family: 'BSG'; color: var(--n700); direction: ltr; unicode-bidi: isolate; }
+#st7 .net { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; padding: 16px 20px; border-radius: 16px; background: #F4EBDC; }
+#st7 .net span { font-size: 24px; font-weight: 800; color: var(--encre-terre); }
+#st7 .net b { font-family: 'BSG'; font-size: 48px; color: var(--terre); direction: ltr; unicode-bidi: isolate; }
+#st7 .sent { margin-top: 16px; opacity: 0; }
+
+/* 07 · langues */
+.pl7 { left: 484px; top: 200px; opacity: 0; }
+#ctr7 { left: 0; width: 1920px; top: 800px; display: flex; justify-content: center; gap: 16px; }
+#ctr7 .chip { font-size: 25px; padding: 12px 24px; background: #FDFDFE; border: 1.5px solid #D7E1EE; color: var(--n700); opacity: 0; }
+#ctr7 .chip svg { color: var(--terre); }
+
+/* Fin */
+#tEnd { left: 0; width: 1920px; top: 140px; text-align: center; font-size: 80px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, RTL, DIR, SYNC, LANG, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, vis, words, titleIn, clamp } = K;
+const PH = '../../brand-book/assets/photos/';
+const BR = '../../brand-book/assets/brands/';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const HOUSE_D = 'M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25';
+const svgEl = (tag, attrs) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+const at = (parent, id, cls = '') => { const e = h('div', { id, class: ('abs ' + cls).trim() }); parent.append(e); return e; };
+const center = (el) => { const p = K.posIn(el, K.stage); return { x: p.x + el.offsetWidth / 2, y: p.y + el.offsetHeight / 2 }; };
+const fmt = (v) => Math.round(v).toLocaleString(LANG === 'fr' ? 'fr-FR' : 'en-US').replace(/ /g, ' ');
+const CH = SYNC.chapters;
+const WIN = [[0, CH[0]], ...CH.slice(0, -1).map((c, i) => [c, CH[i + 1]]), [CH[CH.length - 1], 99]];
+function houseSvg(size, stroke = '#25406E') {
+  const s = svgEl('svg', { viewBox: '251 251 522 522', fill: 'none', width: size, height: size });
+  const trait = svgEl('path', { d: HOUSE_D, pathLength: 100, stroke, 'stroke-width': 21, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  const pk = svgEl('path', { d: HOUSE_D, pathLength: 100, stroke: '#2563EB', 'stroke-width': 27, 'stroke-linecap': 'round', 'stroke-dasharray': '6 94' });
+  s.append(trait, pk);
+  return { s, trait, pk };
+}
+/** Conteneur d'un chapitre (0 = intro … 8 = fin) avec son en-tête « 01 / PILOTER ». */
+const chapters = WIN.map((_, i) => {
+  const el = h('div', { class: 'ch' });
+  K.stage.append(el);
+  if (i >= 1 && i <= 7) {
+    const [ey, tt] = T.ch[i - 1];
+    el.append(h('div', { class: 'chh' }, h('div', { class: 'ey' }, ey), h('div', { class: 'tt' }, tt)));
+  }
+  return el;
+});
+const ill = K.abs('ill7'); ill.textContent = T.illustrative;
+
+/* Intro · cinq mots qui convergent vers le logo */
+const C0 = chapters[0];
+const wordsBox = at(C0, 'words');
+const wordEls = T.intro.words.map(([ic, w]) => { const e = h('div', { class: 'wd' }, h('span', { class: 'i' }, icon(ic, 36)), h('b', {}, w)); wordsBox.append(e); return e; });
+const introHouse = houseSvg(300); introHouse.s.id = 'introMark'; introHouse.s.classList.add('abs'); C0.append(introHouse.s);
+
+/* 01 · planning (6 logements, 9 jours) + flux de canaux */
+const C1 = chapters[1];
+const plan1 = at(C1, 'plan1');
+const pl1 = K.planning(plan1, {
+  P: T.plan, dw: 106, days: T.plan.days, today: 1, weekend: T.plan.weekend,
+  rows: [
+    [{ status: 'checked_out', from: [0, 1], to: [1, 11], guest: 'lea', nights: 1, combo: 1 },
+     { status: 'confirmed', from: [2, 15], to: [5, 11], guest: 'sara', av: true, nights: 3, logo: 'airbnb', key: 'new', hidden: true },
+     { status: 'confirmed', from: [6, 15], to: [9, 11], guest: 'karim', av: true, nights: 3 }],
+    [{ status: 'checked_in', from: [0, 1], to: [3, 11], guest: 'jad', av: true, nights: 3, wrench: true },
+     { status: 'pending', from: [3, 15], to: [5, 11], guest: 'nadia', av: true, nights: 2 },
+     { status: 'confirmed', from: [5, 15], to: [8, 11], guest: 'omar', av: true, nights: 3, logo: 'booking' }],
+    [{ blocked: true, from: 1, to: 3 }, { orphan: 'wrench', day: 3 }, { status: 'confirmed', from: [4, 15], to: [7, 11], guest: 'ali', av: true, nights: 3 }],
+    [{ status: 'confirmed', from: [0, 15], to: [3, 11], guest: 'salma', av: true, nights: 3, fee: true }, { status: 'pending', from: [4, 15], to: [6, 11], guest: 'youssef', av: true, nights: 2 }],
+    [{ status: 'checked_in', from: [0, 1], to: [2, 11], guest: 'lina', av: true, nights: 2 }, { blocked: true, from: 6, to: 8 }],
+    [{ orphan: 'broom', day: 2 }, { status: 'confirmed', from: [3, 15], to: [7, 11], guest: 'lea', av: true, nights: 4 }],
+  ],
+});
+set(plan1, { transform: 'scale(.92)', transformOrigin: RTL ? 'top right' : 'top left' });
+const newBar = pl1.byKey.new; newBar.style.opacity = 0;
+const F = T.flow;
+const flow1 = at(C1, 'flow1', 'card');
+const LOGO = {
+  airbnb: () => h('img', { src: BR + 'airbnb.svg', alt: '' }), booking: () => h('img', { src: BR + 'bookingdotcom.svg', alt: '' }),
+  expedia: () => h('img', { class: 'wm', src: BR + 'expedia-wordmark.png', alt: '' }), gathern: () => h('img', { class: 'wm', src: BR + 'gathern-wordmark.webp', alt: '' }),
+  direct: () => icon('globe', 30),
+};
+const hub1 = h('div', { class: 'hub' }, h('span', { class: 'hs' }, icon('cal', 26)), h('b', {}, 'baitly'), h('span', {}, F.hub));
+const pk1 = h('i', { class: 'pk' });
+const rail1 = h('div', { class: 'rows' }, h('span', { class: 'rail' }), pk1);
+const crows = F.channels.map(([key, name]) => {
+  const chip = h('span', { class: 'chip neutral' }, F.open);
+  const el = h('div', { class: 'cr' }, h('span', { class: 'lg' }, LOGO[key]()), h('b', {}, name), chip);
+  rail1.append(el);
+  return { el, chip, state: 'open' };
+});
+const st1 = h('div', { class: 'st' }, icon('check', 22), F.status);
+flow1.append(h('div', { class: 'ft1' }, F.title), hub1, rail1, st1);
+function chip1(c, state) {
+  if (c.state === state) return;
+  c.state = state;
+  const M = { open: ['chip neutral', [F.open]], closed: ['chip ok', [icon('check', 18), F.closed]], booked: ['chip src', [F.booked]] };
+  c.chip.className = M[state][0]; c.chip.replaceChildren(...M[state][1]);
+}
+
+/* 02 · site de réservation directe, construit en blocs */
+const C2 = chapters[2];
+const S = T.site;
+const site = at(C2, 'site', 'card');
+const pg = h('div', { class: 'pg' });
+site.append(h('div', { class: 'sbar' }, h('i'), h('i'), h('i'), h('span', {}, S.brand)), pg);
+const bookBtn = h('span', { class: 'bk' }, S.book);
+const blocks = [
+  h('div', { class: 'blk sh' }, h('span', { class: 'mono' }, 'MZ'), h('b', {}, S.brand), h('nav', {}, S.nav.map((n) => h('span', {}, n))), bookBtn),
+  h('div', { class: 'blk hero7' }, h('div', { class: 'tx' }, h('small', {}, S.sign), h('h3', {}, S.title)), h('img', { src: PH + 'guesthouse.jpg', alt: '' })),
+];
+const cal = h('div', { class: 'g' }, S.week.map((d) => h('span', { class: 'hd' }, d)),
+  Array.from({ length: 31 }, (_, i) => { const d = i + 1; return h('span', { class: d === 14 || d === 17 ? 'sel' : d > 14 && d < 17 ? 'rng' : '' }, String(d)); }));
+blocks.push(h('div', { class: 'blk row7' },
+  h('div', { class: 'room7' }, h('img', { src: PH + 'bedroom.jpg', alt: '' }), h('div', {}, h('b', {}, S.room), h('small', {}, S.roomMeta), h('div', { class: 'pr' }, S.price, ' ', h('span', {}, S.nightly)))),
+  h('div', { class: 'cal7' }, h('b', {}, S.month), cal)));
+blocks.forEach((b) => pg.append(b));
+const zero = at(C2, 'zero');
+const stepEls = S.steps.map((s, i) => h('div', { class: 's' }, h('i', {}, String(i + 1)), s));
+zero.append(h('div', { class: 'z' }, S.zero), h('div', { class: 'zl' }, S.zeroLabel),
+  h('div', { class: 'chips' }, S.chips.map((c) => h('span', { class: 'chip' }, icon('check', 20), c))), h('div', { id: 'steps7' }, stepEls));
+
+/* 03 · courbe de prix au-dessus du plancher + carte de validation */
+const C3 = chapters[3];
+const R = T.rev;
+const rev = K.productWindow({ title: R.window, icon: 'shield' });
+rev.el.id = 'rev7'; rev.el.classList.add('abs'); C3.append(rev.el);
+const CW = 944, CHh = 400, NIGHTS = 14, LOW = [7, 8, 9];
+const base = R.unit === 'MAD' ? [780, 800, 820, 850, 800, 780, 760, 760, 760, 760, 820, 880, 860, 800] : [540, 550, 560, 580, 550, 540, 520, 520, 520, 520, 560, 600, 590, 550];
+const floorV = R.unit === 'MAD' ? 680 : 450;
+const vmin = floorV - (R.unit === 'MAD' ? 60 : 40), vmax = Math.max(...base) + (R.unit === 'MAD' ? 40 : 25);
+const cx = (i) => { const x = 40 + i * (CW - 80) / (NIGHTS - 1); return RTL ? CW - x : x; };
+const cy = (v) => CHh - 40 - (v - vmin) / (vmax - vmin) * (CHh - 80);
+const curve = svgEl('svg', { id: 'curve', viewBox: `0 0 ${CW} ${CHh + 30}` });
+const band = svgEl('rect', { y: 10, height: CHh - 50, fill: 'rgba(154,108,58,.12)', rx: 12 });
+const bx = Math.min(cx(LOW[0]), cx(LOW[2])) - 26; band.setAttribute('x', bx); band.setAttribute('width', Math.abs(cx(LOW[2]) - cx(LOW[0])) + 52);
+const floorLine = svgEl('line', { x1: 20, x2: CW - 20, y1: cy(floorV), y2: cy(floorV), stroke: '#B45733', 'stroke-width': 3, 'stroke-dasharray': '10 10' });
+const floorTxt = svgEl('text', { x: RTL ? CW - 24 : 24, y: cy(floorV) + 32, fill: '#96472A', 'font-size': 20, 'font-weight': 700, 'text-anchor': 'start' });
+floorTxt.textContent = R.floorLabel;
+const line = svgEl('path', { fill: 'none', stroke: '#25406E', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 100 });
+const dots = base.map(() => svgEl('circle', { r: 8, fill: '#FDFDFE', stroke: '#25406E', 'stroke-width': 4 }));
+const labels = base.map((_, i) => { const tx = svgEl('text', { x: cx(i), y: CHh + 22, 'text-anchor': 'middle', 'font-size': 18, fill: '#67757C' }); tx.textContent = String(14 + i); return tx; });
+curve.append(band, floorLine, floorTxt, line, ...dots, ...labels);
+rev.body.append(h('div', { class: 'cl' }, R.chart), curve);
+function drawCurve(vals) {
+  line.setAttribute('d', vals.map((v, i) => `${i ? 'L' : 'M'}${cx(i)} ${cy(v)}`).join(' '));
+  dots.forEach((d, i) => { d.setAttribute('cx', cx(i)); d.setAttribute('cy', cy(vals[i])); d.setAttribute('stroke', LOW.includes(i) ? '#9A6C3A' : '#25406E'); });
+}
+const hitl = at(C3, 'hitl7', 'card');
+const goBtn = h('div', { class: 'go' }, icon('check', 26), R.approve);
+const hChip = h('span', { class: 'chip wait' }, R.wait);
+hitl.append(h('div', { class: 'hd' }, h('span', { class: 'ic' }, icon('trend', 30)), h('div', {}, h('b', {}, R.agent), h('small', {}, R.property)), hChip),
+  h('h4', {}, R.title), h('p', {}, R.copy),
+  h('div', { class: 'pr' }, h('span', {}, R.priceLabel), h('b', {}, `${R.from} → `, h('em', {}, `${R.to}`), ` ${R.unit}`)),
+  h('div', { class: 'fo' }, icon('shield', 22), R.floorOk), goBtn);
+const team = at(C3, 'team7');
+team.append(h('div', { class: 'ics' }, ['trend', 'chat', 'broom', 'bank', 'star', 'sync', 'shield', 'concierge', 'owner', 'megaphone'].map((ic) => h('span', {}, icon(ic, 22)))),
+  h('b', {}, R.team[0]), h('small', {}, R.team[1]));
+
+/* 04 · livret dans le téléphone + offres d'extras */
+const C4 = chapters[4];
+const G = T.guide;
+const ph = K.phone({ left: RTL ? 1420 : 150, top: 182 });
+C4.append(ph.el);
+set(ph.el, { transform: 'scale(.7)', transformOrigin: 'top left' });
+const gv = h('div', { class: 'gv', dir: T.dir },
+  h('div', { class: 'cv' }, h('img', { src: PH + 'pmsRiad.webp', alt: '' }), h('b', {}, G.greeting)),
+  h('div', { class: 'in' }, h('div', { class: 'pn' }, G.property), h('div', { class: 'dt' }, G.dates),
+    h('div', { class: 'tiles' }, G.tiles.map(([v, l]) => h('div', {}, h('b', {}, v), h('span', {}, l)))),
+    h('div', { class: 'sec' }, G.section),
+    h('div', { class: 'mini' }, h('img', { src: PH + G.offers[0][0], alt: '' }), h('div', {}, h('b', {}, G.offers[0][1]), h('div', { class: 'dt' }, G.offers[0][3] + ' ' + G.unit))),
+    h('div', { class: 'link' }, icon('globe', 14), G.link)));
+ph.scaler.append(gv);
+const offers = at(C4, 'offers');
+const addBtns = [];
+const offerEls = G.offers.map(([photo, title, detail, price]) => {
+  const ad = h('span', { class: 'ad' }, G.add);
+  addBtns.push(ad);
+  const el = h('div', { class: 'of' }, h('img', { src: PH + photo, alt: '' }),
+    h('div', { class: 'bd' }, h('b', {}, title), h('small', {}, detail), h('div', { class: 'ft' }, h('span', { class: 'pr' }, price, ' ', h('span', {}, G.unit)), ad)));
+  offers.append(el);
+  return el;
+});
+const sel = at(C4, 'sel7');
+const selChip = h('span', { class: 'chip' }, icon('check', 18), G.offers[1][1]);
+const selTotal = h('b', {}, '0');
+sel.append(h('span', { class: 'lb' }, G.selection), selChip, h('span', { class: 'tt' }, G.total, selTotal, ' ' + G.unit));
+const chefPrice = Number(G.offers[1][3].replace(/\D/g, ''));
+
+/* 05 · chaîne départ → paiement débloqué, checklist, preuve photo */
+const C5 = chapters[5];
+const O = T.ops;
+const chain = at(C5, 'chain');
+const nodes = [], lines = [];
+O.chain.forEach((c, i) => {
+  if (i) { const b = h('b'); lines.push(b); chain.append(h('span', { class: 'ln' }, b)); }
+  const n = h('span', { class: 'nd' }, h('i', {}, icon('check', 24)), c); nodes.push(n); chain.append(n);
+});
+const chk = at(C5, 'chk', 'card');
+const tasks = O.tasks.map((x, i) => h('div', { class: 'tk' }, h('i', {}, icon('check', 20)), x, i === 2 ? h('img', { src: PH + 'operationsProof.webp', alt: '' }) : null));
+const chkCount = h('span', {}, '0 / 3');
+const chkBtn = h('div', { class: 'go' }, icon('check', 24), O.action);
+chk.append(h('div', { class: 'ph' }, h('img', { src: PH + 'bedroom.jpg', alt: '' }), h('div', { class: 'pc' }, h('b', {}, O.property), O.time)),
+  h('div', { class: 'bd' }, h('div', { class: 'tm' }, h('img', { src: K.guestPhoto('nadia'), alt: '' }), h('span', {}, O.team), chkCount), ...tasks, chkBtn));
+const proof = K.photoFrame('operationsProof.webp');
+proof.el.id = 'proof'; C5.append(proof.el);
+const ver = h('span', { class: 'ver' }, icon('check', 22), O.verified);
+proof.el.append(h('span', { class: 'bdg7' }, icon('file', 22), O.evidence), ver);
+const payout = at(C5, 'payout', 'card');
+const payTrack = K.progressTrack(5);
+const payChip = h('span', { class: 'chip' }, icon('check', 18), O.payout[2]);
+payout.append(h('div', { class: 'k' }, icon('bank', 24), O.payout[0], payChip), h('div', { class: 'v' }, O.payout[1]), payTrack.el);
+
+/* 06 · moyens de paiement, facture, relevé propriétaire */
+const C6 = chapters[6];
+const FI = T.fin;
+const pay6 = at(C6, 'pay6');
+const lgs = [h('span', {}, h('b', { class: 'ptabs' }, 'PayTabs')), h('span', {}, h('img', { src: BR + 'payzone.svg', alt: '' })), h('span', {}, h('img', { src: BR + 'youcanpay.svg', alt: '' })), h('span', {}, h('img', { src: BR + 'stripe.svg', alt: '' }))];
+const IV = FI.invoice;
+const invLines = IV.lines.map(([a, b]) => h('div', { class: 'l' }, h('span', {}, a), h('b', {}, `${b} ${IV.unit}`)));
+const invTot = h('div', { class: 'tl' }, h('span', {}, IV.total[0]), h('b', {}, `${IV.total[1]} ${IV.unit}`));
+const invChips = [h('span', { class: 'chip ok' }, icon('check', 20), IV.paid), h('span', { class: 'chip neutral' }, icon('file', 20), IV.issued)];
+pay6.append(h('div', { class: 'lb' }, FI.providers), h('div', { class: 'lgs' }, lgs),
+  h('div', { id: 'inv7', class: 'card' }, h('div', { class: 't' }, h('span', {}, IV.title), icon('receipt', 28)), ...invLines, invTot, h('div', { class: 'cs' }, invChips)));
+const ST = FI.st;
+const st7 = at(C6, 'st7', 'card');
+const stLines = [[ST.gross, ST.values[0], ''], [ST.commission, ST.values[1], '−'], [ST.expenses, ST.values[2], '−']].map(([a, v, s]) => h('div', { class: 'l' }, h('span', {}, a), h('b', {}, `${s}${fmt(v)} ${ST.unit}`)));
+const netV = h('b', {}, '0');
+const stSent = h('span', { class: 'chip ok sent' }, icon('send', 20), ST.sent);
+st7.append(h('div', { class: 't' }, ST.title), h('div', { class: 'p' }, ST.property),
+  h('div', { class: 'ms' }, ST.months.map((m, i) => h('span', { class: i === 2 ? 'on' : '' }, m))), ...stLines,
+  h('div', { class: 'net' }, h('span', {}, ST.net), h('span', {}, netV, ' ', h('small', {}, ST.unit))), h('div', {}, stSent));
+
+/* 07 · le planning passe d'une langue à l'autre (et d'un sens de lecture à l'autre) */
+const C7 = chapters[7];
+const ROWS7 = [
+  [{ status: 'confirmed', from: [0, 15], to: [3, 11], guest: 'omar', av: true, nights: 3 },
+   { status: 'pending', from: [3, 15], to: [5, 11], guest: 'sara', av: true, nights: 2 }],
+  [{ status: 'checked_in', from: [0, 1], to: [2, 11], guest: 'jad', av: true, nights: 3, wrench: true }, { blocked: true, from: 3, to: 5 }],
+  [{ orphan: 'broom', day: 0 }, { status: 'confirmed', from: [1, 15], to: [4, 11], guest: 'nadia', av: true, nights: 3, combo: 1 }],
+  [{ status: 'confirmed', from: [0, 15], to: [2, 11], guest: 'karim', av: true, nights: 2, logo: 'airbnb' }, { orphan: 'wrench', day: 3 }],
+];
+const pl7 = {};
+T.langs.order.forEach((lg) => {
+  const box = at(C7, 'pl7' + lg, 'pl7');
+  const rtl = lg === 'ar';
+  box.dir = rtl ? 'rtl' : 'ltr';
+  if (rtl) { box.classList.add('rtl'); box.style.fontFamily = "'Tajawal', 'BM', sans-serif"; }
+  else { box.style.cssText += ";--fb:'BM',sans-serif;--fd:'BSG',sans-serif;font-family:'BM',sans-serif"; }
+  pl7[lg] = { box, pl: K.planning(box, { P: PLANS_L[lg], dw: 145, days: PLANS_L[lg].days, today: 0, weekend: PLANS_L[lg].weekend, rows: ROWS7 }), rtl };
+});
+const LEAVES = '.pcol, .pday, .bar, .blocked, .orphan, .now';
+let flips = null;
+function measureFlips() {
+  const o = T.langs.order;
+  flips = [0, 1].map((k) => {
+    const a = pl7[o[k]], b = pl7[o[k + 1]];
+    const la = [...a.box.querySelectorAll(LEAVES)], lb = [...b.box.querySelectorAll(LEAVES)];
+    return { from: a, to: b, mirror: a.rtl !== b.rtl, leaves: la.map((el, i) => ({ el, dx: K.posIn(lb[i], K.stage).x - K.posIn(el, K.stage).x })) };
+  });
+}
+const ctr = at(C7, 'ctr7');
+const ctrEls = T.langs.countries.map((c) => { const e = h('span', { class: 'chip' }, icon('pin', 24), c); ctr.append(e); return e; });
+
+/* Fin */
+const C8 = chapters[8];
+const tEnd = at(C8, 'tEnd', 'title');
+const e1 = h('div', {}), e2 = h('div', {});
+tEnd.append(e1, e2);
+const e1w = words(e1, T.tEnd[0], []), e2w = words(e2, T.tEnd[1], T.tEnd[1].split(' ').slice(-2));
+K.endMount();
+
+/* Balayage */
+const wipe = K.abs('wipe');
+const wipeHouse = houseSvg(360);
+wipe.append(wipeHouse.s);
+
+let pts = null;
+function points() {
+  return { book: center(bookBtn), go: center(goBtn), add: center(addBtns[1]), chk: center(chkBtn) };
+}
+
+function renderAt(t) {
+  if (!pts) pts = points();
+  if (!flips) measureFlips();
+  /* Chapitre courant (la bascule se fait sous le balayage) */
+  chapters.forEach((el, i) => { el.style.opacity = t >= WIN[i][0] && t < WIN[i][1] ? 1 : 0; });
+  ill.style.opacity = t >= CH[0] && t < CH[CH.length - 1] ? 1 : 0;
+  const c = CH.find((x) => Math.abs(t - x) < .5);
+  if (c != null && c < CH[CH.length - 1] + .01) {
+    const p = easeInOut(prog(t, c - .5, 1));
+    set(wipe, { opacity: 1, transform: `translateX(${lerp(1920, -1920, p) * DIR}px)` });
+    set(wipeHouse.trait, { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * p) });
+    set(wipeHouse.pk, { strokeDashoffset: String(-94 * p) });
+  } else wipe.style.opacity = 0;
+
+  /* Intro */
+  wordEls.forEach((el, i) => {
+    const pIn = easeOut(prog(t, .2 + i * .22, .5));
+    const conv = easeInOut(prog(t, 2.9 + i * .05, .8));
+    const c0 = center(el);
+    set(el, { opacity: pIn * (1 - conv), transform: `translate(${(960 - c0.x) * conv}px, ${(540 - c0.y) * conv}px) scale(${lerp(1, .3, conv)})` });
+  });
+  set(introHouse.trait, { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * easeInOut(prog(t, 3.3, 1.0))) });
+  set(introHouse.pk, { opacity: t > 4.3 ? 1 : 0, strokeDashoffset: String(-94 * prog(t, 4.3, 1.2)) });
+
+  /* 01 */
+  K.planningEnter(t, 5.4, pl1);
+  const d = prog(t, SYNC.drop, .55);
+  const bounce = d < .7 ? lerp(-60, 8, easeOut(d / .7)) : lerp(8, 0, easeOut((d - .7) / .3));
+  set(newBar, { opacity: easeOut(prog(t, SYNC.drop, .2)), transform: `translateY(${bounce}px)`, clipPath: 'none' });
+  const fl = easeOut(prog(t, 6.0, .6));
+  set(flow1, { opacity: fl, transform: `translateX(${lerp(40 * DIR, 0, fl)}px)` });
+  const RECV = SYNC.drop + .8, DIFF = RECV + .5;
+  const rowY = (i) => crows[i].el.offsetTop + 32;
+  if (t > SYNC.drop && t < RECV) { const p = easeInOut(prog(t, SYNC.drop, .8)); set(pk1, { opacity: 1, top: lerp(rowY(0), -30, p) + 'px', background: '#C5E0ED' }); }
+  else if (t > DIFF && t < DIFF + .9) { const p = easeInOut(prog(t, DIFF, .9)); set(pk1, { opacity: 1, top: lerp(-30, rowY(3), p) + 'px', background: '#E0C89B' }); }
+  else pk1.style.opacity = 0;
+  const flash = t > RECV && t < RECV + .6 ? 1 - Math.abs((t - RECV - .3) / .3) : 0;
+  hub1.style.borderColor = `color-mix(in srgb, #E0C89B ${Math.round(flash * 100)}%, #4F6B80)`;
+  crows.forEach((cr, i) => {
+    if (i === 0) chip1(cr, t >= SYNC.drop ? 'booked' : 'open');
+    else chip1(cr, t >= DIFF + .3 * i ? 'closed' : 'open');
+  });
+  st1.style.opacity = easeOut(prog(t, DIFF + 1.1, .4));
+
+  /* 02 */
+  set(site, { opacity: easeOut(prog(t, 15.2, .5)) });
+  blocks.forEach((b, i) => { const p = easeOut(prog(t, 15.7 + i * .8, .55)); set(b, { opacity: p, transform: `translateY(${lerp(30, 0, p)}px)` }); });
+  const zp = easeOut(prog(t, 19.6, .6));
+  set(zero, { opacity: zp, transform: `translateY(${lerp(24, 0, zp)}px)` });
+  K.handTap(t, 20.3, pts.book);
+  stepEls.forEach((s, i) => s.classList.toggle('on', t >= 20.5 + i * .55));
+
+  /* 03 */
+  set(rev.el, { opacity: easeOut(prog(t, 24.2, .5)) });
+  const vals = base.map((v, i) => (LOW.includes(i) ? lerp(v, R.to, easeInOut(prog(t, SYNC.approve + .3, .9))) : v));
+  drawCurve(vals);
+  set(line, { strokeDasharray: '100 100', strokeDashoffset: String(100 - 100 * easeInOut(prog(t, 24.6, 1.2))) });
+  dots.forEach((dd, i) => { dd.style.opacity = easeOut(prog(t, 24.8 + i * .07, .3)); });
+  band.style.opacity = easeOut(prog(t, 26.2, .5));
+  const hp = easeOut(prog(t, 26.6, .6));
+  set(hitl, { opacity: hp, transform: `translateY(${lerp(30, 0, hp)}px)` });
+  const ok = t >= SYNC.approve + .1;
+  if (goBtn.dataset.s !== String(ok)) {
+    goBtn.dataset.s = ok; goBtn.className = 'go' + (ok ? ' done' : ''); goBtn.replaceChildren(icon('check', 26), ok ? R.ok : R.approve);
+    hChip.className = 'chip ' + (ok ? 'ok' : 'wait'); hChip.replaceChildren(...(ok ? [icon('check', 18), R.ok] : [R.wait]));
+  }
+  K.cursorMove(t, SYNC.approve - 1.1, .9, { x: pts.go.x - 260 * DIR, y: pts.go.y - 220 }, pts.go, SYNC.approve + .8);
+  K.tapAt(t, SYNC.approve, pts.go);
+  const tp = easeOut(prog(t, 28.8, .6));
+  set(team, { opacity: tp, transform: `translateY(${lerp(20, 0, tp)}px)` });
+
+  /* 04 */
+  const pp = easeOut(prog(t, 34.2, .6));
+  set(ph.el, { opacity: pp, transform: `translateY(${lerp(40, 0, pp)}px) scale(.7)` });
+  offerEls.forEach((el, i) => { const p = easeOut(prog(t, 36.0 + i * .35, .55)); set(el, { opacity: p, transform: `translateX(${lerp(60 * DIR, 0, p)}px)` }); });
+  K.handTap(t, SYNC.add, pts.add);
+  const added = t >= SYNC.add + .1;
+  if (addBtns[1].dataset.s !== String(added)) { addBtns[1].dataset.s = added; addBtns[1].className = 'ad' + (added ? ' on' : ''); addBtns[1].replaceChildren(...(added ? [icon('check', 18), G.added] : [G.add])); }
+  set(sel, { opacity: easeOut(prog(t, 37.4, .5)) });
+  selChip.style.opacity = easeOut(prog(t, SYNC.add + .2, .35));
+  selTotal.textContent = fmt(chefPrice * easeOut(prog(t, SYNC.add + .2, .7)));
+
+  /* 05 */
+  const N5 = [43.6, 44.8, 45.9, 47.2, 48.8];
+  nodes.forEach((n, i) => n.classList.toggle('on', t >= N5[i]));
+  lines.forEach((l, i) => { l.style.width = easeOut(prog(t, N5[i + 1] - .5, .5)) * 100 + '%'; });
+  set(chain, { opacity: easeOut(prog(t, 43.3, .4)) });
+  const ck = easeOut(prog(t, 44.6, .5));
+  set(chk, { opacity: ck, transform: `translateY(${lerp(30, 0, ck)}px)` });
+  const TK = [45.4, 46.2, 47.0];
+  tasks.forEach((tk, i) => tk.classList.toggle('on', t >= TK[i]));
+  chkCount.textContent = `${TK.filter((x) => t >= x).length} / 3`;
+  const ready = t >= TK[2], done5 = t >= SYNC.proof + .1;
+  chkBtn.className = 'go' + (done5 ? ' done' : ready ? ' on' : '');
+  if (chkBtn.dataset.s !== String(done5)) { chkBtn.dataset.s = done5; chkBtn.replaceChildren(icon('check', 24), done5 ? O.done : O.action); }
+  K.cursorMove(t, SYNC.proof - 1.0, .8, { x: pts.chk.x + 200 * DIR, y: pts.chk.y + 160 }, pts.chk, SYNC.proof + .7);
+  K.tapAt(t, SYNC.proof, pts.chk);
+  const pf = easeOut(prog(t, 45.0, .6));
+  set(proof.el, { opacity: pf, transform: `translateY(${lerp(30, 0, pf)}px)` });
+  proof.img.style.transform = `scale(${lerp(1.08, 1, easeOut(prog(t, 45.0, 5)))})`;
+  set(ver, { opacity: easeOut(prog(t, SYNC.proof + .2, .4)) });
+  const po = easeOut(prog(t, 48.8, .5));
+  set(payout, { opacity: po, transform: `translateY(${lerp(30, 0, po)}px)` });
+  payTrack.set(easeOut(prog(t, 49.0, 1.4)));
+
+  /* 06 */
+  lgs.forEach((l, i) => { const p = easeOut(prog(t, 52.6 + i * .2, .45)); set(l, { opacity: p, transform: `translateY(${lerp(18, 0, p)}px)` }); });
+  set(pay6, { opacity: 1 });
+  const iv = easeOut(prog(t, 53.4, .5));
+  set(pay6.querySelector('#inv7'), { opacity: iv, transform: `translateY(${lerp(24, 0, iv)}px)` });
+  [...invLines, invTot].forEach((el, i) => { el.style.opacity = easeOut(prog(t, 53.9 + i * .45, .4)); });
+  invChips.forEach((el, i) => { el.style.opacity = easeOut(prog(t, 55.4 + i * .3, .4)); });
+  const sp = easeOut(prog(t, 54.8, .6));
+  set(st7, { opacity: sp, transform: `translateY(${lerp(24, 0, sp)}px)` });
+  stLines.forEach((el, i) => { el.style.opacity = easeOut(prog(t, SYNC.statement - 1.2 + i * .35, .4)); });
+  netV.textContent = fmt(ST.values[3] * easeOut(prog(t, SYNC.statement, 1.0)));
+  stSent.style.opacity = easeOut(prog(t, SYNC.statement + 1.3, .4));
+
+  /* 07 : bascules de langue (miroir quand le sens de lecture change) */
+  const o = T.langs.order;
+  const [f1, f2] = SYNC.flips;
+  flips.forEach((Fx) => Fx.leaves.forEach(({ el }) => { el.style.transform = ''; }));
+  const enter = easeOut(prog(t, 61.3, .6));
+  K.planningEnter(t, 61.5, pl7[o[0]].pl);
+  [o[1], o[2]].forEach((lg) => { pl7[lg].pl.bars.forEach((b) => set(b, { opacity: 1, clipPath: 'none' })); if (pl7[lg].pl.now) pl7[lg].pl.now.style.opacity = 1; });
+  const fk = t < f2 - .05 ? 0 : 1, F7 = flips[fk], ft = SYNC.flips[fk];
+  const fp = easeInOut(prog(t, ft, .9)), sw = easeOut(prog(t, ft + .8, .35));
+  if (F7.mirror) F7.leaves.forEach(({ el, dx }) => { el.style.transform = `translateX(${dx * fp}px)`; });
+  const op = fk === 0 ? [enter * (1 - sw), sw, 0] : [0, 1 - sw, sw];
+  o.forEach((lg, i) => { pl7[lg].box.style.opacity = op[i]; });
+  ctrEls.forEach((el, i) => { const p = easeOut(prog(t, 63.9 + i * .85, .45)); set(el, { opacity: p, transform: `translateY(${lerp(16, 0, p)}px)` }); });
+
+  /* Fin */
+  K.endRender(t, CH[7] + .6);
+  titleIn(e1w, t, CH[7] + 1.2);
+  titleIn(e2w, t, CH[7] + 1.9);
+}
+K.finalize(renderAt, () => { pts = null; flips = null; });
+</script>
+</body>
+</html>

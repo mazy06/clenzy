@@ -163,6 +163,16 @@ public final class SupervisionActionType {
     public static final String POLICE_DECLARE = "POLICE_DECLARE";
 
     /**
+     * Ferme le calendrier jusqu'au 31 décembre d'une résidence principale qui a atteint
+     * son plafond annuel de nuitées (agent Conformité, France). Réutilise
+     * {@code NightsCapService.closeRestOfYear} : seuls les jours libres sont bloqués
+     * (source {@code REGULATORY_CAP}), propagés aux canaux. Écritures DB → dans la
+     * transaction. Jamais automatisable : REFUSER la carte est une dérogation, notifiée
+     * aux gestionnaires. Params : aucun (logement porté par la carte).
+     */
+    public static final String NIGHTS_CAP_CLOSE = "NIGHTS_CAP_CLOSE";
+
+    /**
      * Envoie le mandat de gestion en signature électronique (agent Conformité) :
      * génération du document si absent + lien de signature SES interne au propriétaire,
      * via {@code ContractSignatureService.requestSignature}. EFFET EXTERNE (email) →

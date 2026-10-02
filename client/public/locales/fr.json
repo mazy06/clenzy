@@ -1325,7 +1325,8 @@
       "order": "Commander",
       "accept": "Accepter",
       "erase": "Effacer",
-      "publish": "Publier"
+      "publish": "Publier",
+      "closeCalendar": "Fermer le calendrier"
     },
     "schedule": {
       "title": "Planifier l’intervention",
@@ -1444,6 +1445,13 @@
         "c2": "Sans personne de libre, la demande reste sans suite : il faudra assigner à la main.",
         "cta": "Relancer la recherche",
         "title": "Relancer la recherche d’un prestataire"
+      },
+      "nightsCapClose": {
+        "title": "Fermer le calendrier jusqu’au 31 décembre",
+        "cta": "Fermer le calendrier",
+        "c1": "Les nuits libres deviennent invendables sur tous les canaux jusqu’à la fin de l’année.",
+        "c2": "Les réservations déjà prises sont conservées.",
+        "c3": "Refuser la carte revient à déroger au plafond légal : les gestionnaires en sont prévenus."
       }
     },
     "params": {
@@ -1614,7 +1622,8 @@
       "alwaysValidated": "Validation requise",
       "alwaysValidatedHint": "Les actions de cet agent engagent trop (légal, contractuel, public) pour partir sans vous : elles arrivent toujours en carte à valider.",
       "autonomy": "Autonomie",
-      "cardsView": "Vue cartes",
+      "cardsView": "Vue agents",
+      "lastActivity": "Dernière activité",
       "inProgress": "en cours",
       "orbitView": "Vue constellation",
       "queueTitle": "À valider",
@@ -4678,7 +4687,36 @@
     "reactivateBody": "réapparaîtra dans le planning, les recherches et le moteur de réservation.",
     "icalTip": "Astuce : une fois un logement créé, branchez son lien iCal pour synchroniser automatiquement les réservations.",
     "noPhone": "Téléphone non renseigné",
-    "noEmail": "E-mail non renseigné"
+    "noEmail": "E-mail non renseigné",
+    "frProfile": {
+      "title": "Profil réglementaire France",
+      "use": "Usage du logement",
+      "useUnset": "Non renseigné",
+      "uses": {
+        "principal": "Résidence principale",
+        "secondary": "Résidence secondaire",
+        "dedicated": "Meublé de tourisme dédié",
+        "guestHouse": "Chambre d’hôtes"
+      },
+      "insee": "Commune (code INSEE)",
+      "maxNights": "Plafond annuel (nuits)",
+      "maxNightsHint": "120 nuits au plus ; votre commune peut l’abaisser jusqu’à 90.",
+      "policeForm": "Fiche de police des voyageurs étrangers",
+      "nightsUsed": "Nuits louées en {{year}}",
+      "nightsLeft": "{{count}} restantes",
+      "registration": {
+        "label": "N° d’enregistrement",
+        "valid": "Conforme",
+        "absent": "Manquant",
+        "malformed": "À corriger",
+        "mismatch": "Autre commune",
+        "unchecked": "Non vérifié",
+        "hint": "Obligatoire sur toute annonce : ajoutez-le ci-dessous comme « Enregistrement touristique »."
+      },
+      "policeRegister": "Registre des fiches (6 mois)",
+      "inseeDeduced": "Déduite de l’adresse du logement (Base Adresse Nationale).",
+      "inseeUnresolved": "Commune introuvable : vérifiez l’adresse, le code postal et la ville du logement."
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -5426,7 +5464,12 @@
       "blockNight": "nuit bloquée",
       "blockNights": "nuits bloquées",
       "blockErrorRequired": "Veuillez sélectionner un logement et des dates.",
-      "blockErrorFailed": "Erreur lors du blocage"
+      "blockErrorFailed": "Erreur lors du blocage",
+      "nightsCap": {
+        "title": "Plafond annuel de nuitées dépassé",
+        "hint": "Résidence principale : 120 nuits par an au plus. Vous pouvez déroger ; les gestionnaires de l’organisation en seront prévenus.",
+        "override": "Déroger et créer"
+      }
     },
     "compliance": {
       "title": "Fiche de police",
@@ -5438,7 +5481,15 @@
       "success": "Transmise au téléservice",
       "notSubmitted": "Non transmise",
       "providerPending": "Intégration provider en attente",
-      "error": "Échec de la transmission"
+      "error": "Échec de la transmission",
+      "exempt": "Dispensé",
+      "toComplete": "À compléter",
+      "retained": "Conservée",
+      "downloadPdf": "Télécharger les fiches (PDF)",
+      "downloadError": "Téléchargement impossible",
+      "exemptHint": "Ressortissant français : pas de fiche",
+      "purgeAfter": "Purge le {{date}}",
+      "retainedHint": "Remise à la police sur demande"
     },
     "title": "Réservations",
     "subtitle": "Consultez et gérez les réservations de vos propriétés",
@@ -12192,7 +12243,10 @@
       "persons": "Pers.",
       "commune": "Commune",
       "tax": "Taxe",
-      "total": "Total collecté"
+      "total": "Total collecté",
+      "platformCollected": "Collectée par la plateforme",
+      "totalToRemit": "Total à reverser à la commune",
+      "platformTotal": "Déjà collectée et reversée par les plateformes (ne pas déclarer)"
     },
     "errors": {
       "save": "Impossible d’enregistrer le barème.",
@@ -12213,6 +12267,24 @@
       "status": "Statut",
       "subtitle": "Un trimestre clôturé = une entrée. Après ton dépôt auprès de l’autorité, marque la déclaration (référence facultative) — la carte de l’agent Conformité se résout.",
       "title": "Registre des déclarations"
+    },
+    "reference": {
+      "category": "Classement du logement",
+      "prefill": "Pré-remplir (référentiel officiel)",
+      "help": "Tarifs délibérés par la commune, publiés par la DGFiP. Île-de-France : surtaxes régionales de 15 % et 200 % incluses.",
+      "inseeRequired": "Saisissez d’abord le code INSEE de la commune (5 caractères).",
+      "applied": "Barème {{year}} de la commune repris du référentiel DGFiP — vérifiez-le avant d’enregistrer.",
+      "notFound": "Aucun tarif publié pour cette commune et cette catégorie (taxe peut-être non instituée).",
+      "error": "Référentiel officiel indisponible, réessayez plus tard.",
+      "cat": {
+        "unclassified": "Non classé",
+        "stars1": "Meublé 1 étoile",
+        "stars2": "Meublé 2 étoiles",
+        "stars3": "Meublé 3 étoiles",
+        "stars4": "Meublé 4 étoiles",
+        "stars5": "Meublé 5 étoiles",
+        "guestHouse": "Chambre d’hôtes"
+      }
     }
   },
   "marketPositioning": {
@@ -18814,5 +18886,23 @@
     "reviewTitle": "Vérifier la sélection",
     "reviewIntro": "Ajustez la quantité et la pièce de chaque objet avant de l’ajouter.",
     "browseMore": "Continuer à parcourir"
+  },
+  "frCompliance": {
+    "title": "Conformité France",
+    "property": "Logement",
+    "registration": "N° d’enregistrement",
+    "nightsCap": "Plafond de nuitées",
+    "policeForm": "Fiche de police",
+    "touristTax": "Taxe de séjour",
+    "notRequired": "Non requis",
+    "ok": "Conforme",
+    "missing": "Manquant",
+    "toFix": "À corriger",
+    "noCap": "Sans plafond",
+    "active": "Active",
+    "inactive": "Inactive",
+    "configured": "Barème défini",
+    "noBareme": "Sans barème",
+    "communeUnresolved": "Commune introuvable — vérifier l’adresse"
   }
 }

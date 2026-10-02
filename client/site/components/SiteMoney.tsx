@@ -8,7 +8,6 @@ import {
   useSiteCurrency,
   type SiteCurrency,
 } from '../lib/siteCurrency';
-import '../site-money.css';
 
 const numberFormats = new Map<string, Intl.NumberFormat>();
 function formatNumber(value: number, language: SiteLanguage, decimals: number) {

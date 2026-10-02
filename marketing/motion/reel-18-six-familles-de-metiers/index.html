@@ -1,0 +1,143 @@
+<!doctype html>
+<!--
+  Baitly · Reel 18 « Six familles de métiers » (Instagram, 1080 × 1920) · FR
+
+  À quoi sert ce fichier : présenter les six familles de services du réseau prestataires (page
+  Prestataires de la landing) et inviter chaque métier à préparer son profil. Pilotée par le temps
+  via le kit partagé ; les plans suivent la voix (slots recalés par align-vo.py).
+  Scène signature : les cartes photo des familles, dites une à une, puis la mosaïque des six qui
+  distingue les services pour les hôtes et ceux vendus aux voyageurs.
+  Déroulé : une chambre prête, « derrière chaque séjour réussi, des savoir-faire » → ménage,
+  maintenance, blanchisserie → jardin et piscine, accueil, chef → la mosaïque, pour les hôtes puis
+  pour leurs voyageurs → promesse → fin (Préparer mon profil · baitly.fr/prestataires).
+  Vérité produit : familles et exemples de la landing ; photos d'illustration, sans prestataires
+  inscrits ; réseau en préparation.
+  Rendu : node ../render.mjs reel-18-six-familles-de-metiers --lang=fr
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Reel 18 Six familles de métiers</title>
+<link rel="stylesheet" href="../shared/base.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<style>
+/* A · la chambre prête */
+#ph0 { left: 80px; top: 290px; width: 920px; height: 620px; opacity: 0; }
+#open { left: 80px; width: 920px; top: 960px; font-size: 76px; }
+#open .w { opacity: 0; }
+.illus { position: absolute; font-size: 20px; font-weight: 600; color: var(--ardoise); background: rgba(253,253,254,.92); border-radius: 999px; padding: 8px 16px; }
+/* B, C · une carte par famille */
+.fam { position: absolute; left: 80px; width: 920px; height: 300px; display: flex; overflow: hidden; opacity: 0; }
+.fam > img { width: 330px; height: 100%; object-fit: cover; flex: none; }
+.fam .tx { flex: 1; padding: 30px 32px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fam .ic { width: 64px; height: 64px; border-radius: 20px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.fam b { font-family: var(--fd); font-size: 40px; font-weight: 700; line-height: 1.1; }
+.fam .ex { display: flex; flex-wrap: wrap; gap: 8px; }
+.fam .ex span { font-size: 21px; font-weight: 600; color: var(--ardoise); background: #F1F5F7; border-radius: 999px; padding: 7px 14px; }
+/* D · la mosaïque */
+.tile { position: absolute; width: 450px; height: 280px; border-radius: 26px; overflow: hidden; opacity: 0; box-shadow: 0 30px 60px -40px rgba(27,42,53,.5); }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile span { position: absolute; left: 14px; bottom: 14px; right: 14px; background: rgba(253,253,254,.94); border-radius: 14px; padding: 10px 14px; font-family: var(--fd); font-size: 26px; font-weight: 700; color: var(--n700); display: flex; align-items: center; gap: 10px; }
+.tile span svg { color: var(--terre); flex: none; }
+.tile i { position: absolute; inset: 0; border-radius: 26px; pointer-events: none; }
+#tags { left: 80px; width: 920px; top: 1220px; display: flex; gap: 16px; justify-content: center; }
+#tags .chip { font-size: 28px; padding: 14px 26px; opacity: 0; }
+#tags .th { background: rgba(37,64,110,.1); color: var(--n600); }
+#tags .tgu { background: rgba(154,108,58,.16); color: var(--encre-terre); }
+/* E · promesse */
+#promise { left: 0; width: 1080px; top: 640px; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+#promise .eyebrow { opacity: 0; }
+#promise .title { font-size: 90px; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis, words, titleIn } = K;
+const PH = '../../brand-book/assets/photos/';
+
+/* A */
+const ph0 = K.photoFrame('bookingTerraceRoom.webp');
+ph0.el.id = 'ph0'; ph0.el.append(h('span', { class: 'illus', style: 'left:24px;bottom:24px' }, T.illustrative));
+K.stage.append(ph0.el);
+const open = K.abs('open', 'title');
+const w1 = words(open, T.open[0]);
+open.append(h('br'));
+const w2 = words(open, T.open[1], T.open[1].split(' ').map((x) => x.replace(/[.,]/g, '')));
+
+/* B, C · cartes des familles (3 + 3) */
+const F = T.families;
+const TOPS = [300, 630, 960];
+const cards = F.map((f, i) => {
+  const el = h('div', { class: 'fam card', style: `top:${TOPS[i % 3]}px` }, h('img', { src: PH + f.photo, alt: '' }),
+    h('div', { class: 'tx' }, h('span', { class: 'ic' }, icon(f.icon, 34)), h('b', {}, f.name), h('div', { class: 'ex' }, f.ex.map((x) => h('span', {}, x)))));
+  K.stage.append(el); return el;
+});
+
+/* D · la mosaïque des six */
+const tiles = F.map((f, i) => {
+  const ring = h('i');
+  const el = h('div', { class: 'tile', style: `left:${80 + (i % 2) * 470}px;top:${300 + Math.floor(i / 2) * 300}px` },
+    h('img', { src: PH + f.photo, alt: '' }), h('span', {}, icon(f.icon, 28), f.name), ring);
+  K.stage.append(el); return { el, ring, who: f.who };
+});
+const tags = K.abs('tags');
+const tH = h('span', { class: 'chip th' }, icon('users', 26), T.tags[0]), tG = h('span', { class: 'chip tgu' }, icon('sparkles', 26), T.tags[1]);
+tags.append(tH, tG);
+
+/* E · promesse puis fin */
+const promise = K.abs('promise');
+const eb = h('span', { class: 'eyebrow' }, T.eyebrow);
+const p1 = h('div', { class: 'title' }, T.promise[0]), p2 = h('div', { class: 'title accent' }, T.promise[1]);
+promise.append(eb, p1, p2);
+K.endMount();
+
+const rise = (el, o, p, dy = 40) => set(el, { opacity: o * p, transform: `translateY(${lerp(dy, 0, p)}px)` });
+const CS = [SYNC.c1, SYNC.c2, SYNC.c3, SYNC.c4, SYNC.c5, SYNC.c6];
+
+function renderAt(t) {
+  const [a0] = slot(0), [a1] = slot(1), [a2] = slot(2), [a3, b3] = slot(3), [a4, b4] = slot(4);
+
+  /* A */
+  const v0 = slotVis(t, 0, .45, .4);
+  const e0 = easeOut(prog(t, a0, .7));
+  set(ph0.el, { opacity: v0 * e0, transform: `scale(${lerp(1.04, 1, e0)})` });
+  titleIn(w1, t, a0 + .3);
+  titleIn(w2, t, a0 + .3 + w1.length * .06 + .3);
+  open.style.opacity = v0;
+
+  /* B, C · chaque carte entre sur son mot, le trio sort à la fin de son plan */
+  cards.forEach((c, i) => {
+    const v = i < 3 ? slotVis(t, 1) : slotVis(t, 2);
+    const p = easeOut(prog(t, CS[i] - .1, .5));
+    set(c, { opacity: v * p, transform: `translateX(${lerp(90, 0, p)}px)` });
+  });
+
+  /* D · la mosaïque, puis hôtes / voyageurs */
+  const v3 = slotVis(t, 3);
+  const hi = t >= SYNC.hosts - .1, gi = t >= SYNC.guests - .1;
+  tiles.forEach((x, i) => {
+    const p = easeOut(prog(t, a3 + i * .1, .45));
+    const dim = hi && !gi && x.who === 'g' ? .4 : 1;
+    set(x.el, { opacity: v3 * p * dim, transform: `scale(${lerp(.94, 1, p)})` });
+    const on = (x.who === 'h' && hi) || (x.who === 'g' && gi);
+    x.ring.style.boxShadow = on ? `inset 0 0 0 6px ${x.who === 'h' ? '#25406E' : '#9A6C3A'}` : 'none';
+  });
+  rise(tH, v3, easeOut(prog(t, SYNC.hosts - .1, .4)), 16);
+  rise(tG, v3, easeOut(prog(t, SYNC.guests - .1, .4)), 16);
+
+  /* E */
+  const v4 = slotVis(t, 4, .5, .35);
+  rise(eb, v4, easeOut(prog(t, a4, .5)), 16);
+  rise(p1, v4, easeOut(prog(t, a4 + .1, .55)), 24);
+  rise(p2, v4, easeOut(prog(t, a4 + (b4 - a4) * .45, .55)), 24);
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt);
+</script>
+</body>
+</html>

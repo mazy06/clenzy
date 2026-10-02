@@ -199,3 +199,33 @@ describe('responsive site navigation', () => {
     ).toHaveAttribute('aria-expanded', 'false');
   });
 });
+
+describe('compact header on scroll', () => {
+  const scrollTo = (y: number) =>
+    act(() => {
+      Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+      fireEvent.scroll(window);
+      vi.advanceTimersByTime(50);
+    });
+
+  it('shrinks after scrolling, without flickering around the threshold', () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = renderHeader();
+      const header = container.querySelector('.site-header')!;
+      expect(header).not.toHaveAttribute('data-compact');
+      scrollTo(30);
+      expect(header).toHaveAttribute('data-compact');
+      // Between the two thresholds the header keeps its current state.
+      scrollTo(15);
+      expect(header).toHaveAttribute('data-compact');
+      scrollTo(0);
+      expect(header).not.toHaveAttribute('data-compact');
+      scrollTo(15);
+      expect(header).not.toHaveAttribute('data-compact');
+    } finally {
+      scrollTo(0);
+      vi.useRealTimers();
+    }
+  });
+});

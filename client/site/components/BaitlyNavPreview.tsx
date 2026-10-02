@@ -35,7 +35,6 @@ import {
 } from '../data/baitlyProductStories';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
-import '../baitly-nav-preview.css';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const {
@@ -133,6 +132,7 @@ export default function BaitlyNavPreview({
     case 'riad':
     case 'saudi':
     case 'morocco':
+    case 'france':
     case 'multi-owner':
       scene = <BaitlySolutionNavPreview kind={kind} language={language} />;
       break;

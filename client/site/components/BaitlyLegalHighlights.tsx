@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { legalArticleImage } from '../data/legal/articleImages';
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
 import type { SiteLanguage } from '../lib/siteLanguage';
-import '../baitly-legal.css';
 
 // Curated teaser copy keeps the homepage independent of the full article corpus.
 const HIGHLIGHTS = [

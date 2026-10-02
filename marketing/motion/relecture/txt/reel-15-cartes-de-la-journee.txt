@@ -1,0 +1,286 @@
+==============================================================================
+REEL 15 · LES CARTES DE LA JOURNÉE — Une journée d’hôte, carte après carte
+Format 9:16 (1080×1920) · 42.5 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 3,6 s]
+      Une journée d'hôte avec Bètli ? Des cartes. Une à la fois, avec tout le contexte.
+  b2  [suit la voix · durée visée 4,6 s]
+      Sept heures et demie : la caution de Sara est libérée. Neuf heures : la réponse à un avis est prête.
+  b3  [suit la voix · durée visée 4,8 s]
+      Midi : le ménage est contrôlé, photos à l'appui. Quatorze heures : un départ tardif, accordé en un clic.
+  b4  [suit la voix · durée visée 5,7 s]
+      Seize heures : entre deux séjours, vous réglez le thermostat à distance. Dix-neuf heures : le relevé part chez le propriétaire.
+  b5  [suit la voix · durée visée 4,8 s]
+      Et à vingt-trois heures quarante, s'il le faut, un avertissement de bruit. … Et entre deux cartes, vous vivez.
+  b6  [suit la voix · durée visée 9,3 s]
+      Et ce que vous validez à chaque fois, Bètli vous propose de l'automatiser. Le ménage en automatique, la caution avec une simple notification… et les remboursements, toujours validés par vous. À vous de régler le curseur.
+  b7  [suit la voix · durée visée 2,2 s]
+      Vous décidez. … Bètli s'occupe du reste.
+  b8  [suit la voix · durée visée 3,3 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–2,66 s]  Une journée d'hôte avec Baitly ? [Des cartes.]
+  ST2  [2,68–5,44 s]  Une à la fois, [avec tout le contexte.]
+  ST3  [5,46–11,11 s]  7 h 30 : [la caution de Sara est libérée.]
+  ST4  [11,13–14,22 s]  9 h : [la réponse à un avis est prête.]
+  ST5  [14,24–17,43 s]  Midi : le ménage est contrôlé, [photos à l'appui.]
+  ST6  [17,45–21,47 s]  14 h : un départ tardif, [accordé en un clic.]
+  ST7  [21,49–24,35 s]  16 h : entre deux séjours, [vous réglez le thermostat à distance.]
+  ST8  [24,37–27,47 s]  19 h : [le relevé part chez le propriétaire.]
+  ST9  [27,49–29,79 s]  Et à 23 h 40, s'il le faut, [un avertissement de bruit.]
+  ST10  [29,81–33,36 s]  Et entre deux cartes, [vous vivez.]
+  ST11  [33,38–36,93 s]  Et ce que vous validez à chaque fois,
+  ST12  [36,95–40,36 s]  Baitly vous propose de l'automatiser.
+  ST13  [28,86–31,88 s]  Le ménage en automatique, [la caution avec une simple notification…]
+  ST14  [31,9–34,14 s]  et les remboursements, [toujours validés par vous.]
+  ST15  [34,16–35,6 s]  À vous de régler le curseur.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Ouverture : mots qui convergent vers le logo
+      E2  Votre journée
+      E3  Une carte à la fois.
+  · Maquette d’interface (libellé)
+      E4  Agent Finance
+      E5  Caution
+      E6  Caution de Sara à libérer · 1 500 MAD
+      E7  Départ il y a 2 jours, aucun dégât signalé.
+      E8  Libérer
+      E9  1 500 MAD libérés
+      E10  Caution
+      E11  1 500 MAD
+      E12  Dégâts
+      E13  Aucun
+      E14  Départ
+      E15  il y a 2 j
+      E16  Agent Réputation
+      E17  Réponse d’avis
+      E18  Avis 5 étoiles de Léa · réponse prête
+      E19  Brouillon rédigé par l’agent, à relire avant publication.
+      E20  Répondre
+      E21  Réponse publiée
+      E22  Séjour parfait, le riad est magnifique !
+      E23  Agent Opérations
+      E24  Contrôle du travail
+      E25  Ménage terminé · Villa Palmeraie
+      E26  8 photos, 2 h 50 réelles, checklist complète.
+      E27  Valider
+      E28  Travail validé
+      E29  Agent Communication
+      E30  Départ tardif
+      E31  Omar demande à partir à 14 h
+      E32  Aucune arrivée ce jour-là : le calendrier le permet.
+      E33  Accepter
+      E34  Départ tardif accordé · réponse envoyée
+      E35  Est-ce qu’on peut partir à 14 h ?
+      E36  Agent Propriétaire
+      E37  Relevé mensuel
+      E38  Relevé d’octobre · Karim Idrissi
+      E39  Montants recalculés depuis les reversements payés.
+      E40  Envoyer
+      E41  Relevé envoyé à Karim
+      E42  Revenus
+      E43  6 420 MAD
+      E44  Commission
+      E45  −1 284 MAD
+      E46  Net
+      E47  5 136 MAD
+      E48  Agent Opérations
+      E49  Bruit
+      E50  Niveau sonore élevé · Riad Nour
+      E51  84 dB depuis 10 min, seuil de nuit 70 dB.
+      E52  Envoyer l’avertissement
+      E53  Avertissement envoyé par WhatsApp
+      E54  En attente
+      E55  Fait
+      E56  Ignorer
+      E57  Thermostat · Studio Gueliz
+      E58  Entre deux séjours · arrivée demain 15:00
+      E59  Humidité 58 %
+      E60  Consigne
+      E61  Réglé à distance
+      E62  °C
+      E63  Plus rien en attente
+      E64  Agent Finance
+      E65  Règle de confiance
+      E66  Vous avez validé les 12 dernières libérations de caution
+      E67  Automatiser ce type de carte ? Vous serez notifié à chaque libération.
+      E68  Activer
+      E69  Ignorer
+      E70  Automatisation activée
+      E71  Automatisation
+      E72  Suggère
+      E73  Notifie
+      E74  Auto
+      E75  Suggérer
+      E76  les agents proposent, vous décidez
+      E77  Agir puis notifier
+      E78  ils agissent et vous informent
+      E79  Auto
+      E80  ils gèrent seuls
+      E81  Planifier le ménage manquant
+      E82  Agent Opérations
+      E83  Libérer les cautions
+      E84  Agent Finance
+      E85  Brouillons de réponse d’avis
+      E86  Agent Réputation
+  · Notification sur écran verrouillé
+      E87  Remboursements et retenues
+      E88  Toujours validés par vous
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E89  Vous décidez.
+      E90  Baitly s’occupe du reste.
+  · Bouton de l’écran de fin
+      E91  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E92  types de cartes
+      E93  agents IA
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 4,4 s]
+      A host's day with Betly? Cards. One at a time, with all the context.
+  b2  [suit la voix · durée visée 5,0 s]
+      Seven thirty: Sara's deposit is released. Nine a.m.: a review reply is ready.
+  b3  [suit la voix · durée visée 6,0 s]
+      Noon: the cleaning is checked, photos included. Two p.m.: a late checkout, granted in one click.
+  b4  [suit la voix · durée visée 6,6 s]
+      Four p.m.: between two stays, you set the thermostat remotely. Seven p.m.: the statement goes to the owner.
+  b5  [suit la voix · durée visée 5,6 s]
+      And at eleven forty p.m., if needed, a noise warning. … And between two cards, you live.
+  b6  [suit la voix · durée visée 10,2 s]
+      And whatever you always approve, Betly offers to automate. Cleaning on autopilot, deposits with a simple notification… and refunds, always approved by you. You set the dial.
+  b7  [suit la voix · durée visée 2,4 s]
+      You decide. … Betly handles the rest.
+  b8  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–2,66 s]  A host's day with Baitly? [Cards.]
+  ST2  [2,68–5,44 s]  One at a time, [with all the context.]
+  ST3  [5,46–11,11 s]  7:30: Sara's deposit is released. [9 a.m.: a review reply is ready.]
+  ST4  [11,13–14,22 s]  Noon: the cleaning is checked, [photos included.]
+  ST5  [14,24–17,43 s]  2 p.m.: a late checkout, [granted in one click.]
+  ST6  [17,45–21,47 s]  4 p.m.: between two stays, [you set the thermostat remotely.]
+  ST7  [21,49–24,35 s]  7 p.m.: the statement goes to the owner.
+  ST8  [24,37–27,47 s]  And at 11:40 p.m., if needed, [a noise warning.]
+  ST9  [27,49–29,79 s]  And between two cards, [you live.]
+  ST10  [29,81–33,36 s]  And whatever you always approve, [Baitly offers to automate.]
+  ST11  [33,38–36,93 s]  Cleaning on autopilot, [deposits with a simple notification…]
+  ST12  [36,95–40,36 s]  and refunds, always approved by you. [You set the dial.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Ouverture : mots qui convergent vers le logo
+      E2  Your day
+      E3  One card at a time.
+  · Maquette d’interface (libellé)
+      E4  Finance agent
+      E5  Deposit
+      E6  Sara’s deposit to release · SAR 1,000
+      E7  Checked out 2 days ago, no damage reported.
+      E8  Release
+      E9  SAR 1,000 released
+      E10  Deposit
+      E11  SAR 1,000
+      E12  Damage
+      E13  None
+      E14  Checkout
+      E15  2 days ago
+      E16  Reputation agent
+      E17  Review reply
+      E18  Mia’s 5-star review · reply ready
+      E19  Draft written by the agent, to review before publishing.
+      E20  Reply
+      E21  Reply published
+      E22  Perfect stay, the villa is stunning!
+      E23  Operations agent
+      E24  Work review
+      E25  Cleaning done · Diriyah Villa
+      E26  8 photos, 2 h 50 actual, checklist complete.
+      E27  Approve
+      E28  Work approved
+      E29  Communication agent
+      E30  Late checkout
+      E31  Omar asks to leave at 2 pm
+      E32  No arrival that day: the calendar allows it.
+      E33  Accept
+      E34  Late checkout granted · reply sent
+      E35  Could we leave at 2 pm?
+      E36  Owner agent
+      E37  Monthly statement
+      E38  October statement · Faisal Al-Otaibi
+      E39  Amounts recalculated from paid payouts.
+      E40  Send
+      E41  Statement sent to Faisal
+      E42  Income
+      E43  SAR 4,280
+      E44  Commission
+      E45  −SAR 856
+      E46  Net
+      E47  SAR 3,424
+      E48  Operations agent
+      E49  Noise
+      E50  High noise level · Olaya Studio
+      E51  84 dB for 10 min, night threshold 70 dB.
+      E52  Send the warning
+      E53  Warning sent on WhatsApp
+      E54  Pending
+      E55  Done
+      E56  Ignore
+      E57  Thermostat · Olaya Studio
+      E58  Between two stays · arrival tomorrow 3:00 pm
+      E59  Humidity 58%
+      E60  Target
+      E61  Set remotely
+      E62  °C
+      E63  Nothing left pending
+      E64  Finance agent
+      E65  Trust rule
+      E66  You approved the last 12 deposit releases
+      E67  Automate this card type? You’ll be notified at each release.
+      E68  Activate
+      E69  Ignore
+      E70  Automation on
+      E71  Automation
+      E72  Suggest
+      E73  Notify
+      E74  Auto
+      E75  Suggest
+      E76  agents propose, you decide
+      E77  Act then notify
+      E78  they act and keep you informed
+      E79  Auto
+      E80  they handle it fully
+      E81  Schedule missing cleaning
+      E82  Operations agent
+      E83  Release deposits
+      E84  Finance agent
+      E85  Review reply drafts
+      E86  Reputation agent
+  · Notification sur écran verrouillé
+      E87  Refunds and withholdings
+      E88  Always approved by you
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E89  You decide.
+      E90  Baitly handles the rest.
+  · Bouton de l’écran de fin
+      E91  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E92  card types
+      E93  AI agents

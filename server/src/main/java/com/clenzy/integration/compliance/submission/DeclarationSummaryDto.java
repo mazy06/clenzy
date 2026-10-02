@@ -18,6 +18,9 @@ package com.clenzy.integration.compliance.submission;
  * @param providerType        provider de déclaration cible (CHEKIN / POLICE_MA / ABSHER_KSA), null tant que non résolu
  * @param submittedAt         horodatage ISO de transmission au provider, null si non transmise
  * @param submittedToProvider true une fois transmise au provider
+ * @param retainedLocally     fiche CONSERVÉE par l'exploitant, sans téléservice (France)
+ * @param exempt              voyageur dispensé de fiche (ressortissant français en France)
+ * @param purgeAfter          date ISO de purge obligatoire (6 mois après le départ), France
  */
 public record DeclarationSummaryDto(
         Long id,
@@ -25,6 +28,13 @@ public record DeclarationSummaryDto(
         String status,
         String providerType,
         String submittedAt,
-        boolean submittedToProvider
+        boolean submittedToProvider,
+        boolean retainedLocally,
+        boolean exempt,
+        String purgeAfter
 ) {
+    public DeclarationSummaryDto(Long id, boolean primary, String status, String providerType,
+                                 String submittedAt, boolean submittedToProvider) {
+        this(id, primary, status, providerType, submittedAt, submittedToProvider, false, false, null);
+    }
 }

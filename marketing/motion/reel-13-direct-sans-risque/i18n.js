@@ -1,0 +1,100 @@
+// Textes à l'écran du Reel 13 « Le direct, sans les risques », par langue. FR : Maroc (MAD) ;
+// EN : Arabie saoudite (SAR). Libellés repris du produit (actionRegistry : « Relancer le panier
+// abandonné » / « Envoyer la relance », « Déposer les preuves du litige » / « Déposer le dossier » ;
+// actionVerbs FRAUD_BLOCK : « Bloquer »). Signaux de fraude = BookingFraudScoringService.
+// Sous-titres réécrits par align-vo.py.
+window.STRINGS = {
+  fr: {
+    dir: 'ltr', illustrative: 'Scène illustrative',
+    site: {
+      url: 'riad-nour.fr/reserver', brand: 'Riad Nour', steps: ['La chambre', 'Les dates', 'Les extras', 'Le paiement'],
+      room: 'Suite Patio · 3 nuits · 13 → 16 oct.', total: 'Total', amount: '2 400 MAD', zero: '0 % de commission',
+      card: 'Carte bancaire', number: '4242 •••• •••• ••••', pay: 'Payer 2 400 MAD', left: 'Panier abandonné · 23:12',
+    },
+    cart: {
+      agent: 'Agent Communication', tag: 'Panier abandonné', wait: 'En attente', done: 'Fait',
+      title: 'Sara a quitté le paiement · 2 400 MAD',
+      copy: 'Consentement email donné. Relance en trois temps.',
+      steps: [['1 h', 'Votre séjour vous attend'], ['24 h', 'Les dates sont encore libres'], ['72 h', 'Dernier rappel']],
+      sent: 'Envoyée', send: 'Envoyer la relance', edit: 'Modifier', dismiss: 'Ignorer',
+      doneText: 'Relance envoyée à Sara', back: 'Réservation confirmée · 2 400 MAD · 0 % de commission',
+    },
+    fraud: {
+      agent: 'Agent Finance', tag: 'Risque', wait: 'En attente', done: 'Fait',
+      title: 'Réservation suspecte · Studio Gueliz',
+      score: 'Score de risque', level: 'Élevé',
+      signals: ['5 tentatives de paiement en 10 min', 'Adresse email jetable', 'Montant 3 fois la moyenne du logement'],
+      block: 'Bloquer', review: 'Examiner', dismiss: 'Ignorer',
+      doneText: 'Réservation annulée · dates remises en vente',
+    },
+    dispute: {
+      agent: 'Agent Finance', tag: 'Litige bancaire', wait: 'En attente', done: 'Fait',
+      title: 'Déposer les preuves du litige · 1 980 MAD',
+      grid: [['Montant contesté', '1 980 MAD'], ['Motif', 'Non reconnu'], ['Réponse avant', '30 oct.']],
+      docs: ['Réservation et séjour', 'Fiche voyageur', 'Livret transmis', 'Messages échangés'],
+      submit: 'Déposer le dossier', see: 'Voir les pièces',
+      doneText: 'Dossier déposé à Stripe · en cours d’examen',
+    },
+    promise: ['Le direct.', 'Sans les risques.'],
+    cta: 'Rejoignez le pré-lancement',
+    facts: [['0 %', 'de commission en direct'], ['3 relances', '1 h · 24 h · 72 h'], ['AR · FR · EN', '']],
+    subtitles: [
+      { from: 0.35, to: 2.95, text: "Votre site de réservation directe : ", em: "zéro commission." },
+      { from: 2.97, to: 5.92, text: "Mais ce soir, ", em: "un visiteur s'arrête juste avant de payer." },
+      { from: 5.94, to: 8.43, text: "Une carte vous propose de le relancer : ", em: "une heure après," },
+      { from: 8.45, to: 11.37, text: "puis le lendemain. Et la réservation revient, ", em: "sans commission." },
+      { from: 11.45, to: 12.76, text: "Une réservation paraît suspecte ?", em: "" },
+      { from: 12.78, to: 14.0, text: "Le score de risque vous alerte,", em: "" },
+      { from: 14.02, to: 16.06, text: "et vous la bloquez avant qu'elle ne vous coûte.", em: "" },
+      { from: 16.26, to: 18.71, text: "Et si un paiement est contesté des semaines plus tard,", em: "" },
+      { from: 18.73, to: 21.86, text: "le dossier de preuves est déjà prêt : séjour, fiche voyageur, ", em: "livret." },
+      { from: 21.88, to: 23.27, text: "Vous le déposez en un clic.", em: "" },
+    ],
+  },
+  en: {
+    dir: 'ltr', illustrative: 'Illustrative scene',
+    site: {
+      url: 'nakheel-chalet.com/book', brand: 'Nakheel Chalet', steps: ['The room', 'The dates', 'Extras', 'Payment'],
+      room: 'Garden Suite · 3 nights · Oct 13 → 16', total: 'Total', amount: 'SAR 1,560', zero: '0% commission',
+      card: 'Card', number: '4242 •••• •••• ••••', pay: 'Pay SAR 1,560', left: 'Cart abandoned · 23:12',
+    },
+    cart: {
+      agent: 'Communication agent', tag: 'Abandoned cart', wait: 'Pending', done: 'Done',
+      title: 'Sara left at payment · SAR 1,560',
+      copy: 'Email consent given. Three-step follow-up.',
+      steps: [['1 h', 'Your stay is waiting'], ['24 h', 'The dates are still free'], ['72 h', 'Last reminder']],
+      sent: 'Sent', send: 'Send the follow-up', edit: 'Edit', dismiss: 'Ignore',
+      doneText: 'Follow-up sent to Sara', back: 'Booking confirmed · SAR 1,560 · 0% commission',
+    },
+    fraud: {
+      agent: 'Finance agent', tag: 'Risk', wait: 'Pending', done: 'Done',
+      title: 'Suspicious booking · Olaya Studio',
+      score: 'Risk score', level: 'High',
+      signals: ['5 payment attempts in 10 min', 'Disposable email address', 'Amount 3× the property average'],
+      block: 'Block', review: 'Review', dismiss: 'Ignore',
+      doneText: 'Booking cancelled · dates back on sale',
+    },
+    dispute: {
+      agent: 'Finance agent', tag: 'Chargeback', wait: 'Pending', done: 'Done',
+      title: 'Submit dispute evidence · SAR 1,290',
+      grid: [['Disputed', 'SAR 1,290'], ['Reason', 'Unrecognised'], ['Respond by', 'Oct 30']],
+      docs: ['Booking and stay', 'Guest record', 'Guide delivered', 'Messages exchanged'],
+      submit: 'Submit the file', see: 'See evidence',
+      doneText: 'File submitted to Stripe · under review',
+    },
+    promise: ['Direct bookings.', 'Without the risks.'],
+    cta: 'Join the pre-launch',
+    facts: [['0%', 'commission on direct'], ['3 follow-ups', '1 h · 24 h · 72 h'], ['AR · FR · EN', '']],
+    subtitles: [
+      { from: 0.35, to: 3.46, text: "Your direct booking site: zero commission.", em: "" },
+      { from: 3.48, to: 7.27, text: "But tonight, ", em: "a visitor stops right before paying." },
+      { from: 7.29, to: 11.44, text: "A card suggests following up: an hour later, ", em: "then the next day." },
+      { from: 11.46, to: 14.5, text: "And the booking comes back, ", em: "commission-free." },
+      { from: 14.52, to: 16.02, text: "A booking looks suspicious?", em: "" },
+      { from: 16.04, to: 19.67, text: "The risk score flags it, ", em: "and you block it before it costs you." },
+      { from: 19.69, to: 22.25, text: "And if a payment is disputed weeks later,", em: "" },
+      { from: 22.27, to: 26.79, text: "the evidence is already gathered: the stay, the guest record, ", em: "the guide." },
+      { from: 26.81, to: 28.66, text: "You submit it in one click.", em: "" },
+    ],
+  },
+};

@@ -1,0 +1,216 @@
+==============================================================================
+REEL 14 · LE PROPRIÉTAIRE INQUIET — Note de revenus envoyée avant la question, relevé et reversement
+Format 9:16 (1080×1920) · 37 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 5,8 s]
+      Pour une conciergerie, il y a un appel qu'on redoute : le propriétaire qui voit ses revenus baisser.
+  b2  [suit la voix · durée visée 7,6 s]
+      Bètli le repère avant lui, et prépare une note factuelle : les revenus du mois, comparés à l'an dernier. Vous la relisez, vous l'envoyez.
+  b3  [suit la voix · durée visée 5,4 s]
+      Le propriétaire reçoit l'explication avant même de poser la question, avec son relevé du mois.
+  b4  [suit la voix · durée visée 5,5 s]
+      Et son reversement, calculé à partir des séjours, s'approuve en un clic. Sans rien ressaisir.
+  b5  [suit la voix · durée visée 2,8 s]
+      Des propriétaires informés. … Pas inquiets.
+  b6  [suit la voix · durée visée 4,4 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–1,85 s]  Pour une conciergerie, [il y a un appel qu'on redoute :]
+  ST2  [1,87–6,33 s]  le propriétaire qui voit ses revenus baisser.
+  ST3  [6,35–8,22 s]  Baitly le repère avant lui, [et prépare une note factuelle :]
+  ST4  [8,24–11,21 s]  les revenus du mois, [comparés à l'an dernier.]
+  ST5  [11,23–12,68 s]  Vous la relisez, [vous l'envoyez.]
+  ST6  [12,7–14,35 s]  Le propriétaire reçoit l'explication avant même de poser la question,
+  ST7  [14,37–17,04 s]  avec son relevé du mois.
+  ST8  [17,06–18,95 s]  Et son reversement, [calculé à partir des séjours,]
+  ST9  [19,15–21,81 s]  s'approuve en un clic. [Sans rien ressaisir.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Maquette d’interface (libellé)
+      E2  Villa Palmeraie · octobre
+      E3  Revenus
+      E4  6 420 MAD
+      E5  Occupation
+      E6  −9 pts
+      E7  Prix moyen
+      E8  780 MAD
+      E9  Karim Idrissi
+      E10  Propriétaire · Villa Palmeraie
+      E11  Appel entrant…
+      E12  Agent Propriétaire
+      E13  Relation propriétaire
+      E14  En attente
+      E15  Fait
+      E16  Recul des revenus · Villa Palmeraie
+      E17  Note factuelle, recalculée à l’envoi, avec le relevé détaillé en lien.
+      E18  Octobre 2025
+      E19  7 830 MAD
+      E20  Octobre 2026
+      E21  6 420 MAD
+      E22  Écart
+      E23  Bonjour Karim, voici le point sur octobre : 6 420 MAD de revenus, contre 7 830 MAD l’an dernier. Le détail est dans votre relevé mensuel.
+  · Bouton (maquette) : rester court
+      E24  Envoyer la note
+  · Maquette d’interface (libellé)
+      E25  Modifier
+      E26  Ignorer
+      E27  Note envoyée à Karim · 09:05
+      E28  Espace propriétaire
+      E29  Villa Palmeraie
+      E30  Net à reverser · octobre
+      E31  Relevés mensuels
+  · Onglet / étape (maquette) : rester court
+      E32  Juillet 2026
+      E33  Août 2026
+      E34  Septembre 2026
+      E35  Octobre 2026
+  · Maquette d’interface (libellé)
+      E36  6 912 MAD
+      E37  7 344 MAD
+      E38  5 890 MAD
+      E39  5 136 MAD
+      E40  Merci pour la transparence, c’est très clair.
+      E41  Téléchargé
+      E42  Agent Propriétaire
+      E43  Reversement
+      E44  En attente
+      E45  Fait
+      E46  Reversement de Karim · octobre
+      E47  Revenus des séjours
+      E48  6 420 MAD
+      E49  Commission · 20 %
+      E50  −1 284 MAD
+      E51  Net propriétaire
+      E52  5 136 MAD
+  · Bouton (maquette) : rester court
+      E53  Approuver
+  · Maquette d’interface (libellé)
+      E54  Voir le relevé
+      E55  Approuvé · virement bancaire à émettre
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E56  Des propriétaires informés.
+      E57  Pas inquiets.
+  · Bouton de l’écran de fin
+      E58  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E59  Relevés
+      E60  mensuels, sans ressaisie
+      E61  N−1
+      E62  comparaison automatique
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 5,6 s]
+      For a property manager, there's one call you dread: the owner who sees their income drop.
+  b2  [suit la voix · durée visée 8,2 s]
+      Betly spots it before he does, and prepares a factual note: this month's income, compared with last year. You read it, you send it.
+  b3  [suit la voix · durée visée 5,3 s]
+      The owner gets the explanation before he even asks, along with his monthly statement.
+  b4  [suit la voix · durée visée 5,4 s]
+      And his payout, calculated from the stays, is approved in one click. Nothing to re-type.
+  b5  [suit la voix · durée visée 2,4 s]
+      Owners informed. … Not worried.
+  b6  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–1,85 s]  For a property manager,
+  ST2  [1,87–6,33 s]  there's one call you dread: the owner who sees their income drop.
+  ST3  [6,35–8,22 s]  Baitly spots it before he does,
+  ST4  [8,24–11,21 s]  and prepares a factual note: this month's income,
+  ST5  [11,23–12,68 s]  compared with last year.
+  ST6  [12,7–14,35 s]  You read it, [you send it.]
+  ST7  [14,37–17,04 s]  The owner gets the explanation before he even asks,
+  ST8  [17,06–18,95 s]  along with his monthly statement.
+  ST9  [19,15–21,81 s]  And his payout, [calculated from the stays,]
+  ST10  [21,83–24,84 s]  is approved in one click. [Nothing to re-type.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Maquette d’interface (libellé)
+      E2  Diriyah Villa · October
+      E3  Income
+      E4  SAR 4,280
+      E5  Occupancy
+      E6  −9 pts
+      E7  Average rate
+      E8  SAR 520
+      E9  Faisal Al-Otaibi
+      E10  Owner · Diriyah Villa
+      E11  Incoming call…
+      E12  Owner agent
+      E13  Owner relations
+      E14  Pending
+      E15  Done
+      E16  Income dip · Diriyah Villa
+      E17  Factual note, recalculated when sent, with the detailed statement linked.
+      E18  October 2025
+      E19  SAR 5,220
+      E20  October 2026
+      E21  SAR 4,280
+      E22  Change
+      E23  Hello Faisal, here is where October stands: SAR 4,280 in income, versus SAR 5,220 last year. The details are in your monthly statement.
+  · Bouton (maquette) : rester court
+      E24  Send the note
+  · Maquette d’interface (libellé)
+      E25  Edit
+      E26  Ignore
+      E27  Note sent to Faisal · 09:05
+      E28  Owner portal
+      E29  Diriyah Villa
+      E30  Net to pay out · October
+      E31  Monthly statements
+  · Onglet / étape (maquette) : rester court
+      E32  July 2026
+      E33  August 2026
+      E34  September 2026
+      E35  October 2026
+  · Maquette d’interface (libellé)
+      E36  SAR 4,608
+      E37  SAR 4,896
+      E38  SAR 3,927
+      E39  SAR 3,424
+      E40  Thanks for being so transparent, that’s very clear.
+      E41  Downloaded
+      E42  Owner agent
+      E43  Payout
+      E44  Pending
+      E45  Done
+      E46  Faisal’s payout · October
+      E47  Stay income
+      E48  SAR 4,280
+      E49  Commission · 20%
+      E50  −SAR 856
+      E51  Owner net
+      E52  SAR 3,424
+  · Bouton (maquette) : rester court
+      E53  Approve
+  · Maquette d’interface (libellé)
+      E54  See statement
+      E55  Approved · bank transfer to issue
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E56  Owners informed.
+      E57  Not worried.
+  · Bouton de l’écran de fin
+      E58  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E59  Statements
+      E60  monthly, no re-typing
+      E61  Year on year
+      E62  automatic comparison

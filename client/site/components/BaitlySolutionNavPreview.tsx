@@ -14,7 +14,7 @@ import type { SiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_SOLUTION_PREVIEW_MESSAGES } from '../lib/messages/baitlySolutionPreviews';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
 import payzone from '../assets/brands/payzone.svg';
-import '../baitly-solution-preview.css';
+import stripe from '../assets/brands/stripe.svg';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const {
@@ -24,7 +24,13 @@ const {
 } = SITE_PHOTOS;
 
 export type BaitlySolutionPreviewKind =
-  'concierge' | 'host' | 'riad' | 'saudi' | 'morocco' | 'multi-owner';
+  | 'concierge'
+  | 'host'
+  | 'riad'
+  | 'saudi'
+  | 'morocco'
+  | 'france'
+  | 'multi-owner';
 
 const ROOM_BOOKINGS = [
   { guest: 'Sofia', offset: 0, length: 60, status: 'checked_in' },
@@ -221,6 +227,39 @@ export default function BaitlySolutionNavPreview({
               <SiteCurrencySymbol currency="MAD" />
             </b>
             <img src={payzone} alt="" />
+          </div>
+        </>
+      );
+      break;
+    case 'france':
+      scene = (
+        <>
+          <div className="bns-heading">
+            <FileTextIcon />
+            <strong>{m.furnished}</strong>
+            {example}
+          </div>
+          <div className="bns-compliance-steps">
+            <span>
+              <small>{m.registration}</small>
+              <strong dir="ltr">75056 000123 4X</strong>
+              <CheckIcon className="bnv-arrive" />
+            </span>
+            <span>
+              <small>{m.nightsCap}</small>
+              <strong>{m.nightsValue}</strong>
+              <CheckIcon className="bnv-arrive" />
+            </span>
+          </div>
+          <div className="bns-local-tax">
+            <span>
+              {m.touristTax}
+              <small>{m.localRules}</small>
+            </span>
+            <b>
+              <SiteCurrencySymbol currency="EUR" />
+            </b>
+            <img src={stripe} alt="" />
           </div>
         </>
       );

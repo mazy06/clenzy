@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react';
 import { createLucideIcon } from 'lucide-react';
-import '../baitly-demo-pointer.css';
 
 // One closed silhouette keeps the palm opaque; finger creases are stroke-only.
 const BaitlyPointerHand = createLucideIcon('BaitlyPointerHand', [

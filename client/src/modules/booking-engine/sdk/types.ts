@@ -172,6 +172,8 @@ export interface WidgetProperty {
   checkOutTime: string | null;
   /** Description publique du logement (texte libre), null si non renseignée. */
   description: string | null;
+  /** Numéro d'enregistrement du meublé de tourisme (France), null si absent. */
+  registrationNumber?: string | null;
   /** Note moyenne des avis publics (0..5), null si aucun avis. */
   rating: number | null;
   /** Nombre d'avis publics. */

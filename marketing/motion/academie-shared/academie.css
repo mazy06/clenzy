@@ -1,0 +1,108 @@
+/*
+  Baitly Académie · styles communs des épisodes (9:16 par défaut, 16:9 avec html.f169).
+  S'ajoute à ../shared/base.css (kit des Reels) : mêmes polices, palette et sous-titres.
+  Mode Jour : Papier, Bleu nuit, Navy, Sable, Terre cuite ; teal réservé aux validations.
+*/
+:root {
+  --surface: #EEF3F6; --surface2: #E4ECF1; --ligne2: #E6ECF0; --gris: #6B7B85; --teal: #0D9488; --ok: #0C7166;
+  --e1: 0 1px 2px rgba(27,42,53,.06), 0 10px 24px -12px rgba(27,42,53,.22);
+  --e3: 0 2px 4px rgba(27,42,53,.05), 0 30px 60px -28px rgba(27,42,53,.35), 0 90px 160px -60px rgba(27,42,53,.4);
+}
+#grain { position: absolute; inset: 0; background-image: url('../teaser-15s-shared/grain.png'); background-size: 256px 256px; opacity: .05; mix-blend-mode: multiply; pointer-events: none; z-index: 60; }
+#adots { position: absolute; inset: -80px; background-image: radial-gradient(circle, rgba(27,42,53,.065) 1.3px, transparent 1.7px); background-size: 40px 40px; }
+
+/* Étiquette de la série */
+.atag { display: inline-flex; align-items: center; gap: 14px; background: var(--n600); color: var(--papier); border-radius: 999px; padding: 12px 26px 12px 16px; font-size: 24px; font-weight: 700; white-space: nowrap; box-shadow: var(--e1); }
+.atag .mk { width: 40px; height: 40px; border-radius: 12px; background: rgba(247,251,252,.14); display: flex; align-items: center; justify-content: center; }
+.atag .sep { opacity: .45; }
+.atag em { font-style: normal; color: var(--sable); }
+
+/* Barre des chapitres (épisodes longs) */
+.aprog { display: flex; gap: 8px; }
+.aprog span { flex: 1; height: 6px; border-radius: 3px; background: rgba(27,42,53,.1); overflow: hidden; }
+.aprog i { display: block; height: 100%; background: var(--n600); transform-origin: left; transform: scaleX(0); }
+
+/* Pastille « Piège » dans une carte */
+.atrap { position: absolute; top: 28px; right: 28px; display: inline-flex; align-items: center; gap: 10px; background: #F7E4DC; color: #8E3F20; border-radius: 999px; padding: 10px 20px 10px 14px; font-size: 26px; font-weight: 700; }
+
+/* Titre de scène : index + titre + sous-titre */
+.ahead { display: flex; flex-direction: column; gap: 14px; }
+.ahead .row { display: flex; align-items: center; gap: 22px; }
+.ahead .ix { flex: none; width: 92px; height: 92px; border-radius: 28px; background: var(--terre); color: var(--papier); font-family: var(--fd); font-weight: 700; font-size: 56px; display: flex; align-items: center; justify-content: center; }
+.ahead .tt { font-family: var(--fd); font-weight: 700; font-size: 78px; letter-spacing: -.025em; line-height: 1.02; color: var(--n700); }
+.ahead .sb { font-size: 32px; font-weight: 600; color: var(--ardoise); line-height: 1.35; }
+.mask { overflow: hidden; padding-bottom: .08em; }
+
+/* Carte pédagogique */
+.acard { background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 40px; box-shadow: var(--e3); }
+.alabel { font-size: 22px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--encre-terre); }
+
+/* Formule : fraction + exemple */
+.frac { display: inline-flex; flex-direction: column; align-items: center; gap: 12px; }
+.frac .n, .frac .d { font-family: var(--fd); font-weight: 600; font-size: 40px; color: var(--n700); padding: 6px 16px; border-radius: 14px; white-space: nowrap; }
+.frac .n.hi, .frac .d.hi { background: rgba(224,200,155,.45); }
+.frac .fbar { height: 5px; border-radius: 3px; background: var(--n700); transform-origin: center; }
+.eq { display: flex; align-items: center; justify-content: center; gap: 28px; }
+.eq .op { font-family: var(--fd); font-weight: 500; font-size: 64px; color: var(--gris); }
+.big { font-family: var(--fd); font-weight: 700; letter-spacing: -.035em; line-height: 1; color: var(--n700); font-variant-numeric: tabular-nums; }
+.big.res { color: var(--terre); }
+.unit { font-size: .42em; font-weight: 600; color: var(--gris); letter-spacing: 0; margin-left: 6px; }
+
+/* Calendrier du mois */
+.cal { display: grid; gap: 10px; }
+.cal i { border-radius: 14px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--fd); font-weight: 600; color: #98A4AB; }
+.cal i.x { visibility: hidden; }
+
+/* Jauge circulaire */
+.gauge b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--fd); font-weight: 700; color: var(--n700); letter-spacing: -.03em; }
+
+/* Barres de prix + moyenne */
+.bars { position: relative; display: flex; align-items: flex-end; gap: 8px; }
+.bars i { flex: 1; border-radius: 8px 8px 3px 3px; background: var(--sable); transform-origin: bottom; }
+.bars i.empty { background: transparent; border: 2px dashed rgba(154,108,58,.5); height: 16px !important; border-radius: 6px; }
+.bars .avg { position: absolute; left: -10px; right: -10px; border-top: 4px dashed var(--terre); }
+.bars .avg span { position: absolute; right: 0; top: -54px; background: var(--terre); color: var(--papier); font-family: var(--fd); font-weight: 700; font-size: 26px; border-radius: 12px; padding: 6px 14px; white-space: nowrap; }
+
+/* Comparaison */
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.cmpc { background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 34px; box-shadow: var(--e3); padding: 38px 34px; display: flex; flex-direction: column; gap: 20px; }
+.cmpc .hd { display: flex; align-items: center; gap: 12px; font-size: 32px; font-weight: 700; color: var(--n700); }
+.cmpc .hd i { width: 14px; height: 14px; border-radius: 50%; }
+.cmpc .kv { display: flex; justify-content: space-between; align-items: baseline; font-size: 31px; color: var(--ardoise); font-weight: 600; border-top: 1px solid var(--ligne2); padding-top: 16px; }
+.cmpc .kv b { font-family: var(--fd); font-size: 50px; color: var(--n700); font-variant-numeric: tabular-nums; }
+.cmpc .dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+.cmpc .dots i { aspect-ratio: 1; border-radius: 7px; background: var(--surface); }
+.cmpc .rv { border-radius: 22px; padding: 18px 20px; background: var(--surface); }
+.cmpc .rv small { display: block; font-size: 23px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); }
+.cmpc .rv b { display: flex; align-items: center; gap: 10px; font-family: var(--fd); font-size: 72px; font-weight: 700; letter-spacing: -.03em; color: var(--n700); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* Récapitulatif */
+.rcap { display: flex; flex-direction: column; gap: 18px; }
+.rchip { display: flex; align-items: center; gap: 24px; background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 32px; padding: 28px 32px; box-shadow: var(--e3); }
+.rchip .ic { width: 84px; height: 84px; border-radius: 22px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.rchip .tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rchip b { font-family: var(--fd); font-size: 44px; font-weight: 700; color: var(--n700); letter-spacing: -.01em; }
+.rchip small { font-size: 27px; font-weight: 600; color: var(--gris); }
+.rchip .v { margin-inline-start: auto; font-family: var(--fd); font-size: 54px; font-weight: 700; color: var(--terre); font-variant-numeric: tabular-nums; }
+.appt { display: flex; align-items: center; gap: 14px; background: rgba(13,148,136,.1); color: var(--ok); border-radius: 22px; padding: 20px 26px; font-size: 28px; font-weight: 700; }
+
+/* 16:9 : scène, sous-titres et écran de fin */
+html.f169 #stage { width: 1920px; height: 1080px; }
+html.f169 #sub { inset-inline-start: 260px; width: 1400px; bottom: 36px; }
+html.f169 #subBox { font-size: 36px; padding: 14px 26px; }
+html.f169 #logo { width: 1920px; top: 330px; }
+html.f169 #logo .wm { font-size: 118px; }
+html.f169 #cta { width: 1920px; top: 600px; flex-direction: row; justify-content: center; gap: 52px; }
+html.f169 #facts { width: 1920px; top: 790px; }
+html.f169 .ahead .tt { font-size: 70px; }
+html.f169 .ahead .sb { font-size: 30px; }
+html.f169 .cmpc .hd { font-size: 28px; }
+html.f169 .cmpc .kv { font-size: 27px; }
+html.f169 .cmpc .kv b { font-size: 44px; }
+html.f169 .cmpc .rv b { font-size: 62px; }
+html.f169 .rchip { padding: 22px 28px; }
+html.f169 .rchip .ic { width: 72px; height: 72px; }
+html.f169 .rchip b { font-size: 40px; }
+html.f169 .rchip small { font-size: 23px; }
+html.f169 .rchip .v { font-size: 48px; }
+html.f169 .appt { font-size: 25px; }

@@ -4,7 +4,6 @@ import { useSiteLanguage } from "../lib/siteLanguage";
 import { BAITLY_READINESS_MESSAGES } from "../lib/messages/baitlyReadiness";
 import BaitlyNavPreview from "./BaitlyNavPreview";
 import BaitlyBookingPreview from "./BaitlyBookingPreview";
-import "../baitly-readiness.css";
 
 /** Product demonstrations provide evidence without implying customer adoption. */
 export default function BaitlyProductProofs() {

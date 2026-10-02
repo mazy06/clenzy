@@ -121,13 +121,20 @@ public class ComplianceSubmissionService {
     }
 
     private DeclarationSummaryDto toSummary(GuestDeclaration d) {
+        boolean retainedLocally = "FR".equalsIgnoreCase(countryOf(d));
+        java.time.LocalDate checkOut = d.getReservation() != null ? d.getReservation().getCheckOut() : null;
         return new DeclarationSummaryDto(
                 d.getId(),
                 d.isPrimary(),
                 d.getStatus() == null ? null : d.getStatus().name(),
                 d.getProviderType(),
                 d.getSubmittedAt() == null ? null : d.getSubmittedAt().toString(),
-                d.isSubmittedToProvider());
+                d.isSubmittedToProvider(),
+                retainedLocally,
+                d.isExempt(),
+                retainedLocally && checkOut != null
+                        ? checkOut.plusDays(com.clenzy.service.retention.GuestDeclarationPurgeSource.RETENTION_DAYS).toString()
+                        : null);
     }
 
     /**
@@ -226,7 +233,7 @@ public class ComplianceSubmissionService {
 
     /**
      * Provider applicable selon le pays de la propriété (repli sur le pays de la déclaration).
-     * FR/ES/IT/PT → Chekin ; MA → DGSN ; SA → Shomoos ; sinon {@code null} (aucun provider).
+     * ES/IT/PT → Chekin ; MA → DGSN ; SA → Shomoos ; FR et autres → {@code null} (aucun dépôt).
      *
      * <p>SA mappe <b>Shomoos</b> (plateforme nationale d'enregistrement des voyageurs du
      * secteur hébergement) et non Absher (services citoyens) : Absher reste en catalogue
@@ -238,7 +245,10 @@ public class ComplianceSubmissionService {
             return null;
         }
         return switch (country.toUpperCase(Locale.ROOT)) {
-            case "FR", "ES", "IT", "PT" -> ComplianceProviderType.CHEKIN;
+            // France : la fiche individuelle est CONSERVÉE par l'exploitant et remise sur
+            // réquisition (CESEDA R814-3) — il n'existe aucun téléservice de dépôt. Rien ne part.
+            case "FR" -> null;
+            case "ES", "IT", "PT" -> ComplianceProviderType.CHEKIN;
             case "MA" -> ComplianceProviderType.POLICE_MA;
             case "SA" -> ComplianceProviderType.SHOMOOS;
             default -> null;

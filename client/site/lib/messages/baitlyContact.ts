@@ -14,6 +14,8 @@ const fr = {
     'Vous pouvez déjà explorer les démonstrations et nous écrire. Une demande de contact ne vous inscrit pas à une newsletter.',
   company: 'Éditeur de Baitly',
   location: 'Riyad, Arabie saoudite',
+  writeUs: 'Écrire à l’équipe :',
+  supportMail: 'Support clients :',
   steps: [
     'Vous décrivez votre besoin',
     'Votre demande arrive à l’équipe',
@@ -87,6 +89,8 @@ export const BAITLY_CONTACT_MESSAGES: Record<SiteLanguage, ContactMessages> = {
       'You can already explore the demos and contact us. A contact request does not subscribe you to a newsletter.',
     company: 'Baitly publisher',
     location: 'Riyadh, Saudi Arabia',
+    writeUs: 'Write to the team:',
+    supportMail: 'Customer support:',
     steps: [
       'Describe what you need',
       'Your request reaches the team',
@@ -154,6 +158,8 @@ export const BAITLY_CONTACT_MESSAGES: Record<SiteLanguage, ContactMessages> = {
       'يمكنك استكشاف العروض ومراسلتنا الآن. طلب التواصل لا يشترك بك في نشرة بريدية.',
     company: 'ناشر Baitly',
     location: 'الرياض، المملكة العربية السعودية',
+    writeUs: 'راسل الفريق:',
+    supportMail: 'دعم العملاء:',
     steps: [
       'تصف احتياجك',
       'يصل طلبك إلى الفريق',

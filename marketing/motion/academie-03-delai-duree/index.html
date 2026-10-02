@@ -1,0 +1,276 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 03 « Délai de réservation et durée de séjour » (≈ 2 min) · 9:16 et 16:9,
+  depuis le même fichier. Voix : Lucie (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (deux studios à 80 %) → 1 délai de réservation (2 mai → 16 juin = 45 jours,
+  moyenne 30 jours, date vide à J-10, piège de la saison) → 2 durée de séjour (8 séjours de 3 nuits
+  contre 4 de 6, 560 € contre 280 € de ménages) → 3 nuits orphelines (trou de 2 nuits, +240 €) →
+  4 trois réflexes → 5 à retenir → fin.
+  Rendu : node ../render.mjs academie-03-delai-duree --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 03 Délai et durée de séjour</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.cnote { font-size: 20px; font-weight: 600; color: var(--gris); }
+.stack { display: flex; flex-direction: column; gap: 22px; }
+
+/* Accroche : deux studios, même occupation */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.st3 { padding: 34px 32px; display: flex; flex-direction: column; gap: 12px; opacity: 0; }
+.st3 .nm { font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); }
+.st3 .mo { font-size: 26px; font-weight: 600; color: var(--ardoise); }
+.st3 .oc { font-family: var(--fd); font-size: 84px; font-weight: 700; letter-spacing: -.04em; color: var(--terre); line-height: 1; }
+.st3 .qm { border-top: 1.5px solid var(--ligne2); padding-top: 14px; font-size: 24px; font-weight: 700; color: var(--gris); }
+.keys { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.keys span { display: inline-flex; align-items: center; gap: 10px; background: var(--n600); color: var(--papier); border-radius: 999px; padding: 12px 22px; font-size: 26px; font-weight: 700; opacity: 0; }
+
+/* 1 · délai : frise, délais du mois, 30 prochains jours */
+.tl { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; }
+.tl .pt { display: flex; flex-direction: column; gap: 2px; opacity: 0; }
+.tl .pt small { font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
+.tl .pt b { font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); }
+.tl .pt.end { text-align: right; }
+.tl .line { position: relative; height: 6px; border-radius: 3px; background: var(--surface); }
+.tl .line i { position: absolute; inset-block: 0; inset-inline-start: 0; width: 100%; border-radius: 3px; background: var(--terre); transform-origin: left; transform: scaleX(0); }
+.tl .line span { position: absolute; left: 50%; top: -58px; transform: translateX(-50%); background: var(--terre); color: #FDFDFE; font-family: var(--fd); font-size: 30px; font-weight: 700; border-radius: 12px; padding: 6px 16px; white-space: nowrap; opacity: 0; }
+.lb { display: flex; flex-direction: column; gap: 10px; }
+.lb .rows { position: relative; display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px; }
+.lb .row { display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; color: var(--ardoise); opacity: 0; }
+.lb .row .tr { height: 26px; border-radius: 8px; background: var(--surface); overflow: hidden; }
+.lb .row .tr i { display: block; height: 100%; background: var(--sable); border-radius: 8px; transform-origin: left; }
+.lb .row b { font-family: var(--fd); font-size: 26px; color: var(--n700); text-align: right; font-variant-numeric: tabular-nums; }
+.lb .avg { position: absolute; top: -6px; bottom: -6px; border-left: 4px dashed var(--terre); opacity: 0; }
+.lb .avg span { position: absolute; top: calc(100% + 8px); left: -4px; transform: translateX(-50%); background: var(--terre); color: #FDFDFE; font-family: var(--fd); font-size: 22px; font-weight: 700; border-radius: 10px; padding: 4px 12px; white-space: nowrap; }
+.soon { display: flex; flex-direction: column; gap: 10px; opacity: 0; }
+.strip { display: flex; gap: 3px; }
+.strip i { flex: 1; height: 34px; border-radius: 6px; background: var(--surface); }
+.strip i.on { background: var(--terre); }
+.strip i.alt { background: #C9A073; }
+.strip i.flag { background: #F7E4DC; outline: 3px solid #B45733; outline-offset: -3px; }
+.strip i.hatch { background: repeating-linear-gradient(135deg, #D9C6BD 0 4px, #F4ECE8 4px 9px); }
+.strip i.won { background: var(--teal); }
+.callout { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: #F7E4DC; color: #8E3F20; border-radius: 12px; padding: 8px 14px; font-size: 23px; font-weight: 700; opacity: 0; }
+.tipc { display: flex; align-items: center; gap: 12px; background: var(--n600); color: var(--papier); border-radius: 16px; padding: 14px 20px; font-size: 24px; font-weight: 700; opacity: 0; }
+
+/* 2 · durée de séjour */
+.srow3 { display: flex; flex-direction: column; gap: 10px; opacity: 0; }
+.srow3 .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.srow3 .hd b { font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--n700); }
+.srow3 .hd span { font-size: 22px; font-weight: 600; color: var(--ardoise); }
+.srow3 .ft { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brooms { display: flex; gap: 6px; color: var(--terre); }
+.brooms i { display: inline-flex; opacity: 0; }
+.srow3 .cost { font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); opacity: 0; font-variant-numeric: tabular-nums; }
+.clabel { font-size: 21px; font-weight: 600; color: var(--gris); }
+.diffb { align-self: flex-start; background: var(--teal); color: #FDFDFE; font-family: var(--fd); font-weight: 700; font-size: 30px; border-radius: 14px; padding: 8px 18px; opacity: 0; }
+
+/* 3 · nuits orphelines */
+.rule { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 999px; padding: 10px 18px; font-size: 26px; font-weight: 700; color: var(--n700); opacity: 0; }
+.gapw { position: relative; }
+.gapw .strip i { height: 64px; border-radius: 10px; }
+.lost { position: absolute; top: calc(100% + 10px); transform: translateX(-50%); font-size: 22px; font-weight: 700; color: #8E3F20; white-space: nowrap; opacity: 0; }
+.opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; }
+.opts span { display: inline-flex; align-items: center; gap: 8px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 999px; padding: 10px 18px; font-size: 24px; font-weight: 700; color: var(--n700); opacity: 0; }
+.gain { display: flex; align-items: baseline; gap: 14px; opacity: 0; }
+.gain b { font-family: var(--fd); font-size: 64px; font-weight: 700; color: var(--ok); letter-spacing: -.03em; }
+.gain span { font-size: 24px; font-weight: 600; color: var(--ardoise); }
+
+/* 4 · trois réflexes */
+.acts { display: flex; flex-direction: column; gap: 18px; }
+.act { display: flex; align-items: center; gap: 26px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 30px; padding: 28px 32px; box-shadow: var(--e3); opacity: 0; }
+.act .n { flex: none; width: 76px; height: 76px; border-radius: 22px; background: var(--n600); color: var(--papier); font-family: var(--fd); font-size: 38px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.act b { display: block; font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); letter-spacing: -.015em; }
+.act span { font-size: 26px; font-weight: 600; color: var(--ardoise); }
+.rc2 { display: flex; flex-direction: column; gap: 18px; }
+
+html.f169 .st3 .oc { font-size: 72px; }
+html.f169 .tl .pt b { font-size: 32px; }
+html.f169 .lb .row { grid-template-columns: 110px 1fr 56px; font-size: 21px; }
+html.f169 .act b { font-size: 36px; }
+html.f169 .act span { font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche : deux studios, même occupation */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' ').map((x) => x.replace(/[.…]/g, '')));
+const H = T.hook;
+const hook = A.abs(L.card.x, 0, L.card.w, null);
+const studio = (name) => h('div', { class: 'acard st3' }, h('div', { class: 'nm' }, name), h('div', { class: 'mo' }, H.month), h('div', { class: 'oc' }, H.occ), h('div', { class: 'qm' }, '€ ?'));
+const sA0 = studio(H.a), sB0 = studio(H.b);
+const keys = H.keys.map((k) => h('span', {}, icon(k === H.keys[0] ? 'clock' : 'bed', 24), k));
+hook.append(h('div', { class: 'duo' }, sA0, sB0), h('div', { class: 'keys' }, keys));
+
+/* 1 · délai de réservation */
+const LD = T.lead, c1 = A.card();
+const ptA = h('div', { class: 'pt' }, h('small', {}, LD.booked), h('b', {}, LD.bookedDate));
+const ptB = h('div', { class: 'pt end' }, h('small', {}, LD.arrival), h('b', {}, LD.arrivalDate));
+const lineFill = h('i'), lineDays = h('span', {}, LD.days);
+const tl = h('div', { class: 'tl' }, ptA, h('div', { class: 'line' }, lineFill, lineDays), ptB);
+const MAX = 60;
+const leadRows = LD.values.map((v, i) => { const fill = h('i', { style: `width:${v / MAX * 100}%` }); return { el: h('div', { class: 'row' }, LD.stays[i], h('div', { class: 'tr' }, fill), h('b', {}, `${v} ${LD.unit}`)), fill }; });
+const avgLine = h('div', { class: 'avg' }, h('span', {}, LD.avg));
+const rowsBox = h('div', { class: 'rows' }, ...leadRows.map((r) => r.el), avgLine);
+const lbTitle = h('span', { class: 'alabel', style: 'opacity:0' }, LD.monthTitle);
+const lb = h('div', { class: 'lb' }, lbTitle, rowsBox);
+const SOON = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0];   // 1 = réservé ; index 9 = J+10
+const soonCells = SOON.map((on, i) => h('i', { class: on ? 'on' : '' }));
+const callout = h('span', { class: 'callout' }, icon('alert', 22), LD.empty);
+const soon = h('div', { class: 'soon' }, h('span', { class: 'alabel' }, LD.soonTitle), h('div', { class: 'strip' }, soonCells), callout);
+const tip1 = h('div', { class: 'tipc' }, icon('calcheck', 28), LD.tip);
+c1.el.append(h('div', { class: 'stack', style: 'flex:1;justify-content:center' }, tl, lb, soon, tip1));
+const trap1 = A.trap(c1.el, T.trap);
+
+/* 2 · durée de séjour */
+const SD = T.stay, c2 = A.card();
+const f2 = A.frac(SD.num, SD.den, P ? 520 : 480);
+const MONTHS = [
+  [[0, 3], [3, 3], [7, 3], [10, 3], [14, 3], [19, 3], [22, 3], [27, 3]],   // 8 séjours × 3 nuits = 24
+  [[0, 6], [7, 6], [14, 6], [22, 6]],                                       // 4 séjours × 6 nuits = 24
+];
+const stayRows = SD.rows.map((r, n) => {
+  const cells = Array.from({ length: 30 }, () => h('i'));
+  MONTHS[n].forEach(([start, len], k) => { for (let d = start; d < start + len; d++) cells[d].dataset.stay = String(k); });
+  const brooms = Array.from({ length: r.cleans }, () => h('i', {}, icon('broom', P ? 26 : 22)));
+  const cost = h('span', { class: 'cost' }, r.cost);
+  const el = h('div', { class: 'srow3' }, h('div', { class: 'hd' }, h('b', {}, r.name), h('span', {}, r.stays)), h('div', { class: 'strip' }, cells),
+    h('div', { class: 'ft' }, h('span', { class: 'brooms' }, brooms), cost));
+  return { el, cells, brooms, cost };
+});
+const diff2 = h('span', { class: 'diffb' }, SD.diff);
+c2.el.append(h('div', { class: 'sect', style: 'display:flex;flex-direction:column;align-items:center;gap:14px' }, h('span', { class: 'alabel' }, 'Formule'), f2.el),
+  h('div', { class: 'stack', style: 'flex:1;justify-content:center;margin-top:26px' }, stayRows[0].el, stayRows[1].el, h('span', { class: 'clabel' }, SD.costLabel), diff2));
+
+/* 3 · nuits orphelines */
+const G = T.gap, c3 = A.card();
+const GAP = [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1];   // deux séjours, un trou de 2 nuits
+const gapCells = GAP.map((on) => h('i', { class: on ? 'on' : '' }));
+const lost = h('span', { class: 'lost', style: `left:${6 / 12 * 100}%` }, G.lost);
+const rule = h('span', { class: 'rule' }, icon('calx', 26), G.rule);
+const opts = G.options.map((o, i) => h('span', {}, icon(i ? 'percent' : 'check', 24), o));
+const gain = h('div', { class: 'gain' }, h('b', {}, G.gain), h('span', {}, G.gainCopy));
+c3.el.append(h('div', { class: 'stack', style: 'flex:1;justify-content:center' }, rule, h('div', { class: 'gapw' }, h('div', { class: 'strip' }, gapCells), lost), h('div', { class: 'opts' }, opts), gain));
+
+/* 4 · trois réflexes */
+const acts = A.abs(L.card.x, 0, L.card.w, null, 'acts');
+const actEls = T.acts.map(([b, s], i) => { const e = h('div', { class: 'act' }, h('span', { class: 'n' }, String(i + 1)), h('div', {}, h('b', {}, b), h('span', {}, s))); acts.append(e); return e; });
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'rc2');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'appt', style: 'opacity:0' }, icon('ccheck', 32), R.app), app2 = h('div', { class: 'appt', style: 'opacity:0' }, icon('sliders', 32), R.app2);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, app2);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(acts, P ? heads[3].el.offsetTop + heads[3].el.offsetHeight + 40 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .05);
+  A.rise(sA0, v0, shown(t, S[0][0] + .4, .6), 60); A.rise(sB0, v0, shown(t, S[0][0] + .7, .6), 60);
+  keys.forEach((k, i) => A.rise(k, v0, shown(t, SYNC.two + i * .5), 16));
+
+  /* 1 · délai */
+  const v1 = slotVis(t, 1);
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  A.rise(ptA, 1, shown(t, SYNC.ex - .2), 10); A.rise(ptB, 1, shown(t, SYNC.arr - .2), 10);
+  lineFill.style.transform = `scaleX(${easeOut(prog(t, SYNC.ex, Math.max(.4, SYNC.arr - SYNC.ex)))})`;
+  A.rise(lineDays, 1, shown(t, SYNC.d45 - .1), 10); lineDays.style.transform += ' translateX(-50%)';
+  A.rise(lbTitle, 1, shown(t, SYNC.list - .2), 8);
+  leadRows.forEach((r, i) => { const p = shown(t, SYNC.list + .2 + i * .55, .45); A.rise(r.el, 1, p, 10); r.fill.style.transform = `scaleX(${p})`; });
+  set(avgLine, { opacity: shown(t, SYNC.avg), left: '50%' });
+  A.rise(soon, 1, shown(t, SYNC.use - .1), 14);
+  const fl = shown(t, SYNC.j10 - .1, .3); soonCells[9].classList.toggle('flag', fl > 0);
+  if (fl > 0) soonCells[9].style.transform = `scale(${1 + .18 * Math.sin(Math.PI * fl)})`;
+  A.rise(callout, 1, shown(t, SYNC.act - .2), 10);
+  trap1.render(t, SYNC.trap, v1);
+  A.rise(tip1, 1, shown(t, SYNC.stly - .3), 12);
+
+  /* 2 · durée */
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  f2.set(t, SYNC.f, SYNC.f + 1.4);
+  f2.bar.style.transform = `scaleX(${shown(t, S[2][0] + .3, .5)})`;
+  [SYNC.sA, SYNC.sB].forEach((t0, n) => {
+    const r = stayRows[n];
+    A.rise(r.el, 1, shown(t, (n ? SYNC.sB : SYNC.n24) - .3), 14);
+    r.cells.forEach((c, d) => {
+      const k = c.dataset.stay;
+      if (k === undefined) return;
+      const p = shown(t, t0 + Number(k) * .12, .25);
+      c.className = p > .5 ? (Number(k) % 2 ? 'alt' : 'on') : '';
+    });
+    r.brooms.forEach((b, i) => { b.style.opacity = shown(t, SYNC.clean + (n ? .9 : 0) + i * .08, .2); });
+  });
+  A.rise(stayRows[0].cost, 1, shown(t, SYNC.c560 - .1), 8); A.rise(stayRows[1].cost, 1, shown(t, SYNC.c280 - .1), 8);
+  const dp = shown(t, SYNC.diff - .2, .35); set(diff2, { opacity: dp, transform: `scale(${lerp(.7, 1, dp)})` });
+
+  /* 3 · nuits orphelines */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  A.rise(rule, 1, shown(t, SYNC.min3 - .2), 10);
+  const hatch = shown(t, SYNC.gap, .3), won = shown(t, SYNC.fill, .4);
+  [5, 6].forEach((i) => { gapCells[i].className = won > .5 ? 'won' : hatch > .5 ? 'hatch' : ''; });
+  set(lost, { opacity: shown(t, SYNC.gap + .6) * (1 - won) });
+  opts.forEach((o, i) => A.rise(o, 1, shown(t, SYNC.sol + .6 + i * 1.6), 10));
+  A.rise(gain, 1, shown(t, SYNC.gain - .2), 14);
+
+  /* 4 · réflexes */
+  const v4 = slotVis(t, 4);
+  [SYNC.a1, SYNC.a2, SYNC.a3].forEach((t0, i) => A.rise(actEls[i], v4, shown(t, t0 - .3, .5), 40));
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(app2, v5, shown(t, SYNC.app + 4.2, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

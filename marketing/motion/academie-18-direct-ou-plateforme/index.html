@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 18 « Réservation directe ou plateforme ? » (≈ 2 min 17) · 9:16 (réseaux)
+  et 16:9 (landing), depuis le même fichier.
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (même séjour, deux canaux) → 1 le calcul (561 € contre 649,85 €, écart
+  88,85 €, 1 777 € sur 20 séjours) → 2 ce que chacun coûte → 3 le seuil (le direct gagne sous
+  88,85 € par réservation ; publicité 30 € → +58,85 €) → 4 la stratégie (plateforme puis direct,
+  remise 5 % → +59,30 €, règle des plateformes) → 5 l'équilibre → 6 à retenir → fin.
+  Rendu : node ../render.mjs academie-18-direct-ou-plateforme --format=9x16   (puis --format=16x9)
+  Aperçu : index.html?format=16x9
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 18 Direct ou plateforme</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.cnote { font-size: 20px; font-weight: 600; color: var(--gris); }
+.rnote { font-size: 20px; font-weight: 600; color: var(--gris); text-align: center; margin-top: 14px; }
+.badge { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex: none; }
+.bA { background: #F7E4DC; color: #8E3F20; }
+.bB { background: rgba(13,148,136,.12); color: var(--ok); }
+
+/* Accroche */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.hk18 { padding: 34px 32px; display: flex; flex-direction: column; gap: 14px; opacity: 0; }
+.hk18 .nm { font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); }
+.hk18 .hst { font-size: 27px; font-weight: 600; color: var(--ardoise); }
+.hk18 .kp { border-top: 1.5px solid var(--ligne2); padding-top: 16px; margin-top: 6px; font-size: 22px; font-weight: 700; color: var(--gris); }
+.hk18 .qm { font-family: var(--fd); font-size: 130px; font-weight: 700; line-height: .9; color: var(--n700); }
+
+/* Le calcul */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.col { background: var(--surface); border-radius: 26px; padding: 24px 24px; display: flex; flex-direction: column; gap: 12px; opacity: 0; }
+.col .hd { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 34px; font-weight: 700; color: var(--n700); }
+.crow { display: flex; flex-direction: column; gap: 2px; font-size: 25px; font-weight: 600; color: var(--ardoise); opacity: 0; }
+.crow b { font-family: var(--fd); font-size: 44px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; }
+.crow.neg b { color: #B45733; }
+.ckeep { border-top: 1.5px solid #DCE4E9; padding-top: 12px; opacity: 0; }
+.ckeep small { font-size: 20px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); }
+.ckeep b { display: block; font-family: var(--fd); font-size: 68px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.gapb { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; background: rgba(13,148,136,.1); border-radius: 22px; padding: 18px 24px; opacity: 0; }
+.gapb b { font-family: var(--fd); font-size: 62px; font-weight: 700; color: var(--ok); letter-spacing: -.03em; }
+.gapb span { font-size: 25px; font-weight: 700; color: var(--ok); }
+.yr { text-align: right; opacity: 0; }
+.yr small { display: block; font-size: 20px; font-weight: 700; color: var(--gris); }
+.yr b { font-size: 48px; }
+
+/* Ce que chacun coûte */
+.lists { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.lst { display: flex; flex-direction: column; gap: 14px; }
+.lst .ttl { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 34px; font-weight: 700; color: var(--n700); opacity: 0; }
+.itm { display: flex; align-items: center; gap: 14px; background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 20px; padding: 20px 20px; font-size: 29px; font-weight: 700; color: var(--n700); line-height: 1.2; box-shadow: var(--e1); opacity: 0; }
+.itm .ic { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex: none; }
+
+/* Le seuil */
+.sq { font-family: var(--fd); font-size: 42px; font-weight: 700; color: var(--n700); letter-spacing: -.015em; line-height: 1.15; opacity: 0; }
+.scale { position: relative; height: 390px; margin-top: 30px; }
+.zone { position: absolute; top: 120px; height: 84px; display: flex; align-items: center; justify-content: center; font-size: 27px; font-weight: 700; transform-origin: left; }
+.zD { left: 0; border-radius: 16px 0 0 16px; background: rgba(13,148,136,.16); color: var(--ok); justify-content: flex-end; padding-right: 22px; }
+.zP { right: 0; border-radius: 0 16px 16px 0; background: #F7E4DC; color: #8E3F20; font-size: 22px; line-height: 1.1; text-align: center; padding: 0 8px; }
+.tick { white-space: nowrap; position: absolute; top: 216px; font-family: var(--fd); font-size: 24px; font-weight: 700; color: var(--gris); transform: translateX(-50%); }
+.thm { position: absolute; top: 96px; width: 4px; height: 132px; background: var(--n700); border-radius: 2px; transform: translateX(-50%); opacity: 0; }
+.thl { position: absolute; top: 40px; transform: translateX(-50%); background: var(--n700); color: var(--papier); font-family: var(--fd); font-size: 32px; font-weight: 700; border-radius: 12px; padding: 6px 14px; white-space: nowrap; opacity: 0; }
+.pin { position: absolute; top: 108px; width: 22px; height: 108px; transform: translateX(-50%); opacity: 0; }
+.pin::before { content: ''; position: absolute; left: 9px; top: 0; bottom: 0; width: 4px; background: var(--terracotta, #B45733); border-radius: 2px; }
+.pinl { position: absolute; top: 272px; transform: translateX(-50%); font-size: 27px; font-weight: 700; color: #8E3F20; white-space: nowrap; opacity: 0; }
+.brk { position: absolute; top: 254px; height: 16px; border: 3px solid var(--ok); border-top: 0; border-radius: 0 0 10px 10px; opacity: 0; }
+.brkl { position: absolute; top: 322px; transform: translateX(-50%); background: var(--teal); color: #FDFDFE; font-family: var(--fd); font-size: 32px; font-weight: 700; border-radius: 12px; padding: 6px 14px; white-space: nowrap; opacity: 0; }
+
+/* La stratégie */
+.steps { display: flex; align-items: stretch; gap: 10px; }
+.step { flex: 1; background: var(--surface); border-radius: 24px; padding: 22px 20px; display: flex; flex-direction: column; gap: 8px; opacity: 0; }
+.step .n { font-family: var(--fd); font-size: 24px; font-weight: 700; color: var(--gris); }
+.step b { font-family: var(--fd); font-size: 31px; font-weight: 700; color: var(--n700); line-height: 1.1; }
+.step span { font-size: 24px; font-weight: 600; color: var(--ardoise); }
+.arr { align-self: center; color: var(--gris); opacity: 0; flex: none; }
+.dchip { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; background: #F4EBDC; border-radius: 20px; padding: 18px 24px; font-size: 27px; font-weight: 700; color: var(--encre-terre); opacity: 0; }
+.dchip b { font-family: var(--fd); font-size: 38px; color: var(--ok); opacity: 0; }
+.rule { display: flex; align-items: center; gap: 16px; margin-top: 18px; background: #F7E4DC; color: #8E3F20; border-radius: 20px; padding: 20px 24px; font-size: 28px; font-weight: 700; line-height: 1.3; opacity: 0; }
+.fnd { margin-top: 18px; opacity: 0; }
+.fchips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.fchip { display: inline-flex; align-items: center; gap: 10px; background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 999px; padding: 12px 20px; font-size: 26px; font-weight: 700; color: var(--n700); box-shadow: var(--e1); opacity: 0; }
+
+/* L'équilibre */
+.mrow { display: grid; grid-template-columns: 130px 1fr; align-items: center; gap: 18px; margin-top: 22px; opacity: 0; }
+.mrow span { font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--ardoise); }
+.mbar { display: flex; height: 84px; border-radius: 16px; overflow: hidden; background: var(--n600); }
+.mbar i { margin-inline-start: auto; height: 100%; background: var(--teal); }
+.mlg { display: flex; flex-direction: column; gap: 10px; margin-top: 30px; }
+.mlg span { display: inline-flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 700; color: var(--n700); opacity: 0; }
+.mlg i { width: 22px; height: 22px; border-radius: 7px; }
+
+/* À retenir */
+.rc2 { display: flex; flex-direction: column; gap: 18px; }
+
+html.f169 .hk18 .qm { font-size: 96px; }
+html.f169 .hk18 .nm { font-size: 32px; }
+html.f169 .hk18 .hst { font-size: 24px; }
+html.f169 .col .hd { font-size: 30px; }
+html.f169 .crow { font-size: 22px; }
+html.f169 .crow b { font-size: 36px; }
+html.f169 .ckeep b { font-size: 50px; }
+html.f169 .gapb b { font-size: 46px; }
+html.f169 .gapb span { font-size: 22px; }
+html.f169 .yr b { font-size: 40px; }
+html.f169 .lst .ttl { font-size: 30px; }
+html.f169 .itm { font-size: 23px; padding: 14px 16px; }
+html.f169 .itm .ic { width: 46px; height: 46px; }
+html.f169 .sq { font-size: 32px; }
+html.f169 .step b { font-size: 26px; }
+html.f169 .step span { font-size: 21px; }
+html.f169 .dchip { font-size: 24px; }
+html.f169 .dchip b { font-size: 32px; }
+html.f169 .rule { font-size: 24px; }
+html.f169 .fchip { font-size: 22px; }
+html.f169 .mbar { height: 64px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche : même séjour, deux canaux */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 76 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' ').map((x) => x.replace(/[?…]/g, '')));
+const H = T.hook;
+const duo = A.abs(L.card.x, 0, L.card.w, null, 'duo');
+const hookCard = (name, ic, cls) => {
+  const qm = h('div', { class: 'qm' }, '?');
+  const el = h('div', { class: 'acard hk18' }, h('span', { class: `badge ${cls}` }, icon(ic, 30)), h('div', { class: 'nm' }, name), h('div', { class: 'hst' }, H.stay), h('div', { class: 'kp' }, H.keep), qm);
+  duo.append(el); return { el, qm };
+};
+const hA = hookCard(H.a, 'globe', 'bA'), hB = hookCard(H.b, 'house', 'bB');
+
+/* 1 · le calcul */
+const CA = T.calc, c1 = A.card();
+const column = (x, ic, cls, color) => {
+  const rows = x.rows.map(([k, v], i) => h('div', { class: `crow${i ? ' neg' : ''}` }, k, h('b', {}, v)));
+  const keep = h('div', { class: 'ckeep' }, h('small', {}, CA.keepLabel), h('b', { style: `color:${color}` }, x.keep));
+  const el = h('div', { class: 'col' }, h('div', { class: 'hd' }, h('span', { class: `badge ${cls}` }, icon(ic, 28)), x.name), ...rows, keep);
+  return { el, rows, keep };
+};
+const cA = column(CA.a, 'globe', 'bA', '#B45733'), cB = column(CA.b, 'house', 'bB', '#0C7166');
+const yr = h('div', { class: 'yr' }, h('small', {}, CA.year), h('b', { class: 'big', style: 'color:#0C7166' }, CA.yearV));
+const gapb = h('div', { class: 'gapb' }, h('div', {}, h('b', {}, CA.gap), h('div', {}, h('span', {}, CA.gapSub))), yr);
+c1.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' }, h('div', { class: 'cols' }, cA.el, cB.el), gapb), h('div', { class: 'rnote' }, T.rateNote, ' · ', T.illustrative));
+
+/* 2 · ce que chacun coûte */
+const CO = T.costs, c2 = A.card();
+const list = (x, cls) => {
+  const ttl = h('div', { class: 'ttl' }, x.title);
+  const items = x.items.map(([ic, txt]) => h('div', { class: 'itm' }, h('span', { class: `ic ${cls}` }, icon(ic, 26)), txt));
+  return { el: h('div', { class: 'lst' }, ttl, ...items), ttl, items };
+};
+const lA = list(CO.a, 'bB'), lB = list(CO.b, 'bA');
+c2.el.append(h('div', { class: 'lists', style: 'flex:1;align-content:center' }, lA.el, lB.el));
+
+/* 3 · le seuil */
+const SE = T.seuil, c3 = A.card();
+const pct = (v) => `${v / 120 * 100}%`;
+const sq = h('div', { class: 'sq' }, SE.question);
+const zD = h('div', { class: 'zone zD', style: `width:${pct(88.85)}` }, SE.direct), zP = h('div', { class: 'zone zP', style: `width:${pct(120 - 88.85)}` }, SE.platform);
+const thm = h('div', { class: 'thm', style: `left:${pct(88.85)}` }), thl = h('div', { class: 'thl', style: `left:${pct(88.85)}` }, SE.th);
+const pin = h('div', { class: 'pin', style: `left:${pct(30)}` }), pinl = h('div', { class: 'pinl', style: `left:${pct(30)}` }, SE.ad);
+const brk = h('div', { class: 'brk', style: `left:${pct(30)};width:${pct(58.85)}` }), brkl = h('div', { class: 'brkl', style: `left:${pct(30 + 58.85 / 2)}` }, SE.keep);
+const ticks = [[0, SE.zero], [120, SE.max]].map(([v, l]) => h('div', { class: 'tick', style: `left:${pct(v)}` }, l));
+const scale = h('div', { class: 'scale' }, zD, zP, ...ticks, thm, thl, pin, brk, pinl, brkl);
+c3.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' }, sq, scale), h('div', { class: 'rnote' }, T.rateNote));
+
+/* 4 · la stratégie */
+const ST = T.strat, c4 = A.card();
+const steps = ST.steps.map(([ic, b, s], i) => h('div', { class: 'step' }, h('span', { class: `badge ${i === 2 ? 'bB' : 'bA'}`, style: 'width:48px;height:48px;border-radius:14px' }, icon(ic, 26)), h('span', { class: 'n' }, String(i + 1)), h('b', {}, b), h('span', {}, s)));
+const arrows = [0, 1].map(() => h('span', { class: 'arr' }, icon('send', 26)));
+const discV = h('b', {}, ST.disc[1]), dchip = h('div', { class: 'dchip' }, ST.disc[0], discV);
+const rule = h('div', { class: 'rule' }, icon('alert', 32), ST.rule);
+const fchips = ST.finds.map(([ic, l]) => h('span', { class: 'fchip' }, icon(ic, 24), l));
+const fnd = h('div', { class: 'fnd' }, h('span', { class: 'alabel' }, ST.find), h('div', { class: 'fchips' }, fchips));
+c4.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' },
+  h('div', { class: 'steps' }, steps[0], arrows[0], steps[1], arrows[1], steps[2]), dchip, rule, fnd));
+
+/* 5 · l'équilibre (illustration, sans chiffres) */
+const MX = T.mix, c5 = A.card();
+const SHARE = [.12, .24, .36];
+const mrows = MX.years.map((y) => { const d = h('i', { style: 'width:0' }); return { el: h('div', { class: 'mrow' }, h('span', {}, y), h('div', { class: 'mbar' }, d)), d }; });
+const lgA = h('span', {}, h('i', { style: 'background:var(--n600)' }), MX.a), lgB = h('span', {}, h('i', { style: 'background:var(--teal)' }), MX.b);
+c5.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center' },
+  h('div', { style: 'display:flex;justify-content:space-between;align-items:baseline' }, h('span', { class: 'alabel' }, MX.title), h('span', { class: 'cnote' }, MX.note)),
+  ...mrows.map((m) => m.el), h('div', { class: 'mlg' }, lgA, lgB)));
+
+/* 6 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'rc2');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'appt', style: 'opacity:0' }, icon('ccheck', 32), R.app), app2 = h('div', { class: 'appt', style: 'opacity:0' }, icon('bot', 32), R.app2);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, app2);
+
+/* Mise en page mesurée (polices chargées) */
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(duo, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .05);
+  A.rise(hA.el, v0, shown(t, S[0][0] + .4, .6), 60); A.rise(hB.el, v0, shown(t, S[0][0] + .7, .6), 60);
+  [hA, hB].forEach((c, i) => { const p = shown(t, SYNC.q2 + i * .2, .3) * (1 - shown(t, SYNC.q2 + .7 + i * .2, .5)); set(c.qm, { transform: `scale(${1 + .15 * p}) rotate(${-8 * p}deg)`, color: p > .05 ? `color-mix(in srgb, #9A6C3A ${Math.round(p * 100)}%, #1B2A35)` : '' }); });
+
+  /* 1 · le calcul */
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  A.rise(cA.el, 1, shown(t, SYNC.s660 - .4, .5), 30);
+  A.rise(cA.rows[0], 1, shown(t, SYNC.s660 - .1), 12);
+  A.rise(cA.rows[1], 1, shown(t, SYNC.com - .1), 12); set(cA.rows[1].lastChild, { opacity: shown(t, SYNC.com2 - .1) });
+  A.rise(cA.keep, 1, shown(t, SYNC.rest1 - .1), 12);
+  A.rise(cB.el, 1, shown(t, SYNC.dir - .3, .5), 30);
+  A.rise(cB.rows[0], 1, shown(t, SYNC.dir), 12);
+  A.rise(cB.rows[1], 1, shown(t, SYNC.fee - .1), 12); set(cB.rows[1].lastChild, { opacity: shown(t, SYNC.fee2 - .1) });
+  A.rise(cB.keep, 1, shown(t, SYNC.rest2 - .1), 12);
+  const gp = shown(t, SYNC.gap - .1, .45); set(gapb, { opacity: gp, transform: `scale(${lerp(.94, 1, gp)})` });
+  A.rise(yr, 1, shown(t, SYNC.year - .1), 10); set(yr.lastChild, { opacity: shown(t, SYNC.y1800 - .2) });
+
+  /* 2 · ce que chacun coûte */
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  A.rise(lA.ttl, 1, shown(t, SYNC.why), 12);
+  [SYNC.o1, SYNC.o2, SYNC.o3, SYNC.o4].forEach((t0, i) => A.rise(lA.items[i], 1, shown(t, t0 - .15), 16));
+  A.rise(lB.ttl, 1, shown(t, SYNC.d1 - .6), 12);
+  [SYNC.d1, SYNC.d2, SYNC.d3, SYNC.d4].forEach((t0, i) => A.rise(lB.items[i], 1, shown(t, t0 - .15), 16));
+
+  /* 3 · le seuil */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  A.rise(sq, 1, shown(t, SYNC.q - .3), 12);
+  const zp = shown(t, SYNC.q + .6, .6); zD.style.transform = `scaleX(${zp})`; zD.style.opacity = zp;
+  const zp2 = shown(t, SYNC.th + .3, .5); zP.style.opacity = zp2;
+  ticks.forEach((e) => { e.style.opacity = zp; });
+  set(thm, { opacity: shown(t, SYNC.th - .1) }); A.rise(thl, 1, shown(t, SYNC.th - .1), 10);
+  set(pin, { opacity: shown(t, SYNC.ad - .1) }); A.rise(pinl, 1, shown(t, SYNC.ad), 10);
+  const bp = shown(t, SYNC.keep - .2, .4); set(brk, { opacity: bp }); A.rise(brkl, 1, shown(t, SYNC.keep), 10);
+
+  /* 4 · la stratégie */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  [SYNC.st1, SYNC.st2 + .6, SYNC.st3].forEach((t0, i) => A.rise(steps[i], 1, shown(t, t0 - .2, .45), 20));
+  arrows.forEach((a, i) => { a.style.opacity = shown(t, [SYNC.st1, SYNC.st2 + .6][i] + .4); });
+  A.rise(dchip, 1, shown(t, SYNC.disc - .2), 14); set(discV, { opacity: shown(t, SYNC.g593 - .1) });
+  A.rise(rule, 1, shown(t, SYNC.rule - .1), 14);
+  const bn = easeOut(prog(t, SYNC.ban, .25)) * (1 - easeIn(prog(t, SYNC.ban + .6, .4))); rule.style.transform += ` scale(${1 + .03 * bn})`;
+  A.rise(fnd, 1, shown(t, SYNC.find - .1), 10);
+  [SYNC.f1, SYNC.f2, SYNC.f3].forEach((t0, i) => A.rise(fchips[i], 1, shown(t, t0 - .1, .35), 10));
+
+  /* 5 · l'équilibre */
+  c5.render(t, S[5][0] + .1, S[5][1]);
+  mrows.forEach((m, i) => { A.rise(m.el, 1, shown(t, SYNC.bal - .2 + i * .25), 14); m.d.style.width = `${SHARE[i] * 100 * shown(t, SYNC.grow + i * .35, .6)}%`; });
+  A.rise(lgA, 1, shown(t, SYNC.fill - .1), 8); A.rise(lgB, 1, shown(t, SYNC.grow), 8);
+
+  /* 6 · à retenir */
+  hdR.render(t, S[6][0], S[6][1]);
+  const v6 = slotVis(t, 6);
+  [SYNC.k1, SYNC.k2].forEach((t0, i) => A.rise(rEls[i], v6, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v6, shown(t, SYNC.app, .45), 20); A.rise(app2, v6, shown(t, SYNC.app2, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

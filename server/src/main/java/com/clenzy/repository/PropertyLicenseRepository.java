@@ -12,4 +12,13 @@ public interface PropertyLicenseRepository extends JpaRepository<PropertyLicense
             Long propertyId, Long organizationId);
 
     Optional<PropertyLicense> findByIdAndOrganizationId(Long id, Long organizationId);
+
+    boolean existsByPropertyIdAndOrganizationIdAndLicenseType(
+            Long propertyId, Long organizationId, PropertyLicense.LicenseType licenseType);
+
+    List<PropertyLicense> findByOrganizationIdAndLicenseTypeAndPropertyIdIn(
+            Long organizationId, PropertyLicense.LicenseType licenseType, java.util.Collection<Long> propertyIds);
+
+    Optional<PropertyLicense> findFirstByPropertyIdAndOrganizationIdAndLicenseType(
+            Long propertyId, Long organizationId, PropertyLicense.LicenseType licenseType);
 }

@@ -31,7 +31,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
           'Registration and tax identifiers: 〔to be confirmed〕',
           'Complete legal address: 〔to be completed〕',
           'Publication director: 〔to be confirmed〕',
-          'Contact: form at https://baitly.fr/contact',
+          'Contact: contact@baitly.fr or form at https://baitly.fr/contact',
         ],
       },
       {
@@ -155,7 +155,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
         heading: '9. Your rights',
         paragraphs: [
           'Under law 09-08 and, where applicable, the GDPR, you have the rights of access, rectification, erasure, objection, restriction and portability of your data, as well as the right to set post-mortem directives and to withdraw your consent at any time.',
-          'Exercising your rights: https://baitly.fr/contact (answer within 30 days; proof of identity required in the event of reasonable doubt). Guests whose data is processed on behalf of a client are asked to contact their host or manager first, as controller; Baitly forwards without delay any request received directly.',
+          'Exercising your rights: contact@baitly.fr or https://baitly.fr/contact (answer within 30 days; proof of identity required in the event of reasonable doubt). Guests whose data is processed on behalf of a client are asked to contact their host or manager first, as controller; Baitly forwards without delay any request received directly.',
           'You may lodge a complaint with the CNDP (www.cndp.ma) or, for persons covered by the GDPR, with the supervisory authority of your Member State (in France, the CNIL).',
         ],
       },
@@ -249,7 +249,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
         heading: 'Article 9 — Service levels and support',
         paragraphs: [
           'Baitly targets monthly Service availability of 99.5%, measured excluding planned maintenance windows notified at least 48 hours in advance and excluding external causes (third-party platform outages, force majeure). The status of the Service and the incident history are published on the Service status page.',
-          'Support is available by email and WhatsApp during business hours (Mon.–Fri., 9am–6pm, Rabat time), targeting a first response within 4 business hours (1 business hour for blocking incidents). Custom plans may provide for stronger commitments through special conditions.',
+          'Support is available by email (support@baitly.fr) and WhatsApp during business hours (Mon.–Fri., 9am–6pm, Rabat time), targeting a first response within 4 business hours (1 business hour for blocking incidents). Custom plans may provide for stronger commitments through special conditions.',
         ],
       },
       {

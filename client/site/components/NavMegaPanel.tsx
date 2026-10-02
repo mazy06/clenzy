@@ -1,11 +1,18 @@
-import { useState, type ComponentType, type CSSProperties } from 'react';
+import {
+  lazy,
+  Suspense,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
-import { NavigationMenuLink } from '../../src/components/ui';
-import BaitlyBookingPreview from './BaitlyBookingPreview';
-import BaitlyNavPreview, {
-  type BaitlyNavPreviewKind,
-} from './BaitlyNavPreview';
+import { NavigationMenuLink } from '../../src/components/ui/navigation-menu';
+import type { BaitlyNavPreviewKind } from './BaitlyNavPreview';
+
+// Menu links are immediate; only their decorative demonstrations are deferred.
+const BaitlyBookingPreview = lazy(() => import('./BaitlyBookingPreview'));
+const BaitlyNavPreview = lazy(() => import('./BaitlyNavPreview'));
 
 /**
  * Le contenu d'un volet de la barre de navigation : une liste, une vitrine.
@@ -113,22 +120,30 @@ export default function NavMegaPanel({
           {/* La cle remonte la carte a chaque changement : c'est elle qui
               rejoue l'animation d'entree, sans rien a remettre a zero. */}
           <div className="bl-mega-card" key={active.key}>
-            {active.key === 'booking-engine' ? (
-              <BaitlyBookingPreview compact />
-            ) : active.preview ? (
-              <BaitlyNavPreview kind={active.preview} />
-            ) : active.photo ? (
-              <span className="bl-mega-card-media">
-                <img src={active.photo} alt="" decoding="async" />
-                <span className="bl-mega-card-plate">
-                  <ActiveIcon className="size-4" />
+            <Suspense
+              fallback={
+                <span className="bl-mega-card-media bl-mega-card-media-plain">
+                  <ActiveIcon className="size-7" />
                 </span>
-              </span>
-            ) : (
-              <span className="bl-mega-card-media bl-mega-card-media-plain">
-                <ActiveIcon className="size-7" />
-              </span>
-            )}
+              }
+            >
+              {active.key === 'booking-engine' ? (
+                <BaitlyBookingPreview compact />
+              ) : active.preview ? (
+                <BaitlyNavPreview kind={active.preview} />
+              ) : active.photo ? (
+                <span className="bl-mega-card-media">
+                  <img src={active.photo} alt="" decoding="async" />
+                  <span className="bl-mega-card-plate">
+                    <ActiveIcon className="size-4" />
+                  </span>
+                </span>
+              ) : (
+                <span className="bl-mega-card-media bl-mega-card-media-plain">
+                  <ActiveIcon className="size-7" />
+                </span>
+              )}
+            </Suspense>
             <span className="bl-mega-card-body">
               {active.tag && (
                 <span className="bl-mega-card-tag">{active.tag}</span>

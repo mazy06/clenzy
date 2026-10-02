@@ -55,6 +55,7 @@ export const ACTION_TYPE_ILLUSTRATIONS: Readonly<Record<string, ActionIllustrati
   "DEPOSIT_REFUND": "refund",
   "DEPOSIT_RELEASE": "deposit",
   "CALENDAR_BLOCK": "calendar",
+  "NIGHTS_CAP_CLOSE": "calendar",
   "YIELD_PRICE_ADJUST": "pricing-optimization",
   "CLEANING_REQUEST": "cleaning",
   "PAYMENT_REMINDER": "payment-reminder",
@@ -113,6 +114,8 @@ export const SOURCE_ILLUSTRATIONS: Readonly<Record<string, ActionIllustrationKey
   "mission_to_confirm": "assignment",
   "gdpr_unlinked": "privacy",
   "license_expiring": "management-contract",
+  "registration_missing": "management-contract",
+  "nights_cap_near": "calendar",
   "police_owner_bears": "traveler-form",
   "payout_reminder": "owner-transfer",
 };

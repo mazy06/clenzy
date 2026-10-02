@@ -20,11 +20,23 @@ import {
 } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Property } from '../../services/api/propertiesApi';
-import type {
-  TaxCalculationMode,
-  TouristTaxConfig,
-  TouristTaxConfigRequest,
+import {
+  touristTaxApi,
+  type FrTaxCategory,
+  type TaxCalculationMode,
+  type TouristTaxConfig,
+  type TouristTaxConfigRequest,
 } from '../../services/api/touristTaxApi';
+
+const REFERENCE_CATEGORIES: { value: FrTaxCategory; key: string; fallback: string }[] = [
+  { value: 'UNCLASSIFIED', key: 'touristTax.reference.cat.unclassified', fallback: 'Non classé' },
+  { value: 'MEUBLE_1', key: 'touristTax.reference.cat.stars1', fallback: 'Meublé 1 étoile' },
+  { value: 'MEUBLE_2', key: 'touristTax.reference.cat.stars2', fallback: 'Meublé 2 étoiles' },
+  { value: 'MEUBLE_3', key: 'touristTax.reference.cat.stars3', fallback: 'Meublé 3 étoiles' },
+  { value: 'MEUBLE_4', key: 'touristTax.reference.cat.stars4', fallback: 'Meublé 4 étoiles' },
+  { value: 'MEUBLE_5', key: 'touristTax.reference.cat.stars5', fallback: 'Meublé 5 étoiles' },
+  { value: 'CHAMBRE_HOTES', key: 'touristTax.reference.cat.guestHouse', fallback: 'Chambre d’hôtes' },
+];
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -106,6 +118,45 @@ export default function TouristTaxBaremeDialog({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // Référentiel officiel (DGFiP) : pré-remplit le barème depuis la commune, à valider.
+  const [refCategory, setRefCategory] = useState<FrTaxCategory>('UNCLASSIFIED');
+  const [refLoading, setRefLoading] = useState(false);
+  const [refMessage, setRefMessage] = useState<string | null>(null);
+
+  const prefillFromReference = async () => {
+    const insee = form.communeCode.trim().toUpperCase();
+    if (!/^(\d{5}|2[AB]\d{3})$/.test(insee)) {
+      setRefMessage(t('touristTax.reference.inseeRequired', 'Saisissez d’abord le code INSEE de la commune (5 caractères).'));
+      return;
+    }
+    setRefLoading(true);
+    setRefMessage(null);
+    try {
+      const s = await touristTaxApi.getReference(insee, refCategory);
+      setForm((prev) => ({
+        ...prev,
+        communeName: prev.communeName.trim() || (s.communeName ?? ''),
+        communeCode: insee,
+        calculationMode: s.calculationMode,
+        ratePerPerson: s.ratePerPerson != null ? String(s.ratePerPerson) : '',
+        percentageRatePct: s.percentageRate != null ? String(Math.round(s.percentageRate * 10000) / 100) : '',
+        capPerPersonNight: s.capPerPersonNight != null ? String(s.capPerPersonNight) : '',
+        departmentalSurchargePct: s.departmentalSurchargePct != null ? String(s.departmentalSurchargePct) : '',
+        regionalSurchargePct: s.regionalSurchargePct != null ? String(s.regionalSurchargePct) : '',
+      }));
+      setRefMessage(t('touristTax.reference.applied',
+        'Barème {{year}} de la commune repris du référentiel DGFiP — vérifiez-le avant d’enregistrer.',
+        { year: s.sourceYear }));
+    } catch (e) {
+      const status = (e as { status?: number }).status;
+      setRefMessage(status === 404
+        ? t('touristTax.reference.notFound', 'Aucun tarif publié pour cette commune et cette catégorie (taxe peut-être non instituée).')
+        : t('touristTax.reference.error', 'Référentiel officiel indisponible, réessayez plus tard.'));
+    } finally {
+      setRefLoading(false);
+    }
+  };
+
   const isPercentage = form.calculationMode === 'PERCENTAGE_OF_RATE';
   const canSubmit = form.communeName.trim() !== '' && !saving;
 
@@ -148,7 +199,17 @@ export default function TouristTaxBaremeDialog({
                 id="tourist-tax-property"
                 className="w-full"
                 value={form.propertyId}
-                onChange={(e) => set('propertyId', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // La commune du logement est déjà connue (déduite de son adresse) : on la reprend.
+                  const chosen = properties.find((p) => String(p.id) === value);
+                  setForm((prev) => ({
+                    ...prev,
+                    propertyId: value,
+                    communeCode: prev.communeCode.trim() || chosen?.communeInseeCode || '',
+                    communeName: prev.communeName.trim() || chosen?.city || '',
+                  }));
+                }}
                 disabled={config != null /* la clé naturelle ne change pas en édition */}
               >
                 <NativeSelectOption value={ORG_DEFAULT}>
@@ -193,6 +254,33 @@ export default function TouristTaxBaremeDialog({
                 onChange={(e) => set('communeCode', e.target.value)}
               />
             </Field>
+          </div>
+
+          <div className="col-span-12 rounded-md border border-border p-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <Field className="min-w-[180px] flex-1">
+                <FieldLabel htmlFor="tourist-tax-ref-category">
+                  {t('touristTax.reference.category', 'Classement du logement')}
+                </FieldLabel>
+                <NativeSelect
+                  id="tourist-tax-ref-category"
+                  className="w-full"
+                  value={refCategory}
+                  onChange={(e) => setRefCategory(e.target.value as FrTaxCategory)}
+                >
+                  {REFERENCE_CATEGORIES.map((c) => (
+                    <NativeSelectOption key={c.value} value={c.value}>{t(c.key, c.fallback)}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <Button type="button" variant="outline" size="sm" onClick={prefillFromReference} disabled={refLoading}>
+                {t('touristTax.reference.prefill', 'Pré-remplir (référentiel officiel)')}
+              </Button>
+            </div>
+            <FieldDescription className="mt-2">
+              {refMessage ?? t('touristTax.reference.help',
+                'Tarifs délibérés par la commune, publiés par la DGFiP. Île-de-France : surtaxes régionales de 15 % et 200 % incluses.')}
+            </FieldDescription>
           </div>
 
           <div className="col-span-12">

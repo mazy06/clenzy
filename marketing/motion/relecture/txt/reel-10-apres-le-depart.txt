@@ -1,0 +1,221 @@
+==============================================================================
+REEL 10 · APRÈS LE DÉPART — Contrôle du ménage, caution retenue sur un dégât, prestataire payé, linge commandé
+Format 9:16 (1080×1920) · 38 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 6,0 s]
+      Onze heures, votre voyageur est parti. L'équipe de ménage prend le relais, et Bètli suit la mission en direct.
+  b2  [suit la voix · durée visée 7,3 s]
+      Elle envoie ses photos, et vous contrôlez le travail avant de le valider. Sur l'une d'elles, un dégât : la lampe de chevet est cassée.
+  b3  [suit la voix · durée visée 7,0 s]
+      Une carte vous propose de retenir la réparation sur la caution. Jamais plus que son montant : le reste est libéré, automatiquement.
+  b4  [suit la voix · durée visée 7,0 s]
+      La preuve photo débloque le paiement de votre équipe. Et quand les draps viennent à manquer, la commande part chez le fournisseur.
+  b5  [suit la voix · durée visée 2,6 s]
+      Tout est vérifié. … Rien n'est oublié.
+  b6  [suit la voix · durée visée 4,4 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–2,59 s]  11 h, [votre voyageur est parti.]
+  ST2  [2,61–6,69 s]  L'équipe de ménage prend le relais,
+  ST3  [6,71–10,07 s]  et Baitly suit la mission en direct.
+  ST4  [10,09–12,98 s]  Elle envoie ses photos,
+  ST5  [13,18–16,18 s]  et vous contrôlez le travail avant de le valider.
+  ST6  [16,2–20,17 s]  Sur l'une d'elles, un dégât : [la lampe de chevet est cassée.]
+  ST7  [20,37–22,44 s]  Une carte vous propose de retenir la réparation sur la caution.
+  ST8  [22,46–23,75 s]  Jamais plus que son montant : le reste est libéré, [automatiquement.]
+  ST9  [23,77–25,83 s]  La preuve photo débloque le paiement de votre équipe.
+  ST10  [25,23–27,35 s]  Et quand les draps viennent à manquer,
+  ST11  [27,37–29,6 s]  la commande part chez le fournisseur.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Maquette d’interface (libellé)
+      E2  Départ · 11:00
+      E3  Ménage après départ
+      E4  Riad Nour · Mar. 14 oct.
+      E5  11 h → 14 h
+      E6  Amina
+      E7  Équipe ménage
+      E8  En cours
+      E9  Agent Opérations
+      E10  Contrôle du travail
+      E11  En attente
+      E12  Fait
+      E13  Ménage terminé · Riad Nour
+      E14  6 photos, 2 h 40 réelles pour 3 h prévues, checklist complète.
+  · Bouton (maquette) : rester court
+      E15  Valider le travail
+      E16  Refuser
+  · Maquette d’interface (libellé)
+      E17  Travail validé · solde dû à Amina
+      E18  Lampe de chevet cassée
+      E19  Agent Finance
+      E20  Caution
+      E21  En attente
+      E22  Fait
+      E23  Dégât constaté au départ · Riad Nour
+      E24  Réparation de la lampe : 450 MAD. La caution de Sara est encore bloquée.
+      E25  Caution
+      E26  1 500 MAD
+      E27  Retenue
+      E28  450 MAD
+      E29  Libéré
+      E30  1 050 MAD
+      E31  Retenir 450 MAD
+  · Bouton (maquette) : rester court
+      E32  Ajuster
+  · Maquette d’interface (libellé)
+      E33  Ignorer
+      E34  450 MAD retenus · 1 050 MAD libérés
+      E35  Agent Opérations
+      E36  Versement
+      E37  En attente
+      E38  Fait
+      E39  Paiement d’Amina débloqué
+      E40  Mission
+      E41  180 MAD
+      E42  Preuve photo
+      E43  Reçue
+      E44  Compte de paiement
+      E45  Vérifié
+  · Bouton (maquette) : rester court
+      E46  Verser 180 MAD
+  · Maquette d’interface (libellé)
+      E47  Voir les photos
+      E48  180 MAD versés à Amina
+      E49  Agent Opérations
+      E50  Linge
+      E51  En attente
+      E52  Fait
+      E53  Draps : 3 jeux restants, seuil 4
+      E54  Commande de 10 jeux chez Blanchisserie Atlas, livrés au Riad Nour.
+      E55  Commander
+      E56  Modifier
+      E57  Bon de commande envoyé à Blanchisserie Atlas
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E58  Tout est vérifié.
+      E59  Rien n’est oublié.
+  · Bouton de l’écran de fin
+      E60  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E61  Photos
+      E62  contrôle avant paiement
+      E63  Caution
+      E64  retenue plafonnée
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 6,2 s]
+      Eleven a.m., your guest has checked out. Your cleaning team takes over, and Betly follows the job live.
+  b2  [suit la voix · durée visée 7,2 s]
+      She sends her photos, and you check the work before approving it. One of them shows damage: the bedside lamp is broken.
+  b3  [suit la voix · durée visée 7,6 s]
+      A card suggests withholding the repair from the deposit. Never more than the deposit itself: the rest is released automatically.
+  b4  [suit la voix · durée visée 6,9 s]
+      The photo proof releases your team's payment. And when the sheets run low, the order goes straight to your supplier.
+  b5  [suit la voix · durée visée 2,6 s]
+      Everything checked. … Nothing forgotten.
+  b6  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–2,59 s]  11 a.m., [your guest has checked out.]
+  ST2  [2,61–6,69 s]  Your cleaning team takes over, [and Baitly follows the job live.]
+  ST3  [6,71–10,07 s]  She sends her photos, [and you check the work before approving it.]
+  ST4  [10,09–12,98 s]  One of them shows damage: the bedside lamp is broken.
+  ST5  [13,18–16,18 s]  A card suggests withholding the repair from the deposit.
+  ST6  [16,2–20,17 s]  Never more than the deposit itself: the rest is released automatically.
+  ST7  [20,37–22,44 s]  The photo proof releases your team's payment.
+  ST8  [22,46–23,75 s]  And when the sheets run low,
+  ST9  [23,77–25,83 s]  the order goes straight to your supplier.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Maquette d’interface (libellé)
+      E2  Checkout · 11:00
+      E3  Cleaning after checkout
+      E4  Nakheel Chalet · Tue, Oct 14
+      E5  11 am → 2 pm
+      E6  Amina
+      E7  Cleaning team
+      E8  In progress
+      E9  Operations agent
+      E10  Work review
+      E11  Pending
+      E12  Done
+      E13  Cleaning completed · Nakheel Chalet
+      E14  6 photos, 2 h 40 actual for 3 h planned, checklist complete.
+  · Bouton (maquette) : rester court
+      E15  Approve the work
+      E16  Decline
+  · Maquette d’interface (libellé)
+      E17  Work approved · balance due to Amina
+      E18  Bedside lamp broken
+      E19  Finance agent
+      E20  Deposit
+      E21  Pending
+      E22  Done
+      E23  Damage found at checkout · Nakheel Chalet
+      E24  Lamp repair: SAR 300. Sara’s deposit is still on hold.
+      E25  Deposit
+      E26  SAR 1,000
+      E27  Withheld
+      E28  SAR 300
+      E29  Released
+      E30  SAR 700
+      E31  Withhold SAR 300
+  · Bouton (maquette) : rester court
+      E32  Adjust
+  · Maquette d’interface (libellé)
+      E33  Ignore
+      E34  SAR 300 withheld · SAR 700 released
+      E35  Operations agent
+      E36  Payout
+      E37  Pending
+      E38  Done
+      E39  Amina’s payment unlocked
+      E40  Job
+      E41  SAR 120
+      E42  Photo proof
+      E43  Received
+      E44  Payout account
+      E45  Verified
+  · Bouton (maquette) : rester court
+      E46  Pay SAR 120
+  · Maquette d’interface (libellé)
+      E47  See photos
+      E48  SAR 120 paid to Amina
+      E49  Operations agent
+      E50  Linen
+      E51  Pending
+      E52  Done
+      E53  Sheets: 3 sets left, threshold 4
+      E54  Order 10 sets from Riyadh Linen Co., delivered to Nakheel Chalet.
+      E55  Order
+      E56  Edit
+      E57  Purchase order sent to Riyadh Linen Co.
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E58  Everything checked.
+      E59  Nothing forgotten.
+  · Bouton de l’écran de fin
+      E60  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E61  Photos
+      E62  checked before payment
+      E63  Deposit
+      E64  capped withholding

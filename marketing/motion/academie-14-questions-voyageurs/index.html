@@ -1,0 +1,313 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 14 « Les 7 questions que tous les voyageurs posent » (≈ 2 min) · 9:16 et 16:9,
+  depuis le même fichier. Voix : Noé (les épisodes alternent voix féminine et masculine).
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (les messages qui reviennent) → 1 ce qu'elles coûtent (20 × 3 × 5 min = 300 min,
+  5 h par mois) → 2 les sept questions (avant, pendant, au départ ; piège : le livret de 20 pages ; une
+  réponse courte et une photo) → 3 le bon moment (et le code d'accès le jour même) → 4 mise en pratique
+  (300 → 100 min, 1 h 40) → 5 à retenir → fin.
+  Photos : ../academie-shared/photos/SOURCES.md (<img>, pour que le rendu attende leur chargement).
+  Rendu : node ../render.mjs academie-14-questions-voyageurs --format=9x16   (puis --format=16x9)
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 14 Les questions des voyageurs</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+/* Préfixe qv- : aucune collision avec base.css (.bar, .chip, .row, .card, .ph… y sont déjà pris). */
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.qvfill { flex: 1; position: relative; min-height: 0; }
+.qvlayer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px; opacity: 0; }
+.qvimg { display: block; object-fit: cover; }
+.qvpill { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 12px 20px; font-size: 25px; font-weight: 700; opacity: 0; }
+.qvpill.ok { background: rgba(13,148,136,.12); color: var(--ok); }
+.qvpill.warn { background: #B45733; color: #FDFDFE; }
+.qvpill.soft { background: #F4EBDC; color: var(--encre-terre); }
+
+/* 0 · accroche : les messages qui reviennent */
+.qvhook { padding: 30px; display: flex; flex-direction: column; gap: 16px; opacity: 0; }
+.qvbub { align-self: flex-start; max-width: 88%; display: flex; flex-direction: column; gap: 4px; background: var(--surface); border-radius: 26px 26px 26px 8px; padding: 16px 22px; opacity: 0; }
+.qvbub small { display: flex; justify-content: space-between; gap: 20px; font-size: 19px; font-weight: 700; color: var(--gris); font-variant-numeric: tabular-nums; }
+.qvbub b { font-size: 32px; font-weight: 700; color: var(--n700); line-height: 1.2; }
+.qvbub:first-child { background: var(--n600); }
+.qvbub:first-child small { color: rgba(247,251,252,.7); }
+.qvbub:first-child b { color: var(--papier); }
+
+/* 1 · ce qu'elles coûtent */
+.qvrow { display: flex; align-items: center; gap: 18px; background: var(--surface); border-radius: 22px; padding: 18px 22px; font-size: 29px; font-weight: 700; color: var(--n700); opacity: 0; }
+.qvrow i { flex: none; width: 60px; height: 60px; border-radius: 18px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.qvtiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.qvtile { position: relative; height: 250px; border-radius: 24px; overflow: hidden; opacity: 0; }
+.qvtile .qvimg { width: 100%; height: 100%; }
+.qvtile span { position: absolute; left: 12px; bottom: 12px; background: rgba(253,253,254,.94); color: var(--n700); border-radius: 999px; padding: 8px 14px; font-size: 23px; font-weight: 700; }
+.qvtile.night { background: var(--n800); color: var(--sable); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.qvtile.night b { font-family: var(--fd); font-size: 64px; font-weight: 700; color: var(--papier); font-variant-numeric: tabular-nums; }
+.qvkv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 1.5px solid var(--ligne2); padding-top: 16px; opacity: 0; }
+.qvkv span { font-size: 28px; font-weight: 600; color: var(--ardoise); }
+.qvkv b { font-family: var(--fd); font-size: 46px; font-weight: 700; color: var(--n700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.qvres { display: flex; justify-content: space-between; align-items: center; background: var(--n600); border-radius: 26px; padding: 22px 28px; opacity: 0; }
+.qvres span { font-size: 28px; font-weight: 700; color: var(--papier); }
+.qvres b { font-family: var(--fd); font-size: 76px; font-weight: 700; color: var(--sable); letter-spacing: -.03em; line-height: 1; }
+
+/* 2 · les sept questions */
+.qvlist { display: flex; flex-direction: column; gap: 8px; }
+.qvph { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-terre); margin-top: 8px; opacity: 0; }
+.qvph:first-child { margin-top: 0; }
+.qvq { display: flex; align-items: center; gap: 16px; background: var(--surface); border-radius: 20px; padding: 10px 18px 10px 10px; opacity: 0; }
+.qvq u { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; text-decoration: none; font-family: var(--fd); font-size: 26px; font-weight: 700; }
+.qvq > i { flex: none; width: 46px; height: 46px; border-radius: 14px; background: #FDFDFE; color: var(--terre); display: flex; align-items: center; justify-content: center; }
+.qvq div { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.qvq b { font-size: 27px; font-weight: 700; color: var(--n700); }
+.qvq span { font-size: 21px; font-weight: 600; color: var(--gris); }
+.qvdoc { display: flex; align-items: center; gap: 20px; background: #F7E4DC; border-radius: 24px; padding: 18px 22px; opacity: 0; }
+.qvdoc i { flex: none; width: 76px; height: 92px; border-radius: 12px; background: #FDFDFE; color: #B45733; display: flex; align-items: center; justify-content: center; box-shadow: 6px 6px 0 #EBCBBE, 12px 12px 0 #E2BBAB; }
+.qvdoc b { display: block; font-family: var(--fd); font-size: 34px; font-weight: 700; color: #8E3F20; }
+.qvdoc span { font-size: 23px; font-weight: 700; color: #8E3F20; opacity: .8; }
+.qvgood { position: relative; height: 300px; border-radius: 24px; overflow: hidden; opacity: 0; }
+.qvgood .qvimg { width: 100%; height: 100%; }
+.qvgood .qvans { position: absolute; left: 14px; right: 14px; bottom: 14px; background: rgba(253,253,254,.96); border-radius: 20px; padding: 14px 18px; opacity: 0; }
+.qvans small { display: block; font-size: 19px; font-weight: 700; color: var(--gris); }
+.qvans b { font-size: 26px; font-weight: 700; color: var(--n700); line-height: 1.25; }
+.qvpills { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* 3 · le bon moment */
+.qvsteps { display: flex; flex-direction: column; gap: 14px; }
+.qvst { display: flex; flex-direction: column; gap: 12px; background: var(--surface); border-radius: 24px; padding: 18px 20px; opacity: 0; }
+.qvst > b { display: flex; align-items: center; gap: 12px; font-family: var(--fd); font-size: 30px; font-weight: 700; color: var(--n700); }
+.qvst > b i { width: 46px; height: 46px; border-radius: 14px; background: var(--n600); color: var(--papier); display: flex; align-items: center; justify-content: center; }
+.qvst > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.qvst > div span { display: inline-flex; align-items: center; gap: 10px; background: #FDFDFE; border-radius: 14px; padding: 10px 16px; font-size: 24px; font-weight: 700; color: var(--n700); }
+.qvst > div span svg { color: var(--terre); }
+.qvcode { display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--n600); border-radius: 30px; padding: 28px; opacity: 0; }
+.qvcode small { display: flex; align-items: center; gap: 10px; font-size: 23px; font-weight: 700; color: rgba(247,251,252,.75); }
+.qvcode b { font-family: var(--fd); font-size: 86px; font-weight: 700; color: var(--papier); letter-spacing: .12em; line-height: 1; font-variant-numeric: tabular-nums; }
+.qvcode em { font-style: normal; display: inline-flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 700; color: var(--sable); }
+.qvrisks { display: flex; flex-direction: column; gap: 10px; }
+.qvrisks span { display: flex; align-items: center; gap: 12px; background: #F7E4DC; color: #8E3F20; border-radius: 18px; padding: 14px 20px; font-size: 26px; font-weight: 700; opacity: 0; }
+
+/* 4 · mise en pratique */
+.qvbars { display: flex; flex-direction: column; gap: 18px; }
+.qvbr { display: flex; flex-direction: column; gap: 8px; opacity: 0; }
+.qvbr > div { display: flex; justify-content: space-between; align-items: baseline; font-size: 26px; font-weight: 700; color: var(--ardoise); }
+.qvbr > div b { font-family: var(--fd); font-size: 40px; color: var(--n700); font-variant-numeric: tabular-nums; }
+.qvbr > div b small { font-family: var(--fb); font-size: 24px; font-weight: 700; color: var(--gris); margin-inline-start: 10px; }
+.qvbr > p { margin: 0; height: 54px; border-radius: 16px; background: var(--surface); overflow: hidden; }
+.qvbr > p i { display: block; height: 100%; border-radius: 16px; transform-origin: left; transform: scaleX(0); }
+.qvbr.before > p i { background: #B8C4CC; }
+.qvbr.after > p i { background: var(--ok); }
+.qvbr.after > div b { color: var(--ok); }
+
+/* 5 · à retenir */
+.qvrc { display: flex; flex-direction: column; gap: 14px; }
+.qvline { display: flex; align-items: center; gap: 14px; border-radius: 22px; padding: 16px 24px; font-size: 26px; font-weight: 700; }
+.qvline.a { background: rgba(13,148,136,.1); color: var(--ok); }
+.qvline.b { background: #F4EBDC; color: var(--encre-terre); }
+
+html.f169 .qvbub b { font-size: 30px; }
+html.f169 .qvtile { height: 230px; }
+html.f169 .qvq { padding: 8px 16px 8px 8px; }
+html.f169 .qvq b { font-size: 26px; }
+html.f169 .qvgood { height: 280px; }
+html.f169 .qvcode b { font-size: 76px; }
+html.f169 .qvrc .rchip { padding: 18px 24px; }
+html.f169 .qvrc .rchip .ic { width: 64px; height: 64px; }
+html.f169 .qvrc .rchip b { font-size: 36px; }
+html.f169 .qvrc .rchip small { font-size: 21px; }
+html.f169 .qvline { font-size: 23px; padding: 13px 22px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, slot, slotVis } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const photo = (name) => h('img', { src: `../academie-shared/photos/${name}.jpg`, class: 'qvimg', alt: '' });
+const pill = (cls, ic, txt) => h('span', { class: `qvpill ${cls}` }, icon(ic, 24), txt);
+/** Couches successives d'une carte : chacune entre en montant, puis s'efface vers le haut quand la suivante arrive. */
+const stack = (layers, times, t) => layers.forEach((el, i) => {
+  const kIn = i ? shown(t, times[i] - .3, .5) : 1, kOut = i < layers.length - 1 ? shown(t, times[i + 1] - .3, .5) : 0;
+  set(el, { opacity: kIn * (1 - kOut), transform: `translateY(${lerp(20, 0, kIn) - 20 * kOut}px)` });
+});
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+
+/* 0 · accroche */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 80 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' '));
+const HK = T.hook;
+const bubs = HK.msgs.map(([m, tm]) => h('div', { class: 'qvbub' }, h('small', {}, h('span', {}, HK.who), h('span', {}, tm)), h('b', {}, m)));
+const count = pill('soft', 'sync', HK.count);
+const hook = A.abs(L.card.x, 0, L.card.w, null, 'acard qvhook');
+hook.append(...bubs, count);
+
+/* 1 · ce qu'elles coûtent */
+const CO = T.cost, CA = T.calc, c1 = A.card();
+const coRows = CO.rows.map(([ic, l]) => h('div', { class: 'qvrow' }, h('i', {}, icon(ic, 30)), l));
+const when = h('span', { class: 'alabel', style: 'opacity:0' }, CO.when);
+const tiles = [
+  h('div', { class: 'qvtile' }, photo(CO.tiles[0][0]), h('span', {}, CO.tiles[0][1])),
+  h('div', { class: 'qvtile night' }, icon('moon', 44), h('b', {}, CO.tiles[1][2]), h('span', {}, CO.tiles[1][1])),
+];
+const l1a = h('div', { class: 'qvlayer' }, ...coRows, when, h('div', { class: 'qvtiles' }, tiles));
+const caRows = CA.rows.map(([k, v]) => h('div', { class: 'qvkv' }, h('span', {}, k), h('b', {}, v)));
+const caRes = h('div', { class: 'qvres' }, h('span', {}, CA.result[0]), h('b', {}, CA.result[1]));
+const caNote = pill('warn', 'clock', CA.note);
+const l1b = h('div', { class: 'qvlayer' }, h('span', { class: 'alabel' }, T.illustrative), ...caRows, caRes, caNote);
+c1.el.append(h('div', { class: 'qvfill' }, l1a, l1b));
+
+/* 2 · les sept questions */
+const c2 = A.card();
+const phs = [], qs = [];
+let n = 0;
+const list = h('div', { class: 'qvlist' });
+T.phases.forEach(([ic, label, rows]) => {
+  const ph = h('div', { class: 'qvph' }, icon(ic, 22), label); phs.push(ph); list.append(ph);
+  rows.forEach(([qi, b, s]) => {
+    n += 1;
+    const el = h('div', { class: 'qvq' }, h('u', {}, String(n)), h('i', {}, icon(qi, 26)), h('div', {}, h('b', {}, b), s ? h('span', {}, s) : null));
+    qs.push(el); list.append(el);
+  });
+});
+const l2a = h('div', { class: 'qvlayer' }, list);
+const TD = T.trapDoc, GD = T.good;
+const doc = h('div', { class: 'qvdoc' }, h('i', {}, icon('filetext', 40)), h('div', {}, h('b', {}, TD.title), h('span', {}, TD.sub)));
+const nobody = pill('warn', 'x', TD.warn);
+const goodLbl = h('span', { class: 'alabel', style: 'opacity:0' }, GD.label);
+const ans = h('div', { class: 'qvans' }, h('small', {}, GD.q), h('b', {}, GD.a));
+const good = h('div', { class: 'qvgood' }, photo(GD.photo), ans);
+const goodChips = GD.chips.map(([ic, l]) => pill('ok', ic, l));
+const l2b = h('div', { class: 'qvlayer' }, doc, nobody, goodLbl, good, h('div', { class: 'qvpills' }, goodChips));
+c2.el.append(h('div', { class: 'qvfill' }, l2a, l2b));
+const trap1 = A.trap(c2.el, T.trap);
+
+/* 3 · le bon moment */
+const CD = T.code, c3 = A.card();
+const msteps = T.moments.map(([ic, l, its]) => h('div', { class: 'qvst' }, h('b', {}, h('i', {}, icon(ic, 24)), l), h('div', {}, its.map(([ii, x]) => h('span', {}, icon(ii, 22), x)))));
+const l3a = h('div', { class: 'qvlayer' }, h('div', { class: 'qvsteps' }, msteps));
+const codeVal = h('b', {}, CD.masked), codeNote = h('em', {}, icon('lock', 22), CD.lockNote);
+const codeCard = h('div', { class: 'qvcode' }, h('small', {}, icon('key', 24), CD.title), codeVal, codeNote);
+const risks = CD.risks.map(([ic, l]) => h('span', {}, icon(ic, 26), l));
+const codeOk = pill('ok', 'ccheck', CD.ok);
+const l3b = h('div', { class: 'qvlayer' }, codeCard, h('div', { class: 'qvrisks' }, risks), codeOk);
+c3.el.append(h('div', { class: 'qvfill' }, l3a, l3b));
+
+/* 4 · mise en pratique */
+const PQ = T.practice, c4 = A.card();
+const bars = PQ.bars.map(([l, v, hh], i) => {
+  const fill = h('i', { style: `width:${i ? 100 / 3 : 100}%` });
+  return { el: h('div', { class: `qvbr ${i ? 'after' : 'before'}` }, h('div', {}, h('span', {}, l), h('b', {}, v, h('small', {}, hh))), h('p', {}, fill)), fill };
+});
+const restLbl = h('span', { class: 'alabel', style: 'opacity:0' }, PQ.rest);
+const rest = PQ.chips.map(([ic, l]) => pill('soft', ic, l));
+c4.el.append(h('div', { style: 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px' },
+  h('span', { class: 'alabel' }, `${T.illustrative} · ${PQ.label}`), h('div', { class: 'qvbars' }, bars.map((b) => b.el)), restLbl, h('div', { class: 'qvpills' }, rest)));
+
+/* 5 · à retenir */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const rc = A.abs(L.card.x, 0, L.card.w, null, 'qvrc');
+const rEls = R.rows.map(([ic, l, f]) => A.rchip(ic, l, null, f));
+const app = h('div', { class: 'qvline a', style: 'opacity:0' }, icon('bookopen', 30), R.app);
+const lock = h('div', { class: 'qvline a', style: 'opacity:0' }, icon('lock', 30), R.lock);
+const bot = h('div', { class: 'qvline b', style: 'opacity:0' }, icon('sparkles', 30), R.bot);
+rEls.forEach((e) => { e.style.opacity = 0; }); rc.append(...rEls, app, lock, bot);
+
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hook, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(rc, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+  heads.forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.seven - .1);
+  A.rise(hook, v0, shown(t, SYNC.wifi - .4, .6), 60);
+  bubs.forEach((b, i) => A.rise(b, 1, shown(t, (i ? SYNC.seven - 1.6 + i * .45 : SYNC.wifi) - .1, .4), 18));
+  A.rise(count, 1, shown(t, SYNC.q2 - .3), 10);
+
+  /* 1 · ce qu'elles coûtent */
+  c1.render(t, S[1][0] + .1, S[1][1]);
+  stack([l1a, l1b], [0, SYNC.calc], t);
+  A.rise(coRows[0], 1, shown(t, SYNC.msg - .2), 14); A.rise(coRows[1], 1, shown(t, SYNC.rep - .2), 14);
+  A.rise(when, 1, shown(t, SYNC.bad - .5), 8);
+  A.rise(tiles[0], 1, shown(t, SYNC.bad - .2, .45), 18); A.rise(tiles[1], 1, shown(t, SYNC.night - .2, .45), 18);
+  [SYNC.v20, SYNC.v3, SYNC.v5].forEach((t0, i) => A.rise(caRows[i], 1, shown(t, t0 - .15), 10));
+  A.rise(caRes, 1, shown(t, SYNC.v300 - .15), 14);
+  A.rise(caNote, 1, shown(t, SYNC.v5h - .1), 10);
+
+  /* 2 · les sept questions */
+  const v2 = slotVis(t, 2);
+  c2.render(t, S[2][0] + .1, S[2][1]);
+  stack([l2a, l2b], [0, SYNC.trap1], t);
+  [SYNC.n1 - .5, SYNC.n4 - .6, SYNC.n7 - .9].forEach((t0, i) => A.rise(phs[i], 1, shown(t, t0), 8));
+  [SYNC.n1, SYNC.n2, SYNC.n3, SYNC.n4, SYNC.n5, SYNC.n6, SYNC.n7].forEach((t0, i) => A.rise(qs[i], 1, shown(t, t0 - .15), 14));
+  trap1.render(t, SYNC.trap1, v2);
+  A.rise(doc, 1, shown(t, SYNC.trap1 + .6), 14);
+  A.rise(nobody, 1, shown(t, SYNC.nobody - .1), 10);
+  A.rise(goodLbl, 1, shown(t, SYNC.short - .1), 8);
+  A.rise(good, 1, shown(t, SYNC.short + .3), 16);
+  A.rise(ans, 1, shown(t, SYNC.exq + .2), 10);
+  goodChips.forEach((c, i) => A.rise(c, 1, shown(t, SYNC.onep - .1 + i * .7), 10));
+
+  /* 3 · le bon moment */
+  c3.render(t, S[3][0] + .1, S[3][1]);
+  stack([l3a, l3b], [0, SYNC.code], t);
+  [SYNC.t1, SYNC.t2, SYNC.t3].forEach((t0, i) => A.rise(msteps[i], 1, shown(t, t0 - .25), 18));
+  A.rise(codeCard, 1, shown(t, SYNC.code), 16);
+  [SYNC.week + 1.2, SYNC.early, SYNC.early + 1.3].forEach((t0, i) => A.rise(risks[i], 1, shown(t, t0 - .1), 10));
+  const open = t >= SYNC.dday + .6;
+  codeVal.textContent = open ? CD.value : CD.masked;
+  codeVal.style.color = open ? 'var(--sable)' : 'var(--papier)';
+  codeNote.style.opacity = open ? 0 : 1;
+  A.rise(codeOk, 1, shown(t, SYNC.dday + .4), 10);
+
+  /* 4 · mise en pratique */
+  c4.render(t, S[4][0] + .1, S[4][1]);
+  A.rise(bars[0].el, 1, shown(t, SYNC.prat + .2), 12);
+  set(bars[0].fill, { transform: `scaleX(${easeOut(prog(t, SYNC.prat + .4, .7))})` });
+  A.rise(bars[1].el, 1, shown(t, SYNC.m100 - .3), 12);
+  set(bars[1].fill, { transform: `scaleX(${easeOut(prog(t, SYNC.m100 - .1, .7))})` });
+  A.rise(restLbl, 1, shown(t, SYNC.rest - .1), 8);
+  [SYNC.r1, SYNC.r2, SYNC.r3].forEach((t0, i) => A.rise(rest[i], 1, shown(t, t0 - .15), 10));
+
+  /* 5 · à retenir */
+  hdR.render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.k1, SYNC.k2, SYNC.k3].forEach((t0, i) => A.rise(rEls[i], v5, shown(t, t0 - .15, .45), 30));
+  A.rise(app, v5, shown(t, SYNC.app, .45), 20); A.rise(lock, v5, shown(t, SYNC.lock - .6, .45), 20); A.rise(bot, v5, shown(t, SYNC.bot - .2, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

@@ -42,8 +42,28 @@ public record ChannexBookingDto(
      */
     @JsonProperty("ota_commission") BigDecimal otaCommission,
     @JsonProperty("customer") ChannexCustomer customer,
-    @JsonProperty("rooms") List<ChannexBookingRoom> rooms
+    @JsonProperty("rooms") List<ChannexBookingRoom> rooms,
+    /**
+     * Qui encaisse le voyageur : {@code "ota"} (le canal) ou {@code "property"} (l'hôte,
+     * ex. Booking.com sans « Payments by Booking »). Décide aussi, en France, qui collecte
+     * et reverse la taxe de séjour (CGCT L2333-34 : la plateforme intermédiaire de paiement).
+     */
+    @JsonProperty("payment_collect") String paymentCollect
 ) {
+
+    /** Arité historique (payloads et tests sans {@code payment_collect}). */
+    public ChannexBookingDto(String id, String bookingId, String uniqueId, String otaReservationCode,
+                             String otaName, String propertyId, String status, LocalDate arrivalDate,
+                             LocalDate departureDate, BigDecimal amount, String currency,
+                             BigDecimal otaCommission, ChannexCustomer customer, List<ChannexBookingRoom> rooms) {
+        this(id, bookingId, uniqueId, otaReservationCode, otaName, propertyId, status, arrivalDate,
+            departureDate, amount, currency, otaCommission, customer, rooms, null);
+    }
+
+    /** L'hôte encaisse-t-il lui-même ce séjour ({@code payment_collect = property}) ? */
+    public boolean collectedByProperty() {
+        return paymentCollect != null && "property".equalsIgnoreCase(paymentCollect.trim());
+    }
 
     /**
      * Identifiant STABLE du booking, quel que soit le format recu :

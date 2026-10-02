@@ -34,11 +34,19 @@ public record PropertyLicenseDto(
      *                     pas a l'heure de la JVM
      */
     public static PropertyLicenseDto from(PropertyLicense license, String countryCode, String propertyZone) {
+        return from(license, countryCode, propertyZone, null);
+    }
+
+    /**
+     * @param communeInseeCode code INSEE du logement (France) : le numero doit en porter le prefixe
+     */
+    public static PropertyLicenseDto from(PropertyLicense license, String countryCode, String propertyZone,
+                                          String communeInseeCode) {
         // Le controle de forme ne vaut que pour la licence d'exploitation touristique :
         // un certificat de securite ou une piece « autre » n'a pas de format national.
         boolean tourism = license.getLicenseType() == PropertyLicense.LicenseType.TOURISM_REGISTRATION;
         TourismLicense.Verdict verdict = tourism
-                ? TourismLicense.check(countryCode, license.getLicenseNumber())
+                ? TourismLicense.check(countryCode, license.getLicenseNumber(), communeInseeCode)
                 : TourismLicense.Verdict.UNCHECKED;
 
         return new PropertyLicenseDto(

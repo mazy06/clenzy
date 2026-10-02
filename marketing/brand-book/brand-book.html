@@ -1,0 +1,939 @@
+<!doctype html>
+<!--
+  Baitly · Brand book (source du PDF)
+
+  À quoi sert ce fichier : source HTML/CSS du brand book. Le PDF
+  `baitly-brand-book.pdf` en est généré par `build-pdf.sh` (Chrome headless,
+  puis pagination et signets ajoutés par `stamp_pdf.py`).
+  Comment l'utiliser : modifier ce fichier, relancer `./build-pdf.sh`. La version
+  texte relisible est `brand-book.md` : toute modification de fond doit être
+  reportée dans les deux fichiers.
+  À qui il s'adresse : responsable marketing (mise à jour), graphistes et motion
+  designers (lecture du PDF).
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly · Brand book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Baitly Manrope'; src: url('assets/fonts/manrope-regular.ttf') format('truetype'); font-weight: 400 500; }
+@font-face { font-family: 'Baitly Manrope'; src: url('assets/fonts/manrope-bold.ttf') format('truetype'); font-weight: 600 800; }
+@font-face { font-family: 'Baitly Space Grotesk'; src: url('assets/fonts/SpaceGrotesk_500Medium.ttf') format('truetype'); font-weight: 500; }
+@font-face { font-family: 'Baitly Space Grotesk'; src: url('assets/fonts/SpaceGrotesk_600SemiBold.ttf') format('truetype'); font-weight: 600; }
+@font-face { font-family: 'Baitly Space Grotesk'; src: url('assets/fonts/SpaceGrotesk_700Bold.ttf') format('truetype'); font-weight: 700; }
+
+:root {
+  --nuit: #1B2A35; --navy: #25406E; --accent: #456675; --logo: #6B8A9A;
+  --paper: #F7FBFC; --surface: #E9F2F6; --brume: #D6E6EE; --line: #CAD6DD;
+  --text2: #4D5A64; --app-bg: #E8EEF3; --card: #FDFDFE; --faint: #94A7B8;
+  --req: #2563EB; --resp: #0D9488; --teal: #14B8A6; --teal-ink: #0C7166;
+  --ambre: #D4A574; --ambre-ink: #7A5320; --argile: #C97A7A; --argile-ink: #93413F;
+  --dark-bg: #0A1120; --dark-card: #111B31; --dark-text: #D7E1EE; --dark-navy: #9CB4E2;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --title: 'Baitly Space Grotesk', 'Space Grotesk', sans-serif;
+  --body: 'Baitly Manrope', 'Manrope', sans-serif;
+}
+@page { size: A4; margin: 18mm 17mm 20mm; }
+@page :first { margin: 0; size: A4; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font-family: var(--body); font-size: 10pt; line-height: 1.55; color: var(--nuit); background: transparent; font-variant-numeric: tabular-nums; }
+h1, h2, h3, h4 { font-family: var(--title); color: var(--nuit); text-wrap: balance; margin: 0; }
+h2.section { font-size: 30pt; font-weight: 700; line-height: 1.08; letter-spacing: -0.01em; margin: 4mm 0 3mm; }
+h2.section span { color: #9A6C3A; }
+h3 { font-size: 14pt; font-weight: 700; margin: 7mm 0 2.5mm; }
+h4 { font-size: 11pt; font-weight: 600; margin: 4mm 0 1.5mm; }
+p { margin: 0 0 2.6mm; }
+.eyebrow { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7A5230; display: flex; align-items: center; gap: 8px; }
+.eyebrow::before { content: ""; width: 18px; height: 1px; background: #9A6C3A; }
+.lead { font-size: 12pt; color: var(--text2); max-width: 150mm; }
+.muted { color: var(--text2); }
+.small { font-size: 8.5pt; }
+.chapter, .toc { break-before: page; }
+.cover { break-after: page; }
+table, .grid2, .grid3, .card-demo, .spec { break-inside: avoid; }
+h3, h4 { break-after: avoid; }
+.avoid { break-inside: avoid; }
+a { color: var(--navy); text-decoration: none; }
+code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 8.5pt; background: var(--surface); padding: 0 3px; border-radius: 3px; }
+ul { margin: 0 0 3mm; padding-inline-start: 5mm; }
+li { margin-bottom: 1mm; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 8.8pt; margin: 2mm 0 4mm; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th { text-align: start; font-weight: 700; background: var(--surface); padding: 2.2mm 3mm; border-bottom: 1px solid var(--line); }
+td { padding: 2mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+.box { border: 1px solid var(--line); border-radius: 12px; padding: 4mm 5mm; background: var(--card); break-inside: avoid; }
+.box.tint { background: var(--surface); border-color: transparent; }
+.do, .dont { border-radius: 12px; padding: 4mm 5mm; break-inside: avoid; }
+.do { background: rgba(224,200,155,.28); }
+.dont { background: rgba(27,42,53,.06); }
+.do h4 { color: #7A5230; margin-top: 0; }
+.dont h4 { color: #B45733; margin-top: 0; }
+
+/* ---- Couverture ---- */
+.cover { height: 297mm; width: 100%; background: var(--nuit); color: var(--dark-text); position: relative; overflow: hidden; padding: 24mm 20mm; display: flex; flex-direction: column; }
+.cover .brand { display: flex; align-items: center; gap: 14px; color: #E8EEF5; }
+.cover .brand .wm { font-family: var(--title); font-weight: 600; font-size: 30pt; letter-spacing: -0.015em; }
+.cover .photo { position: absolute; inset-inline-end: 0; bottom: 0; width: 118mm; height: 150mm; border-radius: 60mm 60mm 0 0; overflow: hidden; }
+.cover .photo img { width: 100%; height: 100%; object-fit: cover; }
+.cover h1 { color: #F7FBFC; font-size: 44pt; line-height: 1.02; font-weight: 700; margin-top: 30mm; max-width: 150mm; }
+.cover h1 span { color: #E0C89B; }
+.cover .sub { font-size: 12.5pt; color: var(--dark-text); margin-top: 6mm; max-width: 120mm; }
+.cover .meta { margin-top: auto; font-size: 9pt; color: #B7C6D6; position: relative; z-index: 1; max-width: 70mm; }
+.cover .meta b { color: #F7FBFC; display: block; font-size: 10pt; }
+
+/* ---- Sommaire ---- */
+.toc ol { list-style: none; padding: 0; margin: 6mm 0 0; counter-reset: none; }
+.toc li { display: flex; align-items: baseline; gap: 5mm; padding: 3.2mm 0; border-bottom: 1px solid var(--line); font-size: 12pt; }
+.toc li .n { font-family: var(--title); font-weight: 700; color: #9A6C3A; width: 12mm; }
+.toc li a { font-family: var(--title); font-weight: 600; color: var(--nuit); }
+.toc li .d { margin-inline-start: auto; font-size: 8.5pt; color: var(--text2); text-align: end; max-width: 80mm; }
+
+/* ---- Couleurs ---- */
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3.5mm; margin: 3mm 0 5mm; }
+.sw { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); break-inside: avoid; }
+.sw .chip { height: 19mm; display: flex; align-items: flex-end; padding: 2mm 2.5mm; font-size: 7.5pt; font-weight: 700; }
+.sw .info { padding: 2mm 2.5mm; font-size: 7.4pt; line-height: 1.45; }
+.sw .info b { font-size: 8.6pt; display: block; font-family: var(--title); }
+.sw .info .use { color: var(--text2); display: block; margin-top: 1mm; }
+.ratio { display: flex; height: 9mm; border-radius: 8px; overflow: hidden; margin: 2mm 0 1mm; }
+.ratio div { display: flex; align-items: center; padding-inline: 2.5mm; font-size: 7.5pt; font-weight: 700; }
+
+/* ---- Composants ---- */
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 9.5pt; border: 1px solid transparent; }
+.btn.primary { background: var(--navy); color: var(--paper); }
+.btn.hover { background: var(--accent); color: var(--paper); box-shadow: 0 5px 16px rgba(29,43,53,.12); }
+.btn.active { background: var(--text2); color: var(--paper); }
+.btn.focus { background: var(--navy); color: var(--paper); outline: 3px solid var(--accent); outline-offset: 4px; }
+.btn.disabled { background: var(--brume); color: var(--faint); }
+.btn.secondary { background: var(--card); color: var(--nuit); border-color: var(--line); }
+.btn.ghost { background: transparent; color: var(--navy); text-decoration: underline; text-underline-offset: 4px; padding-inline: 4px; }
+.states { display: grid; grid-template-columns: 26mm 1fr; gap: 3mm 5mm; align-items: center; margin: 3mm 0 5mm; font-size: 8.5pt; }
+.card-demo { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4mm; box-shadow: 0 8px 24px rgba(27,42,53,.08); }
+.agent-card { display: flex; gap: 3mm; align-items: flex-start; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 4px; }
+.agent-card .k { font-size: 7pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); }
+.agent-card .t { font-family: var(--title); font-weight: 600; font-size: 10.5pt; }
+.agent-card .dd { font-size: 8.5pt; color: var(--text2); }
+.chips { display: flex; flex-wrap: wrap; gap: 2mm; }
+.chip2 { font-size: 7.8pt; font-weight: 700; padding: 1mm 2.6mm; border-radius: 99px; }
+.input { border: 1px solid #CBD5E1; background: #E1E9F0; border-radius: 8px; padding: 2.4mm 3mm; font-size: 9pt; color: var(--text2); }
+.input.focus { border-color: var(--nuit); box-shadow: 0 0 0 3px rgba(27,42,53,.12); background: var(--card); color: var(--nuit); }
+.input.error { border-color: var(--argile); background: var(--card); color: var(--nuit); }
+.planning { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); font-size: 7.6pt; }
+.planning .row { display: grid; grid-template-columns: 30mm repeat(10, 1fr); border-bottom: 1px solid var(--line); height: 9mm; align-items: center; position: relative; }
+.planning .row:last-child { border-bottom: 0; }
+.planning .row .name { padding-inline: 2.5mm; font-weight: 700; }
+.planning .head { background: var(--surface); color: var(--text2); font-weight: 700; }
+.planning .head span { text-align: center; }
+.stay { position: absolute; height: 6mm; top: 1.5mm; border-radius: 6px; color: #F7FBFC; font-weight: 700; display: flex; align-items: center; padding-inline: 2mm; font-size: 7.2pt; white-space: nowrap; overflow: hidden; }
+
+
+/* ---- Briques du planning ---- */
+.brick { display: flex; align-items: center; gap: 6px; height: 11mm; border-radius: 9px; padding: 0 2mm 0 1.4mm; font-size: 7.6pt; line-height: 1.15; }
+.brick .av { width: 7mm; height: 7mm; border-radius: 50%; flex: none; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 6.8pt; background: rgba(252,250,247,.35); }
+.brick .tx { display: flex; flex-direction: column; min-width: 0; }
+.brick .tx small { font-size: 6.4pt; opacity: .85; }
+.brick .tx b { font-weight: 700; }
+.brick .price { margin-inline-start: auto; font-size: 6.8pt; font-weight: 700; padding: 0.6mm 1.6mm; border-radius: 5px; white-space: nowrap; }
+.brick .ch { width: 4.2mm; height: 4.2mm; border-radius: 50%; background: #FDFDFE; flex: none; display: flex; align-items: center; justify-content: center; font-size: 5.6pt; font-weight: 800; }
+.bricks { display: grid; grid-template-columns: 1fr; gap: 3mm; margin: 3mm 0 3mm; break-inside: avoid; }
+.bricks > div { display: grid; grid-template-columns: 64mm 1fr; gap: 6mm; align-items: center; }
+.bricks .meta br { display: none; }
+.bricks .meta span { display: inline; }
+.bricks .meta { font-size: 8pt; line-height: 1.5; }
+.bricks .meta b { font-family: var(--title); font-size: 8.8pt; display: block; }
+.ghost { background: repeating-linear-gradient(135deg, rgba(103,117,124,.22) 0 1.5px, transparent 1.5px 8px); border: 1px dashed #98A4AB; color: #67757C; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 3mm 6mm; font-size: 8pt; align-items: center; margin: 2mm 0 4mm; }
+.legend-row span { display: inline-flex; align-items: center; gap: 2mm; }
+.legend-row i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+
+/* ---- Palette de création ---- */
+.scale { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2mm; margin: 2mm 0 4mm; break-inside: avoid; }
+.scale .c { height: 16mm; border-radius: 8px; display: flex; align-items: flex-end; padding: 1.5mm 2mm; font-size: 6.8pt; font-weight: 700; }
+.scale .l { font-size: 7pt; line-height: 1.4; margin-top: 1.2mm; }
+.scale .l b { font-family: var(--title); font-size: 8pt; display: block; }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 3mm 0 3mm; break-inside: avoid; }
+.mode { border-radius: 12px; height: 58mm; padding: 5mm; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.mode .ey { font-size: 6.5pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mode .ti { font-family: var(--title); font-weight: 700; font-size: 14pt; line-height: 1.08; margin-top: 2mm; }
+.mode .cta { margin-top: auto; align-self: flex-start; font-size: 7.5pt; font-weight: 700; padding: 2mm 3.5mm; border-radius: 6px; }
+.mode .bk { position: absolute; inset-inline-end: 5mm; bottom: 5mm; display: flex; flex-direction: column; gap: 1.2mm; width: 20mm; }
+.mode .bk i { display: block; height: 3.2mm; border-radius: 3px; }
+
+
+/* ---- Planning fidèle (règles de PlanningBar.tsx) ---- */
+.plg { --dw: 44px; position: relative; border: 1px solid #D5DEE7; border-radius: 12px; overflow: hidden; background: #FDFDFE; font-family: 'Baitly Manrope', sans-serif; margin: 3mm 0 2mm; break-inside: avoid; }
+.plg-head, .plg-row { display: flex; }
+.plg-col { width: 120px; flex: none; border-inline-end: 1px solid #D5DEE7; display: flex; flex-direction: column; justify-content: center; padding-inline: 8px; background: #FBFCFC; }
+.plg-col b { font-size: 9pt; font-weight: 700; color: #15242D; white-space: nowrap; }
+.plg-col small { font-size: 7pt; color: #67757C; }
+.plg-days { display: flex; position: relative; }
+.plg-day { width: var(--dw); height: 44px; border-inline-end: 1px solid #D5DEE7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 6.6pt; }
+.plg-day span { font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #98A4AB; font-size: 6pt; }
+.plg-day b { font-family: var(--title); font-size: 8.5pt; color: #15242D; }
+.plg-day.we { background: #F2F6F7; }
+.plg-day.today b { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 8px; background: #25406E; color: #fff; }
+.plg-day.today span { color: #25406E; }
+.plg-track { position: relative; height: 54px; border-top: 1px solid #D5DEE7; }
+.plg-cells { position: absolute; inset: 0; display: flex; }
+.plg-cells i { width: var(--dw); border-inline-end: 1px solid #EEF2F5; }
+.plg-cells i.we { background: #F8FAFB; }
+.bar { position: absolute; top: 9px; height: 36px; border-radius: 9px; display: flex; align-items: center; gap: 7px; padding: 0 7px 0 5px; box-sizing: border-box; z-index: 3; }
+.bar .av { width: 26px; height: 26px; border-radius: 50%; flex: none; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; box-sizing: border-box; }
+.bar .tx { min-width: 0; flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
+.bar .tx small { font-size: 9.5px; font-weight: 600; opacity: .85; white-space: nowrap; }
+.bar .tx b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { display: inline-flex; align-items: center; gap: 4px; height: 21px; border-radius: 7px; padding: 0 8px; font-family: var(--title); font-size: 11px; font-weight: 700; flex: none; white-space: nowrap; }
+.pill.narrow { padding: 0 6px; }
+.badges { display: flex; gap: 2px; flex: none; }
+.bdg { width: 21px; height: 21px; border-radius: 7px; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,.14); flex: none; box-sizing: border-box; }
+.bdg img { width: 13px; height: 13px; }
+.bdg.fee { width: auto; padding: 0 7px 0 5px; gap: 4px; }
+.bdg.fee span { font-family: var(--title); font-size: 10.5px; font-weight: 700; color: #15242D; }
+.bdg.combo { background: rgba(255,255,255,.9); font-family: var(--title); font-size: 10px; font-weight: 700; color: #15242D; }
+.orphan { position: absolute; top: 16.5px; z-index: 2; border: 1px solid #D5DEE7; }
+.blocked { position: absolute; top: 0; height: 54px; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 3px; color: #67757C; font-size: 8pt; font-weight: 600; background-color: #F0F2F3; background-image: repeating-linear-gradient(45deg, rgba(103,117,124,.16) 0 1px, transparent 1px 7px); box-shadow: inset 0 0 0 1px rgba(103,117,124,.14); }
+.bar.ghost { background-color: #FBFCFC; background-image: repeating-linear-gradient(135deg, rgba(103,117,124,.22) 0 1.5px, transparent 1.5px 8px); border: 1.5px dashed #DDE3E7; color: #67757C; }
+.bar.ghost b { text-decoration: line-through; }
+.hide-x { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; background: #67757C; border: 1.5px solid #FDFDFE; color: #fff; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.now { position: absolute; top: 0; bottom: 0; width: 2px; background: #E5484D; z-index: 6; }
+.now::before { content: ''; position: absolute; top: -1px; left: -4px; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; box-shadow: 0 0 0 3px rgba(229,72,77,.25); }
+.urgent-ring { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bc) 40%, transparent); }
+.num { position: absolute; z-index: 9; width: 15px; height: 15px; border-radius: 50%; background: #B45733; color: #fff; font-size: 8px; font-weight: 800; display: flex; align-items: center; justify-content: center; font-family: var(--title); box-shadow: 0 0 0 2px #FDFDFE; }
+.callouts { counter-reset: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 6mm; font-size: 7.8pt; line-height: 1.45; margin-top: 2mm; }
+.callouts div { display: flex; gap: 2mm; }
+.callouts .n { flex: none; width: 15px; height: 15px; border-radius: 50%; background: #B45733; color: #fff; font-size: 8px; font-weight: 800; display: flex; align-items: center; justify-content: center; font-family: var(--title); margin-top: 1px; }
+
+/* ---- Logo ---- */
+.logo-tile { border-radius: 12px; height: 46mm; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid var(--line); }
+.logo-tile .wm { font-family: var(--title); font-weight: 600; font-size: 26pt; letter-spacing: -0.015em; }
+.caption { font-size: 8pt; color: var(--text2); margin-top: 1.5mm; }
+
+/* ---- Typo ---- */
+.spec { display: grid; grid-template-columns: 34mm 1fr; gap: 3mm 6mm; align-items: baseline; border-bottom: 1px solid var(--line); padding: 3mm 0; break-inside: avoid; }
+.spec .label { font-size: 8pt; color: var(--text2); line-height: 1.4; }
+.spec .label b { color: var(--nuit); display: block; font-size: 9pt; }
+
+/* ---- Motion ---- */
+.curve { display: flex; gap: 5mm; align-items: center; }
+.timeline { display: flex; border-radius: 10px; overflow: hidden; font-size: 7.6pt; margin: 2mm 0 4mm; }
+.timeline div { padding: 2mm 2.5mm; color: var(--nuit); border-inline-end: 1px solid var(--paper); }
+
+/* ---- Templates ---- */
+.frames { display: flex; flex-wrap: wrap; gap: 5mm; align-items: flex-end; margin: 3mm 0 5mm; }
+.frame { border: 1.5px solid var(--nuit); border-radius: 8px; position: relative; background: var(--card); font-size: 6.5pt; overflow: hidden; }
+.frame .zone { position: absolute; inset-inline: 0; display: flex; align-items: center; justify-content: center; color: var(--text2); text-align: center; }
+.photo-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+.photo-strip img { width: 100%; height: 30mm; object-fit: cover; border-radius: 16mm 16mm 6px 6px; }
+.rtl { direction: rtl; font-family: 'Tajawal', 'Geeza Pro', sans-serif; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <path id="house" d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25" pathLength="100"/>
+  </defs>
+</svg>
+
+<!-- ============ COUVERTURE ============ -->
+<section class="cover">
+  <div class="brand">
+    <svg width="54" height="54" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <use href="#house" stroke="#E8EEF5" stroke-width="21"/>
+      <use href="#house" stroke="#60A5FA" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-18"/>
+      <use href="#house" stroke="#2DD4BF" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-66"/>
+    </svg>
+    <span class="wm">baitly</span>
+  </div>
+  <h1>Brand book <span>&amp; guide de création</span></h1>
+  <p class="sub">Identité visuelle, ton, motion design et gabarits sociaux : tout ce qu'il faut pour créer du contenu Baitly sans connaître le projet.</p>
+  <div class="photo"><img src="assets/photos/terrace.jpg" alt=""></div>
+  <div class="meta">
+    <b>Version 1.0</b>
+    26 septembre 2026<br>
+    Document de travail · usage interne et partenaires créatifs<br>
+    Source : dépôt Baitly, <code style="background:transparent;color:#B7C6D6">marketing/brand-book/</code>
+  </div>
+</section>
+
+<!-- ============ SOMMAIRE ============ -->
+<section class="toc">
+  <p class="eyebrow">Sommaire</p>
+  <h2 class="section">Ce que contient<br><span>ce document.</span></h2>
+  <p class="lead">Chaque titre est cliquable. Les signets du PDF reprennent la même structure.</p>
+  <ol>
+    <li><span class="n">01</span><a href="#vision">Vision &amp; positionnement</a><span class="d">Promesse, cibles, valeurs, ton</span></li>
+    <li><span class="n">02</span><a href="#couleurs">Couleurs</a><span class="d">Palette, codes HEX / RGB / CMJN, applications, états</span></li>
+    <li><span class="n">03</span><a href="#typo">Typographies</a><span class="d">Polices, hiérarchie, exemples</span></li>
+    <li><span class="n">04</span><a href="#logo">Logo &amp; assets graphiques</a><span class="d">Variantes, protection, interdits, photos, icônes</span></li>
+    <li><span class="n">05</span><a href="#ui">Composants UI</a><span class="d">Boutons, cartes, champs, planning, états</span></li>
+    <li><span class="n">05b</span><a href="#planning">Le planning, pièce par pièce</a><span class="d">Briques, interventions, blocages, états (règles du code)</span></li>
+    <li><span class="n">06</span><a href="#motion">Motion design</a><span class="d">Easing, durées, séquences types, do &amp; don't</span></li>
+    <li><span class="n">07</span><a href="#templates">Templates sociaux</a><span class="d">Formats, zones, copy types</span></li>
+    <li><span class="n">08</span><a href="#voix">Voix off &amp; storytelling</a><span class="d">Structure, formulations, interdits</span></li>
+    <li><span class="n">A</span><a href="#annexes">Annexes</a><span class="d">Fonctionnalités, liens, contacts, notes &amp; hypothèses</span></li>
+  </ol>
+  <div class="box tint" style="margin-top:8mm">
+    <h4 style="margin-top:0">Comment utiliser ce document</h4>
+    <p class="small" style="margin:0">Motion designer et graphiste : sections 2 à 7. Copywriter : sections 1 et 8. Responsable marketing : tout, plus le fichier <code>marketing/ideas-video-motion-design.md</code> pour le calendrier. En cas de doute, la règle est simple : <b>sobre, lumineux, concret</b>. Si un choix n'est pas couvert ici, regarder la landing <a href="https://baitly.fr">baitly.fr</a> : elle fait référence.</p>
+  </div>
+</section>
+
+<!-- ============ 1. VISION ============ -->
+<section class="chapter" id="vision">
+  <p class="eyebrow">01 · Vision &amp; positionnement</p>
+  <h2 class="section">Faites grandir vos revenus.<br><span>Pas votre charge de travail.</span></h2>
+  <p class="lead">Baitly est un PMS (logiciel de gestion locative) pour la location courte durée et l'hébergement indépendant. Il réunit dans un seul espace le planning et les canaux de vente, le site de réservation directe, le livret d'accueil, le ménage, les paiements, la conformité et le reporting propriétaire.</p>
+  <p>Sa différence : une <b>équipe de 10 agents IA</b> qui surveillent l'activité, proposent des actions expliquées et les exécutent sous le contrôle de l'hôte, et une <b>conformité locale native</b> pour trois marchés : l'Arabie saoudite (Shomoos, ZATCA, TVA, riyals, interface arabe et calendrier hégirien), le Maroc (fiche de police DGSN, taxe de séjour, encaissement en dirhams) et la France. Baitly s'adresse aux hôtes indépendants, aux riads et maisons d'hôtes, aux propriétaires d'istirahas et aux conciergeries qui gèrent pour le compte de propriétaires.</p>
+  <p><b>Promesse :</b> Baitly prend les coulisses, vous gardez l'accueil. Plus de revenus (prix ajustés, ventes directes, extras), moins de tâches répétitives, et toujours la décision finale.</p>
+
+  <h3>Cibles</h3>
+  <table>
+    <tr><th>Cible</th><th>Ce qu'elle vit</th><th>Ce que Baitly lui apporte</th></tr>
+    <tr><td><b>Hôte indépendant</b><br><span class="muted small">1 à 5 logements</span></td><td>Messages à toute heure, calendriers à surveiller, prix fixés au jugé</td><td>Un planning unique, des réponses prêtes, des extras vendus automatiquement</td></tr>
+    <tr><td><b>Riad, maison d'hôtes</b><br><span class="muted small">Maroc surtout</span></td><td>Fiche de police, encaissement local, accueil multilingue</td><td>Fiche DGSN transmise, CMI / PayZone / YouCan Pay, livret AR / FR / EN</td></tr>
+    <tr><td><b>Istiraha, chalets</b><br><span class="muted small">Arabie saoudite</span></td><td>Shomoos, ZATCA, TVA, clientèle arabophone</td><td>Déclarations et factures conformes, riyals, interface arabe réelle</td></tr>
+    <tr><td><b>Conciergerie</b><br><span class="muted small">5 à 50+ logements</span></td><td>Ménage à contrôler, propriétaires à rassurer, volume</td><td>Missions prouvées par photo, relevés et mandats en ligne, agents IA</td></tr>
+  </table>
+
+  <h3>Cinq valeurs</h3>
+  <div class="grid3" style="grid-template-columns: repeat(5, 1fr); gap: 3mm">
+    <div class="box"><h4 style="margin-top:0">Hospitalité</h4><p class="small" style="margin:0">L'outil existe pour libérer du temps d'accueil. La photo de lieu et la lumière passent avant la technique.</p></div>
+    <div class="box"><h4 style="margin-top:0">Contrôle</h4><p class="small" style="margin:0">L'IA propose, l'hôte décide. Bornes, plancher de prix, journal : rien ne se fait dans le dos.</p></div>
+    <div class="box"><h4 style="margin-top:0">Clarté</h4><p class="small" style="margin:0">Un seul espace, une seule vérité. Des phrases courtes, des états nommés, pas de jargon.</p></div>
+    <div class="box"><h4 style="margin-top:0">Ancrage local</h4><p class="small" style="margin:0">Les règles, les langues et les paiements de chaque marché, sans bricolage.</p></div>
+    <div class="box"><h4 style="margin-top:0">Honnêteté</h4><p class="small" style="margin:0">Aucun chiffre inventé, aucune scène fictive présentée comme réelle.</p></div>
+  </div>
+
+  <h3>Ton de communication</h3>
+  <p><b>Accueillant, concret, assuré.</b> Professionnel sans être corporate, chaleureux sans être familier. On vouvoie. On parle bénéfice avant fonctionnalité. Phrases courtes, souvent en deux temps (une affirmation, puis sa conséquence).</p>
+  <div class="grid2">
+    <div class="box tint avoid">
+      <h4 style="margin-top:0">Phrases types (issues de la landing)</h4>
+      <ul class="small" style="margin:0">
+        <li>« Moins d'onglets. Plus de présence. »</li>
+        <li>« Tous vos calendriers, une seule vérité. »</li>
+        <li>« Vous approuvez, ils exécutent. »</li>
+        <li>« Le ménage assigné, prouvé, payé. »</li>
+        <li>« Une istiraha à Riyad ne se gère pas comme un appartement à Paris. »</li>
+      </ul>
+    </div>
+    <div class="box avoid">
+      <h4 style="margin-top:0">Registre</h4>
+      <table style="margin:0">
+        <tr><td>Formel</td><td>●●●○○</td></tr>
+        <tr><td>Chaleureux</td><td>●●●●○</td></tr>
+        <tr><td>Expert</td><td>●●●○○</td></tr>
+        <tr><td>Enthousiaste</td><td>●●○○○</td></tr>
+        <tr><td>Humour</td><td>●○○○○</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. COULEURS ============ -->
+<section class="chapter" id="couleurs">
+  <p class="eyebrow">02 · Couleurs</p>
+  <h2 class="section">Bleu nuit<br><span style="color:#9A6C3A">&amp; Terre cuite.</span></h2>
+  <p class="lead">Toute création Baitly (vidéo, motion design, image, post) se construit sur <b>deux familles</b> : les teintes de <b>bleu nuit</b>, qui posent le fond, le calme et la marque, et la palette <b>« Terre cuite »</b> des briques du planning, qui apporte la chaleur de l'hospitalité et désigne ce qui compte. La lumière (Papier) les sépare. Rien d'autre.</p>
+
+  <h3>Palette de création · vidéo &amp; image</h3>
+  <h4>Bleu nuit · la dominante (60 à 70 % de l'image)</h4>
+  <div class="scale">
+    <div><div class="c" style="background:#0A1120;color:#D7E1EE">N900</div><div class="l"><b>Nuit profonde</b>#0A1120<br>Ouvertures, scènes de nuit, fonds les plus denses</div></div>
+    <div><div class="c" style="background:#111B31;color:#D7E1EE">N800</div><div class="l"><b>Nuit</b>#111B31<br>Fond alternatif, cartes posées sur la nuit profonde</div></div>
+    <div><div class="c" style="background:#1B2A35;color:#F7FBFC">N700</div><div class="l"><b>Bleu nuit</b>#1B2A35<br>Couleur de marque. Fond principal, texte sur clair</div></div>
+    <div><div class="c" style="background:#25406E;color:#F7FBFC">N600</div><div class="l"><b>Navy</b>#25406E<br>Aplats, CTA en mode Jour, logo sur clair</div></div>
+    <div><div class="c" style="background:#2E4356;color:#F7FBFC">N500</div><div class="l"><b>Ardoise nuit</b>#2E4356<br>Cartes et panneaux sur fond nuit</div></div>
+    <div><div class="c" style="background:#9CB4E2;color:#0A1120">N300</div><div class="l"><b>Bleu lune</b>#9CB4E2<br>Filets, icônes, accent froid sur nuit (7,0:1)</div></div>
+    <div><div class="c" style="background:#D7E1EE;color:#1B2A35">N100</div><div class="l"><b>Brume nuit</b>#D7E1EE<br>Texte secondaire sur nuit (11,1:1)</div></div>
+  </div>
+  <h4>Terre cuite · l'accent chaud (20 à 30 %)</h4>
+  <div class="scale">
+    <div><div class="c" style="background:#E0C89B;color:#2B211A">T100</div><div class="l"><b>Sable</b>#E0C89B<br>Accent n°1 sur nuit : 2e ligne de titre, surlignage, CTA (9,0:1 sur #1B2A35)</div></div>
+    <div><div class="c" style="background:#A89684;color:#2B211A">T300</div><div class="l"><b>Taupe</b>#A89684<br>Texte tertiaire et détails sur nuit (5,2:1)</div></div>
+    <div><div class="c" style="background:#B45733;color:#FFFFFF">T400</div><div class="l"><b>Terracotta</b>#B45733<br>Un seul point d'attention par plan : alerte, curseur, pastille</div></div>
+    <div><div class="c" style="background:#9A6C3A;color:#FFFFFF">T500</div><div class="l"><b>Terre cuite</b>#9A6C3A<br>Aplats chauds, 2e ligne de titre sur clair (≥ 24 px)</div></div>
+    <div><div class="c" style="background:#7A5230;color:#FFFFFF">T600</div><div class="l"><b>Encre terre</b>#7A5230<br>Petit texte chaud sur clair (6,6:1)</div></div>
+    <div><div class="c" style="background:#5C3A21;color:#F7FBFC">T800</div><div class="l"><b>Brun</b>#5C3A21<br>Fonds chauds : citations, témoignages</div></div>
+    <div><div class="c" style="background:#2B211A;color:#E0C89B">T900</div><div class="l"><b>Encre brune</b>#2B211A<br>Texte posé sur Sable (9,7:1)</div></div>
+  </div>
+  <p class="small">Lumière : <b>Papier #F7FBFC</b> (fond du mode Jour, texte sur nuit). Jamais de blanc ni de noir purs.</p>
+
+  <h4>Trois modes de composition</h4>
+  <div class="modes">
+    <div class="mode" style="background:#1B2A35;color:#F7FBFC"><span class="ey" style="color:#E0C89B">Mode Nuit · par défaut</span><span class="ti">Moins d'onglets.<br><span style="color:#E0C89B">Plus de présence.</span></span><span class="cta" style="background:#E0C89B;color:#2B211A">Rejoindre le pré-lancement</span></div>
+    <div class="mode" style="background:#F7FBFC;color:#1B2A35;border:1px solid #CAD6DD"><span class="ey" style="color:#7A5230">Mode Jour · interface, pédagogie</span><span class="ti">Le ménage assigné,<br><span style="color:#9A6C3A">prouvé, payé.</span></span><span class="cta" style="background:#25406E;color:#F7FBFC">Réserver une démo</span></div>
+    <div class="mode" style="background:#5C3A21;color:#F7FBFC"><span class="ey" style="color:#E0C89B">Mode Brun · citation (exemple)</span><span class="ti">« Je garde l'accueil.<br><span style="color:#E0C89B">Baitly garde le reste. »</span></span><span class="cta" style="background:#F7FBFC;color:#5C3A21">baitly.fr</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="do avoid"><h4>Règles de création</h4><ul class="small" style="margin:0">
+      <li>Chaque visuel = bleu nuit (60–70 %) + Terre cuite (20–30 %) + Papier (≤ 15 % en mode Nuit).</li>
+      <li>Titre deux tons : 1re ligne Papier (nuit) ou Bleu nuit (jour), 2e ligne Sable (nuit) ou Terre cuite (jour).</li>
+      <li>Ce qui compte dans le plan (chiffre, mot clé, CTA) est chaud ; le reste est bleu nuit.</li>
+      <li>Validé / payé / déclaré : coche Sable sur nuit, Terre cuite sur clair. Alerte : Terracotta, une fois par plan.</li>
+      <li>Fond : aplat ou dégradé très doux Nuit profonde → Bleu nuit (radial, jamais sur du texte).</li>
+      <li>Étalonnage photo : ombres tirées vers le bleu nuit, hautes lumières vers le sable (lumière de fin de journée, pierre, terre).</li>
+    </ul></div>
+    <div class="dont avoid"><h4>Hors palette de création</h4><ul class="small" style="margin:0">
+      <li>Bleu-gris, teal, bleu vif, argile, ambre, violet : uniquement <b>à l'intérieur d'une maquette d'interface fidèle</b>, jamais en fond, titre, texte animé ou décor.</li>
+      <li>Pastilles d'agents multicolores : seulement quand un agent est présenté seul ; en plan d'ensemble, pastilles Sable.</li>
+      <li>Couleurs de canal (Airbnb, Booking.com…) : on montre le logo, pas la couleur.</li>
+      <li>Exception unique : les deux « packets » bleu et teal du logo, qui font partie de la marque.</li>
+    </ul></div>
+  </div>
+
+  <div style="break-before: page"></div>
+  <h3>Couleurs d'interface (landing &amp; PMS) · référence pour les maquettes</h3>
+  <p class="small muted">Les couleurs ci-dessous sont celles du produit. Elles servent à reproduire fidèlement l'interface dans une maquette ou une capture ; elles ne pilotent pas la direction artistique des créations (voir la palette de création ci-dessus).</p>
+
+  <h4>Couleurs de marque</h4>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#1B2A35;color:#F7FBFC">Primaire</div><div class="info"><b>Bleu nuit</b>#1B2A35<br>RGB 27 42 53<br>CMJN 49 21 0 79<span class="use">Texte, titres, wordmark, fonds sombres. Couleur n°1.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#25406E;color:#F7FBFC">Action</div><div class="info"><b>Navy</b>#25406E<br>RGB 37 64 110<br>CMJN 66 42 0 57<span class="use">Boutons principaux (CTA), logo sur fond clair.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#456675;color:#F7FBFC">Secondaire</div><div class="info"><b>Bleu-gris</b>#456675<br>RGB 69 102 117<br>CMJN 41 13 0 54<span class="use">2e ligne des titres, eyebrows, survol, focus.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#6B8A9A;color:#F7FBFC">Décor</div><div class="info"><b>Bleu-gris clair</b>#6B8A9A<br>RGB 107 138 154<br>CMJN 31 10 0 40<span class="use">Traits, illustrations, tracé du logo. Pas pour du texte courant (3,5:1).</span></div></div>
+  </div>
+
+  <h3>Neutres (tous teintés bleu, jamais de gris pur)</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#F7FBFC;color:#1B2A35;border-bottom:1px solid #CAD6DD">Fond</div><div class="info"><b>Papier</b>#F7FBFC<br>RGB 247 251 252<br>CMJN 2 0 0 1<span class="use">Fond par défaut. Remplace le blanc.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#E9F2F6;color:#1B2A35">Surface</div><div class="info"><b>Surface</b>#E9F2F6<br>RGB 233 242 246<br>CMJN 5 2 0 4<span class="use">Sections teintées, en-têtes de tableau.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#D6E6EE;color:#1B2A35">Surlignage</div><div class="info"><b>Brume</b>#D6E6EE<br>RGB 214 230 238<br>CMJN 10 3 0 7<span class="use">Surlignages, états désactivés, sélection.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#CAD6DD;color:#1B2A35">Filets</div><div class="info"><b>Ligne</b>#CAD6DD<br>RGB 202 214 221<br>CMJN 9 3 0 13<span class="use">Bordures, séparateurs 1 px.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#4D5A64;color:#F7FBFC">Texte 2</div><div class="info"><b>Ardoise</b>#4D5A64<br>RGB 77 90 100<br>CMJN 23 10 0 61<span class="use">Texte secondaire, légendes (6,8:1).</span></div></div>
+    <div class="sw"><div class="chip" style="background:#FDFDFE;color:#1B2A35;border-bottom:1px solid #CAD6DD">Carte</div><div class="info"><b>Carte</b>#FDFDFE<br>RGB 253 253 254<br>CMJN 0 0 0 0<span class="use">Cartes et panneaux d'interface.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#E8EEF3;color:#1B2A35">App</div><div class="info"><b>Fond d'app</b>#E8EEF3<br>RGB 232 238 243<br>CMJN 5 2 0 5<span class="use">Fond des écrans du PMS (maquettes).</span></div></div>
+    <div class="sw"><div class="chip" style="background:#94A7B8;color:#1B2A35">Discret</div><div class="info"><b>Brume foncée</b>#94A7B8<br>RGB 148 167 184<br>CMJN 20 9 0 28<span class="use">Icônes inactives, décor. Jamais du texte.</span></div></div>
+  </div>
+
+  <h3>Signaux &amp; flux du logo</h3>
+  <p class="small muted">Chaque signal existe en deux versions : la teinte vive (pastilles, icônes, aplats, bordures) et son encre (<i>ink</i>) pour le texte. Une teinte vive en texte plafonne autour de 2,2:1 : illisible.</p>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#2563EB;color:#F7FBFC">Flux · requête</div><div class="info"><b>Bleu requête</b>#2563EB · RGB 37 99 235<br>CMJN 84 58 0 8<span class="use">Packet « aller » du logo, info, liens UI.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#0D9488;color:#F7FBFC">Flux · réponse</div><div class="info"><b>Teal réponse</b>#0D9488 · RGB 13 148 136<br>CMJN 91 0 8 42<span class="use">Packet « retour » du logo.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#14B8A6;color:#1B2A35">Succès</div><div class="info"><b>Teal</b>#14B8A6 · encre #0C7166<br>CMJN 89 0 10 28<span class="use">Coches, « payé », « déclaré », validé.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#D4A574;color:#1B2A35">Attention</div><div class="info"><b>Ambre</b>#D4A574 · encre #7A5320<br>CMJN 0 22 45 17<span class="use">Avertissement, en attente.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#C97A7A;color:#1B2A35">Erreur</div><div class="info"><b>Argile</b>#C97A7A · encre #93413F<br>CMJN 0 39 39 21<span class="use">Conflit, erreur. Doux, jamais rouge vif.</span></div></div>
+    <div class="sw"><div class="chip" style="background:#0A1120;color:#D7E1EE">Mode sombre</div><div class="info"><b>Nuit profonde</b>#0A1120<br>Cartes #111B31 · texte #D7E1EE<span class="use">Fonds de scènes sombres (nuit, ouverture).</span></div></div>
+    <div class="sw"><div class="chip" style="background:#9CB4E2;color:#0A1120">Sombre · accent</div><div class="info"><b>Bleu clair</b>#9CB4E2<br>RGB 156 180 226<span class="use">Accent et 2e ligne de titre sur fond sombre (7,0:1).</span></div></div>
+    <div class="sw"><div class="chip" style="background:#60A5FA;color:#0A1120">Sombre · flux</div><div class="info"><b>Flux sur sombre</b>#60A5FA + #2DD4BF<br><span class="use">Packets du logo sur fond sombre.</span></div></div>
+  </div>
+
+  <h3>Couleurs des agents IA</h3>
+  <p class="small muted">Uniquement en pastilles (8 à 12 px) ou en fin liseré d'icône, pour identifier un agent. Jamais en fond, jamais en texte.</p>
+  <table>
+    <tr><th>Agent</th><th>HEX</th><th>Agent</th><th>HEX</th></tr>
+    <tr><td><span class="dot" style="display:inline-block;background:#3B6FE0;margin:0 6px 0 0"></span>Communication</td><td>#3B6FE0</td><td><span class="dot" style="display:inline-block;background:#3AA0C9;margin:0 6px 0 0"></span>Synchronisation</td><td>#3AA0C9</td></tr>
+    <tr><td><span class="dot" style="display:inline-block;background:#7C5CE0;margin:0 6px 0 0"></span>Revenue</td><td>#7C5CE0</td><td><span class="dot" style="display:inline-block;background:#5E7A99;margin:0 6px 0 0"></span>Conformité</td><td>#5E7A99</td></tr>
+    <tr><td><span class="dot" style="display:inline-block;background:#1F9E8D;margin:0 6px 0 0"></span>Opérations</td><td>#1F9E8D</td><td><span class="dot" style="display:inline-block;background:#E0685C;margin:0 6px 0 0"></span>Voyageur</td><td>#E0685C</td></tr>
+    <tr><td><span class="dot" style="display:inline-block;background:#C77D2E;margin:0 6px 0 0"></span>Finance</td><td>#C77D2E</td><td><span class="dot" style="display:inline-block;background:#A2845E;margin:0 6px 0 0"></span>Propriétaire</td><td>#A2845E</td></tr>
+    <tr><td><span class="dot" style="display:inline-block;background:#D6457E;margin:0 6px 0 0"></span>Avis &amp; Réputation</td><td>#D6457E</td><td><span class="dot" style="display:inline-block;background:#5BAE4E;margin:0 6px 0 0"></span>Croissance</td><td>#5BAE4E</td></tr>
+  </table>
+
+
+  <div style="break-before: page"></div>
+  <h3>Planning : les briques de réservation (palette « Terre cuite »)</h3>
+  <p class="small">Les briques du planning sont l'élément le plus reconnaissable de l'interface et de nos vidéos. Elles forment <b>la seule famille chaude de l'interface</b> : une gamme de bruns où <b>la densité de la couleur dit la présence du voyageur</b>. Beige : rien n'est encore acquis. Brun : le séjour tient. Brun profond : le voyageur est sur place. Taupe désaturé : le séjour est passé. <b>C'est le statut qui colore la brique, jamais le canal</b> : le canal est indiqué par son logo dans une pastille ronde sur la brique.</p>
+  <div class="bricks">
+    <div><div class="brick" style="background:#E0C89B;color:#2B211A"><span class="av"><img src="assets/guests/g2.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>2 nuits</small><b>Salma M.</b></span><span class="price" style="background:#FDFDFE;color:#8A6420">680</span></div>
+      <div class="meta"><b style="display:block">En attente</b>Brique #E0C89B · RGB 224 200 155 · CMJN 0 11 31 12 · Texte sur brique #2B211A (9,7:1) · Encre texte #8A6420</div></div>
+    <div><div class="brick" style="background:#9A6C3A;color:#FFFFFF"><span class="av"><img src="assets/guests/g3.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>3 nuits</small><b>Jad D.</b></span><span class="price" style="background:rgba(38,24,12,.2)">✓ 2 040</span><span class="ch" style="color:#E0735A">A</span></div>
+      <div class="meta"><b style="display:block">Confirmée</b>Brique #9A6C3A · RGB 154 108 58 · CMJN 0 30 62 40 · Texte sur brique #FFFFFF (4,6:1) · Encre texte #7A5230</div></div>
+    <div><div class="brick" style="background:#5C3A21;color:#FFFFFF"><span class="av"><img src="assets/guests/g8.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>3 nuits</small><b>Amal K.</b></span><span class="price" style="background:#FDFDFE;color:#8A6420">1 450</span><span class="ch" style="color:#4A6B9A">B</span></div>
+      <div class="meta"><b style="display:block">Sur place</b>Brique #5C3A21 (#6B4527 en sombre) · RGB 92 58 33 · CMJN 0 37 64 64 · Texte sur brique #FFFFFF (10,1:1) · Encre texte #4A2E1B</div></div>
+    <div><div class="brick" style="background:#A89684;color:#2B211A"><span class="av"><img src="assets/guests/g9.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>4 nuits</small><b>Léa P.</b></span><span class="price" style="background:rgba(252,250,247,.4)">✓ 2 720</span></div>
+      <div class="meta"><b style="display:block">Partie</b>Brique #A89684 · RGB 168 150 132 · CMJN 0 11 21 34 · Texte sur brique #2B211A (5,5:1) · Encre texte #6B6055</div></div>
+    <div><div class="brick ghost"><span class="tx"><small>2 nuits</small><b>Annulée</b></span></div>
+      <div class="meta"><b style="display:block">Annulée</b>Brique « fantôme » : fond transparent hachuré à 135° (gris #67757C à 22 %, trait 1,5 px tous les 8 px), inerte au survol.</div></div>
+  </div>
+  <p class="small muted">Anatomie complète d'une brique, des interventions et des autres éléments du planning : partie « 05 bis · Le planning, pièce par pièce ».</p>
+
+  <h4>Autres repères du planning</h4>
+  <div class="legend-row">
+    <span><i style="background:#2F9E8D"></i>Ménage #2F9E8D (icône balai sur pastille blanche)</span>
+    <span><i style="background:#4F86C6"></i>Maintenance #4F86C6 (icône clé sur pastille blanche)</span>
+    <span><i style="background:#67757C"></i>Blocage : bande grisée hachurée #67757C</span>
+    <span><i style="background:#E5484D;width:3px;height:14px;border-radius:1px"></i>Ligne « aujourd'hui » #E5484D</span>
+    <span><i style="background:#F2F6F7;border:1px solid #CAD6DD"></i>Colonne week-end #F2F6F7</span>
+  </div>
+  <h4>Couleurs de canal (identification uniquement)</h4>
+  <p class="small muted" style="margin-bottom:1mm">Pour les légendes, filtres, pastilles et graphiques par canal. Jamais comme fond de brique. En vidéo, on montre le logo officiel du canal plutôt que sa couleur.</p>
+  <div class="legend-row">
+    <span><i style="background:#E0735A"></i>Airbnb #E0735A · encre #A24A33</span>
+    <span><i style="background:#4A6B9A"></i>Booking.com #4A6B9A · encre #39527A</span>
+    <span><i style="background:#3F8FA6"></i>Vrbo #3F8FA6 · encre #2E6B7C</span>
+    <span><i style="background:#C6A24A"></i>Expedia #C6A24A · encre #8A6F28</span>
+    <span><i style="background:#25406E"></i>Direct : couleur de marque (Navy)</span>
+  </div>
+
+  <h3>Proportions d'une création</h3>
+  <div class="ratio"><div style="flex:65;background:#1B2A35;color:#F7FBFC;border-radius:8px 0 0 8px">Bleu nuit (N900 à N500) 65 %</div><div style="flex:25;background:#9A6C3A;color:#FFFFFF">Terre cuite 25 %</div><div style="flex:10;background:#F7FBFC;border:1px solid #CAD6DD;color:#1B2A35">Papier 10 %</div></div>
+  <p class="small muted">Proportions d'une création en mode Nuit (le mode Jour inverse Bleu nuit et Papier). Les photos de lieux, chaudes, comptent dans la part Terre cuite. Les couleurs d'interface restent confinées aux maquettes.</p>
+
+  <h3>Applications et états (interface)</h3>
+  <table>
+    <tr><th>Usage</th><th>Couleur</th><th>Contraste mesuré</th></tr>
+    <tr><td>Texte courant sur Papier</td><td>Bleu nuit #1B2A35</td><td>14,1:1</td></tr>
+    <tr><td>Texte secondaire sur Papier</td><td>Ardoise #4D5A64</td><td>6,8:1</td></tr>
+    <tr><td>2e ligne de titre, eyebrow</td><td>Bleu-gris #456675</td><td>5,9:1</td></tr>
+    <tr><td>Bouton principal (repos)</td><td>Fond Navy #25406E, texte Papier</td><td>9,9:1</td></tr>
+    <tr><td>Bouton principal (survol)</td><td>Fond Bleu-gris #456675 + ombre teintée</td><td>5,9:1</td></tr>
+    <tr><td>Bouton principal (pressé)</td><td>Fond Ardoise #4D5A64</td><td>6,8:1</td></tr>
+    <tr><td>Focus clavier</td><td>Contour 3 px Bleu-gris #456675, décalé de 5 px</td><td>contour visible</td></tr>
+    <tr><td>Désactivé</td><td>Fond Brume #D6E6EE, texte #94A7B8 (non porteur d'information)</td><td>volontairement faible</td></tr>
+    <tr><td>Overlay sur photo</td><td>Bleu nuit à 45–60 % (dégradé vers le bas), texte Papier sur la zone sombre</td><td>≥ 4,5:1 à vérifier</td></tr>
+    <tr><td>Succès / Attention / Erreur (texte)</td><td>#0C7166 / #7A5320 / #93413F</td><td>5,7 / 6,5 / 6,6:1</td></tr>
+  </table>
+</section>
+
+<!-- ============ 3. TYPO ============ -->
+<section class="chapter" id="typo">
+  <p class="eyebrow">03 · Typographies</p>
+  <h2 class="section">Deux familles,<br><span>une seule voix.</span></h2>
+  <p class="lead">Space Grotesk pour les titres et le wordmark, Manrope pour tout le reste. Tajawal pour l'arabe. Toutes sous licence libre (OFL), fournies dans <code>assets/fonts/</code> (Tajawal : Google Fonts).</p>
+
+  <div class="grid3">
+    <div class="box"><p class="eyebrow">Titres · wordmark</p><p style="font-family:var(--title);font-size:26pt;font-weight:700;line-height:1;margin:2mm 0">Space Grotesk</p><p class="small muted" style="margin:0">500, 600, 700. Géométrique, technique et chaleureuse. Titres, chiffres clés, wordmark « baitly » (600).</p></div>
+    <div class="box"><p class="eyebrow">Corps · interface</p><p style="font-size:26pt;font-weight:700;line-height:1;margin:2mm 0">Manrope</p><p class="small muted" style="margin:0">400, 500, 700. Corps de texte, boutons, légendes, sous-titres vidéo. Hébergée localement sur la landing.</p></div>
+    <div class="box"><p class="eyebrow">Arabe</p><p class="rtl" style="font-size:26pt;font-weight:700;line-height:1.2;margin:2mm 0">تجوال · Tajawal</p><p class="small muted" style="margin:0">500, 700. Toute version arabe. Interligne ≥ 1,45, aucun interlettrage, 13 px minimum à l'écran.</p></div>
+  </div>
+
+  <h3>Hiérarchie</h3>
+  <div class="spec"><div class="label"><b>Display / H1</b>Space Grotesk 700 · 48–80 px · interligne 1,05 · interlettrage −1 %</div><div style="font-family:var(--title);font-weight:700;font-size:30pt;line-height:1.05">Faites grandir vos revenus. <span style="color:#9A6C3A">Pas votre charge de travail.</span></div></div>
+  <div class="spec"><div class="label"><b>H2 · titre de section</b>Space Grotesk 700 · 32–50 px · interligne 1,1</div><div style="font-family:var(--title);font-weight:700;font-size:21pt;line-height:1.1">Moins d'onglets. <span style="color:#9A6C3A">Plus de présence.</span></div></div>
+  <div class="spec"><div class="label"><b>H3 · sous-titre</b>Space Grotesk 600 · 25–36 px · interligne 1,2</div><div style="font-family:var(--title);font-weight:600;font-size:15pt;line-height:1.2">Tous vos calendriers, une seule vérité.</div></div>
+  <div class="spec"><div class="label"><b>Eyebrow</b>Manrope 700 · 12 px · capitales · interlettrage 0,1 em · Encre terre (jour) ou Sable (nuit)</div><div><span class="eyebrow">01 / Piloter</span></div></div>
+  <div class="spec"><div class="label"><b>Lead</b>Manrope 500 · 18–20 px · interligne 1,5 · Ardoise</div><div style="font-size:12pt;color:var(--text2)">Du premier clic au prochain check-in, Baitly relie chaque détail du séjour.</div></div>
+  <div class="spec"><div class="label"><b>Corps</b>Manrope 400 · 15–16 px · interligne 1,55</div><div>Un planning partagé. Tous vos logements, tous vos canaux, les bonnes informations au bon endroit.</div></div>
+  <div class="spec"><div class="label"><b>Bouton</b>Manrope 700 · 14 px · pas de capitales</div><div><span class="btn primary">Réserver une démo →</span></div></div>
+  <div class="spec"><div class="label"><b>Légende / métadonnée</b>Manrope 500 · 12 px minimum · Ardoise</div><div class="small muted">Scène illustrative générée avec IA · planning Baitly</div></div>
+  <div class="spec"><div class="label"><b>Chiffres</b>Space Grotesk 700 · chiffres tabulaires obligatoires</div><div style="font-family:var(--title);font-weight:700;font-size:24pt;font-variant-numeric:tabular-nums">4 800 MAD · 0 % · 10</div></div>
+
+  <h3>Tailles vidéo (sur canevas 1080 px de large)</h3>
+  <table>
+    <tr><th>Élément</th><th>9:16 (1080×1920)</th><th>1:1 (1080×1080)</th><th>16:9 (1920×1080)</th></tr>
+    <tr><td>Titre principal</td><td>88–110 px</td><td>72–88 px</td><td>80–100 px</td></tr>
+    <tr><td>Titre secondaire</td><td>56–64 px</td><td>48–56 px</td><td>52–60 px</td></tr>
+    <tr><td>Sous-titres voix off</td><td>44 px (Manrope 600)</td><td>38 px</td><td>40 px</td></tr>
+    <tr><td>Eyebrow / légende</td><td>28–32 px</td><td>24–28 px</td><td>24–28 px</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="do"><h4>À faire</h4><ul class="small" style="margin:0"><li>Titres en deux lignes, la 2e en Sable (nuit) ou Terre cuite (jour)</li><li>Chiffres tabulaires partout</li><li>Césure équilibrée (text-wrap: balance)</li><li>Guillemets français « » et espaces insécables avant : ; ! ?</li></ul></div>
+    <div class="dont"><h4>À éviter</h4><ul class="small" style="margin:0"><li>Tout en graisse 600 sans contraste de poids</li><li>Capitales sur des phrases entières</li><li>Texte en dégradé, contours, ombres portées</li><li>Autres polices (Inter, Poppins, polices script)</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ 4. LOGO ============ -->
+<section class="chapter" id="logo">
+  <p class="eyebrow">04 · Logo &amp; assets graphiques</p>
+  <h2 class="section">Une maison,<br><span>et ce qui y circule.</span></h2>
+  <p class="lead">Le mark est une maison tracée d'un seul trait continu. Deux « packets » y circulent : un aller bleu (la requête) et un retour teal (la réponse). Ils racontent la synchronisation permanente entre le logement, les canaux et les voyageurs. Le wordmark « baitly » s'écrit en minuscules, en Space Grotesk 600.</p>
+
+  <div class="grid3">
+    <div><div class="logo-tile" style="background:#F7FBFC">
+      <svg width="58" height="58" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#house" stroke="#25406E" stroke-width="21"/><use href="#house" stroke="#2563EB" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-18"/><use href="#house" stroke="#0D9488" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-66"/></svg>
+      <span class="wm" style="color:#1B2A35">baitly</span></div><p class="caption"><b>Principal, fond clair.</b> Trait Navy #25406E, packets #2563EB / #0D9488, wordmark Bleu nuit.</p></div>
+    <div><div class="logo-tile" style="background:#1B2A35;border-color:#1B2A35">
+      <svg width="58" height="58" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#house" stroke="#E8EEF5" stroke-width="21"/><use href="#house" stroke="#60A5FA" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-18"/><use href="#house" stroke="#2DD4BF" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-66"/></svg>
+      <span class="wm" style="color:#F7FBFC">baitly</span></div><p class="caption"><b>Fond sombre.</b> Trait #E8EEF5, packets #60A5FA / #2DD4BF, wordmark Papier.</p></div>
+    <div><div class="logo-tile" style="background:#F7FBFC">
+      <svg width="58" height="58" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#house" stroke="#1B2A35" stroke-width="21"/></svg>
+      <span class="wm" style="color:#1B2A35">baitly</span></div><p class="caption"><b>Monochrome.</b> Sans packets : petits formats (&lt; 24 px), impression 1 couleur, gravure, tampon.</p></div>
+    <div><div class="logo-tile" style="background:#E9F2F6">
+      <svg width="80" height="80" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#house" stroke="#25406E" stroke-width="21"/><use href="#house" stroke="#2563EB" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-18"/><use href="#house" stroke="#0D9488" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-66"/></svg></div><p class="caption"><b>Icône seule.</b> Avatars de réseaux sociaux, favicon, filigrane de fin de vidéo.</p></div>
+    <div><div class="logo-tile" style="background:#F7FBFC;flex-direction:column;gap:6px">
+      <svg width="58" height="58" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#house" stroke="#25406E" stroke-width="21"/><use href="#house" stroke="#2563EB" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-18"/><use href="#house" stroke="#0D9488" stroke-width="27" stroke-dasharray="6 94" stroke-dashoffset="-66"/></svg>
+      <span class="wm" style="color:#1B2A35;font-size:20pt">baitly</span></div><p class="caption"><b>Vertical.</b> Écran de fin 9:16, formats carrés centrés.</p></div>
+    <div><div class="logo-tile" style="background:#25406E;border-color:#25406E">
+      <svg width="58" height="58" viewBox="251 251 522 522" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#house" stroke="#F7FBFC" stroke-width="21"/></svg>
+      <span class="wm" style="color:#F7FBFC">baitly</span></div><p class="caption"><b>Inversé sur Navy.</b> Blanc cassé, sans packets.</p></div>
+  </div>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div class="box avoid">
+      <h4 style="margin-top:0">Construction &amp; protection</h4>
+      <ul class="small" style="margin:0">
+        <li>Horizontal : espace entre mark et wordmark = 0,25 × hauteur du mark (14 px pour un mark de 56 px).</li>
+        <li>Wordmark : hauteur de capitale ≈ 0,57 × hauteur du mark (32 px pour 56 px).</li>
+        <li><b>Zone de protection</b> : 0,5 × hauteur du mark sur les quatre côtés, sans texte ni bord de cadre.</li>
+        <li><b>Tailles minimales</b> : mark 16 px écran / 5 mm impression ; logo complet 88 px de large écran / 25 mm impression. Sous 24 px, version monochrome.</li>
+        <li>Le wordmark reste en latin et de gauche à droite, même en arabe.</li>
+      </ul>
+    </div>
+    <div class="dont avoid">
+      <h4>Ne jamais</h4>
+      <ul class="small" style="margin:0">
+        <li>Déformer, incliner, ajouter une ombre ou un contour</li>
+        <li>Remplir la maison, changer l'épaisseur du trait</li>
+        <li>Recolorer les packets hors des paires définies</li>
+        <li>Mettre « Baitly » en capitale dans le logo</li>
+        <li>Poser le logo sur une photo chargée sans voile</li>
+        <li>Utiliser <code>client/src/assets/Baitly_logo.png</code> (ancien logo) ou tout logo Clenzy</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Logo animé (signature de marque)</h3>
+  <p>Dans l'application, le logo n'est jamais figé : le packet bleu parcourt le tracé (1re moitié d'un cycle de 5 s), puis le packet teal revient (2e moitié), en mouvement linéaire. En vidéo, cette animation sert d'<b>ouverture</b> et de <b>signature de fin</b>. Avec « réduire les animations » activé, seul le trait reste.</p>
+
+  <h3>Photographies</h3>
+  <div class="photo-strip">
+    <img src="assets/photos/terrace.jpg" alt=""><img src="assets/photos/guesthouse.jpg" alt=""><img src="assets/photos/pool.jpg" alt=""><img src="assets/photos/operationsProof.webp" alt="">
+  </div>
+  <ul class="small" style="margin-top:3mm">
+    <li><b>Lieux</b> : architecture d'hospitalité en lumière naturelle (riads, villas, istirahas, chambres prêtes). Lumière chaude, ombres bleu-gris, grain léger. Jamais de rendu 3D ni de photo « banque d'images » posée.</li>
+    <li><b>Gestes</b> : le geste du métier (ménage, linge, remise de clés, cuisine) plutôt qu'un pictogramme.</li>
+    <li><b>Forme signature</b> : l'<b>arche</b> (coins hauts arrondis à 50 %) est réservée aux photos de lieux. Les photos de gestes et les maquettes UI gardent un rayon de 16 px.</li>
+    <li><b>Personnes</b> : dans les maquettes d'interface, l'avatar d'un voyageur montre sa <b>photo</b>, comme dans le produit (portraits de <code>assets/guests/</code>). Scènes générées par IA : mention « Scène illustrative ».</li>
+    <li>Sources et licences : <code>client/site/assets/photos/sources.json</code> (Unsplash, Pexels).</li>
+  </ul>
+
+  <h3>Icônes</h3>
+  <p class="small">Bibliothèque <b>Lucide</b>, trait 1,7 px, extrémités arrondies, couleur Bleu nuit (Papier ou Bleu lune sur nuit, Sable pour l'icône mise en avant). Taille 20–24 px en interface, 48–64 px en vidéo. Aucun emoji comme icône. Un état n'est jamais porté par la couleur seule : toujours un libellé ou un pictogramme en plus. Logos partenaires (Airbnb, Booking.com, Stripe, PayTabs…) : fichiers officiels de <code>client/site/assets/brands/</code>, en petit, jamais en élément principal.</p>
+</section>
+
+<!-- ============ 5. UI ============ -->
+<section class="chapter" id="ui">
+  <p class="eyebrow">05 · Composants UI &amp; style d'interface</p>
+  <h2 class="section">Épuré, dense quand il le faut,<br><span>toujours lisible.</span></h2>
+  <p class="lead">Une interface de travail calme : surfaces claires teintées, filets fins plutôt qu'ombres, coins arrondis modérés, une seule action principale par zone. La landing (registre « marque ») est plus aérée ; le PMS (registre « produit ») plus dense. Les maquettes vidéo s'appuient sur le PMS.</p>
+
+  <div class="grid2">
+    <div class="box tint avoid"><h4 style="margin-top:0">Principes</h4><ul class="small" style="margin:0"><li>Rayons : 8 px contrôles, 10–14 px cartes, 16 px panneaux, arche pour les photos de lieux</li><li>Filets 1 px #CAD6DD, ombres rares et teintées bleu nuit (jamais noir)</li><li>Contrôles de 44 px de haut minimum</li><li>Espacement des sections 64–112 px (landing)</li><li>Chiffres tabulaires, alignement à gauche (à droite en arabe)</li></ul></div>
+    <div class="dont avoid"><h4>Interdits d'interface</h4><ul class="small" style="margin:0"><li>Bande latérale colorée &gt; 1 px sur une carte</li><li>Texte en dégradé, glow néon, glassmorphism décoratif</li><li>Trois cartes identiques en rang</li><li>Agrandissement (scale) au survol</li><li>Tous les boutons en style plein</li></ul></div>
+  </div>
+
+  <h3>Boutons</h3>
+  <div class="states">
+    <span class="muted">Principal · repos</span><span><span class="btn primary">Réserver une démo →</span></span>
+    <span class="muted">Survol</span><span><span class="btn hover">Réserver une démo →</span> <span class="small muted">&nbsp;fond #456675, ombre teintée, 200 ms</span></span>
+    <span class="muted">Pressé</span><span><span class="btn active">Réserver une démo →</span></span>
+    <span class="muted">Focus clavier</span><span><span class="btn focus">Réserver une démo →</span></span>
+    <span class="muted">Désactivé</span><span><span class="btn disabled">Réserver une démo</span></span>
+    <span class="muted">Secondaire</span><span><span class="btn secondary">Parler à l'équipe</span></span>
+    <span class="muted">Tertiaire / lien</span><span><span class="btn ghost">Découvrir le PMS →</span></span>
+  </div>
+
+  <h3>Cartes d'agent (composant signature des vidéos)</h3>
+  <div class="grid2">
+    <div class="card-demo agent-card"><span class="dot" style="background:#7C5CE0"></span><div><div class="k">Revenue</div><div class="t">Trois nuits creuses à Marrakech.</div><div class="dd">Baisse proposée, plancher de 680 MAD respecté.</div><div style="margin-top:3mm;display:flex;gap:2mm"><span class="btn primary" style="min-height:30px;padding:6px 12px;font-size:8pt">Approuver</span><span class="btn secondary" style="min-height:30px;padding:6px 12px;font-size:8pt">Ajuster</span><span class="btn ghost" style="min-height:30px;padding:6px 6px;font-size:8pt">Refuser</span></div></div></div>
+    <div style="display:flex;flex-direction:column;gap:3mm">
+      <div class="card-demo agent-card"><span class="dot" style="background:#1F9E8D"></span><div><div class="k">Opérations</div><div class="t">Départ tardif accepté.</div><div class="dd">Le ménage s'est replanifié tout seul.</div></div></div>
+      <div class="card-demo agent-card"><span class="dot" style="background:#5E7A99"></span><div><div class="k">Conformité</div><div class="t">Voyageur enregistré.</div><div class="dd">Fiche de police au format DGSN, transmise.</div></div></div>
+    </div>
+  </div>
+  <p class="small muted" style="margin-top:2mm">Carte : fond #FDFDFE, filet #CAD6DD, rayon 14 px, ombre 0 8 24 px bleu nuit à 8 %. Pastille de couleur de l'agent 10 px. Eyebrow du nom d'agent, titre Space Grotesk 600, détail Ardoise.</p>
+
+  <p class="small muted">Planning : voir la partie « 05 bis · Le planning, pièce par pièce » ci-après.</p>
+
+  <div class="grid2">
+    <div>
+      <h3>Champs</h3>
+      <div style="display:flex;flex-direction:column;gap:2.5mm">
+        <div class="input">vous@exemple.com</div>
+        <div class="input focus">salma@riad-nour.ma</div>
+        <div class="input error">salma@riad</div>
+        <span class="small" style="color:#93413F;margin-top:-1.5mm">Saisissez une adresse email valide.</span>
+      </div>
+    </div>
+    <div>
+      <h3>Pastilles de statut</h3>
+      <div class="chips">
+        <span class="chip2" style="background:rgba(20,184,166,.13);color:#0C7166">Payé</span>
+        <span class="chip2" style="background:rgba(212,165,116,.16);color:#7A5320">En attente</span>
+        <span class="chip2" style="background:rgba(201,122,122,.13);color:#93413F">Conflit</span>
+        <span class="chip2" style="background:rgba(37,99,235,.11);color:#1D4ED8">Nouveau</span>
+        <span class="chip2" style="background:#E1E9F0;color:#526674">Brouillon</span>
+      </div>
+      <p class="small muted" style="margin-top:3mm">Fond pastel de la teinte (11–16 %), texte dans l'encre de la teinte. Toujours un mot, jamais la couleur seule.</p>
+    </div>
+  </div>
+  <p class="small muted">Modales : réservées aux confirmations irréversibles ; on préfère un panneau latéral ou une carte en place. Tableaux : en-tête Surface, filets 1 px, montants alignés à droite en chiffres tabulaires.</p>
+</section>
+
+<section id="planning">
+  <div style="break-before: page"></div>
+  <p class="eyebrow">05 bis · Le planning, pièce par pièce</p>
+  <h3 style="margin-top:2mm">Règles de construction reprises du code</h3>
+  <p class="small">Source : <code>client/src/modules/planning/</code> (<code>PlanningBar.tsx</code>, <code>PlanningRow.tsx</code>, <code>PlanningBlockedBand.tsx</code>, <code>constants.ts</code>, <code>utils/interventionAttachment.ts</code>, <code>planningUrgency.css</code>). Toute maquette de planning, image ou animation doit respecter ces règles : c'est l'écran le plus montré du produit. Maquette ci-dessous à l'échelle réelle du PMS (rangée 54 px, brique 36 px), vue quinzaine resserrée.</p>
+  <div class="plg" style="width:650px">
+  <div class="plg-head"><div class="plg-col"><small>Logement</small></div><div class="plg-days"><div class="plg-day"><span>L</span><b>12</b></div><div class="plg-day"><span>M</span><b>13</b></div><div class="plg-day"><span>M</span><b>14</b></div><div class="plg-day"><span>J</span><b>15</b></div><div class="plg-day today"><span>V</span><b>16</b></div><div class="plg-day we"><span>S</span><b>17</b></div><div class="plg-day we"><span>D</span><b>18</b></div><div class="plg-day"><span>L</span><b>19</b></div><div class="plg-day"><span>M</span><b>20</b></div><div class="plg-day"><span>M</span><b>21</b></div><div class="plg-day"><span>J</span><b>22</b></div><div class="plg-day we"><span>V</span><b>23</b></div></div></div>
+  <div class="plg-row"><div class="plg-col"><b>Riad Nour</b><small>Marrakech</small></div><div class="plg-track" style="width:528px"><div class="plg-cells"><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="we"></i><i class="we"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="we"></i></div><div class="bar " style="left:27.5px;width:124.7px;background:#A89684;color:#2B211A;"><span class="av" style="border:1.5px solid rgba(43,33,26,.30);background:rgba(43,33,26,.12)"><img src="assets/guests/g9.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>3 nuits</small><b>Léa P.</b></span><span class="badges"><span class="bdg combo">+2</span></span></div><div class="bar " style="left:159.5px;width:256.7px;background:#9A6C3A;color:#FFFFFF;"><span class="av" style="border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.22)"><img src="assets/guests/g2.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>6 nuits</small><b>Salma</b></span><span class="pill" style="background:rgba(0,0,0,.20);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 3 400</span><span class="badges"><span class="bdg fee" style="color:#2F9E8D"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 22-1-4"/><path d="M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1"/><path d="M5 14h14l1.97 6.77A1 1 0 0 1 20 22H4a1 1 0 0 1-.97-1.23z" fill="currentColor"/><path d="m8 22 1-4"/></svg><span>120</span></span><span class="bdg"><img src="assets/brands/bookingdotcom.svg" alt=""></span></span></div></div></div>
+  <div class="plg-row"><div class="plg-col"><b>Villa Palmeraie</b><small>Marrakech</small></div><div class="plg-track" style="width:528px"><div class="plg-cells"><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="we"></i><i class="we"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="we"></i></div><div class="bar urgent-ring" style="left:71.5px;width:212.7px;background:#5C3A21;color:#FFFFFF;--bc:#5C3A21;"><span class="av" style="border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.22)"><img src="assets/guests/g3.jpg" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block"></span><span class="tx"><small>5 nuits</small><b>Jad</b></span><span class="pill" style="background:#fff;color:#B25A2A;box-shadow:0 1px 2px rgba(0,0,0,.14)"><span style="color:#C9803F;display:inline-flex"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="5" width="20" height="14" rx="2.5"/><rect x="2" y="9" width="20" height="2.4" fill="#fff"/></svg></span>1 450</span><span class="badges"><span class="bdg" style="color:#4F86C6"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></span></span></div><div class="bdg orphan" style="left:398.0px;color:#2F9E8D"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 22-1-4"/><path d="M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1"/><path d="M5 14h14l1.97 6.77A1 1 0 0 1 20 22H4a1 1 0 0 1-.97-1.23z" fill="currentColor"/><path d="m8 22 1-4"/></svg></div></div></div>
+  <div class="plg-row"><div class="plg-col"><b>Studio Gueliz</b><small>Marrakech</small></div><div class="plg-track" style="width:528px"><div class="plg-cells"><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="we"></i><i class="we"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="we"></i></div><div class="bar " style="left:27.5px;width:80.7px;background:#E0C89B;color:#2B211A;"><span class="tx"><small>2 nuits</small><b>Omar</b></span><span class="badges"><span class="bdg combo">+2</span></span></div><div class="blocked" style="left:132.0px;width:132px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Bloqué</div><div class="bar ghost" style="left:335.5px;width:124.7px;color:#67757C;"><span class="tx"><small>3 nuits</small><b>Nadia K.</b></span><span class="hide-x"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div></div></div>
+  <div class="now" style="left:314.3px;top:44px"></div>
+  <span class="num" style="left:139.5px;top:45px">1</span><span class="num" style="left:391.5px;top:45px">2</span><span class="num" style="left:457.5px;top:45px">3</span><span class="num" style="left:542.0px;top:116px">4</span><span class="num" style="left:173.5px;top:117px">5</span><span class="num" style="left:214.2px;top:153px">9</span><span class="num" style="left:326.0px;top:188px">6</span><span class="num" style="left:447.5px;top:153px">7</span><span class="num" style="left:322.3px;top:48px">8</span>
+</div>
+  <div class="callouts">
+    <div><span class="n">1</span><span><b>Brique de réservation</b> : hauteur 36 px, posée à 9 px du haut d'une rangée de 54 px, rayon 9 px, aplat uni à la couleur du <b>statut</b> (jamais de bande latérale). Avatar rond 26 px avec la <b>photo du voyageur</b>, puis « N nuits » (9,5 px, 600, opacité 85 %) au-dessus du nom (12 px, 600).</span></div>
+    <div><span class="n">2</span><span><b>Pilule de prix</b> (21 px, rayon 7, chiffres Space Grotesk 11 px). Réglé : verre translucide + coche (noir 20 % et texte blanc sur brique foncée, blanc 55 % sur brique pâle). Non réglé : fond blanc, montant #B25A2A, icône carte #C9803F.</span></div>
+    <div><span class="n">3</span><span><b>Intervention rattachée = à l'intérieur de la brique</b> : pastille blanche 21 × 21, rayon 7, ombre 0 1 2 px, icône colorée (balai ménage #2F9E8D, clé maintenance #4F86C6). Si la brique est large (≥ 184 px) et qu'un tarif existe, la pastille s'élargit en « icône + montant » (texte #15242D).</span></div>
+    <div><span class="n">4</span><span><b>Intervention non rattachée = à l'extérieur</b>, posée seule sur la grille à sa date : même carré blanc 21 × 21 rayon 7 avec icône colorée, <b>plus un filet 1 px #D5DEE7</b>, centré verticalement dans la rangée, décalé de 2 px après le début du jour. Jamais de libellé texte, jamais de barre.</span></div>
+    <div><span class="n">5</span><span><b>Urgence</b> (paiement en attente ou info voyageur manquante) : anneau pulsé permanent à la couleur de la brique (0 → 8 px, 2,4 s), mouvement « wizz » optionnel toutes les ~4 s. Ici avec une maintenance rattachée (clé).</span></div>
+    <div><span class="n">6</span><span><b>Blocage</b> : ce n'est pas un séjour, donc pas une brique. Bande de cellules grisées sur toute la hauteur de la rangée, hachures à 45° (1 px tous les 7 px), cadenas 12 px et libellé « Bloqué » si la place le permet.</span></div>
+    <div><span class="n">7</span><span><b>Annulée</b> : brique fantôme, fond clair hachuré à 135°, filet pointillé 1,5 px, texte gris barré, avatar en niveaux de gris, bouton rond « × » (masquer) en haut à droite.</span></div>
+    <div><span class="n">8</span><span><b>Aujourd'hui</b> : jour dans un carré 24 × 24 rayon 8 à l'encre de marque (Navy), ligne verticale 2 px #E5484D sur toute la hauteur avec un point de 10 px et halo. Week-end : en-tête #F2F6F7, cellules #F8FAFB.</span></div>
+    <div><span class="n">9</span><span><b>Repli « +N »</b> : quand la brique manque de place, le <b>nom du voyageur prime</b> ; se replient dans une pastille « +N » (blanc 90 %, 10 px gras), dans l'ordre : pastilles d'intervention, logo du canal, puis prix ; l'avatar part en dernier (sous 90 px de large).</span></div>
+  </div>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div class="box avoid"><h4 style="margin-top:0">Quand une intervention est-elle « rattachée » ?</h4>
+      <p class="small" style="margin-bottom:1.5mm">Règle unique du code : chaque ménage ou maintenance suit <b>un seul</b> chemin. Il est dessiné <b>dans la brique</b> de la réservation qu'il sert si l'une de ces conditions est vraie, dans cet ordre :</p>
+      <ol class="small" style="margin:0;padding-inline-start:5mm">
+        <li>lien explicite vers une réservation active du même logement ;</li>
+        <li>sa date tombe entre l'arrivée et le départ d'un séjour (le jour de départ, c'est le séjour qui se termine qui gagne) ;</li>
+        <li>il suit un départ, avant que le séjour suivant ait commencé (ménage de rotation) ;</li>
+        <li>il précède une arrivée de 3 jours au plus (ménage anticipé).</li>
+      </ol>
+      <p class="small" style="margin:1.5mm 0 0">Sinon, il est <b>orphelin</b> et posé seul à sa date (pastille à filet, repère 4). Si la brique hôte est masquée (filtre, hors période), l'intervention redevient autonome.</p>
+    </div>
+    <div class="box avoid"><h4 style="margin-top:0">Géométrie et états</h4>
+      <ul class="small" style="margin:0">
+        <li><b>À l'heure</b> : une brique commence à l'heure d'arrivée (15 h par défaut) et finit à l'heure de départ (11 h). Les jours de rotation laissent donc un vide entre deux briques ; largeur minimale ½ jour.</li>
+        <li>Zoom : semaine 160 px / jour, quinzaine 80 px, mois 38 px. Densité compacte : rangée 46 px, brique 32 px.</li>
+        <li>Colonne logements 188 px (nom + ville). En-tête des jours 44 px.</li>
+        <li>Survol : la brique monte de 1 px avec une ombre portée douce.</li>
+        <li>Sélection : double anneau (2 px fond de carte + 2 px accent terracotta #B45733) et léger « pop ».</li>
+        <li>Conflit : anneau 2 px #C97A7A qui pulse (2 s).</li>
+        <li>Brique trop étroite : les alertes deviennent un point radar de 10 px qui pulse au coin (ambre #C28A52 info manquante, #C97A7A paiement).</li>
+        <li>Pied de grille : taux d'occupation par jour (10 px, chiffres tabulaires).</li>
+        <li>En mode sombre : mêmes briques (« Sur place » passe à #6B4527) ; les pastilles restent blanches.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="do avoid" style="margin-top:4mm"><h4>En motion design</h4><ul class="small" style="margin:0">
+    <li>Les briques entrent par <b>glissement horizontal</b> depuis leur heure d'arrivée, une rangée après l'autre (jamais par zoom ni rebond fort).</li>
+    <li>Un ménage lié <b>apparaît comme pastille dans la brique</b> (fondu + léger « pop » 150 ms), il ne glisse jamais comme une brique séparée. Un départ tardif <b>allonge la brique</b> jusqu'à la nouvelle heure de départ ; la pastille ménage suit.</li>
+    <li>Un statut qui change (en attente → confirmée → sur place → partie) est un <b>fondu de couleur</b> de la brique (300 ms), jamais une animation de forme.</li>
+    <li>Une seule brique en urgence à la fois dans un plan ; l'anneau pulse à la couleur de la brique.</li>
+  </ul></div>
+</section>
+
+<!-- ============ 6. MOTION ============ -->
+<section class="chapter" id="motion">
+  <p class="eyebrow">06 · Principes de motion design</p>
+  <h2 class="section">Calme, précis,<br><span>jamais gadget.</span></h2>
+  <p class="lead">Le mouvement explique, il ne décore pas. Il reproduit le comportement de l'interface Baitly : des éléments qui glissent courts et se posent en douceur, un rythme posé, des accélérations réservées aux moments de « problème ».</p>
+
+  <div class="grid2">
+    <div class="box avoid">
+      <h4 style="margin-top:0">Courbe d'easing signature</h4>
+      <div class="curve">
+        <svg width="90" height="90" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="8" fill="#E9F2F6"/><path d="M8 92 C 26 92, 44 8, 92 8" fill="none" stroke="#25406E" stroke-width="3" stroke-linecap="round"/><circle cx="8" cy="92" r="3.5" fill="#2563EB"/><circle cx="92" cy="8" r="3.5" fill="#0D9488"/></svg>
+        <div class="small"><b>ease-out-quint</b><br><code>cubic-bezier(0.22, 1, 0.36, 1)</code><br>After Effects : vitesse d'entrée 0 %, influence de sortie 85–90 % (« easy ease out » marqué).</div>
+      </div>
+      <p class="small" style="margin:2mm 0 0">Sorties : <code>cubic-bezier(0.64, 0, 0.78, 0)</code> (ease-in), plus courtes que les entrées. Jamais de rebond élastique ; un rebond de 4–8 px maximum pour un « drop » d'élément.</p>
+    </div>
+    <div class="box avoid">
+      <h4 style="margin-top:0">Durées types</h4>
+      <table style="margin:0">
+        <tr><td>Micro-interaction (clic, coche, survol)</td><td>150–200 ms</td></tr>
+        <tr><td>Entrée d'un élément (carte, texte)</td><td>300–500 ms</td></tr>
+        <tr><td>Décalage entre éléments (stagger)</td><td>60–180 ms</td></tr>
+        <tr><td>Transition de scène</td><td>600–800 ms</td></tr>
+        <tr><td>Tracé du logo</td><td>1,0–1,2 s</td></tr>
+        <tr><td>Cycle des packets du logo</td><td>5 s, linéaire</td></tr>
+        <tr><td>Temps de lecture d'un titre</td><td>≥ 1,5 s + 0,3 s / mot</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>Texte, chiffres et CTA en mouvement</h3>
+  <ul class="small">
+    <li><b>Titres</b> : apparition mot à mot (décalage 60 ms) ou ligne à ligne, glissé vertical court de 16–24 px + fondu. La 2e ligne (Sable sur nuit, Terre cuite sur clair) arrive 150 ms après la 1re.</li>
+    <li><b>Chiffres</b> : en Sable sur nuit, Terre cuite sur clair ; compteur qui roule en chiffres tabulaires (la largeur ne bouge pas), 600–900 ms, ease-out. Pas de chiffre qui clignote.</li>
+    <li><b>Surlignage</b> : fond Sable #E0C89B (texte Encre brune) qui se dessine de gauche à droite derrière le mot (de droite à gauche en arabe), 300 ms.</li>
+    <li><b>CTA</b> : le bouton entre en dernier, se pose, puis une seule micro-réaction (Sable qui s'éclaircit vers Papier en 200 ms sur nuit ; Navy qui passe à Bleu nuit sur clair). Il reste à l'écran ≥ 2 s.</li>
+    <li><b>Interface</b> : les éléments d'UI bougent comme dans le produit (glissements, fondus). Pas de rotation 3D, pas de perspective, pas de zoom caméra rapide.</li>
+  </ul>
+
+  <h3>Séquences types</h3>
+  <h4>Intro (2–3 s)</h4>
+  <div class="timeline"><div style="flex:3;background:#E9F2F6">0–0,4 s · fond Papier</div><div style="flex:6;background:#D6E6EE">0,4–1,6 s · tracé de la maison au trait</div><div style="flex:4;background:#CAD6DD">1,6–2,2 s · wordmark en fondu + glissé</div><div style="flex:3;background:#E9F2F6">2,2–3 s · baseline</div></div>
+  <p class="small">Baseline : « L'hospitalité, augmentée. » ou la promesse du jour. Musique : attaque douce, pas de « whoosh ».</p>
+  <h4>Transition entre deux features (0,7 s)</h4>
+  <p class="small">Le tracé de la maison traverse l'écran porté par le packet bleu ; il balaie l'ancienne scène et révèle la suivante. Variante sobre : fondu enchaîné 400 ms + glissé de 24 px. Chaque chapitre porte son numéro « 01 / VERBE ».</p>
+  <h4>Outro avec CTA (3–4 s)</h4>
+  <div class="timeline"><div style="flex:4;background:#E9F2F6">0–0,8 s · titre promesse</div><div style="flex:4;background:#D6E6EE">0,8–1,6 s · logo + packets en cycle</div><div style="flex:4;background:#CAD6DD">1,6–2,2 s · bouton CTA</div><div style="flex:6;background:#E9F2F6">2,2–4 s · maintien + URL baitly.fr</div></div>
+
+  <div class="grid2" style="margin-top:3mm">
+    <div class="do"><h4>Cohérent avec Baitly</h4><ul class="small" style="margin:0"><li>Une idée par plan, beaucoup d'air</li><li>Contraste de rythme : tension rapide, puis calme</li><li>Maquettes fidèles au produit</li><li>Photos de lieux en arche, lumière naturelle</li><li>Sous-titres incrustés, lisibles sans le son</li><li>Version sans animation lisible (réduction des mouvements)</li></ul></div>
+    <div class="dont"><h4>À éviter</h4><ul class="small" style="margin:0"><li>Particules, glow, lens flare, néons, glitch</li><li>Robots, cerveaux, circuits pour parler d'IA</li><li>Dégradés violet → bleu, texte en dégradé</li><li>Plus de 3 éléments en mouvement à la fois</li><li>Transitions « tendance » (whip pan, zoom rapide, cube 3D)</li><li>Clignotements, urgence en rouge, sons de notifications de marques tierces</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ 7. TEMPLATES ============ -->
+<section class="chapter" id="templates">
+  <p class="eyebrow">07 · Templates de contenus sociaux</p>
+  <h2 class="section">Cinq gabarits,<br><span>toutes les campagnes.</span></h2>
+  <p class="lead">Spécifications détaillées et exemples de copy dans <code>marketing/templates-socials/templates-socials.md</code>. Ci-dessous : l'essentiel pour construire les gabarits.</p>
+
+  <div class="frames">
+    <div><div class="frame" style="width:34mm;height:60.4mm">
+      <div class="zone" style="top:0;height:13%;background:repeating-linear-gradient(45deg,#E9F2F6,#E9F2F6 4px,#F7FBFC 4px,#F7FBFC 8px)">zone app</div>
+      <div class="zone" style="top:14%;height:14%;justify-content:flex-start;padding-inline:3mm;text-align:start;color:#1B2A35;font-weight:700;font-family:var(--title);font-size:8pt">01 / VERBE<br>Titre deux tons</div>
+      <div class="zone" style="top:31%;height:42%;margin:0 3mm;background:#D6E6EE;border-radius:18mm 18mm 4px 4px">UI / photo</div>
+      <div class="zone" style="top:74%;height:6%;margin:0 3mm;background:#1B2A35;color:#F7FBFC;border-radius:3px">sous-titres</div>
+      <div class="zone" style="bottom:0;height:19.8%;background:repeating-linear-gradient(45deg,#E9F2F6,#E9F2F6 4px,#F7FBFC 4px,#F7FBFC 8px)">zone app</div>
+    </div><p class="caption"><b>A · Reel / TikTok</b><br>1080×1920 · 15–30 s</p></div>
+    <div><div class="frame" style="width:34mm;height:34mm">
+      <div class="zone" style="top:6%;height:10%;justify-content:flex-start;padding-inline:3mm">▲ logo</div>
+      <div class="zone" style="top:20%;height:30%;justify-content:flex-start;padding-inline:3mm;text-align:start;color:#1B2A35;font-weight:700;font-family:var(--title);font-size:8pt">Titre ligne 1<br><span style="color:#9A6C3A">Titre ligne 2</span></div>
+      <div class="zone" style="top:70%;height:14%;width:45%;margin-inline-start:3mm;background:#25406E;color:#F7FBFC;border-radius:3px">CTA</div>
+      <div class="zone" style="top:45%;bottom:0;inset-inline-start:58%;background:#D6E6EE;border-radius:12mm 12mm 0 0">photo</div>
+    </div><p class="caption"><b>B · Post promesse</b><br>1080×1080</p></div>
+    <div><div class="frame" style="width:34mm;height:42.5mm;background:#1B2A35;color:#F7FBFC">
+      <div class="zone" style="top:30%;height:30%;color:#F7FBFC;font-family:var(--title);font-weight:700;font-size:8pt;padding-inline:3mm">Hook<br>slide 1 / 7</div>
+      <div class="zone" style="bottom:6%;height:8%;color:#9CB4E2">● ○ ○ ○ ○ ○ ○</div>
+    </div><p class="caption"><b>C · Carrousel</b><br>1080×1350 · 5–7 slides</p></div>
+    <div><div class="frame" style="width:52mm;height:29.3mm">
+      <div class="zone" style="top:5%;height:16%;justify-content:flex-start;padding-inline:3mm;color:#1B2A35;font-weight:700">01 / VERBE · titre</div>
+      <div class="zone" style="top:26%;height:52%;width:58%;margin-inline-start:3mm;background:#D6E6EE;border-radius:4px">UI 60 %</div>
+      <div class="zone" style="top:30%;height:44%;inset-inline-start:64%">texte 40 %</div>
+      <div class="zone" style="bottom:4%;height:10%;margin:0 3mm;background:#1B2A35;color:#F7FBFC;border-radius:3px">sous-titres</div>
+    </div><p class="caption"><b>D · Explication</b><br>1920×1080 · 45–120 s</p></div>
+  </div>
+
+  <table>
+    <tr><th>Règle</th><th>Valeur</th></tr>
+    <tr><td>Marges de sécurité</td><td>64 px (1:1, 4:5, 16:9) · 9:16 : 250 px en haut, 380 px en bas, 64 px sur les côtés</td></tr>
+    <tr><td>Logo</td><td>Une occurrence, en haut à gauche ou dans l'écran de fin ; mark 56–72 px</td></tr>
+    <tr><td>Fond</td><td>Mode Nuit (#1B2A35, #111B31) par défaut ; Jour (Papier) pour la pédagogie d'interface ; Brun (#5C3A21) pour les citations</td></tr>
+    <tr><td>Titre</td><td>Space Grotesk 700, 2 lignes max, 2e ligne Sable (nuit) ou Terre cuite (jour)</td></tr>
+    <tr><td>CTA</td><td>Nuit : bouton Sable, texte Encre brune · Jour : bouton Navy, texte Papier · rayon 8 px ; URL <b>baitly.fr</b> toujours écrite</td></tr>
+    <tr><td>Template E · Story compte à rebours</td><td>1080×1920, fond Bleu nuit, grand chiffre 280 px, sticker lien</td></tr>
+  </table>
+
+  <h3>Exemples de copy</h3>
+  <div class="grid2">
+    <div class="box avoid"><h4 style="margin-top:0">Titres</h4><ul class="small" style="margin:0"><li>« Le départ tardif vendu pendant que vous dormiez. »</li><li>« Moins d'onglets. Plus de présence. »</li><li>« Une réservation ici. Les dates fermées partout. »</li></ul></div>
+    <div class="box avoid"><h4 style="margin-top:0">Descriptions</h4><ul class="small" style="margin:0"><li>« Dix agents IA préparent, proposent et exécutent. Vous gardez la décision. »</li><li>« Un code par séjour, valable du check-in au départ. Pas avant, pas après. »</li><li>« Airbnb, Booking.com, votre site : tous vos calendriers disent enfin la même chose. »</li></ul></div>
+  </div>
+
+  <h3>Adapter à une campagne</h3>
+  <table>
+    <tr><th>Campagne</th><th>Gabarits</th><th>Ce qui varie</th></tr>
+    <tr><td>Feature spotlight</td><td>A, D</td><td>Numéro de chapitre, maquette, pastille de l'agent concerné</td></tr>
+    <tr><td>Témoignage / cas d'usage</td><td>A, C</td><td>Photo du lieu, citation entre « » ; « Scène illustrative » si fictif ; accord écrit si réel</td></tr>
+    <tr><td>Offre / lancement</td><td>B, E</td><td>Titre, CTA, durée ; l'urgence passe par le chiffre, pas par le rouge</td></tr>
+    <tr><td>Marché arabophone</td><td>Tous</td><td>Mise en page en miroir, Tajawal, devise locale ; le wordmark reste latin</td></tr>
+  </table>
+</section>
+
+<!-- ============ 8. VOIX ============ -->
+<section class="chapter" id="voix">
+  <p class="eyebrow">08 · Voix off &amp; storytelling</p>
+  <h2 class="section">Professionnel,<br><span>mais chaleureux.</span></h2>
+  <p class="lead">La voix Baitly parle comme une collègue expérimentée de l'hôtellerie : elle connaît le métier, elle ne vend pas à tout prix, elle rassure par la précision.</p>
+
+  <div class="grid2">
+    <div class="box avoid"><h4 style="margin-top:0">Casting &amp; direction</h4><ul class="small" style="margin:0"><li>30–45 ans, timbre posé, sourire audible</li><li>Débit : 2 à 2,4 mots par seconde (≈ 70 mots pour 30 s)</li><li>Français standard ; arabe standard moderne avec prononciation du Golfe pour l'Arabie saoudite ; adaptation marocaine possible</li><li>Pas d'effets de voix, pas de ton « bande-annonce »</li><li>Une voix de référence par langue, gardée sur toute la série</li></ul></div>
+    <div class="box avoid"><h4 style="margin-top:0">Structure d'un message</h4>
+      <table style="margin:0">
+        <tr><td><b>Hook</b></td><td>0–3 s</td><td>Une situation vécue, une heure, une question</td></tr>
+        <tr><td><b>Problème</b></td><td>3–10 s</td><td>La douleur concrète, sans dramatiser</td></tr>
+        <tr><td><b>Solution</b></td><td>10–20 s</td><td>Ce que fait Baitly, en bénéfice</td></tr>
+        <tr><td><b>Preuve</b></td><td>20–26 s</td><td>Un fait produit vérifiable, montré à l'écran</td></tr>
+        <tr><td><b>CTA</b></td><td>26–30 s</td><td>Une seule action + URL</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="box tint avoid" style="margin-top:4mm"><h4 style="margin-top:0">Prononciation du nom</h4><p class="small" style="margin:0"><b>Baitly se prononce « Bètly »</b> (bèt-li), jamais « ba-ït-li ». L'adresse se dit « bètly point F R ». <b>En arabe, la marque s'écrit « بيتلي »</b> (jamais « بايتلي »). Pour une synthèse vocale qui hésite, écrire « Bètli » dans le texte envoyé à l'outil ; le nom affiché à l'écran reste « Baitly ».</p></div>
+
+  <h3>Formulations</h3>
+  <table>
+    <tr><th>À privilégier</th><th>À éviter</th></tr>
+    <tr><td>« Vous approuvez, ils exécutent. »</td><td>« L'IA gère tout pour vous. »</td></tr>
+    <tr><td>« Les disponibilités sont centralisées pour limiter les conflits. »</td><td>« Zéro double réservation garanti. »</td></tr>
+    <tr><td>« Jamais sous le plancher que vous fixez. »</td><td>« Maximisez vos revenus de 30 % ! » (chiffre non mesuré)</td></tr>
+    <tr><td>« Un simple lien, pas d'application. »</td><td>« Une expérience digitale seamless et disruptive. »</td></tr>
+    <tr><td>« Le ménage assigné, prouvé, payé. »</td><td>« Révolutionnez votre gestion. » « Élevez votre business. »</td></tr>
+    <tr><td>« Réservez votre démo de 30 minutes. »</td><td>« Dernière chance ! Offre limitée ! »</td></tr>
+    <tr><td>Phrases courtes, verbes concrets, vouvoiement</td><td>Anglicismes inutiles, superlatifs, tutoiement, tiret cadratin décoratif</td></tr>
+  </table>
+
+  <h3>Règles de véracité</h3>
+  <ul class="small">
+    <li>N'utiliser que des faits vérifiables dans le produit (10 agents, 0 % de commission Baitly sur le direct, 3 langues, 3 marchés, bornes du yield 55 % / 85 %, repos de 14 jours, code valable du check-in au départ, preuve photo avant paiement).</li>
+    <li>Tout gain chiffré (heures, revenus, taux) doit être mesuré et sourcé avant publication.</li>
+    <li>Cas client fictif : mention « Scène illustrative » visible. Cas réel : accord écrit du client.</li>
+    <li>Montants d'exemple : reprendre ceux de la landing (680 MAD, 150 MAD, 4 800 MAD, 450 SAR) et les présenter comme exemples.</li>
+  </ul>
+
+  <h3>Appels à l'action</h3>
+  <table>
+    <tr><th>Phase</th><th>CTA exact</th><th>URL affichée</th></tr>
+    <tr><td>Pré-lancement (actuel)</td><td>« Rejoignez le pré-lancement »</td><td>baitly.fr</td></tr>
+    <tr><td>Après ouverture</td><td>« Réservez votre démo de 30 min »</td><td>baitly.fr/demo</td></tr>
+    <tr><td>Vidéos agents IA</td><td>« Voir les agents en action »</td><td>baitly.fr/demo</td></tr>
+  </table>
+</section>
+
+<!-- ============ ANNEXES ============ -->
+<section class="chapter" id="annexes">
+  <p class="eyebrow">Annexes</p>
+  <h2 class="section">Références,<br><span>contacts et hypothèses.</span></h2>
+
+  <h3>A1 · Fonctionnalités et bénéfices</h3>
+  <table>
+    <tr><th>Module</th><th>Fonctionnalité</th><th>Bénéfice à mettre en avant</th></tr>
+    <tr><td>PMS &amp; channel manager</td><td>Planning multi-biens, synchronisation Airbnb / Booking.com (Channex) + iCal</td><td>Une seule vérité, moins de conflits de réservation</td></tr>
+    <tr><td>Booking engine &amp; sites</td><td>Site et widget de réservation, templates, panier multi-séjours, relance</td><td>Ventes directes sans commission Baitly</td></tr>
+    <tr><td>Livret d'accueil &amp; expériences</td><td>Livret par lien, extras payants, activités et services locaux</td><td>Revenus additionnels, voyageurs autonomes</td></tr>
+    <tr><td>Agents IA (10)</td><td>Surveillance, propositions expliquées, validation ou automatisation bornée</td><td>Temps rendu, décisions traçables</td></tr>
+    <tr><td>Revenue &amp; market data</td><td>Tarification 6 niveaux, yield borné, données de marché anonymisées</td><td>Des prix qui suivent le marché, jamais sous le plancher</td></tr>
+    <tr><td>Paiements &amp; finances</td><td>PayTabs, CMI / PayZone, YouCan Pay, Stripe ; factures conformes ; taxes locales</td><td>Encaisser comme les voyageurs paient, facturer dans les règles</td></tr>
+    <tr><td>Opérations &amp; ménage</td><td>Missions automatiques, checklists, preuve photo, paiement conditionné</td><td>Qualité contrôlée sans être sur place</td></tr>
+    <tr><td>Objets connectés</td><td>Serrures (Nuki, KeyNest), bruit (Minut), caméras extérieures</td><td>Arrivées autonomes, sérénité, vie privée respectée</td></tr>
+    <tr><td>Portail propriétaire</td><td>Relevés, versements, mandats signés en ligne, factures de commission</td><td>Propriétaires rassurés, zéro ressaisie</td></tr>
+    <tr><td>Conformité locale</td><td>Shomoos, ZATCA, fiche DGSN, taxe de séjour, TVA</td><td>Être en règle sans y passer ses soirées</td></tr>
+  </table>
+
+  <h3>A2 · Liens</h3>
+  <table>
+    <tr><td>Landing en production</td><td><a href="https://baitly.fr">https://baitly.fr</a></td></tr>
+    <tr><td>Page démo</td><td><a href="https://baitly.fr/demo">https://baitly.fr/demo</a> (formulaire à brancher avant campagne)</td></tr>
+    <tr><td>Dépôt GitHub</td><td>github.com/mazy06/clenzy (privé ; nom technique hérité, non renommé)</td></tr>
+    <tr><td>Application PMS</td><td>[À compléter : URL publique de l'application Baitly]</td></tr>
+    <tr><td>Démo / sandbox</td><td>[À compléter : environnement de démonstration et compte de test]</td></tr>
+    <tr><td>Réseaux sociaux</td><td>[À compléter : @baitly sur LinkedIn, Instagram, TikTok, YouTube, X, Snapchat]</td></tr>
+    <tr><td>Sources dans le dépôt</td><td><code>client/site/</code> (landing), <code>client/src/theme/</code> (tokens PMS), <code>client/site/assets/</code> (photos, logos partenaires, polices)</td></tr>
+  </table>
+
+  <h3>A3 · Contacts et validations</h3>
+  <table>
+    <tr><th>Rôle</th><th>Valide</th><th>Contact</th></tr>
+    <tr><td>Responsable de marque</td><td>Logo, couleurs, respect du brand book</td><td>[Nom · email]</td></tr>
+    <tr><td>Responsable marketing</td><td>Calendrier, messages, CTA, budget</td><td>[Nom · email]</td></tr>
+    <tr><td>Copywriter / éditeur</td><td>Scripts, légendes, véracité des faits</td><td>[Nom · email]</td></tr>
+    <tr><td>Référent produit</td><td>Fidélité des maquettes UI, fonctionnalités annoncées</td><td>[Nom · email]</td></tr>
+    <tr><td>Référent arabe</td><td>Adaptation AR, voix off AR, conformité saoudienne</td><td>[Nom · email]</td></tr>
+  </table>
+
+  <h3>A4 · Notes &amp; hypothèses</h3>
+  <ul class="small">
+    <li><b>Couleurs</b> : la landing définit ses couleurs en OKLCH (<code>client/src/theme/baitly-brand.css</code>) ; les HEX de ce document en sont les conversions sRGB. Les CMJN sont des conversions mathématiques non calibrées : faire une épreuve avant toute impression.</li>
+    <li><b>Palette de création</b> : sur décision du 26 septembre 2026, vidéos et images se construisent sur les teintes de bleu nuit et la palette Terre cuite des briques du planning (<code>planningUrgency.css</code>). Le PMS porte aussi un accent d'action terracotta (#B45733, couche « Signature ») : il est intégré comme T400, réservé à un seul point d'attention par plan. Les autres couleurs d'interface (bleu-gris de la landing, teal, couleurs d'agents et de canaux) restent confinées aux maquettes. Ardoise nuit (#2E4356) et Bleu lune (#9CB4E2) viennent de la bibliothèque Baitly UI (survol primaire, thème sombre).</li>
+    <li><b>Packets du logo</b> : le code utilise plusieurs paires selon le contexte (bleu / teal, bleu / ambre, bleu clair / jaune). Pour la communication, nous figeons : fond clair #2563EB / #0D9488, fond sombre #60A5FA / #2DD4BF. Le fichier <code>client/src/assets/logo/baitly-mark.svg</code> utilise un trait #6B8A9A et un teal #14B8A6 : acceptable, mais la version de référence est celle de ce document (trait Navy).</li>
+    <li><b>Logo haute définition</b> : pas de fichier vectoriel « logo complet » (mark + wordmark) dans le dépôt ; le wordmark est composé en police. Un export SVG / PDF vectorisé est à produire (voir <code>assets/baitly-mark.svg</code> pour le mark).</li>
+    <li><b>Polices</b> : la landing utilise Manrope (corps) et Space Grotesk (titres) ; le PMS utilise Plus Jakarta Sans (corps) et Space Grotesk. Pour la communication, Manrope est retenue comme police de corps unique (plus proche de la landing, qui est la vitrine).</li>
+    <li><b>Phase produit</b> : la landing est en pré-lancement ; les CTA sont donc « Rejoindre le pré-lancement ». Le formulaire de <code>/demo</code> n'était pas branché au 19 septembre 2026 (<code>client/site/BAITLY-LANDING.md</code>) : à vérifier avant toute campagne vers cette page.</li>
+    <li><b>Handles sociaux, démo, contacts</b> : absents du dépôt, laissés en placeholders.</li>
+    <li><b>Aucun chiffre de performance</b> : la landing les a retirés faute de mesure ; ce document fait de même.</li>
+    <li><b>Nom</b> : le produit est renommé Clenzy → Baitly. Les identifiants techniques (dépôt, domaines internes) gardent « clenzy » : ne jamais les montrer dans une création.</li>
+  </ul>
+</section>
+
+</body>
+</html>

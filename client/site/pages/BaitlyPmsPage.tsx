@@ -20,7 +20,6 @@ import { BAITLY_PMS_MESSAGES } from '../lib/messages/baitlyPms';
 import { moduleText } from '../lib/messages/modules';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
-import '../baitly-pms.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
 const {
@@ -72,7 +71,7 @@ export default function BaitlyPmsPage() {
               src={riad}
               alt={sitePhotoAlt('pmsRiad', language)}
               className="bpm-hero-photo"
-              fetchPriority="high"
+              {...{ fetchpriority: 'high' }}
             />
             <div className="bpm-hero-location">
               <span>{m.hero.location}</span>

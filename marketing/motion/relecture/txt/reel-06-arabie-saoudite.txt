@@ -1,0 +1,212 @@
+==============================================================================
+REEL 06 · ARABIE SAOUDITE — Conformité et localisation saoudiennes (arabe uniquement)
+Format 9:16 (1080×1920) · 47 s · langues : AR
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+العربية (ARABE)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,3 s · durée visée 2,4 s]
+      هل يعرفُ برنامجُك ما هي شموس؟
+  b2  [3,6 s → 9,0 s · durée visée 4,8 s]
+      الاستراحةُ في الرياض لا تُدارُ كشقّةٍ في باريس. … وأداتُك ينبغي أن تعرفَ الفرق.
+  b3  [9,3 s → 16,8 s · durée visée 5,4 s]
+      مع بيتلي، يُسجَّلُ كلُّ نزيلٍ على منصّةِ شموس، كما يشترطُ قطاعُ الإيواء.
+  b4  [17,0 s → 25,0 s · durée visée 7,4 s]
+      ضريبةُ القيمةِ المضافة خمسةَ عشرَ بالمئة، والرسومُ البلدية خمسةٌ بالمئة، تُحسَبان تلقائياً… وتصدرُ الفاتورةُ الإلكترونية عبرَ هيئةِ الزكاةِ والضريبةِ والجمارك.
+  b5  [25,3 s → 31,0 s · durée visée 3,8 s]
+      ونزلاؤك يدفعون بالريال، عبرَ باي تابس، إلى جانبِ سترايب.
+  b6  [32,4 s → 39,0 s · durée visée 4,6 s]
+      وواجهتُك عربيةٌ بحقّ: من اليمينِ إلى اليسار، وبالتقويمِ الهجري.
+  b7  [39,5 s → 46,6 s · durée visée 6,4 s]
+      على درايةٍ بمهنتك، وبواقعك. … بيتلي. انضمَّ إلى ما قبلَ الإطلاق، على بيتلي دوت إف آر.
+
+SOUS-TITRES
+  ST1  [0,3–3,3 s]  هل يعرف برنامجك ما هي [شموس؟]
+  ST2  [3,5–6,5 s]  الاستراحة في الرياض [لا تُدار كشقة في باريس.]
+  ST3  [6,5–9,1 s]  وأداتك ينبغي أن [تعرف الفرق.]
+  ST4  [9,2–16,9 s]  مع بيتلي، يُسجَّل كل نزيل على [منصة شموس]، كما يشترط قطاع الإيواء.
+  ST5  [16,9–21,2 s]  ضريبة القيمة المضافة 15%، [والرسوم البلدية 5%]، تُحسبان تلقائياً.
+  ST6  [21,2–25,1 s]  وتصدر الفاتورة الإلكترونية [عبر هيئة الزكاة والضريبة والجمارك.]
+  ST7  [25,2–31,1 s]  ونزلاؤك يدفعون [بالريال، عبر PayTabs]، إلى جانب Stripe.
+  ST8  [32,3–39,1 s]  وواجهتك عربية بحق: [من اليمين إلى اليسار، وبالتقويم الهجري.]
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  مشهد توضيحي
+  · Maquette d’interface (libellé)
+      E2  منصة تسجيل النزلاء
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E3  شموس
+  · Maquette d’interface (libellé)
+      E4  الرياض
+      E5  استراحة
+      E6  باريس
+      E7  شقة
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E8  [الاستراحة] ليست شقة.
+      E9  وأداتك ينبغي أن تعرف [الفرق.]
+  · Maquette d’interface (libellé)
+      E10  متصل بقنواتك
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E11  كل نزيل، [مُسجَّل.]
+  · Maquette d’interface (libellé)
+      E12  تسجيل النزلاء
+      E13  شموس
+      E14  عمر
+      E15  شاليه النخيل · 1 ← 4 جمادى الأولى · 3 ليالٍ
+      E16  المسافر الرئيسي · عمر
+      E17  المرافق 1
+      E18  المرافق 2
+      E19  بانتظار الإرسال
+      E20  تم الإرسال
+      E21  شموس · 1 جمادى الأولى · 15:02
+  · Bouton (maquette) : rester court
+      E22  إرسال إلى شموس
+  · Maquette d’interface (libellé)
+      E23  أُرسلت 3 بطاقات
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E24  ضريبة [صحيحة] من أول مرة.
+  · Maquette d’interface (libellé)
+      E25  فاتورة ضريبية مبسطة
+      E26  4 جمادى الأولى 1448 · 15 أكتوبر 2026
+      E27  شاليه النخيل · الرياض
+      E28  ر.س
+      E29  الإقامة
+      E30  3 ليالٍ × 400
+      E31  ضريبة القيمة المضافة
+      E32  الرسوم البلدية
+      E33  5% من سعر الليلة
+      E34  الإجمالي
+      E35  الفاتورة الإلكترونية صادرة
+      E36  ضريبة القيمة المضافة 15%
+      E37  الرسوم البلدية 5%
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E38  التحصيل [بالريال.]
+  · Bouton (maquette) : rester court
+      E39  إقامة واحدة، دفعة واحدة
+      E40  المغرب
+      E41  السعودية
+      E42  فرنسا
+      E43  شاليه النخيل
+      E44  3 ليالٍ · نزيلان
+      E45  #BT-2409
+      E46  سعر الليلة
+      E47  مبلغ الإقامة
+      E48  مثال على مزوّد
+      E49  د.م
+      E50  تحصيل 2,550 د.م
+      E51  ر.س
+      E52  تحصيل 1,440 ر.س
+      E53  إلى جانب
+      E54  تمت مطابقة الدفعة
+      E55  تم ربط الدفعة بالحجز.
+      E56  الحجز
+      E57  الدفع
+      E58  المطابقة
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E59  واجهة عربية، [بحق.]
+  · Maquette d’interface (libellé)
+      E60  العربية
+      E61  من اليمين إلى اليسار
+      E62  التقويم الهجري
+  · Planning en ANGLAIS volontairement (état « avant » la bascule vers l’arabe)
+      E63  Property
+      E64  Blocked
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E65  1 night
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E66  2 nights
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E67  3 nights
+  · Planning en ANGLAIS volontairement (état « avant » la bascule vers l’arabe)
+      E68  Nakheel Chalet
+      E69  Riyadh
+      E70  Diriyah Villa
+      E71  Riyadh
+      E72  Olaya Studio
+      E73  Riyadh
+      E74  Malqa Flat
+      E75  Riyadh
+      E76  Omar
+      E77  Sara
+      E78  Jad
+      E79  Nadia
+      E80  Karim
+      E81  Mon
+      E82  Tue
+      E83  Wed
+      E84  Thu
+      E85  Fri
+  · Planning (maquette d’interface)
+      E86  العقار
+      E87  مغلق
+  · Brique du planning : durée du séjour pour 1 nuit(s)
+      E88  ليلة
+  · Brique du planning : durée du séjour pour 2 nuit(s)
+      E89  ليلتان
+  · Brique du planning : durée du séjour pour 3 nuit(s)
+      E90  3 ليالٍ
+  · Planning (maquette d’interface)
+      E91  شاليه النخيل
+      E92  الرياض
+      E93  فيلا الدرعية
+      E94  الرياض
+      E95  استوديو العليا
+      E96  الرياض
+      E97  شقة الملقا
+      E98  الرياض
+      E99  عمر
+      E100  سارة
+      E101  جاد
+      E102  نادية
+      E103  كريم
+      E104  الاثنين
+      E105  الثلاثاء
+      E106  الأربعاء
+      E107  الخميس
+      E108  الجمعة
+  · Maquette d’interface (libellé)
+      E109  جمادى الأولى 1448
+      E110  12 أكتوبر
+      E111  13 أكتوبر
+      E112  14 أكتوبر
+      E113  15 أكتوبر
+      E114  16 أكتوبر
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E115  على دراية بمهنتك.
+      E116  وبواقعك.
+  · Bouton de l’écran de fin
+      E117  انضم إلى ما قبل الإطلاق
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E118  شموس
+      E119  تسجيل النزلاء
+      E120  ضريبة ورسوم بلدية
+      E121  بالريال
+      E122  AR
+      E123  من اليمين إلى اليسار
+
+------------------------------------------------------------------------------
+FRANÇAIS — traduction de travail de la voix off (non enregistrée)
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [0,4 s → 3,3 s]
+      Votre logiciel sait-il ce qu'est Shomoos ?
+  b2  [3,6 s → 9,0 s]
+      Une istiraha à Riyad ne se gère pas comme un appartement à Paris. Et votre outil doit connaître la différence.
+  b3  [9,3 s → 16,8 s]
+      Avec Baitly, chaque voyageur est enregistré sur Shomoos, comme l'hébergement l'exige.
+  b4  [17,0 s → 25,0 s]
+      TVA à 15 %, frais municipaux à 5 %, calculés automatiquement… et la facture électronique est émise via la ZATCA.
+  b5  [25,3 s → 31,0 s]
+      Vos voyageurs paient en riyals, avec PayTabs, en plus de Stripe.
+  b6  [32,4 s → 39,0 s]
+      Et votre interface est vraiment arabe : de droite à gauche, avec le calendrier hégirien.
+  b7  [39,5 s → 46,6 s]
+      À l'aise avec votre métier, et votre réalité. Baitly. Rejoignez le pré-lancement sur baitly.fr.

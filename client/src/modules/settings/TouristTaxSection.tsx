@@ -393,14 +393,21 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                       </TableCell>
                       <TableCell>{line.communeName}</TableCell>
                       <TableCell className="text-end tabular-nums">
-                        {num(line.taxAmount)} {line.currency}
+                        <span className={line.collectedByPlatform ? 'text-muted-foreground line-through' : undefined}>
+                          {num(line.taxAmount)} {line.currency}
+                        </span>
+                        {line.collectedByPlatform && (
+                          <span className="block text-[11px] text-muted-foreground no-underline">
+                            {t('touristTax.report.platformCollected', 'Collectée par la plateforme')}
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
                   <TableRow>
                     <TableCell colSpan={6}>
                       <p className="text-xs font-semibold">
-                        {t('touristTax.report.total', 'Total collecté')}
+                        {t('touristTax.report.totalToRemit', 'Total à reverser à la commune')}
                       </p>
                     </TableCell>
                     <TableCell className="text-end tabular-nums">
@@ -409,6 +416,21 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                       </p>
                     </TableCell>
                   </TableRow>
+                  {(report.platformCollectedTax ?? 0) > 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <p className="text-xs text-muted-foreground">
+                          {t('touristTax.report.platformTotal',
+                            'Déjà collectée et reversée par les plateformes (ne pas déclarer)')}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">
+                        <p className="text-xs text-muted-foreground">
+                          <Money value={report.platformCollectedTax ?? 0} from="EUR" />
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </Card>

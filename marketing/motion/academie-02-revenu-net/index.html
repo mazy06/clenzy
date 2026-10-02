@@ -1,0 +1,269 @@
+<!doctype html>
+<!--
+  Baitly Académie · Épisode 02 « Votre revenu net, vraiment » (≈ 2 min 15) · 9:16 (réseaux) et 16:9
+  (landing), depuis le même fichier.
+
+  À quoi sert ce fichier : l'animation de l'épisode, pilotée par le temps via le kit des Reels et les
+  composants de la série (../academie-shared/academie.js) ; les plans suivent la voix (align-vo.py).
+  Chapitres : 0 accroche (réservation payée 670 €) → 1-3 un relevé qui descend, du prix payé au net du
+  séjour (taxe de séjour, commission, versement, coûts du séjour ; deux pièges) → 4 le mois (4 séjours,
+  charges fixes, revenu net, où partent les 2 680 €) → 5 trois réflexes → 6 à retenir → fin.
+  Rendu : node ../render.mjs academie-02-revenu-net --format=9x16   (puis --format=16x9)
+  Aperçu : index.html?format=16x9
+  À qui il s'adresse : motion designer / marketing, développeur.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Baitly Académie · 02 Votre revenu net</title>
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../academie-shared/academie.css">
+<script src="timeline.js"></script>
+<script src="i18n.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../academie-shared/academie.js"></script>
+<style>
+.q { font-family: var(--fd); font-weight: 700; letter-spacing: -.025em; line-height: 1.04; }
+.cnote { font-size: 20px; font-weight: 600; color: var(--gris); }
+.rnote { font-size: 20px; font-weight: 600; color: var(--gris); margin-top: 12px; text-align: center; }
+
+/* Accroche : la réservation payée */
+.hk { padding: 40px 44px; display: flex; flex-direction: column; gap: 14px; opacity: 0; }
+.hk .hd { display: flex; align-items: center; gap: 14px; font-family: var(--fd); font-size: 34px; font-weight: 700; color: var(--n700); }
+.hk .hd i { width: 52px; height: 52px; border-radius: 50%; background: rgba(13,148,136,.12); color: var(--ok); display: flex; align-items: center; justify-content: center; }
+.hk .ln { font-size: 26px; font-weight: 600; color: var(--ardoise); }
+.hk .tot { display: flex; align-items: flex-end; justify-content: space-between; border-top: 1.5px solid var(--ligne2); padding-top: 20px; margin-top: 8px; }
+.hk .tot small { font-size: 24px; font-weight: 700; color: var(--gris); }
+.hk .tot b { font-family: var(--fd); font-size: 104px; font-weight: 700; letter-spacing: -.04em; line-height: .95; color: var(--n700); font-variant-numeric: tabular-nums; }
+.pill { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 16px; font-size: 22px; font-weight: 700; }
+.pill.ok { background: rgba(13,148,136,.12); color: var(--ok); }
+
+/* Relevé : du prix payé au net du séjour */
+.top { position: relative; height: 184px; flex: none; }
+.remb { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
+.rem { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-top: 6px; }
+.rem .big { font-size: 92px; }
+.pn { text-align: right; opacity: 0; }
+.pn b { display: block; font-family: var(--fd); font-size: 38px; font-weight: 700; color: var(--terre); font-variant-numeric: tabular-nums; }
+.pn span { font-size: 22px; font-weight: 600; color: var(--gris); }
+.rbar { display: flex; height: 28px; border-radius: 10px; overflow: hidden; background: var(--surface); margin-top: 16px; }
+.rbar i { height: 100%; }
+.cln { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 14px; opacity: 0; }
+.cgrid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: center; }
+.cbox { background: var(--surface); border-radius: 16px; padding: 12px 18px; opacity: 0; }
+.cbox small { display: block; font-size: 20px; font-weight: 700; color: var(--gris); white-space: nowrap; }
+.cbox b { font-family: var(--fd); font-size: 42px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; }
+.lg { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.lrow { white-space: nowrap; display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-radius: 16px; font-size: 26px; font-weight: 600; color: var(--ardoise); opacity: 0; }
+.lrow .sg { width: 26px; flex: none; text-align: center; font-family: var(--fd); font-size: 30px; font-weight: 600; color: var(--gris); }
+.lrow b { white-space: nowrap; margin-inline-start: auto; font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; }
+.lrow.sum { background: var(--surface); color: var(--n700); font-weight: 700; }
+.lrow.net { background: #F4EBDC; color: var(--encre-terre); font-weight: 700; }
+.lrow.net b { color: var(--terre); font-size: 40px; }
+.lrow.bad b { color: #B45733; }
+.lchips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 2px 58px; margin-top: -4px; }
+.lchip { font-size: 21px; font-weight: 700; color: var(--ardoise); background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 10px; padding: 4px 10px; opacity: 0; white-space: nowrap; }
+.lchip b { font-family: var(--fd); color: var(--n700); margin-left: 6px; }
+.ltag { font-size: 20px; font-weight: 700; color: #8E3F20; background: #F7E4DC; border-radius: 10px; padding: 4px 10px; opacity: 0; white-space: nowrap; }
+.diffb { white-space: nowrap; background: #B45733; color: #FDFDFE; font-family: var(--fd); font-weight: 700; font-size: 28px; border-radius: 14px; padding: 8px 16px; opacity: 0; }
+
+/* Le mois */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tile { background: var(--surface); border-radius: 18px; padding: 16px 18px; opacity: 0; }
+.tile small { font-size: 20px; font-weight: 700; color: var(--gris); }
+.tile b { display: block; font-family: var(--fd); font-size: 36px; font-weight: 700; color: var(--n700); font-variant-numeric: tabular-nums; }
+.split { margin-top: 26px; opacity: 0; }
+.sbar { display: flex; height: 46px; border-radius: 12px; overflow: hidden; margin-top: 12px; background: var(--surface); }
+.sbar i { height: 100%; position: relative; }
+.sbar i span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--fd); font-size: 24px; font-weight: 700; color: #FDFDFE; }
+.slg { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 14px; }
+.slg span { display: inline-flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 600; color: var(--ardoise); white-space: nowrap; }
+.slg i { width: 16px; height: 16px; border-radius: 5px; }
+.slg b { font-family: var(--fd); color: var(--n700); }
+
+/* Trois réflexes */
+.acts { display: flex; flex-direction: column; gap: 18px; }
+.act { display: flex; align-items: center; gap: 26px; background: #FDFDFE; border: 1.5px solid var(--ligne2); border-radius: 30px; padding: 28px 32px; box-shadow: var(--e3); opacity: 0; }
+.act .n { flex: none; width: 76px; height: 76px; border-radius: 22px; background: var(--n600); color: var(--papier); font-family: var(--fd); font-size: 38px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.act b { display: block; font-family: var(--fd); font-size: 40px; font-weight: 700; color: var(--n700); letter-spacing: -.015em; }
+.act span { font-size: 26px; font-weight: 600; color: var(--ardoise); }
+
+/* À retenir : la chaîne du net */
+.chain { display: flex; flex-direction: column; gap: 10px; }
+.chn { display: flex; align-items: center; gap: 18px; background: #FDFDFE; border: 1px solid var(--ligne2); border-radius: 22px; padding: 14px 22px; font-family: var(--fd); font-size: 32px; font-weight: 700; color: var(--n700); box-shadow: var(--e1); opacity: 0; }
+.chn .op { width: 28px; flex: none; text-align: center; font-size: 36px; color: var(--gris); }
+.chn .ic { width: 56px; height: 56px; border-radius: 16px; background: #F4EBDC; color: var(--terre); display: flex; align-items: center; justify-content: center; flex: none; }
+.chn.res { background: #F4EBDC; border-color: transparent; color: var(--encre-terre); font-size: 38px; }
+.chn.res .ic { background: var(--terre); color: #FDFDFE; }
+
+html.f169 .rem .big { font-size: 84px; }
+html.f169 .top { height: 168px; }
+html.f169 .cbox { padding: 12px 14px; }
+html.f169 .cbox small { font-size: 18px; }
+html.f169 .diffb { font-size: 26px; }
+html.f169 .lg { gap: 8px; }
+html.f169 .lrow { padding: 7px 16px; font-size: 25px; }
+html.f169 .act b { font-size: 36px; }
+html.f169 .act span { font-size: 24px; }
+html.f169 .chn { font-size: 30px; padding: 12px 20px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const K = BaitlyKit.init({ strings: STRINGS, timeline: TIMELINE });
+const { T, SYNC, h, icon, set, prog, lerp, easeOut, easeIn, easeInOut, slot, slotVis, roll } = K;
+const A = Academie.init(K);
+const { P, L } = A;
+const fmtEur = (v) => Math.round(v).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' €';
+const shown = (t, t0, d = .4) => easeOut(prog(t, t0, d));
+const COL = { tax: '#C9D3D9', com: '#B45733', cost: '#E0C89B', fixed: '#7BA3C2', net: '#9A6C3A' };
+
+const tag = A.tag(T.ep, T.theme);
+const chapters = A.progress(SYNC.slots.length);
+
+/* 0 · accroche : la réservation payée */
+const q = A.abs(L.head.x, L.head.y, P ? 920 : L.head.w, null, 'q', `font-size:${P ? 76 : 72}px`);
+const q1 = h('div', {}), q2 = h('div', { class: 'accent' });
+q.append(q1, q2);
+const w1 = K.words(q1, T.q[0]), w2 = K.words(q2, T.q[1], T.q[1].split(' ').map((x) => x.replace(/[?…]/g, '')));
+const H = T.hook;
+const hkTot = h('b', {}, H.total), hkPaid = h('span', { class: 'pill ok' }, icon('ccheck', 24), H.paid);
+const hk = A.abs(L.card.x, 0, L.card.w, null, 'acard hk');
+hk.append(h('div', { class: 'hd' }, h('i', {}, icon('calcheck', 30)), H.title),
+  h('div', { class: 'ln' }, `${H.where} · `, h('span', { class: 'cnote' }, T.illustrative)), h('div', { class: 'ln' }, H.dates),
+  h('div', { class: 'tot' }, h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, h('small', {}, 'Total payé'), hkTot), hkPaid));
+
+/* 1-3 · le relevé : un seul carnet qui descend du prix payé au net du séjour */
+const heads = T.heads.map(([title, sub]) => A.head(null, title, sub));
+const LG = T.ledger, cL = A.card();
+const remV = h('span', { class: 'big' }), pn = h('div', { class: 'pn' }, h('b', {}, LG.perNight), h('span', {}, LG.shown));
+const segRem = h('i', { style: `background:${COL.net}` }), segCost = h('i', { style: `background:${COL.cost}` }), segCom = h('i', { style: `background:${COL.com}` }), segTax = h('i', { style: `background:${COL.tax}` });
+const remb = h('div', { class: 'remb' }, h('span', { class: 'alabel' }, LG.remain), h('div', { class: 'rem' }, remV, pn), h('div', { class: 'rbar' }, segRem, segCost, segCom, segTax));
+const C = LG.clean;
+// Le 2e piège remplace le haut du relevé : deux montants côte à côte et l'écart, sur une seule rangée.
+const cBox = ([k, v], bad) => h('div', { class: 'cbox' }, h('small', {}, k), h('b', { style: bad ? 'color:#B45733' : '' }, v));
+const clBilled = cBox(C.billed), clSpent = cBox(C.spent, true), clDiff = h('span', { class: 'diffb' }, C.diff);
+const cln = h('div', { class: 'cln' }, h('span', { class: 'alabel' }, C.title), h('div', { class: 'cgrid' }, clBilled, clSpent, clDiff));
+const row = (sign, [k, v], cls = '') => h('div', { class: `lrow ${cls}`.trim() }, h('span', { class: 'sg' }, sign), k, h('b', {}, v));
+const chips = (list) => h('div', { class: 'lchips' }, list.map(([k, v]) => h('span', { class: 'lchip' }, k, h('b', {}, v))));
+const R1 = row('', LG.paid, 'sum'), R1c = chips(LG.paidChips);
+const taxTag = h('span', { class: 'ltag' }, LG.taxTag), R2 = row('−', LG.tax); R2.insertBefore(taxTag, R2.lastChild);
+const R3 = row('−', LG.com);
+const payTag = h('span', { class: 'ltag' }, LG.payTag), R4 = row('=', LG.pay, 'sum'); R4.insertBefore(payTag, R4.lastChild);
+const R5 = row('−', LG.costs), R5c = chips(LG.costChips);
+const R6 = row('=', LG.net, 'net');
+cL.el.append(h('div', { class: 'top' }, remb, cln), h('div', { class: 'lg' }, R1, R1c, R2, R3, R4, R5, R5c, R6), h('div', { class: 'rnote' }, T.rateNote));
+const trapL = A.trap(cL.el, T.trap);
+
+/* 4 · le mois */
+const M = T.month, cM = A.card();
+const tiles = [1, 2, 3, 4].map((n) => h('div', { class: 'tile' }, h('small', {}, `${M.stay} ${n}`), h('b', {}, M.stayNet)));
+const mSum = row('=', M.sum, 'sum'), mFixed = row('−', M.fixed), mFixedC = h('div', { class: 'lchips' }, M.fixedChips.map((k) => h('span', { class: 'lchip' }, k)));
+const beforeTag = h('span', { class: 'ltag', style: 'background:var(--surface);color:var(--gris)' }, M.before), mNet = row('=', M.net, 'net'); mNet.insertBefore(beforeTag, mNet.lastChild);
+const TOTAL = M.split.reduce((s, [, v]) => s + v, 0);
+const SCOLS = [COL.tax, COL.com, COL.cost, COL.fixed, COL.net];
+const segs = M.split.map(([, v], i) => h('i', { style: `width:${v / TOTAL * 100}%;background:${SCOLS[i]};transform:scaleX(0)` }, i === 4 ? h('span', {}, M.share) : null));
+const split = h('div', { class: 'split' }, h('span', { class: 'alabel' }, M.splitTitle), h('div', { class: 'sbar' }, segs),
+  h('div', { class: 'slg' }, M.split.map(([k, v], i) => h('span', {}, h('i', { style: `background:${SCOLS[i]}` }), k, h('b', {}, fmtEur(v))))));
+cM.el.append(h('div', { class: 'tiles' }, tiles), h('div', { class: 'lg' }, mSum, mFixed, mFixedC, mNet), split);
+
+/* 5 · trois réflexes */
+const acts = A.abs(L.card.x, 0, L.card.w, null, 'acts');
+const actEls = T.acts.map(([b, s], i) => { const e = h('div', { class: 'act' }, h('span', { class: 'n' }, String(i + 1)), h('div', {}, h('b', {}, b), h('span', {}, s))); acts.append(e); return e; });
+
+/* 6 · à retenir : la chaîne du net */
+const R = T.recap, hdR = A.head(null, R.title, null);
+const chain = A.abs(L.card.x, 0, L.card.w, null, 'chain');
+const chainEls = R.chain.map(([ic, l], i) => h('div', { class: 'chn' }, h('span', { class: 'op' }, i ? '−' : ''), h('span', { class: 'ic' }, icon(ic, 30)), l));
+const resEl = h('div', { class: 'chn res' }, h('span', { class: 'op' }, '='), h('span', { class: 'ic' }, icon('coins', 30)), R.result);
+const app = h('div', { class: 'appt', style: 'opacity:0;margin-top:10px' }, icon('ccheck', 32), R.app);
+chain.append(...chainEls, resEl, app);
+
+/* Mise en page mesurée (polices chargées) */
+let laidOut = false;
+function layout() {
+  if (laidOut) return;
+  const zone = (el, top) => { const bottom = L.card.y + L.card.h; el.style.top = `${top + Math.max(0, (bottom - top - el.offsetHeight) / 2)}px`; };
+  zone(hk, P ? q.offsetTop + q.offsetHeight + 60 : L.card.y);
+  zone(acts, P ? heads[4].el.offsetTop + heads[4].el.offsetHeight + 40 : L.card.y);
+  zone(chain, P ? hdR.el.offsetTop + hdR.el.offsetHeight + 40 : L.card.y);
+  laidOut = true;
+}
+K.endMount();
+
+function renderAt(t) {
+  if (!laidOut && document.fonts.status === 'loaded') layout();
+  const S = SYNC.slots.map((_, i) => slot(i));
+  tag.render(t, .1, SYNC.end);
+  chapters.render(t, S, SYNC.end);
+
+  /* 0 · accroche */
+  const v0 = slotVis(t, 0, .4, .35);
+  q.style.opacity = v0;
+  K.titleIn(w1, t, S[0][0] + .1);
+  K.titleIn(w2, t, SYNC.q2 - .05);
+  A.rise(hk, v0, shown(t, S[0][0] + .3, .6), 60);
+  const hp = shown(t, SYNC.follow, .3) * (1 - shown(t, SYNC.follow + .6, .5));
+  set(hkTot, { transform: `scale(${1 + .06 * hp})`, color: hp > .05 ? `color-mix(in srgb, #9A6C3A ${Math.round(hp * 100)}%, #1B2A35)` : '' });
+  hkTot.style.transformOrigin = 'left bottom';
+
+  /* 1-3 · le relevé */
+  heads.slice(0, 3).forEach((hd, i) => hd.render(t, S[i + 1][0], S[i + 1][1]));
+  const vL = t > S[1][0] && t < S[3][1] + .2 ? 1 : 0;
+  cL.render(t, S[1][0] + .1, S[3][1]);
+  const rp = (a, b, t0) => lerp(a, b, easeInOut(prog(t, t0, .6)));
+  const remNow = t < SYNC.pay ? rp(670, 660, SYNC.r660) : t < SYNC.net ? rp(660, 561, SYNC.pay) : rp(561, 468, SYNC.net);
+  remV.textContent = fmtEur(remNow);
+  segTax.style.width = `${10 / 670 * 100 * easeOut(prog(t, SYNC.r660, .6))}%`;
+  segCom.style.width = `${99 / 670 * 100 * easeOut(prog(t, SYNC.pay, .6))}%`;
+  segCost.style.width = `${93 / 670 * 100 * easeOut(prog(t, SYNC.net, .6))}%`;
+  segRem.style.width = `${remNow / 670 * 100}%`;
+  A.rise(pn, 1, shown(t, SYNC.aff - .1), 10);
+  set(pn.firstChild, { opacity: shown(t, SYNC.keep - .1) });
+  A.rise(R1, 1, shown(t, S[1][0] + .6), 14);
+  [SYNC.p1, SYNC.p2, SYNC.p3].forEach((t0, i) => A.rise(R1c.children[i], 1, shown(t, t0 - .1, .35), 10));
+  A.rise(R2, 1, shown(t, SYNC.tax - .1), 14); set(taxTag, { opacity: shown(t, SYNC.tax + 1.2) });
+  A.rise(R3, 1, shown(t, SYNC.com - .1), 14); set(R3.lastChild, { opacity: shown(t, SYNC.com2 - .1) });
+  A.rise(R4, 1, shown(t, SYNC.pay - .1), 14);
+  set(payTag, { opacity: shown(t, SYNC.trap1 + .9) });
+  R4.style.background = t >= SYNC.trap1 + .9 ? `color-mix(in srgb, #F7E4DC ${Math.round(shown(t, SYNC.trap1 + .9) * 100)}%, #EEF3F6)` : '';
+  A.rise(R5, 1, shown(t, SYNC.c1 - .2), 14); set(R5.lastChild, { opacity: shown(t, SYNC.c3 + .6) });
+  [SYNC.c1, SYNC.c2, SYNC.c3].forEach((t0, i) => A.rise(R5c.children[i], 1, shown(t, t0 - .05, .35), 10));
+  A.rise(R6, 1, shown(t, SYNC.net - .1), 14);
+  const trapOn = (t >= SYNC.trap1 && t < S[2][1]) || t >= SYNC.trap2 ? 1 : 0;
+  trapL.render(t, t >= SYNC.trap2 ? SYNC.trap2 : SYNC.trap1, vL * trapOn);
+  const cw = shown(t, SYNC.trap2 + .2, .5);
+  set(remb, { opacity: 1 - cw, transform: `translateY(${lerp(0, -20, cw)}px)` });
+  set(cln, { opacity: cw, transform: `translateY(${lerp(20, 0, cw)}px)` });
+  A.rise(clBilled, 1, shown(t, SYNC.f60 - .1), 10); A.rise(clSpent, 1, shown(t, SYNC.f70 - .1), 10);
+  const dp = shown(t, SYNC.f10 - .1, .35); set(clDiff, { opacity: dp, transform: `scale(${lerp(.6, 1, dp)})` });
+
+  /* 4 · le mois */
+  heads[3].render(t, S[4][0], S[4][1]); cM.render(t, S[4][0] + .1, S[4][1]);
+  tiles.forEach((e, i) => A.rise(e, 1, shown(t, SYNC.m4 + i * .22), 20));
+  A.rise(mSum, 1, shown(t, SYNC.m1872 - .1), 12);
+  A.rise(mFixed, 1, shown(t, SYNC.fixed - .1), 12); set(mFixed.lastChild, { opacity: shown(t, SYNC.f450 - .1) });
+  [...mFixedC.children].forEach((c, i) => A.rise(c, 1, shown(t, SYNC.fixed + .3 + i * .35, .3), 10));
+  A.rise(mNet, 1, shown(t, SYNC.mnet - .1), 12); set(beforeTag, { opacity: shown(t, SYNC.mnet + 1.2) });
+  const sp = shown(t, SYNC.half - .6, .4); A.rise(split, 1, sp, 14);
+  segs.forEach((s, i) => { s.style.transform = `scaleX(${easeOut(prog(t, SYNC.half - .4 + i * .18, .45))})`; });
+
+  /* 5 · trois réflexes */
+  heads[4].render(t, S[5][0], S[5][1]);
+  const v5 = slotVis(t, 5);
+  [SYNC.a1, SYNC.a2, SYNC.a3].forEach((t0, i) => A.rise(actEls[i], v5, shown(t, t0 - .3, .5), 40));
+
+  /* 6 · à retenir */
+  hdR.render(t, S[6][0], S[6][1]);
+  const v6 = slotVis(t, 6);
+  [SYNC.k0, SYNC.k1, SYNC.k2, SYNC.k3, SYNC.k4].forEach((t0, i) => A.rise(chainEls[i], v6, shown(t, t0 - .15, .4), 24));
+  A.rise(resEl, v6, shown(t, SYNC.k4 + .7, .45), 24);
+  A.rise(app, v6, shown(t, SYNC.app, .45), 20);
+
+  K.endRender(t, SYNC.end);
+}
+K.finalize(renderAt, layout);
+</script>
+</body>
+</html>

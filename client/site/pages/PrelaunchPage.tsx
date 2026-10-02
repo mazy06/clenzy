@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { readAcquisitionContext } from '../../src/services/publicAcquisitionContext';
 import AcquisitionSummary from '../components/AcquisitionSummary';
 import { ArrowRightIcon, CheckIcon, MailIcon } from 'lucide-react';
-import { runtimeEnvOr } from '../../src/config/runtimeConfig';
+import { useSiteAppUrl } from '../lib/useSiteAppUrl';
 import {
   LaunchApiError,
   publicLaunchApi,
@@ -15,7 +15,6 @@ import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
 import LaunchCountdown from '../components/LaunchCountdown';
 import BaitlyProductProofs from '../components/BaitlyProductProofs';
 import { BAITLY_READINESS_MESSAGES } from '../lib/messages/baitlyReadiness';
-import '../prelaunch.css';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
 const { prelaunchReception: terracePhoto } = SITE_PHOTOS;
@@ -174,10 +173,7 @@ export default function PrelaunchPage({
   const { status, loading, error, refresh, paused } = useSiteLaunch();
   const m = PRELAUNCH_MESSAGES[language];
   const next = BAITLY_READINESS_MESSAGES[language].next;
-  const appUrl = runtimeEnvOr('VITE_APP_URL', 'http://localhost:3000').replace(
-    /\/+$/,
-    '',
-  );
+  const appUrl = useSiteAppUrl();
   return (
     <section
       className="prelaunch"

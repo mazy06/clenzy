@@ -1,9 +1,11 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.FrRegulatoryProfileDto;
 import com.clenzy.dto.RegulatoryComplianceDto;
 import com.clenzy.dto.RegulatoryConfigDto;
 import com.clenzy.dto.RegulatoryConfigRequest;
 import com.clenzy.service.RegulatoryComplianceService;
+import com.clenzy.service.regulatory.FrRegulatoryProfileService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,12 +21,33 @@ import java.util.Map;
 public class RegulatoryController {
 
     private final RegulatoryComplianceService complianceService;
+    private final FrRegulatoryProfileService frProfileService;
     private final TenantContext tenantContext;
 
     public RegulatoryController(RegulatoryComplianceService complianceService,
+                                 FrRegulatoryProfileService frProfileService,
                                  TenantContext tenantContext) {
         this.complianceService = complianceService;
+        this.frProfileService = frProfileService;
         this.tenantContext = tenantContext;
+    }
+
+    /** Profil reglementaire France du logement (logement charge borne a l'organisation). */
+    @GetMapping("/properties/{propertyId}/fr-profile")
+    public FrRegulatoryProfileDto getFrProfile(@PathVariable Long propertyId) {
+        return frProfileService.get(propertyId, tenantContext.getRequiredOrganizationId());
+    }
+
+    /** Synthèse « Conformité France » de tous les logements situés en France. */
+    @GetMapping("/fr/overview")
+    public List<FrRegulatoryProfileService.OverviewRow> frOverview() {
+        return frProfileService.overview(tenantContext.getRequiredOrganizationId());
+    }
+
+    @PutMapping("/properties/{propertyId}/fr-profile")
+    public FrRegulatoryProfileDto updateFrProfile(@PathVariable Long propertyId,
+                                                  @RequestBody FrRegulatoryProfileDto.Update request) {
+        return frProfileService.update(propertyId, tenantContext.getRequiredOrganizationId(), request);
     }
 
     @GetMapping("/configs")

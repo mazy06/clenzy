@@ -299,6 +299,11 @@ public enum NotificationKey {
     BOOKING_INQUIRY_RECEIVED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     // Checkout booking engine marqué pour revue par le scoring de risque/fraude (P2, enforcement).
     BOOKING_FRAUD_REVIEW(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
+    // Plafond annuel de nuitées (résidence principale, France) : dérogation accordée par un humain
+    // (réservation saisie malgré le plafond, ou fermeture du calendrier refusée) — l'org est prévenue.
+    NIGHTS_CAP_DEROGATION(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
+    // Réservation importée d'un canal (OTA/iCal) qui dépasse le plafond : impossible à refuser.
+    NIGHTS_CAP_EXCEEDED(NotificationType.ERROR, NotificationCategory.RESERVATION, true),
 
     // ─── INTEGRATIONS (webhooks sortants) ─────────────────────────────────
     WEBHOOK_DELIVERY_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),

@@ -1,0 +1,219 @@
+==============================================================================
+REEL 11 · LES FICHES DE POLICE — Une obligation par pays : Maroc, France, Arabie saoudite, puis taxes et RGPD
+Format 9:16 (1080×1920) · 38 s · langues : FR · EN
+==============================================================================
+
+Conventions : dans les voix off, « … » = pause ; la marque est écrite comme elle se prononce
+(« Bètli », « Betly », « بيتلي »). Dans les sous-titres et les titres, [ ] = mots affichés en couleur.
+
+------------------------------------------------------------------------------
+FRANÇAIS
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 4,3 s]
+      Chaque voyageur doit être déclaré aux autorités. Et d'un pays à l'autre, les règles changent.
+  b2  [suit la voix · durée visée 5,7 s]
+      Avec Bètli, le voyageur remplit sa fiche depuis son livret d'accueil, avant même d'arriver. Ce qu'on sait déjà est pré-rempli.
+  b3  [suit la voix · durée visée 7,3 s]
+      Au Maroc, la fiche part à la DGSN. En France, elle est transmise via Chekin. En Arabie saoudite, le voyageur est enregistré sur Shomoos. Le même geste, trois pays.
+  b4  [suit la voix · durée visée 7,5 s]
+      Autour, tout suit : la taxe de séjour calculée à chaque réservation, les factures conformes ZATCA, la licence NTMP, et l'effacement RGPD quand un voyageur le demande.
+  b5  [suit la voix · durée visée 2,6 s]
+      Une obligation par pays. … Un seul outil.
+  b6  [suit la voix · durée visée 3,3 s]
+      Bètli. Rejoignez le pré-lancement dès aujourd'hui, sur bètli point F R.
+
+SOUS-TITRES
+  ST1  [0,35–3,36 s]  Chaque voyageur doit être déclaré aux autorités.
+  ST2  [3,38–6,6 s]  Et d'un pays à l'autre, [les règles changent.]
+  ST3  [6,62–9,92 s]  Avec Baitly, [le voyageur remplit sa fiche depuis son livret d'accueil,]
+  ST4  [9,94–13,5 s]  avant même d'arriver. [Ce qu'on sait déjà est pré-rempli.]
+  ST5  [13,52–16,59 s]  Au Maroc, [la fiche part à la DGSN.]
+  ST6  [16,61–19,52 s]  En France, [elle est transmise via Chekin.]
+  ST7  [19,54–23,76 s]  En Arabie saoudite, [le voyageur est enregistré sur Shomoos.]
+  ST8  [23,78–26,27 s]  Le même geste, [trois pays.]
+  ST9  [26,29–30,11 s]  Autour, tout suit : [la taxe de séjour calculée à chaque réservation,]
+  ST10  [30,13–32,74 s]  les factures conformes ZATCA, [la licence NTMP,]
+  ST11  [32,76–35,04 s]  et l'effacement RGPD quand un voyageur le demande.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Scène illustrative
+  · Ouverture : mots qui convergent vers le logo
+      E2  Déclaration des voyageurs
+      E3  Maroc
+      E4  DGSN · fiche d’identification
+      E5  France
+      E6  Fiche individuelle de police
+      E7  Arabie saoudite
+      E8  Shomoos · شموس
+  · Maquette d’interface (libellé)
+      E9  Riad Nour · Livret d’accueil
+      E10  Fiche de police
+      E11  Complétée à 100 %
+      E12  Nom
+      E13  Sara Benali
+      E14  Nationalité
+      E15  Française
+      E16  Pièce d’identité
+      E17  Passeport · 14AB52…
+      E18  Arrivée
+      E19  12 oct. · 15:00
+      E20  Pré-rempli
+  · Bouton (maquette) : rester court
+      E21  Envoyer ma fiche
+  · Maquette d’interface (libellé)
+      E22  Conformité
+  · Onglet / étape (maquette) : rester court
+      E23  Maroc
+      E24  France
+      E25  Arabie saoudite
+  · Maquette d’interface (libellé)
+      E26  Voyageur
+      E27  Sara Benali
+      E28  Séjour
+      E29  12 → 16 oct.
+      E30  Pièce
+      E31  Passeport
+      E32  DGSN · fiche d’identification
+      E33  Fiche individuelle · via Chekin
+      E34  Shomoos · enregistrement
+      E35  Télédéclarer
+      E36  Déclaré
+      E37  Transmise
+      E38  Enregistré
+      E39  Agent Conformité
+      E40  Taxe de séjour
+      E41  En attente
+      E42  Fait
+      E43  Déclaration du 3ᵉ trimestre · Riad Nour
+      E44  412 nuitées, 8 240 MAD de taxe de séjour à déclarer.
+      E45  Marquer déclarée
+      E46  Voir le détail
+      E47  Déclarée le 10 oct. · référence tracée
+      E48  Taxe de séjour
+      E49  calculée à chaque réservation
+      E50  receipttext
+      E51  Factures ZATCA
+      E52  conformes, chaînées
+      E53  Licence NTMP
+      E54  reliée au logement
+      E55  RGPD
+      E56  effacement sur demande
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E57  Une obligation par pays.
+      E58  Un seul outil.
+  · Bouton de l’écran de fin
+      E59  Rejoignez le pré-lancement
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E60  MA · FR · SA
+      E61  déclarations
+      E62  Livret
+      E63  fiche pré-remplie
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+VOIX OFF
+  b1  [suit la voix · durée visée 6,2 s]
+      Every guest has to be declared to the authorities. And from one country to the next, the rules change.
+  b2  [suit la voix · durée visée 7,4 s]
+      With Betly, guests fill in their form from the welcome guide, before they even arrive. Whatever we already know is pre-filled.
+  b3  [suit la voix · durée visée 9,0 s]
+      In Morocco, the form goes to the DGSN. In France, it's sent through Chekin. In Saudi Arabia, the guest is registered on Shomoos. One gesture, three countries.
+  b4  [suit la voix · durée visée 8,6 s]
+      And everything around it follows: tourist tax on every booking, ZATCA-compliant invoices, the NTMP licence, and GDPR erasure when a guest asks.
+  b5  [suit la voix · durée visée 2,6 s]
+      One rule per country. … One single tool.
+  b6  [suit la voix · durée visée 3,2 s]
+      Betly. Join the pre-launch today, at betly dot F R.
+
+SOUS-TITRES
+  ST1  [0,35–3,36 s]  Every guest has to be declared to the authorities.
+  ST2  [3,38–6,6 s]  And from one country to the next, [the rules change.]
+  ST3  [6,62–9,92 s]  With Baitly, [guests fill in their form from the welcome guide,]
+  ST4  [9,94–13,5 s]  before they even arrive. [Whatever we already know is pre-filled.]
+  ST5  [13,52–16,59 s]  In Morocco, [the form goes to the DGSN.]
+  ST6  [16,61–19,52 s]  In France, [it's sent through Chekin.]
+  ST7  [19,54–23,76 s]  In Saudi Arabia, [the guest is registered on Shomoos.]
+  ST8  [23,78–26,27 s]  One gesture, [three countries.]
+  ST9  [26,29–30,11 s]  And everything around it follows: tourist tax on every booking,
+  ST10  [30,13–32,74 s]  ZATCA-compliant invoices, [the NTMP licence,]
+  ST11  [32,76–35,04 s]  and GDPR erasure when a guest asks.
+
+TEXTES À L’ÉCRAN
+  · Mention « Scène illustrative » (petite pastille)
+      E1  Illustrative scene
+  · Ouverture : mots qui convergent vers le logo
+      E2  Guest registration
+      E3  Morocco
+      E4  DGSN · identification form
+      E5  France
+      E6  Individual police form
+      E7  Saudi Arabia
+      E8  Shomoos · شموس
+  · Maquette d’interface (libellé)
+      E9  Nakheel Chalet · Welcome guide
+      E10  Police form
+      E11  100% complete
+      E12  Name
+      E13  Sara Benali
+      E14  Nationality
+      E15  French
+      E16  ID document
+      E17  Passport · 14AB52…
+      E18  Arrival
+      E19  Oct 12 · 3:00 pm
+      E20  Pre-filled
+  · Bouton (maquette) : rester court
+      E21  Send my form
+  · Maquette d’interface (libellé)
+      E22  Compliance
+  · Onglet / étape (maquette) : rester court
+      E23  Morocco
+      E24  France
+      E25  Saudi Arabia
+  · Maquette d’interface (libellé)
+      E26  Guest
+      E27  Sara Benali
+      E28  Stay
+      E29  Oct 12 → 16
+      E30  Document
+      E31  Passport
+      E32  DGSN · identification form
+      E33  Individual form · via Chekin
+      E34  Shomoos · registration
+      E35  Submit
+      E36  Declared
+      E37  Sent
+      E38  Registered
+      E39  Compliance agent
+      E40  Tourism fee
+      E41  Pending
+      E42  Done
+      E43  Q3 filing · Nakheel Chalet
+      E44  412 nights, SAR 6,180 of tourism fees to file.
+      E45  Mark as filed
+      E46  See details
+      E47  Filed on Oct 10 · reference logged
+      E48  Tourist tax
+      E49  calculated on every booking
+      E50  receipttext
+      E51  ZATCA invoices
+      E52  compliant, chained
+      E53  NTMP licence
+      E54  linked to the property
+      E55  GDPR
+      E56  erasure on request
+  · Titre à l’écran (mots entre [ ] en couleur)
+      E57  One rule per country.
+      E58  One single tool.
+  · Bouton de l’écran de fin
+      E59  Join the pre-launch
+  · Pastilles de l’écran de fin (chiffre + libellé)
+      E60  MA · FR · SA
+      E61  registrations
+      E62  Guide
+      E63  pre-filled form

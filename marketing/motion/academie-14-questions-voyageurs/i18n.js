@@ -1,0 +1,118 @@
+// Baitly Académie · Épisode 14 « Les 7 questions que tous les voyageurs posent » · textes à l'écran.
+// Exemple fictif, calculs exacts : 20 séjours × 3 questions × 5 min = 300 min = 5 h par mois ;
+// livret qui règle 2 questions sur 3 → 100 min = 1 h 40.
+// Phrase produit vérifiée : lien du livret envoyé par l'automatisation SEND_GUIDE (J-X ou jour J), code
+// d'accès masqué avant l'heure d'arrivée (WelcomeGuideService.isAccessCodeUnlocked), assistant du livret
+// nourri du seul contenu du livret (serializeForChat). Photos : ../academie-shared/photos/SOURCES.md.
+// Sous-titres réécrits par align-vo.py.
+window.STRINGS = {
+  fr: {
+    dir: 'ltr', illustrative: 'Exemple fictif',
+    ep: '14', theme: 'Voyageurs', trap: 'Piège',
+    q: ['Toujours les mêmes', '7 questions.'],
+    hook: {
+      who: 'Voyageur',
+      msgs: [['Quel est le code Wi-Fi ?', '21:47'], ['On peut arriver à quelle heure ?', '09:12'], ['Où est-ce qu’on se gare ?', '13:30'], ['Comment marche la plaque ?', '19:58']],
+      count: 'À chaque séjour, ou presque',
+    },
+    heads: [
+      ['Ce qu’elles coûtent', 'Un message, une réponse… au mauvais moment'],
+      ['Les 7 questions', 'Presque toujours les mêmes'],
+      ['Le bon moment', 'Chaque réponse a le sien'],
+      ['Mise en pratique', 'Moins de messages, et les bons'],
+    ],
+    cost: {
+      rows: [['msg', 'Un message à lire'], ['pencil', 'Une réponse à écrire']],
+      when: 'Souvent au mauvais moment',
+      tiles: [['menage-escalier', 'En plein ménage'], ['moon', 'Tard le soir', '23:10']],
+    },
+    calc: {
+      rows: [['Séjours par mois', '20'], ['Questions par séjour', '× 3'], ['Minutes par réponse', '× 5']],
+      result: ['Chaque mois', '300 min'], note: '5 heures à répéter les mêmes réponses',
+    },
+    phases: [
+      ['cal', 'Avant l’arrivée', [['door', 'Comment j’entre ?', 'Code, boîte à clés, étage'], ['clock', 'À quelle heure arriver ?', ''], ['car', 'Où me garer ?', '']]],
+      ['bed', 'Pendant le séjour', [['wifi', 'Le Wi-Fi ?', ''], ['thermo', 'Comment ça marche ?', 'Chauffage, plaques, café'], ['trash', 'Où vont les poubelles ?', '']]],
+      ['logout', 'Au départ', [['key', 'Que faire en partant ?', 'Clés, linge, heure']]],
+    ],
+    trapDoc: { title: 'Livret de 20 pages', sub: 'Envoyé la veille', warn: 'Personne ne le lit' },
+    good: {
+      label: 'Une réponse courte, une photo', photo: 'porte-bois', q: 'Comment j’entre ?',
+      a: '« La boîte à clés est à gauche de la porte en bois. »', chips: [['msg', 'Une phrase'], ['image', 'Une photo']],
+    },
+    moments: [
+      ['cal', 'Quelques jours avant', [['pin', 'Adresse'], ['car', 'Parking'], ['clock', 'Heure d’arrivée']]],
+      ['bed', 'Pendant le séjour', [['wifi', 'Wi-Fi'], ['bookopen', 'Modes d’emploi']]],
+      ['logout', 'La veille du départ', [['key', 'Consignes de sortie']]],
+    ],
+    code: {
+      title: 'Code d’accès', masked: '• • • •', lockNote: 'Masqué jusqu’à l’heure d’arrivée', value: '4 8 2 7',
+      risks: [['users', 'Un code qui circule'], ['door', 'Une entrée avant l’heure'], ['broom', 'Pendant le ménage']],
+      ok: 'Le jour même, à l’heure d’arrivée',
+    },
+    practice: {
+      label: 'Le livret règle 2 questions sur 3',
+      bars: [['Sans livret', '300 min', '5 h'], ['Avec le livret', '100 min', '1 h 40']],
+      rest: 'Les messages qui restent',
+      chips: [['wrench', 'Une panne'], ['alert', 'Un imprévu'], ['msg', 'Une demande particulière']],
+    },
+    recap: {
+      title: 'À retenir',
+      rows: [
+        ['list', '7 questions', 'Accès, horaires, parking, Wi-Fi, équipements, poubelles, départ'],
+        ['msg', 'Une réponse courte', 'Avec une photo pour chaque lieu'],
+        ['clock', 'Au bon moment', 'Et le code d’accès le jour même'],
+      ],
+      app: 'Dans Baitly : le livret d’accueil envoyé automatiquement avant l’arrivée',
+      lock: 'Le code d’accès masqué jusqu’à l’heure d’arrivée',
+      bot: 'Un assistant qui répond à partir de votre livret',
+    },
+    cta: 'Découvrir Baitly',
+    facts: [['Baitly Académie', 'le métier expliqué simplement'], ['Épisode 14', 'les questions des voyageurs']],
+    subtitles: [
+      { from: 0.35, to: 1.75, text: "« Quel est le code Wi-Fi ? »", em: "" },
+      { from: 1.77, to: 3.33, text: "Si vous louez depuis un moment,", em: "" },
+      { from: 3.35, to: 5.16, text: "vous l'avez lu des dizaines de fois.", em: "" },
+      { from: 5.18, to: 8.21, text: "Les voyageurs posent presque toujours les mêmes 7 questions.", em: "" },
+      { from: 8.23, to: 11.69, text: "Voyons lesquelles… ", em: "et comment y répondre avant qu'elles arrivent." },
+      { from: 12.39, to: 14.41, text: "D'abord, ", em: "ce que coûtent ces questions." },
+      { from: 14.43, to: 17.36, text: "Chacune, c'est un message à lire, ", em: "une réponse à écrire," },
+      { from: 17.38, to: 20.96, text: "et souvent au mauvais moment : en plein ménage, ", em: "ou tard le soir." },
+      { from: 21.31, to: 25.15, text: "Faisons le calcul. 20 séjours par mois, ", em: "3 questions par séjour," },
+      { from: 25.17, to: 28.52, text: "5 minutes par réponse : 300 minutes. ", em: "5 heures par mois…" },
+      { from: 28.54, to: 30.47, text: "à répéter les mêmes réponses.", em: "" },
+      { from: 31.17, to: 34.25, text: "Voici les sept. Avant l'arrivée : un, ", em: "comment j'entre ?" },
+      { from: 34.27, to: 36.39, text: "Deux, ", em: "à quelle heure puis-je arriver ?" },
+      { from: 36.41, to: 38.13, text: "Trois, ", em: "où puis-je me garer ?" },
+      { from: 38.48, to: 40.28, text: "Pendant le séjour : quatre, ", em: "le Wi-Fi." },
+      { from: 40.3, to: 42.68, text: "Cinq, comment marchent le chauffage, ", em: "les plaques," },
+      { from: 42.7, to: 45.04, text: "la machine à café ? Six, ", em: "où vont les poubelles ?" },
+      { from: 45.06, to: 47.71, text: "Et au départ : sept, ", em: "que dois-je faire en partant ?" },
+      { from: 48.06, to: 50.98, text: "Le piège : le livret de 20 pages, ", em: "envoyé la veille." },
+      { from: 51.0, to: 54.44, text: "Personne ne le lit. ", em: "Il faut une réponse courte par question," },
+      { from: 54.46, to: 56.87, text: "avec une photo dès qu'il s'agit d'un lieu.", em: "" },
+      { from: 56.89, to: 60.73, text: "Par exemple : ", em: "« La boîte à clés est à gauche de la porte en bois. »" },
+      { from: 60.75, to: 62.17, text: "Une phrase, ", em: "une photo." },
+      { from: 62.87, to: 65.78, text: "Deuxième notion : le bon moment. ", em: "Chaque réponse a le sien." },
+      { from: 65.8, to: 68.55, text: "Quelques jours avant l'arrivée : l'adresse, ", em: "le parking," },
+      { from: 68.57, to: 72.08, text: "l'heure d'arrivée. Pendant le séjour : ", em: "le Wi-Fi et les modes d'emploi." },
+      { from: 72.1, to: 74.58, text: "La veille du départ : ", em: "les consignes de sortie." },
+      { from: 74.93, to: 77.02, text: "Et le code d'accès ? ", em: "Surtout pas trop tôt." },
+      { from: 77.04, to: 79.38, text: "Un code envoyé une semaine avant peut circuler,", em: "" },
+      { from: 79.4, to: 81.04, text: "ou servir à entrer avant l'heure…", em: "" },
+      { from: 81.06, to: 82.8, text: "pendant que le ménage est en cours.", em: "" },
+      { from: 82.82, to: 85.43, text: "Le code, c'est le jour même, ", em: "à l'heure d'arrivée." },
+      { from: 86.13, to: 89.27, text: "Mise en pratique. ", em: "Si votre livret répond à 2 questions sur 3," },
+      { from: 89.29, to: 91.75, text: "vos 300 minutes tombent à 100 : ", em: "1 h 40 par mois," },
+      { from: 91.77, to: 92.78, text: "au lieu de 5 heures.", em: "" },
+      { from: 92.8, to: 95.93, text: "Et les messages qui restent sont ceux qui comptent vraiment :", em: "" },
+      { from: 95.95, to: 98.58, text: "une panne, un imprévu, ", em: "une demande particulière." },
+      { from: 99.28, to: 102.13, text: "À retenir : 7 questions, ", em: "une réponse courte pour chacune," },
+      { from: 102.15, to: 104.9, text: "envoyée au bon moment, ", em: "et le code d'accès le jour même." },
+      { from: 104.92, to: 105.51, text: "Dans Baitly,", em: "" },
+      { from: 105.53, to: 109.69, text: "votre livret d'accueil peut partir automatiquement quelques jours avant l'arrivée ;", em: "" },
+      { from: 109.71, to: 112.56, text: "le code d'accès y reste masqué jusqu'à l'heure d'arrivée,", em: "" },
+      { from: 112.58, to: 116.45, text: "et un assistant répond aux questions du voyageur à partir de votre livret.", em: "" },
+    ],
+  },
+};

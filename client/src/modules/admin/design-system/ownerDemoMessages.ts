@@ -88,9 +88,9 @@ const ar: OwnerDemoMessages = {
 const BY_LANGUAGE: Record<string, OwnerDemoMessages> = { fr, en, ar };
 
 /** Texte de la projection, dans la langue du document. */
-export function ownerDemoText(): OwnerDemoMessages {
-  const lang = typeof document !== 'undefined'
+export function ownerDemoText(language?: string): OwnerDemoMessages {
+  const lang = language ?? (typeof document !== 'undefined'
     ? (document.documentElement.lang || 'fr').split('-')[0]
-    : 'fr';
+    : 'fr');
   return BY_LANGUAGE[lang] ?? fr;
 }
