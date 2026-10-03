@@ -87,6 +87,8 @@ export const EVENT_ILLUSTRATIONS: Readonly<Record<string, NotificationIllustrati
   RESERVATION_CANCELLED: 'reservation-cancelled',
   BOOKING_INQUIRY_RECEIVED: 'reservation',
   CHANNEX_AIRBNB_REQUEST: 'reservation',
+  NIGHTS_CAP_DEROGATION: 'document',
+  NIGHTS_CAP_EXCEEDED: 'calendar',
 
   SERVICE_REQUEST_CREATED: 'service-request',
   SERVICE_REQUEST_UPDATED: 'service-request',
@@ -120,6 +122,8 @@ export const EVENT_ILLUSTRATIONS: Readonly<Record<string, NotificationIllustrati
   PAYMENT_SESSION_CREATED: 'payment',
   PAYMENT_CONFIRMED: 'payment-confirmed',
   PAYMENT_FAILED: 'payment-failed',
+  SECURITY_DEPOSIT_HOLD_FAILED: 'payment-failed',
+  SECURITY_DEPOSIT_HOLD_EXPIRED: 'payment-reminder',
   PAYMENT_GROUPED_SESSION_CREATED: 'payment',
   PAYMENT_GROUPED_CONFIRMED: 'payment-confirmed',
   PAYMENT_GROUPED_FAILED: 'payment-failed',

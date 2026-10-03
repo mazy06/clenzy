@@ -29,7 +29,7 @@ const ratesKeys = { my: ['housekeeper-rates', 'me'] as const };
 /** Surtitre de section (registre « overline » du contrat Baitly UI §3). */
 const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-[0.06em] text-faint mb-[9px]';
 
-export default function MyRatesSettings() {
+export default function MyRatesSettings({ onSaved }: { onSaved?: () => void } = {}) {
   const { t } = useTranslation();
   const { notify } = useNotification();
   const queryClient = useQueryClient();
@@ -64,6 +64,7 @@ export default function MyRatesSettings() {
     onSuccess: (updated: HousekeeperRates) => {
       queryClient.setQueryData(ratesKeys.my, updated);
       notify.success(t('settings.myRates.saveSuccess'));
+      onSaved?.();
     },
     onError: () => {
       notify.error(t('settings.myRates.saveError'));

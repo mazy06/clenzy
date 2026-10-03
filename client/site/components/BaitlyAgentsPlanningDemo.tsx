@@ -39,6 +39,7 @@ import type { AgentId } from '../../src/modules/supervision/types';
 import { Cursor, useScriptedCursor } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { useBaitlyPlanningTimeline } from './useBaitlyPlanningTimeline';
+import { useDemoNarration } from './useDemoNarration';
 import BaitlyPlanningCallout, {
   type CalloutGuide,
   type PlanningAnnotation,
@@ -97,7 +98,10 @@ import {
  * Voix off optionnelle (coupée par défaut : la lecture sonore exige un geste).
  */
 
+import { demoNumber } from '../lib/planningDemoLocale';
+
 const FRAME_H = 740;
+export { FRAME_H as AGENTS_FRAME_HEIGHT };
 const TOOLBAR_H = 50;
 const FILTERS_H = 57;
 const PAGINATION_H = 50;
@@ -184,7 +188,7 @@ const INITIAL_BOARD: BoardState = {
 };
 
 export default function BaitlyAgentsPlanningDemo() {
-  const { language } = useSiteLanguage();
+  const { language, direction } = useSiteLanguage();
   const m = AGENTS_DEMO_MESSAGES[language];
   const [cycle, setCycle] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -200,7 +204,7 @@ export default function BaitlyAgentsPlanningDemo() {
   const { visibilityRef, active, reduced } = useBaitlyDemoVisibility();
   const playing = active && !paused;
   const voiceAudible = voiceOn && !voiceBlocked;
-  const voice = useNarration(language, voiceAudible && playing, () =>
+  const voice = useDemoNarration(clipUrl, language, voiceAudible && playing, () =>
     setVoiceBlocked(true),
   );
   const hasVoice = Boolean(clipUrl(language, 0));
@@ -275,7 +279,7 @@ export default function BaitlyAgentsPlanningDemo() {
       <div className="bpm-planning-stage" ref={stageRef} data-guided={!reduced}>
         <div
           className="bpm-planning-scroll"
-          dir="ltr"
+          dir={direction}
           tabIndex={0}
           role="region"
           aria-label={m.demo}
@@ -314,102 +318,7 @@ export default function BaitlyAgentsPlanningDemo() {
   );
 }
 
-/**
- * Lecture de la voix off calée sur la chorégraphie : chaque étape lance son
- * clip ; activer la voix ou reprendre la démo rejoint l'étape là où en est la
- * tête de lecture, sans jamais rejouer une étape passée.
- */
-function useNarration(
-  language: SiteLanguage,
-  audible: boolean,
-  onBlocked: () => void,
-) {
-  const onBlockedRef = useRef(onBlocked);
-  onBlockedRef.current = onBlocked;
-  /* Un lecteur par étape, préchargé dès que la voix est activée : changer de
-     source au début de l'étape ajoutait un délai de chargement variable, et
-     la voix arrivait après le geste qu'elle commente. */
-  const players = useRef(new Map<number, HTMLAudioElement>());
-  const clockRef = useRef<() => number>(() => 0);
-  const current = useRef<{ step: number; startedAt: number } | null>(null);
-  const audibleRef = useRef(audible);
-  audibleRef.current = audible;
-
-  const player = useCallback(
-    (step: number) => {
-      const url = clipUrl(language, step);
-      if (!url) return null;
-      let audio = players.current.get(step);
-      if (!audio) {
-        audio = new Audio(url);
-        audio.preload = 'auto';
-        players.current.set(step, audio);
-      }
-      return audio;
-    },
-    [language],
-  );
-
-  const stopAll = () => players.current.forEach((audio) => audio.pause());
-
-  const playFrom = useCallback(
-    (step: number, offsetMs: number) => {
-      stopAll();
-      const audio = player(step);
-      if (!audio) return;
-      const seek = () => {
-        if (Number.isFinite(audio.duration) && offsetMs / 1000 >= audio.duration) return;
-        audio.currentTime = Math.max(0, offsetMs) / 1000;
-        // Lecture refusée (autoplay, onglet muet) : la démo continue sans voix.
-        audio.play()?.catch((error: unknown) => {
-          if ((error as { name?: string } | null)?.name === 'NotAllowedError') {
-            onBlockedRef.current();
-          }
-        });
-      };
-      // Depuis le début : lecture immédiate. Reprise en cours d'étape : il
-      // faut la durée du clip pour s'y positionner.
-      if (offsetMs <= 0 || audio.readyState >= 1) seek();
-      else audio.addEventListener('loadedmetadata', seek, { once: true });
-    },
-    [player],
-  );
-
-  useEffect(() => {
-    if (!audible) {
-      stopAll();
-      return;
-    }
-    // Préchargement de toutes les étapes de la langue.
-    for (let step = 0; clipUrl(language, step); step += 1) player(step);
-    const playingStep = current.current;
-    if (playingStep) {
-      playFrom(playingStep.step, clockRef.current() - playingStep.startedAt);
-    }
-  }, [audible, language, player, playFrom]);
-
-  useEffect(() => {
-    const all = players.current;
-    return () => {
-      all.forEach((audio) => audio.pause());
-      all.clear();
-    };
-  }, [language]);
-
-  const narrate = useCallback(
-    (step: number) => {
-      current.current = { step, startedAt: clockRef.current() };
-      if (audibleRef.current) playFrom(step, 0);
-    },
-    [playFrom],
-  );
-  const reset = useCallback(() => {
-    current.current = null;
-  }, []);
-  return { clockRef, narrate, reset };
-}
-
-function AgentsScene({
+export function AgentsScene({
   m,
   active,
   reduced,
@@ -426,13 +335,13 @@ function AgentsScene({
   onAnnotationChange: (annotation: PlanningAnnotation | null) => void;
   onCycleEnd: () => void;
 }) {
-  const { language } = useSiteLanguage();
+  const { language, direction } = useSiteLanguage();
   const planning = usePlanningText();
   const properties = planning.properties;
   const containerRef = useRef<HTMLDivElement>(null);
   const replyBodyRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef);
+  const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef, direction);
 
   const [expanded, setExpanded] = useState(false);
   const [board, setBoard] = useState<BoardState>(INITIAL_BOARD);
@@ -637,9 +546,9 @@ function AgentsScene({
         explain(7, '[data-planning-panel="schedule"] .bad-calendar');
       });
       at(cue('assignee'), () => explain(7, '[data-planning-panel="schedule"] .bad-command'));
-      click(cue('day'), '[data-day="28"]', () => {
+      click(cue('day'), '[data-day="2026-09-28"]', () => {
         setDay(28);
-        explain(7, '[data-day="28"]');
+        explain(7, '[data-day="2026-09-28"]');
       });
       at(cue('time'), () => explain(7, '[data-planning-panel="schedule"] .bad-input'));
       click(cue('worker'), '[data-assignee="youssef"]', () => {
@@ -722,13 +631,14 @@ function AgentsScene({
   return (
     <div
       className="relative bpm-planning-canvas"
-      dir="ltr"
+      lang={language}
+      dir={direction}
       ref={containerRef}
       style={{ ...TOKENS, height: FRAME_H * scale }}
     >
       <div
-        className="relative origin-top-left overflow-hidden"
-        style={{ width: FRAME_WIDTH, height: FRAME_H, transform: `scale(${scale})` }}
+        className="relative overflow-hidden"
+        style={{ width: FRAME_WIDTH, height: FRAME_H, transform: `scale(${scale})`, transformOrigin: direction === 'rtl' ? 'top right' : 'top left' }}
         aria-hidden="true"
         {...{ inert: '' }}
       >
@@ -753,7 +663,7 @@ function AgentsScene({
             <div className="relative flex" style={{ width: DESIGN_WIDTH }}>
               <div style={{ width: PROP_W, flexShrink: 0 }}>
                 <div className="bad-props-head" style={{ height: HEADER_H }}>
-                  {shownProperties.length} {planning.propertiesLabel}
+                  {demoNumber(shownProperties.length, language)} {planning.propertiesLabel}
                 </div>
                 <div style={{ height: bodyHeight, overflow: 'hidden' }}>
                   {shownProperties.map((index) => (
@@ -770,10 +680,10 @@ function AgentsScene({
                         <span>{properties[index].city.split(' · ')[0]}</span>
                       </div>
                       <span className="bpm-property-count">
-                        <b>{UNIT_COUNTS[index] + 8}</b>
+                        <b>{demoNumber(UNIT_COUNTS[index] + 8, language)}</b>
                         <small>
                           <TagIcon size={10} />
-                          {UNIT_COUNTS[index]}
+                          {demoNumber(UNIT_COUNTS[index], language)}
                         </small>
                       </span>
                       <span className="bad-expand" data-expand={index}>
@@ -809,7 +719,7 @@ function AgentsScene({
                         style={{
                           top: (properties.length + i) * ROW_H,
                           height: ROW_H,
-                          backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${DAY_W - 1}px, var(--pl-line) ${DAY_W - 1}px ${DAY_W}px)`,
+                          backgroundImage: `repeating-linear-gradient(to ${direction === 'rtl' ? 'left' : 'right'}, transparent 0 ${DAY_W - 1}px, var(--pl-line) ${DAY_W - 1}px ${DAY_W}px)`,
                         }}
                       />
                     ))}
@@ -830,7 +740,7 @@ function AgentsScene({
                     <div
                       className="pointer-events-none absolute top-0 bottom-0 w-[2px]"
                       style={{
-                        left: TODAY_INDEX * DAY_W + DAY_W * 0.42,
+                        insetInlineStart: TODAY_INDEX * DAY_W + DAY_W * 0.42,
                         background: 'var(--pl-err)',
                         zIndex: 6,
                       }}
@@ -848,9 +758,9 @@ function AgentsScene({
                   {occupancy.map((value, index) => (
                     <small
                       key={index}
-                      style={{ width: DAY_W, background: isWeekend(index) ? 'var(--pl-we)' : undefined }}
+                      style={{ width: DAY_W, background: isWeekend(index, language) ? 'var(--pl-we)' : undefined }}
                     >
-                      {value}%
+                      {demoNumber(value / 100, language, { style: 'percent', maximumFractionDigits: 0 })}
                     </small>
                   ))}
                 </div>
@@ -859,11 +769,11 @@ function AgentsScene({
           </div>
           <div className="bpm-planning-pagination">
             <span>{expanded ? m.pageRange : planning.pageRange}</span>
-            <ChevronLeftIcon size={14} />
+            <ChevronLeftIcon className="bpm-directional-icon" size={14} />
             {planning.previous}
-            <strong>1</strong>
+            <strong>{demoNumber(1, language)}</strong>
             {planning.next}
-            <ChevronRightIcon size={14} />
+            <ChevronRightIcon className="bpm-directional-icon" size={14} />
           </div>
         </div>
         {modal === 'reply' && (
@@ -878,4 +788,3 @@ function AgentsScene({
     </div>
   );
 }
-

@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { queryOptions } from '@tanstack/react-query';
 import type { GlobalKPIs, RevenueMetrics, OccupancyMetrics } from '../../types/analytics';
 import type { DashboardPeriod } from '../../modules/dashboard/DashboardDateFilter';
 
@@ -17,3 +18,10 @@ export const portfolioAnalyticsApi = {
   get: (period: DashboardPeriod) =>
     apiClient.get<PortfolioAnalytics>(`/analytics/portfolio?period=${period}`),
 };
+
+/** Cache partagé entre les rapports et les widgets du dashboard. */
+export const portfolioAnalyticsQuery = (period: DashboardPeriod) => queryOptions({
+  queryKey: ['analytics-portfolio', period],
+  queryFn: () => portfolioAnalyticsApi.get(period),
+  staleTime: 60_000,
+});

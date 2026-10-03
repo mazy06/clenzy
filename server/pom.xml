@@ -20,8 +20,8 @@
     <groupId>com.clenzy</groupId>
     <artifactId>clenzy-platform</artifactId>
     <version>1.0.0</version>
-    <name>Clenzy Platform</name>
-    <description>Plateforme de gestion des services Airbnb - Clenzy</description>
+    <name>Baitly Platform</name>
+    <description>Plateforme de gestion des services Airbnb - Baitly</description>
 
     <properties>
         <java.version>21</java.version>
@@ -93,6 +93,17 @@
     </properties>
 
     <dependencies>
+        <!-- Lecteurs d'exports PMS : aucune evaluation de formule Excel. -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.14.1</version>
+        </dependency>
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

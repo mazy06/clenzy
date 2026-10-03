@@ -37,6 +37,7 @@ interface ManagementContractRequiredModalProps {
   property: ContractRequiredProperty | null;
   /** Appelé une fois le contrat de gestion créé. */
   onCompleted: () => void;
+  embedded?: boolean;
 }
 
 /**
@@ -46,7 +47,7 @@ interface ManagementContractRequiredModalProps {
  * sur la liste des propriétés.
  */
 const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalProps> = ({
-  open, property, onCompleted,
+  open, property, onCompleted, embedded = false,
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -92,29 +93,22 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
     }
   };
 
-  return (
-    // Modale non fermable : `open` est controle sans onOpenChange, donc Radix
-    // ne peut pas la refermer (Echap et clic exterieur sont neutralises aussi).
-    <Dialog open={open}>
-      <DialogContent
-        className="max-w-[900px] max-h-[88vh] overflow-y-auto"
-        showCloseButton={false}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-      >
+  const Title = embedded ? 'h3' : DialogTitle;
+  const Description = embedded ? 'p' : DialogDescription;
+  const content = <>
         <DialogHeader>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex items-center justify-center size-7 rounded-md bg-primary-soft text-primary shrink-0">
               <Handshake size={16} strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <DialogTitle className="text-base font-semibold leading-[1.2] text-foreground">
+              <Title className="text-base font-semibold leading-[1.2] text-foreground">
                 {t('contracts.required.title', 'Contrat de gestion requis')}
-              </DialogTitle>
+              </Title>
               {property && (
-                <DialogDescription className="text-xs text-muted-foreground">
+                <Description className="text-xs text-muted-foreground">
                   {property.name}
-                </DialogDescription>
+                </Description>
               )}
             </div>
           </div>
@@ -155,9 +149,9 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
               : t('contracts.required.submit', 'Valider le contrat')}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  </>;
+  if (embedded) return open ? <section>{content}</section> : null;
+  return <Dialog open={open}><DialogContent className="max-w-[900px] max-h-[88vh] overflow-y-auto" showCloseButton={false} onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>{content}</DialogContent></Dialog>;
 };
 
 export default ManagementContractRequiredModal;

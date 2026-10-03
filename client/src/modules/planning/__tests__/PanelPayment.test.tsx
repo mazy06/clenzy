@@ -4,7 +4,7 @@ import React from 'react';
 
 // useCurrency depend de CurrencyProvider + react-query (taux de change). Pour
 // un unit test on injecte un stub deterministe qui retourne le symbole EUR.
-vi.mock('../../../hooks/useCurrency', () => ({
+vi.mock('../../../hooks/currencyDisplayContext', () => ({
   useCurrency: () => ({
     currency: 'EUR',
     setCurrency: vi.fn(),

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { reservationsApi } from '../services/api/reservationsApi';
 import { propertiesApi } from '../services/api/propertiesApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
-import { portfolioAnalyticsApi } from '../services/api/portfolioAnalyticsApi';
+import { portfolioAnalyticsQuery } from '../services/api/portfolioAnalyticsApi';
 import type { Property } from '../services/api/propertiesApi';
 import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
 import type { AnalyticsData, InterventionLike, PropertyPerformanceItem } from '../types/analytics';
@@ -66,8 +66,7 @@ export function useAnalyticsEngine({ period, interventions: _interventions, enab
 
   // Slices rapatriées côté serveur (formules corrigées, coûts d'intervention réels).
   const portfolioQuery = useQuery({
-    queryKey: ['analytics-portfolio', period],
-    queryFn: () => portfolioAnalyticsApi.get(period),
+    ...portfolioAnalyticsQuery(period),
     staleTime: 60_000,
     enabled,
   });

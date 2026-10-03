@@ -55,6 +55,7 @@ import RetryDeliveryDialog from '../../../components/baitly/RetryDeliveryDialog'
 import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import StatusChip from '../../../components/baitly/StatusChip';
+import ChannelTag from '../../../components/baitly/ChannelTag';
 import { Money } from '../../../components/baitly/Money';
 import { cn } from '../../../utils/cn';
 import { getInterventionTypeLabel } from '../../../utils/statusUtils';
@@ -78,7 +79,8 @@ import type {
   DashboardActionSeverity,
   DashboardUpcomingArrival,
 } from '../../../services/api/dashboardOperationsApi';
-import { useFitRows } from '../../../hooks/useFitRows';
+import { DashboardWidgetState } from '../DashboardWidgetState';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 
 /** Type exact du `t` du projet — les helpers ci-dessous le reçoivent en paramètre. */
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
@@ -106,11 +108,12 @@ export function channelColor(source: string | null): string {
   return CHANNEL_COLORS[(source ?? 'other').toLowerCase()] ?? CHANNEL_COLORS.other;
 }
 
-function channelLabel(source: string | null, sourceName: string | null): string {
+export function channelLabel(source: string | null, sourceName: string | null): string {
   if (sourceName && sourceName.trim()) return sourceName;
   const key = (source ?? 'other').toLowerCase();
   if (key === 'direct') return 'Direct';
   if (key === 'other') return 'Autre';
+  if (key === 'booking') return 'Booking.com';
   return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
@@ -122,23 +125,15 @@ export function BlockCard({
   count,
   children,
   className,
+  scrollable = false,
 }: {
   icon?: React.ReactNode;
   title: React.ReactNode;
   count?: number;
   children: React.ReactNode;
   className?: string;
+  scrollable?: boolean;
 }) {
-  /**
-   * La carte remplit la hauteur qu'on lui donne, sans ascenseur : les rangs qui
-   * ne tiennent pas se replient et se comptent.
-   *
-   * <p>Les rangs sont ceux du conteneur que l'appelant marque `data-fit-list` —
-   * lui seul sait lequel de ses conteneurs porte une liste plutot qu'un bloc.
-   * Sans marque, la carte ne replie rien : elle se contente d'annoncer a sa
-   * ligne la hauteur qu'il lui faudrait.</p>
-   */
-  const { ref, hidden } = useFitRows<HTMLDivElement>('[data-fit-list] > *');
   return (
     // Contour en `ring-1`, jamais en `border` : c'est la métrique du `Card` du
     // design system (cf. `.cn-card`, baitly-nova.css). Un `ring` est un
@@ -148,25 +143,21 @@ export function BlockCard({
     // leurs titres d'un pixel.
     <section
       className={cn(
-        'flex h-full flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 p-4',
+        'flex flex-col rounded-lg bg-card ring-1 ring-foreground/10 p-4',
+        scrollable && 'db-widget-surface',
         className,
       )}
     >
-      <h3 className="m-0 mb-3 flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <h3 className="m-0 mb-3 flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-semibold text-foreground">
         {icon}
         {title}
         {count !== undefined && <span className="tabular-nums">({count})</span>}
       </h3>
-      <div ref={ref} className="min-h-0 flex-1 overflow-hidden">
+      <div className={cn('min-w-0', scrollable && 'db-widget-body')}
+        tabIndex={scrollable ? 0 : undefined} role={scrollable ? 'region' : undefined}
+        aria-label={scrollable && typeof title === 'string' ? title : undefined}>
         {children}
       </div>
-      {/* Frere du cadre, jamais dedans : la mention prend sa place sur la
-          hauteur disponible au lieu de la disputer aux rangs. */}
-      {hidden > 0 && (
-        <p className="m-0 shrink-0 pt-1.5 text-2xs font-semibold text-muted-foreground tabular-nums">
-          +{hidden}
-        </p>
-      )}
     </section>
   );
 }
@@ -181,32 +172,38 @@ export function BlockEmpty({ children }: { children: React.ReactNode }) {
 export function TodayOperationsSection() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardToday();
+  const { data, isLoading, isError, refetch } = useDashboardToday();
+  const [showAll, setShowAll] = React.useState(false);
   // Le séjour s'ouvre sur place : `/reservations/:id` n'existe pas, et quitter
   // le tableau de bord pour lire deux dates n'aide personne.
   // ⚠️ Avant tout early return (règles des hooks).
   const [openedReservation, setOpenedReservation] =
     React.useState<{ id: number; guestName: string | null; propertyName: string | null } | null>(null);
 
-  if (isLoading) return null;
+  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.widgets.todayOperations', 'Opérations du jour')} error={isError} onRetry={() => { void refetch(); }} />;
 
   const arrivals = data?.arrivals ?? [];
   const departures = data?.departures ?? [];
   const cleanings = data?.cleanings ?? [];
 
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+    <section className="db-widget-surface flex flex-col rounded-lg bg-card p-4 ring-1 ring-foreground/10">
+      <h3 className="m-0 mb-3 text-sm font-semibold text-foreground">
+        {t('dashboard.widgets.todayOperations', 'Opérations du jour')}
+      </h3>
+      <div className="db-widget-body space-y-5" tabIndex={0} role="region" aria-label={t('dashboard.widgets.todayOperations', 'Opérations du jour')}>
       {/* 5.a Arrivées */}
       <BlockCard
         icon={<LogInIcon className="size-3.5 text-success" />}
         title={t('dashboard.today.arrivals', 'Arrivées aujourd’hui')}
         count={arrivals.length}
+        className="rounded-none bg-transparent p-0 ring-0"
       >
         {arrivals.length === 0 ? (
           <BlockEmpty>{t('dashboard.today.noArrivals', 'Aucune arrivée aujourd’hui.')}</BlockEmpty>
         ) : (
           <div data-fit-list className="flex flex-col gap-2.5">
-            {arrivals.map((arrival) => (
+            {(showAll ? arrivals : arrivals.slice(0, 3)).map((arrival) => (
               <button
                 key={arrival.reservationId}
                 type="button"
@@ -217,7 +214,7 @@ export function TodayOperationsSection() {
                     propertyName: arrival.propertyName,
                   })
                 }
-                className="flex cursor-pointer items-center gap-2.5 rounded-md text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
               >
                 <GuestAvatar
                   name={arrival.guestName ?? '?'}
@@ -255,36 +252,39 @@ export function TodayOperationsSection() {
         icon={<LogOutIcon className="size-3.5 text-info" />}
         title={t('dashboard.today.departures', 'Départs aujourd’hui')}
         count={departures.length}
+        className="rounded-none bg-transparent p-0 ring-0"
       >
         {departures.length === 0 ? (
           <BlockEmpty>{t('dashboard.today.noDepartures', 'Aucun départ aujourd’hui.')}</BlockEmpty>
         ) : (
           <>
             <div data-fit-list className="flex flex-col gap-2.5">
-              {departures.map((departure) => (
-                <div key={departure.reservationId} className="flex items-center gap-2.5">
+              {(showAll ? departures : departures.slice(0, 3)).map((departure) => (
+                <button key={departure.reservationId} type="button"
+                  onClick={() => setOpenedReservation({ id: departure.reservationId, guestName: departure.guestName, propertyName: departure.propertyName })}
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none">
                   <GuestAvatar
                     name={departure.guestName ?? '?'}
                     photoUrl={guestPhotoSrc(departure.guestAvatarUrl)}
                     size={30}
                   />
-                  <div className="min-w-0 flex-1">
-                    <div dir="auto" className="truncate text-sm font-medium text-foreground">
+                  <span className="min-w-0 flex-1">
+                    <span dir="auto" className="block truncate text-sm font-medium text-foreground">
                       {departure.guestName}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
                       {departure.propertyName}
                       {departure.depositToRelease != null && (
                         <> · {t('dashboard.today.depositToRelease', 'caution à libérer')}</>
                       )}
-                    </div>
-                  </div>
+                    </span>
+                  </span>
                   {departure.checkOutTime && (
                     <span className="shrink-0 text-sm font-semibold text-foreground tabular-nums">
                       {departure.checkOutTime}
                     </span>
                   )}
-                </div>
+                </button>
               ))}
             </div>
             {/* L'action n'apparaît que s'il y a réellement une caution retenue. */}
@@ -307,28 +307,29 @@ export function TodayOperationsSection() {
         icon={<BrushIcon className="size-3.5 text-primary" />}
         title={t('dashboard.today.cleanings', 'Ménages du jour')}
         count={cleanings.length}
+        className="rounded-none bg-transparent p-0 ring-0"
       >
         {cleanings.length === 0 ? (
           <BlockEmpty>{t('dashboard.today.noCleanings', 'Aucun ménage planifié aujourd’hui.')}</BlockEmpty>
         ) : (
           <div data-fit-list className="flex flex-col gap-2.5">
-            {cleanings.map((cleaning) => (
-              <div key={cleaning.interventionId} className="flex items-center gap-2.5">
+            {(showAll ? cleanings : cleanings.slice(0, 3)).map((cleaning) => (
+              <button key={cleaning.interventionId} type="button" onClick={() => navigate(`/interventions/${cleaning.interventionId}`)}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none">
                 <GuestAvatar
                   name={cleaning.assigneeName ?? '?'}
                   photoUrl={resolveMediaUrl(cleaning.assigneeAvatarUrl)}
                   size={30}
                 />
-                <div className="min-w-0 flex-1">
-                  <div dir="auto" className="truncate text-sm font-medium text-foreground">
+                <span className="min-w-0 flex-1">
+                  <span dir="auto" className="block truncate text-sm font-medium text-foreground">
                     {cleaning.propertyName}
-                  </div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {[cleaning.assigneeName, cleaningWindow(cleaning.windowStart, cleaning.windowEnd)]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
-                </div>
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    <span className="block truncate">{cleaning.assigneeName}</span>
+                    <span className="block tabular-nums">{cleaningWindow(cleaning.windowStart, cleaning.windowEnd, t)}</span>
+                  </span>
+                </span>
                 <StatusChip
                   tone={cleaning.status === 'IN_PROGRESS' ? 'warn' : 'neutral'}
                   label={
@@ -339,11 +340,16 @@ export function TodayOperationsSection() {
                   dot
                   size="sm"
                 />
-              </div>
+              </button>
             ))}
           </div>
         )}
       </BlockCard>
+
+      </div>
+      {Math.max(arrivals.length, departures.length, cleanings.length) > 3 && <Button size="sm" variant="ghost" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
+        {showAll ? t('dashboard.actionItems.showLess', 'Réduire') : t('dashboard.today.showAll', 'Voir toute la journée')}
+      </Button>}
 
       <ReservationActionDialog
         reservationId={openedReservation?.id ?? null}
@@ -354,15 +360,15 @@ export function TodayOperationsSection() {
         }}
         invalidateKeys={[['dashboard', 'operations', 'today']]}
       />
-    </div>
+    </section>
   );
 }
 
 /** « 11:00 → 15:00 », « avant 15:00 », ou rien si aucune borne. */
-function cleaningWindow(start: string | null, end: string | null): string | null {
-  if (start && end) return `${start} → ${end}`;
-  if (end) return `avant ${end}`;
-  if (start) return `à partir de ${start}`;
+function cleaningWindow(start: string | null, end: string | null, t: TranslateFn): string | null {
+  if (start && end) return t('dashboard.today.window', 'Fenêtre : {{start}} à {{end}}', { start, end });
+  if (end) return t('dashboard.today.windowBefore', 'Avant {{end}}', { end });
+  if (start) return t('dashboard.today.windowAfter', 'À partir de {{start}}', { start });
   return null;
 }
 
@@ -646,8 +652,9 @@ function actionKinds(t: TranslateFn) {
  * pas le nombre de lignes visibles.</p>
  */
 export function ActionItemsCard() {
-  const { data, isLoading } = useDashboardActionItems();
-  if (isLoading) return null;
+  const { t } = useTranslation();
+  const { data, isLoading, isError, refetch } = useDashboardActionItems();
+  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.actionItems.title', 'À traiter')} error={isError} onRetry={() => { void refetch(); }} />;
   return <ActionItemsView data={data} />;
 }
 
@@ -679,6 +686,7 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
    * vient du serveur — s'ouvre d'elle-même, pour qu'un sommaire entièrement
    * replié n'oblige pas à un clic avant de pouvoir agir.
    */
+  const [showAllGroups, setShowAllGroups] = React.useState(false);
   const [openKind, setOpenKind] = React.useState<DashboardActionKind | null | undefined>(undefined);
   /** Rubrique dont le traitement de masse attend une confirmation. */
   const [bulkTarget, setBulkTarget] = React.useState<{
@@ -732,24 +740,15 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
       icon={<TriangleAlertIcon className="size-3.5 text-warning" />}
       title={t('dashboard.actionItems.title', 'À traiter')}
       count={total}
+      scrollable
     >
       {groups.length === 0 ? (
         <BlockEmpty>
           {t('dashboard.actionItems.empty', 'Rien à traiter — tout est à jour.')}
         </BlockEmpty>
       ) : (
-        // Plus de hauteur bornée ni d'ascenseur : c'est la LIGNE du tableau de
-        // bord qui donne sa hauteur à la carte, et les rubriques qui n'y
-        // tiennent pas se replient derrière un « +N » (cf. `BlockCard`).
-        // L'ancien cadre à `max-h-[28rem]` réglait le même problème — vingt-deux
-        // actions poussaient le reste de l'écran dehors — mais en cachant la
-        // moitié de la file derrière un rail qu'on ne voyait qu'en la survolant.
-        //
-        // `data-fit-list` : les rangs à replier sont les RUBRIQUES, pas les
-        // lignes d'action. Une rubrique repliée reste ouvrable d'un clic ; une
-        // ligne masquée au milieu d'une rubrique dépliée ne se retrouve pas.
         <div data-fit-list className="flex flex-col">
-          {groups.map((group) => (
+          {(showAllGroups ? groups : groups.slice(0, 6)).map((group) => (
             <ActionGroup
               key={group.kind}
               icon={group.icon}
@@ -834,6 +833,10 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
       )}
 
       {/* Traiter fait disparaître la ligne : la carte se recharge. */}
+      {groups.length > 6 && <Button size="sm" variant="ghost" className="mt-2" aria-expanded={showAllGroups} onClick={() => setShowAllGroups((value) => !value)}>
+        {showAllGroups ? t('dashboard.actionItems.showLess', 'Réduire') : t('dashboard.actionItems.showCategories', 'Voir les {{count}} autres rubriques', { count: groups.length - 6 })}
+      </Button>}
+
       <ActionItemDialog item={active} onClose={() => setActive(null)} />
 
       {/* Un clic, des dizaines d'effets : le seul endroit de cette carte où une
@@ -1182,7 +1185,7 @@ function ActionGroup({
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={panelId}
-        className="-mx-1.5 flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-2 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+        className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-2 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
       >
         {/* Pastille de gravité : 6 px d'aplat vif. Un liseré latéral coloré ou
             un fond plein sur la ligne teindrait toute la rubrique du rouge de
@@ -1231,7 +1234,7 @@ function ActionGroup({
                   serveur plafonne, et « Voir les 7 autres » ne doit jamais
                   promettre les vingt qu'il n'a pas envoyées. */}
               {showAll && shown < total && (
-                <span className="text-2xs tabular-nums text-muted-foreground">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {shownOfLabel(shown, total)}
                 </span>
               )}
@@ -1300,16 +1303,12 @@ function ActionRow({
     <button
       type="button"
       onClick={onClick}
-      className="group/row -mx-1.5 flex cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+      className="db-action-row group/row flex cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
     >
-      {leading}
-      <span className="min-w-0 flex-1">
+      {leading && <span className="db-action-avatar shrink-0">{leading}</span>}
+      <span className="db-action-copy min-w-0 flex-1">
         <span className="block truncate text-sm text-foreground">{primary}</span>
-        {/* Deux lignes, pas une : l'extrait d'avis est le contenu utile de la
-            ligne, le tronquer au premier tiers n'aide personne. Les libellés
-            courts (référence, délai de synchro) tiennent sur une ligne et ne
-            sont pas affectés. */}
-        <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">{secondary}</span>
+        <span className="block text-xs leading-snug text-muted-foreground">{secondary}</span>
       </span>
       {/* L'ancienneté avant le verbe : c'est ce qui fait décider si l'on agit
           maintenant, et le verbe est le même sur toutes les lignes de la
@@ -1321,7 +1320,7 @@ function ActionRow({
           // et pour les lecteurs d'écran, faute de place sur une ligne dense.
           title={ageTitle}
           className={cn(
-            'shrink-0 rounded-full px-1.5 py-0.5 text-2xs font-semibold tabular-nums',
+            'db-action-age shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums',
             ageTone,
           )}
         >
@@ -1334,7 +1333,7 @@ function ActionRow({
           // Bouton clair, et non plein : la ligne ne vise qu'elle-même. Le seul
           // plein encrier de la rubrique est le geste de masse, en pied — trente
           // pastilles noires en concurrence n'en laissaient plus aucune primaire.
-          'shrink-0 bg-card',
+          'db-action-control shrink-0 bg-card',
           'group-hover/row:bg-background',
         )}
       >
@@ -1350,22 +1349,17 @@ function ActionRow({
 export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardUpcomingArrivals(days);
+  const { data, isLoading, isError, refetch } = useDashboardUpcomingArrivals(days);
   // Même règle que partout ailleurs sur cet écran : la ligne ouvre le séjour,
   // elle ne quitte pas le tableau de bord.
   // ⚠️ Avant tout early return (règles des hooks).
   const [opened, setOpened] = React.useState<DashboardUpcomingArrival | null>(null);
-  // Le tableau ne defile pas : il montre les arrivees qui tiennent dans la
-  // hauteur de sa ligne, et compte les autres. La plus proche est la plus
-  // utile — c'est donc la FIN de la liste qu'on abrege.
-  const { ref: bodyRef, hidden } = useFitRows<HTMLDivElement>('tbody > tr');
-
-  if (isLoading) return null;
+  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')} error={isError} onRetry={() => { void refetch(); }} />;
   const rows = data ?? [];
 
   return (
-    <section className="flex h-full flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
-      <div className="flex shrink-0 items-center justify-between px-4 pt-4 pb-2">
+    <section className="db-widget-surface flex flex-col rounded-lg bg-card ring-1 ring-foreground/10">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-2">
         <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
           {t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')} ({days} j)
         </h3>
@@ -1387,16 +1381,26 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
           </BlockEmpty>
         </div>
       ) : (
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-hidden">
+        <div className="db-widget-body" tabIndex={0} role="region" aria-label={t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')}>
+        <div className="db-arrivals-table">
         <Table>
+          <colgroup>
+            <col className="db-arrivals-col-guest" />
+            <col />
+            <col className="db-arrivals-col-date" />
+            <col className="db-arrivals-col-nights" />
+            <col className="db-arrivals-col-channel" />
+            <col className="db-arrivals-col-status" />
+            <col className="db-arrivals-col-total" />
+          </colgroup>
           <TableHeader>
             <TableRow>
               <TableHead>{t('dashboard.upcomingArrivals.guest', 'Voyageur')}</TableHead>
               <TableHead>{t('dashboard.upcomingArrivals.property', 'Logement')}</TableHead>
               <TableHead>{t('dashboard.upcomingArrivals.checkIn', 'Arrivée')}</TableHead>
-              <TableHead className="text-end">{t('dashboard.upcomingArrivals.nights', 'Nuits')}</TableHead>
-              <TableHead>{t('dashboard.upcomingArrivals.channel', 'Canal')}</TableHead>
-              <TableHead>{t('dashboard.upcomingArrivals.status', 'Statut')}</TableHead>
+              <TableHead className="text-center">{t('dashboard.upcomingArrivals.nights', 'Nuits')}</TableHead>
+              <TableHead className="text-center">{t('dashboard.upcomingArrivals.channel', 'Canal')}</TableHead>
+              <TableHead className="text-end">{t('dashboard.upcomingArrivals.status', 'Statut')}</TableHead>
               <TableHead className="text-end">{t('dashboard.upcomingArrivals.total', 'Total')}</TableHead>
             </TableRow>
           </TableHeader>
@@ -1410,21 +1414,17 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
                 <TableCell>
                   <span className="flex items-center gap-2">
                     <GuestAvatar name={row.guestName ?? '?'} photoUrl={guestPhotoSrc(row.guestAvatarUrl)} size={24} />
-                    <span className="font-medium">{row.guestName}</span>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); setOpened(row); }}
+                      className="cursor-pointer rounded-sm text-start font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">{row.guestName}</button>
                   </span>
                 </TableCell>
                 <TableCell>{row.propertyName}</TableCell>
                 <TableCell>{formatArrivalDate(row.checkIn)}</TableCell>
-                <TableCell className="text-end tabular-nums">{row.nights}</TableCell>
-                <TableCell>
-                  <StatusChip
-                    color={channelColor(row.source)}
-                    label={channelLabel(row.source, row.sourceName)}
-                    dot
-                    size="sm"
-                  />
+                <TableCell className="text-center tabular-nums">{row.nights}</TableCell>
+                <TableCell className="text-center">
+                  <ChannelTag channel={row.source ?? 'other'} label={row.sourceName ?? undefined} iconOnly />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-end">
                   <StatusChip {...paymentChip(row, t)} dot size="sm" />
                 </TableCell>
                 <TableCell className="text-end tabular-nums">
@@ -1435,16 +1435,34 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
           </TableBody>
         </Table>
         </div>
+        <ul className="db-arrival-list m-0 list-none divide-y divide-border px-4">
+          {rows.map((row) => (
+            <li key={row.reservationId} className="py-3">
+              <button type="button" onClick={() => setOpened(row)}
+                className="flex w-full cursor-pointer items-start gap-2 rounded-md text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                <GuestAvatar name={row.guestName ?? '?'} photoUrl={guestPhotoSrc(row.guestAvatarUrl)} size={28} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{row.guestName}</span>
+                  <span className="block text-xs text-muted-foreground">{row.propertyName}</span>
+                </span>
+              </button>
+              <dl className="m-0 mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                {[
+                  [t('dashboard.upcomingArrivals.checkIn', 'Arrivée'), formatArrivalDate(row.checkIn)],
+                  [t('dashboard.upcomingArrivals.nights', 'Nuits'), row.nights],
+                  [t('dashboard.upcomingArrivals.channel', 'Canal'), <ChannelTag key="channel" channel={row.source ?? 'other'} label={row.sourceName ?? undefined} iconOnly />],
+                  [t('dashboard.upcomingArrivals.status', 'Statut'), <StatusChip key="status" {...paymentChip(row, t)} dot size="sm" />],
+                  [t('dashboard.upcomingArrivals.total', 'Total'), row.totalPrice != null ? <Money key="total" value={row.totalPrice} decimals={0} /> : '—'],
+                ].map(([label, value], index) => <div key={index} className="min-w-0">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="m-0 mt-0.5 font-medium tabular-nums">{value}</dd>
+                </div>)}
+              </dl>
+            </li>
+          ))}
+        </ul>
+        </div>
       )}
-      {hidden > 0 && (
-        <p className="m-0 shrink-0 px-4 py-1.5 text-2xs font-semibold text-muted-foreground">
-          {t('dashboard.upcomingArrivals.more', {
-            count: hidden,
-            defaultValue: '+ {{count}} autres arrivées',
-          })}
-        </p>
-      )}
-
       <ReservationActionDialog
         reservationId={opened?.reservationId ?? null}
         onClose={() => setOpened(null)}
@@ -1462,7 +1480,7 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
 /** « Ven. 25 juil. » — format court, dans la locale de l'utilisateur. */
 function formatArrivalDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
-  return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return date.toLocaleDateString(activeIntlLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 /**

@@ -1,6 +1,8 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.DashboardOverviewSummaryDto;
+import com.clenzy.dto.ChannelRevenueDto;
+import com.clenzy.model.ChannelSources;
 import com.clenzy.dto.DashboardOverviewSummaryDto.InterventionsStatDto;
 import com.clenzy.dto.DashboardOverviewSummaryDto.GuestRatingDto;
 import com.clenzy.dto.DashboardOverviewSummaryDto.KpiTrendDto;
@@ -31,6 +33,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -75,6 +78,7 @@ public class DashboardOverviewSummaryService {
     private final UserRepository userRepository;
     private final CalendarDayRepository calendarDayRepository;
     private final Clock clock;
+    private final CurrencyConverterService currencyConverter;
 
     public DashboardOverviewSummaryService(PropertyRepository propertyRepository,
                                            ReservationRepository reservationRepository,
@@ -83,7 +87,8 @@ public class DashboardOverviewSummaryService {
                                            GuestReviewRepository guestReviewRepository,
                                            UserRepository userRepository,
                                            CalendarDayRepository calendarDayRepository,
-                                           Clock clock) {
+                                           Clock clock,
+                                           CurrencyConverterService currencyConverter) {
         this.propertyRepository = propertyRepository;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
@@ -92,6 +97,7 @@ public class DashboardOverviewSummaryService {
         this.userRepository = userRepository;
         this.calendarDayRepository = calendarDayRepository;
         this.clock = clock;
+        this.currencyConverter = currencyConverter;
     }
 
     public DashboardOverviewSummaryDto getSummary(Long orgId, int days, UserRole role, String keycloakId) {
@@ -123,6 +129,7 @@ public class DashboardOverviewSummaryService {
         final KpiTrendDto adr;
         final KpiTrendDto revPan;
         final KpiTrendDto bookings;
+        List<ChannelRevenueDto> channels = List.of();
         if (financial && propertiesActive > 0) {
             final List<Reservation> stays = reservationRepository.findOverlappingWindowForDashboard(
                     prevStart, curEndExclusive, orgId, ownerKc).stream()
@@ -140,6 +147,7 @@ public class DashboardOverviewSummaryService {
             adr = new KpiTrendDto(cur.adr, growthPct(cur.adr, prev.adr));
             revPan = new KpiTrendDto(cur.revPan, growthPct(cur.revPan, prev.revPan));
             bookings = new KpiTrendDto(cur.bookings, growthPct(cur.bookings, prev.bookings));
+            channels = channelRevenue(cur, prev);
         } else {
             occupancy = new KpiTrendDto(0, 0);
             revenue = new KpiTrendDto(0, 0);
@@ -182,19 +190,23 @@ public class DashboardOverviewSummaryService {
                 new ServiceRequestsStatDto(srPending, srTotal),
                 interventionsStat,
                 urgentCount,
-                pendingPayments);
+                pendingPayments,
+                new DashboardOverviewSummaryDto.FinancialContextDto(curStart, curEndExclusive,
+                        clock.getZone().getId(), "EUR", "ACCOMMODATION_REVENUE"),
+                channels);
     }
 
     /**
      * Agrégats financiers d'une fenêtre [start, endExclusive) sur des séjours non annulés —
      * nuits et CA hébergement proratisés, occupation cappée.
      */
-    private static FinancialWindow aggregateWindow(List<Reservation> stays,
+    private FinancialWindow aggregateWindow(List<Reservation> stays,
                                                    LocalDate start, LocalDate endExclusive,
                                                    long availableNights) {
         long occupiedNights = 0L;
         long bookings = 0L;
         BigDecimal revenue = BigDecimal.ZERO;
+        Map<String, BigDecimal> byChannel = new HashMap<>();
         for (Reservation r : stays) {
             // « Réservations de la période » = celles qui COMMENCENT dans la
             // fenêtre — un séjour à cheval n'est pas compté deux fois.
@@ -202,7 +214,17 @@ public class DashboardOverviewSummaryService {
                 bookings++;
             }
             occupiedNights += AccommodationKpis.nightsWithin(r, start, endExclusive);
-            revenue = revenue.add(AccommodationKpis.proratedAccommodationRevenue(r, start, endExclusive));
+            final String currency = r.getCurrency() == null || r.getCurrency().isBlank()
+                    ? "EUR" : r.getCurrency().trim().toUpperCase(Locale.ROOT);
+            final BigDecimal amount = AccommodationKpis.proratedAccommodationRevenue(r, start, endExclusive,
+                    value -> "EUR".equals(currency) ? value
+                            : currencyConverter.convert(value, currency, "EUR", r.getCheckIn()));
+            revenue = revenue.add(amount);
+            String source = r.getSource();
+            if (source == null || source.isBlank() || "other".equalsIgnoreCase(source)) {
+                source = ChannelSources.fromName(r.getSourceName());
+            }
+            byChannel.merge(source.trim().toLowerCase(Locale.ROOT), amount, BigDecimal::add);
         }
         final double occupancyRate = availableNights > 0
                 ? Math.min(100.0, occupiedNights * 100.0 / availableNights)
@@ -214,7 +236,22 @@ public class DashboardOverviewSummaryService {
                 ? revenue.divide(BigDecimal.valueOf(availableNights), 2, RoundingMode.HALF_UP).doubleValue()
                 : 0.0;
         return new FinancialWindow(round1(occupancyRate),
-                revenue.setScale(2, RoundingMode.HALF_UP).doubleValue(), adr, revPan, bookings);
+                revenue.setScale(2, RoundingMode.HALF_UP).doubleValue(), adr, revPan, bookings, byChannel);
+    }
+
+    private static List<ChannelRevenueDto> channelRevenue(FinancialWindow current, FinancialWindow previous) {
+        Set<String> sources = new HashSet<>(current.byChannel.keySet());
+        sources.addAll(previous.byChannel.keySet());
+        return sources.stream().map(source -> {
+            BigDecimal amount = current.byChannel.getOrDefault(source, BigDecimal.ZERO);
+            double before = previous.byChannel.getOrDefault(source, BigDecimal.ZERO).doubleValue();
+            return new ChannelRevenueDto(source, source, amount,
+                    current.revenue > 0 ? round1(amount.doubleValue() * 100 / current.revenue) : 0,
+                    previous.revenue > 0 ? round1(before * 100 / previous.revenue) : null);
+        }).filter(channel -> channel.amount().signum() != 0 || (channel.comparePct() != null && channel.comparePct() > 0))
+          .sorted(java.util.Comparator.comparing(ChannelRevenueDto::amount).reversed()
+                  .thenComparing(ChannelRevenueDto::source))
+          .toList();
     }
 
     private InterventionsStatDto aggregateInterventions(List<Intervention> interventions,
@@ -274,7 +311,7 @@ public class DashboardOverviewSummaryService {
     }
 
     private record FinancialWindow(double occupancyRate, double revenue, double adr, double revPan,
-                                   long bookings) {}
+                                   long bookings, Map<String, BigDecimal> byChannel) {}
 
     /**
      * Nuits fermées des logements actifs, logement par logement : une date bloquée sort des

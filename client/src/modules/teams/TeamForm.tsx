@@ -67,7 +67,7 @@ const DEPARTMENT_OPTIONS: ComboOption[] = FRENCH_DEPARTMENTS.map((d) => ({
 // compare donc sur la valeur, jamais sur l'identite de l'objet.
 const sameOption = (a?: ComboOption | null, b?: ComboOption | null) => a?.value === b?.value;
 
-const TeamForm: React.FC = () => {
+const TeamForm: React.FC<{ embedded?: boolean; onCreated?: () => void }> = ({ embedded = false, onCreated }) => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
@@ -106,6 +106,7 @@ const TeamForm: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: teamsKeys.all });
       setSuccess(true);
+      if (onCreated) { onCreated(); return; }
       setTimeout(() => {
         navigate('/teams');
       }, 1500);
@@ -228,7 +229,7 @@ const TeamForm: React.FC = () => {
 
   return (
     <div>
-      <PageHeader
+      {!embedded && <PageHeader
         title={t('teams.createTitle')}
         subtitle={t('teams.createSubtitle')}
         backPath="/teams"
@@ -251,7 +252,7 @@ const TeamForm: React.FC = () => {
             </Button>
           </div>
         }
-      />
+      />}
 
       {error && (
         <Alert variant="destructive" className="mb-3 py-1.5">
@@ -763,10 +764,9 @@ const TeamForm: React.FC = () => {
           </div>
         </div>
 
-        {/* Relais de soumission cible par `[data-submit-team]` depuis le PageHeader :
-            jamais visible, d'ou l'absence de variante utile (hidden). */}
-        <Button type="submit" className="hidden" data-submit-team>
-          Soumettre
+        {/* Visible inside the Baitly guide; the full page uses its header action. */}
+        <Button type="submit" className={embedded ? 'setup-primary mt-4' : 'hidden'} data-submit-team disabled={createMutation.isPending || filteredUsers.length === 0}>
+          {createMutation.isPending ? t('teams.creating') : t('teams.createTeam')}
         </Button>
       </form>
     </div>

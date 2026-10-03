@@ -912,6 +912,44 @@
   font-size: 12px;
   background: #f4f8fa;
 }
+.bpm-demo-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.bpm-demo-buttons button[data-voice-toggle][aria-pressed='true'],
+.bpm-demo-buttons button[data-attention] {
+  border-color: #264672;
+  color: #264672;
+}
+/* Voix coupée après la première boucle : le bouton invite à la réactiver. */
+.bpm-demo-buttons button[data-attention] {
+  animation: bpm-wobble 3.6s ease-in-out infinite;
+}
+@keyframes bpm-wobble {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0);
+  }
+  2% {
+    transform: rotate(-3deg);
+  }
+  5% {
+    transform: rotate(3deg);
+  }
+  8% {
+    transform: rotate(-2deg);
+  }
+  11% {
+    transform: rotate(1.5deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bpm-demo-buttons button[data-attention] {
+    animation: none;
+  }
+}
 .bpm-demo-controls svg {
   width: 13px;
   height: 13px;
@@ -928,10 +966,32 @@
 }
 .bpm-planning-canvas {
   min-width: 900px;
+  text-align: start;
+}
+.bpm-planning-canvas[dir='rtl'] .bpm-directional-icon {
+  transform: scaleX(-1);
+}
+.bpm-planning-canvas[lang='ar'] :is([class*='tracking-'], .bpm-property strong) {
+  letter-spacing: normal;
+}
+.bpm-planning-canvas[lang='ar'] .bpm-property strong {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.bpm-planning-canvas[lang='ar'] .bpm-property div > span {
+  line-height: 1.5;
+}
+.bpm-planning-canvas[lang='ar'] [data-date-index] > span:first-child {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.bpm-planning-canvas[lang='ar'] .bpm-reservation-copy {
+  line-height: 1.35;
 }
 .bpm-planning-sidebar {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   width: 44px;
   background: #0e1727;
   display: flex;
@@ -972,7 +1032,7 @@
   margin-bottom: 14px;
 }
 .bpm-planning-main {
-  margin-left: 44px;
+  margin-inline-start: 44px;
   background: #e8eef5;
 }
 .bpm-planning-grid {
@@ -996,7 +1056,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-right: auto;
+  margin-inline-end: auto;
   font-size: 18px;
   font-weight: 650;
 }
@@ -1029,7 +1089,7 @@
   border: 1px solid #d7e1ec;
   color: #5e7585;
   font-size: 11px;
-  margin-left: 5px;
+  margin-inline-start: 5px;
 }
 .bpm-planning-filters {
   display: flex;
@@ -1111,7 +1171,7 @@
 .bpm-occupancy > span {
   display: flex;
   align-items: center;
-  padding-left: 14px;
+  padding-inline-start: 14px;
   flex-shrink: 0;
   text-transform: uppercase;
   font-size: 10px;
@@ -1124,7 +1184,7 @@
 .bpm-occupancy small {
   display: grid;
   place-items: center;
-  border-left: 1px solid #d5dfe7;
+  border-inline-start: 1px solid #d5dfe7;
   font-size: 10px;
   color: #546772;
 }
@@ -1140,7 +1200,7 @@
   background: #fcfdfd;
 }
 .bpm-planning-pagination > span {
-  margin-right: auto;
+  margin-inline-end: auto;
 }
 .bpm-planning-pagination strong {
   display: grid;

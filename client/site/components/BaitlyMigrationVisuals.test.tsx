@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it } from 'vitest';
 import { BaitlyMigrationSources } from './BaitlyMigrationVisuals';
 import { BAITLY_MIGRATION_MESSAGES } from '../lib/messages/baitlyMigration';
+import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
 
 afterEach(cleanup);
 
@@ -16,8 +17,8 @@ describe('Exploration des méthodes de migration', () => {
     'actualise les instructions et la correspondance pour chaque source en %s',
     (language) => {
       const m = BAITLY_MIGRATION_MESSAGES[language];
-      render(<BaitlyMigrationSources m={m} />);
-      for (const source of m.channels) {
+      render(<BaitlyMigrationSources m={m} language={language} />);
+      for (const [index, source] of m.channels.entries()) {
         const button = screen.getByRole('button', {
           name: source.name,
           exact: true,
@@ -30,6 +31,14 @@ describe('Exploration des méthodes de migration', () => {
         const panel = screen.getByRole('region', {
           name: source.name,
         });
+        if (index === 1) {
+          expect(
+            within(panel).getByRole('combobox', {
+              name: PMS_PORTABILITY_MESSAGES[language].label,
+            }),
+          ).toBeVisible();
+          continue;
+        }
         expect(
           within(panel).getByRole('heading', { name: source.title }),
         ).toBeVisible();

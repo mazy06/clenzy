@@ -102,7 +102,7 @@ public class CalendarEngine {
 
     /**
      * Calendrier jour par jour d'une propriete sur la plage [from, to].
-     * L'absence de ligne = jour disponible (convention Clenzy).
+     * L'absence de ligne = jour disponible (convention Baitly).
      */
     @Transactional(readOnly = true)
     public List<CalendarDay> getDays(Long propertyId, LocalDate from, LocalDate to, Long orgId) {
@@ -829,6 +829,34 @@ public class CalendarEngine {
      * Acquiert le lock advisory transactionnel sur la propriete.
      * Leve CalendarLockException si le lock est deja pris.
      */
+    /**
+     * Adopts an existing PMS stay without replaying pricing, restrictions or OTA notifications.
+     * Still uses the calendar's lock/conflict checks and invalidates local availability caches.
+     */
+    @Transactional
+    public void importReservation(Reservation reservation, String actorId) {
+        Property property = reservation.getProperty();
+        Long orgId = reservation.getOrganizationId();
+        organizationAccessGuard.requireSameOrganization(property.getOrganizationId(), orgId, "IMPORT_PROPERTY_ACCESS");
+        if (!reservation.isMigrationAutomationPaused() || !"confirmed".equals(reservation.getStatus())
+            || !reservation.getCheckOut().isAfter(reservation.getCheckIn())) {
+            throw new IllegalArgumentException("IMPORT_RESERVATION_INVALID");
+        }
+        acquireLock(property.getId());
+        long conflicts = calendarDayRepository.countConflicts(property.getId(), reservation.getCheckIn(),
+            reservation.getCheckOut(), orgId);
+        if (conflicts > 0) throw new CalendarConflictException(property.getId(), reservation.getCheckIn(), reservation.getCheckOut(), conflicts);
+        List<CalendarDay> days = upsertDays(property, reservation.getCheckIn(), reservation.getCheckOut(), orgId);
+        for (CalendarDay day : days) {
+            day.setStatus(CalendarDayStatus.BOOKED);
+            day.setReservation(reservation);
+            day.setSource("PMS_IMPORT");
+        }
+        calendarDayRepository.saveAll(days);
+        logCommand(orgId, property.getId(), CalendarCommandType.BOOK, reservation.getCheckIn(),
+            reservation.getCheckOut(), "PMS_IMPORT", reservation.getId(), actorId, null);
+    }
+
     private void acquireLock(Long propertyId) {
         boolean locked = calendarDayRepository.acquirePropertyLock(propertyId);
         if (!locked) {

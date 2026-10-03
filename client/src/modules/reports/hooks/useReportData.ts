@@ -1,153 +1,25 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  reportsApi,
-  InterventionReportData,
-  PropertyReportData,
-  TeamReportData,
-  FinancialReportData,
-} from '../../../services/api/reportsApi';
+import { useQuery } from '@tanstack/react-query';
+import { reportsApi } from '../../../services/api/reportsApi';
+import { useAuth } from '../../../hooks/useAuth';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface UseReportDataState<T> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-  retry: () => void;
+/** Cache partagé par source et compte, jamais entre deux organisations. */
+function useReportData<T>(source: string, fetchData: () => Promise<T>) {
+  const { user } = useAuth();
+  const query = useQuery({
+    queryKey: ['reports', 'stats', source, user?.id, user?.organizationId],
+    queryFn: fetchData,
+    enabled: Boolean(user),
+    staleTime: 60_000,
+  });
+  return {
+    data: query.data ?? null,
+    loading: !user || query.isLoading,
+    error: query.error?.message ?? null,
+    retry: () => { void query.refetch(); },
+  };
 }
 
-// ─── Hook: useInterventionReport ────────────────────────────────────────────
-
-export function useInterventionReport(): UseReportDataState<InterventionReportData> {
-  const [data, setData] = useState<InterventionReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await reportsApi.getInterventionStats();
-      setData(result);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des donnees';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const retry = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const memoizedData = useMemo(() => data, [data]);
-
-  return { data: memoizedData, loading, error, retry };
-}
-
-// ─── Hook: usePropertyReport ────────────────────────────────────────────────
-
-export function usePropertyReport(): UseReportDataState<PropertyReportData> {
-  const [data, setData] = useState<PropertyReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await reportsApi.getPropertyStats();
-      setData(result);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des donnees';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const retry = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const memoizedData = useMemo(() => data, [data]);
-
-  return { data: memoizedData, loading, error, retry };
-}
-
-// ─── Hook: useTeamReport ────────────────────────────────────────────────────
-
-export function useTeamReport(): UseReportDataState<TeamReportData> {
-  const [data, setData] = useState<TeamReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await reportsApi.getTeamStats();
-      setData(result);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des donnees';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const retry = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const memoizedData = useMemo(() => data, [data]);
-
-  return { data: memoizedData, loading, error, retry };
-}
-
-// ─── Hook: useFinancialReport ───────────────────────────────────────────────
-
-export function useFinancialReport(): UseReportDataState<FinancialReportData> {
-  const [data, setData] = useState<FinancialReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await reportsApi.getFinancialStats();
-      setData(result);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des donnees';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const retry = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const memoizedData = useMemo(() => data, [data]);
-
-  return { data: memoizedData, loading, error, retry };
-}
+export const useInterventionReport = () => useReportData('interventions', reportsApi.getInterventionStats);
+export const usePropertyReport = () => useReportData('properties', reportsApi.getPropertyStats);
+export const useTeamReport = () => useReportData('teams', reportsApi.getTeamStats);
+export const useFinancialReport = () => useReportData('financial', reportsApi.getFinancialStats);

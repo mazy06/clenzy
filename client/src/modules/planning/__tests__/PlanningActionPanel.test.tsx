@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // useCurrency depend de CurrencyProvider + react-query. Stub deterministe
 // pour eviter de monter tout le provider stack dans un test unitaire.
-vi.mock('../../../hooks/useCurrency', () => ({
+vi.mock('../../../hooks/currencyDisplayContext', () => ({
   useCurrency: () => ({
     currency: 'EUR',
     setCurrency: vi.fn(),

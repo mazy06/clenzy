@@ -701,8 +701,32 @@
   align-items: end;
 }
 .brs-currency {
-  width: 130px;
   margin-block: 22px;
+}
+.brs-currency .site-currency-options {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.brs-currency .site-currency-options button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.brs-currency .site-currency-options .site-currency-symbol {
+  opacity: 0.7;
+}
+.brs-currency-code {
+  display: none;
+}
+/* Téléphone : les trois noms complets ne tiennent pas sur une ligne — drapeau + code ISO. */
+@media (max-width: 480px) {
+  .brs-currency-name,
+  .brs-currency .site-currency-options .site-currency-symbol {
+    display: none;
+  }
+  .brs-currency-code {
+    display: inline;
+    font-weight: 600;
+  }
 }
 .brs-result {
   background: var(--brs-green);

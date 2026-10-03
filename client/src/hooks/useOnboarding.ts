@@ -22,11 +22,11 @@ export function useOnboarding() {
   const userRole = useMemo(() => {
     if (!user?.roles?.length) return '';
     // Priority: platform roles first, then business roles
-    const rolePriority = ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'];
+    const rolePriority = ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'PROPERTY_OWNER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'];
     return rolePriority.find((r) => user.roles.includes(r)) ?? user.roles[0];
   }, [user?.roles]);
 
-  const { data: status, isLoading } = useQuery<OnboardingStatus>({
+  const { data: status, isLoading, refetch } = useQuery<OnboardingStatus>({
     queryKey: QUERY_KEY,
     queryFn: onboardingApi.getMyStatus,
     enabled: !!userRole,
@@ -35,7 +35,8 @@ export function useOnboarding() {
 
   // Merge config steps with server status
   const steps: OnboardingStepWithStatus[] = useMemo(() => {
-    const configSteps = getOnboardingSteps(userRole);
+    // Use the same role as server-side progression when a user has multiple roles.
+    const configSteps = getOnboardingSteps(status?.role ?? userRole);
     const serverSteps = status?.steps ?? [];
     const serverMap = new Map(serverSteps.map((s) => [s.key, s]));
 
@@ -103,6 +104,13 @@ export function useOnboarding() {
     isLoading,
     userRole,
     completeStep,
+    checkStep: async (key: string) => {
+      const result = await refetch();
+      if (result.error) throw result.error;
+      return result.data?.steps.some(step => step.key === key && step.completed) ?? false;
+    },
+    isCompleting: completeMutation.isPending,
+    completionError: completeMutation.error,
     dismiss,
     reset,
   };

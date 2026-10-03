@@ -13,6 +13,13 @@ import java.util.List;
 import java.util.Set;
 
 public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> {
+    /** One indexed conflict check for the whole staged import, instead of one round-trip per row. */
+    @Query(value = "SELECT r.row_key FROM jsonb_to_recordset(CAST(:ranges AS jsonb)) "
+        + "AS r(row_key text, property_id bigint, date_from date, date_to date, status text) "
+        + "WHERE r.status = 'confirmed' AND EXISTS (SELECT 1 FROM calendar_days cd "
+        + "WHERE cd.organization_id = :org AND cd.property_id = r.property_id "
+        + "AND cd.date >= r.date_from AND cd.date < r.date_to AND cd.status <> 'AVAILABLE')", nativeQuery = true)
+    List<String> findPmsImportConflicts(@Param("ranges") String ranges, @Param("org") Long org);
 
     /**
      * Acquiert un advisory lock transactionnel sur une propriete.
@@ -126,7 +133,7 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
     /**
      * Dates BOOKED d'une plage (yield v1 F8a : occupation de la fenetre = taille
      * du resultat / jours de la fenetre, et les nuits reservees ne sont jamais
-     * re-tarifees). Convention Clenzy : absence de ligne = disponible.
+     * re-tarifees). Convention Baitly : absence de ligne = disponible.
      */
     @Query("SELECT cd.date FROM CalendarDay cd WHERE cd.property.id = :propertyId " +
            "AND cd.date >= :from AND cd.date < :to AND cd.status = com.clenzy.model.CalendarDayStatus.BOOKED " +
@@ -154,7 +161,7 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
 
     /**
      * Jours INDISPONIBLES (≠ AVAILABLE) par propriété sur [from, to) (batch, urgence honnête 2.9).
-     * Convention Clenzy : absence de ligne = disponible → dispo = (jours fenêtre) − (count retourné).
+     * Convention Baitly : absence de ligne = disponible → dispo = (jours fenêtre) − (count retourné).
      */
     @Query("SELECT cd.property.id, COUNT(cd) FROM CalendarDay cd WHERE cd.property.id IN :propertyIds " +
            "AND cd.date >= :from AND cd.date < :to " +

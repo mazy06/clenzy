@@ -245,6 +245,7 @@ export interface DashboardLayout {
   /** Tuiles natives retirées de l'écran — le sélecteur les repropose. */
   hidden: string[];
   isLoaded: boolean;
+  isLoading: boolean;
   /** L'utilisateur a-t-il une disposition à lui ? Pilote l'affichage du « Réinitialiser ». */
   isCustomized: boolean;
   /**
@@ -282,7 +283,7 @@ export function useDashboardLayout(
   defaultRows: string[][],
   options: MergeOptions = {},
 ): DashboardLayout {
-  const [saved, setSaved, { isLoaded, reset: resetPref }] = useUserPreference<SavedLayout>(
+  const [saved, setSaved, { isLoaded, isLoading, reset: resetPref }] = useUserPreference<SavedLayout>(
     LAYOUT_KEY,
     [],
   );
@@ -361,6 +362,7 @@ export function useDashboardLayout(
     rows,
     hidden,
     isLoaded,
+    isLoading,
     isCustomized: Array.isArray(saved)
       ? saved.length > 0
       : Boolean(saved && ((saved.rows?.length ?? 0) > 0 || (saved.hidden?.length ?? 0) > 0)),

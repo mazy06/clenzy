@@ -19,6 +19,9 @@ spring:
       connection-timeout: 20000
       pool-name: ClenzyHikariPool-CI
   jpa:
+    # Ces tables JDBC n'ont pas d'entite JPA : les initialiser apres le schema
+    # Hibernate, avant le seeder et les schedulers. Les SQL restent ceux de prod.
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
@@ -37,6 +40,15 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   liquibase:
     enabled: false   # CI utilise Hibernate create-drop (base ephemere)
+  sql:
+    init:
+      mode: always
+      schema-locations:
+        - classpath:db/changelog/changes/0359__create_shedlock_table.sql
+        - classpath:ci/baitly-assignment-tables.sql
+        - classpath:db/changelog/changes/0476__assignment_durable_jobs.sql
+      # Les fonctions PL/pgSQL contiennent des points-virgules internes.
+      separator: "^^^ END OF SCRIPT ^^^"
   security:
     oauth2:
       resourceserver:
@@ -160,7 +172,7 @@ tuya:
     access-id: ci-dummy
     access-secret: ci-dummy
 
-# Clenzy custom
+# Baitly custom
 clenzy:
   security:
     rate-limit:
@@ -169,6 +181,10 @@ clenzy:
       # sur le limiteur. Le trafic reel repartit la charge sur autant d'identites
       # qu'il y a d'utilisateurs — le plafond est donc un artefact du harnais.
       api-per-minute: 1000000
+      # Le meme tenant heberge les 50 VUs : son plafond de production (3000/min)
+      # saturait au plateau et transformait 6,84 % du trafic mesure en 429.
+      # Seul le profil CI releve ces plafonds, le limiteur reste teste separement.
+      org-per-minute: 1000000
   # Jeu de donnees de charge (PerfTestDataSeeder) : le `sub` du JWT de CI doit
   # correspondre a cet identifiant, sinon le TenantFilter refuse tout en 403.
   perf:

@@ -89,7 +89,7 @@ describe('Guide et journal réglementaire', () => {
   it('recherche les anciens articles pratiques et les filtre avec les dossiers', () => {
     const { container } = mount('/ressources/blog?lang=fr');
     const reading = BAITLY_RESOURCE_MESSAGES.fr.blog.articles[0];
-    expect(screen.getByRole('status')).toHaveTextContent('27 articles');
+    expect(screen.getByRole('status')).toHaveTextContent('28 articles');
     fireEvent.change(screen.getByRole('combobox'), {
       target: { value: 'revenus' },
     });
@@ -224,7 +224,7 @@ describe('Guide et journal réglementaire', () => {
     fireEvent.click(
       screen.getByRole('button', { name: LEGAL_MESSAGES.fr.reset }),
     );
-    expect(screen.getByRole('status')).toHaveTextContent('27 articles');
+    expect(screen.getByRole('status')).toHaveTextContent('28 articles');
     expect(screen.getByRole('searchbox')).toHaveValue('');
   });
 

@@ -2,6 +2,7 @@ import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { AgentsBoard, INITIAL_AUTONOMY, INITIAL_COUNTS } from './baitlyAgentsDemoBoard';
 import { AGENTS_DEMO_MESSAGES } from '../lib/messages/baitlyAgentsDemo';
+import { SiteLanguageProvider } from '../lib/siteLanguage';
 
 afterEach(() => {
   cleanup();
@@ -25,12 +26,14 @@ it('fits the measured column and follows its resize while the demo is paused', (
     disconnect() { observers.delete(this.callback); }
   });
   const { container, unmount } = render(
-    <AgentsBoard
-      m={AGENTS_DEMO_MESSAGES.fr}
-      height={530}
-      playing={false}
-      state={{ view: 'orbit', selected: 'rep', counts: INITIAL_COUNTS, autonomy: INITIAL_AUTONOMY, leaving: new Set(), gone: new Set() }}
-    />,
+    <SiteLanguageProvider initialLanguage="fr">
+      <AgentsBoard
+        m={AGENTS_DEMO_MESSAGES.fr}
+        height={530}
+        playing={false}
+        state={{ view: 'orbit', selected: 'rep', counts: INITIAL_COUNTS, autonomy: INITIAL_AUTONOMY, leaving: new Set(), gone: new Set() }}
+      />
+    </SiteLanguageProvider>,
   );
   const canvas = container.querySelector<HTMLElement>('[data-supervision-constellation]')!;
   const initialSide = parseFloat(canvas.style.width);

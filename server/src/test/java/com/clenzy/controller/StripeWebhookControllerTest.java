@@ -68,11 +68,12 @@ class StripeWebhookControllerTest {
     @Mock private com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService;
     @Mock private com.clenzy.service.dashboard.PaymentEventActionRecorder paymentEventActionRecorder;
 
+    @Mock private com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore;
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder, paymentConnectionStore);
         setField("webhookSecret", "whsec_test_secret");
     }
 
@@ -749,6 +750,18 @@ class StripeWebhookControllerTest {
     @Nested
     @DisplayName("account.updated dispatch")
     class AccountUpdated {
+
+        @Test
+        void deauthorizationRevokesTheStoredConnection() {
+            Event event = new Event();
+            event.setId("evt_deauthorized"); event.setType("account.application.deauthorized"); event.setAccount("acct_revoked");
+            try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
+                mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString())).thenReturn(event);
+                assertThat(controller.handleStripeWebhook("payload", "sig").getStatusCode().value()).isEqualTo(200);
+                verify(stripeConnectService).handleAccountUpdated("acct_revoked", false, false);
+                verify(paymentConnectionStore).deauthorize("acct_revoked");
+            }
+        }
 
         @Test
         @DisplayName("dispatches to stripeConnectService.handleAccountUpdated")

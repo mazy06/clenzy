@@ -21,7 +21,26 @@ export interface GuestRating {
   count: number;
 }
 
+export interface DashboardFinancialContext {
+  from: string;
+  toExclusive: string;
+  timezone: string;
+  currency: string;
+  metric: 'ACCOMMODATION_REVENUE';
+}
+
+export interface DashboardChannelRevenue {
+  source: string;
+  label: string;
+  amount: number;
+  pct: number;
+  comparePct: number | null;
+}
+
 export interface DashboardOverviewSummary {
+  /** Optional during a rolling server/client deployment. */
+  financialContext?: DashboardFinancialContext;
+  revenueByChannel?: DashboardChannelRevenue[];
   occupancyRate: KpiTrend;
   totalRevenue: KpiTrend;
   adr: KpiTrend;

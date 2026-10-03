@@ -1,0 +1,34 @@
+.baitly-integration-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  vertical-align: middle;
+}
+.baitly-integration-logo img {
+  display: block;
+  object-fit: contain;
+  flex: none;
+  max-inline-size: 100%;
+}
+.baitly-integration-logo .baitly-integration-logo-dark {
+  display: none;
+}
+[data-theme="dark"]
+  .baitly-integration-logo:has(.baitly-integration-logo-dark)
+  .baitly-integration-logo-light {
+  display: none;
+}
+[data-theme="dark"] .baitly-integration-logo .baitly-integration-logo-dark {
+  display: block;
+}
+/* Official white Tap mark and black Aslan mark keep their own colors on a fixed neutral surface. */
+.baitly-integration-logo--tap {
+  background: #17263b;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.baitly-integration-logo--aslan {
+  background: #f2f5f8;
+  border-radius: 6px;
+}

@@ -23,6 +23,7 @@ import {
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_MIGRATION_MESSAGES } from '../lib/messages/baitlyMigration';
 import { downloadText } from '../lib/downloadText';
+import { BaitlyPortabilityCommitment } from '../components/BaitlyPmsPortability';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
 const { migrationProperty: riad } = SITE_PHOTOS;
@@ -77,7 +78,8 @@ export default function MigrationPage() {
         </div>
       </section>
 
-      <BaitlyMigrationSources m={m} />
+      <BaitlyMigrationSources m={m} language={language} />
+      <BaitlyPortabilityCommitment language={language} />
 
       <section className="bm-journey" aria-labelledby="migration-journey-title">
         <div className="site-shell">

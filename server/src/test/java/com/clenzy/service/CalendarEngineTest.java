@@ -132,6 +132,34 @@ class CalendarEngineTest {
     }
 
     @Test
+    void importedStayBooksExclusiveNightsWithoutPricingOrOtaEvents() {
+        property.setOrganizationId(orgId);
+        Reservation imported = new Reservation(property, "Salma Alaoui", checkIn, checkOut, "confirmed", "airbnb");
+        imported.setOrganizationId(orgId); imported.setId(100L); imported.setMigrationAutomationPaused(true);
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        calendarEngine.importReservation(imported, actorId);
+        @SuppressWarnings("unchecked") ArgumentCaptor<List<CalendarDay>> captor = ArgumentCaptor.forClass(List.class);
+        verify(calendarDayRepository).saveAll(captor.capture());
+        assertEquals(4, captor.getValue().size());
+        assertTrue(captor.getValue().stream().allMatch(day -> day.getStatus() == CalendarDayStatus.BOOKED
+            && day.getReservation() == imported && day.getDate().isBefore(checkOut)));
+        verifyNoInteractions(outboxPublisher, priceEngine, restrictionEngine);
+        verify(searchCacheInvalidator).onAvailabilityOrPriceChanged();
+    }
+
+    @Test
+    void conflictingImportedStayDoesNotOverwriteTheCalendar() {
+        property.setOrganizationId(orgId);
+        Reservation imported = new Reservation(property, "Salma Alaoui", checkIn, checkOut, "confirmed", "airbnb");
+        imported.setOrganizationId(orgId); imported.setMigrationAutomationPaused(true);
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(calendarDayRepository.countConflicts(propertyId, checkIn, checkOut, orgId)).thenReturn(1L);
+        assertThrows(CalendarConflictException.class, () -> calendarEngine.importReservation(imported, actorId));
+        verify(calendarDayRepository, never()).saveAll(any());
+        verifyNoInteractions(outboxPublisher);
+    }
+
+    @Test
     @DisplayName("l'event publie une borne 'to' INCLUSIVE, la ou le calendrier est en [from, to)")
     void publishedPayloadUsesInclusiveEndDate() {
         // Le calendrier va de checkIn a checkOut-1 ; l'event doit donc annoncer

@@ -25,6 +25,11 @@ const fr = {
     reassurance2: 'Démo personnalisée de 30 min',
     photoAlt: 'Une hôte à la réception consulte le planning Baitly',
     photoCaption: 'Le planning sous les yeux. L’esprit à l’accueil.',
+    screenLabel: 'Démonstrations dans l’écran de la réception',
+    screenPlanning: 'Planning',
+    screenAgents: 'Agents IA',
+    screenPause: 'Mettre le planning en pause',
+    screenPlay: 'Reprendre le planning',
     noteLabel: 'Votre équipe d’agents IA',
     agentDeck: [
       {
@@ -204,6 +209,11 @@ const en: HomeMessages = {
     reassurance2: '30-minute tailored demo',
     photoAlt: 'A host at reception checks the Baitly calendar',
     photoCaption: 'Your calendar in view. Your mind on your guests.',
+    screenLabel: 'Reception screen demonstrations',
+    screenPlanning: 'Calendar',
+    screenAgents: 'AI agents',
+    screenPause: 'Pause the calendar',
+    screenPlay: 'Resume the calendar',
     noteLabel: 'Your team of AI agents',
     agentDeck: [
       {
@@ -380,6 +390,11 @@ const ar: HomeMessages = {
     reassurance2: 'عرض مخصّص في 30 دقيقة',
     photoAlt: 'مضيفة في الاستقبال تتابع جدول بيتلي',
     photoCaption: 'الجدول أمامك. واهتمامك بضيوفك.',
+    screenLabel: 'عروض توضيحية على شاشة الاستقبال',
+    screenPlanning: 'التقويم',
+    screenAgents: 'وكلاء الذكاء الاصطناعي',
+    screenPause: 'إيقاف التقويم مؤقتاً',
+    screenPlay: 'استئناف التقويم',
     noteLabel: 'فريقك من وكلاء الذكاء الاصطناعي',
     agentDeck: [
       {

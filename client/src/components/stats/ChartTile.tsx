@@ -75,9 +75,11 @@ export const ChartTile: React.FC<{
   action?: React.ReactNode;
   /** Le contenu se dimensionne seul (liste, tableau) plutot qu'un graphique. */
   fluid?: boolean;
+  /** A bounded dashboard keeps long lists reachable without increasing the row height. */
+  scrollable?: boolean;
   children: React.ReactNode;
   className?: string;
-}> = ({ title, hint, action, fluid, children, className }) => (
+}> = ({ title, hint, action, fluid, scrollable = false, children, className }) => (
   <Card className={cn('flex min-h-0 flex-col gap-2 overflow-hidden border-border p-3.5', className)}>
     <div className="flex shrink-0 items-start gap-2">
       <div className="min-w-0 flex-1">
@@ -88,7 +90,9 @@ export const ChartTile: React.FC<{
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
-    <div className={fluid ? FLUID_BODY_CLASS : CHART_BODY_CLASS}>{children}</div>
+    <div className={cn(fluid ? FLUID_BODY_CLASS : CHART_BODY_CLASS, scrollable && 'overflow-auto')}
+      tabIndex={scrollable ? 0 : undefined} role={scrollable ? 'region' : undefined}
+      aria-label={scrollable ? title : undefined}>{children}</div>
   </Card>
 );
 

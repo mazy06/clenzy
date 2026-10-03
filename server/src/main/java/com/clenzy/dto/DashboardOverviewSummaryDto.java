@@ -1,6 +1,8 @@
 package com.clenzy.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Synthèse agrégée de l'écran Dashboard « Vue d'ensemble ».
@@ -26,7 +28,13 @@ public record DashboardOverviewSummaryDto(
         ServiceRequestsStatDto serviceRequests,
         InterventionsStatDto interventions,
         long urgentInterventionsCount,
-        long pendingPaymentsCount) {
+        long pendingPaymentsCount,
+        FinancialContextDto financialContext,
+        List<ChannelRevenueDto> revenueByChannel) {
+
+    /** Contrat commun aux KPI et à leur répartition par canal. Fin de fenêtre exclusive. */
+    public record FinancialContextDto(LocalDate from, LocalDate toExclusive, String timezone,
+                                      String currency, String metric) {}
 
     /** Valeur d'un KPI + variation (%) vs la fenêtre précédente de même durée. */
     public record KpiTrendDto(double value, double growth) {}

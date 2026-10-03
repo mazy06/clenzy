@@ -71,6 +71,7 @@ interface ICalImportModalProps {
   open: boolean;
   onClose: () => void;
   onImportSuccess?: () => void;
+  embedded?: boolean;
 }
 
 interface SourceDef {
@@ -173,7 +174,7 @@ const formatDate = (dateStr: string) => {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImportSuccess }) => {
+const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImportSuccess, embedded = false }) => {
   const { t } = useTranslation();
   const { user, isAdmin, isManager, isHost } = useAuth();
 
@@ -664,16 +665,10 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           blocks: t('icalImport.blocksPart', { count: previewBlocked }),
         });
 
-  return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
-      <DialogContent
-        showCloseButton={false}
-        aria-describedby={undefined}
-        className="sm:max-w-[600px] overflow-hidden"
-      >
+  const content = <>
         {/* En-tete pleine largeur : les marges negatives annulent le padding de
             la coque, comme le pied du kit le fait deja. */}
-        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-border px-4 py-2">
+        {!embedded && <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-border px-4 py-2">
           <DialogTitle className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
             <span className="flex size-8 items-center justify-center rounded-md bg-primary-soft text-primary">
               <CalendarIcon size={18} strokeWidth={1.75} />
@@ -689,12 +684,12 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           >
             <CloseIcon size={18} strokeWidth={1.75} />
           </BuiButton>
-        </DialogHeader>
+        </DialogHeader>}
 
         <StepIndicator steps={STEP_KEYS.map((key) => t(key))} activeStep={activeStep} />
 
         {/* Hauteur bornee + defilement : le Dialog MUI faisait defiler son corps. */}
-        <div className="max-h-[60vh] overflow-y-auto">
+        <div className={embedded ? '' : 'max-h-[60vh] overflow-y-auto'}>
           {activeStep === 0 && renderConfigStep()}
           {activeStep === 1 && renderPreviewStep()}
           {activeStep === 2 && renderResultStep()}
@@ -703,9 +698,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         <DialogFooter className="gap-1.5">
         {activeStep === 0 && (
           <>
-            <BuiButton onClick={handleClose} variant="outline" size="sm">
+            {!embedded && <BuiButton onClick={handleClose} variant="outline" size="sm">
               {t('common.cancel')}
-            </BuiButton>
+            </BuiButton>}
             <BuiButton
               onClick={handlePreview}
               variant="default"
@@ -741,15 +736,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </>
         )}
 
-        {activeStep === 2 && (
+        {activeStep === 2 && !embedded && (
           <BuiButton onClick={handleClose} variant="default" size="sm">
             {t('common.close')}
           </BuiButton>
         )}
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  </>;
+  if (embedded) return open ? <section>{content}</section> : null;
+  return <Dialog open={open} onOpenChange={next => { if (!next) handleClose(); }}><DialogContent showCloseButton={false} aria-describedby={undefined} className="sm:max-w-[600px] overflow-hidden">{content}</DialogContent></Dialog>;
 };
 
 export default ICalImportModal;

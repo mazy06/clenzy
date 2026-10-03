@@ -53,16 +53,26 @@ class UserOnboardingServiceTest {
     @Mock private MessagingAutomationConfigRepository messagingAutomationConfigRepository;
     @Mock private PaymentMethodConfigRepository paymentMethodConfigRepository;
     @Mock private ICalFeedRepository icalFeedRepository;
+    @Mock private PmsImportBatchRepository pmsImportBatchRepository;
     @Mock private ProviderDocumentService providerDocumentService;
     @Mock private com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones;
     @Mock private com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository;
 
     @Mock private com.clenzy.service.assignment.AssignmentContactPreferences contactPreferences;
+    @Mock private com.clenzy.service.paymentconnect.PaymentConnectionReadiness paymentReadiness;
     private UserOnboardingService service;
 
     private static final Long USER_ID = 42L;
     private static final Long ORG_ID = 7L;
     private static final String KEYCLOAK_ID = "kc-42";
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"setup_payment", "setup_payouts", "setup_payout_account"})
+    void paymentStepsCannotBeManuallyCompletedBeforeVerification(String key) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.completeStep(USER_ID, UserRole.HOST, key, ORG_ID))
+                .isInstanceOf(IllegalStateException.class);
+        verify(repository, never()).save(any());
+    }
 
     @BeforeEach
     void setUp() {
@@ -72,7 +82,7 @@ class UserOnboardingServiceTest {
                 propertyRepository, notificationPreferenceRepository,
                 messagingAutomationConfigRepository, paymentMethodConfigRepository,
                 icalFeedRepository, providerDocumentService,
-                providerZones, weeklyAvailabilityRepository, contactPreferences);
+                providerZones, weeklyAvailabilityRepository, contactPreferences, pmsImportBatchRepository, paymentReadiness);
     }
 
     private User buildUser(String firstName, String lastName, String phone) {
@@ -108,6 +118,61 @@ class UserOnboardingServiceTest {
 
     // ─── getStatus ─────────────────────────────────────────────────────────────
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = UserRole.class, names = {"HOST", "SUPER_ADMIN", "SUPER_MANAGER"})
+    void migrationCompletesOnlyAfterAnImportByThisUserInThisOrganization(UserRole role) {
+        when(repository.findByUserIdAndRole(USER_ID, role)).thenReturn(List.of());
+        when(repository.save(any())).thenAnswer(call -> call.getArgument(0));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(buildUser("Salma", "Alaoui", "+212600000000")));
+
+        var pending = service.getStatus(USER_ID, role, ORG_ID);
+        assertThat(stepOf(pending, "migrate_pms").completed()).isFalse();
+        assertThat(pending.steps().get(1).key()).isEqualTo("migrate_pms");
+
+        when(pmsImportBatchRepository.existsByOrganizationIdAndCreatedByAndStatus(ORG_ID, KEYCLOAK_ID, "COMPLETED"))
+            .thenReturn(true);
+        assertThat(stepOf(service.getStatus(USER_ID, role, ORG_ID), "migrate_pms").completed()).isTrue();
+        verify(pmsImportBatchRepository, times(2))
+            .existsByOrganizationIdAndCreatedByAndStatus(ORG_ID, KEYCLOAK_ID, "COMPLETED");
+    }
+
+    @Test
+    void migrationCanBeSkippedWithoutAnImportAndStaysCompletedOnReload() {
+        var step = new UserOnboarding(USER_ID, UserRole.HOST, "migrate_pms", ORG_ID);
+        when(repository.findByUserIdAndRoleAndStepKey(USER_ID, UserRole.HOST, "migrate_pms"))
+            .thenReturn(Optional.of(step));
+        when(repository.save(any())).thenAnswer(call -> call.getArgument(0));
+        service.completeStep(USER_ID, UserRole.HOST, "migrate_pms", ORG_ID);
+        when(repository.findByUserIdAndRole(USER_ID, UserRole.HOST)).thenReturn(List.of(step));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(buildUser("Salma", "Alaoui", "+212600000000")));
+
+        assertThat(stepOf(service.getStatus(USER_ID, UserRole.HOST, ORG_ID), "migrate_pms").completed()).isTrue();
+        assertThat(step.getCompletedAt()).isNotNull();
+    }
+
+    @Test
+    void addingOptionalMigrationDoesNotReopenAPreviouslyFinishedGuide() {
+        var previous = List.of("complete_profile", "create_property", "configure_details", "define_pricing",
+            "connect_channels", "setup_notifications", "setup_payouts").stream().map(key -> {
+                var step = new UserOnboarding(USER_ID, UserRole.HOST, key, ORG_ID);
+                step.markCompleted();
+                return step;
+            }).toList();
+        when(repository.findByUserIdAndRole(USER_ID, UserRole.HOST)).thenReturn(previous);
+        when(repository.save(any())).thenAnswer(call -> call.getArgument(0));
+
+        assertThat(stepOf(service.getStatus(USER_ID, UserRole.HOST, ORG_ID), "migrate_pms").completed()).isTrue();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = UserRole.class,
+        names = {"HOUSEKEEPER", "TECHNICIAN", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH"})
+    void fieldStaffAreNotOfferedPmsMigration(UserRole role) {
+        when(repository.save(any())).thenAnswer(call -> call.getArgument(0));
+        assertThat(service.getStatus(USER_ID, role, ORG_ID).steps())
+            .noneMatch(step -> step.key().equals("migrate_pms"));
+    }
+
     @Nested
     @DisplayName("getStatus")
     class GetStatus {
@@ -142,11 +207,11 @@ class UserOnboardingServiceTest {
 
             assertThat(dto.role()).isEqualTo("HOST");
             assertThat(dto.dismissed()).isFalse();
-            // HOST has 7 steps: complete_profile, create_property, configure_details,
+            // HOST has 8 steps: complete_profile, migrate_pms, create_property, configure_details,
             // define_pricing, connect_channels, setup_notifications, setup_payouts
-            assertThat(dto.steps()).hasSize(7);
+            assertThat(dto.steps()).hasSize(8);
             assertThat(dto.steps()).extracting(OnboardingStatusDto.StepDto::key)
-                    .contains("complete_profile", "create_property", "define_pricing",
+                    .contains("complete_profile", "migrate_pms", "create_property", "define_pricing",
                             "connect_channels", "setup_notifications", "setup_payouts",
                             "configure_details");
             // All steps should be uncompleted by default (mocks return empty/false)
@@ -237,8 +302,7 @@ class UserOnboardingServiceTest {
             when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPER_ADMIN))
                     .thenReturn(List.of(step));
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(paymentMethodConfigRepository.findByOrganizationIdAndEnabledTrue(ORG_ID))
-                    .thenReturn(List.of());
+            when(paymentReadiness.isReady(USER_ID, ORG_ID, true)).thenReturn(false);
             when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPER_ADMIN, ORG_ID);
@@ -247,15 +311,13 @@ class UserOnboardingServiceTest {
         }
 
         @Test
-        @DisplayName("when payment configs present then setup_payment auto-completed")
+        @DisplayName("verified payout capabilities complete the payment step")
         void whenPaymentConfigured_thenAutoCompletes() {
             UserOnboarding step = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_payment", ORG_ID);
             when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPER_ADMIN))
                     .thenReturn(List.of(step));
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            PaymentMethodConfig cfg = new PaymentMethodConfig();
-            when(paymentMethodConfigRepository.findByOrganizationIdAndEnabledTrue(ORG_ID))
-                    .thenReturn(List.of(cfg));
+            when(paymentReadiness.isReady(USER_ID, ORG_ID, true)).thenReturn(true);
             when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPER_ADMIN, ORG_ID);
@@ -326,7 +388,7 @@ class UserOnboardingServiceTest {
             when(userRepository.findById(USER_ID))
                     .thenReturn(Optional.of(buildUser("Jean", "Dupont", "+33")));
             Organization org = new Organization();
-            org.setName("Clenzy");
+            org.setName("Baitly");
             when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(org));
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPER_ADMIN, ORG_ID);
@@ -582,7 +644,7 @@ class UserOnboardingServiceTest {
         }
 
         @Test
-        @DisplayName("SUPERVISOR role: 5 steps including create_team")
+        @DisplayName("SUPERVISOR role: 6 steps including create_team and payouts")
         void whenSupervisor_then5Steps() {
             when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPERVISOR))
                     .thenReturn(List.of());
@@ -591,7 +653,7 @@ class UserOnboardingServiceTest {
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPERVISOR, ORG_ID);
 
-            assertThat(dto.steps()).hasSize(5);
+            assertThat(dto.steps()).hasSize(6);
             assertThat(dto.steps()).extracting(OnboardingStatusDto.StepDto::key)
                     .contains("create_team");
         }
@@ -599,9 +661,10 @@ class UserOnboardingServiceTest {
         @Test
         @DisplayName("when all rows already exist then no creation needed")
         void whenAllRowsExist_thenNoSaveCreations() {
-            // HOST has 7 steps — pre-populate all 7
+            // Pre-populate all 8 HOST steps, including the optional migration.
             List<UserOnboarding> all = List.of(
                     new UserOnboarding(USER_ID, UserRole.HOST, "complete_profile", ORG_ID),
+                    new UserOnboarding(USER_ID, UserRole.HOST, "migrate_pms", ORG_ID),
                     new UserOnboarding(USER_ID, UserRole.HOST, "create_property", ORG_ID),
                     new UserOnboarding(USER_ID, UserRole.HOST, "configure_details", ORG_ID),
                     new UserOnboarding(USER_ID, UserRole.HOST, "define_pricing", ORG_ID),
@@ -614,7 +677,7 @@ class UserOnboardingServiceTest {
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.HOST, ORG_ID);
 
-            assertThat(dto.steps()).hasSize(7);
+            assertThat(dto.steps()).hasSize(8);
             // No flush should be invoked since nothing was created
             verify(repository, never()).flush();
         }

@@ -15,7 +15,8 @@ function formatNumber(value: number, language: SiteLanguage, decimals: number) {
   if (!numberFormats.has(key))
     numberFormats.set(
       key,
-      new Intl.NumberFormat(`${language}-u-nu-latn`, {
+      new Intl.NumberFormat(language, {
+        numberingSystem: language === 'ar' ? 'arab' : 'latn',
         maximumFractionDigits: decimals,
       }),
     );

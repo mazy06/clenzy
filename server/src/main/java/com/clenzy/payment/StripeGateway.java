@@ -176,6 +176,18 @@ public class StripeGateway {
         return Account.create(params, requestOptions(null));
     }
 
+    public Account createAccount(AccountCreateParams params, String idempotencyKey) throws StripeException {
+        return Account.create(params, requestOptions(idempotencyKey));
+    }
+
+    public String connectExistingAccount(String code) throws StripeException {
+        var response = com.stripe.net.OAuth.token(java.util.Map.of(
+                "grant_type", "authorization_code", "code", code), requestOptions(null));
+        return response.getStripeUserId();
+    }
+
+    public boolean isConfigured() { return stripeSecretKey != null && !stripeSecretKey.isBlank(); }
+
     public AccountLink createAccountLink(AccountLinkCreateParams params) throws StripeException {
         return AccountLink.create(params, requestOptions(null));
     }

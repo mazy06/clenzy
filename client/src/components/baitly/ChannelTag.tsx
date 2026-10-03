@@ -2,6 +2,8 @@ import React from 'react';
 import { channelLogo } from '../channelLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
+import { GlobeIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 
 /**
  * Marque d'un canal : le logo OFFICIEL quand la marque en a un, posé sur une
@@ -18,15 +20,32 @@ import { cn } from '../../utils/cn';
 export interface ChannelTagProps {
   /** Canal, dans n'importe quelle casse (`AIRBNB`, `airbnb`, `hotels_com`…). */
   channel: string;
+  /** Compact tables display the mark, with its name preserved for accessibility. */
+  iconOnly?: boolean;
+  label?: string;
   className?: string;
 }
 
-export default function ChannelTag({ channel, className }: ChannelTagProps) {
+export default function ChannelTag({ channel, iconOnly = false, label: customLabel, className }: ChannelTagProps) {
   const { t } = useTranslation();
-  const key = channel.toLowerCase();
+  const raw = channel.trim().toLowerCase();
+  const key = ({ 'booking.com': 'booking', 'hotels.com': 'hotels_com' } as Record<string, string>)[raw] ?? raw;
   const logo = channelLogo(key);
   const fallback = key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
-  const label = t(`reservations.source.${key}`, fallback);
+  const label = customLabel || t(`reservations.source.${key}`, fallback);
+
+  if (iconOnly) return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span role="img" aria-label={label} tabIndex={0}
+          className={cn('inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-card align-middle outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', className)}>
+          {logo ? <img src={logo} alt="" width={24} height={24} className="size-6 rounded-sm object-contain" />
+            : <GlobeIcon aria-hidden className="size-5 text-muted-foreground" />}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
 
   return (
     <span

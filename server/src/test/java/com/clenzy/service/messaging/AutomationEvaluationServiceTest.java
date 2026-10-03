@@ -75,6 +75,14 @@ class AutomationEvaluationServiceTest {
     // ── Chemin temporel ─────────────────────────────────────────────────────────
 
     @Test
+    void importedReservationDoesNotReplayAutomations() {
+        Reservation imported = new Reservation();
+        imported.setMigrationAutomationPaused(true);
+        service.onReservationCreated(imported, 1L);
+        verifyNoInteractions(ruleRepository, executionRepository, actionRegistry);
+    }
+
+    @Test
     void evaluateRulesForReservation_noRules_doesNothing() {
         when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.RESERVATION_CONFIRMED))
             .thenReturn(List.of());

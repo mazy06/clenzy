@@ -1,3 +1,4 @@
+import { demoDateLabel, localizeDemoCopy } from '../planningDemoLocale';
 import type { SiteLanguage } from '../siteLanguage';
 
 /**
@@ -32,6 +33,8 @@ const fr = {
   pause: 'Pause',
   play: 'Reprendre',
   demo: 'Démo du planning',
+  voiceOn: 'Activer la voix off',
+  voiceOff: 'Couper la voix off',
   guide: {
     step: 'Étape',
     steps: [
@@ -91,11 +94,21 @@ const fr = {
   interventions: 'Interventions',
   cancelled: 'Annulée',
   blockedReason: 'Travaux salle de bain',
+  blocked: 'Bloqué',
   page: 'Page 1 / 2',
   pageRange: '1–6 sur 6',
   searchGuest: 'Rechercher un voyageur…',
+  guestPanel: {
+    title: 'Fiche voyageur',
+    missingEmail: 'E-mail manquant · fiche police incomplète',
+    email: 'Adresse e-mail',
+    completed: 'Fiche complétée',
+    save: 'Enregistrer',
+    previousStays: '3 séjours',
+  },
   owner: 'Toufik Mazy',
   property: {
+    address: 'Rue de Yougoslavie, Guéliz, Marrakech',
     maxGuests: 'Voyageurs max',
     minNights: 'Nuits min.',
     nightlyPrice: 'Prix / nuit',
@@ -103,6 +116,8 @@ const fr = {
     checkOut: 'Check-out',
     cleaningFrequency: 'Fréquence ménage :',
     cleaningValue: 'Après chaque séjour',
+    cleaning: 'Ménage',
+    type: 'Appartement',
     performance: 'Performance · 90 j',
     score: 'Score',
     revpan: 'RevPAN',
@@ -122,6 +137,8 @@ const fr = {
     total: 'Total',
     guest: 'Voyageur',
     submit: 'Créer la réservation',
+    newGuest: 'Créer un nouveau voyageur',
+    cancel: 'Annuler',
   },
   properties: [
     { name: 'Riad Bab Doukkala', city: 'Fès · Médina' },
@@ -156,6 +173,8 @@ const en: PlanningMockupMessages = {
   pause: 'Pause',
   play: 'Resume',
   demo: 'Calendar demo',
+  voiceOn: 'Turn the voice-over on',
+  voiceOff: 'Mute the voice-over',
   guide: {
     step: 'Step',
     steps: [
@@ -213,11 +232,21 @@ const en: PlanningMockupMessages = {
   interventions: 'Jobs',
   cancelled: 'Cancelled',
   blockedReason: 'Bathroom works',
+  blocked: 'Blocked',
   page: 'Page 1 / 2',
   pageRange: '1–6 of 6',
   searchGuest: 'Search for a guest…',
+  guestPanel: {
+    title: 'Guest profile',
+    missingEmail: 'Email missing · guest registration incomplete',
+    email: 'Email address',
+    completed: 'Profile completed',
+    save: 'Save',
+    previousStays: '3 stays',
+  },
   owner: 'Toufik Mazy',
   property: {
+    address: 'Rue de Yougoslavie, Gueliz, Marrakech',
     maxGuests: 'Max guests',
     minNights: 'Min. nights',
     nightlyPrice: 'Price / night',
@@ -225,6 +254,8 @@ const en: PlanningMockupMessages = {
     checkOut: 'Check-out',
     cleaningFrequency: 'Cleaning frequency:',
     cleaningValue: 'After every stay',
+    cleaning: 'Cleaning',
+    type: 'Apartment',
     performance: 'Performance · 90 d',
     score: 'Score',
     revpan: 'RevPAN',
@@ -232,7 +263,7 @@ const en: PlanningMockupMessages = {
     totalRevenue: 'Total revenue',
     netMargin: 'Net margin',
     close: 'Close',
-    openRecord: 'Open record',
+    openRecord: 'Open the property',
   },
   create: {
     title: 'New booking',
@@ -244,6 +275,8 @@ const en: PlanningMockupMessages = {
     total: 'Total',
     guest: 'Guest',
     submit: 'Create the booking',
+    newGuest: 'Create a new guest',
+    cancel: 'Cancel',
   },
   properties: [
     { name: 'Riad Bab Doukkala', city: 'Fez · Medina' },
@@ -275,6 +308,8 @@ const ar: PlanningMockupMessages = {
   pause: 'إيقاف مؤقت',
   play: 'متابعة',
   demo: 'عرض التقويم',
+  voiceOn: 'تشغيل التعليق الصوتي',
+  voiceOff: 'كتم التعليق الصوتي',
   guide: {
     step: 'الخطوة',
     steps: [
@@ -325,18 +360,28 @@ const ar: PlanningMockupMessages = {
     'إنشاء حجز مباشر',
   ],
   windowTitle: 'app.baitly — التقويم',
-  month: 'سبتمبر 2026',
+  month: demoDateLabel('2026-09-26', 'ar', { month: 'long', year: 'numeric' }),
   today: 'اليوم',
   nightOne: 'ليلة',
   nightMany: 'ليالٍ',
   interventions: 'المهام',
   cancelled: 'ملغى',
   blockedReason: 'أشغال في دورة المياه',
+  blocked: 'محجوز للأشغال',
   page: 'صفحة 1 / 2',
   pageRange: '1–6 من 6',
   searchGuest: 'ابحث عن نزيل…',
+  guestPanel: {
+    title: 'ملف الضيف',
+    missingEmail: 'البريد الإلكتروني مفقود · بيانات الضيف غير مكتملة',
+    email: 'البريد الإلكتروني',
+    completed: 'اكتمل ملف الضيف',
+    save: 'حفظ',
+    previousStays: '3 إقامات',
+  },
   owner: 'توفيق مازي',
   property: {
+    address: 'شارع العليا، حي العليا، الرياض',
     maxGuests: 'أقصى عدد نزلاء',
     minNights: 'أدنى عدد ليالٍ',
     nightlyPrice: 'السعر / ليلة',
@@ -344,6 +389,8 @@ const ar: PlanningMockupMessages = {
     checkOut: 'المغادرة',
     cleaningFrequency: 'وتيرة التنظيف:',
     cleaningValue: 'بعد كل إقامة',
+    cleaning: 'التنظيف',
+    type: 'شقة',
     performance: 'الأداء · 90 يوماً',
     score: 'النتيجة',
     revpan: 'الإيراد لكل ليلة متاحة',
@@ -356,13 +403,15 @@ const ar: PlanningMockupMessages = {
   create: {
     title: 'حجز جديد',
     stay: 'الإقامة',
-    stayValue: '28 سبتمبر ← 1 أكتوبر',
+    stayValue: `${demoDateLabel('2026-09-28', 'ar', { day: 'numeric', month: 'long' })} ← ${demoDateLabel('2026-10-01', 'ar', { day: 'numeric', month: 'long' })}`,
     nights: 'الليالي',
     nightlyPrice: 'السعر / ليلة',
     arrivalDeparture: 'الوصول / المغادرة',
     total: 'الإجمالي',
     guest: 'النزيل',
     submit: 'أنشئ الحجز',
+    newGuest: 'إضافة ضيف جديد',
+    cancel: 'إلغاء',
   },
   properties: [
     { name: 'استراحة الملقا', city: 'الرياض · الملقا' },
@@ -381,5 +430,5 @@ export const PLANNING_MOCKUP_MESSAGES: Record<
 > = {
   fr,
   en,
-  ar,
+  ar: localizeDemoCopy(ar),
 };

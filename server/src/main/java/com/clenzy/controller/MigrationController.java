@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.MigrationJobDto;
-import com.clenzy.model.MigrationJob.MigrationDataType;
 import com.clenzy.model.MigrationJob.MigrationSource;
 import com.clenzy.service.PmsMigrationService;
 import com.clenzy.tenant.TenantContext;
@@ -32,34 +31,32 @@ public class MigrationController {
 
     @GetMapping
     public List<MigrationJobDto> getAll() {
-        return migrationService.getAllJobs(tenantContext.getOrganizationId());
+        return migrationService.getAllJobs(tenantContext.getRequiredOrganizationId());
     }
 
     @GetMapping("/{id}")
     public MigrationJobDto getById(@PathVariable Long id) {
-        return migrationService.getJobById(id, tenantContext.getOrganizationId());
+        return migrationService.getJobById(id, tenantContext.getRequiredOrganizationId());
     }
 
     @PostMapping
     public MigrationJobDto create(@RequestBody Map<String, String> body) {
-        return migrationService.createJob(
-            MigrationSource.valueOf(body.get("source")),
-            body.containsKey("dataType") ? MigrationDataType.valueOf(body.get("dataType")) : MigrationDataType.ALL,
-            body.get("apiKey"),
-            body.get("config"),
-            tenantContext.getOrganizationId()
-        );
+        throw unsupportedApiMigration();
     }
 
     @PutMapping("/{id}/start")
     public MigrationJobDto start(@PathVariable Long id) {
-        return migrationService.startJob(id, tenantContext.getOrganizationId());
+        throw unsupportedApiMigration();
     }
 
     @PutMapping("/{id}/progress")
     public MigrationJobDto updateProgress(@PathVariable Long id,
                                             @RequestBody Map<String, Integer> body) {
-        return migrationService.updateProgress(id, tenantContext.getOrganizationId(),
-            body.getOrDefault("processed", 0), body.getOrDefault("failed", 0));
+        throw unsupportedApiMigration();
+    }
+
+    private org.springframework.web.server.ResponseStatusException unsupportedApiMigration() {
+        return new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_IMPLEMENTED,
+            "Les migrations API ne sont pas disponibles. Utilisez l'import de fichiers /api/migration/imports.");
     }
 }

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   ArrowDownIcon,
   ArrowRightIcon,
-  CalendarDaysIcon,
   CheckIcon,
   GlobeIcon,
   MapPinIcon,
@@ -23,15 +22,14 @@ import BaitlyAgentsPlanningDemo from '../components/BaitlyAgentsPlanningDemo';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import BaitlyHomeResources from '../components/BaitlyHomeResources';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
+import BaitlyHeroPlanningPhoto from '../components/BaitlyHeroPlanningPhoto';
 import { BRANDS } from '../components/BrandLogos';
 import { MODULES } from '../data/catalog';
 // Editorial photos are separate from the fictional properties in the demos.
 import interiorPhoto from '../assets/photos/bedroom.jpg';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
-import heroPhotoSmall from '../assets/photos/editorial/homeReceptionBaitly-720.webp';
 
 const {
-  homeHero: heroPhoto,
   homeLocal: localPhoto,
   homeClosing: poolPhoto,
 } = SITE_PHOTOS;
@@ -79,20 +77,7 @@ function Hero() {
           </Reveal>
         </div>
         <Reveal delay={2} className="baitly-hero-visual">
-          <img
-            className="baitly-hero-photo"
-            src={heroPhoto}
-            srcSet={`${heroPhotoSmall} 720w, ${heroPhoto} 1254w`}
-            sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1440px) 48vw, 680px"
-            alt={sitePhotoAlt('homeHero', language)}
-            width="1254"
-            height="1254"
-            // React 18 forwards the lowercase HTML attribute without a warning.
-            {...{ fetchpriority: 'high' }}
-          />
-          <div className="baitly-photo-location">
-            <CalendarDaysIcon /> {m.photoCaption}
-          </div>
+          <BaitlyHeroPlanningPhoto />
           <AgentActionDeck />
           <span className="baitly-example-label">{m.exampleLabel}</span>
         </Reveal>
