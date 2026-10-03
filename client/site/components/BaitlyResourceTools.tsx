@@ -1,4 +1,5 @@
 import { SiteCurrencySymbol, useSiteMoney } from './SiteMoney';
+import { SiteCurrencyFlag } from './SiteCurrencyFlag';
 import {
   CURRENCY_NAMES,
   SITE_CURRENCIES,
@@ -187,8 +188,14 @@ export function RevenueCalculator({ language }: Props) {
                 aria-pressed={currency === code}
                 onClick={() => pinInputs(code)}
               >
+                <SiteCurrencyFlag currency={code} />
+                <span className="brs-currency-name">
+                  {CURRENCY_NAMES[language][code]}
+                </span>
+                <span className="brs-currency-code" aria-hidden="true">
+                  {code}
+                </span>
                 <SiteCurrencySymbol currency={code} />
-                <span>{CURRENCY_NAMES[language][code]}</span>
               </button>
             ))}
           </div>

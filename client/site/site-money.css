@@ -95,6 +95,11 @@
   cursor: pointer;
   transition: background 200ms ease-out;
 }
+.site-currency-flag {
+  flex: 0 0 auto;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 12%);
+}
 .site-currency-options button:hover {
   background: var(--bui-muted);
 }
