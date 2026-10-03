@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BanknoteIcon,
@@ -16,17 +16,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
-import { useOnboarding } from '../../hooks/useOnboarding';
-import { useMyPendingPayout } from '../../hooks/usePendingPayouts';
-import { useDashboardReady } from '../../hooks/useDashboardReady';
 import { useDashboardUpcomingArrivals } from '../../hooks/useDashboardOperations';
 import { useDashboardLayout } from '../../hooks/useDashboardLayout';
-import DashboardWidgetPicker from './DashboardWidgetPicker';
 import {
   ImportedTileWidget,
-  KPI_TILE_KEY,
   findTileSource,
-  importedWidgetId,
   isImportedWidgetId,
   parseImportedWidgetId,
 } from './importedWidgets';
@@ -62,6 +56,10 @@ import {
   RevenueByChannelBlock,
 } from './blocks/DashboardAnalyticsBlocks';
 import type { DashboardPeriod } from './DashboardDateFilter';
+import { DeferredDashboardWidget, DashboardWidgetState } from './DashboardWidgetState';
+import { DEFAULT_LAYOUT_ROWS } from './dashboardDefaults';
+
+const DashboardWidgetPicker = lazy(() => import('./DashboardWidgetPicker'));
 
 /**
  * Vue d'ensemble du Dashboard.
@@ -106,77 +104,11 @@ export function OverviewSkeleton() {
   );
 }
 
-/**
- * Disposition LIVREE — ce que voit un compte qui n'a jamais touche a son
- * tableau de bord.
- *
- * <h2>Pourquoi des tuiles importees y figurent</h2>
- * <p>Les appariements natifs (revenus + canal, a traiter + occupation) ne
- * faisaient qu'un ecran d'operations. Les tuiles des Rapports et du Pulse
- * completent la lecture — tendance, pace, arriere d'interventions, reperes,
- * reassort — sans quoi chaque compte devait les reposer une par une.</p>
- *
- * <h2>Une seule repartition par canal importee</h2>
- * <p>Synthese et Revenus exposent chacune une tuile « Revenus par canal ».
- * Posees toutes les deux a cote de la native `revenue-by-channel`, elles
- * faisaient TROIS fois la meme lecture. Celle des Revenus est gardee : elle
- * porte son intitule (« Ou la demande arrive ») et vit dans l'onglet qui est le
- * foyer naturel d'une repartition par canal.</p>
- *
- * <h2>Le prix, assume</h2>
- * <p>Ces dix tuiles viennent de NEUF sources, et importer une tuile monte le
- * hook de tout son onglet d'origine : neuf jeux de requetes de rapport au
- * premier chargement, en plus des widgets natifs. Seule Revenus sert deux
- * tuiles, que React Query dedoublonne. Retirer une tuile d'une source unique
- * est donc ce qui allege le plus.</p>
- *
- * <h2>Ce que cette constante ne fait PAS</h2>
- * <p>Elle ne touche a personne. `mergeLayoutRows` ne lit la disposition livree
- * que lorsque AUCUNE preference n'est enregistree : un compte qui a deja
- * deplace une tuile garde la sienne, et ne verra jamais ces ajouts. Les leur
- * imposer demanderait d'incrementer la cle de preference, ce qui effacerait la
- * personnalisation de tout le monde.</p>
- *
- * <p>Les largeurs ne sont volontairement PAS ecrites ici : `mergeLayoutRows`
- * repartit chaque ligne a parts egales. Toutes les lignes du corps tenant
- * exactement TROIS tuiles, chacune fait un tiers — la largeur est donc la meme
- * d'un bout a l'autre de l'ecran, et non plus seulement au sein d'une ligne.
- * Elle reste adaptative : un pourcentage suit son conteneur, et sous `sm` la
- * ligne s'empile.</p>
- */
-const DEFAULT_LAYOUT_ROWS: string[][] = [
-  // Deux bandeaux pleine largeur : le ruban de chiffres, puis la journee en
-  // trois colonnes. Les reduire au tiers les casserait — ce sont des bandes,
-  // pas des tuiles.
-  ['kpis'],
-  ['today-operations'],
-  // Cinq lignes de TROIS, et rien d'autre : c'est ce qui rend toutes les
-  // tuiles du corps strictement de meme largeur.
-  ['revenue-split', 'revenue-by-channel', importedWidgetId('reports.revenue', 'channels')],
-  ['action-items', 'occupancy-by-property', 'upcoming-arrivals'],
-  [
-    importedWidgetId('pulse.guest', 'reviews-unanswered'),
-    importedWidgetId('reports.overview', 'revenueTrend'),
-    importedWidgetId('reports.pace', 'table'),
-  ],
-  [
-    importedWidgetId('reports.interventions', 'trend'),
-    importedWidgetId('reports.occupancy', 'highlights'),
-    importedWidgetId('reports.pricing', KPI_TILE_KEY),
-  ],
-  [
-    importedWidgetId('reports.properties', 'benchmark'),
-    importedWidgetId('reports.revenue', 'costs'),
-    importedWidgetId('pulse.operations', 'stock'),
-  ],
-];
-
 const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const { stats, financialKpis: kpis, loading } = useDashboardOverview({ period, t });
-  const { data: myPayoutData } = useMyPendingPayout();
+  const { stats, financialKpis: kpis, financialContext, loading, error, refreshAll } = useDashboardOverview({ period, t });
   // Déjà chargé par « Prochaines arrivées » : React Query dédoublonne, aucun
   // appel supplémentaire.
   // ─── Périmètre par rôle ─────────────────────────────────────────────────
@@ -198,40 +130,16 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const { data: upcomingArrivals } = useDashboardUpcomingArrivals(7, showManagementView);
   const upcomingCount = upcomingArrivals?.length ?? 0;
 
-  // Remuneration et score : deux lectures propres aux roles terrain. Les hooks
-  // sont appeles inconditionnellement (regles des hooks) mais ne servent que la
-  // branche terrain — leurs requetes sont peu couteuses et mises en cache.
-  const earnings = useMyEarnings();
-  const quotes = useMyQuoteTotals();
+  // Les hooks restent stables ; seules les requêtes utiles au métier sont activées.
+  const earnings = useMyEarnings(isOperational && !isTradeWorker);
+  const quotes = useMyQuoteTotals(isOperational && isTradeWorker);
   const { data: myRates } = useQuery({
     queryKey: ['field', 'rates'],
+    enabled: isOperational && !isTradeWorker,
     queryFn: () => housekeeperRatesApi.getMy(),
     staleTime: 300_000,
   });
   const qualityScore = myRates?.score ?? null;
-
-  // Le guide de demarrage vit dans le dock flottant : le tableau de bord n'a
-  // plus besoin que du chargement de son statut pour se declarer pret. Il ne
-  // FLOUTE plus ses tuiles tant que la configuration n'est pas finie — le guide
-  // porte deja le message, rendre l'ecran illisible n'aidait personne.
-  const { isLoading: onboardingLoading } = useOnboarding();
-
-  // ─── Prêt à afficher ────────────────────────────────────────────────────
-  const readyKeys = useMemo(() => ['kpis', 'onboarding'], []);
-  const { isReady, markReady } = useDashboardReady(readyKeys);
-  const kpisReadyFired = useRef(false);
-  useEffect(() => {
-    if (!loading && !kpisReadyFired.current) {
-      kpisReadyFired.current = true;
-      markReady('kpis');
-    }
-  }, [loading, markReady]);
-  // Le guide de demarrage vit desormais dans le dock flottant global
-  // (`OnboardingDockMount`), plus dans le tableau de bord : c'est donc le
-  // chargement du statut qui libere l'affichage, et non plus un composant local.
-  useEffect(() => {
-    if (!onboardingLoading) markReady('onboarding');
-  }, [onboardingLoading, markReady]);
 
   // ─── Registre des tuiles ────────────────────────────────────────────────
   // ⚠️ Les identifiants sont persistés dans les préférences utilisateur : les
@@ -258,12 +166,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               unit="%"
               loading={loading}
               delta={kpis ? kpis.occupancyRate.growth : null}
-              deltaUnit="pts"
             />
             <StatTile
               icon={<WalletIcon />}
               label={t('dashboard.analytics.revenueShort', 'Revenus')}
-              value={kpis ? <Money value={kpis.totalRevenue.value} decimals={0} /> : '—'}
+              value={kpis ? <Money from={financialContext?.currency ?? 'EUR'} value={kpis.totalRevenue.value} decimals={0} /> : '—'}
               iconClassName="text-success"
               loading={loading}
               delta={kpis ? kpis.totalRevenue.growth : null}
@@ -271,17 +178,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             <StatTile
               icon={<TrendingUpIcon />}
               label="ADR"
-              value={kpis ? <Money value={kpis.adr.value} decimals={0} /> : '—'}
+              value={kpis ? <Money from={financialContext?.currency ?? 'EUR'} value={kpis.adr.value} decimals={0} /> : '—'}
               loading={loading}
               hint={t('dashboard.analytics.adrHint', 'prix moyen par nuit vendue')}
             />
             <StatTile
               icon={<BanknoteIcon />}
-              // « RevPAR » au sens de la location saisonnière : le dénominateur
-              // est le nombre de nuits-logements disponibles. En hôtellerie ce
-              // serait un RevPAN — le champ serveur s'appelle d'ailleurs `revPan`.
-              label="RevPAR"
-              value={kpis ? <Money value={kpis.revPAN.value} decimals={0} /> : '—'}
+              // Revenu par nuit-logement disponible, conformément au contrat serveur.
+              label="RevPAN"
+              value={kpis ? <Money from={financialContext?.currency ?? 'EUR'} value={kpis.revPAN.value} decimals={0} /> : '—'}
               loading={loading}
               hint={t('dashboard.analytics.revenuePerNight', 'revenu par nuit disponible')}
             />
@@ -322,7 +227,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     widgets.push({
       id: 'revenue-split',
       label: t('dashboard.widgets.revenueSplit', 'Revenus mensuels'),
-      minSizePct: 45,
       node: (
         <DashboardErrorBoundary widgetName="MonthlyRevenueSplit">
           <MonthlyRevenueSplitCard months={6} />
@@ -332,10 +236,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     widgets.push({
       id: 'revenue-by-channel',
       label: t('dashboard.widgets.revenueByChannel', 'Revenus par canal'),
-      minSizePct: 25,
       node: (
         <DashboardErrorBoundary widgetName="RevenueByChannel">
-          <RevenueByChannelBlock />
+          <RevenueByChannelBlock period={period} />
         </DashboardErrorBoundary>
       ),
     });
@@ -351,7 +254,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     widgets.push({
       id: 'action-items',
       label: t('dashboard.widgets.actionItems', 'À traiter'),
-      minSizePct: 35,
       node: (
         <DashboardErrorBoundary widgetName="ActionItems">
           <ActionItemsCard />
@@ -361,7 +263,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     widgets.push({
       id: 'occupancy-by-property',
       label: t('dashboard.widgets.occupancyByProperty', 'Occupation par logement'),
-      minSizePct: 25,
       node: (
         <DashboardErrorBoundary widgetName="OccupancyByProperty">
           <OccupancyByPropertyCard period={period} />
@@ -371,8 +272,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     widgets.push({
       id: 'upcoming-arrivals',
       label: t('dashboard.widgets.upcomingArrivals', 'Prochaines arrivées'),
-      // Sept colonnes : sous la moitié de la ligne, le tableau se casse.
-      minSizePct: 50,
       node: (
         <DashboardErrorBoundary widgetName="UpcomingArrivals">
           <UpcomingArrivalsCard days={7} />
@@ -582,10 +481,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         return [{
           id,
           label: source ? t(source.labelKey, source.fallback) : id,
-          minSizePct: 25,
           node: (
             <DashboardErrorBoundary widgetName={id}>
-              <ImportedTileWidget reference={reference} period={period} />
+              <DeferredDashboardWidget title={source ? t(source.labelKey, source.fallback) : id}>
+                <ImportedTileWidget reference={reference} period={period} />
+              </DeferredDashboardWidget>
             </DashboardErrorBoundary>
           ),
         }];
@@ -629,6 +529,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <Button
           size="sm"
           variant={isEditingLayout ? 'default' : 'outline'}
+          disabled={!layout.isLoaded}
           onClick={() => setEditingLayout((value) => !value)}
         >
           <GridView size={14} />
@@ -643,32 +544,21 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   return (
     <>
       {layoutActions}
-      <div className="flex min-h-0 flex-1 flex-col overflow-auto pt-2 pb-4">
-        {!isReady && <OverviewSkeleton />}
+      <div className="flex min-w-0 flex-col pt-2 pb-4">
+        {error && <DashboardWidgetState title={t('dashboard.widgets.kpis', 'Indicateurs')} error onRetry={refreshAll} />}
 
-        {/* Monté en permanence pour que les widgets chargent, masqué tant que
-            l'essentiel n'est pas prêt. */}
-        <div className={cn('flex flex-col gap-4', !isReady && 'sr-only')}>
+        {/* Chaque widget porte son chargement et son erreur. */}
+        <div className="flex flex-col gap-4">
           <MissingContractsDashboardAlert />
 
           <div className="relative flex flex-col gap-4">
 
-            {/* `[&>*]:shrink-0` — les tuiles ne doivent JAMAIS etre comprimees :
-                cette colonne vit dans une zone qui defile deja, sa hauteur doit
-                donc suivre son contenu.
-                Sans cette regle, le deficit de hauteur de la colonne etait absorbe
-                en entier par la SEULE tuile capable de se reduire. Une tuile porte
-                `overflow: hidden` (.cn-card), or `min-height: auto` ne vaut la
-                hauteur du contenu que si `overflow` est `visible` : son plancher
-                tombait a zero quand celui des autres tenait bon. « Revenus par
-                canal » se retrouvait ainsi ecrasee a 61 px pour 372 px de contenu,
-                reduite a son seul en-tete. */}
             <div
               className={cn(
                 'flex flex-col gap-4 [&>*]:shrink-0',
               )}
             >
-              <DashboardWidgetGrid
+              {layout.isLoading ? <OverviewSkeleton /> : <DashboardWidgetGrid
                 widgets={allWidgets}
                 rows={layout.rows}
                 editing={isEditingLayout}
@@ -678,20 +568,20 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                 onShiftWithinRow={layout.shiftWithinRow}
                 onRowSizes={layout.setRowSizes}
                 onRemove={layout.removeWidget}
-              />
+              />}
             </div>
           </div>
         </div>
       </div>
 
-      <DashboardWidgetPicker
+      {pickerOpen && <Suspense fallback={null}><DashboardWidgetPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         period={period}
         removedNative={removedNative}
         placedIds={placedIds}
         onAdd={(id) => layout.addWidget(id)}
-      />
+      /></Suspense>}
     </>
   );
 });

@@ -9,10 +9,11 @@ import {
   useDashboardRevenueSplit,
 } from '../../../hooks/useDashboardAnalyticsBlocks';
 import type { DashboardPeriod } from '../DashboardDateFilter';
-import { useQuery } from '@tanstack/react-query';
-import { dashboardBillingApi } from '../../../services/api/dashboardBillingApi';
+import { useDashboardOverview } from '../../../hooks/useDashboardOverview';
+import { DashboardWidgetState } from '../DashboardWidgetState';
+import { activeIntlLocale } from '../../../utils/activeLocale';
 import RevenueByChannelCard from '../../../components/baitly/RevenueByChannelCard';
-import { channelColor } from './DashboardOperationsBlocks';
+import { channelColor, channelLabel } from './DashboardOperationsBlocks';
 
 /**
  * Blocs analytiques du Dashboard portés depuis la projection
@@ -39,25 +40,20 @@ const REVENUE_CHART_CONFIG = {
 
 export function MonthlyRevenueSplitCard({ months = 6 }: { months?: number }) {
   const { t } = useTranslation();
-  const { data, isLoading } = useDashboardRevenueSplit(months);
+  const { data, isLoading, isError, refetch } = useDashboardRevenueSplit(months);
 
-  if (isLoading) return null;
+  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.widgets.revenueSplit', 'Revenus mensuels')} error={isError} onRetry={() => { void refetch(); }} />;
   const rows = data ?? [];
 
   return (
     // `ring-1` et non `border` — même métrique de boîte que le `Card` du design
     // system, sinon cette carte se décale d'un pixel face à sa voisine de ligne
     // (rationnel détaillé sur `BlockCard`, DashboardOperationsBlocks).
-    // PAS de `h-full` ici : l'étirement à la hauteur de la ligne est déjà posé
-    // par le panneau redimensionnable, qui applique `[&>*]:h-full` à son enfant
-    // direct (DashboardWidgetGrid). Le redéclarer était sans effet sur desktop
-    // et desastreux en mobile : les widgets y sont EMPILÉS, sans panneau, donc
-    // `h-full` valait 100 % de toute la colonne — la carte passait de 294 px à
-    // 2167 px, avec un graphique étiré sur toute la hauteur de l'écran.
-    <section className="flex flex-col rounded-xl bg-card ring-1 ring-foreground/10 p-4">
+    // La grille fournit une hauteur bornée, commune aux voisins.
+    <section className="db-widget-surface flex flex-col rounded-lg bg-card ring-1 ring-foreground/10 p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
-          {t('dashboard.revenueSplit.title', 'Revenus et versements')} — {months}{' '}
+          {t('dashboard.revenueSplit.title', 'Revenus et versements')} · {months}{' '}
           {t('dashboard.revenueSplit.lastMonths', 'derniers mois')}
         </h3>
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
@@ -80,9 +76,7 @@ export function MonthlyRevenueSplitCard({ months = 6 }: { months?: number }) {
           {t('dashboard.revenueSplit.empty', 'Aucun revenu enregistré sur la période.')}
         </p>
       ) : (
-        /* `min-h-52` conserve une hauteur naturelle décente pour la carte ;
-           `flex-1` lui laisse prendre davantage si la ligne est plus haute. */
-        <ChartContainer config={REVENUE_CHART_CONFIG} className="min-h-52 w-full flex-1">
+        <ChartContainer config={REVENUE_CHART_CONFIG} className="db-widget-chart h-[280px] w-full aspect-auto">
           <BarChart accessibilityLayer data={rows}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -90,9 +84,9 @@ export function MonthlyRevenueSplitCard({ months = 6 }: { months?: number }) {
               tickLine={false}
               tickMargin={8}
               axisLine={false}
-              tickFormatter={(value: string) => value.slice(0, 3)}
+              tickFormatter={formatChartMonth}
             />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={formatChartMonth} />} />
             {/* UN seul `stackId` : les quatre segments s'additionnent au revenu
                 du mois. C'est ce qui autorise l'empilement — mettre le revenu ET
                 ses sorties dans le même bâton compterait le même argent deux
@@ -107,6 +101,12 @@ export function MonthlyRevenueSplitCard({ months = 6 }: { months?: number }) {
       )}
     </section>
   );
+}
+
+function formatChartMonth(value: unknown): string {
+  const bucket = String(value);
+  if (!/^\d{4}-\d{2}$/.test(bucket)) return bucket;
+  return new Date(`${bucket}-01T12:00:00`).toLocaleDateString(activeIntlLocale(), { month: 'short' });
 }
 
 // ─── §7 — Occupation par logement ───────────────────────────────────────────
@@ -355,7 +355,7 @@ function OccupancyRadial({
         <p className="m-0 truncate text-xs font-medium text-foreground">{boxLabel}</p>
         <p
           className={cn(
-            'm-0 mt-0.5 flex items-center gap-1.5 text-2xs text-muted-foreground',
+            'm-0 mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground',
             beside ? 'justify-start' : 'justify-center',
           )}
         >
@@ -371,13 +371,13 @@ function OccupancyRadial({
 }
 export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod }) {
   const { t } = useTranslation();
-  const { data, isLoading } = useDashboardOccupancyByProperty(period);
+  const { data, isLoading, isError, refetch } = useDashboardOccupancyByProperty(period);
   // `null` tant que rien n'a été choisi : la vue par défaut suit alors le nombre
   // de logements. Dès que l'utilisateur bascule, son choix prime. ⚠️ Déclaré
   // avant tout early return (règles des hooks).
   const [chosenView, setChosenView] = React.useState<OccupancyView | null>(null);
 
-  if (isLoading) return null;
+  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.occupancyByProperty.title', 'Occupation par logement')} error={isError} onRetry={() => { void refetch(); }} />;
   const rows = (data ?? []).map((row) => ({ ...row, rate: clampRate(row.rate) }));
   const single = rows.length === 1;
   // Une barre solitaire ne compare rien : à un seul logement, l'anneau dit mieux
@@ -385,13 +385,9 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
   const view: OccupancyView = chosenView ?? (single ? 'radial' : 'bars');
 
   return (
-    // La colonne flex reste — le `flex-1` de la vue radiale a besoin d'un axe
-    // pour réclamer son espace. En revanche PAS de `h-full` : le panneau
-    // redimensionnable le pose déjà sur son enfant direct, et en mobile, où les
-    // widgets sont empilés sans panneau, il valait 100 % de toute la colonne.
-    <section className="flex flex-col rounded-xl bg-card ring-1 ring-foreground/10 p-4">
+    <section className="db-widget-surface flex flex-col rounded-lg bg-card ring-1 ring-foreground/10 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="m-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <h3 className="m-0 text-sm font-semibold text-foreground">
           {t('dashboard.occupancyByProperty.title', 'Occupation par logement')}
         </h3>
         {/* La bascule n'apparaît qu'à partir de deux logements : sur un seul, les
@@ -426,6 +422,7 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
         )}
       </div>
 
+      <div className="db-widget-body flex flex-col" tabIndex={0} role="region" aria-label={t('dashboard.occupancyByProperty.title', 'Occupation par logement')}>
       {rows.length === 0 ? (
         <p className="m-0 py-2 text-sm text-muted-foreground">
           {t('dashboard.occupancyByProperty.empty', 'Aucun logement sur la période.')}
@@ -452,7 +449,7 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
             const rate = row.rate;
             return (
               <div key={row.propertyId} className="flex items-center gap-2.5">
-                <span dir="auto" className="w-32 truncate text-xs font-medium text-foreground" title={row.name}>
+                <span dir="auto" className="w-32 shrink-0 text-xs font-medium text-foreground" title={row.name}>
                   {row.name}
                 </span>
                 <div
@@ -476,60 +473,33 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
           })}
         </div>
       )}
+      </div>
     </section>
   );
 }
 
 // ─── §4 — Répartition du revenu par canal ───────────────────────────────────
 
-/**
- * Remplace `BillingOverviewWidget` (MUI) par la carte Baitly de la projection.
- *
- * Le bascule mois / année de l'ancien widget est conservé : c'est le seul
- * réglage qu'il portait, et il ne figure pas dans la projection — le perdre
- * aurait été une régression silencieuse.
- */
-export function RevenueByChannelBlock() {
+/** Même définition, période et devise que les KPI, sans nouvelle requête. */
+export function RevenueByChannelBlock({ period }: { period: DashboardPeriod }) {
   const { t } = useTranslation();
-  const [scope, setScope] = React.useState<'month' | 'year'>('month');
-  const { data, isLoading } = useQuery({
-    queryKey: ['dashboard', 'billing-overview', scope],
-    queryFn: () => dashboardBillingApi.getOverview(scope),
-    staleTime: 5 * 60_000,
+  const { revenueByChannel, financialContext, loading, error, refreshAll } = useDashboardOverview({ period, t });
+  const title = t('dashboard.widgets.revenueByChannel', 'Revenus par canal');
+  if (loading || error || !revenueByChannel || !financialContext) return <DashboardWidgetState
+    title={title} error={!loading} onRetry={refreshAll} />;
+  const format = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(activeIntlLocale(), { day: 'numeric', month: 'short' });
+  const end = new Date(`${financialContext.toExclusive}T12:00:00`);
+  end.setDate(end.getDate() - 1);
+  const subtitle = t('dashboard.revenueByChannel.context', 'Hébergement · {{from}} au {{to}}', {
+    from: format(financialContext.from),
+    to: end.toLocaleDateString(activeIntlLocale(), { day: 'numeric', month: 'short' }),
   });
-
-  if (isLoading) return null;
-
-  const channels = (data?.channels ?? []).map((channel) => ({
-    name: channel.label,
-    pct: channel.pct,
-    amount: channel.amount,
-    color: channelColor(channel.source),
-  }));
-
-  // Le basculement mois / année occupe le slot d'en-tête de la carte : posé
-  // au-dessus, il flottait détaché, sans rien pour le rattacher au titre.
-  const scopeToggle = (
-    <div className="flex items-center gap-1">
-      {(['month', 'year'] as const).map((value) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => setScope(value)}
-          aria-pressed={scope === value}
-          className={`cursor-pointer rounded-md px-2 py-0.5 text-xs transition-colors duration-150 ${
-            scope === value
-              ? 'bg-accent font-medium text-foreground'
-              : 'text-muted-foreground hover:bg-accent'
-          }`}
-        >
-          {value === 'month'
-            ? t('dashboard.revenueByChannel.month', 'Mois')
-            : t('dashboard.revenueByChannel.year', 'Année')}
-        </button>
-      ))}
-    </div>
-  );
-
-  return <RevenueByChannelCard channels={channels} headerAction={scopeToggle} />;
+  return <RevenueByChannelCard title={title} subtitle={subtitle} fromCurrency={financialContext.currency}
+    channels={revenueByChannel.map((channel) => ({
+      name: channelLabel(channel.source, channel.label === channel.source ? null : channel.label),
+      pct: channel.pct,
+      amount: channel.amount,
+      comparePct: channel.comparePct ?? undefined,
+      color: channelColor(channel.source),
+    }))} />;
 }

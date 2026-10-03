@@ -61,6 +61,7 @@ class DashboardOverviewSummaryServiceTest {
     @Mock private GuestReviewRepository guestReviewRepository;
     @Mock private UserRepository userRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
+    @Mock private CurrencyConverterService currencyConverter;
 
     private DashboardOverviewSummaryService service;
 
@@ -71,7 +72,36 @@ class DashboardOverviewSummaryServiceTest {
                 ZoneId.of("Europe/Paris"));
         service = new DashboardOverviewSummaryService(
                 propertyRepository, reservationRepository, interventionRepository,
-                serviceRequestRepository, guestReviewRepository, userRepository, calendarDayRepository, fixed);
+                serviceRequestRepository, guestReviewRepository, userRepository, calendarDayRepository, fixed, currencyConverter);
+    }
+
+    @Test
+    void channelsShareTheKpiWindowCurrencyAndHostScope() {
+        stubActiveProperties(1);
+        Reservation eur = reservation(CUR_START.minusDays(5), CUR_START.plusDays(5), "1000", "confirmed");
+        eur.setSource("direct");
+        Reservation mad = reservation(CUR_START, CUR_START.plusDays(5), "1000", "confirmed");
+        mad.setCurrency("MAD");
+        mad.setSource("airbnb");
+        Reservation cancelled = reservation(CUR_START, TODAY, "9000", "cancelled");
+        cancelled.setSource("booking");
+        when(reservationRepository.findOverlappingWindowForDashboard(PREV_START, CUR_END_EXCLUSIVE, ORG_ID, KC_ID))
+                .thenReturn(List.of(eur, mad, cancelled));
+        when(currencyConverter.convert(new BigDecimal("1000"), "MAD", "EUR", CUR_START))
+                .thenReturn(new BigDecimal("100"));
+
+        DashboardOverviewSummaryDto dto = service.getSummary(ORG_ID, DAYS, UserRole.HOST, KC_ID);
+
+        assertThat(dto.totalRevenue().value()).isEqualTo(600);
+        assertThat(dto.revenueByChannel()).extracting(c -> c.source()).containsExactly("direct", "airbnb");
+        assertThat(dto.revenueByChannel().stream().map(c -> c.amount()).reduce(BigDecimal.ZERO, BigDecimal::add))
+                .isEqualByComparingTo("600");
+        assertThat(dto.revenueByChannel().get(0).comparePct()).isEqualTo(100);
+        assertThat(dto.revenueByChannel().get(1).pct()).isEqualTo(16.7);
+        assertThat(dto.financialContext().currency()).isEqualTo("EUR");
+        assertThat(dto.financialContext().from()).isEqualTo(CUR_START);
+        assertThat(dto.financialContext().toExclusive()).isEqualTo(CUR_END_EXCLUSIVE);
+        assertThat(dto.financialContext().timezone()).isEqualTo("Europe/Paris");
     }
 
     private void stubActiveProperties(long active) {

@@ -116,9 +116,10 @@ function useMyMissions() {
   });
 }
 
-function useMyPayoutRecords() {
+function useMyPayoutRecords(enabled = true) {
   return useQuery({
     queryKey: ['field', 'payouts'],
+    enabled,
     queryFn: () => housekeeperPayoutsApi.getMy(),
     staleTime: 60_000,
   });
@@ -1223,9 +1224,10 @@ function QuoteRow({ quote, onOpen }: { quote: MyQuote; onOpen: (id: number) => v
 
 // ─── Mes devis (métiers de travaux) ─────────────────────────────────────────
 
-function useMyQuotes() {
+function useMyQuotes(enabled = true) {
   return useQuery({
     queryKey: ['field', 'quotes'],
+    enabled,
     queryFn: () => serviceQuotesApi.listMine(),
     staleTime: 60_000,
   });
@@ -1245,8 +1247,8 @@ const QUOTE_TONES: Record<ServiceQuote['status'], 'ok' | 'warn' | 'err' | 'neutr
  * gestionnaire tranche. Le score qualité et les versements ménage ne le
  * concernent pas — le moteur qui les calcule ignore les types de travaux.</p>
  */
-export function useMyQuoteTotals() {
-  const { data } = useMyQuotes();
+export function useMyQuoteTotals(enabled = true) {
+  const { data } = useMyQuotes(enabled);
   return React.useMemo(() => {
     const quotes = data ?? [];
     let pendingCount = 0;
@@ -1359,8 +1361,8 @@ export function MyQuotesCard() {
  * <p>Le tableau de bord n'affichait que le « prochain versement ». Ce qui a
  * déjà été payé manquait — c'est pourtant la moitié de la question.</p>
  */
-export function useMyEarnings() {
-  const { data } = useMyPayoutRecords();
+export function useMyEarnings(enabled = true) {
+  const { data } = useMyPayoutRecords(enabled);
   return React.useMemo(() => {
     const records = data?.records ?? [];
     const monthPrefix = new Date().toISOString().slice(0, 7);

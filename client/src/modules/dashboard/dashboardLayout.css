@@ -99,3 +99,139 @@
 .db-board .db-origin-link {
   display: none;
 }
+.db-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.db-layout-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+/* Width floors redistribute space between neighbours before wrapping the row.
+   A saved 20/80 split is a preference, never permission to crush a table. */
+.db-widget {
+  flex: var(--db-weight, 1) 1 0;
+  min-inline-size: min(100%, var(--db-min-width, 384px));
+  max-inline-size: 100%;
+  block-size: var(--db-row-height, 28rem);
+}
+
+.db-editor-widget { block-size: var(--db-row-height, 28rem); }
+
+.db-widget-content {
+  container: dashboard-widget / inline-size;
+  block-size: 100%;
+  min-block-size: 0;
+  min-inline-size: 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-lg, 10px);
+}
+
+.db-widget-content:focus-visible,
+.db-widget-content .db-widget-body:focus-visible {
+  outline: 2px solid var(--bui-ring);
+  outline-offset: -2px;
+}
+
+.db-widget-content > :only-child,
+.db-widget-content .db-widget-deferred,
+.db-widget-content .db-widget-deferred > :only-child {
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+/* Bounded bodies keep headers and actions visible, including after "show all".
+   Unknown imported widgets retain an accessible scrolling fallback above. */
+.db-widget-content .db-widget-surface {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.db-widget-content .db-widget-surface > :not(.db-widget-body):not(.db-widget-chart) { flex-shrink: 0; }
+
+.db-widget-content .db-widget-body {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  min-inline-size: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.db-widget-content .db-widget-chart {
+  flex: 1 1 0;
+  block-size: auto;
+  min-block-size: 180px;
+}
+
+.db-widget-content .db-imported-widget > :last-child {
+  flex: 1 1 0;
+  block-size: auto;
+  min-block-size: 0;
+  overflow: auto;
+}
+
+/* Long business labels wrap; a value never disappears just to preserve a row. */
+.db-widget-content .truncate {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.db-arrivals-table { display: none; }
+.db-arrival-list { display: block; }
+@container dashboard-widget (min-width: 800px) {
+  .db-arrivals-table { display: block; }
+  .db-arrival-list { display: none; }
+}
+
+.db-arrivals-table table { table-layout: fixed; }
+.db-arrivals-table th { white-space: nowrap; font-size: 0.75rem; letter-spacing: 0.03em; }
+.db-arrivals-table td { white-space: normal; overflow-wrap: anywhere; padding-block: 0.75rem; }
+.db-arrivals-col-guest { inline-size: 27%; }
+.db-arrivals-col-date { inline-size: 120px; }
+.db-arrivals-col-nights,
+.db-arrivals-col-channel { inline-size: 64px; }
+.db-arrivals-col-status { inline-size: 88px; }
+.db-arrivals-col-total { inline-size: 104px; }
+.db-arrivals-table :is(th, td):nth-child(4),
+.db-arrivals-table :is(th, td):nth-child(5) { text-align: center; }
+.db-arrivals-table td:nth-child(3),
+.db-arrivals-table td:nth-child(7) { white-space: nowrap; }
+.db-arrivals-table :is(th, td):nth-child(6),
+.db-arrivals-table :is(th, td):nth-child(7) { text-align: end; }
+
+.db-widget-content [data-slot="badge"] {
+  max-inline-size: 100%;
+  block-size: auto;
+  white-space: normal;
+}
+
+@container dashboard-widget (max-width: 420px) {
+  .db-action-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.5rem;
+  }
+  .db-action-avatar { grid-column: 1; grid-row: 1 / span 2; }
+  .db-action-copy { grid-column: 2; grid-row: 1; }
+  .db-action-age { grid-column: 3; grid-row: 1; }
+  .db-action-control {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    justify-self: start;
+    max-inline-size: 100%;
+    block-size: auto;
+    white-space: normal;
+  }
+}

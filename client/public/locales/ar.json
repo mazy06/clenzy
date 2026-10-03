@@ -3927,7 +3927,8 @@
       "einvoiceAction": "إعادة إرسال",
       "automationAction": "إعادة تشغيل",
       "outboxAction": "إعادة تنفيذ",
-      "integrationAction": "إعادة ربط"
+      "integrationAction": "إعادة ربط",
+      "showCategories": "عرض {{count}} فئات أخرى"
     },
     "activePropertiesShort": "وحدات نشطة",
     "newReservation": "حجز",
@@ -3956,11 +3957,16 @@
       "empty": "لا توجد وحدات خلال الفترة.",
       "nights": "{{occupied}} ليلة من أصل {{total}}",
       "viewBars": "عرض شريطي",
-      "viewRadial": "عرض دائري"
+      "viewRadial": "عرض دائري",
+      "showAll": "عرض جميع العقارات ({{count}})"
     },
     "revenueByChannel": {
       "month": "شهر",
-      "year": "سنة"
+      "year": "سنة",
+      "deltaHint": "تغيّر الحصة مقارنة بالفترة السابقة",
+      "otherShare": "{{count}} قنوات أخرى: {{share}}٪",
+      "showAll": "عرض جميع القنوات",
+      "context": "الإقامة · من {{from}} إلى {{to}}"
     },
     "revenueSplit": {
       "title": "الإيرادات والتحويلات",
@@ -3981,7 +3987,11 @@
       "depositToRelease": "وديعة للإفراج",
       "releaseDeposit": "الإفراج عن الوديعة",
       "planned": "مجدول",
-      "inProgress": "قيد التنفيذ"
+      "inProgress": "قيد التنفيذ",
+      "showAll": "عرض اليوم كاملاً",
+      "window": "الفترة المتاحة: {{start}} إلى {{end}}",
+      "windowBefore": "قبل {{end}}",
+      "windowAfter": "ابتداءً من {{start}}"
     },
     "upcomingArrivals": {
       "title": "الوصولات القادمة",
@@ -4271,7 +4281,10 @@
     },
     "statsLoadError": "خطأ أثناء تحميل الإحصاءات",
     "widgetLoadError": "خطأ أثناء تحميل الأداة",
-    "widgetLoadErrorNamed": "خطأ أثناء تحميل «{{widget}}»"
+    "widgetLoadErrorNamed": "خطأ أثناء تحميل «{{widget}}»",
+    "widgetState": {
+      "error": "تعذّر تحميل البيانات."
+    }
   },
   "properties": {
     "title": "العقارات",

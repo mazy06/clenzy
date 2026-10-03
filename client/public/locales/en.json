@@ -3893,7 +3893,8 @@
       "einvoiceAction": "Resend",
       "automationAction": "Retry",
       "outboxAction": "Replay",
-      "integrationAction": "Reconnect"
+      "integrationAction": "Reconnect",
+      "showCategories": "Show {{count}} more categories"
     },
     "activePropertiesShort": "active properties",
     "newReservation": "Reservation",
@@ -3922,11 +3923,16 @@
       "empty": "No property over the period.",
       "nights": "{{occupied}} of {{total}} nights",
       "viewBars": "Bar view",
-      "viewRadial": "Radial view"
+      "viewRadial": "Radial view",
+      "showAll": "Show all {{count}} properties"
     },
     "revenueByChannel": {
       "month": "Month",
-      "year": "Year"
+      "year": "Year",
+      "deltaHint": "Share change from the previous period",
+      "otherShare": "{{count}} other channels: {{share}}%",
+      "showAll": "Show all channels",
+      "context": "Accommodation · {{from}} to {{to}}"
     },
     "revenueSplit": {
       "title": "Revenue and payouts",
@@ -3947,7 +3953,11 @@
       "depositToRelease": "deposit to release",
       "releaseDeposit": "Release deposit",
       "planned": "Scheduled",
-      "inProgress": "In progress"
+      "inProgress": "In progress",
+      "showAll": "Show the full day",
+      "window": "Window: {{start}} to {{end}}",
+      "windowBefore": "Before {{end}}",
+      "windowAfter": "From {{start}}"
     },
     "upcomingArrivals": {
       "title": "Upcoming arrivals",
@@ -4238,7 +4248,10 @@
     },
     "statsLoadError": "Error loading the statistics",
     "widgetLoadError": "Error while loading the widget",
-    "widgetLoadErrorNamed": "Error while loading “{{widget}}”"
+    "widgetLoadErrorNamed": "Error while loading “{{widget}}”",
+    "widgetState": {
+      "error": "The data could not be loaded."
+    }
   },
   "properties": {
     "title": "Properties",

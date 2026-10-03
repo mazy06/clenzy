@@ -3880,7 +3880,8 @@
       "einvoiceAction": "Renvoyer",
       "automationAction": "Relancer",
       "outboxAction": "Rejouer",
-      "integrationAction": "Reconnecter"
+      "integrationAction": "Reconnecter",
+      "showCategories": "Voir les {{count}} autres rubriques"
     },
     "activePropertiesShort": "logements actifs",
     "newReservation": "Réservation",
@@ -3909,11 +3910,16 @@
       "empty": "Aucun logement sur la période.",
       "nights": "{{occupied}} nuits sur {{total}}",
       "viewBars": "Vue en barres",
-      "viewRadial": "Vue en anneaux"
+      "viewRadial": "Vue en anneaux",
+      "showAll": "Voir les {{count}} logements"
     },
     "revenueByChannel": {
       "month": "Mois",
-      "year": "Année"
+      "year": "Année",
+      "deltaHint": "Écart de part par rapport à la période précédente",
+      "otherShare": "{{count}} autres canaux : {{share}} %",
+      "showAll": "Voir tous les canaux",
+      "context": "Hébergement · {{from}} au {{to}}"
     },
     "revenueSplit": {
       "title": "Revenus et versements",
@@ -3934,7 +3940,11 @@
       "depositToRelease": "caution à libérer",
       "releaseDeposit": "Libérer la caution",
       "planned": "Planifié",
-      "inProgress": "En cours"
+      "inProgress": "En cours",
+      "showAll": "Voir toute la journée",
+      "window": "Fenêtre : {{start}} à {{end}}",
+      "windowBefore": "Avant {{end}}",
+      "windowAfter": "À partir de {{start}}"
     },
     "upcomingArrivals": {
       "title": "Prochaines arrivées",
@@ -4224,7 +4234,10 @@
     },
     "statsLoadError": "Erreur lors du chargement des statistiques",
     "widgetLoadError": "Erreur lors du chargement du widget",
-    "widgetLoadErrorNamed": "Erreur lors du chargement de « {{widget}} »"
+    "widgetLoadErrorNamed": "Erreur lors du chargement de « {{widget}} »",
+    "widgetState": {
+      "error": "Les données n’ont pas pu être chargées."
+    }
   },
   "properties": {
     "title": "Propriétés",

@@ -104,6 +104,8 @@ export function useDashboardOverview({ period, t }: UseDashboardOverviewParams) 
   return {
     stats,
     financialKpis,
+    financialContext: summary?.financialContext,
+    revenueByChannel: summary?.revenueByChannel,
     alerts,
     pendingPaymentsCount: summary?.pendingPaymentsCount ?? 0,
     loading: summaryQuery.isLoading,

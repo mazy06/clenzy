@@ -6,23 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { DashboardPeriod } from './DashboardDateFilter';
 import type { ReportContent } from '../reports/reportShell';
 import { resolveDestination } from '../notifications/notificationMeta';
-import { useOverviewReport } from '../reports/OverviewReport';
-import { useRevenueReport } from '../reports/RevenueReport';
-import { useOccupancyReport } from '../reports/OccupancyReport';
-import { usePricingReport } from '../reports/PricingReport';
-import { usePaceReport } from '../reports/PaceReport';
-import { usePropertiesReport } from '../reports/PropertiesReport';
-import { useInterventionsReport } from '../reports/InterventionsReport';
-import { useTeamsReport } from '../reports/TeamsReport';
-import { useFiscalReport } from '../reports/FiscalReportSection';
-import { usePortfolioStatsReport } from '../portfolios/PortfolioStatsTab';
-import {
-  usePulseCompliance,
-  usePulseFinance,
-  usePulseGrowth,
-  usePulseGuest,
-  usePulseOperations,
-} from './pulseTiles';
+import { DashboardWidgetState } from './DashboardWidgetState';
 
 /**
  * Tuiles IMPORTEES : les graphiques et tableaux des Rapports et des
@@ -87,7 +71,7 @@ export interface TileSource {
   originPath: string;
   /** La source suit-elle la periode choisie sur le tableau de bord ? */
   usesPeriod: boolean;
-  useContent: (period: DashboardPeriod) => ReportContent;
+  loadContent: () => Promise<(period: DashboardPeriod) => ReportContent>;
 }
 
 /**
@@ -106,7 +90,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: true,
-    useContent: (period) => useOverviewReport(period),
+    loadContent: () => import('../reports/OverviewReport').then((m) => m.useOverviewReport),
   },
   {
     id: 'reports.revenue',
@@ -116,7 +100,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: true,
-    useContent: (period) => useRevenueReport(period),
+    loadContent: () => import('../reports/RevenueReport').then((m) => m.useRevenueReport),
   },
   {
     id: 'reports.occupancy',
@@ -126,7 +110,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: true,
-    useContent: (period) => useOccupancyReport(period),
+    loadContent: () => import('../reports/OccupancyReport').then((m) => m.useOccupancyReport),
   },
   {
     id: 'reports.pricing',
@@ -136,7 +120,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: true,
-    useContent: (period) => usePricingReport(period),
+    loadContent: () => import('../reports/PricingReport').then((m) => m.usePricingReport),
   },
   {
     id: 'reports.pace',
@@ -146,7 +130,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: false,
-    useContent: () => usePaceReport(),
+    loadContent: () => import('../reports/PaceReport').then((m) => m.usePaceReport),
   },
   {
     id: 'reports.properties',
@@ -156,7 +140,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: true,
-    useContent: (period) => usePropertiesReport(period),
+    loadContent: () => import('../reports/PropertiesReport').then((m) => m.usePropertiesReport),
   },
   {
     id: 'reports.interventions',
@@ -166,7 +150,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: false,
-    useContent: () => useInterventionsReport(),
+    loadContent: () => import('../reports/InterventionsReport').then((m) => m.useInterventionsReport),
   },
   {
     id: 'reports.teams',
@@ -176,7 +160,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.reports',
     originFallback: 'Rapports',
     usesPeriod: false,
-    useContent: () => useTeamsReport(),
+    loadContent: () => import('../reports/TeamsReport').then((m) => m.useTeamsReport),
   },
   {
     id: 'reports.fiscal',
@@ -188,7 +172,7 @@ export const TILE_SOURCES: TileSource[] = [
     // La TVA se declare par periode fiscale : la tuile suit la periode du
     // tableau de bord, ramenee a la granularite la plus proche.
     usesPeriod: true,
-    useContent: (period) => useFiscalReport(period),
+    loadContent: () => import('../reports/FiscalReportSection').then((m) => m.useFiscalReport),
   },
   {
     id: 'portfolios.stats',
@@ -198,7 +182,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.contactsHub',
     originFallback: 'Annuaire',
     usesPeriod: false,
-    useContent: () => usePortfolioStatsReport(),
+    loadContent: () => import('../portfolios/PortfolioStatsTab').then((m) => m.usePortfolioStatsReport),
   },
   {
     id: 'pulse.growth',
@@ -208,7 +192,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.dashboard',
     originFallback: 'Tableau de bord',
     usesPeriod: false,
-    useContent: () => usePulseGrowth(),
+    loadContent: () => import('./pulseTiles').then((m) => m.usePulseGrowth),
   },
   {
     id: 'pulse.operations',
@@ -218,7 +202,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.dashboard',
     originFallback: 'Tableau de bord',
     usesPeriod: false,
-    useContent: () => usePulseOperations(),
+    loadContent: () => import('./pulseTiles').then((m) => m.usePulseOperations),
   },
   {
     id: 'pulse.compliance',
@@ -228,7 +212,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.dashboard',
     originFallback: 'Tableau de bord',
     usesPeriod: false,
-    useContent: () => usePulseCompliance(),
+    loadContent: () => import('./pulseTiles').then((m) => m.usePulseCompliance),
   },
   {
     id: 'pulse.finance',
@@ -238,7 +222,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.dashboard',
     originFallback: 'Tableau de bord',
     usesPeriod: false,
-    useContent: () => usePulseFinance(),
+    loadContent: () => import('./pulseTiles').then((m) => m.usePulseFinance),
   },
   {
     id: 'pulse.guest',
@@ -248,7 +232,7 @@ export const TILE_SOURCES: TileSource[] = [
     originKey: 'navigation.dashboard',
     originFallback: 'Tableau de bord',
     usesPeriod: false,
-    useContent: () => usePulseGuest(),
+    loadContent: () => import('./pulseTiles').then((m) => m.usePulseGuest),
   },
 ];
 
@@ -266,16 +250,18 @@ export function findTileSource(sourceId: string): TileSource | undefined {
  * source en propriete d'un composant unique changerait le hook appele d'un
  * rendu a l'autre.</p>
  */
-const SOURCE_MOUNTS: Record<string, React.FC<{ period: DashboardPeriod; children: (content: ReportContent) => React.ReactNode }>> =
-  Object.fromEntries(
-    TILE_SOURCES.map((source) => [
-      source.id,
-      function SourceMount({ period, children }) {
-        const content = source.useContent(period);
-        return <>{children(content)}</>;
-      },
-    ]),
-  );
+const SOURCE_MOUNTS = Object.fromEntries(TILE_SOURCES.map((source) => [
+  source.id,
+  React.lazy(async () => {
+    const useContent = await source.loadContent();
+    return { default: function SourceMount({ period, children }: {
+      period: DashboardPeriod;
+      children: (content: ReportContent) => React.ReactNode;
+    }) {
+      return <>{children(useContent(period))}</>;
+    } };
+  }),
+]));
 
 /** Cle de la tuile synthetique qui porte les INDICATEURS d'une source. */
 export const KPI_TILE_KEY = 'source-kpis';
@@ -330,8 +316,11 @@ export const ImportedTileWidget: React.FC<{
   if (!Mount || !source) return null;
 
   return (
+    <React.Suspense fallback={<DashboardWidgetState title={t(source.labelKey, source.fallback)} />}>
     <Mount period={period}>
       {(content) => {
+        if (content.loading || content.error) return <DashboardWidgetState
+          title={t(source.labelKey, source.fallback)} error={!!content.error} onRetry={content.retry} />;
         const kpiTitle = t('dashboard.imported.kpisTitle', 'Indicateurs clés');
         const tile = sourceTiles(content, kpiTitle).find((item) => item.key === reference.tileKey);
         if (!tile) {
@@ -358,6 +347,8 @@ export const ImportedTileWidget: React.FC<{
           : t(source.originKey, source.originFallback);
         return (
           <ChartTile
+            className="db-imported-widget"
+            scrollable
             title={tile.title}
             hint={tile.hint}
             fluid={tile.fluid}
@@ -376,6 +367,7 @@ export const ImportedTileWidget: React.FC<{
         );
       }}
     </Mount>
+    </React.Suspense>
   );
 };
 
@@ -395,11 +387,13 @@ export const SourceTileOptions: React.FC<{
   const Mount = SOURCE_MOUNTS[source.id];
   if (!Mount) return null;
   return (
+    <React.Suspense fallback={<DashboardWidgetState title={t(source.labelKey, source.fallback)} />}>
     <Mount period={period}>
       {(content) =>
         children(sourceTiles(content, t('dashboard.imported.kpisTitle', 'Indicateurs clés')), content.loading)
       }
     </Mount>
+    </React.Suspense>
   );
 };
 
