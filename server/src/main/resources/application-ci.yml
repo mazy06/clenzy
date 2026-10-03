@@ -45,6 +45,7 @@ spring:
       mode: always
       schema-locations:
         - classpath:db/changelog/changes/0359__create_shedlock_table.sql
+        - classpath:ci/baitly-assignment-tables.sql
         - classpath:db/changelog/changes/0476__assignment_durable_jobs.sql
       # Les fonctions PL/pgSQL contiennent des points-virgules internes.
       separator: "^^^ END OF SCRIPT ^^^"

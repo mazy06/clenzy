@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // `<Money>` passe par `useCurrency`, qui exige `CurrencyProvider` + react-query
 // (matrice de taux). Pour un test unitaire on injecte le meme stub que les
 // autres tests du panneau : devise d'affichage EUR, aucune conversion.
-vi.mock('../../../hooks/useCurrency', () => ({
+vi.mock('../../../hooks/currencyDisplayContext', () => ({
   useCurrency: () => ({
     currency: 'EUR',
     setCurrency: vi.fn(),

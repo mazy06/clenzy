@@ -338,6 +338,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           RESULTS=tests/performance/results
+          mkdir -p "$RESULTS"
           COMMENT=$RESULTS/pr-comment.md
 
           # Format --summary-export (plat) : .metrics.<name>.<stat>, PAS .values.<stat>
@@ -368,7 +369,9 @@ jobs:
 
           echo "## Performance Test Results" > $COMMENT
           echo "" >> $COMMENT
-          if [ "$TOTAL_BREACHED" -eq 0 ]; then
+          if [ ! -f "$RESULTS/smoke-summary.json" ] || [ ! -f "$RESULTS/load-summary.json" ]; then
+            echo "**Verdict : mesure incomplete.** Le workflow a echoue avant de produire tous les resultats." >> $COMMENT
+          elif [ "$TOTAL_BREACHED" -eq 0 ]; then
             echo "**Verdict : tous les seuils sont tenus.**" >> $COMMENT
           else
             echo "**Verdict : ${TOTAL_BREACHED} seuil(s) franchi(s)** — detail ci-dessous." >> $COMMENT

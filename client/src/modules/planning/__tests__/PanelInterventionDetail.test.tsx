@@ -6,7 +6,7 @@ import type { PlanningIntervention } from '../../../services/api';
 
 // useCurrency depend de CurrencyProvider + react-query. Stub deterministe
 // (le panneau affiche des montants via <Money/>).
-vi.mock('../../../hooks/useCurrency', () => ({
+vi.mock('../../../hooks/currencyDisplayContext', () => ({
   useCurrency: () => ({
     currency: 'EUR',
     setCurrency: vi.fn(),
