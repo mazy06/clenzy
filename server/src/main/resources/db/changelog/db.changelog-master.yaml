@@ -4421,3 +4421,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0489__ma_tourist_tax_rates.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0490-ma-tourist-tax-marrakech-verified"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0490__ma_tourist_tax_marrakech_verified.sql
+            relativeToChangelogFile: true
