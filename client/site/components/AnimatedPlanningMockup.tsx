@@ -1,5 +1,12 @@
 import SiteMoney from './SiteMoney';
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MutableRefObject,
+} from 'react';
 import {
   BedDoubleIcon,
   ChevronLeftIcon,
@@ -26,6 +33,8 @@ import {
   SearchIcon,
   UserIcon,
   UsersIcon,
+  Volume2Icon,
+  VolumeXIcon,
   XIcon,
 } from 'lucide-react';
 /* Icônes EXACTES de la brique planning (src/icons, corps Iconify embarqués). */
@@ -43,12 +52,13 @@ import bookingLogo from '../../src/assets/logo/booking-logo-small.svg';
 import { Cursor, useScriptedCursor } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { useBaitlyPlanningTimeline } from './useBaitlyPlanningTimeline';
+import { useDemoNarration } from './useDemoNarration';
 import BaitlyPlanningCallout, {
   type PlanningAnnotation,
 } from './BaitlyPlanningCallout';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
-import { useSiteLanguage } from '../lib/siteLanguage';
+import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
 import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
@@ -400,6 +410,55 @@ export function usePlanningText() {
   return PLANNING_MOCKUP_MESSAGES[language];
 }
 
+/* Voix off (Paul K, voir `lib/messages/planningMockupVoice.ts`) : un MP3 par
+   étape et par langue. L'arabe n'a pas de voix et suit le rythme français. */
+const PLANNING_CLIPS = import.meta.glob('../assets/voice/planning-demo/*/*.mp3', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+const planningClipUrl = (language: SiteLanguage, step: number) =>
+  PLANNING_CLIPS[
+    `../assets/voice/planning-demo/${language}/${String(step).padStart(2, '0')}.mp3`
+  ];
+
+/**
+ * Repères de la voix off, en ms depuis le début de chaque étape : instant où la
+ * voix nomme le geste (fin du silence précédent, mesuré par `ffmpeg
+ * silencedetect`), `end` = fin de la phrase. Régénérer un clip impose de
+ * remesurer ses repères.
+ */
+const PLANNING_VOICE_CUES: Record<'fr' | 'en', Record<string, number>[]> = {
+  fr: [
+    { click: 3000, panel: 4535, end: 9870 },
+    { hide: 2040, show: 6630, end: 8400 },
+    { drag: 700, refuse: 3890, back: 6130, end: 8100 },
+    { drag: 3260, drop: 5100, end: 6670 },
+    { stretch: 1880, cleaning: 4230, end: 6960 },
+    { open: 3000, type: 4860, save: 6450, done: 7730, end: 8900 },
+    { select: 2310, end: 5230 },
+    { search: 2400, pick: 4330, create: 6380, end: 7850 },
+    { bar: 890, occupancy: 3480, end: 7120 },
+  ],
+  en: [
+    { click: 3200, panel: 4800, end: 9760 },
+    { hide: 1780, show: 5600, end: 7640 },
+    { drag: 700, refuse: 3880, back: 5870, end: 8080 },
+    { drag: 2700, drop: 4290, end: 6020 },
+    { stretch: 1970, cleaning: 4210, end: 6330 },
+    { open: 2750, type: 4580, save: 5690, done: 6590, end: 7860 },
+    { select: 1960, end: 4610 },
+    { search: 2590, pick: 4260, create: 5820, end: 7010 },
+    { bar: 1320, occupancy: 3470, end: 7280 },
+  ],
+};
+/** Le cadre précède légèrement le mot : l'œil est sur l'élément quand la voix le nomme. */
+const FRAME_LEAD_MS = 300;
+/** Silence entre deux étapes : le cadre s'efface avec la fin de la phrase. */
+const STEP_GAP_MS = 600;
+/** Le curseur scripté met environ 800 ms à rejoindre sa cible (mockupKit). */
+const CURSOR_TRAVEL_MS = 750;
+
 /** Pastille du canal d'origine : logo officiel, ou globe pour le direct. */
 function ChannelBadge({ channel }: { channel: Channel }) {
   const { logo } = CHANNELS[channel];
@@ -424,10 +483,55 @@ export default function AnimatedPlanningMockup() {
   const [paused, setPaused] = useState(false);
   const [scene, setScene] = useState(0);
   const [annotation, setAnnotation] = useState<PlanningAnnotation | null>(null);
+  /* Voix active à la première lecture, coupée d'office après la première
+     boucle (la démo continue de tourner), comme la démo de l'accueil. Si le
+     navigateur refuse la lecture sonore sans geste, la voix démarre au
+     premier clic ou à la première touche sur la page. */
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [voiceBlocked, setVoiceBlocked] = useState(false);
+  const [voiceHint, setVoiceHint] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const { visibilityRef, active, reduced } = useBaitlyDemoVisibility();
   const m = usePlanningText();
   const { language } = useSiteLanguage();
+  const playing = active && !paused;
+  const voiceAudible = voiceOn && !voiceBlocked;
+  const voice = useDemoNarration(
+    planningClipUrl,
+    language,
+    voiceAudible && playing,
+    () => setVoiceBlocked(true),
+  );
+  const hasVoice = Boolean(planningClipUrl(language, 0));
+  const voiceOnRef = useRef(voiceOn);
+  voiceOnRef.current = voiceOn;
+  const loops = useRef(0);
+
+  useEffect(() => {
+    if (!voiceBlocked) return;
+    const unlock = (event: Event) => {
+      // Le bouton de voix gère lui-même son clic.
+      if ((event.target as Element | null)?.closest?.('[data-voice-toggle]')) return;
+      setVoiceBlocked(false);
+    };
+    window.addEventListener('pointerdown', unlock, true);
+    window.addEventListener('keydown', unlock, true);
+    return () => {
+      window.removeEventListener('pointerdown', unlock, true);
+      window.removeEventListener('keydown', unlock, true);
+    };
+  }, [voiceBlocked]);
+
+  const toggleVoice = () => {
+    setVoiceHint(false);
+    if (voiceAudible) {
+      setVoiceOn(false);
+      return;
+    }
+    setVoiceBlocked(false);
+    setVoiceOn(true);
+  };
+
   return (
     <div ref={visibilityRef}>
       <div className="bpm-demo-controls">
@@ -437,14 +541,28 @@ export default function AnimatedPlanningMockup() {
           {annotation ? m.guide.steps[annotation.step].title : m.scenes[scene]}
         </span>
         {!reduced && (
-          <button
-            type="button"
-            aria-pressed={paused}
-            onClick={() => setPaused((value) => !value)}
-          >
-            {paused ? <PlayIcon /> : <PauseIcon />}
-            {paused ? m.play : m.pause}
-          </button>
+          <span className="bpm-demo-buttons">
+            {hasVoice && (
+              <button
+                type="button"
+                data-voice-toggle
+                data-attention={voiceHint || voiceBlocked || undefined}
+                aria-pressed={voiceAudible}
+                onClick={toggleVoice}
+              >
+                {voiceAudible ? <Volume2Icon /> : <VolumeXIcon />}
+                {voiceAudible ? m.voiceOff : m.voiceOn}
+              </button>
+            )}
+            <button
+              type="button"
+              aria-pressed={paused}
+              onClick={() => setPaused((value) => !value)}
+            >
+              {paused ? <PlayIcon /> : <PauseIcon />}
+              {paused ? m.play : m.pause}
+            </button>
+          </span>
         )}
       </div>
       <div className="bpm-planning-stage" ref={stageRef} data-guided={!reduced}>
@@ -457,14 +575,22 @@ export default function AnimatedPlanningMockup() {
         >
           <PlanningScene
             key={language + cycle}
-            active={active && !paused}
+            active={playing}
             reduced={reduced}
+            clockRef={voice.clockRef}
+            onNarrate={voice.narrate}
             onSceneChange={setScene}
             onAnnotationChange={setAnnotation}
             onCycleEnd={() => {
+              loops.current += 1;
+              if (loops.current === 1 && voiceOnRef.current) {
+                setVoiceOn(false);
+                setVoiceHint(true);
+              }
               setCycle((current) => current + 1);
               setScene(0);
               setAnnotation(null);
+              voice.reset();
             }}
           />
         </div>
@@ -473,7 +599,7 @@ export default function AnimatedPlanningMockup() {
             key={annotation.step}
             annotation={annotation}
             stageRef={stageRef}
-            active={active && !paused}
+            active={playing}
           />
         )}
       </div>
@@ -485,12 +611,16 @@ function PlanningScene({
   onCycleEnd,
   active,
   reduced,
+  clockRef,
+  onNarrate,
   onSceneChange,
   onAnnotationChange,
 }: {
   onCycleEnd: () => void;
   active: boolean;
   reduced: boolean;
+  clockRef: MutableRefObject<() => number>;
+  onNarrate: (step: number) => void;
   onSceneChange: (scene: number) => void;
   onAnnotationChange: (annotation: PlanningAnnotation | null) => void;
 }) {
@@ -554,8 +684,13 @@ function PlanningScene({
   const find = (selector: string) =>
     containerRef.current?.querySelector<HTMLElement>(selector) ?? null;
 
+  const narrated = useRef(-1);
   const explain = (step: number, target: string) => {
     onAnnotationChange({ step, target });
+    if (narrated.current !== step) {
+      narrated.current = step;
+      onNarrate(step);
+    }
     const element = find(target);
     const scroll = containerRef.current?.closest<HTMLElement>(
       '.bpm-planning-scroll',
@@ -576,162 +711,165 @@ function PlanningScene({
     }
   };
 
-  useBaitlyPlanningTimeline(active, (at) => {
+  const { language } = useSiteLanguage();
+  clockRef.current = useBaitlyPlanningTimeline(active, (at) => {
+    const cues = PLANNING_VOICE_CUES[language === 'en' ? 'en' : 'fr'];
     let t = 900;
     at(t, park);
-    // Every result stays still for reading before the next gesture begins.
-    const hold = (duration = 3800) => {
-      t += duration;
-      at(t, () => {
-        hide();
-        onAnnotationChange(null);
-      });
-      t += 700;
+    t += 600;
+
+    /** Une étape = une phrase de voix off. `cue(nom)` = instant où la voix
+        nomme le geste ; le cadre s'efface quand la voix se tait. */
+    const step = (index: number, script: (cue: (name: string) => number) => void) => {
+      const begin = t;
+      const timings = cues[index];
+      script((name) => begin + Math.max(0, timings[name] - FRAME_LEAD_MS));
+      t = begin + timings.end;
+      at(t, () => onAnnotationChange(null));
+      t += STEP_GAP_MS;
     };
+    /** Le curseur part assez tôt pour arriver au moment du geste. */
+    const reach = (when: number, selector: string) =>
+      at(Math.max(0, when - CURSOR_TRAVEL_MS), () => moveTo(find(selector)));
 
-    t += 1000;
-    at(t, () => {
-      explain(0, '[data-prop-index="3"]');
-      moveTo(find('[data-prop-index="3"]'));
+    // 0 — La fiche du logement, ouverte sans quitter le planning.
+    step(0, (cue) => {
+      at(t, () => explain(0, '[data-prop-index="3"]'));
+      reach(cue('click'), '[data-prop-index="3"]');
+      at(cue('click'), () => setPropertyOpen(true));
+      at(cue('panel'), () => explain(0, '[data-planning-panel="property"]'));
     });
-    t += 900;
-    at(t, () => setPropertyOpen(true));
-    at(t + 100, () => explain(0, '[data-planning-panel="property"]'));
-    hold(4200);
-    at(t, () => setPropertyOpen(false));
+    at(t - STEP_GAP_MS, () => setPropertyOpen(false));
 
-    t += 500;
-    at(t, () => {
-      onSceneChange(1);
-      explain(1, '[data-chip="airbnb"]');
-      moveTo(find('[data-chip="airbnb"]'));
+    // 1 — Masquer Airbnb, puis tout réafficher.
+    step(1, (cue) => {
+      at(t, () => {
+        onSceneChange(1);
+        explain(1, '[data-chip="airbnb"]');
+        moveTo(find('[data-chip="airbnb"]'));
+      });
+      at(cue('hide'), () => setMutedChannel('airbnb'));
+      at(cue('show'), () => setMutedChannel(null));
     });
-    t += 1000;
-    at(t, () => setMutedChannel('airbnb'));
-    t += 3000;
-    at(t, () => setMutedChannel(null));
-    hold(1500);
 
-    // Stop at the first occupied dates, without dragging beyond the calendar.
-    at(t, () => {
-      onSceneChange(2);
-      explain(2, '[data-bar="r9"]');
-      moveTo(find('[data-bar="r9"]'));
-    });
-    t += 900;
-    for (let step = 1; step <= 6; step += 1) {
-      at(t + step * 160, () => {
-        setDragging({ id: 'r9', shift: step, conflict: step >= 4 });
+    // 2 — Glisser sur des dates prises : le conflit apparaît, le séjour revient.
+    step(2, (cue) => {
+      at(t, () => {
+        onSceneChange(2);
+        explain(2, '[data-bar="r9"]');
         moveTo(find('[data-bar="r9"]'));
       });
-    }
-    t += 6 * 160 + 2800;
-    at(t, () => setDragging(null));
-    hold(1800);
-
-    at(t, () => {
-      onSceneChange(3);
-      explain(3, '[data-bar="r9"]');
-      moveTo(find('[data-bar="r9"]'));
+      const from = cue('drag');
+      const span = cue('refuse') - from;
+      for (let k = 1; k <= 6; k += 1) {
+        at(from + (span * k) / 6, () => {
+          setDragging({ id: 'r9', shift: k, conflict: k >= 4 });
+          moveTo(find('[data-bar="r9"]'));
+        });
+      }
+      at(cue('back'), () => setDragging(null));
     });
-    t += 900;
-    for (let step = 1; step <= 2; step += 1) {
-      at(t + step * 300, () => {
-        setDragging({ id: 'r9', shift: step, conflict: false });
+
+    // 3 — Sur des dates libres, le séjour de Mia se décale de deux jours.
+    step(3, (cue) => {
+      at(t, () => {
+        onSceneChange(3);
+        explain(3, '[data-bar="r9"]');
         moveTo(find('[data-bar="r9"]'));
       });
-    }
-    t += 2 * 300 + 300;
-    at(t, () => {
-      setDragging(null);
-      setMoved((state) => ({ ...state, r9: 2 }));
+      const from = cue('drag');
+      const span = cue('drop') - from;
+      for (let k = 1; k <= 2; k += 1) {
+        at(from + (span * k) / 3, () => {
+          setDragging({ id: 'r9', shift: k, conflict: false });
+          moveTo(find('[data-bar="r9"]'));
+        });
+      }
+      at(cue('drop'), () => {
+        setDragging(null);
+        setMoved((state) => ({ ...state, r9: 2 }));
+      });
     });
-    hold();
 
-    at(t, () => {
-      explain(4, '[data-bar="r5"]');
-      moveTo(find('[data-resize="r5"]'));
-    });
-    t += 900;
-    for (let step = 1; step <= 2; step += 1) {
-      at(t + step * 420, () => {
-        setExtended((state) => ({ ...state, r5: step }));
+    // 4 — Prolonger le séjour de Luca de deux nuits.
+    step(4, (cue) => {
+      at(t, () => {
+        explain(4, '[data-bar="r5"]');
         moveTo(find('[data-resize="r5"]'));
       });
-    }
-    t += 2 * 420;
-    hold();
+      for (let k = 1; k <= 2; k += 1) {
+        at(cue('stretch') + 200 + (k - 1) * 450, () => {
+          setExtended((state) => ({ ...state, r5: k }));
+          moveTo(find('[data-resize="r5"]'));
+        });
+      }
+    });
 
+    // 5 — Compléter la fiche de Kenji : ouvrir, saisir l'e-mail, enregistrer.
     const MAIL = 'k.sato@mail.jp';
-    at(t, () => {
-      onSceneChange(4);
-      explain(5, '[data-bar="r2"]');
-      moveTo(find('[data-fix="r2"]'));
-    });
-    t += 950;
-    at(t, () => setGuestPanel(true));
-    t += 100;
-    at(t, () => explain(5, '[data-planning-panel="guest"]'));
-    t += 600;
-    at(t, () => moveTo(find('[data-email-field]')));
-    t += 500;
-    for (let i = 1; i <= MAIL.length; i += 1) {
-      at(t + i * 55, () => setEmail(MAIL.slice(0, i)));
-    }
-    t += MAIL.length * 55 + 500;
-    at(t, () => moveTo(find('[data-email-save]')));
-    t += 800;
-    at(t, () => setInfoFilled(true));
-    hold();
-    at(t, () => setGuestPanel(false));
-
-    t += 400;
-    at(t, () => {
-      onSceneChange(5);
-      explain(6, '[data-cell="0-5"]');
-      moveTo(find('[data-cell="0-5"]'));
-    });
-    t += 900;
-    for (let step = 1; step <= 3; step += 1) {
-      at(t + step * 300, () => {
-        setSelection({ row: 0, start: 5, nights: step });
-        moveTo(find('[data-cell="0-' + (5 + step - 1) + '"]'));
+    step(5, (cue) => {
+      at(t, () => {
+        onSceneChange(4);
+        explain(5, '[data-bar="r2"]');
       });
-    }
-    t += 3 * 300 + 100;
-    at(t, () => explain(6, '[data-planning-selection]'));
-    hold(3300);
+      reach(cue('open'), '[data-fix="r2"]');
+      at(cue('open'), () => setGuestPanel(true));
+      at(cue('open') + 100, () => explain(5, '[data-planning-panel="guest"]'));
+      reach(cue('type'), '[data-email-field]');
+      const typing = Math.min(MAIL.length * 55, cue('save') - cue('type') - CURSOR_TRAVEL_MS);
+      for (let i = 1; i <= MAIL.length; i += 1) {
+        at(cue('type') + (typing * i) / MAIL.length, () => setEmail(MAIL.slice(0, i)));
+      }
+      reach(cue('save'), '[data-email-save]');
+      at(cue('done'), () => setInfoFilled(true));
+    });
+    at(t - STEP_GAP_MS, () => setGuestPanel(false));
 
-    at(t, () => setCreateDialog(true));
-    t += 100;
-    at(t, () => explain(7, '[data-planning-panel="create"]'));
+    // 6 — Sélectionner trois nuits libres.
+    step(6, (cue) => {
+      at(t, () => {
+        onSceneChange(5);
+        explain(6, '[data-cell="0-5"]');
+        moveTo(find('[data-cell="0-5"]'));
+      });
+      for (let k = 1; k <= 3; k += 1) {
+        at(cue('select') + (k - 1) * 300, () => {
+          setSelection({ row: 0, start: 5, nights: k });
+          moveTo(find('[data-cell="0-' + (5 + k - 1) + '"]'));
+        });
+      }
+      at(cue('select') + 700, () => explain(6, '[data-planning-selection]'));
+    });
+
+    // 7 — Rechercher Sarah, la sélectionner, créer la réservation.
     const Q = 'Sarah';
-    t += 700;
-    at(t, () => moveTo(find('[data-guest-field]')));
-    t += 500;
-    for (let i = 1; i <= Q.length; i += 1) {
-      at(t + i * 150, () => setGuestQuery(Q.slice(0, i)));
-    }
-    t += Q.length * 150 + 700;
-    at(t, () => moveTo(find('[data-guest-result]')));
-    t += 900;
-    at(t, () => setGuestPicked(true));
-    t += 3000;
-    at(t, () => moveTo(find('[data-create]')));
-    t += 1000;
-    at(t, () => {
-      onAnnotationChange(null);
-      setCreateDialog(false);
-      setSelection(null);
-      setCreated(true);
+    step(7, (cue) => {
+      at(t, () => setCreateDialog(true));
+      at(t + 100, () => explain(7, '[data-planning-panel="create"]'));
+      reach(cue('search'), '[data-guest-field]');
+      for (let i = 1; i <= Q.length; i += 1) {
+        at(cue('search') + i * 150, () => setGuestQuery(Q.slice(0, i)));
+      }
+      reach(cue('pick'), '[data-guest-result]');
+      at(cue('pick'), () => setGuestPicked(true));
+      reach(cue('create'), '[data-create]');
+      at(cue('create'), () => {
+        onAnnotationChange(null);
+        setCreateDialog(false);
+        setSelection(null);
+        setCreated(true);
+      });
     });
-    t += 200;
-    at(t, () => {
-      hide();
-      explain(8, '[data-bar="rn"]');
+
+    // 8 — La réservation apparaît, l'occupation se met à jour.
+    step(8, (cue) => {
+      at(t, () => {
+        hide();
+        explain(8, '[data-bar="rn"]');
+      });
+      at(cue('occupancy'), () => explain(8, '.bpm-occupancy'));
     });
-    hold(4500);
-    at(t, onCycleEnd);
+    at(t + 900, onCycleEnd);
   });
 
   const m = usePlanningText();
@@ -969,8 +1107,11 @@ function PlanningScene({
           <CreateDialog query={guestQuery} picked={guestPicked} />
         </Overlay>
       )}
+      {/* Fiche logement : remonte au-dessus de l'en-tête de grille, comme le
+          popover réel qui flotte sur la barre d'outils (le héro photo la rend
+          plus haute que la grille). */}
       {propertyOpen && (
-        <Overlay origin={gridOrigin} scale={scale} gx={12} gy={-HEADER_H + 4}>
+        <Overlay origin={gridOrigin} scale={scale} gx={12} gy={-HEADER_H - 56}>
           <PropertyPopover />
         </Overlay>
       )}
@@ -1343,6 +1484,10 @@ function Overlay({
         left: origin.x + gx * scale,
         top: origin.y + gy * scale,
         zIndex: 50,
+        /* Le panneau suit l'échelle de la grille : sinon il garde sa taille
+           pleine sur un planning réduit et paraît disproportionné. */
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left',
       }}
     >
       {children}
@@ -1445,207 +1590,200 @@ export function CancelledBar() {
 
 /** Reprend la fiche ouverte au clic sur un logement : identité, capacités,
     horaires, puis le bloc Performance 90 j (score, RevPAN, occupation, marge). */
+/**
+ * Fiche logement — reprend `src/modules/planning/PropertyPopover.tsx` : carte de
+ * 270 px, photos du logement en héro (nom en blanc sur un voile, compteur du
+ * carrousel), type, adresse, propriétaire, quatre pastilles (voyageurs, nuits
+ * min., prix mis en avant, ménage), horaires, fréquence de ménage, performance
+ * sur 90 jours et pied « Fermer » / « Voir la fiche ».
+ */
 function PropertyPopover() {
   const t = usePlanningText();
   const m = t.property;
-  const tile = (
+  const LABEL = 9;
+  const BODY = 11;
+
+  const pill = (
     icon: React.ReactNode,
     label: string,
     value: React.ReactNode,
-    accent = false,
+    highlight = false,
   ) => (
     <div
-      className="flex-1 rounded-[10px] px-2.5 py-1.5"
+      className="min-w-0 rounded-[8px] p-[5px]"
       style={{
-        border: `1px solid ${
-          accent
-            ? 'color-mix(in srgb, #3E9C80 45%, transparent)'
-            : 'var(--pl-line2)'
-        }`,
-        background: accent
-          ? 'color-mix(in srgb, #3E9C80 8%, transparent)'
-          : 'transparent',
+        border: `1px solid ${highlight ? '#3E9C80' : 'var(--pl-line2)'}`,
+        background: highlight
+          ? 'color-mix(in srgb, #3E9C80 10%, transparent)'
+          : 'color-mix(in srgb, var(--pl-ink) 2.5%, transparent)',
       }}
     >
       <p
-        className="flex items-center gap-1 text-[9px] font-bold tracking-[.04em] uppercase"
-        style={{ color: accent ? '#3E9C80' : 'var(--pl-muted)' }}
+        className="mb-[2px] flex items-center gap-[4px] leading-none font-bold tracking-[.3px] uppercase"
+        style={{ fontSize: LABEL, color: highlight ? '#3E9C80' : 'var(--pl-muted)' }}
       >
         {icon}
         {label}
       </p>
       <p
-        className="mt-0.5 text-[15px] font-semibold tabular-nums"
-        style={{ color: accent ? '#3E9C80' : 'var(--pl-ink)' }}
+        className="text-[11.5px] leading-[1.2] font-semibold tabular-nums"
+        style={{ color: highlight ? '#3E9C80' : 'var(--pl-ink)' }}
       >
         {value}
       </p>
     </div>
   );
 
-  const stat = (label: string, value: React.ReactNode, tone?: string) => (
-    <div className="flex items-center justify-between text-[11px]">
-      <span style={{ color: 'var(--pl-muted)' }}>{label}</span>
+  const row = (label: string, value: React.ReactNode, tone?: string) => (
+    <div className="flex items-baseline justify-between">
+      <span style={{ fontSize: LABEL, color: 'var(--pl-muted)' }}>{label}</span>
       <span
-        className="font-semibold tabular-nums"
-        style={{ color: tone ?? 'var(--pl-ink)' }}
+        className="font-bold tabular-nums"
+        style={{ fontSize: BODY, color: tone ?? 'var(--pl-ink)' }}
       >
         {value}
       </span>
     </div>
   );
 
+  const section = { borderTop: '1px solid var(--pl-line2)' };
+
   return (
     <div
       data-planning-panel="property"
-      className="rounded-[14px] p-3"
+      className="overflow-hidden rounded-[14px]"
       style={{
-        width: 292,
+        width: 270,
         background: 'var(--pl-card)',
         border: '1px solid var(--pl-line2)',
         boxShadow: '0 22px 50px -16px rgba(21,36,45,.40)',
       }}
     >
-      {/* Héro : vignette + nom */}
-      <div
-        className="flex flex-col items-center gap-1.5 rounded-[10px] px-3 py-2.5"
-        style={{ background: 'var(--pl-field)' }}
-      >
-        <BuildingIcon className="size-5" style={{ color: 'var(--pl-faint)' }} />
-        <p
-          className="text-[14px] font-semibold"
-          style={{ color: 'var(--pl-ink)' }}
-        >
-          Appartement Duplex Guéliz
-        </p>
+      {/* Héro : photo du logement, nom sur un voile dégradé, compteur. */}
+      <div className="relative m-2.5 h-[132px] overflow-hidden rounded-[10px]">
+        <img
+          src={PROPERTY_PHOTOS[3]}
+          alt=""
+          className="size-full object-cover"
+          loading="lazy"
+        />
+        <span className="absolute end-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+          1 / 4
+        </span>
+        <div
+          className="absolute inset-x-0 bottom-0 h-[56px]"
+          style={{
+            background: 'linear-gradient(to top, rgba(0,0,0,0.74), rgba(0,0,0,0))',
+          }}
+        />
+        <span className="absolute start-[10px] end-[10px] bottom-[10px] truncate text-[13px] leading-[1.25] font-bold text-white">
+          {t.properties[3].name}
+        </span>
       </div>
 
-      <div
-        className="mt-2 flex flex-col gap-1 border-b pb-2"
-        style={{ borderColor: 'var(--pl-line)' }}
-      >
+      {/* Type, adresse, propriétaire */}
+      <div className="flex flex-col gap-1.5 px-3.5 py-2" style={section}>
         <span
-          className="w-fit rounded-[6px] px-2 py-0.5 text-[9.5px] font-bold tracking-[.04em] uppercase"
-          style={{ background: 'var(--pl-field)', color: 'var(--pl-muted)' }}
+          className="w-fit rounded-full px-2 py-0.5 text-[9px] font-semibold capitalize"
+          style={{
+            background: 'color-mix(in srgb, var(--pl-accent) 12%, transparent)',
+            color: 'var(--pl-accent)',
+          }}
         >
-          Apartment
+          {m.type}
         </span>
-        <p
-          className="flex items-center gap-1.5 text-[11px]"
-          style={{ color: 'var(--pl-body)' }}
-        >
-          <MapPinIcon
-            className="size-3.5 shrink-0"
-            style={{ color: 'var(--pl-faint)' }}
-          />
-          Rue Yougoslavie, Guéliz, Marrakech
+        <p className="flex items-start gap-1" style={{ fontSize: BODY, color: 'var(--pl-muted)' }}>
+          <MapPinIcon className="mt-px size-[11px] shrink-0" />
+          Rue de Yougoslavie, Guéliz, Marrakech
         </p>
-        <p
-          className="flex items-center gap-1.5 text-[11px]"
-          style={{ color: 'var(--pl-body)' }}
-        >
-          <UserIcon
-            className="size-3.5 shrink-0"
-            style={{ color: 'var(--pl-faint)' }}
-          />
+        <p className="flex items-center gap-1" style={{ fontSize: BODY, color: 'var(--pl-muted)' }}>
+          <UserIcon className="size-[11px] shrink-0" />
           {t.owner}
         </p>
       </div>
 
-      {/* Capacités */}
-      <div className="mt-2 flex gap-2">
-        {tile(<UsersIcon className="size-3" />, m.maxGuests, 6)}
-        {tile(<BedDoubleIcon className="size-3" />, m.minNights, 2)}
-      </div>
-      <div className="mt-2 flex">
-        {tile(
-          <MoroccanDirham size={12} />,
-          m.nightlyPrice,
-          <Amount value={850} size={13} />,
-          true,
-        )}
-      </div>
-
-      <div
-        className="mt-2 flex flex-col gap-1 border-b pb-2"
-        style={{ borderColor: 'var(--pl-line)' }}
-      >
+      {/* Pastilles, horaires, ménage */}
+      <div className="px-3.5 py-2.5" style={section}>
+        <div className="grid grid-cols-2 gap-1.5">
+          {pill(<UsersIcon className="size-[11px]" />, m.maxGuests, 6)}
+          {pill(<BedDoubleIcon className="size-[11px]" />, m.minNights, 2)}
+          {pill(
+            <MoroccanDirham size={11} />,
+            m.nightlyPrice,
+            <Amount value={850} size={10} />,
+            true,
+          )}
+          {pill(
+            <BroomFill size={11} />,
+            m.cleaning,
+            <Amount value={250} size={10} />,
+          )}
+        </div>
         <p
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
-          style={{ color: 'var(--pl-body)' }}
+          className="mt-1.5 flex flex-wrap items-center gap-[7px]"
+          style={{ fontSize: BODY, color: 'var(--pl-muted)' }}
         >
           <span className="flex items-center gap-1">
-            <ClockIcon
-              className="size-3.5"
-              style={{ color: 'var(--pl-faint)' }}
-            />
+            <ClockIcon className="size-[11px]" style={{ color: '#3E9C80' }} />
             {m.checkIn} <b style={{ color: 'var(--pl-ink)' }}>15:00</b>
           </span>
           <span className="flex items-center gap-1">
-            <ClockIcon className="size-3.5" style={{ color: '#C28A52' }} />
+            <ClockIcon className="size-[11px]" style={{ color: '#C28A52' }} />
             {m.checkOut} <b style={{ color: 'var(--pl-ink)' }}>11:00</b>
           </span>
         </p>
         <p
-          className="flex items-center gap-1.5 text-[11px]"
-          style={{ color: 'var(--pl-body)' }}
+          className="mt-[4px] flex items-center gap-1"
+          style={{ fontSize: BODY, color: 'var(--pl-muted)' }}
         >
-          <CalendarIcon
-            className="size-3.5 shrink-0"
-            style={{ color: 'var(--pl-faint)' }}
-          />
+          <CalendarIcon className="size-[11px] shrink-0" />
           {m.cleaningFrequency}{' '}
           <b style={{ color: 'var(--pl-ink)' }}>{m.cleaningValue}</b>
         </p>
       </div>
 
       {/* Performance 90 jours */}
-      <p
-        className="mt-2 flex items-center gap-1.5 text-[9.5px] font-bold tracking-[.04em] uppercase"
-        style={{ color: 'var(--pl-muted)' }}
-      >
-        <GaugeIcon className="size-3.5" /> {m.performance}
-      </p>
-      <div className="mt-1.5 flex items-center justify-between text-[11px]">
-        <span style={{ color: 'var(--pl-muted)' }}>{m.score}</span>
-        <span className="font-bold tabular-nums" style={{ color: '#C28A52' }}>
-          64/100
-        </span>
-      </div>
-      <div
-        className="mt-1 h-1.5 w-full overflow-hidden rounded-full"
-        style={{ background: 'var(--pl-field)' }}
-      >
+      <div className="px-3.5 py-2.5" style={section}>
+        <p
+          className="mb-2 flex items-center gap-[5px] font-bold tracking-[.3px] uppercase"
+          style={{ fontSize: LABEL, color: 'var(--pl-muted)' }}
+        >
+          <GaugeIcon className="size-[11px]" style={{ color: 'var(--pl-ink)' }} />
+          {m.performance}
+        </p>
+        <div className="mb-0.5 flex justify-between">
+          <span style={{ fontSize: LABEL, color: 'var(--pl-muted)' }}>{m.score}</span>
+          <span className="font-bold tabular-nums" style={{ fontSize: BODY, color: '#C28A52' }}>
+            64/100
+          </span>
+        </div>
         <div
-          className="h-full rounded-full"
-          style={{ width: '64%', background: '#C28A52' }}
-        />
-      </div>
-      <div className="mt-1.5 flex flex-col gap-0.5">
-        {stat(m.revpan, <Amount value={548} size={10} />)}
-        {stat(m.occupancy, '64 %')}
-        {stat(m.totalRevenue, <Amount value={49320} size={10} />)}
-        {stat(m.netMargin, '86 %', '#3E9C80')}
+          className="mb-2.5 h-1 w-full overflow-hidden rounded-[2px]"
+          style={{ background: 'var(--pl-line2)' }}
+        >
+          <div className="h-full rounded-[2px]" style={{ width: '64%', background: '#C28A52' }} />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {row(m.revpan, <Amount value={548} size={10} />)}
+          {row(m.occupancy, '64 %')}
+          {row(m.totalRevenue, <Amount value={49320} size={10} />)}
+          {row(m.netMargin, '86 %', '#3E9C80')}
+        </div>
       </div>
 
-      <div className="mt-2 flex gap-2">
+      {/* Pied : « Voir la fiche » est l'action principale. */}
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={section}>
         <span
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[11px] font-semibold"
-          style={{
-            border: '1px solid var(--pl-line2)',
-            color: 'var(--pl-body)',
-          }}
+          className="flex flex-1 items-center justify-center gap-1 rounded-[8px] py-1.5 text-[11px] font-semibold"
+          style={{ border: '1px solid var(--pl-line2)', color: 'var(--pl-body)' }}
         >
-          <XIcon className="size-3.5" /> {m.close}
+          <XIcon className="size-[13px]" /> {m.close}
         </span>
         <span
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[11px] font-semibold"
-          style={{
-            border: '1px solid var(--pl-accent)',
-            color: 'var(--pl-accent)',
-          }}
+          className="flex flex-1 items-center justify-center gap-1 rounded-[8px] py-1.5 text-[11px] font-semibold text-white"
+          style={{ background: 'var(--pl-accent)' }}
         >
-          <EyeIcon className="size-3.5" /> {m.openRecord}
+          <EyeIcon className="size-[13px]" /> {m.openRecord}
         </span>
       </div>
     </div>

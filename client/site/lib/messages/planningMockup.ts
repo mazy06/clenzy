@@ -32,6 +32,8 @@ const fr = {
   pause: 'Pause',
   play: 'Reprendre',
   demo: 'Démo du planning',
+  voiceOn: 'Activer la voix off',
+  voiceOff: 'Couper la voix off',
   guide: {
     step: 'Étape',
     steps: [
@@ -103,6 +105,8 @@ const fr = {
     checkOut: 'Check-out',
     cleaningFrequency: 'Fréquence ménage :',
     cleaningValue: 'Après chaque séjour',
+    cleaning: 'Ménage',
+    type: 'Appartement',
     performance: 'Performance · 90 j',
     score: 'Score',
     revpan: 'RevPAN',
@@ -156,6 +160,8 @@ const en: PlanningMockupMessages = {
   pause: 'Pause',
   play: 'Resume',
   demo: 'Calendar demo',
+  voiceOn: 'Turn the voice-over on',
+  voiceOff: 'Mute the voice-over',
   guide: {
     step: 'Step',
     steps: [
@@ -225,6 +231,8 @@ const en: PlanningMockupMessages = {
     checkOut: 'Check-out',
     cleaningFrequency: 'Cleaning frequency:',
     cleaningValue: 'After every stay',
+    cleaning: 'Cleaning',
+    type: 'Apartment',
     performance: 'Performance · 90 d',
     score: 'Score',
     revpan: 'RevPAN',
@@ -232,7 +240,7 @@ const en: PlanningMockupMessages = {
     totalRevenue: 'Total revenue',
     netMargin: 'Net margin',
     close: 'Close',
-    openRecord: 'Open record',
+    openRecord: 'Open the property',
   },
   create: {
     title: 'New booking',
@@ -275,6 +283,8 @@ const ar: PlanningMockupMessages = {
   pause: 'إيقاف مؤقت',
   play: 'متابعة',
   demo: 'عرض التقويم',
+  voiceOn: 'تشغيل التعليق الصوتي',
+  voiceOff: 'كتم التعليق الصوتي',
   guide: {
     step: 'الخطوة',
     steps: [
@@ -344,6 +354,8 @@ const ar: PlanningMockupMessages = {
     checkOut: 'المغادرة',
     cleaningFrequency: 'وتيرة التنظيف:',
     cleaningValue: 'بعد كل إقامة',
+    cleaning: 'التنظيف',
+    type: 'شقة',
     performance: 'الأداء · 90 يوماً',
     score: 'النتيجة',
     revpan: 'الإيراد لكل ليلة متاحة',

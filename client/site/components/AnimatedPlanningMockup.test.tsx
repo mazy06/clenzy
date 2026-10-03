@@ -62,7 +62,8 @@ describe('planning marketing preview', () => {
       'Vos logements',
     );
     show(true);
-    tick(9000);
+    // Le rythme suit la voix off française (repères de PLANNING_VOICE_CUES).
+    tick(13000);
     expect(container.querySelector('.bpm-demo-controls')).toHaveTextContent(
       'Isoler un canal',
     );
@@ -74,7 +75,7 @@ describe('planning marketing preview', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Reprendre', exact: true }),
     );
-    tick(250);
+    tick(1000);
     expect(container.querySelector('[data-bar="r9"]')).toHaveStyle({
       opacity: '0.12',
     });
@@ -84,7 +85,7 @@ describe('planning marketing preview', () => {
       opacity: '0.12',
     });
     show(true);
-    tick(3500);
+    tick(5000);
     expect(container.querySelector('[data-bar="r9"]')).toHaveStyle({
       opacity: '1',
     });
@@ -93,11 +94,11 @@ describe('planning marketing preview', () => {
   it('creates the direct booking and loops back to a clean planning', () => {
     const { container } = renderDemo();
     show(true);
-    tick(59000);
+    tick(70000);
     expect(container.querySelector('[data-bar="rn"]')).toHaveTextContent(
       'Sarah Miller',
     );
-    tick(4000);
+    tick(8000);
     expect(container.querySelector('[data-bar="rn"]')).toBeNull();
     expect(container.querySelector('.bpm-demo-controls')).toHaveTextContent(
       'Vos logements',
@@ -116,33 +117,35 @@ describe('planning marketing preview', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'Tout savoir sur un logement',
     );
-    tick(5000);
-    tick(2500);
+    // Instants absolus calés sur la voix française : 13 s, 22 s, 31 s…
+    tick(10000);
     expect(step()).toBe('1');
-    tick(6000);
+    tick(9000);
     expect(step()).toBe('2');
-    tick(7500);
+    tick(9000);
     expect(step()).toBe('3');
+    tick(3800);
     const movedBar = container.querySelector('[data-bar="r9"]');
     const stablePosition = movedBar?.getAttribute('style');
-    tick(2500);
+    tick(1200);
     expect(step()).toBe('3');
     expect(movedBar?.getAttribute('style')).toBe(stablePosition);
-    tick(4500);
+    tick(2000);
     expect(step()).toBe('4');
-    tick(6500);
+    tick(7500);
     expect(step()).toBe('5');
-    tick(8500);
+    tick(9500);
     expect(step()).toBe('6');
-    tick(7000);
-    expect(step()).toBe('7');
     tick(6000);
+    expect(step()).toBe('7');
+    tick(8000);
     expect(step()).toBe('8');
     fireEvent.click(screen.getByRole('button', { name: 'Pause', exact: true }));
     tick(20000);
     expect(step()).toBe('8');
     expect(container.querySelector('[data-bar="rn"]')).not.toBeNull();
-  });
+    // Toute la boucle (70 s simulées, rendu à chaque geste) dépasse le délai global.
+  }, 60_000);
 
   it('keeps a static calendar when reduced motion is requested', () => {
     vi.stubGlobal('matchMedia', () => ({

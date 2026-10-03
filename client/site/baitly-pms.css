@@ -912,6 +912,44 @@
   font-size: 12px;
   background: #f4f8fa;
 }
+.bpm-demo-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.bpm-demo-buttons button[data-voice-toggle][aria-pressed='true'],
+.bpm-demo-buttons button[data-attention] {
+  border-color: #264672;
+  color: #264672;
+}
+/* Voix coupée après la première boucle : le bouton invite à la réactiver. */
+.bpm-demo-buttons button[data-attention] {
+  animation: bpm-wobble 3.6s ease-in-out infinite;
+}
+@keyframes bpm-wobble {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0);
+  }
+  2% {
+    transform: rotate(-3deg);
+  }
+  5% {
+    transform: rotate(3deg);
+  }
+  8% {
+    transform: rotate(-2deg);
+  }
+  11% {
+    transform: rotate(1.5deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bpm-demo-buttons button[data-attention] {
+    animation: none;
+  }
+}
 .bpm-demo-controls svg {
   width: 13px;
   height: 13px;
