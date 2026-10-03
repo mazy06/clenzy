@@ -5,7 +5,7 @@
  * navigationPath utilise des CLES d'onglet stables (?tab=<key>), robustes au role —
  * l'index visible des onglets shifte selon les roles, jamais la cle. Cf. components/tabKeyParam.ts.
  *   Cles Settings   : general | notifications | messaging | my-payout | ai | fiscal |
- *                     organization | payment | integrations | payouts | amenities-ota
+ *                     organization | payment | integrations | migration | payouts | amenities-ota
  *   Cles Properties : properties | pricing | vouchers
  */
 
@@ -26,7 +26,20 @@ export interface OnboardingStepConfig {
   isModal?: boolean;
   /** If true, user can skip this step and move to the next one */
   skippable?: boolean;
+  /** Optional labels for a step with a more specific action than “Continue”. */
+  actionLabelKey?: string;
+  skipLabelKey?: string;
 }
+
+const pmsMigrationStep: OnboardingStepConfig = {
+  key: 'migrate_pms',
+  labelKey: 'onboarding.steps.migratePms.label',
+  descriptionKey: 'onboarding.steps.migratePms.description',
+  navigationPath: '/settings?tab=migration',
+  skippable: true,
+  actionLabelKey: 'onboarding.steps.migratePms.action',
+  skipLabelKey: 'onboarding.steps.migratePms.skip',
+};
 
 export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
 
@@ -38,6 +51,7 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       descriptionKey: 'onboarding.steps.configureOrg.description',
       navigationPath: '/settings?tab=organization',
     },
+    pmsMigrationStep,
     {
       key: 'setup_fiscal',
       labelKey: 'onboarding.steps.setupFiscal.label',
@@ -94,6 +108,7 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       descriptionKey: 'onboarding.steps.configureOrg.description',
       navigationPath: '/settings?tab=organization',
     },
+    pmsMigrationStep,
     {
       key: 'setup_fiscal',
       labelKey: 'onboarding.steps.setupFiscal.label',
@@ -150,6 +165,7 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       descriptionKey: 'onboarding.steps.completeProfile.description',
       navigationPath: '/settings?tab=general',
     },
+    pmsMigrationStep,
     {
       key: 'create_property',
       labelKey: 'onboarding.steps.createProperty.label',
@@ -187,7 +203,6 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       labelKey: 'onboarding.steps.setupPayouts.label',
       descriptionKey: 'onboarding.steps.setupPayouts.description',
       navigationPath: '/settings?tab=my-payout',
-      skippable: true,
     },
   ],
 
@@ -439,6 +454,15 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
     },
   ],
 };
+
+// The same payment setup is available to every business beneficiary.
+ONBOARDING_STEPS.PROPERTY_OWNER = ONBOARDING_STEPS.HOST.filter(step =>
+  ['complete_profile', 'setup_payouts', 'setup_notifications'].includes(step.key),
+).sort((a, b) => ['complete_profile', 'setup_payouts', 'setup_notifications'].indexOf(a.key)
+  - ['complete_profile', 'setup_payouts', 'setup_notifications'].indexOf(b.key));
+for (const role of ['SUPERVISOR', 'LAUNDRY', 'EXTERIOR_TECH']) {
+  ONBOARDING_STEPS[role].push(ONBOARDING_STEPS.HOUSEKEEPER.find(step => step.key === 'setup_payout_account')!);
+}
 
 /** Get steps for a given role, falling back to empty array */
 export function getOnboardingSteps(role: string): OnboardingStepConfig[] {

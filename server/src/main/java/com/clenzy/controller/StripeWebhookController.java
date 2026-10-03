@@ -45,6 +45,7 @@ public class StripeWebhookController {
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
 
     private final PaymentEventActionRecorder paymentEventActionRecorder;
+    private final com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore;
     private final StripeService stripeService;
     private final InscriptionService inscriptionService;
     private final SubscriptionService subscriptionService;
@@ -75,7 +76,9 @@ public class StripeWebhookController {
                                    DirectBookingService directBookingService,
                                    com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService,
                                    com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService,
-                                   PaymentEventActionRecorder paymentEventActionRecorder) {
+                                   PaymentEventActionRecorder paymentEventActionRecorder,
+                                   com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore) {
+        this.paymentConnectionStore = paymentConnectionStore;
         this.paymentEventActionRecorder = paymentEventActionRecorder;
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
@@ -152,6 +155,12 @@ public class StripeWebhookController {
 
                 case "account.updated":
                     handleAccountUpdated(event);
+                    break;
+                case "account.application.deauthorized":
+                    if (event.getAccount() != null) {
+                        stripeConnectService.handleAccountUpdated(event.getAccount(), false, false);
+                        paymentConnectionStore.deauthorize(event.getAccount());
+                    }
                     break;
 
                 case "transfer.failed":
@@ -626,6 +635,7 @@ public class StripeWebhookController {
                 account.getId(), chargesEnabled, payoutsEnabled);
 
         stripeConnectService.handleAccountUpdated(account.getId(), chargesEnabled, payoutsEnabled);
+        paymentConnectionStore.accountUpdated(account);
     }
 
     /**

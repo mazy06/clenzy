@@ -9,7 +9,8 @@ import { Card } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { AccountBalance, CheckCircle, Refresh } from '../../icons';
+import { CheckCircle, Refresh } from '../../icons';
+import IntegrationLogo from '../../components/integrations/IntegrationLogo';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
 import type { StripeConnectInstance } from '@stripe/connect-js';
@@ -132,9 +133,7 @@ export default function MyProPayoutsSettings() {
       {/* ── Compte de versement (onboarding embarqué) ─────────────────────── */}
       <Card className="gap-0 py-0 p-3.5" id="pro-onboarding">
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-          <span className="inline-flex text-primary">
-            <AccountBalance size={18} strokeWidth={1.75} />
-          </span>
+          <IntegrationLogo provider="stripe" />
           <p className="text-sm font-semibold text-foreground">
             {t('settings.myProPayouts.accountSection')}
           </p>

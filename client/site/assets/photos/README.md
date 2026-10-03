@@ -29,6 +29,8 @@ L’ancien catalogue réutilisait surtout le patio, la terrasse désertique, la 
 
 Les portraits de banque d’images attribués à plusieurs voyageurs fictifs ont été remplacés par des initiales dans le planning, l’accueil, la migration et les cartes PMS.
 
+Depuis le 3 octobre 2026, les deux démonstrations animées du planning réutilisent les 12 portraits locaux de `../guests/`, à la demande du produit. Chaque portrait est associé à un seul voyageur fictif et cette association reste identique entre le planning, la vue Agents IA et leur projection dans le moniteur de l’accueil. Le composant partagé `GuestAvatar` conserve les initiales pour les voyageurs sans photo et en cas d’échec de chargement. Ces vignettes illustratives ne représentent pas des clients réels ni des témoignages.
+
 ## Catalogue et sources
 
 - 72 photographies issues de sources distinctes et une scène générée pour le hero. Cette dernière possède deux résolutions WebP, soit 74 fichiers au total. La passe d’équilibrage des six pages produit avait ajouté 12 photos au catalogue initial de 60.

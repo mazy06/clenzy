@@ -121,7 +121,7 @@ public class CleaningBackfillScheduler {
         int created = 0;
         for (Reservation reservation : checkouts) {
             try {
-                if (!isCheckoutToday(reservation)) {
+                if (reservation.isMigrationAutomationPaused() || !isCheckoutToday(reservation)) {
                     continue;
                 }
                 if (hasActiveCleaningRequest(reservation, orgId)) {
@@ -199,7 +199,7 @@ public class CleaningBackfillScheduler {
         int flagged = 0;
         for (Reservation reservation : checkouts) {
             try {
-                if (!isCheckoutOn(reservation, 1)) {
+                if (reservation.isMigrationAutomationPaused() || !isCheckoutOn(reservation, 1)) {
                     continue; // le check-out ne tombe pas demain dans le fuseau de la propriete
                 }
                 if (hasActiveCleaningRequest(reservation, orgId)) {

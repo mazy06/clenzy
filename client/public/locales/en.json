@@ -11437,10 +11437,18 @@
     }
   },
   "onboarding": {
+    "optional": "Optional",
+    "progress": "{{done}}/{{total}} completed",
     "steps": {
+      "migratePms": {
+        "label": "Migrate from another PMS",
+        "description": "Import properties, guests and reservations from your previous PMS exports. You can skip this step and return later in Settings → PMS migration.",
+        "action": "Import my data",
+        "skip": "Continue without migrating"
+      },
       "configureOrg": {
         "label": "Configure organization",
-        "description": "Enter your organization details: name, address, logo and contact information."
+        "description": "Check your organization’s name. You can complete the other details later."
       },
       "inviteMembers": {
         "label": "Invite members",
@@ -11464,19 +11472,19 @@
       },
       "setupIntegrations": {
         "label": "Integrations",
-        "description": "Connect external services: channels, IoT devices, payment providers."
+        "description": "Connect an external calendar to your properties and review the availability to import."
       },
       "setupPayment": {
-        "label": "Payment",
-        "description": "Configure Stripe payment integration for online billing."
+        "label": "Receive my payouts",
+        "description": "Choose your business country, then create or connect your payout account."
       },
       "setupMessaging": {
         "label": "Messaging",
-        "description": "Set up automated messaging templates for guests."
+        "description": "Set quiet hours for non-urgent automated messages sent to your guests."
       },
       "setupPayouts": {
-        "label": "My payouts",
-        "description": "Configure your bank details to receive your revenue payouts."
+        "label": "Receive my payouts",
+        "description": "Choose your business country, then create or connect your payout account."
       },
       "createProperty": {
         "label": "Create your first property",
@@ -11500,7 +11508,7 @@
       },
       "completeProfile": {
         "label": "Complete your profile",
-        "description": "Fill in your personal information and preferences."
+        "description": "Confirm your identity and add a phone number so you can be reached."
       },
       "viewInterventions": {
         "label": "View your interventions",
@@ -11511,8 +11519,8 @@
         "description": "Set up your first team and assign members."
       },
       "setupPayoutAccount": {
-        "label": "Set up my payouts",
-        "description": "Connect your Stripe account to get paid for your jobs, and check your rates."
+        "label": "Receive my payouts",
+        "description": "Choose your business country, then create or connect your payout account."
       },
       "setupRates": {
         "label": "Set my services and rates",
@@ -11550,14 +11558,121 @@
     },
     "completionMessage": "Complete the initial setup to access the full dashboard",
     "substeps": {
-      "stripeAccount": "Stripe account created",
-      "stripeKyc": "Identity and bank details verified by Stripe",
+      "stripeAccount": "Payout account connected",
+      "stripeKyc": "Identity and bank details verified by the provider",
       "docCompany": "Company registration",
       "docUrssaf": "URSSAF certificate",
       "docInsurance": "Liability insurance"
     },
     "nextStep": "Next step:",
-    "previousGroup": "Previous group"
+    "previousGroup": "Previous group",
+    "guide": {
+      "open": "Open the getting started guide",
+      "close": "Close the guide",
+      "welcome": "Let's get you set up",
+      "yourSteps": "Your setup",
+      "step": "Step {{current}} of {{total}}",
+      "hide": "Hide the guide",
+      "locked": "Complete the previous step to continue.",
+      "resume": "Saved steps are kept. You can return to this guide at any time.",
+      "saveError": "We couldn’t save your changes. Check the information and try again.",
+      "loadError": "We couldn’t load this information. Close this step and try again.",
+      "incomplete": "This step still needs a saved configuration. Complete the form above, then check again.",
+      "saved": "Step complete. Your information is saved.",
+      "start": "Set up this step",
+      "check": "Check this step",
+      "next": "Next step",
+      "save": "Save and confirm"
+    },
+    "form": {
+      "phone": "Your phone number",
+      "company": "Organization name",
+      "noOrganization": "No organization is linked to your account. Contact your administrator.",
+      "email": "Teammate’s email address",
+      "role": "Organization role",
+      "sendInvitation": "Send invitation",
+      "language": "Language",
+      "currency": "Currency",
+      "timezone": "Time zone",
+      "noInterventions": "You have no assignments yet. They will appear here when assigned.",
+      "understood": "Got it",
+      "property": "Property to set up",
+      "baseRate": "Base rate",
+      "nightlyPrice": "Price per night",
+      "pricingHelp": "Set the reference price. Existing seasonal rates and overrides keep their priority.",
+      "accountHolder": "Account holder",
+      "verifyAccount": "Check account verification"
+    },
+    "visual": {
+      "complete_profile": "Your profile",
+      "migrate_pms": "Your data moves with you",
+      "create_property": "Welcome home",
+      "configure_details": "Every detail matters",
+      "define_pricing": "A rate for every stay",
+      "connect_channels": "Connected calendars",
+      "setup_notifications": "The right alerts",
+      "setup_payouts": "Your earnings, your account",
+      "configure_org": "Your organization takes shape",
+      "setup_fiscal": "Your invoicing details",
+      "invite_members": "Your team joins in",
+      "setup_payment": "Organized payments",
+      "setup_messaging": "A thoughtful welcome",
+      "setup_general": "Baitly, your way",
+      "setup_integrations": "Your connected tools",
+      "setup_assignment_contacts": "Reachable at the right time",
+      "accept_provider_terms": "Clear terms",
+      "upload_provider_documents": "Your documents ready",
+      "setup_payout_account": "A verified account",
+      "setup_coverage_zone": "Your service area",
+      "setup_availability": "A schedule that fits",
+      "setup_rates": "Your work, your rates",
+      "view_interventions": "Your next assignments",
+      "create_team": "Working together"
+    },
+    "payment": {
+      "beneficiary": "Who will receive payouts?",
+      "PERSONAL": "My business",
+      "ORGANIZATION": "My management company",
+      "personalHint": "The account will belong to your property owner or service provider business.",
+      "organizationHint": "The account will belong to your management company, even if its administrator changes.",
+      "country": "Beneficiary’s country of registration",
+      "chooseCountry": "Choose a country",
+      "countries": {
+        "FR": "France",
+        "MA": "Morocco",
+        "SA": "Saudi Arabia"
+      },
+      "stripeHint": "Payments and payouts for your business in France.",
+      "created": "Account linked to Baitly",
+      "charges": "Card payments",
+      "payouts": "Transfers and bank payouts",
+      "active": "Enabled",
+      "waiting": "To complete",
+      "create": "Create an account",
+      "connect": "Connect my account",
+      "resume": "Continue on Stripe",
+      "retry": "Try again",
+      "officialFlow": "Account creation, sign-in and verification documents are handled on Stripe’s official website. Return to this guide to check activation.",
+      "notConfigured": "Stripe connection will be available once Baitly activates the service.",
+      "oauthPending": "Connecting an existing account will be available once Baitly activates this service.",
+      "error": "The connection could not be completed. Try again or return later.",
+      "pending": "The account is not ready for payouts yet. Complete the information requested by Stripe, then check again.",
+      "regionalTitle": "Payouts in your country",
+      "regionalHint": "Connection from Baitly is being prepared. You can review the local providers under consideration below.",
+      "regionalPending": "These providers are not connected to Baitly yet. Creating an account on their website will not complete this step.",
+      "officialSite": "Official website",
+      "tap": "Marketplace onboarding and payment splitting, subject to provider approval.",
+      "aslan": "Marketplace offering to be qualified with the provider before integration with Baitly.",
+      "chari": "Accounts and transfers to be assessed through a local partnership.",
+      "checking": "Checking your account",
+      "returnReady": "Your payout account is ready",
+      "returnReadyHint": "Stripe has confirmed that transfers and bank payouts are enabled. You can return to the guide.",
+      "returnPending": "One more step on Stripe",
+      "returnError": "Your connection still needs verification",
+      "returnErrorHint": "Authorization was cancelled, expired or could not be verified. Resume the connection from the guide.",
+      "backToGuide": "Back to the getting started guide",
+      "noAccount": "No account yet?"
+    }
   },
   "tabHeaders": {
     "consumables": {
@@ -11594,7 +11709,8 @@
         "payment": "Payment",
         "integrations": "Integrations",
         "payouts": "Payouts (platform)",
-        "amenitiesOta": "OTA Amenities"
+        "amenitiesOta": "OTA Amenities",
+        "migration": "PMS migration"
       },
       "subtitle": {
         "general": "Identity, organization, regional preferences and display.",
@@ -11609,7 +11725,8 @@
         "payouts": "Schedule and calculation rules for owner payouts.",
         "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches.",
         "myRates": "Your hourly rate, per-property flat rates and quality score.",
-        "myPayoutsPro": "Stripe payout account and history of your mission payouts."
+        "myPayoutsPro": "Stripe payout account and history of your mission payouts.",
+        "migration": "Import, validate and retrieve data from your previous PMS."
       }
     },
     "dashboard": {
@@ -18982,5 +19099,204 @@
     "configured": "Rates set",
     "noBareme": "No rates",
     "communeUnresolved": "Municipality not found — check the address"
+  },
+  "setupVisual": {
+    "files": "Your exports",
+    "team": "Your team",
+    "finance": "Your settings",
+    "organization": "Your business",
+    "properties": "Your properties",
+    "guests": "Your guests",
+    "connected": "Everything connected"
+  },
+  "pmsImport": {
+    "title": "A new home for your data.",
+    "intro": "Bring your properties, guests and reservations into Baitly. Add your exports, then review what will be imported before confirming.",
+    "scope": "Integration: properties, guests and reservations. Other data and attachments are kept in a downloadable archive; they are not yet integrated into business modules.",
+    "newImport": "New import",
+    "loading": "Loading migration workspace…",
+    "source": "Source PMS",
+    "sourcePlaceholder": "Choose or enter another PMS",
+    "account": "Account in this PMS",
+    "accountPlaceholder": "e.g. Marrakech agency",
+    "accountHelp": "Use the same name for future imports, such as your agency name.",
+    "encoding": "Text file encoding",
+    "files": "Export files",
+    "limits": "Readers: CSV, TSV, Excel, JSON and ZIP. Other formats are preserved in the archive. Up to 20 files, 8 MiB total and 5,000 rows per import.",
+    "working": "Processing…",
+    "analyze": "Analyze files",
+    "recent": "Your recent imports",
+    "download": "Download source data",
+    "deleteDraft": "Delete this draft",
+    "requiredHelp": "Fields marked * are required. Choose a column or enter a value.",
+    "mapping": "Data mapping",
+    "attachment": "Attachment preserved",
+    "rows": "{{count}} rows",
+    "destination": "Data destination",
+    "dateFormat": "Source date format",
+    "decimal": "Decimal separator",
+    "point": "Point: 1234.56",
+    "comma": "Comma: 1234,56",
+    "archiveHelp": "This file remains retrievable in the source-data download. These rows will not create properties, guests, reservations, accounting documents or automations.",
+    "baitlyField": "Baitly field",
+    "sourceColumn": "File column",
+    "exampleOrDefault": "Example / shared value",
+    "required": "Required",
+    "constantOrEmpty": "Shared value or empty",
+    "empty": "Empty in the first row",
+    "defaultValue": "Shared value",
+    "optional": "Optional",
+    "propertyHelp": "Types: APARTMENT, HOUSE, STUDIO, VILLA, LOFT, DUPLEX, TOWNHOUSE, BUNGALOW, RIAD, GUEST_ROOM, COTTAGE, CHALET, BOAT, OTHER. IANA timezone: Africa/Casablanca, Europe/Paris, Asia/Riyadh… New properties belong to you and remain hidden from the booking engine.",
+    "propertyLinks": "Link properties",
+    "propertyLinksHelp": "Match each reference to a Baitly property or one in your export. References refresh at the next validation.",
+    "importedProperty": "Match an imported source ID",
+    "preserved": "{{count}} unmapped columns preserved in the archive.",
+    "validate": "Validate mappings",
+    "dirty": "Mappings changed. Validate again before continuing.",
+    "validateHelp": "This step saves the draft without creating business records.",
+    "report": "Validation results",
+    "completed": "Import completed",
+    "totals": "Reservation totals to create, by currency",
+    "issuesHelp": "Resolve these issues before importing. No business records are written while any error remains.",
+    "line": "Row {{number}}",
+    "issuesLimited": "Showing the first 100 issues. Validate again after corrections.",
+    "automationHelp": "Confirmed reservations block the Baitly calendar. Import does not publish channel updates or create invoices, and keeps automated messages and cleaning on hold. Coordinate channel cutover separately.",
+    "commit": "Import validated data",
+    "completedHelp": "Imported data is available in the corresponding modules. Additional fields and archived files are available in the source-data download.",
+    "kind": {
+      "PROPERTY": "Properties",
+      "GUEST": "Guests",
+      "RESERVATION": "Reservations",
+      "ARCHIVE": "Keep in archive"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "COMPLETED": "Completed"
+    },
+    "dates": {
+      "ISO": "Year-month-day (ISO)",
+      "DMY": "Day/month/year",
+      "MDY": "Month/day/year",
+      "EXCEL_1900": "Excel serial number (1900)"
+    },
+    "counts": {
+      "ready": "Rows to integrate",
+      "duplicates": "Duplicates skipped",
+      "archived": "Archived items",
+      "issueCount": "Issues to resolve"
+    },
+    "fields": {
+      "sourceId": "Stable source ID",
+      "name": "Property name",
+      "address": "Address",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "timezone": "Timezone",
+      "currency": "Currency (ISO)",
+      "type": "Property type",
+      "city": "City",
+      "countryCode": "Country (2 letters)",
+      "description": "Description",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email address",
+      "phone": "Phone",
+      "language": "Language",
+      "notes": "Notes",
+      "propertyRef": "Property reference",
+      "guestName": "Guest full name",
+      "guestRef": "Guest source ID",
+      "checkIn": "Check-in date",
+      "checkOut": "Check-out date",
+      "totalPrice": "Total price",
+      "status": "Status (confirmed / cancelled)",
+      "source": "Booking channel",
+      "guestCount": "Guest count",
+      "amountPaid": "Amount paid",
+      "confirmationCode": "Confirmation reference",
+      "amount": "Amount"
+    },
+    "errors": {
+      "UNKNOWN": "Processing failed. Check your files and try again.",
+      "LOAD": "Could not load data. Reload this page.",
+      "REQUIRED": "Required field missing",
+      "TOO_LONG": "Value too long",
+      "EMAIL": "Invalid email address",
+      "COUNTRY": "Invalid country code",
+      "CURRENCY": "Invalid ISO currency",
+      "TIMEZONE": "Invalid IANA timezone",
+      "PROPERTY_TYPE": "Unrecognized property type",
+      "INTEGER": "Integer out of range",
+      "DATE": "Invalid date for the selected format",
+      "DATE_RANGE": "Check-out must follow check-in, with a maximum stay of 3 years",
+      "MONEY": "Invalid amount: select the decimal separator, with no currency symbol or thousands separator",
+      "PAID_ABOVE_TOTAL": "Paid amount exceeds total price",
+      "STATUS": "Unrecognized status. Confirmed and cancelled reservations are supported.",
+      "SOURCE_CHANGED": "This source ID already exists with different data. Automatic overwrite is disabled.",
+      "PROPERTY_LINK_REQUIRED": "Link this reference to an existing property or import the property with its source ID.",
+      "GUEST_LINK_REQUIRED": "Import the guest with this ID first, or remove this mapping.",
+      "CALENDAR_CONFLICT": "These dates are already occupied or blocked.",
+      "BATCH_OVERLAP": "Two reservations in this batch overlap on the same property.",
+      "EXISTING_RESERVATION": "An existing reservation has the same reference or overlaps this stay. Check for duplicates.",
+      "VALIDATION_CHANGED": "Data changed since validation. Validate the mappings again.",
+      "VALIDATE_FIRST": "Validate mappings before importing.",
+      "CALENDAR_BUSY": "The calendar is being updated. Try again.",
+      "FILES_REQUIRED": "Select at least one file.",
+      "FILES_TOO_LARGE": "Limit: 20 files and 8 MiB total per import.",
+      "FILES_LIMIT": "Select between 1 and 20 files.",
+      "FILE_UNREADABLE": "Cannot read file. Check format and encoding; export Excel cells as values.",
+      "FILE_NAME": "Invalid file name or path.",
+      "ENCODING": "Unsupported encoding.",
+      "EMPTY_EXPORT": "The export contains no readable data.",
+      "ROWS_LIMIT": "Limit: 5,000 rows and 100 datasets per import. Split your export.",
+      "COLUMNS_LIMIT": "Limit: 256 non-empty columns.",
+      "COLUMN_COUNT": "Inconsistent column count in a row.",
+      "DUPLICATE_OR_EMPTY_HEADERS": "Column names must be non-empty and unique.",
+      "NESTED_ARCHIVE": "Unpack nested ZIP files before importing.",
+      "ARCHIVE_LIMIT": "Archive too large after decompression. Split it.",
+      "UNSUPPORTED_FORMAT": "Unsupported format. Convert the file to CSV, Excel or JSON.",
+      "EXCEL_FORMULA_EXPORT_VALUES": "Workbook contains formulas. Export results as values before retrying.",
+      "EXCEL_CELL_ERROR": "Workbook contains a cell error.",
+      "JSON_OBJECTS_REQUIRED": "Expected JSON objects or arrays of objects.",
+      "JSON_AMBIGUOUS_KEY": "Ambiguous JSON key: dots are reserved for nested fields.",
+      "JSON_DEPTH": "JSON structure is too deeply nested.",
+      "CELL_TOO_LARGE": "A cell exceeds 16,000 characters.",
+      "SHEETS_LIMIT": "Limit: 30 sheets per workbook.",
+      "IMPORT_PROPERTY_ACCESS": "You do not have access to the selected property.",
+      "IMPORT_BATCH_ACCESS": "You do not have access to this import."
+    },
+    "design": {
+      "eyebrow": "PMS migration",
+      "progress": "Your migration steps",
+      "stages": {
+        "files": "Your files",
+        "mapping": "Match data",
+        "review": "Review"
+      },
+      "startTitle": "Where is your data coming from?",
+      "startHelp": "Select your previous PMS or enter its name.",
+      "dropTitle": "Drop your exports here",
+      "dropBrowse": "or click to choose your files",
+      "kb": "KB",
+      "removeFile": "Remove {{name}}",
+      "advanced": "Advanced options and limits",
+      "noWriteYet": "Nothing is imported without your confirmation.",
+      "bringTitle": "What you bring into Baitly",
+      "bring": {
+        "PROPERTY": "Your properties and their essential details.",
+        "GUEST": "Guest profiles and contact information.",
+        "RESERVATION": "Stays, their dates and amounts."
+      },
+      "archiveTitle": "What about the other data?",
+      "archiveBody": "Messages, invoices, attachments and extra fields stay in a downloadable archive. They are not yet integrated into the modules.",
+      "mappingTitle": "Let’s check the matches.",
+      "mappingHelp": "Baitly suggests column matches. Check the required fields (*) and add optional details if needed.",
+      "extraFields": "Additional information ({{count}})",
+      "propertyOptions": "Property types and time zones",
+      "reviewTitle": "Ready for your review.",
+      "reviewHelp": "Here are the validation results. Duplicates are skipped; existing data will not be replaced.",
+      "backMapping": "Review column matches",
+      "completedNotice": "Your import is complete. Find your data in Baitly or download your original files."
+    }
   }
 }

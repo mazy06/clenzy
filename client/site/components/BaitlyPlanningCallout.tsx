@@ -21,6 +21,7 @@ import {
   placePlanningCallout,
   type CalloutRect,
 } from './baitlyPlanningCalloutLayout';
+import { demoNumber } from '../lib/planningDemoLocale';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const { planningCity: propertyTerrace } = SITE_PHOTOS;
@@ -221,8 +222,10 @@ export default function BaitlyPlanningCallout({
           <div className="bpm-guide-meta">
             {media ?? <Icon />}
             <span>
-              {m.step} <b>{String(annotation.step + 1).padStart(2, '0')}</b> /{' '}
-              {m.steps.length}
+              {m.step}{' '}
+              <bdi dir="ltr">
+                <b>{demoNumber(annotation.step + 1, language, { minimumIntegerDigits: 2 })}</b> / {demoNumber(m.steps.length, language)}
+              </bdi>
             </span>
           </div>
           <strong>{text.title}</strong>
@@ -244,7 +247,7 @@ export default function BaitlyPlanningCallout({
         aria-live="polite"
         aria-atomic="true"
       >
-        {m.step} {annotation.step + 1}. {text.title}. {text.body}
+        {m.step} {demoNumber(annotation.step + 1, language)}. {text.title}. {text.body}
       </span>
     </div>
   );

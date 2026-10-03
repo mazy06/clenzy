@@ -16,6 +16,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    @Query(value = "SELECT r.row_key FROM jsonb_to_recordset(CAST(:ranges AS jsonb)) "
+        + "AS r(row_key text, property_id bigint, date_from date, date_to date, status text, confirmation_code text) "
+        + "WHERE EXISTS (SELECT 1 FROM reservations existing WHERE existing.organization_id = :org "
+        + "AND existing.property_id = r.property_id AND ((r.confirmation_code <> '' AND existing.confirmation_code = r.confirmation_code) "
+        + "OR (r.status = 'confirmed' AND existing.status <> 'cancelled' AND existing.check_in < r.date_to AND existing.check_out > r.date_from)))", nativeQuery = true)
+    List<String> findPmsImportConflicts(@Param("ranges") String ranges, @Param("org") Long org);
 
     /**
      * Séjours directs terminés éligibles au gain de crédit fidélité (2.8) : réservation directe,

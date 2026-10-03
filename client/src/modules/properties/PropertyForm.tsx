@@ -33,11 +33,12 @@ interface PropertyFormProps {
   loading?: boolean;
   propertyId?: number;
   mode?: 'create' | 'edit';
+  embedded?: boolean;
 }
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propertyId, mode = 'create' }) => {
+const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propertyId, mode = 'create', embedded = false }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
       if (onSuccess) onSuccess(created);
       else if (onClose) onClose();
     },
-    onNavigate: (path) => navigate(path),
+    onNavigate: embedded ? undefined : (path) => navigate(path),
   });
 
   // ─── Permissions ──────────────────────────────────────────────────────
@@ -145,7 +146,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         onSubmit={handleSubmit((data) => submitForm(data))}
         className="flex flex-col flex-1 min-h-0"
       >
-        <div className="flex gap-3 flex-1 min-h-0">
+        <div className={embedded ? 'flex flex-col gap-4' : 'flex gap-3 flex-1 min-h-0'}>
           {/* ── Colonne gauche : Infos principales ──────────────────── */}
           {/* `flex: 7` / `flex: 5` MUI = flex-grow/shrink 1 avec basis 0 : la
               repartition 7/5 des colonnes passe par un style (valeur numerique,
@@ -183,8 +184,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         )}
 
         {/* Hidden submit button for PageHeader trigger */}
-        <Button type="submit" className="hidden" data-submit-property disabled={isSubmitting}>
-          Soumettre
+        <Button type="submit" className={embedded ? 'setup-primary mt-4 self-start' : 'hidden'} data-submit-property disabled={isSubmitting}>
+          {t('common.save')}
         </Button>
       </form>
     </div>

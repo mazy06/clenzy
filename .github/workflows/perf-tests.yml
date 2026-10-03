@@ -1,5 +1,5 @@
 # ===========================================
-# Clenzy — Tests de Performance & Charge (K6)
+# Baitly — Tests de Performance & Charge (K6)
 # ===========================================
 # Declenchement :
 #   - PR vers production          → smoke + load test (validation obligatoire)
@@ -175,7 +175,7 @@ jobs:
       #
       # Pourquoi une attente et pas une simple requete : /actuator/health repond
       # des l'ouverture de Tomcat, et Spring Boot execute les ApplicationRunner
-      # APRES — le message « Started ClenzyApplication » lui-meme precede
+      # APRES — le message de demarrage de l'application lui-meme precede
       # callRunners(). La boucle de demarrage ci-dessus peut donc rendre la main
       # 200 ms avant que le seeder ait ecrit sa premiere ligne (run 33415608422).
       # La condition qui nous interesse est le jeu de donnees, pas le port ouvert.
@@ -238,12 +238,10 @@ jobs:
         continue-on-error: false
 
       # ── Load Test (PR ou dispatch 'load') ──
-      # Les seuils de perf restent informatifs sur PR (continue-on-error) : une
-      # p95 degradee ne bloque pas un deploiement. La validite de la mesure,
-      # elle, est verifiee juste apres et bloque dans tous les cas.
+      # Tous les seuils K6 sont bloquants, y compris sur PR : le statut du job
+      # doit refleter les erreurs HTTP/metier et les regressions de latence.
       - name: Run Load Test
         if: steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load'
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_URL: http://localhost:8080
           CI_AUTH_TOKEN: ${{ env.CI_AUTH_TOKEN }}
@@ -257,9 +255,8 @@ jobs:
       # ── Garde-fou : la mesure est-elle seulement valide ? ──
       # Un taux d'erreur massif n'est pas une regression de perf, c'est un
       # harnais casse (token rejete, seed absent, endpoint renomme). Dans ce cas
-      # les latences affichees ne mesurent qu'un refus : on echoue, y compris
-      # sur PR ou les seuils de perf, eux, restent informatifs.
-      # always() : en dispatch, k6 sort en 99 des qu'un seuil est franchi et
+      # les latences affichees ne mesurent qu'un refus : on ajoute un diagnostic.
+      # always() : k6 sort en 99 des qu'un seuil est franchi et
       # l'etape echoue — c'est precisement le cas ou l'on veut savoir si la
       # mesure etait valide. Sans cela le diagnostic est saute quand il sert.
       - name: Verify load test measured something

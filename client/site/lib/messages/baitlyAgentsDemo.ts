@@ -1,3 +1,4 @@
+import { demoDateLabel, localizeDemoCopy } from '../planningDemoLocale';
 import type { SiteLanguage } from '../siteLanguage';
 
 /**
@@ -482,14 +483,14 @@ const ar: AgentsDemoMessages = {
   cards: {
     review: {
       title: 'تقييم دون رد — التقييم رقم 3',
-      meta: 'لورا د. · 30 مايو 2026 · Airbnb',
+      meta: `لورا د. · ${demoDateLabel('2026-05-30', 'ar', { day: 'numeric', month: 'long', year: 'numeric' })} · Airbnb`,
       quote: 'موقع ممتاز ومسكن مريح. ملاحظة صغيرة حول الضجيج في المساء.',
       note: 'اكتب ردًا علنيًا: التقييم الإيجابي الذي يبقى دون رد فرصة ضائعة.',
       cta: 'رد',
     },
     review3: {
       title: 'تقييم دون رد — التقييم رقم 1',
-      meta: 'صوفي م. · 20 يونيو 2026 · Airbnb',
+      meta: `صوفي م. · ${demoDateLabel('2026-06-20', 'ar', { day: 'numeric', month: 'long', year: 'numeric' })} · Airbnb`,
       quote: 'إقامة استثنائية، مسكن نظيف جدًا ومطابق تمامًا للصور.',
     },
     mandate: {
@@ -500,7 +501,7 @@ const ar: AgentsDemoMessages = {
     },
     review2: {
       title: 'تقييم دون رد — التقييم رقم 6',
-      meta: 'مارك ف. · 22 أبريل 2026 · Booking.com',
+      meta: `مارك ف. · ${demoDateLabel('2026-04-22', 'ar', { day: 'numeric', month: 'long', year: 'numeric' })} · Booking.com`,
       quote: 'قيمة ممتازة مقابل السعر وتجهيز جيد. سنعود بكل سرور.',
     },
     lock: {
@@ -547,7 +548,7 @@ const ar: AgentsDemoMessages = {
   },
   schedule: {
     title: 'جدولة التدخل',
-    month: 'سبتمبر 2026',
+    month: demoDateLabel('2026-09-26', 'ar', { month: 'long', year: 'numeric' }),
     weekdays: ['ن', 'ث', 'ر', 'خ', 'ج', 'س', 'ح'],
     time: 'الوقت',
     assignee: 'المنفّذ',
@@ -561,9 +562,9 @@ const ar: AgentsDemoMessages = {
       ['كريم بلقاضي', 'فني خارجي'],
     ],
     otherWorkers: [['سلمى الإدريسي', 'عاملة تنظيف']],
-    readbackBefore: 'الأحد 27 سبتمبر في 10:00',
-    readbackDay: 'الاثنين 28 سبتمبر في 10:00',
-    readback: 'الاثنين 28 سبتمبر في 10:00، يوسف العمراني',
+    readbackBefore: `${demoDateLabel('2026-09-27', 'ar', { weekday: 'long', day: 'numeric', month: 'long' })} في 10:00`,
+    readbackDay: `${demoDateLabel('2026-09-28', 'ar', { weekday: 'long', day: 'numeric', month: 'long' })} في 10:00`,
+    readback: `${demoDateLabel('2026-09-28', 'ar', { weekday: 'long', day: 'numeric', month: 'long' })} في 10:00، يوسف العمراني`,
     cancel: 'إلغاء',
     confirm: 'جدولة',
   },
@@ -637,5 +638,5 @@ const ar: AgentsDemoMessages = {
 export const AGENTS_DEMO_MESSAGES: Record<SiteLanguage, AgentsDemoMessages> = {
   fr,
   en,
-  ar,
+  ar: localizeDemoCopy(ar),
 };

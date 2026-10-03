@@ -56,6 +56,7 @@ class StripeConnectServiceTest {
         c.setOwnerId(11L);
         c.setStripeConnectedAccountId(stripeId);
         c.setStripeOnboardingComplete(complete);
+        c.setPayoutMethod(PayoutMethod.STRIPE_CONNECT);
         return c;
     }
 
@@ -273,6 +274,7 @@ class StripeConnectServiceTest {
     @DisplayName("handleAccountUpdated regression from complete to incomplete updates flag")
     void handleAccountUpdated_regressFromCompleteToIncomplete() {
         OwnerPayoutConfig config = cfg(true, "acct_regress");
+        config.setVerified(true);
         when(configRepository.findByStripeConnectedAccountId("acct_regress"))
                 .thenReturn(Optional.of(config));
 
@@ -280,7 +282,19 @@ class StripeConnectServiceTest {
 
         // It was complete; now charges=false -> nowComplete=false
         assertThat(config.isStripeOnboardingComplete()).isFalse();
+        assertThat(config.isVerified()).isFalse();
         verify(configRepository).save(config);
+    }
+
+    @Test
+    void stripeWebhookDoesNotInvalidateAnExistingSepaMethod() {
+        OwnerPayoutConfig config = cfg(true, "acct_bank");
+        config.setPayoutMethod(PayoutMethod.SEPA_TRANSFER);
+        config.setVerified(true);
+        when(configRepository.findByStripeConnectedAccountId("acct_bank")).thenReturn(Optional.of(config));
+        service.handleAccountUpdated("acct_bank", false, false);
+        assertThat(config.isVerified()).isTrue();
+        assertThat(config.isStripeOnboardingComplete()).isFalse();
     }
 
     @Test

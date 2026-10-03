@@ -544,6 +544,212 @@
   line-height: 1.65;
 }
 
+/* Public, sourced portability guide. Logical properties keep the Arabic layout native. */
+.bm-source-detail-pms {
+  display: block;
+}
+.bm-pms-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.7fr);
+  align-items: center;
+  gap: 1.5rem 3rem;
+  padding-block-end: 1.75rem;
+  border-bottom: 1px solid var(--bm-line);
+}
+.bm-pms-picker label {
+  display: block;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+.bm-pms-picker p,
+.bm-pms-empty p {
+  font-size: 0.9rem;
+  color: var(--bm-muted);
+  line-height: 1.7;
+  margin-top: 0.5rem;
+  max-width: 65ch;
+}
+.bm-select-wrap {
+  position: relative;
+  min-width: 0;
+}
+.bm-select-wrap select {
+  appearance: none;
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--bm-green);
+  border-radius: 8px;
+  background: var(--bm-paper);
+  color: var(--bm-ink);
+  padding-block: 0.85rem;
+  padding-inline: 1rem 2.7rem;
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.bm-select-wrap select:focus-visible {
+  outline: 3px solid var(--bm-green);
+  outline-offset: 4px;
+}
+.bm-select-wrap > svg {
+  position: absolute;
+  inset-inline-end: 1rem;
+  top: calc(50% - 9px);
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+.bm-pms-result {
+  padding-block: 1.75rem 0;
+}
+.bm-pms-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.bm-pms-heading .bm-label {
+  margin-bottom: 0.4rem;
+}
+.bm-pms-heading h3 {
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+}
+.bm-pms-formats {
+  font-size: 0.8rem;
+  color: var(--bm-green);
+}
+.bm-pms-facts {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1fr;
+  gap: 1.75rem;
+  margin-block: 1.5rem;
+}
+.bm-pms-facts dt {
+  color: var(--bm-muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.bm-pms-facts dd {
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.bm-pms-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  padding-block: 0.8rem;
+  border-top: 1px solid var(--bm-line);
+}
+.bm-pms-evidence nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.2rem;
+}
+.bm-pms-evidence a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 44px;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.bm-pms-evidence a:hover {
+  color: var(--bm-green);
+}
+.bm-pms-evidence a svg {
+  width: 14px;
+  height: 14px;
+}
+.bm-pms-methodology {
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--bm-muted);
+  margin-top: 1rem;
+  max-width: 120ch;
+}
+.bm-pms-empty {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding-block: 0.5rem 1rem;
+}
+.bm-pms-empty > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--bm-green);
+  margin-top: 0.2rem;
+}
+.bm-pms-empty h3 {
+  font-size: 1.25rem;
+}
+.bm-portability-promise {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 2.5rem 5rem;
+  padding-block: 0 clamp(3.5rem, 6vw, 6rem);
+}
+.bm-portability-promise h2 {
+  font-size: clamp(1.9rem, 3vw, 2.75rem);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.bm-portability-promise > div > p:not(.bm-promise-status) {
+  font-size: 1rem;
+  color: var(--bm-muted);
+  line-height: 1.8;
+  margin-top: 1rem;
+  max-width: 52ch;
+}
+.bm-portability-promise dl > div {
+  padding-block: 1rem;
+  border-top: 1px solid var(--bm-line);
+}
+.bm-portability-promise dt {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+.bm-portability-promise dd {
+  color: var(--bm-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.bm-promise-status {
+  color: var(--bm-green);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  margin-top: 0.8rem;
+}
+[dir='rtl'] .bm-pms-evidence a svg {
+  transform: scaleX(-1);
+}
+@media (max-width: 800px) {
+  .bm-pms-picker {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .bm-pms-facts {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .bm-pms-facts > div {
+    padding-block-end: 1rem;
+    border-bottom: 1px solid var(--bm-line);
+  }
+  .bm-pms-facts > div:last-child {
+    border: 0;
+    padding: 0;
+  }
+  .bm-portability-promise {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
 .bm-journey {
   background: var(--bm-blue);
   padding-block: clamp(3.5rem, 5.5vw, 5.5rem);

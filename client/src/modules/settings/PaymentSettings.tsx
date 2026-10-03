@@ -66,6 +66,7 @@ import ServicesActivitiesPanel from "./components/ServicesActivitiesPanel";
 import type { SplitBarSegment } from "./components/SplitBarEditor";
 import { useSettingsHeaderActions } from "./SettingsHeaderContext";
 import SettingsToggleRow from "./components/SettingsToggleRow";
+import IntegrationLogo from "../../components/integrations/IntegrationLogo";
 import PaymentProviderConfigDialog from "./components/PaymentProviderConfigDialog";
 import { Settings as SettingsIcon } from "../../icons";
 
@@ -542,13 +543,17 @@ export default function PaymentSettings() {
             return (
               <div className="relative" key={type}>
                 <SettingsToggleRow
-                  icon={CreditCard}
+                  icon={type === "STRIPE" ? undefined : CreditCard}
                   iconColor={brandColor}
                   title={
                     <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-sm font-semibold text-inherit">
-                        {PAYMENT_PROVIDER_LABELS[type]}
-                      </span>
+                      {type === "STRIPE" ? (
+                        <IntegrationLogo provider="stripe" />
+                      ) : (
+                        <span className="text-sm font-semibold text-inherit">
+                          {PAYMENT_PROVIDER_LABELS[type]}
+                        </span>
+                      )}
                       {statusChips}
                     </div>
                   }

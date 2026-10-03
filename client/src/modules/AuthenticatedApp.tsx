@@ -27,6 +27,7 @@ function AssistantConversationRedirect() {
 // Pages : chargées en lazy (code-splitting par route). Chaque page + son sous-arbre devient un
 // chunk séparé → sort le module booking-engine/studio et les dialogs paiements du bundle initial.
 const Dashboard = lazy(() => import('./dashboard/Dashboard'));
+const PaymentConnectReturn = lazy(() => import('../components/onboarding/PaymentConnectReturn'));
 const NotFoundPage = lazy(() => import('./NotFoundPage'));
 const PropertiesPage = lazy(() => import('./properties/PropertiesPage'));
 const ConsumablesPage = lazy(() => import('./stock/ConsumablesPage'));
@@ -202,6 +203,7 @@ const AuthenticatedApp: React.FC = () => {
   return (
     <Suspense fallback={<RouteFallback />}>
     <Routes>
+      <Route path="/payment-connect/return" element={<PaymentConnectReturn />} />
       <Route path="/dashboard" element={
         <Dashboard />
       } />

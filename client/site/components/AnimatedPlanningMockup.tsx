@@ -49,6 +49,21 @@ import {
 } from '../../src/icons';
 import airbnbLogo from '../../src/assets/logo/airbnb-logo-small.svg';
 import bookingLogo from '../../src/assets/logo/booking-logo-small.svg';
+import GuestAvatar from '../../src/components/GuestAvatar';
+import { getBarContentLayout } from '../../src/modules/planning/utils/barContentLayout';
+import { BAR_FEE_PILL_MIN } from '../../src/modules/planning/constants';
+import guest1 from '../assets/guests/g1.jpg';
+import guest2 from '../assets/guests/g2.jpg';
+import guest3 from '../assets/guests/g3.jpg';
+import guest4 from '../assets/guests/g4.jpg';
+import guest5 from '../assets/guests/g5.jpg';
+import guest6 from '../assets/guests/g6.jpg';
+import guest7 from '../assets/guests/g7.jpg';
+import guest8 from '../assets/guests/g8.jpg';
+import guest9 from '../assets/guests/g9.jpg';
+import guest10 from '../assets/guests/g10.jpg';
+import guest11 from '../assets/guests/g11.jpg';
+import guest12 from '../assets/guests/g12.jpg';
 import { Cursor, useScriptedCursor } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { useBaitlyPlanningTimeline } from './useBaitlyPlanningTimeline';
@@ -59,6 +74,8 @@ import BaitlyPlanningCallout, {
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
 import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
+import { useSiteCurrency } from '../lib/siteCurrency';
+import { demoDate, demoDateLabel, demoDigits, demoNumber, demoWeekend, DEMO_TODAY } from '../lib/planningDemoLocale';
 import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
@@ -110,18 +127,8 @@ export const PROPERTY_PHOTOS = [
   propertyHouse,
   SITE_PHOTOS.planningStudio,
 ];
-
-/* Seuils de repli de la brique — valeurs de planning/constants.ts:112-114.
-   Au-dessus : prix en pilule icône + montant ; entre les deux : icône seule ;
-   en dessous : le prix bascule dans le « +N ». La pilule de tarif prestation
-   n'apparaît qu'à partir de BAR_FEE_PILL_MIN. */
-const BAR_PRICE_AMOUNT_MIN = 150;
-const BAR_PRICE_INLINE_MIN = 104;
-const BAR_FEE_PILL_MIN = 184;
-/* Seuils d'affichage des éléments de gauche (PlanningBar). */
-const BAR_AVATAR_MIN = 90;
-const BAR_NAME_MIN = 40;
-const BAR_CHANNEL_MIN = 60;
+export const PLANNING_FRAME_HEIGHT =
+  50 + 57 + HEADER_H + (PROPERTY_PHOTOS.length + FILLER_ROWS) * ROW_H + 30 + 50 + 2;
 
 /** Palette « Signature » du planning, portée localement : le site marketing
     n'expose que les tokens --bui-*, pas ceux de l'application. */
@@ -179,7 +186,8 @@ interface Resa {
   maintenance?: boolean;
   /** Fiche voyageur incomplète (e-mail manquant) → pastille d'alerte pulsée. */
   missingInfo?: boolean;
-  /** Photo du voyageur affichée dans la brique. */
+  /** Portrait illustratif local, partagé par les deux démonstrations. */
+  photo?: string;
 }
 
 export const RESAS: Resa[] = [
@@ -194,6 +202,7 @@ export const RESAS: Resa[] = [
     nights: 2,
     status: 'checked_out',
     guest: 'Hans Müller',
+    photo: guest1,
     channel: 'airbnb',
     price: 4800,
     paid: true,
@@ -205,6 +214,7 @@ export const RESAS: Resa[] = [
     nights: 2,
     status: 'checked_out',
     guest: 'Sophie Dubois',
+    photo: guest11,
     channel: 'direct',
     price: 8200,
     paid: true,
@@ -217,6 +227,7 @@ export const RESAS: Resa[] = [
     nights: 4,
     status: 'checked_in',
     guest: 'Carlos García',
+    photo: guest3,
     channel: 'airbnb',
     price: 3200,
     paid: true,
@@ -228,6 +239,7 @@ export const RESAS: Resa[] = [
     nights: 7,
     status: 'checked_in',
     guest: 'Ahmed Bennani',
+    photo: guest6,
     channel: 'direct',
     price: 9800,
     paid: true,
@@ -241,6 +253,7 @@ export const RESAS: Resa[] = [
     nights: 6,
     status: 'confirmed',
     guest: 'Anna Kowalski',
+    photo: guest2,
     channel: 'direct',
     price: 7100,
     paid: true,
@@ -253,6 +266,7 @@ export const RESAS: Resa[] = [
     nights: 4,
     status: 'confirmed',
     guest: 'Luca Rossi',
+    photo: guest7,
     channel: 'booking',
     price: 6400,
     paid: true,
@@ -265,6 +279,7 @@ export const RESAS: Resa[] = [
     nights: 4,
     status: 'confirmed',
     guest: 'Mia Andersson',
+    photo: guest9,
     channel: 'airbnb',
     price: 4400,
     paid: true,
@@ -277,6 +292,7 @@ export const RESAS: Resa[] = [
     nights: 3,
     status: 'confirmed',
     guest: 'Nadia Alami',
+    photo: guest4,
     channel: 'airbnb',
     price: 3900,
     paid: true,
@@ -288,6 +304,7 @@ export const RESAS: Resa[] = [
     nights: 4,
     status: 'confirmed',
     guest: 'Julia Wagner',
+    photo: guest8,
     channel: 'booking',
     price: 6900,
     paid: true,
@@ -300,6 +317,7 @@ export const RESAS: Resa[] = [
     nights: 5,
     status: 'pending',
     guest: 'Kenji Sato',
+    photo: guest5,
     channel: 'booking',
     price: 5600,
     paid: false,
@@ -314,6 +332,7 @@ export const RESAS: Resa[] = [
     nights: 3,
     status: 'pending',
     guest: 'Dounia B.',
+    photo: guest10,
     channel: 'airbnb',
     price: 5200,
     paid: false,
@@ -325,6 +344,7 @@ export const RESAS: Resa[] = [
     nights: 3,
     status: 'pending',
     guest: 'Tom Lefèvre',
+    photo: guest12,
     channel: 'booking',
     price: 3600,
     paid: false,
@@ -368,15 +388,8 @@ const NIGHTLY = [1250, 980, 2100, 850, 1400, 720];
 const FIRST_DOW = 4; // Mercredi 23 septembre 2026, samedi = index 0.
 export const TODAY_INDEX = 3;
 
-export const isWeekend = (day: number) => {
-  const dow = (FIRST_DOW + day) % 7;
-  return dow === 0 || dow === 1; // SAM / DIM
-};
+export const isWeekend = (day: number, language: SiteLanguage = 'fr') => demoWeekend(demoDate(day), language);
 
-/** Numéro du jour, avec bascule sur octobre : septembre compte 30 jours. */
-const FIRST_DAY = 23;
-const MONTH_DAYS = 30;
-const dayNumber = (day: number) => ((FIRST_DAY + day - 1) % MONTH_DAYS) + 1;
 
 /** Montants fictifs synchronisés avec les autres démonstrations du site. */
 function Amount({ value, size = 11 }: { value: number; size?: number }) {
@@ -385,6 +398,7 @@ function Amount({ value, size = 11 }: { value: number; size?: number }) {
     <SiteMoney
       value={value}
       from={language === 'ar' ? 'SAR' : 'MAD'}
+      language={language}
       size={size + 2}
     />
   );
@@ -493,7 +507,7 @@ export default function AnimatedPlanningMockup() {
   const stageRef = useRef<HTMLDivElement>(null);
   const { visibilityRef, active, reduced } = useBaitlyDemoVisibility();
   const m = usePlanningText();
-  const { language } = useSiteLanguage();
+  const { language, direction } = useSiteLanguage();
   const playing = active && !paused;
   const voiceAudible = voiceOn && !voiceBlocked;
   const voice = useDemoNarration(
@@ -568,7 +582,7 @@ export default function AnimatedPlanningMockup() {
       <div className="bpm-planning-stage" ref={stageRef} data-guided={!reduced}>
         <div
           className="bpm-planning-scroll"
-          dir="ltr"
+          dir={direction}
           tabIndex={0}
           role="region"
           aria-label={m.demo}
@@ -607,7 +621,7 @@ export default function AnimatedPlanningMockup() {
   );
 }
 
-function PlanningScene({
+export function PlanningScene({
   onCycleEnd,
   active,
   reduced,
@@ -624,13 +638,14 @@ function PlanningScene({
   onSceneChange: (scene: number) => void;
   onAnnotationChange: (annotation: PlanningAnnotation | null) => void;
 }) {
+  const { language, direction } = useSiteLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
-  /* Coin haut-gauche du corps de grille, exprimé dans le repère du conteneur
+  /* Coin supérieur de début de grille, exprimé dans le repère du conteneur
      externe : sert à replacer les info-bulles hors du cadre rogné. */
   const [gridOrigin, setGridOrigin] = useState({ x: 0, y: 0 });
-  const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef);
+  const { cursor, moveTo, park, hide } = useScriptedCursor(containerRef, direction);
 
   /* État piloté par la chorégraphie */
   const [mutedChannel, setMutedChannel] = useState<Channel | null>(null);
@@ -668,7 +683,7 @@ function PlanningScene({
       if (c && b) {
         const cr = c.getBoundingClientRect();
         const br = b.getBoundingClientRect();
-        setGridOrigin({ x: br.left - cr.left, y: br.top - cr.top });
+        setGridOrigin({ x: direction === 'rtl' ? cr.right - br.right : br.left - cr.left, y: br.top - cr.top });
       }
     };
     measure();
@@ -679,7 +694,7 @@ function PlanningScene({
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', measure);
     };
-  }, [scale]);
+  }, [scale, direction]);
 
   const find = (selector: string) =>
     containerRef.current?.querySelector<HTMLElement>(selector) ?? null;
@@ -711,7 +726,6 @@ function PlanningScene({
     }
   };
 
-  const { language } = useSiteLanguage();
   clockRef.current = useBaitlyPlanningTimeline(active, (at) => {
     const cues = PLANNING_VOICE_CUES[language === 'en' ? 'en' : 'fr'];
     let t = 900;
@@ -877,7 +891,7 @@ function PlanningScene({
   const gridWidth = DAYS * DAY_W;
   const bodyHeight = (properties.length + FILLER_ROWS) * ROW_H;
 
-  const frameHeight = 50 + 57 + HEADER_H + bodyHeight + 30 + 50 + 2;
+  const frameHeight = PLANNING_FRAME_HEIGHT;
   const occupancy = Array.from({ length: DAYS }, (_, day) => {
     const occupied = new Set(
       [...RESAS, ...(created ? [CREATED_RESA] : [])]
@@ -893,16 +907,18 @@ function PlanningScene({
   return (
     <div
       className="relative bpm-planning-canvas"
-      dir="ltr"
+      lang={language}
+      dir={direction}
       ref={containerRef}
       style={{ ...TOKENS, height: frameHeight * scale }}
     >
       <div
-        className="relative origin-top-left"
+        className="relative"
         style={{
           width: FRAME_WIDTH,
           height: frameHeight,
           transform: 'scale(' + scale + ')',
+          transformOrigin: direction === 'rtl' ? 'top right' : 'top left',
         }}
         role="img"
         aria-label={m.windowTitle}
@@ -934,14 +950,14 @@ function PlanningScene({
                     height: HEADER_H,
                     background: 'var(--pl-surface2)',
                     borderBottom: '1px solid var(--pl-line)',
-                    borderRight: '1px solid var(--pl-line)',
+                    borderInlineEnd: '1px solid var(--pl-line)',
                   }}
                 >
                   <span
                     className="text-[10.5px] font-bold tracking-[.05em] uppercase tabular-nums"
                     style={{ color: 'var(--pl-faint)' }}
                   >
-                    {properties.length} {m.propertiesLabel}
+                    {demoNumber(properties.length, language)} {m.propertiesLabel}
                   </span>
                 </div>
                 {properties.map((property, index) => (
@@ -953,7 +969,7 @@ function PlanningScene({
                     style={{
                       height: ROW_H,
                       borderBottom: '1px solid var(--pl-line)',
-                      borderRight: '1px solid var(--pl-line)',
+                      borderInlineEnd: '1px solid var(--pl-line)',
                       background: 'var(--pl-card)',
                     }}
                   >
@@ -963,10 +979,10 @@ function PlanningScene({
                       <span>{property.city.split(' · ')[0]}</span>
                     </div>
                     <span className="bpm-property-count">
-                      <b>{UNIT_COUNTS[index] + 8}</b>
+                      <b>{demoNumber(UNIT_COUNTS[index] + 8, language)}</b>
                       <small>
                         <TagIcon size={10} />
-                        {UNIT_COUNTS[index]}
+                        {demoNumber(UNIT_COUNTS[index], language)}
                       </small>
                     </span>
                     <ChevronDownIcon
@@ -1005,7 +1021,7 @@ function PlanningScene({
                       style={{
                         top: (properties.length + i) * ROW_H,
                         height: ROW_H,
-                        backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${
+                        backgroundImage: `repeating-linear-gradient(to ${direction === 'rtl' ? 'left' : 'right'}, transparent 0 ${
                           DAY_W - 1
                         }px, var(--pl-line) ${DAY_W - 1}px ${DAY_W}px)`,
                       }}
@@ -1038,7 +1054,7 @@ function PlanningScene({
                   <div
                     className="pointer-events-none absolute top-0 bottom-0 w-[2px]"
                     style={{
-                      left: TODAY_INDEX * DAY_W + DAY_W * 0.42,
+                      insetInlineStart: TODAY_INDEX * DAY_W + DAY_W * 0.42,
                       background: 'var(--pl-err)',
                       zIndex: 6,
                     }}
@@ -1066,10 +1082,10 @@ function PlanningScene({
                     key={index}
                     style={{
                       width: DAY_W,
-                      background: isWeekend(index) ? 'var(--pl-we)' : undefined,
+                      background: isWeekend(index, language) ? 'var(--pl-we)' : undefined,
                     }}
                   >
-                    {value}%
+                    {demoNumber(value / 100, language, { style: 'percent', maximumFractionDigits: 0 })}
                   </small>
                 ))}
               </div>
@@ -1077,11 +1093,11 @@ function PlanningScene({
           </div>
           <div className="bpm-planning-pagination">
             <span>{m.pageRange}</span>
-            <ChevronLeftIcon size={14} />
+            <ChevronLeftIcon className="bpm-directional-icon" size={14} />
             {m.previous}
-            <strong>1</strong>
+            <strong>{demoNumber(1, language)}</strong>
             {m.next}
-            <ChevronRightIcon size={14} />
+            <ChevronRightIcon className="bpm-directional-icon" size={14} />
           </div>
         </div>
       </div>
@@ -1133,6 +1149,7 @@ export function Toolbar({
   agentAsk?: string;
 }) {
   const m = usePlanningText();
+  const { language } = useSiteLanguage();
   const chip = (active: boolean): CSSProperties => ({
     display: 'inline-flex',
     alignItems: 'center',
@@ -1158,11 +1175,11 @@ export function Toolbar({
           {m.title}
         </span>
         <span className="bpm-planning-nav">
-          <ChevronLeftIcon size={15} />
+          <ChevronLeftIcon className="bpm-directional-icon" size={15} />
         </span>
-        <strong className="text-[14px] font-semibold">{m.month}</strong>
+        <strong className="text-[14px] font-semibold">{demoDateLabel(DEMO_TODAY, language, { month: 'long', year: 'numeric' })}</strong>
         <span className="bpm-planning-nav">
-          <ChevronRightIcon size={15} />
+          <ChevronRightIcon className="bpm-directional-icon" size={15} />
         </span>
         <span style={chip(true)}>
           <CalendarCheckIcon size={13} />
@@ -1196,7 +1213,7 @@ export function Toolbar({
         <span className="bpm-planning-search" data-agent-ask={agentAsk ? true : undefined}>
           <SearchIcon size={14} />
           {agentAsk ?? m.search}
-          {agentAsk && <kbd>⌘K</kbd>}
+          {agentAsk && <kbd dir="ltr">⌘K</kbd>}
         </span>
         <BuildingIcon size={15} />
         <MoreVerticalIcon size={15} />
@@ -1220,7 +1237,7 @@ export function Toolbar({
                 style={{ color: 'var(--pl-accent)' }}
               />
             )}
-            {m.channels[channel]}
+            <bdi>{m.channels[channel]}</bdi>
           </span>
         ))}
         {(
@@ -1260,6 +1277,7 @@ export function Toolbar({
 
 export function DateHeaders() {
   const dayLabels = usePlanningText().dayLabels;
+  const { language } = useSiteLanguage();
   return (
     <div
       className="flex"
@@ -1274,12 +1292,13 @@ export function DateHeaders() {
         return (
           <div
             key={day}
+            data-date-index={day}
             className="flex flex-col items-center justify-center gap-px"
             style={{
               width: DAY_W,
-              borderRight:
+              borderInlineEnd:
                 day === DAYS - 1 ? undefined : '1px solid var(--pl-line)',
-              background: isWeekend(day) ? '#F2F6F7' : undefined,
+              background: isWeekend(day, language) ? '#F2F6F7' : undefined,
             }}
           >
             <span
@@ -1293,14 +1312,14 @@ export function DateHeaders() {
                 className="mt-0.5 flex size-6 items-center justify-center rounded-lg text-[14px] font-semibold tabular-nums"
                 style={{ background: 'var(--pl-accent)', color: '#FFF' }}
               >
-                {dayNumber(day)}
+                {demoDateLabel(demoDate(day), language, { day: 'numeric' })}
               </span>
             ) : (
               <span
                 className="text-[14px] font-semibold tabular-nums"
                 style={{ color: 'var(--pl-body)' }}
               >
-                {dayNumber(day)}
+                {demoDateLabel(demoDate(day), language, { day: 'numeric' })}
               </span>
             )}
           </div>
@@ -1320,6 +1339,7 @@ export function Row({
   selection: { row: number; start: number; nights: number } | null;
 }) {
   const { nightOne, nightMany } = usePlanningText();
+  const { language } = useSiteLanguage();
   return (
     <div
       className="absolute inset-x-0"
@@ -1335,13 +1355,13 @@ export function Row({
           data-cell={`${row}-${day}`}
           className="absolute top-0 bottom-0 flex items-center justify-center"
           style={{
-            left: day * DAY_W,
+            insetInlineStart: day * DAY_W,
             width: DAY_W,
-            borderRight: '1px solid var(--pl-line)',
+            borderInlineEnd: '1px solid var(--pl-line)',
             background:
               day === TODAY_INDEX
                 ? 'color-mix(in srgb, #264672 5%, transparent)'
-                : isWeekend(day)
+                : isWeekend(day, language)
                   ? 'var(--pl-we)'
                   : undefined,
           }}
@@ -1353,11 +1373,11 @@ export function Row({
             <Amount value={NIGHTLY[row]} size={9} />
           </span>
           <span
-            className="absolute bottom-1 right-1 flex items-center gap-px text-[8px]"
+            className="absolute bottom-1 end-1 flex items-center gap-px text-[8px]"
             style={{ color: 'var(--pl-faint)', opacity: 0.65 }}
           >
             <MoonIcon size={8} style={{ width: 8, height: 8 }} />
-            {(row % 2) + 1}
+            {demoNumber((row % 2) + 1, language)}
           </span>
         </div>
       ))}
@@ -1368,7 +1388,7 @@ export function Row({
           data-planning-selection
           className="absolute rounded-[9px]"
           style={{
-            left: selection.start * DAY_W + DAY_W * 0.42,
+            insetInlineStart: selection.start * DAY_W + DAY_W * 0.42,
             width: selection.nights * DAY_W - DAY_W * 0.17,
             top: BAR_TOP,
             height: BAR_H,
@@ -1382,7 +1402,7 @@ export function Row({
             className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold"
             style={{ color: '#1F5F55' }}
           >
-            {selection.nights} {selection.nights > 1 ? nightMany : nightOne}
+            {demoNumber(selection.nights, language)} {selection.nights > 1 ? nightMany : nightOne}
           </span>
         </div>
       )}
@@ -1394,6 +1414,7 @@ export function Row({
 
 /** Panneau ancré sous la réservation « Kenji Sato » (ligne 0, jour 9). */
 function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
+  const m = usePlanningText().guestPanel;
   return (
     <div
       data-planning-panel="guest"
@@ -1409,17 +1430,17 @@ function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
         className="text-[11px] font-semibold"
         style={{ color: 'var(--pl-ink)' }}
       >
-        Fiche voyageur · Kenji Sato
+        {m.title} · <bdi>Kenji Sato</bdi>
       </p>
       <p
         className="mt-0.5 flex items-center gap-1 text-[10.5px]"
         style={{ color: '#C28A52' }}
       >
-        <Warning size={12} strokeWidth={2} /> E-mail manquant — fiche police
-        incomplète
+        <Warning size={12} strokeWidth={2} /> {m.missingEmail}
       </p>
       <div
         data-email-field
+        dir={email ? 'ltr' : undefined}
         className="mt-2 flex h-[28px] items-center rounded-[8px] px-2 text-[11px]"
         style={{
           background: 'var(--pl-field)',
@@ -1427,7 +1448,7 @@ function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
           color: email ? 'var(--pl-ink)' : 'var(--pl-faint)',
         }}
       >
-        {email || 'adresse e-mail'}
+        {email || m.email}
         {!saved && email && (
           <span
             className="ms-px inline-block h-[13px] w-px animate-pulse"
@@ -1441,7 +1462,7 @@ function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
             className="flex items-center gap-1 text-[10.5px] font-semibold"
             style={{ color: '#3E9C80' }}
           >
-            <CheckBold size={11} /> Fiche complétée
+            <CheckBold size={11} /> {m.completed}
           </span>
         ) : (
           <span
@@ -1449,7 +1470,7 @@ function GuestPanel({ email, saved }: { email: string; saved: boolean }) {
             className="rounded-[8px] px-2.5 py-1 text-[11px] font-semibold"
             style={{ background: 'var(--pl-accent)', color: '#FFF' }}
           >
-            Enregistrer
+            {m.save}
           </span>
         )}
       </div>
@@ -1477,17 +1498,18 @@ function Overlay({
   gy: number;
   children: React.ReactNode;
 }) {
+  const { direction } = useSiteLanguage();
   return (
     <div
       className="absolute"
       style={{
-        left: origin.x + gx * scale,
+        insetInlineStart: origin.x + gx * scale,
         top: origin.y + gy * scale,
         zIndex: 50,
         /* Le panneau suit l'échelle de la grille : sinon il garde sa taille
            pleine sur un planning réduit et paraît disproportionné. */
         transform: `scale(${scale})`,
-        transformOrigin: 'top left',
+        transformOrigin: direction === 'rtl' ? 'top right' : 'top left',
       }}
     >
       {children}
@@ -1500,13 +1522,13 @@ function Overlay({
 /** Bande hachurée pleine hauteur de ligne (PlanningBlockedBand) : pas de brique
     colorée, un cadenas et le libellé « Bloqué » quand la place le permet. */
 export function BlockedBand() {
-  const reason = usePlanningText().blockedReason;
+  const m = usePlanningText();
   const width = BLOCKED.nights * DAY_W;
   return (
     <div
       className="absolute flex items-center justify-center gap-1.5"
       style={{
-        left: BLOCKED.start * DAY_W,
+        insetInlineStart: BLOCKED.start * DAY_W,
         width,
         top: BLOCKED.row * ROW_H + 1,
         height: ROW_H - 2,
@@ -1517,14 +1539,14 @@ export function BlockedBand() {
           'inset 0 0 0 1px color-mix(in srgb, var(--pl-muted) 14%, transparent)',
         zIndex: 2,
       }}
-      title={reason}
+      title={m.blockedReason}
     >
       <LockIcon className="size-3" style={{ color: 'var(--pl-muted)' }} />
       <span
         className="text-[11px] font-semibold"
         style={{ color: 'var(--pl-muted)' }}
       >
-        Bloqué
+        {m.blocked}
       </span>
     </div>
   );
@@ -1540,7 +1562,7 @@ export function CancelledBar() {
     <div
       className="absolute flex items-center gap-[7px] overflow-visible"
       style={{
-        left,
+        insetInlineStart: left,
         width,
         top: CANCELLED.row * ROW_H + BAR_TOP,
         height: BAR_H,
@@ -1549,7 +1571,8 @@ export function CancelledBar() {
         backgroundImage:
           'repeating-linear-gradient(135deg, color-mix(in srgb, var(--pl-muted) 22%, transparent) 0 1.5px, transparent 1.5px 8px)',
         border: '1.5px dashed var(--pl-line2)',
-        padding: '0 7px 0 5px',
+        paddingBlock: 0,
+        paddingInline: '5px 7px',
         zIndex: 3,
       }}
     >
@@ -1567,7 +1590,7 @@ export function CancelledBar() {
       >
         <span className="text-[9.5px] font-semibold opacity-85">{label}</span>
         <span className="truncate text-[12px] font-semibold line-through">
-          {CANCELLED.guest}
+          <bdi>{CANCELLED.guest}</bdi>
         </span>
       </span>
       {/* Bouton de masquage (hideFromPlanning) */}
@@ -1575,7 +1598,7 @@ export function CancelledBar() {
         className="absolute flex size-4 items-center justify-center rounded-full"
         style={{
           top: -6,
-          right: -6,
+          insetInlineEnd: -6,
           background: 'var(--pl-muted)',
           color: '#FFF',
         }}
@@ -1598,6 +1621,7 @@ export function CancelledBar() {
  * sur 90 jours et pied « Fermer » / « Voir la fiche ».
  */
 function PropertyPopover() {
+  const { language } = useSiteLanguage();
   const t = usePlanningText();
   const m = t.property;
   const LABEL = 9;
@@ -1668,7 +1692,7 @@ function PropertyPopover() {
           loading="lazy"
         />
         <span className="absolute end-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
-          1 / 4
+          <bdi dir="ltr">{demoDigits('1 / 4', language)}</bdi>
         </span>
         <div
           className="absolute inset-x-0 bottom-0 h-[56px]"
@@ -1694,7 +1718,7 @@ function PropertyPopover() {
         </span>
         <p className="flex items-start gap-1" style={{ fontSize: BODY, color: 'var(--pl-muted)' }}>
           <MapPinIcon className="mt-px size-[11px] shrink-0" />
-          Rue de Yougoslavie, Guéliz, Marrakech
+          {m.address}
         </p>
         <p className="flex items-center gap-1" style={{ fontSize: BODY, color: 'var(--pl-muted)' }}>
           <UserIcon className="size-[11px] shrink-0" />
@@ -1705,8 +1729,8 @@ function PropertyPopover() {
       {/* Pastilles, horaires, ménage */}
       <div className="px-3.5 py-2.5" style={section}>
         <div className="grid grid-cols-2 gap-1.5">
-          {pill(<UsersIcon className="size-[11px]" />, m.maxGuests, 6)}
-          {pill(<BedDoubleIcon className="size-[11px]" />, m.minNights, 2)}
+          {pill(<UsersIcon className="size-[11px]" />, m.maxGuests, demoNumber(6, language))}
+          {pill(<BedDoubleIcon className="size-[11px]" />, m.minNights, demoNumber(2, language))}
           {pill(
             <MoroccanDirham size={11} />,
             m.nightlyPrice,
@@ -1725,11 +1749,11 @@ function PropertyPopover() {
         >
           <span className="flex items-center gap-1">
             <ClockIcon className="size-[11px]" style={{ color: '#3E9C80' }} />
-            {m.checkIn} <b style={{ color: 'var(--pl-ink)' }}>15:00</b>
+            {m.checkIn} <b dir="ltr" style={{ color: 'var(--pl-ink)' }}>{demoDigits('15:00', language)}</b>
           </span>
           <span className="flex items-center gap-1">
             <ClockIcon className="size-[11px]" style={{ color: '#C28A52' }} />
-            {m.checkOut} <b style={{ color: 'var(--pl-ink)' }}>11:00</b>
+            {m.checkOut} <b dir="ltr" style={{ color: 'var(--pl-ink)' }}>{demoDigits('11:00', language)}</b>
           </span>
         </p>
         <p
@@ -1754,7 +1778,7 @@ function PropertyPopover() {
         <div className="mb-0.5 flex justify-between">
           <span style={{ fontSize: LABEL, color: 'var(--pl-muted)' }}>{m.score}</span>
           <span className="font-bold tabular-nums" style={{ fontSize: BODY, color: '#C28A52' }}>
-            64/100
+            <bdi dir="ltr">{demoDigits('64/100', language)}</bdi>
           </span>
         </div>
         <div
@@ -1765,9 +1789,9 @@ function PropertyPopover() {
         </div>
         <div className="flex flex-col gap-0.5">
           {row(m.revpan, <Amount value={548} size={10} />)}
-          {row(m.occupancy, '64 %')}
+          {row(m.occupancy, demoNumber(0.64, language, { style: 'percent' }))}
           {row(m.totalRevenue, <Amount value={49320} size={10} />)}
-          {row(m.netMargin, '86 %', '#3E9C80')}
+          {row(m.netMargin, demoNumber(0.86, language, { style: 'percent' }), '#3E9C80')}
         </div>
       </div>
 
@@ -1795,6 +1819,7 @@ function PropertyPopover() {
 /** Reprend ce que `ReservationDialog` pré-remplit depuis un drag-to-select :
     logement verrouillé, dates, nuits, prix/nuit et heures d'arrivée/départ. */
 function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
+  const { language } = useSiteLanguage();
   const t = usePlanningText();
   const m = t.create;
   const line = (label: string, value: React.ReactNode) => (
@@ -1830,9 +1855,9 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
       </p>
       <div className="mt-2.5 flex flex-col gap-1.5 text-[11px]">
         {line(m.stay, m.stayValue)}
-        {line(m.nights, '3')}
+        {line(m.nights, demoNumber(3, language))}
         {line(m.nightlyPrice, <Amount value={1250} size={10} />)}
-        {line(m.arrivalDeparture, '15:00 · 11:00')}
+        {line(m.arrivalDeparture, <bdi dir="ltr">{demoDigits('15:00 · 11:00', language)}</bdi>)}
         <div
           className="mt-1 flex items-center justify-between gap-3 border-t pt-2 text-[12px]"
           style={{ borderColor: 'var(--pl-line)' }}
@@ -1871,7 +1896,7 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
             style={{ color: 'var(--pl-faint)' }}
           />
           <span style={{ color: query ? 'var(--pl-ink)' : 'var(--pl-faint)' }}>
-            {query || t.searchGuest}
+            {query ? <bdi>{query}</bdi> : t.searchGuest}
           </span>
         </div>
         {/* Le carnet ne répond qu'à partir de 3 caractères — sinon la fiche
@@ -1905,13 +1930,13 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
                 className="text-[11px] font-semibold"
                 style={{ color: 'var(--pl-ink)' }}
               >
-                Sarah Miller
+                <bdi>Sarah Miller</bdi>
               </span>
               <span
                 className="truncate text-[10px]"
                 style={{ color: 'var(--pl-muted)' }}
               >
-                sarah.miller@mail.com · 3 séjours
+                <bdi dir="ltr">sarah.miller@mail.com</bdi> · {t.guestPanel.previousStays}
               </span>
             </span>
             {picked && (
@@ -1926,13 +1951,13 @@ function CreateDialog({ query, picked }: { query: string; picked: boolean }) {
           className="mt-1.5 flex items-center gap-1 text-[10px]"
           style={{ color: 'var(--pl-accent)' }}
         >
-          <PlusIcon className="size-3" /> Créer un nouveau voyageur
+          <PlusIcon className="size-3" /> {m.newGuest}
         </p>
       </div>
 
       <div className="mt-3 flex items-center justify-end gap-2">
         <span className="text-[11px]" style={{ color: 'var(--pl-muted)' }}>
-          Annuler
+          {m.cancel}
         </span>
         <span
           data-create
@@ -1967,25 +1992,21 @@ export function Bar({
   infoFilled: boolean;
 }) {
   const { nightOne, nightMany } = usePlanningText();
+  const { language, direction } = useSiteLanguage();
+  const { currency } = useSiteCurrency();
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const [measuredFold, setMeasuredFold] = useState({ key: '', level: 0 });
   const nights = resa.nights + extra;
   const left = resa.start * DAY_W + DAY_W * (15 / 24);
-  const width = nights * DAY_W - DAY_W * (4 / 24);
+  // Comme computeBarLayout : le budget s'arrête au dernier jour visible,
+  // sinon les pastilles de droite seraient coupées par le bord de la grille.
+  const width = Math.min(
+    nights * DAY_W - DAY_W * (4 / 24),
+    DAYS * DAY_W - left - shift * DAY_W,
+  );
   const color = STATUS[resa.status];
-  const initials = resa.guest
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2);
-
-  /* ── Repli de la brique (logique de PlanningBar) ─────────────────────────
-     Priorité : nom > prix > tarif de prestation > logos. Ce qui ne tient pas
-     n'est pas tronqué : il est compté dans la pastille « +N », qui garantit
-     qu'aucun élément ne déborde ni ne chevauche. */
-  const showAvatar = width > BAR_AVATAR_MIN;
-  const showName = width > BAR_NAME_MIN;
-  const priceAmount = width >= BAR_PRICE_AMOUNT_MIN; // icône + montant
-  const priceInline = width >= BAR_PRICE_INLINE_MIN; // icône seule
-  const priceFolded = !priceInline; // → « +N »
+  const layoutKey = [width, resa.guest, resa.price, resa.paid, resa.cleaning?.fee,
+    resa.cleaning?.paid, resa.maintenance, resa.missingInfo, infoFilled, language, currency].join('|');
   const feeAsPill = width >= BAR_FEE_PILL_MIN;
 
   /* Indicateurs candidats à la zone droite, dans l'ordre du planning. */
@@ -2037,37 +2058,65 @@ export function Bar({
     });
   }
 
-  /* Nombre de slots disponibles, puis répartition affiché / replié : on garde
-     toujours une place pour la pastille « +N » quand il y a du surplus. */
-  const slots = width > (priceInline ? 220 : 175) ? 2 : 1;
-  const shown =
-    indicators.length <= slots
-      ? indicators
-      : indicators.slice(0, Math.max(0, slots - 1));
-  const hiddenCount = indicators.length - shown.length;
+  const {
+    foldLevel,
+    showAvatar,
+    showLabel: showName,
+    priceAmountVisible: priceAmount,
+    priceInline,
+    showBadgeGroup,
+    shownIndicatorCount,
+    channelFolded,
+    overflowCount: foldedTotal,
+  } = getBarContentLayout({
+    width,
+    height: BAR_H,
+    guestName: resa.guest,
+    hasPrice: resa.price > 0,
+    hasChannel: true,
+    indicatorCount: indicators.length,
+    minimumFoldLevel: measuredFold.key === layoutKey ? measuredFold.level : 0,
+  });
+  const shown = indicators.slice(0, shownIndicatorCount);
+  const missingInfoFolded = indicators.slice(shownIndicatorCount).some((item) => item.key === 'miss');
 
-  const channelFolded = width <= BAR_CHANNEL_MIN;
-  const foldedTotal =
-    hiddenCount + (priceFolded ? 1 : 0) + (channelFolded ? 1 : 0);
+  // Le mockup change de devise et de police selon la langue. Le même palier
+  // de repli est avancé si les dimensions réelles dépassent le budget du PMS.
+  // clientWidth/scrollWidth restent justes même dans le moniteur en perspective.
+  useLayoutEffect(() => {
+    const name = nameRef.current;
+    if (!name || foldLevel >= 3) return;
+    let disposed = false;
+    const measure = () => {
+      if (!disposed && name.scrollWidth > name.clientWidth + 1) {
+        setMeasuredFold({ key: layoutKey, level: foldLevel + 1 });
+      }
+    };
+    measure();
+    void name.ownerDocument.fonts?.ready.then(measure);
+    return () => { disposed = true; };
+  }, [foldLevel, layoutKey]);
 
   return (
     <>
       <div
         data-bar={resa.id}
+        data-fold-level={foldLevel}
         className={`absolute flex items-center gap-[7px] overflow-hidden${
           resa.missingInfo && !infoFilled && !muted ? ' pl-urgent' : ''
         }`}
         style={{
           ['--pl-bc' as string]: color,
-          left,
-          transform: 'translateX(' + shift * DAY_W + 'px)',
+          insetInlineStart: left,
+          transform: 'translateX(' + (direction === 'rtl' ? -1 : 1) * shift * DAY_W + 'px)',
           width,
           top: resa.row * ROW_H + BAR_TOP,
           height: BAR_H,
           borderRadius: 9,
           background: color,
           color: BAITLY_PLANNING_STATUS[resa.status].foreground,
-          padding: '0 7px 0 5px',
+          paddingBlock: 0,
+          paddingInline: '5px 7px',
           zIndex: dragging ? 8 : 3,
           opacity: muted ? 0.12 : dragging ? 0.85 : 1,
           boxShadow: conflict
@@ -2079,26 +2128,26 @@ export function Bar({
             'transform .22s cubic-bezier(.16,1,.3,1), opacity .18s ease-out, box-shadow .18s ease-out',
         }}
       >
-        {/* Avatar voyageur : initiales de cette identité fictive. */}
         {showAvatar && (
-          <span
-            className="flex size-[26px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[9.5px] font-bold"
-            style={{
+          <GuestAvatar
+            name={resa.guest}
+            photoUrl={resa.photo}
+            size={26}
+            sx={{
               border: '1.5px solid rgba(255,255,255,.55)',
               background: 'rgba(255,255,255,.22)',
+              fontSize: 9.5,
             }}
-          >
-            {initials}
-          </span>
+          />
         )}
 
         {showName && (
-          <span className="flex min-w-0 flex-col leading-[1.2]">
-            <span className="text-[9.5px] font-semibold opacity-85">
-              {nights} {nights > 1 ? nightMany : nightOne}
+          <span className="bpm-reservation-copy flex min-w-0 flex-1 flex-col leading-[1.2]">
+            <span className="truncate text-[9.5px] font-semibold opacity-85">
+              {demoNumber(nights, language)} {nights > 1 ? nightMany : nightOne}
             </span>
-            <span className="truncate text-[12px] font-semibold">
-              {resa.guest}
+            <span ref={nameRef} data-guest-name className="truncate text-[12px] font-semibold">
+              <bdi>{resa.guest}</bdi>
             </span>
           </span>
         )}
@@ -2107,7 +2156,8 @@ export function Bar({
           {/* Prix du séjour : montant si la place le permet, sinon icône seule. */}
           {priceInline && (
             <span
-              className="flex h-[21px] items-center gap-1 rounded-[7px] text-[11px] font-bold tabular-nums"
+              data-bar-price
+              className="flex h-[21px] shrink-0 items-center gap-1 rounded-[7px] text-[11px] font-bold whitespace-nowrap tabular-nums"
               style={{
                 padding: priceAmount ? '0 8px' : '0 6px',
                 ...(resa.paid
@@ -2136,25 +2186,27 @@ export function Bar({
             </span>
           )}
 
-          {shown.map((indicator) => indicator.node)}
+          {showBadgeGroup && shown.map((indicator) => indicator.node)}
 
           {/* Pastille de repli : tout ce qui n'avait pas la place. */}
-          {foldedTotal > 0 && (
+          {showBadgeGroup && foldedTotal > 0 && (
             <span
+              data-bar-overflow
+              data-fix={missingInfoFolded ? resa.id : undefined}
               className="flex size-[21px] shrink-0 items-center justify-center rounded-[7px] text-[10px] font-bold tabular-nums"
               style={{ background: 'rgba(255,255,255,.9)', color: '#15242D' }}
             >
-              +{foldedTotal}
+              <bdi dir="ltr">+{demoNumber(foldedTotal, language)}</bdi>
             </span>
           )}
 
           {!channelFolded && <ChannelBadge channel={resa.channel} />}
         </span>
 
-        {/* Poignée d'étirement (bord droit) */}
+        {/* Poignée d'étirement au bord de fin du séjour, à gauche en RTL. */}
         <span
           data-resize={resa.id}
-          className="absolute top-0 right-0 bottom-0 w-2"
+          className="absolute top-0 end-0 bottom-0 w-2"
           style={{ cursor: 'col-resize' }}
         />
       </div>

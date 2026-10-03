@@ -304,9 +304,10 @@ export interface NotificationPreferencesHandle {
 
 interface NotificationPreferencesCardProps {
   onChangeState?: () => void;
+  onSaved?: () => void;
 }
 
-const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, NotificationPreferencesCardProps>(function NotificationPreferencesCard({ onChangeState }, ref) {
+const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, NotificationPreferencesCardProps>(function NotificationPreferencesCard({ onChangeState, onSaved }, ref) {
   const { t } = useTranslation();
   const { hasAnyRole } = useAuth();
   const isFieldUser = hasAnyRole(FIELD_ROLES);
@@ -391,6 +392,12 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       });
 
       if (Object.keys(changed).length === 0) {
+        if (onSaved && !loading && !error) {
+          // Explicitly confirm defaults in the guided setup; persist real preferences first.
+          const updated = await notificationPreferencesApi.update(Object.fromEntries(visibleCategories.flatMap(category => category.keys.map(entry => [entry.key, preferences[entry.key] !== false]))));
+          setPreferences(updated); setOriginalPrefs(updated); onSaved();
+          return;
+        }
         notify.success(t('notifPrefs.nothingToSave'));
         return;
       }
@@ -399,6 +406,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       setPreferences(updated);
       setOriginalPrefs(updated);
       notify.success(t('notifPrefs.saved'));
+      onSaved?.();
     } catch {
       notify.error('Erreur lors de la sauvegarde');
     } finally {

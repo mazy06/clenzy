@@ -60,7 +60,7 @@ export function useTimeline(
   }, [active]);
 }
 
-export function useScriptedCursor(containerRef: React.RefObject<HTMLDivElement | null>) {
+export function useScriptedCursor(containerRef: React.RefObject<HTMLDivElement | null>, direction: 'ltr' | 'rtl' = 'ltr') {
   const [cursor, setCursor] = useState<CursorState>({ x: 100, y: 100, visible: false });
   const moveTo = (el: HTMLElement | null, dx = 0, dy = 0) => {
     const container = containerRef.current;
@@ -73,7 +73,7 @@ export function useScriptedCursor(containerRef: React.RefObject<HTMLDivElement |
     const container = containerRef.current;
     if (!container) return;
     const c = container.getBoundingClientRect();
-    setCursor({ x: c.width * 0.68, y: c.height * 0.86, visible: true });
+    setCursor({ x: c.width * (direction === 'rtl' ? 0.32 : 0.68), y: c.height * 0.86, visible: true });
   };
   const hide = () => setCursor((current) => ({ ...current, visible: false }));
   return { cursor, moveTo, park, hide };

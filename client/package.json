@@ -68,7 +68,6 @@
     "react-router-dom": "^7.18.2",
     "react-textarea-autosize": "^8.5.9",
     "recharts": "^3.10.0",
-    "shadcn": "^4.14.0",
     "sockjs-client": "^1.6.1",
     "sonner": "^2.0.7",
     "stylis-plugin-rtl": "^2.1.1",

@@ -38,6 +38,8 @@ public class UserOnboardingService {
     private final MessagingAutomationConfigRepository messagingAutomationConfigRepository;
     private final PaymentMethodConfigRepository paymentMethodConfigRepository;
     private final ICalFeedRepository icalFeedRepository;
+    private final PmsImportBatchRepository pmsImportBatchRepository;
+    private final com.clenzy.service.paymentconnect.PaymentConnectionReadiness paymentReadiness;
 
     /**
      * Steps that can be auto-completed AND auto-reverted when data is removed.
@@ -46,7 +48,8 @@ public class UserOnboardingService {
      */
     private static final Set<String> REVERTABLE_STEPS = Set.of(
         "configure_org", "setup_fiscal", "setup_payment", "setup_general",
-        "complete_profile", "create_property", "configure_details", "setup_assignment_contacts"
+        "complete_profile", "create_property", "configure_details", "setup_assignment_contacts",
+        "setup_payouts", "setup_payout_account"
     );
 
     /**
@@ -55,35 +58,36 @@ public class UserOnboardingService {
      */
     private static final Set<String> AUTO_COMPLETE_ONLY_STEPS = Set.of(
         "invite_members", "setup_notifications", "setup_messaging",
-        "setup_integrations", "connect_channels",
+        "setup_integrations", "connect_channels", "migrate_pms",
         // Etapes du parcours TERRAIN : optionnelles au sens ou l'intervenant
         // peut travailler avant de les finir, mais jamais dé-cochées ensuite.
-        "setup_payout_account", "setup_rates"
+        "setup_rates"
     );
 
     /** Ordered step keys per role — must match client-side onboardingConfig.ts */
     private static final Map<UserRole, List<String>> STEPS_BY_ROLE = Map.ofEntries(
         Map.entry(UserRole.SUPER_ADMIN, List.of(
-            "configure_org", "setup_fiscal", "invite_members", "setup_payment",
+            "configure_org", "migrate_pms", "setup_fiscal", "invite_members", "setup_payment",
             "setup_notifications", "setup_messaging", "setup_general", "setup_integrations"
         )),
         Map.entry(UserRole.SUPER_MANAGER, List.of(
-            "configure_org", "setup_fiscal", "invite_members", "setup_payment",
+            "configure_org", "migrate_pms", "setup_fiscal", "invite_members", "setup_payment",
             "setup_notifications", "setup_messaging", "setup_general", "setup_integrations"
         )),
         Map.entry(UserRole.HOST, List.of(
-            "complete_profile", "create_property", "configure_details",
+            "complete_profile", "migrate_pms", "create_property", "configure_details",
             "define_pricing", "connect_channels", "setup_notifications", "setup_payouts"
         )),
+        Map.entry(UserRole.PROPERTY_OWNER, List.of("complete_profile", "setup_payouts", "setup_notifications")),
         Map.entry(UserRole.HOUSEKEEPER, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications",
             "accept_provider_terms", "upload_provider_documents", "setup_payout_account",
             "setup_coverage_zone", "setup_availability", "setup_rates", "view_interventions")),
         Map.entry(UserRole.TECHNICIAN, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications",
             "accept_provider_terms", "upload_provider_documents", "setup_payout_account",
             "setup_coverage_zone", "setup_availability", "setup_rates", "view_interventions")),
-        Map.entry(UserRole.SUPERVISOR, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "create_team", "view_interventions")),
-        Map.entry(UserRole.LAUNDRY, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "view_interventions")),
-        Map.entry(UserRole.EXTERIOR_TECH, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "view_interventions"))
+        Map.entry(UserRole.SUPERVISOR, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "create_team", "view_interventions", "setup_payout_account")),
+        Map.entry(UserRole.LAUNDRY, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "view_interventions", "setup_payout_account")),
+        Map.entry(UserRole.EXTERIOR_TECH, List.of("complete_profile", "setup_assignment_contacts", "setup_notifications", "view_interventions", "setup_payout_account"))
     );
 
     public UserOnboardingService(UserOnboardingRepository repository,
@@ -99,7 +103,11 @@ public class UserOnboardingService {
                                   ProviderDocumentService providerDocumentService,
                                   com.clenzy.marketplace.repository.MarketplaceProviderZoneRepository providerZones,
                                   com.clenzy.repository.IndividualCalendarRepository weeklyAvailabilityRepository,
-                                  com.clenzy.service.assignment.AssignmentContactPreferences contactPreferences) {
+                                  com.clenzy.service.assignment.AssignmentContactPreferences contactPreferences,
+                                  PmsImportBatchRepository pmsImportBatchRepository,
+                                  com.clenzy.service.paymentconnect.PaymentConnectionReadiness paymentReadiness) {
+        this.paymentReadiness = paymentReadiness;
+        this.pmsImportBatchRepository = pmsImportBatchRepository;
         this.contactPreferences = contactPreferences;
         this.repository = repository;
         this.userRepository = userRepository;
@@ -129,11 +137,17 @@ public class UserOnboardingService {
         final Map<String, UserOnboarding> byKey = existing.stream()
             .collect(Collectors.toMap(UserOnboarding::getStepKey, o -> o));
 
+        // Adding an optional migration must not reopen an already finished guide.
+        boolean previousGuideCompleted = expectedKeys.stream()
+            .filter(key -> !key.equals("migrate_pms"))
+            .allMatch(key -> byKey.containsKey(key) && byKey.get(key).isCompleted());
+
         // Create missing rows lazily
         boolean created = false;
         for (final String key : expectedKeys) {
             if (!byKey.containsKey(key)) {
                 final var step = new UserOnboarding(userId, role, key, organizationId);
+                if (key.equals("migrate_pms") && previousGuideCompleted) step.markCompleted();
                 repository.save(step);
                 byKey.put(key, step);
                 created = true;
@@ -184,6 +198,9 @@ public class UserOnboardingService {
 
     @Transactional
     public void completeStep(Long userId, UserRole role, String stepKey, Long organizationId) {
+        if (Set.of("setup_payment", "setup_payouts", "setup_payout_account").contains(stepKey)
+                && !paymentReadiness.isReady(userId, organizationId, "setup_payment".equals(stepKey)))
+            throw new IllegalStateException("Le fournisseur doit confirmer l’activation des reversements");
         if ("setup_assignment_contacts".equals(stepKey) && !contactPreferences.isConfigured(userId))
             throw new IllegalStateException("Enregistrez vos horaires de sollicitation avant de terminer cette étape");
         final UserOnboarding step = repository
@@ -230,11 +247,15 @@ public class UserOnboardingService {
                 case "configure_org" -> isOrganizationConfigured(organizationId);
                 case "setup_fiscal" -> isFiscalProfileConfigured(organizationId);
                 case "invite_members" -> hasInvitedMembers(organizationId);
-                case "setup_payment" -> hasPaymentConfigured(organizationId);
+                case "setup_payment" -> paymentReadiness.isReady(userId, organizationId, true);
                 case "setup_notifications" -> hasNotificationPreferences(keycloakId);
                 case "setup_messaging" -> hasMessagingConfigured(organizationId);
                 case "setup_general" -> isGeneralConfigured(userOpt.orElse(null), organizationId);
                 case "setup_integrations" -> hasIntegrations(organizationId);
+                // A draft is not a migration. A skipped step stays completed even without an import.
+                case "migrate_pms" -> organizationId != null && keycloakId != null
+                    && pmsImportBatchRepository.existsByOrganizationIdAndCreatedByAndStatus(
+                        organizationId, keycloakId, "COMPLETED");
 
                 // ── HOST steps ──
                 case "complete_profile" -> isProfileComplete(userOpt.orElse(null));
@@ -242,17 +263,15 @@ public class UserOnboardingService {
                 case "configure_details" -> hasPropertyWithDetails(organizationId);
                 case "define_pricing" -> false; // Requires explicit pricing setup — no simple check
                 case "connect_channels" -> hasChannelsConnected(organizationId);
-                case "setup_payouts" -> false; // Requires explicit bank info — sensitive, no auto-check
+                case "setup_payouts" -> paymentReadiness.isReady(userId, organizationId, false);
 
                 // ── Operational steps ──
                 case "setup_assignment_contacts" -> contactPreferences.isConfigured(userId);
                 case "create_team" -> false; // Requires explicit team creation via form
                 case "view_interventions" -> false; // Requires the user to visit the page at least once
-                // Le compte de versement et les tarifs se declarent depuis
-                // « Mon compte » : l'ecran appelle /complete, aucune deduction
-                // automatique ici (une auto-completion prematurée ferait croire
-                // l'intervenant paye alors que son compte Stripe n'existe pas).
-                case "setup_payout_account", "setup_rates" -> false;
+                // Payment readiness comes only from verified provider capabilities.
+                case "setup_payout_account" -> paymentReadiness.isReady(userId, organizationId, false);
+                case "setup_rates" -> false;
                 // La zone et les horaires sont lus sur les référentiels individuels.
                 // Les disponibilites sont OPTIONNELLES : ne rien declarer laisse
                 // disponible. L'etape se coche donc des qu'un creneau existe, et

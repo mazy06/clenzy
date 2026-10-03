@@ -156,9 +156,8 @@ public class StripeConnectService {
                     boolean wasComplete = config.isStripeOnboardingComplete();
                     boolean nowComplete = chargesEnabled && payoutsEnabled;
                     config.setStripeOnboardingComplete(nowComplete);
-                    if (nowComplete) {
-                        config.setVerified(true);
-                    }
+                    if (config.getPayoutMethod() == com.clenzy.model.PayoutMethod.STRIPE_CONNECT)
+                        config.setVerified(nowComplete);
                     configRepository.save(config);
                     if (!wasComplete && nowComplete) {
                         log.info("Stripe Connect onboarding completed for account {}", accountId);

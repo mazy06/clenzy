@@ -11254,10 +11254,18 @@
     }
   },
   "onboarding": {
+    "optional": "Facultatif",
+    "progress": "{{done}}/{{total}} terminées",
     "steps": {
+      "migratePms": {
+        "label": "Migrer depuis un autre PMS",
+        "description": "Reprenez vos logements, voyageurs et réservations depuis les exports de votre ancien PMS. Vous pouvez passer cette étape et revenir plus tard dans Paramètres → Migration PMS.",
+        "action": "Importer mes données",
+        "skip": "Continuer sans migrer"
+      },
       "configureOrg": {
         "label": "Configurer l'organisation",
-        "description": "Renseignez les informations de votre organisation : nom, adresse, logo et coordonnées."
+        "description": "Vérifiez le nom de votre organisation. Les autres informations pourront être complétées ensuite."
       },
       "inviteMembers": {
         "label": "Inviter des membres",
@@ -11281,19 +11289,19 @@
       },
       "setupIntegrations": {
         "label": "Intégrations",
-        "description": "Connectez vos outils externes : Stripe, Keycloak, webhooks et services tiers."
+        "description": "Reliez un calendrier externe à vos logements et vérifiez les disponibilités à reprendre."
       },
       "setupPayment": {
-        "label": "Paiement",
-        "description": "Configurez les moyens de paiement : Stripe, liens de paiement et options de facturation."
+        "label": "Recevoir mes versements",
+        "description": "Choisissez le pays de votre activité, puis créez ou connectez votre compte de versement."
       },
       "setupMessaging": {
         "label": "Messagerie",
-        "description": "Configurez les messages automatiques : instructions d'arrivée, rappels et communications voyageurs."
+        "description": "Définissez les heures calmes pour les messages automatiques non urgents envoyés à vos voyageurs."
       },
       "setupPayouts": {
-        "label": "Mes reversements",
-        "description": "Renseignez vos coordonnées bancaires pour recevoir vos reversements de revenus locatifs."
+        "label": "Recevoir mes versements",
+        "description": "Choisissez le pays de votre activité, puis créez ou connectez votre compte de versement."
       },
       "createProperty": {
         "label": "Créer votre première propriété",
@@ -11317,7 +11325,7 @@
       },
       "completeProfile": {
         "label": "Compléter votre profil",
-        "description": "Renseignez vos informations personnelles : téléphone, adresse et photo de profil."
+        "description": "Confirmez votre identité et ajoutez votre téléphone pour être joignable."
       },
       "viewInterventions": {
         "label": "Consulter vos interventions",
@@ -11328,8 +11336,8 @@
         "description": "Constituez votre première équipe de techniciens ou housekeepers pour gérer les interventions."
       },
       "setupPayoutAccount": {
-        "label": "Configurer mes versements",
-        "description": "Connectez votre compte Stripe pour être payé de vos missions, et vérifiez vos tarifs."
+        "label": "Recevoir mes versements",
+        "description": "Choisissez le pays de votre activité, puis créez ou connectez votre compte de versement."
       },
       "setupRates": {
         "label": "Définir mes prestations et mes tarifs",
@@ -11367,14 +11375,121 @@
     },
     "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet",
     "substeps": {
-      "stripeAccount": "Compte Stripe créé",
-      "stripeKyc": "Identité et IBAN validés par Stripe",
+      "stripeAccount": "Compte de versement relié",
+      "stripeKyc": "Identité et coordonnées bancaires vérifiées par le fournisseur",
       "docCompany": "Kbis ou avis SIRENE",
       "docUrssaf": "Attestation de vigilance URSSAF",
       "docInsurance": "Assurance RC professionnelle"
     },
     "nextStep": "Étape suivante :",
-    "previousGroup": "Groupe précédent"
+    "previousGroup": "Groupe précédent",
+    "guide": {
+      "open": "Ouvrir le guide de démarrage",
+      "close": "Fermer le guide",
+      "welcome": "Prenons un bon départ",
+      "yourSteps": "Votre parcours",
+      "step": "Étape {{current}} sur {{total}}",
+      "hide": "Masquer le guide",
+      "locked": "Terminez l’étape précédente pour continuer.",
+      "resume": "Vos étapes enregistrées sont conservées. Vous pouvez reprendre le guide à tout moment.",
+      "saveError": "L’enregistrement a échoué. Vérifiez les informations et réessayez.",
+      "loadError": "Impossible de charger les informations. Fermez cette étape puis réessayez.",
+      "incomplete": "Cette étape attend encore une configuration enregistrée. Complétez le formulaire ci-dessus, puis vérifiez à nouveau.",
+      "saved": "Étape validée. Vos informations sont enregistrées.",
+      "start": "Configurer cette étape",
+      "check": "Vérifier l’étape",
+      "next": "Étape suivante",
+      "save": "Enregistrer et valider"
+    },
+    "form": {
+      "phone": "Votre numéro de téléphone",
+      "company": "Nom de votre organisation",
+      "noOrganization": "Aucune organisation n’est associée à votre compte. Contactez votre administrateur.",
+      "email": "Adresse email du collaborateur",
+      "role": "Rôle dans l’organisation",
+      "sendInvitation": "Envoyer l’invitation",
+      "language": "Langue",
+      "currency": "Devise",
+      "timezone": "Fuseau horaire",
+      "noInterventions": "Vous n’avez pas encore de mission. Elles apparaîtront ici dès leur attribution.",
+      "understood": "J’ai compris",
+      "property": "Logement à configurer",
+      "baseRate": "Tarif de base",
+      "nightlyPrice": "Prix par nuit",
+      "pricingHelp": "Définissez le prix de référence. Les tarifs saisonniers et les exceptions existants restent prioritaires.",
+      "accountHolder": "Titulaire du compte",
+      "verifyAccount": "Vérifier la validation du compte"
+    },
+    "visual": {
+      "complete_profile": "Votre profil",
+      "migrate_pms": "Vos données voyagent",
+      "create_property": "Bienvenue chez vous",
+      "configure_details": "Chaque détail compte",
+      "define_pricing": "Un tarif pour chaque séjour",
+      "connect_channels": "Vos calendriers reliés",
+      "setup_notifications": "Les bonnes alertes",
+      "setup_payouts": "Vos revenus, sur votre compte",
+      "configure_org": "Votre activité prend forme",
+      "setup_fiscal": "Des factures à votre image",
+      "invite_members": "Votre équipe vous rejoint",
+      "setup_payment": "Des paiements organisés",
+      "setup_messaging": "Un accueil bien préparé",
+      "setup_general": "Baitly à votre rythme",
+      "setup_integrations": "Vos outils connectés",
+      "setup_assignment_contacts": "Joignable au bon moment",
+      "accept_provider_terms": "Un cadre clair",
+      "upload_provider_documents": "Votre dossier prêt",
+      "setup_payout_account": "Un compte vérifié",
+      "setup_coverage_zone": "Votre secteur",
+      "setup_availability": "Un planning qui vous ressemble",
+      "setup_rates": "Votre travail, votre tarif",
+      "view_interventions": "Vos prochaines missions",
+      "create_team": "Ensemble, sur le terrain"
+    },
+    "payment": {
+      "beneficiary": "Qui recevra les versements ?",
+      "PERSONAL": "Mon activité",
+      "ORGANIZATION": "Ma conciergerie",
+      "personalHint": "Le compte sera rattaché à votre activité de propriétaire ou de prestataire.",
+      "organizationHint": "Le compte appartiendra à la conciergerie, même si son administrateur change.",
+      "country": "Pays d’immatriculation du bénéficiaire",
+      "chooseCountry": "Choisir un pays",
+      "countries": {
+        "FR": "France",
+        "MA": "Maroc",
+        "SA": "Arabie saoudite"
+      },
+      "stripeHint": "Encaissements et reversements pour votre activité en France.",
+      "created": "Compte relié à Baitly",
+      "charges": "Paiements par carte",
+      "payouts": "Transferts et versements bancaires",
+      "active": "Activé",
+      "waiting": "À finaliser",
+      "create": "Créer un compte",
+      "connect": "Connecter mon compte",
+      "resume": "Finaliser chez Stripe",
+      "retry": "Réessayer",
+      "officialFlow": "La création, la connexion et les justificatifs sont gérés sur le site officiel de Stripe. Revenez ensuite dans ce guide pour vérifier l’activation.",
+      "notConfigured": "La connexion Stripe sera disponible après l’activation du service par Baitly.",
+      "oauthPending": "La connexion d’un compte existant sera disponible après l’activation de ce service par Baitly.",
+      "error": "La connexion n’a pas abouti. Réessayez ou revenez plus tard.",
+      "pending": "Le compte n’est pas encore prêt pour les reversements. Complétez les informations demandées par Stripe, puis vérifiez à nouveau.",
+      "regionalTitle": "Les versements dans votre pays",
+      "regionalHint": "La connexion depuis Baitly est en préparation. Vous pouvez consulter les solutions locales envisagées ci-dessous.",
+      "regionalPending": "Ces fournisseurs ne sont pas encore connectés à Baitly. Un compte créé sur leur site ne valide pas cette étape.",
+      "officialSite": "Site officiel",
+      "tap": "Solution marketplace avec vérification des bénéficiaires et partage des paiements, sous réserve d’acceptation.",
+      "aslan": "Offre marketplace à qualifier avec le fournisseur avant son intégration à Baitly.",
+      "chari": "Offre de comptes et de virements à étudier dans le cadre d’un partenariat local.",
+      "checking": "Vérification de votre compte",
+      "returnReady": "Votre compte de versement est prêt",
+      "returnReadyHint": "Stripe a confirmé l’activation des transferts et versements bancaires. Vous pouvez reprendre le guide.",
+      "returnPending": "Encore une étape chez Stripe",
+      "returnError": "La connexion reste à vérifier",
+      "returnErrorHint": "L’autorisation a été annulée, a expiré ou n’a pas pu être vérifiée. Reprenez la connexion depuis le guide.",
+      "backToGuide": "Revenir au guide de démarrage",
+      "noAccount": "Pas encore de compte ?"
+    }
   },
   "shop": {
     "title": "Boutique Hardware",
@@ -11580,7 +11695,8 @@
         "payment": "Paiement",
         "integrations": "Intégrations",
         "payouts": "Reversements (plateforme)",
-        "amenitiesOta": "Commodités OTA"
+        "amenitiesOta": "Commodités OTA",
+        "migration": "Migration PMS"
       },
       "subtitle": {
         "general": "Identité, organisation, préférences régionales et affichage.",
@@ -11595,7 +11711,8 @@
         "payouts": "Calendrier et règles de calcul des reversements aux propriétaires.",
         "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond.",
         "myRates": "Votre taux horaire, vos forfaits par logement et votre score qualité.",
-        "myPayoutsPro": "Compte de versement Stripe et historique de vos versements de missions."
+        "myPayoutsPro": "Compte de versement Stripe et historique de vos versements de missions.",
+        "migration": "Importez, vérifiez et retrouvez les données de votre ancien PMS."
       }
     },
     "dashboard": {
@@ -18968,5 +19085,204 @@
     "configured": "Barème défini",
     "noBareme": "Sans barème",
     "communeUnresolved": "Commune introuvable — vérifier l’adresse"
+  },
+  "setupVisual": {
+    "files": "Vos exports",
+    "team": "Votre équipe",
+    "finance": "Vos réglages",
+    "organization": "Votre activité",
+    "properties": "Vos logements",
+    "guests": "Vos voyageurs",
+    "connected": "Tout est relié"
+  },
+  "pmsImport": {
+    "title": "Vos données trouvent leur place.",
+    "intro": "Retrouvez vos logements, voyageurs et réservations dans Baitly. Ajoutez vos exports, puis vérifiez ce qui sera repris avant de confirmer.",
+    "scope": "Intégration : logements, voyageurs et réservations. Les autres données et pièces jointes sont conservées dans une archive exportable ; elles ne sont pas encore intégrées aux modules métier.",
+    "newImport": "Nouvel import",
+    "loading": "Chargement du parcours de migration…",
+    "source": "PMS d’origine",
+    "sourcePlaceholder": "Choisir ou saisir un autre PMS",
+    "account": "Compte dans ce PMS",
+    "accountPlaceholder": "Ex. Agence Marrakech",
+    "accountHelp": "Utilisez le même nom lors de vos prochains imports, par exemple le nom de votre agence.",
+    "encoding": "Encodage des fichiers texte",
+    "files": "Exports à reprendre",
+    "limits": "Lecture : CSV, TSV, Excel, JSON et ZIP. Les autres formats sont conservés en archive. 20 fichiers, 8 Mio au total et 5 000 lignes par import.",
+    "working": "Traitement en cours…",
+    "analyze": "Analyser les fichiers",
+    "recent": "Vos imports récents",
+    "download": "Télécharger les données sources",
+    "deleteDraft": "Supprimer ce brouillon",
+    "requiredHelp": "Les champs marqués d’un * sont nécessaires. Choisissez une colonne ou renseignez une valeur.",
+    "mapping": "Correspondance des données",
+    "attachment": "Pièce jointe conservée",
+    "rows": "{{count}} lignes",
+    "destination": "Destination des données",
+    "dateFormat": "Format des dates sources",
+    "decimal": "Séparateur décimal",
+    "point": "Point : 1234.56",
+    "comma": "Virgule : 1234,56",
+    "archiveHelp": "Ce fichier reste récupérable dans le téléchargement des données sources. Aucun logement, voyageur, réservation, document comptable ou automatisme ne sera créé à partir de ces lignes.",
+    "baitlyField": "Champ Baitly",
+    "sourceColumn": "Colonne du fichier",
+    "exampleOrDefault": "Exemple / valeur commune",
+    "required": "Obligatoire",
+    "constantOrEmpty": "Valeur commune ou vide",
+    "empty": "Vide dans la première ligne",
+    "defaultValue": "Valeur commune",
+    "optional": "Facultatif",
+    "propertyHelp": "Types : APARTMENT, HOUSE, STUDIO, VILLA, LOFT, DUPLEX, TOWNHOUSE, BUNGALOW, RIAD, GUEST_ROOM, COTTAGE, CHALET, BOAT, OTHER. Fuseau IANA : Africa/Casablanca, Europe/Paris, Asia/Riyadh… Les nouveaux logements vous seront rattachés et resteront masqués sur le moteur de réservation.",
+    "propertyLinks": "Relier les logements",
+    "propertyLinksHelp": "Pour chaque référence, choisissez un logement Baitly ou celui de votre export. Les références seront actualisées au prochain contrôle.",
+    "importedProperty": "Retrouver par l’identifiant source importé",
+    "preserved": "{{count}} colonnes non associées conservées dans l’archive.",
+    "validate": "Vérifier les correspondances",
+    "dirty": "Les correspondances ont changé. Vérifiez-les à nouveau avant de continuer.",
+    "validateHelp": "Cette étape enregistre le brouillon sans créer de données métier.",
+    "report": "Résultat du contrôle",
+    "completed": "Import terminé",
+    "totals": "Total des réservations à créer, par devise",
+    "issuesHelp": "Corrigez ces points avant de lancer l’import. Aucune ligne métier ne sera écrite tant qu’il reste une erreur.",
+    "line": "Ligne {{number}}",
+    "issuesLimited": "Les 100 premiers problèmes sont affichés. Relancez le contrôle après correction.",
+    "automationHelp": "Les réservations confirmées bloquent le calendrier Baitly. L’import ne publie pas de mises à jour vers les canaux, ne crée pas de facture et garde les messages et ménages automatiques en pause. Organisez la bascule des canaux séparément.",
+    "commit": "Intégrer les données vérifiées",
+    "completedHelp": "Les données intégrées sont disponibles dans les modules correspondants. Retrouvez les champs supplémentaires et les fichiers archivés dans le téléchargement des données sources.",
+    "kind": {
+      "PROPERTY": "Logements",
+      "GUEST": "Voyageurs",
+      "RESERVATION": "Réservations",
+      "ARCHIVE": "Conserver en archive"
+    },
+    "status": {
+      "DRAFT": "Brouillon",
+      "COMPLETED": "Terminé"
+    },
+    "dates": {
+      "ISO": "Année-mois-jour (ISO)",
+      "DMY": "Jour/mois/année",
+      "MDY": "Mois/jour/année",
+      "EXCEL_1900": "Numéro de série Excel (1900)"
+    },
+    "counts": {
+      "ready": "Lignes à intégrer",
+      "duplicates": "Doublons ignorés",
+      "archived": "Éléments archivés",
+      "issueCount": "Points à corriger"
+    },
+    "fields": {
+      "sourceId": "Identifiant source stable",
+      "name": "Nom du logement",
+      "address": "Adresse",
+      "bedrooms": "Chambres",
+      "bathrooms": "Salles de bain",
+      "timezone": "Fuseau horaire",
+      "currency": "Devise (ISO)",
+      "type": "Type de logement",
+      "city": "Ville",
+      "countryCode": "Pays (2 lettres)",
+      "description": "Description",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "Adresse email",
+      "phone": "Téléphone",
+      "language": "Langue",
+      "notes": "Notes",
+      "propertyRef": "Référence du logement",
+      "guestName": "Nom complet du voyageur",
+      "guestRef": "Identifiant source du voyageur",
+      "checkIn": "Date d’arrivée",
+      "checkOut": "Date de départ",
+      "totalPrice": "Prix total",
+      "status": "Statut (confirmed / cancelled)",
+      "source": "Canal de réservation",
+      "guestCount": "Nombre de voyageurs",
+      "amountPaid": "Montant payé",
+      "confirmationCode": "Référence de confirmation",
+      "amount": "Montant"
+    },
+    "errors": {
+      "UNKNOWN": "Le traitement n’a pas abouti. Vérifiez vos fichiers puis réessayez.",
+      "LOAD": "Impossible de charger les données. Rechargez cette page.",
+      "REQUIRED": "Champ obligatoire manquant",
+      "TOO_LONG": "Valeur trop longue",
+      "EMAIL": "Adresse email invalide",
+      "COUNTRY": "Code pays invalide",
+      "CURRENCY": "Devise ISO invalide",
+      "TIMEZONE": "Fuseau IANA invalide",
+      "PROPERTY_TYPE": "Type de logement non reconnu",
+      "INTEGER": "Nombre entier hors limites",
+      "DATE": "Date invalide pour le format choisi",
+      "DATE_RANGE": "Le départ doit suivre l’arrivée, avec un séjour de 3 ans maximum",
+      "MONEY": "Montant invalide : choisissez le séparateur décimal, sans symbole de devise ni séparateur de milliers",
+      "PAID_ABOVE_TOTAL": "Le montant payé dépasse le prix total",
+      "STATUS": "Statut non reconnu. Les réservations confirmées ou annulées sont prises en charge.",
+      "SOURCE_CHANGED": "Cet identifiant existe déjà avec des données différentes. Aucun écrasement automatique.",
+      "PROPERTY_LINK_REQUIRED": "Associez cette référence à un logement existant ou importez le logement avec son identifiant source.",
+      "GUEST_LINK_REQUIRED": "Importez d’abord le voyageur avec cet identifiant, ou retirez cette association.",
+      "CALENDAR_CONFLICT": "Ces dates sont déjà occupées ou bloquées.",
+      "BATCH_OVERLAP": "Deux réservations de ce lot se chevauchent dans le même logement.",
+      "EXISTING_RESERVATION": "Une réservation existante a la même référence ou chevauche ce séjour. Vérifiez le doublon.",
+      "VALIDATION_CHANGED": "Les données ont changé depuis le contrôle. Vérifiez à nouveau les correspondances.",
+      "VALIDATE_FIRST": "Vérifiez les correspondances avant de lancer l’import.",
+      "CALENDAR_BUSY": "Le calendrier est en cours de modification. Réessayez.",
+      "FILES_REQUIRED": "Sélectionnez au moins un fichier.",
+      "FILES_TOO_LARGE": "Limite : 20 fichiers et 8 Mio au total par import.",
+      "FILES_LIMIT": "Sélectionnez entre 1 et 20 fichiers.",
+      "FILE_UNREADABLE": "Fichier illisible. Vérifiez le format et l’encodage ; exportez les cellules Excel en valeurs.",
+      "FILE_NAME": "Nom ou chemin de fichier invalide.",
+      "ENCODING": "Encodage non pris en charge.",
+      "EMPTY_EXPORT": "L’export ne contient aucune donnée lisible.",
+      "ROWS_LIMIT": "Limite : 5 000 lignes et 100 jeux de données par import. Scindez votre export.",
+      "COLUMNS_LIMIT": "Limite : 256 colonnes non vides.",
+      "COLUMN_COUNT": "Nombre de colonnes incohérent dans une ligne.",
+      "DUPLICATE_OR_EMPTY_HEADERS": "Les noms de colonnes doivent être renseignés et uniques.",
+      "NESTED_ARCHIVE": "Décompressez les ZIP imbriqués avant l’import.",
+      "ARCHIVE_LIMIT": "Archive trop volumineuse après décompression. Scindez-la.",
+      "UNSUPPORTED_FORMAT": "Format non pris en charge. Convertissez ce fichier en CSV, Excel ou JSON.",
+      "EXCEL_FORMULA_EXPORT_VALUES": "Le classeur contient des formules. Exportez les résultats en valeurs avant de réessayer.",
+      "EXCEL_CELL_ERROR": "Le classeur contient une cellule en erreur.",
+      "JSON_OBJECTS_REQUIRED": "JSON attendu : objets ou tableaux d’objets.",
+      "JSON_AMBIGUOUS_KEY": "Clé JSON ambiguë : le point est réservé aux champs imbriqués.",
+      "JSON_DEPTH": "Structure JSON trop profonde.",
+      "CELL_TOO_LARGE": "Une cellule dépasse 16 000 caractères.",
+      "SHEETS_LIMIT": "Limite : 30 feuilles par classeur.",
+      "IMPORT_PROPERTY_ACCESS": "Vous n’avez pas accès au logement sélectionné.",
+      "IMPORT_BATCH_ACCESS": "Vous n’avez pas accès à cet import."
+    },
+    "design": {
+      "eyebrow": "Migration PMS",
+      "progress": "Les étapes de votre migration",
+      "stages": {
+        "files": "Vos fichiers",
+        "mapping": "Correspondances",
+        "review": "Vérification"
+      },
+      "startTitle": "D’où viennent vos données ?",
+      "startHelp": "Sélectionnez votre ancien PMS ou saisissez son nom.",
+      "dropTitle": "Déposez vos exports ici",
+      "dropBrowse": "ou cliquez pour choisir vos fichiers",
+      "kb": "Ko",
+      "removeFile": "Retirer {{name}}",
+      "advanced": "Options avancées et limites",
+      "noWriteYet": "Aucune donnée intégrée sans votre confirmation.",
+      "bringTitle": "Ce que vous retrouvez dans Baitly",
+      "bring": {
+        "PROPERTY": "Les logements et leurs informations essentielles.",
+        "GUEST": "Les fiches et coordonnées de vos voyageurs.",
+        "RESERVATION": "Les séjours, leurs dates et leurs montants."
+      },
+      "archiveTitle": "Et les autres données ?",
+      "archiveBody": "Messages, factures, pièces jointes et champs supplémentaires restent dans une archive téléchargeable. Ils ne sont pas encore intégrés aux modules.",
+      "mappingTitle": "Vérifions que tout correspond.",
+      "mappingHelp": "Baitly propose les associations. Vérifiez les champs nécessaires (*) et ajoutez les informations facultatives si besoin.",
+      "extraFields": "Informations supplémentaires ({{count}})",
+      "propertyOptions": "Types de logement et fuseaux horaires",
+      "reviewTitle": "Tout est prêt pour votre vérification.",
+      "reviewHelp": "Voici le résultat du contrôle. Les doublons sont ignorés ; vos données existantes ne seront pas remplacées.",
+      "backMapping": "Revoir les correspondances",
+      "completedNotice": "Votre import est terminé. Vous pouvez retrouver vos données dans Baitly ou télécharger vos fichiers sources."
+    }
   }
 }

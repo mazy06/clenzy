@@ -95,6 +95,7 @@ import MyProPayoutsSettings from './MyProPayoutsSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
+const PmsImportWorkspace = React.lazy(() => import('../migration/PmsImportWorkspace'));
 import { userAvatarSrc } from '../../services/api/usersApi';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
@@ -270,6 +271,7 @@ export default function Settings() {
     organization: tabIndexFromKey(settingsTabs, 'organization'),
     payment: tabIndexFromKey(settingsTabs, 'payment'),
     integrations: tabIndexFromKey(settingsTabs, 'integrations'),
+    migration: tabIndexFromKey(settingsTabs, 'migration'),
     payouts: tabIndexFromKey(settingsTabs, 'payouts'),
     amenitiesOta: tabIndexFromKey(settingsTabs, 'amenities-ota'),
   };
@@ -599,6 +601,9 @@ export default function Settings() {
   // Mapping label → subtitle traduit. Construit dynamiquement pour reagir au
   // changement de langue (les labels sont resolus via t() juste au-dessus).
   const settingsTabMeta: Record<string, SettingsTabMeta> = {
+    [t('tabHeaders.settings.tabs.migration', 'Migration PMS')]: {
+      subtitle: t('tabHeaders.settings.subtitle.migration', 'Importez, vérifiez et retrouvez les données de votre ancien PMS.'),
+    },
     [t('tabHeaders.settings.tabs.general', 'Général')]: {
       subtitle: t('tabHeaders.settings.subtitle.general', 'Identité, organisation, préférences régionales et affichage.'),
     },
@@ -1089,6 +1094,11 @@ export default function Settings() {
       )}
 
       {/* ─── Onglet Intégrations (ADMIN/MANAGER) ──────────────────────── */}
+      {tabIdx.migration >= 0 && <TabPanel value={tabValue} index={tabIdx.migration}>
+          <React.Suspense fallback={<div role="status">{t('pmsImport.loading')}</div>}>
+            <PmsImportWorkspace />
+          </React.Suspense>
+        </TabPanel>}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={tabIdx.integrations}>
           <IntegrationsSection

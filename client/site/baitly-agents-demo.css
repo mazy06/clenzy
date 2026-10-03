@@ -7,6 +7,15 @@
   background: transparent;
 }
 
+.bpm-planning-canvas[dir='rtl'] {
+  --bad-label-shift: -30px;
+  --bad-leave-offset: -28px;
+}
+
+.bpm-planning-canvas[lang='ar'] :is(.bad-props-head, .bad-modal [data-slot='dialog-title']) {
+  letter-spacing: normal;
+}
+
 .bad-controls {
   display: flex;
   gap: 8px;
@@ -26,7 +35,7 @@
   padding-inline: 16px;
   background: var(--pl-surface2);
   border-bottom: 1px solid var(--pl-line);
-  border-right: 1px solid var(--pl-line);
+  border-inline-end: 1px solid var(--pl-line);
   color: var(--pl-faint);
   font-size: 10.5px;
   font-weight: 700;
@@ -37,7 +46,7 @@
 
 .bad-property {
   border-bottom: 1px solid var(--pl-line);
-  border-right: 1px solid var(--pl-line);
+  border-inline-end: 1px solid var(--pl-line);
   background: var(--pl-card);
 }
 
@@ -139,7 +148,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0 auto 0 0;
+  margin: 0;
+  margin-inline-end: auto;
   color: var(--bui-muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -216,7 +226,7 @@
   top: auto;
   bottom: 100%;
   margin: 0 0 12px;
-  transform: translateX(calc(-50% + 30px));
+  transform: translateX(calc(-50% + var(--bad-label-shift, 30px)));
 }
 
 .bad-queue {
@@ -254,7 +264,7 @@
 
 .bad-card[data-leaving] {
   opacity: 0;
-  transform: translateX(28px);
+  transform: translateX(var(--bad-leave-offset, 28px));
 }
 
 /* Clic scripté : l'état enfoncé que produirait le vrai bouton. */
@@ -440,6 +450,10 @@
   letter-spacing: normal;
 }
 .bad-demo .baitly-action-modal [data-slot='dialog-title'] {
+  /* Keep the native dialog scale when a landing-page h2 rule is inherited. */
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.4;
   letter-spacing: -0.025em;
 }
 

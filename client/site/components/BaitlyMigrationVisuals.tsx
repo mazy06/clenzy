@@ -15,6 +15,8 @@ import type { BaitlyMigrationMessages } from '../lib/messages/baitlyMigration';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
+import { BaitlyPmsPortability } from './BaitlyPmsPortability';
+import type { SiteLanguage } from '../lib/siteLanguage';
 
 const { migrationProperty: riad } = SITE_PHOTOS;
 
@@ -102,7 +104,10 @@ export function BaitlyMigrationVisual({ m }: Props) {
   );
 }
 
-export function BaitlyMigrationSources({ m }: Props) {
+export function BaitlyMigrationSources({
+  m,
+  language,
+}: Props & { language: SiteLanguage }) {
   // Choix d'exploration temporaire, sans préférence de compte à sauvegarder.
   const [source, setSource] = useState(0);
   const selected = m.channels[source];
@@ -146,57 +151,63 @@ export function BaitlyMigrationSources({ m }: Props) {
       </div>
       <div
         id="migration-source-detail"
-        className="bm-source-detail"
+        className={`bm-source-detail${source === 1 ? ' bm-source-detail-pms' : ''}`}
         role="region"
         aria-labelledby={`migration-source-${source}`}
       >
-        <div key={source} className="bm-source-copy">
-          <span className="bm-label">{selected.tag}</span>
-          <h3>{selected.title}</h3>
-          <p>{selected.copy}</p>
-          <ul>
-            {selected.points.map((point) => (
-              <li key={point}>
-                <CheckIcon aria-hidden="true" />
-                {point}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="bm-mapping">
-          <div className="bm-file-heading">
-            <FileSpreadsheetIcon aria-hidden="true" />
-            <span dir="ltr">{selected.file}</span>
-            <span>{selected.format}</span>
-          </div>
-          <p className="bm-mapping-caption">{m.preview}</p>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{m.original}</th>
-                <th scope="col">{m.destination}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selected.columns.map((column, index) => (
-                <tr key={index}>
-                  <td>
-                    <bdi>{column}</bdi>
-                    <ArrowRightIcon aria-hidden="true" />
-                  </td>
-                  <td>
+        {source === 1 ? (
+          <BaitlyPmsPortability language={language} />
+        ) : (
+          <>
+            <div key={source} className="bm-source-copy">
+              <span className="bm-label">{selected.tag}</span>
+              <h3>{selected.title}</h3>
+              <p>{selected.copy}</p>
+              <ul>
+                {selected.points.map((point) => (
+                  <li key={point}>
                     <CheckIcon aria-hidden="true" />
-                    {m.fields[index]}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="bm-mapped">
-            <Link2Icon aria-hidden="true" />
-            {m.mapped}
-          </div>
-        </div>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bm-mapping">
+              <div className="bm-file-heading">
+                <FileSpreadsheetIcon aria-hidden="true" />
+                <span dir="ltr">{selected.file}</span>
+                <span>{selected.format}</span>
+              </div>
+              <p className="bm-mapping-caption">{m.preview}</p>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">{m.original}</th>
+                    <th scope="col">{m.destination}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selected.columns.map((column, index) => (
+                    <tr key={index}>
+                      <td>
+                        <bdi>{column}</bdi>
+                        <ArrowRightIcon aria-hidden="true" />
+                      </td>
+                      <td>
+                        <CheckIcon aria-hidden="true" />
+                        {m.fields[index]}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="bm-mapped">
+                <Link2Icon aria-hidden="true" />
+                {m.mapped}
+              </div>
+            </div>
+          </>
+        )}
       </div>
       <p className="bm-source-note">{m.sourceNote}</p>
     </section>

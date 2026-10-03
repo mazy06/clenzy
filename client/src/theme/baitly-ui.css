@@ -27,7 +27,8 @@
 @import "tw-animate-css";
 /* Variantes data-open/closed/checked…, keyframes accordion/caret et
    utilitaire shimmer — requis par la feuille Nova (package shadcn). */
-@import "shadcn/tailwind.css";
+/* Keep the original utilities without installing the registry CLI in the app. */
+@import "./vendor/baitly-shadcn-utilities.css";
 /* Classes sémantiques cn-* des composants (style « Nova » du site shadcn). */
 @import "./baitly-nova.css" layer(base);
 

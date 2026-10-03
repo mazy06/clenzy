@@ -254,6 +254,7 @@ public class AutomationEvaluationService implements AutomationEngine {
 
     @Transactional
     public void evaluateRulesForReservation(Reservation reservation, AutomationTrigger trigger, Long orgId) {
+        if (reservation.isMigrationAutomationPaused()) return;
         List<AutomationRule> rules = ruleRepository
             .findByOrganizationIdAndTriggerTypeAndEnabledTrue(orgId, trigger);
 
@@ -429,7 +430,7 @@ public class AutomationEvaluationService implements AutomationEngine {
             return null;
         }
         Reservation reservation = reservationRepository.findById(subject.subjectId()).orElse(null);
-        if (reservation == null) {
+        if (reservation == null || reservation.isMigrationAutomationPaused()) {
             return null;
         }
         if (reservation.getOrganizationId() != null && !reservation.getOrganizationId().equals(orgId)) {

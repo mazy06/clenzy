@@ -217,6 +217,7 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
 
   '/settings': [
     { key: 'general', translationKey: 'tabHeaders.settings.tabs.general', fallbackLabel: 'Général', icon: <TuneOutlined /> },
+    { key: 'migration', translationKey: 'tabHeaders.settings.tabs.migration', fallbackLabel: 'Migration PMS', icon: <Extension />, isAccessible: (a) => hasRole(a, 'HOST', 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'notifications', translationKey: 'tabHeaders.settings.tabs.notifications', fallbackLabel: 'Notifications', icon: <Notifications /> },
     { key: 'messaging', translationKey: 'tabHeaders.settings.tabs.messaging', fallbackLabel: 'Messagerie', icon: <ChatBubbleOutline /> },
     { key: 'my-payout', translationKey: 'settings.myPayout.tabLabel', fallbackLabel: 'Reversements propriétaire', icon: <AccountBalance />, isAccessible: (a) => hasRole(a, 'HOST') },

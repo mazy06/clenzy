@@ -272,7 +272,7 @@ export function usePropertyForm({
 
       // Navigate after short delay for UX
       setTimeout(() => {
-        if (isEditMode && propertyId) {
+        if (isEditMode && propertyId && onNavigate) {
           onNavigate?.(`/properties/${propertyId}`);
         } else {
           onSuccess?.(created);

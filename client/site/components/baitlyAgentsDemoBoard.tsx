@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CheckIcon, SearchIcon, SendIcon, StarIcon } from 'lucide-react';
 import {
   AccessTime,
@@ -60,6 +60,8 @@ import preventiveVisual from '../../public/images/hitl/property-maintenance.webp
 import policeVisual from '../../public/images/hitl/traveler-form.webp';
 import mandateVisual from '../../public/images/hitl/management-contract.webp';
 import type { AgentsDemoMessages } from '../lib/messages/baitlyAgentsDemo';
+import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
+import { demoCalendarMonth, demoDateLabel, demoDigits, demoNumber, DEMO_TODAY } from '../lib/planningDemoLocale';
 
 /* ─── Données ───────────────────────────────────────────────────────────────── */
 
@@ -108,16 +110,21 @@ interface DemoCard {
   ctaIcon: 'edit' | 'schedule' | 'check' | 'send';
 }
 
-function demoCards(m: AgentsDemoMessages): DemoCard[] {
+function demoCards(m: AgentsDemoMessages, language: SiteLanguage): DemoCard[] {
   const c = m.cards;
-  const expires = (time: string) => `${m.board.expiresIn} ${time}`;
+  const expires = (hours: number, minutes: number) => {
+    const time = language === 'ar'
+      ? `${demoNumber(hours, language)} س ${demoNumber(minutes, language)} د`
+      : `${hours} h ${String(minutes).padStart(2, '0')}`;
+    return `${m.board.expiresIn} ${time}`;
+  };
   return [
     {
       id: 'review-laura',
       agent: 'rep',
       visual: reviewsVisual,
       title: c.review.title,
-      deadline: expires('8 h 22'),
+      deadline: expires(8, 22),
       review: { rating: 4, meta: c.review.meta, quote: c.review.quote, note: c.review.note },
       cta: c.review.cta,
       ctaIcon: 'edit',
@@ -127,7 +134,7 @@ function demoCards(m: AgentsDemoMessages): DemoCard[] {
       agent: 'rep',
       visual: reviewsVisual,
       title: c.review2.title,
-      deadline: expires('8 h 22'),
+      deadline: expires(8, 22),
       review: { rating: 4, meta: c.review2.meta, quote: c.review2.quote, note: c.review.note },
       cta: c.review.cta,
       ctaIcon: 'edit',
@@ -137,7 +144,7 @@ function demoCards(m: AgentsDemoMessages): DemoCard[] {
       agent: 'rep',
       visual: reviewsVisual,
       title: c.review3.title,
-      deadline: expires('8 h 22'),
+      deadline: expires(8, 22),
       review: { rating: 5, meta: c.review3.meta, quote: c.review3.quote, note: c.review.note },
       cta: c.review.cta,
       ctaIcon: 'edit',
@@ -147,7 +154,7 @@ function demoCards(m: AgentsDemoMessages): DemoCard[] {
       agent: 'ops',
       visual: maintenanceVisual,
       title: c.lock.title,
-      deadline: expires('9 h 34'),
+      deadline: expires(9, 34),
       meter: { label: c.lock.meter, value: 12 },
       motif: c.lock.motif,
       cta: c.lock.cta,
@@ -158,7 +165,7 @@ function demoCards(m: AgentsDemoMessages): DemoCard[] {
       agent: 'ops',
       visual: preventiveVisual,
       title: c.maintenance.title,
-      deadline: expires('9 h 34'),
+      deadline: expires(9, 34),
       motif: c.maintenance.motif,
       cta: c.lock.cta,
       ctaIcon: 'schedule',
@@ -168,7 +175,7 @@ function demoCards(m: AgentsDemoMessages): DemoCard[] {
       agent: 'cmp',
       visual: policeVisual,
       title: c.police.title,
-      deadline: expires('0 h 48'),
+      deadline: expires(0, 48),
       urgent: true,
       motif: c.police.motif,
       cta: c.police.cta,
@@ -179,7 +186,7 @@ function demoCards(m: AgentsDemoMessages): DemoCard[] {
       agent: 'cmp',
       visual: mandateVisual,
       title: c.mandate.title,
-      deadline: expires('11 h 05'),
+      deadline: expires(11, 5),
       motif: c.mandate.motif,
       cta: c.mandate.cta,
       ctaIcon: 'send',
@@ -211,8 +218,9 @@ export function AgentsBoard({
   height: number;
   playing: boolean;
 }) {
+  const { language } = useSiteLanguage();
   const total = Object.values(state.counts).reduce((a, b) => a + b, 0);
-  const cards = demoCards(m).filter(
+  const cards = demoCards(m, language).filter(
     (card) => card.agent === state.selected && !state.gone.has(card.id),
   );
   const rootRef = useRef<HTMLDivElement>(null);
@@ -228,11 +236,11 @@ export function AgentsBoard({
         <h2>
           {m.board.title}
           <span className="bad-board-pending">
-            {total} {m.board.toValidate}
+            {demoNumber(total, language)} {m.board.toValidate}
           </span>
         </h2>
         <p>
-          10 {m.board.agents} · 1 {m.board.acting} · {m.board.active}
+          {demoNumber(10, language)} {m.board.agents} · {demoNumber(1, language)} {m.board.acting} · {m.board.active}
           <Info size={14} strokeWidth={1.75} />
         </p>
         <span className="bad-toggle" role="group">
@@ -284,7 +292,6 @@ export function AgentsBoard({
 
 /* ─── Constellation (OrbitDiagram) ─────────────────────────────────────────── */
 
-const SLOT_ANGLE = -45;
 const CORE_SIZE = 15;
 const FLOW_LEG_START = CORE_SIZE / 2 + 1.3;
 
@@ -304,13 +311,17 @@ function OrbitView({
   counts: Record<AgentId, number>;
   playing: boolean;
 }) {
+  const { language, direction } = useSiteLanguage();
+  const rtl = direction === 'rtl';
+  const angleFor = (slot: number) => rtl ? 180 - slot * 36 : slot * 36;
+  const slotAngle = rtl ? -135 : -45;
   const [orbitRef, box] = useElementSize<HTMLDivElement>();
   const side = fitOrbitSide(box.width, box.height);
   const radius = orbitRadiusFor(side);
   const index = AGENT_IDS.indexOf(selected);
   /* Rotation « déroulée » au plus court chemin, comme le diagramme réel. */
-  const rotationRef = useRef(SLOT_ANGLE - index * 36);
-  let target = SLOT_ANGLE - index * 36;
+  const rotationRef = useRef(slotAngle - angleFor(index));
+  let target = slotAngle - angleFor(index);
   while (target - rotationRef.current > 180) target -= 360;
   while (target - rotationRef.current < -180) target += 360;
   rotationRef.current = target;
@@ -331,8 +342,8 @@ function OrbitView({
         <div className="oc-ring absolute inset-0" style={{ transform: `rotate(${rotation}deg)` }}>
           <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
             {AGENT_IDS.map((id, i) => {
-              const from = polar(i * 36, FLOW_LEG_START);
-              const to = polar(i * 36, radius - NODE_SIZE / 2 - 0.6);
+              const from = polar(angleFor(i), FLOW_LEG_START);
+              const to = polar(angleFor(i), radius - NODE_SIZE / 2 - 0.6);
               const length = radius - NODE_SIZE / 2 - 0.6 - FLOW_LEG_START;
               const focused = id === selected;
               return (
@@ -352,7 +363,7 @@ function OrbitView({
             })}
           </svg>
           {AGENT_IDS.map((id, i) => {
-            const point = polar(i * 36, radius);
+            const point = polar(angleFor(i), radius);
             const pending = counts[id];
             const isSelected = id === selected;
             const working = id === 'gro';
@@ -390,7 +401,7 @@ function OrbitView({
                   </span>
                   {pending > 0 ? (
                     <span className="baitly-orbit-count" data-kind="pending">
-                      <bdi dir="ltr">{pending}</bdi>
+                      <bdi dir="ltr">{demoNumber(pending, language)}</bdi>
                     </span>
                   ) : null}
                   {working && <span className="baitly-orbit-activity-dot" aria-hidden />}
@@ -432,6 +443,8 @@ function Tethers({
   playing: boolean;
   revision: string;
 }) {
+  const { direction } = useSiteLanguage();
+  const rtl = direction === 'rtl';
   const [paths, setPaths] = useState<{ d: string; length: number; key: string }[]>([]);
   useLayoutEffect(() => {
     let frame = 0;
@@ -447,16 +460,16 @@ function Tethers({
       const base = content.getBoundingClientRect();
       const clip = queue.getBoundingClientRect();
       const n = node.getBoundingClientRect();
-      const x1 = (n.right - base.left) / scale;
+      const x1 = ((rtl ? n.left : n.right) - base.left) / scale;
       const y1 = (n.top + n.height / 2 - base.top) / scale;
       const next = [...root.querySelectorAll<HTMLElement>('[data-hitl-card]:not([data-leaving])')]
         .map((card) => {
           const r = card.getBoundingClientRect();
           const y = Math.max(r.top + 40, Math.min(r.bottom - 40, r.top + 60));
           if (y < clip.top || y > clip.bottom) return null;
-          const x2 = (r.left - base.left) / scale;
+          const x2 = ((rtl ? r.right : r.left) - base.left) / scale;
           const y2 = (y - base.top) / scale;
-          const dx = Math.max(30, (x2 - x1) / 2);
+          const dx = (rtl ? -1 : 1) * Math.max(30, Math.abs(x2 - x1) / 2);
           return {
             key: card.dataset.card ?? '',
             d: `M${x1.toFixed(1)} ${y1.toFixed(1)} C${(x1 + dx).toFixed(1)} ${y1.toFixed(1)} ${(x2 - dx).toFixed(1)} ${y2.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
@@ -489,7 +502,7 @@ function Tethers({
       window.removeEventListener('resize', measure);
       settleUntil = 0;
     };
-  }, [rootRef, playing, revision]);
+  }, [rootRef, playing, revision, rtl]);
   return (
     <svg className="bad-tethers" aria-hidden>
       {paths.map((p) => (
@@ -507,6 +520,7 @@ function Tethers({
 /* ─── Vue agents (ConstellationAgentCards) ─────────────────────────────────── */
 
 function AgentList({ m, state }: { m: AgentsDemoMessages; state: BoardState }) {
+  const { language } = useSiteLanguage();
   // Ce qui réclame une décision d'abord, la veille en bas.
   const ordered = [...AGENT_IDS].sort((a, b) => {
     const wa = state.counts[a] > 0;
@@ -542,7 +556,7 @@ function AgentList({ m, state }: { m: AgentsDemoMessages; state: BoardState }) {
                 <span className="baitly-agent-list-state">
                   {pending > 0 ? (
                     <Badge variant="warning" className="baitly-agent-list-count whitespace-normal">
-                      <strong>{pending}</strong>{' '}
+                      <strong>{demoNumber(pending, language)}</strong>{' '}
                       <span className="baitly-agent-list-count-label">{m.board.toValidate}</span>
                     </Badge>
                   ) : (
@@ -587,6 +601,7 @@ const CTA_ICONS = {
 };
 
 function HitlCard({ card, dismiss, leaving }: { card: DemoCard; dismiss: string; leaving: boolean }) {
+  const { language } = useSiteLanguage();
   return (
     <article
       className="baitly-hitl-card bad-card"
@@ -616,7 +631,7 @@ function HitlCard({ card, dismiss, leaving }: { card: DemoCard; dismiss: string;
               <div className="baitly-description-review-meta">
                 <span className="baitly-description-rating">
                   <StarIcon size={15} aria-hidden />
-                  <strong>{card.review.rating}/5</strong>
+                  <strong><bdi dir="ltr">{demoDigits(`${card.review.rating}/5`, language)}</bdi></strong>
                 </span>
                 <span dir="auto">{card.review.meta}</span>
               </div>
@@ -633,7 +648,7 @@ function HitlCard({ card, dismiss, leaving }: { card: DemoCard; dismiss: string;
                 <div className="baitly-description-meter-group">
                   <div className="baitly-description-meter-label">
                     <span>{card.meter.label}</span>
-                    <strong>{card.meter.value} %</strong>
+                    <strong>{demoNumber(card.meter.value / 100, language, { style: 'percent' })}</strong>
                   </div>
                   <div className="baitly-description-meter">
                     <span style={{ width: `${card.meter.value}%` }} />
@@ -756,6 +771,7 @@ export function ReplyModal({
   bodyRef: React.RefObject<HTMLDivElement>;
 }) {
   const r = m.reply;
+  const { language } = useSiteLanguage();
   const draft = r.draftStart + r.vague + r.draftEnd;
   return (
     <DemoModal
@@ -785,7 +801,7 @@ export function ReplyModal({
         </span>
         <span className="min-w-0 flex-1 font-medium">{r.guest}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold tabular-nums">
-          <StarIcon className="size-4 text-[var(--bui-warning-ink)]" />4
+          <StarIcon className="size-4 text-[var(--bui-warning-ink)]" />{demoNumber(4, language)}
         </span>
       </div>
       <blockquote className="baitly-action-message">{m.cards.review.quote}</blockquote>
@@ -830,8 +846,9 @@ export function ScheduleModal({
   maxHeight: number;
 }) {
   const s = m.schedule;
-  // Septembre 2026 commence un mardi ; aujourd'hui = samedi 26 dans la maquette.
-  const cells = [null, ...Array.from({ length: 30 }, (_, i) => i + 1)];
+  const { language } = useSiteLanguage();
+  const calendar = useMemo(() => demoCalendarMonth(language), [language]);
+  const selectedDate = `2026-09-${day}`;
   return (
     <DemoModal
       agent="ops"
@@ -857,29 +874,30 @@ export function ScheduleModal({
         <div className="min-w-0 space-y-4">
           <div className="bad-calendar">
             <div className="bad-calendar-head">
-              <ChevronLeft size={15} />
-              <strong>{s.month}</strong>
-              <ChevronRight size={15} />
+              <ChevronLeft className="bpm-directional-icon" size={15} />
+              <strong>{calendar.title}</strong>
+              <ChevronRight className="bpm-directional-icon" size={15} />
             </div>
             <div className="bad-calendar-grid">
-              {s.weekdays.map((label) => (
-                <span key={label} className="bad-calendar-weekday">
+              {calendar.weekdays.map(({ label, title }) => (
+                <span key={title} title={title} className="bad-calendar-weekday">
                   {label}
                 </span>
               ))}
-              {cells.map((value, index) =>
+              {calendar.cells.map((value, index) =>
                 value === null ? (
                   <span key={`blank-${index}`} />
                 ) : (
                   <span
-                    key={value}
-                    data-day={value}
-                    data-disabled={value < 26 || undefined}
-                    data-today={value === 26 || undefined}
-                    data-selected={value === day || undefined}
+                    key={value.toISOString()}
+                    data-day={value.toISOString().slice(0, 10)}
+                    data-disabled={value < new Date(DEMO_TODAY) || undefined}
+                    data-today={value.toISOString().startsWith(DEMO_TODAY) || undefined}
+                    data-selected={value.toISOString().startsWith(selectedDate) || undefined}
+                    title={demoDateLabel(value, language, { dateStyle: 'full' })}
                     className="bad-calendar-day"
                   >
-                    {value}
+                    {demoDateLabel(value, language, { day: 'numeric' })}
                   </span>
                 ),
               )}
@@ -888,7 +906,7 @@ export function ScheduleModal({
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">{s.time}</label>
             <span className="bad-input tabular-nums">
-              10:00
+              <bdi dir="ltr">{demoDigits('10:00', language)}</bdi>
               <AccessTime size={14} />
             </span>
           </div>

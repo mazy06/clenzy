@@ -21,6 +21,12 @@ import java.util.List;
     condition = "organization_id = :orgId"
 )
 public class Reservation {
+    /** Source migration: no automatic messages/cleanings until explicitly adopted. */
+    @Column(name = "migration_automation_paused", nullable = false)
+    private boolean migrationAutomationPaused;
+
+    public boolean isMigrationAutomationPaused() { return migrationAutomationPaused; }
+    public void setMigrationAutomationPaused(boolean value) { migrationAutomationPaused = value; }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

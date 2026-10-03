@@ -4429,3 +4429,19 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0490__ma_tourist_tax_marrakech_verified.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0491-pms-import-workspace"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0491__pms_import_workspace.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0492-payment-connections"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0492__payment_connections.sql
+            relativeToChangelogFile: true
