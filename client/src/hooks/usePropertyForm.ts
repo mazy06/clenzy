@@ -90,6 +90,16 @@ const DEFAULT_VALUES: PropertyFormValues = {
   cleaningNotes: undefined,
   bookingEngineVisible: false,
   orgCanCreateVouchers: false,
+  touristTaxRequired: true,
+  touristTaxNoTax: false,
+  touristTaxMode: 'PER_PERSON_PER_NIGHT',
+  touristTaxRate: null,
+  touristTaxPercent: null,
+  touristTaxCap: null,
+  touristTaxDepartmentalPct: null,
+  touristTaxRegionalPct: null,
+  touristTaxChildrenExemptUnder: null,
+  touristTaxConfirmed: false,
 };
 
 // ============================================================================
@@ -235,6 +245,18 @@ export function usePropertyForm({
         longitude: formData.longitude ?? undefined,
         department: formData.department ?? undefined,
         arrondissement: formData.arrondissement ?? undefined,
+        // Création : taxe de séjour déclarée et confirmée (exigée en France et au Maroc).
+        touristTax: isEditMode ? undefined : {
+          noTax: formData.touristTaxNoTax,
+          calculationMode: formData.touristTaxMode,
+          ratePerPerson: formData.touristTaxRate ?? null,
+          percentageRate: formData.touristTaxPercent != null ? formData.touristTaxPercent / 100 : null,
+          capPerPersonNight: formData.touristTaxCap ?? null,
+          departmentalSurchargePct: formData.touristTaxDepartmentalPct ?? null,
+          regionalSurchargePct: formData.touristTaxRegionalPct ?? null,
+          childrenExemptUnder: formData.touristTaxChildrenExemptUnder ?? null,
+          confirmed: formData.touristTaxConfirmed,
+        },
       };
 
       if (isEditMode && propertyId) {

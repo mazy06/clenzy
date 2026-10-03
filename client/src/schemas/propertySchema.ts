@@ -1,5 +1,9 @@
 import { z } from 'zod/v4';
 import { vm } from './validationMessage';
+import i18n from '../i18n/config';
+
+/** Message traduit à l'instant de la validation (superRefine attend une chaîne). */
+const msg = (key: string, fallback: string): string => i18n.t(key, fallback) as string;
 
 export const propertySchema = z.object({
   name: z.string().min(1, vm('validation.nameRequired', 'Le nom est requis')).max(100, vm('validation.nameTooLong', 'Le nom ne peut pas dépasser 100 caractères')),
@@ -49,6 +53,43 @@ export const propertySchema = z.object({
   longitude: z.number().optional().nullable(),
   department: z.string().optional().nullable(),
   arrondissement: z.string().optional().nullable(),
+  // Taxe de séjour déclarée à la CRÉATION (France, Maroc) : le référentiel suggère,
+  // l'utilisateur saisit et confirme le montant appliqué. `touristTaxRequired` n'est
+  // posé qu'en création (formulaire uniquement, jamais envoyé tel quel).
+  touristTaxRequired: z.boolean().optional(),
+  touristTaxNoTax: z.boolean().default(false),
+  touristTaxMode: z.enum(['PER_PERSON_PER_NIGHT', 'PERCENTAGE_OF_RATE', 'FLAT_PER_NIGHT']).default('PER_PERSON_PER_NIGHT'),
+  touristTaxRate: z.number().min(0).optional().nullable(),
+  /** Saisi en % (0–100), envoyé en fraction. */
+  touristTaxPercent: z.number().min(0).max(100).optional().nullable(),
+  touristTaxCap: z.number().min(0).optional().nullable(),
+  touristTaxDepartmentalPct: z.number().min(0).optional().nullable(),
+  touristTaxRegionalPct: z.number().min(0).optional().nullable(),
+  touristTaxChildrenExemptUnder: z.number().int().min(0).max(25).optional().nullable(),
+  touristTaxConfirmed: z.boolean().default(false),
+}).superRefine((v, ctx) => {
+  const country = (v.countryCode || '').toUpperCase();
+  if (!v.touristTaxRequired || (country !== 'FR' && country !== 'MA' && country !== 'SA')) return;
+  if (!v.touristTaxNoTax) {
+    if (v.touristTaxMode === 'PERCENTAGE_OF_RATE') {
+      if (!(v.touristTaxPercent && v.touristTaxPercent > 0)) {
+        ctx.addIssue({ code: 'custom', path: ['touristTaxPercent'],
+          message: msg('validation.touristTaxPercentRequired', 'Pourcentage requis') });
+      }
+      // Plafond : France seulement (la redevance saoudienne n'en a pas).
+      if (country === 'FR' && !(v.touristTaxCap && v.touristTaxCap > 0)) {
+        ctx.addIssue({ code: 'custom', path: ['touristTaxCap'],
+          message: msg('validation.touristTaxCapRequired', 'Plafond par personne et par nuit requis') });
+      }
+    } else if (!(v.touristTaxRate && v.touristTaxRate > 0)) {
+      ctx.addIssue({ code: 'custom', path: ['touristTaxRate'],
+        message: msg('validation.touristTaxRateRequired', 'Montant de la taxe de séjour requis') });
+    }
+  }
+  if (!v.touristTaxConfirmed) {
+    ctx.addIssue({ code: 'custom', path: ['touristTaxConfirmed'],
+      message: msg('validation.touristTaxConfirmRequired', 'Confirmez le montant de la taxe de séjour') });
+  }
 });
 
 export type PropertyFormValues = z.infer<typeof propertySchema>;

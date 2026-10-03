@@ -4413,3 +4413,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0488__fr_tourist_tax_rates.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0489-ma-tourist-tax-rates"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0489__ma_tourist_tax_rates.sql
+            relativeToChangelogFile: true

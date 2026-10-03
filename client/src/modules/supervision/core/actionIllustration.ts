@@ -116,6 +116,7 @@ export const SOURCE_ILLUSTRATIONS: Readonly<Record<string, ActionIllustrationKey
   "license_expiring": "management-contract",
   "registration_missing": "management-contract",
   "nights_cap_near": "calendar",
+  "tourist_tax_undeclared": "tourist-tax",
   "police_owner_bears": "traveler-form",
   "payout_reminder": "owner-transfer",
 };

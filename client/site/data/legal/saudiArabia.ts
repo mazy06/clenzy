@@ -558,4 +558,82 @@ export const SAUDI_ARTICLES = [
       },
     },
   },
+  {
+    slug: 'arabie-saoudite-redevance-municipale-occupation',
+    country: 'SA',
+    topic: 'fiscalite',
+    stage: 'suivre',
+    title:
+      'Redevance municipale d’occupation en Arabie saoudite : 2,5 % ou 5 % par nuit, déclarée chaque mois',
+    description:
+      'Le règlement des redevances de services municipaux fixe une redevance par nuit occupée : 5 % du prix pour les établissements classés quatre étoiles et plus, 2,5 % pour les autres, à déclarer et payer chaque mois.',
+    scope:
+      'Établissements d’hébergement touristique classés par le ministère du Tourisme : poste 16 du tableau 1 et articles 28 et 29 du règlement des redevances de services municipaux, modifié par l’arrêté 1/762126 du 24/10/1444 H.',
+    facts: [
+      {
+        value: '5 %',
+        label: 'du prix de la nuit en quatre étoiles et plus',
+      },
+      {
+        value: '2,5 %',
+        label: 'pour les autres classements et les camps',
+      },
+      {
+        value: 'Avant le 15',
+        label: 'paiement du mois écoulé',
+      },
+    ],
+    sections: [
+      {
+        title: 'Un pourcentage du prix de chaque nuit occupée',
+        paragraphs: [
+          'L’article 28 du règlement prévoit une redevance sur l’occupation des unités des établissements d’hébergement touristique, selon les classements du ministère du Tourisme. Elle se calcule pour chaque unité et chaque nuit occupée, à partir du loyer de l’unité, et non par voyageur.',
+          'Le poste 16 du tableau 1 fixe deux taux. Les établissements classés quatre étoiles et plus, à l’exception des camps, paient 5 % du prix de la nuit. Les établissements classés trois étoiles ou de première catégorie, deux étoiles ou économiques, une étoile, les camps de toutes catégories et toute classification non listée paient 2,5 %.',
+        ],
+        sources: ['saMunicipalFees'],
+      },
+      {
+        title: 'Le même taux dans toutes les villes',
+        paragraphs: [
+          'Le règlement classe les municipalités en catégories, mais ce classement sert à d’autres redevances, exprimées en riyals selon la catégorie de la municipalité. La redevance d’occupation s’exprime en pourcentage unique : elle ne varie pas entre Riyad, Djeddah, Médine ou une ville moyenne.',
+          'Le taux dépend donc du seul classement de l’établissement. Le règlement des unités de séjour privées ne prévoit, de son côté, que le droit de délivrance de la licence. Pour une unité privée, rattachée par défaut à la ligne « toute classification non listée », vérifiez le taux appliqué sur la plateforme Balady avant la première déclaration.',
+        ],
+        sources: ['saMunicipalFees', 'saPrivate'],
+      },
+      {
+        title: 'Une déclaration mensuelle sur Balady',
+        paragraphs: [
+          'L’article 29 impose de présenter à la municipalité, dans les cinq premiers jours de chaque mois grégorien, un compte des unités occupées, avec le montant de la redevance en ligne distincte. La redevance est payée au plus tard le quinze du mois. La municipalité peut contrôler l’exactitude de ce compte.',
+          'Le service en ligne de Balady permet d’enregistrer l’établissement, de déposer les déclarations mensuelles d’occupation et de payer selon la catégorie. Tenez un relevé mensuel des nuits occupées et du prix de chaque nuit : il sert de base à la déclaration et à tout contrôle.',
+        ],
+        sources: ['saMunicipalFees', 'saBalady'],
+      },
+    ],
+    checklist: [
+      'Identifier le classement de l’établissement délivré par le ministère du Tourisme.',
+      'Appliquer 5 % en quatre étoiles et plus, 2,5 % dans les autres cas.',
+      'Calculer la redevance pour chaque unité et chaque nuit occupée.',
+      'Déclarer sur Balady avant le 5 et payer avant le 15 de chaque mois.',
+    ],
+    faq: [
+      {
+        q: 'Le taux change-t-il selon la ville ?',
+        a: 'Non. Le poste 16 fixe un pourcentage unique ; le classement des municipalités ne concerne que les redevances exprimées en riyals.',
+      },
+      {
+        q: 'La redevance se calcule-t-elle par voyageur ?',
+        a: 'Non. Elle porte sur le loyer de chaque unité, pour chaque nuit occupée, quel que soit le nombre d’occupants.',
+      },
+    ],
+    guide: {
+      en: {
+        title: 'Declare the municipal occupancy fee every month',
+        copy: 'The municipal fee is 5% of the nightly rate for establishments rated four stars and above, and 2.5% for all others, nationwide. Declare occupied nights on Balady within the first five days of each month and pay by the 15th.',
+      },
+      ar: {
+        title: 'التصريح الشهري برسم إشغال مرافق الضيافة',
+        copy: 'رسم الإشغال 5٪ من أجرة الليلة للمنشآت المصنفة أربع نجوم فأعلى، و2.5٪ لغيرها، في جميع المدن. يقدم الحساب الشهري عبر منصة بلدي خلال الأيام الخمسة الأولى ويسدد قبل يوم 15.',
+      },
+    },
+  },
 ] satisfies LegalArticle[];

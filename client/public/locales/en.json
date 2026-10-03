@@ -4730,6 +4730,32 @@
       "policeRegister": "Police register (6 months)",
       "inseeDeduced": "Deduced from the property address (French national address base).",
       "inseeUnresolved": "Municipality not found: check the property address, postcode and city."
+    },
+    "touristTax": {
+      "title": "Tourist tax",
+      "introMa": "Set by each municipality (law 47-06, art. 70). In Morocco platforms do not collect it: you collect and remit it every quarter. Children under 12 are exempt.",
+      "introFr": "Set by each municipality. Airbnb and Booking collect it on the stays they cash; you collect it on the others.",
+      "cityFirst": "Enter the property city first.",
+      "notFound": "No known rate for this municipality and category: enter the rate set by the municipality.",
+      "error": "Reference unavailable: enter the rate set by the municipality.",
+      "suggest": "Suggest the municipal rate",
+      "suggestedExact": "{{commune}} rate: {{rate}} {{currency}} per person per night.",
+      "suggestedRange": "Municipal rate unknown: legal range {{min}} – {{max}} {{currency}}, the top of the range is suggested to be safe.",
+      "unverified": "Source to be confirmed with the municipality.",
+      "noTax": "The municipality does not apply a tourist tax",
+      "modePerPerson": "Fixed amount per person per night",
+      "modePercentage": "Unclassified: % of the nightly price, capped",
+      "percent": "Percentage of the price per person",
+      "cap": "Cap per person per night",
+      "rate": "Amount per person per night",
+      "confirmNone": "I confirm the municipality applies no tourist tax to this property.",
+      "confirm": "I confirm this is the rate set by the municipality for this property.",
+      "confirmHint": "A suggested rate may be outdated: check it with the municipality before confirming.",
+      "introSa": "Municipal occupancy fee (MOMAH): 2.5% of the nightly price, 5% for establishments rated 4 stars and above. Same rate in every city, declared monthly on Balady (before the 5th, paid before the 15th). 15% VAT applies on top if you are VAT-registered.",
+      "percentSa": "Fee as % of the nightly price",
+      "suggestedSa": "National rate: {{rate}}% of the nightly price.",
+      "suggestSa": "Suggest the official rate",
+      "confirmSa": "I confirm this municipal fee rate for this property."
     }
   },
   "serviceRequests": {
@@ -12298,7 +12324,28 @@
         "stars4": "4-star rental",
         "stars5": "5-star rental",
         "guestHouse": "Bed & breakfast"
-      }
+      },
+      "maExact": "Rate published by {{city}} — confirm it with the municipality.",
+      "maRange": "Municipal rate unknown: legal range {{min}} – {{max}} MAD, top of the range suggested.",
+      "helpMa": "Morocco: rate set by each municipality within the legal range (law 47-06, art. 70). Children under 12 are exempt.",
+      "ma": {
+        "riad": "Home let to tourists (flat, house, riad)",
+        "guestHouse": "Guest house or luxury hotel",
+        "hotel12": "1 or 2-star hotel",
+        "hotel3": "3-star hotel",
+        "hotel4": "4-star hotel",
+        "hotel5": "5-star hotel",
+        "village": "Holiday village",
+        "residence": "Tourist residence",
+        "other": "Other form of accommodation"
+      },
+      "sa": {
+        "private": "Private tourist home (Ministry of Tourism licence)",
+        "standard": "Establishment rated 3 stars or less, economy, camp",
+        "fourPlus": "Establishment rated 4 stars or more"
+      },
+      "saApplied": "National municipal fee: {{rate}}% of the nightly price, declared monthly on Balady.",
+      "helpSa": "Saudi Arabia: national municipal occupancy fee (MOMAH) — 2.5%, or 5% for 4 stars and above. No age exemption."
     }
   },
   "marketPositioning": {
@@ -16477,7 +16524,11 @@
     "userRequired": "The user is required",
     "teamNameRequired": "The team name is required",
     "emailRequired": "The email is required",
-    "orgRoleRequiredWithOrg": "The organisation role is required when an organisation is selected"
+    "orgRoleRequiredWithOrg": "The organisation role is required when an organisation is selected",
+    "touristTaxPercentRequired": "Percentage required",
+    "touristTaxCapRequired": "Cap per person per night required",
+    "touristTaxRateRequired": "Tourist tax amount required",
+    "touristTaxConfirmRequired": "Confirm the tourist tax amount"
   },
   "loadingStates": {
     "app": "Loading the application…",

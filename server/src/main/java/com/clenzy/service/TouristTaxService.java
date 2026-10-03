@@ -166,6 +166,9 @@ public class TouristTaxService {
         // l'exoneration des mineurs active (0314), sinon repli sur le total.
         boolean exemptMinors = Boolean.TRUE.equals(config.getExemptMinors());
         int taxablePersons = reservation.taxablePersons(exemptMinors);
+        if (taxablePersons <= 0) {
+            return Optional.empty(); // séjour de mineurs exonérés : aucune taxe (et pas de division par zéro)
+        }
         long taxedNights = config.getMaxNights() != null
             ? Math.min(nights, config.getMaxNights()) : nights;
 
@@ -192,8 +195,9 @@ public class TouristTaxService {
             surcharge,
             total,
             currency,
-            // La plateforme qui a encaissé le séjour collecte et reverse la taxe elle-même.
-            reservation.isCollectedByChannel()
+            // En France, la plateforme qui a encaissé le séjour collecte et reverse la taxe
+            // (CGCT L2333-34). Au Maroc, aucune plateforme ne la collecte : l'hôte la reverse.
+            reservation.isCollectedByChannel() && isFrench(reservation)
         ));
     }
 
@@ -225,6 +229,11 @@ public class TouristTaxService {
         BigDecimal platformCollected = sum(lines, true);
 
         return new TouristTaxReportDto(from, to, lines, total, lines.size(), missing, platformCollected);
+    }
+
+    private static boolean isFrench(Reservation reservation) {
+        return reservation.getProperty() != null && reservation.getProperty().getCountryCode() != null
+            && "FR".equalsIgnoreCase(reservation.getProperty().getCountryCode().trim());
     }
 
     private static BigDecimal sum(List<TouristTaxReportLineDto> lines, boolean collectedByPlatform) {

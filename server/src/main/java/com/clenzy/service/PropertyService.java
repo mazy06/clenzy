@@ -64,6 +64,7 @@ public class PropertyService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final com.clenzy.service.regulatory.FrCommuneResolver communeResolver;
+    private final com.clenzy.service.TouristTaxService touristTaxService;
 
     public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository,
                           ManagerPropertyRepository managerPropertyRepository,
@@ -75,8 +76,10 @@ public class PropertyService {
                           NotificationService notificationService,
                           TenantContext tenantContext,
                           com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
-                          com.clenzy.service.regulatory.FrCommuneResolver communeResolver) {
+                          com.clenzy.service.regulatory.FrCommuneResolver communeResolver,
+                          com.clenzy.service.TouristTaxService touristTaxService) {
         this.communeResolver = communeResolver;
+        this.touristTaxService = touristTaxService;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.managerPropertyRepository = managerPropertyRepository;
@@ -95,8 +98,10 @@ public class PropertyService {
         Property property = new Property();
         apply(dto, property);
         property.setOrganizationId(tenantContext.getRequiredOrganizationId());
+        requireTouristTaxDeclaration(property, dto.touristTax);
         refreshCommune(property, true);
         property = propertyRepository.save(property);
+        declareTouristTax(property, dto.touristTax);
         PropertyDto result = toDto(property);
 
         try {
@@ -382,6 +387,74 @@ public class PropertyService {
         } catch (Exception e) {
             log.warn("Erreur notification PROPERTY_DELETED: {}", e.getMessage());
         }
+    }
+
+    /** Pays ou la taxe de sejour est declaree a la creation du logement. */
+    private static final java.util.Set<String> TOURIST_TAX_COUNTRIES = java.util.Set.of("FR", "MA", "SA");
+
+    private static boolean touristTaxCountry(Property property) {
+        return property.getCountryCode() != null
+                && TOURIST_TAX_COUNTRIES.contains(property.getCountryCode().trim().toUpperCase(java.util.Locale.ROOT));
+    }
+
+    /**
+     * Taxe de sejour (France, Maroc) ou redevance municipale d'occupation (Arabie saoudite)
+     * OBLIGATOIRE a la creation du logement : le
+     * montant est declare et confirme par l'operateur (decision produit 2026-10-02) — un
+     * tarif suggere peut etre faux, et une taxe mal collectee engage l'exploitant.
+     */
+    static void requireTouristTaxDeclaration(Property property, com.clenzy.dto.TouristTaxDeclarationDto tax) {
+        if (!touristTaxCountry(property)) {
+            return;
+        }
+        if (tax == null || !tax.confirmed()) {
+            throw new IllegalArgumentException(
+                    "Taxe de séjour à déclarer : confirmez le montant appliqué à ce logement (ou l'absence de taxe).");
+        }
+        if (tax.noTax()) {
+            return;
+        }
+        var mode = tax.calculationMode() != null ? tax.calculationMode()
+                : com.clenzy.model.TouristTaxConfig.TaxCalculationMode.PER_PERSON_PER_NIGHT;
+        boolean valid = switch (mode) {
+            case PER_PERSON_PER_NIGHT, FLAT_PER_NIGHT ->
+                    tax.ratePerPerson() != null && tax.ratePerPerson().signum() > 0;
+            // Plafond exigé en France seulement : la redevance saoudienne est un pourcentage
+            // du prix de la nuit, sans plafond.
+            case PERCENTAGE_OF_RATE -> tax.percentageRate() != null && tax.percentageRate().signum() > 0
+                    && ("SA".equalsIgnoreCase(property.getCountryCode().trim())
+                        || (tax.capPerPersonNight() != null && tax.capPerPersonNight().signum() > 0));
+        };
+        if (!valid) {
+            throw new IllegalArgumentException(mode == com.clenzy.model.TouristTaxConfig.TaxCalculationMode.PERCENTAGE_OF_RATE
+                    ? "Taxe de séjour : le pourcentage et son plafond par personne et par nuit sont requis."
+                    : "Taxe de séjour : le montant par nuit doit être supérieur à zéro.");
+        }
+    }
+
+    /** Bareme PROPRE au logement, tel que declare ; « pas de taxe » = bareme desactive explicite. */
+    private void declareTouristTax(Property property, com.clenzy.dto.TouristTaxDeclarationDto tax) {
+        if (!touristTaxCountry(property) || tax == null) {
+            return;
+        }
+        String country = property.getCountryCode().trim().toUpperCase(java.util.Locale.ROOT);
+        boolean morocco = "MA".equals(country);
+        // Arabie saoudite : redevance sur le prix de la nuit, sans exonération par âge.
+        boolean saudi = "SA".equals(country);
+        touristTaxService.upsertConfig(new com.clenzy.dto.TouristTaxConfigRequest(
+                property.getId(),
+                property.getCity() != null ? property.getCity() : property.getName(),
+                property.getCommuneInseeCode(),
+                tax.calculationMode(),
+                tax.ratePerPerson(),
+                tax.percentageRate(),
+                tax.capPerPersonNight(),
+                tax.departmentalSurchargePct(),
+                tax.regionalSurchargePct(),
+                !saudi,
+                null,
+                saudi ? 0 : tax.childrenExemptUnder() != null ? tax.childrenExemptUnder() : (morocco ? 12 : 18),
+                !tax.noTax()), property.getOrganizationId());
     }
 
     /**

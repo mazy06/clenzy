@@ -1,0 +1,26 @@
+Generated with the built-in image_gen tool.
+Actual generated dimensions: 2172 x 724 px (3:1). A 6:1 composition was requested; LinkedIn's company cover crop must be adjusted to retain the text.
+
+Use case: ads-marketing.
+Create the finished banner artwork for the Baitly LinkedIn COMPANY page. ALL TEXT MUST BE IN ENGLISH. Very wide, shallow horizontal cover, exact 6:1 aspect ratio, preferably 3072 x 512 pixels. Full-bleed final artwork only, no presentation mockup, no LinkedIn UI, no borders.
+
+Input 1 is a BRAND REFERENCE: Baitly house/circuit logo and dark blue brand background. Input 2 is a PHOTO REFERENCE: a hospitality host in a warm riad reception working on the Baitly multi-property reservation calendar. Reuse that scene and recognizable PMS planning UI, thoughtfully recomposed for a panoramic banner. Localize any visible interface labels to English or keep the calendar at a natural photographic scale without tiny readable text. Do not retain French text anywhere.
+
+Creative direction: polished, credible hospitality software company, premium editorial composition. Immediately communicate Baitly is a PMS powered by AI. Brand palette: dominant midnight blue #1B2A35 / #111B31 on 65% of image, warm sand #E0C89B and warm architectural photo highlights on 25%, paper white #F7FBFC for text. Space Grotesk bold-inspired headline and Manrope-inspired supporting typography. No neon, purple, robots, decorative AI brains, holograms, glassmorphism or exaggerated technology effects.
+
+Composition: leftmost 18% is calm dark-blue negative space without text or important objects because LinkedIn company avatar overlaps lower-left. Text block at x=20% to 65%, vertically centered. Photo at rightmost third: cinematic crop of the warm reception, host and computer with recognizably real multi-property planning grid, earthy brown and sand reservation bars. Dark-blue overlay at photo's left edge integrates it gently into the solid background. Safe padding above and below. Do not add letterbox margins or put a thin banner on a taller canvas; output itself must be a wide shallow 6:1 banner.
+
+Exact English text:
+Small brand wordmark above headline: "Baitly"
+Large hero headline on two lines:
+"Less admin."
+"More hospitality."
+First line paper white, second warm sand, solid colors. Bold editorial typography, clean generous spacing.
+Supporting line: "The AI-powered PMS for modern hosts."
+
+A single small opaque dark-blue assistant panel neatly integrated into the right photo, without obscuring the calendar:
+Heading: "AI agents"
+Small supporting line: "You stay in control."
+One subtle warm sand status dot. This panel is a tasteful product cue, not a flashy advertisement.
+
+Expert kerning and strong readability at LinkedIn banner scale. Do not reproduce a large square logo inside the banner because the company avatar already has the logo. No URL, no CTA button, no unrequested text, no French. One beautiful finished company cover.

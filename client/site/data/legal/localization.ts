@@ -51,6 +51,8 @@ export const ARABIC_SOURCE_LABELS: Record<string, string> = {
   frPolice: 'الخدمة العامة الفرنسية · استمارة الشرطة الفردية',
   frTax: 'الخدمة العامة الفرنسية للمقاولات · رسم الإقامة',
   saPrivate: 'أم القرى · لائحة وحدة الضيافة الخاصة، 11 سبتمبر 2026',
+  saMunicipalFees: 'وزارة البلديات · لائحة رسوم الخدمات البلدية، المادتان 28 و29 والبند 16 (القرار 1/762126)',
+  saBalady: 'بلدي · منصة رسوم إشغال مرافق الإيواء',
 };
 
 export const legalSourceLabel = (id: string, language: string) =>

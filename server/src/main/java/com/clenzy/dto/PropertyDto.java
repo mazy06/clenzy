@@ -37,6 +37,11 @@ public class PropertyDto {
     public String countryCode;
     /** Lecture seule : commune INSEE deduite de l'adresse (France). Ignoree en ecriture. */
     public String communeInseeCode;
+    /**
+     * Creation seulement : taxe de sejour declaree par l'operateur, OBLIGATOIRE pour un
+     * logement en France ou au Maroc. Ignoree en mise a jour (bareme gere en reglages).
+     */
+    public TouristTaxDeclarationDto touristTax;
     /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). */
     public String timezone;
     public BigDecimal latitude;

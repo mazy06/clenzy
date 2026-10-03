@@ -62,7 +62,8 @@ class PropertyServiceTest {
                 listingMappingRepository,
                 notificationService, tenantContext,
                 new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
-                org.mockito.Mockito.mock(com.clenzy.service.regulatory.FrCommuneResolver.class));
+                org.mockito.Mockito.mock(com.clenzy.service.regulatory.FrCommuneResolver.class),
+                org.mockito.Mockito.mock(com.clenzy.service.TouristTaxService.class));
     }
 
     private User buildOwner(Long id) {

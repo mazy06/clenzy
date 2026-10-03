@@ -146,6 +146,12 @@
       "prompt": "Saudi Arabia. Article: guest privacy and access to an occupied private unit. Intimate close photograph of a modern brushed-brass privacy door latch engaged from inside a Saudi rental apartment, with a neutral fabric do-not-disturb tag without writing hanging from door lever, softly blurred comfortable sandstone-color room beyond. No cameras, no surveillance, no people, calming afternoon shadows, strong tangible sense of private secure space.",
       "alt": "Verrou intérieur fermé pour préserver l’intimité des voyageurs dans une unité saoudienne.",
       "originalFile": "exec-3b1185c9-0029-4084-a4a3-d225009ae3e7.png"
+    },
+    {
+      "slug": "arabie-saoudite-redevance-municipale-occupation",
+      "prompt": "Saudi Arabia. Article: monthly municipal occupancy fee for tourist accommodation. Still life on a pale limestone reception counter of a contemporary Saudi guest apartment building: a matte calculator with a blank display, a short neat stack of blank monthly receipt slips held by a brass clip, a ceramic cup of Arabic coffee with a brass dallah coffee pot softly blurred behind, warm late-afternoon light through a mashrabiya-patterned window casting geometric shadows across the counter. No people, no readable text or numbers, calm and orderly sense of monthly bookkeeping.",
+      "alt": "Calculatrice et relevés mensuels sur le comptoir d’accueil d’un hébergement saoudien.",
+      "originalFile": "fourni-hors-pipeline.webp"
     }
   ]
 }
