@@ -1,26 +1,121 @@
-import { useId, useState } from 'react';
+import { useId, useState } from "react";
 import {
+  ArrowRightIcon,
   ArrowUpRightIcon,
+  CheckIcon,
   ChevronDownIcon,
+  CircleHelpIcon,
   DownloadIcon,
   FileCheck2Icon,
-} from 'lucide-react';
-import { PMS_PORTABILITY, PMS_RESEARCH_DATE } from '../data/pmsPortability';
-import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
-import type { SiteLanguage } from '../lib/siteLanguage';
-import { downloadText } from '../lib/downloadText';
+  MinusIcon,
+  XIcon,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  EXIT_CRITERIA,
+  PMS_PORTABILITY,
+  PMS_RESEARCH_DATE,
+  exitLevel,
+  type ExitSignal,
+  type PmsPortability,
+} from "../data/pmsPortability";
+import { PMS_PORTABILITY_MESSAGES } from "../lib/messages/pmsPortability";
+import type { SiteLanguage } from "../lib/siteLanguage";
+import { downloadText } from "../lib/downloadText";
+import type { PortabilityMessages } from "../lib/messages/pmsPortability";
+
+const SIGNAL_ICONS: Record<ExitSignal, typeof CheckIcon> = {
+  yes: CheckIcon,
+  partial: MinusIcon,
+  no: XIcon,
+  unknown: CircleHelpIcon,
+};
+
+function ExitComparison({
+  provider,
+  language,
+  m,
+}: {
+  provider: PmsPortability;
+  language: SiteLanguage;
+  m: PortabilityMessages;
+}) {
+  const level = exitLevel(provider.exit);
+  return (
+    <div className="bm-pms-exit">
+      <div className="bm-pms-exit-heading">
+        <span className="bm-label">{m.exitTitle}</span>
+        <p>
+          <strong className={`bm-exit-level bm-exit-${level}`}>
+            {m.exitLevels[level]}
+          </strong>{" "}
+          {m.exitHints[level]}
+        </p>
+      </div>
+      <table className="bm-exit-table">
+        <thead>
+          <tr>
+            <td />
+            <th scope="col">
+              <bdi>{provider.name}</bdi>
+            </th>
+            <th scope="col">{m.baitly}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {EXIT_CRITERIA.map((criterion) => {
+            const signal = provider.exit[criterion];
+            const Icon = SIGNAL_ICONS[signal];
+            return (
+              <tr key={criterion}>
+                <th scope="row">{m.criteria[criterion]}</th>
+                <td>
+                  <span className={`bm-signal bm-signal-${signal}`}>
+                    <Icon aria-hidden="true" />
+                    {m.signals[signal]}
+                  </span>
+                </td>
+                <td>
+                  <span className="bm-signal bm-signal-yes">
+                    <CheckIcon aria-hidden="true" />
+                    {m.baitlyValues[criterion]}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <dl className="bm-pms-facts bm-pms-exit-facts">
+        <div>
+          <dt>{m.exitTerms}</dt>
+          <dd>{provider.exitTerms[language]}</dd>
+        </div>
+        {provider.feedback ? (
+          <div>
+            <dt>{m.feedback}</dt>
+            <dd>
+              {provider.feedback[language]}
+              <small>{m.feedbackNote}</small>
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+    </div>
+  );
+}
 
 export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
   const id = useId();
   // Temporary exploration on a public page, not an account preference.
-  const [providerId, setProviderId] = useState('');
+  const [providerId, setProviderId] = useState("");
   const provider = PMS_PORTABILITY.find((item) => item.id === providerId);
   const m = PMS_PORTABILITY_MESSAGES[language];
   const reviewed = new Intl.DateTimeFormat(language, {
-    dateStyle: 'long',
-    timeZone: 'UTC',
-    calendar: 'gregory',
-    numberingSystem: language === 'ar' ? 'arab' : 'latn',
+    dateStyle: "long",
+    timeZone: "UTC",
+    calendar: "gregory",
+    numberingSystem: language === "ar" ? "arab" : "latn",
   }).format(new Date(`${PMS_RESEARCH_DATE}T12:00:00Z`));
 
   return (
@@ -53,7 +148,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
           ? `${provider.name} : ${m.evidence[provider.evidence]}`
           : providerId
             ? m.unknownTitle
-            : ''}
+            : ""}
       </p>
       <div id={`${id}-details`} className="bm-pms-result">
         {provider ? (
@@ -85,6 +180,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
                 <dd>{provider.timing[language]}</dd>
               </div>
             </dl>
+            <ExitComparison provider={provider} language={language} m={m} />
             <div className="bm-pms-evidence">
               <nav aria-label={`${m.sources} : ${provider.name}`}>
                 {provider.sources.map((source, index) => (
@@ -96,7 +192,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
                   >
                     {m.sourceKinds[source.kind]}
                     <span className="sr-only">
-                      {' '}
+                      {" "}
                       {provider.name} ({index + 1})
                     </span>
                     <ArrowUpRightIcon aria-hidden="true" />
@@ -115,13 +211,20 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
                       `${m.coverage}\n${provider.coverage[language]}\n${provider.formats}`,
                       `${m.caution}\n${provider.caution[language]}`,
                       `${m.timing}\n${provider.timing[language]}`,
-                      m.checklist.map((item) => `[ ] ${item}`).join('\n'),
+                      `${m.exitTitle} : ${m.exitLevels[exitLevel(provider.exit)]}\n${EXIT_CRITERIA.map((criterion) => `- ${m.criteria[criterion]} : ${m.signals[provider.exit[criterion]]}`).join("\n")}`,
+                      `${m.exitTerms}\n${provider.exitTerms[language]}`,
+                      ...(provider.feedback
+                        ? [
+                            `${m.feedback}\n${provider.feedback[language]}\n${m.feedbackNote}`,
+                          ]
+                        : []),
+                      m.checklist.map((item) => `[ ] ${item}`).join("\n"),
                       m.methodology,
                       ...provider.sources.map(
                         (source) =>
                           `${m.sourceKinds[source.kind]} : ${source.url}`,
                       ),
-                    ].join('\n\n'),
+                    ].join("\n\n"),
                   )
                 }
               >
@@ -141,7 +244,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
         )}
       </div>
       <p className="bm-pms-methodology">
-        {m.checked} <time dateTime={PMS_RESEARCH_DATE}>{reviewed}</time>.{' '}
+        {m.checked} <time dateTime={PMS_RESEARCH_DATE}>{reviewed}</time>.{" "}
         {m.methodology}
       </p>
     </div>
@@ -176,5 +279,37 @@ export function BaitlyPortabilityCommitment({
         <p className="bm-promise-status">{m.promiseStatus}</p>
       </div>
     </section>
+  );
+}
+
+/** Home page entry point: the same sourced picker, framed for visitors who already run a PMS. */
+export function BaitlyPmsHomeSection({ language }: { language: SiteLanguage }) {
+  const m = PMS_PORTABILITY_MESSAGES[language];
+  return (
+    <div className="bm-page bm-home-portability">
+      <section
+        className="site-shell bm-home-portability-guide"
+        aria-labelledby="home-portability-title"
+      >
+        <div className="bm-section-heading">
+          <span className="bm-label">{m.homeTag}</span>
+          <h2 id="home-portability-title">{m.homeTitle}</h2>
+          <p>{m.homeIntro}</p>
+        </div>
+        <BaitlyPmsPortability language={language} />
+        <ul className="bm-home-portability-context">
+          <li>{m.airbnbNote}</li>
+          <li>{m.dataAct}</li>
+        </ul>
+        <Link
+          to={`/migration?lang=${language}`}
+          className="bm-button bm-home-portability-link"
+        >
+          {m.homeLink}
+          <ArrowRightIcon aria-hidden="true" />
+        </Link>
+      </section>
+      <BaitlyPortabilityCommitment language={language} />
+    </div>
   );
 }

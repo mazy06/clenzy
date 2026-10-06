@@ -377,7 +377,7 @@
   border-color: var(--bm-green);
   color: var(--bm-ink);
 }
-.bm-source-options button[aria-pressed='true'] {
+.bm-source-options button[aria-pressed="true"] {
   background: var(--bm-mint);
   border-color: var(--bm-green);
   color: var(--bm-green);
@@ -388,7 +388,7 @@
   margin-inline-start: auto;
   opacity: 0;
 }
-.bm-source-options button[aria-pressed='true'] .bm-direction {
+.bm-source-options button[aria-pressed="true"] .bm-direction {
   opacity: 1;
 }
 .bm-channel-marks {
@@ -724,7 +724,7 @@
   line-height: 1.7;
   margin-top: 0.8rem;
 }
-[dir='rtl'] .bm-pms-evidence a svg {
+[dir="rtl"] .bm-pms-evidence a svg {
   transform: scaleX(-1);
 }
 @media (max-width: 800px) {
@@ -747,6 +747,126 @@
   .bm-portability-promise {
     grid-template-columns: 1fr;
     gap: 2rem;
+  }
+}
+
+/* Exit comparison: four documented criteria, the selected PMS beside Baitly's commitments. */
+.bm-pms-exit {
+  border-top: 1px solid var(--bm-line);
+  padding-block: 1.5rem 0.5rem;
+}
+.bm-pms-exit-heading p {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--bm-muted);
+  margin-top: 0.4rem;
+  max-width: 90ch;
+}
+.bm-exit-level {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  margin-inline-end: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bm-ink);
+  background: var(--bm-blue);
+}
+.bm-exit-smooth {
+  background: var(--bm-mint);
+  color: var(--bm-green);
+}
+.bm-exit-constrained {
+  background: oklch(94% 0.035 50);
+  color: oklch(42% 0.11 45);
+}
+.bm-exit-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+}
+.bm-exit-table th,
+.bm-exit-table td {
+  text-align: start;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--bm-line);
+  vertical-align: top;
+}
+.bm-exit-table thead th {
+  font-size: 0.75rem;
+  color: var(--bm-muted);
+  font-weight: 600;
+}
+.bm-exit-table tbody th {
+  font-weight: 600;
+  width: 32%;
+}
+.bm-signal {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  line-height: 1.5;
+}
+.bm-signal svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 0.15rem;
+}
+.bm-signal-yes svg {
+  color: var(--bm-green);
+}
+.bm-signal-no svg {
+  color: oklch(50% 0.13 35);
+}
+.bm-signal-partial svg,
+.bm-signal-unknown svg {
+  color: var(--bm-muted);
+}
+.bm-pms-exit-facts {
+  grid-template-columns: 1fr 1fr;
+}
+.bm-pms-exit-facts small {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--bm-muted);
+}
+.bm-home-portability {
+  border-top: 1px solid var(--bm-line);
+}
+.bm-home-portability-guide {
+  padding-block: clamp(3.5rem, 6vw, 6rem) clamp(2rem, 4vw, 3.5rem);
+}
+.bm-home-portability-guide .bm-section-heading {
+  margin-bottom: 2rem;
+}
+.bm-home-portability-context {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 2.5rem;
+  margin-top: 2rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--bm-muted);
+}
+.bm-home-portability-context li {
+  border-inline-start: 3px solid var(--bm-green);
+  padding-inline-start: 1rem;
+}
+.bm-home-portability-link {
+  margin-top: 2rem;
+}
+@media (max-width: 800px) {
+  .bm-pms-exit-facts,
+  .bm-home-portability-context {
+    grid-template-columns: 1fr;
+  }
+  .bm-exit-table th,
+  .bm-exit-table td {
+    padding-inline: 0.4rem;
   }
 }
 
@@ -784,7 +904,7 @@
   color: oklch(42% 0.05 235);
 }
 .bm-step-line::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -4px;
   inset-inline-start: 0;
@@ -1086,21 +1206,21 @@
 }
 
 /* Propriétés physiques limitées aux illustrations géométriques. */
-[dir='rtl'] .bm-page {
+[dir="rtl"] .bm-page {
   --bm-transfer-shift: -22px;
 }
-[dir='rtl'] .bm-transfer-link > svg,
-[dir='rtl'] .bm-direction,
-[dir='rtl'] .bm-mapping td:first-child > svg,
-[dir='rtl'] .bm-eyebrow svg,
-[dir='rtl'] .bm-button .lucide-arrow-right,
-[dir='rtl'] .bm-support .bm-text-link svg {
+[dir="rtl"] .bm-transfer-link > svg,
+[dir="rtl"] .bm-direction,
+[dir="rtl"] .bm-mapping td:first-child > svg,
+[dir="rtl"] .bm-eyebrow svg,
+[dir="rtl"] .bm-button .lucide-arrow-right,
+[dir="rtl"] .bm-support .bm-text-link svg {
   transform: rotate(180deg);
 }
-[dir='rtl'] .bm-import-track span {
+[dir="rtl"] .bm-import-track span {
   transform-origin: right;
 }
-[dir='rtl'] .bm-checklist-fold {
+[dir="rtl"] .bm-checklist-fold {
   transform: scaleX(-1);
 }
 

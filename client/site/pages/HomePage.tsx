@@ -1,5 +1,5 @@
-import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
-import { Link } from 'react-router-dom';
+import SiteAcquisitionLink from "../components/SiteAcquisitionLink";
+import { Link } from "react-router-dom";
 import {
   ArrowDownIcon,
   ArrowRightIcon,
@@ -10,29 +10,27 @@ import {
   PlusIcon,
   ShieldCheckIcon,
   SparklesIcon,
-} from 'lucide-react';
-import Reveal from '../components/Reveal';
-import AgentActionDeck from '../components/AgentActionDeck';
-import { useSiteLanguage } from '../lib/siteLanguage';
-import { HOME_MESSAGES } from '../lib/messages/home';
-import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
-import { useSiteLaunch } from '../lib/siteLaunch';
-import { moduleText } from '../lib/messages/modules';
-import BaitlyAgentsPlanningDemo from '../components/BaitlyAgentsPlanningDemo';
-import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
-import BaitlyHomeResources from '../components/BaitlyHomeResources';
-import LandingPlanningMockup from '../components/LandingPlanningMockup';
-import BaitlyHeroPlanningPhoto from '../components/BaitlyHeroPlanningPhoto';
-import { BRANDS } from '../components/BrandLogos';
-import { MODULES } from '../data/catalog';
+} from "lucide-react";
+import Reveal from "../components/Reveal";
+import AgentActionDeck from "../components/AgentActionDeck";
+import { useSiteLanguage } from "../lib/siteLanguage";
+import { HOME_MESSAGES } from "../lib/messages/home";
+import { PRELAUNCH_MESSAGES } from "../lib/messages/prelaunch";
+import { useSiteLaunch } from "../lib/siteLaunch";
+import { moduleText } from "../lib/messages/modules";
+import BaitlyAgentsPlanningDemo from "../components/BaitlyAgentsPlanningDemo";
+import { MOCKUP_MESSAGES } from "../lib/messages/mockups";
+import BaitlyHomeResources from "../components/BaitlyHomeResources";
+import { BaitlyPmsHomeSection } from "../components/BaitlyPmsPortability";
+import LandingPlanningMockup from "../components/LandingPlanningMockup";
+import BaitlyHeroPlanningPhoto from "../components/BaitlyHeroPlanningPhoto";
+import { BRANDS } from "../components/BrandLogos";
+import { MODULES } from "../data/catalog";
 // Editorial photos are separate from the fictional properties in the demos.
-import interiorPhoto from '../assets/photos/bedroom.jpg';
-import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import interiorPhoto from "../assets/photos/bedroom.jpg";
+import { SITE_PHOTOS, sitePhotoAlt } from "../data/baitlyPhotography";
 
-const {
-  homeLocal: localPhoto,
-  homeClosing: poolPhoto,
-} = SITE_PHOTOS;
+const { homeLocal: localPhoto, homeClosing: poolPhoto } = SITE_PHOTOS;
 
 function Hero() {
   const { language } = useSiteLanguage();
@@ -44,7 +42,7 @@ function Hero() {
         <div className="baitly-hero-copy">
           <Reveal>
             <h1 id="home-title">
-              <span className="baitly-hero-title-primary">{m.title1}</span>{' '}
+              <span className="baitly-hero-title-primary">{m.title1}</span>{" "}
               <span>{m.title2}</span>
             </h1>
           </Reveal>
@@ -60,12 +58,12 @@ function Hero() {
               <a className="baitly-play-link" href="#en-action">
                 <span>
                   <PlayIcon />
-                </span>{' '}
+                </span>{" "}
                 {m.watch}
               </a>
             </div>
             <p className="baitly-reassurance">
-              <CheckIcon />{' '}
+              <CheckIcon />{" "}
               {paused ? (
                 PRELAUNCH_MESSAGES[language].note
               ) : (
@@ -94,12 +92,12 @@ function Hero() {
 
 const FEATURED_BRANDS = BRANDS.filter(({ name }) =>
   [
-    'Airbnb',
-    'Booking.com',
-    'Expedia',
-    'Stripe',
-    'WhatsApp',
-    'PayZone',
+    "Airbnb",
+    "Booking.com",
+    "Expedia",
+    "Stripe",
+    "WhatsApp",
+    "PayZone",
   ].includes(name),
 );
 function ChannelsBar() {
@@ -135,7 +133,7 @@ function PlatformSection() {
   const m = HOME_MESSAGES[language].platform;
   const otherModules = MODULES.filter(
     ({ slug }) =>
-      !['agents-ia', 'pms-channel-manager', 'booking-engine'].includes(slug),
+      !["agents-ia", "pms-channel-manager", "booking-engine"].includes(slug),
   );
   return (
     <section
@@ -251,7 +249,7 @@ function AgentsSection() {
         </Reveal>
         <BaitlyAgentsPlanningDemo />
         <p className="baitly-demo-caption">
-          {m.caption}{' '}
+          {m.caption}{" "}
           <Link to="/produit/agents-ia" className="baitly-text-link">
             {m.linkAgents} <ArrowRightIcon />
           </Link>
@@ -270,7 +268,7 @@ function LocalSection() {
         <Reveal className="baitly-local-visual">
           <img
             src={localPhoto}
-            alt={sitePhotoAlt('homeLocal', language)}
+            alt={sitePhotoAlt("homeLocal", language)}
             width="640"
             height="427"
             loading="lazy"
@@ -320,6 +318,11 @@ function LocalSection() {
   );
 }
 
+function PortabilitySection() {
+  const { language } = useSiteLanguage();
+  return <BaitlyPmsHomeSection language={language} />;
+}
+
 function FaqSection() {
   const { language } = useSiteLanguage();
   const m = HOME_MESSAGES[language].faq;
@@ -362,7 +365,7 @@ function FinalCta() {
       <div className="baitly-final-cta">
         <img
           src={poolPhoto}
-          alt={sitePhotoAlt('homeClosing', language)}
+          alt={sitePhotoAlt("homeClosing", language)}
           width="640"
           height="828"
           loading="lazy"
@@ -400,6 +403,7 @@ export default function HomePage() {
       <PlatformSection />
       <AgentsSection />
       <LocalSection />
+      <PortabilitySection />
       <BaitlyHomeResources />
       <FaqSection />
       <FinalCta />
